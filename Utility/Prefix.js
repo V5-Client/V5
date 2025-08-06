@@ -1,19 +1,19 @@
 //let { ModuleManager } = global.settingSelection
 
-const Prefix = "&8[&5Cinder &c♨ &8]";
+const Startln = "Zurviq &r";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
   java.util.Locale.US
 );
 
-export class Chat {
+class Chat {
   /**
    * Sends a message with the client prefix.
    * @param {string} msg
    */
   message(msg) {
     if (!msg) return;
-    ChatLib.chat(Prefix + (msg ?? null));
+    ChatLib.chat(Startln + (msg ?? null));
   }
 
   /**
@@ -22,17 +22,18 @@ export class Chat {
    */
   debugMessage(msg) {
     if (!msg) return;
-    if (
-      !global.settingSelection?.ModuleManager?.getSetting(
-        "Other",
-        "Debug Messages"
-      )
-    )
-      return;
-    ChatLib.chat(Prefix + (msg ?? null));
+    // if (
+    //  !global.settingSelection?.ModuleManager?.getSetting(
+    //"Other", "Debug Messages";
+    //  )
+    // )
+    // return;
+    ChatLib.chat(Startln + (msg ?? null));
   }
 
   log(msg) {
-    console.log(Prefix + (msg ?? null));
+    console.log(Startln + (msg ?? null));
   }
 }
+
+export const Prefix = new Chat();
