@@ -26,6 +26,7 @@ class FlowstateUtilsClass {
 
     register("PacketReceived", (packet) => {
       if (
+        Player.getHeldItem().getEnchantments() &&
         Player.getHeldItem()
           .getEnchantments()
           .entrySet()

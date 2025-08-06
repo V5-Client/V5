@@ -10,6 +10,7 @@ Client.getMinecraft()
 
 /* Utility */
 import { Flowstate } from "./Utility/Flowstate.js";
+import { GuiRendering } from "./Utility/GuiRenders.js";
 import { Clicking } from "./Utility/Inventory";
 import { Invoking } from "./Utility/Invoking";
 import { Calcs } from "./Utility/Math.js";
@@ -20,6 +21,9 @@ import { TConversion } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
 // do raytrace
+
+/* GUI */
+import "./GUI/Gui.js";
 
 /* Mixins */
 
