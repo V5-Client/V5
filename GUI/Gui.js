@@ -1,14 +1,3 @@
-import Font from "FontLib";
-
-const font_bold = new Font("Client/assets/Bold.ttf", 36);
-const font_17 = new Font("Client/assets/SF-Pro-Display-Medium.ttf", 17);
-const font_15 = new Font("Client/assets/SF-Pro-Display-Medium.ttf", 15);
-const font_15_5 = new Font("Client/assets/SF-Pro-Display-Medium.ttf", 15.5);
-const font_19 = new Font("Client/assets/SF-Pro-Display-Medium.ttf", 19);
-const font_19_5 = new Font("Client/SF-Pro-Display-Medium.ttf", 19.5);
-const font_20 = new Font("Client/assets/SF-Pro-Display-Medium.ttf", 20);
-const font_20_5 = new Font("Client/assets/SF-Pro-Display-Medium.ttf", 20.5);
-
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
   "gg.essential.elementa.components.UIRoundedRectangle"
