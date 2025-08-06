@@ -12,6 +12,7 @@ import { Popup } from "./Utility/PopUpMenu";
 import { TConversion } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
+import { MathUtils } from "./Utility/MathUtils.js";
 
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
 
