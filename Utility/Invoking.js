@@ -1,7 +1,7 @@
 //let { mc, BP, C08PacketPlayerBlockPlacement, Utils, TimeHelper, chat } =
 //global.export;
 
-let TimeHelper = global;
+//let BP =
 
 const mc = Client.getMinecraft();
 const LeftClickMouse = mc.getClass().getDeclaredMethod("method_1536");
@@ -10,9 +10,11 @@ LeftClickMouse.setAccessible(true);
 const RightClickMouse = mc.getClass().getDeclaredMethod("method_1583");
 RightClickMouse.setAccessible(true);
 
-export class Invoking {
+class MouseClicks {
   constructor() {
-    this.cooldown = new TimeHelper();
+    register("command", () => {
+      this.rightClickPacket();
+    }).setName("clickp");
   }
 
   /**
@@ -40,14 +42,13 @@ export class Invoking {
    * Sends a right click packet
    * @param {*} ticks
    */
-  /*
-  rightClickPacket(ticks = 0) {
+  /*rightClickPacket(ticks = 0) {
     if (
       ticks === 0 &&
       Player.getInventory().getStackInSlot(Player.getHeldItemIndex())
     ) {
       Utils.sendPacket(
-        new C08PacketPlayerBlockPlacement(
+        new PlayerInteractBlockC2SPacket(
           new BP(-1, -1, -1),
           255,
           Player.getInventory()
@@ -61,7 +62,7 @@ export class Invoking {
     } else {
       Client.scheduleTask(ticks, () => {
         Utils.sendPacket(
-          new C08PacketPlayerBlockPlacement(
+          new PlayerInteractBlockC2SPacket(
             new BP(-1, -1, -1),
             255,
             Player.getInventory()
@@ -74,7 +75,7 @@ export class Invoking {
         );
       });
     }
-  } */
+  }
 
   /**
    * Right clicks
@@ -118,3 +119,5 @@ export class Invoking {
     return -1;
   }
 }
+
+export const Invoking = new MouseClicks();

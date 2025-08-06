@@ -12,7 +12,7 @@ import "./Utility/BloomCore/RaytraceBlocks";
 
 // Utility
 import { Clicking } from "./Utility/Inventory";
-import { Invoking } from "./Utility/Invoking";
+import { Clicks } from "./Utility/Invoking";
 import { Calculations } from "./Utility/Math";
 import { Movement } from "./Utility/Movement";
 import { Popup } from "./Utility/PopUpMenu";

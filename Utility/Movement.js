@@ -168,3 +168,5 @@ export class Movement {
     this.setKey("shift", false);
   }
 }
+
+export const Moving = new Movement();

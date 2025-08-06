@@ -1,4 +1,4 @@
-export class Numbers {
+class Numbers {
   addNotation(x) {
     if (x === undefined) {
       return "";
@@ -33,3 +33,5 @@ export class Numbers {
     return `${mins}m ${secs.toFixed(secondDecimals)}s`;
   }
 }
+
+export const TConversion = new Numbers();

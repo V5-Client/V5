@@ -1,11 +1,5 @@
-//let { mc, TimeHelper, chat } = global.export;
-
-import { Time } from "./Timing";
-
 class InventoryUtilsClass {
-  constructor() {
-    this.cooldown = new Time();
-  }
+  constructor() {}
 
   /**
    * Strips Minecraft formatting codes from a string

@@ -3,6 +3,6 @@
   "creator": "rdbt",
   "description": "discord.gg/Scatha",
   "version": "4.8.6",
-  "entry": "loader.js",
+  "entry": "loaderV2.js",
   "requires": []
 }
