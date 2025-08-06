@@ -1,6 +1,6 @@
 //let { ModuleManager } = global.settingSelection
 
-const Startln = "Zurviq &r";
+const Startln = "Zurviq &b";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
   java.util.Locale.US
