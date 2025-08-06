@@ -6,13 +6,13 @@ if (!global.Client) global.Client = {};
 import { Flowstate } from "./Utility/Flowstate.js";
 import { Clicking } from "./Utility/Inventory";
 import { Invoking } from "./Utility/Invoking";
+import { Calcs } from "./Utility/Math.js";
 import { Moving } from "./Utility/Movement";
 import { Popup } from "./Utility/PopUpMenu";
-//import { Chat } from "./Utility/Prefix";
+import { Prefix } from "./Utility/Prefix";
 import { TConversion } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
-import { MathUtils } from "./Utility/MathUtils.js";
 
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
 
