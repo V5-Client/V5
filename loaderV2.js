@@ -1,8 +1,14 @@
+/* Client Version + Title */
+
+export const Version = " 1.0.0";
+
+Client.getMinecraft()
+  .getWindow()
+  .setTitle("Zurviq" + Version);
+
 /* Dependencies */
 
-if (!global.Client) global.Client = {};
-
-// Utility
+/* Utility */
 import { Flowstate } from "./Utility/Flowstate.js";
 import { Clicking } from "./Utility/Inventory";
 import { Invoking } from "./Utility/Invoking";
@@ -13,6 +19,9 @@ import { Prefix } from "./Utility/Prefix";
 import { TConversion } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
+// do raytrace
+
+/* Mixins */
 
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
 
