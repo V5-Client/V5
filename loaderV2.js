@@ -15,10 +15,12 @@ import { Flowstate } from "./Utility/Flowstate.js";
 import { GuiRendering } from "./Utility/GuiRenders.js";
 import { Clicking } from "./Utility/Inventory";
 import { Invoking } from "./Utility/Invoking";
+import { Utils } from "./Utility/Main.js";
 import { Calcs } from "./Utility/Math.js";
 import { Moving } from "./Utility/Movement";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
+import { registerEventSB } from "./Utility/SkyblockEvents.js";
 import { TConversion } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
@@ -42,4 +44,13 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
   if (instance instanceof StainedGlassPaneBlock) {
     cir.setReturnValue(VoxelShapes.fullCube());
   }
+});
+
+/*const entries = TabList.getNames();
+entries.forEach((name) => {
+  console.log(name);
+});*/
+
+registerEventSB("serverchange", () => {
+  ChatLib.chat("Server changed!");
 });
