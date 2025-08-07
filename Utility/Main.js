@@ -164,78 +164,11 @@ class UtilsClass {
     };
   };
 
-  /**
-   * @returns {vec}
-   */
-  getPlayerNode() {
-    return this.getEntityPathfindLocation(Player.getPlayer());
-  }
-
-  /**
-   * @param {MCEntity} entity
-   * @returns {vec}
-   */
-  getEntityPathfindLocation(entity) {
-    let entityCt = new Entity(entity);
-    let entityPosition = new BlockPos(
-      Math.floor(entityCt.getX()),
-      Math.floor(entityCt.getY()),
-      Math.floor(entityCt.getZ())
-    );
-    let vectors = [];
-    for (let x = -1; x <= 1; x++) {
-      for (let z = -1; z <= 1; z++) {
-        for (let y = 0; y >= -50; y--) {
-          let pos = entityPosition.add(x, y, z);
-          if (!this.validPos(pos)) continue;
-          vectors.push(new Vector(pos));
-          break;
-        }
-      }
-    }
-
-    let closest = null;
-    let lowest;
-    vectors.forEach((vector) => {
-      if (!vector) return;
-      let distance = global.export.MathUtils.getDistance(
-        entityCt,
-        vector.add(0.5, 0.5, 0.5)
-      ).distanceFlat;
-      if (!closest || distance < lowest) {
-        closest = vector;
-        lowest = distance;
-      }
-    });
-    return closest;
-  }
-
-  validPos(pos) {
-    let block = World.getBlockAt(pos);
-    let MCBlock = block.type.mcBlock;
-    if (
-      MCBlock.func_149688_o().func_76224_d() ||
-      (!MCBlock.func_149688_o().func_76220_a() && block.type.getID() != 78)
-    )
-      return false;
-    let totalHeight = 0.0;
-    let blockType1 = World.getBlockAt(pos.add(0, 1, 0)).type;
-    let blockType2 = World.getBlockAt(pos.add(0, 2, 0)).type;
-    let blockType3 = World.getBlockAt(pos.add(0, 3, 0)).type;
-    if (blockType1.getID() != 0.0)
-      totalHeight += blockType1.mcBlock.func_149669_A();
-    if (blockType2.getID() != 0.0)
-      totalHeight += blockType2.mcBlock.func_149669_A();
-    if (blockType3.getID() != 0.0)
-      totalHeight += blockType3.mcBlock.func_149669_A();
-    return totalHeight < 0.6;
-  }
-
   playerIsCollided() {
-    let ABB = Player.getPlayer().func_174813_aQ();
+    let ABB = Player.getPlayer().getBoundingBox();
     let boxes = this.getBlocks();
     for (let i = 0; i < boxes.length; i++) {
-      if (boxes[i].func_72326_a(ABB)) {
+      if (boxes[i].intersects(ABB)) {
         return true;
       }
     }
@@ -303,31 +236,6 @@ class UtilsClass {
 
   isNumber(object) {
     return typeof object === "number";
-  }
-
-  /**
-   * ported from java to js because it could find the "public" class.
-   * @param {BlockPos} pos
-   */
-  isWalkable(pos) {
-    let block = World.getBlockAt(pos);
-    let MCBlock = block.type.mcBlock;
-    if (
-      MCBlock.func_149688_o().func_76224_d() ||
-      (!MCBlock.func_149688_o().func_76220_a() && block.type.getID() != 78)
-    )
-      return false;
-    let totalHeight = 0.0;
-    let blockType1 = World.getBlockAt(pos.add(0, 1, 0)).type;
-    let blockType2 = World.getBlockAt(pos.add(0, 2, 0)).type;
-    let blockType3 = World.getBlockAt(pos.add(0, 3, 0)).type;
-    if (blockType1.getID() != 0.0)
-      totalHeight += blockType1.mcBlock.func_149669_A();
-    if (blockType2.getID() != 0.0)
-      totalHeight += blockType2.mcBlock.func_149669_A();
-    if (blockType3.getID() != 0.0)
-      totalHeight += blockType3.mcBlock.func_149669_A();
-    return totalHeight < 0.6;
   }
 
   /**
