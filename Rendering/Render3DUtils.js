@@ -1,4 +1,6 @@
-import RendererUtils, { RenderLayers } from "./Renderer";
+import RendererUtils, { RenderLayers } from "./RendererUtils";
+
+// Helpers - Use RendererMain.js methods!
 
 const Color = java.awt.Color;
 
@@ -20,7 +22,7 @@ export default class RenderLib3d {
     end = undefined,
     color = Renderer.WHITE,
     depth = true,
-    filled = true,
+    // filled = true, Doesnt work so force it true
   } = {}) {
     if (end) size = end.minus(start);
 
@@ -41,7 +43,8 @@ export default class RenderLib3d {
     const dz = size.z;
 
     Renderer3d.begin(
-      filled ? Renderer.DrawMode.QUADS : Renderer.DrawMode.LINE_STRIP,
+      /* filled ? */ Renderer.DrawMode
+        .QUADS /* : Renderer.DrawMode.LINE_STRIP, */,
       Renderer.VertexFormat.POSITION_COLOR
     )
       .pos(dx, 0, dz)
@@ -108,47 +111,26 @@ export default class RenderLib3d {
     start = new Vec3i(0, 0, 0),
     size = new Vec3i(1, 1, 1),
     end = undefined,
-    color = Renderer.WHITE,
+    color = new Color(1, 1, 1), // default white Color object
     depthTest = true,
     filled = false,
     lineWidth = 2,
   } = {}) {
     if (end) size = end.minus(start);
 
-    if (filled) {
-      // this._drawBox({ start, size, color, depth: depthTest });
-      return;
-      const vertexConsumer = VCP.getBuffer(
-        depthTest
-          ? RenderLayer.getDebugFilledBox()
-          : RenderLayers.getFilledThroughWalls()
-      );
-      VertexRendering.drawFilledBox(
-        Renderer.matrixStack.toMC(),
-        vertexConsumer,
-        0,
-        0,
-        0,
-        size.getX(),
-        size.getY(),
-        size.getZ(),
-        color.red / 255.0,
-        color.green / 255.0,
-        color.blue / 255.0,
-        1.0
-      );
-    } else {
-      color = Color.decode(color);
+    if (!filled) {
       Renderer.pushMatrix().translate(
         start.getX() - Client.camera.getX(),
         start.getY() - Client.camera.getY(),
         start.getZ() - Client.camera.getZ()
       );
+
       const vertexConsumer = VCP.getBuffer(
         depthTest
           ? RenderLayers.getLines(lineWidth)
           : RenderLayers.getLinesThroughWalls(lineWidth)
       );
+
       VertexRendering.drawBox(
         Renderer.matrixStack.toMC(),
         vertexConsumer,
@@ -158,11 +140,12 @@ export default class RenderLib3d {
         size.getX(),
         size.getY(),
         size.getZ(),
-        color.red / 255.0,
-        color.green / 255.0,
-        color.blue / 255.0,
+        color.getRed() / 255.0,
+        color.getGreen() / 255.0,
+        color.getBlue() / 255.0,
         1.0
       );
+
       Renderer.popMatrix();
     }
   }
