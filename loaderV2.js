@@ -8,6 +8,8 @@ Client.getMinecraft()
 
 /* Dependencies */
 
+import "./test.js";
+
 /* Utility */
 import { Flowstate } from "./Utility/Flowstate.js";
 import { GuiRendering } from "./Utility/GuiRenders.js";

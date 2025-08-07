@@ -2,7 +2,7 @@ export function drawPos(x, y, z, r, g, b) {
   Renderer.disableDepth();
   Renderer3d.begin(
     Renderer.DrawMode.QUADS,
-    Renderer.VertexFormat.POSITION_COLOR,
+    Renderer.VertexFormat.POSITION_COLOR
   );
 
   const faces = [
@@ -17,7 +17,7 @@ export function drawPos(x, y, z, r, g, b) {
   faces.forEach((f) => {
     for (let i = 0; i < f.length; i += 3) {
       Renderer3d.pos(f[i], f[i + 1], f[i + 2]).color(
-        Renderer.fixAlpha(Renderer.getColor(r, g, b, 255)),
+        Renderer.fixAlpha(Renderer.getColor(r, g, b, 255))
       );
     }
   });
@@ -25,3 +25,7 @@ export function drawPos(x, y, z, r, g, b) {
   Renderer3d.draw();
   Renderer.enableDepth();
 }
+
+register("postRenderWorld", () => {
+  drawPos(85, 63, -383, 255, 255, 180);
+});
