@@ -23,7 +23,12 @@ export default class RenderLib3d {
     filled = true,
   } = {}) {
     if (end) size = end.minus(start);
-    color = Renderer.fixAlpha(color);
+
+    // Extract RGBA components from color object, normalized to 0-1 floats
+    const r = color.getRed() / 255;
+    const g = color.getGreen() / 255;
+    const b = color.getBlue() / 255;
+    const a = color.getAlpha() / 255;
 
     Renderer.pushMatrix().translate(start.getX(), start.getY(), start.getZ());
     // Renderer.pushMatrix().translate(start.getX() - Client.camera.getX(), start.getY() - Client.camera.getY(), start.getZ() - Client.camera.getZ());
@@ -40,64 +45,65 @@ export default class RenderLib3d {
       Renderer.VertexFormat.POSITION_COLOR
     )
       .pos(dx, 0, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, 0, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, 0, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, 0, dz)
-      .color(color)
+      .color(r, g, b, a)
 
       .pos(dx, h, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, h, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, h, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, h, dz)
-      .color(color)
+      .color(r, g, b, a)
 
       .pos(0, h, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, h, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, 0, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, 0, dz)
-      .color(color)
+      .color(r, g, b, a)
 
       .pos(dx, h, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, h, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, 0, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, 0, dz)
-      .color(color)
+      .color(r, g, b, a)
 
       .pos(dx, h, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, h, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, 0, 0)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, 0, 0)
-      .color(color)
+      .color(r, g, b, a)
 
       .pos(0, h, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, h, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(dx, 0, dz)
-      .color(color)
+      .color(r, g, b, a)
       .pos(0, 0, dz)
-      .color(color);
+      .color(r, g, b, a);
 
     Renderer3d.draw();
 
     if (depth) Renderer.disableDepth();
     Renderer.enableCull().disableBlend().depthMask(true).popMatrix();
   }
+
   static _drawBox({
     start = new Vec3i(0, 0, 0),
     size = new Vec3i(1, 1, 1),
