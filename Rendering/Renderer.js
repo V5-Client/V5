@@ -1,4 +1,5 @@
 const RenderSystem = Java.type("com.mojang.blaze3d.systems.RenderSystem");
+const RenderPipeline = Java.type("net.minecraft.client.gl.RenderPipelines");
 
 export default class RendererUtils {
   static getSlotPos(slotIndex) {
@@ -76,7 +77,8 @@ export class RenderLayers {
       true,
       RenderLayer.class_4688 // .MultiPhaseParameters.builder()
         .method_23598()
-        .program(RenderPhase.POSITION_COLOR_PROGRAM)
+        .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
+        .cull(RenderPhase.DISABLE_CULLING)
         .layering(RenderPhase.POLYGON_OFFSET_LAYERING)
         .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
         .depthTest(RenderPhase.ALWAYS_DEPTH_TEST)
@@ -107,20 +109,12 @@ export class RenderLayers {
   static getLines = (lineWidth = 2) =>
     RenderLayer.of(
       "lines",
-      VertexFormats.LINES,
-      VertexFormat.class_5596.LINES, // .DrawMode.
       1536,
-      false,
-      true,
+      RenderPipeline.LINES,
       RenderLayer.class_4688 // .MultiPhaseParameters.builder()
         .method_23598()
-        .program(RenderPhase.LINES_PROGRAM)
-        .cull(RenderPhase.DISABLE_CULLING)
         .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-        .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
-        .depthTest(RenderPhase.ALWAYS_DEPTH_TEST)
         .target(RenderPhase.ITEM_ENTITY_TARGET)
-        .writeMaskState(RenderPhase.ALL_MASK)
         .lineWidth(new RenderPhase.class_4677(OptionalDouble.of(lineWidth))) // .LineWidth()
         .build(false)
     );
