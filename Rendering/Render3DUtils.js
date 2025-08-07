@@ -21,7 +21,7 @@ export default class RenderLib3d {
     size = new Vec3i(1, 1, 1),
     end = undefined,
     color = Renderer.WHITE,
-    depth = true,
+    //depth = false, force no depth
     // filled = true, Doesnt work so force it true
   } = {}) {
     if (end) size = end.minus(start);
@@ -36,7 +36,6 @@ export default class RenderLib3d {
     // Renderer.pushMatrix().translate(start.getX() - Client.camera.getX(), start.getY() - Client.camera.getY(), start.getZ() - Client.camera.getZ());
 
     Renderer.disableCull().enableBlend().depthMask(false);
-    if (depth) Renderer.enableDepth();
 
     const dx = size.x;
     const h = size.y;
@@ -103,7 +102,7 @@ export default class RenderLib3d {
 
     Renderer3d.draw();
 
-    if (depth) Renderer.disableDepth();
+    Renderer.disableDepth();
     Renderer.enableCull().disableBlend().depthMask(true).popMatrix();
   }
 
