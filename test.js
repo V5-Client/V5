@@ -1,14 +1,15 @@
 import RenderLib3d from "./Rendering/Render3d";
 const Color = Java.type("java.awt.Color");
-const transparentRed = new Color(1, 0, 0, 0.5);
+const transparentRed = new Color(1, 0, 0, 0.2);
+
 register("postRenderWorld", () => {
   const boxStart = new Vec3i(88, 63, -374);
 
-  RenderLib3d.drawBox({
-    start: boxStart,
-    size: new Vec3i(100, 100, 100),
-    color: 0x47FF5100,
-    filled: true,
-    depth: false,
+  RenderLib3d.drawLine({
+    start: new Vec3i(50, 64, 50),
+    vector: new Vec3i(10, 5, 10), // draw a line from start towards this vector
+    color: 0x00ff00, // green color (hex number)
+    lineWidth: 2,
+    depthTest: true,
   });
 });
