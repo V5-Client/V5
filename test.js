@@ -6,8 +6,8 @@ register("postRenderWorld", () => {
   const boxStart = new Vec3i(88, 63, -374);
 
   RenderLib3d.drawLine({
-    start: new Vec3i(50, 64, 50),
-    vector: new Vec3i(10, 5, 10), // draw a line from start towards this vector
+    start: new Vec3i(245, 63, -368),
+    vector: new Vec3i(5, 15, 20), // draw a line from start towards this vector
     color: 0x00ff00, // green color (hex number)
     lineWidth: 2,
     depthTest: true,
