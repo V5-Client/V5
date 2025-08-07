@@ -24,6 +24,10 @@ import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
 // do raytrace
 
+/* Quality Of Life */
+
+import "./QualityOfLife/aotvOverlay.js";
+
 /* GUI */
 import "./GUI/Gui.js";
 
