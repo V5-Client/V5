@@ -13,7 +13,7 @@ export default class RendererMain {
         size: new Vec3i(1, 1, 1),
         end: undefined,
         color: new Color(0.6, 0.3, 0.8, 0.3),
-        depth: false,
+        // depth: false,
       });
 
       RenderLib3d._drawBox({
