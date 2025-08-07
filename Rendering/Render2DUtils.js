@@ -1,5 +1,7 @@
 import RendererUtils, { Align, OutlineMode } from "./RendererUtils";
 
+// Helpers - Use RendererMain.js methods!
+
 const TextLayerType = net.minecraft.client.font.TextRenderer.class_6415; // class_6415: TextLayerType
 const VertexConsumers = Client.getMinecraft()
   .getBufferBuilders()
