@@ -1,9 +1,9 @@
-let { mc, TimeHelper } = global;
-// import Utils
+import { Timers } from "./Timing";
+import { Utils } from "./Main";
 
-export class Movement {
+class Movement {
   constructor() {
-    this.cooldown = TimeHelper;
+    this.cooldown = Timers;
   }
 
   setKey(key, down) {
@@ -80,8 +80,8 @@ export class Movement {
       "space",
       Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.04 &&
         this.cooldown.hasReached(500) &&
-        jump /*&&
-        Utils.playerIsCollided()*/
+        jump &&
+        Utils.playerIsCollided()
     );
   }
 
@@ -104,8 +104,8 @@ export class Movement {
       "space",
       Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.02 &&
         this.cooldown.hasReached(500) &&
-        jump /*&&
-        Utils.playerIsCollided() */
+        jump &&
+        Utils.playerIsCollided()
     );
   }
 
@@ -146,8 +146,8 @@ export class Movement {
       Player.asPlayerMP().isInWater() ||
         (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.02 &&
           this.cooldown.hasReached(500) &&
-          jump) /*&&
-          Utils.playerIsCollided()*/
+          jump &&
+          Utils.playerIsCollided())
     );
   }
 
