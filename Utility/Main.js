@@ -9,7 +9,7 @@ export const mc = Client.getMinecraft();
 
 class UtilsClass {
   constructor() {
-    this.configName = "C";
+    this.configName = "ClientConfig";
   }
 
   /**
