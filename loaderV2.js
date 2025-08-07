@@ -26,8 +26,6 @@ import { Mouse } from "./Utility/Ungrab";
 
 /* Quality Of Life */
 
-import "./QualityOfLife/aotvOverlay.js";
-
 /* GUI */
 import "./GUI/Gui.js";
 
