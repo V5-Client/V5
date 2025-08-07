@@ -11,6 +11,7 @@ Client.getMinecraft()
 import "./test.js";
 
 /* Utility */
+import "./Utility/Config.js";
 import { Flowstate } from "./Utility/Flowstate.js";
 import { GuiRendering } from "./Utility/GuiRenders.js";
 import { Clicking } from "./Utility/Inventory";
@@ -44,13 +45,4 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
   if (instance instanceof StainedGlassPaneBlock) {
     cir.setReturnValue(VoxelShapes.fullCube());
   }
-});
-
-/*const entries = TabList.getNames();
-entries.forEach((name) => {
-  console.log(name);
-});*/
-
-registerEventSB("serverchange", () => {
-  ChatLib.chat("Server changed!");
 });
