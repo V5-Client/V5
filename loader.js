@@ -24,8 +24,6 @@ import { Mouse } from "./Utility/Ungrab"; //kill yourself fucking gay ahh util h
 
 // Utils
 import "./util/registerWhen";
-import "./utils/dataclasses/Vec";
-import "./utils/dataclasses/ItemObject";
 import "./utils/Buffer";
 //import "./utils/dataclasses/ServerPlayer"; maybe remove ?
 //                       import "./utils/dataclasses/Routes"; // maybe removed ?

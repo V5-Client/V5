@@ -1,3 +1,10 @@
+/**  TODO
+ * StencilUtils
+ * Rotations
+ * Webhook integration
+ * Dependencies :(
+ */
+
 /* Client Version + Title */
 
 export const Version = " 1.0.0";
