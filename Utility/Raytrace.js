@@ -2,6 +2,9 @@ import { raytraceBlocks } from "BloomCore/utils/Utils.js";
 import Vector3 from "BloomCore/utils/Vector3.js";
 let { Vec3, BP } = global.export;
 
+// 1 do dependencies
+// 2 do raytrace
+
 class rayTraceUtils {
   constructor() {
     this.sides = [

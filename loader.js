@@ -21,7 +21,6 @@ import RayTrace from "./Utility/Raytrace";
 import { Numbers } from "./Utility/TimeConversion";
 import { Time } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab"; //kill yourself fucking gay ahh util holy shit spent 17 hours working on this single util???
-import "./cool";
 
 // Utils
 import "./util/registerWhen";
