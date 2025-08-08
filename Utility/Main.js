@@ -4,6 +4,8 @@ import { Prefix } from "./Prefix";
 let ArrayLists = Java.type("java.util.ArrayList");
 let AxisAlignedBB = Java.type("net.minecraft.world.phys.AABB");
 
+// add ItemObject  and vector from  dataclasses
+
 // mc
 export const mc = Client.getMinecraft();
 
@@ -58,11 +60,11 @@ class UtilsClass {
       let audio = new Sound({
         source: global.export.FailsafeManager.getAudioSource()?.toString(),
       });
-      chat.message("New Alert! " + msg);
+      Prefix.message("New Alert! " + msg);
       audio.setVolume(1);
       audio.play();
     } catch (e) {
-      chat.message(
+      Prefix.message(
         "&cFailsafe sound assets missing! Try reinstall rdbt client!"
       );
     }
@@ -141,7 +143,7 @@ class UtilsClass {
     }
     if (Missing.length > 0) {
       for (let i = 0; i < Missing.length; i++) {
-        chat.message("- Missing: " + Missing[i].toString());
+        Prefix.message("- Missing: " + Missing[i].toString());
       }
       return false;
     }

@@ -4,11 +4,9 @@ export const Version = " 1.0.0";
 
 Client.getMinecraft()
   .getWindow()
-  .setTitle("Zurviq" + Version);
+  .setTitle("Client" + Version);
 
 /* Dependencies */
-
-import "./test.js";
 
 /* Utility */
 import "./Utility/Config.js";
@@ -22,12 +20,10 @@ import { Moving } from "./Utility/Movement";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
 import { registerEventSB } from "./Utility/SkyblockEvents.js";
-import { TConversion } from "./Utility/TimeConversion";
+import { Conversions } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
 // do raytrace
-
-/* Quality Of Life */
 
 /* GUI */
 import "./GUI/Gui.js";
@@ -46,3 +42,5 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
     cir.setReturnValue(VoxelShapes.fullCube());
   }
 });
+
+import "./test.js";
