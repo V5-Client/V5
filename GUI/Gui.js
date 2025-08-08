@@ -8,7 +8,7 @@ const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
 const matrix = UMatrixStack.get();
 
 let colors = {
-  Main: new Color(0.0102, 0.0106, 0.011, 0.8),
+  Main: new Color(0.0102, 0.0106, 0.011, 0.4),
   Bar1: new Color(0.0102, 0.0106, 0.011, 1),
   Bar2: new Color(0.0102, 0.0106, 0.011, 1),
 };
