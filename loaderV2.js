@@ -19,7 +19,6 @@ Client.getMinecraft()
 import "./Utility/Config.js";
 import { Flowstate } from "./Utility/Flowstate.js";
 import { Clicking } from "./Utility/Inventory";
-import { Invoking } from "./Utility/Invoking";
 import { Utils } from "./Utility/Main.js";
 import { Calcs } from "./Utility/Math.js";
 import { Keybind } from "./Utility/Keybinding.js";
