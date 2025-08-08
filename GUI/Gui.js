@@ -46,15 +46,7 @@ myGui.registerDraw(() => {
 });
 
 const DrawRects = () => {
-  UIRoundedRectangle.Companion.drawRoundedRectangle(
-    matrix,
-    x.Main,
-    y.Main,
-    x.Main + width.Main,
-    y.Main + height.Main,
-    radius.Main,
-    colors.Main
-  );
+  drawDropShadow(matrix, 6, 50, 50, 200, 100, 0.8, 8, new Color(0, 0, 0));
 
   UIRoundedRectangle.Companion.drawRoundedRectangle(
     matrix,
@@ -76,6 +68,36 @@ const DrawRects = () => {
     colors.Bar2
   );
 };
+
+function drawDropShadow(
+  matrix,
+  loops,
+  x,
+  y,
+  width,
+  height,
+  opacity,
+  edgeRadius,
+  baseColor
+) {
+  let r = baseColor.getRed() / 255;
+  let g = baseColor.getGreen() / 255;
+  let b = baseColor.getBlue() / 255;
+
+  for (let margin = 0; margin <= loops / 2; margin += 0.5) {
+    let alpha = Math.min(0.2, Math.max(0.007, (opacity - margin) * 1.3));
+
+    UIRoundedRectangle.drawRoundedRectangle(
+      matrix,
+      x - margin / 2,
+      y - margin / 2,
+      x + width + margin / 2,
+      y + height + margin / 2,
+      edgeRadius,
+      new Color(r, g, b, alpha)
+    );
+  }
+}
 
 register("command", () => {
   myGui.open();
