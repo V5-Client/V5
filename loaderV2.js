@@ -24,6 +24,10 @@ import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
 // do raytrace
 
+/* DataClasses */
+import { ItemObject } from "./Utility/DataClasses/ItemObject.js";
+import { Vector } from "./Utility/DataClasses/Vec.js";
+
 /* GUI */
 import "./GUI/Gui.js";
 

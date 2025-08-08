@@ -1,10 +1,11 @@
 //let { ModuleManager } = global.settingSelection;
 
 import { Prefix } from "./Prefix";
+import { ItemObject } from "./DataClasses/ItemObject";
+import { Vector } from "./DataClasses/Vec";
+
 let ArrayLists = Java.type("java.util.ArrayList");
 let AxisAlignedBB = Java.type("net.minecraft.world.phys.AABB");
-
-// add ItemObject  and vector from  dataclasses
 
 // mc
 export const mc = Client.getMinecraft();
