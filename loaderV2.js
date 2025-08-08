@@ -45,5 +45,3 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
     cir.setReturnValue(VoxelShapes.fullCube());
   }
 });
-
-import "./test.js";

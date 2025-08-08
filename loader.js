@@ -30,7 +30,6 @@ import "./utils/Buffer";
 //import "./utils/dataclasses/ServerPlayer"; maybe remove ?
 //                       import "./utils/dataclasses/Routes"; // maybe removed ?
 //import "./utils/BlockRenderer" optimization
-//import "./utils/FileUtils"
 //import "./module/ModuleManager"
 //import "./utils/GuiUtils"
 //import "./utils/Utils"
