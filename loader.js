@@ -6,7 +6,7 @@ global = {};
 
 // Dependencies
 
-//BloomCore
+//BloomCores
 import Vector3 from "./Utility/BloomCore/Vector3";
 import "./Utility/BloomCore/RaytraceBlocks";
 
