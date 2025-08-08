@@ -11,7 +11,6 @@ Client.getMinecraft()
 /* Utility */
 import "./Utility/Config.js";
 import { Flowstate } from "./Utility/Flowstate.js";
-import { GuiRendering } from "./Utility/GuiRenders.js";
 import { Clicking } from "./Utility/Inventory";
 import { Invoking } from "./Utility/Invoking";
 import { Utils } from "./Utility/Main.js";
