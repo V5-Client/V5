@@ -4,7 +4,7 @@ export const Version = " 1.0.0";
 
 Client.getMinecraft()
   .getWindow()
-  .setTitle("Client" + Version);
+  .setTitle("Client" + Version + ` - ${Player.getName()}`);
 
 /* Dependencies */
 
