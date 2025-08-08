@@ -9,8 +9,8 @@ const matrix = UMatrixStack.get();
 
 let colors = {
   Main: new Color(0.0102, 0.0106, 0.011, 0.4),
-  Bar1: new Color(0.0102, 0.0106, 0.011, 1),
-  Bar2: new Color(0.0102, 0.0106, 0.011, 1),
+  Bar1: new Color(0.0102, 0.0106, 0.011, 0.9),
+  Bar2: new Color(0.0102, 0.0106, 0.011, 0.9),
 };
 let x = {
   Main: Renderer.screen.getWidth() / 2 - 300,
