@@ -22,7 +22,7 @@ import { Clicking } from "./Utility/Inventory";
 import { Invoking } from "./Utility/Invoking";
 import { Utils } from "./Utility/Main.js";
 import { Calcs } from "./Utility/Math.js";
-import { Moving } from "./Utility/Movement";
+import { Keybind } from "./Utility/Keybinding.js";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
 import { registerEventSB } from "./Utility/SkyblockEvents.js";
