@@ -46,7 +46,17 @@ myGui.registerDraw(() => {
 });
 
 const DrawRects = () => {
-  drawDropShadow(matrix, 6, 50, 50, 200, 100, 0.8, 8, new Color(0, 0, 0));
+  drawDropShadow(
+    matrix,
+    50,
+    50,
+    50,
+    200,
+    100,
+    0.8,
+    8,
+    new Color(0.1, 0.5, 0.9, 1)
+  );
 
   UIRoundedRectangle.Companion.drawRoundedRectangle(
     matrix,
@@ -87,7 +97,7 @@ function drawDropShadow(
   for (let margin = 0; margin <= loops / 2; margin += 0.5) {
     let alpha = Math.min(0.2, Math.max(0.007, (opacity - margin) * 1.3));
 
-    UIRoundedRectangle.drawRoundedRectangle(
+    UIRoundedRectangle.Companion.drawRoundedRectangle(
       matrix,
       x - margin / 2,
       y - margin / 2,
