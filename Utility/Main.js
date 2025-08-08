@@ -177,7 +177,7 @@ class UtilsClass {
     return false;
   }
 
-  getBlocks() {
+  /*getBlocks() {
     let cords = [
       Math.floor(Player.getX()),
       Math.floor(Player.getY()),
@@ -217,7 +217,7 @@ class UtilsClass {
    * @param {Object} input
    * @returns {vec}
    */
-  convertToVector(input) {
+  /*convertToVector(input) {
     if (input instanceof Vector) return input;
     if (input instanceof Array) return new Vector(input[0], input[1], input[2]);
     else if (input instanceof BlockPos || input instanceof Vec3i)
@@ -245,6 +245,7 @@ class UtilsClass {
    * @param {string} Name - The name of the configuration file (e.g., "webhook.json").
    * @returns {object} The parsed JSON object from the file.
    */
+
   getConfigFile(Name) {
     let content = FileLib.read(this.configName, Name);
     if (!content) return {};
