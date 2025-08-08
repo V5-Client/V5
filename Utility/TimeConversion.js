@@ -34,4 +34,4 @@ class Numbers {
   }
 }
 
-export const TConversion = new Numbers();
+export const Conversions = new Numbers();

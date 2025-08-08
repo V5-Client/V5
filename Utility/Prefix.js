@@ -1,6 +1,6 @@
 //let { ModuleManager } = global.settingSelection
 
-const Startln = "Zurviq &b";
+const Startln = "Client &b";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
   java.util.Locale.US
@@ -19,6 +19,7 @@ class Chat {
   /**
    * Sends a debug message with the client prefix.
    * @param {string} msg
+   * fix with gui
    */
   debugMessage(msg) {
     if (!msg) return;

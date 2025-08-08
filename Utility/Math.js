@@ -93,6 +93,8 @@ class MathUtilsClass {
     return { distance: distance, distanceFlat: distanceFlat, distanceY: diffY };
   }
 
+  // add other file
+
   /*getDistanceToPlayer(xInput, yInput, zInput) {
     let x = xInput;
     let y = yInput;
