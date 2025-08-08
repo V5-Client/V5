@@ -8,14 +8,14 @@ const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
 const matrix = UMatrixStack.get();
 
 let colors = {
-  Main: new Color(0.0102, 0.0106, 0.011, 0.4),
-  Bar1: new Color(0.0102, 0.0106, 0.011, 0.9),
-  Bar2: new Color(0.0102, 0.0106, 0.011, 0.9),
+  Main: new Color(0.089, 0.089, 0.089, 1),
+  Bar1: new Color(0.15, 0.15, 0.15, 1),
+  Bar2: new Color(0.15, 0.15, 0.15, 1),
 };
 let x = {
   Main: Renderer.screen.getWidth() / 2 - 300,
   Bar1: Renderer.screen.getWidth() / 2 - 285,
-  Bar2: Renderer.screen.getWidth() / 2 - 205,
+  Bar2: Renderer.screen.getWidth() / 2 - 165,
 };
 let y = {
   Main: Renderer.screen.getHeight() / 2 - 200,
@@ -24,8 +24,8 @@ let y = {
 };
 let width = {
   Main: 600,
-  Bar1: 50,
-  Bar2: 490,
+  Bar1: 100,
+  Bar2: 450,
 };
 let height = {
   Main: 400,
@@ -46,16 +46,14 @@ myGui.registerDraw(() => {
 });
 
 const DrawRects = () => {
-  drawDropShadow(
+  UIRoundedRectangle.Companion.drawRoundedRectangle(
     matrix,
-    50,
-    50,
-    50,
-    200,
-    100,
-    0.8,
-    8,
-    new Color(0.1, 0.5, 0.9, 1)
+    x.Main,
+    y.Main,
+    x.Main + width.Main,
+    y.Main + height.Main,
+    radius.Main,
+    colors.Main
   );
 
   UIRoundedRectangle.Companion.drawRoundedRectangle(
@@ -78,36 +76,6 @@ const DrawRects = () => {
     colors.Bar2
   );
 };
-
-function drawDropShadow(
-  matrix,
-  loops,
-  x,
-  y,
-  width,
-  height,
-  opacity,
-  edgeRadius,
-  baseColor
-) {
-  let r = baseColor.getRed() / 255;
-  let g = baseColor.getGreen() / 255;
-  let b = baseColor.getBlue() / 255;
-
-  for (let margin = 0; margin <= loops / 2; margin += 0.5) {
-    let alpha = Math.min(0.2, Math.max(0.007, (opacity - margin) * 1.3));
-
-    UIRoundedRectangle.Companion.drawRoundedRectangle(
-      matrix,
-      x - margin / 2,
-      y - margin / 2,
-      x + width + margin / 2,
-      y + height + margin / 2,
-      edgeRadius,
-      new Color(r, g, b, alpha)
-    );
-  }
-}
 
 register("command", () => {
   myGui.open();
