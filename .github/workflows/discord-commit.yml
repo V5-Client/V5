@@ -3,12 +3,15 @@ name: Send Commit Message to Discord
 on:
   push:
     branches:
-      - main
+      - main  # Change if needed
 
 jobs:
   notify-discord:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Get latest commit message
         id: commit
         run: |
@@ -19,4 +22,4 @@ jobs:
           payload=$(jq -n --arg content "**New commit pushed:** ${{ steps.commit.outputs.message }}" '{content: $content}')
           curl -X POST -H "Content-Type: application/json" \
                -d "$payload" \
-               "${{ secrets.DISCORD_WEBHOOK }}"
+               "https://discord.com/api/webhooks/1403199360476385443/7NUo2rew815mMHawYEkDUzHp52SDwZMvdlDYwosE-UlDfpxrK-GFro7W0ZUA-Mo6yGOq"
