@@ -1,0 +1,22 @@
+name: Send Commit Message to Discord
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get latest commit message
+        id: commit
+        run: |
+          echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      - name: Send message to Discord
+        run: |
+          payload=$(jq -n --arg content "**New commit pushed:** ${{ steps.commit.outputs.message }}" '{content: $content}')
+          curl -X POST -H "Content-Type: application/json" \
+               -d "$payload" \
+               "${{ secrets.DISCORD_WEBHOOK }}"
