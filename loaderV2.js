@@ -19,7 +19,6 @@ Client.getMinecraft()
 import "./Utility/Config.js";
 import { Flowstate } from "./Utility/Flowstate.js";
 import { Clicking } from "./Utility/Inventory";
-import { Utils } from "./Utility/Main.js";
 import { Calcs } from "./Utility/Math.js";
 import { Keybind } from "./Utility/Keybinding.js";
 import { Popup } from "./Utility/PopUpMenu";
@@ -28,6 +27,7 @@ import { registerEventSB } from "./Utility/SkyblockEvents.js";
 import { Conversions } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
+import { Utils } from "./Utility/Utils.js";
 // do raytrace
 
 /* DataClasses */
