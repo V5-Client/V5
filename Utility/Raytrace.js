@@ -1,9 +1,8 @@
-import { raytraceBlocks } from "BloomCore/utils/Utils.js";
-import Vector3 from "BloomCore/utils/Vector3.js";
-let { Vec3, BP } = global.export;
+import { raytraceBlocks } from "../Dependencies/BloomCore/RaytraceBlocks";
+import { Vector3 } from "../Dependencies/BloomCore/Vector3";
 
-// 1 do dependencies
-// 2 do raytrace
+let Vec3 = Java.type("net.minecraft.util.math.Vec3d");
+let BP = Java.type("net.minecraft.util.math.BlockPos");
 
 class rayTraceUtils {
   constructor() {
@@ -34,28 +33,28 @@ class rayTraceUtils {
         blockPos.z + side[2],
       ]);
     });
-    let eyes = Player.getPlayer().func_174824_e(1);
+    let eyes = Player.getPlayer().getEyePos(1);
     for (let v = 0; v < sides.length; v++) {
       let x = blockPos.x;
       let y = blockPos.y;
       let z = blockPos.z;
       let [sideX, sideY, sideZ] = sides[v];
-      if (sideX === 0.99 && x + sideX > eyes.field_72450_a) {
+      if (sideX === 0.99 && x + sideX > eyes.x) {
         continue;
       }
-      if (sideX === 0.01 && x + sideX < eyes.field_72450_a) {
+      if (sideX === 0.01 && x + sideX < eyes.x) {
         continue;
       }
-      if (sideY === 0.99 && y + sideY > eyes.field_72448_b) {
+      if (sideY === 0.99 && y + sideY > eyes.y) {
         continue;
       }
-      if (sideY === 0.01 && y + sideY < eyes.field_72448_b) {
+      if (sideY === 0.01 && y + sideY < eyes.y) {
         continue;
       }
-      if (sideZ === 0.99 && z + sideZ > eyes.field_72449_c) {
+      if (sideZ === 0.99 && z + sideZ > eyes.z) {
         continue;
       }
-      if (sideZ === 0.01 && z + sideZ < eyes.field_72449_c) {
+      if (sideZ === 0.01 && z + sideZ < eyes.z) {
         continue;
       }
       for (let i = 0; i <= 8; i++) {
@@ -118,7 +117,7 @@ class rayTraceUtils {
    */
   getPointOnBlock = (
     blockPos,
-    vector = Player.getPlayer().func_174824_e(1),
+    vector = Player.getPlayer().getEyePos(1),
     mcCast = false,
     performance = false
   ) => {
@@ -146,12 +145,12 @@ class rayTraceUtils {
    * @param {Vec3} vector
    * @returns {Boolean}
    */
-  canSeePoint(blockPos, point, vector = Player.getPlayer().func_174824_e(1)) {
-    let vectorX = this.toFloat(point[0]) - vector.field_72450_a;
-    let vectorY = this.toFloat(point[1]) - vector.field_72448_b;
-    let vectorZ = this.toFloat(point[2]) - vector.field_72449_c;
+  canSeePoint(blockPos, point, vector = Player.getPlayer().getEyePos(1)) {
+    let vectorX = this.toFloat(point[0]) - vector.x;
+    let vectorY = this.toFloat(point[1]) - vector.y;
+    let vectorZ = this.toFloat(point[2]) - vector.z;
     let castResult = raytraceBlocks(
-      [vector.field_72450_a, vector.field_72448_b, vector.field_72449_c],
+      [vector.x, vector.y, vector.z],
       new Vector3(vectorX, vectorY, vectorZ),
       61,
       this.check,
@@ -174,20 +173,34 @@ class rayTraceUtils {
    * @param {Vec3} vector
    * @returns {Boolean}
    */
-  canSeePointMC(blockPos, point, vector = Player.getPlayer().func_174824_e(1)) {
-    let castResult = World.getWorld().func_72933_a(
-      vector,
-      new Vec3(point[0], point[1], point[2])
+  canSeePointMC(blockPos, point, vector = Player.getPlayer().getEyePos(1)) {
+    let start = vector;
+    let end = new Vec3(point[0], point[1], point[2]);
+
+    const clipContext = new ClipContext(
+      start,
+      end,
+      ClipContext.Block.OUTLINE, // how to treat blocks
+      ClipContext.Fluid.NONE, // how to treat fluids
+      Player.getPlayer() // the entity to ignore in the trace (usually yourself)
     );
-    if (castResult && castResult.func_178782_a().equals(blockPos.toMCBlock())) {
+    let castResult = World.getWorld().clip(start, end, clipContext);
+    if (castResult && castResult.getBlockPos().equals(blockPos.toMCBlock())) {
       return true;
     }
     return false;
   }
 
   canHitVec3(Vector1, Vector2) {
-    let castResult = World.getWorld().func_72933_a(Vector1, Vector2);
-    if (castResult && castResult.func_178782_a().equals(new BP(Vector2))) {
+    const clipContext = new ClipContext(
+      Vector1,
+      Vector2,
+      ClipContext.Block.OUTLINE, // how to treat blocks
+      ClipContext.Fluid.NONE, // how to treat fluids
+      Player.getPlayer() // the entity to ignore in the trace (usually yourself)
+    );
+    let castResult = World.getWorld().clip(Vector1, Vector2, clipContext);
+    if (castResult && castResult.getBlockPos().equals(new BP(Vector2))) {
       return true;
     }
     return false;
@@ -200,9 +213,9 @@ class rayTraceUtils {
    * @returns {Array}
    */
   rayTracePlayerBlocks(Reach = 60, checkFunction = null) {
-    let eyes = Player.getPlayer().func_174824_e(1);
+    let eyes = Player.getPlayer().getEyePos(1);
     return raytraceBlocks(
-      [eyes.field_72450_a, eyes.field_72448_b, eyes.field_72449_c],
+      [eyes.x, eyes.y, eyes.z],
       null,
       Reach,
       checkFunction,
@@ -257,13 +270,14 @@ class rayTraceUtils {
    * @returns {Block} the block at the end of the ray, or null if out of range
    */
   raytrace(dist) {
-    const vecAng = Player.getPlayer().func_174822_a(dist, 0.0);
+    const vecAng = Player.getPlayer().raycast(dist, 0.0);
     if (!vecAng) return null;
-    const blockPos = vecAng?.func_178782_a();
+    const blockPos = vecAng?.getBlockPos();
     if (!blockPos) return null;
     const blockAt = World.getBlockAt(new BlockPos(blockPos));
     if (!blockAt || !blockAt.type.getID()) return null;
     return blockAt;
   }
 }
-global.export.RaytraceUtils = new rayTraceUtils();
+
+export const RayTrace = new rayTraceUtils();
