@@ -1,4 +1,4 @@
-class vec {
+export class Vector {
   constructor(x, y, z) {
     if (x instanceof BlockPos) {
       this.x = x.x;
@@ -91,5 +91,3 @@ class vec {
     return `Vector(x=${this.x},y=${this.y},z=${this.z},yaw=${this.yaw},pitch=${this.pitch})`;
   }
 }
-
-export const Vector = new vec();
