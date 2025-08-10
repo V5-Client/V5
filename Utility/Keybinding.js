@@ -1,7 +1,6 @@
 import { Timers } from "./Timing";
-import { Utils } from "./Main";
-
-import { mc } from "./Main";
+import { Utils } from "./Utils";
+import { mc } from "./Utils";
 
 const LeftClickMouse = mc.getClass().getDeclaredMethod("method_1536");
 LeftClickMouse.setAccessible(true);

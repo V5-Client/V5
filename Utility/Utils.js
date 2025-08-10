@@ -218,17 +218,13 @@ class UtilsClass {
    * @param {Object} input
    * @returns {vec}
    */
-  /*convertToVector(input) {
+  convertToVector(input) {
     if (input instanceof Vector) return input;
     if (input instanceof Array) return new Vector(input[0], input[1], input[2]);
     else if (input instanceof BlockPos || input instanceof Vec3i)
       return new Vector(input.x, input.y, input.z);
-    else if (input instanceof net.minecraft.util.Vec3)
-      return new Vector(
-        input.field_72450_a,
-        input.field_72448_b,
-        input.field_72449_c
-      );
+    else if (input instanceof net.minecraft.world.phys.Vec3)
+      return new Vector(input.x, input.y, input.z);
     else if (
       input instanceof Player ||
       input instanceof PlayerMP ||
