@@ -66,7 +66,7 @@ class UtilsClass {
       audio.play();
     } catch (e) {
       Prefix.message(
-        "&cFailsafe sound assets missing! Try reinstall rdbt client!"
+        "&cFailsafe sound assets missing! Try reinstall rdbt client!",
       );
     }
   };
@@ -299,6 +299,62 @@ class UtilsClass {
         return subAreaName;
       }
     }
+  }
+
+  // Rotation utilities, I'll maybe add documentation later but its simple
+  wrapAngleTo180(value) {
+    let angle = value % 360;
+    if (angle >= 180) angle -= 360;
+    if (angle < -180) angle += 360;
+    return angle;
+  }
+
+  getPlayerRotation() {
+    const player = Player.getPlayer();
+    if (!player) return null;
+    return { yaw: player.getYaw(), pitch: player.getPitch() };
+  }
+
+  normalizeYaw(yaw) {
+    let newYaw = yaw % 360;
+    if (newYaw < -180) newYaw += 360;
+    if (newYaw > 180) newYaw -= 360;
+    return newYaw;
+  }
+
+  getNeededChange(startRot, endRot) {
+    const yawDiff =
+      this.wrapAngleTo180(endRot.yaw) - this.wrapAngleTo180(startRot.yaw);
+    return {
+      yaw: this.normalizeYaw(yawDiff),
+      pitch: endRot.pitch - startRot.pitch,
+    };
+  }
+
+  shouldRotate(to, from, difference) {
+    const neededChange = this.getNeededChange(from, to);
+    return (
+      Math.abs(neededChange.yaw) > difference ||
+      Math.abs(neededChange.pitch) > difference
+    );
+  }
+
+  getRotationTo(toPos) {
+    const player = Player.getPlayer();
+    if (!player) return null;
+    return this.getRotation(player.getEyePos(), toPos);
+  }
+
+  getRotation(fromPos, toPos) {
+    const xDiff = toPos.x - fromPos.x;
+    const yDiff = toPos.y - fromPos.y;
+    const zDiff = toPos.z - fromPos.z;
+    const dist = Math.sqrt(xDiff * xDiff + zDiff * zDiff);
+
+    return {
+      yaw: (Math.atan2(zDiff, xDiff) * 180) / Math.PI - 90,
+      pitch: -((Math.atan2(yDiff, dist) * 180) / Math.PI),
+    };
   }
 }
 
