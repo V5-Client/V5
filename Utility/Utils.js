@@ -300,48 +300,6 @@ class UtilsClass {
       }
     }
   }
-
-  normalizeYaw(yaw) {
-    let newYaw = yaw % 360;
-    if (newYaw < -180) newYaw += 360;
-    if (newYaw > 180) newYaw -= 360;
-    return newYaw;
-  }
-
-  getNeededChange(startRot, endRot) {
-    const yawDiff =
-      this.wrapAngleTo180(endRot.yaw) - this.wrapAngleTo180(startRot.yaw);
-    return {
-      yaw: this.normalizeYaw(yawDiff),
-      pitch: endRot.pitch - startRot.pitch,
-    };
-  }
-
-  shouldRotate(to, from, difference) {
-    const neededChange = this.getNeededChange(from, to);
-    return (
-      Math.abs(neededChange.yaw) > difference ||
-      Math.abs(neededChange.pitch) > difference
-    );
-  }
-
-  getRotationTo(toPos) {
-    const player = Player.getPlayer();
-    if (!player) return null;
-    return this.getRotation(player.getEyePos(), toPos);
-  }
-
-  getRotation(fromPos, toPos) {
-    const xDiff = toPos.x - fromPos.x;
-    const yDiff = toPos.y - fromPos.y;
-    const zDiff = toPos.z - fromPos.z;
-    const dist = Math.sqrt(xDiff * xDiff + zDiff * zDiff);
-
-    return {
-      yaw: (Math.atan2(zDiff, xDiff) * 180) / Math.PI - 90,
-      pitch: -((Math.atan2(yDiff, dist) * 180) / Math.PI),
-    };
-  }
 }
 
 export const Utils = new UtilsClass();
