@@ -1,4 +1,4 @@
-class itemObject {
+export class ItemObject {
   /**
    * @param {Item} item
    */
@@ -32,5 +32,3 @@ class itemObject {
     return this.lore;
   }
 }
-
-export const ItemObject = new itemObject();
