@@ -223,7 +223,7 @@ class UtilsClass {
     if (input instanceof Array) return new Vector(input[0], input[1], input[2]);
     else if (input instanceof BlockPos || input instanceof Vec3i)
       return new Vector(input.x, input.y, input.z);
-    else if (input instanceof net.minecraft.world.phys.Vec3)
+    else if (input instanceof net.minecraft.util.math.Vec3d)
       return new Vector(input.x, input.y, input.z);
     else if (
       input instanceof Player ||
