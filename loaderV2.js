@@ -7,11 +7,11 @@
 
 /* Client Version + Title */
 
-export const Version = " 1.0.0";
+global.Version = "1.0.0";
 
 Client.getMinecraft()
   .getWindow()
-  .setTitle("Client" + Version + ` - ${Player.getName()}`);
+  .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
 /* Dependencies */
 
@@ -28,6 +28,7 @@ import { Conversions } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
 import { Mouse } from "./Utility/Ungrab";
 import { Utils } from "./Utility/Utils.js";
+import { Webhook } from "./Utility/Webhooks.js";
 // do raytrace
 
 /* DataClasses */
