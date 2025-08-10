@@ -1,28 +1,25 @@
 import { Vector } from "./DataClasses/Vec";
 import { Utils } from "./Utils";
 
-/** Setting calculations
- * Speed : (x / 1000) / 2
- * Randomness : (x / 1000) / 2
- * Tremor : x = x
- * Fade : x = x
+/**
+ *
+ *
+ * Settings:
+ *  Speed       : rotation speed multiplier (0.06 default) (60)
+ *  Randomness  : max jitter offset in degrees (0.05 default) (5)
+ *  TremorFreq  : jitter updates per second (1 default) ()
+ *  Fade        : how jitter fades near the target (exponent, 1 default)
  */
-
-/** TODO
- * RotateTo a vector
- * Update target (not sure)
- */
-
 class RotationsTo {
   constructor() {
     this.targetYaw = null;
     this.targetPitch = null;
     this.rotating = false;
 
-    this.Speed = 0.02; // speed of rotation
+    this.Speed = 0.06; // speed of rotation per tick
     this.tremorFrequency = 1; // jitter updates per second
-    this.fadeExponent = 1; // controls how jitter fades near target
-    this.Randomness = 0.05; // max random offset in degrees
+    this.fadeExponent = 0.05; // controls jitter fade
+    this.Randomness = 0.005; // max random offset (degrees)
 
     this.currentRandomYaw = 0;
     this.currentRandomPitch = 0;
@@ -30,64 +27,29 @@ class RotationsTo {
 
     this.targetVector = null;
     this.precision = 1.0;
-    this.smoothing = 0.3;
-    this.yawOnly = false;
 
-    register("command", (x, y, z) => {
-      Rotations.rotateToTarget(x, y, z);
-    }).setName("rotatetarget");
-
-    register("command", (yaw, pitch) => {
-      Rotations.rotateToAngles(yaw, pitch);
-    }).setName("rotatetoangle");
+    this.actions = [];
 
     register("postRenderWorld", () => {
       if (!this.rotating) return;
 
-      if (this.targetVector != null) {
-        const player = Player.getPlayer();
-        const rot = Utils.getRotationTo(this.targetVector);
-        const from = Utils.getPlayerRotation();
-        const neededChange = Utils.getNeededChange(from, rot);
-        const to = {
-          yaw: from.yaw + neededChange.yaw,
-          pitch: from.pitch + neededChange.pitch,
-        };
-
-        if (!Utils.shouldRotate(from, to, this.precision)) {
-          return;
-        }
-
-        let needYaw = to.yaw - from.yaw;
-        let needPitch = to.pitch - from.pitch;
-        const distance = Math.abs(needYaw) + Math.abs(needPitch);
-
-        needYaw *= this.smoothing + Math.random() * this.smoothing;
-        needPitch *= this.smoothing + Math.random() * this.smoothing;
-
-        const scaledFps = 60 / Client.getFPS();
-
-        needYaw *= scaledFps;
-        needPitch *= scaledFps;
-        needYaw /= Math.max(distance / 80, 1);
-        player.setYaw(player.getYaw() + needYaw);
-
-        const newPitch = player.getPitch() + needPitch;
-
-        if (
-          (newPitch > 75 && needPitch < 0) ||
-          (newPitch < -75 && needPitch > 0) ||
-          (newPitch > -75 && newPitch < 75)
-        ) {
-          player.setPitch(newPitch);
-        }
-
-        return;
-      }
-
       let player = Player.getPlayer();
       let currentYaw = player.getYaw();
       let currentPitch = player.getPitch();
+
+      if (this.targetVector) {
+        let playerPos = player.getPos();
+        let eyeHeight = player.getEyePos().y - playerPos.y; // relative eye height
+
+        let dx = this.targetVector.x - playerPos.x;
+        let dy = this.targetVector.y - (playerPos.y + eyeHeight);
+        let dz = this.targetVector.z - playerPos.z;
+
+        // Calculate yaw in degrees
+        this.targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+        let dist = Math.sqrt(dx * dx + dz * dz);
+        this.targetPitch = Math.atan2(-dy, dist) * (180 / Math.PI);
+      }
 
       let yawDiff = this.wrapDegrees(this.targetYaw - currentYaw);
       let pitchDiff = this.wrapDegrees(this.targetPitch - currentPitch);
@@ -99,6 +61,17 @@ class RotationsTo {
         player.setYaw(this.targetYaw);
         player.setPitch(this.targetPitch);
         this.rotating = false;
+
+        this.actions.forEach((action) => {
+          try {
+            action();
+          } catch (e) {
+            console.error("Rotation callback error:", e);
+          }
+        });
+
+        this.actions = [];
+
         return;
       }
 
@@ -117,6 +90,7 @@ class RotationsTo {
       let jitterYaw = this.currentRandomYaw * fadeFactor;
       let jitterPitch = this.currentRandomPitch * fadeFactor;
 
+      //let speedFactor = Math.min(1, maxDiff / 30); // fucks onEndRotation
       let newYaw = currentYaw + yawDiff * this.Speed + jitterYaw;
       let newPitch = currentPitch + pitchDiff * this.Speed + jitterPitch;
 
@@ -139,13 +113,20 @@ class RotationsTo {
     this.rotating = true;
   }
 
-  rotateToTarget(x, y, z) {
-    this.targetVector = new Vector(x, y, z);
+  rotateTo(vector) {
+    let vec = Utils.convertToVector(vector);
     this.rotating = true;
+    this.targetVector = new Vector(vec.x, vec.y, vec.z);
   }
 
-  stop() {
-    this.rotating = false;
+  onEndRotation(callBack) {
+    this.actions.push(callBack);
+  }
+
+  getPlayerRotation() {
+    const player = Player.getPlayer();
+    if (!player) return null;
+    return { yaw: player.getYaw(), pitch: player.getPitch() };
   }
 }
 

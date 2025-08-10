@@ -66,7 +66,7 @@ class UtilsClass {
       audio.play();
     } catch (e) {
       Prefix.message(
-        "&cFailsafe sound assets missing! Try reinstall rdbt client!",
+        "&cFailsafe sound assets missing! Try reinstall rdbt client!"
       );
     }
   };
@@ -299,20 +299,6 @@ class UtilsClass {
         return subAreaName;
       }
     }
-  }
-
-  // Rotation utilities, I'll maybe add documentation later but its simple
-  wrapAngleTo180(value) {
-    let angle = value % 360;
-    if (angle >= 180) angle -= 360;
-    if (angle < -180) angle += 360;
-    return angle;
-  }
-
-  getPlayerRotation() {
-    const player = Player.getPlayer();
-    if (!player) return null;
-    return { yaw: player.getYaw(), pitch: player.getPitch() };
   }
 
   normalizeYaw(yaw) {
