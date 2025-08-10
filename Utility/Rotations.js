@@ -7,6 +7,11 @@ import { Utils } from "./Utils";
  * Fade : x = x
  */
 
+/** TODO
+ * RotateTo a vector
+ * Update target (not sure)
+ */
+
 class RotationsTo {
   constructor() {
     this.targetYaw = null;
