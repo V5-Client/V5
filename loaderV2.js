@@ -39,6 +39,10 @@ import { Vector } from "./Utility/DataClasses/Vec.js";
 /* GUI */
 import "./GUI/Gui.js";
 
+/* Commands */
+import "./Utility/TodayCommand.js";
+import "./TestToday.js";
+
 /* Mixins */
 
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
