@@ -1,3 +1,4 @@
+import { Vector } from "./DataClasses/Vec";
 import { Utils } from "./Utils";
 
 /** Setting calculations
@@ -29,30 +30,64 @@ class RotationsTo {
 
     this.targetVector = null;
     this.precision = 1.0;
+    this.smoothing = 0.3;
     this.yawOnly = false;
+
+    register("command", (x, y, z) => {
+      Rotations.rotateToTarget(x, y, z);
+    }).setName("rotatetarget");
+
+    register("command", (yaw, pitch) => {
+      Rotations.rotateToAngles(yaw, pitch);
+    }).setName("rotatetoangle");
 
     register("postRenderWorld", () => {
       if (!this.rotating) return;
 
+      if (this.targetVector != null) {
+        const player = Player.getPlayer();
+        const rot = Utils.getRotationTo(this.targetVector);
+        const from = Utils.getPlayerRotation();
+        const neededChange = Utils.getNeededChange(from, rot);
+        const to = {
+          yaw: from.yaw + neededChange.yaw,
+          pitch: from.pitch + neededChange.pitch,
+        };
+
+        if (!Utils.shouldRotate(from, to, this.precision)) {
+          return;
+        }
+
+        let needYaw = to.yaw - from.yaw;
+        let needPitch = to.pitch - from.pitch;
+        const distance = Math.abs(needYaw) + Math.abs(needPitch);
+
+        needYaw *= this.smoothing + Math.random() * this.smoothing;
+        needPitch *= this.smoothing + Math.random() * this.smoothing;
+
+        const scaledFps = 60 / Client.getFPS();
+
+        needYaw *= scaledFps;
+        needPitch *= scaledFps;
+        needYaw /= Math.max(distance / 80, 1);
+        player.setYaw(player.getYaw() + needYaw);
+
+        const newPitch = player.getPitch() + needPitch;
+
+        if (
+          (newPitch > 75 && needPitch < 0) ||
+          (newPitch < -75 && needPitch > 0) ||
+          (newPitch > -75 && newPitch < 75)
+        ) {
+          player.setPitch(newPitch);
+        }
+
+        return;
+      }
+
       let player = Player.getPlayer();
       let currentYaw = player.getYaw();
       let currentPitch = player.getPitch();
-
-      if (this.targetVector) {
-        let playerPos = player.getPos();
-        let eyeHeight = player.getEyePos();
-
-        let dx = this.targetVector.x - playerPos.x;
-        let dy = this.targetVector.y - (playerPos.y + eyeHeight);
-        let dz = this.targetVector.z - playerPos.z;
-
-        this.targetYaw = yaw;
-        if (this.yawOnly) {
-          this.targetPitch = this.targetPitch ?? player.getPitch();
-        } else {
-          this.targetPitch = pitch;
-        }
-      }
 
       let yawDiff = this.wrapDegrees(this.targetYaw - currentYaw);
       let pitchDiff = this.wrapDegrees(this.targetPitch - currentPitch);
@@ -102,6 +137,15 @@ class RotationsTo {
     this.targetPitch = pitch;
     this.targetVector = null;
     this.rotating = true;
+  }
+
+  rotateToTarget(x, y, z) {
+    this.targetVector = new Vector(x, y, z);
+    this.rotating = true;
+  }
+
+  stop() {
+    this.rotating = false;
   }
 }
 
