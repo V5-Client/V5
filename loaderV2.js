@@ -23,6 +23,7 @@ import { Calcs } from "./Utility/Math.js";
 import { Keybind } from "./Utility/Keybinding.js";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
+import { Rotations } from "./Utility/Rotations.js";
 import { registerEventSB } from "./Utility/SkyblockEvents.js";
 import { Conversions } from "./Utility/TimeConversion";
 import { Timers } from "./Utility/Timing";
