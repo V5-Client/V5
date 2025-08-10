@@ -123,10 +123,21 @@ class RotationsTo {
     this.actions.push(callBack);
   }
 
+  stopRotation() {
+    this.targetVector = null;
+    this.rotate = false;
+  }
+
   getPlayerRotation() {
     const player = Player.getPlayer();
     if (!player) return null;
     return { yaw: player.getYaw(), pitch: player.getPitch() };
+  }
+
+  getRotationTo(toPos) {
+    const player = Player.getPlayer();
+    if (!player) return null;
+    return this.getRotation(player.getEyePos(), toPos);
   }
 }
 
