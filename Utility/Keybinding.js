@@ -45,7 +45,7 @@ class Keybinding {
     if (slot < 0 || slot > 8)
       return chat.message("Invalid slot blocked! Report this ASAP!");
     if (Player.getHeldItemIndex() !== slot) {
-      chat.log(
+      console.log(
         `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
       );
       Player.setHeldItemIndex(slot);

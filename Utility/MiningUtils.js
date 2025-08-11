@@ -7,6 +7,7 @@ import { ItemObject } from "./DataClasses/ItemObject";
 import { Utils } from "./Utils";
 import { Guis } from "./Inventory";
 import { Keybind } from "./Keybinding";
+import { Flowstate } from "./Flowstate";
 
 class MiningUtilClass {
   constructor() {
@@ -14,6 +15,7 @@ class MiningUtilClass {
 
     register("command", () => {
       this.getMiningStats();
+      //this.getMiningSpeed();
     }).setName("getminingstats");
   }
 
@@ -23,7 +25,6 @@ class MiningUtilClass {
   getMiningStats() {
     Prefix.message("Getting your Mining Data!");
     new Thread(() => {
-      // todo force drill when function added + if player.getcontainer !== sb menu etc + get item ability
       function getItemLore(slot) {
         return Player.getContainer().getStackInSlot(slot).getLore();
       }
@@ -101,11 +102,44 @@ class MiningUtilClass {
     }).start();
   }
 
+  getMiningSpeed(Area = Utils.area()) {
+    let file = Utils.getConfigFile("miningstats.json");
+    if (!file) return;
+    let Speed = file.speed;
+    let Professional = file.professional;
+
+    if (!Speed) {
+      Prefix.message(
+        "You have not saved your mining stats! use /getminingstats"
+      );
+      return;
+    }
+
+    if (Area === "Crystal Hollows") {
+      this.savedSpeed = Speed + Professional;
+    } else {
+      this.savedSpeed = Speed;
+    }
+
+    return this.savedSpeed;
+  }
+
   // GE max
   // Refuel
   // the other one
 
-  getMineTime() {
+  getMineTime(MiningSpeed, SpeedBoost, pos) {
+    let Block = World.getBlockAt(pos);
+    let BlockID = Block.type.getID();
+    let Speed = MiningSpeed + Flowstate.CurrentFlowstate();
+    let MiningOffset = 0;
+
+    if (!this.cotm && SpeedBoost) {
+      Speed *= 2;
+    } else if (SpeedBoost) {
+      Speed *= 2.5;
+    }
+
     const blockdata = {
       /* BlockID : hardness */
 
@@ -126,7 +160,7 @@ class MiningUtilClass {
 
       /* Gems (Panes) */
       // Tunnels
-      479: { hardness: 5200 }, // AquaMarine
+      479: { hardness: 5200 }, // Aquamarine
       480: { hardness: 5200 }, // Citrine
       481: { hardness: 5200 }, // Peridot
       483: { hardness: 5200 }, // Onyx
@@ -138,7 +172,47 @@ class MiningUtilClass {
       473: { hardness: 3000 }, // Jade
       471: { hardness: 3000 }, // Sapphire
       482: { hardness: 2300 }, // Ruby
+
+      /* Gems (Blocks) */
+      // Tunnels
+      296: { hardness: 5200 }, // Aquamarine
+      297: { hardness: 5200 }, // Citrine
+      298: { hardness: 5200 }, // Peridot
+      300: { hardness: 5200 }, // Onyx
+      // Crystal Hollows
+      287: { hardness: 4800 }, // Jasper
+      289: { hardness: 3800 }, // Topaz
+      286: { hardness: 3000 }, // Amber
+      295: { hardness: 3000 }, // Amethyst
+      290: { hardness: 3000 }, // Jade
+      288: { hardness: 3000 }, // Sapphire
+      299: { hardness: 2300 }, // Ruby
+
+      // Gold
+      173: { hardness: 600 },
     };
+
+    if (blockdata[BlockID].hardness) {
+      const { hardness } = blockdata[BlockID];
+      return this.returnSpeed(
+        Math.round((hardness * 30) / Speed),
+        MiningOffset
+      );
+    }
+
+    // unknown block `panic`
+    this.returnSpeed(100, MiningOffset);
+  }
+
+  /**
+   * @function returnSpeed
+   * @description Helper function to calculate the final mining speed based on ticks and offset.
+   * @param {number} Ticks - The base mining time in ticks.
+   * @param {number} Offset - An offset to be applied to the mining time.
+   * @returns {number} The adjusted mining time, with a minimum of 4 ticks.
+   */
+  returnSpeed(Ticks, Offset) {
+    return Math.max(4, Ticks + Offset);
   }
 }
 
