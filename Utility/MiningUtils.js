@@ -8,6 +8,7 @@ import { Utils } from "./Utils";
 import { Guis } from "./Inventory";
 import { Keybind } from "./Keybinding";
 import { Flowstate } from "./Flowstate";
+import { registerEventSB } from "./SkyblockEvents";
 
 class MiningUtilClass {
   constructor() {
@@ -17,6 +18,10 @@ class MiningUtilClass {
       this.getMiningStats();
       //this.getMiningSpeed();
     }).setName("getminingstats");
+
+    register("tick", () => {
+      ChatLib.chat(this.getDrills().drill);
+    });
   }
 
   /**
@@ -108,7 +113,8 @@ class MiningUtilClass {
 
   /**
    * @function getMiningSpeed Returns your mining speed for an island
-   * @param {*} Area  Checks wether you're in Crystal Hollows to add Professional
+   * @param {*} Area  Checks what island you're in
+   * @returns Total Speed with additional Professional if in crystalHollows
    */
   getMiningSpeed(Area = Utils.area()) {
     let file = Utils.getConfigFile("miningstats.json");
@@ -136,6 +142,13 @@ class MiningUtilClass {
   // Refuel
   // the other one
 
+  /**
+   * @function getMineTime Calculates the time it takes to mine a specific block.
+   * @param {number} MiningSpeed - The player's current mining speed.
+   * @param {BlockPos} pos - The position of the block to be mined.
+   * @param {boolean} SpeedBoost - Indicates if a speed boost is active.
+   * @returns {number} The time in ticks required to mine the block.
+   */
   getMineTime(MiningSpeed, SpeedBoost, pos) {
     let Block = World.getBlockAt(pos);
     let BlockID = Block.type.getID();
@@ -143,9 +156,9 @@ class MiningUtilClass {
     let MiningOffset = 0;
 
     if (!this.cotm && SpeedBoost) {
-      Speed *= 2;
+      Speed *= 3;
     } else if (SpeedBoost) {
-      Speed *= 2.5;
+      Speed *= 3.5;
     }
 
     const blockdata = {
@@ -230,6 +243,7 @@ class MiningUtilClass {
   /**
    * @function getDebuff Returns your current heat or cold or 0 if null
    * @param {*} type The type of debuff you want to get - "heat" or "cold"
+   * @returns amount of debuff you have from that type
    */
   getDebuff(type) {
     const symbols = {
@@ -258,6 +272,10 @@ class MiningUtilClass {
     return 0; // not found
   }
 
+  /**
+   * @function getSpeedWithCold Calculates Miningspeed after calculating cold res against speed
+   * @returns your affected mining speed after calculating total cold reduction
+   */
   getSpeedWithCold() {
     let baseSpeed = this.savedSpeed ?? this.getMiningSpeed();
     let baseCold = Utils.getConfigFile("miningstats.json");
