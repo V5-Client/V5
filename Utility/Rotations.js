@@ -116,7 +116,7 @@ class RotationsTo {
   rotateTo(vector) {
     let vec = Utils.convertToVector(vector);
     this.rotating = true;
-    this.targetVector = new Vector(vec.x, vec.y, vec.z);
+    this.targetVector = new Vector(vec.x + 0.5, vec.y + 0.5, vec.z + 0.5);
   }
 
   onEndRotation(callBack) {
