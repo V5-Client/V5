@@ -15,7 +15,7 @@ class MiningUtilClass {
     register("command", () => {
       Prefix.message("Getting your Mining Data!");
       new Thread(() => {
-        // todo force drill when function added + if player.getcontainer !== sb menu etc
+        // todo force drill when function added + if player.getcontainer !== sb menu etc + get item ability
         function getItemLore(slot) {
           return Player.getContainer().getStackInSlot(slot).getLore();
         }
@@ -25,7 +25,10 @@ class MiningUtilClass {
           for (let line of lore) {
             const cleanLine = ChatLib.removeFormatting(line.toString());
             const match = cleanLine.match(regex);
-            if (match) return match[1];
+            if (match) {
+              let value = match[1].replace(/,/g, "");
+              return value.includes(".") ? parseFloat(value) : parseInt(value);
+            }
           }
           return null;
         }
@@ -54,15 +57,18 @@ class MiningUtilClass {
 
         Guis.closeInv();
 
-        if (
-          Player.getHeldItem()
-            .getEnchantments()
-            .entrySet()
-            .stream()
-            .filter((e) => e.toString().includes("lapidary"))
-        ) {
-          this.professional += " + 100";
-          Prefix.message("Lapidary Speed Boost: +100");
+        let lore = Player.getHeldItem()
+          .getLore()
+          .map((l) => ChatLib.removeFormatting(l))
+          .join(" ");
+        let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
+        let bonus = match
+          ? { I: 1, II: 2, III: 3, IV: 4, V: 5 }[match[1].toUpperCase()] * 20
+          : 0;
+
+        if (match) {
+          this.professional += bonus;
+          Prefix.message(`Lapidary Speed: +${bonus}`);
         }
 
         let cotmcolor = this.cotm ? "&a" : "&c";
@@ -77,12 +83,12 @@ class MiningUtilClass {
         Prefix.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
 
         Utils.writeConfigFile("miningstats.json", {
-          speed: `${this.miningSpeed}`,
-          professional: `${this.professional}`,
-          strongarm: `${this.strongArm}`,
-          hotm: `${this.hotm}`,
-          cotm: `${this.cotm}`,
-          maxge: `${this.maxSolver}`,
+          speed: this.miningSpeed,
+          professional: this.professional,
+          strongarm: this.strongArm,
+          hotm: this.hotm,
+          cotm: this.cotm,
+          maxge: this.maxSolver,
         });
       }).start();
     }).setName("getminingstats");
