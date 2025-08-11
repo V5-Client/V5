@@ -23,7 +23,7 @@ import { Flowstate } from "./Utility/Flowstate.js";
 import { Guis } from "./Utility/Inventory";
 import { MathUtils } from "./Utility/Math.js";
 import { MiningUtils } from "./Utility/MiningUtils.js";
-import "./Utility/Misc.js";
+//import "./Utility/Misc.js";
 import { Keybind } from "./Utility/Keybinding.js";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
