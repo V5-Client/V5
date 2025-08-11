@@ -48,6 +48,7 @@ class InventoryUtilsClass {
    * This function fixes that.
    */
   closeInv() {
+    mc = Client.getMinecraft();
     Client.currentGui?.close();
     const Focused = mc.getClass().getDeclaredField("field_1695");
     Focused.setAccessible(true);
@@ -157,4 +158,4 @@ class InventoryUtilsClass {
   }
 }
 
-export const Clicking = new InventoryUtilsClass();
+export const Guis = new InventoryUtilsClass();
