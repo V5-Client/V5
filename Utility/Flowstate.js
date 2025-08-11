@@ -3,6 +3,7 @@ import { Prefix } from "./Prefix";
 class FlowstateUtilsClass {
   constructor() {
     this.countdown = 0;
+    this.multiplier = 1;
     this.flowstateBlocksBroken = 0;
 
     let blockx = 0;
@@ -30,6 +31,9 @@ class FlowstateUtilsClass {
         .map((l) => ChatLib.removeFormatting(l))
         .join(" ");
       let match = lore.match(/flowstate\s*(i{1,3})/i);
+      let bonus = match
+        ? { I: 1, II: 2, III: 3 }[match[1].toUpperCase()] * 1
+        : 0;
 
       if (
         Player.getHeldItem() !== null &&
@@ -41,9 +45,11 @@ class FlowstateUtilsClass {
           packet.getState().getBlock().toString().includes("air"))
       ) {
         this.countdown = 10;
-        this.flowstateBlocksBroken += 1;
-        if (this.flowstateBlocksBroken % 100 == 0) {
-          Prefix.message(`Current Flowstate: ${this.flowstateBlocksBroken}`);
+        this.flowstateBlocksBroken += bonus;
+        if (this.flowstateBlocksBroken > 100 * this.multiplier) {
+          let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
+          Prefix.message(`Current Flowstate: ${rounded}`);
+          this.multiplier++;
         }
       }
     }).setFilteredClasses([
