@@ -1,4 +1,4 @@
-register("command", () => {
+register("tick", () => {
   let block = Player.lookingAt();
   if (block instanceof Block) {
     ChatLib.chat("blockid: " + block.type.getID());
@@ -7,4 +7,4 @@ register("command", () => {
   } else {
     ChatLib.chat(block);
   }
-}).setName("blockinfo");
+});

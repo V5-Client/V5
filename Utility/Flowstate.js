@@ -26,6 +26,8 @@ class FlowstateUtilsClass {
     });
 
     register("PacketReceived", (packet) => {
+      if (Player.getHeldItem() === null) return;
+
       let lore = Player.getHeldItem()
         .getLore()
         .map((l) => ChatLib.removeFormatting(l))
@@ -36,7 +38,6 @@ class FlowstateUtilsClass {
         : 0;
 
       if (
-        Player.getHeldItem() !== null &&
         match &&
         packet.getPos().getX() == blockx &&
         packet.getPos().getY() == blocky &&
