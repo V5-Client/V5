@@ -14,6 +14,8 @@ Client.getMinecraft()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
 /* Dependencies */
+import { Vector3 } from "./Dependencies/BloomCore/Vector3.js";
+import { raytraceBlocks } from "./Dependencies/BloomCore/RaytraceBlocks.js";
 
 /* Utility */
 import "./Utility/Config.js";
@@ -23,6 +25,7 @@ import { Calcs } from "./Utility/Math.js";
 import { Keybind } from "./Utility/Keybinding.js";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
+import { RayTrace } from "./Utility/Raytrace.js";
 import { Rotations } from "./Utility/Rotations.js";
 import { registerEventSB } from "./Utility/SkyblockEvents.js";
 import { Conversions } from "./Utility/TimeConversion";
