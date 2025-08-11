@@ -61,6 +61,8 @@ class MiningUtilClass {
 
       this.strongArm = getFirstMatchFromLore(21, /\+(\d+(\.\d+)?)/);
 
+      this.coldRes = getFirstMatchFromLore(23, /\+(\d+(\.\d+)?)/);
+
       this.solver = getFirstMatchFromLore(42, /\+(\d+(\.\d+)?)/);
       this.maxSolver = parseInt(this.solver) === 20;
 
@@ -87,6 +89,7 @@ class MiningUtilClass {
       Prefix.message(`Mining Speed: &e${this.miningSpeed}`);
       Prefix.message(`Professional: &e${this.professional}`);
       Prefix.message(`Strong Arm: &e${this.strongArm}`);
+      Prefix.message(`Cold Resistance: &e${this.coldRes}`);
       Prefix.message(`HOTM Level: &e${this.hotm}`);
       Prefix.message(`COTM: ${cotmcolor}${this.cotm}`);
       Prefix.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
@@ -95,6 +98,7 @@ class MiningUtilClass {
         speed: this.miningSpeed,
         professional: this.professional,
         strongarm: this.strongArm,
+        coldres: this.coldRes,
         hotm: this.hotm,
         cotm: this.cotm,
         maxge: this.maxSolver,
@@ -102,6 +106,10 @@ class MiningUtilClass {
     }).start();
   }
 
+  /**
+   * @function getMiningSpeed Returns your mining speed for an island
+   * @param {*} Area  Checks wether you're in Crystal Hollows to add Professional
+   */
   getMiningSpeed(Area = Utils.area()) {
     let file = Utils.getConfigFile("miningstats.json");
     if (!file) return;
@@ -213,6 +221,60 @@ class MiningUtilClass {
    */
   returnSpeed(Ticks, Offset) {
     return Math.max(4, Ticks + Offset);
+  }
+
+  inCamp() {
+    return Player.getZ() > 185 && Utils.area() === "Dwarven Mines";
+  }
+
+  /**
+   * @function getDebuff Returns your current heat or cold or 0 if null
+   * @param {*} type The type of debuff you want to get - "heat" or "cold"
+   */
+  getDebuff(type) {
+    const symbols = {
+      cold: "❄",
+      heat: "♨",
+    };
+
+    let symbol = symbols[type.toLowerCase()];
+    if (!symbol) return 0;
+
+    let lines = Scoreboard.getLines();
+
+    for (let i = 0; i < lines.length; i++) {
+      let str = String(lines[i]);
+      if (str.indexOf(symbol) !== -1) {
+        let clean = str.replace(/§[0-9A-FK-OR]/gi, "");
+
+        let regex = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${symbol}`);
+
+        let match = clean.match(regex);
+        if (match) {
+          return match[1];
+        }
+      }
+    }
+    return 0; // not found
+  }
+
+  getSpeedWithCold() {
+    let baseSpeed = this.savedSpeed ?? this.getMiningSpeed();
+    let baseCold = Utils.getConfigFile("miningstats.json");
+    if (!baseCold) return;
+    this.savedColdRes = baseCold.coldres;
+
+    let cold = this.getDebuff("cold");
+    let effectiveCold = cold - this.savedColdRes;
+
+    if (effectiveCold > 0) {
+      let reductionPercent = effectiveCold / 2;
+      if (reductionPercent > 100) reductionPercent = 100;
+
+      return Number((baseSpeed * (1 - reductionPercent / 100)).toFixed());
+    } else {
+      return baseSpeed;
+    }
   }
 }
 
