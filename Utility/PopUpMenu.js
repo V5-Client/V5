@@ -16,12 +16,12 @@ class NotificationUtils {
 
       const popup = new this.PopupMenu();
 
-      const exitItem = new this.MenuItem("Close Game");
+      /*const exitItem = new this.MenuItem("Close Game");
       exitItem.addActionListener(() => {
         this.SystemTray.getSystemTray().remove(this.trayIcon);
         java.lang.System.exit(0);
       });
-      popup.add(exitItem);
+      popup.add(exitItem);*/
 
       const image = javax.imageio.ImageIO.read(
         new java.io.File("./config/ChatTriggers/modules/Client/assets/icon.png")
