@@ -100,6 +100,46 @@ class MiningUtilClass {
       });
     }).start();
   }
+
+  // GE max
+  // Refuel
+  // the other one
+
+  getMineTime() {
+    const blockdata = {
+      /* BlockID : hardness */
+
+      /* Mithril */
+      5: { hardness: 2000 }, // Titanium
+      143: { hardness: 1500 }, // Blue Wool Mithril
+      495: { hardness: 800 }, // Prismarine Mithril
+      461: { hardness: 500 }, // Cyan Terracotta Mithril
+      147: { hardness: 500 }, // Gray Wool Mithril
+
+      /* Tunnels */
+      524: { hardness: 6000 }, // Glacite
+      268: { hardness: 5600 }, // Tungsten Clay
+      318: { hardness: 5600 }, // Tungsten Cobble
+      464: { hardness: 5600 }, // Umber Brown Terracotta
+      595: { hardness: 5600 }, // Umber Smooth Red Sandstone
+      522: { hardness: 5600 }, // Umber Terracotta
+
+      /* Gems (Panes) */
+      // Tunnels
+      479: { hardness: 5200 }, // AquaMarine
+      480: { hardness: 5200 }, // Citrine
+      481: { hardness: 5200 }, // Peridot
+      483: { hardness: 5200 }, // Onyx
+      // Crystal Hollows
+      470: { hardness: 4800 }, // Jasper
+      472: { hardness: 3800 }, // Topaz
+      469: { hardness: 3000 }, // Amber
+      478: { hardness: 3000 }, // Amethyst
+      473: { hardness: 3000 }, // Jade
+      471: { hardness: 3000 }, // Sapphire
+      482: { hardness: 2300 }, // Ruby
+    };
+  }
 }
 
 export const MiningUtils = new MiningUtilClass();
