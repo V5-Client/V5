@@ -71,7 +71,7 @@ class FlowstateUtilsClass {
   }
 
   CurrentFlowstate() {
-    return Math.min(600, this.flowstateBlocksBroken * 3);
+    return Math.min(600, this.flowstateBlocksBroken);
   }
 }
 
