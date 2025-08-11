@@ -20,8 +20,9 @@ import { raytraceBlocks } from "./Dependencies/BloomCore/RaytraceBlocks.js";
 /* Utility */
 import "./Utility/Config.js";
 import { Flowstate } from "./Utility/Flowstate.js";
-import { Clicking } from "./Utility/Inventory";
-import { Calcs } from "./Utility/Math.js";
+import { Guis } from "./Utility/Inventory";
+import { MathUtils } from "./Utility/Math.js";
+import { MiningUtils } from "./Utility/MiningUtils.js";
 import { Keybind } from "./Utility/Keybinding.js";
 import { Popup } from "./Utility/PopUpMenu";
 import { Prefix } from "./Utility/Prefix";
