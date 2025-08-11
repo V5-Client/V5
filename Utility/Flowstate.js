@@ -25,13 +25,15 @@ class FlowstateUtilsClass {
     });
 
     register("PacketReceived", (packet) => {
+      let lore = Player.getHeldItem()
+        .getLore()
+        .map((l) => ChatLib.removeFormatting(l))
+        .join(" ");
+      let match = lore.match(/flowstate\s*(i{1,3})/i);
+
       if (
         Player.getHeldItem() !== null &&
-        Player.getHeldItem()
-          .getEnchantments()
-          .entrySet()
-          .stream()
-          .filter((e) => e.toString().includes("flowstate")) &&
+        match &&
         packet.getPos().getX() == blockx &&
         packet.getPos().getY() == blocky &&
         packet.getPos().getZ() == blockz &&
