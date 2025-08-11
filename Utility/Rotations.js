@@ -2,7 +2,7 @@ import { Vector } from "./DataClasses/Vec";
 import { Utils } from "./Utils";
 
 /**
- *
+ *TODO -> Probably Recode 💀
  *
  * Settings:
  *  Speed       : rotation speed multiplier (0.06 default) (60)
