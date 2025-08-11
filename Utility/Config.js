@@ -119,7 +119,7 @@ let Files = [
   { path: "etherwarperoutes/empty.txt", FileType: "file", Content: [] },
 
   // Mining Speed
-  { path: "miningspeed.json", FileType: "file", Content: {} },
+  { path: "miningstats.json", FileType: "file", Content: {} },
 ];
 
 // Handles all the extra files

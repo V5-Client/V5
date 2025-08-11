@@ -251,4 +251,4 @@ class MathUtilsClass {
   }
 }
 
-export const Calcs = new MathUtilsClass();
+export const MathUtils = new MathUtilsClass();
