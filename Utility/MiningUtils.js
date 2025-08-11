@@ -54,6 +54,17 @@ class MiningUtilClass {
 
         Guis.closeInv();
 
+        if (
+          Player.getHeldItem()
+            .getEnchantments()
+            .entrySet()
+            .stream()
+            .filter((e) => e.toString().includes("lapidary"))
+        ) {
+          this.professional += " + 100";
+          Prefix.message("Lapidary Speed Boost: +100");
+        }
+
         let cotmcolor = this.cotm ? "&a" : "&c";
         let solvercolor = this.maxSolver ? "&a" : "&c";
 
@@ -65,12 +76,14 @@ class MiningUtilClass {
         Prefix.message(`COTM: ${cotmcolor}${this.cotm}`);
         Prefix.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
 
-        Utils.writeConfigFile("miningstats.json", {  speed: `${this.miningSpeed}`, 
-          professional : `${this.professional}`, 
-          strongarm: `${this.strongArm}`, 
+        Utils.writeConfigFile("miningstats.json", {
+          speed: `${this.miningSpeed}`,
+          professional: `${this.professional}`,
+          strongarm: `${this.strongArm}`,
           hotm: `${this.hotm}`,
           cotm: `${this.cotm}`,
-          maxge: `${this.maxSolver}`});
+          maxge: `${this.maxSolver}`,
+        });
       }).start();
     }).setName("getminingstats");
   }
