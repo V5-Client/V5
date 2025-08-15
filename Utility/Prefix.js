@@ -1,6 +1,6 @@
 //let { ModuleManager } = global.settingSelection
 
-const Startln = "Client &b";
+const Startln = "&dNova: &b";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
   java.util.Locale.US
