@@ -1,10 +1,11 @@
 import { Guis } from "../Utility/Inventory";
+import { Prefix } from "../Utility/Prefix";
 
 class AutoHarp {
   constructor() {
     this.ModuleName = "Auto Harp";
-    this.delay = 5;
-    this.toggled = true;
+    this.delay = 3;
+    this.Toggled = false;
 
     class Note {
       constructor(slot) {
@@ -16,8 +17,8 @@ class AutoHarp {
 
     const notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => new Note(slot));
 
-    register("tick", () => {
-      if (!this.toggled) return;
+    let AutoHarp = register("tick", () => {
+      if (!this.Toggled) return AutoHarp.unregister()
 
       const invName = Guis.guiName();
       if (!invName?.includes("Harp")) return;
@@ -53,6 +54,16 @@ class AutoHarp {
         }
       });
     });
+
+    register("command", () => {
+      this.Toggled = !this.Toggled;
+      Prefix.message(this.Toggled ? "Auto Harp Enabled" : "Auto Harp Disabled");
+      if (this.Toggled) {
+        AutoHarp.register();
+      } else {
+        AutoHarp.unregister();
+      }
+    }).setName("autoharp")
   }
 }
 
