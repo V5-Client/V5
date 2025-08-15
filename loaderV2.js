@@ -13,8 +13,9 @@ Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
-/* Mixins */
+import "./QOL/AutoHarp.js"
 
+/* Mixins */
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
 
 horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
