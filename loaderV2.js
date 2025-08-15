@@ -47,6 +47,7 @@ import "./GUI/Gui.js";
 /* Macros */
 
 /* QOL */
+import "./qol/AutoBeg.js";
 
 /* Mixins */
 
