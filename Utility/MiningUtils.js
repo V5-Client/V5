@@ -21,6 +21,37 @@ class MiningUtilClass {
     }).setName("getminingstats");
   }
 
+  RetrieveStats() {
+    // not done
+    const drill = this.getDrills().drill;
+    Player.setHeldItemIndex(drill.slot);
+    Prefix.message("Getting your Mining Data!");
+
+    new Thread(() => {
+      Thread.sleep(500);
+      ChatLib.command("sbmenu");
+      Thread.sleep(1000);
+
+      if (InventoryUtils.guiName() !== "SkyBlock Menu") {
+        Prefix.message("SkyBlock Menu took too long to open! Try again.");
+        return;
+      }
+
+      // Get speed off Stats
+      let lore = Player.getContainer().getStackInSlot(13).getLore();
+      for (let line of lore) {
+        const cleanLine = ChatLib.removeFormatting(line.toString());
+        const match = cleanLine.match(/Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i);
+        if (match) {
+          let value = match[1].replace(/,/g, "");
+          this.miningSpeed = parseInt(value);
+        }
+      }
+
+      ChatLib.command("hotm");
+    }).start();
+  }
+
   /*getMiningStatsCommand() {
     const drill = this.getDrills().drill;
     Player.setHeldItemIndex(drill.slot);

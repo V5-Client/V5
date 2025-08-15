@@ -19,7 +19,6 @@ import { raytraceBlocks } from "./Dependencies/BloomCore/RaytraceBlocks.js";
 
 /* Utility */
 import "./Utility/Config.js";
-import { Flowstate } from "./Utility/Flowstate.js";
 import { Guis } from "./Utility/Inventory";
 import { MathUtils } from "./Utility/Math.js";
 import { MiningUtils } from "./Utility/MiningUtils.js";
