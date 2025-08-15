@@ -1,7 +1,7 @@
 //let { S2DPacketOpenWindow, chat, Blocks, TimeHelper, mcMobs, MathUtils, ItemObject, S30PacketWindowItems, Utils, InventoryUtils, ItemUtils } = global.export
 
 import { Prefix } from "./Prefix";
-import { Timers } from "./Timing";
+//import { Timers } from "./Timing";
 import { MathUtils } from "./Math";
 import { ItemObject } from "./DataClasses/ItemObject";
 import { Utils } from "./Utils";
@@ -15,19 +15,15 @@ class MiningUtilClass {
     this.miningSpeed = "" || null;
 
     register("command", () => {
-      this.getMiningStats();
+      //this.getMiningStatsCommand();
       //this.getMiningSpeed();
+      //this.MaxGreatExplorer();
     }).setName("getminingstats");
-
-    register("tick", () => {
-      ChatLib.chat(this.getDrills().drill);
-    });
   }
 
-  /**
-   * @function getMiningStats returns all necessary stats for other scripts.
-   */
-  getMiningStats() {
+  /*getMiningStatsCommand() {
+    const drill = this.getDrills().drill;
+    Player.setHeldItemIndex(drill.slot);
     Prefix.message("Getting your Mining Data!");
     new Thread(() => {
       function getItemLore(slot) {
@@ -54,6 +50,7 @@ class MiningUtilClass {
         /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i
       );
 
+      // Open HOTM Menu
       ChatLib.command("hotm");
       Thread.sleep(1000);
       this.hotm = getFirstMatchFromLore(4, /Level\s{0,2}(\d+)/);
@@ -75,7 +72,7 @@ class MiningUtilClass {
 
       let lore = Player.getHeldItem()
         .getLore()
-        .map((l) => ChatLib.removeFormatting(l))
+        .map(ChatLib.removeFormatting)
         .join(" ");
       let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
       let bonus = match
@@ -99,6 +96,7 @@ class MiningUtilClass {
       Prefix.message(`COTM: ${cotmcolor}${this.cotm}`);
       Prefix.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
 
+      // Save stats
       Utils.writeConfigFile("miningstats.json", {
         speed: this.miningSpeed,
         professional: this.professional,
@@ -108,6 +106,149 @@ class MiningUtilClass {
         cotm: this.cotm,
         maxge: this.maxSolver,
       });
+    }).start();
+  } */
+
+  /**
+   * @function doRefueling Refuels drill during a macro
+   * @param {*} isComm Special type of refuel for commission macro
+   * @param {*} success Allows for the macro to carry on or stop if a problem occurs
+   * @returns a refueled drill
+   */
+  doRefueling(isComm = false, success) {
+    new Thread(() => {
+      if (!isComm) {
+        this.abiphone = Guis.findItemInHotbar("Abiphone");
+        if (this.abiphone === -1) {
+          Prefix.message("Unable to refuel without Abiphone!");
+          return success(false);
+        }
+
+        Player.setHeldItemIndex(this.abiphone);
+        Thread.sleep(250);
+        Keybind.rightClick();
+
+        Thread.sleep(1000);
+        if (!Guis.guiName()?.includes("Abiphone")) {
+          Prefix.message("Took too long to open the Abiphone!");
+          return success(false);
+        }
+
+        this.Jotraeline = Guis.findFirst(
+          Player.getContainer(),
+          "Jotraeline Greatforge"
+        );
+        if (this.Jotraeline === -1) {
+          Prefix.message("You don't have Jotraeline as a contact!");
+          return success(false);
+        }
+        Guis.clickSlot(this.Jotraeline);
+
+        waited = 0;
+        while (Guis.guiName() !== "Drill Anvil" && waited < 5000) {
+          Thread.sleep(50);
+          waited += 50;
+        }
+
+        if (waited >= 5000) {
+          Prefix.message("Took too long to open Drill Anvil!");
+          return success(false);
+        }
+
+        if (Guis.guiName() === "Drill Anvil") {
+          Thread.sleep(1000);
+          let Drills = this.getDrills().drill;
+          Guis.clickSlot(Drills.slot + 81, true); // retarded method 💀
+
+          let container = Player.getContainer();
+
+          if (container.getStackInSlot(29)) {
+            Thread.sleep(500);
+            let fuels = ["Volta", "Oil Barrel", "Biofuel"];
+            let clickFuel = Guis.clickItems(fuels, true);
+
+            if (!clickFuel) {
+              Prefix.message("You have no fuel in your inventory!");
+              Thread.sleep(500);
+              Guis.clickSlot(29, true); // weird bug where the close function ghosts your drill
+              Thread.sleep(500);
+              Guis.closeInv();
+              return success(false);
+            }
+          }
+
+          if (container.getStackInSlot(29) && container.getStackInSlot(33)) {
+            Thread.sleep(500);
+            Guis.clickSlot(22, false);
+            Thread.sleep(750);
+            Guis.clickSlot(13, true);
+            Thread.sleep(500);
+            Guis.closeInv();
+          }
+        } else {
+          Prefix.message("Failed to open Drill Anvil!");
+          return success(false);
+        }
+        return success(true);
+      }
+    }).start();
+  }
+
+  MaxGreatExplorer(success) {
+    new Thread(() => {
+      register("chat", (event) => {
+        let msg = event.message.getString();
+
+        if (msg.startsWith("You must first unlock")) {
+          Thread.sleep(300);
+          Prefix.message("Great Explorer can't be enabled!");
+          Guis.closeInv();
+          return success(false);
+        }
+
+        if (msg.includes("You don't have enough Gemstone Powder!")) {
+          Thread.sleep(300);
+          Prefix.message("You don't have enough powder to max Great Explorer!");
+          Guis.closeInv();
+          return success(false);
+        }
+      });
+
+      let file = Utils.getConfigFile("miningstats.json");
+
+      if (file.maxge) {
+        Prefix.message("Great Explorer is maxed from last stat check!");
+        return success(true);
+      } else if (file.maxge === undefined) {
+        Prefix.message("Great Explorer stat is undefined! Run /getminingstats");
+        return success(false);
+      }
+
+      ChatLib.command("hotm");
+      Thread.sleep(1000);
+
+      if (Guis.guiName() !== "Heart of the Mountain") {
+        Prefix.message("Took too long to open Heart of The Mountain!");
+        return success(false);
+      }
+
+      Guis.clickSlot(8, false, "RIGHT");
+      Thread.sleep(1000);
+
+      while (Guis.guiName() === "Heart of the Mountain") {
+        Thread.sleep(500);
+        let slot = Player.getContainer()?.getStackInSlot(42);
+        if (!slot) continue;
+
+        let nbt = slot.getNBT().toString();
+        if (nbt.includes("item.minecraft.coal")) {
+          Guis.clickSlot(42, false); // Normal click for coal
+        } else if (nbt.includes("item.minecraft.emerald")) {
+          Guis.clickSlot(42, true); // Shift-click for emerald
+        }
+      }
+
+      return success(true);
     }).start();
   }
 
@@ -135,12 +276,10 @@ class MiningUtilClass {
       this.savedSpeed = Speed;
     }
 
+    // add bettertogether speed
+
     return this.savedSpeed;
   }
-
-  // GE max
-  // Refuel
-  // the other one
 
   /**
    * @function getMineTime Calculates the time it takes to mine a specific block.
@@ -234,6 +373,64 @@ class MiningUtilClass {
    */
   returnSpeed(Ticks, Offset) {
     return Math.max(4, Ticks + Offset);
+  }
+
+  getDrills() {
+    const drillNames = [
+      { name: "Pickonimbus", drill: false },
+      { name: "Drill", drill: true },
+      { name: "Gauntlet", drill: true },
+      { name: "Mithril Pickaxe", drill: false },
+      { name: "Titanium Pickaxe", drill: false },
+      { name: "Iron Pickaxe", drill: false },
+      { name: "Eon Pickaxe", drill: false },
+      { name: "Chrono Pickaxe", drill: false },
+    ];
+
+    let foundDrill = false;
+    let blueCheese = null;
+    let drill = null;
+
+    for (let i = 0; i <= 7; i++) {
+      const item = Player.getInventory().getStackInSlot(i);
+      if (!item) continue;
+
+      const itemInstance = new ItemObject(item, i);
+      const itemName = item.getName().removeFormatting();
+
+      drillNames.some((drillName) => {
+        if (itemName.includes(drillName.name)) {
+          if (drillName.drill) {
+            const loreHasBlueCheese = item
+              .getLore()
+              .some((loreLine) =>
+                loreLine.toString().replace(/§./g, "").includes("Blue Cheese")
+              );
+            if (loreHasBlueCheese) {
+              blueCheese = itemInstance;
+              return true;
+            }
+            foundDrill = true;
+            drill = itemInstance;
+            return true;
+          } else if (!foundDrill) {
+            drill = itemInstance;
+            return true;
+          }
+        }
+        return false;
+      });
+    }
+
+    if (!drill) {
+      if (blueCheese) {
+        drill = blueCheese;
+      } else {
+        chat.message("Missing a mining item");
+      }
+    }
+
+    return { blueCheese, drill };
   }
 
   inCamp() {
