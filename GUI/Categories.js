@@ -1,5 +1,7 @@
 const Color = Java.type("java.awt.Color");
 
+const CATEGORY_BOX_HEIGHT = 70;
+
 if (!global.Categories) {
   global.Categories = {
     categories: [],
@@ -14,7 +16,12 @@ if (!global.Categories) {
     addCategoryItem(categoryName, title, description) {
       const category = this.categories.find((c) => c.name === categoryName);
       if (!category) return;
-      category.items.push({ title, description });
+      category.items.push({
+        title,
+        description,
+        expanded: false,
+        animation: CATEGORY_BOX_HEIGHT, // start collapsed
+      });
     },
     removeCategory(name) {
       this.categories = this.categories.filter((c) => c.name !== name);
@@ -30,24 +37,55 @@ if (!global.Categories) {
  * @returns {object} An object with `draw`, `handleClick`, and `handleScroll` methods.
  */
 global.createCategoriesManager = (deps) => {
+  // --- Constants for Left Panel (Categories) ---
   const CATEGORY_HEIGHT = 30;
   const CATEGORY_PADDING = 5;
+  const LEFT_PANEL_TEXT_HEIGHT = 8;
+  const CATEGORY_OFFSET_Y = 50;
+
+  // --- Constants for Right Panel (Items) ---
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
-  const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
-  const CATEGORY_OFFSET_Y = 50;
-  const CATEGORY_BOX_HEIGHT = 100;
   const CATEGORY_BOX_PADDING = 10;
+  const CATEGORY_EXPANDED_HEIGHT = 140;
+
+  // --- Color & Style Constants ---
+  const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
+  const CATEGORY_SELECTED_COLOR = 0xbf994ccc;
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
+  const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
+  const CATEGORY_BOX_BORDER_COLOR = new Color(0.2, 0.2, 0.2, 1);
   const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
 
+  // --- Scrolling State ---
   const SCROLL_SPEED = 15;
   let rightPanelScrollY = 0;
   let totalContentHeight = 0;
 
-  // New function to draw a drop shadow
+  /**
+   * Helper function to calculate the bounding box for a category.
+   * @param {number} index - The index of the category.
+   * @returns {object} The bounding box with x, y, width, and height.
+   */
+  const getCategoryRect = (index) => {
+    return {
+      x: deps.rectangles.LeftPanel.x + PADDING,
+      y:
+        deps.rectangles.LeftPanel.y +
+        PADDING +
+        CATEGORY_OFFSET_Y +
+        index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
+      width: deps.rectangles.LeftPanel.width - PADDING * 2,
+      height: CATEGORY_HEIGHT,
+    };
+  };
+
+  /**
+   * Draws a drop shadow for a given rectangle.
+   * @param {object} rect - The rectangle object to draw a shadow for.
+   */
   const drawDropShadow = (rect) => {
     deps.draw.drawRoundedRectangle({
       x: rect.x - 2,
@@ -60,153 +98,169 @@ global.createCategoriesManager = (deps) => {
   };
 
   const draw = (mouseX, mouseY) => {
+    // --- Draw Left Panel: Categories ---
     global.Categories.categories.forEach((cat, i) => {
-      const x = deps.rectangles.LeftPanel.x + PADDING;
-      const y =
-        deps.rectangles.LeftPanel.y +
-        PADDING +
-        CATEGORY_OFFSET_Y +
-        i * (CATEGORY_HEIGHT + CATEGORY_PADDING);
-      const width = deps.rectangles.LeftPanel.width - PADDING * 2;
-      const height = CATEGORY_HEIGHT;
+      const rect = getCategoryRect(i);
+      const lineY = rect.y + rect.height - 2;
 
-      const lineY = y + height - 2;
+      // Draw the bottom line of the category box
       deps.draw.drawRoundedRectangle({
-        x: x + 5,
+        x: rect.x + 5,
         y: lineY,
-        width: width - 10,
+        width: rect.width - 10,
         height: 1,
         radius: 0,
         color: CATEGORY_INNER_LINE_COLOR,
       });
 
+      // Draw the category name
       const textColor =
-        global.Categories.selected === cat.name ? 0xbf994ccc : 0xffffff;
-      const textHeight = 8;
-      const textY = lineY - (height - 2 - textHeight) / 2 - 1;
+        global.Categories.selected === cat.name
+          ? CATEGORY_SELECTED_COLOR
+          : CATEGORY_TITLE_COLOR;
+      const textY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
       Renderer.drawString(
         cat.name,
-        x + width / 2 - Renderer.getStringWidth(cat.name) / 2,
+        rect.x + rect.width / 2 - Renderer.getStringWidth(cat.name) / 2,
         textY,
         textColor,
         false
       );
     });
 
-    if (global.Categories.selected) {
-      const cat = global.Categories.categories.find(
-        (c) => c.name === global.Categories.selected
+    // --- Draw Right Panel: Items/Options ---
+    if (!global.Categories.selected) return;
+
+    const cat = global.Categories.categories.find(
+      (c) => c.name === global.Categories.selected
+    );
+    if (!cat) return;
+
+    const panel = deps.rectangles.RightPanel;
+    const x = panel.x + PADDING;
+    let y = panel.y + PADDING;
+    const width = panel.width - PADDING * 2;
+    const itemHeight = CATEGORY_BOX_HEIGHT;
+
+    // Handle drawing based on the current page
+    if (global.Categories.currentPage === "categories") {
+      totalContentHeight = cat.items.reduce(
+        (total, item) => total + item.animation + CATEGORY_BOX_PADDING,
+        0
       );
-      if (!cat) return;
 
-      const panel = deps.rectangles.RightPanel;
+      // Scissor test to clip content outside the right panel's bounds
       const scale = Renderer.screen.getScale();
-      const x = panel.x + PADDING;
-      let y = panel.y + PADDING;
-      const width = panel.width - PADDING * 2;
-      const itemHeight = CATEGORY_BOX_HEIGHT;
+      GL11.glEnable(GL11.GL_SCISSOR_TEST);
+      GL11.glScissor(
+        Math.floor(panel.x * scale),
+        Math.floor(
+          (Renderer.screen.getHeight() - (panel.y + panel.height)) * scale
+        ),
+        Math.floor(panel.width * scale),
+        Math.floor(panel.height * scale)
+      );
 
-      // Handle drawing based on the current page
-      if (global.Categories.currentPage === "categories") {
-        totalContentHeight =
-          cat.items.length * (itemHeight + CATEGORY_BOX_PADDING);
+      y -= rightPanelScrollY;
+      cat.items.forEach((item) => {
+        // Animate towards expanded/collapsed height
+        const targetHeight = item.expanded
+          ? CATEGORY_EXPANDED_HEIGHT
+          : itemHeight;
+        item.animation += (targetHeight - item.animation) * 0.2; // Easing animation
 
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(
-          Math.floor(panel.x * scale),
-          Math.floor(
-            (Renderer.screen.getHeight() - (panel.y + panel.height)) * scale
-          ),
-          Math.floor(panel.width * scale),
-          Math.floor(panel.height * scale)
-        );
+        const itemRect = {
+          x,
+          y,
+          width,
+          height: item.animation,
+          radius: CORNER_RADIUS,
+          color: CATEGORY_BOX_COLOR,
+          borderWidth: BORDER_WIDTH,
+          borderColor: CATEGORY_BOX_BORDER_COLOR,
+        };
 
-        y -= rightPanelScrollY;
-        cat.items.forEach((item) => {
-          const itemRect = {
-            x,
-            y,
-            width,
-            height: itemHeight,
-            radius: CORNER_RADIUS,
-            color: new Color(0.18, 0.18, 0.18, 1),
-            borderWidth: BORDER_WIDTH,
-            borderColor: new Color(0.2, 0.2, 0.2, 1),
-          };
+        if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
+          drawDropShadow(itemRect);
+        }
+        deps.draw.drawRoundedRectangleWithBorder(itemRect);
 
-          if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
-            drawDropShadow(itemRect);
-          }
-          deps.draw.drawRoundedRectangleWithBorder(itemRect);
-          Renderer.drawString(
-            item.title,
-            x + width / 2 - Renderer.getStringWidth(item.title) / 2,
-            y + 10,
-            CATEGORY_TITLE_COLOR,
-            false
-          );
-          Renderer.drawString(
-            item.description,
-            x + width / 2 - Renderer.getStringWidth(item.description) / 2,
-            y + 30,
-            CATEGORY_DESC_COLOR,
-            false
-          );
-          y += itemHeight + CATEGORY_BOX_PADDING;
-        });
-
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
-      } else if (
-        global.Categories.currentPage === "options" &&
-        global.Categories.selectedItem
-      ) {
-        // Draw the options for the selected item here
+        // Title and description drawing
         Renderer.drawString(
-          global.Categories.selectedItem.title,
-          x + 10,
+          item.title,
+          x + width / 2 - Renderer.getStringWidth(item.title) / 2,
           y + 10,
-          0xbf994ccc,
+          CATEGORY_TITLE_COLOR,
           false
         );
         Renderer.drawString(
-          global.Categories.selectedItem.description,
-          x + 10,
+          item.description,
+          x + width / 2 - Renderer.getStringWidth(item.description) / 2,
           y + 30,
           CATEGORY_DESC_COLOR,
           false
         );
-      }
+
+        // Extra content (only visible when expanded)
+        if (item.animation > itemHeight + 10) {
+          Renderer.drawString(
+            "Enable:",
+            x + 10,
+            y + itemHeight + 12,
+            CATEGORY_DESC_COLOR,
+            false
+          );
+        }
+
+        y += item.animation + CATEGORY_BOX_PADDING;
+      });
+
+      GL11.glDisable(GL11.GL_SCISSOR_TEST);
+    } else if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      // Draw the options for the selected item
+      const selectedItem = global.Categories.selectedItem;
+      Renderer.drawString(
+        selectedItem.title,
+        x + 10,
+        y + 10,
+        CATEGORY_SELECTED_COLOR,
+        false
+      );
+      Renderer.drawString(
+        selectedItem.description,
+        x + 10,
+        y + 30,
+        CATEGORY_DESC_COLOR,
+        false
+      );
     }
   };
 
   const handleClick = (mouseX, mouseY) => {
-    let clickedOnCategory = false;
-    global.Categories.categories.forEach((cat, i) => {
-      const x = deps.rectangles.LeftPanel.x + PADDING;
-      const y =
-        deps.rectangles.LeftPanel.y +
-        PADDING +
-        CATEGORY_OFFSET_Y +
-        i * (CATEGORY_HEIGHT + CATEGORY_PADDING);
-      const width = deps.rectangles.LeftPanel.width - PADDING * 2;
-      const height = CATEGORY_HEIGHT;
-      if (deps.utils.isInside(mouseX, mouseY, { x, y, width, height })) {
+    // --- Left Panel: Select Category ---
+    const wasCategoryClicked = global.Categories.categories.some((cat, i) => {
+      const rect = getCategoryRect(i);
+      if (deps.utils.isInside(mouseX, mouseY, rect)) {
         global.Categories.selected = cat.name;
         global.Categories.currentPage = "categories";
         global.Categories.selectedItem = null;
         rightPanelScrollY = 0;
-        clickedOnCategory = true;
+        return true;
       }
+      return false;
     });
 
     if (
-      !clickedOnCategory &&
+      !wasCategoryClicked &&
       deps.utils.isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
       global.Categories.selected = null;
     }
 
-    // New logic to handle clicking on an item in the RightPanel
+    // --- Right Panel: Expand/Collapse Item ---
     if (
       global.Categories.selected &&
       global.Categories.currentPage === "categories"
@@ -220,21 +274,13 @@ global.createCategoriesManager = (deps) => {
       let y = panel.y + PADDING - rightPanelScrollY;
       const x = panel.x + PADDING;
       const width = panel.width - PADDING * 2;
-      const height = CATEGORY_BOX_HEIGHT;
 
       cat.items.forEach((item) => {
-        const itemRect = {
-          x,
-          y,
-          width,
-          height,
-        };
+        const itemRect = { x, y, width, height: item.animation };
         if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
-          global.Categories.selectedItem = item;
-          global.Categories.currentPage = "options";
-          return; // Exit the loop
+          item.expanded = !item.expanded;
         }
-        y += height + CATEGORY_BOX_PADDING;
+        y += item.animation + CATEGORY_BOX_PADDING;
       });
     }
   };
@@ -250,11 +296,10 @@ global.createCategoriesManager = (deps) => {
       return;
     }
 
+    // Calculate maximum scroll based on total content height
     const maxScroll = Math.max(0, totalContentHeight - panel.height + PADDING);
-
     const direction = dir > 0 ? -1 : 1;
     rightPanelScrollY += direction * SCROLL_SPEED;
-
     rightPanelScrollY = Math.max(0, Math.min(rightPanelScrollY, maxScroll));
   };
 
