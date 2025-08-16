@@ -60,14 +60,27 @@ global.createCategoriesManager = (deps) => {
   const CATEGORY_BOX_PADDING = 10;
   const CATEGORY_TITLE_COLOR = 0xffffff;
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
-  const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
-  const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
+  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
 
   const SCROLL_SPEED = 15;
   let rightPanelScrollY = 0;
   let totalContentHeight = 0;
 
-  const draw = () => {
+  // New function to draw a drop shadow
+  const drawDropShadow = (rect) => {
+    // We'll draw a slightly larger, semi-transparent rectangle underneath
+    // the main rectangle to create the shadow effect.
+    deps.draw.drawRoundedRectangle({
+      x: rect.x - 2,
+      y: rect.y - 2,
+      width: rect.width + 4,
+      height: rect.height + 4,
+      radius: rect.radius + 2,
+      color: DROPSHADOW_COLOR,
+    });
+  };
+
+  const draw = (mouseX, mouseY) => {
     global.Categories.categories.forEach((cat, i) => {
       const x = deps.rectangles.LeftPanel.x + PADDING;
       const y =
@@ -77,6 +90,7 @@ global.createCategoriesManager = (deps) => {
         i * (CATEGORY_HEIGHT + CATEGORY_PADDING);
       const width = deps.rectangles.LeftPanel.width - PADDING * 2;
       const height = CATEGORY_HEIGHT;
+
       const lineY = y + height - 2;
       deps.draw.drawRoundedRectangle({
         x: x + 5,
@@ -86,8 +100,9 @@ global.createCategoriesManager = (deps) => {
         radius: 0,
         color: CATEGORY_INNER_LINE_COLOR,
       });
+
       const textColor =
-        global.Categories.selected === cat.name ? 0x800080 : 0xffffff;
+        global.Categories.selected === cat.name ? 0xbf994ccc : 0xffffff;
       const textHeight = 8;
       const textY = lineY - (height - 2 - textHeight) / 2 - 1;
       Renderer.drawString(
@@ -127,16 +142,27 @@ global.createCategoriesManager = (deps) => {
 
       cat.items.forEach((item, i) => {
         const height = CATEGORY_BOX_HEIGHT;
-        deps.draw.drawRoundedRectangleWithBorder({
+
+        const BAR_BORDER_COLOR = new Color(0.2, 0.2, 0.2, 1);
+        const ITEM_RECT_COLOR = new Color(0.18, 0.18, 0.18, 1); // This is the new color variable.
+        const itemRect = {
           x,
           y,
           width,
           height,
           radius: CORNER_RADIUS,
-          color: BAR_COLOR,
+          color: ITEM_RECT_COLOR, // Change this line
           borderWidth: BORDER_WIDTH,
           borderColor: BAR_BORDER_COLOR,
-        });
+        };
+
+        // Check for hover and draw drop shadow
+        if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
+          drawDropShadow(itemRect);
+        }
+
+        deps.draw.drawRoundedRectangleWithBorder(itemRect);
+
         Renderer.drawString(
           item.title,
           x + width / 2 - Renderer.getStringWidth(item.title) / 2,
@@ -201,5 +227,5 @@ global.createCategoriesManager = (deps) => {
     rightPanelScrollY = Math.max(0, Math.min(rightPanelScrollY, maxScroll));
   };
 
-  return { draw, handleClick, handleScroll }; // Return the new function
+  return { draw, handleClick, handleScroll };
 };
