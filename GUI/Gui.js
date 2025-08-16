@@ -1,3 +1,5 @@
+import "./Categories";
+
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
   "gg.essential.elementa.components.UIRoundedRectangle"
@@ -10,13 +12,12 @@ const matrix = UMatrixStack.get();
 const PADDING = 10;
 const BORDER_WIDTH = 2;
 const CORNER_RADIUS = 10;
-
 const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 1);
 const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 1);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 
-// Rectangles
+// Rectangles - The foundational layout of the GUI
 let rectangles = {
   Background: {
     name: "Background",
@@ -64,43 +65,14 @@ let rectangles = {
 // Create GUI
 const myGui = new Gui();
 
-// Initialize categories
-if (!global.Categories) {
-  global.Categories = {
-    categories: [],
-    selected: null,
-
-    // Add a category
-    addCategory(name) {
-      if (!this.categories.includes(name)) this.categories.push(name);
-    },
-
-    // Remove a category
-    removeCategory(name) {
-      this.categories = this.categories.filter((c) => c !== name);
-      if (this.selected === name) this.selected = null;
-    },
-  };
-}
-
-// Category styling
-const CATEGORY_HEIGHT = 30;
-const CATEGORY_PADDING = 5;
-const CATEGORY_COLOR = new Color(0.2, 0.2, 0.2, 1);
-const CATEGORY_SELECTED_COLOR = new Color(0.6, 0, 0.8, 1);
-const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
-const CATEGORY_OFFSET_Y = 50;
-
-// Utils
+// --- Utility and Drawing Primitives ---
 const isInside = (mouseX, mouseY, rect) =>
   mouseX >= rect.x &&
   mouseX <= rect.x + rect.width &&
   mouseY >= rect.y &&
   mouseY <= rect.y + rect.height;
-
 const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
-// Draw functions
 const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
   UIRoundedRectangle.Companion.drawRoundedRectangle(
     matrix,
@@ -137,79 +109,37 @@ const drawRoundedRectangleWithBorder = (r) => {
   }
 };
 
-// Draw categories
-const drawCategories = () => {
-  global.Categories.categories.forEach((catName, i) => {
-    const x = rectangles.LeftPanel.x + PADDING;
-    const y =
-      rectangles.LeftPanel.y +
-      PADDING +
-      CATEGORY_OFFSET_Y +
-      i * (CATEGORY_HEIGHT + CATEGORY_PADDING);
-    const width = rectangles.LeftPanel.width - PADDING * 2;
-    const height = CATEGORY_HEIGHT;
+// --- Initialize Category Manager ---
+// Pass all necessary dependencies from this file into the category manager
+const categoryManager = global.createCategoriesManager({
+  rectangles: rectangles,
+  draw: {
+    drawRoundedRectangle: drawRoundedRectangle,
+    drawRoundedRectangleWithBorder: drawRoundedRectangleWithBorder,
+  },
+  utils: {
+    isInside: isInside,
+  },
+});
 
-    // Draw inner line
-    const lineY = y + height - 2; // bottom of the category
-    drawRoundedRectangle({
-      x: x + 5,
-      y: lineY,
-      width: width - 10,
-      height: 1,
-      radius: 0,
-      color: CATEGORY_INNER_LINE_COLOR,
-    });
-
-    // Text color based on selection
-    const textColor =
-      global.Categories.selected === catName ? 0x800080 : 0xffffff;
-
-    // Center text vertically above the line
-    const textHeight = 8; // approximate font height
-    const textY = lineY - (height - 2 - textHeight) / 2 - 1; // centers text above line
-
-    Renderer.drawString(
-      catName,
-      x + width / 2 - Renderer.getStringWidth(catName) / 2,
-      textY,
-      textColor,
-      false
-    );
-  });
-};
-
-// Handle category clicks
-const handleCategoryClick = (mouseX, mouseY) => {
-  global.Categories.categories.forEach((catName, i) => {
-    const x = rectangles.LeftPanel.x + PADDING;
-    const y =
-      rectangles.LeftPanel.y +
-      PADDING +
-      CATEGORY_OFFSET_Y +
-      i * (CATEGORY_HEIGHT + CATEGORY_PADDING);
-    const width = rectangles.LeftPanel.width - PADDING * 2;
-    const height = CATEGORY_HEIGHT;
-
-    if (isInside(mouseX, mouseY, { x, y, width, height })) {
-      global.Categories.selected = catName;
-    }
-  });
-};
-
-// Draw everything
-const drawRectangles = () => {
+// --- Main Draw Loop ---
+const drawGUI = () => {
+  // 1. Draw the foundational rectangles
   drawRoundedRectangleWithBorder(rectangles.Background);
   drawRoundedRectangleWithBorder(rectangles.LeftPanel);
   drawRoundedRectangleWithBorder(rectangles.RightPanel);
-  drawCategories();
+
+  // 2. Delegate content drawing to the category manager
+  categoryManager.draw();
 };
 
-myGui.registerDraw(drawRectangles);
+myGui.registerDraw(drawGUI);
 
-// Dragging logic
+// --- Event Handlers ---
 let dragging = false;
 
 const handleClick = (mouseX, mouseY) => {
+  // Check for dragging the background
   if (
     isInside(mouseX, mouseY, rectangles.Background) &&
     !isInside(mouseX, mouseY, rectangles.LeftPanel) &&
@@ -219,8 +149,8 @@ const handleClick = (mouseX, mouseY) => {
     rectangles.Background.dx = mouseX - rectangles.Background.x;
     rectangles.Background.dy = mouseY - rectangles.Background.y;
   }
-
-  handleCategoryClick(mouseX, mouseY); // handle category selection
+  // Delegate category-specific clicks to the manager
+  categoryManager.handleClick(mouseX, mouseY);
 };
 
 const handleMouseDrag = (mouseX, mouseY) => {
@@ -239,7 +169,7 @@ const handleScroll = (mouseX, mouseY, dir) => {
   });
 };
 
-// Mouse events
+// Register all GUI events
 myGui.registerClicked((mouseX, mouseY, button) => {
   if (button === 0) handleClick(mouseX, mouseY);
 });
@@ -251,5 +181,5 @@ myGui.registerMouseReleased(() => {
 });
 myGui.registerScrolled(handleScroll);
 
-// Command
+// Command to open the GUI
 register("command", () => myGui.open()).setName("gui");
