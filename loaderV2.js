@@ -15,6 +15,15 @@ Client.getMinecraft()
 
 import "./GUI/Gui.js";
 
+/* Categories */
+global.Categories.addCategory("Mining Macros");
+//global.Categories.addCategory("Foraging");
+global.Categories.addCategory("Other Macros");
+global.Categories.addCategory("Player");
+global.Categories.addCategory("World");
+global.Categories.addCategory("Qol");
+global.Categories.addCategory("Settings");
+
 import "./QOL/AutoHarp.js";
 
 /* Mixins */
