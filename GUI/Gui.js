@@ -8,7 +8,6 @@ const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
   .INSTANCE;
 const matrix = UMatrixStack.get();
 
-// GUI settings
 const PADDING = 10;
 const BORDER_WIDTH = 2;
 const CORNER_RADIUS = 10;
@@ -17,7 +16,6 @@ const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 1);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 
-// Rectangles - The foundational layout of the GUI
 let rectangles = {
   Background: {
     name: "Background",
@@ -62,15 +60,14 @@ let rectangles = {
   },
 };
 
-// Create GUI
 const myGui = new Gui();
 
-// --- Utility and Drawing Primitives ---
 const isInside = (mouseX, mouseY, rect) =>
   mouseX >= rect.x &&
   mouseX <= rect.x + rect.width &&
   mouseY >= rect.y &&
   mouseY <= rect.y + rect.height;
+
 const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
@@ -109,8 +106,6 @@ const drawRoundedRectangleWithBorder = (r) => {
   }
 };
 
-// --- Initialize Category Manager ---
-// Pass all necessary dependencies from this file into the category manager
 const categoryManager = global.createCategoriesManager({
   rectangles: rectangles,
   draw: {
@@ -122,24 +117,19 @@ const categoryManager = global.createCategoriesManager({
   },
 });
 
-// --- Main Draw Loop ---
 const drawGUI = () => {
-  // 1. Draw the foundational rectangles
   drawRoundedRectangleWithBorder(rectangles.Background);
   drawRoundedRectangleWithBorder(rectangles.LeftPanel);
   drawRoundedRectangleWithBorder(rectangles.RightPanel);
 
-  // 2. Delegate content drawing to the category manager
   categoryManager.draw();
 };
 
 myGui.registerDraw(drawGUI);
 
-// --- Event Handlers ---
 let dragging = false;
 
 const handleClick = (mouseX, mouseY) => {
-  // Check for dragging the background
   if (
     isInside(mouseX, mouseY, rectangles.Background) &&
     !isInside(mouseX, mouseY, rectangles.LeftPanel) &&
@@ -149,7 +139,7 @@ const handleClick = (mouseX, mouseY) => {
     rectangles.Background.dx = mouseX - rectangles.Background.x;
     rectangles.Background.dy = mouseY - rectangles.Background.y;
   }
-  // Delegate category-specific clicks to the manager
+
   categoryManager.handleClick(mouseX, mouseY);
 };
 
@@ -161,25 +151,21 @@ const handleMouseDrag = (mouseX, mouseY) => {
 };
 
 const handleScroll = (mouseX, mouseY, dir) => {
-  const direction = dir > 0 ? -1 : 1;
-  ["RightPanel", "LeftPanel", "Background"].forEach((key) => {
-    const r = rectangles[key];
-    if (isInside(mouseX, mouseY, r))
-      r.radius = clamp(r.radius + direction, 0, 50);
-  });
+  categoryManager.handleScroll(mouseX, mouseY, dir);
 };
 
-// Register all GUI events
 myGui.registerClicked((mouseX, mouseY, button) => {
   if (button === 0) handleClick(mouseX, mouseY);
 });
+
 myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
   if (button === 0) handleMouseDrag(mouseX, mouseY);
 });
+
 myGui.registerMouseReleased(() => {
   dragging = false;
 });
+
 myGui.registerScrolled(handleScroll);
 
-// Command to open the GUI
 register("command", () => myGui.open()).setName("gui");
