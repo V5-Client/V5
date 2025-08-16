@@ -13,7 +13,9 @@ Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
-import "./QOL/AutoHarp.js"
+import "./GUI/Gui.js";
+
+import "./QOL/AutoHarp.js";
 
 /* Mixins */
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
