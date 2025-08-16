@@ -1,6 +1,12 @@
 import { Guis } from "../Utility/Inventory";
 import { Prefix } from "../Utility/Prefix";
 
+global.Categories.addCategoryItem(
+  "Other Macros",
+  "Auto Harp",
+  "Automatically clicks for you"
+);
+
 class AutoHarp {
   constructor() {
     this.ModuleName = "Auto Harp";
@@ -18,7 +24,7 @@ class AutoHarp {
     const notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => new Note(slot));
 
     let AutoHarp = register("tick", () => {
-      if (!this.Toggled) return AutoHarp.unregister()
+      if (!this.Toggled) return AutoHarp.unregister();
 
       const invName = Guis.guiName();
       if (!invName?.includes("Harp")) return;
@@ -63,7 +69,7 @@ class AutoHarp {
       } else {
         AutoHarp.unregister();
       }
-    }).setName("autoharp")
+    }).setName("autoharp");
   }
 }
 
