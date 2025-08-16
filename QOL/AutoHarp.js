@@ -3,7 +3,13 @@ import { Prefix } from "../Utility/Prefix";
 
 global.Categories.addCategoryItem(
   "Modules",
-  "Auto Harp 🏠",
+  "Gemstone Macro",
+  "Mines Gemstones in the crystal hollows"
+);
+
+global.Categories.addCategoryItem(
+  "Modules",
+  "Ore Macro",
   "Automatically clicks for you"
 );
 
@@ -14,22 +20,17 @@ global.Categories.addCategoryItem(
 );
 global.Categories.addCategoryItem(
   "Modules",
-  "Auto Harp 🏠",
+  "Commission Macro",
   "Automatically clicks for you"
 );
 global.Categories.addCategoryItem(
   "Modules",
-  "Auto Harp 🏠",
+  "Tunnel Miner",
   "Automatically clicks for you"
 );
 global.Categories.addCategoryItem(
   "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
+  "Glacite Comm Macro",
   "Automatically clicks for you"
 );
 global.Categories.addCategoryItem(

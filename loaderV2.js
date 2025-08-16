@@ -13,7 +13,7 @@ Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
-import "./GUI/Gui.js";
+import "./GUI/GuiDraw.js";
 
 /* Categories */
 global.Categories.addCategory("Modules");
