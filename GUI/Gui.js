@@ -11,8 +11,8 @@ const matrix = UMatrixStack.get();
 const PADDING = 10;
 const BORDER_WIDTH = 2;
 const CORNER_RADIUS = 10;
-const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 1);
-const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 1);
+const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 0.5);
+const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 0.8);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 
