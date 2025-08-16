@@ -117,12 +117,12 @@ const categoryManager = global.createCategoriesManager({
   },
 });
 
-const drawGUI = () => {
+const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(rectangles.Background);
   drawRoundedRectangleWithBorder(rectangles.LeftPanel);
   drawRoundedRectangleWithBorder(rectangles.RightPanel);
 
-  categoryManager.draw();
+  categoryManager.draw(mouseX, mouseY);
 };
 
 myGui.registerDraw(drawGUI);
