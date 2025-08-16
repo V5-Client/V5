@@ -2,8 +2,71 @@ import { Guis } from "../Utility/Inventory";
 import { Prefix } from "../Utility/Prefix";
 
 global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+global.Categories.addCategoryItem(
+  "Modules",
+  "Auto Harp 🏠",
+  "Automatically clicks for you"
+);
+
+global.Categories.addCategoryItem(
   "Other Macros",
-  "Auto Harp",
+  "Auto Harpz2",
   "Automatically clicks for you"
 );
 
