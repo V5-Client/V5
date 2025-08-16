@@ -41,34 +41,30 @@ global.createCategoriesManager = (deps) => {
   const CATEGORY_HEIGHT = 30;
   const CATEGORY_PADDING = 5;
   const LEFT_PANEL_TEXT_HEIGHT = 8;
-  const CATEGORY_OFFSET_Y = 50;
+  const CATEGORY_OFFSET_Y = 50; // --- Constants for Right Panel (Items) ---
 
-  // --- Constants for Right Panel (Items) ---
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
   const CATEGORY_BOX_PADDING = 10;
-  const CATEGORY_EXPANDED_HEIGHT = 140;
+  const ITEM_SPACING = 10; // --- Color & Style Constants ---
 
-  // --- Color & Style Constants ---
   const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
   const CATEGORY_SELECTED_COLOR = 0xbf994ccc;
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
   const CATEGORY_BOX_BORDER_COLOR = new Color(0.2, 0.2, 0.2, 1);
-  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
+  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3); // --- Scrolling State ---
 
-  // --- Scrolling State ---
   const SCROLL_SPEED = 15;
   let rightPanelScrollY = 0;
-  let totalContentHeight = 0;
-
   /**
    * Helper function to calculate the bounding box for a category.
    * @param {number} index - The index of the category.
    * @returns {object} The bounding box with x, y, width, and height.
    */
+
   const getCategoryRect = (index) => {
     return {
       x: deps.rectangles.LeftPanel.x + PADDING,
@@ -81,11 +77,11 @@ global.createCategoriesManager = (deps) => {
       height: CATEGORY_HEIGHT,
     };
   };
-
   /**
    * Draws a drop shadow for a given rectangle.
    * @param {object} rect - The rectangle object to draw a shadow for.
    */
+
   const drawDropShadow = (rect) => {
     deps.draw.drawRoundedRectangle({
       x: rect.x - 2,
@@ -101,9 +97,8 @@ global.createCategoriesManager = (deps) => {
     // --- Draw Left Panel: Categories ---
     global.Categories.categories.forEach((cat, i) => {
       const rect = getCategoryRect(i);
-      const lineY = rect.y + rect.height - 2;
+      const lineY = rect.y + rect.height - 2; // Draw the bottom line of the category box
 
-      // Draw the bottom line of the category box
       deps.draw.drawRoundedRectangle({
         x: rect.x + 5,
         y: lineY,
@@ -111,9 +106,8 @@ global.createCategoriesManager = (deps) => {
         height: 1,
         radius: 0,
         color: CATEGORY_INNER_LINE_COLOR,
-      });
+      }); // Draw the category name
 
-      // Draw the category name
       const textColor =
         global.Categories.selected === cat.name
           ? CATEGORY_SELECTED_COLOR
@@ -126,9 +120,8 @@ global.createCategoriesManager = (deps) => {
         textColor,
         false
       );
-    });
+    }); // --- Draw Right Panel: Items/Options ---
 
-    // --- Draw Right Panel: Items/Options ---
     if (!global.Categories.selected) return;
 
     const cat = global.Categories.categories.find(
@@ -138,17 +131,11 @@ global.createCategoriesManager = (deps) => {
 
     const panel = deps.rectangles.RightPanel;
     const x = panel.x + PADDING;
-    let y = panel.y + PADDING;
-    const width = panel.width - PADDING * 2;
-    const itemHeight = CATEGORY_BOX_HEIGHT;
+    const panelWidth = panel.width - PADDING * 2;
+    const itemWidth = (panelWidth - ITEM_SPACING) / 2;
+    const itemHeight = CATEGORY_BOX_HEIGHT; // Handle drawing based on the current page
 
-    // Handle drawing based on the current page
     if (global.Categories.currentPage === "categories") {
-      totalContentHeight = cat.items.reduce(
-        (total, item) => total + item.animation + CATEGORY_BOX_PADDING,
-        0
-      );
-
       // Scissor test to clip content outside the right panel's bounds
       const scale = Renderer.screen.getScale();
       GL11.glEnable(GL11.GL_SCISSOR_TEST);
@@ -161,19 +148,28 @@ global.createCategoriesManager = (deps) => {
         Math.floor(panel.height * scale)
       );
 
-      y -= rightPanelScrollY;
-      cat.items.forEach((item) => {
-        // Animate towards expanded/collapsed height
-        const targetHeight = item.expanded
-          ? CATEGORY_EXPANDED_HEIGHT
-          : itemHeight;
-        item.animation += (targetHeight - item.animation) * 0.2; // Easing animation
+      let totalContentHeight = 0;
+      for (let i = 0; i < cat.items.length; i += 2) {
+        totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+      }
+
+      let y = panel.y + PADDING - rightPanelScrollY;
+      for (let i = 0; i < cat.items.length; i++) {
+        const item = cat.items[i];
+        const isLeft = i % 2 === 0;
+        const itemX =
+          panel.x + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING); // Find the y position of the current row based on previous items
+
+        let rowY = panel.y + PADDING - rightPanelScrollY;
+        for (let j = 0; j < Math.floor(i / 2) * 2; j += 2) {
+          rowY += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+        }
 
         const itemRect = {
-          x,
-          y,
-          width,
-          height: item.animation,
+          x: itemX,
+          y: rowY,
+          width: itemWidth,
+          height: CATEGORY_BOX_HEIGHT,
           radius: CORNER_RADIUS,
           color: CATEGORY_BOX_COLOR,
           borderWidth: BORDER_WIDTH,
@@ -183,37 +179,27 @@ global.createCategoriesManager = (deps) => {
         if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
           drawDropShadow(itemRect);
         }
-        deps.draw.drawRoundedRectangleWithBorder(itemRect);
+        deps.draw.drawRoundedRectangleWithBorder(itemRect); // Title and description drawing
 
-        // Title and description drawing
         Renderer.drawString(
           item.title,
-          x + width / 2 - Renderer.getStringWidth(item.title) / 2,
-          y + 10,
+          itemRect.x +
+            itemRect.width / 2 -
+            Renderer.getStringWidth(item.title) / 2,
+          itemRect.y + 10,
           CATEGORY_TITLE_COLOR,
           false
         );
         Renderer.drawString(
           item.description,
-          x + width / 2 - Renderer.getStringWidth(item.description) / 2,
-          y + 30,
+          itemRect.x +
+            itemRect.width / 2 -
+            Renderer.getStringWidth(item.description) / 2,
+          itemRect.y + 30,
           CATEGORY_DESC_COLOR,
           false
         );
-
-        // Extra content (only visible when expanded)
-        if (item.animation > itemHeight + 10) {
-          Renderer.drawString(
-            "Enable:",
-            x + 10,
-            y + itemHeight + 12,
-            CATEGORY_DESC_COLOR,
-            false
-          );
-        }
-
-        y += item.animation + CATEGORY_BOX_PADDING;
-      });
+      }
 
       GL11.glDisable(GL11.GL_SCISSOR_TEST);
     } else if (
@@ -222,17 +208,28 @@ global.createCategoriesManager = (deps) => {
     ) {
       // Draw the options for the selected item
       const selectedItem = global.Categories.selectedItem;
+      const optionX = panel.x + PADDING;
+      const optionY = panel.y + PADDING;
+
+      deps.draw.drawRoundedRectangle({
+        x: optionX,
+        y: optionY,
+        width: panel.width - PADDING * 2,
+        height: panel.height - PADDING * 2,
+        radius: CORNER_RADIUS,
+        color: CATEGORY_BOX_COLOR,
+      });
       Renderer.drawString(
         selectedItem.title,
-        x + 10,
-        y + 10,
+        optionX + 10,
+        optionY + 10,
         CATEGORY_SELECTED_COLOR,
         false
       );
       Renderer.drawString(
         selectedItem.description,
-        x + 10,
-        y + 30,
+        optionX + 10,
+        optionY + 30,
         CATEGORY_DESC_COLOR,
         false
       );
@@ -258,9 +255,8 @@ global.createCategoriesManager = (deps) => {
       deps.utils.isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
       global.Categories.selected = null;
-    }
+    } // --- Right Panel: Open Options ---
 
-    // --- Right Panel: Expand/Collapse Item ---
     if (
       global.Categories.selected &&
       global.Categories.currentPage === "categories"
@@ -271,17 +267,42 @@ global.createCategoriesManager = (deps) => {
       if (!cat) return;
 
       const panel = deps.rectangles.RightPanel;
-      let y = panel.y + PADDING - rightPanelScrollY;
-      const x = panel.x + PADDING;
-      const width = panel.width - PADDING * 2;
+      const panelWidth = panel.width - PADDING * 2;
+      const itemWidth = (panelWidth - ITEM_SPACING) / 2;
+      const itemHeight = CATEGORY_BOX_HEIGHT;
 
-      cat.items.forEach((item) => {
-        const itemRect = { x, y, width, height: item.animation };
-        if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
-          item.expanded = !item.expanded;
+      let y = panel.y + PADDING - rightPanelScrollY;
+      for (let i = 0; i < cat.items.length; i++) {
+        const item = cat.items[i];
+        const isLeft = i % 2 === 0;
+        const itemX =
+          panel.x + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
+
+        let rowY = panel.y + PADDING - rightPanelScrollY;
+        for (let j = 0; j < Math.floor(i / 2) * 2; j += 2) {
+          rowY += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
         }
-        y += item.animation + CATEGORY_BOX_PADDING;
-      });
+
+        const rect = {
+          x: itemX,
+          y: rowY,
+          width: itemWidth,
+          height: itemHeight,
+        };
+
+        if (deps.utils.isInside(mouseX, mouseY, rect)) {
+          global.Categories.currentPage = "options";
+          global.Categories.selectedItem = item;
+          return;
+        }
+      }
+    } else if (
+      global.Categories.currentPage === "options" &&
+      !deps.utils.isInside(mouseX, mouseY, deps.rectangles.RightPanel)
+    ) {
+      // Return to categories page if clicking outside the options panel
+      global.Categories.currentPage = "categories";
+      global.Categories.selectedItem = null;
     }
   };
 
@@ -296,7 +317,13 @@ global.createCategoriesManager = (deps) => {
       return;
     }
 
-    // Calculate maximum scroll based on total content height
+    const cat = global.Categories.categories.find(
+      (c) => c.name === global.Categories.selected
+    );
+    const totalContentHeight =
+      Math.ceil(cat.items.length / 2) *
+      (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+
     const maxScroll = Math.max(0, totalContentHeight - panel.height + PADDING);
     const direction = dir > 0 ? -1 : 1;
     rightPanelScrollY += direction * SCROLL_SPEED;
