@@ -37,17 +37,17 @@ if (!global.Categories) {
  * @returns {object} An object with `draw`, `handleClick`, and `handleScroll` methods.
  */
 global.createCategoriesManager = (deps) => {
-  // --- Constants for Left Panel (Categories) ---
+  // Constants for Left Panel (Categories)
   const CATEGORY_HEIGHT = 30;
   const CATEGORY_PADDING = 5;
   const LEFT_PANEL_TEXT_HEIGHT = 8;
-  const CATEGORY_OFFSET_Y = 50; // --- Constants for Right Panel (Items) ---
-
+  const CATEGORY_OFFSET_Y = 50; 
+  // Constants for Right Panel (Items/Options)
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
   const CATEGORY_BOX_PADDING = 10;
-  const ITEM_SPACING = 10; // --- Color & Style Constants ---
+  const ITEM_SPACING = 10; 
 
   const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
@@ -55,7 +55,7 @@ global.createCategoriesManager = (deps) => {
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
   const CATEGORY_BOX_BORDER_COLOR = new Color(0.2, 0.2, 0.2, 1);
-  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3); // --- Scrolling State ---
+  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3); 
 
   const SCROLL_SPEED = 15;
   let rightPanelScrollY = 0;
@@ -94,7 +94,7 @@ global.createCategoriesManager = (deps) => {
   };
 
   const draw = (mouseX, mouseY) => {
-    // --- Draw Left Panel: Categories ---
+    // Draw Left Panel: Categories
     global.Categories.categories.forEach((cat, i) => {
       const rect = getCategoryRect(i);
       const lineY = rect.y + rect.height - 2; // Draw the bottom line of the category box
@@ -120,7 +120,7 @@ global.createCategoriesManager = (deps) => {
         textColor,
         false
       );
-    }); // --- Draw Right Panel: Items/Options ---
+    }); // Draw Right Panel: Items/Options
 
     if (!global.Categories.selected) return;
 
@@ -237,7 +237,7 @@ global.createCategoriesManager = (deps) => {
   };
 
   const handleClick = (mouseX, mouseY) => {
-    // --- Left Panel: Select Category ---
+    // Left Panel: Select Category
     const wasCategoryClicked = global.Categories.categories.some((cat, i) => {
       const rect = getCategoryRect(i);
       if (deps.utils.isInside(mouseX, mouseY, rect)) {
@@ -255,7 +255,7 @@ global.createCategoriesManager = (deps) => {
       deps.utils.isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
       global.Categories.selected = null;
-    } // --- Right Panel: Open Options ---
+    } // Right Panel: Open Options
 
     if (
       global.Categories.selected &&
