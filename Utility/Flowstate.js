@@ -48,6 +48,12 @@ class FlowstateUtilsClass {
         this.countdown = 10;
         this.flowstateBlocksBroken += bonus;
         if (this.flowstateBlocksBroken > 100 * this.multiplier) {
+          if (this.multiplier === 6) {
+            this.isMax = true;
+            Prefix.message("Reached max Flowstate! (600)");
+            this.multiplier++;
+            return;
+          }
           let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
           Prefix.message(`Current Flowstate: ${rounded}`);
           this.multiplier++;
@@ -64,10 +70,12 @@ class FlowstateUtilsClass {
             `Flowstate lost at ${this.flowstateBlocksBroken} blocks`
           );
         }
+        this.isMax = false;
         this.flowstateBlocksBroken = 0;
       }
 
       if (this.countdown > 0) this.countdown--;
+      if (this.isMax) this.flowstateBlocksBroken = 600;
     }).setFps(1);
   }
 

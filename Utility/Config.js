@@ -1,4 +1,3 @@
-import { Prefix } from "./Prefix";
 let File = Java.type("java.io.File");
 
 let configName = "ClientConfig";
@@ -118,7 +117,7 @@ let Files = [
   },
   { path: "etherwarperoutes/empty.txt", FileType: "file", Content: [] },
 
-  // Mining Speed
+  // Mining Stats
   { path: "miningstats.json", FileType: "file", Content: {} },
 ];
 
