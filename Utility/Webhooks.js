@@ -1,5 +1,5 @@
 import { Utils } from "./Utils";
-import { Prefix } from "./Prefix";
+import { Chat } from "./Chat";
 let { Version } = global;
 
 let URL = Java.type("java.net.URL");
@@ -21,10 +21,10 @@ class Webhooks {
         this.webhookUrl = webhookFile.url || "";
         this.userID = webhookFile.userId || ""; // Load userId if exists
         this.isEnabled = true;
-        Prefix.debugMessage("&aLoaded webhook from config");
+        Chat.debugMessage("&aLoaded webhook from config");
       }
     } catch (e) {
-      Prefix.message("Webhook: " + "&cFailed to load webhook config");
+      Chat.message("Webhook: " + "&cFailed to load webhook config");
     }
 
     register("gameLoad", () => {
@@ -47,7 +47,7 @@ class Webhooks {
 
     register("command", (userId) => {
       if (!userId) {
-        Prefix.message("&cUsage: /setwhuser <discord_id>");
+        Chat.message("&cUsage: /setwhuser <discord_id>");
         return;
       }
       this.setUserId(userId);
@@ -61,7 +61,7 @@ class Webhooks {
    */
   setWebhook(url) {
     if (!url.startsWith("https://discord.com/api/webhooks/")) {
-      Prefix.message("&cInvalid Discord webhook URL!");
+      Chat.message("&cInvalid Discord webhook URL!");
       return;
     }
 
@@ -71,9 +71,9 @@ class Webhooks {
     // Save webhook to file
     try {
       Utils.writeConfigFile("webhook.json", { url: url });
-      Prefix.message("&aWebhook saved successfully!");
+      Chat.message("&aWebhook saved successfully!");
     } catch (e) {
-      Prefix.message("&cFailed to save webhook: " + e);
+      Chat.message("&cFailed to save webhook: " + e);
     }
   }
 
@@ -91,9 +91,9 @@ class Webhooks {
         url: this.webhookUrl,
         userId: userId,
       }); // Updated to .json
-      Prefix.message("&aUser ID saved successfully!");
+      Chat.message("&aUser ID saved successfully!");
     } catch (e) {
-      Prefix.message("&cFailed to save user ID: " + e);
+      Chat.message("&cFailed to save user ID: " + e);
     }
   }
 
@@ -151,7 +151,7 @@ class Webhooks {
 
       conn.getInputStream();
     } catch (e) {
-      Prefix.message("&cThere was an error! " + e);
+      Chat.message("&cThere was an error! " + e);
     }
   }
 }

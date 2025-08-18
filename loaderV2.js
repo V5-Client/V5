@@ -13,6 +13,8 @@ Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
+import "./Utility/Notifications.js"
+
 import "./GUI/GuiDraw.js";
 
 /* Categories */
