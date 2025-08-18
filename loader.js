@@ -16,7 +16,7 @@ import { Clicks } from "./Utility/Invoking";
 import { Calculations } from "./Utility/Math";
 import { Movement } from "./Utility/Movement";
 import { Popup } from "./Utility/PopUpMenu";
-import { Chat } from "./Utility/Prefix";
+import { Chat } from "./Utility/Chat";
 import RayTrace from "./Utility/Raytrace";
 import { Numbers } from "./Utility/TimeConversion";
 import { Time } from "./Utility/Timing";
