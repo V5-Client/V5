@@ -13,12 +13,15 @@ Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
+import "./Pathfinding/Pathfinder.js";
 import "./GUI/GuiDraw.js";
 
 /* Categories */
 global.Categories.addCategory("Modules");
 
 import "./QOL/AutoHarp.js";
+
+import "./Utility/Misc.js";
 
 /* Mixins */
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
