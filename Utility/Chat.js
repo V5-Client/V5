@@ -1,6 +1,6 @@
 //let { ModuleManager } = global.settingSelection
 
-const Startln = "&dNova: &b";
+const Prefix = "&dNova: &b";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
   java.util.Locale.US
@@ -13,7 +13,7 @@ class Chat {
    */
   message(msg) {
     if (!msg) return;
-    ChatLib.chat(Startln + (msg ?? null));
+    ChatLib.chat(Prefix + (msg ?? null));
   }
 
   /**
@@ -29,12 +29,12 @@ class Chat {
     //  )
     // )
     // return;
-    ChatLib.chat(Startln + (msg ?? null));
+    ChatLib.chat(Prefix + (msg ?? null));
   }
 
   log(msg) {
-    console.log(Startln + (msg ?? null));
+    console.log(Prefix + (msg ?? null));
   }
 }
 
-export const Prefix = new Chat();
+export const Chat = new Chat();
