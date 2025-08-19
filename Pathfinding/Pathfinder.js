@@ -28,17 +28,21 @@ class Node {
   }
 }
 
-class Pathfinder {
+export class Pathfinder {
   constructor() {
     this.mc = Client.getMinecraft();
     this.currentPath = [];
+    this.currentSegment = [];
+    this.nextSegment = null;
     this.isWalking = false;
-    this.pathWaypoints = [];
     this.isSearching = false;
+    this.pathWaypoints = [];
     this.stuckTimer = 0;
     this.lastPosition = null;
+    this.stuckThreshold = 60; // 3 seconds (20 ticks per second)
     this.nodesProcessed = 0;
     this.startTime = 0;
+    this.pathComplete = null;
     this.searchState = {
       openList: [],
       openListMap: new Map(),
@@ -46,6 +50,7 @@ class Pathfinder {
       startNode: null,
       endNode: null,
     };
+    this.lookAheadRadius = 5;
     this.registerCommandsAndEvents();
   }
 
@@ -61,9 +66,9 @@ class Pathfinder {
     return manhattan * 1.01;
   }
 
-  findPath(startPos, endPos) {
-    this.currentPath = [];
-    this.isWalking = false;
+  findPath(startPos, endPos, onComplete) {
+    this.stopPathing();
+    this.pathComplete = onComplete;
     this.isSearching = true;
     this.searchState.startNode = this.createNode(
       Math.floor(startPos.x),
@@ -91,19 +96,21 @@ class Pathfinder {
     );
     this.searchState.startNode.fScore = this.searchState.startNode.hScore;
     Prefix.message(
-      `&aFinding path from (${this.searchState.startNode.x}, ${this.searchState.startNode.y}, ${this.searchState.startNode.z}) to (${this.searchState.endNode.x}, ${this.searchState.endNode.y}, ${this.searchState.endNode.z})...`
+      `&aFinding first path segment from (${this.searchState.startNode.x}, ${this.searchState.startNode.y}, ${this.searchState.startNode.z}) to (${this.searchState.endNode.x}, ${this.searchState.endNode.y}, ${this.searchState.endNode.z})...`
     );
   }
 
-  continueSearch() {
+  continueSearch(segmentLength) {
     const { openList, openListMap, closedList, endNode } = this.searchState;
-    const nodesPerTick = 3000;
+    const nodesPerTick = 500;
     const maxNodes = 500000;
+
     if (openList.length === 0) {
       Prefix.message("&cNo path found to the destination. Open list is empty.");
       this.isSearching = false;
       return;
     }
+
     let nodesProcessedThisTick = 0;
     while (openList.length > 0 && nodesProcessedThisTick < nodesPerTick) {
       if (this.nodesProcessed >= maxNodes) {
@@ -115,20 +122,30 @@ class Pathfinder {
       const currentNodeKey = currentNode.getKey();
       openListMap.delete(currentNodeKey);
       if (
-        currentNode.x === endNode.x &&
-        currentNode.y === endNode.y &&
-        currentNode.z === endNode.z
+        (segmentLength &&
+          this.reconstructPath(currentNode).length > segmentLength) ||
+        (currentNode.x === endNode.x &&
+          currentNode.y === endNode.y &&
+          currentNode.z === endNode.z)
       ) {
-        this.currentPath = this.reconstructPath(currentNode);
-        this.currentPath = this.smoothPath(this.currentPath);
+        let path = this.reconstructPath(currentNode);
+        path = this.smoothPath(path);
         const endTime = Date.now();
         const timeTaken = endTime - this.startTime;
-        ChatLib.chat(`Found path in ${timeTaken}ms.`);
+        ChatLib.chat(`Found segment in ${timeTaken}ms.`);
         ChatLib.chat(`Nodes Processed: ${this.nodesProcessed}`);
-        ChatLib.chat(`Path Length: ${this.currentPath.length}`);
+        ChatLib.chat(`Path Length: ${path.length}`);
         this.isSearching = false;
-        this.isWalking = true;
-        this.pathWaypoints = [...this.currentPath];
+        if (this.currentSegment.length === 0) {
+          this.currentSegment = path;
+          this.isWalking = true;
+        } else {
+          this.nextSegment = path;
+        }
+        this.pathWaypoints = [
+          ...this.currentSegment,
+          ...(this.nextSegment || []),
+        ];
         this.lastPosition = {
           x: Player.getX(),
           y: Player.getY(),
@@ -141,45 +158,13 @@ class Pathfinder {
       let neighbors = this.getNeighbors(currentNode);
       let deltaX = endNode.x - currentNode.x;
       let deltaZ = endNode.z - currentNode.z;
-
       for (let neighbor of neighbors) {
         let neighborKey = neighbor.getKey();
         if (closedList.has(neighborKey)) {
           continue;
         }
-
-        let currentManhattan =
-          Math.abs(currentNode.x - endNode.x) +
-          Math.abs(currentNode.y - endNode.y) +
-          Math.abs(currentNode.z - endNode.z);
-        let neighborManhattan =
-          Math.abs(neighbor.x - endNode.x) +
-          Math.abs(neighbor.y - endNode.y) +
-          Math.abs(neighbor.z - endNode.z);
-
-        if (neighborManhattan > currentManhattan) {
-          continue;
-        }
-        let directionalPenalty = 0;
-        let neighborDeltaX = neighbor.x - currentNode.x;
-        let neighborDeltaZ = neighbor.z - currentNode.z;
-        if (
-          (deltaX < 0 && neighborDeltaX > 0) ||
-          (deltaX > 0 && neighborDeltaX < 0)
-        ) {
-          directionalPenalty += 5;
-        }
-        if (
-          (deltaZ < 0 && neighborDeltaZ > 0) ||
-          (deltaZ > 0 && neighborDeltaZ < 0)
-        ) {
-          directionalPenalty += 5;
-        }
-
         let newGScore =
-          currentNode.gScore +
-          this.distanceBetween(currentNode, neighbor) +
-          directionalPenalty;
+          currentNode.gScore + this.distanceBetween(currentNode, neighbor);
         let openListNeighbor = openListMap.get(neighborKey);
         if (!openListNeighbor || newGScore < openListNeighbor.gScore) {
           neighbor.parent = currentNode;
@@ -200,8 +185,41 @@ class Pathfinder {
       this.nodesProcessed++;
     }
   }
+
+  findNextSegment() {
+    if (this.isSearching || !this.isWalking || !this.currentSegment.length) {
+      return;
+    }
+    const lastNode = this.currentSegment[this.currentSegment.length - 1];
+    if (this.nextSegment) {
+      return;
+    }
+    this.isSearching = true;
+    this.searchState.startNode = this.createNode(
+      lastNode.x,
+      lastNode.y,
+      lastNode.z
+    );
+    const endPos = this.searchState.endNode;
+    this.searchState.openList = [this.searchState.startNode];
+    this.searchState.openListMap = new Map();
+    this.searchState.openListMap.set(
+      this.searchState.startNode.getKey(),
+      this.searchState.startNode
+    );
+    this.searchState.closedList = new Set();
+    this.nodesProcessed = 0;
+    this.startTime = Date.now();
+    this.searchState.startNode.gScore = 0;
+    this.searchState.startNode.hScore = this.heuristic(
+      this.searchState.startNode,
+      endPos
+    );
+    this.searchState.startNode.fScore = this.searchState.startNode.hScore;
+    Prefix.message("&aFinding next path segment...");
+  }
+
   getBlock(x, y, z) {
-    // use this as world  cache later on
     try {
       return World.getBlockAt(x, y, z);
     } catch (e) {
@@ -224,50 +242,6 @@ class Pathfinder {
       [1, 0, 1],
     ];
 
-    const endNode = this.searchState.endNode;
-    const verticalDifference = endNode.y - node.y;
-
-    // this could be done alot better but it was a quick write
-
-    if (verticalDifference > 0) {
-      // end node is higher, prioritize jumps
-      for (const [dx, _, dz] of directions) {
-        let jumpNode = this.createNode(
-          node.x + dx,
-          node.y + maxJump,
-          node.z + dz
-        );
-        if (
-          this.isWalkable(jumpNode) &&
-          this.canJumpTo(node, jumpNode) &&
-          !this.searchState.closedList.has(jumpNode.getKey())
-        ) {
-          neighbors.push(jumpNode);
-        }
-      }
-    } else if (verticalDifference < 0) {
-      // end node is lower, prioritize drops
-      for (const [dx, _, dz] of directions) {
-        let dropNode = this.createNode(node.x + dx, node.y - 1, node.z + dz);
-        if (
-          this.isWalkable(dropNode) &&
-          !this.searchState.closedList.has(dropNode.getKey())
-        ) {
-          neighbors.push(dropNode);
-        }
-      } // check for large falls straight down
-      for (let dy = -2; dy >= -maxDrop; dy--) {
-        let fallNode = this.createNode(node.x, node.y + dy, node.z);
-        if (
-          this.isWalkable(fallNode) &&
-          this.isClearPath(node, fallNode) &&
-          !this.searchState.closedList.has(fallNode.getKey())
-        ) {
-          neighbors.push(fallNode);
-        }
-      }
-    } // add horizontal movements as a fallback
-
     for (const [dx, _, dz] of directions) {
       let neighborNode = this.createNode(node.x + dx, node.y, node.z + dz);
       if (
@@ -276,25 +250,54 @@ class Pathfinder {
       ) {
         neighbors.push(neighborNode);
       }
+
+      let dropNode = this.createNode(node.x + dx, node.y - 1, node.z + dz);
+      if (
+        this.isWalkable(dropNode) &&
+        !this.searchState.closedList.has(dropNode.getKey())
+      ) {
+        neighbors.push(dropNode);
+      }
     }
 
+    for (let dy = -2; dy >= -maxDrop; dy--) {
+      let fallNode = this.createNode(node.x, node.y + dy, node.z);
+      if (
+        this.isWalkable(fallNode) &&
+        this.isClearPath(node, fallNode) &&
+        !this.searchState.closedList.has(fallNode.getKey())
+      ) {
+        neighbors.push(fallNode);
+      }
+    }
+
+    for (const [dx, _, dz] of directions) {
+      let jumpNode = this.createNode(
+        node.x + dx,
+        node.y + maxJump,
+        node.z + dz
+      );
+      if (
+        this.isWalkable(jumpNode) &&
+        this.canJumpTo(node, jumpNode) &&
+        !this.searchState.closedList.has(jumpNode.getKey())
+      ) {
+        neighbors.push(jumpNode);
+      }
+    }
     return neighbors;
   }
 
   getObstaclePenalty(node) {
     let penalty = 0;
     const checkRadius = 1;
-
     for (let dx = -checkRadius; dx <= checkRadius; dx++) {
       for (let dz = -checkRadius; dz <= checkRadius; dz++) {
         if (dx === 0 && dz === 0) continue;
-
         let block1 = this.getBlock(node.x + dx, node.y + 1, node.z + dz);
         let block2 = this.getBlock(node.x + dx, node.y + 2, node.z + dz);
-
         const block1Name = block1.type.getRegistryName();
         const block2Name = block2.type.getRegistryName();
-
         const isSolidBlock1 =
           block1Name !== "minecraft:air" &&
           !block1Name.includes("slab") &&
@@ -303,7 +306,6 @@ class Pathfinder {
           block2Name !== "minecraft:air" &&
           !block2Name.includes("slab") &&
           !block2Name.includes("stairs");
-
         if (isSolidBlock1 || isSolidBlock2) {
           penalty += 10;
         }
@@ -316,7 +318,6 @@ class Pathfinder {
     if (fromNode.x !== toNode.x || fromNode.z !== toNode.z) {
       return false;
     }
-
     for (let y = fromNode.y - 1; y > toNode.y; y--) {
       const block = this.getBlock(fromNode.x, y, fromNode.z);
       if (block.type.getRegistryName() !== "minecraft:air") {
@@ -346,16 +347,9 @@ class Pathfinder {
     const dx = Math.abs(nodeA.x - nodeB.x);
     const dy = Math.abs(nodeA.y - nodeB.y);
     const dz = Math.abs(nodeA.z - nodeB.z);
-
-    let jumpPenalty = 0;
-    if (nodeB.y > nodeA.y) {
-      jumpPenalty = 20;
-    }
-
     const obstaclePenalty = this.getObstaclePenalty(nodeB);
-
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    return dist + jumpPenalty + obstaclePenalty;
+    return dist + obstaclePenalty;
   }
 
   isWalkable(node) {
@@ -517,38 +511,20 @@ class Pathfinder {
 
     register("tick", () => {
       if (this.isSearching) {
-        this.continueSearch();
-      } else if (this.isWalking && this.currentPath.length > 0) {
+        this.continueSearch(70);
+      } else if (this.isWalking) {
         this.updateMovement();
       }
     });
 
     register("postRenderWorld", () => {
-      const Color =
-        Java.type(
-          "java.awt.Color"
-        ); /*    this.searchState.closedList.forEach((key) => {
-        // Render closed list nodes (scanned)
-        const coords = key.split(",").map(Number);
-        RendererMain.drawWaypoint(
-          new Vec3i(coords[0], coords[1], coords[2]),
-          false,
-          new Color(1.0, 0.0, 0.0, 0.3) // Semi-transparent red
-        );
-      }); // Render open list nodes (candidates)
+      const Color = Java.type("java.awt.Color");
 
-      this.searchState.openList.forEach((node) => {
-        RendererMain.drawWaypoint(
-          new Vec3i(node.x, node.y, node.z),
-          false,
-          new Color(1.0, 1.0, 0.0, 0.3) // Semi-transparent yellow
-        );
-      }); // Render the final path (when walking) */
       this.pathWaypoints.forEach((node) => {
         RendererMain.drawWaypoint(
           new Vec3i(node.x, node.y, node.z),
           true,
-          new Color(0.0, 1.0, 0.0, 1.0) // Opaque green
+          new Color(0.0, 1.0, 0.0, 1.0)
         );
       });
     });
@@ -564,34 +540,196 @@ class Pathfinder {
   }
 
   updateMovement() {
-    const nextNode = this.currentPath[0];
-    const targetX = nextNode.x + 0.5;
-    const targetY = nextNode.y;
-    const targetZ = nextNode.z + 0.5;
-    const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-    const distance = Math.sqrt(
-      Math.pow(targetX - playerPos.x, 2) +
-        Math.pow(targetY - playerPos.y, 2) +
-        Math.pow(targetZ - playerPos.z, 2)
-    );
-    if (distance < 5) {
-      this.currentPath.shift();
-      this.lastPosition = playerPos;
+    // Check for "stuck" status before proceeding with movement logic.
+    const currentPos = {
+      x: Math.floor(Player.getX()),
+      y: Math.floor(Player.getY()),
+      z: Math.floor(Player.getZ()),
+    };
+
+    if (
+      this.lastPosition &&
+      currentPos.x === this.lastPosition.x &&
+      currentPos.y === this.lastPosition.y &&
+      currentPos.z === this.lastPosition.z
+    ) {
+      this.stuckTimer++;
+    } else {
       this.stuckTimer = 0;
-      if (this.currentPath.length === 0) {
-        ChatLib.chat("&aReached destination!");
-        this.stopPathing();
+    }
+    this.lastPosition = currentPos;
+
+    if (this.stuckTimer >= this.stuckThreshold) {
+      ChatLib.chat("&cStuck for too long, re-pathing...");
+      this.stopPathing();
+      // Re-initiate pathfinding to the original destination to find a new path.
+      this.findPath(
+        { x: Player.getX(), y: Player.getY(), z: Player.getZ() },
+        this.searchState.endNode
+      );
+      return;
+    }
+
+    // Original movement logic starts here
+    if (!this.currentSegment || this.currentSegment.length === 0) {
+      if (this.nextSegment) {
+        this.currentSegment = this.nextSegment;
+        this.nextSegment = null;
+        this.pathWaypoints = [...this.currentSegment];
         return;
       }
+      ChatLib.chat("&aReached destination!");
+      if (this.pathComplete) {
+        this.pathComplete();
+        this.pathComplete = null;
+      }
+      this.stopPathing();
+      return;
     }
-    Rotations.rotateTo([nextNode.x, nextNode.y + 2, nextNode.z]);
+
+    const playerPos = {
+      x: Player.getX(),
+      y: Player.getY(),
+      z: Player.getZ(),
+    };
+
+    let currentPathSegmentStart = null;
+    let currentPathSegmentEnd = null;
+    let segmentIndex = -1;
+
+    for (let i = 0; i < this.currentSegment.length - 1; i++) {
+      const distFromStart = Math.sqrt(
+        Math.pow(playerPos.x - this.currentSegment[i].x - 0.5, 2) +
+          Math.pow(playerPos.y - this.currentSegment[i].y, 2) +
+          Math.pow(playerPos.z - this.currentSegment[i].z - 0.5, 2)
+      );
+      const distFromEnd = Math.sqrt(
+        Math.pow(playerPos.x - this.currentSegment[i + 1].x - 0.5, 2) +
+          Math.pow(playerPos.y - this.currentSegment[i + 1].y, 2) +
+          Math.pow(playerPos.z - this.currentSegment[i + 1].z - 0.5, 2)
+      );
+
+      if (distFromStart < this.lookAheadRadius && distFromEnd > distFromStart) {
+        currentPathSegmentStart = this.currentSegment[i];
+        currentPathSegmentEnd = this.currentSegment[i + 1];
+        segmentIndex = i;
+        break;
+      }
+    }
+
+    if (!currentPathSegmentStart) {
+      currentPathSegmentStart = this.currentSegment[0];
+      currentPathSegmentEnd = this.currentSegment[1] || this.currentSegment[0];
+    }
+
+    const dx = currentPathSegmentEnd.x - currentPathSegmentStart.x;
+    const dy = currentPathSegmentEnd.y - currentPathSegmentStart.y;
+    const dz = currentPathSegmentEnd.z - currentPathSegmentStart.z;
+    const segmentLengthSquared = dx * dx + dy * dy + dz * dz;
+
+    const t =
+      segmentLengthSquared === 0
+        ? 0
+        : ((playerPos.x - currentPathSegmentStart.x) * dx +
+            (playerPos.y - currentPathSegmentStart.y) * dy +
+            (playerPos.z - currentPathSegmentStart.z) * dz) /
+          segmentLengthSquared;
+
+    const projectedPoint = {
+      x: currentPathSegmentStart.x + dx * t,
+      y: currentPathSegmentStart.y + dy * t,
+      z: currentPathSegmentStart.z + dz * t,
+    };
+
+    let targetX, targetY, targetZ;
+    const remainingDistance = this.lookAheadRadius;
+    const remainingSegmentLength = Math.sqrt(
+      Math.pow(currentPathSegmentEnd.x - projectedPoint.x, 2) +
+        Math.pow(currentPathSegmentEnd.y - projectedPoint.y, 2) +
+        Math.pow(currentPathSegmentEnd.z - projectedPoint.z, 2)
+    );
+
+    if (remainingSegmentLength >= remainingDistance) {
+      const ratio = remainingDistance / remainingSegmentLength;
+      targetX =
+        projectedPoint.x + (currentPathSegmentEnd.x - projectedPoint.x) * ratio;
+      targetY =
+        projectedPoint.y + (currentPathSegmentEnd.y - projectedPoint.y) * ratio;
+      targetZ =
+        projectedPoint.z + (currentPathSegmentEnd.z - projectedPoint.z) * ratio;
+    } else {
+      let distanceCovered = remainingSegmentLength;
+      let found = false;
+      for (let i = segmentIndex + 1; i < this.currentSegment.length - 1; i++) {
+        const nextSegmentLength = Math.sqrt(
+          Math.pow(this.currentSegment[i + 1].x - this.currentSegment[i].x, 2) +
+            Math.pow(
+              this.currentSegment[i + 1].y - this.currentSegment[i].y,
+              2
+            ) +
+            Math.pow(this.currentSegment[i + 1].z - this.currentSegment[i].z, 2)
+        );
+        if (distanceCovered + nextSegmentLength >= remainingDistance) {
+          const ratio =
+            (remainingDistance - distanceCovered) / nextSegmentLength;
+          targetX =
+            this.currentSegment[i].x +
+            (this.currentSegment[i + 1].x - this.currentSegment[i].x) * ratio;
+          targetY =
+            this.currentSegment[i].y +
+            (this.currentSegment[i + 1].y - this.currentSegment[i].y) * ratio;
+          targetZ =
+            this.currentSegment[i].z +
+            (this.currentSegment[i + 1].z - this.currentSegment[i].z) * ratio;
+          found = true;
+          break;
+        }
+        distanceCovered += nextSegmentLength;
+      }
+
+      if (!found) {
+        targetX = this.currentSegment[this.currentSegment.length - 1].x;
+        targetY = this.currentSegment[this.currentSegment.length - 1].y;
+        targetZ = this.currentSegment[this.currentSegment.length - 1].z;
+      }
+    }
+
+    if (this.currentSegment.length > 0) {
+      const distToNextNode = Math.sqrt(
+        Math.pow(playerPos.x - this.currentSegment[0].x, 2) +
+          Math.pow(playerPos.y - this.currentSegment[0].y, 2) +
+          Math.pow(playerPos.z - this.currentSegment[0].z, 2)
+      );
+      if (distToNextNode < 5.0) {
+        this.currentSegment.shift();
+      }
+    }
+
+    const dx_rot = targetX - playerPos.x;
+    const dy_rot = targetY - playerPos.y;
+    const dz_rot = targetZ - playerPos.z;
+
+    const yaw = Math.atan2(dz_rot, dx_rot) * (180 / Math.PI) - 90;
+    const dist2D = Math.sqrt(dx_rot * dx_rot + dz_rot * dz_rot);
+    const pitch = -Math.atan2(dy_rot, dist2D) * (180 / Math.PI) - 12.25;
+
+    Rotations.rotateToAngles(yaw, pitch);
     this.mc.options.forwardKey.setPressed(true);
+
+    if (this.currentSegment.length <= 15) {
+      this.findNextSegment();
+    }
   }
 
   stopPathing() {
     this.isWalking = false;
     this.isSearching = false;
+    this.currentSegment = [];
+    this.nextSegment = null;
+    this.pathWaypoints = [];
     this.mc.options.forwardKey.setPressed(false);
+    this.mc.options.leftKey.setPressed(false);
+    this.mc.options.rightKey.setPressed(false);
     Rotations.stopRotation();
   }
 }
