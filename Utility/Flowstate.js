@@ -3,6 +3,7 @@ import { Prefix } from "./Prefix";
 class FlowstateUtilsClass {
   constructor() {
     this.countdown = 0;
+    this.multiplier = 1;
     this.flowstateBlocksBroken = 0;
 
     let blockx = 0;
@@ -25,13 +26,19 @@ class FlowstateUtilsClass {
     });
 
     register("PacketReceived", (packet) => {
+      if (Player.getHeldItem() === null) return;
+
+      let lore = Player.getHeldItem()
+        .getLore()
+        .map((l) => ChatLib.removeFormatting(l))
+        .join(" ");
+      let match = lore.match(/flowstate\s*(i{1,3})/i);
+      let bonus = match
+        ? { I: 1, II: 2, III: 3 }[match[1].toUpperCase()] * 1
+        : 0;
+
       if (
-        Player.getHeldItem() !== null &&
-        Player.getHeldItem()
-          .getEnchantments()
-          .entrySet()
-          .stream()
-          .filter((e) => e.toString().includes("flowstate")) &&
+        match &&
         packet.getPos().getX() == blockx &&
         packet.getPos().getY() == blocky &&
         packet.getPos().getZ() == blockz &&
@@ -39,9 +46,17 @@ class FlowstateUtilsClass {
           packet.getState().getBlock().toString().includes("air"))
       ) {
         this.countdown = 10;
-        this.flowstateBlocksBroken += 1;
-        if (this.flowstateBlocksBroken % 100 == 0) {
-          Prefix.message(`Current Flowstate: ${this.flowstateBlocksBroken}`);
+        this.flowstateBlocksBroken += bonus;
+        if (this.flowstateBlocksBroken > 100 * this.multiplier) {
+          if (this.multiplier === 6) {
+            this.isMax = true;
+            Prefix.message("Reached max Flowstate! (600)");
+            this.multiplier++;
+            return;
+          }
+          let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
+          Prefix.message(`Current Flowstate: ${rounded}`);
+          this.multiplier++;
         }
       }
     }).setFilteredClasses([
@@ -55,15 +70,17 @@ class FlowstateUtilsClass {
             `Flowstate lost at ${this.flowstateBlocksBroken} blocks`
           );
         }
+        this.isMax = false;
         this.flowstateBlocksBroken = 0;
       }
 
       if (this.countdown > 0) this.countdown--;
+      if (this.isMax) this.flowstateBlocksBroken = 600;
     }).setFps(1);
   }
 
   CurrentFlowstate() {
-    return Math.min(600, this.flowstateBlocksBroken * 3);
+    return Math.min(600, this.flowstateBlocksBroken);
   }
 }
 

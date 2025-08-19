@@ -44,19 +44,35 @@ class InventoryUtilsClass {
   }
 
   /**
+   * Finds an item in the hotbar and returns its slot
+   * @param {string} itemName - The name of the item to find
+   * @returns {number} - The slot of the item, or -1 if not found
+   */
+  findItemInHotbar(itemName) {
+    for (let slot = 0; slot < 8; slot++) {
+      let item = Player.getInventory()?.getStackInSlot(slot);
+      if (item && item.getName().includes(itemName)) {
+        return slot;
+      }
+    }
+    return -1;
+  }
+
+  /**
    * A strange bug occurs when you click while tabbed out then it no longer is able to mine.
    * This function fixes that.
    */
   closeInv() {
+    mc = Client.getMinecraft();
     Client.currentGui?.close();
     const Focused = mc.getClass().getDeclaredField("field_1695");
     Focused.setAccessible(true);
 
-    if (!Focused.getBoolean(mc)) {
+    /* if (!Focused.getBoolean(mc)) {
       // if (!mc.inGameHasFocus)
-      mc.field_71415_G = true; // mc.inGameHasFocus = true;
+      // mc.field_71415_G = true; // mc.inGameHasFocus = true;
       mc.mouse.lockCursor(); // mc.mouseHelper.grabMouseCursor();
-    }
+    } */
   }
 
   /**
@@ -76,7 +92,7 @@ class InventoryUtilsClass {
     displayName = true,
     nameSpecific = false
   ) {
-    chat.log(`Attempting to click on item: ${name}`);
+    console.log(`Attempting to click on item: ${name}`);
 
     if (!name || this.guiName() == "null") return false;
 
@@ -153,8 +169,12 @@ class InventoryUtilsClass {
    * @author Kash MiningModules
    */
   guiName() {
-    return Client.currentGui.getClassName();
+    if (!Player.getContainer()) return null;
+
+    return ChatLib.removeFormatting(
+      Player.getContainer().getName().getString()
+    );
   }
 }
 
-export const Clicking = new InventoryUtilsClass();
+export const Guis = new InventoryUtilsClass();

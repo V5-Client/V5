@@ -2,13 +2,13 @@ import { Vector } from "./DataClasses/Vec";
 import { Utils } from "./Utils";
 
 /**
- *
+ *TODO -> Probably Recode 💀
  *
  * Settings:
- *  Speed       : rotation speed multiplier (0.06 default) (60)
- *  Randomness  : max jitter offset in degrees (0.05 default) (5)
- *  TremorFreq  : jitter updates per second (1 default) ()
- *  Fade        : how jitter fades near the target (exponent, 1 default)
+ *  Speed       : rotation speed multiplier (0.06 default) (60)
+ *  Randomness  : max jitter offset in degrees (0.05 default) (5)
+ *  TremorFreq  : jitter updates per second (1 default) ()
+ *  Fade        : how jitter fades near the target (exponent, 1 default)
  */
 class RotationsTo {
   constructor() {
@@ -34,6 +34,8 @@ class RotationsTo {
       if (!this.rotating) return;
 
       let player = Player.getPlayer();
+      if (!player) return;
+
       let currentYaw = player.getYaw();
       let currentPitch = player.getPitch();
 
@@ -90,7 +92,6 @@ class RotationsTo {
       let jitterYaw = this.currentRandomYaw * fadeFactor;
       let jitterPitch = this.currentRandomPitch * fadeFactor;
 
-      //let speedFactor = Math.min(1, maxDiff / 30); // fucks onEndRotation
       let newYaw = currentYaw + yawDiff * this.Speed + jitterYaw;
       let newPitch = currentPitch + pitchDiff * this.Speed + jitterPitch;
 
@@ -116,7 +117,7 @@ class RotationsTo {
   rotateTo(vector) {
     let vec = Utils.convertToVector(vector);
     this.rotating = true;
-    this.targetVector = new Vector(vec.x, vec.y, vec.z);
+    this.targetVector = new Vector(vec.x + 0.5, vec.y + 0.5, vec.z + 0.5);
   }
 
   onEndRotation(callBack) {

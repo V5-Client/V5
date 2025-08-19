@@ -1,14 +1,18 @@
+import "./GuiManager";
+
 const Color = Java.type("java.awt.Color");
-const UIRoundedRectangle = Java.type("gg.essential.elementa.components.UIRoundedRectangle");
-const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat.INSTANCE;
+const UIRoundedRectangle = Java.type(
+  "gg.essential.elementa.components.UIRoundedRectangle"
+);
+const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
+  .INSTANCE;
 const matrix = UMatrixStack.get();
 
 const PADDING = 10;
 const BORDER_WIDTH = 2;
 const CORNER_RADIUS = 10;
-
-const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 1);
-const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 1);
+const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 0.5);
+const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 0.8);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 
@@ -24,11 +28,14 @@ let rectangles = {
     borderWidth: BORDER_WIDTH,
     borderColor: BACKGROUND_BORDER_COLOR,
   },
-
   LeftPanel: {
     name: "Left",
-    get x() { return rectangles.Background.x + PADDING; },
-    get y() { return rectangles.Background.y + PADDING; },
+    get x() {
+      return rectangles.Background.x + PADDING;
+    },
+    get y() {
+      return rectangles.Background.y + PADDING;
+    },
     width: 100,
     height: 380,
     radius: CORNER_RADIUS,
@@ -36,11 +43,14 @@ let rectangles = {
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
   },
-
   RightPanel: {
     name: "Right",
-    get x() { return rectangles.LeftPanel.x + rectangles.LeftPanel.width + PADDING; },
-    get y() { return rectangles.Background.y + PADDING; },
+    get x() {
+      return rectangles.LeftPanel.x + rectangles.LeftPanel.width + PADDING;
+    },
+    get y() {
+      return rectangles.Background.y + PADDING;
+    },
     width: 470,
     height: 380,
     radius: CORNER_RADIUS,
@@ -52,21 +62,28 @@ let rectangles = {
 
 const myGui = new Gui();
 
-myGui.registerDraw(() => {
-  drawRectangles();
-});
-
-const isInside = (mouseX, mouseY, rectangle) => mouseX >= rectangle.x && mouseX <= rectangle.x + rectangle.width && mouseY >= rectangle.y && mouseY <= rectangle.y + rectangle.height;
+const isInside = (mouseX, mouseY, rect) =>
+  mouseX >= rect.x &&
+  mouseX <= rect.x + rect.width &&
+  mouseY >= rect.y &&
+  mouseY <= rect.y + rect.height;
 
 const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
-  UIRoundedRectangle.Companion.drawRoundedRectangle(matrix, x, y, x + width, y + height, radius, color);
+  UIRoundedRectangle.Companion.drawRoundedRectangle(
+    matrix,
+    x,
+    y,
+    x + width,
+    y + height,
+    radius,
+    color
+  );
 };
 
 const drawRoundedRectangleWithBorder = (r) => {
   if (r.borderWidth && r.borderWidth > 0) {
-    // Outer (border)
     drawRoundedRectangle({
       x: r.x,
       y: r.y,
@@ -75,7 +92,6 @@ const drawRoundedRectangleWithBorder = (r) => {
       radius: r.radius,
       color: r.borderColor || r.color,
     });
-    // Inner (fill)
     const bw = r.borderWidth;
     drawRoundedRectangle({
       x: r.x + bw,
@@ -90,32 +106,42 @@ const drawRoundedRectangleWithBorder = (r) => {
   }
 };
 
-const drawRectangles = () => {
+const categoryManager = global.createCategoriesManager({
+  rectangles: rectangles,
+  draw: {
+    drawRoundedRectangle: drawRoundedRectangle,
+    drawRoundedRectangleWithBorder: drawRoundedRectangleWithBorder,
+  },
+  utils: {
+    isInside: isInside,
+  },
+});
+
+const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(rectangles.Background);
   drawRoundedRectangleWithBorder(rectangles.LeftPanel);
   drawRoundedRectangleWithBorder(rectangles.RightPanel);
+
+  categoryManager.draw(mouseX, mouseY);
 };
 
-// Window dragging
-let dragging = false;
+myGui.registerDraw(drawGUI);
 
+let dragging = false;
 
 const handleClick = (mouseX, mouseY) => {
   if (
-    isInside(mouseX, mouseY, rectangles.Background) // inside background
-    && !isInside(mouseX, mouseY, rectangles.LeftPanel) // not inside LeftPanel
-    && !isInside(mouseX, mouseY, rectangles.RightPanel) // not inside bar2
+    isInside(mouseX, mouseY, rectangles.Background) &&
+    !isInside(mouseX, mouseY, rectangles.LeftPanel) &&
+    !isInside(mouseX, mouseY, rectangles.RightPanel)
   ) {
     dragging = true;
     rectangles.Background.dx = mouseX - rectangles.Background.x;
     rectangles.Background.dy = mouseY - rectangles.Background.y;
   }
-};
 
-myGui.registerClicked((mouseX, mouseY, button) => {
-  if (button !== 0) return; // Only process left-click
-  handleClick(mouseX, mouseY);
-});
+  categoryManager.handleClick(mouseX, mouseY);
+};
 
 const handleMouseDrag = (mouseX, mouseY) => {
   if (dragging) {
@@ -124,34 +150,22 @@ const handleMouseDrag = (mouseX, mouseY) => {
   }
 };
 
-myGui.registerMouseDragged((mouseX, mouseY, clickedMouseButton, _dt) => {
-  if (clickedMouseButton !== 0 || !dragging) return; // left-click only and if a rect is being dragged
-  handleMouseDrag(mouseX, mouseY);
+const handleScroll = (mouseX, mouseY, dir) => {
+  categoryManager.handleScroll(mouseX, mouseY, dir);
+};
+
+myGui.registerClicked((mouseX, mouseY, button) => {
+  if (button === 0) handleClick(mouseX, mouseY);
 });
 
-myGui.registerMouseReleased((_mouseX, _mouseY, _button) => {
+myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
+  if (button === 0) handleMouseDrag(mouseX, mouseY);
+});
+
+myGui.registerMouseReleased(() => {
   dragging = false;
 });
 
-// use this for easy debugging and shit
-const handleScroll = (mouseX, mouseY, dir) => {
-  const direction = dir > 0 ? -1 : 1
-  const order = ["RightPanel", "LeftPanel", "Background"];
+myGui.registerScrolled(handleScroll);
 
-  for (const key of order) {
-    const r = rectangles[key];
-    if (isInside(mouseX, mouseY, r)) {
-      r.radius = clamp(r.radius + direction, 0, 50);
-      return;
-    }
-  }
-};
-
-myGui.registerScrolled((mouseX, mouseY, dir) => {
-  handleScroll(mouseX, mouseY, dir);
-});
-
-
-register("command", () => {
-  myGui.open();
-}).setName("gui");
+register("command", () => myGui.open()).setName("gui");
