@@ -1,6 +1,6 @@
 //let { S2DPacketOpenWindow, chat, Blocks, TimeHelper, mcMobs, MathUtils, ItemObject, S30PacketWindowItems, Utils, InventoryUtils, ItemUtils } = global.export
 
-import { Prefix } from "./Prefix";
+import { Chat } from "./Chat";
 //import { Timers } from "./Timing";
 import { MathUtils } from "./Math";
 import { ItemObject } from "./DataClasses/ItemObject";
@@ -25,7 +25,7 @@ class MiningUtilClass {
     // not done
     const drill = this.getDrills().drill;
     Player.setHeldItemIndex(drill.slot);
-    Prefix.message("Getting your Mining Data!");
+    Chat.message("Getting your Mining Data!");
 
     new Thread(() => {
       Thread.sleep(500);
@@ -33,7 +33,7 @@ class MiningUtilClass {
       Thread.sleep(1000);
 
       if (InventoryUtils.guiName() !== "SkyBlock Menu") {
-        Prefix.message("SkyBlock Menu took too long to open! Try again.");
+        Chat.message("SkyBlock Menu took too long to open! Try again.");
         return;
       }
 
@@ -55,7 +55,7 @@ class MiningUtilClass {
   /*getMiningStatsCommand() {
     const drill = this.getDrills().drill;
     Player.setHeldItemIndex(drill.slot);
-    Prefix.message("Getting your Mining Data!");
+    Chat.message("Getting your Mining Data!");
     new Thread(() => {
       function getItemLore(slot) {
         return Player.getContainer().getStackInSlot(slot).getLore();
@@ -112,20 +112,20 @@ class MiningUtilClass {
 
       if (match) {
         this.professional += bonus;
-        Prefix.message(`Lapidary Speed: +${bonus}`);
+        Chat.message(`Lapidary Speed: +${bonus}`);
       }
 
       let cotmcolor = this.cotm ? "&a" : "&c";
       let solvercolor = this.maxSolver ? "&a" : "&c";
 
-      Prefix.message(`Your Mining Data:`);
-      Prefix.message(`Mining Speed: &e${this.miningSpeed}`);
-      Prefix.message(`Professional: &e${this.professional}`);
-      Prefix.message(`Strong Arm: &e${this.strongArm}`);
-      Prefix.message(`Cold Resistance: &e${this.coldRes}`);
-      Prefix.message(`HOTM Level: &e${this.hotm}`);
-      Prefix.message(`COTM: ${cotmcolor}${this.cotm}`);
-      Prefix.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
+      Chat.message(`Your Mining Data:`);
+      Chat.message(`Mining Speed: &e${this.miningSpeed}`);
+      Chat.message(`Professional: &e${this.professional}`);
+      Chat.message(`Strong Arm: &e${this.strongArm}`);
+      Chat.message(`Cold Resistance: &e${this.coldRes}`);
+      Chat.message(`HOTM Level: &e${this.hotm}`);
+      Chat.message(`COTM: ${cotmcolor}${this.cotm}`);
+      Chat.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
 
       // Save stats
       Utils.writeConfigFile("miningstats.json", {
@@ -151,7 +151,7 @@ class MiningUtilClass {
       if (!isComm) {
         this.abiphone = Guis.findItemInHotbar("Abiphone");
         if (this.abiphone === -1) {
-          Prefix.message("Unable to refuel without Abiphone!");
+          Chat.message("Unable to refuel without Abiphone!");
           return success(false);
         }
 
@@ -161,7 +161,7 @@ class MiningUtilClass {
 
         Thread.sleep(1000);
         if (!Guis.guiName()?.includes("Abiphone")) {
-          Prefix.message("Took too long to open the Abiphone!");
+          Chat.message("Took too long to open the Abiphone!");
           return success(false);
         }
 
@@ -170,7 +170,7 @@ class MiningUtilClass {
           "Jotraeline Greatforge"
         );
         if (this.Jotraeline === -1) {
-          Prefix.message("You don't have Jotraeline as a contact!");
+          Chat.message("You don't have Jotraeline as a contact!");
           return success(false);
         }
         Guis.clickSlot(this.Jotraeline);
@@ -182,7 +182,7 @@ class MiningUtilClass {
         }
 
         if (waited >= 5000) {
-          Prefix.message("Took too long to open Drill Anvil!");
+          Chat.message("Took too long to open Drill Anvil!");
           return success(false);
         }
 
@@ -199,7 +199,7 @@ class MiningUtilClass {
             let clickFuel = Guis.clickItems(fuels, true);
 
             if (!clickFuel) {
-              Prefix.message("You have no fuel in your inventory!");
+              Chat.message("You have no fuel in your inventory!");
               Thread.sleep(500);
               Guis.clickSlot(29, true); // weird bug where the close function ghosts your drill
               Thread.sleep(500);
@@ -217,7 +217,7 @@ class MiningUtilClass {
             Guis.closeInv();
           }
         } else {
-          Prefix.message("Failed to open Drill Anvil!");
+          Chat.message("Failed to open Drill Anvil!");
           return success(false);
         }
         return success(true);
@@ -232,14 +232,14 @@ class MiningUtilClass {
 
         if (msg.startsWith("You must first unlock")) {
           Thread.sleep(300);
-          Prefix.message("Great Explorer can't be enabled!");
+          Chat.message("Great Explorer can't be enabled!");
           Guis.closeInv();
           return success(false);
         }
 
         if (msg.includes("You don't have enough Gemstone Powder!")) {
           Thread.sleep(300);
-          Prefix.message("You don't have enough powder to max Great Explorer!");
+          Chat.message("You don't have enough powder to max Great Explorer!");
           Guis.closeInv();
           return success(false);
         }
@@ -248,10 +248,10 @@ class MiningUtilClass {
       let file = Utils.getConfigFile("miningstats.json");
 
       if (file.maxge) {
-        Prefix.message("Great Explorer is maxed from last stat check!");
+        Chat.message("Great Explorer is maxed from last stat check!");
         return success(true);
       } else if (file.maxge === undefined) {
-        Prefix.message("Great Explorer stat is undefined! Run /getminingstats");
+        Chat.message("Great Explorer stat is undefined! Run /getminingstats");
         return success(false);
       }
 
@@ -259,7 +259,7 @@ class MiningUtilClass {
       Thread.sleep(1000);
 
       if (Guis.guiName() !== "Heart of the Mountain") {
-        Prefix.message("Took too long to open Heart of The Mountain!");
+        Chat.message("Took too long to open Heart of The Mountain!");
         return success(false);
       }
 
@@ -295,7 +295,7 @@ class MiningUtilClass {
     let Professional = file.professional;
 
     if (!Speed) {
-      Prefix.message(
+      Chat.message(
         "You have not saved your mining stats! use /getminingstats"
       );
       return;

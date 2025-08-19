@@ -1,4 +1,4 @@
-import { Prefix } from "./Prefix";
+import { Chat } from "./Chat";
 
 class FlowstateUtilsClass {
   constructor() {
@@ -50,12 +50,12 @@ class FlowstateUtilsClass {
         if (this.flowstateBlocksBroken > 100 * this.multiplier) {
           if (this.multiplier === 6) {
             this.isMax = true;
-            Prefix.message("Reached max Flowstate! (600)");
+            Chat.message("Reached max Flowstate! (600)");
             this.multiplier++;
             return;
           }
           let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
-          Prefix.message(`Current Flowstate: ${rounded}`);
+          Chat.message(`Current Flowstate: ${rounded}`);
           this.multiplier++;
         }
       }
@@ -66,7 +66,7 @@ class FlowstateUtilsClass {
     register("step", () => {
       if (this.countdown === 0) {
         if (this.flowstateBlocksBroken > 100) {
-          Prefix.debugMessage(
+          Chat.debugMessage(
             `Flowstate lost at ${this.flowstateBlocksBroken} blocks`
           );
         }
