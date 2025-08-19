@@ -6,7 +6,7 @@ const date = new java.text.SimpleDateFormat(
   java.util.Locale.US
 );
 
-class Chat {
+export class Chat {
   /**
    * Sends a message with the client prefix.
    * @param {string} msg
@@ -36,5 +36,3 @@ class Chat {
     console.log(Prefix + (msg ?? null));
   }
 }
-
-export const Chat = new Chat();
