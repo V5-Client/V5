@@ -1,8 +1,9 @@
 //let { ModuleManager } = global.settingSelection;
 
-import { Prefix } from "./Prefix";
+import { Chat } from "./Chat";
 import { ItemObject } from "./DataClasses/ItemObject";
 import { Vector } from "./DataClasses/Vec";
+import { Notifications } from "./Notifications";
 
 let ArrayLists = Java.type("java.util.ArrayList");
 let AxisAlignedBB = Java.type("net.minecraft.world.phys.AABB");
@@ -52,7 +53,7 @@ class UtilsClass {
   warnPlayer = (msg = "New Alert!") => {
     // TODO RC Alert
 
-    global.export.NotificationUtils.sendAlert(msg);
+    Notifications.sendAlert(msg);
 
     if (!ModuleManager.getSetting("Failsafes", "Audio Notifications")) return;
 
@@ -61,11 +62,11 @@ class UtilsClass {
       let audio = new Sound({
         source: global.export.FailsafeManager.getAudioSource()?.toString(),
       });
-      Prefix.message("New Alert! " + msg);
+      Chat.message("New Alert! " + msg);
       audio.setVolume(1);
       audio.play();
     } catch (e) {
-      Prefix.message(
+      Chat.message(
         "&cFailsafe sound assets missing! Try reinstall rdbt client!"
       );
     }
@@ -144,7 +145,7 @@ class UtilsClass {
     }
     if (Missing.length > 0) {
       for (let i = 0; i < Missing.length; i++) {
-        Prefix.message("- Missing: " + Missing[i].toString());
+        Chat.message("- Missing: " + Missing[i].toString());
       }
       return false;
     }
