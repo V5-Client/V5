@@ -13,16 +13,15 @@ Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
-
-/* Categories */
-global.Categories.addCategory("Modules");
-
-import "./QOL/AutoHarp.js";
-import "./QOL/MobHider.js";
-
 import "./Utility/Misc.js";
 
-import "./Macro/CommMacro.js";
+/* GUI */
+import "./GUI/GuiDraw.js";
+global.Categories.addCategory("Modules");
+
+/* QOL */
+import "./QOL/AutoHarp.js";
+import "./QOL/MobHider.js";
 
 /* Mixins */
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
