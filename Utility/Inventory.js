@@ -1,3 +1,6 @@
+import { Keybind } from "./Keybinding";
+import { Rotations } from "./Rotations";
+
 class InventoryUtilsClass {
   constructor() {}
 
@@ -65,8 +68,8 @@ class InventoryUtilsClass {
   closeInv() {
     mc = Client.getMinecraft();
     Client.currentGui?.close();
-    const Focused = mc.getClass().getDeclaredField("field_1695");
-    Focused.setAccessible(true);
+    //const Focused = mc.getClass().getDeclaredField("field_1695");
+    //Focused.setAccessible(true);
 
     /* if (!Focused.getBoolean(mc)) {
       // if (!mc.inGameHasFocus)
@@ -161,6 +164,50 @@ class InventoryUtilsClass {
       }
     }
     return false;
+  }
+
+  setItemSlot(slot) {
+    if (slot < 0 || slot > 8)
+      return chat.message("Invalid slot blocked! Report this ASAP!");
+    if (Player.getHeldItemIndex() !== slot) {
+      console.log(
+        `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
+      );
+      Player.setHeldItemIndex(slot);
+    }
+  }
+
+  getHeldItemStackSize() {
+    let item = Player.getHeldItem();
+    if (item && item.getStackSize) {
+      return item.getStackSize();
+    }
+    return 0;
+  }
+
+  /**
+   * Finds an item in the hotbar and returns its slot
+   * @param {string} itemName - The name of the item to find
+   * @returns {number} - The slot of the item, or -1 if not found
+   */
+  findItemInHotbar(itemName) {
+    for (let slot = 0; slot < 8; slot++) {
+      let item = Player.getInventory()?.getStackInSlot(slot);
+      if (item && item.getName().includes(itemName)) {
+        return slot;
+      }
+    }
+    return -1;
+  }
+
+  stopInGui() {
+    if (this.guiName !== "null") {
+      Keybind.stopMovement();
+      Keybind.setKey("shift", false);
+      Keybind.setKey("leftclick", false);
+      Rotations.stopRotation();
+      return;
+    }
   }
 
   /**

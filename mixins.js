@@ -1,5 +1,5 @@
 const horizontalConnectingBlockMixin = new Mixin(
-  "net.minecraft.block.HorizontalConnectingBlock",
+  "net.minecraft.block.HorizontalConnectingBlock"
 );
 
 export const horizontalConnectingBlock_modifyPaneHitbox =
