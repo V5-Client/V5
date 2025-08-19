@@ -2,14 +2,12 @@ const Color = Java.type("java.awt.Color");
 
 const CATEGORY_BOX_HEIGHT = 70;
 
-import { ToggleButton } from "./Toggle";
-
 if (!global.Categories) {
   global.Categories = {
     categories: [],
     selected: null,
     selectedItem: null,
-    currentPage: "categories",
+    currentPage: "categories", // "categories" or "options"
     transitionProgress: 0,
     transitionDirection: 0,
     transitionStart: 0,
@@ -30,10 +28,7 @@ if (!global.Categories) {
         components: [],
       });
     },
-    removeCategory(name) {
-      this.categories = this.categories.filter((c) => c.name !== name);
-      if (this.selected === name) this.selected = null;
-    },
+
     addToggle(categoryName, itemName, toggleTitle) {
       const category = this.categories.find((c) => c.name === categoryName);
       if (!category) return;
@@ -70,18 +65,21 @@ global.createCategoriesManager = (deps) => {
   const CATEGORY_BOX_PADDING = 10;
   const ITEM_SPACING = 10;
 
-  const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
+  const CATEGORY_INNER_LINE_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
-  const CATEGORY_SELECTED_COLOR = 0xbf994ccc;
+  const CATEGORY_SELECTED_COLOR = 0xccb380e6; // A brighter purple
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
-  const CATEGORY_BOX_BORDER_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
-  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
+  const CATEGORY_BOX_HOVER_COLOR = new Color(0.25, 0.25, 0.25, 1);
 
   const SCROLL_SPEED = 15;
-  const ANIMATION_DURATION = 150;
+  const ANIMATION_DURATION = 300; // Smoother animation
   let rightPanelScrollY = 0;
-
+  /**
+   * Helper function to calculate the bounding box for a category.
+   * @param {number} index - The index of the category.
+   * @returns {object} The bounding box with x, y, width, and height.
+   */
   const getCategoryRect = (index) => {
     return {
       x: deps.rectangles.LeftPanel.x + PADDING,
@@ -94,26 +92,16 @@ global.createCategoriesManager = (deps) => {
       height: CATEGORY_HEIGHT,
     };
   };
-
-  const drawDropShadow = (rect) => {
-    deps.draw.drawRoundedRectangle({
-      x: rect.x - 2,
-      y: rect.y - 2,
-      width: rect.width + 4,
-      height: rect.height + 4,
-      radius: rect.radius + 2,
-      color: DROPSHADOW_COLOR,
-    });
-  };
+  const easeInOutQuad = (t) =>
+    t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
   const draw = (mouseX, mouseY) => {
     if (global.Categories.transitionDirection !== 0) {
       const elapsed = Date.now() - global.Categories.transitionStart;
-      global.Categories.transitionProgress = Math.min(
-        1,
-        elapsed / ANIMATION_DURATION
-      );
-      if (global.Categories.transitionProgress >= 1) {
+      const rawProgress = Math.min(1, elapsed / ANIMATION_DURATION);
+      global.Categories.transitionProgress = easeInOutQuad(rawProgress);
+
+      if (rawProgress >= 1) {
         global.Categories.currentPage =
           global.Categories.transitionDirection === 1
             ? "options"
@@ -163,21 +151,25 @@ global.createCategoriesManager = (deps) => {
 
     const scale = Renderer.screen.getScale();
     GL11.glEnable(GL11.GL_SCISSOR_TEST);
+
+    const inset = 2;
+    const scissorX = panel.x + inset;
+    const scissorY = panel.y + inset;
+    const scissorW = panel.width - inset * 2;
+    const scissorH = panel.height - inset * 2;
+
     GL11.glScissor(
-      Math.floor(panel.x * scale),
-      Math.floor(
-        (Renderer.screen.getHeight() - (panel.y + panel.height)) * scale
-      ),
-      Math.floor(panel.width * scale),
-      Math.floor(panel.height * scale)
+      Math.floor(scissorX * scale),
+      Math.floor((Renderer.screen.getHeight() - (scissorY + scissorH)) * scale),
+      Math.floor(scissorW * scale),
+      Math.floor(scissorH * scale)
     );
 
+    const transitionActive = global.Categories.transitionDirection !== 0;
     const shouldDrawItems =
-      global.Categories.currentPage === "categories" ||
-      global.Categories.transitionDirection === 1;
+      global.Categories.currentPage === "categories" || transitionActive;
     const shouldDrawOptions =
-      global.Categories.currentPage === "options" ||
-      global.Categories.transitionDirection === -1;
+      global.Categories.currentPage === "options" || transitionActive;
     if (shouldDrawItems) {
       let panelX = panel.x;
       if (global.Categories.transitionDirection === 1) {
@@ -192,10 +184,12 @@ global.createCategoriesManager = (deps) => {
         const itemX =
           panelX + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
 
-        let rowY = panel.y + PADDING - rightPanelScrollY;
-        for (let j = 0; j < Math.floor(i / 2) * 2; j += 2) {
-          rowY += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-        }
+        const row = Math.floor(i / 2);
+        const rowY =
+          panel.y +
+          PADDING -
+          rightPanelScrollY +
+          row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
 
         const itemRect = {
           x: itemX,
@@ -205,14 +199,18 @@ global.createCategoriesManager = (deps) => {
           radius: CORNER_RADIUS,
           color: CATEGORY_BOX_COLOR,
           borderWidth: BORDER_WIDTH,
-          borderColor: CATEGORY_BOX_BORDER_COLOR,
         };
 
-        if (deps.utils.isInside(mouseX, mouseY, itemRect)) {
-          drawDropShadow(itemRect);
-        }
-        deps.draw.drawRoundedRectangleWithBorder(itemRect);
+        const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
+        itemRect.color = isHovered
+          ? CATEGORY_BOX_HOVER_COLOR
+          : CATEGORY_BOX_COLOR;
 
+        deps.draw.drawRoundedRectangleWithGradientOutline(
+          itemRect,
+          deps.colors.gradientTop,
+          deps.colors.gradientBottom
+        );
         const ImageRect = {
           x: itemRect.x + CATEGORY_BOX_PADDING,
           y: itemRect.y + CATEGORY_BOX_PADDING - 4,
@@ -231,10 +229,12 @@ global.createCategoriesManager = (deps) => {
             ImageRect.height
           );
         }
-
         Renderer.drawString(
           item.title,
-          itemRect.x * 1.24 + CATEGORY_BOX_PADDING,
+          itemRect.x +
+            itemRect.width / 2 -
+            Renderer.getStringWidth(item.title) / 2 +
+            15,
           itemRect.y + 10,
           CATEGORY_TITLE_COLOR,
           false
@@ -265,7 +265,7 @@ global.createCategoriesManager = (deps) => {
           color: CATEGORY_BOX_COLOR,
         });
 
-        const backButtonText = "<";
+        const backButtonText = "< Back";
         const backButtonWidth = Renderer.getStringWidth(backButtonText);
         const backButtonX = optionX + 10;
         const backButtonY = optionY + 10;
@@ -279,9 +279,9 @@ global.createCategoriesManager = (deps) => {
 
         Renderer.drawString(
           selectedItem.title,
-          backButtonX + backButtonWidth + 8,
+          backButtonX + backButtonWidth + 5,
           optionY + 10,
-          CATEGORY_SELECTED_COLOR,
+          CATEGORY_TITLE_COLOR,
           false
         );
         Renderer.drawString(
@@ -291,21 +291,12 @@ global.createCategoriesManager = (deps) => {
           CATEGORY_DESC_COLOR,
           false
         );
-
-        let componentY = optionY + 60;
-        selectedItem.components.forEach((component) => {
-          if (typeof component.draw === "function") {
-            component.x = optionX + 10;
-            component.y = componentY;
-            component.draw();
-            componentY += 20;
-          }
-        });
       }
     }
 
     GL11.glDisable(GL11.GL_SCISSOR_TEST);
   };
+
   const handleClick = (mouseX, mouseY) => {
     if (global.Categories.transitionDirection !== 0) return;
 
@@ -333,13 +324,11 @@ global.createCategoriesManager = (deps) => {
       global.Categories.selectedItem
     ) {
       const panel = deps.rectangles.RightPanel;
-      const optionX = panel.x + PADDING;
-      const optionY = panel.y + PADDING;
-
-      const backButtonWidth = Renderer.getStringWidth("<");
+      const backButtonText = "< Back";
+      const backButtonWidth = Renderer.getStringWidth(backButtonText);
       const backButtonRect = {
-        x: optionX + 10,
-        y: optionY + 10,
+        x: panel.x + PADDING + 10,
+        y: panel.y + PADDING + 10,
         width: backButtonWidth,
         height: 10,
       };
@@ -349,21 +338,6 @@ global.createCategoriesManager = (deps) => {
         global.Categories.transitionStart = Date.now();
         return;
       }
-
-      const components = global.Categories.selectedItem.components;
-      let wasComponentClicked = false;
-      if (components) {
-        components.forEach((component) => {
-          if (
-            typeof component.handleClick === "function" &&
-            component.handleClick(mouseX, mouseY)
-          ) {
-            wasComponentClicked = true;
-          }
-        });
-      }
-
-      if (wasComponentClicked) return;
     }
 
     if (
@@ -387,10 +361,12 @@ global.createCategoriesManager = (deps) => {
         const itemX =
           panel.x + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
 
-        let rowY = panel.y + PADDING - rightPanelScrollY;
-        for (let j = 0; j < Math.floor(i / 2) * 2; j += 2) {
-          rowY += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-        }
+        const row = Math.floor(i / 2);
+        const rowY =
+          panel.y +
+          PADDING -
+          rightPanelScrollY +
+          row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
 
         const rect = {
           x: itemX,
@@ -400,6 +376,7 @@ global.createCategoriesManager = (deps) => {
         };
 
         if (deps.utils.isInside(mouseX, mouseY, rect)) {
+          // forward transition
           global.Categories.transitionDirection = 1;
           global.Categories.transitionProgress = 0;
           global.Categories.transitionStart = Date.now();
@@ -411,6 +388,7 @@ global.createCategoriesManager = (deps) => {
       global.Categories.currentPage === "options" &&
       !deps.utils.isInside(mouseX, mouseY, deps.rectangles.RightPanel)
     ) {
+      // backward transition
       global.Categories.transitionDirection = -1;
       global.Categories.transitionProgress = 0;
       global.Categories.transitionStart = Date.now();
