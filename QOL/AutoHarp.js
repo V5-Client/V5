@@ -1,5 +1,5 @@
 import { Guis } from "../Utility/Inventory";
-import { Prefix } from "../Utility/Prefix";
+import { Chat } from "../Utility/Chat";
 
 global.Categories.addCategoryItem(
   "Modules",
@@ -66,7 +66,7 @@ class AutoHarp {
 
     register("command", () => {
       this.Toggled = !this.Toggled;
-      Prefix.message(this.Toggled ? "Auto Harp Enabled" : "Auto Harp Disabled");
+      Chat.message(this.Toggled ? "Auto Harp Enabled" : "Auto Harp Disabled");
       if (this.Toggled) {
         AutoHarp.register();
       } else {
