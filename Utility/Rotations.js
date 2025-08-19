@@ -5,10 +5,10 @@ import { Utils } from "./Utils";
  *TODO -> Probably Recode 💀
  *
  * Settings:
- *  Speed       : rotation speed multiplier (0.06 default) (60)
- *  Randomness  : max jitter offset in degrees (0.05 default) (5)
- *  TremorFreq  : jitter updates per second (1 default) ()
- *  Fade        : how jitter fades near the target (exponent, 1 default)
+ *  Speed       : rotation speed multiplier (0.06 default) (60)
+ *  Randomness  : max jitter offset in degrees (0.05 default) (5)
+ *  TremorFreq  : jitter updates per second (1 default) ()
+ *  Fade        : how jitter fades near the target (exponent, 1 default)
  */
 class RotationsTo {
   constructor() {
@@ -16,7 +16,7 @@ class RotationsTo {
     this.targetPitch = null;
     this.rotating = false;
 
-    this.Speed = 0.02; // speed of rotation per tick
+    this.Speed = 0.06; // speed of rotation per tick
     this.tremorFrequency = 1; // jitter updates per second
     this.fadeExponent = 0.05; // controls jitter fade
     this.Randomness = 0.005; // max random offset (degrees)
@@ -34,6 +34,8 @@ class RotationsTo {
       if (!this.rotating) return;
 
       let player = Player.getPlayer();
+      if (!player) return;
+
       let currentYaw = player.getYaw();
       let currentPitch = player.getPitch();
 
@@ -90,7 +92,6 @@ class RotationsTo {
       let jitterYaw = this.currentRandomYaw * fadeFactor;
       let jitterPitch = this.currentRandomPitch * fadeFactor;
 
-      //let speedFactor = Math.min(1, maxDiff / 30); // fucks onEndRotation
       let newYaw = currentYaw + yawDiff * this.Speed + jitterYaw;
       let newPitch = currentPitch + pitchDiff * this.Speed + jitterPitch;
 
