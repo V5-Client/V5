@@ -2,6 +2,8 @@ const Color = Java.type("java.awt.Color");
 
 const CATEGORY_BOX_HEIGHT = 70;
 
+import { ToggleButton } from "./Toggle";
+
 if (!global.Categories) {
   global.Categories = {
     categories: [],
