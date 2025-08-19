@@ -4,72 +4,11 @@ import { Prefix } from "../Utility/Prefix";
 global.Categories.addCategoryItem(
   "Modules",
   "Gemstone Macro",
-  "Mines Gemstones in the crystal hollows"
+  "Mines Gemstones in the Crystal Hollows",
+  "Gemstone.png"
 );
-
-global.Categories.addCategoryItem(
-  "Modules",
-  "Ore Macro",
-  "Automatically clicks for you"
-);
-
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Commission Macro",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Tunnel Miner",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Glacite Comm Macro",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-global.Categories.addCategoryItem(
-  "Modules",
-  "Auto Harp 🏠",
-  "Automatically clicks for you"
-);
-
-global.Categories.addCategoryItem(
-  "Other Macros",
-  "Auto Harpz2",
-  "Automatically clicks for you"
-);
+global.Categories.addToggle("Modules", "Gemstone Macro", "Enable Macro");
+global.Categories.addToggle("Modules", "Gemstone Macro", "Enable Macroes");
 
 class AutoHarp {
   constructor() {

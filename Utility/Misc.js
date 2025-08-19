@@ -4,6 +4,7 @@ register("command", () => {
     ChatLib.chat("blockid: " + block.type.getID());
     let Name = block.type.getName();
     ChatLib.chat("blockname: " + Name);
+    ChatLib.chat("registry: " + block.type.getRegistryName());
   } else {
     ChatLib.chat(block);
   }

@@ -1,5 +1,7 @@
 //et { Vec3, Vector, Utils } = global.export
 
+import { Utils } from "./Utils";
+
 class MathUtilsClass {
   /**
    * Accesses .x .y .z from the input
@@ -93,9 +95,7 @@ class MathUtilsClass {
     return { distance: distance, distanceFlat: distanceFlat, distanceY: diffY };
   }
 
-  // add other file
-
-  /*getDistanceToPlayer(xInput, yInput, zInput) {
+  getDistanceToPlayer(xInput, yInput, zInput) {
     let x = xInput;
     let y = yInput;
     let z = zInput;
@@ -125,34 +125,47 @@ class MathUtilsClass {
       y = vector.y;
       z = vector.z;
     }
-    let eyeVector = Utils.convertToVector(Player.getEyePosition());
+    let eyeVector = Utils.convertToVector(Player.getEyePos());
     return this.getDistance(eyeVector.x, eyeVector.y, eyeVector.z, x, y, z);
   }
 
   getDistance(xInput1, yInput1, zInput1, xInput2, yInput2, zInput2) {
-    let x1 = xInput1;
-    let y1 = yInput1;
-    let z1 = zInput1;
-    let x2 = xInput2;
-    let y2 = yInput2;
-    let z2 = zInput2;
-    if (!Utils.isNumber(xInput1)) {
+    let x1, y1, z1;
+    let x2, y2, z2;
+
+    // First point
+    if (typeof xInput1 === "number") {
+      x1 = xInput1;
+      y1 = yInput1;
+      z1 = zInput1;
+    } else {
       let vector = Utils.convertToVector(xInput1);
-      x1 = vector.x;
-      y1 = vector.y;
-      z1 = vector.z;
+      x1 = vector.x ?? vector.getX();
+      y1 = vector.y ?? vector.getY();
+      z1 = vector.z ?? vector.getZ();
     }
-    if (!Utils.isNumber(yInput1)) {
-      let vector = Utils.convertToVector(yInput1);
-      x2 = vector.x;
-      y2 = vector.y;
-      z2 = vector.z;
+
+    // Second point
+    if (typeof xInput2 === "number") {
+      x2 = xInput2;
+      y2 = yInput2;
+      z2 = zInput2;
+    } else {
+      let vector = Utils.convertToVector(xInput2);
+      x2 = vector.x ?? vector.getX();
+      y2 = vector.y ?? vector.getY();
+      z2 = vector.z ?? vector.getZ();
     }
+
+    // Differences
     let diffX = x1 - x2;
     let diffY = y1 - y2;
     let diffZ = z1 - z2;
+
+    // Distances
     let disFlat = Math.sqrt(diffX * diffX + diffZ * diffZ);
-    let dis = Math.sqrt(diffY * diffY + disFlat * disFlat);
+    let dis = Math.sqrt(disFlat * disFlat + diffY * diffY);
+
     return { distance: dis, distanceFlat: disFlat, differenceY: diffY };
   }
 
