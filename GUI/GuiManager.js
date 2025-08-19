@@ -8,6 +8,9 @@ if (!global.Categories) {
     selected: null,
     selectedItem: null,
     currentPage: "categories", // "categories" or "options"
+    transitionProgress: 0,
+    transitionDirection: 0,
+    transitionStart: 0,
     addCategory(name) {
       if (!this.categories.find((c) => c.name === name)) {
         this.categories.push({ name, items: [] });
@@ -37,34 +40,33 @@ if (!global.Categories) {
  * @returns {object} An object with `draw`, `handleClick`, and `handleScroll` methods.
  */
 global.createCategoriesManager = (deps) => {
-  // Constants for Left Panel (Categories)
   const CATEGORY_HEIGHT = 30;
   const CATEGORY_PADDING = 5;
   const LEFT_PANEL_TEXT_HEIGHT = 8;
-  const CATEGORY_OFFSET_Y = 50; 
-  // Constants for Right Panel (Items/Options)
+  const CATEGORY_OFFSET_Y = 50;
+
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
   const CATEGORY_BOX_PADDING = 10;
-  const ITEM_SPACING = 10; 
+  const ITEM_SPACING = 10;
 
   const CATEGORY_INNER_LINE_COLOR = new Color(0.4, 0.4, 0.4, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
   const CATEGORY_SELECTED_COLOR = 0xbf994ccc;
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
-  const CATEGORY_BOX_BORDER_COLOR = new Color(0.2, 0.2, 0.2, 1);
-  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3); 
+  const CATEGORY_BOX_BORDER_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
+  const DROPSHADOW_COLOR = new Color(0.6, 0.3, 0.8, 0.3);
 
   const SCROLL_SPEED = 15;
+  const ANIMATION_DURATION = 150;
   let rightPanelScrollY = 0;
   /**
    * Helper function to calculate the bounding box for a category.
    * @param {number} index - The index of the category.
    * @returns {object} The bounding box with x, y, width, and height.
    */
-
   const getCategoryRect = (index) => {
     return {
       x: deps.rectangles.LeftPanel.x + PADDING,
@@ -81,7 +83,6 @@ global.createCategoriesManager = (deps) => {
    * Draws a drop shadow for a given rectangle.
    * @param {object} rect - The rectangle object to draw a shadow for.
    */
-
   const drawDropShadow = (rect) => {
     deps.draw.drawRoundedRectangle({
       x: rect.x - 2,
@@ -94,11 +95,24 @@ global.createCategoriesManager = (deps) => {
   };
 
   const draw = (mouseX, mouseY) => {
-    // Draw Left Panel: Categories
+    if (global.Categories.transitionDirection !== 0) {
+      const elapsed = Date.now() - global.Categories.transitionStart;
+      global.Categories.transitionProgress = Math.min(
+        1,
+        elapsed / ANIMATION_DURATION
+      );
+      if (global.Categories.transitionProgress >= 1) {
+        global.Categories.currentPage =
+          global.Categories.transitionDirection === 1
+            ? "options"
+            : "categories";
+        global.Categories.transitionDirection = 0;
+      }
+    }
+
     global.Categories.categories.forEach((cat, i) => {
       const rect = getCategoryRect(i);
-      const lineY = rect.y + rect.height - 2; // Draw the bottom line of the category box
-
+      const lineY = rect.y + rect.height - 2;
       deps.draw.drawRoundedRectangle({
         x: rect.x + 5,
         y: lineY,
@@ -106,7 +120,7 @@ global.createCategoriesManager = (deps) => {
         height: 1,
         radius: 0,
         color: CATEGORY_INNER_LINE_COLOR,
-      }); // Draw the category name
+      });
 
       const textColor =
         global.Categories.selected === cat.name
@@ -120,7 +134,7 @@ global.createCategoriesManager = (deps) => {
         textColor,
         false
       );
-    }); // Draw Right Panel: Items/Options
+    });
 
     if (!global.Categories.selected) return;
 
@@ -133,32 +147,38 @@ global.createCategoriesManager = (deps) => {
     const x = panel.x + PADDING;
     const panelWidth = panel.width - PADDING * 2;
     const itemWidth = (panelWidth - ITEM_SPACING) / 2;
-    const itemHeight = CATEGORY_BOX_HEIGHT; // Handle drawing based on the current page
+    const itemHeight = CATEGORY_BOX_HEIGHT;
 
-    if (global.Categories.currentPage === "categories") {
-      // Scissor test to clip content outside the right panel's bounds
-      const scale = Renderer.screen.getScale();
-      GL11.glEnable(GL11.GL_SCISSOR_TEST);
-      GL11.glScissor(
-        Math.floor(panel.x * scale),
-        Math.floor(
-          (Renderer.screen.getHeight() - (panel.y + panel.height)) * scale
-        ),
-        Math.floor(panel.width * scale),
-        Math.floor(panel.height * scale)
-      );
+    const scale = Renderer.screen.getScale();
+    GL11.glEnable(GL11.GL_SCISSOR_TEST);
+    GL11.glScissor(
+      Math.floor(panel.x * scale),
+      Math.floor(
+        (Renderer.screen.getHeight() - (panel.y + panel.height)) * scale
+      ),
+      Math.floor(panel.width * scale),
+      Math.floor(panel.height * scale)
+    );
 
-      let totalContentHeight = 0;
-      for (let i = 0; i < cat.items.length; i += 2) {
-        totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+    const shouldDrawItems =
+      global.Categories.currentPage === "categories" ||
+      global.Categories.transitionDirection === 1;
+    const shouldDrawOptions =
+      global.Categories.currentPage === "options" ||
+      global.Categories.transitionDirection === -1;
+    if (shouldDrawItems) {
+      let panelX = panel.x;
+      if (global.Categories.transitionDirection === 1) {
+        panelX -= panel.width * global.Categories.transitionProgress;
+      } else if (global.Categories.transitionDirection === -1) {
+        panelX -= panel.width * (1 - global.Categories.transitionProgress);
       }
-
       let y = panel.y + PADDING - rightPanelScrollY;
       for (let i = 0; i < cat.items.length; i++) {
         const item = cat.items[i];
         const isLeft = i % 2 === 0;
         const itemX =
-          panel.x + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING); // Find the y position of the current row based on previous items
+          panelX + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING); // Find the y position of the current row based on previous items
 
         let rowY = panel.y + PADDING - rightPanelScrollY;
         for (let j = 0; j < Math.floor(i / 2) * 2; j += 2) {
@@ -200,44 +220,66 @@ global.createCategoriesManager = (deps) => {
           false
         );
       }
-
-      GL11.glDisable(GL11.GL_SCISSOR_TEST);
-    } else if (
-      global.Categories.currentPage === "options" &&
-      global.Categories.selectedItem
-    ) {
-      // Draw the options for the selected item
-      const selectedItem = global.Categories.selectedItem;
-      const optionX = panel.x + PADDING;
-      const optionY = panel.y + PADDING;
-
-      deps.draw.drawRoundedRectangle({
-        x: optionX,
-        y: optionY,
-        width: panel.width - PADDING * 2,
-        height: panel.height - PADDING * 2,
-        radius: CORNER_RADIUS,
-        color: CATEGORY_BOX_COLOR,
-      });
-      Renderer.drawString(
-        selectedItem.title,
-        optionX + 10,
-        optionY + 10,
-        CATEGORY_SELECTED_COLOR,
-        false
-      );
-      Renderer.drawString(
-        selectedItem.description,
-        optionX + 10,
-        optionY + 30,
-        CATEGORY_DESC_COLOR,
-        false
-      );
     }
+
+    if (shouldDrawOptions) {
+      const selectedItem = global.Categories.selectedItem;
+      if (selectedItem) {
+        let optionPanelX = panel.x;
+        if (global.Categories.transitionDirection === 1) {
+          optionPanelX +=
+            panel.width * (1 - global.Categories.transitionProgress);
+        } else if (global.Categories.transitionDirection === -1) {
+          optionPanelX += panel.width * global.Categories.transitionProgress;
+        }
+
+        const optionX = optionPanelX + PADDING;
+        const optionY = panel.y + PADDING;
+
+        deps.draw.drawRoundedRectangle({
+          x: optionX,
+          y: optionY,
+          width: panel.width - PADDING * 2,
+          height: panel.height - PADDING * 2,
+          radius: CORNER_RADIUS,
+          color: CATEGORY_BOX_COLOR,
+        });
+
+        const backButtonText = "<";
+        const backButtonWidth = Renderer.getStringWidth(backButtonText);
+        const backButtonX = optionX + 10;
+        const backButtonY = optionY + 10;
+
+        Renderer.drawString(
+          backButtonText,
+          backButtonX,
+          backButtonY,
+          CATEGORY_SELECTED_COLOR
+        );
+
+        Renderer.drawString(
+          selectedItem.title,
+          backButtonX + backButtonWidth + 5,
+          optionY + 10,
+          CATEGORY_SELECTED_COLOR,
+          false
+        );
+        Renderer.drawString(
+          selectedItem.description,
+          backButtonX + backButtonWidth + 5,
+          optionY + 30,
+          CATEGORY_DESC_COLOR,
+          false
+        );
+      }
+    }
+
+    GL11.glDisable(GL11.GL_SCISSOR_TEST);
   };
 
   const handleClick = (mouseX, mouseY) => {
-    // Left Panel: Select Category
+    if (global.Categories.transitionDirection !== 0) return;
+
     const wasCategoryClicked = global.Categories.categories.some((cat, i) => {
       const rect = getCategoryRect(i);
       if (deps.utils.isInside(mouseX, mouseY, rect)) {
@@ -255,7 +297,27 @@ global.createCategoriesManager = (deps) => {
       deps.utils.isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
       global.Categories.selected = null;
-    } // Right Panel: Open Options
+    }
+
+    if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      const panel = deps.rectangles.RightPanel;
+      const backButtonWidth = Renderer.getStringWidth("<");
+      const backButtonRect = {
+        x: panel.x + PADDING + 10,
+        y: panel.y + PADDING + 10,
+        width: backButtonWidth,
+        height: 10,
+      };
+      if (deps.utils.isInside(mouseX, mouseY, backButtonRect)) {
+        global.Categories.transitionDirection = -1;
+        global.Categories.transitionProgress = 0;
+        global.Categories.transitionStart = Date.now();
+        return;
+      }
+    }
 
     if (
       global.Categories.selected &&
@@ -291,7 +353,10 @@ global.createCategoriesManager = (deps) => {
         };
 
         if (deps.utils.isInside(mouseX, mouseY, rect)) {
-          global.Categories.currentPage = "options";
+          // forward transition
+          global.Categories.transitionDirection = 1;
+          global.Categories.transitionProgress = 0;
+          global.Categories.transitionStart = Date.now();
           global.Categories.selectedItem = item;
           return;
         }
@@ -300,14 +365,19 @@ global.createCategoriesManager = (deps) => {
       global.Categories.currentPage === "options" &&
       !deps.utils.isInside(mouseX, mouseY, deps.rectangles.RightPanel)
     ) {
-      // Return to categories page if clicking outside the options panel
-      global.Categories.currentPage = "categories";
-      global.Categories.selectedItem = null;
+      // backward transition
+      global.Categories.transitionDirection = -1;
+      global.Categories.transitionProgress = 0;
+      global.Categories.transitionStart = Date.now();
     }
   };
 
   const handleScroll = (mouseX, mouseY, dir) => {
-    if (global.Categories.currentPage !== "categories") return;
+    if (
+      global.Categories.currentPage !== "categories" ||
+      global.Categories.transitionDirection !== 0
+    )
+      return;
 
     const panel = deps.rectangles.RightPanel;
     if (

@@ -6,13 +6,13 @@ const Color = Java.type("java.awt.Color");
 export default class RendererMain {
   constructor() {}
 
-  static drawWaypoint(coord = new Vec3i(0, 0, 0), filled = true) {
+  static drawWaypoint(coord = new Vec3i(0, 0, 0), filled = true, color) {
     if (filled) {
       RenderLib3d.drawBox({
         start: coord,
         size: new Vec3i(1, 1, 1),
         end: undefined,
-        color: new Color(0.6, 0.3, 0.8, 0.3),
+        color: color,
         // depth: false,
       });
 
@@ -20,7 +20,7 @@ export default class RendererMain {
         start: coord,
         size: new Vec3i(1, 1, 1),
         end: undefined,
-        color: new Color(0.6, 0.3, 0.8, 1),
+        color: color,
         depthTest: false,
         filled: false,
         lineWidth: 5,
