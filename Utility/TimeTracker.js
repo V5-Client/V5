@@ -18,18 +18,22 @@ class TimeTrackerService {
     Utils.writeConfigFile(this.fileName, data);
   }
 
-  start() {
+  start(moduleName) {
+    if (!moduleName) {
+      Prefix.message("&cTrackTime.start() requires a moduleName.");
+      return false;
+    }
     try {
       const data = this.readData();
       const sessions = data.sessions;
-      const lastSession = sessions[sessions.length - 1];
-      if (lastSession && lastSession.end == null) {
-        Prefix.debugMessage("&eTrackTime.start(): session already running");
+      const runningSession = sessions.find((s) => s.moduleName === moduleName && s.end === null);
+      if (runningSession) {
+        Prefix.debugMessage(`&eTrackTime.start(): session for ${moduleName} already running`);
         return false;
       }
-      sessions.push({ start: Date.now(), end: null });
+      sessions.push({ moduleName, start: Date.now(), end: null, extraData: null });
       this.writeData(data);
-      Prefix.message("&aTime tracking started.");
+      Prefix.message(`&aTime tracking started for ${moduleName}.`);
       return true;
     } catch (e) {
       Prefix.message("&cFailed to start tracking: " + e);
@@ -37,37 +41,46 @@ class TimeTrackerService {
     }
   }
 
-  stop() {
+  end(moduleName, extraData = null) {
+    if (!moduleName) {
+      Prefix.message("&cTrackTime.end() requires a moduleName.");
+      return false;
+    }
     try {
       const data = this.readData();
       const sessions = data.sessions;
-      const lastSession = sessions[sessions.length - 1];
-      if (!lastSession || lastSession.end != null) {
-        Prefix.debugMessage("&eTrackTime.stop(): no running session");
+
+      let runningSessionIndex = -1;
+      for (let i = sessions.length - 1; i >= 0; i--) {
+        if (sessions[i].moduleName === moduleName && sessions[i].end === null) {
+          runningSessionIndex = i;
+          break;
+        }
+      }
+
+      if (runningSessionIndex === -1) {
+        Prefix.debugMessage(`&eTrackTime.end(): no running session for ${moduleName}`);
         return false;
       }
-      lastSession.end = Date.now();
+
+      const session = sessions[runningSessionIndex];
+      const endTime = Date.now();
+      const duration = endTime - session.start;
+
+      if (duration < 60000) {
+        sessions.splice(runningSessionIndex, 1); // Remove the session
+        this.writeData(data);
+        Prefix.message("&eSession was shorter than 60 seconds and was not saved.");
+        return true; 
+      }
+
+      session.end = endTime;
+      session.extraData = extraData;
       this.writeData(data);
-      Prefix.message("&aTime tracking stopped.");
+      Prefix.message(`&aTime tracking stopped for ${moduleName}.`);
       return true;
     } catch (e) {
       Prefix.message("&cFailed to stop tracking: " + e);
-      return false;
-    }
-  }
-
-  toggle() {
-    try {
-      const data = this.readData();
-      const sessions = data.sessions;
-      const lastSession = sessions[sessions.length - 1];
-      if (lastSession && lastSession.end == null) {
-        return this.stop();
-      } else {
-        return this.start();
-      }
-    } catch (e) {
-      Prefix.message("&cFailed to toggle tracking: " + e);
       return false;
     }
   }

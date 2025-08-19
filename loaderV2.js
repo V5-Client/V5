@@ -25,6 +25,7 @@ import "./Utility/Misc.js";
 
 /* Commands */
 import "./Utility/TodayCommand.js";
+//REMEMBER TO REMOVE. ALSO I DONT THINK THIS IMPORT IS NEEDED BUT ¯\_(ツ)_/¯
 import "./TestToday.js";
 
 /* Mixins */

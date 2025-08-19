@@ -154,3 +154,93 @@ register("command", () => {
 }).setName("today");
 
 
+
+function formatDuration(ms) {
+  if (!ms || ms < 0) ms = 0;
+  const seconds = Math.floor(ms / 1000);
+  const s = seconds % 60;
+  const minutes = Math.floor(seconds / 60);
+  const m = minutes % 60;
+  const h = Math.floor(minutes / 60);
+  if (h > 0) return h + "h " + m + "m " + s + "s";
+  if (m > 0) return m + "m " + s + "s";
+  return s + "s";
+}
+
+function parseDurationToMs(timeStr) {
+    if (!timeStr) return { ms: 24 * 60 * 60 * 1000, friendly: "1d" }; // Default to 1 day if empty
+
+    let totalMilliseconds = 0;
+    const cleanedTimeStr = timeStr.replace(/\s+/g, '');
+    const matches = cleanedTimeStr.match(/(\d+)(d|h|m)/gi);
+
+    if (matches) {
+        matches.forEach(match => {
+            const value = parseInt(match, 10);
+            const unit = match.slice(-1).toLowerCase();
+
+            if (unit === 'd') {
+                totalMilliseconds += value * 24 * 60 * 60 * 1000;
+            } else if (unit === 'h') {
+                totalMilliseconds += value * 60 * 60 * 1000;
+            } else if (unit === 'm') {
+                totalMilliseconds += value * 60 * 1000;
+            }
+        });
+    } else if (/^\d+$/.test(cleanedTimeStr)) {
+        // Handle plain numbers as days
+        const days = parseInt(cleanedTimeStr, 10);
+        totalMilliseconds = days * 24 * 60 * 60 * 1000;
+        return { ms: totalMilliseconds, friendly: `${days}d` };
+    }
+
+    if (totalMilliseconds > 0) {
+        return { ms: totalMilliseconds, friendly: timeStr };
+    }
+
+    return { ms: 0, friendly: null }; // Invalid input
+}
+
+register("command", (timeStr) => {
+  try {
+    const durationInfo = parseDurationToMs(timeStr);
+
+    if (durationInfo.ms === 0 && timeStr) {
+        Prefix.message(`&cInvalid time format: "${timeStr}". Use 'd', 'h', 'm' (e.g., '2d 4h 30m').`);
+        return;
+    }
+
+    const data = Utils.getConfigFile("today.json");
+    const sessions = (data && Array.isArray(data.sessions)) ? data.sessions : [];
+
+    const now = Date.now();
+    const startTime = now - durationInfo.ms;
+
+    const recentSessions = sessions.filter(s => s.start >= startTime).sort((a, b) => b.start - a.start);
+
+    if (recentSessions.length === 0) {
+      Prefix.message(`&cNo sessions found in the last ${durationInfo.friendly}.`);
+      return;
+    }
+
+    Prefix.message(`&aSessions from the last ${durationInfo.friendly}`);
+    recentSessions.forEach(s => {
+      const startDate = new Date(s.start).toLocaleString();
+      const duration = formatDuration(s.end ? s.end - s.start : now - s.start);
+      const status = s.end ? "&aCompleted" : "&eOngoing";
+      let extra = "";
+      if (s.extraData) {
+        try {
+          extra = " &7- " + JSON.stringify(s.extraData);
+        } catch(e) {
+          extra = " &7- (unserializable extraData)";
+        }
+      }
+      Prefix.message(`&b${s.moduleName} &f(${status}&f) - &e${duration}`);
+      Prefix.message(`  &7Started: ${startDate}${extra}`);
+    });
+
+  } catch (e) {
+    Prefix.message("&c/sessions error: " + e);
+  }
+}).setName("sessions");
