@@ -1,4 +1,4 @@
-import { Timers } from "./Timing";
+import { Time } from "./Timing";
 import { Utils } from "./Utils";
 import { mc } from "./Utils";
 
@@ -10,7 +10,7 @@ RightClickMouse.setAccessible(true);
 
 class Keybinding {
   constructor() {
-    this.cooldown = Timers;
+    this.cooldown = new Time();
   }
 
   /**
@@ -39,40 +39,6 @@ class Keybinding {
         RightClickMouse.invoke(mc);
       });
     }
-  }
-
-  setItemSlot(slot) {
-    if (slot < 0 || slot > 8)
-      return chat.message("Invalid slot blocked! Report this ASAP!");
-    if (Player.getHeldItemIndex() !== slot) {
-      console.log(
-        `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
-      );
-      Player.setHeldItemIndex(slot);
-    }
-  }
-
-  getHeldItemStackSize() {
-    let item = Player.getHeldItem();
-    if (item && item.getStackSize) {
-      return item.getStackSize();
-    }
-    return 0;
-  }
-
-  /**
-   * Finds an item in the hotbar and returns its slot
-   * @param {string} itemName - The name of the item to find
-   * @returns {number} - The slot of the item, or -1 if not found
-   */
-  findItemInHotbar(itemName) {
-    for (let slot = 0; slot < 8; slot++) {
-      let item = Player.getInventory()?.getStackInSlot(slot);
-      if (item && item.getName().includes(itemName)) {
-        return slot;
-      }
-    }
-    return -1;
   }
 
   /**

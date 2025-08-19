@@ -1,4 +1,4 @@
-class Time {
+export class Time {
   constructor() {
     this.StartTime = Date.now();
 
@@ -62,5 +62,3 @@ class Time {
     return Date.now() - this.StartTime > this.randomTime;
   }
 }
-
-export const Timers = new Time();

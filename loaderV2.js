@@ -20,8 +20,11 @@ import "./GUI/GuiDraw.js";
 global.Categories.addCategory("Modules");
 
 import "./QOL/AutoHarp.js";
+import "./QOL/MobHider.js";
 
 import "./Utility/Misc.js";
+
+import "./Macro/CommMacro.js";
 
 /* Mixins */
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
@@ -35,4 +38,17 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
   if (instance instanceof StainedGlassPaneBlock) {
     cir.setReturnValue(VoxelShapes.fullCube());
   }
+});
+
+register("renderOverlay", () => {
+  const scaledWidth = Renderer.screen.getWidth(); // scaled screen width
+  const scaledHeight = Renderer.screen.getHeight(); // scaled screen height
+
+  const x = 50; // relative to top-left
+  const y = 50;
+  const width = 100;
+  const height = 50;
+  const color = 0x80ff0000; // semi-transparent red
+
+  Renderer.drawRect(x, y, width, height, color);
 });
