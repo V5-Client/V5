@@ -16,6 +16,9 @@ const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 0.8);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 
+const GRADIENT_TOP_COLOR = new Color(0.6, 0.4, 0.8, 1);
+const GRADIENT_BOTTOM_COLOR = new Color(0.4, 0.6, 0.8, 1);
+
 let rectangles = {
   Background: {
     name: "Background",
@@ -106,20 +109,149 @@ const drawRoundedRectangleWithBorder = (r) => {
   }
 };
 
+const interpolateColor = (color1, color2, factor) => {
+  factor = Math.max(0, Math.min(1, factor));
+  const r = color1.getRed() + (color2.getRed() - color1.getRed()) * factor;
+  const g =
+    color1.getGreen() + (color2.getGreen() - color1.getGreen()) * factor;
+  const b = color1.getBlue() + (color2.getBlue() - color1.getBlue()) * factor;
+  const a =
+    color1.getAlpha() + (color2.getAlpha() - color1.getAlpha()) * factor;
+  return new Color(r / 255, g / 255, b / 255, a / 255);
+};
+
+const drawGradientRoundedOutline = (
+  x,
+  y,
+  width,
+  height,
+  radius,
+  lineWidth,
+  topColor,
+  bottomColor
+) => {
+  radius = Math.min(radius, Math.min(width, height) / 2);
+  const hw = lineWidth / 2;
+  const ir = radius - hw;
+
+  const getColorAtY = (currentY) => {
+    const factor = (currentY - y) / height;
+    return interpolateColor(topColor, bottomColor, factor);
+  };
+
+  // Draw vertical lines
+  for (let i = 0; i < height - 2 * radius; i++) {
+    const currentY = y + radius + i;
+    const color = getColorAtY(currentY);
+    Renderer.drawRect(color.getRGB(), x, currentY, lineWidth, 1);
+    Renderer.drawRect(
+      color.getRGB(),
+      x + width - lineWidth,
+      currentY,
+      lineWidth,
+      1
+    );
+  }
+
+  // Draw horizontal lines
+  Renderer.drawRect(
+    topColor.getRGB(),
+    x + radius,
+    y,
+    width - 2 * radius,
+    lineWidth
+  );
+  Renderer.drawRect(
+    bottomColor.getRGB(),
+    x + radius,
+    y + height - lineWidth,
+    width - 2 * radius,
+    lineWidth
+  );
+
+  // Draw corners LAST
+  const steps = 90;
+  const centers = {
+    tl: { x: x + radius, y: y + radius },
+    tr: { x: x + width - radius, y: y + radius },
+    bl: { x: x + radius, y: y + height - radius },
+    br: { x: x + width - radius, y: y + height - radius },
+  };
+
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i / steps) * (Math.PI / 2);
+    const sin = Math.sin(angle);
+    const cos = Math.cos(angle);
+
+    const drawCornerPixel = (centerX, centerY, dx, dy) => {
+      const px = centerX + dx * ir;
+      const py = centerY + dy * ir;
+      Renderer.drawRect(
+        getColorAtY(py - hw).getRGB(),
+        px - hw,
+        py - hw,
+        lineWidth,
+        lineWidth
+      );
+    };
+
+    drawCornerPixel(centers.tl.x, centers.tl.y, -cos, -sin); // Top left
+    drawCornerPixel(centers.tr.x, centers.tr.y, cos, -sin); // Top right
+    drawCornerPixel(centers.bl.x, centers.bl.y, -cos, sin); // Bottom left
+    drawCornerPixel(centers.br.x, centers.br.y, cos, sin); // Bottom right
+  }
+};
+
+const drawRoundedRectangleWithGradientOutline = (r, topColor, bottomColor) => {
+  if (r.borderWidth && r.borderWidth > 0) {
+    drawGradientRoundedOutline(
+      r.x,
+      r.y,
+      r.width,
+      r.height,
+      r.radius,
+      r.borderWidth,
+      topColor,
+      bottomColor
+    );
+    const bw = r.borderWidth;
+    drawRoundedRectangle({
+      x: r.x + bw,
+      y: r.y + bw,
+      width: Math.max(0, r.width - bw * 2),
+      height: Math.max(0, r.height - bw * 2),
+      radius: Math.max(0, r.radius - bw),
+      color: r.color,
+    });
+  } else {
+    drawRoundedRectangle(r);
+  }
+};
+
 const categoryManager = global.createCategoriesManager({
   rectangles: rectangles,
   draw: {
     drawRoundedRectangle: drawRoundedRectangle,
     drawRoundedRectangleWithBorder: drawRoundedRectangleWithBorder,
+    drawRoundedRectangleWithGradientOutline:
+      drawRoundedRectangleWithGradientOutline,
   },
   utils: {
     isInside: isInside,
+  },
+  colors: {
+    gradientTop: GRADIENT_TOP_COLOR,
+    gradientBottom: GRADIENT_BOTTOM_COLOR,
   },
 });
 
 const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(rectangles.Background);
-  drawRoundedRectangleWithBorder(rectangles.LeftPanel);
+  drawRoundedRectangleWithGradientOutline(
+    rectangles.LeftPanel,
+    GRADIENT_TOP_COLOR,
+    GRADIENT_BOTTOM_COLOR
+  );
   drawRoundedRectangleWithBorder(rectangles.RightPanel);
 
   categoryManager.draw(mouseX, mouseY);
