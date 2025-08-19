@@ -26,12 +26,6 @@ class NotificationUtils {
       trayIcon.setImageAutoSize(true);
       trayIcon.setToolTip("Client Alerts");
       SystemTrayInstance.add(trayIcon);
-
-      java.lang.Runtime.getRuntime().addShutdownHook(
-        new java.lang.Thread(() => {
-          SystemTrayInstance.remove(trayIcon);
-        })
-      );
     } catch (e) {
       ChatLib.chat("Failed to create system tray icon: " + e);
     }
