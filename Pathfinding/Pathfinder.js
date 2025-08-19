@@ -1,6 +1,6 @@
 import { Rotations } from "../Utility/Rotations";
 import RendererMain from "../Rendering/RendererMain";
-import { Prefix } from "../Utility/Prefix";
+import { Chat } from "../Utility/Chat";
 
 /**
  * TODO
@@ -95,7 +95,7 @@ export class Pathfinder {
       this.searchState.endNode
     );
     this.searchState.startNode.fScore = this.searchState.startNode.hScore;
-    Prefix.message(
+    Chat.message(
       `&aFinding first path segment from (${this.searchState.startNode.x}, ${this.searchState.startNode.y}, ${this.searchState.startNode.z}) to (${this.searchState.endNode.x}, ${this.searchState.endNode.y}, ${this.searchState.endNode.z})...`
     );
   }
@@ -106,7 +106,7 @@ export class Pathfinder {
     const maxNodes = 500000;
 
     if (openList.length === 0) {
-      Prefix.message("&cNo path found to the destination. Open list is empty.");
+      Chat.message("&cNo path found to the destination. Open list is empty.");
       this.isSearching = false;
       return;
     }
@@ -114,7 +114,7 @@ export class Pathfinder {
     let nodesProcessedThisTick = 0;
     while (openList.length > 0 && nodesProcessedThisTick < nodesPerTick) {
       if (this.nodesProcessed >= maxNodes) {
-        Prefix.message(`&cMax nodes (${maxNodes}) reached. Stopping search.`);
+        Chat.message(`&cMax nodes (${maxNodes}) reached. Stopping search.`);
         this.isSearching = false;
         return;
       }
@@ -216,7 +216,7 @@ export class Pathfinder {
       endPos
     );
     this.searchState.startNode.fScore = this.searchState.startNode.hScore;
-    Prefix.message("&aFinding next path segment...");
+    Chat.message("&aFinding next path segment...");
   }
 
   getBlock(x, y, z) {
