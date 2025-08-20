@@ -5,5 +5,5 @@
   "version": "4.8.6",
   "entry": "loaderV2.js",
   "mixinEntry": "mixins.js",
-  "requires": []
+  "requires": ["requestV2"]
 }
