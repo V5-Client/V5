@@ -3,6 +3,7 @@ const Color = Java.type("java.awt.Color");
 const CATEGORY_BOX_HEIGHT = 70;
 
 import { ToggleButton } from "./Toggle";
+import { Slider } from "./Slider";
 
 if (!global.Categories) {
   global.Categories = {
@@ -14,12 +15,14 @@ if (!global.Categories) {
     transitionDirection: 0,
     transitionStart: 0,
     addCategory(name) {
-      if (!this.categories.find((c) => c.name === name)) {
-        this.categories.push({ name, items: [] });
+      if (!global.Categories.categories.find((c) => c.name === name)) {
+        global.Categories.categories.push({ name, items: [] });
       }
     },
     addCategoryItem(categoryName, title, description, image) {
-      const category = this.categories.find((c) => c.name === categoryName);
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
       if (!category) return;
       category.items.push({
         title,
@@ -32,7 +35,9 @@ if (!global.Categories) {
     },
 
     addToggle(categoryName, itemName, toggleTitle) {
-      const category = this.categories.find((c) => c.name === categoryName);
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
       if (!category) return;
 
       const item = category.items.find((i) => i.title === itemName);
@@ -41,16 +46,43 @@ if (!global.Categories) {
       item.components.push(new ToggleButton(toggleTitle, 0, 0));
     },
     getToggleState(categoryName, itemName, toggleTitle) {
-      const category = this.categories.find((c) => c.name === categoryName);
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
       if (!category) return null;
 
       const item = category.items.find((i) => i.title === itemName);
       if (!item) return null;
 
       const toggle = item.components.find(
-        (c) => c.title === toggleTitle && typeof c.handleClick === "function"
+        (c) => c.title === toggleTitle && c instanceof ToggleButton
       );
       return toggle ? toggle.enabled : null;
+    },
+    addSlider(categoryName, itemName, sliderTitle) {
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return;
+
+      const item = category.items.find((i) => i.title === itemName);
+      if (!item) return;
+
+      item.components.push(new Slider(sliderTitle, 0, 0));
+    },
+    getSliderValue(categoryName, itemName, sliderTitle) {
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return null;
+
+      const item = category.items.find((i) => i.title === itemName);
+      if (!item) return null;
+
+      const slider = item.components.find(
+        (c) => c.title === sliderTitle && c instanceof Slider
+      );
+      return slider ? slider.value : null;
     },
   };
 }
@@ -300,7 +332,7 @@ global.createCategoriesManager = (deps) => {
             component.x = optionX + 10;
             component.y = componentY;
             component.draw();
-            componentY += 20;
+            componentY += 30; // Increased spacing for sliders
           }
         });
       }
@@ -423,6 +455,17 @@ global.createCategoriesManager = (deps) => {
   };
 
   const handleScroll = (mouseX, mouseY, dir) => {
+    if (global.Categories.currentPage === "options" && global.Categories.selectedItem) {
+      const components = global.Categories.selectedItem.components;
+      if (components) {
+        components.forEach((component) => {
+          if (typeof component.handleScroll === "function") {
+            component.handleScroll(mouseX, mouseY, dir);
+          }
+        });
+      }
+      return;
+    }
     if (
       global.Categories.currentPage !== "categories" ||
       global.Categories.transitionDirection !== 0
@@ -450,5 +493,37 @@ global.createCategoriesManager = (deps) => {
     rightPanelScrollY = Math.max(0, Math.min(rightPanelScrollY, maxScroll));
   };
 
-  return { draw, handleClick, handleScroll };
+  const handleMouseDrag = (mouseX, mouseY) => {
+    if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      const components = global.Categories.selectedItem.components;
+      if (components) {
+        components.forEach((component) => {
+          if (typeof component.handleMouseDrag === "function") {
+            component.handleMouseDrag(mouseX, mouseY);
+          }
+        });
+      }
+    }
+  };
+
+  const handleMouseRelease = () => {
+    if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      const components = global.Categories.selectedItem.components;
+      if (components) {
+        components.forEach((component) => {
+          if (typeof component.handleMouseRelease === "function") {
+            component.handleMouseRelease();
+          }
+        });
+      }
+    }
+  };
+
+  return { draw, handleClick, handleScroll, handleMouseDrag, handleMouseRelease };
 };
