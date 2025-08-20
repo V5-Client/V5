@@ -1,5 +1,4 @@
 import "./GuiManager";
-import "./Registries";
 
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
