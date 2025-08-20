@@ -17,6 +17,7 @@ import "./Utility/Misc.js";
 
 /* GUI */
 import "./GUI/GuiDraw.js";
+import "./GUI/Registries.js";
 
 /* QOL */
 import "./QOL/AutoHarp.js";
