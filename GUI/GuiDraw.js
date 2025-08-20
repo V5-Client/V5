@@ -280,6 +280,8 @@ const drawGUI = (mouseX, mouseY) => {
     height: currentRightPanelHeight,
   };
 
+  Client.getMinecraft().gameRenderer.renderBlur();
+
   drawRoundedRectangleWithBorder(animatedBackground);
   drawRoundedRectangleWithGradientOutline(
     animatedLeftPanel,
@@ -288,8 +290,7 @@ const drawGUI = (mouseX, mouseY) => {
   );
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
-  // Only draw category manager content if the animation is complete
-  if (progress >= 1) {
+  if (progress >= 0.5) {
     categoryManager.draw(mouseX, mouseY);
   }
 };
@@ -314,8 +315,22 @@ const handleClick = (mouseX, mouseY) => {
 
 const handleMouseDrag = (mouseX, mouseY) => {
   if (dragging) {
-    rectangles.Background.x = mouseX - rectangles.Background.dx;
-    rectangles.Background.y = mouseY - rectangles.Background.dy;
+    let newX = mouseX - rectangles.Background.dx;
+    let newY = mouseY - rectangles.Background.dy;
+
+    const screenWidth = Renderer.screen.getWidth();
+    const screenHeight = Renderer.screen.getHeight();
+
+    rectangles.Background.x = clamp(
+      newX,
+      0,
+      screenWidth - rectangles.Background.width
+    );
+    rectangles.Background.y = clamp(
+      newY,
+      0,
+      screenHeight - rectangles.Background.height
+    );
   }
   categoryManager.handleMouseDrag(mouseX, mouseY);
 };
