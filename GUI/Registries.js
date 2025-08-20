@@ -1,16 +1,30 @@
-const {
-  addCategory,
-  addCategoryItem,
-  addToggle,
-  addSlider,
-} = global.Categories;
+const { addCategory, addCategoryItem, addToggle, addSlider } =
+  global.Categories;
 
-addCategory("QOL");
+/* MINING */
+addCategory("Mining");
+
 addCategoryItem(
-  "QOL",
-  "Auto Harp",
-  "Automatically plays the harp for you.",
+  "Mining",
+  "Mining Bot",
+  "Mines blocks of multiple types on all islands",
+  "MiningBot.png"
+);
+
+addCategoryItem(
+  "Mining",
+  "Gemstone Macro",
+  "Mines gemstones in the Crystal Hollows",
   "Gemstone.png"
 );
-addToggle("QOL", "Auto Harp", "Enabled");
-addSlider("QOL", "Auto Harp", "Speed");
+// toggles etc
+
+addCategoryItem("Mining", "Ores Macro", "Mines ores of all types", "Ore.png");
+// toggles
+
+addCategoryItem(
+  "Mining",
+  "Commission Macro",
+  "Completes commissions in the Dwarven Mines",
+  "Commission.png"
+);

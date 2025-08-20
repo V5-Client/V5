@@ -28,7 +28,9 @@ if (!global.Categories) {
         title,
         description,
         expanded: false,
-        image: Image.fromAsset(image),
+        image: Image.fromFile(
+          `./config/ChatTriggers/modules/Client/assets/${image}` // call from the modules assets folder rather than universal assets folder
+        ),
         animation: CATEGORY_BOX_HEIGHT,
         components: [],
       });
@@ -255,14 +257,21 @@ global.createCategoriesManager = (deps) => {
         };
         deps.draw.drawRoundedRectangle(ImageRect);
 
-        if (item.image) {
-          item.image.draw(
-            ImageRect.x + 4,
-            ImageRect.y,
-            ImageRect.width - 7,
-            ImageRect.height
-          );
-        }
+        // hopefully faster ?
+        Renderer.drawImage(
+          item.image,
+          ImageRect.x + 4,
+          ImageRect.y,
+          ImageRect.width - 7,
+          ImageRect.height
+        );
+
+        ChatLib.chat(
+          `Item ${i + 1}: x=${itemRect.x}, y=${itemRect.y}, width=${
+            itemRect.width
+          }, height=${itemRect.height}`
+        );
+
         Renderer.drawString(
           item.title,
           itemRect.x +
@@ -299,7 +308,7 @@ global.createCategoriesManager = (deps) => {
           color: CATEGORY_BOX_COLOR,
         });
 
-        const backButtonText = "< Back";
+        const backButtonText = "Back";
         const backButtonWidth = Renderer.getStringWidth(backButtonText);
         const backButtonX = optionX + 10;
         const backButtonY = optionY + 10;
@@ -313,20 +322,20 @@ global.createCategoriesManager = (deps) => {
 
         Renderer.drawString(
           selectedItem.title,
-          backButtonX + backButtonWidth + 5,
-          optionY + 10,
+          backButtonX,
+          optionY + 30,
           CATEGORY_TITLE_COLOR,
           false
         );
         Renderer.drawString(
           selectedItem.description,
-          backButtonX + backButtonWidth + 5,
-          optionY + 30,
+          backButtonX + 10,
+          optionY + 45,
           CATEGORY_DESC_COLOR,
           false
         );
 
-        let componentY = optionY + 60;
+        let componentY = optionY + 70;
         selectedItem.components.forEach((component) => {
           if (typeof component.draw === "function") {
             component.x = optionX + 10;
@@ -455,7 +464,10 @@ global.createCategoriesManager = (deps) => {
   };
 
   const handleScroll = (mouseX, mouseY, dir) => {
-    if (global.Categories.currentPage === "options" && global.Categories.selectedItem) {
+    if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
       const components = global.Categories.selectedItem.components;
       if (components) {
         components.forEach((component) => {
@@ -525,5 +537,11 @@ global.createCategoriesManager = (deps) => {
     }
   };
 
-  return { draw, handleClick, handleScroll, handleMouseDrag, handleMouseRelease };
+  return {
+    draw,
+    handleClick,
+    handleScroll,
+    handleMouseDrag,
+    handleMouseRelease,
+  };
 };
