@@ -1,15 +1,19 @@
-const actions = [];
+const actions = new Map();
 
 // Register handlers (called from outside)
 function registerEventSB(name, callback) {
-  actions.push({ name: name.toLowerCase(), action: callback });
+  const eventName = name.toLowerCase();
+  if (!actions.has(eventName)) {
+    actions.set(eventName, []);
+  }
+  actions.get(eventName).push(callback);
 }
 
 // Internal function to trigger events
 function CheckEvents(event) {
   const ev = event.toLowerCase();
-  for (const a of actions) {
-    if (a.name === ev) a.action();
+  if (actions.has(ev)) {
+    actions.get(ev).forEach((action) => action());
   }
 }
 
