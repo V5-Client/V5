@@ -1,5 +1,3 @@
-import "./GuiManager";
-
 const {
   addCategory,
   addCategoryItem,
