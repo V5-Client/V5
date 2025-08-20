@@ -1,42 +1,41 @@
-(function () {
-  const CONFIG_NAMESPACE = "ClientConfig";
-  const CONFIG_NAME = "config.json";
+const CONFIG_NAMESPACE = "ClientConfig";
+const CONFIG_NAME = "config.json";
 
-  const DEFAULT = {
-    enabled: false,
-    intervalSeconds: 30,
-    rank: "vip",
-  };
+const DEFAULT = {
+  enabled: false,
+  intervalSeconds: 30,
+  rank: "vip",
+};
 
-  function loadConfig() {
-    try {
-      const raw = FileLib.read(CONFIG_NAMESPACE, CONFIG_NAME);
-      const parsed = raw ? JSON.parse(raw) : {};
-      const cfg = parsed.AutoBeg ? parsed.AutoBeg : {};
-      return Object.assign({}, DEFAULT, cfg);
-    } catch (e) {
-      ChatLib.chat("&c[AutoBeg] Failed to read ClientConfig, using defaults: " + e);
-      return Object.assign({}, DEFAULT);
-    }
+function loadConfig() {
+  try {
+    const raw = FileLib.read(CONFIG_NAMESPACE, CONFIG_NAME);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const cfg = parsed.AutoBeg ? parsed.AutoBeg : {};
+    return Object.assign({}, DEFAULT, cfg);
+  } catch (e) {
+    ChatLib.chat("&c[AutoBeg] Failed to read ClientConfig, using defaults: " + e);
+    return Object.assign({}, DEFAULT);
   }
+}
 
-  function saveConfig(cfg) {
-    try {
-      const raw = FileLib.read(CONFIG_NAMESPACE, CONFIG_NAME);
-      let parsed = raw ? JSON.parse(raw) : {};
-      parsed.AutoBeg = cfg;
-      FileLib.write(CONFIG_NAMESPACE, CONFIG_NAME, JSON.stringify(parsed, null, 2));
-    } catch (e) {
-      ChatLib.chat("&c[AutoBeg] Failed to save to ClientConfig: " + e);
-    }
+function saveConfig(cfg) {
+  try {
+    const raw = FileLib.read(CONFIG_NAMESPACE, CONFIG_NAME);
+    let parsed = raw ? JSON.parse(raw) : {};
+    parsed.AutoBeg = cfg;
+    FileLib.write(CONFIG_NAMESPACE, CONFIG_NAME, JSON.stringify(parsed, null, 2));
+  } catch (e) {
+    ChatLib.chat("&c[AutoBeg] Failed to save to ClientConfig: " + e);
   }
+}
 
-  class AutoBeg {
-    constructor() {
-      this.cfg = loadConfig();
-      this.lastMessageTime = 0;
+class AutoBeg {
+  constructor() {
+    this.cfg = loadConfig();
+    this.lastMessageTime = 0;
 
-      this.messages = [
+    this.messages = [
         `anyone got a spare rank pls??`,
         `hey can someone gift me a rank?`,
         `anyone nice enough to rank a noob :(`,
@@ -87,11 +86,9 @@
         `i cant afford a rank pls help`,
         `can i have a rank gift pls`,
         `pls help me get a rank`,
-        `pls rank me`,
         `looking for {rank_placeholder}`,
         `can i get a rank`,
         `can i have a rank`,
-        `pls rank me`,
         `anyone nice to gift me {rank_placeholder}`,
         `pls gift me {rank_placeholder}`,
         `gift me {rank_placeholder}`,
@@ -115,110 +112,112 @@
         `can someone gift me rank`,
         `i need {rank_placeholder}`,
         `give me {rank_placeholder}`,
-        `can i get a free rank`,
-        `rank pls`,
         `pls i need a rank`,
         `need {rank_placeholder}`,
         `any rank giveaway`,
         `plz can i get rank`,
         `pls gift me a rank`,
         `anyone have a spare {rank_placeholder}?`,
-      ];
+    ];
 
-      register("command", (...args) => {
-        const sub = (args[0] || "").toString().toLowerCase();
-          if (sub === "") {
-            ChatLib.chat(`&dUsage: /autobeg
-                &6toggle: &fSwitch between on/off 
-                &6interval <seconds>: &fSet chat interval
-                &6rank <name>: &fSet the rank to beg for 
-                &6status: &fShow current status`);
-    return;
-  }
-        if (sub === "toggle" || sub === "") {
-          this.toggle();
-          return;
+    register("command", (...args) => {
+      const sub = (args[0] || "").toString().toLowerCase();
+        if (sub === "") {
+          ChatLib.chat(`&dUsage: /autobeg
+              &6toggle: &fSwitch between on/off 
+              &6interval <seconds>: &fSet chat interval
+              &6rank <name>: &fSet the rank to beg for 
+              &6status: &fShow current status`);
+  return;
+}
+      if (sub === "toggle" || sub === "") {
+        this.toggle();
+        return;
+      }
+      if (sub === "interval") {
+        const val = Number(args[1]);
+        if (!isNaN(val) && val >= 5 && val <= 10000) { // minimum 5 seconds, max of 10000 seconds
+          this.cfg.intervalSeconds = Math.max(5, Math.floor(val));
+          saveConfig(this.cfg);
+          ChatLib.chat(`&dAutoBeg: &bInterval set to ${this.cfg.intervalSeconds}s`);
+        } else {
+          ChatLib.chat("&cUsage: /autobeg interval <seconds> (min: 5, max: 10000)");
         }
-        if (sub === "interval") {
-          const val = Number(args[1]);
-          if (!isNaN(val) && val >= 5 && val <= 10000) { // minimum 5 seconds, max of 10000 seconds
-            this.cfg.intervalSeconds = Math.max(5, Math.floor(val));
-            saveConfig(this.cfg);
-            ChatLib.chat(`&dAutoBeg: &bInterval set to ${this.cfg.intervalSeconds}s`);
-          } else {
-            ChatLib.chat("&cUsage: /autobeg interval <seconds> (min: 5, max: 10000)");
-          }
-          return;
+        return;
+      }
+      if (sub === "rank") {
+        const rank = String(args.slice(1).join(" ") || "").trim();
+        if (rank) {
+          this.cfg.rank = rank;
+          saveConfig(this.cfg);
+          ChatLib.chat(`&dAutoBeg: &bRank set to ${this.cfg.rank}`);
+        } else {
+          ChatLib.chat("&cUsage: /autobeg rank <rank>");
         }
-        if (sub === "rank") {
-          const rank = String(args.slice(1).join(" ") || "").trim();
-          if (rank) {
-            this.cfg.rank = rank;
-            saveConfig(this.cfg);
-            ChatLib.chat(`&dAutoBeg: &bRank set to ${this.cfg.rank}`);
-          } else {
-            ChatLib.chat("&cUsage: /autobeg rank <rank>");
-          }
-          return;
-        }
-        if (sub === "status") {
-          ChatLib.chat(`&dAutoBeg: &b${this.cfg.enabled ? "Enabled" : "Disabled"} &7| Interval: &b${this.cfg.intervalSeconds}s &7| Rank: &b${this.cfg.rank}`);
-          return;
-        }
+        return;
+      }
+      if (sub === "status") {
+        ChatLib.chat(`&dAutoBeg: &b${this.cfg.enabled ? "Enabled" : "Disabled"} &7| Interval: &b${this.cfg.intervalSeconds}s &7| Rank: &b${this.cfg.rank}`);
+        return;
+      }
 
-        ChatLib.chat(`&cUnknown subcommand. &dUsage: /autobeg
-                &6toggle: &fSwitch between on/off 
-                &6interval <seconds>: &fSet chat interval
-                &6rank <name>: &fSet the rank to beg for 
-                &6status: &fShow current status`);
-                
-      }).setName("autobeg");
+      ChatLib.chat(`&cUnknown subcommand. &dUsage: /autobeg
+              &6toggle: &fSwitch between on/off 
+              &6interval <seconds>: &fSet chat interval
+              &6rank <name>: &fSet the rank to beg for 
+              &6status: &fShow current status`);
 
-      register("step", () => {
-        this.cfg = loadConfig();
-      }).setDelay(20);
+    }).setName("autobeg");
 
-      register("step", () => {
-        this.cfg = loadConfig();
-        if (!this.cfg.enabled) return;
-        try {
-          if (!World.isLoaded()) return;
-        } catch (e) {
-        }
+    register("step", () => {
+      this.cfg = loadConfig();
+    }).setDelay(20);
 
-        const now = Date.now();
-        if (now - this.lastMessageTime < this.cfg.intervalSeconds * 1000) return;
+    register("step", () => {
+      this.cfg = loadConfig();
+      if (!this.cfg.enabled) return;
+      try {
+        if (!World.isLoaded()) return;
+      } catch (e) {
+      }
 
-        const template = this.messages[Math.floor(Math.random() * this.messages.length)];
-        const msg = template.replace(/\{rank_placeholder\}/g, this.cfg.rank);
+      const now = Date.now();
+      if (now - this.lastMessageTime < this.cfg.intervalSeconds * 1000) return;
 
-        if (typeof ChatLib.say === "function") {
-          ChatLib.say(msg);
-        } else if (typeof ChatLib.chat === "function") {
-          ChatLib.chat(msg);
-        }
+      const template = this.messages[Math.floor(Math.random() * this.messages.length)];
+      const msg = template.replace(/\{rank_placeholder\}/g, this.cfg.rank);
 
-        try {
-          ChatLib.command("internalrankgift true");
-        } catch (e) {
-        }
+      if (typeof ChatLib.say === "function") {
+        ChatLib.say(msg);
+      } else if (typeof ChatLib.chat === "function") {
+        ChatLib.chat(msg);
+      }
 
-        this.lastMessageTime = now;
-      }).setFps(1);
+      try {
+        ChatLib.command("internalrankgift true");
+      } catch (e) {
+      }
 
-      if (this.cfg.enabled) this.lastMessageTime = Date.now();
-    }
+      this.lastMessageTime = now;
+    }).setFps(1);
 
-    toggle() {
-      this.cfg.enabled = !this.cfg.enabled;
-      saveConfig(this.cfg);
-      const state = this.cfg.enabled ? "&aEnabled" : "&cDisabled";
-      ChatLib.chat(`&dAutoBeg: &b${state}`);
-      if (this.cfg.enabled) this.lastMessageTime = Date.now();
-      else this.lastMessageTime = 0;
-    }
+    if (this.cfg.enabled) this.lastMessageTime = Date.now();
   }
 
-  new AutoBeg();
+  toggle() {
+    this.cfg.enabled = !this.cfg.enabled;
+    saveConfig(this.cfg);
+    const state = this.cfg.enabled ? "&aEnabled" : "&cDisabled";
+    ChatLib.chat(`&dAutoBeg: &b${state}`);
+    if (this.cfg.enabled) {
+      if (this.cfg.rank === "vip") {
+        ChatLib.chat(
+          "&dAutoBeg: &cWarning: Rank is set to default &2VIP&c. Use '/autobeg rank <name>' to change it."
+        );
+      }
+      this.lastMessageTime = Date.now();
+    } else this.lastMessageTime = 0;
+  }
+}
 
-})();
+new AutoBeg();
