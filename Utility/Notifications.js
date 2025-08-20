@@ -9,23 +9,23 @@ class NotificationUtils {
     const SystemTrayInstance = SystemTray.getSystemTray();
     const TrayIcon = Java.type("java.awt.TrayIcon");
     const Toolkit = Java.type("java.awt.Toolkit");
-    let trayIcon = null;
+    this.trayIcon = null;
 
     try {
-      trayIcon = SystemTrayInstance
+      this.trayIcon = SystemTrayInstance
         .getTrayIcons()
         .find((t) => t.getToolTip() === "Client Alerts");
 
-      if (trayIcon) return;
+      if (this.trayIcon) return;
 
       const image = Toolkit.getDefaultToolkit().createImage(
         "./config/ChatTriggers/assets/icon.png"
       );
 
-      trayIcon = new TrayIcon(image, "Client Alerts");
-      trayIcon.setImageAutoSize(true);
-      trayIcon.setToolTip("Client Alerts");
-      SystemTrayInstance.add(trayIcon);
+      this.trayIcon = new TrayIcon(image, "Client Alerts");
+      this.trayIcon.setImageAutoSize(true);
+      this.trayIcon.setToolTip("Client Alerts");
+      SystemTrayInstance.add(this.trayIcon);
     } catch (e) {
       ChatLib.chat("Failed to create system tray icon: " + e);
     }

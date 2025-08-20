@@ -20,7 +20,6 @@ class Numbers {
   timeNumberHour(time) {
     let hours = Math.floor(time / 1000 / 60 / 60);
     let mins = Math.floor(time / 1000 / 60) % 60;
-    d;
     if (hours === 0) return `${mins}m`;
     return `${hours}h ${mins}m`;
   }

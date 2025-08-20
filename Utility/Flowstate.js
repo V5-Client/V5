@@ -33,9 +33,8 @@ class FlowstateUtilsClass {
         .map((l) => ChatLib.removeFormatting(l))
         .join(" ");
       let match = lore.match(/flowstate\s*(i{1,3})/i);
-      let bonus = match
-        ? { I: 1, II: 2, III: 3 }[match[1].toUpperCase()] * 1
-        : 0;
+      const roman = { I: 1, II: 2, III: 3 };
+      let bonus = match ? roman[match[1].toUpperCase()] || 0 : 0;
 
       if (
         match &&

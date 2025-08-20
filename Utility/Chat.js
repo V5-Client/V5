@@ -7,13 +7,20 @@ const date = new java.text.SimpleDateFormat(
 );
 
 class ChatClass {
+  _sendMessage(msg, isDebug = false) {
+    if (!msg) return;
+    // if (isDebug && !global.settingSelection?.ModuleManager?.getSetting("Other", "Debug Messages")) {
+    //   return;
+    // }
+    ChatLib.chat(Prefix + msg);
+  }
+
   /**
    * Sends a message with the client prefix.
    * @param {string} msg
    */
   message(msg) {
-    if (!msg) return;
-    ChatLib.chat(Prefix + (msg ?? null));
+    this._sendMessage(msg, false);
   }
 
   /**
@@ -22,18 +29,12 @@ class ChatClass {
    * fix with gui
    */
   debugMessage(msg) {
-    if (!msg) return;
-    // if (
-    //  !global.settingSelection?.ModuleManager?.getSetting(
-    //"Other", "Debug Messages";
-    //  )
-    // )
-    // return;
-    ChatLib.chat(Prefix + (msg ?? null));
+    this._sendMessage(msg, true);
   }
 
   log(msg) {
-    console.log(Prefix + (msg ?? null));
+    if (!msg) return;
+    console.log(Prefix + msg);
   }
 }
 
