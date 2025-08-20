@@ -279,6 +279,8 @@ const drawGUI = (mouseX, mouseY) => {
     height: currentRightPanelHeight,
   };
 
+  Client.getMinecraft().gameRenderer.renderBlur();
+
   drawRoundedRectangleWithBorder(animatedBackground);
   drawRoundedRectangleWithGradientOutline(
     animatedLeftPanel,
@@ -287,8 +289,7 @@ const drawGUI = (mouseX, mouseY) => {
   );
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
-  // Only draw category manager content if the animation is complete
-  if (progress >= 1) {
+  if (progress >= 0.5) {
     categoryManager.draw(mouseX, mouseY);
   }
 };
