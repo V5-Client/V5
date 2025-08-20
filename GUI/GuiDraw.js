@@ -1,4 +1,5 @@
 import "./GuiManager";
+import "./Registries";
 
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
@@ -316,6 +317,7 @@ const handleMouseDrag = (mouseX, mouseY) => {
     rectangles.Background.x = mouseX - rectangles.Background.dx;
     rectangles.Background.y = mouseY - rectangles.Background.dy;
   }
+  categoryManager.handleMouseDrag(mouseX, mouseY);
 };
 
 const handleScroll = (mouseX, mouseY, dir) => {
@@ -332,6 +334,7 @@ myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
 
 myGui.registerMouseReleased(() => {
   dragging = false;
+  categoryManager.handleMouseRelease();
 });
 
 myGui.registerScrolled(handleScroll);
