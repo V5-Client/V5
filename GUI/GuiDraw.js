@@ -19,6 +19,11 @@ const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 const GRADIENT_TOP_COLOR = new Color(0.6, 0.4, 0.8, 1);
 const GRADIENT_BOTTOM_COLOR = new Color(0.4, 0.6, 0.8, 1);
 
+const ANIMATION_DURATION = 200; // Time in milliseconds for the unroll animation
+
+let isOpening = false;
+let openStartTime = 0;
+
 let rectangles = {
   Background: {
     name: "Background",
@@ -30,6 +35,7 @@ let rectangles = {
     color: BACKGROUND_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BACKGROUND_BORDER_COLOR,
+    isAnimated: true, // New property to indicate this rect animates
   },
   LeftPanel: {
     name: "Left",
@@ -45,6 +51,7 @@ let rectangles = {
     color: BAR_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
+    isAnimated: true, // New property
   },
   RightPanel: {
     name: "Right",
@@ -60,6 +67,7 @@ let rectangles = {
     color: BAR_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
+    isAnimated: true, // New property
   },
 };
 
@@ -130,6 +138,7 @@ const drawGradientRoundedOutline = (
   topColor,
   bottomColor
 ) => {
+  if (height <= 0) return; // Prevent drawing if height is 0 or less
   radius = Math.min(radius, Math.min(width, height) / 2);
   const hw = lineWidth / 2;
   const ir = radius - hw;
@@ -246,15 +255,42 @@ const categoryManager = global.createCategoriesManager({
 });
 
 const drawGUI = (mouseX, mouseY) => {
-  drawRoundedRectangleWithBorder(rectangles.Background);
+  const elapsed = Date.now() - openStartTime;
+  const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
+
+  const backgroundHeight = rectangles.Background.height;
+  const leftPanelHeight = rectangles.LeftPanel.height;
+  const rightPanelHeight = rectangles.RightPanel.height;
+
+  const currentBackgroundHeight = backgroundHeight * progress;
+  const currentLeftPanelHeight = leftPanelHeight * progress;
+  const currentRightPanelHeight = rightPanelHeight * progress;
+
+  const animatedBackground = {
+    ...rectangles.Background,
+    height: currentBackgroundHeight,
+  };
+  const animatedLeftPanel = {
+    ...rectangles.LeftPanel,
+    height: currentLeftPanelHeight,
+  };
+  const animatedRightPanel = {
+    ...rectangles.RightPanel,
+    height: currentRightPanelHeight,
+  };
+
+  drawRoundedRectangleWithBorder(animatedBackground);
   drawRoundedRectangleWithGradientOutline(
-    rectangles.LeftPanel,
+    animatedLeftPanel,
     GRADIENT_TOP_COLOR,
     GRADIENT_BOTTOM_COLOR
   );
-  drawRoundedRectangleWithBorder(rectangles.RightPanel);
+  drawRoundedRectangleWithBorder(animatedRightPanel);
 
-  categoryManager.draw(mouseX, mouseY);
+  // Only draw category manager content if the animation is complete
+  if (progress >= 1) {
+    categoryManager.draw(mouseX, mouseY);
+  }
 };
 
 myGui.registerDraw(drawGUI);
@@ -300,4 +336,8 @@ myGui.registerMouseReleased(() => {
 
 myGui.registerScrolled(handleScroll);
 
-register("command", () => myGui.open()).setName("gui");
+register("command", () => {
+  isOpening = true;
+  openStartTime = Date.now();
+  myGui.open();
+}).setName("gui");

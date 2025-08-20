@@ -293,6 +293,16 @@ global.createCategoriesManager = (deps) => {
           CATEGORY_DESC_COLOR,
           false
         );
+
+        let componentY = optionY + 60;
+        selectedItem.components.forEach((component) => {
+          if (typeof component.draw === "function") {
+            component.x = optionX + 10;
+            component.y = componentY;
+            component.draw();
+            componentY += 20;
+          }
+        });
       }
     }
 
@@ -340,6 +350,21 @@ global.createCategoriesManager = (deps) => {
         global.Categories.transitionStart = Date.now();
         return;
       }
+
+      const components = global.Categories.selectedItem.components;
+      let wasComponentClicked = false;
+      if (components) {
+        components.forEach((component) => {
+          if (
+            typeof component.handleClick === "function" &&
+            component.handleClick(mouseX, mouseY)
+          ) {
+            wasComponentClicked = true;
+          }
+        });
+      }
+
+      if (wasComponentClicked) return;
     }
 
     if (
