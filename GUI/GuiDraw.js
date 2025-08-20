@@ -314,8 +314,22 @@ const handleClick = (mouseX, mouseY) => {
 
 const handleMouseDrag = (mouseX, mouseY) => {
   if (dragging) {
-    rectangles.Background.x = mouseX - rectangles.Background.dx;
-    rectangles.Background.y = mouseY - rectangles.Background.dy;
+    let newX = mouseX - rectangles.Background.dx;
+    let newY = mouseY - rectangles.Background.dy;
+
+    const screenWidth = Renderer.screen.getWidth();
+    const screenHeight = Renderer.screen.getHeight();
+
+    rectangles.Background.x = clamp(
+      newX,
+      0,
+      screenWidth - rectangles.Background.width
+    );
+    rectangles.Background.y = clamp(
+      newY,
+      0,
+      screenHeight - rectangles.Background.height
+    );
   }
 };
 
