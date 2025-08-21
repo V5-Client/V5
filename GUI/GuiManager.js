@@ -160,6 +160,152 @@ global.createCategoriesManager = (deps) => {
   const easeInOutQuad = (t) =>
     t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
+  const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
+    if (global.Categories.animationRect) {
+      const elapsed = Date.now() - global.Categories.subcatTransitionStart;
+      const rawProgress = Math.min(
+        1,
+        elapsed / global.Categories.subcatAnimationDuration
+      );
+      global.Categories.subcatTransitionProgress = easeInOutQuad(rawProgress);
+      const p = global.Categories.subcatTransitionProgress;
+
+      global.Categories.animationRect.x =
+        global.Categories.animationRect.startX +
+        (global.Categories.animationRect.endX -
+          global.Categories.animationRect.startX) * p;
+      global.Categories.animationRect.width =
+        global.Categories.animationRect.startWidth +
+        (global.Categories.animationRect.endWidth -
+          global.Categories.animationRect.startWidth) * p;
+
+      if (rawProgress >= 1) {
+        global.Categories.animationRect = null; // Animation is complete
+      }
+    }
+
+    let currentX = panelX + PADDING;
+    const subcategoriesToDraw = ["All", ...global.Categories.categories.find(
+      (c) => c.name === global.Categories.selected
+    ).subcategories];
+
+    subcategoriesToDraw.forEach((subcat) => {
+      const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+      const buttonRect = {
+        x: currentX,
+        y: yOffset,
+        width: buttonTextWidth,
+        height: SUBCATEGORY_BUTTON_HEIGHT,
+        radius: 5,
+        color: SUBCATEGORY_BUTTON_COLOR,
+      };
+
+      const isSelected =
+        (global.Categories.selectedSubcategory === subcat ||
+          (!global.Categories.selectedSubcategory && subcat === "All")) &&
+        !global.Categories.animationRect;
+      const isHovered = isInside(mouseX, mouseY, buttonRect);
+      const buttonColor = isSelected
+        ? CATEGORY_SELECTED_COLOR
+        : isHovered
+        ? SUBCATEGORY_BUTTON_HOVER_COLOR
+        : SUBCATEGORY_BUTTON_COLOR;
+
+      if (isSelected) {
+        global.Categories.selectedSubcategoryButton = buttonRect;
+      }
+
+      if (global.Categories.animationRect) {
+        deps.draw.drawRoundedRectangle({
+          x: global.Categories.animationRect.x,
+          y: global.Categories.animationRect.y,
+          width: global.Categories.animationRect.width,
+          height: global.Categories.animationRect.height,
+          radius: 5,
+          color: CATEGORY_SELECTED_COLOR,
+        });
+      } else if (isSelected) {
+        deps.draw.drawRoundedRectangle({
+          x: buttonRect.x,
+          y: buttonRect.y,
+          width: buttonRect.width,
+          height: buttonRect.height,
+          radius: 5,
+          color: CATEGORY_SELECTED_COLOR,
+        });
+      }
+
+      Renderer.drawString(
+        subcat,
+        currentX + 5,
+        yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2,
+        isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
+        false
+      );
+      currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+    });
+
+    return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+  };
+
+  const drawOptionsPanel = (panel, mouseX, mouseY) => {
+    const selectedItem = global.Categories.selectedItem;
+    if (!selectedItem) return;
+
+    let optionPanelX = panel.x;
+    if (global.Categories.transitionDirection === 1) {
+      optionPanelX += panel.width * (1 - global.Categories.transitionProgress);
+    } else if (global.Categories.transitionDirection === -1) {
+      optionPanelX += panel.width * global.Categories.transitionProgress;
+    }
+
+    const optionX = optionPanelX + PADDING;
+    const optionY = panel.y + PADDING;
+
+    // Draw background panel
+    deps.draw.drawRoundedRectangle({
+      x: optionX,
+      y: optionY,
+      width: panel.width - PADDING * 2,
+      height: panel.height - PADDING * 2,
+      radius: CORNER_RADIUS,
+      color: CATEGORY_BOX_COLOR,
+    });
+
+    // Draw back button
+    const backButtonText = "Back";
+    const backButtonX = optionX + 10;
+    const backButtonY = optionY + 10;
+    Renderer.drawString(backButtonText, backButtonX, backButtonY, BACK_TEXT_COLOR);
+
+    // Draw item title and description
+    Renderer.drawString(
+      selectedItem.title,
+      backButtonX,
+      optionY + 30,
+      CATEGORY_TITLE_COLOR,
+      false
+    );
+    Renderer.drawString(
+      selectedItem.description,
+      backButtonX + 10,
+      optionY + 45,
+      CATEGORY_DESC_COLOR,
+      false
+    );
+
+    // Draw components
+    let componentY = optionY + 70;
+    selectedItem.components.forEach((component) => {
+      if (typeof component.draw === "function") {
+        component.x = optionX + 10;
+        component.y = componentY;
+        component.draw();
+        componentY += 30;
+      }
+    });
+  };
+
   const draw = (mouseX, mouseY) => {
     if (global.Categories.transitionDirection !== 0) {
       const elapsed = Date.now() - global.Categories.transitionStart;
@@ -241,91 +387,7 @@ global.createCategoriesManager = (deps) => {
 
       let yOffset = panel.y + PADDING;
       if (cat.subcategories.length > 0) {
-        if (global.Categories.animationRect) {
-          const elapsed = Date.now() - global.Categories.subcatTransitionStart;
-          const rawProgress = Math.min(
-            1,
-            elapsed / global.Categories.subcatAnimationDuration
-          );
-          global.Categories.subcatTransitionProgress =
-            easeInOutQuad(rawProgress);
-          const p = global.Categories.subcatTransitionProgress;
-
-          global.Categories.animationRect.x =
-            global.Categories.animationRect.startX +
-            (global.Categories.animationRect.endX -
-              global.Categories.animationRect.startX) *
-              p;
-          global.Categories.animationRect.width =
-            global.Categories.animationRect.startWidth +
-            (global.Categories.animationRect.endWidth -
-              global.Categories.animationRect.startWidth) *
-              p;
-
-          if (rawProgress >= 1) {
-            global.Categories.animationRect = null; // Animation is complete
-          }
-        }
-
-        let currentX = panelX + PADDING;
-        const subcategoriesToDraw = ["All", ...cat.subcategories];
-        subcategoriesToDraw.forEach((subcat) => {
-          const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
-          const buttonRect = {
-            x: currentX,
-            y: yOffset,
-            width: buttonTextWidth,
-            height: SUBCATEGORY_BUTTON_HEIGHT,
-            radius: 5,
-            color: SUBCATEGORY_BUTTON_COLOR,
-          };
-          const isSelected =
-            (global.Categories.selectedSubcategory === subcat ||
-              (!global.Categories.selectedSubcategory && subcat === "All")) &&
-            !global.Categories.animationRect;
-          const isHovered = isInside(mouseX, mouseY, buttonRect);
-          const buttonColor = isSelected
-            ? CATEGORY_SELECTED_COLOR
-            : isHovered
-            ? SUBCATEGORY_BUTTON_HOVER_COLOR
-            : SUBCATEGORY_BUTTON_COLOR;
-
-          if (isSelected) {
-            global.Categories.selectedSubcategoryButton = buttonRect;
-          }
-
-          if (global.Categories.animationRect) {
-            deps.draw.drawRoundedRectangle({
-              x: global.Categories.animationRect.x,
-              y: global.Categories.animationRect.y,
-              width: global.Categories.animationRect.width,
-              height: global.Categories.animationRect.height,
-              radius: 5,
-              color: CATEGORY_SELECTED_COLOR,
-            });
-          } else {
-            if (isSelected) {
-              deps.draw.drawRoundedRectangle({
-                x: buttonRect.x,
-                y: buttonRect.y,
-                width: buttonRect.width,
-                height: buttonRect.height,
-                radius: 5,
-                color: CATEGORY_SELECTED_COLOR,
-              });
-            }
-          }
-
-          Renderer.drawString(
-            subcat,
-            currentX + 5,
-            yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2,
-            isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
-            false
-          );
-          currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
-        });
-        yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+        yOffset = drawSubcategoryButtons(panelX, yOffset, mouseX, mouseY);
       }
 
       yOffset -= rightPanelScrollY;
@@ -442,64 +504,7 @@ global.createCategoriesManager = (deps) => {
       });
     }
     if (shouldDrawOptions) {
-      const selectedItem = global.Categories.selectedItem;
-      if (selectedItem) {
-        let optionPanelX = panel.x;
-        if (global.Categories.transitionDirection === 1) {
-          optionPanelX +=
-            panel.width * (1 - global.Categories.transitionProgress);
-        } else if (global.Categories.transitionDirection === -1) {
-          optionPanelX += panel.width * global.Categories.transitionProgress;
-        }
-
-        const optionX = optionPanelX + PADDING;
-        const optionY = panel.y + PADDING;
-
-        deps.draw.drawRoundedRectangle({
-          x: optionX,
-          y: optionY,
-          width: panel.width - PADDING * 2,
-          height: panel.height - PADDING * 2,
-          radius: CORNER_RADIUS,
-          color: CATEGORY_BOX_COLOR,
-        });
-
-        const backButtonText = "Back";
-        const backButtonX = optionX + 10;
-        const backButtonY = optionY + 10;
-
-        Renderer.drawString(
-          backButtonText,
-          backButtonX,
-          backButtonY,
-          BACK_TEXT_COLOR
-        );
-
-        Renderer.drawString(
-          selectedItem.title,
-          backButtonX,
-          optionY + 30,
-          CATEGORY_TITLE_COLOR,
-          false
-        );
-        Renderer.drawString(
-          selectedItem.description,
-          backButtonX + 10,
-          optionY + 45,
-          CATEGORY_DESC_COLOR,
-          false
-        );
-
-        let componentY = optionY + 70;
-        selectedItem.components.forEach((component) => {
-          if (typeof component.draw === "function") {
-            component.x = optionX + 10;
-            component.y = componentY;
-            component.draw();
-            componentY += 30;
-          }
-        });
-      }
+      drawOptionsPanel(panel, mouseX, mouseY);
     }
 
     GL11.glDisable(GL11.GL_SCISSOR_TEST);
