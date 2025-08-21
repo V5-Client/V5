@@ -21,12 +21,18 @@ jobs:
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Lines added / deleted (only last commit)
-          ADDED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
-          DELETED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+          if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
+            # First commit
+            ADDED=$(git show --shortstat HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
+            DELETED=$(git show --shortstat HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+            FILES=$(git show --pretty="" --name-only HEAD)
+          else
+            # Normal commit
+            ADDED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
+            DELETED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+            FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
 
-          # File types (only last commit)
-          FILES=$(git diff --name-only HEAD~1 HEAD)
           FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $2 ": " $1}' | xargs || echo "None")
 
           echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
@@ -37,6 +43,7 @@ jobs:
           echo "added=$ADDED" >> $GITHUB_OUTPUT
           echo "deleted=$DELETED" >> $GITHUB_OUTPUT
           echo "filetypes=$FILETYPES" >> $GITHUB_OUTPUT
+
 
 
       - name: Map GitHub user -> Discord user
