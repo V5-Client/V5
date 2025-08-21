@@ -22,6 +22,7 @@ let state = states.WAITING;
 
 let beachballer = register("tick", () => {
   if (!enabled) return beachballer.unregister();
+  if (Client.isInGui() && !Client.isInChat()) return toggle()
   switch (state) {
     case states.WAITING:
       break;
@@ -87,6 +88,19 @@ function setState(newState) {
   Chat.message("State changed to: " + state);
 }
 
+function toggle() {
+  enabled = !enabled;
+  Chat.message(enabled ? "BeachBaller enabled" : "BeachBaller disabled");
+  if (!enabled) {
+    beachballer.unregister();
+  }
+  if (enabled) {
+    setState(states.PLACE);
+    startPos = [Player.getX(), Player.getY(), Player.getZ()];
+    beachballer.register();
+  }
+}
+
 register("actionBar", (text) => {
   const clean = ChatLib.removeFormatting(text);
   const match = clean.match(/Bounces: (\d{1,3})/);
@@ -100,14 +114,5 @@ register("actionBar", (text) => {
 }).setCriteria("${text}");
 
 register("command", () => {
-  enabled = !enabled;
-  Chat.message(enabled ? "BeachBaller enabled" : "BeachBaller disabled");
-  if (!enabled) {
-    beachballer.unregister();
-  }
-  if (enabled) {
-    setState(states.PLACE);
-    startPos = [Player.getX(), Player.getY(), Player.getZ()];
-    beachballer.register();
-  }
+  toggle()
 }).setName("beachball");
