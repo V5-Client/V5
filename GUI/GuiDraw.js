@@ -107,7 +107,6 @@ let rectangles = {
 
 const myGui = new Gui();
 
-
 const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
   UIRoundedRectangle.Companion.drawRoundedRectangle(
     matrix,
@@ -283,31 +282,49 @@ const drawGUI = (mouseX, mouseY) => {
   const elapsed = Date.now() - openStartTime;
   const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
 
-  const backgroundHeight = rectangles.Background.height;
-  const topPanelHeight = rectangles.TopPanel.height;
-  const leftPanelHeight = rectangles.LeftPanel.height;
-  const rightPanelHeight = rectangles.RightPanel.height;
+  const targetBackground = rectangles.Background;
+  const startX = targetBackground.x + targetBackground.width / 2;
+  const startY = targetBackground.y + targetBackground.height / 2;
 
-  const currentBackgroundHeight = backgroundHeight * progress;
-  const currentTopPanelHeight = topPanelHeight * progress;
-  const currentLeftPanelHeight = leftPanelHeight * progress;
-  const currentRightPanelHeight = rightPanelHeight * progress;
+  const currentWidth = targetBackground.width * progress;
+  const currentHeight = targetBackground.height * progress;
 
   const animatedBackground = {
-    ...rectangles.Background,
-    height: currentBackgroundHeight,
+    ...targetBackground,
+    x: startX - currentWidth / 2,
+    y: startY - currentHeight / 2,
+    width: currentWidth,
+    height: currentHeight,
   };
+
   const animatedTopPanel = {
     ...rectangles.TopPanel,
-    height: currentTopPanelHeight,
+    x: animatedBackground.x + PADDING + 60,
+    y: animatedBackground.y + PADDING,
+    width: (targetBackground.width - PADDING * 2 - 60) * progress,
+    height: rectangles.TopPanel.height * progress,
   };
+
   const animatedLeftPanel = {
     ...rectangles.LeftPanel,
-    height: currentLeftPanelHeight,
+    x: animatedBackground.x + PADDING,
+    y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
+    width: rectangles.LeftPanel.width * progress,
+    height:
+      (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) *
+      progress,
   };
+
   const animatedRightPanel = {
     ...rectangles.RightPanel,
-    height: currentRightPanelHeight,
+    x: animatedLeftPanel.x + animatedLeftPanel.width + PADDING,
+    y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
+    width:
+      (targetBackground.width - PADDING * 3 - rectangles.LeftPanel.width) *
+      progress,
+    height:
+      (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) *
+      progress,
   };
 
   Client.getMinecraft().gameRenderer.renderBlur();
