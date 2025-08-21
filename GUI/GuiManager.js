@@ -8,6 +8,7 @@ const Module_icon = Image.fromFile(
 
 import { ToggleButton } from "./Toggle";
 import { Slider } from "./Slider";
+import { isInside } from "./Utils";
 
 if (!global.Categories) {
   global.Categories = {
@@ -61,42 +62,29 @@ if (!global.Categories) {
       }
     },
 
-    addToggle(categoryName, itemName, toggleTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return;
-
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
-      }
-      if (!item) return;
-
-      item.components.push(new ToggleButton(toggleTitle, 0, 0));
-    },
-    getToggleState(categoryName, itemName, toggleTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
+    _findItem(categoryName, itemName) {
+      const category = this.categories.find((c) => c.name === categoryName);
       if (!category) return null;
 
-      let item = null;
       for (const group of category.items) {
         if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
+          const item = group.items.find((i) => i.title === itemName);
+          if (item) return item;
         } else if (group.title === itemName) {
-          item = group;
-          break;
+          return group;
         }
       }
+      return null;
+    },
+
+    addToggle(categoryName, itemName, toggleTitle) {
+      const item = this._findItem(categoryName, itemName);
+      if (!item) return;
+      item.components.push(new ToggleButton(toggleTitle, 0, 0));
+    },
+
+    getToggleState(categoryName, itemName, toggleTitle) {
+      const item = this._findItem(categoryName, itemName);
       if (!item) return null;
 
       const toggle = item.components.find(
@@ -104,42 +92,15 @@ if (!global.Categories) {
       );
       return toggle ? toggle.enabled : null;
     },
+
     addSlider(categoryName, itemName, sliderTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return;
-
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
-      }
+      const item = this._findItem(categoryName, itemName);
       if (!item) return;
-
       item.components.push(new Slider(sliderTitle, 0, 0));
     },
-    getSliderValue(categoryName, itemName, sliderTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return null;
 
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
-      }
+    getSliderValue(categoryName, itemName, sliderTitle) {
+      const item = this._findItem(categoryName, itemName);
       if (!item) return null;
 
       const slider = item.components.find(
@@ -214,7 +175,7 @@ global.createCategoriesManager = (deps) => {
       const lineY = rect.y + rect.height - 2;
 
       const iconY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
-      const iconX = rect.x + rect.width - 25;
+      const iconX = rect.x + (rect.width - 25) / 2;
       const iconWidth = 25;
       const iconHeight = 25;
 
@@ -290,7 +251,7 @@ global.createCategoriesManager = (deps) => {
           const isSelected =
             global.Categories.selectedSubcategory === subcat ||
             (!global.Categories.selectedSubcategory && subcat === "All");
-          const isHovered = deps.utils.isInside(mouseX, mouseY, buttonRect);
+          const isHovered = isInside(mouseX, mouseY, buttonRect);
           const buttonColor = isSelected
             ? CATEGORY_SELECTED_COLOR
             : isHovered
@@ -307,7 +268,7 @@ global.createCategoriesManager = (deps) => {
           Renderer.drawString(
             subcat,
             currentX + 5,
-            yOffset + 5,
+            yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2, // Center text vertically
             isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
             false
           );
@@ -369,7 +330,7 @@ global.createCategoriesManager = (deps) => {
               borderColor: new Color(1, 1, 1, 0.5),
             };
 
-            const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
+            const isHovered = isInside(mouseX, mouseY, itemRect);
             itemRect.color = isHovered
               ? CATEGORY_BOX_HOVER_COLOR
               : CATEGORY_BOX_COLOR;
@@ -408,7 +369,7 @@ global.createCategoriesManager = (deps) => {
             borderWidth: BORDER_WIDTH,
           };
 
-          const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
+          const isHovered = isInside(mouseX, mouseY, itemRect);
           itemRect.color = isHovered
             ? CATEGORY_BOX_HOVER_COLOR
             : CATEGORY_BOX_COLOR;
@@ -498,7 +459,7 @@ global.createCategoriesManager = (deps) => {
 
     const wasCategoryClicked = global.Categories.categories.some((cat, i) => {
       const rect = getCategoryRect(i);
-      if (deps.utils.isInside(mouseX, mouseY, rect)) {
+      if (isInside(mouseX, mouseY, rect)) {
         global.Categories.selected = cat.name;
         global.Categories.currentPage = "categories";
         global.Categories.selectedItem = null;
@@ -511,7 +472,7 @@ global.createCategoriesManager = (deps) => {
 
     if (
       !wasCategoryClicked &&
-      deps.utils.isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
+      isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
       global.Categories.selected = null;
     }
@@ -529,7 +490,7 @@ global.createCategoriesManager = (deps) => {
         width: backButtonWidth,
         height: 10,
       };
-      if (deps.utils.isInside(mouseX, mouseY, backButtonRect)) {
+      if (isInside(mouseX, mouseY, backButtonRect)) {
         global.Categories.transitionDirection = -1;
         global.Categories.transitionProgress = 0;
         global.Categories.transitionStart = Date.now();
@@ -578,7 +539,7 @@ global.createCategoriesManager = (deps) => {
             width: buttonTextWidth,
             height: SUBCATEGORY_BUTTON_HEIGHT,
           };
-          if (deps.utils.isInside(mouseX, mouseY, buttonRect)) {
+          if (isInside(mouseX, mouseY, buttonRect)) {
             global.Categories.selectedSubcategory =
               subcat === "All" ? null : subcat;
             rightPanelScrollY = 0;
@@ -616,7 +577,7 @@ global.createCategoriesManager = (deps) => {
               width: itemWidth,
               height: itemHeight,
             };
-            if (deps.utils.isInside(mouseX, mouseY, rect)) {
+            if (isInside(mouseX, mouseY, rect)) {
               global.Categories.transitionDirection = 1;
               global.Categories.transitionProgress = 0;
               global.Categories.transitionStart = Date.now();
@@ -642,7 +603,7 @@ global.createCategoriesManager = (deps) => {
             width: itemWidth,
             height: itemHeight,
           };
-          if (deps.utils.isInside(mouseX, mouseY, rect)) {
+          if (isInside(mouseX, mouseY, rect)) {
             global.Categories.transitionDirection = 1;
             global.Categories.transitionProgress = 0;
             global.Categories.transitionStart = Date.now();
@@ -654,7 +615,7 @@ global.createCategoriesManager = (deps) => {
       }
     } else if (
       global.Categories.currentPage === "options" &&
-      !deps.utils.isInside(mouseX, mouseY, deps.rectangles.RightPanel)
+      !isInside(mouseX, mouseY, deps.rectangles.RightPanel)
     ) {
       global.Categories.transitionDirection = -1;
       global.Categories.transitionProgress = 0;
@@ -686,7 +647,7 @@ global.createCategoriesManager = (deps) => {
     const panel = deps.rectangles.RightPanel;
     if (
       !global.Categories.selected ||
-      !deps.utils.isInside(mouseX, mouseY, panel)
+      !isInside(mouseX, mouseY, panel)
     ) {
       return;
     }

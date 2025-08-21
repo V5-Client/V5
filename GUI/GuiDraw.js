@@ -1,4 +1,5 @@
 import "./GuiManager";
+import { clamp, isInside } from "./Utils";
 
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
@@ -106,13 +107,6 @@ let rectangles = {
 
 const myGui = new Gui();
 
-const isInside = (mouseX, mouseY, rect) =>
-  mouseX >= rect.x &&
-  mouseX <= rect.x + rect.width &&
-  mouseY >= rect.y &&
-  mouseY <= rect.y + rect.height;
-
-const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
   UIRoundedRectangle.Companion.drawRoundedRectangle(
@@ -278,9 +272,7 @@ const categoryManager = global.createCategoriesManager({
     drawRoundedRectangleWithGradientOutline:
       drawRoundedRectangleWithGradientOutline,
   },
-  utils: {
-    isInside: isInside,
-  },
+  utils: {},
   colors: {
     gradientTop: GRADIENT_TOP_COLOR,
     gradientBottom: GRADIENT_BOTTOM_COLOR,
