@@ -30,12 +30,30 @@ let rectangles = {
     x: Renderer.screen.getWidth() / 2 - 300,
     y: Renderer.screen.getHeight() / 2 - 200,
     width: 600,
-    height: 400,
+    height: 420,
     radius: CORNER_RADIUS,
     color: BACKGROUND_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BACKGROUND_BORDER_COLOR,
-    isAnimated: true, // New property to indicate this rect animates
+    isAnimated: true,
+  },
+  TopPanel: {
+    name: "Top",
+    get x() {
+      return rectangles.Background.x + PADDING + 60;
+    },
+    get y() {
+      return rectangles.Background.y + PADDING;
+    },
+    get width() {
+      return rectangles.Background.width - PADDING * 2 - 60;
+    },
+    height: 30,
+    radius: CORNER_RADIUS,
+    color: BAR_COLOR,
+    borderWidth: BORDER_WIDTH,
+    borderColor: BAR_BORDER_COLOR,
+    isAnimated: true,
   },
   LeftPanel: {
     name: "Left",
@@ -43,15 +61,22 @@ let rectangles = {
       return rectangles.Background.x + PADDING;
     },
     get y() {
-      return rectangles.Background.y + PADDING;
+      return rectangles.TopPanel.y + rectangles.TopPanel.height + PADDING - 40;
     },
-    width: 100,
-    height: 380,
+    width: 50,
+    get height() {
+      const remainingSpace =
+        rectangles.Background.height -
+        PADDING * 3 -
+        rectangles.TopPanel.height +
+        40;
+      return remainingSpace;
+    },
     radius: CORNER_RADIUS,
     color: BAR_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
-    isAnimated: true, // New property
+    isAnimated: true,
   },
   RightPanel: {
     name: "Right",
@@ -59,15 +84,23 @@ let rectangles = {
       return rectangles.LeftPanel.x + rectangles.LeftPanel.width + PADDING;
     },
     get y() {
-      return rectangles.Background.y + PADDING;
+      return rectangles.TopPanel.y + rectangles.TopPanel.height + PADDING;
     },
-    width: 470,
-    height: 380,
+    get width() {
+      const remainingWidth =
+        rectangles.Background.width - PADDING * 3 - rectangles.LeftPanel.width;
+      return remainingWidth;
+    },
+    get height() {
+      const remainingSpace =
+        rectangles.Background.height - PADDING * 3 - rectangles.TopPanel.height;
+      return remainingSpace;
+    },
     radius: CORNER_RADIUS,
     color: BAR_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
-    isAnimated: true, // New property
+    isAnimated: true,
   },
 };
 
@@ -138,7 +171,7 @@ const drawGradientRoundedOutline = (
   topColor,
   bottomColor
 ) => {
-  if (height <= 0) return; // Prevent drawing if height is 0 or less
+  if (height <= 0) return;
   radius = Math.min(radius, Math.min(width, height) / 2);
   const hw = lineWidth / 2;
   const ir = radius - hw;
@@ -259,16 +292,22 @@ const drawGUI = (mouseX, mouseY) => {
   const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
 
   const backgroundHeight = rectangles.Background.height;
+  const topPanelHeight = rectangles.TopPanel.height;
   const leftPanelHeight = rectangles.LeftPanel.height;
   const rightPanelHeight = rectangles.RightPanel.height;
 
   const currentBackgroundHeight = backgroundHeight * progress;
+  const currentTopPanelHeight = topPanelHeight * progress;
   const currentLeftPanelHeight = leftPanelHeight * progress;
   const currentRightPanelHeight = rightPanelHeight * progress;
 
   const animatedBackground = {
     ...rectangles.Background,
     height: currentBackgroundHeight,
+  };
+  const animatedTopPanel = {
+    ...rectangles.TopPanel,
+    height: currentTopPanelHeight,
   };
   const animatedLeftPanel = {
     ...rectangles.LeftPanel,
@@ -282,6 +321,11 @@ const drawGUI = (mouseX, mouseY) => {
   Client.getMinecraft().gameRenderer.renderBlur();
 
   drawRoundedRectangleWithBorder(animatedBackground);
+  drawRoundedRectangleWithGradientOutline(
+    animatedTopPanel,
+    GRADIENT_TOP_COLOR,
+    GRADIENT_BOTTOM_COLOR
+  );
   drawRoundedRectangleWithGradientOutline(
     animatedLeftPanel,
     GRADIENT_TOP_COLOR,
@@ -301,6 +345,7 @@ let dragging = false;
 const handleClick = (mouseX, mouseY) => {
   if (
     isInside(mouseX, mouseY, rectangles.Background) &&
+    !isInside(mouseX, mouseY, rectangles.TopPanel) &&
     !isInside(mouseX, mouseY, rectangles.LeftPanel) &&
     !isInside(mouseX, mouseY, rectangles.RightPanel)
   ) {
