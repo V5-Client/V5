@@ -19,31 +19,39 @@ if (!global.Categories) {
         global.Categories.categories.push({ name, items: [] });
       }
     },
-    addCategoryItem(categoryName, title, description) {
+    addCategoryItem(categoryName, subcategoryName, title, description) {
       const category = global.Categories.categories.find(
         (c) => c.name === categoryName
       );
       if (!category) return;
-      category.items.push({
+
+      const newItem = {
         title,
         description,
         expanded: false,
         animation: CATEGORY_BOX_HEIGHT,
         components: [],
         type: "item",
-      });
-    },
+      };
 
-    addSeparator(categoryName, title) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return;
-      category.items.push({
-        title,
-        type: "separator",
-      });
-    },
+      if (subcategoryName) {
+        let subcategory = category.items.find(
+          (item) => item.type === "separator" && item.title === subcategoryName
+        );
+
+        if (!subcategory) {
+          subcategory = {
+            title: subcategoryName,
+            type: "separator",
+            items: [],
+          };
+          category.items.push(subcategory);
+        }
+        subcategory.items.push(newItem);
+      } else {
+        category.items.push(newItem);
+      }
+    }, // The old addSeparator function is removed as it's now part of addCategoryItem // addSeparator(categoryName, title) { ... },
 
     addToggle(categoryName, itemName, toggleTitle) {
       const category = global.Categories.categories.find(
@@ -51,7 +59,16 @@ if (!global.Categories) {
       );
       if (!category) return;
 
-      const item = category.items.find((i) => i.title === itemName);
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return;
 
       item.components.push(new ToggleButton(toggleTitle, 0, 0));
@@ -62,7 +79,16 @@ if (!global.Categories) {
       );
       if (!category) return null;
 
-      const item = category.items.find((i) => i.title === itemName);
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return null;
 
       const toggle = item.components.find(
@@ -76,7 +102,16 @@ if (!global.Categories) {
       );
       if (!category) return;
 
-      const item = category.items.find((i) => i.title === itemName);
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return;
 
       item.components.push(new Slider(sliderTitle, 0, 0));
@@ -87,7 +122,16 @@ if (!global.Categories) {
       );
       if (!category) return null;
 
-      const item = category.items.find((i) => i.title === itemName);
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return null;
 
       const slider = item.components.find(
@@ -191,7 +235,6 @@ global.createCategoriesManager = (deps) => {
     if (!cat) return;
 
     const panel = deps.rectangles.RightPanel;
-    const x = panel.x + PADDING;
     const panelWidth = panel.width - PADDING * 2;
     const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
 
@@ -227,18 +270,16 @@ global.createCategoriesManager = (deps) => {
 
       let yOffset = panel.y + PADDING - rightPanelScrollY;
       let itemIndexInRow = 0;
-      let currentRowMaxHeight = 0;
 
-      for (let i = 0; i < cat.items.length; i++) {
-        const item = cat.items[i];
-
-        if (item.type === "separator") {
+      cat.items.forEach((group) => {
+        if (group.type === "separator") {
           if (itemIndexInRow > 0) {
-            yOffset += currentRowMaxHeight + CATEGORY_BOX_PADDING;
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+            itemIndexInRow = 0;
           }
           const separatorY = yOffset + SEPARATOR_HEIGHT / 2;
           const separatorX = panelX + PADDING;
-          const separatorWidth = panelWidth; // Draw the separator line
+          const separatorWidth = panelWidth;
 
           Renderer.drawRect(
             SEPARATOR_COLOR.getRGB(),
@@ -246,32 +287,66 @@ global.createCategoriesManager = (deps) => {
             separatorY,
             separatorWidth,
             1
-          ); // Draw the separator text centered over the line
-
-          const separatorTextWidth = Renderer.getStringWidth(item.title);
+          );
+          const separatorTextWidth = Renderer.getStringWidth(group.title);
           const separatorTextX =
             separatorX + separatorWidth / 2 - separatorTextWidth / 2;
           Renderer.drawString(
-            item.title,
+            group.title,
             separatorTextX,
             separatorY - 10,
             CATEGORY_DESC_COLOR,
             false
           );
-
           yOffset += SEPARATOR_HEIGHT;
-          itemIndexInRow = 0; // Reset item count for the new row
-          currentRowMaxHeight = 0;
+          itemIndexInRow = 0;
+
+          group.items.forEach((item) => {
+            const col = itemIndexInRow % 3;
+            if (col === 0 && itemIndexInRow > 0) {
+              yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+            }
+
+            const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
+            const itemRect = {
+              x: itemX,
+              y: yOffset,
+              width: itemWidth,
+              height: CATEGORY_BOX_HEIGHT,
+              radius: CORNER_RADIUS,
+              color: CATEGORY_BOX_COLOR,
+              borderWidth: BORDER_WIDTH,
+            };
+
+            const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
+            itemRect.color = isHovered
+              ? CATEGORY_BOX_HOVER_COLOR
+              : CATEGORY_BOX_COLOR;
+
+            deps.draw.drawRoundedRectangleWithGradientOutline(
+              itemRect,
+              deps.colors.gradientTop,
+              deps.colors.gradientBottom
+            );
+            Renderer.drawString(
+              item.title,
+              itemX + 5,
+              yOffset + CATEGORY_BOX_HEIGHT / 2 - 4,
+              CATEGORY_TITLE_COLOR,
+              false
+            );
+            itemIndexInRow++;
+          });
+          if (group.items.length % 3 !== 0) {
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+          }
+          itemIndexInRow = 0;
         } else {
+          const item = group;
           const col = itemIndexInRow % 3;
           if (col === 0 && itemIndexInRow > 0) {
-            yOffset += currentRowMaxHeight + CATEGORY_BOX_PADDING;
-            currentRowMaxHeight = 0;
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
           }
-          currentRowMaxHeight = Math.max(
-            currentRowMaxHeight,
-            CATEGORY_BOX_HEIGHT
-          );
 
           const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
           const itemRect = {
@@ -303,7 +378,7 @@ global.createCategoriesManager = (deps) => {
           );
           itemIndexInRow++;
         }
-      }
+      });
     }
     if (shouldDrawOptions) {
       const selectedItem = global.Categories.selectedItem;
@@ -445,37 +520,60 @@ global.createCategoriesManager = (deps) => {
       let yOffset = panel.y + PADDING - rightPanelScrollY;
       let itemIndexInRow = 0;
 
-      for (let i = 0; i < cat.items.length; i++) {
-        const item = cat.items[i];
-        if (item.type === "separator") {
+      for (const group of cat.items) {
+        if (group.type === "separator") {
+          if (itemIndexInRow > 0) {
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+            itemIndexInRow = 0;
+          }
           yOffset += SEPARATOR_HEIGHT;
+          for (const item of group.items) {
+            const col = itemIndexInRow % 3;
+            if (col === 0 && itemIndexInRow > 0) {
+              yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+            }
+            const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
+            const rect = {
+              x: itemX,
+              y: yOffset,
+              width: itemWidth,
+              height: itemHeight,
+            };
+            if (deps.utils.isInside(mouseX, mouseY, rect)) {
+              global.Categories.transitionDirection = 1;
+              global.Categories.transitionProgress = 0;
+              global.Categories.transitionStart = Date.now();
+              global.Categories.selectedItem = item;
+              return;
+            }
+            itemIndexInRow++;
+          }
+          if (group.items.length % 3 !== 0) {
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+          }
           itemIndexInRow = 0;
-          continue;
+        } else {
+          const item = group;
+          const col = itemIndexInRow % 3;
+          if (col === 0 && itemIndexInRow > 0) {
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+          }
+          const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
+          const rect = {
+            x: itemX,
+            y: yOffset,
+            width: itemWidth,
+            height: itemHeight,
+          };
+          if (deps.utils.isInside(mouseX, mouseY, rect)) {
+            global.Categories.transitionDirection = 1;
+            global.Categories.transitionProgress = 0;
+            global.Categories.transitionStart = Date.now();
+            global.Categories.selectedItem = item;
+            return;
+          }
+          itemIndexInRow++;
         }
-
-        const col = itemIndexInRow % 3;
-        const row = Math.floor(itemIndexInRow / 3);
-
-        const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
-        const rowY =
-          yOffset + row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
-
-        const rect = {
-          x: itemX,
-          y: rowY,
-          width: itemWidth,
-          height: itemHeight,
-        };
-
-        if (deps.utils.isInside(mouseX, mouseY, rect)) {
-          // forward transition
-          global.Categories.transitionDirection = 1;
-          global.Categories.transitionProgress = 0;
-          global.Categories.transitionStart = Date.now();
-          global.Categories.selectedItem = item;
-          return;
-        }
-        itemIndexInRow++;
       }
     } else if (
       global.Categories.currentPage === "options" &&
@@ -522,26 +620,16 @@ global.createCategoriesManager = (deps) => {
     );
 
     let totalContentHeight = 0;
-    let itemsInCurrentRow = 0;
 
-    for (let i = 0; i < cat.items.length; i++) {
-      const item = cat.items[i];
-      if (item.type === "separator") {
-        if (itemsInCurrentRow > 0) {
-          totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-        }
+    for (const group of cat.items) {
+      if (group.type === "separator") {
         totalContentHeight += SEPARATOR_HEIGHT;
-        itemsInCurrentRow = 0;
+        const itemsInRows = Math.ceil(group.items.length / 3);
+        totalContentHeight +=
+          itemsInRows * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
       } else {
-        itemsInCurrentRow++;
-        if (itemsInCurrentRow >= 3) {
-          totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-          itemsInCurrentRow = 0;
-        }
+        totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
       }
-    }
-    if (itemsInCurrentRow > 0) {
-      totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
     }
 
     const maxScroll = Math.max(0, totalContentHeight - panel.height + PADDING);
