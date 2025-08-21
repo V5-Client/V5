@@ -24,18 +24,33 @@ jobs:
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
-            # First commit
             ADDED=$(git show --shortstat HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
             DELETED=$(git show --shortstat HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
             FILES=$(git show --pretty="" --name-only HEAD)
           else
-            # Normal commit
             ADDED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
             DELETED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
             FILES=$(git diff --name-only HEAD~1 HEAD)
           fi
 
-          FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $2 ": " $1}' | xargs || echo "None")
+          # Count file extensions
+          declare -A EMOJI_MAP=(
+            ["js"]=":js:"
+            ["json"]=":json:"
+            ["png"]=":frame_photo:"
+            ["jpg"]=":frame_photo:"
+          )
+
+          FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
+
+          # Replace extensions with emojis if available
+          FILETYPES_EMOJI=""
+          while read -r count ext; do
+            emoji="${EMOJI_MAP[$ext]:-$ext}"
+            FILETYPES_EMOJI+="$emoji $count  "
+          done <<< "$FILETYPES"
+
+          FILETYPES_EMOJI=${FILETYPES_EMOJI:-"None"}
 
           echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
           echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
@@ -44,7 +59,7 @@ jobs:
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "added=$ADDED" >> $GITHUB_OUTPUT
           echo "deleted=$DELETED" >> $GITHUB_OUTPUT
-          echo "filetypes=$FILETYPES" >> $GITHUB_OUTPUT
+          echo "filetypes=$FILETYPES_EMOJI" >> $GITHUB_OUTPUT
 
 
 
