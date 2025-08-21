@@ -23,7 +23,7 @@ import "./GUI/Registries.js";
 import "./QOL/AutoHarp.js";
 //import "./QOL/MobHider.js";
 //import "./Pathfinding/Pathfinder.js"
-//import "./Pathfinding/test.js";
+import "./Pathfinding/test.js";
 
 /* Mixins */
 import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
