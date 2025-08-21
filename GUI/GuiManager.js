@@ -26,6 +26,11 @@ if (!global.Categories) {
     transitionDirection: 0,
     transitionStart: 0,
     selectedSubcategory: null,
+    selectedSubcategoryButton: null,
+    subcatTransitionProgress: 1,
+    subcatTransitionStart: 0,
+    subcatAnimationDuration: 200,
+    animationRect: null,
     addCategoryItem(subcategoryName, title, description) {
       const category = global.Categories.categories.find(
         (c) => c.name === "Modules"
@@ -236,6 +241,32 @@ global.createCategoriesManager = (deps) => {
 
       let yOffset = panel.y + PADDING;
       if (cat.subcategories.length > 0) {
+        if (global.Categories.animationRect) {
+          const elapsed = Date.now() - global.Categories.subcatTransitionStart;
+          const rawProgress = Math.min(
+            1,
+            elapsed / global.Categories.subcatAnimationDuration
+          );
+          global.Categories.subcatTransitionProgress =
+            easeInOutQuad(rawProgress);
+          const p = global.Categories.subcatTransitionProgress;
+
+          global.Categories.animationRect.x =
+            global.Categories.animationRect.startX +
+            (global.Categories.animationRect.endX -
+              global.Categories.animationRect.startX) *
+              p;
+          global.Categories.animationRect.width =
+            global.Categories.animationRect.startWidth +
+            (global.Categories.animationRect.endWidth -
+              global.Categories.animationRect.startWidth) *
+              p;
+
+          if (rawProgress >= 1) {
+            global.Categories.animationRect = null; // Animation is complete
+          }
+        }
+
         let currentX = panelX + PADDING;
         const subcategoriesToDraw = ["All", ...cat.subcategories];
         subcategoriesToDraw.forEach((subcat) => {
@@ -249,26 +280,46 @@ global.createCategoriesManager = (deps) => {
             color: SUBCATEGORY_BUTTON_COLOR,
           };
           const isSelected =
-            global.Categories.selectedSubcategory === subcat ||
-            (!global.Categories.selectedSubcategory && subcat === "All");
+            (global.Categories.selectedSubcategory === subcat ||
+              (!global.Categories.selectedSubcategory && subcat === "All")) &&
+            !global.Categories.animationRect;
           const isHovered = isInside(mouseX, mouseY, buttonRect);
           const buttonColor = isSelected
             ? CATEGORY_SELECTED_COLOR
             : isHovered
             ? SUBCATEGORY_BUTTON_HOVER_COLOR
             : SUBCATEGORY_BUTTON_COLOR;
-          deps.draw.drawRoundedRectangle({
-            x: currentX,
-            y: yOffset,
-            width: buttonTextWidth,
-            height: SUBCATEGORY_BUTTON_HEIGHT,
-            radius: 5,
-            color: buttonColor,
-          });
+
+          if (isSelected) {
+            global.Categories.selectedSubcategoryButton = buttonRect;
+          }
+
+          if (global.Categories.animationRect) {
+            deps.draw.drawRoundedRectangle({
+              x: global.Categories.animationRect.x,
+              y: global.Categories.animationRect.y,
+              width: global.Categories.animationRect.width,
+              height: global.Categories.animationRect.height,
+              radius: 5,
+              color: CATEGORY_SELECTED_COLOR,
+            });
+          } else {
+            if (isSelected) {
+              deps.draw.drawRoundedRectangle({
+                x: buttonRect.x,
+                y: buttonRect.y,
+                width: buttonRect.width,
+                height: buttonRect.height,
+                radius: 5,
+                color: CATEGORY_SELECTED_COLOR,
+              });
+            }
+          }
+
           Renderer.drawString(
             subcat,
             currentX + 5,
-            yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2, // Center text vertically
+            yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2,
             isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
             false
           );
@@ -540,9 +591,32 @@ global.createCategoriesManager = (deps) => {
             height: SUBCATEGORY_BUTTON_HEIGHT,
           };
           if (isInside(mouseX, mouseY, buttonRect)) {
-            global.Categories.selectedSubcategory =
-              subcat === "All" ? null : subcat;
-            rightPanelScrollY = 0;
+            const newSubcatName = subcat === "All" ? null : subcat;
+            if (global.Categories.selectedSubcategory !== newSubcatName) {
+              const oldRect =
+                global.Categories.selectedSubcategoryButton || buttonRect;
+              global.Categories.selectedSubcategory = newSubcatName;
+              rightPanelScrollY = 0;
+
+              // Start the animation
+              global.Categories.subcatTransitionStart = Date.now();
+              global.Categories.subcatTransitionProgress = 0;
+              global.Categories.animationRect = {
+                startX: oldRect.x,
+                startY: oldRect.y,
+                startWidth: oldRect.width,
+                startHeight: oldRect.height,
+                endX: buttonRect.x,
+                endY: buttonRect.y,
+                endWidth: buttonRect.width,
+                endHeight: buttonRect.height,
+                x: oldRect.x,
+                y: oldRect.y,
+                width: oldRect.width,
+                height: oldRect.height,
+              };
+              global.Categories.selectedSubcategoryButton = buttonRect;
+            }
             return;
           }
           currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
@@ -645,10 +719,7 @@ global.createCategoriesManager = (deps) => {
       return;
 
     const panel = deps.rectangles.RightPanel;
-    if (
-      !global.Categories.selected ||
-      !isInside(mouseX, mouseY, panel)
-    ) {
+    if (!global.Categories.selected || !isInside(mouseX, mouseY, panel)) {
       return;
     }
 
