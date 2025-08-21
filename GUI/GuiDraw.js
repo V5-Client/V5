@@ -25,6 +25,11 @@ const ANIMATION_DURATION = 200; // Time in milliseconds for the unroll animation
 let isOpening = false;
 let openStartTime = 0;
 
+let animatedBackground = {};
+let animatedTopPanel = {};
+let animatedLeftPanel = {};
+let animatedRightPanel = {};
+
 let rectangles = {
   Background: {
     name: "Background",
@@ -121,23 +126,34 @@ const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
 
 const drawRoundedRectangleWithBorder = (r) => {
   if (r.borderWidth && r.borderWidth > 0) {
-    drawRoundedRectangle({
-      x: r.x,
-      y: r.y,
-      width: r.width,
-      height: r.height,
-      radius: r.radius,
-      color: r.borderColor || r.color,
-    });
     const bw = r.borderWidth;
-    drawRoundedRectangle({
-      x: r.x + bw,
-      y: r.y + bw,
-      width: Math.max(0, r.width - bw * 2),
-      height: Math.max(0, r.height - bw * 2),
-      radius: Math.max(0, r.radius - bw),
-      color: r.color,
-    });
+    const innerWidth = Math.max(0, r.width - bw * 2);
+    const innerHeight = Math.max(0, r.height - bw * 2);
+    const innerRadius = Math.max(0, r.radius - bw);
+
+    // Only draw border if it's visible
+    if (r.borderColor && bw > 0) {
+      drawRoundedRectangle({
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+        radius: r.radius,
+        color: r.borderColor,
+      });
+    }
+
+    // Only draw inner rectangle if it has valid dimensions
+    if (innerWidth > 0 && innerHeight > 0) {
+      drawRoundedRectangle({
+        x: r.x + bw,
+        y: r.y + bw,
+        width: innerWidth,
+        height: innerHeight,
+        radius: innerRadius,
+        color: r.color,
+      });
+    }
   } else {
     drawRoundedRectangle(r);
   }
@@ -174,38 +190,33 @@ const drawGradientRoundedOutline = (
     return interpolateColor(topColor, bottomColor, factor);
   };
 
-  // Draw vertical lines
-  for (let i = 0; i < height - 2 * radius; i++) {
+  // Draw vertical segments
+  const segmentHeight = Math.max(1, Math.floor((height - 2 * radius) / 20)); // Divide into 20 segments max
+
+  for (let i = 0; i < height - 2 * radius; i += segmentHeight) {
     const currentY = y + radius + i;
-    const color = getColorAtY(currentY);
-    Renderer.drawRect(color.getRGB(), x, currentY, lineWidth, 1);
-    Renderer.drawRect(
-      color.getRGB(),
-      x + width - lineWidth,
-      currentY,
-      lineWidth,
-      1
-    );
+    const remainingHeight = Math.min(segmentHeight, height - 2 * radius - i);
+    const color = getColorAtY(currentY + remainingHeight / 2); // Use middle color for segment
+
+    // Draw left and right vertical segments
+    Renderer.drawRect(color.getRGB(), x, currentY, lineWidth, remainingHeight);
+    Renderer.drawRect(color.getRGB(), x + width - lineWidth, currentY, lineWidth, remainingHeight);
   }
 
-  // Draw horizontal lines
-  Renderer.drawRect(
-    topColor.getRGB(),
-    x + radius,
-    y,
-    width - 2 * radius,
-    lineWidth
-  );
-  Renderer.drawRect(
-    bottomColor.getRGB(),
-    x + radius,
-    y + height - lineWidth,
-    width - 2 * radius,
-    lineWidth
-  );
+  // Draw horizontal lines with gradient approximation using segments
+  const horizontalSegments = Math.max(1, Math.floor((width - 2 * radius) / 10));
+  for (let i = 0; i < width - 2 * radius; i += horizontalSegments) {
+    const currentX = x + radius + i;
+    const remainingWidth = Math.min(horizontalSegments, width - 2 * radius - i);
 
-  // Draw corners LAST
-  const steps = 90;
+    // Top horizontal line - use top color
+    Renderer.drawRect(topColor.getRGB(), currentX, y, remainingWidth, lineWidth);
+
+    // Bottom horizontal line - use bottom color
+    Renderer.drawRect(bottomColor.getRGB(), currentX, y + height - lineWidth, remainingWidth, lineWidth);
+  }
+
+  const steps = Math.min(30, radius); // Adaptive steps based on radius
   const centers = {
     tl: { x: x + radius, y: y + radius },
     tr: { x: x + width - radius, y: y + radius },
@@ -213,27 +224,39 @@ const drawGradientRoundedOutline = (
     br: { x: x + width - radius, y: y + height - radius },
   };
 
+  const cornerPoints = [];
   for (let i = 0; i <= steps; i++) {
     const angle = (i / steps) * (Math.PI / 2);
     const sin = Math.sin(angle);
     const cos = Math.cos(angle);
 
-    const drawCornerPixel = (centerX, centerY, dx, dy) => {
-      const px = centerX + dx * ir;
-      const py = centerY + dy * ir;
+    cornerPoints.push({
+      tl: { dx: -cos, dy: -sin },
+      tr: { dx: cos, dy: -sin },
+      bl: { dx: -cos, dy: sin },
+      br: { dx: cos, dy: sin }
+    });
+  }
+
+  const pixelSize = Math.max(1, Math.floor(lineWidth / 2));
+  for (let i = 0; i < cornerPoints.length; i += Math.max(1, Math.floor(steps / 15))) {
+    const points = cornerPoints[i];
+
+    ['tl', 'tr', 'bl', 'br'].forEach(corner => {
+      const center = centers[corner];
+      const point = points[corner];
+      const px = center.x + point.dx * ir;
+      const py = center.y + point.dy * ir;
+      const color = getColorAtY(py - hw);
+
       Renderer.drawRect(
-        getColorAtY(py - hw).getRGB(),
+        color.getRGB(),
         px - hw,
         py - hw,
-        lineWidth,
-        lineWidth
+        pixelSize,
+        pixelSize
       );
-    };
-
-    drawCornerPixel(centers.tl.x, centers.tl.y, -cos, -sin); // Top left
-    drawCornerPixel(centers.tr.x, centers.tr.y, cos, -sin); // Top right
-    drawCornerPixel(centers.bl.x, centers.bl.y, -cos, sin); // Bottom left
-    drawCornerPixel(centers.br.x, centers.br.y, cos, sin); // Bottom right
+    });
   }
 };
 
@@ -289,43 +312,33 @@ const drawGUI = (mouseX, mouseY) => {
   const currentWidth = targetBackground.width * progress;
   const currentHeight = targetBackground.height * progress;
 
-  const animatedBackground = {
-    ...targetBackground,
+  Object.assign(animatedBackground, targetBackground, {
     x: startX - currentWidth / 2,
     y: startY - currentHeight / 2,
     width: currentWidth,
     height: currentHeight,
-  };
+  });
 
-  const animatedTopPanel = {
-    ...rectangles.TopPanel,
+  Object.assign(animatedTopPanel, rectangles.TopPanel, {
     x: animatedBackground.x + PADDING + 60,
     y: animatedBackground.y + PADDING,
     width: (targetBackground.width - PADDING * 2 - 60) * progress,
     height: rectangles.TopPanel.height * progress,
-  };
+  });
 
-  const animatedLeftPanel = {
-    ...rectangles.LeftPanel,
+  Object.assign(animatedLeftPanel, rectangles.LeftPanel, {
     x: animatedBackground.x + PADDING,
     y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
     width: rectangles.LeftPanel.width * progress,
-    height:
-      (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) *
-      progress,
-  };
+    height: (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) * progress,
+  });
 
-  const animatedRightPanel = {
-    ...rectangles.RightPanel,
+  Object.assign(animatedRightPanel, rectangles.RightPanel, {
     x: animatedLeftPanel.x + animatedLeftPanel.width + PADDING,
     y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
-    width:
-      (targetBackground.width - PADDING * 3 - rectangles.LeftPanel.width) *
-      progress,
-    height:
-      (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) *
-      progress,
-  };
+    width: (targetBackground.width - PADDING * 3 - rectangles.LeftPanel.width) * progress,
+    height: (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) * progress,
+  });
 
   Client.getMinecraft().gameRenderer.renderBlur();
 

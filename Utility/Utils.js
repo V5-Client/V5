@@ -101,7 +101,7 @@ class UtilsClass {
    */
   includesLore(lore, string) {
     for (let i = 0; i < lore.length; i++) {
-      if (lore[i].removeFormatting().includes(string)) return true;
+      if (ChatLib.removeFormatting(lore[i]).includes(string)) return true;
     }
   }
 

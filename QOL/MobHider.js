@@ -5,10 +5,17 @@ class MobHider {
     this.thysts = true;
     this.jerry = false;
 
-    this.kalhuikis ? this.hideJerry() : (this.kalhuikis = null);
-    this.svenpups ? this.hidePup() : (this.svenpups = null);
-    this.thysts ? this.hideThyst() : (this.thysts = null);
-    this.jerry ? this.hideJerry() : (this.jerry = null);
+    this.jerryNames = [
+      "Green Jerry",
+      "Blue Jerry",
+      "Purple Jerry",
+      "Golden Jerry",
+    ];
+
+    if (this.kalhuikis) this.hideKalhuiki();
+    if (this.svenpups) this.hidePup();
+    if (this.thysts) this.hideThyst();
+    if (this.jerry) this.hideJerry();
   }
 
   hideThyst() {
@@ -64,13 +71,6 @@ class MobHider {
 
   hideJerry() {
     register("renderEntity", (ent, pt, event) => {
-      this.jerryNames = [
-        "Green Jerry",
-        "Blue Jerry",
-        "Purple Jerry",
-        "Golden Jerry",
-      ];
-
       if (this.jerryNames.some((name) => ent.getName().includes(name))) {
         cancel(event);
       }
