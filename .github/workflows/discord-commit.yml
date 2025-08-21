@@ -20,21 +20,22 @@ jobs:
           AUTHOR_LOGIN="${{ github.actor }}"
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          --arg timestamp "$TIMESTAMP"
+
           echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
           echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
           echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
           echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
       - name: Map GitHub user -> Discord user
         id: mapuser
         run: |
           declare -A USER_MAP
-          #replace github username with discord cuz idk why not
+          # GitHub -> Discord mapping (use <@ID> for actual mentions)
           USER_MAP=(
-            ["WaterPheonix196"]="@899647076370092042"
-            ["qxionr"]="@790294721943699477"
-            ["yourgithub"]="@YourDiscord"
+            ["WaterPheonix196"]="<@899647076370092042>"
+            ["qxionr"]="<@790294721943699477>"
+            ["yourgithub"]="<@1272417928478912427891429141278941278941278948912560892108951>"
           )
 
           GH_USER="${{ steps.commit.outputs.login }}"
@@ -48,6 +49,7 @@ jobs:
             --arg description "${{ steps.commit.outputs.message }}" \
             --arg author "${{ steps.mapuser.outputs.discord }}" \
             --arg branch "${{ steps.commit.outputs.branch }}" \
+            --arg timestamp "${{ steps.commit.outputs.timestamp }}" \
             --argjson color 3447003 \
             '{
               "embeds": [
