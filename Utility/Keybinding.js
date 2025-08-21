@@ -179,6 +179,15 @@ class Keybinding {
     );
   }
 
+  setKeysForStraightLineCoords(x, y, z, jump = false) {
+    const dx = x - Player.getX();
+    const dz = z - Player.getZ();
+    let yaw = -(Math.atan2(dx, dz) * (180.0 / Math.PI)) - Player.getYaw()
+    if (yaw < -180) yaw += 360
+    if (yaw > 180) yaw += -360
+    this.setKeysForStraightLine(yaw, jump)
+  }
+
   setCooldown() {
     this.cooldown.reset();
   }
