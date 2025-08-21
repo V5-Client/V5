@@ -1,30 +1,30 @@
-const { addCategory, addCategoryItem, addToggle, addSlider } =
+const { addCategory, addCategoryItem, addToggle, addSlider, addSeparator } =
   global.Categories;
 
 /* MINING */
-addCategory("Mining");
+addCategory("Modules");
+addSeparator("Modules", "Mining");
 
 addCategoryItem(
-  "Mining",
+  "Modules",
   "Mining Bot",
-  "Mines blocks of multiple types on all islands",
-  "MiningBot.png"
+  "Mines blocks of multiple types on all islands"
 );
 
 addCategoryItem(
-  "Mining",
+  "Modules",
   "Gemstone Macro",
-  "Mines gemstones in the Crystal Hollows",
-  "Gemstone.png"
+  "Mines gemstones in the Crystal Hollows"
 );
 // toggles etc
 
-addCategoryItem("Mining", "Ores Macro", "Mines ores of all types", "Ore.png");
+addCategoryItem("Modules", "Ores Macro", "Mines ores of all types");
 // toggles
 
 addCategoryItem(
-  "Mining",
+  "Modules",
   "Commission Macro",
-  "Completes commissions in the Dwarven Mines",
-  "Commission.png"
+  "Completes commissions in the Dwarven Mines"
 );
+
+addSeparator("Modules", "Visuals");
