@@ -335,10 +335,6 @@ global.createCategoriesManager = (deps) => {
 
       itemsToDisplay.forEach((group) => {
         if (group.type === "separator") {
-          if (itemIndexInRow > 0) {
-            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-            itemIndexInRow = 0;
-          }
           const separatorY = yOffset + SEPARATOR_HEIGHT / 2;
           const separatorX = panelX + PADDING;
           const separatorWidth = panelWidth;
@@ -361,11 +357,10 @@ global.createCategoriesManager = (deps) => {
             false
           );
           yOffset += SEPARATOR_HEIGHT;
-          itemIndexInRow = 0;
-
+          let subcategoryItemsInRow = 0;
           group.items.forEach((item) => {
-            const col = itemIndexInRow % 3;
-            if (col === 0 && itemIndexInRow > 0) {
+            const col = subcategoryItemsInRow % 3;
+            if (col === 0 && subcategoryItemsInRow > 0) {
               yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
             }
 
@@ -397,12 +392,12 @@ global.createCategoriesManager = (deps) => {
               CATEGORY_TITLE_COLOR,
               false
             );
-            itemIndexInRow++;
+            subcategoryItemsInRow++;
           });
-          if (group.items.length % 3 !== 0) {
-            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-          }
-          itemIndexInRow = 0;
+          const itemsInSubcategory = group.items.length;
+          const numRows = Math.ceil(itemsInSubcategory / 3);
+          yOffset +=
+            numRows > 0 ? CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING : 0;
         } else {
           if (global.Categories.selectedSubcategory !== null) return;
           const item = group;
@@ -442,14 +437,6 @@ global.createCategoriesManager = (deps) => {
           itemIndexInRow++;
         }
       });
-      if (
-        itemsToDisplay.length > 0 &&
-        itemsToDisplay.find((g) =>
-          g.type === "separator" ? g.items.length % 3 !== 0 : true
-        )
-      ) {
-        yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-      }
     }
     if (shouldDrawOptions) {
       const selectedItem = global.Categories.selectedItem;
@@ -625,14 +612,11 @@ global.createCategoriesManager = (deps) => {
 
       for (const group of itemsToDisplay) {
         if (group.type === "separator") {
-          if (itemIndexInRow > 0) {
-            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-            itemIndexInRow = 0;
-          }
           yOffset += SEPARATOR_HEIGHT;
+          let subcategoryItemsInRow = 0;
           for (const item of group.items) {
-            const col = itemIndexInRow % 3;
-            if (col === 0 && itemIndexInRow > 0) {
+            const col = subcategoryItemsInRow % 3;
+            if (col === 0 && subcategoryItemsInRow > 0) {
               yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
             }
             const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
@@ -649,12 +633,12 @@ global.createCategoriesManager = (deps) => {
               global.Categories.selectedItem = item;
               return;
             }
-            itemIndexInRow++;
+            subcategoryItemsInRow++;
           }
-          if (group.items.length % 3 !== 0) {
-            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-          }
-          itemIndexInRow = 0;
+          const itemsInSubcategory = group.items.length;
+          const numRows = Math.ceil(itemsInSubcategory / 3);
+          yOffset +=
+            numRows > 0 ? CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING : 0;
         } else {
           const item = group;
           const col = itemIndexInRow % 3;
