@@ -173,6 +173,7 @@ global.createCategoriesManager = (deps) => {
   const SUBCATEGORY_BUTTON_COLOR = new Color(0.15, 0.15, 0.15, 1);
   const SUBCATEGORY_BUTTON_HOVER_COLOR = new Color(0.22, 0.22, 0.22, 0.8);
   const CATEGORY_SELECTED_COLOR = new Color(0.502, 0.302, 0.702, 0.3);
+  const BACK_TEXT_COLOR = 0xccb380e6;
 
   const SCROLL_SPEED = 15;
   const ANIMATION_DURATION = 300;
@@ -452,7 +453,6 @@ global.createCategoriesManager = (deps) => {
         });
 
         const backButtonText = "Back";
-        const backButtonWidth = Renderer.getStringWidth(backButtonText);
         const backButtonX = optionX + 10;
         const backButtonY = optionY + 10;
 
@@ -460,7 +460,7 @@ global.createCategoriesManager = (deps) => {
           backButtonText,
           backButtonX,
           backButtonY,
-          CATEGORY_SELECTED_COLOR
+          BACK_TEXT_COLOR
         );
 
         Renderer.drawString(
