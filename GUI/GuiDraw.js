@@ -255,17 +255,43 @@ const categoryManager = global.createCategoriesManager({
 });
 
 const drawGUI = (mouseX, mouseY) => {
+  const elapsed = Date.now() - openStartTime;
+  const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
+
+  const backgroundHeight = rectangles.Background.height;
+  const leftPanelHeight = rectangles.LeftPanel.height;
+  const rightPanelHeight = rectangles.RightPanel.height;
+
+  const currentBackgroundHeight = backgroundHeight * progress;
+  const currentLeftPanelHeight = leftPanelHeight * progress;
+  const currentRightPanelHeight = rightPanelHeight * progress;
+
+  const animatedBackground = {
+    ...rectangles.Background,
+    height: currentBackgroundHeight,
+  };
+  const animatedLeftPanel = {
+    ...rectangles.LeftPanel,
+    height: currentLeftPanelHeight,
+  };
+  const animatedRightPanel = {
+    ...rectangles.RightPanel,
+    height: currentRightPanelHeight,
+  };
+
   Client.getMinecraft().gameRenderer.renderBlur();
 
-  drawRoundedRectangleWithBorder(rectangles.Background);
+  drawRoundedRectangleWithBorder(animatedBackground);
   drawRoundedRectangleWithGradientOutline(
-    rectangles.LeftPanel,
+    animatedLeftPanel,
     GRADIENT_TOP_COLOR,
     GRADIENT_BOTTOM_COLOR
   );
-  drawRoundedRectangleWithBorder(rectangles.RightPanel);
+  drawRoundedRectangleWithBorder(animatedRightPanel);
 
-  categoryManager.draw(mouseX, mouseY);
+  if (progress >= 1) {
+    categoryManager.draw(mouseX, mouseY);
+  }
 };
 
 myGui.registerDraw(drawGUI);
