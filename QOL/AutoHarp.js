@@ -1,15 +1,6 @@
 import { Guis } from "../Utility/Inventory";
 import { Chat } from "../Utility/Chat";
 
-global.Categories.addCategoryItem(
-  "Modules",
-  "Gemstone Macro",
-  "Mines Gemstones in the Crystal Hollows",
-  "Gemstone.png"
-);
-global.Categories.addToggle("Modules", "Gemstone Macro", "Enable Macro");
-global.Categories.addToggle("Modules", "Gemstone Macro", "Enable Macroes");
-
 class AutoHarp {
   constructor() {
     this.ModuleName = "Auto Harp";
