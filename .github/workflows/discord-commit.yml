@@ -39,6 +39,8 @@ jobs:
             ["json"]=":json:"
             ["png"]=":frame_photo:"
             ["jpg"]=":frame_photo:"
+            ["yaml"]=":yml:"
+            ["yml"]=":yml:"
           )
 
           FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
