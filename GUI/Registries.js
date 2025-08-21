@@ -1,17 +1,40 @@
-const { addCategory, addCategoryItem, addToggle, addSlider, addSeparator } =
+const { addCategory, addCategoryItem, addToggle, addSlider, addSubCategory } =
   global.Categories;
 
 /* MINING */
 addCategory("Modules");
-addSeparator("Modules", "Mining");
 
 addCategoryItem(
   "Modules",
+  "Mining",
   "Mining Bot",
   "Mines blocks of multiple types on all islands"
 );
 
 addCategoryItem(
+  "Modules",
+  "Mining",
+  "Gemstone Macro",
+  "Mines gemstones in the Crystal Hollows"
+);
+
+addCategoryItem(
+  "Modules",
+  "Mining",
+  "Gemstone Macro",
+  "Mines gemstones in the Crystal Hollows"
+);
+
+addCategoryItem(
+  "Modules",
+  "Mining",
+  "Gemstone Macro",
+  "Mines gemstones in the Crystal Hollows"
+);
+
+addCategoryItem("Modules", "Stuffs", "Mining Bots", "stuffs");
+
+/*addCategoryItem(
   "Modules",
   "Gemstone Macro",
   "Mines gemstones in the Crystal Hollows"
@@ -27,4 +50,4 @@ addCategoryItem(
   "Completes commissions in the Dwarven Mines"
 );
 
-addSeparator("Modules", "Visuals");
+addSeparator("Modules", "Visuals"); */
