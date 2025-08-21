@@ -321,16 +321,8 @@ const drawGUI = (mouseX, mouseY) => {
   Client.getMinecraft().gameRenderer.renderBlur();
 
   drawRoundedRectangleWithBorder(animatedBackground);
-  drawRoundedRectangleWithGradientOutline(
-    animatedTopPanel,
-    GRADIENT_TOP_COLOR,
-    GRADIENT_BOTTOM_COLOR
-  );
-  drawRoundedRectangleWithGradientOutline(
-    animatedLeftPanel,
-    GRADIENT_TOP_COLOR,
-    GRADIENT_BOTTOM_COLOR
-  );
+  drawRoundedRectangleWithBorder(animatedTopPanel);
+  drawRoundedRectangleWithBorder(animatedLeftPanel);
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
   if (progress >= 1) {
