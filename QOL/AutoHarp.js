@@ -17,8 +17,8 @@ class AutoHarp {
 
     const notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => new Note(slot));
 
-    let AutoHarp = register("tick", () => {
-      if (!this.Toggled) return AutoHarp.unregister();
+    let tickHandler = register("tick", () => {
+      if (!this.Toggled) return tickHandler.unregister();
 
       const invName = Guis.guiName();
       if (!invName?.includes("Harp")) return;
@@ -59,9 +59,9 @@ class AutoHarp {
       this.Toggled = !this.Toggled;
       Chat.message(this.Toggled ? "Auto Harp Enabled" : "Auto Harp Disabled");
       if (this.Toggled) {
-        AutoHarp.register();
+        tickHandler.register();
       } else {
-        AutoHarp.unregister();
+        tickHandler.unregister();
       }
     }).setName("autoharp");
   }

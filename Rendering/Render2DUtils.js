@@ -170,6 +170,17 @@ export default class RenderLib2d {
     if (align[1] == "LEFT") x += width;
     if (align[1] == "RIGHT") x -= width;
 
+    // Pre-calculate sin/cos values to avoid redundant calculations
+    const angleStep = (Math.PI * 2) / steps;
+    const sinCache = new Array(steps);
+    const cosCache = new Array(steps);
+
+    for (let i = 0; i < steps; i++) {
+      const radians = i * angleStep;
+      sinCache[i] = Math.sin(radians) * width;
+      cosCache[i] = Math.cos(radians) * height;
+    }
+
     Renderer.pushMatrix()
       .translate(x, y, z)
       .enableDepth()
@@ -178,11 +189,9 @@ export default class RenderLib2d {
         Renderer.VertexFormat.POSITION_COLOR
       );
 
+    // Use cached values for better performance
     for (let i = 0; i < steps; i++) {
-      const radians = (i / steps) * Math.PI * 2;
-      const sin = Math.sin(radians) * width;
-      const cos = Math.cos(radians) * height;
-      Renderer.pos(sin, cos, 0).color(color);
+      Renderer.pos(sinCache[i], cosCache[i], 0).color(color);
     }
     Renderer.draw();
     Renderer.disableDepth().popMatrix();
@@ -268,6 +277,17 @@ export default class RenderLib2d {
       [inner, outer] = [lineWidth / 2, lineWidth / 2];
     if (outlineMode == OutlineMode.OUTLINE) [inner, outer] = [0, lineWidth];
 
+    // Pre-calculate sin/cos values to avoid redundant calculations
+    const angleStep = (Math.PI * 2) / steps;
+    const sinCache = new Array(steps + 1);
+    const cosCache = new Array(steps + 1);
+
+    for (let i = 0; i <= steps; i++) {
+      const radians = i * angleStep;
+      sinCache[i] = Math.sin(radians);
+      cosCache[i] = Math.cos(radians);
+    }
+
     Renderer.pushMatrix()
       .translate(x, y, z)
       .enableDepth()
@@ -276,14 +296,12 @@ export default class RenderLib2d {
         Renderer.VertexFormat.POSITION_COLOR
       );
 
+    // Use cached values for better performance
     for (let i = 0; i <= steps; i++) {
-      const radians = (i / steps) * Math.PI * 2;
-      const sin = Math.sin(radians) * (width - inner);
-      const cos = Math.cos(radians) * (height - inner);
-      const sin1 = Math.sin(radians) * (width + outer);
-      const cos1 = Math.cos(radians) * (height + outer);
-      Renderer.pos(sin, cos, 0).color(color);
-      Renderer.pos(sin1, cos1, 0).color(color);
+      const sin = sinCache[i];
+      const cos = cosCache[i];
+      Renderer.pos(sin * (width - inner), cos * (height - inner), 0).color(color);
+      Renderer.pos(sin * (width + outer), cos * (height + outer), 0).color(color);
     }
     Renderer.draw();
     Renderer.disableDepth().popMatrix();
