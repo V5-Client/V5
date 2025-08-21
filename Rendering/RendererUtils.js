@@ -68,6 +68,8 @@ const VertexFormats = Java.type("net.minecraft.client.render.VertexFormats");
 const RenderPhase = Java.type("net.minecraft.client.render.RenderPhase");
 const RenderLayer = Java.type("net.minecraft.client.render.RenderLayer");
 const OptionalDouble = Java.type("java.util.OptionalDouble");
+const linesCache = new Map();
+const linesThroughWallsCache = new Map();
 export class RenderLayers {
   static getFilledThroughWalls = () =>
     RenderLayer.of(
@@ -80,15 +82,15 @@ export class RenderLayers {
       RenderLayer.class_4688 // .MultiPhaseParameters.builder()
         .method_23598()
         .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-        .cull(RenderPhase.DISABLE_CULLING)
         .layering(RenderPhase.POLYGON_OFFSET_LAYERING)
-        .transparency(RenderPhase.TRANSLUCENT_TRANSPARENCY)
-        .depthTest(RenderPhase.ALWAYS_DEPTH_TEST)
         .build(false)
     );
 
-  static getLinesThroughWalls = (lineWidth = 1) =>
-    RenderLayer.of(
+  static getLinesThroughWalls = (lineWidth = 1) => {
+    if (linesThroughWallsCache.has(lineWidth)) {
+      return linesThroughWallsCache.get(lineWidth);
+    }
+    const layer = RenderLayer.of(
       "lines_through_walls",
       1536,
       RenderPipeline.DEBUG_LINE_STRIP, // jank fix but looks good imo
@@ -99,9 +101,15 @@ export class RenderLayers {
         .lineWidth(new RenderPhase.class_4677(OptionalDouble.of(lineWidth))) // .LineWidth()
         .build(false)
     );
+    linesThroughWallsCache.set(lineWidth, layer);
+    return layer;
+  };
 
-  static getLines = (lineWidth = 2) =>
-    RenderLayer.of(
+  static getLines = (lineWidth = 2) => {
+    if (linesCache.has(lineWidth)) {
+      return linesCache.get(lineWidth);
+    }
+    const layer = RenderLayer.of(
       "lines",
       1536,
       RenderPipeline.LINES,
@@ -112,6 +120,9 @@ export class RenderLayers {
         .lineWidth(new RenderPhase.class_4677(OptionalDouble.of(lineWidth))) // .LineWidth()
         .build(false)
     );
+    linesCache.set(lineWidth, layer);
+    return layer;
+  };
 }
 
 export class OutlineMode {
