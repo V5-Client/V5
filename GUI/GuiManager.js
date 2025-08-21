@@ -3,7 +3,7 @@ const Color = Java.type("java.awt.Color");
 const CATEGORY_BOX_HEIGHT = 40;
 
 const Module_icon = Image.fromFile(
-  "./config/ChatTriggers/modules/Client/assets/module.png" // change to our own png
+  "./config/ChatTriggers/assets/module.png" // change to our own png
 );
 
 import { ToggleButton } from "./Toggle";
