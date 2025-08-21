@@ -1,3 +1,4 @@
+import { Chat } from "./Chat";
 import { Time } from "./Timing";
 import { Utils } from "./Utils";
 import { mc } from "./Utils";
@@ -14,29 +15,32 @@ class Keybinding {
   }
 
   /**
-   * Left clicks
+   * Performs a left click using ChatTriggers API instead of reflection
+   * @returns {boolean} Success status
    */
   leftClick() {
     LeftClickMouse.invoke(mc);
   }
 
   /**
-   * Right clicks
+   * Performs a right click using ChatTriggers API instead of reflection
+   * @returns {boolean} Success status
    */
   rightClick() {
     RightClickMouse.invoke(mc);
   }
 
   /**
-   * Right clicks with a specified amount of ticks
-   * @param {*} ticks
+   * Right clicks with a specified amount of ticks using proper scheduling
+   * @param {number} ticks - Number of ticks to delay (default: 0)
+   * @returns {boolean} Success status
    */
-  rightClickZPH(ticks = 0) {
+  rightClickDelay(ticks = 0) {
     if (ticks === 0) {
-      RightClickMouse.invoke(mc);
+      this.rightClick()
     } else {
       Client.scheduleTask(ticks, () => {
-        RightClickMouse.invoke(mc);
+        this.rightClick()
       });
     }
   }
@@ -80,6 +84,11 @@ class Keybinding {
     }
   } */
 
+  /**
+   * @param {string} key - Key identifier
+   * @param {boolean} down - Whether the key should be pressed
+   * @returns {boolean} Success status
+   */
   setKey(key, down) {
     if (Client.isInGui() && !Client.isInChat()) return;
     if (key === "a") mc.options.leftKey.setPressed(down);
@@ -92,6 +101,10 @@ class Keybinding {
     if (key === "sprint") mc.options.sprintKey.setPressed(down);
   }
 
+    /**
+   * @param {string} key - Key identifier
+   * @returns {boolean} Whether the key is pressed
+   */
   isKeyDown(key) {
     if (key === "a") return mc.options.leftKey.isPressed();
     if (key === "d") return mc.options.rightKey.isPressed();
