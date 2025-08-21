@@ -21,15 +21,22 @@ addCategoryItem(
 addCategoryItem(
   "Modules",
   "Mining",
-  "Gemstone Macro",
-  "Mines gemstones in the Crystal Hollows"
+  "Ore Macro",
+  "Mines ores across all islands"
 );
 
 addCategoryItem(
   "Modules",
   "Mining",
-  "Gemstone Macro",
-  "Mines gemstones in the Crystal Hollows"
+  "Commission Macro",
+  "Completes Commissions in the Dwarven Mines"
+);
+
+addCategoryItem(
+  "Modules",
+  "Mining",
+  "Glacite Commission Macro",
+  "Completes Commissions in the Glacite Tunnels"
 );
 
 addCategoryItem("Modules", "Stuffs", "Mining Bots", "stuffs");

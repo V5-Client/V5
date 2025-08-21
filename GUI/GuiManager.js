@@ -14,9 +14,14 @@ if (!global.Categories) {
     transitionProgress: 0,
     transitionDirection: 0,
     transitionStart: 0,
+    selectedSubcategory: null,
     addCategory(name) {
       if (!global.Categories.categories.find((c) => c.name === name)) {
-        global.Categories.categories.push({ name, items: [] });
+        global.Categories.categories.push({
+          name,
+          items: [],
+          subcategories: [],
+        });
       }
     },
     addCategoryItem(categoryName, subcategoryName, title, description) {
@@ -32,6 +37,7 @@ if (!global.Categories) {
         animation: CATEGORY_BOX_HEIGHT,
         components: [],
         type: "item",
+        subcategoryName: subcategoryName,
       };
 
       if (subcategoryName) {
@@ -46,12 +52,13 @@ if (!global.Categories) {
             items: [],
           };
           category.items.push(subcategory);
+          category.subcategories.push(subcategoryName);
         }
         subcategory.items.push(newItem);
       } else {
         category.items.push(newItem);
       }
-    }, // The old addSeparator function is removed as it's now part of addCategoryItem // addSeparator(categoryName, title) { ... },
+    },
 
     addToggle(categoryName, itemName, toggleTitle) {
       const category = global.Categories.categories.find(
@@ -151,9 +158,11 @@ global.createCategoriesManager = (deps) => {
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
-  const CATEGORY_BOX_PADDING = 5; // Reduced vertical spacing between rows
-  const ITEM_SPACING = 5; // Reduced horizontal spacing between items
+  const CATEGORY_BOX_PADDING = 5;
+  const ITEM_SPACING = 5;
   const SEPARATOR_HEIGHT = 20;
+  const SUBCATEGORY_BUTTON_HEIGHT = 20;
+  const SUBCATEGORY_BUTTON_SPACING = 5;
 
   const CATEGORY_INNER_LINE_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
@@ -162,9 +171,12 @@ global.createCategoriesManager = (deps) => {
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
   const CATEGORY_BOX_HOVER_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const SEPARATOR_COLOR = new Color(0.25, 0.25, 0.25, 1);
+  const SUBCATEGORY_BUTTON_COLOR = new Color(0.15, 0.15, 0.15, 1);
+  const SUBCATEGORY_BUTTON_HOVER_COLOR = new Color(0.22, 0.22, 0.22, 1); // and this
+  const SUBCATEGORY_BUTTON_SELECTED_COLOR = 0xccb380e6; // someone fix ts
 
   const SCROLL_SPEED = 15;
-  const ANIMATION_DURATION = 300; // Smoother animation
+  const ANIMATION_DURATION = 300;
   let rightPanelScrollY = 0;
   /**
    * Helper function to calculate the bounding box for a category.
@@ -268,10 +280,60 @@ global.createCategoriesManager = (deps) => {
         panelX -= panel.width * (1 - global.Categories.transitionProgress);
       }
 
-      let yOffset = panel.y + PADDING - rightPanelScrollY;
-      let itemIndexInRow = 0;
+      let yOffset = panel.y + PADDING;
+      if (cat.subcategories.length > 0) {
+        let currentX = panelX + PADDING;
+        const subcategoriesToDraw = ["All", ...cat.subcategories];
+        subcategoriesToDraw.forEach((subcat) => {
+          const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+          const buttonRect = {
+            x: currentX,
+            y: yOffset,
+            width: buttonTextWidth,
+            height: SUBCATEGORY_BUTTON_HEIGHT,
+            radius: 5,
+            color: SUBCATEGORY_BUTTON_COLOR,
+          };
+          const isSelected =
+            global.Categories.selectedSubcategory === subcat ||
+            (!global.Categories.selectedSubcategory && subcat === "All");
+          const isHovered = deps.utils.isInside(mouseX, mouseY, buttonRect);
+          buttonRect.color = isSelected
+            ? CATEGORY_SELECTED_COLOR
+            : isHovered
+            ? SUBCATEGORY_BUTTON_HOVER_COLOR
+            : SUBCATEGORY_BUTTON_COLOR;
+          deps.draw.drawRoundedRectangle({
+            x: currentX,
+            y: yOffset,
+            width: buttonTextWidth,
+            height: SUBCATEGORY_BUTTON_HEIGHT,
+            radius: 5,
+            color: SUBCATEGORY_BUTTON_COLOR,
+          });
+          Renderer.drawString(
+            subcat,
+            currentX + 5,
+            yOffset + 5,
+            isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
+            false
+          );
+          currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+        });
+        yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+      }
 
-      cat.items.forEach((group) => {
+      yOffset -= rightPanelScrollY;
+      let itemIndexInRow = 0;
+      const itemsToDisplay = global.Categories.selectedSubcategory
+        ? cat.items.filter(
+            (group) =>
+              group.type === "separator" &&
+              group.title === global.Categories.selectedSubcategory
+          )
+        : cat.items;
+
+      itemsToDisplay.forEach((group) => {
         if (group.type === "separator") {
           if (itemIndexInRow > 0) {
             yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
@@ -342,6 +404,7 @@ global.createCategoriesManager = (deps) => {
           }
           itemIndexInRow = 0;
         } else {
+          if (global.Categories.selectedSubcategory !== null) return;
           const item = group;
           const col = itemIndexInRow % 3;
           if (col === 0 && itemIndexInRow > 0) {
@@ -379,6 +442,14 @@ global.createCategoriesManager = (deps) => {
           itemIndexInRow++;
         }
       });
+      if (
+        itemsToDisplay.length > 0 &&
+        itemsToDisplay.find((g) =>
+          g.type === "separator" ? g.items.length % 3 !== 0 : true
+        )
+      ) {
+        yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+      }
     }
     if (shouldDrawOptions) {
       const selectedItem = global.Categories.selectedItem;
@@ -454,6 +525,7 @@ global.createCategoriesManager = (deps) => {
         global.Categories.selected = cat.name;
         global.Categories.currentPage = "categories";
         global.Categories.selectedItem = null;
+        global.Categories.selectedSubcategory = null;
         rightPanelScrollY = 0;
         return true;
       }
@@ -516,11 +588,42 @@ global.createCategoriesManager = (deps) => {
       const panelWidth = panel.width - PADDING * 2;
       const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
       const itemHeight = CATEGORY_BOX_HEIGHT;
+      let yOffset = panel.y + PADDING; // NEW: Handle subcategory button clicks
 
-      let yOffset = panel.y + PADDING - rightPanelScrollY;
+      if (cat.subcategories.length > 0) {
+        let currentX = panel.x + PADDING;
+        const subcategoriesToDraw = ["All", ...cat.subcategories];
+        for (const subcat of subcategoriesToDraw) {
+          const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+          const buttonRect = {
+            x: currentX,
+            y: yOffset,
+            width: buttonTextWidth,
+            height: SUBCATEGORY_BUTTON_HEIGHT,
+          };
+          if (deps.utils.isInside(mouseX, mouseY, buttonRect)) {
+            global.Categories.selectedSubcategory =
+              subcat === "All" ? null : subcat;
+            rightPanelScrollY = 0;
+            return;
+          }
+          currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+        }
+        yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+      }
+
+      yOffset -= rightPanelScrollY;
       let itemIndexInRow = 0;
 
-      for (const group of cat.items) {
+      const itemsToDisplay = global.Categories.selectedSubcategory
+        ? cat.items.filter(
+            (group) =>
+              group.type === "separator" &&
+              group.title === global.Categories.selectedSubcategory
+          )
+        : cat.items;
+
+      for (const group of itemsToDisplay) {
         if (group.type === "separator") {
           if (itemIndexInRow > 0) {
             yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
@@ -620,8 +723,19 @@ global.createCategoriesManager = (deps) => {
     );
 
     let totalContentHeight = 0;
+    if (cat.subcategories.length > 0) {
+      totalContentHeight += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+    }
 
-    for (const group of cat.items) {
+    const itemsToDisplay = global.Categories.selectedSubcategory
+      ? cat.items.filter(
+          (group) =>
+            group.type === "separator" &&
+            group.title === global.Categories.selectedSubcategory
+        )
+      : cat.items;
+
+    for (const group of itemsToDisplay) {
       if (group.type === "separator") {
         totalContentHeight += SEPARATOR_HEIGHT;
         const itemsInRows = Math.ceil(group.items.length / 3);
