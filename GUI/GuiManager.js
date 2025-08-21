@@ -1,6 +1,6 @@
 const Color = Java.type("java.awt.Color");
 
-const CATEGORY_BOX_HEIGHT = 70;
+const CATEGORY_BOX_HEIGHT = 40;
 
 import { ToggleButton } from "./Toggle";
 import { Slider } from "./Slider";
@@ -19,7 +19,7 @@ if (!global.Categories) {
         global.Categories.categories.push({ name, items: [] });
       }
     },
-    addCategoryItem(categoryName, title, description, image) {
+    addCategoryItem(categoryName, title, description) {
       const category = global.Categories.categories.find(
         (c) => c.name === categoryName
       );
@@ -28,11 +28,20 @@ if (!global.Categories) {
         title,
         description,
         expanded: false,
-        image: Image.fromFile(
-          `./config/ChatTriggers/modules/Client/assets/${image}` // call from the modules assets folder rather than universal assets folder
-        ),
         animation: CATEGORY_BOX_HEIGHT,
         components: [],
+        type: "item",
+      });
+    },
+
+    addSeparator(categoryName, title) {
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return;
+      category.items.push({
+        title,
+        type: "separator",
       });
     },
 
@@ -98,8 +107,9 @@ global.createCategoriesManager = (deps) => {
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
-  const CATEGORY_BOX_PADDING = 10;
-  const ITEM_SPACING = 10;
+  const CATEGORY_BOX_PADDING = 5; // Reduced vertical spacing between rows
+  const ITEM_SPACING = 5; // Reduced horizontal spacing between items
+  const SEPARATOR_HEIGHT = 20;
 
   const CATEGORY_INNER_LINE_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
@@ -107,6 +117,7 @@ global.createCategoriesManager = (deps) => {
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
   const CATEGORY_BOX_HOVER_COLOR = new Color(0.25, 0.25, 0.25, 1);
+  const SEPARATOR_COLOR = new Color(0.25, 0.25, 0.25, 1);
 
   const SCROLL_SPEED = 15;
   const ANIMATION_DURATION = 300; // Smoother animation
@@ -182,8 +193,7 @@ global.createCategoriesManager = (deps) => {
     const panel = deps.rectangles.RightPanel;
     const x = panel.x + PADDING;
     const panelWidth = panel.width - PADDING * 2;
-    const itemWidth = (panelWidth - ITEM_SPACING) / 2;
-    const itemHeight = CATEGORY_BOX_HEIGHT;
+    const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
 
     const scale = Renderer.screen.getScale();
     GL11.glEnable(GL11.GL_SCISSOR_TEST);
@@ -206,6 +216,7 @@ global.createCategoriesManager = (deps) => {
       global.Categories.currentPage === "categories" || transitionActive;
     const shouldDrawOptions =
       global.Categories.currentPage === "options" || transitionActive;
+
     if (shouldDrawItems) {
       let panelX = panel.x;
       if (global.Categories.transitionDirection === 1) {
@@ -213,78 +224,87 @@ global.createCategoriesManager = (deps) => {
       } else if (global.Categories.transitionDirection === -1) {
         panelX -= panel.width * (1 - global.Categories.transitionProgress);
       }
-      let y = panel.y + PADDING - rightPanelScrollY;
+
+      let yOffset = panel.y + PADDING - rightPanelScrollY;
+      let itemIndexInRow = 0;
+      let currentRowMaxHeight = 0;
+
       for (let i = 0; i < cat.items.length; i++) {
         const item = cat.items[i];
-        const isLeft = i % 2 === 0;
-        const itemX =
-          panelX + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
 
-        const row = Math.floor(i / 2);
-        const rowY =
-          panel.y +
-          PADDING -
-          rightPanelScrollY +
-          row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+        if (item.type === "separator") {
+          if (itemIndexInRow > 0) {
+            yOffset += currentRowMaxHeight + CATEGORY_BOX_PADDING;
+          }
+          const separatorY = yOffset + SEPARATOR_HEIGHT / 2;
+          const separatorX = panelX + PADDING;
+          const separatorWidth = panelWidth; // Draw the separator line
 
-        const itemRect = {
-          x: itemX,
-          y: rowY,
-          width: itemWidth,
-          height: CATEGORY_BOX_HEIGHT,
-          radius: CORNER_RADIUS,
-          color: CATEGORY_BOX_COLOR,
-          borderWidth: BORDER_WIDTH,
-        };
+          Renderer.drawRect(
+            SEPARATOR_COLOR.getRGB(),
+            separatorX,
+            separatorY,
+            separatorWidth,
+            1
+          ); // Draw the separator text centered over the line
 
-        const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
-        itemRect.color = isHovered
-          ? CATEGORY_BOX_HOVER_COLOR
-          : CATEGORY_BOX_COLOR;
+          const separatorTextWidth = Renderer.getStringWidth(item.title);
+          const separatorTextX =
+            separatorX + separatorWidth / 2 - separatorTextWidth / 2;
+          Renderer.drawString(
+            item.title,
+            separatorTextX,
+            separatorY - 10,
+            CATEGORY_DESC_COLOR,
+            false
+          );
 
-        deps.draw.drawRoundedRectangleWithGradientOutline(
-          itemRect,
-          deps.colors.gradientTop,
-          deps.colors.gradientBottom
-        );
-        const ImageRect = {
-          x: itemRect.x + CATEGORY_BOX_PADDING,
-          y: itemRect.y + CATEGORY_BOX_PADDING - 4,
-          width: 70,
-          height: itemRect.height - CATEGORY_BOX_PADDING * 1.2,
-          radius: CORNER_RADIUS / 2,
-          color: new Color(0.15, 0.15, 0.15, 1),
-        };
-        deps.draw.drawRoundedRectangle(ImageRect);
+          yOffset += SEPARATOR_HEIGHT;
+          itemIndexInRow = 0; // Reset item count for the new row
+          currentRowMaxHeight = 0;
+        } else {
+          const col = itemIndexInRow % 3;
+          if (col === 0 && itemIndexInRow > 0) {
+            yOffset += currentRowMaxHeight + CATEGORY_BOX_PADDING;
+            currentRowMaxHeight = 0;
+          }
+          currentRowMaxHeight = Math.max(
+            currentRowMaxHeight,
+            CATEGORY_BOX_HEIGHT
+          );
 
-        // hopefully faster ?
-        Renderer.drawImage(
-          item.image,
-          ImageRect.x + 4,
-          ImageRect.y,
-          ImageRect.width - 7,
-          ImageRect.height
-        );
+          const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
+          const itemRect = {
+            x: itemX,
+            y: yOffset,
+            width: itemWidth,
+            height: CATEGORY_BOX_HEIGHT,
+            radius: CORNER_RADIUS,
+            color: CATEGORY_BOX_COLOR,
+            borderWidth: BORDER_WIDTH,
+          };
 
-        ChatLib.chat(
-          `Item ${i + 1}: x=${itemRect.x}, y=${itemRect.y}, width=${
-            itemRect.width
-          }, height=${itemRect.height}`
-        );
+          const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
+          itemRect.color = isHovered
+            ? CATEGORY_BOX_HOVER_COLOR
+            : CATEGORY_BOX_COLOR;
 
-        Renderer.drawString(
-          item.title,
-          itemRect.x +
-            itemRect.width / 2 -
-            Renderer.getStringWidth(item.title) / 2 +
-            15,
-          itemRect.y + 10,
-          CATEGORY_TITLE_COLOR,
-          false
-        );
+          deps.draw.drawRoundedRectangleWithGradientOutline(
+            itemRect,
+            deps.colors.gradientTop,
+            deps.colors.gradientBottom
+          );
+          Renderer.drawString(
+            item.title,
+            itemX + 5,
+            yOffset + CATEGORY_BOX_HEIGHT / 2 - 4,
+            CATEGORY_TITLE_COLOR,
+            false
+          );
+          itemIndexInRow++;
+        }
       }
     }
-
     if (shouldDrawOptions) {
       const selectedItem = global.Categories.selectedItem;
       if (selectedItem) {
@@ -377,7 +397,7 @@ global.createCategoriesManager = (deps) => {
       global.Categories.selectedItem
     ) {
       const panel = deps.rectangles.RightPanel;
-      const backButtonText = "< Back";
+      const backButtonText = "Back";
       const backButtonWidth = Renderer.getStringWidth(backButtonText);
       const backButtonRect = {
         x: panel.x + PADDING + 10,
@@ -419,22 +439,26 @@ global.createCategoriesManager = (deps) => {
 
       const panel = deps.rectangles.RightPanel;
       const panelWidth = panel.width - PADDING * 2;
-      const itemWidth = (panelWidth - ITEM_SPACING) / 2;
+      const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
       const itemHeight = CATEGORY_BOX_HEIGHT;
 
-      let y = panel.y + PADDING - rightPanelScrollY;
+      let yOffset = panel.y + PADDING - rightPanelScrollY;
+      let itemIndexInRow = 0;
+
       for (let i = 0; i < cat.items.length; i++) {
         const item = cat.items[i];
-        const isLeft = i % 2 === 0;
-        const itemX =
-          panel.x + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
+        if (item.type === "separator") {
+          yOffset += SEPARATOR_HEIGHT;
+          itemIndexInRow = 0;
+          continue;
+        }
 
-        const row = Math.floor(i / 2);
+        const col = itemIndexInRow % 3;
+        const row = Math.floor(itemIndexInRow / 3);
+
+        const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
         const rowY =
-          panel.y +
-          PADDING -
-          rightPanelScrollY +
-          row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+          yOffset + row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
 
         const rect = {
           x: itemX,
@@ -451,6 +475,7 @@ global.createCategoriesManager = (deps) => {
           global.Categories.selectedItem = item;
           return;
         }
+        itemIndexInRow++;
       }
     } else if (
       global.Categories.currentPage === "options" &&
@@ -495,9 +520,29 @@ global.createCategoriesManager = (deps) => {
     const cat = global.Categories.categories.find(
       (c) => c.name === global.Categories.selected
     );
-    const totalContentHeight =
-      Math.ceil(cat.items.length / 2) *
-      (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+
+    let totalContentHeight = 0;
+    let itemsInCurrentRow = 0;
+
+    for (let i = 0; i < cat.items.length; i++) {
+      const item = cat.items[i];
+      if (item.type === "separator") {
+        if (itemsInCurrentRow > 0) {
+          totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+        }
+        totalContentHeight += SEPARATOR_HEIGHT;
+        itemsInCurrentRow = 0;
+      } else {
+        itemsInCurrentRow++;
+        if (itemsInCurrentRow >= 3) {
+          totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+          itemsInCurrentRow = 0;
+        }
+      }
+    }
+    if (itemsInCurrentRow > 0) {
+      totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+    }
 
     const maxScroll = Math.max(0, totalContentHeight - panel.height + PADDING);
     const direction = dir > 0 ? -1 : 1;
