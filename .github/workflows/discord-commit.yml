@@ -35,12 +35,12 @@ jobs:
 
           # Count file extensions
           declare -A EMOJI_MAP=(
-            ["js"]=":js:"
-            ["json"]=":json:"
+            ["js"]=":1408198931111739402:"
+            ["json"]=":1408199161899253860:"
             ["png"]=":frame_photo:"
             ["jpg"]=":frame_photo:"
-            ["yaml"]=":yml:"
-            ["yml"]=":yml:"
+            ["yaml"]=":1408200157593468948:"
+            ["yml"]=":1408200157593468948:"
           )
 
           FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
