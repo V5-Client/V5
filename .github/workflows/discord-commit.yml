@@ -18,6 +18,10 @@ jobs:
         id: commit
         run: |
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+
+          # Censor sensitive repo URL
+          COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed 's#https://github.com/qxionr/-Placeholder-Client#[REPO-URL]#g')
+
           AUTHOR_NAME=$(git log -1 --pretty=%an)
           AUTHOR_LOGIN="${{ github.actor }}"
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
@@ -45,10 +49,10 @@ jobs:
 
           FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
 
-          # Replace extensions with emojis if available
+          # Replace extensions with emojis if available, fallback 📄
           FILETYPES_EMOJI=""
           while read -r count ext; do
-            emoji="${EMOJI_MAP[$ext]:-$ext}"
+            emoji="${EMOJI_MAP[$ext]:-📄}"
             FILETYPES_EMOJI+="$emoji $count  "
           done <<< "$FILETYPES"
 
