@@ -7,6 +7,8 @@ let pathNodes = [];
 let keyNodes = [];
 
 register("command", (x1, y1, z1, x2, y2, z2) => {
+  pathNodes = [];
+  keyNodes = [];
   x1 = parseInt(x1);
   y1 = parseInt(y1);
   z1 = parseInt(z1);
@@ -14,25 +16,38 @@ register("command", (x1, y1, z1, x2, y2, z2) => {
   y2 = parseInt(y2);
   z2 = parseInt(z2);
 
-  request(
-    `http://localhost:3000/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`,
-    { json: true },
-    (err, res, body) => {
-      if (err) return ChatLib.chat("§cError fetching path!");
-      if (!body || !body.path) return ChatLib.chat("§cNo path returned!");
+  const url = `http://localhost:3000/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`;
+  ChatLib.chat(`§eSending request to pathfinder...`);
+
+  request({
+    url: url,
+    json: true,
+    timeout: 10000, 
+  })
+    .then((body) => {
+      if (!body || !body.path) {
+        ChatLib.chat("§cResponse received, but no valid path was found in it.");
+        return;
+      }
 
       pathNodes = body.path;
-      keyNodes = body.keynodes;
+      keyNodes = body.keynodes || []; // handle missing keynodes
 
       ChatLib.chat(
-        `§aRendering path with ${pathNodes.length} nodes and ${keyNodes.length} key nodes`
+        `§aPath found with ${pathNodes.length} nodes and ${keyNodes.length} key nodes.`
       );
-    }
-  );
+    })
+    .catch((err) => {
+      ChatLib.chat("§cError during request to pathfinder:");
+      console.log(`Error: ${err}`);
+    });
 }).setName("rustpath");
 
 register("renderWorld", () => {
-  for (let node of pathNodes) {
+  // Only rendering every 5th node to stop it from killing fps since you didn't optimize rendering at ALL zurviq...
+  const step = 5;
+  for (let i = 0; i < pathNodes.length; i += step) {
+    const node = pathNodes[i];
     RendererMain.drawWaypoint(
       new Vec3i(node.x, node.y, node.z),
       true,
@@ -40,6 +55,7 @@ register("renderWorld", () => {
     );
   }
 
+  // Draw all key nodes since they are important
   for (let node of keyNodes) {
     RendererMain.drawWaypoint(
       new Vec3i(node.x, node.y, node.z),
