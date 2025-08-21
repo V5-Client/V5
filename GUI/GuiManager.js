@@ -2,31 +2,32 @@ const Color = Java.type("java.awt.Color");
 
 const CATEGORY_BOX_HEIGHT = 40;
 
+const Module_icon = Image.fromFile(
+  "./config/ChatTriggers/modules/Client/assets/module.png" // change to our own png
+);
+
 import { ToggleButton } from "./Toggle";
 import { Slider } from "./Slider";
 
 if (!global.Categories) {
   global.Categories = {
-    categories: [],
-    selected: null,
+    categories: [
+      {
+        name: "Modules",
+        items: [],
+        subcategories: [],
+      },
+    ],
+    selected: "Modules",
     selectedItem: null,
     currentPage: "categories", // "categories" or "options"
     transitionProgress: 0,
     transitionDirection: 0,
     transitionStart: 0,
     selectedSubcategory: null,
-    addCategory(name) {
-      if (!global.Categories.categories.find((c) => c.name === name)) {
-        global.Categories.categories.push({
-          name,
-          items: [],
-          subcategories: [],
-        });
-      }
-    },
-    addCategoryItem(categoryName, subcategoryName, title, description) {
+    addCategoryItem(subcategoryName, title, description) {
       const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
+        (c) => c.name === "Modules"
       );
       if (!category) return;
 
@@ -216,27 +217,9 @@ global.createCategoriesManager = (deps) => {
     global.Categories.categories.forEach((cat, i) => {
       const rect = getCategoryRect(i);
       const lineY = rect.y + rect.height - 2;
-      deps.draw.drawRoundedRectangle({
-        x: rect.x + 5,
-        y: lineY,
-        width: rect.width - 10,
-        height: 1,
-        radius: 0,
-        color: CATEGORY_INNER_LINE_COLOR,
-      });
 
-      const textColor =
-        global.Categories.selected === cat.name
-          ? CATEGORY_SELECTED_COLOR
-          : CATEGORY_TITLE_COLOR;
-      const textY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
-      Renderer.drawString(
-        cat.name,
-        rect.x + rect.width / 2 - Renderer.getStringWidth(cat.name) / 2,
-        textY,
-        textColor,
-        false
-      );
+      const iconY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
+      Module_icon.draw(rect.x + rect.width - 25, iconY - 10, 25, 25);
     });
 
     if (!global.Categories.selected) return;
@@ -372,7 +355,8 @@ global.createCategoriesManager = (deps) => {
               height: CATEGORY_BOX_HEIGHT,
               radius: CORNER_RADIUS,
               color: CATEGORY_BOX_COLOR,
-              borderWidth: BORDER_WIDTH,
+              borderWidth: 0.5,
+              borderColor: new Color(1, 1, 1, 0.5),
             };
 
             const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
@@ -380,14 +364,11 @@ global.createCategoriesManager = (deps) => {
               ? CATEGORY_BOX_HOVER_COLOR
               : CATEGORY_BOX_COLOR;
 
-            deps.draw.drawRoundedRectangleWithGradientOutline(
-              itemRect,
-              deps.colors.gradientTop,
-              deps.colors.gradientBottom
-            );
+            deps.draw.drawRoundedRectangleWithBorder(itemRect);
+
             Renderer.drawString(
               item.title,
-              itemX + 5,
+              itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2,
               yOffset + CATEGORY_BOX_HEIGHT / 2 - 4,
               CATEGORY_TITLE_COLOR,
               false

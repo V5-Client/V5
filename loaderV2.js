@@ -38,16 +38,3 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
     cir.setReturnValue(VoxelShapes.fullCube());
   }
 });
-
-register("renderOverlay", () => {
-  const scaledWidth = Renderer.screen.getWidth(); // scaled screen width
-  const scaledHeight = Renderer.screen.getHeight(); // scaled screen height
-
-  const x = 50; // relative to top-left
-  const y = 50;
-  const width = 100;
-  const height = 50;
-  const color = 0x80ff0000; // semi-transparent red
-
-  Renderer.drawRect(x, y, width, height, color);
-});
