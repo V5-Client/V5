@@ -165,25 +165,19 @@ global.createCategoriesManager = (deps) => {
   const SUBCATEGORY_BUTTON_HEIGHT = 20;
   const SUBCATEGORY_BUTTON_SPACING = 5;
 
-  const CATEGORY_INNER_LINE_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
-  const CATEGORY_SELECTED_COLOR = 0xccb380e6; // A brighter purple
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
   const CATEGORY_BOX_HOVER_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const SEPARATOR_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const SUBCATEGORY_BUTTON_COLOR = new Color(0.15, 0.15, 0.15, 1);
-  const SUBCATEGORY_BUTTON_HOVER_COLOR = new Color(0.22, 0.22, 0.22, 1); // and this
-  const SUBCATEGORY_BUTTON_SELECTED_COLOR = 0xccb380e6; // someone fix ts
+  const SUBCATEGORY_BUTTON_HOVER_COLOR = new Color(0.22, 0.22, 0.22, 0.8);
+  const CATEGORY_SELECTED_COLOR = new Color(0.502, 0.302, 0.702, 0.3);
 
   const SCROLL_SPEED = 15;
   const ANIMATION_DURATION = 300;
   let rightPanelScrollY = 0;
-  /**
-   * Helper function to calculate the bounding box for a category.
-   * @param {number} index - The index of the category.
-   * @returns {object} The bounding box with x, y, width, and height.
-   */
+
   const getCategoryRect = (index) => {
     return {
       x: deps.rectangles.LeftPanel.x + PADDING,
@@ -219,7 +213,22 @@ global.createCategoriesManager = (deps) => {
       const lineY = rect.y + rect.height - 2;
 
       const iconY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
-      Module_icon.draw(rect.x + rect.width - 25, iconY - 10, 25, 25);
+      const iconX = rect.x + rect.width - 25;
+      const iconWidth = 25;
+      const iconHeight = 25;
+
+      if (cat.name === "Modules" && global.Categories.selected === "Modules") {
+        deps.draw.drawRoundedRectangle({
+          x: iconX - 1,
+          y: iconY - 10,
+          width: iconWidth,
+          height: iconHeight,
+          radius: 5,
+          color: CATEGORY_SELECTED_COLOR,
+        });
+      }
+
+      Module_icon.draw(iconX, iconY - 10, iconWidth, iconHeight);
     });
 
     if (!global.Categories.selected) return;
@@ -281,7 +290,7 @@ global.createCategoriesManager = (deps) => {
             global.Categories.selectedSubcategory === subcat ||
             (!global.Categories.selectedSubcategory && subcat === "All");
           const isHovered = deps.utils.isInside(mouseX, mouseY, buttonRect);
-          buttonRect.color = isSelected
+          const buttonColor = isSelected
             ? CATEGORY_SELECTED_COLOR
             : isHovered
             ? SUBCATEGORY_BUTTON_HOVER_COLOR
@@ -292,7 +301,7 @@ global.createCategoriesManager = (deps) => {
             width: buttonTextWidth,
             height: SUBCATEGORY_BUTTON_HEIGHT,
             radius: 5,
-            color: SUBCATEGORY_BUTTON_COLOR,
+            color: buttonColor,
           });
           Renderer.drawString(
             subcat,
@@ -475,7 +484,7 @@ global.createCategoriesManager = (deps) => {
             component.x = optionX + 10;
             component.y = componentY;
             component.draw();
-            componentY += 30; // Increased spacing for sliders
+            componentY += 30;
           }
         });
       }
@@ -556,7 +565,7 @@ global.createCategoriesManager = (deps) => {
       const panelWidth = panel.width - PADDING * 2;
       const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
       const itemHeight = CATEGORY_BOX_HEIGHT;
-      let yOffset = panel.y + PADDING; // NEW: Handle subcategory button clicks
+      let yOffset = panel.y + PADDING;
 
       if (cat.subcategories.length > 0) {
         let currentX = panel.x + PADDING;
@@ -647,7 +656,6 @@ global.createCategoriesManager = (deps) => {
       global.Categories.currentPage === "options" &&
       !deps.utils.isInside(mouseX, mouseY, deps.rectangles.RightPanel)
     ) {
-      // backward transition
       global.Categories.transitionDirection = -1;
       global.Categories.transitionProgress = 0;
       global.Categories.transitionStart = Date.now();
