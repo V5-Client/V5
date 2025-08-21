@@ -7,7 +7,7 @@ const UIRoundedRectangle = Java.type(
   "gg.essential.elementa.components.UIRoundedRectangle"
 );
 
-const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+import { clamp } from "./Utils";
 
 export class Slider {
   constructor(title, x, y, width = 100, height = 5, min = 0, max = 100, value = 50) {
