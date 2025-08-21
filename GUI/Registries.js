@@ -39,6 +39,13 @@ addCategoryItem(
   "Completes Commissions in the Glacite Tunnels"
 );
 
+addCategoryItem(
+  "Modules",
+  "Mining",
+  "Excavator Macro",
+  "Automatically does the excavator task"
+);
+
 addCategoryItem("Modules", "Stuffs", "Mining Bots", "stuffs");
 
 /*addCategoryItem(
