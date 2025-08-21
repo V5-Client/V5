@@ -22,7 +22,7 @@ register("command", (x1, y1, z1, x2, y2, z2) => {
   request({
     url: url,
     json: true,
-    timeout: 10000, 
+    timeout: 15000, 
   })
     .then((body) => {
       if (!body || !body.path) {
