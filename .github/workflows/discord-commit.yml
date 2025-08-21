@@ -21,21 +21,32 @@ jobs:
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+          # Lines added / deleted
+          STATS=$(git show --stat --oneline -1)
+          ADDED=$(git show --shortstat -1 | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
+          DELETED=$(git show --shortstat -1 | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+
+          # File types
+          FILES=$(git show --pretty="" --name-only -1)
+          FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $2 ": " $1}' | xargs || echo "None")
+
           echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
           echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
           echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
           echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "added=$ADDED" >> $GITHUB_OUTPUT
+          echo "deleted=$DELETED" >> $GITHUB_OUTPUT
+          echo "filetypes=$FILETYPES" >> $GITHUB_OUTPUT
 
       - name: Map GitHub user -> Discord user
         id: mapuser
         run: |
           declare -A USER_MAP
-          # GitHub -> Discord mapping (use <@ID> for actual mentions)
           USER_MAP=(
             ["WaterPheonix196"]="<@899647076370092042>"
             ["qxionr"]="<@790294721943699477>"
-            ["yourgithub"]="<@1272417928478912427891429141278941278941278948912560892108951>"
+            ["yourgithub"]="<@1234567890123456789>"
           )
 
           GH_USER="${{ steps.commit.outputs.login }}"
@@ -45,13 +56,20 @@ jobs:
       - name: Send message to Discord
         run: |
           payload=$(jq -n \
-            --arg title "New Commit 💔" \
+            --arg username "Aurelia Commits" \
+            --arg avatar_url "https://cdn.donmai.us/sample/bb/4d/__os_tan_and_2_more_drawn_by_raviolimavioli__sample-bb4d90d601466faa9ff6bc816869a25d.jpg" \
+            --arg title "New Commit" \
             --arg description "${{ steps.commit.outputs.message }}" \
             --arg author "${{ steps.mapuser.outputs.discord }}" \
             --arg branch "${{ steps.commit.outputs.branch }}" \
+            --arg added "+${{ steps.commit.outputs.added }} lines" \
+            --arg deleted "-${{ steps.commit.outputs.deleted }} lines" \
+            --arg filetypes "${{ steps.commit.outputs.filetypes }}" \
             --arg timestamp "${{ steps.commit.outputs.timestamp }}" \
             --argjson color 3447003 \
             '{
+              "username": $username,
+              "avatar_url": $avatar_url,
               "embeds": [
                 {
                   "title": $title,
@@ -59,7 +77,9 @@ jobs:
                   "color": $color,
                   "fields": [
                     {"name": "Author", "value": $author, "inline": true},
-                    {"name": "Branch", "value": $branch, "inline": true}
+                    {"name": "Branch", "value": $branch, "inline": true},
+                    {"name": "Lines Changed", "value": ($added + " / " + $deleted), "inline": false},
+                    {"name": "File Types", "value": $filetypes, "inline": false}
                   ],
                   "timestamp": $timestamp
                 }
