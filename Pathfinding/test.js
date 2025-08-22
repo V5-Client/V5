@@ -6,6 +6,71 @@ const Color = Java.type("java.awt.Color");
 let pathNodes = [];
 let keyNodes = [];
 
+let process = null;
+const path = "./config/ChatTriggers/assets/Pathfinding.exe";
+
+function runProgram() {
+  stopProgram();
+  keepAlive.register();
+
+  console.log("Running program");
+
+  const JavaProcessBuilder = Java.type("java.lang.ProcessBuilder");
+  const JavaScanner = Java.type("java.util.Scanner");
+  const JavaThread = Java.type("java.lang.Thread");
+
+  new JavaThread(() => {
+    try {
+      process = new JavaProcessBuilder(path).start();
+      const sc = new JavaScanner(process.getInputStream());
+
+      console.log("Program started");
+
+      while (process !== null && process.isAlive()) {
+        JavaThread.sleep(50);
+
+        while (sc.hasNextLine()) {
+          let line = sc.nextLine();
+          console.log(line);
+        }
+      }
+
+      if (process !== null) process.waitFor();
+      console.log("Program finished");
+    } catch (e) {
+      console.log(e);
+    }
+  }).start();
+}
+
+function stopProgram() {
+  if (process !== null) {
+    process.destroy();
+    process = null;
+    console.log("Program stopped");
+    keepAlive.unregister();
+  }
+}
+
+let lastKeepAlive = Date.now() - 50_000;
+
+const keepAlive = register('tick', () => {
+  if (Date.now() - lastKeepAlive > 60_000) {
+    try {
+      request({ url: "http://localhost:3000/keepalive", timeout: 5000, json: true })
+        .then(() => {})
+        .catch(() => {});
+    } catch (e) {
+      // ignore keepalive errors
+    }
+    lastKeepAlive = Date.now();
+    console.log(`Keep-alive sent at ${Date.now()}`);
+  }
+}).unregister();
+
+register('worldUnload', stopProgram);
+register('worldLoad', runProgram);
+
 register("command", (x1, y1, z1, x2, y2, z2) => {
   pathNodes = [];
   keyNodes = [];
@@ -22,7 +87,7 @@ register("command", (x1, y1, z1, x2, y2, z2) => {
   request({
     url: url,
     json: true,
-    timeout: 15000, 
+    timeout: 15000,
   })
     .then((body) => {
       if (!body || !body.path) {
