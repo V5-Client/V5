@@ -41,12 +41,12 @@ horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
   }
 });
 
-import { fullPickle } from "./mixins.js";
+//import { fullPickle } from "./mixins.js";
 
-fullPickle.attach((instance, cir) => {
-  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
-  cir.setReturnValue(VoxelShapes.fullCube());
-});
+//fullPickle.attach((instance, cir) => {
+//  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
+// cir.setReturnValue(VoxelShapes.fullCube());
+//});
 
 //import { emptyGrass } from "./mixins.js";
 
