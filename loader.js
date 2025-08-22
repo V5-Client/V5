@@ -28,35 +28,27 @@ import "./QOL/BeachBaller.js";
 //import "./Macro/SeaLumieMacro.js";
 
 /* Mixins */
-import { horizontalConnectingBlock_modifyPaneHitbox } from "./mixins.js";
+import { 
+  fullStainedGlassPane, 
+  fullPickle, 
+  emptyKelp, 
+  emptyGrass, 
+  emptyTallGrass 
+} from "./mixins.js";
 
-horizontalConnectingBlock_modifyPaneHitbox.attach((instance, cir) => {
+fullStainedGlassPane.attach((instance, cir) => {
   const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
-  const StainedGlassPaneBlock = Java.type(
-    "net.minecraft.block.StainedGlassPaneBlock"
-  );
+  const StainedGlassPaneBlock = Java.type("net.minecraft.block.StainedGlassPaneBlock");
 
   if (instance instanceof StainedGlassPaneBlock) {
-    cir.setReturnValue(VoxelShapes.fullCube());
+    cir.setReturnValue(VoxelShapes.fullCube()); 
   }
 });
 
-//import { fullPickle } from "./mixins.js";
-
-//fullPickle.attach((instance, cir) => {
-//  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
-// cir.setReturnValue(VoxelShapes.fullCube());
-//});
-
-//import { emptyGrass } from "./mixins.js";
-
-//emptyGrass.attach((instance, cir) => {
-//  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
-//
-//  cir.setReturnValue(VoxelShapes.empty());
-//});
-
-import { emptyKelp } from "./mixins.js";
+fullPickle.attach((instance, cir) => {
+  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
+  cir.setReturnValue(VoxelShapes.fullCube());
+});
 
 emptyKelp.attach((instance, cir) => {
   const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
@@ -68,14 +60,12 @@ emptyKelp.attach((instance, cir) => {
   }
 });
 
-//import { emptyPlants } from "./mixins.js";
+emptyGrass.attach((instance, cir) => {
+  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
+  cir.setReturnValue(VoxelShapes.empty());
+});
 
-//emptyPlants.attach((instance, cir) => {
-//  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
-//  const SeaGrass = Java.type("net.minecraft.block.SeagrassBlock");
-//const TallSeaGrass = Java.type("net.minecraft.block.TallSeagrassBlock");
-
-//  if (instance instanceof SeaGrass) {
-//    cir.setReturnValue(VoxelShapes.empty());
-//  }
-//});
+emptyTallGrass.attach((instance, cir) => {
+  const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
+  cir.setReturnValue(VoxelShapes.empty());
+});
