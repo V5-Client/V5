@@ -16,7 +16,7 @@ class RotationsTo {
     this.targetPitch = null;
     this.rotating = false;
 
-    this.Speed = 0.06; // speed of rotation per tick
+    this.Speed = 0.03; // speed of rotation per tick
     this.tremorFrequency = 1; // jitter updates per second
     this.fadeExponent = 0.05; // controls jitter fade
     this.Randomness = 0.005; // max random offset (degrees)
