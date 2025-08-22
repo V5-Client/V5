@@ -1,7 +1,0 @@
-
-
-class MiningBot {
-    constructor() {
-        
-    }
-}
