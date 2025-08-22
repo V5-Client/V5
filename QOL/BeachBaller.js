@@ -1,6 +1,8 @@
 import { Chat } from "../Utility/Chat";
 import { Keybind } from "../Utility/Keybinding";
 import { MathUtils } from "../Utility/Math";
+import { Guis } from "../Utility/Inventory";
+import { Rotations } from "../Utility/Rotations";
 
 const smallBeachBall =
   "ewogICJ0aW1lc3RhbXAiIDogMTczNjQyNzQ4ODAwNCwKICAicHJvZmlsZUlkIiA6ICIzN2JhNjRkYzkxOTg0OGI4YjZhNDdiYTg0ZDgwNDM3MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb3lLb3NhIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJhZGY5ZDcxMzY3Y2Q2ZTUwNWZiNDhjYWFhNWFjZGNkZmYyYTA5ZjY2YzQ4OGRhZjA0ZDA0NWVlMGJmNTI4ZTEiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==";
@@ -22,6 +24,7 @@ let state = states.WAITING;
 
 let beachballer = register("tick", () => {
   if (!enabled) return beachballer.unregister();
+  if (Client.isInGui() && !Client.isInChat()) return toggle()
   switch (state) {
     case states.WAITING:
       break;
@@ -31,6 +34,8 @@ let beachballer = register("tick", () => {
           bounceCount = 0
           return;
         }
+        let currentYaw = Player.getYaw()
+        Rotations.rotateToAngles(currentYaw, -90)
       let stands = World.getAllEntitiesOfType(Java.type("net.minecraft.entity.decoration.ArmorStandEntity").class);
       stands.forEach((element, index) => {
         if (element.getStackInSlot(5)) {
@@ -62,7 +67,7 @@ let beachballer = register("tick", () => {
         Keybind.rightClick();
         setState(states.PLACE);
         return
-      }
+      } else Rotations.rotateTo([startPos[0], startPos[1] + 2, startPos[2]])
       Keybind.setKeysForStraightLineCoords(startPos[0], startPos[1], startPos[2]);
       break;
     case states.PLACE:
@@ -75,6 +80,14 @@ let beachballer = register("tick", () => {
           }
         }
       });
+      let ballslot = Guis.findItemInHotbar("Bouncy Beach Ball")
+      if (ballslot === -1) {
+        Chat.message("No bouncy balls in hotbar!")
+        beachballer.unregister()
+        return
+      } else {
+        Player.setHeldItemIndex(ballslot)
+      }
       tickCounter++
       if (tickCounter % 10 == 0) Keybind.rightClick();
       break;
@@ -85,6 +98,19 @@ function setState(newState) {
   state = newState;
   tickCounter = 0;
   Chat.message("State changed to: " + state);
+}
+
+function toggle() {
+  enabled = !enabled;
+  Chat.message(enabled ? "BeachBaller enabled" : "BeachBaller disabled");
+  if (!enabled) {
+    beachballer.unregister();
+  }
+  if (enabled) {
+    setState(states.PLACE);
+    startPos = [Player.getX(), Player.getY(), Player.getZ()];
+    beachballer.register();
+  }
 }
 
 register("actionBar", (text) => {
@@ -100,14 +126,6 @@ register("actionBar", (text) => {
 }).setCriteria("${text}");
 
 register("command", () => {
-  enabled = !enabled;
-  Chat.message(enabled ? "BeachBaller enabled" : "BeachBaller disabled");
-  if (!enabled) {
-    beachballer.unregister();
-  }
-  if (enabled) {
-    setState(states.PLACE);
-    startPos = [Player.getX(), Player.getY(), Player.getZ()];
-    beachballer.register();
-  }
+  toggle()
 }).setName("beachball");
+
