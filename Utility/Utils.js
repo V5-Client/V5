@@ -131,11 +131,11 @@ class UtilsClass {
   };
 
   /**
-       * @param {String} ModuleName
-       * @param {String[][]} Items
-       * @returns {Boolean}
-        checks if all input items are in the hotbar
-    */
+   * @param {String} ModuleName
+   * @param {String[][]} Items
+   * @returns {Boolean}
+   * checks if all input items are in the hotbar
+   */
   checkItems = (ModuleName, Items) => {
     let Missing = [];
     for (let i = 0; i < Items.length; i++) {
@@ -179,7 +179,7 @@ class UtilsClass {
     return false;
   }
 
-  /*getBlocks() {
+  getBlocks() {
     let cords = [
       Math.floor(Player.getX()),
       Math.floor(Player.getY()),
