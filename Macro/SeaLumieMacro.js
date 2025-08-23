@@ -215,10 +215,10 @@ class SeaLumie {
     register("command", () => {
       this.enabled = !this.enabled;
       if (this.enabled) {
-        ChatLib.chat("SeaLumie enabled! Starting scan...");
+        ChatLib.chat("SeaLumie enabled");
         this.state = this.STATES.SCANNING;
       } else {
-        ChatLib.chat("SeaLumie disabled.");
+        ChatLib.chat("SeaLumie disabled");
         this.state = this.STATES.WAITING;
         this.closestPickle = null;
       }

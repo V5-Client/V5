@@ -26,23 +26,26 @@ import "./GUI/Registries.js";
 import "./Pathfinding/test.js";
 import "./QOL/BeachBaller.js";
 //import "./Macro/SeaLumieMacro.js";
-import "./QOL/Nuker.js"
+import "./QOL/Nuker.js";
+import "./Utility/MiningUtils.js";
 
 /* Mixins */
-import { 
-  fullStainedGlassPane, 
-  fullPickle, 
-  emptyKelp, 
-  emptyGrass, 
-  emptyTallGrass 
+import {
+  fullStainedGlassPane,
+  fullPickle,
+  emptyKelp,
+  emptyGrass,
+  emptyTallGrass,
 } from "./mixins.js";
 
 fullStainedGlassPane.attach((instance, cir) => {
   const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
-  const StainedGlassPaneBlock = Java.type("net.minecraft.block.StainedGlassPaneBlock");
+  const StainedGlassPaneBlock = Java.type(
+    "net.minecraft.block.StainedGlassPaneBlock"
+  );
 
   if (instance instanceof StainedGlassPaneBlock) {
-    cir.setReturnValue(VoxelShapes.fullCube()); 
+    cir.setReturnValue(VoxelShapes.fullCube());
   }
 });
 
