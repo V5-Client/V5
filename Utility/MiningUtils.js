@@ -98,10 +98,37 @@ class MiningUtilClass {
       this.hotm = getFirstMatchFromLore(4, /Level\s{0,2}(\d+)/);
       this.cotm = parseInt(this.hotm) === 10;
 
+      let con = Player.getContainer();
+      let selected = "minecraft:emerald_block";
+
+      let speedboost = con.getStackInSlot(29);
+      let picko = con.getStackInSlot(33);
+
+      if (speedboost?.type?.getRegistryName() === selected) {
+        this.ability = "SpeedBoost";
+      } else if (picko?.type?.getRegistryName() === selected) {
+        this.ability = "Pickonimbus";
+      }
+
       this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
 
       Guis.clickSlot(8, false, "RIGHT");
       Thread.sleep(1000);
+
+      let infusion = con.getStackInSlot(1);
+      let force = con.getStackInSlot(7);
+      let desire = con.getStackInSlot(37);
+      let maniac = con.getStackInSlot(43);
+
+      if (infusion?.type?.getRegistryName() === selected) {
+        this.ability = "GemstoneInfusion";
+      } else if (force?.type?.getRegistryName() === selected) {
+        this.ability = "SheerForce";
+      } else if (desire?.type?.getRegistryName() === selected) {
+        this.ability = "AnamolousDesire";
+      } else if (maniac?.type?.getRegistryName() === selected) {
+        this.ability = "ManiacMiner";
+      }
 
       this.strongArm = getFirstMatchFromLore(21, /\+(\d+(\.\d+)?)/);
 
@@ -111,7 +138,6 @@ class MiningUtilClass {
       this.maxSolver = parseInt(this.solver) === 96; // get max percentage instead
 
       Guis.closeInv();
-
       let lore = Player.getHeldItem().getLore().toString();
       let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
       let bonus = match
@@ -130,6 +156,7 @@ class MiningUtilClass {
       Chat.message(`Mining Speed: &e${this.miningSpeed}`);
       Chat.message(`Professional: &e${this.professional}`);
       Chat.message(`Strong Arm: &e${this.strongArm}`);
+      Chat.message(`Pickaxe Ability: &e${this.ability}`);
       Chat.message(`Cold Resistance: &e${this.coldRes}`);
       Chat.message(`HOTM Level: &e${this.hotm}`);
       Chat.message(`COTM: ${cotmcolor}${this.cotm}`);
@@ -140,6 +167,7 @@ class MiningUtilClass {
         speed: this.miningSpeed,
         professional: this.professional,
         strongarm: this.strongArm,
+        ability: this.ability,
         coldres: this.coldRes,
         hotm: this.hotm,
         cotm: this.cotm,
