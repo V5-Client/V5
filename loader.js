@@ -29,6 +29,7 @@ import "./QOL/BeachBaller.js";
 import "./QOL/Nuker.js";
 import "./Utility/MiningUtils.js";
 import "./Macro/MiningBot.js";
+import "./Backend/IRC.js"
 
 /* Mixins */
 import {

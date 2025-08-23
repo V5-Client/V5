@@ -5,5 +5,5 @@
   "version": "4.8.6",
   "entry": "loader.js",
   "mixinEntry": "mixins.js",
-  "requires": ["requestV2"]
+  "requires": ["requestV2", "WebSocket"]
 }
