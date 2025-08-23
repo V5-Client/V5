@@ -265,7 +265,21 @@ const keepAlive = register('tick', () => {
 register('worldUnload', () => {
   stopPathingMovement();
 });
+
 register('worldLoad', runProgram);
+
+register('gameUnload', () => {
+  stopPathingMovement();
+  stopProgram();
+});
+
+// shutdown hook to make sure process is killed if java is killed, idk if this even would work tho
+const Runtime = Java.type("java.lang.Runtime");
+const runtime = Runtime.getRuntime();
+runtime.addShutdownHook(new java.lang.Thread(() => {
+  stopPathingMovement();
+  stopProgram();
+}));
 
 register('tick', () => {
   if (isWalking) updateMovement();
