@@ -91,14 +91,19 @@ class Keybinding {
    */
   setKey(key, down) {
     if (Client.isInGui() && !Client.isInChat()) return;
-    if (key === "a") mc.options.leftKey.setPressed(down);
-    if (key === "d") mc.options.rightKey.setPressed(down);
-    if (key === "s") mc.options.backKey.setPressed(down);
-    if (key === "w") mc.options.forwardKey.setPressed(down);
-    if (key === "space") mc.options.jumpKey.setPressed(down);
-    if (key === "shift") mc.options.sneakKey.setPressed(down);
-    if (key === "leftclick") mc.options.attackKey.setPressed(down);
-    if (key === "sprint") mc.options.sprintKey.setPressed(down);
+    const keyMap = {
+      a: mc.options.leftKey,
+      d: mc.options.rightKey,
+      s: mc.options.backKey,
+      w: mc.options.forwardKey,
+      space: mc.options.jumpKey,
+      shift: mc.options.sneakKey,
+      leftclick: mc.options.attackKey,
+      sprint: mc.options.sprintKey,
+    };
+    if (keyMap[key]) {
+      keyMap[key].setPressed(down);
+    }
   }
 
     /**
@@ -106,14 +111,17 @@ class Keybinding {
    * @returns {boolean} Whether the key is pressed
    */
   isKeyDown(key) {
-    if (key === "a") return mc.options.leftKey.isPressed();
-    if (key === "d") return mc.options.rightKey.isPressed();
-    if (key === "s") return mc.options.backKey.isPressed();
-    if (key === "w") return mc.options.forwardKey.isPressed();
-    if (key === "space") return mc.options.jumpKey.isPressed();
-    if (key === "shift") return mc.options.sneakKey.isPressed();
-    if (key === "leftclick") return mc.options.sneakKey.isPressed();
-    if (key === "sprint") return mc.options.sprintKey.isPressed();
+    const keyMap = {
+      a: mc.options.leftKey,
+      d: mc.options.rightKey,
+      s: mc.options.backKey,
+      w: mc.options.forwardKey,
+      space: mc.options.jumpKey,
+      shift: mc.options.sneakKey,
+      leftclick: mc.options.attackKey,
+      sprint: mc.options.sprintKey,
+    };
+    return keyMap[key] ? keyMap[key].isPressed() : false;
   }
 
   setKeysBasedOnYaw(yaw, jump = true) {
