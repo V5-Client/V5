@@ -5,29 +5,33 @@ const MessageType = Java.type("java.awt.TrayIcon.MessageType");
 
 class NotificationUtils {
   constructor() {
-    const SystemTray = Java.type("java.awt.SystemTray");
-    const SystemTrayInstance = SystemTray.getSystemTray();
-    const TrayIcon = Java.type("java.awt.TrayIcon");
-    const Toolkit = Java.type("java.awt.Toolkit");
-    this.trayIcon = null;
+    
+    if (System.getProperty("os.name").startsWith("Windows")) {
+      const SystemTray = Java.type("java.awt.SystemTray");
+      const SystemTrayInstance = SystemTray.getSystemTray();
+      const TrayIcon = Java.type("java.awt.TrayIcon");
+      const Toolkit = Java.type("java.awt.Toolkit");
+      let trayIcon = null;
 
-    try {
-      this.trayIcon = SystemTrayInstance
-        .getTrayIcons()
-        .find((t) => t.getToolTip() === "Client Alerts");
+      try {
+        trayIcon = SystemTrayInstance
+          .getTrayIcons()
+          .find((t) => t.getToolTip() === "Client Alerts");
 
-      if (this.trayIcon) return;
+        if (trayIcon) return;
 
-      const image = Toolkit.getDefaultToolkit().createImage(
-        "./config/ChatTriggers/assets/icon.png"
-      );
+        const image = Toolkit.getDefaultToolkit().createImage(
+          "./config/ChatTriggers/assets/icon.png"
+        );
 
-      this.trayIcon = new TrayIcon(image, "Client Alerts");
-      this.trayIcon.setImageAutoSize(true);
-      this.trayIcon.setToolTip("Client Alerts");
-      SystemTrayInstance.add(this.trayIcon);
-    } catch (e) {
-      ChatLib.chat("Failed to create system tray icon: " + e);
+
+        trayIcon = new TrayIcon(image, "Client Alerts");
+        trayIcon.setImageAutoSize(true);
+        trayIcon.setToolTip("Client Alerts");
+        SystemTrayInstance.add(trayIcon);
+      } catch (e) {
+        ChatLib.chat("Failed to create system tray icon: " + e);
+      }
     }
   }
   
