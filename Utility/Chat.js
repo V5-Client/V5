@@ -7,7 +7,7 @@ const date = new java.text.SimpleDateFormat(
 );
 
 class ChatClass {
-  _sendMessage(msg, isDebug = false) {
+  sendMsg(msg, isDebug = false) {
     if (!msg) return;
     // if (isDebug && !global.settingSelection?.ModuleManager?.getSetting("Other", "Debug Messages")) {
     //   return;
@@ -20,7 +20,7 @@ class ChatClass {
    * @param {string} msg
    */
   message(msg) {
-    this._sendMessage(msg, false);
+    this.sendMsg(msg, false);
   }
 
   /**
@@ -29,7 +29,7 @@ class ChatClass {
    * fix with gui
    */
   debugMessage(msg) {
-    this._sendMessage(msg, true);
+    this.sendMsg(msg, true);
   }
 
   log(msg) {
