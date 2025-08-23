@@ -47,10 +47,11 @@ jobs:
             ["jpg"]="🖼️"
           )
 
-          FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
+          FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $1, $2}')
 
           FILETYPES_EMOJI=""
           while read -r count ext; do
+            [ -z "$ext" ] && continue
             emoji="${EMOJI_MAP[$ext]:-📄}"
             FILETYPES_EMOJI+="$emoji $count  "
           done <<< "$FILETYPES"
