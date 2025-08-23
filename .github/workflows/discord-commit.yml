@@ -58,9 +58,9 @@ jobs:
           FILETYPES_EMOJI=${FILETYPES_EMOJI:-"📄 None"}
 
           {
-            echo "message<<EOF"
-            echo "$COMMIT_MESSAGE"
-            echo "EOF"
+            echo "message<<EOF" >> $GITHUB_OUTPUT
+            echo "$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
             echo "author=$AUTHOR_NAME"
             echo "login=$AUTHOR_LOGIN"
             echo "branch=$BRANCH_NAME"
