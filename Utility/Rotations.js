@@ -8,11 +8,11 @@ class RotationsTo {
     this.targetPitch = null;
     this.rotating = false;
 
-    this.Speed = 10;
-    this.tremorFrequency = 5;
+    this.Speed = 50;
+    this.tremorFrequency = 1;
     this.fadeExponent = 2.5;
-    this.Randomness = 0.75;
-    this.precision = 0.5;
+    this.Randomness = 0.25;
+    this.precision = 1;
 
     this.currentRandomYaw = 0;
     this.currentRandomPitch = 0;
