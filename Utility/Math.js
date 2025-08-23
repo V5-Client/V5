@@ -77,8 +77,8 @@ class MathUtilsClass {
     const diffX = pos1.x - pos2.x;
     const diffY = pos1.y - pos2.y;
     const diffZ = pos1.z - pos2.z;
-    let distanceFlat = Math.sqrt(diffX * diffX + diffZ * diffZ);
-    let distance = Math.sqrt(distanceFlat * distanceFlat + diffY * diffY);
+    const distanceFlat = Math.hypot(diffX, diffZ);
+    const distance = Math.hypot(diffX, diffY, diffZ);
     return { distance: distance, distanceFlat: distanceFlat, distanceY: diffY };
   }
 
@@ -90,8 +90,8 @@ class MathUtilsClass {
     const diffX = p1[0] - p2[0];
     const diffY = p1[1] - p2[1];
     const diffZ = p1[2] - p2[2];
-    let distanceFlat = Math.sqrt(diffX * diffX + diffZ * diffZ);
-    let distance = Math.sqrt(distanceFlat * distanceFlat + diffY * diffY);
+    const distanceFlat = Math.hypot(diffX, diffZ);
+    const distance = Math.hypot(diffX, diffY, diffZ);
     return { distance: distance, distanceFlat: distanceFlat, distanceY: diffY };
   }
 
@@ -163,8 +163,8 @@ class MathUtilsClass {
     let diffZ = z1 - z2;
 
     // Distances
-    let disFlat = Math.sqrt(diffX * diffX + diffZ * diffZ);
-    let dis = Math.sqrt(disFlat * disFlat + diffY * diffY);
+    const disFlat = Math.hypot(diffX, diffZ);
+    const dis = Math.hypot(diffX, diffY, diffZ);
 
     return { distance: dis, distanceFlat: disFlat, differenceY: diffY };
   }
