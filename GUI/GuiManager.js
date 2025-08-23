@@ -344,7 +344,10 @@ global.createCategoriesManager = (deps) => {
       Module_icon.draw(iconX, iconY - 10, iconWidth, iconHeight);
     });
 
-    if (!global.Categories.selected) return;
+    // Set default selection if none exists
+    if (!global.Categories.selected) {
+      global.Categories.selected = "Modules";
+    }
 
     const cat = global.Categories.categories.find(
       (c) => c.name === global.Categories.selected
@@ -530,7 +533,8 @@ global.createCategoriesManager = (deps) => {
       !wasCategoryClicked &&
       isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
-      global.Categories.selected = null;
+      // Don't set to null, keep the current selection or default to Modules or smth
+      // makes sure folder icon and separators remain visible
     }
 
     if (
