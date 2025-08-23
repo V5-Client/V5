@@ -8,6 +8,14 @@ const date = new java.text.SimpleDateFormat(
 );
 
 class ChatClass {
+  sendMsg(msg, isDebug = false) {
+    if (!msg) return;
+    // if (isDebug && !global.settingSelection?.ModuleManager?.getSetting("Other", "Debug Messages")) {
+    //   return;
+    // }
+    ChatLib.chat(Prefix + msg);
+  }
+
   /**
    * Sends a message with the client prefix.
    * @param {string} msg
