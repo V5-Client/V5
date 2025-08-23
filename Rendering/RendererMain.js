@@ -12,7 +12,7 @@ export default class RendererMain {
       size: new Vec3i(1, 1, 1),
       end: undefined,
       color: color,
-      depthTest: true,
+      depthTest: false,
       filled: false,
       lineWidth: 2,
     });
