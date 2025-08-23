@@ -55,7 +55,7 @@ jobs:
             FILETYPES_EMOJI+="$emoji $count  "
           done <<< "$FILETYPES"
 
-          FILETYPES_EMOJI=${FILETYPES_EMOJI:-"None"}
+          FILETYPES_EMOJI=${FILETYPES_EMOJI:-"📄 None"}
 
           {
             echo "message<<EOF"
