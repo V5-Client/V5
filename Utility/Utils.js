@@ -169,14 +169,9 @@ class UtilsClass {
   };
 
   playerIsCollided() {
-    let ABB = Player.getPlayer().getBoundingBox();
-    let boxes = this.getBlocks();
-    for (let i = 0; i < boxes.length; i++) {
-      if (boxes[i].intersects(ABB)) {
-        return true;
-      }
-    }
-    return false;
+    const playerBB = Player.getPlayer().getBoundingBox();
+    const blocks = this.getBlocks();
+    return blocks.some((block) => block.intersects(playerBB));
   }
 
   getBlocks() {

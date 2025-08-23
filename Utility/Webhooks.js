@@ -107,9 +107,7 @@ class Webhooks {
 
       if (Utils.area() === undefined) {
         this.payload = {
-          avatar_url: `https://minotar.net/cube/${Player.getUUID()
-            .toString()
-            .replace(/-/g, "")}/100.png`,
+          avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, "")}/100.png`,
           username: `${Player.getName()}`,
           embeds: [
             {
@@ -123,9 +121,7 @@ class Webhooks {
         };
       } else {
         this.payload = {
-          avatar_url: `https://minotar.net/cube/${Player.getUUID()
-            .toString()
-            .replace(/-/g, "")}/100.png`,
+          avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, "")}/100.png`,
           username: `${Player.getName()}`,
           embeds: [
             {

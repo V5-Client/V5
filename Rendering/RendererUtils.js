@@ -70,9 +70,13 @@ const RenderLayer = Java.type("net.minecraft.client.render.RenderLayer");
 const OptionalDouble = Java.type("java.util.OptionalDouble");
 const linesCache = new Map();
 const linesThroughWallsCache = new Map();
+let filledThroughWallsCache = null;
 export class RenderLayers {
-  static getFilledThroughWalls = () =>
-    RenderLayer.of(
+  static getFilledThroughWalls = () => {
+    if (filledThroughWallsCache) {
+      return filledThroughWallsCache;
+    }
+    return (filledThroughWallsCache = RenderLayer.of(
       "filled_through_walls",
       VertexFormats.POSITION_COLOR,
       VertexFormat.class_5596.TRIANGLE_STRIP, // .DrawMode.
@@ -84,7 +88,8 @@ export class RenderLayers {
         .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
         .layering(RenderPhase.POLYGON_OFFSET_LAYERING)
         .build(false)
-    );
+    ));
+  };
 
   static getLinesThroughWalls = (lineWidth = 1) => {
     if (linesThroughWallsCache.has(lineWidth)) {
