@@ -63,6 +63,11 @@ let Files = [
     Content: [],
   },
   {
+    path: "TOKEN_DO_NOT_SHARE.json",
+    FileType: "file",
+    Content: [],
+  },
+  {
     path: "responseMessages.txt",
     FileType: "text",
     Content: [

@@ -53,7 +53,7 @@ class AutoHarp {
           Guis.clickSlot(note.slot, false, "MIDDLE");
         }
       });
-    });
+    }).unregister();
 
     register("command", () => {
       this.Toggled = !this.Toggled;

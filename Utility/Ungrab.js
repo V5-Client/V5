@@ -31,7 +31,7 @@ class ungrabClass {
       Focused.set(mc, false); // stop regrab
 
       this.isUnGrabbed = true;
-    });
+    }).unregister();
   }
 
   reGrabMouse() {

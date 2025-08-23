@@ -92,7 +92,7 @@ let beachballer = register("tick", () => {
       if (tickCounter % 10 == 0) Keybind.rightClick();
       break;
   }
-});
+}).unregister();
 
 function setState(newState) {
   state = newState;
