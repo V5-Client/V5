@@ -1,4 +1,6 @@
 import "./GuiManager";
+import { clamp, isInside } from "./Utils";
+// import { getDiscordProfilePicture } from "./DiscordProfile"; // TODO: Implement Discord profile picture fetching
 
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
@@ -7,11 +9,12 @@ const UIRoundedRectangle = Java.type(
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
   .INSTANCE;
 const matrix = UMatrixStack.get();
+const UKeyboard = Java.type("gg.essential.universal.UKeyboard");
 
 const PADDING = 10;
 const BORDER_WIDTH = 2;
 const CORNER_RADIUS = 10;
-const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 0.5);
+const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 0.1);
 const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 0.8);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
@@ -19,17 +22,62 @@ const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
 const GRADIENT_TOP_COLOR = new Color(0.6, 0.4, 0.8, 1);
 const GRADIENT_BOTTOM_COLOR = new Color(0.4, 0.6, 0.8, 1);
 
+const ANIMATION_DURATION = 200; // Time in milliseconds for the unroll animation
+const PROFILE_PICTURE_SIZE = 20;
+const PROFILE_PICTURE_OUTLINE = 2;
+const SEARCH_ICON_SIZE = 20;
+const SEARCH_BAR_WIDTH = 150;
+
+let isOpening = false;
+let openStartTime = 0;
+
+let animatedBackground = {};
+let animatedTopPanel = {};
+let animatedLeftPanel = {};
+let animatedRightPanel = {};
+
+let searchBar = {
+    isExpanded: false,
+    isFocused: false,
+    animationStart: 0,
+    text: "",
+    cursorBlinkStart: 0,
+    showCursor: false,
+    currentWidth: SEARCH_ICON_SIZE,
+};
+
+const profileImage = Image.fromFile("./config/ChatTriggers/assets/profiletemp.png");
+const searchImage = Image.fromFile("./config/ChatTriggers/assets/search.png");
 let rectangles = {
   Background: {
     name: "Background",
     x: Renderer.screen.getWidth() / 2 - 300,
     y: Renderer.screen.getHeight() / 2 - 200,
     width: 600,
-    height: 400,
+    height: 420,
     radius: CORNER_RADIUS,
     color: BACKGROUND_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BACKGROUND_BORDER_COLOR,
+    isAnimated: true,
+  },
+  TopPanel: {
+    name: "Top",
+    get x() {
+      return rectangles.Background.x + PADDING;
+    },
+    get y() {
+      return rectangles.Background.y + PADDING;
+    },
+    get width() {
+      return rectangles.Background.width - PADDING * 2;
+    },
+    height: 30,
+    radius: CORNER_RADIUS,
+    color: BAR_COLOR,
+    borderWidth: BORDER_WIDTH,
+    borderColor: BAR_BORDER_COLOR,
+    isAnimated: true,
   },
   LeftPanel: {
     name: "Left",
@@ -37,14 +85,22 @@ let rectangles = {
       return rectangles.Background.x + PADDING;
     },
     get y() {
-      return rectangles.Background.y + PADDING;
+      return rectangles.TopPanel.y + rectangles.TopPanel.height + PADDING - 40;
     },
-    width: 100,
-    height: 380,
+    width: 50,
+    get height() {
+      const remainingSpace =
+        rectangles.Background.height -
+        PADDING * 3 -
+        rectangles.TopPanel.height +
+        40;
+      return remainingSpace;
+    },
     radius: CORNER_RADIUS,
     color: BAR_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
+    isAnimated: true,
   },
   RightPanel: {
     name: "Right",
@@ -52,26 +108,27 @@ let rectangles = {
       return rectangles.LeftPanel.x + rectangles.LeftPanel.width + PADDING;
     },
     get y() {
-      return rectangles.Background.y + PADDING;
+      return rectangles.TopPanel.y + rectangles.TopPanel.height + PADDING;
     },
-    width: 470,
-    height: 380,
+    get width() {
+      const remainingWidth =
+        rectangles.Background.width - PADDING * 3 - rectangles.LeftPanel.width;
+      return remainingWidth;
+    },
+    get height() {
+      const remainingSpace =
+        rectangles.Background.height - PADDING * 3 - rectangles.TopPanel.height;
+      return remainingSpace;
+    },
     radius: CORNER_RADIUS,
     color: BAR_COLOR,
     borderWidth: BORDER_WIDTH,
     borderColor: BAR_BORDER_COLOR,
+    isAnimated: true,
   },
 };
 
 const myGui = new Gui();
-
-const isInside = (mouseX, mouseY, rect) =>
-  mouseX >= rect.x &&
-  mouseX <= rect.x + rect.width &&
-  mouseY >= rect.y &&
-  mouseY <= rect.y + rect.height;
-
-const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
   UIRoundedRectangle.Companion.drawRoundedRectangle(
@@ -87,23 +144,34 @@ const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
 
 const drawRoundedRectangleWithBorder = (r) => {
   if (r.borderWidth && r.borderWidth > 0) {
-    drawRoundedRectangle({
-      x: r.x,
-      y: r.y,
-      width: r.width,
-      height: r.height,
-      radius: r.radius,
-      color: r.borderColor || r.color,
-    });
     const bw = r.borderWidth;
-    drawRoundedRectangle({
-      x: r.x + bw,
-      y: r.y + bw,
-      width: Math.max(0, r.width - bw * 2),
-      height: Math.max(0, r.height - bw * 2),
-      radius: Math.max(0, r.radius - bw),
-      color: r.color,
-    });
+    const innerWidth = Math.max(0, r.width - bw * 2);
+    const innerHeight = Math.max(0, r.height - bw * 2);
+    const innerRadius = Math.max(0, r.radius - bw);
+
+    // Only draw border if it's visible
+    if (r.borderColor && bw > 0) {
+      drawRoundedRectangle({
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+        radius: r.radius,
+        color: r.borderColor,
+      });
+    }
+
+    // Only draw inner rectangle if it has valid dimensions
+    if (innerWidth > 0 && innerHeight > 0) {
+      drawRoundedRectangle({
+        x: r.x + bw,
+        y: r.y + bw,
+        width: innerWidth,
+        height: innerHeight,
+        radius: innerRadius,
+        color: r.color,
+      });
+    }
   } else {
     drawRoundedRectangle(r);
   }
@@ -130,6 +198,7 @@ const drawGradientRoundedOutline = (
   topColor,
   bottomColor
 ) => {
+  if (height <= 0) return;
   radius = Math.min(radius, Math.min(width, height) / 2);
   const hw = lineWidth / 2;
   const ir = radius - hw;
@@ -139,38 +208,33 @@ const drawGradientRoundedOutline = (
     return interpolateColor(topColor, bottomColor, factor);
   };
 
-  // Draw vertical lines
-  for (let i = 0; i < height - 2 * radius; i++) {
+  // Draw vertical segments
+  const segmentHeight = Math.max(1, Math.floor((height - 2 * radius) / 20)); // Divide into 20 segments max
+
+  for (let i = 0; i < height - 2 * radius; i += segmentHeight) {
     const currentY = y + radius + i;
-    const color = getColorAtY(currentY);
-    Renderer.drawRect(color.getRGB(), x, currentY, lineWidth, 1);
-    Renderer.drawRect(
-      color.getRGB(),
-      x + width - lineWidth,
-      currentY,
-      lineWidth,
-      1
-    );
+    const remainingHeight = Math.min(segmentHeight, height - 2 * radius - i);
+    const color = getColorAtY(currentY + remainingHeight / 2); // Use middle color for segment
+
+    // Draw left and right vertical segments
+    Renderer.drawRect(color.getRGB(), x, currentY, lineWidth, remainingHeight);
+    Renderer.drawRect(color.getRGB(), x + width - lineWidth, currentY, lineWidth, remainingHeight);
   }
 
-  // Draw horizontal lines
-  Renderer.drawRect(
-    topColor.getRGB(),
-    x + radius,
-    y,
-    width - 2 * radius,
-    lineWidth
-  );
-  Renderer.drawRect(
-    bottomColor.getRGB(),
-    x + radius,
-    y + height - lineWidth,
-    width - 2 * radius,
-    lineWidth
-  );
+  // Draw horizontal lines with gradient approximation using segments
+  const horizontalSegments = Math.max(1, Math.floor((width - 2 * radius) / 10));
+  for (let i = 0; i < width - 2 * radius; i += horizontalSegments) {
+    const currentX = x + radius + i;
+    const remainingWidth = Math.min(horizontalSegments, width - 2 * radius - i);
 
-  // Draw corners LAST
-  const steps = 90;
+    // Top horizontal line - use top color
+    Renderer.drawRect(topColor.getRGB(), currentX, y, remainingWidth, lineWidth);
+
+    // Bottom horizontal line - use bottom color
+    Renderer.drawRect(bottomColor.getRGB(), currentX, y + height - lineWidth, remainingWidth, lineWidth);
+  }
+
+  const steps = Math.min(30, radius); // Adaptive steps based on radius
   const centers = {
     tl: { x: x + radius, y: y + radius },
     tr: { x: x + width - radius, y: y + radius },
@@ -178,27 +242,39 @@ const drawGradientRoundedOutline = (
     br: { x: x + width - radius, y: y + height - radius },
   };
 
+  const cornerPoints = [];
   for (let i = 0; i <= steps; i++) {
     const angle = (i / steps) * (Math.PI / 2);
     const sin = Math.sin(angle);
     const cos = Math.cos(angle);
 
-    const drawCornerPixel = (centerX, centerY, dx, dy) => {
-      const px = centerX + dx * ir;
-      const py = centerY + dy * ir;
+    cornerPoints.push({
+      tl: { dx: -cos, dy: -sin },
+      tr: { dx: cos, dy: -sin },
+      bl: { dx: -cos, dy: sin },
+      br: { dx: cos, dy: sin }
+    });
+  }
+
+  const pixelSize = Math.max(1, Math.floor(lineWidth / 2));
+  for (let i = 0; i < cornerPoints.length; i += Math.max(1, Math.floor(steps / 15))) {
+    const points = cornerPoints[i];
+
+    ['tl', 'tr', 'bl', 'br'].forEach(corner => {
+      const center = centers[corner];
+      const point = points[corner];
+      const px = center.x + point.dx * ir;
+      const py = center.y + point.dy * ir;
+      const color = getColorAtY(py - hw);
+
       Renderer.drawRect(
-        getColorAtY(py - hw).getRGB(),
+        color.getRGB(),
         px - hw,
         py - hw,
-        lineWidth,
-        lineWidth
+        pixelSize,
+        pixelSize
       );
-    };
-
-    drawCornerPixel(centers.tl.x, centers.tl.y, -cos, -sin); // Top left
-    drawCornerPixel(centers.tr.x, centers.tr.y, cos, -sin); // Top right
-    drawCornerPixel(centers.bl.x, centers.bl.y, -cos, sin); // Bottom left
-    drawCornerPixel(centers.br.x, centers.br.y, cos, sin); // Bottom right
+    });
   }
 };
 
@@ -228,6 +304,30 @@ const drawRoundedRectangleWithGradientOutline = (r, topColor, bottomColor) => {
   }
 };
 
+const drawCircularImage = (image, x, y, size) => {
+    if (!image || size <= 0) return;
+    const radius = size / 2;
+    const centerX = x + radius;
+    const centerY = y + radius;
+
+    GL11.glEnable(GL11.GL_STENCIL_TEST);
+    GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+    GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+    GL11.glStencilMask(0xFF);
+    GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+    GL11.glColorMask(false, false, false, false);
+
+    Renderer.drawCircle(new Color(1, 1, 1, 1).getRGB(), centerX, centerY, radius, 50);
+
+    GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+    GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+    GL11.glColorMask(true, true, true, true);
+
+    image.draw(x, y, size, size);
+
+    GL11.glDisable(GL11.GL_STENCIL_TEST);
+};
+
 const categoryManager = global.createCategoriesManager({
   rectangles: rectangles,
   draw: {
@@ -236,9 +336,7 @@ const categoryManager = global.createCategoriesManager({
     drawRoundedRectangleWithGradientOutline:
       drawRoundedRectangleWithGradientOutline,
   },
-  utils: {
-    isInside: isInside,
-  },
+  utils: {},
   colors: {
     gradientTop: GRADIENT_TOP_COLOR,
     gradientBottom: GRADIENT_BOTTOM_COLOR,
@@ -246,15 +344,124 @@ const categoryManager = global.createCategoriesManager({
 });
 
 const drawGUI = (mouseX, mouseY) => {
-  drawRoundedRectangleWithBorder(rectangles.Background);
-  drawRoundedRectangleWithGradientOutline(
-    rectangles.LeftPanel,
-    GRADIENT_TOP_COLOR,
-    GRADIENT_BOTTOM_COLOR
-  );
-  drawRoundedRectangleWithBorder(rectangles.RightPanel);
+  const elapsed = Date.now() - openStartTime;
+  const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
 
-  categoryManager.draw(mouseX, mouseY);
+  const targetBackground = rectangles.Background;
+  const startX = targetBackground.x + targetBackground.width / 2;
+  const startY = targetBackground.y + targetBackground.height / 2;
+
+  const currentWidth = targetBackground.width * progress;
+  const currentHeight = targetBackground.height * progress;
+
+  Object.assign(animatedBackground, targetBackground, {
+    x: startX - currentWidth / 2,
+    y: startY - currentHeight / 2,
+    width: currentWidth,
+    height: currentHeight,
+  });
+
+  Object.assign(animatedTopPanel, rectangles.TopPanel, {
+    x: animatedBackground.x + PADDING,
+    y: animatedBackground.y + PADDING,
+    width: (targetBackground.width - PADDING * 2) * progress,
+    height: rectangles.TopPanel.height * progress,
+  });
+
+  Object.assign(animatedLeftPanel, rectangles.LeftPanel, {
+    x: animatedBackground.x + PADDING,
+    y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
+    width: rectangles.LeftPanel.width * progress,
+    height: (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) * progress,
+  });
+
+  Object.assign(animatedRightPanel, rectangles.RightPanel, {
+    x: animatedLeftPanel.x + animatedLeftPanel.width + PADDING,
+    y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
+    width: (targetBackground.width - PADDING * 3 - rectangles.LeftPanel.width) * progress,
+    height: (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) * progress,
+  });
+
+  Client.getMinecraft().gameRenderer.renderBlur();
+
+  drawRoundedRectangleWithBorder(animatedBackground);
+  drawRoundedRectangleWithBorder(animatedTopPanel);
+  drawRoundedRectangleWithBorder(animatedLeftPanel);
+  drawRoundedRectangleWithBorder(animatedRightPanel);
+
+  if (progress > 0.8) {
+    // Profile Picture
+    const pfpX = animatedTopPanel.x + PADDING;
+    const pfpY = animatedTopPanel.y + (animatedTopPanel.height - PROFILE_PICTURE_SIZE) / 2;
+    const pfpSize = PROFILE_PICTURE_SIZE * progress;
+
+    Renderer.drawCircle(
+        new Color(0, 1, 0, 1).getRGB(),
+        pfpX + pfpSize / 2,
+        pfpY + pfpSize / 2,
+        pfpSize / 2 + PROFILE_PICTURE_OUTLINE,
+        50
+    );
+    drawCircularImage(profileImage, pfpX, pfpY, pfpSize);
+
+    // Search Bar
+    let searchAnimProgress = 1.0;
+    if (searchBar.animationStart > 0) {
+        searchAnimProgress = clamp((Date.now() - searchBar.animationStart) / ANIMATION_DURATION, 0, 1);
+        if (searchAnimProgress >= 1) {
+            searchBar.animationStart = 0;
+        }
+    }
+
+    const easedProgress = 1 - Math.pow(1 - searchAnimProgress, 3);
+    const targetWidth = searchBar.isExpanded ? SEARCH_BAR_WIDTH : SEARCH_ICON_SIZE;
+    const initialWidth = searchBar.isExpanded ? SEARCH_ICON_SIZE : SEARCH_BAR_WIDTH;
+
+    const currentSearchWidth = initialWidth + (targetWidth - initialWidth) * easedProgress;
+    searchBar.currentWidth = currentSearchWidth; // Update for click detection
+    const searchX = animatedTopPanel.x + animatedTopPanel.width - PADDING - currentSearchWidth;
+    const searchY = animatedTopPanel.y + (animatedTopPanel.height - SEARCH_ICON_SIZE) / 2;
+    const searchHeight = SEARCH_ICON_SIZE;
+
+    if (!searchBar.isExpanded && searchBar.animationStart === 0) {
+        // Collapsed and not animating
+        searchImage.draw(searchX, searchY, SEARCH_ICON_SIZE, SEARCH_ICON_SIZE);
+    } else {
+        // Expanded or animating
+        drawRoundedRectangle({
+            x: searchX,
+            y: searchY,
+            width: currentSearchWidth,
+            height: searchHeight,
+            radius: 8,
+            color: new Color(0.1, 0.1, 0.1, 1)
+        });
+
+        if (currentSearchWidth < SEARCH_ICON_SIZE + 20) {
+            // Fading into icon, or icon is just there while collapsing
+            const iconX = searchX + (currentSearchWidth - SEARCH_ICON_SIZE) / 2;
+            searchImage.draw(iconX, searchY, SEARCH_ICON_SIZE, SEARCH_ICON_SIZE);
+        } else {
+            // Expanded enough for text
+            Renderer.drawString(searchBar.text, searchX + 5, searchY + (searchHeight - 8) / 2, new Color(1,1,1,1).getRGB());
+
+            if (searchBar.isFocused) {
+                if (Date.now() - searchBar.cursorBlinkStart > 500) {
+                    searchBar.showCursor = !searchBar.showCursor;
+                    searchBar.cursorBlinkStart = Date.now();
+                }
+                if (searchBar.showCursor) {
+                    const textWidth = Renderer.getStringWidth(searchBar.text);
+                    Renderer.drawRect(new Color(1, 1, 1, 1).getRGB(), searchX + 5 + textWidth + 1, searchY + 4, 1, searchHeight - 8);
+                }
+            }
+        }
+    }
+  }
+
+  if (progress >= 1) {
+    categoryManager.draw(mouseX, mouseY);
+  }
 };
 
 myGui.registerDraw(drawGUI);
@@ -262,8 +469,32 @@ myGui.registerDraw(drawGUI);
 let dragging = false;
 
 const handleClick = (mouseX, mouseY) => {
+  const searchX = rectangles.TopPanel.x + rectangles.TopPanel.width - PADDING - searchBar.currentWidth;
+  const searchY = rectangles.TopPanel.y + (rectangles.TopPanel.height - SEARCH_ICON_SIZE) / 2;
+
+  const isInsideSearch = mouseX >= searchX && mouseX <= searchX + searchBar.currentWidth && mouseY >= searchY && mouseY <= searchY + SEARCH_ICON_SIZE;
+
+  if (isInsideSearch) {
+      if (!searchBar.isExpanded) {
+          searchBar.isExpanded = true;
+          searchBar.animationStart = Date.now();
+      }
+      searchBar.isFocused = true;
+      searchBar.cursorBlinkStart = Date.now();
+      searchBar.showCursor = true;
+  } else {
+      if (searchBar.isFocused) {
+          searchBar.isFocused = false;
+          if (searchBar.text.length === 0) {
+              searchBar.isExpanded = false;
+              searchBar.animationStart = Date.now();
+          }
+      }
+  }
+
   if (
     isInside(mouseX, mouseY, rectangles.Background) &&
+    !isInside(mouseX, mouseY, rectangles.TopPanel) &&
     !isInside(mouseX, mouseY, rectangles.LeftPanel) &&
     !isInside(mouseX, mouseY, rectangles.RightPanel)
   ) {
@@ -277,9 +508,24 @@ const handleClick = (mouseX, mouseY) => {
 
 const handleMouseDrag = (mouseX, mouseY) => {
   if (dragging) {
-    rectangles.Background.x = mouseX - rectangles.Background.dx;
-    rectangles.Background.y = mouseY - rectangles.Background.dy;
+    let newX = mouseX - rectangles.Background.dx;
+    let newY = mouseY - rectangles.Background.dy;
+
+    const screenWidth = Renderer.screen.getWidth();
+    const screenHeight = Renderer.screen.getHeight();
+
+    rectangles.Background.x = clamp(
+      newX,
+      0,
+      screenWidth - rectangles.Background.width
+    );
+    rectangles.Background.y = clamp(
+      newY,
+      0,
+      screenHeight - rectangles.Background.height
+    );
   }
+  categoryManager.handleMouseDrag(mouseX, mouseY);
 };
 
 const handleScroll = (mouseX, mouseY, dir) => {
@@ -296,8 +542,35 @@ myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
 
 myGui.registerMouseReleased(() => {
   dragging = false;
+  categoryManager.handleMouseRelease();
 });
 
 myGui.registerScrolled(handleScroll);
 
-register("command", () => myGui.open()).setName("gui");
+myGui.registerKeyTyped((char, keycode) => { // this entire part is vibecoded cuz i have no idea how to do typing shit, please help @rdbtCVS @qxionr 
+    if (searchBar.isFocused) {
+        if (keycode === 14) { // Backspace
+            if (searchBar.text.length > 0) {
+                searchBar.text = searchBar.text.substring(0, searchBar.text.length - 1);
+            }
+        } else if (keycode === 1) { // Escape
+            searchBar.isFocused = false;
+            if (searchBar.text.length === 0) {
+                searchBar.isExpanded = false;
+                searchBar.animationStart = Date.now();
+            }
+        } else if (ChatLib.isControlDown() && keycode === 47) { // V
+            searchBar.text += Client.getClipboard();
+        } else if (UKeyboard.isPrintable(keycode)) {
+            searchBar.text += char;
+        }
+        searchBar.cursorBlinkStart = Date.now();
+        searchBar.showCursor = true;
+    }
+});
+
+register("command", () => {
+  isOpening = true;
+  openStartTime = Date.now();
+  myGui.open();
+}).setName("gui");

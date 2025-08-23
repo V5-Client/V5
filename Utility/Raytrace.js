@@ -184,11 +184,8 @@ class rayTraceUtils {
       ClipContext.Fluid.NONE, // how to treat fluids
       Player.getPlayer() // the entity to ignore in the trace (usually yourself)
     );
-    let castResult = World.getWorld().clip(start, end, clipContext);
-    if (castResult && castResult.getBlockPos().equals(blockPos.toMCBlock())) {
-      return true;
-    }
-    return false;
+    const castResult = World.getWorld().clip(clipContext);
+    return castResult && castResult.getBlockPos().equals(blockPos.toMCBlock());
   }
 
   canHitVec3(Vector1, Vector2) {

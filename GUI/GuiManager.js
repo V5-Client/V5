@@ -1,56 +1,117 @@
 const Color = Java.type("java.awt.Color");
 
-const CATEGORY_BOX_HEIGHT = 70;
+const CATEGORY_BOX_HEIGHT = 40;
+
+const Module_icon = Image.fromFile(
+  "./config/ChatTriggers/assets/folder.png" // change to our own png
+);
 
 import { ToggleButton } from "./Toggle";
+import { Slider } from "./Slider";
+import { isInside } from "./Utils";
 
 if (!global.Categories) {
   global.Categories = {
-    categories: [],
-    selected: null,
+    categories: [
+      {
+        name: "Modules",
+        items: [],
+        subcategories: [],
+      },
+    ],
+    selected: "Modules",
     selectedItem: null,
     currentPage: "categories", // "categories" or "options"
     transitionProgress: 0,
     transitionDirection: 0,
     transitionStart: 0,
-    addCategory(name) {
-      if (!this.categories.find((c) => c.name === name)) {
-        this.categories.push({ name, items: [] });
-      }
-    },
-    addCategoryItem(categoryName, title, description, image) {
-      const category = this.categories.find((c) => c.name === categoryName);
+    selectedSubcategory: null,
+    selectedSubcategoryButton: null,
+    subcatTransitionProgress: 1,
+    subcatTransitionStart: 0,
+    subcatAnimationDuration: 200,
+    animationRect: null,
+    addCategoryItem(subcategoryName, title, description) {
+      const category = global.Categories.categories.find(
+        (c) => c.name === "Modules"
+      );
       if (!category) return;
-      category.items.push({
+
+      const newItem = {
         title,
         description,
         expanded: false,
-        image: Image.fromAsset(image),
         animation: CATEGORY_BOX_HEIGHT,
         components: [],
-      });
+        type: "item",
+        subcategoryName: subcategoryName,
+      };
+
+      if (subcategoryName) {
+        let subcategory = category.items.find(
+          (item) => item.type === "separator" && item.title === subcategoryName
+        );
+
+        if (!subcategory) {
+          subcategory = {
+            title: subcategoryName,
+            type: "separator",
+            items: [],
+          };
+          category.items.push(subcategory);
+          category.subcategories.push(subcategoryName);
+        }
+        subcategory.items.push(newItem);
+      } else {
+        category.items.push(newItem);
+      }
     },
 
-    addToggle(categoryName, itemName, toggleTitle) {
-      const category = this.categories.find((c) => c.name === categoryName);
-      if (!category) return;
-
-      const item = category.items.find((i) => i.title === itemName);
-      if (!item) return;
-
-      item.components.push(new ToggleButton(toggleTitle, 0, 0));
-    },
-    getToggleState(categoryName, itemName, toggleTitle) {
+    _findItem(categoryName, itemName) {
       const category = this.categories.find((c) => c.name === categoryName);
       if (!category) return null;
 
-      const item = category.items.find((i) => i.title === itemName);
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          const item = group.items.find((i) => i.title === itemName);
+          if (item) return item;
+        } else if (group.title === itemName) {
+          return group;
+        }
+      }
+      return null;
+    },
+
+    addToggle(categoryName, itemName, toggleTitle) {
+      const item = this._findItem(categoryName, itemName);
+      if (!item) return;
+      item.components.push(new ToggleButton(toggleTitle, 0, 0));
+    },
+
+    getToggleState(categoryName, itemName, toggleTitle) {
+      const item = this._findItem(categoryName, itemName);
       if (!item) return null;
 
       const toggle = item.components.find(
-        (c) => c.title === toggleTitle && typeof c.handleClick === "function"
+        (c) => c.title === toggleTitle && c instanceof ToggleButton
       );
       return toggle ? toggle.enabled : null;
+    },
+
+    addSlider(categoryName, itemName, sliderTitle) {
+      const item = this._findItem(categoryName, itemName);
+      if (!item) return;
+      item.components.push(new Slider(sliderTitle, 0, 0));
+    },
+
+    getSliderValue(categoryName, itemName, sliderTitle) {
+      const item = this._findItem(categoryName, itemName);
+      if (!item) return null;
+
+      const slider = item.components.find(
+        (c) => c.title === sliderTitle && c instanceof Slider
+      );
+      return slider ? slider.value : null;
     },
   };
 }
@@ -64,24 +125,26 @@ global.createCategoriesManager = (deps) => {
   const PADDING = 10;
   const CORNER_RADIUS = 10;
   const BORDER_WIDTH = 2;
-  const CATEGORY_BOX_PADDING = 10;
-  const ITEM_SPACING = 10;
+  const CATEGORY_BOX_PADDING = 5;
+  const ITEM_SPACING = 5;
+  const SEPARATOR_HEIGHT = 20;
+  const SUBCATEGORY_BUTTON_HEIGHT = 20;
+  const SUBCATEGORY_BUTTON_SPACING = 5;
 
-  const CATEGORY_INNER_LINE_COLOR = new Color(0.25, 0.25, 0.25, 1);
   const CATEGORY_TITLE_COLOR = 0xffffff;
-  const CATEGORY_SELECTED_COLOR = 0xccb380e6; // A brighter purple
   const CATEGORY_DESC_COLOR = 0xaaaaaa;
   const CATEGORY_BOX_COLOR = new Color(0.18, 0.18, 0.18, 1);
   const CATEGORY_BOX_HOVER_COLOR = new Color(0.25, 0.25, 0.25, 1);
+  const SEPARATOR_COLOR = new Color(0.25, 0.25, 0.25, 1);
+  const SUBCATEGORY_BUTTON_COLOR = new Color(0.15, 0.15, 0.15, 1);
+  const SUBCATEGORY_BUTTON_HOVER_COLOR = new Color(0.22, 0.22, 0.22, 0.8);
+  const CATEGORY_SELECTED_COLOR = new Color(0.502, 0.302, 0.702, 0.3);
+  const BACK_TEXT_COLOR = 0xccb380e6;
 
   const SCROLL_SPEED = 15;
-  const ANIMATION_DURATION = 300; // Smoother animation
+  const ANIMATION_DURATION = 300;
   let rightPanelScrollY = 0;
-  /**
-   * Helper function to calculate the bounding box for a category.
-   * @param {number} index - The index of the category.
-   * @returns {object} The bounding box with x, y, width, and height.
-   */
+
   const getCategoryRect = (index) => {
     return {
       x: deps.rectangles.LeftPanel.x + PADDING,
@@ -96,6 +159,152 @@ global.createCategoriesManager = (deps) => {
   };
   const easeInOutQuad = (t) =>
     t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
+    if (global.Categories.animationRect) {
+      const elapsed = Date.now() - global.Categories.subcatTransitionStart;
+      const rawProgress = Math.min(
+        1,
+        elapsed / global.Categories.subcatAnimationDuration
+      );
+      global.Categories.subcatTransitionProgress = easeInOutQuad(rawProgress);
+      const p = global.Categories.subcatTransitionProgress;
+
+      global.Categories.animationRect.x =
+        global.Categories.animationRect.startX +
+        (global.Categories.animationRect.endX -
+          global.Categories.animationRect.startX) * p;
+      global.Categories.animationRect.width =
+        global.Categories.animationRect.startWidth +
+        (global.Categories.animationRect.endWidth -
+          global.Categories.animationRect.startWidth) * p;
+
+      if (rawProgress >= 1) {
+        global.Categories.animationRect = null; // Animation is complete
+      }
+    }
+
+    let currentX = panelX + PADDING;
+    const subcategoriesToDraw = ["All", ...global.Categories.categories.find(
+      (c) => c.name === global.Categories.selected
+    ).subcategories];
+
+    subcategoriesToDraw.forEach((subcat) => {
+      const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+      const buttonRect = {
+        x: currentX,
+        y: yOffset,
+        width: buttonTextWidth,
+        height: SUBCATEGORY_BUTTON_HEIGHT,
+        radius: 5,
+        color: SUBCATEGORY_BUTTON_COLOR,
+      };
+
+      const isSelected =
+        (global.Categories.selectedSubcategory === subcat ||
+          (!global.Categories.selectedSubcategory && subcat === "All")) &&
+        !global.Categories.animationRect;
+      const isHovered = isInside(mouseX, mouseY, buttonRect);
+      const buttonColor = isSelected
+        ? CATEGORY_SELECTED_COLOR
+        : isHovered
+        ? SUBCATEGORY_BUTTON_HOVER_COLOR
+        : SUBCATEGORY_BUTTON_COLOR;
+
+      if (isSelected) {
+        global.Categories.selectedSubcategoryButton = buttonRect;
+      }
+
+      if (global.Categories.animationRect) {
+        deps.draw.drawRoundedRectangle({
+          x: global.Categories.animationRect.x,
+          y: global.Categories.animationRect.y,
+          width: global.Categories.animationRect.width,
+          height: global.Categories.animationRect.height,
+          radius: 5,
+          color: CATEGORY_SELECTED_COLOR,
+        });
+      } else if (isSelected) {
+        deps.draw.drawRoundedRectangle({
+          x: buttonRect.x,
+          y: buttonRect.y,
+          width: buttonRect.width,
+          height: buttonRect.height,
+          radius: 5,
+          color: CATEGORY_SELECTED_COLOR,
+        });
+      }
+
+      Renderer.drawString(
+        subcat,
+        currentX + 5,
+        yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2,
+        isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
+        false
+      );
+      currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+    });
+
+    return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+  };
+
+  const drawOptionsPanel = (panel, mouseX, mouseY) => {
+    const selectedItem = global.Categories.selectedItem;
+    if (!selectedItem) return;
+
+    let optionPanelX = panel.x;
+    if (global.Categories.transitionDirection === 1) {
+      optionPanelX += panel.width * (1 - global.Categories.transitionProgress);
+    } else if (global.Categories.transitionDirection === -1) {
+      optionPanelX += panel.width * global.Categories.transitionProgress;
+    }
+
+    const optionX = optionPanelX + PADDING;
+    const optionY = panel.y + PADDING;
+
+    // Draw background panel
+    deps.draw.drawRoundedRectangle({
+      x: optionX,
+      y: optionY,
+      width: panel.width - PADDING * 2,
+      height: panel.height - PADDING * 2,
+      radius: CORNER_RADIUS,
+      color: CATEGORY_BOX_COLOR,
+    });
+
+    // Draw back button
+    const backButtonText = "Back";
+    const backButtonX = optionX + 10;
+    const backButtonY = optionY + 10;
+    Renderer.drawString(backButtonText, backButtonX, backButtonY, BACK_TEXT_COLOR);
+
+    // Draw item title and description
+    Renderer.drawString(
+      selectedItem.title,
+      backButtonX,
+      optionY + 30,
+      CATEGORY_TITLE_COLOR,
+      false
+    );
+    Renderer.drawString(
+      selectedItem.description,
+      backButtonX + 10,
+      optionY + 45,
+      CATEGORY_DESC_COLOR,
+      false
+    );
+
+    // Draw components
+    let componentY = optionY + 70;
+    selectedItem.components.forEach((component) => {
+      if (typeof component.draw === "function") {
+        component.x = optionX + 10;
+        component.y = componentY;
+        component.draw();
+        componentY += 30;
+      }
+    });
+  };
 
   const draw = (mouseX, mouseY) => {
     if (global.Categories.transitionDirection !== 0) {
@@ -115,27 +324,24 @@ global.createCategoriesManager = (deps) => {
     global.Categories.categories.forEach((cat, i) => {
       const rect = getCategoryRect(i);
       const lineY = rect.y + rect.height - 2;
-      deps.draw.drawRoundedRectangle({
-        x: rect.x + 5,
-        y: lineY,
-        width: rect.width - 10,
-        height: 1,
-        radius: 0,
-        color: CATEGORY_INNER_LINE_COLOR,
-      });
 
-      const textColor =
-        global.Categories.selected === cat.name
-          ? CATEGORY_SELECTED_COLOR
-          : CATEGORY_TITLE_COLOR;
-      const textY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
-      Renderer.drawString(
-        cat.name,
-        rect.x + rect.width / 2 - Renderer.getStringWidth(cat.name) / 2,
-        textY,
-        textColor,
-        false
-      );
+      const iconY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
+      const iconX = rect.x + (rect.width - 25) / 2;
+      const iconWidth = 25;
+      const iconHeight = 25;
+
+      if (cat.name === "Modules" && global.Categories.selected === "Modules") {
+        deps.draw.drawRoundedRectangle({
+          x: iconX - 1,
+          y: iconY - 10,
+          width: iconWidth,
+          height: iconHeight,
+          radius: 5,
+          color: CATEGORY_SELECTED_COLOR,
+        });
+      }
+
+      Module_icon.draw(iconX, iconY - 10, iconWidth, iconHeight);
     });
 
     if (!global.Categories.selected) return;
@@ -146,10 +352,8 @@ global.createCategoriesManager = (deps) => {
     if (!cat) return;
 
     const panel = deps.rectangles.RightPanel;
-    const x = panel.x + PADDING;
     const panelWidth = panel.width - PADDING * 2;
-    const itemWidth = (panelWidth - ITEM_SPACING) / 2;
-    const itemHeight = CATEGORY_BOX_HEIGHT;
+    const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
 
     const scale = Renderer.screen.getScale();
     GL11.glEnable(GL11.GL_SCISSOR_TEST);
@@ -172,6 +376,7 @@ global.createCategoriesManager = (deps) => {
       global.Categories.currentPage === "categories" || transitionActive;
     const shouldDrawOptions =
       global.Categories.currentPage === "options" || transitionActive;
+
     if (shouldDrawItems) {
       let panelX = panel.x;
       if (global.Categories.transitionDirection === 1) {
@@ -179,121 +384,127 @@ global.createCategoriesManager = (deps) => {
       } else if (global.Categories.transitionDirection === -1) {
         panelX -= panel.width * (1 - global.Categories.transitionProgress);
       }
-      let y = panel.y + PADDING - rightPanelScrollY;
-      for (let i = 0; i < cat.items.length; i++) {
-        const item = cat.items[i];
-        const isLeft = i % 2 === 0;
-        const itemX =
-          panelX + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
 
-        const row = Math.floor(i / 2);
-        const rowY =
-          panel.y +
-          PADDING -
-          rightPanelScrollY +
-          row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+      let yOffset = panel.y + PADDING;
+      if (cat.subcategories.length > 0) {
+        yOffset = drawSubcategoryButtons(panelX, yOffset, mouseX, mouseY);
+      }
 
-        const itemRect = {
-          x: itemX,
-          y: rowY,
-          width: itemWidth,
-          height: CATEGORY_BOX_HEIGHT,
-          radius: CORNER_RADIUS,
-          color: CATEGORY_BOX_COLOR,
-          borderWidth: BORDER_WIDTH,
-        };
+      yOffset -= rightPanelScrollY;
+      let itemIndexInRow = 0;
+      const itemsToDisplay = global.Categories.selectedSubcategory
+        ? cat.items.filter(
+            (group) =>
+              group.type === "separator" &&
+              group.title === global.Categories.selectedSubcategory
+          )
+        : cat.items;
 
-        const isHovered = deps.utils.isInside(mouseX, mouseY, itemRect);
-        itemRect.color = isHovered
-          ? CATEGORY_BOX_HOVER_COLOR
-          : CATEGORY_BOX_COLOR;
+      itemsToDisplay.forEach((group) => {
+        if (group.type === "separator") {
+          const separatorY = yOffset + SEPARATOR_HEIGHT / 2;
+          const separatorX = panelX + PADDING;
+          const separatorWidth = panelWidth;
 
-        deps.draw.drawRoundedRectangleWithGradientOutline(
-          itemRect,
-          deps.colors.gradientTop,
-          deps.colors.gradientBottom
-        );
-        const ImageRect = {
-          x: itemRect.x + CATEGORY_BOX_PADDING,
-          y: itemRect.y + CATEGORY_BOX_PADDING - 4,
-          width: 70,
-          height: itemRect.height - CATEGORY_BOX_PADDING * 1.2,
-          radius: CORNER_RADIUS / 2,
-          color: new Color(0.15, 0.15, 0.15, 1),
-        };
-        deps.draw.drawRoundedRectangle(ImageRect);
-
-        if (item.image) {
-          item.image.draw(
-            ImageRect.x + 4,
-            ImageRect.y,
-            ImageRect.width - 7,
-            ImageRect.height
+          Renderer.drawRect(
+            SEPARATOR_COLOR.getRGB(),
+            separatorX,
+            separatorY,
+            separatorWidth,
+            1
           );
+          const separatorTextWidth = Renderer.getStringWidth(group.title);
+          const separatorTextX =
+            separatorX + separatorWidth / 2 - separatorTextWidth / 2;
+          Renderer.drawString(
+            group.title,
+            separatorTextX,
+            separatorY - 10,
+            CATEGORY_DESC_COLOR,
+            false
+          );
+          yOffset += SEPARATOR_HEIGHT;
+          let subcategoryItemsInRow = 0;
+          group.items.forEach((item) => {
+            const col = subcategoryItemsInRow % 3;
+            if (col === 0 && subcategoryItemsInRow > 0) {
+              yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+            }
+
+            const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
+            const itemRect = {
+              x: itemX,
+              y: yOffset,
+              width: itemWidth,
+              height: CATEGORY_BOX_HEIGHT,
+              radius: CORNER_RADIUS,
+              color: CATEGORY_BOX_COLOR,
+              borderWidth: 0.5,
+              borderColor: new Color(1, 1, 1, 0.5),
+            };
+
+            const isHovered = isInside(mouseX, mouseY, itemRect);
+            itemRect.color = isHovered
+              ? CATEGORY_BOX_HOVER_COLOR
+              : CATEGORY_BOX_COLOR;
+
+            deps.draw.drawRoundedRectangleWithBorder(itemRect);
+
+            Renderer.drawString(
+              item.title,
+              itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2,
+              yOffset + CATEGORY_BOX_HEIGHT / 2 - 4,
+              CATEGORY_TITLE_COLOR,
+              false
+            );
+            subcategoryItemsInRow++;
+          });
+          const itemsInSubcategory = group.items.length;
+          const numRows = Math.ceil(itemsInSubcategory / 3);
+          yOffset +=
+            numRows > 0 ? CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING : 0;
+        } else {
+          if (global.Categories.selectedSubcategory !== null) return;
+          const item = group;
+          const col = itemIndexInRow % 3;
+          if (col === 0 && itemIndexInRow > 0) {
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+          }
+
+          const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
+          const itemRect = {
+            x: itemX,
+            y: yOffset,
+            width: itemWidth,
+            height: CATEGORY_BOX_HEIGHT,
+            radius: CORNER_RADIUS,
+            color: CATEGORY_BOX_COLOR,
+            borderWidth: BORDER_WIDTH,
+          };
+
+          const isHovered = isInside(mouseX, mouseY, itemRect);
+          itemRect.color = isHovered
+            ? CATEGORY_BOX_HOVER_COLOR
+            : CATEGORY_BOX_COLOR;
+
+          deps.draw.drawRoundedRectangleWithGradientOutline(
+            itemRect,
+            deps.colors.gradientTop,
+            deps.colors.gradientBottom
+          );
+          Renderer.drawString(
+            item.title,
+            itemX + 5,
+            yOffset + CATEGORY_BOX_HEIGHT / 2 - 4,
+            CATEGORY_TITLE_COLOR,
+            false
+          );
+          itemIndexInRow++;
         }
-        Renderer.drawString(
-          item.title,
-          itemRect.x +
-            itemRect.width / 2 -
-            Renderer.getStringWidth(item.title) / 2 +
-            15,
-          itemRect.y + 10,
-          CATEGORY_TITLE_COLOR,
-          false
-        );
-      }
+      });
     }
-
     if (shouldDrawOptions) {
-      const selectedItem = global.Categories.selectedItem;
-      if (selectedItem) {
-        let optionPanelX = panel.x;
-        if (global.Categories.transitionDirection === 1) {
-          optionPanelX +=
-            panel.width * (1 - global.Categories.transitionProgress);
-        } else if (global.Categories.transitionDirection === -1) {
-          optionPanelX += panel.width * global.Categories.transitionProgress;
-        }
-
-        const optionX = optionPanelX + PADDING;
-        const optionY = panel.y + PADDING;
-
-        deps.draw.drawRoundedRectangle({
-          x: optionX,
-          y: optionY,
-          width: panel.width - PADDING * 2,
-          height: panel.height - PADDING * 2,
-          radius: CORNER_RADIUS,
-          color: CATEGORY_BOX_COLOR,
-        });
-
-        const backButtonText = "< Back";
-        const backButtonWidth = Renderer.getStringWidth(backButtonText);
-        const backButtonX = optionX + 10;
-        const backButtonY = optionY + 10;
-
-        Renderer.drawString(
-          backButtonText,
-          backButtonX,
-          backButtonY,
-          CATEGORY_SELECTED_COLOR
-        );
-
-        Renderer.drawString(
-          selectedItem.title,
-          backButtonX + backButtonWidth + 5,
-          optionY + 10,
-          CATEGORY_TITLE_COLOR,
-          false
-        );
-        Renderer.drawString(
-          selectedItem.description,
-          backButtonX + backButtonWidth + 5,
-          optionY + 30,
-          CATEGORY_DESC_COLOR,
-          false
-        );
-      }
+      drawOptionsPanel(panel, mouseX, mouseY);
     }
 
     GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -304,10 +515,11 @@ global.createCategoriesManager = (deps) => {
 
     const wasCategoryClicked = global.Categories.categories.some((cat, i) => {
       const rect = getCategoryRect(i);
-      if (deps.utils.isInside(mouseX, mouseY, rect)) {
+      if (isInside(mouseX, mouseY, rect)) {
         global.Categories.selected = cat.name;
         global.Categories.currentPage = "categories";
         global.Categories.selectedItem = null;
+        global.Categories.selectedSubcategory = null;
         rightPanelScrollY = 0;
         return true;
       }
@@ -316,7 +528,7 @@ global.createCategoriesManager = (deps) => {
 
     if (
       !wasCategoryClicked &&
-      deps.utils.isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
+      isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
     ) {
       global.Categories.selected = null;
     }
@@ -326,7 +538,7 @@ global.createCategoriesManager = (deps) => {
       global.Categories.selectedItem
     ) {
       const panel = deps.rectangles.RightPanel;
-      const backButtonText = "< Back";
+      const backButtonText = "Back";
       const backButtonWidth = Renderer.getStringWidth(backButtonText);
       const backButtonRect = {
         x: panel.x + PADDING + 10,
@@ -334,12 +546,27 @@ global.createCategoriesManager = (deps) => {
         width: backButtonWidth,
         height: 10,
       };
-      if (deps.utils.isInside(mouseX, mouseY, backButtonRect)) {
+      if (isInside(mouseX, mouseY, backButtonRect)) {
         global.Categories.transitionDirection = -1;
         global.Categories.transitionProgress = 0;
         global.Categories.transitionStart = Date.now();
         return;
       }
+
+      const components = global.Categories.selectedItem.components;
+      let wasComponentClicked = false;
+      if (components) {
+        components.forEach((component) => {
+          if (
+            typeof component.handleClick === "function" &&
+            component.handleClick(mouseX, mouseY)
+          ) {
+            wasComponentClicked = true;
+          }
+        });
+      }
+
+      if (wasComponentClicked) return;
     }
 
     if (
@@ -353,44 +580,122 @@ global.createCategoriesManager = (deps) => {
 
       const panel = deps.rectangles.RightPanel;
       const panelWidth = panel.width - PADDING * 2;
-      const itemWidth = (panelWidth - ITEM_SPACING) / 2;
+      const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
       const itemHeight = CATEGORY_BOX_HEIGHT;
+      let yOffset = panel.y + PADDING;
 
-      let y = panel.y + PADDING - rightPanelScrollY;
-      for (let i = 0; i < cat.items.length; i++) {
-        const item = cat.items[i];
-        const isLeft = i % 2 === 0;
-        const itemX =
-          panel.x + PADDING + (isLeft ? 0 : itemWidth + ITEM_SPACING);
+      if (cat.subcategories.length > 0) {
+        let currentX = panel.x + PADDING;
+        const subcategoriesToDraw = ["All", ...cat.subcategories];
+        for (const subcat of subcategoriesToDraw) {
+          const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+          const buttonRect = {
+            x: currentX,
+            y: yOffset,
+            width: buttonTextWidth,
+            height: SUBCATEGORY_BUTTON_HEIGHT,
+          };
+          if (isInside(mouseX, mouseY, buttonRect)) {
+            const newSubcatName = subcat === "All" ? null : subcat;
+            if (global.Categories.selectedSubcategory !== newSubcatName) {
+              const oldRect =
+                global.Categories.selectedSubcategoryButton || buttonRect;
+              global.Categories.selectedSubcategory = newSubcatName;
+              rightPanelScrollY = 0;
 
-        const row = Math.floor(i / 2);
-        const rowY =
-          panel.y +
-          PADDING -
-          rightPanelScrollY +
-          row * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+              // Start the animation
+              global.Categories.subcatTransitionStart = Date.now();
+              global.Categories.subcatTransitionProgress = 0;
+              global.Categories.animationRect = {
+                startX: oldRect.x,
+                startY: oldRect.y,
+                startWidth: oldRect.width,
+                startHeight: oldRect.height,
+                endX: buttonRect.x,
+                endY: buttonRect.y,
+                endWidth: buttonRect.width,
+                endHeight: buttonRect.height,
+                x: oldRect.x,
+                y: oldRect.y,
+                width: oldRect.width,
+                height: oldRect.height,
+              };
+              global.Categories.selectedSubcategoryButton = buttonRect;
+            }
+            return;
+          }
+          currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+        }
+        yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+      }
 
-        const rect = {
-          x: itemX,
-          y: rowY,
-          width: itemWidth,
-          height: itemHeight,
-        };
+      yOffset -= rightPanelScrollY;
+      let itemIndexInRow = 0;
 
-        if (deps.utils.isInside(mouseX, mouseY, rect)) {
-          // forward transition
-          global.Categories.transitionDirection = 1;
-          global.Categories.transitionProgress = 0;
-          global.Categories.transitionStart = Date.now();
-          global.Categories.selectedItem = item;
-          return;
+      const itemsToDisplay = global.Categories.selectedSubcategory
+        ? cat.items.filter(
+            (group) =>
+              group.type === "separator" &&
+              group.title === global.Categories.selectedSubcategory
+          )
+        : cat.items;
+
+      for (const group of itemsToDisplay) {
+        if (group.type === "separator") {
+          yOffset += SEPARATOR_HEIGHT;
+          let subcategoryItemsInRow = 0;
+          for (const item of group.items) {
+            const col = subcategoryItemsInRow % 3;
+            if (col === 0 && subcategoryItemsInRow > 0) {
+              yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+            }
+            const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
+            const rect = {
+              x: itemX,
+              y: yOffset,
+              width: itemWidth,
+              height: itemHeight,
+            };
+            if (isInside(mouseX, mouseY, rect)) {
+              global.Categories.transitionDirection = 1;
+              global.Categories.transitionProgress = 0;
+              global.Categories.transitionStart = Date.now();
+              global.Categories.selectedItem = item;
+              return;
+            }
+            subcategoryItemsInRow++;
+          }
+          const itemsInSubcategory = group.items.length;
+          const numRows = Math.ceil(itemsInSubcategory / 3);
+          yOffset +=
+            numRows > 0 ? CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING : 0;
+        } else {
+          const item = group;
+          const col = itemIndexInRow % 3;
+          if (col === 0 && itemIndexInRow > 0) {
+            yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+          }
+          const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
+          const rect = {
+            x: itemX,
+            y: yOffset,
+            width: itemWidth,
+            height: itemHeight,
+          };
+          if (isInside(mouseX, mouseY, rect)) {
+            global.Categories.transitionDirection = 1;
+            global.Categories.transitionProgress = 0;
+            global.Categories.transitionStart = Date.now();
+            global.Categories.selectedItem = item;
+            return;
+          }
+          itemIndexInRow++;
         }
       }
     } else if (
       global.Categories.currentPage === "options" &&
-      !deps.utils.isInside(mouseX, mouseY, deps.rectangles.RightPanel)
+      !isInside(mouseX, mouseY, deps.rectangles.RightPanel)
     ) {
-      // backward transition
       global.Categories.transitionDirection = -1;
       global.Categories.transitionProgress = 0;
       global.Categories.transitionStart = Date.now();
@@ -399,25 +704,57 @@ global.createCategoriesManager = (deps) => {
 
   const handleScroll = (mouseX, mouseY, dir) => {
     if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      const components = global.Categories.selectedItem.components;
+      if (components) {
+        components.forEach((component) => {
+          if (typeof component.handleScroll === "function") {
+            component.handleScroll(mouseX, mouseY, dir);
+          }
+        });
+      }
+      return;
+    }
+    if (
       global.Categories.currentPage !== "categories" ||
       global.Categories.transitionDirection !== 0
     )
       return;
 
     const panel = deps.rectangles.RightPanel;
-    if (
-      !global.Categories.selected ||
-      !deps.utils.isInside(mouseX, mouseY, panel)
-    ) {
+    if (!global.Categories.selected || !isInside(mouseX, mouseY, panel)) {
       return;
     }
 
     const cat = global.Categories.categories.find(
       (c) => c.name === global.Categories.selected
     );
-    const totalContentHeight =
-      Math.ceil(cat.items.length / 2) *
-      (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+
+    let totalContentHeight = 0;
+    if (cat.subcategories.length > 0) {
+      totalContentHeight += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+    }
+
+    const itemsToDisplay = global.Categories.selectedSubcategory
+      ? cat.items.filter(
+          (group) =>
+            group.type === "separator" &&
+            group.title === global.Categories.selectedSubcategory
+        )
+      : cat.items;
+
+    for (const group of itemsToDisplay) {
+      if (group.type === "separator") {
+        totalContentHeight += SEPARATOR_HEIGHT;
+        const itemsInRows = Math.ceil(group.items.length / 3);
+        totalContentHeight +=
+          itemsInRows * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+      } else {
+        totalContentHeight += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
+      }
+    }
 
     const maxScroll = Math.max(0, totalContentHeight - panel.height + PADDING);
     const direction = dir > 0 ? -1 : 1;
@@ -425,5 +762,43 @@ global.createCategoriesManager = (deps) => {
     rightPanelScrollY = Math.max(0, Math.min(rightPanelScrollY, maxScroll));
   };
 
-  return { draw, handleClick, handleScroll };
+  const handleMouseDrag = (mouseX, mouseY) => {
+    if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      const components = global.Categories.selectedItem.components;
+      if (components) {
+        components.forEach((component) => {
+          if (typeof component.handleMouseDrag === "function") {
+            component.handleMouseDrag(mouseX, mouseY);
+          }
+        });
+      }
+    }
+  };
+
+  const handleMouseRelease = () => {
+    if (
+      global.Categories.currentPage === "options" &&
+      global.Categories.selectedItem
+    ) {
+      const components = global.Categories.selectedItem.components;
+      if (components) {
+        components.forEach((component) => {
+          if (typeof component.handleMouseRelease === "function") {
+            component.handleMouseRelease();
+          }
+        });
+      }
+    }
+  };
+
+  return {
+    draw,
+    handleClick,
+    handleScroll,
+    handleMouseDrag,
+    handleMouseRelease,
+  };
 };
