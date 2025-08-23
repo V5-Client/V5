@@ -17,7 +17,6 @@ class NukerUtilsClass {
     this.sequence = 1
 
     register("packetSent", (packet) => {
-      ChatLib.chat(packet.getSequence())
       if (packet.getSequence() != 0) this.sequence = packet.getSequence() + 1
     }).setFilteredClass(PlayerActionC2SPacket)
 
@@ -109,7 +108,6 @@ class NukerUtilsClass {
       if (this.delay > 50) Client.scheduleTask(1, () => MiningBot.ticksMined--)
       this.delay = 0
     }
-    ChatLib.chat("nuking block")
 
     this.lastNukeTime = Date.now()
     this.tickCounter = ticks
