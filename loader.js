@@ -29,6 +29,11 @@ import "./QOL/BeachBaller.js";
 import "./QOL/Nuker.js";
 import "./Utility/MiningUtils.js";
 //import "./Macro/MiningBot.js"
+import "./Utility/Rotations.js";
+
+register("command", (yaw, pitch) => {
+  Rotations.rotateToAngles(yaw, pitch);
+}).setName("rotate");
 
 /* Mixins */
 import {
@@ -38,6 +43,7 @@ import {
   emptyGrass,
   emptyTallGrass,
 } from "./mixins.js";
+import { Rotations } from "./Utility/Rotations.js";
 
 fullStainedGlassPane.attach((instance, cir) => {
   const VoxelShapes = Java.type("net.minecraft.util.shape.VoxelShapes");
