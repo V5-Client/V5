@@ -344,10 +344,7 @@ global.createCategoriesManager = (deps) => {
       Module_icon.draw(iconX, iconY - 10, iconWidth, iconHeight);
     });
 
-    // Set default selection if none exists 
-    /*if (!global.Categories.selected) {
-      global.Categories.selected = "Modules";
-    } */
+    
 
     const cat = global.Categories.categories.find(
       (c) => c.name === global.Categories.selected
