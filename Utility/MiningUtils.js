@@ -10,6 +10,48 @@ import { Keybind } from "./Keybinding";
 import { Flowstate } from "./Flowstate";
 import { registerEventSB } from "./SkyblockEvents";
 
+const blockHardness = {
+  /* Mithril */
+  5: 2000, // Titanium
+  143: 1500, // Blue Wool Mithril
+  495: 800, // Prismarine Mithril
+  461: 500, // Cyan Terracotta Mithril
+  147: 500, // Gray Wool Mithril
+  /* Tunnels */
+  524: 6000, // Glacite
+  268: 5600, // Tungsten Clay
+  318: 5600, // Tungsten Cobble
+  464: 5600, // Umber Brown Terracotta
+  595: 5600, // Umber Smooth Red Sandstone
+  522: 5600, // Umber Terracotta
+  /* Gems (Panes) */
+  479: 5200, // Aquamarine
+  480: 5200, // Citrine
+  481: 5200, // Peridot
+  483: 5200, // Onyx
+  470: 4800, // Jasper
+  472: 3800, // Topaz
+  469: 3000, // Amber
+  478: 3000, // Amethyst
+  473: 3000, // Jade
+  471: 3000, // Sapphire
+  482: 2300, // Ruby
+  /* Gems (Blocks) */
+  296: 5200, // Aquamarine
+  297: 5200, // Citrine
+  298: 5200, // Peridot
+  300: 5200, // Onyx
+  287: 4800, // Jasper
+  289: 3800, // Topaz
+  286: 3000, // Amber
+  295: 3000, // Amethyst
+  290: 3000, // Jade
+  288: 3000, // Sapphire
+  299: 2300, // Ruby
+  // Gold
+  173: 600,
+};
+
 class MiningUtilClass {
   constructor() {
     this.miningSpeed = "" || null;
@@ -295,60 +337,8 @@ class MiningUtilClass {
       Speed *= 3.5;
     }
 
-    const blockdata = {
-      /* BlockID : hardness */
-
-      /* Mithril */
-      5: { hardness: 2000 }, // Titanium
-      143: { hardness: 1500 }, // Blue Wool Mithril
-      495: { hardness: 800 }, // Prismarine Mithril
-      461: { hardness: 500 }, // Cyan Terracotta Mithril
-      147: { hardness: 500 }, // Gray Wool Mithril
-
-      /* Tunnels */
-      524: { hardness: 6000 }, // Glacite
-      268: { hardness: 5600 }, // Tungsten Clay
-      318: { hardness: 5600 }, // Tungsten Cobble
-      464: { hardness: 5600 }, // Umber Brown Terracotta
-      595: { hardness: 5600 }, // Umber Smooth Red Sandstone
-      522: { hardness: 5600 }, // Umber Terracotta
-
-      /* Gems (Panes) */
-      // Tunnels
-      479: { hardness: 5200 }, // Aquamarine
-      480: { hardness: 5200 }, // Citrine
-      481: { hardness: 5200 }, // Peridot
-      483: { hardness: 5200 }, // Onyx
-      // Crystal Hollows
-      470: { hardness: 4800 }, // Jasper
-      472: { hardness: 3800 }, // Topaz
-      469: { hardness: 3000 }, // Amber
-      478: { hardness: 3000 }, // Amethyst
-      473: { hardness: 3000 }, // Jade
-      471: { hardness: 3000 }, // Sapphire
-      482: { hardness: 2300 }, // Ruby
-
-      /* Gems (Blocks) */
-      // Tunnels
-      296: { hardness: 5200 }, // Aquamarine
-      297: { hardness: 5200 }, // Citrine
-      298: { hardness: 5200 }, // Peridot
-      300: { hardness: 5200 }, // Onyx
-      // Crystal Hollows
-      287: { hardness: 4800 }, // Jasper
-      289: { hardness: 3800 }, // Topaz
-      286: { hardness: 3000 }, // Amber
-      295: { hardness: 3000 }, // Amethyst
-      290: { hardness: 3000 }, // Jade
-      288: { hardness: 3000 }, // Sapphire
-      299: { hardness: 2300 }, // Ruby
-
-      // Gold
-      173: { hardness: 600 },
-    };
-
-    if (blockdata[BlockID].hardness) {
-      const { hardness } = blockdata[BlockID];
+    const hardness = blockHardness[BlockID];
+    if (hardness) {
       return this.returnSpeed(
         Math.round((hardness * 30) / Speed),
         MiningOffset
@@ -438,25 +428,22 @@ class MiningUtilClass {
       heat: "♨",
     };
 
-    let symbol = symbols[type.toLowerCase()];
+    const symbol = symbols[type.toLowerCase()];
     if (!symbol) return 0;
 
-    let lines = Scoreboard.getLines();
+    const line = Scoreboard.getLines().find((line) =>
+      String(line).includes(symbol)
+    );
 
-    for (let i = 0; i < lines.length; i++) {
-      let str = String(lines[i]);
-      if (str.indexOf(symbol) !== -1) {
-        let clean = str.replace(/§[0-9A-FK-OR]/gi, "");
-
-        let regex = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${symbol}`);
-
-        let match = clean.match(regex);
-        if (match) {
-          return match[1];
-        }
+    if (line) {
+      const clean = ChatLib.removeFormatting(String(line));
+      const match = clean.match(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${symbol}`));
+      if (match) {
+        return parseFloat(match[1]);
       }
     }
-    return 0; // not found
+
+    return 0;
   }
 
   /**
