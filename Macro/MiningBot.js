@@ -1,5 +1,6 @@
 import RendererMain from "../Rendering/RendererMain";
 import { Rotations } from "../Utility/Rotations";
+import { Utils } from "../Utility/Utils";
 
 class MiningBot {
   constructor() {
@@ -80,7 +81,13 @@ class MiningBot {
 // debugging
 const bot = new MiningBot();
 
-register("command", () => bot.scanForBlock(bot.mithrilCosts)).setName("scan");
+register("command", () => {
+  bot.scanForBlock(bot.mithrilCosts);
+  let speed = Utils.getConfigFile("miningstats.json");
+  if (speed) {
+    ChatLib.chat(speed.speed);
+  }
+}).setName("scan");
 
 register("postRenderWorld", () => {
   if (bot.foundLocations.length > 0) {
