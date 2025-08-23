@@ -101,7 +101,7 @@ class UtilsClass {
    */
   includesLore(lore, string) {
     for (let i = 0; i < lore.length; i++) {
-      if (lore[i].removeFormatting().includes(string)) return true;
+      if (ChatLib.removeFormatting(lore[i]).includes(string)) return true;
     }
   }
 
@@ -131,11 +131,11 @@ class UtilsClass {
   };
 
   /**
-       * @param {String} ModuleName
-       * @param {String[][]} Items
-       * @returns {Boolean}
-        checks if all input items are in the hotbar
-    */
+   * @param {String} ModuleName
+   * @param {String[][]} Items
+   * @returns {Boolean}
+   * checks if all input items are in the hotbar
+   */
   checkItems = (ModuleName, Items) => {
     let Missing = [];
     for (let i = 0; i < Items.length; i++) {
@@ -169,17 +169,12 @@ class UtilsClass {
   };
 
   playerIsCollided() {
-    let ABB = Player.getPlayer().getBoundingBox();
-    let boxes = this.getBlocks();
-    for (let i = 0; i < boxes.length; i++) {
-      if (boxes[i].intersects(ABB)) {
-        return true;
-      }
-    }
-    return false;
+    const playerBB = Player.getPlayer().getBoundingBox();
+    const blocks = this.getBlocks();
+    return blocks.some((block) => block.intersects(playerBB));
   }
 
-  /*getBlocks() {
+  getBlocks() {
     let cords = [
       Math.floor(Player.getX()),
       Math.floor(Player.getY()),

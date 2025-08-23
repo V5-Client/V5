@@ -3,7 +3,7 @@ name: Send Commit Message to Discord
 on:
   push:
     branches:
-      - main  # Change if needed
+      - '**'
 
 jobs:
   notify-discord:
@@ -11,15 +11,114 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Get latest commit message
+      - name: Get commit info
         id: commit
         run: |
-          echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+
+          # Censor sensitive repo URL
+          COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed 's#https://github.com/qxionr/-Placeholder-Client#[REPO-URL]#g')
+
+          AUTHOR_NAME=$(git log -1 --pretty=%an)
+          AUTHOR_LOGIN="${{ github.actor }}"
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
+            ADDED=$(git show --shortstat HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
+            DELETED=$(git show --shortstat HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+            FILES=$(git show --pretty="" --name-only HEAD)
+          else
+            ADDED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
+            DELETED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+            FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
+
+          # Count file extensions
+          declare -A EMOJI_MAP=(
+            ["js"]="<:js:1408198931111739402>"
+            ["json"]="<:json:1408199161899253860>"
+            ["yaml"]="<:yml:1408200157593468948>"
+            ["yml"]="<:yml:1408200157593468948>"
+            ["png"]="🖼️"
+            ["jpg"]="🖼️"
+          )
+
+          FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $1, $2}')
+
+          FILETYPES_EMOJI=""
+          while read -r count ext; do
+            [ -z "$ext" ] && continue
+            emoji="${EMOJI_MAP[$ext]:-📄}"
+            FILETYPES_EMOJI+="$emoji $count  "
+          done <<< "$FILETYPES"
+
+          FILETYPES_EMOJI=${FILETYPES_EMOJI:-"📄 None"}
+
+          {
+            echo "message<<EOF" >> $GITHUB_OUTPUT
+            echo "$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "author=$AUTHOR_NAME"
+            echo "login=$AUTHOR_LOGIN"
+            echo "branch=$BRANCH_NAME"
+            echo "timestamp=$TIMESTAMP"
+            echo "added=$ADDED"
+            echo "deleted=$DELETED"
+            echo "filetypes=$FILETYPES_EMOJI"
+          } >> $GITHUB_OUTPUT
+
+      - name: Map GitHub user -> Discord user
+        id: mapuser
+        run: |
+          declare -A USER_MAP
+          USER_MAP=(
+            ["WaterPheonix196"]="<@899647076370092042>"
+            ["qxionr"]="<@790294721943699477>"
+            ["quiteboringv2"]="<@1367543367277219840>"
+            ["yourgithub"]="<@1234567890123456789>"
+          )
+
+          GH_USER="${{ steps.commit.outputs.login }}"
+          DISCORD_USER="${USER_MAP[$GH_USER]:-$GH_USER}"
+          echo "discord=$DISCORD_USER" >> $GITHUB_OUTPUT
 
       - name: Send message to Discord
         run: |
-          payload=$(jq -n --arg content "**New commit pushed:** ${{ steps.commit.outputs.message }}" '{content: $content}')
+          payload=$(jq -n \
+            --arg username "Aurelia Commits" \
+            --arg avatar_url "https://cdn.donmai.us/sample/bb/4d/__os_tan_and_2_more_drawn_by_raviolimavioli__sample-bb4d90d601466faa9ff6bc816869a25d.jpg" \
+            --arg title "New Commit" \
+            --arg description "${{ steps.commit.outputs.message }}" \
+            --arg author "${{ steps.mapuser.outputs.discord }}" \
+            --arg branch "${{ steps.commit.outputs.branch }}" \
+            --arg added "+${{ steps.commit.outputs.added }} lines" \
+            --arg deleted "-${{ steps.commit.outputs.deleted }} lines" \
+            --arg filetypes "${{ steps.commit.outputs.filetypes }}" \
+            --arg timestamp "${{ steps.commit.outputs.timestamp }}" \
+            --argjson color 3447003 \
+            '{
+              "username": $username,
+              "avatar_url": $avatar_url,
+              "embeds": [
+                {
+                  "title": $title,
+                  "description": $description,
+                  "color": $color,
+                  "fields": [
+                    {"name": "Author", "value": $author, "inline": true},
+                    {"name": "Branch", "value": $branch, "inline": true},
+                    {"name": "Lines Changed", "value": ($added + " / " + $deleted), "inline": false},
+                    {"name": "File Types", "value": $filetypes, "inline": false}
+                  ],
+                  "timestamp": $timestamp
+                }
+              ]
+            }')
+
           curl -X POST -H "Content-Type: application/json" \
                -d "$payload" \
                "https://discord.com/api/webhooks/1403199360476385443/7NUo2rew815mMHawYEkDUzHp52SDwZMvdlDYwosE-UlDfpxrK-GFro7W0ZUA-Mo6yGOq"

@@ -1,15 +1,6 @@
 import { Vector } from "./DataClasses/Vec";
 import { Utils } from "./Utils";
 
-/**
- *TODO -> Probably Recode 💀
- *
- * Settings:
- *  Speed       : rotation speed multiplier (0.06 default) (60)
- *  Randomness  : max jitter offset in degrees (0.05 default) (5)
- *  TremorFreq  : jitter updates per second (1 default) ()
- *  Fade        : how jitter fades near the target (exponent, 1 default)
- */
 class RotationsTo {
   constructor() {
     this.targetYaw = null;
@@ -47,7 +38,6 @@ class RotationsTo {
         let dy = this.targetVector.y - (playerPos.y + eyeHeight);
         let dz = this.targetVector.z - playerPos.z;
 
-        // Calculate yaw in degrees
         this.targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         let dist = Math.sqrt(dx * dx + dz * dz);
         this.targetPitch = Math.atan2(-dy, dist) * (180 / Math.PI);
@@ -60,8 +50,6 @@ class RotationsTo {
         Math.abs(yawDiff) < this.precision &&
         Math.abs(pitchDiff) < this.precision
       ) {
-        player.setYaw(this.targetYaw);
-        player.setPitch(this.targetPitch);
         this.rotating = false;
 
         this.actions.forEach((action) => {

@@ -32,7 +32,7 @@ export default class RenderLib3d {
     const b = color.getBlue() / 255;
     const a = color.getAlpha() / 255;
 
-    Renderer.pushMatrix().translate(start.getX(), start.getY(), start.getZ());
+    Renderer.pushMatrix().translate(start.getX() - Client.camera.getX(), start.getY() - Client.camera.getY(), start.getZ() - Client.camera.getZ()); //it was commented out in the original one, idk why tbh
     // Renderer.pushMatrix().translate(start.getX() - Client.camera.getX(), start.getY() - Client.camera.getY(), start.getZ() - Client.camera.getZ());
 
     Renderer.disableCull().enableBlend().depthMask(false);
