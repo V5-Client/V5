@@ -185,21 +185,6 @@ class InventoryUtilsClass {
     return 0;
   }
 
-  /**
-   * Finds an item in the hotbar and returns its slot
-   * @param {string} itemName - The name of the item to find
-   * @returns {number} - The slot of the item, or -1 if not found
-   */
-  findItemInHotbar(itemName) {
-    for (let slot = 0; slot < 8; slot++) {
-      let item = Player.getInventory()?.getStackInSlot(slot);
-      if (item && item.getName().includes(itemName)) {
-        return slot;
-      }
-    }
-    return -1;
-  }
-
   stopInGui() {
     if (this.guiName !== "null") {
       Keybind.stopMovement();

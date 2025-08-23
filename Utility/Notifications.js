@@ -5,6 +5,7 @@ const MessageType = Java.type("java.awt.TrayIcon.MessageType");
 
 class NotificationUtils {
   constructor() {
+    
     if (System.getProperty("os.name").startsWith("Windows")) {
       const SystemTray = Java.type("java.awt.SystemTray");
       const SystemTrayInstance = SystemTray.getSystemTray();
@@ -22,6 +23,7 @@ class NotificationUtils {
         const image = Toolkit.getDefaultToolkit().createImage(
           "./config/ChatTriggers/assets/icon.png"
         );
+
 
         trayIcon = new TrayIcon(image, "Client Alerts");
         trayIcon.setImageAutoSize(true);
