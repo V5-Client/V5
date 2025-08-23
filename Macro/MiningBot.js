@@ -54,7 +54,7 @@ class MiningBot {
 
             let distance =
               Math.abs(x - playerX) +
-              Math.abs(y - (playerY + 1.95)) + // rough distance of eyes (i think and fix this)
+              Math.abs(y - (playerY + 1.62)) + // rough distance of eyes (i think and fix this) || it's 1.62 lmfao -epsilon
               Math.abs(z - playerZ);
 
             let totalCost = target[blockName] + distance;
