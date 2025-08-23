@@ -49,7 +49,6 @@ jobs:
 
           FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
 
-          # Replace extensions with emojis if available, fallback 📄
           FILETYPES_EMOJI=""
           while read -r count ext; do
             emoji="${EMOJI_MAP[$ext]:-📄}"
@@ -58,16 +57,18 @@ jobs:
 
           FILETYPES_EMOJI=${FILETYPES_EMOJI:-"None"}
 
-          echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-          echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
-          echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
-          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
-          echo "added=$ADDED" >> $GITHUB_OUTPUT
-          echo "deleted=$DELETED" >> $GITHUB_OUTPUT
-          echo "filetypes=$FILETYPES_EMOJI" >> $GITHUB_OUTPUT
-
-
+          {
+            echo "message<<EOF"
+            echo "$COMMIT_MESSAGE"
+            echo "EOF"
+            echo "author=$AUTHOR_NAME"
+            echo "login=$AUTHOR_LOGIN"
+            echo "branch=$BRANCH_NAME"
+            echo "timestamp=$TIMESTAMP"
+            echo "added=$ADDED"
+            echo "deleted=$DELETED"
+            echo "filetypes=$FILETYPES_EMOJI"
+          } >> $GITHUB_OUTPUT
 
       - name: Map GitHub user -> Discord user
         id: mapuser
