@@ -1,5 +1,6 @@
 import "./GuiManager";
 import { clamp, isInside } from "./Utils";
+// import { getDiscordProfilePicture } from "./DiscordProfile"; // TODO: Implement Discord profile picture fetching
 
 const Color = Java.type("java.awt.Color");
 const UIRoundedRectangle = Java.type(
@@ -8,6 +9,7 @@ const UIRoundedRectangle = Java.type(
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
   .INSTANCE;
 const matrix = UMatrixStack.get();
+const UKeyboard = Java.type("gg.essential.universal.UKeyboard");
 
 const PADDING = 10;
 const BORDER_WIDTH = 2;
@@ -21,6 +23,10 @@ const GRADIENT_TOP_COLOR = new Color(0.6, 0.4, 0.8, 1);
 const GRADIENT_BOTTOM_COLOR = new Color(0.4, 0.6, 0.8, 1);
 
 const ANIMATION_DURATION = 200; // Time in milliseconds for the unroll animation
+const PROFILE_PICTURE_SIZE = 20;
+const PROFILE_PICTURE_OUTLINE = 2;
+const SEARCH_ICON_SIZE = 20;
+const SEARCH_BAR_WIDTH = 150;
 
 let isOpening = false;
 let openStartTime = 0;
@@ -30,6 +36,18 @@ let animatedTopPanel = {};
 let animatedLeftPanel = {};
 let animatedRightPanel = {};
 
+let searchBar = {
+    isExpanded: false,
+    isFocused: false,
+    animationStart: 0,
+    text: "",
+    cursorBlinkStart: 0,
+    showCursor: false,
+    currentWidth: SEARCH_ICON_SIZE,
+};
+
+const profileImage = Image.fromFile("./config/ChatTriggers/assets/profiletemp.png");
+const searchImage = Image.fromFile("./config/ChatTriggers/assets/search.png");
 let rectangles = {
   Background: {
     name: "Background",
@@ -46,13 +64,13 @@ let rectangles = {
   TopPanel: {
     name: "Top",
     get x() {
-      return rectangles.Background.x + PADDING + 60;
+      return rectangles.Background.x + PADDING;
     },
     get y() {
       return rectangles.Background.y + PADDING;
     },
     get width() {
-      return rectangles.Background.width - PADDING * 2 - 60;
+      return rectangles.Background.width - PADDING * 2;
     },
     height: 30,
     radius: CORNER_RADIUS,
@@ -286,6 +304,30 @@ const drawRoundedRectangleWithGradientOutline = (r, topColor, bottomColor) => {
   }
 };
 
+const drawCircularImage = (image, x, y, size) => {
+    if (!image || size <= 0) return;
+    const radius = size / 2;
+    const centerX = x + radius;
+    const centerY = y + radius;
+
+    GL11.glEnable(GL11.GL_STENCIL_TEST);
+    GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+    GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+    GL11.glStencilMask(0xFF);
+    GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+    GL11.glColorMask(false, false, false, false);
+
+    Renderer.drawCircle(new Color(1, 1, 1, 1).getRGB(), centerX, centerY, radius, 50);
+
+    GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+    GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+    GL11.glColorMask(true, true, true, true);
+
+    image.draw(x, y, size, size);
+
+    GL11.glDisable(GL11.GL_STENCIL_TEST);
+};
+
 const categoryManager = global.createCategoriesManager({
   rectangles: rectangles,
   draw: {
@@ -320,9 +362,9 @@ const drawGUI = (mouseX, mouseY) => {
   });
 
   Object.assign(animatedTopPanel, rectangles.TopPanel, {
-    x: animatedBackground.x + PADDING + 60,
+    x: animatedBackground.x + PADDING,
     y: animatedBackground.y + PADDING,
-    width: (targetBackground.width - PADDING * 2 - 60) * progress,
+    width: (targetBackground.width - PADDING * 2) * progress,
     height: rectangles.TopPanel.height * progress,
   });
 
@@ -347,6 +389,76 @@ const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(animatedLeftPanel);
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
+  if (progress > 0.8) {
+    // Profile Picture
+    const pfpX = animatedTopPanel.x + PADDING;
+    const pfpY = animatedTopPanel.y + (animatedTopPanel.height - PROFILE_PICTURE_SIZE) / 2;
+    const pfpSize = PROFILE_PICTURE_SIZE * progress;
+
+    Renderer.drawCircle(
+        new Color(0, 1, 0, 1).getRGB(),
+        pfpX + pfpSize / 2,
+        pfpY + pfpSize / 2,
+        pfpSize / 2 + PROFILE_PICTURE_OUTLINE,
+        50
+    );
+    drawCircularImage(profileImage, pfpX, pfpY, pfpSize);
+
+    // Search Bar
+    let searchAnimProgress = 1.0;
+    if (searchBar.animationStart > 0) {
+        searchAnimProgress = clamp((Date.now() - searchBar.animationStart) / ANIMATION_DURATION, 0, 1);
+        if (searchAnimProgress >= 1) {
+            searchBar.animationStart = 0;
+        }
+    }
+
+    const easedProgress = 1 - Math.pow(1 - searchAnimProgress, 3);
+    const targetWidth = searchBar.isExpanded ? SEARCH_BAR_WIDTH : SEARCH_ICON_SIZE;
+    const initialWidth = searchBar.isExpanded ? SEARCH_ICON_SIZE : SEARCH_BAR_WIDTH;
+
+    const currentSearchWidth = initialWidth + (targetWidth - initialWidth) * easedProgress;
+    searchBar.currentWidth = currentSearchWidth; // Update for click detection
+    const searchX = animatedTopPanel.x + animatedTopPanel.width - PADDING - currentSearchWidth;
+    const searchY = animatedTopPanel.y + (animatedTopPanel.height - SEARCH_ICON_SIZE) / 2;
+    const searchHeight = SEARCH_ICON_SIZE;
+
+    if (!searchBar.isExpanded && searchBar.animationStart === 0) {
+        // Collapsed and not animating
+        searchImage.draw(searchX, searchY, SEARCH_ICON_SIZE, SEARCH_ICON_SIZE);
+    } else {
+        // Expanded or animating
+        drawRoundedRectangle({
+            x: searchX,
+            y: searchY,
+            width: currentSearchWidth,
+            height: searchHeight,
+            radius: 8,
+            color: new Color(0.1, 0.1, 0.1, 1)
+        });
+
+        if (currentSearchWidth < SEARCH_ICON_SIZE + 20) {
+            // Fading into icon, or icon is just there while collapsing
+            const iconX = searchX + (currentSearchWidth - SEARCH_ICON_SIZE) / 2;
+            searchImage.draw(iconX, searchY, SEARCH_ICON_SIZE, SEARCH_ICON_SIZE);
+        } else {
+            // Expanded enough for text
+            Renderer.drawString(searchBar.text, searchX + 5, searchY + (searchHeight - 8) / 2, new Color(1,1,1,1).getRGB());
+
+            if (searchBar.isFocused) {
+                if (Date.now() - searchBar.cursorBlinkStart > 500) {
+                    searchBar.showCursor = !searchBar.showCursor;
+                    searchBar.cursorBlinkStart = Date.now();
+                }
+                if (searchBar.showCursor) {
+                    const textWidth = Renderer.getStringWidth(searchBar.text);
+                    Renderer.drawRect(new Color(1, 1, 1, 1).getRGB(), searchX + 5 + textWidth + 1, searchY + 4, 1, searchHeight - 8);
+                }
+            }
+        }
+    }
+  }
+
   if (progress >= 1) {
     categoryManager.draw(mouseX, mouseY);
   }
@@ -357,6 +469,29 @@ myGui.registerDraw(drawGUI);
 let dragging = false;
 
 const handleClick = (mouseX, mouseY) => {
+  const searchX = rectangles.TopPanel.x + rectangles.TopPanel.width - PADDING - searchBar.currentWidth;
+  const searchY = rectangles.TopPanel.y + (rectangles.TopPanel.height - SEARCH_ICON_SIZE) / 2;
+
+  const isInsideSearch = mouseX >= searchX && mouseX <= searchX + searchBar.currentWidth && mouseY >= searchY && mouseY <= searchY + SEARCH_ICON_SIZE;
+
+  if (isInsideSearch) {
+      if (!searchBar.isExpanded) {
+          searchBar.isExpanded = true;
+          searchBar.animationStart = Date.now();
+      }
+      searchBar.isFocused = true;
+      searchBar.cursorBlinkStart = Date.now();
+      searchBar.showCursor = true;
+  } else {
+      if (searchBar.isFocused) {
+          searchBar.isFocused = false;
+          if (searchBar.text.length === 0) {
+              searchBar.isExpanded = false;
+              searchBar.animationStart = Date.now();
+          }
+      }
+  }
+
   if (
     isInside(mouseX, mouseY, rectangles.Background) &&
     !isInside(mouseX, mouseY, rectangles.TopPanel) &&
@@ -411,6 +546,28 @@ myGui.registerMouseReleased(() => {
 });
 
 myGui.registerScrolled(handleScroll);
+
+myGui.registerKeyTyped((char, keycode) => { // this entire part is vibecoded cuz i have no idea how to do typing shit, please help @rdbtCVS @qxionr 
+    if (searchBar.isFocused) {
+        if (keycode === 14) { // Backspace
+            if (searchBar.text.length > 0) {
+                searchBar.text = searchBar.text.substring(0, searchBar.text.length - 1);
+            }
+        } else if (keycode === 1) { // Escape
+            searchBar.isFocused = false;
+            if (searchBar.text.length === 0) {
+                searchBar.isExpanded = false;
+                searchBar.animationStart = Date.now();
+            }
+        } else if (ChatLib.isControlDown() && keycode === 47) { // V
+            searchBar.text += Client.getClipboard();
+        } else if (UKeyboard.isPrintable(keycode)) {
+            searchBar.text += char;
+        }
+        searchBar.cursorBlinkStart = Date.now();
+        searchBar.showCursor = true;
+    }
+});
 
 register("command", () => {
   isOpening = true;
