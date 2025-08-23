@@ -8,6 +8,15 @@ const VertexConsumers = Client.getMinecraft()
   .getEntityVertexConsumers();
 
 const NEWLINE_REGEX = /\n|\r\n?/;
+const alignCache = new Map();
+function getAlignParts(align) {
+  if (alignCache.has(align)) {
+    return alignCache.get(align);
+  }
+  const parts = align.split("_");
+  alignCache.set(align, parts);
+  return parts;
+}
 export default class RenderLib2d {
   /**
    * Draws a filled rectangle.
@@ -32,11 +41,11 @@ export default class RenderLib2d {
     color = Renderer.WHITE,
     align = Align.TOP_LEFT,
   }) {
-    align = align.split("_");
-    if (align[0] == "CENTER") y -= (height / 2) * scale;
-    if (align[0] == "BOTTOM") y -= height * scale;
-    if (align[1] == "CENTER") x -= (width / 2) * scale;
-    if (align[1] == "RIGHT") x -= width * scale;
+    const alignParts = getAlignParts(align);
+    if (alignParts[0] == "CENTER") y -= (height / 2) * scale;
+    if (alignParts[0] == "BOTTOM") y -= height * scale;
+    if (alignParts[1] == "CENTER") x -= (width / 2) * scale;
+    if (alignParts[1] == "RIGHT") x -= width * scale;
     width *= scale;
     height *= scale;
     Renderer.pushMatrix() //
@@ -73,11 +82,11 @@ export default class RenderLib2d {
     lineWidth = 1,
     outlineMode = OutlineMode.CENTER,
   }) {
-    align = align.split("_");
-    if (align[0] == "CENTER") y -= (height / 2) * scale;
-    if (align[0] == "BOTTOM") y -= height * scale;
-    if (align[1] == "CENTER") x -= (width / 2) * scale;
-    if (align[1] == "RIGHT") x -= width * scale;
+    const alignParts = getAlignParts(align);
+    if (alignParts[0] == "CENTER") y -= (height / 2) * scale;
+    if (alignParts[0] == "BOTTOM") y -= height * scale;
+    if (alignParts[1] == "CENTER") x -= (width / 2) * scale;
+    if (alignParts[1] == "RIGHT") x -= width * scale;
 
     width *= scale;
     height *= scale;
@@ -164,11 +173,11 @@ export default class RenderLib2d {
     align = Align.TOP_LEFT,
   }) {
     steps = Math.clamp(steps, 4, 360);
-    align = align.split("_");
-    if (align[0] == "TOP") y += height;
-    if (align[0] == "BOTTOM") y -= height;
-    if (align[1] == "LEFT") x += width;
-    if (align[1] == "RIGHT") x -= width;
+    const alignParts = getAlignParts(align);
+    if (alignParts[0] == "TOP") y += height;
+    if (alignParts[0] == "BOTTOM") y -= height;
+    if (alignParts[1] == "LEFT") x += width;
+    if (alignParts[1] == "RIGHT") x -= width;
 
     // Pre-calculate sin/cos values to avoid redundant calculations
     const angleStep = (Math.PI * 2) / steps;
@@ -264,11 +273,11 @@ export default class RenderLib2d {
     outlineMode = OutlineMode.CENTER,
   }) {
     steps = Math.clamp(steps, 4, 360);
-    align = align.split("_");
-    if (align[0] == "TOP") y += height;
-    if (align[0] == "BOTTOM") y -= height;
-    if (align[1] == "LEFT") x += width;
-    if (align[1] == "RIGHT") x -= width;
+    const alignParts = getAlignParts(align);
+    if (alignParts[0] == "TOP") y += height;
+    if (alignParts[0] == "BOTTOM") y -= height;
+    if (alignParts[1] == "LEFT") x += width;
+    if (alignParts[1] == "RIGHT") x -= width;
 
     let inner = 0;
     let outer = 0;
@@ -362,11 +371,11 @@ export default class RenderLib2d {
   }) {
     const TextRenderer = Renderer.getFontRenderer();
     let yOffset = 0;
-    align = align.split("_");
-    if (align[0] == "CENTER") y -= (TextRenderer.fontHeight / 2) * scale;
-    if (align[0] == "BOTTOM") y -= TextRenderer.fontHeight * scale;
-    if (align[1] == "CENTER") x -= (Renderer.getStringWidth(text) / 2) * scale;
-    if (align[1] == "RIGHT") x -= Renderer.getStringWidth(text) * scale;
+    const alignParts = getAlignParts(align);
+    if (alignParts[0] == "CENTER") y -= (TextRenderer.fontHeight / 2) * scale;
+    if (alignParts[0] == "BOTTOM") y -= TextRenderer.fontHeight * scale;
+    if (alignParts[1] == "CENTER") x -= (Renderer.getStringWidth(text) / 2) * scale;
+    if (alignParts[1] == "RIGHT") x -= Renderer.getStringWidth(text) * scale;
 
     Renderer.pushMatrix().translate(x, y, z).scale(scale, scale, 1);
     ChatLib.addColor(text)

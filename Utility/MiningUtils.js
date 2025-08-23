@@ -382,7 +382,6 @@ class MiningUtilClass {
       { name: "Chrono Pickaxe", drill: false },
     ];
 
-    let foundDrill = false;
     let blueCheese = null;
     let drill = null;
 
@@ -393,36 +392,32 @@ class MiningUtilClass {
       const itemInstance = new ItemObject(item, i);
       const itemName = item.getName().removeFormatting();
 
-      drillNames.some((drillName) => {
-        if (itemName.includes(drillName.name)) {
-          if (drillName.drill) {
-            const loreHasBlueCheese = item
-              .getLore()
-              .some((loreLine) =>
-                loreLine.toString().replace(/§./g, "").includes("Blue Cheese")
-              );
-            if (loreHasBlueCheese) {
-              blueCheese = itemInstance;
-              return true;
-            }
-            foundDrill = true;
-            drill = itemInstance;
-            return true;
-          } else if (!foundDrill) {
-            drill = itemInstance;
-            return true;
-          }
+      const drillName = drillNames.find((d) => itemName.includes(d.name));
+      if (!drillName) continue;
+
+      if (drillName.drill) {
+        const loreHasBlueCheese = item
+          .getLore()
+          .some((loreLine) =>
+            loreLine.toString().replace(/§./g, "").includes("Blue Cheese")
+          );
+        if (loreHasBlueCheese) {
+          blueCheese = itemInstance;
+          continue;
         }
-        return false;
-      });
+        drill = itemInstance;
+        break;
+      } else if (!drill) {
+        drill = itemInstance;
+      }
     }
 
     if (!drill) {
-      if (blueCheese) {
-        drill = blueCheese;
-      } else {
-        chat.message("Missing a mining item");
-      }
+      drill = blueCheese;
+    }
+
+    if (!drill) {
+      Chat.message("Missing a mining item");
     }
 
     return { blueCheese, drill };
