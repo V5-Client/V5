@@ -107,7 +107,7 @@ class MiningUtilClass {
       if (speedboost?.type?.getRegistryName() === selected) {
         this.ability = "SpeedBoost";
       } else if (picko?.type?.getRegistryName() === selected) {
-        this.ability = "Pickonimbus";
+        this.ability = "Pickobulus";
       }
 
       this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
