@@ -125,7 +125,7 @@ class MathUtilsClass {
       y = vector.y;
       z = vector.z;
     }
-    let eyeVector = Utils.convertToVector(Player.getEyePos());
+    let eyeVector = Utils.convertToVector(Player.getPlayer().getEyePos());
     return this.getDistance(eyeVector.x, eyeVector.y, eyeVector.z, x, y, z);
   }
 
