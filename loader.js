@@ -26,6 +26,7 @@ import "./GUI/Registries.js";
 import "./Pathfinding/test.js";
 import "./QOL/BeachBaller.js";
 //import "./Macro/SeaLumieMacro.js";
+import "./QOL/Nuker.js"
 
 /* Mixins */
 import { 
