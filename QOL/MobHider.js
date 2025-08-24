@@ -5,35 +5,28 @@ class MobHider {
     this.thysts = false;
     this.jerry = false;
 
-    this.jerryNames = new Set([
+    this.jerryNames = [
       "Green Jerry",
       "Blue Jerry",
       "Purple Jerry",
       "Golden Jerry",
-    ]);
-
-    if (this.kalhuikis) this.hideKalhuiki();
-    if (this.svenpups) this.hidePup();
-    if (this.thysts) this.hideThyst();
-    if (this.jerry) this.hideJerry();
-  }
-
-  hideThyst() {
-    register("renderEntity", (ent, pt, event) => {
+    ];
+    
+    this.thystRenderEntity = register("renderEntity", (ent, pt, event) => {
       let cleanname = ChatLib.removeFormatting(ent.getName());
       if (cleanname === "Endermite" || ent.getName().includes("Thyst")) {
         cancel(event);
       }
-    });
+    }).unregister();
 
-    register("spawnParticle", (particle, event) => {
+    this.thystSpawnParticle = register("spawnParticle", (particle, event) => {
       if (particle == null) return;
       if (particle.toString().includes("class_709")) {
         cancel(event);
       }
-    });
+    }).unregister();
 
-    register("playerInteract", (action, pos, event) => {
+    this.thystPlayerInteract = register("playerInteract", (action, pos, event) => {
       if (action.toString().includes("AttackEntity")) {
         let attackedEntity = Player.lookingAt();
 
@@ -44,18 +37,16 @@ class MobHider {
           cancel(event);
         }
       }
-    });
-  }
-
-  hidePup() {
-    register("renderEntity", (ent, pt, event) => {
+    }).unregister();
+    
+    this.pupRenderEntity = register("renderEntity", (ent, pt, event) => {
       let cleanname = ChatLib.removeFormatting(ent.getName());
       if (cleanname.includes("Sven Pup")) {
         cancel(event);
       }
-    });
+    }).unregister();
 
-    register("playerInteract", (action, pos, event) => {
+    this.pupPlayerInteract = register("playerInteract", (action, pos, event) => {
       if (action.toString().includes("AttackEntity")) {
         let attackedEntity = Player.lookingAt();
 
@@ -66,17 +57,15 @@ class MobHider {
           cancel(event);
         }
       }
-    });
-  }
-
-  hideJerry() {
-    register("renderEntity", (ent, pt, event) => {
+    }).unregister();
+    
+    this.jerryRenderEntity = register("renderEntity", (ent, pt, event) => {
       if (this.jerryNames.some((name) => ent.getName().includes(name))) {
         cancel(event);
       }
-    });
+    }).unregister();
 
-    register("playerInteract", (action, pos, event) => {
+    this.jerryPlayerInteract = register("playerInteract", (action, pos, event) => {
       if (action.toString().includes("AttackEntity")) {
         let attackedEntity = Player.lookingAt();
 
@@ -87,18 +76,16 @@ class MobHider {
           cancel(event);
         }
       }
-    });
-  }
-
-  hideKalhuiki() {
-    register("renderEntity", (ent, pt, event) => {
+    }).unregister();
+    
+    this.kalhuikiRenderEntity = register("renderEntity", (ent, pt, event) => {
       let cleanname = ChatLib.removeFormatting(ent.getName());
       if (cleanname.includes("Kalhuiki")) {
         cancel(event);
       }
-    });
+    }).unregister();
 
-    register("playerInteract", (action, pos, event) => {
+    this.kalhuikiPlayerInteract = register("playerInteract", (action, pos, event) => {
       if (action.toString().includes("AttackEntity")) {
         let attackedEntity = Player.lookingAt();
 
@@ -109,8 +96,51 @@ class MobHider {
           cancel(event);
         }
       }
-    });
+    }).unregister();
+  }
+
+  toggleThyst(enabled = true) {
+    if (enabled) {
+      this.thystRenderEntity.register();
+      this.thystSpawnParticle.register();
+      this.thystPlayerInteract.register();
+    } else {
+      this.thystRenderEntity.unregister();
+      this.thystSpawnParticle.unregister();
+      this.thystPlayerInteract.unregister();
+    }
+  }
+
+  togglePup(enabled = true) {
+    if (enabled) {
+      this.pupRenderEntity.register();
+      this.pupPlayerInteract.register();
+    } else {
+      this.pupRenderEntity.unregister();
+      this.pupPlayerInteract.unregister();
+    }
+  }
+
+  toggleJerry(enabled = true) {
+    if (enabled) {
+      this.jerryRenderEntity.register();
+      this.jerryPlayerInteract.register();
+    } else {
+      this.jerryRenderEntity.unregister();
+      this.jerryPlayerInteract.unregister();
+    }
+  }
+
+  toggleKalhuiki(enabled = true) {
+    if (enabled) {
+      this.kalhuikiRenderEntity.register();
+      this.kalhuikiPlayerInteract.register();
+    } else {
+      this.kalhuikiRenderEntity.unregister();
+      this.kalhuikiPlayerInteract.unregister();
+    }
   }
 }
 
+//MobHider.toggleThyst()
 new MobHider();
