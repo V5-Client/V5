@@ -421,6 +421,7 @@ register('renderWorld', () => {
 
 
 function runProgram() {
+  if (!FileLib.exists(path)) return
   stopProgram();
   keepAlive.register();
 
