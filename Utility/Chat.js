@@ -1,7 +1,7 @@
 //let { ModuleManager } = global.settingSelection
 
-const Prefix = "&dAurelia: &b";
-const IrcPrefix = "&dIRC: &b";
+const Prefix = "&6RDBT V5 &7» &r";
+const IrcPrefix = "&6IRC &7» &r";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
   java.util.Locale.US
