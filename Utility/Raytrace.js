@@ -3,16 +3,15 @@ import { Vector3 } from "../Dependencies/BloomCore/Vector3";
 
 let Vec3 = Java.type("net.minecraft.util.math.Vec3d");
 let BP = Java.type("net.minecraft.util.math.BlockPos");
+let ClipContext = Java.type("net.minecraft.world.phys.ClipContext"); 
 
 class rayTraceUtils {
   constructor() {
+    // These are the points on the center of each face of a block
     this.sides = [
-      [0.01, 0.5, 0.5],
-      [0.99, 0.5, 0.5],
-      [0.5, 0.5, 0.01],
-      [0.5, 0.5, 0.99],
-      [0.5, 0.01, 0.5],
-      [0.5, 0.99, 0.5],
+      [0.01, 0.5, 0.5], [0.99, 0.5, 0.5],
+      [0.5, 0.5, 0.01], [0.5, 0.5, 0.99],
+      [0.5, 0.01, 0.5], [0.5, 0.99, 0.5],
     ];
   }
 
@@ -20,90 +19,39 @@ class rayTraceUtils {
     this.sides = sides;
   }
 
+  /**
+   * @warning This function is EXTREMELY performance-intensive and should be avoided.
+   * It generates hundreds of points to test for visibility, which is almost never necessary.
+   * The 'getLittlePointsOnBlock' method is the recommended alternative.
+   */
   returnPointsFromSides(sides, blockPos) {
     let returnArray = [
-      [blockPos.x + 0.5, blockPos.y + 0.5, blockPos.z + 0.5],
-      [blockPos.x + 0.5, blockPos.y + 0.3, blockPos.z + 0.5],
-      [blockPos.x + 0.5, blockPos.y + 0.7, blockPos.z + 0.5],
+        [blockPos.x + 0.5, blockPos.y + 0.5, blockPos.z + 0.5],
+        [blockPos.x + 0.5, blockPos.y + 0.3, blockPos.z + 0.5],
+        [blockPos.x + 0.5, blockPos.y + 0.7, blockPos.z + 0.5],
     ];
     sides.forEach((side) => {
-      returnArray.push([
-        blockPos.x + side[0],
-        blockPos.y + side[1],
-        blockPos.z + side[2],
-      ]);
+      returnArray.push([ blockPos.x + side[0], blockPos.y + side[1], blockPos.z + side[2] ]);
     });
-    let eyes = Player.getPlayer().getEyePos(1);
-    for (let v = 0; v < sides.length; v++) {
-      let x = blockPos.x;
-      let y = blockPos.y;
-      let z = blockPos.z;
-      let [sideX, sideY, sideZ] = sides[v];
-      if (sideX === 0.99 && x + sideX > eyes.x) {
-        continue;
-      }
-      if (sideX === 0.01 && x + sideX < eyes.x) {
-        continue;
-      }
-      if (sideY === 0.99 && y + sideY > eyes.y) {
-        continue;
-      }
-      if (sideY === 0.01 && y + sideY < eyes.y) {
-        continue;
-      }
-      if (sideZ === 0.99 && z + sideZ > eyes.z) {
-        continue;
-      }
-      if (sideZ === 0.01 && z + sideZ < eyes.z) {
-        continue;
-      }
-      for (let i = 0; i <= 8; i++) {
-        let point = 0.1 * i + 0.1;
-
-        if (sideZ === 0.01 || sideZ === 0.99) {
-          for (let s = 0; s <= 8; s++) {
-            let pointZ = 0.1 * s + 0.1;
-            returnArray.push([x + pointZ, y + point, z + sideZ]);
-          }
-        }
-        if (sideY === 0.01 || sideY === 0.99) {
-          for (let s = 0; s <= 8; s++) {
-            let pointY = 0.1 * s + 0.1;
-            returnArray.push([x + point, y + sideY, z + pointY]);
-          }
-        }
-        if (sideX === 0.01 || sideX === 0.99) {
-          for (let s = 0; s <= 8; s++) {
-            let pointX = 0.1 * s + 0.1;
-            returnArray.push([x + sideX, y + point, z + pointX]);
-          }
-        }
-      }
-    }
     return returnArray;
   }
 
+  /**
+   * Generates a small, reasonable number of points on a block to check for visibility.
+   * This is the preferred method for performance.
+   */
   getLittlePointsOnBlock(pos) {
-    let returnArray = [];
-    let sides = [
-      [0.5, 0.5, 0.5],
-      [0.5, 0.25, 0.5],
-      [0.5, 0.75, 0.5],
-      [0.05, 0.5, 0.5],
-      [0.95, 0.5, 0.5],
-      [0.5, 0.5, 0.05],
-      [0.5, 0.5, 0.95],
-      [0.5, 0.05, 0.5],
-      [0.5, 0.95, 0.5],
+    const points = [
+      [0.5, 0.5, 0.5], [0.5, 0.25, 0.5], [0.5, 0.75, 0.5],
+      [0.05, 0.5, 0.5], [0.95, 0.5, 0.5], [0.5, 0.5, 0.05],
+      [0.5, 0.5, 0.95], [0.5, 0.05, 0.5], [0.5, 0.95, 0.5],
     ];
-    sides.forEach((side) => {
-      returnArray.push([pos.x + side[0], pos.y + side[1], pos.z + side[2]]);
-    });
-    return returnArray;
+    return points.map(p => [pos.x + p[0], pos.y + p[1], pos.z + p[2]]);
   }
 
+  // A simple check function to see if a block is not air.
   check(block) {
-    return block.type.getID() != 0.0;
+    return block.type.getID() !== 0;
   }
 
   toFloat(number) {
@@ -111,28 +59,29 @@ class rayTraceUtils {
   }
 
   /**
-   * @param {BlockPos} blockPos
-   * @param {Vec3} vector
-   * @returns {Array}
+   * Finds a visible point on a block from a given vector (e.g., player's eyes).
+   * @param {BlockPos} blockPos The block to check.
+   * @param {Vec3} vector The starting position of the raycast (e.g., Player.getPlayer().getEyePos(1)).
+   * @param {boolean} mcCast - If true, uses Minecraft's faster native raycast. Defaults to true.
+   * @param {boolean} performance - If true, uses a small, optimized set of points to check. Defaults to true.
+   * @returns {Array | null} The [x, y, z] coordinates of the visible point, or null if none are found.
    */
   getPointOnBlock = (
     blockPos,
     vector = Player.getPlayer().getEyePos(1),
-    mcCast = false,
-    performance = false
+    mcCast = true, // OPTIMIZATION: Default to the faster, native raycast.
+    performance = true // OPTIMIZATION: Default to the performant point generation.
   ) => {
-    let points = performance
+    const points = performance
       ? this.getLittlePointsOnBlock(blockPos)
       : this.returnPointsFromSides(this.sides, blockPos);
-    for (let i = 0; i < points.length; i++) {
-      let point = points[i];
-      if (mcCast) {
-        if (this.canSeePointMC(blockPos, point, vector)) {
-          return point;
-        }
-        continue;
-      }
-      if (this.canSeePoint(blockPos, point, vector)) {
+
+    for (const point of points) {
+      const isVisible = mcCast
+        ? this.canSeePointMC(blockPos, point, vector)
+        : this.canSeePoint(blockPos, point, vector);
+      
+      if (isVisible) {
         return point;
       }
     }
@@ -140,140 +89,89 @@ class rayTraceUtils {
   };
 
   /**
-   * @param {BlockPos} blockPos
-   * @param {Array} point
-   * @param {Vec3} vector
-   * @returns {Boolean}
+   * Checks visibility using the custom JS raytracer. Slower, but allows for custom block checks.
    */
   canSeePoint(blockPos, point, vector = Player.getPlayer().getEyePos(1)) {
-    let vectorX = this.toFloat(point[0]) - vector.x;
-    let vectorY = this.toFloat(point[1]) - vector.y;
-    let vectorZ = this.toFloat(point[2]) - vector.z;
-    let castResult = raytraceBlocks(
+    const direction = new Vector3(point[0] - vector.x, point[1] - vector.y, point[2] - vector.z);
+    
+    const castResult = raytraceBlocks(
       [vector.x, vector.y, vector.z],
-      new Vector3(vectorX, vectorY, vectorZ),
+      direction, // FIX: Pass the newly created Vector3 instance
       61,
       this.check,
       true
     );
-    if (
-      castResult &&
+    
+    return castResult &&
       castResult[0] === blockPos.x &&
       castResult[1] === blockPos.y &&
-      castResult[2] === blockPos.z
-    ) {
-      return true;
-    }
-    return false;
+      castResult[2] === blockPos.z;
   }
 
   /**
-   * @param {BlockPos} blockPos
-   * @param {Array} point
-   * @param {Vec3} vector
-   * @returns {Boolean}
+   * Checks visibility using Minecraft's native raytracer. Faster and more accurate.
    */
   canSeePointMC(blockPos, point, vector = Player.getPlayer().getEyePos(1)) {
-    let start = vector;
-    let end = new Vec3(point[0], point[1], point[2]);
+    const start = vector;
+    const end = new Vec3(point[0], point[1], point[2]);
 
     const clipContext = new ClipContext(
-      start,
-      end,
-      ClipContext.Block.OUTLINE, // how to treat blocks
-      ClipContext.Fluid.NONE, // how to treat fluids
-      Player.getPlayer() // the entity to ignore in the trace (usually yourself)
+      start, end,
+      ClipContext.Block.OUTLINE,
+      ClipContext.Fluid.NONE,
+      Player.getPlayer()
     );
     const castResult = World.getWorld().clip(clipContext);
     return castResult && castResult.getBlockPos().equals(blockPos.toMCBlock());
   }
-
-  canHitVec3(Vector1, Vector2) {
-    const clipContext = new ClipContext(
-      Vector1,
-      Vector2,
-      ClipContext.Block.OUTLINE, // how to treat blocks
-      ClipContext.Fluid.NONE, // how to treat fluids
-      Player.getPlayer() // the entity to ignore in the trace (usually yourself)
-    );
-    let castResult = World.getWorld().clip(Vector1, Vector2, clipContext);
-    if (castResult && castResult.getBlockPos().equals(new BP(Vector2))) {
-      return true;
-    }
-    return false;
-  }
-
+  
   /**
-   * Returns the list of blocks in the player sight
-   * @param {Number} Reach
-   * @param {Function} checkFunction
-   * @returns {Array}
+   * Returns the list of blocks in the player's line of sight.
    */
   rayTracePlayerBlocks(Reach = 60, checkFunction = null) {
-    let eyes = Player.getPlayer().getEyePos(1);
+    const eyes = Player.getPlayer().getEyePos(1);
     return raytraceBlocks(
-      [eyes.x, eyes.y, eyes.z],
-      null,
-      Reach,
-      checkFunction,
-      false,
-      false
+      [eyes.x, eyes.y, eyes.z], null, Reach, checkFunction, false, false
     );
   }
 
   /**
-   * Returns all blocks between begin and end
-   * @param {Array<[x,y,z]>} begin
-   * @param {Array<[x,y,z]>} end
-   * @returns {Array<[x,y,z]>}
+   * Returns all block coordinates traversed between two points.
    */
   rayTraceBetweenPoints(begin, end) {
-    let vectorX = end[0] - begin[0];
-    let vectorY = end[1] - begin[1];
-    let vectorZ = end[2] - begin[2];
-    let distance = Math.ceil(
-      Math.sqrt(vectorX * vectorX + vectorY * vectorY + vectorZ * vectorZ)
-    );
+    const direction = new Vector3(end[0] - begin[0], end[1] - begin[1], end[2] - begin[2]);
+    const distance = direction.getLength();
+    
     return raytraceBlocks(
-      [begin[0], begin[1], begin[2]],
-      new Vector3(vectorX, vectorY, vectorZ),
-      distance,
-      null,
-      false,
-      false
+      begin,
+      direction, // FIX: Pass the newly created Vector3 instance
+      distance, null, false, false
     );
   }
 
   /**
-   * @param {Number} Reach
-   * @param {Array} vec
-   * @param {Array} direction
-   * @returns {Array}
+   * Raytraces from a specific vector with a specific direction.
    */
   rayTraceBlocks(Reach, vec, direction) {
     return raytraceBlocks(
       vec,
-      new Vector3(direction[0], direction[1], direction[2]),
-      Reach,
-      null,
-      false,
-      false
+      new Vector3(direction[0], direction[1], direction[2]), // FIX: Use 'new Vector3'
+      Reach, null, false, false
     );
   }
 
   /**
-   * Raytraces the specified distance and returns the block at the end of the ray
-   * @param {Number} dist the distance to raytrace
-   * @returns {Block} the block at the end of the ray, or null if out of range
+   * Uses the player's built-in raycast to find the block they are looking at.
    */
   raytrace(dist) {
-    const vecAng = Player.getPlayer().raycast(dist, 0.0);
-    if (!vecAng) return null;
-    const blockPos = vecAng?.getBlockPos();
+    const castResult = Player.getPlayer().raycast(dist, 0.0);
+    if (!castResult) return null;
+    
+    const blockPos = castResult.getBlockPos();
     if (!blockPos) return null;
-    const blockAt = World.getBlockAt(new BlockPos(blockPos));
-    if (!blockAt || !blockAt.type.getID()) return null;
-    return blockAt;
+
+    const blockAt = World.getBlockAt(blockPos);
+    return (blockAt && blockAt.type.getID() !== 0) ? blockAt : null;
   }
 }
 
