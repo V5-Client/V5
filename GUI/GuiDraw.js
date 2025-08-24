@@ -3,6 +3,7 @@ import { clamp, isInside } from "./Utils";
 // import { getDiscordProfilePicture } from "./DiscordProfile"; // TODO: Implement Discord profile picture fetching
 
 const Color = Java.type("java.awt.Color");
+const BufferedImage = Java.type("java.awt.image.BufferedImage");
 const UIRoundedRectangle = Java.type(
   "gg.essential.elementa.components.UIRoundedRectangle"
 );
@@ -23,8 +24,8 @@ const GRADIENT_TOP_COLOR = new Color(0.6, 0.4, 0.8, 1);
 const GRADIENT_BOTTOM_COLOR = new Color(0.4, 0.6, 0.8, 1);
 
 const ANIMATION_DURATION = 200; // Time in milliseconds for the unroll animation
-const PROFILE_PICTURE_SIZE = 20;
-const PROFILE_PICTURE_OUTLINE = 2;
+const PROFILE_PICTURE_SIZE = 18;
+const PROFILE_PICTURE_OUTLINE = 1;
 const SEARCH_ICON_SIZE = 20;
 const SEARCH_BAR_WIDTH = 150;
 
@@ -46,8 +47,52 @@ let searchBar = {
     currentWidth: SEARCH_ICON_SIZE,
 };
 
-const profileImage = Image.fromFile("./config/ChatTriggers/assets/profiletemp.png");
+// Function to create a circular version of an image
+const createCircularImage = (originalImage) => {
+    if (!originalImage) return null;
+    
+    // Get the original image's BufferedImage
+    const originalBuffered = originalImage.getImage();
+    const width = originalBuffered.getWidth();
+    const height = originalBuffered.getHeight();
+    const size = Math.min(width, height);
+    
+    // Create a new BufferedImage with transparency
+    const circularBuffered = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+    const graphics = circularBuffered.createGraphics();
+    
+    // Enable antialiasing for smooth edges
+    const RenderingHints = Java.type("java.awt.RenderingHints");
+    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+    graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    
+    // Create circular clip
+    const Ellipse2D = Java.type("java.awt.geom.Ellipse2D$Float");
+    const circle = new Ellipse2D(0, 0, size, size);
+    graphics.setClip(circle);
+    
+    // Draw the image centered in the circle
+    const xOffset = (width - size) / 2;
+    const yOffset = (height - size) / 2;
+    graphics.drawImage(originalBuffered, -xOffset, -yOffset, width, height, null);
+    graphics.dispose();
+    
+    // Convert back to ChatTriggers Image
+    return new Image(circularBuffered);
+};
+
+// Load and process profile image
+const profileImageOriginal = Image.fromFile("./config/ChatTriggers/assets/profiletemp.png");
+const profileImage = createCircularImage(profileImageOriginal);
 const searchImage = Image.fromFile("./config/ChatTriggers/assets/search.png");
+
+// For future use with URL images:
+// const loadProfileFromURL = (url) => {
+//     const img = Image.fromURL(url);
+//     return createCircularImage(img);
+// };
+
 let rectangles = {
   Background: {
     name: "Background",
@@ -304,30 +349,6 @@ const drawRoundedRectangleWithGradientOutline = (r, topColor, bottomColor) => {
   }
 };
 
-const drawCircularImage = (image, x, y, size) => {
-    if (!image || size <= 0) return;
-    const radius = size / 2;
-    const centerX = x + radius;
-    const centerY = y + radius;
-
-    GL11.glEnable(GL11.GL_STENCIL_TEST);
-    GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
-    GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-    GL11.glStencilMask(0xFF);
-    GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
-    GL11.glColorMask(false, false, false, false);
-
-    Renderer.drawCircle(new Color(1, 1, 1, 1).getRGB(), centerX, centerY, radius, 50);
-
-    GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
-    GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
-    GL11.glColorMask(true, true, true, true);
-
-    image.draw(x, y, size, size);
-
-    GL11.glDisable(GL11.GL_STENCIL_TEST);
-};
-
 const categoryManager = global.createCategoriesManager({
   rectangles: rectangles,
   draw: {
@@ -389,12 +410,12 @@ const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(animatedLeftPanel);
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
-  if (progress > 0.8) {
-    // Profile Picture
-    const pfpX = animatedTopPanel.x + PADDING;
+if (progress > 0.8) {
+    const pfpX = animatedLeftPanel.x + (animatedLeftPanel.width - PROFILE_PICTURE_SIZE) / 2;
     const pfpY = animatedTopPanel.y + (animatedTopPanel.height - PROFILE_PICTURE_SIZE) / 2;
     const pfpSize = PROFILE_PICTURE_SIZE * progress;
 
+    // Draw green outline circle
     Renderer.drawCircle(
         new Color(0, 1, 0, 1).getRGB(),
         pfpX + pfpSize / 2,
@@ -402,7 +423,11 @@ const drawGUI = (mouseX, mouseY) => {
         pfpSize / 2 + PROFILE_PICTURE_OUTLINE,
         50
     );
-    drawCircularImage(profileImage, pfpX, pfpY, pfpSize);
+    
+    // Draw the circular profile image
+    if (profileImage) {
+        profileImage.draw(pfpX, pfpY, pfpSize, pfpSize);
+    }
 
     // Search Bar
     let searchAnimProgress = 1.0;
