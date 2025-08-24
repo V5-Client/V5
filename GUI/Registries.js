@@ -1,4 +1,4 @@
-const { addCategoryItem, addToggle, addSlider, addSubCategory } =
+const { addCategoryItem, addToggle, addSlider, addSubCategory, _findItem } =
   global.Categories;
 
 /* MINING */
@@ -13,6 +13,8 @@ addCategoryItem(
   "Gemstone Macro",
   "Mines gemstones in the Crystal Hollows"
 );
+
+addSlider("Modules", "Gemstone Macro", "Potato");
 
 addCategoryItem("Mining", "Ore Macro", "Mines ores across all islands");
 

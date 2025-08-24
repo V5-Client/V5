@@ -1,96 +1,44 @@
 import "./GuiManager";
-import { clamp, isInside } from "./Utils";
-// import { getDiscordProfilePicture } from "./DiscordProfile"; // TODO: Implement Discord profile picture fetching
+import { clamp, isInside, createCircularImage } from "./Utils";
 
-const Color = Java.type("java.awt.Color");
-const BufferedImage = Java.type("java.awt.image.BufferedImage");
+/* Essentials */
 const UIRoundedRectangle = Java.type(
   "gg.essential.elementa.components.UIRoundedRectangle"
 );
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
   .INSTANCE;
+const Color = Java.type("java.awt.Color");
 const matrix = UMatrixStack.get();
-const UKeyboard = Java.type("gg.essential.universal.UKeyboard");
 
 const PADDING = 10;
 const BORDER_WIDTH = 2;
 const CORNER_RADIUS = 10;
+
 const BACKGROUND_COLOR = new Color(0.089, 0.089, 0.089, 0.1);
 const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 0.8);
 const BAR_COLOR = new Color(0.15, 0.15, 0.15, 1);
 const BAR_BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
-
 const GRADIENT_TOP_COLOR = new Color(0.6, 0.4, 0.8, 1);
 const GRADIENT_BOTTOM_COLOR = new Color(0.4, 0.6, 0.8, 1);
 
-const ANIMATION_DURATION = 200; // Time in milliseconds for the unroll animation
+const ANIMATION_DURATION = 200;
 const PROFILE_PICTURE_SIZE = 18;
 const PROFILE_PICTURE_OUTLINE = 1;
-const SEARCH_ICON_SIZE = 20;
-const SEARCH_BAR_WIDTH = 150;
 
-let isOpening = false;
 let openStartTime = 0;
-
 let animatedBackground = {};
 let animatedTopPanel = {};
 let animatedLeftPanel = {};
 let animatedRightPanel = {};
 
-let searchBar = {
-    isExpanded: false,
-    isFocused: false,
-    animationStart: 0,
-    text: "",
-    cursorBlinkStart: 0,
-    showCursor: false,
-    currentWidth: SEARCH_ICON_SIZE,
-};
-
-// Function to create a circular version of an image
-const createCircularImage = (originalImage) => {
-    if (!originalImage) return null;
-    
-    // Get the original image's BufferedImage
-    const originalBuffered = originalImage.getImage();
-    const width = originalBuffered.getWidth();
-    const height = originalBuffered.getHeight();
-    const size = Math.min(width, height);
-    
-    // Create a new BufferedImage with transparency
-    const circularBuffered = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-    const graphics = circularBuffered.createGraphics();
-    
-    // Enable antialiasing for smooth edges
-    const RenderingHints = Java.type("java.awt.RenderingHints");
-    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-    graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-    
-    // Create circular clip
-    const Ellipse2D = Java.type("java.awt.geom.Ellipse2D$Float");
-    const circle = new Ellipse2D(0, 0, size, size);
-    graphics.setClip(circle);
-    
-    // Draw the image centered in the circle
-    const xOffset = (width - size) / 2;
-    const yOffset = (height - size) / 2;
-    graphics.drawImage(originalBuffered, -xOffset, -yOffset, width, height, null);
-    graphics.dispose();
-    
-    // Convert back to ChatTriggers Image
-    return new Image(circularBuffered);
-};
-
 // Load and process profile image
-const profileImageOriginal = Image.fromFile("./config/ChatTriggers/assets/profiletemp.png");
+const profileImageOriginal = Image.fromAsset("profiletemp.png");
 const profileImage = createCircularImage(profileImageOriginal);
-const searchImage = Image.fromFile("./config/ChatTriggers/assets/search.png");
 
 // For future use with URL images:
 // const loadProfileFromURL = (url) => {
-//     const img = Image.fromURL(url);
-//     return createCircularImage(img);
+//     const img = Image.fromURL(url);
+//     return createCircularImage(img);
 // };
 
 let rectangles = {
@@ -192,9 +140,8 @@ const drawRoundedRectangleWithBorder = (r) => {
     const bw = r.borderWidth;
     const innerWidth = Math.max(0, r.width - bw * 2);
     const innerHeight = Math.max(0, r.height - bw * 2);
-    const innerRadius = Math.max(0, r.radius - bw);
+    const innerRadius = Math.max(0, r.radius - bw); // Only draw border if it's visible
 
-    // Only draw border if it's visible
     if (r.borderColor && bw > 0) {
       drawRoundedRectangle({
         x: r.x,
@@ -204,9 +151,8 @@ const drawRoundedRectangleWithBorder = (r) => {
         radius: r.radius,
         color: r.borderColor,
       });
-    }
+    } // Only draw inner rectangle if it has valid dimensions
 
-    // Only draw inner rectangle if it has valid dimensions
     if (innerWidth > 0 && innerHeight > 0) {
       drawRoundedRectangle({
         x: r.x + bw,
@@ -251,32 +197,45 @@ const drawGradientRoundedOutline = (
   const getColorAtY = (currentY) => {
     const factor = (currentY - y) / height;
     return interpolateColor(topColor, bottomColor, factor);
-  };
+  }; // Draw vertical segments
 
-  // Draw vertical segments
   const segmentHeight = Math.max(1, Math.floor((height - 2 * radius) / 20)); // Divide into 20 segments max
 
   for (let i = 0; i < height - 2 * radius; i += segmentHeight) {
     const currentY = y + radius + i;
     const remainingHeight = Math.min(segmentHeight, height - 2 * radius - i);
-    const color = getColorAtY(currentY + remainingHeight / 2); // Use middle color for segment
+    const color = getColorAtY(currentY + remainingHeight / 2); // Use middle color for segment // Draw left and right vertical segments
 
-    // Draw left and right vertical segments
     Renderer.drawRect(color.getRGB(), x, currentY, lineWidth, remainingHeight);
-    Renderer.drawRect(color.getRGB(), x + width - lineWidth, currentY, lineWidth, remainingHeight);
-  }
+    Renderer.drawRect(
+      color.getRGB(),
+      x + width - lineWidth,
+      currentY,
+      lineWidth,
+      remainingHeight
+    );
+  } // Draw horizontal lines with gradient approximation using segments
 
-  // Draw horizontal lines with gradient approximation using segments
   const horizontalSegments = Math.max(1, Math.floor((width - 2 * radius) / 10));
   for (let i = 0; i < width - 2 * radius; i += horizontalSegments) {
     const currentX = x + radius + i;
-    const remainingWidth = Math.min(horizontalSegments, width - 2 * radius - i);
+    const remainingWidth = Math.min(horizontalSegments, width - 2 * radius - i); // Top horizontal line - use top color
 
-    // Top horizontal line - use top color
-    Renderer.drawRect(topColor.getRGB(), currentX, y, remainingWidth, lineWidth);
+    Renderer.drawRect(
+      topColor.getRGB(),
+      currentX,
+      y,
+      remainingWidth,
+      lineWidth
+    ); // Bottom horizontal line - use bottom color
 
-    // Bottom horizontal line - use bottom color
-    Renderer.drawRect(bottomColor.getRGB(), currentX, y + height - lineWidth, remainingWidth, lineWidth);
+    Renderer.drawRect(
+      bottomColor.getRGB(),
+      currentX,
+      y + height - lineWidth,
+      remainingWidth,
+      lineWidth
+    );
   }
 
   const steps = Math.min(30, radius); // Adaptive steps based on radius
@@ -297,28 +256,26 @@ const drawGradientRoundedOutline = (
       tl: { dx: -cos, dy: -sin },
       tr: { dx: cos, dy: -sin },
       bl: { dx: -cos, dy: sin },
-      br: { dx: cos, dy: sin }
+      br: { dx: cos, dy: sin },
     });
   }
 
   const pixelSize = Math.max(1, Math.floor(lineWidth / 2));
-  for (let i = 0; i < cornerPoints.length; i += Math.max(1, Math.floor(steps / 15))) {
+  for (
+    let i = 0;
+    i < cornerPoints.length;
+    i += Math.max(1, Math.floor(steps / 15))
+  ) {
     const points = cornerPoints[i];
 
-    ['tl', 'tr', 'bl', 'br'].forEach(corner => {
+    ["tl", "tr", "bl", "br"].forEach((corner) => {
       const center = centers[corner];
       const point = points[corner];
       const px = center.x + point.dx * ir;
       const py = center.y + point.dy * ir;
       const color = getColorAtY(py - hw);
 
-      Renderer.drawRect(
-        color.getRGB(),
-        px - hw,
-        py - hw,
-        pixelSize,
-        pixelSize
-      );
+      Renderer.drawRect(color.getRGB(), px - hw, py - hw, pixelSize, pixelSize);
     });
   }
 };
@@ -393,14 +350,20 @@ const drawGUI = (mouseX, mouseY) => {
     x: animatedBackground.x + PADDING,
     y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
     width: rectangles.LeftPanel.width * progress,
-    height: (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) * progress,
+    height:
+      (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) *
+      progress,
   });
 
   Object.assign(animatedRightPanel, rectangles.RightPanel, {
     x: animatedLeftPanel.x + animatedLeftPanel.width + PADDING,
     y: animatedTopPanel.y + animatedTopPanel.height + PADDING,
-    width: (targetBackground.width - PADDING * 3 - rectangles.LeftPanel.width) * progress,
-    height: (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) * progress,
+    width:
+      (targetBackground.width - PADDING * 3 - rectangles.LeftPanel.width) *
+      progress,
+    height:
+      (targetBackground.height - PADDING * 3 - rectangles.TopPanel.height) *
+      progress,
   });
 
   Client.getMinecraft().gameRenderer.renderBlur();
@@ -410,81 +373,27 @@ const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(animatedLeftPanel);
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
-if (progress > 0.8) {
-    const pfpX = animatedLeftPanel.x + (animatedLeftPanel.width - PROFILE_PICTURE_SIZE) / 2;
-    const pfpY = animatedTopPanel.y + (animatedTopPanel.height - PROFILE_PICTURE_SIZE) / 2;
-    const pfpSize = PROFILE_PICTURE_SIZE * progress;
+  const pfpX =
+    animatedLeftPanel.x + (animatedLeftPanel.width - PROFILE_PICTURE_SIZE) / 2;
+  const pfpY =
+    animatedTopPanel.y +
+    (animatedTopPanel.height - PROFILE_PICTURE_SIZE) / 2 -
+    2.5;
+  const pfpSize = PROFILE_PICTURE_SIZE;
 
-    // Draw green outline circle
-    Renderer.drawCircle(
-        new Color(0, 1, 0, 1).getRGB(),
-        pfpX + pfpSize / 2,
-        pfpY + pfpSize / 2,
-        pfpSize / 2 + PROFILE_PICTURE_OUTLINE,
-        50
-    );
-    
-    // Draw the circular profile image
-    if (profileImage) {
-        profileImage.draw(pfpX, pfpY, pfpSize, pfpSize);
-    }
+  //Renderer.drawCircle(  ts killed my eyes </3
+  //      new Color(0, 1, 0, 1).getRGB(),
+  //      pfpX + pfpSize / 2,
+  //      pfpY + pfpSize / 2,
+  //      pfpSize / 2 + PROFILE_PICTURE_OUTLINE,
+  //      50
+  // );
 
-    // Search Bar
-    let searchAnimProgress = 1.0;
-    if (searchBar.animationStart > 0) {
-        searchAnimProgress = clamp((Date.now() - searchBar.animationStart) / ANIMATION_DURATION, 0, 1);
-        if (searchAnimProgress >= 1) {
-            searchBar.animationStart = 0;
-        }
-    }
-
-    const easedProgress = 1 - Math.pow(1 - searchAnimProgress, 3);
-    const targetWidth = searchBar.isExpanded ? SEARCH_BAR_WIDTH : SEARCH_ICON_SIZE;
-    const initialWidth = searchBar.isExpanded ? SEARCH_ICON_SIZE : SEARCH_BAR_WIDTH;
-
-    const currentSearchWidth = initialWidth + (targetWidth - initialWidth) * easedProgress;
-    searchBar.currentWidth = currentSearchWidth; // Update for click detection
-    const searchX = animatedTopPanel.x + animatedTopPanel.width - PADDING - currentSearchWidth;
-    const searchY = animatedTopPanel.y + (animatedTopPanel.height - SEARCH_ICON_SIZE) / 2;
-    const searchHeight = SEARCH_ICON_SIZE;
-
-    if (!searchBar.isExpanded && searchBar.animationStart === 0) {
-        // Collapsed and not animating
-        searchImage.draw(searchX, searchY, SEARCH_ICON_SIZE, SEARCH_ICON_SIZE);
-    } else {
-        // Expanded or animating
-        drawRoundedRectangle({
-            x: searchX,
-            y: searchY,
-            width: currentSearchWidth,
-            height: searchHeight,
-            radius: 8,
-            color: new Color(0.1, 0.1, 0.1, 1)
-        });
-
-        if (currentSearchWidth < SEARCH_ICON_SIZE + 20) {
-            // Fading into icon, or icon is just there while collapsing
-            const iconX = searchX + (currentSearchWidth - SEARCH_ICON_SIZE) / 2;
-            searchImage.draw(iconX, searchY, SEARCH_ICON_SIZE, SEARCH_ICON_SIZE);
-        } else {
-            // Expanded enough for text
-            Renderer.drawString(searchBar.text, searchX + 5, searchY + (searchHeight - 8) / 2, new Color(1,1,1,1).getRGB());
-
-            if (searchBar.isFocused) {
-                if (Date.now() - searchBar.cursorBlinkStart > 500) {
-                    searchBar.showCursor = !searchBar.showCursor;
-                    searchBar.cursorBlinkStart = Date.now();
-                }
-                if (searchBar.showCursor) {
-                    const textWidth = Renderer.getStringWidth(searchBar.text);
-                    Renderer.drawRect(new Color(1, 1, 1, 1).getRGB(), searchX + 5 + textWidth + 1, searchY + 4, 1, searchHeight - 8);
-                }
-            }
-        }
-    }
+  if (profileImage) {
+    profileImage.draw(pfpX - 1.25, pfpY + 1.25, pfpSize + 2.5, pfpSize + 2.5);
   }
 
-  if (progress >= 1) {
+  if (progress >= 0.8) {
     categoryManager.draw(mouseX, mouseY);
   }
 };
@@ -494,29 +403,6 @@ myGui.registerDraw(drawGUI);
 let dragging = false;
 
 const handleClick = (mouseX, mouseY) => {
-  const searchX = rectangles.TopPanel.x + rectangles.TopPanel.width - PADDING - searchBar.currentWidth;
-  const searchY = rectangles.TopPanel.y + (rectangles.TopPanel.height - SEARCH_ICON_SIZE) / 2;
-
-  const isInsideSearch = mouseX >= searchX && mouseX <= searchX + searchBar.currentWidth && mouseY >= searchY && mouseY <= searchY + SEARCH_ICON_SIZE;
-
-  if (isInsideSearch) {
-      if (!searchBar.isExpanded) {
-          searchBar.isExpanded = true;
-          searchBar.animationStart = Date.now();
-      }
-      searchBar.isFocused = true;
-      searchBar.cursorBlinkStart = Date.now();
-      searchBar.showCursor = true;
-  } else {
-      if (searchBar.isFocused) {
-          searchBar.isFocused = false;
-          if (searchBar.text.length === 0) {
-              searchBar.isExpanded = false;
-              searchBar.animationStart = Date.now();
-          }
-      }
-  }
-
   if (
     isInside(mouseX, mouseY, rectangles.Background) &&
     !isInside(mouseX, mouseY, rectangles.TopPanel) &&
@@ -571,28 +457,6 @@ myGui.registerMouseReleased(() => {
 });
 
 myGui.registerScrolled(handleScroll);
-
-myGui.registerKeyTyped((char, keycode) => { // this entire part is vibecoded cuz i have no idea how to do typing shit, please help @rdbtCVS @qxionr 
-    if (searchBar.isFocused) {
-        if (keycode === 14) { // Backspace
-            if (searchBar.text.length > 0) {
-                searchBar.text = searchBar.text.substring(0, searchBar.text.length - 1);
-            }
-        } else if (keycode === 1) { // Escape
-            searchBar.isFocused = false;
-            if (searchBar.text.length === 0) {
-                searchBar.isExpanded = false;
-                searchBar.animationStart = Date.now();
-            }
-        } else if (ChatLib.isControlDown() && keycode === 47) { // V
-            searchBar.text += Client.getClipboard();
-        } else if (UKeyboard.isPrintable(keycode)) {
-            searchBar.text += char;
-        }
-        searchBar.cursorBlinkStart = Date.now();
-        searchBar.showCursor = true;
-    }
-});
 
 register("command", () => {
   isOpening = true;

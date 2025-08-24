@@ -2,9 +2,7 @@ const Color = Java.type("java.awt.Color");
 
 const CATEGORY_BOX_HEIGHT = 40;
 
-const Module_icon = Image.fromFile(
-  "./config/ChatTriggers/assets/folder.png" // change to our own png
-);
+const Module_icon = Image.fromAsset("folder.png");
 
 import { ToggleButton } from "./Toggle";
 import { Slider } from "./Slider";
@@ -31,6 +29,7 @@ if (!global.Categories) {
     subcatTransitionStart: 0,
     subcatAnimationDuration: 200,
     animationRect: null,
+
     addCategoryItem(subcategoryName, title, description) {
       const category = global.Categories.categories.find(
         (c) => c.name === "Modules"
@@ -67,29 +66,42 @@ if (!global.Categories) {
       }
     },
 
-    _findItem(categoryName, itemName) {
-      const category = this.categories.find((c) => c.name === categoryName);
-      if (!category) return null;
+    addToggle(categoryName, itemName, toggleTitle) {
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return;
 
+      let item = null;
       for (const group of category.items) {
         if (group.type === "separator") {
-          const item = group.items.find((i) => i.title === itemName);
-          if (item) return item;
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
         } else if (group.title === itemName) {
-          return group;
+          item = group;
+          break;
         }
       }
-      return null;
-    },
-
-    addToggle(categoryName, itemName, toggleTitle) {
-      const item = this._findItem(categoryName, itemName);
       if (!item) return;
+
       item.components.push(new ToggleButton(toggleTitle, 0, 0));
     },
-
     getToggleState(categoryName, itemName, toggleTitle) {
-      const item = this._findItem(categoryName, itemName);
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return null;
+
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return null;
 
       const toggle = item.components.find(
@@ -97,15 +109,42 @@ if (!global.Categories) {
       );
       return toggle ? toggle.enabled : null;
     },
-
     addSlider(categoryName, itemName, sliderTitle) {
-      const item = this._findItem(categoryName, itemName);
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return;
+
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return;
+
       item.components.push(new Slider(sliderTitle, 0, 0));
     },
-
     getSliderValue(categoryName, itemName, sliderTitle) {
-      const item = this._findItem(categoryName, itemName);
+      const category = global.Categories.categories.find(
+        (c) => c.name === categoryName
+      );
+      if (!category) return null;
+
+      let item = null;
+      for (const group of category.items) {
+        if (group.type === "separator") {
+          item = group.items.find((i) => i.title === itemName);
+          if (item) break;
+        } else if (group.title === itemName) {
+          item = group;
+          break;
+        }
+      }
       if (!item) return null;
 
       const slider = item.components.find(
@@ -173,11 +212,13 @@ global.createCategoriesManager = (deps) => {
       global.Categories.animationRect.x =
         global.Categories.animationRect.startX +
         (global.Categories.animationRect.endX -
-          global.Categories.animationRect.startX) * p;
+          global.Categories.animationRect.startX) *
+          p;
       global.Categories.animationRect.width =
         global.Categories.animationRect.startWidth +
         (global.Categories.animationRect.endWidth -
-          global.Categories.animationRect.startWidth) * p;
+          global.Categories.animationRect.startWidth) *
+          p;
 
       if (rawProgress >= 1) {
         global.Categories.animationRect = null; // Animation is complete
@@ -185,9 +226,12 @@ global.createCategoriesManager = (deps) => {
     }
 
     let currentX = panelX + PADDING;
-    const subcategoriesToDraw = ["All", ...global.Categories.categories.find(
-      (c) => c.name === global.Categories.selected
-    ).subcategories];
+    const subcategoriesToDraw = [
+      "All",
+      ...global.Categories.categories.find(
+        (c) => c.name === global.Categories.selected
+      ).subcategories,
+    ];
 
     subcategoriesToDraw.forEach((subcat) => {
       const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
@@ -276,7 +320,12 @@ global.createCategoriesManager = (deps) => {
     const backButtonText = "Back";
     const backButtonX = optionX + 10;
     const backButtonY = optionY + 10;
-    Renderer.drawString(backButtonText, backButtonX, backButtonY, BACK_TEXT_COLOR);
+    Renderer.drawString(
+      backButtonText,
+      backButtonX,
+      backButtonY,
+      BACK_TEXT_COLOR
+    );
 
     // Draw item title and description
     Renderer.drawString(
@@ -341,10 +390,8 @@ global.createCategoriesManager = (deps) => {
         });
       }
 
-      Module_icon.draw(iconX, iconY - 10, iconWidth, iconHeight);
+      Module_icon.draw(iconX - 1, iconY - 10, iconWidth, iconHeight);
     });
-
-    
 
     const cat = global.Categories.categories.find(
       (c) => c.name === global.Categories.selected
