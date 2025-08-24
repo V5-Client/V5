@@ -32,14 +32,14 @@ let animatedLeftPanel = {};
 let animatedRightPanel = {};
 
 // Load and process profile image
-const profileImageOriginal = Image.fromAsset("profiletemp.png");
-const profileImage = createCircularImage(profileImageOriginal);
+const loadProfileFromURL = (url) => {
+    const discordData = JSON.parse(FileLib.getUrlContent(url));
+    console.log(discordData.discord.avatar)
+    const profileImage = Image.fromUrl(discordData.discord.avatar);
+    return createCircularImage(profileImage);
+};
 
-// For future use with URL images:
-// const loadProfileFromURL = (url) => {
-//     const img = Image.fromURL(url);
-//     return createCircularImage(img);
-// };
+const profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
 
 let rectangles = {
   Background: {

@@ -8,12 +8,15 @@
 /* Client Version + Title */
 
 global.Version = "1.0.0";
+global.APIKEY_DO_NOT_SHARE = java.util.UUID.randomUUID().toString().replaceAll("-", "");
+console.log(global.APIKEY_DO_NOT_SHARE)
 
 Client.getMinecraft()
   .getWindow()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
 import "./Utility/Misc.js";
+import "./Backend/IRC.js"
 
 /* GUI */
 import "./GUI/GuiDraw.js";
@@ -25,11 +28,11 @@ import "./GUI/Registries.js";
 //import "./Pathfinding/Pathfinder.js"
 import "./Pathfinding/test.js";
 import "./QOL/BeachBaller.js";
-//import "./Macro/SeaLumieMacro.js";
+import "./Macro/SeaLumieMacro.js";
 import "./QOL/Nuker.js";
 import "./Utility/MiningUtils.js";
 import "./Macro/MiningBot.js";
-import "./Backend/IRC.js"
+//import "./Macro/FishingMacro.js";
 
 /* Mixins */
 import {
