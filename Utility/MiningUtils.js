@@ -62,7 +62,10 @@ class MiningUtilClass {
   }
 
   RetreiveStats() {
-    const drill = this.getDrills().drill;
+    const { drill } = this.getDrills();
+    if (!drill) {
+      return; // Exit if no drill is found, message already sent in getDrills()
+    }
     Player.setHeldItemIndex(drill.slot);
 
     Chat.message("Getting your Mining Data!");
