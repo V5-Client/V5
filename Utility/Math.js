@@ -7,7 +7,7 @@ class MathUtilsClass {
    * Accesses .x .y .z from the input
    */
   distanceToPlayerPoint(Point) {
-    const eyes = Player.getPlayer().getEyePos(1);
+    const eyes = Player.getPlayer().getEyePos().y;
     if (!eyes) return 0;
     return this.calculateDistance(
       [eyes.x, eyes.y, eyes.z],
@@ -19,7 +19,7 @@ class MathUtilsClass {
    * @param {Array} Point
    */
   distanceToPlayer(Point) {
-    const eyes = Player.getPlayer().getEyePos(1);
+    const eyes = Player.getPlayer().getEyePos().y;
     if (!eyes) return 0;
     return this.calculateDistance([eyes.x, eyes.y, eyes.z], Point);
   }
@@ -38,7 +38,7 @@ class MathUtilsClass {
    * @param {Array} Point
    */
   distanceToPlayerCenter(Point) {
-    const eyes = Player.getPlayer().getEyePos(1);
+    const eyes = Player.getPlayer().getEyePos().y;
     if (!eyes) return 0;
     return this.calculateDistance(
       [eyes.x, Player.getY() + Player.asPlayerMP().getHeight() / 2, eyes.z],
@@ -50,7 +50,7 @@ class MathUtilsClass {
    * @param {Entity} Entity
    */
   distanceToPlayerCT(Entity) {
-    const eyes = Player.getPlayer().getEyePos(1);
+    const eyes = Player.getPlayer().getEyePos().y;
     if (!eyes) return 0;
     return this.calculateDistance(
       [eyes.x, eyes.y, eyes.z],
@@ -62,7 +62,7 @@ class MathUtilsClass {
    * @param {EntityLivingBase} Entity
    */
   distanceToPlayerMC(Entity) {
-    const eyes = Player.getPlayer().getEyePos(1);
+    const eyes = Player.getPlayer().getEyePos().y;
     if (!eyes) return 0;
     return this.calculateDistance(
       [eyes.x, eyes.y, eyes.z],
@@ -184,7 +184,7 @@ class MathUtilsClass {
    * @param {Array} Point
    */
   angleToPlayer(Point) {
-    let angles = this.calculateAngles(new Vec3(Point[0], Point[1], Point[2]));
+    let angles = this.calculateAngles(new Vec3i(Point[0], Point[1], Point[2]));
     let yaw = angles.yaw;
     let pitch = angles.pitch;
     let distance = Math.sqrt(yaw * yaw + pitch * pitch);
