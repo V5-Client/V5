@@ -4,7 +4,8 @@ import RequestV2 from "RequestV2";
 
 let reconnectAttempts = 0;
 const MAX_RECONNECT_DELAY = 60000; // 1 minute
-const gameUnload = false
+let gameUnload = false;
+let isConnected = false;
 
 function connectIRC(svid) {
   ws = new WebSocket("wss://client.rdbt.top/minecraft-ws");
@@ -12,6 +13,7 @@ function connectIRC(svid) {
   ws.onOpen = (handshake) => {
     Chat.irc("Connected to Minecraft WebSocket server");
     reconnectAttempts = 0;
+    isConnected = true;
     authenticateMojang(svid);
   };
 
@@ -53,12 +55,14 @@ function connectIRC(svid) {
   ws.onError = (exception) => {
     console.error("WebSocket error:", exception);
     Chat.irc("Connection error: " + exception);
+    isConnected = false;
     attemptReconnect(svid);
   };
 
   ws.onClose = (code, reason, remote) => {
     console.log("WebSocket closed:", code, reason);
     Chat.irc("Disconnected from chat server");
+    isConnected = false;
     if (!gameUnload) attemptReconnect(svid);
   };
 
@@ -116,12 +120,13 @@ function attemptReconnect(svid) {
 
   Client.scheduleTask(ticks, () => {
     Chat.irc("Reconnecting...");
+    if (isConnected) return;
     connectIRC(svid);
   });
 }
 
 function sendChatMessage(content) {
-  if (ws && ws.socket && ws.socket.isOpen()) {
+  if (isConnected) {
     ws.send(
       JSON.stringify({
         event: "chat_message",
