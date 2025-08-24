@@ -4,6 +4,7 @@ import RequestV2 from "RequestV2";
 
 let reconnectAttempts = 0;
 const MAX_RECONNECT_DELAY = 60000; // 1 minute
+const gameUnload = false
 
 function connectIRC(svid) {
   ws = new WebSocket("wss://client.rdbt.top/minecraft-ws");
@@ -58,7 +59,7 @@ function connectIRC(svid) {
   ws.onClose = (code, reason, remote) => {
     console.log("WebSocket closed:", code, reason);
     Chat.irc("Disconnected from chat server");
-    attemptReconnect(svid);
+    if (!gameUnload) attemptReconnect(svid);
   };
 
   ws.connect();
@@ -103,6 +104,7 @@ function authenticateMojang(svid) {
 }
 
 register("gameUnload", () => {
+  gameUnload = true
   ws?.close();
 });
 

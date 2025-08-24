@@ -2,7 +2,7 @@ class MobHider {
   constructor() {
     this.kalhuikis = false;
     this.svenpups = false;
-    this.thysts = true;
+    this.thysts = false;
     this.jerry = false;
 
     this.jerryNames = [
