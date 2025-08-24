@@ -777,9 +777,11 @@ global.createCategoriesManager = (deps) => {
       return;
     }
 
-    const cat = global.Categories.categories.find(
-      (c) => c.name === global.Categories.selected
-    );
+    const cat = global.Categories.selected
+      ? global.Categories.categories.find((c) => c.name === global.Categories.selected)
+      : global.Categories.categories[0];
+      
+    if (!cat) return;
 
     let totalContentHeight = 0;
     if (cat.subcategories.length > 0) {
