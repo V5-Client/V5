@@ -9,7 +9,6 @@
 
 global.Version = "1.0.0";
 global.APIKEY_DO_NOT_SHARE = java.util.UUID.randomUUID().toString().replaceAll("-", "");
-console.log(global.APIKEY_DO_NOT_SHARE)
 
 Client.getMinecraft()
   .getWindow()
