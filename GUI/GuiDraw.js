@@ -36,7 +36,6 @@ let animatedRightPanel = {};
 const loadProfileFromURL = (url) => {
   try {
     const discordData = JSON.parse(FileLib.getUrlContent(url));
-    console.log(discordData.discord.avatar)
     const profileImage = Image.fromUrl(discordData.discord.avatar);
     return createCircularImage(profileImage);
   } catch (error) {
