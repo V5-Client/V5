@@ -116,8 +116,11 @@ function sendChatMessage(content) {
 }
 
 register("packetSent", (packet, event) => {
-	const message = packet.chatMessage()
-	if (!message.startsWith("#")) return;
+	let message;
+	try {
+		message = packet.chatMessage();
+	} catch (e) {}
+	if (!message || !message.startsWith("#")) return;
 	try {
 		sendChatMessage(message.substring(1));
 	} catch (error) {
