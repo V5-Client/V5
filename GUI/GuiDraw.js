@@ -1,3 +1,4 @@
+import { Chat } from "../Utility/Chat";
 import "./GuiManager";
 import { clamp, isInside, createCircularImage } from "./Utils";
 
@@ -33,14 +34,25 @@ let animatedRightPanel = {};
 
 // Load and process profile image
 const loadProfileFromURL = (url) => {
+  try {
     const discordData = JSON.parse(FileLib.getUrlContent(url));
     console.log(discordData.discord.avatar)
     const profileImage = Image.fromUrl(discordData.discord.avatar);
     return createCircularImage(profileImage);
+  } catch (error) {
+    Chat.message("Failed to load profile image.")
+  }
 };
 
-const profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
-
+let profileImage;
+new Thread(() => {
+    Thread.sleep(1000);
+    try {
+      profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
+    } catch (error) {
+      Chat.message("Failed to load profile image")
+    }
+}).start();
 let rectangles = {
   Background: {
     name: "Background",
@@ -459,6 +471,9 @@ myGui.registerMouseReleased(() => {
 myGui.registerScrolled(handleScroll);
 
 register("command", () => {
+  if (!profileImage) {
+    profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
+  }
   isOpening = true;
   openStartTime = Date.now();
   myGui.open();
