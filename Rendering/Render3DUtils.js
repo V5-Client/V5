@@ -180,7 +180,11 @@ export default class RenderLib3d {
     depthTest = true,
   }) {
     if (end) vector = end.minus(start);
-    color = Color.decode(color);
+
+    // Handle both Color objects and string colors
+    if (typeof color === 'string') {
+      color = Color.decode(color);
+    }
 
     vector = new Vec3d(vector.getX(), vector.getY(), vector.getZ());
 

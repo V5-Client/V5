@@ -17,4 +17,14 @@ export default class RendererMain {
       lineWidth: 2,
     });
   }
+
+  static drawLine(start, end, color, lineWidth = 2, depthTest = false) {
+    RenderLib3d.drawLine({
+      start: start,
+      end: end,
+      color: color,
+      lineWidth: lineWidth,
+      depthTest: depthTest,
+    });
+  }
 }
