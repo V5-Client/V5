@@ -5,12 +5,12 @@ class MobHider {
     this.thysts = false;
     this.jerry = false;
 
-    this.jerryNames = [
+    this.jerryNames = new Set([
       "Green Jerry",
       "Blue Jerry",
       "Purple Jerry",
       "Golden Jerry",
-    ];
+    ]);
 
     if (this.kalhuikis) this.hideKalhuiki();
     if (this.svenpups) this.hidePup();
