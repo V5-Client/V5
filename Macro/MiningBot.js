@@ -1,4 +1,5 @@
 import RendererMain from "../Rendering/RendererMain";
+import { MiningUtils } from "../Utility/MiningUtils";
 import { Rotations } from "../Utility/Rotations";
 import { Utils } from "../Utility/Utils";
 
@@ -6,11 +7,14 @@ class MiningBot {
   constructor() {
     this.foundLocations = [];
 
-    this.prioritizetitanium = true;
-    this.prioritizetitanium ? 1 : 5;
+    /* Settings */
+    this.PRIOTITA = true;
+    this.PRIOTITA ? 1 : 5;
+
+    this.TICKGLIDE = true;
 
     this.mithrilCosts = {
-      "minecraft:polished_diorite": this.prioritizetitanium,
+      "minecraft:polished_diorite": this.PRIOTITA,
       "minecraft:light_blue_wool": 3,
       "minecraft:prismarine": 5,
       "minecraft:prismarine_bricks": 5,
@@ -19,6 +23,32 @@ class MiningBot {
       "minecraft:cyan_terracotta": 7,
     };
 
+    this.gemstoneCosts = {
+      "minecraft:orange_stained_glass": 4,
+      "minecraft:orange_stained_glass_pane": 5,
+      "minecraft:purple_stained_glass": 4,
+      "minecraft:purple_stained_glass_pane": 5,
+      "minecraft:lime_stained_glass": 4,
+      "minecraft:lime_stained_glass_pane": 5,
+      "minecraft:magenta_stained_glass": 4,
+      "minecraft:magenta_stained_glass_pane": 5,
+      "minecraft:red_stained_glass": 4,
+      "minecraft:red_stained_glass_pane": 5,
+      "minecraft:light_blue_stained_glass": 4,
+      "minecraft:light_blue_stained_glass_pane": 5,
+      "minecraft:yellow_stained_glass": 4,
+      "minecraft:yellow_stained_glass_pane": 5,
+    };
+
+    this.STATES = {
+      WAITING: 0,
+      MINING: 1,
+      ABILITY: 2,
+      BUFF: 3,
+      REFUEL: 4,
+    };
+    this.state = this.STATES.WAITING;
+
     this.TYPES = {
       MININGBOT: 0,
       COMMISSION: 1,
@@ -26,6 +56,11 @@ class MiningBot {
       ORE: 3,
       TUNNEL: 4,
     };
+    this.type = this.TYPES.MININGBOT;
+
+    this.Enabled = false;
+
+    register("tick", () => {});
   }
 
   scanForBlock(target, specific = true) {
@@ -33,12 +68,13 @@ class MiningBot {
     let playerX = Math.floor(Player.getX());
     let playerY = Math.floor(Player.getY());
     let playerZ = Math.floor(Player.getZ());
+    let distance = 4;
 
     let foundBlock = false;
 
-    for (let x = playerX - 5; x <= playerX + 5; x++) {
-      for (let y = playerY - 5; y <= playerY + 5; y++) {
-        for (let z = playerZ - 5; z <= playerZ + 5; z++) {
+    for (let x = playerX - distance; x <= playerX + distance; x++) {
+      for (let y = playerY - distance; y <= playerY + distance; y++) {
+        for (let z = playerZ - distance; z <= playerZ + distance; z++) {
           let block = World.getBlockAt(x, y, z);
           let blockName = block?.type?.getRegistryName();
 
@@ -73,6 +109,8 @@ class MiningBot {
     if (!foundBlock) {
       ChatLib.chat("no found");
     } else {
+      this.foundLocations.sort((a, b) => a.cost - b.cost);
+      this.currentTarget = this.foundLocations[0];
       ChatLib.chat("Scan complete");
     }
   }
@@ -91,40 +129,29 @@ register("command", () => {
 
 register("postRenderWorld", () => {
   if (bot.foundLocations.length > 0) {
-    bot.foundLocations.forEach((loc) => {
-      const Color = Java.type("java.awt.Color");
-      let waypointColor;
+    const Color = Java.type("java.awt.Color");
 
-      let lowestCostBlock = [...bot.foundLocations].sort(
-        (a, b) => a.cost - b.cost
-      )[0];
+    let sortedLocations = [...bot.foundLocations].sort(
+      (a, b) => a.cost - b.cost
+    );
 
-      Rotations.rotateTo([
-        lowestCostBlock.x,
-        lowestCostBlock.y,
-        lowestCostBlock.z,
-      ]);
+    let lowestCostBlock = sortedLocations[0];
+    let nextCostBlock = sortedLocations[1];
 
-      const MIN_POSSIBLE_COST = 1;
-      const MAX_POSSIBLE_COST = 17; // idk
-
-      let normalizedCost =
-        (loc.cost - MIN_POSSIBLE_COST) /
-        (MAX_POSSIBLE_COST - MIN_POSSIBLE_COST);
-
-      normalizedCost = Math.max(0, Math.min(1, normalizedCost));
-
-      const red = normalizedCost;
-      const green = 1 - normalizedCost;
-      const blue = 0;
-
-      waypointColor = new Color(red, green, blue, 1);
-
+    if (lowestCostBlock) {
       RendererMain.drawWaypoint(
-        new Vec3i(loc.x, loc.y, loc.z),
+        new Vec3i(lowestCostBlock.x, lowestCostBlock.y, lowestCostBlock.z),
         true,
-        waypointColor
+        new Color(0, 1, 0, 1) // green
       );
-    });
+    }
+
+    if (nextCostBlock) {
+      RendererMain.drawWaypoint(
+        new Vec3i(nextCostBlock.x, nextCostBlock.y, nextCostBlock.z),
+        true,
+        new Color(1, 0, 0, 1) // red
+      );
+    }
   }
 });
