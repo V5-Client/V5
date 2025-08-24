@@ -1,7 +1,6 @@
 import WebSocket from "WebSocket";
 import { Chat } from "../Utility/Chat";
 import RequestV2 from "RequestV2";
-const UUID = java.util.UUID;
 
 //todo: 
 // auto reconnect
@@ -128,5 +127,4 @@ register("packetSent", (packet, event) => {
 }).setFilteredClass(net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket)
 
 // Start connection
-const svid = UUID.randomUUID().toString().replaceAll("-", "");
-connectIRC(svid);
+connectIRC(global.APIKEY_DO_NOT_SHARE);
