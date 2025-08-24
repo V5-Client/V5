@@ -390,7 +390,30 @@ global.createCategoriesManager = (deps) => {
         });
       }
 
-      Module_icon.draw(iconX - 1, iconY - 10, iconWidth, iconHeight);
+      // Defensive icon draw: if draw throws unexpectedly, don't abort the whole frame.
+      try {
+        Module_icon.draw(iconX - 1, iconY - 10, iconWidth, iconHeight);
+      } catch (e) {
+        // draw a simple placeholder so the GUI still renders
+        deps.draw.drawRoundedRectangle({
+          x: iconX - 1,
+          y: iconY - 10,
+          width: iconWidth,
+          height: iconHeight,
+          radius: 5,
+          color: new Color(0.6, 0.6, 0.6, 1),
+          borderWidth: 1,
+          borderColor: new Color(0, 0, 0, 0.2),
+        });
+        deps.draw.drawRoundedRectangle({
+          x: iconX - 1,
+          y: iconY - 10,
+          width: Math.floor(iconWidth * 0.6),
+          height: Math.floor(iconHeight * 0.4),
+          radius: 2,
+          color: new Color(0.7, 0.7, 0.7, 1),
+        });
+      }
     });
 
     const cat = global.Categories.categories.find(
