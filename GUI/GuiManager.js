@@ -109,7 +109,7 @@ if (!global.Categories) {
       );
       return toggle ? toggle.enabled : null;
     },
-    addSlider(categoryName, itemName, sliderTitle) {
+    addSlider(categoryName, itemName, sliderTitle, min, max) {
       const category = global.Categories.categories.find(
         (c) => c.name === categoryName
       );
@@ -127,7 +127,7 @@ if (!global.Categories) {
       }
       if (!item) return;
 
-      item.components.push(new Slider(sliderTitle, 0, 0));
+      item.components.push(new Slider(sliderTitle, min, max, 0, 0));
     },
     getSliderValue(categoryName, itemName, sliderTitle) {
       const category = global.Categories.categories.find(
@@ -778,9 +778,11 @@ global.createCategoriesManager = (deps) => {
     }
 
     const cat = global.Categories.selected
-      ? global.Categories.categories.find((c) => c.name === global.Categories.selected)
+      ? global.Categories.categories.find(
+          (c) => c.name === global.Categories.selected
+        )
       : global.Categories.categories[0];
-      
+
     if (!cat) return;
 
     let totalContentHeight = 0;
