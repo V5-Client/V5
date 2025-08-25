@@ -30,7 +30,7 @@ function connectIRC(svid) {
 
         case "chat_message":
           const sender = data.data.sender.minecraftName || data.data.sender.discordUsername;
-          Chat.irc(sender + ": " + data.data.content);
+          Chat.irc(`&9${sender}` + ": " + `&r${data.data.content}`);
           break;
 
         case "discord_link_reminder":
@@ -113,16 +113,21 @@ register("gameUnload", () => {
 });
 
 function attemptReconnect(svid) {
-  reconnectAttempts++;
-  let delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY);
-  let ticks = Math.ceil(delay / 50);
-  Chat.irc(`Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`);
+  if (reconnectAttempts < 3) {
+    reconnectAttempts++;
+    let delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY);
+    let ticks = Math.ceil(delay / 50);
+    Chat.irc(`Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`);
 
-  Client.scheduleTask(ticks, () => {
-    Chat.irc("Reconnecting...");
-    if (isConnected) return;
-    connectIRC(svid);
-  });
+    Client.scheduleTask(ticks, () => {
+      Chat.irc("Reconnecting...");
+      if (isConnected) return;
+      connectIRC(svid);
+    });
+  } else { // remove this if u want but its annoying asf sometimes
+    Chat.irc("&cFailed to connect to IRC after 3 attempts! /ct load or wait, backend might be down.")
+  }
+
 }
 
 function sendChatMessage(content) {
