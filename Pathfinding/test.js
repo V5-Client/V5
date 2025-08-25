@@ -389,7 +389,7 @@ register('renderWorld', () => {
 
     RendererMain.drawWaypoint(
       new Vec3i(node.x, node.y, node.z),
-      true,
+      false,
       isVisited
         ? new Color(0.5, 0.5, 0.5, 0.3) // grey
         : new Color(0.0, 1.0, 0.0, 0.8) // green
