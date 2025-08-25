@@ -400,9 +400,9 @@ const drawGUI = (mouseX, mouseY) => {
   //      50
   // );
 
-  if (profileImage) {
-    profileImage.draw(pfpX - 1.25, pfpY + 1.25, pfpSize + 2.5, pfpSize + 2.5);
-  }
+  //if (profileImage) {
+  //  profileImage.draw(pfpX - 1.25, pfpY + 1.25, pfpSize + 2.5, pfpSize + 2.5);
+  //}
 
   if (progress >= 0.8) {
     categoryManager.draw(mouseX, mouseY);
