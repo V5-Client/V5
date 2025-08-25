@@ -10,7 +10,16 @@ const UIRoundedRectangle = Java.type(
 import { clamp } from "./Utils";
 
 export class Slider {
-  constructor(title, x, y, width = 100, height = 5, min = 0, max = 100, value = 50) {
+  constructor(
+    title,
+    min = 0,
+    max = 100,
+    x,
+    y,
+    width = 100,
+    height = 5,
+    value = 50
+  ) {
     this.title = title;
     this.x = x;
     this.y = y;
