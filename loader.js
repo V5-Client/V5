@@ -8,7 +8,9 @@
 /* Client Version + Title */
 
 global.Version = "1.0.0";
-global.APIKEY_DO_NOT_SHARE = java.util.UUID.randomUUID().toString().replaceAll("-", "");
+global.APIKEY_DO_NOT_SHARE = java.util.UUID.randomUUID()
+  .toString()
+  .replaceAll("-", "");
 
 Client.getMinecraft()
   .getWindow()
@@ -31,6 +33,7 @@ import "./QOL/BeachBaller.js";
 import "./Macro/SeaLumieMacro.js";
 import "./QOL/Nuker.js";
 import "./Macro/MiningBot.js";
+//import "./QOL/PinglessMining.js";
 //import "./Macro/FishingMacro.js";
 
 /* Mixins */
