@@ -15,7 +15,8 @@ Client.getMinecraft()
   .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
 
 import "./Utility/Misc.js";
-import "./Backend/IRC.js"
+import "./Backend/IRC.js";
+// import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* GUI */
 import "./GUI/GuiDraw.js";
