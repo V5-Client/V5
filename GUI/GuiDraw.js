@@ -33,7 +33,7 @@ let animatedLeftPanel = {};
 let animatedRightPanel = {};
 
 // Load and process profile image
-const loadProfileFromURL = (url) => {
+/*const loadProfileFromURL = (url) => {
   try {
     const discordData = JSON.parse(FileLib.getUrlContent(url));
     const profileImage = Image.fromUrl(discordData.discord.avatar);
@@ -51,7 +51,7 @@ new Thread(() => {
     } catch (error) {
       Chat.message("Failed to load profile image")
     }
-}).start();
+}).start(); */
 let rectangles = {
   Background: {
     name: "Background",
@@ -470,9 +470,9 @@ myGui.registerMouseReleased(() => {
 myGui.registerScrolled(handleScroll);
 
 register("command", () => {
-  if (!profileImage) {
-    profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
-  }
+ // if (!profileImage) {
+ //   profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
+ //}
   isOpening = true;
   openStartTime = Date.now();
   myGui.open();
