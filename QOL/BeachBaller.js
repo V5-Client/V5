@@ -4,9 +4,8 @@ import { MathUtils } from "../Utility/Math";
 import { Guis } from "../Utility/Inventory";
 import { Rotations } from "../Utility/Rotations";
 
-const smallBeachBall =
-  "ewogICJ0aW1lc3RhbXAiIDogMTczNjQyNzQ4ODAwNCwKICAicHJvZmlsZUlkIiA6ICIzN2JhNjRkYzkxOTg0OGI4YjZhNDdiYTg0ZDgwNDM3MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb3lLb3NhIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJhZGY5ZDcxMzY3Y2Q2ZTUwNWZiNDhjYWFhNWFjZGNkZmYyYTA5ZjY2YzQ4OGRhZjA0ZDA0NWVlMGJmNTI4ZTEiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==";
-const largeBeachBall = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODRiYzY4NDBmMDBkOGFlNDg2ZGFkNmU0N2U5NDJjOWQ0N2U3YTMwYzU0OTQ3ODIxZWJhN2I4YjE2Y2MwZjg1NyJ9fX0=";
+const smallBeachBallHash = "2adf9d71367cd6e505fb48caaa5acdcddf2a09f66c488daf04d045ee0bf528e1";
+const largeBeachBallHash = "84bc6840f00d8ae486dad6e47e942c9d47e7a30c54947821eba7b8b16cc0f857";
 
 let enabled = false;
 let bounceCount = 0;
@@ -40,7 +39,7 @@ let beachballer = register("tick", () => {
       stands.forEach((element, index) => {
         if (element.getStackInSlot(5)) {
           let beachBall = element.getStackInSlot(5).getNBT().toString();
-          if (beachBall.includes(smallBeachBall) || beachBall.includes(largeBeachBall)) {
+          if (beachBall.includes(smallBeachBallHash) || beachBall.includes(largeBeachBallHash)) {
             tickCounter = 0
             dx = element.getX() + (element.getX() - element.getLastX()) * 3;
             dz = element.getZ() + (element.getZ() - element.getLastZ()) * 3;
@@ -75,7 +74,7 @@ let beachballer = register("tick", () => {
       stand.forEach((element, index) => {
         if (element.getStackInSlot(5)) {
           let beachBall = element.getStackInSlot(5).getNBT().toString();
-          if (beachBall.includes(smallBeachBall) || beachBall.includes(largeBeachBall)) {
+          if (beachBall.includes(smallBeachBallHash) || beachBall.includes(largeBeachBallHash)) {
             setState(states.BOUNCE);
           }
         }
