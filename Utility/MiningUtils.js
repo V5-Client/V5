@@ -499,6 +499,15 @@ class MiningUtilClass {
       return baseSpeed;
     }
   }
+
+  GhostBlock(pos) {
+    const Blocks = Java.type("net.minecraft.block.Blocks");
+
+    Client.getMinecraft().world.setBlockState(
+      pos,
+      Blocks.AIR.getDefaultState()
+    );
+  }
 }
 
 export const MiningUtils = new MiningUtilClass();
