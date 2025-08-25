@@ -6,154 +6,136 @@ const Module_icon = Image.fromAsset("folder.png");
 
 import { ToggleButton } from "./Toggle";
 import { Slider } from "./Slider";
+import { MultiToggle } from "./Dropdown";
 import { isInside } from "./Utils";
 
-if (!global.Categories) {
-  global.Categories = {
-    categories: [
-      {
-        name: "Modules",
-        items: [],
-        subcategories: [],
-      },
-    ],
-    selected: "Modules",
-    selectedItem: null,
-    currentPage: "categories", // "categories" or "options"
-    transitionProgress: 0,
-    transitionDirection: 0,
-    transitionStart: 0,
-    selectedSubcategory: null,
-    selectedSubcategoryButton: null,
-    subcatTransitionProgress: 1,
-    subcatTransitionStart: 0,
-    subcatAnimationDuration: 200,
-    animationRect: null,
-
-    addCategoryItem(subcategoryName, title, description) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === "Modules"
-      );
-      if (!category) return;
-
-      const newItem = {
-        title,
-        description,
-        expanded: false,
-        animation: CATEGORY_BOX_HEIGHT,
-        components: [],
-        type: "item",
-        subcategoryName: subcategoryName,
-      };
-
-      if (subcategoryName) {
-        let subcategory = category.items.find(
-          (item) => item.type === "separator" && item.title === subcategoryName
-        );
-
-        if (!subcategory) {
-          subcategory = {
-            title: subcategoryName,
-            type: "separator",
-            items: [],
-          };
-          category.items.push(subcategory);
-          category.subcategories.push(subcategoryName);
-        }
-        subcategory.items.push(newItem);
-      } else {
-        category.items.push(newItem);
-      }
+global.Categories = {
+  categories: [
+    {
+      name: "Modules",
+      items: [],
+      subcategories: [],
     },
+  ],
+  selected: "Modules",
+  selectedItem: null,
+  currentPage: "categories", // "categories" or "options"
+  transitionProgress: 0,
+  transitionDirection: 0,
+  transitionStart: 0,
+  selectedSubcategory: null,
+  selectedSubcategoryButton: null,
+  subcatTransitionProgress: 1,
+  subcatTransitionStart: 0,
+  subcatAnimationDuration: 200,
+  animationRect: null,
 
-    addToggle(categoryName, itemName, toggleTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
+  addCategoryItem(subcategoryName, title, description) {
+    const category = global.Categories.categories.find(
+      (c) => c.name === "Modules"
+    );
+    if (!category) return;
+
+    const newItem = {
+      title,
+      description,
+      expanded: false,
+      animation: CATEGORY_BOX_HEIGHT,
+      components: [],
+      type: "item",
+      subcategoryName: subcategoryName,
+    };
+
+    if (subcategoryName) {
+      let subcategory = category.items.find(
+        (item) => item.type === "separator" && item.title === subcategoryName
       );
-      if (!category) return;
 
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
+      if (!subcategory) {
+        subcategory = {
+          title: subcategoryName,
+          type: "separator",
+          items: [],
+        };
+        category.items.push(subcategory);
+        category.subcategories.push(subcategoryName);
       }
-      if (!item) return;
+      subcategory.items.push(newItem);
+    } else {
+      category.items.push(newItem);
+    }
+  },
 
-      item.components.push(new ToggleButton(toggleTitle, 0, 0));
-    },
-    getToggleState(categoryName, itemName, toggleTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return null;
+  addToggle(categoryName, itemName, toggleTitle) {
+    const category = global.Categories.categories.find(
+      (c) => c.name === categoryName
+    );
+    if (!category) return;
 
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
+    let item = null;
+    for (const group of category.items) {
+      if (group.type === "separator") {
+        item = group.items.find((i) => i.title === itemName);
+        if (item) break;
+      } else if (group.title === itemName) {
+        item = group;
+        break;
       }
-      if (!item) return null;
+    }
+    if (!item) return;
 
-      const toggle = item.components.find(
-        (c) => c.title === toggleTitle && c instanceof ToggleButton
-      );
-      return toggle ? toggle.enabled : null;
-    },
-    addSlider(categoryName, itemName, sliderTitle, min, max) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return;
+    item.components.push(new ToggleButton(toggleTitle, 0, 0));
+  },
+  addSlider(categoryName, itemName, sliderTitle, min, max) {
+    const category = global.Categories.categories.find(
+      (c) => c.name === categoryName
+    );
+    if (!category) return;
 
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
+    let item = null;
+    for (const group of category.items) {
+      if (group.type === "separator") {
+        item = group.items.find((i) => i.title === itemName);
+        if (item) break;
+      } else if (group.title === itemName) {
+        item = group;
+        break;
       }
-      if (!item) return;
+    }
+    if (!item) return;
 
-      item.components.push(new Slider(sliderTitle, min, max, 0, 0));
-    },
-    getSliderValue(categoryName, itemName, sliderTitle) {
-      const category = global.Categories.categories.find(
-        (c) => c.name === categoryName
-      );
-      if (!category) return null;
+    item.components.push(new Slider(sliderTitle, min, max, 0, 0));
+  },
 
-      let item = null;
-      for (const group of category.items) {
-        if (group.type === "separator") {
-          item = group.items.find((i) => i.title === itemName);
-          if (item) break;
-        } else if (group.title === itemName) {
-          item = group;
-          break;
-        }
+  addMultiToggle(
+    categoryName,
+    itemName,
+    toggleTitle,
+    options,
+    singleSelect = false
+  ) {
+    const category = global.Categories.categories.find(
+      (c) => c.name === categoryName
+    );
+    if (!category) return;
+
+    let item = null;
+    for (const group of category.items) {
+      if (group.type === "separator") {
+        item = group.items.find((i) => i.title === itemName);
+        if (item) break;
+      } else if (group.title === itemName) {
+        item = group;
+        break;
       }
-      if (!item) return null;
+    }
+    if (!item) return;
 
-      const slider = item.components.find(
-        (c) => c.title === sliderTitle && c instanceof Slider
-      );
-      return slider ? slider.value : null;
-    },
-  };
-}
+    item.components.push(
+      new MultiToggle(toggleTitle, 0, 0, options, singleSelect)
+    );
+  },
+};
 
 global.createCategoriesManager = (deps) => {
   const CATEGORY_HEIGHT = 30;
@@ -350,7 +332,7 @@ global.createCategoriesManager = (deps) => {
         component.x = optionX + 10;
         component.y = componentY;
         component.draw();
-        componentY += 30;
+        componentY += 20;
       }
     });
   };

@@ -470,9 +470,9 @@ myGui.registerMouseReleased(() => {
 myGui.registerScrolled(handleScroll);
 
 register("command", () => {
- // if (!profileImage) {
- //   profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
- //}
+  // if (!profileImage) {
+  //   profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
+  //}
   isOpening = true;
   openStartTime = Date.now();
   myGui.open();
