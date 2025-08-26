@@ -18,6 +18,8 @@ Client.getMinecraft()
 
 import "./Utility/Misc.js";
 import "./Backend/IRC.js";
+import "./AutoReload.js";
+
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* GUI */
@@ -32,7 +34,7 @@ import "./Pathfinding/test.js";
 import "./QOL/BeachBaller.js";
 import "./Macro/SeaLumieMacro.js";
 import "./QOL/Nuker.js";
-import "./Macro/MiningBot.js";
+//import "./Macro/MiningBot.js";
 //import "./QOL/PinglessMining.js";
 //import "./Macro/FishingMacro.js";
 
