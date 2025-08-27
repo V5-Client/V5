@@ -65,42 +65,62 @@ class MiningBot {
 
   scanForBlock(target, specific = true) {
     this.foundLocations = [];
-    let playerX = Math.floor(Player.getX());
-    let playerY = Math.floor(Player.getY());
-    let playerZ = Math.floor(Player.getZ());
+    let startX = Math.floor(Player.getX());
+    let startY = Math.floor(Player.getY());
+    let startZ = Math.floor(Player.getZ());
     let distance = 4;
-
     let foundBlock = false;
 
-    for (let x = playerX - distance; x <= playerX + distance; x++) {
-      for (let y = playerY - distance; y <= playerY + distance; y++) {
-        for (let z = playerZ - distance; z <= playerZ + distance; z++) {
-          let block = World.getBlockAt(x, y, z);
-          let blockName = block?.type?.getRegistryName();
+    let queue = [{ x: startX, y: startY, z: startZ, dist: 0 }];
+    let visited = new Set();
+    visited.add(`${startX},${startY},${startZ}`);
 
-          let isTargetBlock = false;
-          if (specific) {
-            isTargetBlock = target.hasOwnProperty(blockName);
-          } else {
-            isTargetBlock = Object.keys(target).includes(blockName);
-          }
+    let directions = [
+      [1, 0, 0],
+      [-1, 0, 0],
+      [0, 1, 0],
+      [0, -1, 0],
+      [0, 0, 1],
+      [0, 0, -1],
+    ];
 
-          if (isTargetBlock) {
-            foundBlock = true;
+    while (queue.length > 0) {
+      let { x, y, z, dist } = queue.shift();
 
-            let distance =
-              Math.abs(x - playerX) +
-              Math.abs(y - Player.getPlayer().getEyePos().y) +
-              Math.abs(z - playerZ);
+      if (dist > distance) continue;
 
-            let totalCost = target[blockName] + distance;
+      let block = World.getBlockAt(x, y, z);
+      let blockName = block?.type?.getRegistryName();
 
-            this.foundLocations.push({
-              x: x,
-              y: y,
-              z: z,
-              cost: totalCost,
-            });
+      let isTargetBlock = false;
+      if (specific) {
+        isTargetBlock = target.hasOwnProperty(blockName);
+      } else {
+        isTargetBlock = Object.keys(target).includes(blockName);
+      }
+
+      if (isTargetBlock) {
+        foundBlock = true;
+        let totalCost = target[blockName] + dist;
+        this.foundLocations.push({
+          x: x,
+          y: y,
+          z: z,
+          cost: totalCost,
+        });
+      }
+
+      if (dist < distance) {
+        for (let i = 0; i < directions.length; i++) {
+          let [dx, dy, dz] = directions[i];
+          let nextX = x + dx;
+          let nextY = y + dy;
+          let nextZ = z + dz;
+          let nextKey = `${nextX},${nextY},${nextZ}`;
+
+          if (!visited.has(nextKey)) {
+            visited.add(nextKey);
+            queue.push({ x: nextX, y: nextY, z: nextZ, dist: dist + 1 });
           }
         }
       }
@@ -129,7 +149,7 @@ register("command", () => {
 
 register("postRenderWorld", () => {
   if (bot.foundLocations.length > 0) {
-    const Color = java.awt.Color
+    const Color = java.awt.Color;
 
     let sortedLocations = [...bot.foundLocations].sort(
       (a, b) => a.cost - b.cost
