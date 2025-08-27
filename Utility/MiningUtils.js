@@ -501,7 +501,7 @@ class MiningUtilClass {
   }
 
   GhostBlock(pos) {
-    const Blocks = net.minecraft.block.Blocks
+    const Blocks = net.minecraft.block.Blocks;
 
     Client.getMinecraft().world.setBlockState(
       pos,
