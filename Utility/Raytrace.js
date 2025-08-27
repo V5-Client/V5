@@ -1,9 +1,8 @@
 import { raytraceBlocks } from "../Dependencies/BloomCore/RaytraceBlocks";
 import { Vector3 } from "../Dependencies/BloomCore/Vector3";
 
-let Vec3 = Java.type("net.minecraft.util.math.Vec3d");
-let BP = Java.type("net.minecraft.util.math.BlockPos");
-let ClipContext = Java.type("net.minecraft.world.phys.ClipContext"); 
+let Vec3 = net.minecraft.util.math.Vec3d
+let ClipContext = net.minecraft.world.phys.ClipContext 
 
 class rayTraceUtils {
   constructor() {

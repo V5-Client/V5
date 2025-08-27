@@ -1,7 +1,7 @@
 import RenderLib3d from "./Render3DUtils";
 import RenderLib2d from "./Render2DUtils";
 
-const Color = Java.type("java.awt.Color");
+const Color = java.awt.Color
 
 export default class RendererMain {
   constructor() {}

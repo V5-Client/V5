@@ -1,4 +1,4 @@
-let File = Java.type("java.io.File");
+let File = java.io.File
 
 let configName = "ClientConfig";
 

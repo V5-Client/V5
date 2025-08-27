@@ -200,7 +200,7 @@ class SeaLumie {
 
     register("postRenderWorld", () => {
       if (this.enabled && this.closestPickle) {
-        const Color = Java.type("java.awt.Color");
+        const Color = java.awt.Color;
 
         let waypointPos = new Vec3i(
           this.closestPickle.x,

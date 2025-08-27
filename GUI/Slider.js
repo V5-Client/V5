@@ -1,11 +1,8 @@
-const Color = Java.type("java.awt.Color");
-const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
-  .INSTANCE;
+const Color = java.awt.Color
+const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat.INSTANCE;
 const matrix = UMatrixStack.get();
 
-const UIRoundedRectangle = Java.type(
-  "gg.essential.elementa.components.UIRoundedRectangle"
-);
+const UIRoundedRectangle = Java.type("gg.essential.elementa.components.UIRoundedRectangle");
 
 import { clamp } from "./Utils";
 

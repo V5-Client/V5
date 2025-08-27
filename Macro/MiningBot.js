@@ -129,7 +129,7 @@ register("command", () => {
 
 register("postRenderWorld", () => {
   if (bot.foundLocations.length > 0) {
-    const Color = Java.type("java.awt.Color");
+    const Color = java.awt.Color
 
     let sortedLocations = [...bot.foundLocations].sort(
       (a, b) => a.cost - b.cost

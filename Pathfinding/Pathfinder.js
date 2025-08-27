@@ -518,7 +518,7 @@ export class Pathfinder {
     });
 
     register("postRenderWorld", () => {
-      const Color = Java.type("java.awt.Color");
+      const Color = java.awt.Color
 
       this.pathWaypoints.forEach((node) => {
         RendererMain.drawWaypoint(

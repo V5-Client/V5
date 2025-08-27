@@ -8,7 +8,7 @@ const UIRoundedRectangle = Java.type(
 );
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
   .INSTANCE;
-const Color = Java.type("java.awt.Color");
+const Color = java.awt.Color
 const matrix = UMatrixStack.get();
 
 const PADDING = 10;

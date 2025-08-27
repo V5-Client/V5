@@ -5,8 +5,8 @@ import { ItemObject } from "./DataClasses/ItemObject";
 import { Vector } from "./DataClasses/Vec";
 import { Notifications } from "./Notifications";
 
-let ArrayLists = Java.type("java.util.ArrayList");
-let AxisAlignedBB = Java.type("net.minecraft.world.phys.AABB");
+let ArrayLists = java.util.ArrayList
+let AxisAlignedBB = net.minecraft.world.phys.AABB
 
 // mc
 export const mc = Client.getMinecraft();
