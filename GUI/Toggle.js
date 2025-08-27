@@ -1,10 +1,7 @@
 const Color = java.awt.Color
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat.INSTANCE;
 const matrix = UMatrixStack.get();
-
-const UIRoundedRectangle = Java.type(
-  "gg.essential.elementa.components.UIRoundedRectangle"
-);
+const UIRoundedRectangle = Java.type("gg.essential.elementa.components.UIRoundedRectangle");
 
 export class ToggleButton {
   constructor(title, x, y, width = 10, height = 10) {
