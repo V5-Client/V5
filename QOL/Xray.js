@@ -2,8 +2,6 @@ import { Chat } from "../Utility/Chat";
 
 const Xray = Java.type("com.chattriggers.ctjs.v5.Xray");
 
-// not intended for singleplayer, it will kill your fps </3
-
 let enabled = false;
 
 register("command", () => {
