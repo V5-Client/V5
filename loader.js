@@ -37,6 +37,7 @@ import "./QOL/Nuker.js";
 //import "./Macro/MiningBot.js";
 //import "./QOL/PinglessMining.js";
 //import "./Macro/FishingMacro.js";
+//import "./QOL/Xray.js";
 
 /* Mixins */
 import {
@@ -48,8 +49,8 @@ import {
 } from "./mixins.js";
 
 fullStainedGlassPane.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes
-  const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock
+  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+  const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
 
   if (instance instanceof StainedGlassPaneBlock) {
     cir.setReturnValue(VoxelShapes.fullCube());
@@ -57,14 +58,14 @@ fullStainedGlassPane.attach((instance, cir) => {
 });
 
 fullPickle.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes
+  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
   cir.setReturnValue(VoxelShapes.fullCube());
 });
 
 emptyKelp.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes
-  const KelpBlock = net.minecraft.block.KelpBlock
-  const KelpPlant = net.minecraft.block.KelpPlantBlock
+  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+  const KelpBlock = net.minecraft.block.KelpBlock;
+  const KelpPlant = net.minecraft.block.KelpPlantBlock;
 
   if (instance instanceof KelpBlock || instance instanceof KelpPlant) {
     cir.setReturnValue(VoxelShapes.empty());
@@ -72,12 +73,12 @@ emptyKelp.attach((instance, cir) => {
 });
 
 emptyGrass.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes
+  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
   cir.setReturnValue(VoxelShapes.empty());
 });
 
 emptyTallGrass.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes
+  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
   cir.setReturnValue(VoxelShapes.empty());
 });
 
