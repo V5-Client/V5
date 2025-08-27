@@ -1,33 +1,6 @@
-/*const mc = Client.getMinecraft();
-
-//const MinecraftClient = Java.type("net.minecraft.client.MinecraftClient");
-//const BlockPos = Java.type("net.minecraft.util.math.BlockPos");
-const Blocks = Java.type("net.minecraft.block.Blocks");
-
-register("tick", () => {
-  const client = mc;
-  const world = client.world;
-  if (!world) return;
-
-  // Example: For blocks in a small radius around player, replace stone with air (client-side)
-  const playerPos = client.player.getBlockPos();
-  for (let x = -5; x <= 5; x++) {
-    for (let y = -5; y <= 5; y++) {
-      for (let z = -5; z <= 5; z++) {
-        let pos = playerPos.add(x, y, z);
-        let blockState = world.getBlockState(pos);
-        if (blockState.getBlock() == Blocks.STONE) {
-          // Replace block client-side with air (only visual, no real block change)
-          world.setBlockState(pos, Blocks.AIR.getDefaultState());
-        }
-      }
-    }
-  }
-}); */
-
 const mc = Client.getMinecraft();
-const Blocks = Java.type("net.minecraft.block.Blocks");
-const Runnable = Java.type("java.lang.Runnable");
+const Blocks = net.minecraft.block.Blocks
+const Runnable = java.lang.Runnable
 
 // Helper function to create a thread that finds stone blocks and passes positions back
 function createWorkerThread(

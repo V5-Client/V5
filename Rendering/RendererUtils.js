@@ -1,5 +1,5 @@
-const RenderSystem = Java.type("com.mojang.blaze3d.systems.RenderSystem");
-const RenderPipeline = Java.type("net.minecraft.client.gl.RenderPipelines");
+const RenderSystem = com.mojang.blaze3d.systems.RenderSystem
+const RenderPipeline = net.minecraft.client.gl.RenderPipelines
 
 // Helpers - Use RendererMain.js methods!
 
@@ -63,11 +63,11 @@ export class Align {
   static BOTTOM_RIGHT = "BOTTOM_RIGHT";
 }
 
-const VertexFormat = Java.type("net.minecraft.client.render.VertexFormat");
-const VertexFormats = Java.type("net.minecraft.client.render.VertexFormats");
-const RenderPhase = Java.type("net.minecraft.client.render.RenderPhase");
-const RenderLayer = Java.type("net.minecraft.client.render.RenderLayer");
-const OptionalDouble = Java.type("java.util.OptionalDouble");
+const VertexFormat = net.minecraft.client.render.VertexFormat
+const VertexFormats = net.minecraft.client.render.VertexFormats
+const RenderPhase = net.minecraft.client.render.RenderPhase
+const RenderLayer = net.minecraft.client.render.RenderLayer
+const OptionalDouble = java.util.OptionalDouble
 const linesCache = new Map();
 const linesThroughWallsCache = new Map();
 let filledThroughWallsCache = null;

@@ -8,7 +8,7 @@ export const isInside = (mouseX, mouseY, rect) =>
 
 export const createCircularImage = (originalImage) => {
   if (!originalImage) return null; // Get the original image's BufferedImage
-  const BufferedImage = Java.type("java.awt.image.BufferedImage");
+  const BufferedImage = java.awt.image.BufferedImage
   const originalBuffered = originalImage.getImage();
   const width = originalBuffered.getWidth();
   const height = originalBuffered.getHeight();
@@ -19,7 +19,7 @@ export const createCircularImage = (originalImage) => {
     BufferedImage.TYPE_INT_ARGB
   );
   const graphics = circularBuffered.createGraphics(); // Enable antialiasing for smooth edges
-  const RenderingHints = Java.type("java.awt.RenderingHints");
+  const RenderingHints = java.awt.RenderingHints
   graphics.setRenderingHint(
     RenderingHints.KEY_ANTIALIASING,
     RenderingHints.VALUE_ANTIALIAS_ON
@@ -32,7 +32,7 @@ export const createCircularImage = (originalImage) => {
     RenderingHints.KEY_INTERPOLATION,
     RenderingHints.VALUE_INTERPOLATION_BILINEAR
   ); // Create circular clip
-  const Ellipse2D = Java.type("java.awt.geom.Ellipse2D$Float");
+  const Ellipse2D = java.awt.geom.Ellipse2D$Float
   const circle = new Ellipse2D(0, 0, size, size);
   graphics.setClip(circle); // Draw the image centered in the circle
   const xOffset = (width - size) / 2;

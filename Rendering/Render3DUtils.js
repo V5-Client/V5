@@ -7,9 +7,9 @@ const Color = java.awt.Color;
 const VertexRendering = Java.type(
   "net.minecraft.client.render.VertexRendering"
 );
-const RenderLayer = Java.type("net.minecraft.client.render.RenderLayer");
-const Vector3f = Java.type("org.joml.Vector3f");
-const Vec3d = Java.type("net.minecraft.util.math.Vec3d");
+const RenderLayer = net.minecraft.client.render.RenderLayer
+const Vector3f = org.joml.Vector3f
+const Vec3d = net.minecraft.util.math.Vec3d
 
 const VCP = Client.getMinecraft()
   .getBufferBuilders()

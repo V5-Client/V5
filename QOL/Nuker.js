@@ -1,7 +1,7 @@
 import { NukerUtils } from "../Utility/NukerUtils";
 import { Chat } from "../Utility/Chat";
 import { Utils } from "../Utility/Utils"
-const BP = Java.type("net.minecraft.util.math.BlockPos")
+const BP = net.minecraft.util.math.BlockPos
 
 class NukerClass {
   constructor() {
