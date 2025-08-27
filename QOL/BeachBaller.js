@@ -35,7 +35,7 @@ let beachballer = register("tick", () => {
         }
         let currentYaw = Player.getYaw()
         Rotations.rotateToAngles(currentYaw, -90)
-      let stands = World.getAllEntitiesOfType(Java.type("net.minecraft.entity.decoration.ArmorStandEntity").class);
+      let stands = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity.class);
       stands.forEach((element, index) => {
         if (element.getStackInSlot(5)) {
           let beachBall = element.getStackInSlot(5).getNBT().toString();
@@ -70,7 +70,7 @@ let beachballer = register("tick", () => {
       Keybind.setKeysForStraightLineCoords(startPos[0], startPos[1], startPos[2]);
       break;
     case states.PLACE:
-      let stand = World.getAllEntitiesOfType(Java.type("net.minecraft.entity.decoration.ArmorStandEntity").class);
+      let stand = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity.class);
       stand.forEach((element, index) => {
         if (element.getStackInSlot(5)) {
           let beachBall = element.getStackInSlot(5).getNBT().toString();

@@ -2,8 +2,8 @@ import { Utils } from "./Utils";
 import { Chat } from "./Chat";
 let { Version } = global;
 
-let URL = Java.type("java.net.URL");
-let DataOutputStream = Java.type("java.io.DataOutputStream");
+let URL = java.net.URL
+let DataOutputStream = java.io.DataOutputStream
 
 // TODO
 // Failsafe
@@ -32,8 +32,8 @@ class Webhooks {
     });
 
     register("command", () => {
-      const Toolkit = Java.type("java.awt.Toolkit");
-      const DataFlavor = Java.type("java.awt.datatransfer.DataFlavor");
+      const Toolkit = java.awt.Toolkit
+      const DataFlavor = java.awt.datatransfer.DataFlavor
       try {
         url = Toolkit.getDefaultToolkit()
           .getSystemClipboard()

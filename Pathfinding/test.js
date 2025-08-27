@@ -2,7 +2,7 @@ import request from "requestV2";
 import RendererMain from "../Rendering/RendererMain";
 import { Rotations } from "../Utility/Rotations";
 
-const Color = Java.type("java.awt.Color");
+const Color = java.awt.Color
 
 let pathNodes = [];
 let keyNodes = [];
@@ -427,9 +427,9 @@ function runProgram() {
 
   console.log("Running program");
 
-  const JavaProcessBuilder = Java.type("java.lang.ProcessBuilder");
-  const JavaScanner = Java.type("java.util.Scanner");
-  const JavaThread = Java.type("java.lang.Thread");
+  const JavaProcessBuilder = java.lang.ProcessBuilder
+  const JavaScanner = java.util.Scanner
+  const JavaThread = java.lang.Thread
 
   new JavaThread(() => {
     try {
@@ -489,7 +489,7 @@ register('gameUnload', () => {
   stopProgram();
 });
 
-const Runtime = Java.type("java.lang.Runtime");
+const Runtime = java.lang.Runtime
 const runtime = Runtime.getRuntime();
 runtime.addShutdownHook(new java.lang.Thread(() => {
   stopPathingMovement();

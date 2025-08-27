@@ -1,4 +1,4 @@
-const Color = Java.type("java.awt.Color");
+const Color = java.awt.Color
 
 const CATEGORY_BOX_HEIGHT = 40;
 

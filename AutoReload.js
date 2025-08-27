@@ -3,9 +3,9 @@
 // Shouldnt be in public release!
 import { Chat } from "./Utility/Chat";
 
-const File = Java.type("java.io.File");
-const FileSystems = Java.type("java.nio.file.FileSystems");
-const WatchEvent = Java.type("java.nio.file.StandardWatchEventKinds");
+const File = java.io.File
+const FileSystems = java.nio.file.FileSystems
+const WatchEvent = java.nio.file.StandardWatchEventKinds
 
 function onEvent(event) {
   const extension = event.context().toFile().getName().split(".").pop();
