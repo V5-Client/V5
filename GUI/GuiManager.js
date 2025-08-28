@@ -358,23 +358,26 @@ global.createCategoriesManager = (deps) => {
 
       const iconY = lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
       const iconX = rect.x + (rect.width - 25) / 2;
-      const iconWidth = 25;
-      const iconHeight = 25;
+      const moduleSize = 25;
 
       if (cat.name === "Modules" && global.Categories.selected === "Modules") {
         deps.draw.drawRoundedRectangle({
           x: iconX - 1,
           y: iconY - 10,
-          width: iconWidth,
-          height: iconHeight,
+          width: moduleSize,
+          height: moduleSize,
           radius: 5,
           color: CATEGORY_SELECTED_COLOR,
         });
       }
 
-      Module_icon.draw(iconX - 1, iconY - 10, iconWidth, iconHeight);
+      Module_icon.draw(iconX - 1, iconY - 10, moduleSize, moduleSize);
+
+      const pfpX = iconX - 1;
+      const pfpY = iconY - 73;
+      const iconSize = moduleSize - 2;
       if (global.discordPfp) {
-        Renderer.drawImage(global.discordPfp, 100, 100, 100, 100);
+        Renderer.drawImage(global.discordPfp, pfpX, pfpY, iconSize, iconSize);
       }
     });
 
