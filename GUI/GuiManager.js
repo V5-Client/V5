@@ -332,7 +332,7 @@ global.createCategoriesManager = (deps) => {
         component.x = optionX + 10;
         component.y = componentY;
         component.draw();
-        componentY += 20;
+        componentY += 25;
       }
     });
   };

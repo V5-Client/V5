@@ -48,7 +48,9 @@ addCategoryItem(
   "Automatically does the excavator task"
 );
 
-addCategoryItem("Stuffs", "Mining Bots", "stuffs");
+addCategoryItem("Visuals", "Xray", "See through walls");
+addToggle("Modules", "Xray", "Enabled");
+addSlider("Modules", "Xray", "Transparency", 1, 255);
 
 /*addCategoryItem(
   "Modules",

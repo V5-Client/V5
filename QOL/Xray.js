@@ -1,33 +1,45 @@
 import { Chat } from "../Utility/Chat";
+import { getSetting } from "../GUI/GuiSave";
 
-const Xray = Java.type("com.chattriggers.ctjs.v5.Xray");
+const XrayPackage = Java.type("com.chattriggers.ctjs.v5.Xray");
 
-let enabled = false;
+class Xray {
+  constructor() {
+    this.firstTransparency = getSetting("Xray", "Transparency");
+    this.progessCounter = 0;
 
-register("command", () => {
-  enabled = !enabled;
-  if (enabled) {
-    Xray.setEnabled();
-  } else {
-    Xray.setDisabled();
+    register("command", () => {
+      this.enabled = !this.enabled;
+      if (this.enabled) {
+        XrayPackage.setEnabled();
+      } else {
+        XrayPackage.setDisabled();
+      }
+    }).setName("xray");
+
+    // i had no idea how to do this different - add unregister/register if u can
+    register("step", () => {
+      this.enabled = getSetting("Xray", "Enabled");
+      this.transparency = getSetting("Xray", "Transparency");
+
+      if (this.enabled && this.progessCounter === 0) {
+        XrayPackage.setEnabled();
+        this.progessCounter++;
+      }
+
+      if (!this.enabled && this.progessCounter > 0) {
+        XrayPackage.setDisabled();
+        this.progessCounter = 0;
+      }
+
+      if (this.firstTransparency !== this.transparency && this.enabled) {
+        XrayPackage.setAlpha(this.transparency);
+        Client.getMinecraft().worldRenderer.reload();
+
+        this.firstTransparency = this.transparency;
+      }
+    }).setFps(5);
   }
-}).setName("xray");
+}
 
-// temp cmd
-register("command", (opacity) => {
-  if (opacity > 255) {
-    Chat.message("Opacity level is too big!");
-    return;
-  } else if (opacity < 1) {
-    Chat.message("Opacity level is too low!");
-  } else if (opacity === 255) {
-    Xray.setDisabled();
-    return;
-  } else if (!enabled) {
-    return;
-  }
-
-  Xray.setAlpha(opacity);
-  Client.getMinecraft().worldRenderer.reload();
-  Chat.message(`Opacity changed to ${opacity}!`);
-}).setName("opacity");
+new Xray();
