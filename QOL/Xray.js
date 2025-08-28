@@ -7,10 +7,11 @@ class Xray {
   constructor() {
     this.firstTransparency = getSetting("Xray", "Transparency");
     this.progessCounter = 0;
+    let cmdEnabled = false;
 
     register("command", () => {
-      this.enabled = !this.enabled;
-      if (this.enabled) {
+      cmdEnabled = !cmdEnabled;
+      if (cmdEnabled) {
         XrayPackage.setEnabled();
       } else {
         XrayPackage.setDisabled();
