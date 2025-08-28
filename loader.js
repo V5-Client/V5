@@ -38,7 +38,7 @@ import "./QOL/Nuker.js";
 //import "./Macro/MiningBot.js";
 //import "./QOL/PinglessMining.js";
 //import "./Macro/FishingMacro.js";
-//import "./QOL/Xray.js";
+import "./QOL/Xray.js";
 
 /* Mixins */
 import {
