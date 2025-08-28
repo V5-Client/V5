@@ -5,17 +5,7 @@ const XrayPackage = Java.type("com.chattriggers.ctjs.v5.Xray");
 class Xray {
   constructor() {
     this.firstTransparency = getSetting("Xray", "Transparency");
-    this.progessCounter = 0;
-    let cmdEnabled = false;
-
-    register("command", () => {
-      cmdEnabled = !cmdEnabled;
-      if (cmdEnabled) {
-        XrayPackage.setEnabled();
-      } else {
-        XrayPackage.setDisabled();
-      }
-    }).setName("xray");
+    this.prgessCounter = 0;
 
     // i had no idea how to do this different - add unregister/register if u can
     register("step", () => {
