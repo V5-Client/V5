@@ -1,6 +1,6 @@
 import { Chat } from "../Utility/Chat";
 import "./GuiManager";
-import { clamp, isInside, createCircularImage } from "./Utils";
+import { clamp, isInside, fetchURL, downloadFile } from "./Utils";
 
 /* Essentials */
 const UIRoundedRectangle = Java.type(
@@ -8,7 +8,9 @@ const UIRoundedRectangle = Java.type(
 );
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat
   .INSTANCE;
-const Color = java.awt.Color
+const Color = java.awt.Color;
+const File = java.io.File;
+
 const matrix = UMatrixStack.get();
 
 const PADDING = 10;
@@ -32,26 +34,39 @@ let animatedTopPanel = {};
 let animatedLeftPanel = {};
 let animatedRightPanel = {};
 
-// Load and process profile image
-/*const loadProfileFromURL = (url) => {
-  try {
-    const discordData = JSON.parse(FileLib.getUrlContent(url));
-    const profileImage = Image.fromUrl(discordData.discord.avatar);
-    return createCircularImage(profileImage);
-  } catch (error) {
-    Chat.message("Failed to load profile image.")
-  }
-};
+const profilePath = new File("config/ChatTriggers/assets/discordProfile.png");
 
-let profileImage;
-new Thread(() => {
-    Thread.sleep(1000);
-    try {
-      profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
-    } catch (error) {
-      Chat.message("Failed to load profile image")
-    }
-}).start(); */
+try {
+  if (!profilePath.exists()) {
+    new Thread(() => {
+      // make sure folder exists
+      if (!profilePath.getParentFile().exists())
+        profilePath.getParentFile().mkdirs();
+
+      // get all data
+      let data = JSON.parse(
+        fetchURL(
+          `https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
+            global.APIKEY_DO_NOT_SHARE
+          }`
+        )
+      );
+
+      // only get avatar and define file path
+      let avatarUrl = data.discord.avatar;
+      let saveFile = new File("config/ChatTriggers/assets/discordProfile.png");
+
+      downloadFile(avatarUrl, saveFile.getAbsolutePath());
+    }).start();
+  }
+} catch (error) {
+  ChatLib.chat("Failed to download your Discord pfp :(");
+}
+
+if (profilePath.exists()) {
+  global.discordPfp = Image.fromAsset("discordProfile.png");
+}
+
 let rectangles = {
   Background: {
     name: "Background",
@@ -384,26 +399,6 @@ const drawGUI = (mouseX, mouseY) => {
   drawRoundedRectangleWithBorder(animatedLeftPanel);
   drawRoundedRectangleWithBorder(animatedRightPanel);
 
-  const pfpX =
-    animatedLeftPanel.x + (animatedLeftPanel.width - PROFILE_PICTURE_SIZE) / 2;
-  const pfpY =
-    animatedTopPanel.y +
-    (animatedTopPanel.height - PROFILE_PICTURE_SIZE) / 2 -
-    2.5;
-  const pfpSize = PROFILE_PICTURE_SIZE;
-
-  //Renderer.drawCircle(  ts killed my eyes </3
-  //      new Color(0, 1, 0, 1).getRGB(),
-  //      pfpX + pfpSize / 2,
-  //      pfpY + pfpSize / 2,
-  //      pfpSize / 2 + PROFILE_PICTURE_OUTLINE,
-  //      50
-  // );
-
-  //if (profileImage) {
-  //  profileImage.draw(pfpX - 1.25, pfpY + 1.25, pfpSize + 2.5, pfpSize + 2.5);
-  //}
-
   if (progress >= 0.8) {
     categoryManager.draw(mouseX, mouseY);
   }
@@ -470,9 +465,6 @@ myGui.registerMouseReleased(() => {
 myGui.registerScrolled(handleScroll);
 
 register("command", () => {
-  // if (!profileImage) {
-  //   profileImage = loadProfileFromURL(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`);
-  //}
   isOpening = true;
   openStartTime = Date.now();
   myGui.open();

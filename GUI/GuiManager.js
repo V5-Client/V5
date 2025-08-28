@@ -1,4 +1,4 @@
-const Color = java.awt.Color
+const Color = java.awt.Color;
 
 const CATEGORY_BOX_HEIGHT = 40;
 
@@ -373,6 +373,9 @@ global.createCategoriesManager = (deps) => {
       }
 
       Module_icon.draw(iconX - 1, iconY - 10, iconWidth, iconHeight);
+      if (global.discordPfp) {
+        Renderer.drawImage(global.discordPfp, 100, 100, 100, 100);
+      }
     });
 
     const cat = global.Categories.categories.find(
