@@ -8,6 +8,8 @@ import {
   createCircularImage,
 } from "./Utils";
 
+import { saveSettings, loadSettings } from "./GuiSave";
+
 /* Essentials */
 const UIRoundedRectangle = Java.type(
   "gg.essential.elementa.components.UIRoundedRectangle"
@@ -469,7 +471,14 @@ myGui.registerMouseReleased(() => {
   categoryManager.handleMouseRelease();
 });
 
+myGui.registerClosed(() => {
+  saveSettings();
+  loadSettings();
+});
+
 myGui.registerScrolled(handleScroll);
+
+loadSettings();
 
 register("command", () => {
   isOpening = true;

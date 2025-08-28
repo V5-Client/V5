@@ -1,6 +1,6 @@
-let File = java.io.File
+let File = java.io.File;
 
-let configName = "ClientConfig";
+let configName = "V5Config";
 
 function existsFile(configName, FileName) {
   return FileLib.exists(configName, FileName);

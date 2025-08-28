@@ -25,6 +25,7 @@ import "./Backend/IRC.js";
 /* GUI */
 import "./GUI/GuiDraw.js";
 import "./GUI/Registries.js";
+import "./Utility/Config.js";
 
 /* QOL */
 //import "./QOL/AutoHarp.js";
