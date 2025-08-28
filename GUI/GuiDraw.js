@@ -478,10 +478,12 @@ myGui.registerClosed(() => {
 
 myGui.registerScrolled(handleScroll);
 
+// spam this everywhere ...
 loadSettings();
 
 register("command", () => {
   isOpening = true;
   openStartTime = Date.now();
+  loadSettings();
   myGui.open();
 }).setName("gui");

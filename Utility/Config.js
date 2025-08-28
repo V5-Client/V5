@@ -1,3 +1,5 @@
+import { Chat } from "./Chat";
+
 let File = java.io.File;
 
 let configName = "V5Config";
@@ -18,7 +20,7 @@ function fileBroken(configName, FileName) {
   try {
     JSON.parse(config);
   } catch (error) {
-    chat.message("Replaced corrupted file: " + FileName);
+    Chat.message("Replaced corrupted file: " + FileName);
     deleteFile(configName, FileName);
     return true;
   }
