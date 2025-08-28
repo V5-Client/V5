@@ -81,6 +81,3 @@ emptyTallGrass.attach((instance, cir) => {
   const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
   cir.setReturnValue(VoxelShapes.empty());
 });
-
-//console.log(`https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.APIKEY_DO_NOT_SHARE}`)
-// im using this, dont remove please - zur
