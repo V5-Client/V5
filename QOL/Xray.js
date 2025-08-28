@@ -1,4 +1,3 @@
-import { Chat } from "../Utility/Chat";
 import { getSetting } from "../GUI/GuiSave";
 
 const XrayPackage = Java.type("com.chattriggers.ctjs.v5.Xray");
@@ -36,7 +35,6 @@ class Xray {
       if (this.firstTransparency !== this.transparency && this.enabled) {
         XrayPackage.setAlpha(this.transparency);
         Client.getMinecraft().worldRenderer.reload();
-
         this.firstTransparency = this.transparency;
       }
     }).setFps(5);
