@@ -1,6 +1,12 @@
 import { Chat } from "../Utility/Chat";
 import "./GuiManager";
-import { clamp, isInside, fetchURL, downloadFile } from "./Utils";
+import {
+  clamp,
+  isInside,
+  fetchURL,
+  downloadFile,
+  createCircularImage,
+} from "./Utils";
 
 /* Essentials */
 const UIRoundedRectangle = Java.type(
@@ -64,7 +70,8 @@ try {
 }
 
 if (profilePath.exists()) {
-  global.discordPfp = Image.fromAsset("discordProfile.png");
+  let avatarPath = Image.fromAsset("discordProfile.png");
+  global.discordPfp = createCircularImage(avatarPath);
 }
 
 let rectangles = {
