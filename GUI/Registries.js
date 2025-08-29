@@ -48,9 +48,14 @@ addCategoryItem(
   "Automatically does the excavator task"
 );
 
+/* VISUAL */
 addCategoryItem("Visuals", "Xray", "See through walls");
 addToggle("Modules", "Xray", "Enabled");
 addSlider("Modules", "Xray", "Transparency", 1, 255);
+
+/* OTHER */
+addCategoryItem("Other", "Discord RPC", "Show you're playing V5!");
+addToggle("Modules", "Discord RPC", "Enabled");
 
 /*addCategoryItem(
   "Modules",
