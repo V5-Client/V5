@@ -11,7 +11,9 @@ class MobHider {
       "Purple Jerry",
       "Golden Jerry",
     ];
-    
+
+    // recode to use instanceof instead
+
     this.thystRenderEntity = register("renderEntity", (ent, pt, event) => {
       let cleanname = ChatLib.removeFormatting(ent.getName());
       if (cleanname === "Endermite" || ent.getName().includes("Thyst")) {
@@ -26,19 +28,22 @@ class MobHider {
       }
     }).unregister();
 
-    this.thystPlayerInteract = register("playerInteract", (action, pos, event) => {
-      if (action.toString().includes("AttackEntity")) {
-        let attackedEntity = Player.lookingAt();
+    this.thystPlayerInteract = register(
+      "playerInteract",
+      (action, pos, event) => {
+        if (action.toString().includes("AttackEntity")) {
+          let attackedEntity = Player.lookingAt();
 
-        if (
-          attackedEntity instanceof Entity &&
-          attackedEntity?.toString()?.includes("Endermite")
-        ) {
-          cancel(event);
+          if (
+            attackedEntity instanceof Entity &&
+            attackedEntity?.toString()?.includes("Endermite")
+          ) {
+            cancel(event);
+          }
         }
       }
-    }).unregister();
-    
+    ).unregister();
+
     this.pupRenderEntity = register("renderEntity", (ent, pt, event) => {
       let cleanname = ChatLib.removeFormatting(ent.getName());
       if (cleanname.includes("Sven Pup")) {
@@ -46,38 +51,44 @@ class MobHider {
       }
     }).unregister();
 
-    this.pupPlayerInteract = register("playerInteract", (action, pos, event) => {
-      if (action.toString().includes("AttackEntity")) {
-        let attackedEntity = Player.lookingAt();
+    this.pupPlayerInteract = register(
+      "playerInteract",
+      (action, pos, event) => {
+        if (action.toString().includes("AttackEntity")) {
+          let attackedEntity = Player.lookingAt();
 
-        if (
-          attackedEntity instanceof Entity &&
-          attackedEntity?.toString()?.includes("Sven Pup")
-        ) {
-          cancel(event);
+          if (
+            attackedEntity instanceof Entity &&
+            attackedEntity?.toString()?.includes("Sven Pup")
+          ) {
+            cancel(event);
+          }
         }
       }
-    }).unregister();
-    
+    ).unregister();
+
     this.jerryRenderEntity = register("renderEntity", (ent, pt, event) => {
       if (this.jerryNames.some((name) => ent.getName().includes(name))) {
         cancel(event);
       }
     }).unregister();
 
-    this.jerryPlayerInteract = register("playerInteract", (action, pos, event) => {
-      if (action.toString().includes("AttackEntity")) {
-        let attackedEntity = Player.lookingAt();
+    this.jerryPlayerInteract = register(
+      "playerInteract",
+      (action, pos, event) => {
+        if (action.toString().includes("AttackEntity")) {
+          let attackedEntity = Player.lookingAt();
 
-        if (
-          attackedEntity instanceof Entity &&
-          attackedEntity?.toString()?.includes("Jerry")
-        ) {
-          cancel(event);
+          if (
+            attackedEntity instanceof Entity &&
+            attackedEntity?.toString()?.includes("Jerry")
+          ) {
+            cancel(event);
+          }
         }
       }
-    }).unregister();
-    
+    ).unregister();
+
     this.kalhuikiRenderEntity = register("renderEntity", (ent, pt, event) => {
       let cleanname = ChatLib.removeFormatting(ent.getName());
       if (cleanname.includes("Kalhuiki")) {
@@ -85,18 +96,21 @@ class MobHider {
       }
     }).unregister();
 
-    this.kalhuikiPlayerInteract = register("playerInteract", (action, pos, event) => {
-      if (action.toString().includes("AttackEntity")) {
-        let attackedEntity = Player.lookingAt();
+    this.kalhuikiPlayerInteract = register(
+      "playerInteract",
+      (action, pos, event) => {
+        if (action.toString().includes("AttackEntity")) {
+          let attackedEntity = Player.lookingAt();
 
-        if (
-          attackedEntity instanceof Entity &&
-          attackedEntity?.toString()?.includes("Kalhuiki")
-        ) {
-          cancel(event);
+          if (
+            attackedEntity instanceof Entity &&
+            attackedEntity?.toString()?.includes("Kalhuiki")
+          ) {
+            cancel(event);
+          }
         }
       }
-    }).unregister();
+    ).unregister();
   }
 
   toggleThyst(enabled = true) {

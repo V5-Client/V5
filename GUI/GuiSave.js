@@ -94,13 +94,13 @@ export const getSetting = (
     const value = global.Settings[moduleName][componentTitle];
     if (typeof value !== "undefined") {
       if (Array.isArray(value) && Array.isArray(optionsToCheck)) {
-        const allEnabled = optionsToCheck.every((optionName) =>
-          value.some(
+        return value
+          .filter(
             (componentOption) =>
-              componentOption.name === optionName && componentOption.enabled
+              optionsToCheck.includes(componentOption.name) &&
+              componentOption.enabled
           )
-        );
-        return allEnabled;
+          .map((componentOption) => componentOption.name);
       }
       return value;
     }
@@ -124,14 +124,13 @@ export const getSetting = (
               }
               if (component.options !== undefined) {
                 if (Array.isArray(optionsToCheck)) {
-                  const allEnabled = optionsToCheck.every((optionName) =>
-                    component.options.some(
+                  return component.options
+                    .filter(
                       (componentOption) =>
-                        componentOption.name === optionName &&
+                        optionsToCheck.includes(componentOption.name) &&
                         componentOption.enabled
                     )
-                  );
-                  return allEnabled;
+                    .map((componentOption) => componentOption.name);
                 }
                 return component.options;
               }
@@ -141,5 +140,5 @@ export const getSetting = (
       }
     }
   }
-  return null;
+  return [];
 };

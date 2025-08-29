@@ -53,6 +53,15 @@ addCategoryItem("Visuals", "Xray", "See through walls");
 addToggle("Modules", "Xray", "Enabled");
 addSlider("Modules", "Xray", "Transparency", 1, 255);
 
+addCategoryItem("Visuals", "Mob Hider", "Prevent, seeing and attacking mobs");
+addMultiToggle(
+  "Modules",
+  "Mob Hider",
+  "Mobs",
+  ["Kalhuikis", "Sven Pups", "Jerries", "Thysts"],
+  false
+);
+
 /* OTHER */
 addCategoryItem("Other", "Discord RPC", "Show you're playing V5!");
 addToggle("Modules", "Discord RPC", "Enabled");
