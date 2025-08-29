@@ -441,13 +441,15 @@ global.createCategoriesManager = (deps) => {
           const separatorX = panelX + PADDING;
           const separatorWidth = panelWidth;
 
-          Renderer.drawRect(
-            SEPARATOR_COLOR.getRGB(),
-            separatorX,
-            separatorY,
-            separatorWidth,
-            1
-          );
+          deps.draw.drawRoundedRectangle({
+            x: separatorX,
+            y: separatorY,
+            width: separatorWidth,
+            height: 1,
+            radius: 5,
+            color: SEPARATOR_COLOR,
+          });
+
           const separatorTextWidth = Renderer.getStringWidth(group.title);
           const separatorTextX =
             separatorX + separatorWidth / 2 - separatorTextWidth / 2;

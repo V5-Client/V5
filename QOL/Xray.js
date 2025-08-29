@@ -1,33 +1,52 @@
 import { getSetting } from "../GUI/GuiSave";
-
 const XrayPackage = Java.type("com.chattriggers.ctjs.v5.Xray");
 
 class Xray {
   constructor() {
-    this.firstTransparency = getSetting("Xray", "Transparency");
-    this.prgessCounter = 0;
+    this.enabled = false;
+    this.transparency = getSetting("Xray", "Transparency");
+    this.firstTransparency = this.transparency;
 
-    // i had no idea how to do this different - add unregister/register if u can
-    register("step", () => {
-      this.enabled = getSetting("Xray", "Enabled");
-      this.transparency = getSetting("Xray", "Transparency");
+    let stepEvent = register("step", () => this.update()).setFps(5);
 
-      if (this.enabled && this.progessCounter === 0) {
-        XrayPackage.setEnabled();
-        this.progessCounter++;
-      }
+    Client.scheduleTask(0, () => this.checkInitialState()); // prevent a rendering  bug?
+  }
 
-      if (!this.enabled && this.progessCounter > 0) {
-        XrayPackage.setDisabled();
-        this.progessCounter = 0;
-      }
+  checkInitialState() {
+    const enabled = getSetting("Xray", "Enabled");
+    if (enabled) {
+      this.enableXray();
+    } else {
+      this.disableXray();
+    }
+  }
 
-      if (this.firstTransparency !== this.transparency && this.enabled) {
-        XrayPackage.setAlpha(this.transparency);
-        Client.getMinecraft().worldRenderer.reload();
-        this.firstTransparency = this.transparency;
-      }
-    }).setFps(5);
+  update() {
+    const enabled = getSetting("Xray", "Enabled");
+    const transparency = getSetting("Xray", "Transparency");
+
+    if (enabled && !this.enabled) {
+      this.enableXray();
+    } else if (!enabled && this.enabled) {
+      this.disableXray();
+    }
+
+    if (enabled && transparency !== this.firstTransparency) {
+      XrayPackage.setAlpha(transparency);
+      Client.getMinecraft().worldRenderer.reload();
+      this.firstTransparency = transparency;
+    }
+  }
+
+  enableXray() {
+    XrayPackage.setEnabled();
+    this.enabled = true;
+    this.firstTransparency = this.transparency;
+  }
+
+  disableXray() {
+    XrayPackage.setDisabled();
+    this.enabled = false;
   }
 }
 
