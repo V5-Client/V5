@@ -1,6 +1,6 @@
-import { Keybind } from "../Utility/Keybinding";
-import { Chat } from "../Utility/Chat";
-import { Guis } from "../Utility/Inventory";
+import { Keybind } from "../../Utility/Keybinding";
+import { Chat } from "../../Utility/Chat";
+import { Guis } from "../../Utility/Inventory";
 
 let time = Date.now();
 let boomSlot = 1;
@@ -8,7 +8,9 @@ let rodSlot = 0;
 
 register("tick", () => {
   if (Date.now() - time < 800) return;
-  let stand = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
+  let stand = World.getAllEntitiesOfType(
+    net.minecraft.entity.decoration.ArmorStandEntity
+  );
   stand.forEach((element, index) => {
     if (element.getName() === "!!!") {
       Keybind.rightClick();

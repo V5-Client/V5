@@ -1,19 +1,34 @@
 // Credits: Kash - MiningModules
 
-import { Utils } from "../Utility/Utils";
-import { MiningUtils } from "../Utility/MiningUtils";
+import { Utils } from "../../Utility/Utils";
+import { getSetting } from "../../GUI/GuiSave";
+import { MiningUtils } from "../../Utility/MiningUtils";
 
 // ghost blocking is much harder in 1.21.5, making this more buggy
 class Pingless {
   constructor() {
-    this.enabled = true; // setting
     this.mining = false;
-    this.tickCount = 0; // setting
     let x;
     let y;
     let z;
 
-    register("packetSent", (packet) => {
+    register("step", () => {
+      this.enabled = getSetting("Pingless Miner", "Enabled");
+      this.tickCount = getSetting("Pingless Miner", "Tick Delay");
+      let isActive = false;
+
+      if (this.enabled && !isActive) {
+        playerAction.register();
+        handSwing.register();
+        isActive = true;
+      } else if (!this.enabled && isActive) {
+        playerAction.unregister();
+        handSwing.unregister();
+        isActive = false;
+      }
+    }).setFps(1);
+
+    let playerAction = register("packetSent", (packet) => {
       if (!this.enabled || Utils.area() !== "Crystal Hollows") return;
 
       let action = packet.getAction().toString();
@@ -51,11 +66,13 @@ class Pingless {
 
         this.mining = true;
       }
-    }).setFilteredClass(
-      net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-    );
+    })
+      .setFilteredClass(
+        net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+      )
+      .unregister();
 
-    register("packetSent", () => {
+    let handSwing = register("packetSent", () => {
       if (!this.enabled || Utils.area() !== "Crystal Hollows") return;
 
       if (this.mining) {
@@ -66,9 +83,11 @@ class Pingless {
           this.mining = false;
         }
       }
-    }).setFilteredClass(
-      net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
-    );
+    })
+      .setFilteredClass(
+        net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
+      )
+      .unregister();
   }
 }
 

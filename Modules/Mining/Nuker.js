@@ -1,7 +1,7 @@
-import { NukerUtils } from "../Utility/NukerUtils";
-import { Chat } from "../Utility/Chat";
-import { Utils } from "../Utility/Utils"
-const BP = net.minecraft.util.math.BlockPos
+import { NukerUtils } from "../../Utility/NukerUtils";
+import { Chat } from "../../Utility/Chat";
+import { Utils } from "../../Utility/Utils";
+const BP = net.minecraft.util.math.BlockPos;
 
 class NukerClass {
   constructor() {
@@ -25,22 +25,24 @@ class NukerClass {
     this.customBlockList = [];
 
     // settings
-    this.blockType = "Custom"
-    this.nukeBelow = false
-    this.onGroundOnly = false
-    this.autoChest = false
-    this.heightLimit = 5
+    this.blockType = "Custom";
+    this.nukeBelow = false;
+    this.onGroundOnly = false;
+    this.autoChest = false;
+    this.heightLimit = 5;
 
     register("command", () => {
-      this.toggle()
-    }).setName("NukerToggle")
+      this.toggle();
+    }).setName("NukerToggle");
 
     register("command", (ticks = 1) => {
       let block = Player.lookingAt();
 
       if (block.getClass() === Block) {
         let pos = [block.getX(), block.getY(), block.getZ()];
-        Chat.debugMessage("Nuking " + block.type.getRegistryName() + " at " + pos);
+        Chat.debugMessage(
+          "Nuking " + block.type.getRegistryName() + " at " + pos
+        );
         NukerUtils.nuke(pos, ticks);
       }
     }).setCommandName("nukeit");
@@ -51,7 +53,9 @@ class NukerClass {
         const newBlock = { name: block.type.getName(), id: block.type.getID() };
         if (!this.customBlockList.some((b) => b.id === newBlock.id)) {
           this.customBlockList.push(newBlock);
-          Chat.message("Added " + block.type.getName() + " to custom nuker list.");
+          Chat.message(
+            "Added " + block.type.getName() + " to custom nuker list."
+          );
         } else {
           Chat.message("Block already in custom nuker list.");
         }
@@ -66,7 +70,9 @@ class NukerClass {
         return;
       }
       let initialLength = this.customBlockList.length;
-      this.customBlockList = this.customBlockList.filter((block) => !(block.id === parseInt(id)));
+      this.customBlockList = this.customBlockList.filter(
+        (block) => !(block.id === parseInt(id))
+      );
       if (this.customBlockList.length < initialLength) {
         Chat.message("Removed block(s) from custom nuker list.");
       } else {
@@ -123,21 +129,34 @@ class NukerClass {
 
       new Thread(() => {
         for (let x = playerX - 5; x <= playerX + 5; x++) {
-          for (let y = playerY - (this.nukeBelow ? 0 : 5); y <= playerY + this.heightLimit; y++) {
+          for (
+            let y = playerY - (this.nukeBelow ? 0 : 5);
+            y <= playerY + this.heightLimit;
+            y++
+          ) {
             for (let z = playerZ - 5; z <= playerZ + 5; z++) {
               let pos = new BlockPos(x, y, z);
               if (this.nukeBelow && y < playerY) continue;
               if (this.minedBlocks.has(pos.toString())) continue;
-              if (this.distance(this.cords(), [x, y, z]).distance > 4.5) continue;
+              if (this.distance(this.cords(), [x, y, z]).distance > 4.5)
+                continue;
 
-              let block = World.getBlockStateAt(new BlockPos(x, y, z)).getBlock();
+              let block = World.getBlockStateAt(
+                new BlockPos(x, y, z)
+              ).getBlock();
               let isValidBlock = false;
               if (this.blockType === "Crystal Hollows") {
                 let blockA = World.getBlockAt(x, y, z);
-                isValidBlock = block instanceof net.minecraft.block.BlockStone || block instanceof net.minecraft.block.BlockOre || block instanceof net.minecraft.block.BlockRedstoneOre || blockA.type.getID() == 4;
+                isValidBlock =
+                  block instanceof net.minecraft.block.BlockStone ||
+                  block instanceof net.minecraft.block.BlockOre ||
+                  block instanceof net.minecraft.block.BlockRedstoneOre ||
+                  blockA.type.getID() == 4;
               } else if (this.blockType === "Custom") {
                 let block = World.getBlockAt(x, y, z);
-                isValidBlock = this.customBlockList.some((customBlock) => block.type.getID() === customBlock.id);
+                isValidBlock = this.customBlockList.some(
+                  (customBlock) => block.type.getID() === customBlock.id
+                );
               }
 
               if (isValidBlock) {
@@ -148,7 +167,8 @@ class NukerClass {
         }
 
         if (validBlocks.length > 0) {
-          let targetPos = validBlocks[Math.floor(Math.random() * validBlocks.length)];
+          let targetPos =
+            validBlocks[Math.floor(Math.random() * validBlocks.length)];
 
           NukerUtils.nuke([targetPos.x, targetPos.y, targetPos.z]);
 
@@ -158,7 +178,7 @@ class NukerClass {
       }).start();
     });
 
-/*     const nukeHighlight = register("renderWorld", () => {
+    /*     const nukeHighlight = register("renderWorld", () => {
       if (!this.Enabled) return;
       if (this.target) {
         this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()], [255, 255, 255]);
@@ -198,7 +218,9 @@ class NukerClass {
 
     let heldItem = Player.getHeldItem();
     if (!heldItem) return false;
-    return this.REQUIRED_ITEMS.some((item) => heldItem.getName().toLowerCase().includes(item.toLowerCase()));
+    return this.REQUIRED_ITEMS.some((item) =>
+      heldItem.getName().toLowerCase().includes(item.toLowerCase())
+    );
   }
 
   distance(from, to) {
@@ -216,7 +238,9 @@ class NukerClass {
   }
 
   cords() {
-    let eyeVector = Utils.convertToVector(Player.asPlayerMP().getEyePosition(1));
+    let eyeVector = Utils.convertToVector(
+      Player.asPlayerMP().getEyePosition(1)
+    );
     return [eyeVector.x, eyeVector.y, eyeVector.z];
   }
 
@@ -227,16 +251,40 @@ class NukerClass {
     let b = Math.sin(time + 4) * 127 + 128;
 
     if (!full) {
-      RenderLibV2J.drawEspBox(location[0] + 0.5, location[1], location[2] + 0.5, 1, 1, r / 255, g / 255, b / 255, alpha, false);
+      RenderLibV2J.drawEspBox(
+        location[0] + 0.5,
+        location[1],
+        location[2] + 0.5,
+        1,
+        1,
+        r / 255,
+        g / 255,
+        b / 255,
+        alpha,
+        false
+      );
     } else {
-      RenderLibV2J.drawInnerEspBox(location[0] + 0.5, location[1], location[2] + 0.5, 1, 1, r / 255, g / 255, b / 255, alpha, true);
+      RenderLibV2J.drawInnerEspBox(
+        location[0] + 0.5,
+        location[1],
+        location[2] + 0.5,
+        1,
+        1,
+        r / 255,
+        g / 255,
+        b / 255,
+        alpha,
+        true
+      );
     }
   }
 
   rightClickBlock(xyz) {
     var blockPos = new BP(xyz[0], xyz[1], xyz[2]);
     var heldItemStack = Player.getHeldItem()?.getItemStack() || null;
-    Client.sendPacket(new C08PacketPlayerBlockPlacement(blockPos, 0, heldItemStack, 0, 0, 0));
+    Client.sendPacket(
+      new C08PacketPlayerBlockPlacement(blockPos, 0, heldItemStack, 0, 0, 0)
+    );
   }
 
   init() {

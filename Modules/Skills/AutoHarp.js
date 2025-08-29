@@ -1,5 +1,5 @@
-import { Guis } from "../Utility/Inventory";
-import { Chat } from "../Utility/Chat";
+import { Guis } from "../../Utility/Inventory";
+import { Chat } from "../../Utility/Chat";
 
 class AutoHarp {
   constructor() {

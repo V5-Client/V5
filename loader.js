@@ -27,19 +27,24 @@ import "./GUI/GuiDraw.js";
 import "./GUI/Registries.js";
 import "./Utility/Config.js";
 
-/* QOL */
-//import "./QOL/AutoHarp.js";
-//import "./QOL/MobHider.js";
-//import "./Pathfinding/Pathfinder.js"
-import "./Pathfinding/test.js";
-import "./QOL/BeachBaller.js";
-import "./Macro/SeaLumieMacro.js";
-import "./QOL/Nuker.js";
-//import "./Macro/MiningBot.js";
-//import "./QOL/PinglessMining.js";
-//import "./Macro/FishingMacro.js";
-import "./QOL/Xray.js";
-import "./QOL/DiscordRPC.js";
+/* FORAGING */
+
+/* MINING */
+//import "./Modules/Mining/MiningBot.js"
+import "./Modules/Mining/PinglessMining.js";
+import "./Modules/Mining/Nuker.js";
+
+/* OTHER */
+import "./Modules/Other/DiscordRPC.js";
+
+/* SKILLS */
+//import "./Modules/Skills/AutoHarp.js"
+//import "./Modules/Skills/BeachBaller.js"
+//import "./Modules/Skills/FishingMacro.js"
+
+/* VISUALS */
+//import "./Modules/Visuals/MobHider.js";
+import "./Modules/Visuals/Xray.js";
 
 /* Mixins */
 import {

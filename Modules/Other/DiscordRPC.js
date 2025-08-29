@@ -1,4 +1,4 @@
-import { getSetting } from "../GUI/GuiSave";
+import { getSetting } from "../../GUI/GuiSave";
 
 const RPCPackage = Java.type("com.chattriggers.v5.qol.DiscordRPC");
 
