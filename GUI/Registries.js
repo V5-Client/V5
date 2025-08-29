@@ -57,11 +57,15 @@ addToggle("Modules", "Pingless Miner", "Enabled");
 addSlider("Modules", "Pingless Miner", "Tick Delay", 0, 5);
 
 /* VISUAL */
-addCategoryItem("Visuals", "Xray", "See through walls");
+addCategoryItem(
+  "Visuals",
+  "Xray",
+  "See through walls - Sodium and Iris will break Xray"
+);
 addToggle("Modules", "Xray", "Enabled");
-addSlider("Modules", "Xray", "Transparency", 1, 255);
+addSlider("Modules", "Xray", "Transparency", 0, 255);
 
-addCategoryItem("Visuals", "Mob Hider", "Prevent, seeing and attacking mobs");
+addCategoryItem("Visuals", "Mob Hider", "Prevent seeing and attacking mobs");
 addMultiToggle(
   "Modules",
   "Mob Hider",
