@@ -2,7 +2,7 @@ import request from "requestV2";
 import RendererMain from "../Rendering/RendererMain";
 import { Rotations } from "../Utility/Rotations";
 
-const Color = java.awt.Color
+const Color = java.awt.Color;
 
 let pathNodes = [];
 let keyNodes = [];
@@ -21,22 +21,221 @@ let movementState = {
   isFalling: false,
   fallStartY: 0,
   lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
-  rotationSmoothing: 0.15, // Smoothing factor for rotations
-  lookAheadDistance: 5.0, // Pure pursuit look-ahead distance
-  visitedNodes: new Set(),
+  targetRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
+  baseRotationSpeed: 260.0,
+  currentRotationSpeed: 260.0,
+  rotationSmoothing: 0.25,
+  lookAheadDistance: 4.0,
+  visitedKeyNodes: new Set(),
   movementHeld: false,
   targetPoint: null,
-  sprintHeld: false
+  sprintHeld: false,
+  lastUpdateTime: Date.now(),
+  keyNodeIndices: [],
+  pathCurvatures: [],
+  hasReachedEnd: false,
+  jumpCooldown: 0
 };
 
 // Constants
-const STUCK_THRESHOLD = 60;
-const NODE_REACH_DISTANCE = 3.0; // How close to a node to consider it "reached"
-const NODE_REACH_DISTANCE_SPRINT = 4.5; // more lenient when sprinting
-const SPLINE_RESOLUTION = 3; // Points between each node for spline
+const STUCK_THRESHOLD = 2000;
+const NODE_REACH_DISTANCE = 2.5;
+const NODE_REACH_DISTANCE_SPRINT = 3.5;
+const END_REACH_DISTANCE = 1.5;
+const SPLINE_SEGMENTS = 10;
+const JUMP_COOLDOWN_TICKS = 10;
+const VERTICAL_LOOK_FACTOR = 0.02;
 
-// Catmull-Rom spline interpolation
-function catmullRom(p0, p1, p2, p3, t) {
+// Generate spline using key nodes 
+function generateKeyNodeSpline(keyNodes, allNodes) {
+  if (!keyNodes || keyNodes.length < 2) {
+    return simplifyPath(allNodes, 1.0);
+  }
+  
+  const splinePoints = [];
+  const curvatures = [];
+  
+  for (let i = 0; i < keyNodes.length - 1; i++) {
+    const startKey = keyNodes[i];
+    const endKey = keyNodes[i + 1];
+    
+    const startIdx = findClosestNodeIndex(startKey, allNodes);
+    const endIdx = findClosestNodeIndex(endKey, allNodes);
+    
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const segmentNodes = allNodes.slice(startIdx, endIdx + 1);
+      const simplified = simplifyPath(segmentNodes, 0.5);
+      
+      for (let j = 0; j < simplified.length - 1; j++) {
+        const p0 = simplified[Math.max(0, j - 1)];
+        const p1 = simplified[j];
+        const p2 = simplified[j + 1];
+        const p3 = simplified[Math.min(simplified.length - 1, j + 2)];
+        
+        const segments = (j === 0 || j === simplified.length - 2) ? SPLINE_SEGMENTS : 5;
+        
+        for (let t = 0; t < segments; t++) {
+          const tNorm = t / segments;
+          const point = catmullRomPoint(p0, p1, p2, p3, tNorm);
+          splinePoints.push(point);
+          
+          const curvature = calculateCurvature(p0, p1, p2, p3, tNorm);
+          curvatures.push(curvature);
+        }
+      }
+    } else {
+      for (let t = 0; t <= SPLINE_SEGMENTS; t++) {
+        const tNorm = t / SPLINE_SEGMENTS;
+        const point = {
+          x: startKey.x + (endKey.x - startKey.x) * tNorm,
+          y: startKey.y + (endKey.y - startKey.y) * tNorm,
+          z: startKey.z + (endKey.z - startKey.z) * tNorm
+        };
+        splinePoints.push(point);
+        curvatures.push(0.1);
+      }
+    }
+  }
+  
+  splinePoints.push(keyNodes[keyNodes.length - 1]);
+  curvatures.push(0);
+  
+  movementState.pathCurvatures = curvatures;
+  
+  return splinePoints;
+}
+
+// Calculate curvature using second derivative
+function calculateCurvature(p0, p1, p2, p3, t) {
+  const dx_dt = 0.5 * (
+    (-p0.x + p2.x) +
+    2 * t * (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) +
+    3 * t * t * (-p0.x + 3 * p1.x - 3 * p2.x + p3.x)
+  );
+  
+  const dz_dt = 0.5 * (
+    (-p0.z + p2.z) +
+    2 * t * (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) +
+    3 * t * t * (-p0.z + 3 * p1.z - 3 * p2.z + p3.z)
+  );
+  
+  const d2x_dt2 = 0.5 * (
+    2 * (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) +
+    6 * t * (-p0.x + 3 * p1.x - 3 * p2.x + p3.x)
+  );
+  
+  const d2z_dt2 = 0.5 * (
+    2 * (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) +
+    6 * t * (-p0.z + 3 * p1.z - 3 * p2.z + p3.z)
+  );
+  
+  const speed = Math.sqrt(dx_dt * dx_dt + dz_dt * dz_dt);
+  if (speed < 0.001) return 0;
+  
+  const crossProduct = Math.abs(dx_dt * d2z_dt2 - dz_dt * d2x_dt2);
+  const curvature = crossProduct / Math.pow(speed, 3);
+  
+  return Math.min(1, curvature * 10);
+}
+
+// Check if block requires jumping (not slab, not stair)
+function shouldJumpForBlock(playerPos, targetPos) {
+  const dx = targetPos.x - playerPos.x;
+  const dz = targetPos.z - playerPos.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  
+  if (dist > 2.0) return false; // Too far to check
+  
+  // Check if there's a block in front at foot level
+  const checkX = Math.floor(playerPos.x + dx * 0.5);
+  const checkY = Math.floor(playerPos.y);
+  const checkZ = Math.floor(playerPos.z + dz * 0.5);
+  
+  const blockInFront = World.getBlockAt(checkX, checkY, checkZ);
+  const blockAbove = World.getBlockAt(checkX, checkY + 1, checkZ);
+  
+  if (!blockInFront || blockInFront.type.isAir()) return false;
+  if (blockAbove && !blockAbove.type.isAir()) return false; // Can't jump if blocked above
+  
+  const blockName = blockInFront.type.getName().toLowerCase();
+  
+  // Don't jump for slabs or stairs
+  if (blockName.includes("slab") || blockName.includes("stair")) {
+    return false;
+  }
+  
+  // Check if we need to jump (solid block in front)
+  if (!blockInFront.type.isAir() && targetPos.y > playerPos.y - 0.5) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Simplify path using Ramer-Douglas-Peucker algorithm
+function simplifyPath(points, tolerance) {
+  if (points.length <= 2) return points;
+  
+  let maxDist = 0;
+  let maxIndex = 0;
+  
+  for (let i = 1; i < points.length - 1; i++) {
+    const dist = perpendicularDistance(points[i], points[0], points[points.length - 1]);
+    if (dist > maxDist) {
+      maxDist = dist;
+      maxIndex = i;
+    }
+  }
+  
+  if (maxDist > tolerance) {
+    const left = simplifyPath(points.slice(0, maxIndex + 1), tolerance);
+    const right = simplifyPath(points.slice(maxIndex), tolerance);
+    return [...left.slice(0, -1), ...right];
+  } else {
+    return [points[0], points[points.length - 1]];
+  }
+}
+
+// Calculate perpendicular distance from point to line
+function perpendicularDistance(point, lineStart, lineEnd) {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+  const dz = lineEnd.z - lineStart.z;
+  
+  const lineLengthSq = dx * dx + dy * dy + dz * dz;
+  if (lineLengthSq === 0) return getDistance3D(point, lineStart);
+  
+  const t = Math.max(0, Math.min(1, 
+    ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy + (point.z - lineStart.z) * dz) / lineLengthSq
+  ));
+  
+  const projection = {
+    x: lineStart.x + t * dx,
+    y: lineStart.y + t * dy,
+    z: lineStart.z + t * dz
+  };
+  
+  return getDistance3D(point, projection);
+}
+
+// Find closest node index
+function findClosestNodeIndex(target, nodes) {
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  
+  for (let i = 0; i < nodes.length; i++) {
+    const dist = getDistance3D(target, nodes[i]);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  }
+  
+  return bestIdx;
+}
+
+// Catmull-Rom spline point calculation
+function catmullRomPoint(p0, p1, p2, p3, t) {
   const t2 = t * t;
   const t3 = t2 * t;
   
@@ -56,61 +255,7 @@ function catmullRom(p0, p1, p2, p3, t) {
   };
 }
 
-// Generate smooth spline path from nodes
-function generateSplinePath(nodes) {
-  if (nodes.length < 2) return nodes;
-  
-  let splinePath = [];
-  
-  for (let i = 0; i < nodes.length - 1; i++) {
-    const p0 = nodes[Math.max(0, i - 1)];
-    const p1 = nodes[i];
-    const p2 = nodes[i + 1];
-    const p3 = nodes[Math.min(nodes.length - 1, i + 2)];
-    
-    for (let j = 0; j < SPLINE_RESOLUTION; j++) {
-      const t = j / SPLINE_RESOLUTION;
-      splinePath.push(catmullRom(p0, p1, p2, p3, t));
-    }
-  }
-  
-  // Add the last node
-  splinePath.push(nodes[nodes.length - 1]);
-  
-  return splinePath;
-}
-
-// Find the closest point on the path to the player (so it can start without going to the first node)
-// THIS WOULDN'T BE NECESSARY IF THE PATH COMMAND AT THE PLAYER'S CURRENT POSITION
-function findClosestPointIndex(playerPos, path) {
-  let closestIndex = 0;
-  let closestDistance = Infinity;
-  
-  for (let i = 0; i < path.length; i++) {
-    const dist = getDistance3D(playerPos, path[i]);
-    if (dist < closestDistance) {
-      closestDistance = dist;
-      closestIndex = i;
-    }
-  }
-  
-  return closestIndex;
-}
-
-// Smooth rotation interpolation
-function smoothRotation(currentYaw, currentPitch, targetYaw, targetPitch, smoothing) {
-  // Normalize yaw difference
-  let yawDiff = targetYaw - currentYaw;
-  while (yawDiff > 180) yawDiff -= 360;
-  while (yawDiff < -180) yawDiff += 360;
-  
-  const smoothedYaw = currentYaw + yawDiff * smoothing;
-  const smoothedPitch = currentPitch + (targetPitch - currentPitch) * smoothing;
-  
-  return { yaw: smoothedYaw, pitch: smoothedPitch };
-}
-
-// Helper function for 3D distance
+// Helper functions
 function getDistance3D(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) +
@@ -119,7 +264,6 @@ function getDistance3D(pos1, pos2) {
   );
 }
 
-// Helper function for 2D distance (ignoring Y)
 function getDistance2D(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) +
@@ -127,16 +271,65 @@ function getDistance2D(pos1, pos2) {
   );
 }
 
+// Find closest point on path
+function findClosestPointOnPath(playerPos, path) {
+  let closestIdx = 0;
+  let closestDist = Infinity;
+  
+  for (let i = 0; i < path.length; i++) {
+    const dist = getDistance3D(playerPos, path[i]);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestIdx = i;
+    }
+  }
+  
+  return { index: closestIdx, distance: closestDist };
+}
+
+// Get look-ahead point with changing distance
+function getLookAheadPoint(currentIdx, path, baseDistance) {
+  if (currentIdx >= path.length - 1) {
+    return path[path.length - 1];
+  }
+  
+  const curvature = movementState.pathCurvatures[currentIdx] || 0;
+  const adjustedDistance = baseDistance * (1 - curvature * 0.5);
+  
+  let accumulatedDist = 0;
+  let targetPoint = path[currentIdx];
+  
+  for (let i = currentIdx; i < path.length - 1; i++) {
+    const segmentDist = getDistance3D(path[i], path[i + 1]);
+    
+    if (accumulatedDist + segmentDist >= adjustedDistance) {
+      const t = (adjustedDistance - accumulatedDist) / segmentDist;
+      targetPoint = {
+        x: path[i].x + (path[i + 1].x - path[i].x) * t,
+        y: path[i].y + (path[i + 1].y - path[i].y) * t,
+        z: path[i].z + (path[i + 1].z - path[i].z) * t
+      };
+      break;
+    }
+    
+    accumulatedDist += segmentDist;
+    if (i === path.length - 2) {
+      targetPoint = path[path.length - 1];
+    }
+  }
+  
+  return targetPoint;
+}
+
 function stopPathingMovement() {
   movementState.isWalking = false;
-  movementState.visitedNodes.clear();
+  movementState.visitedKeyNodes.clear();
   movementState.currentNodeIndex = 0;
   movementState.movementHeld = false;
   movementState.sprintHeld = false;
   movementState.targetPoint = null;
-  // IMPORTANT: IF YOU WANT TO KEEP THE PATH VISIBLE AFTER STOPPING, COMMENT OUT THE NEXT 2 LINES
-  // movementState.splinePath = []; // clear spline path (stops rendering green and grey nodes)
-  // keyNodes = []; // clear key nodes (stops rendering red nodes)
+  movementState.hasReachedEnd = false;
+  movementState.jumpCooldown = 0;
   
   try {
     mc.options.forwardKey.setPressed(false);
@@ -153,27 +346,36 @@ function stopPathingMovement() {
 function startPathingFromNodes(nodes) {
   if (!nodes || nodes.length === 0) return;
 
-  movementState.splinePath = generateSplinePath(nodes);
-  movementState.visitedNodes.clear();
-
-  // map raw node -> closest spline index, this is used for rendering grey/green
-  movementState.rawToSpline = nodes.map(n => 
-    findClosestPointIndex(n, movementState.splinePath)
-  );
+  movementState.splinePath = generateKeyNodeSpline(keyNodes, nodes);
+  
+  movementState.keyNodeIndices = [];
+  for (let keyNode of keyNodes) {
+    const closest = findClosestPointOnPath(keyNode, movementState.splinePath);
+    if (closest.distance < 2.0) {
+      movementState.keyNodeIndices.push(closest.index);
+    }
+  }
+  
+  movementState.visitedKeyNodes.clear();
 
   const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-  movementState.currentNodeIndex = findClosestPointIndex(playerPos, movementState.splinePath);
+  
+  const closest = findClosestPointOnPath(playerPos, movementState.splinePath);
+  movementState.currentNodeIndex = closest.index;
 
   movementState.isWalking = true;
   movementState.lastPosition = { ...playerPos };
   movementState.stuckTimer = 0;
   movementState.lastRotation = { yaw: Player.getYaw(), pitch: Player.getPitch() };
+  movementState.targetRotation = { yaw: Player.getYaw(), pitch: Player.getPitch() };
   movementState.movementHeld = false;
   movementState.sprintHeld = false;
+  movementState.lastUpdateTime = Date.now();
+  movementState.hasReachedEnd = false;
+  movementState.jumpCooldown = 0;
 
-  ChatLib.chat(`&aStarting path from node ${movementState.currentNodeIndex}/${movementState.splinePath.length}`);
+  ChatLib.chat(`&aStarting optimized path from node ${movementState.currentNodeIndex}/${movementState.splinePath.length}`);
 }
-
 
 function updatePath() {
   if (!movementState.splinePath || movementState.splinePath.length === 0) {
@@ -182,10 +384,9 @@ function updatePath() {
   }
   
   const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-  const onGround = Player.getPlayer()?.field_70122_E; // onGround field
+  const onGround = Player.getPlayer()?.field_70122_E;
   const isSprinting = Player.getPlayer()?.isSprinting();
   
-  // Detect falling
   const wasFalling = movementState.isFalling;
   movementState.isFalling = !onGround;
   
@@ -193,95 +394,74 @@ function updatePath() {
     movementState.fallStartY = playerPos.y;
   }
   
-  // Check if we've reached the end
-  if (movementState.currentNodeIndex >= movementState.splinePath.length - 1) {
-    const finalNode = movementState.splinePath[movementState.splinePath.length - 1];
-    const distToEnd = getDistance3D(playerPos, finalNode);
-    
-    if (distToEnd < NODE_REACH_DISTANCE) {
-      ChatLib.chat("&aReached destination!");
-      stopPathingMovement();
-      return;
-    }
+  const finalNode = movementState.splinePath[movementState.splinePath.length - 1];
+  const distToEnd = getDistance3D(playerPos, finalNode);
+  
+  if (distToEnd < END_REACH_DISTANCE && !movementState.hasReachedEnd) {
+    movementState.hasReachedEnd = true;
+    ChatLib.chat("&aReached destination!");
+    stopPathingMovement();
+    return;
   }
   
   const reachDistance = isSprinting ? NODE_REACH_DISTANCE_SPRINT : NODE_REACH_DISTANCE;
   
-  // Update current position on path
   while (movementState.currentNodeIndex < movementState.splinePath.length - 1) {
     const currentNode = movementState.splinePath[movementState.currentNodeIndex];
-    let distanceToNode;
-    
-    if (movementState.isFalling) {
-      // When falling, only consider horizontal distance (ignore Y to stop going backwards)
-      distanceToNode = getDistance2D(playerPos, currentNode);
-    } else {
-      distanceToNode = getDistance3D(playerPos, currentNode);
-    }
-    
     const nextNode = movementState.splinePath[Math.min(movementState.currentNodeIndex + 1, movementState.splinePath.length - 1)];
-    const distToNext = getDistance3D(playerPos, nextNode);
-    const distCurrentToNext = getDistance3D(currentNode, nextNode);
     
-    // Mark as visited if we're close enough OR if we're closer to the next node than the current node is
-    if (distanceToNode < reachDistance || (distToNext < distCurrentToNext && distanceToNode < reachDistance * 1.5)) {
-      movementState.visitedNodes.add(movementState.currentNodeIndex);
+    const distanceToNode = movementState.isFalling ? 
+      getDistance2D(playerPos, currentNode) : 
+      getDistance3D(playerPos, currentNode);
+    
+    const distanceToNext = movementState.isFalling ?
+      getDistance2D(playerPos, nextNode) :
+      getDistance3D(playerPos, nextNode);
+    
+    const nodeToNext = getDistance3D(currentNode, nextNode);
+    
+    // Advance if:
+    // We're within reach distance of current node
+    // We're closer to the next node than the current node
+    // We've passed the current node (closer to next than current is to next)
+    if (distanceToNode < reachDistance || 
+        distanceToNext < distanceToNode || 
+        (distanceToNext < nodeToNext && distanceToNode < reachDistance * 2)) {
       movementState.currentNodeIndex++;
+      
+      const keyIdx = movementState.keyNodeIndices.indexOf(movementState.currentNodeIndex);
+      if (keyIdx !== -1) {
+        movementState.visitedKeyNodes.add(keyIdx);
+      }
     } else {
-      break; // Haven't reached this node yet
-    }
-  }
-  
-  // Pure Pursuit thingy, find look-ahead point
-  let targetPoint = null;
-  let accumulatedDist = 0;
-  // Reduce look-ahead when sprinting to stop overshooting
-  const lookAheadDist = movementState.isFalling ? 
-    movementState.lookAheadDistance * 1.5 : 
-    (isSprinting ? movementState.lookAheadDistance * 0.7 : movementState.lookAheadDistance);
-  
-  // Start from current node and look ahead
-  for (let i = movementState.currentNodeIndex; i < movementState.splinePath.length - 1; i++) {
-    const node = movementState.splinePath[i];
-    const nextNode = movementState.splinePath[i + 1];
-    
-    const segmentDist = getDistance3D(node, nextNode);
-    
-    if (accumulatedDist + segmentDist >= lookAheadDist) {
-      // Interpolate to get look-ahead point
-      const t = Math.max(0, Math.min(1, (lookAheadDist - accumulatedDist) / segmentDist));
-      targetPoint = {
-        x: node.x + (nextNode.x - node.x) * t,
-        y: node.y + (nextNode.y - node.y) * t,
-        z: node.z + (nextNode.z - node.z) * t
-      };
       break;
     }
-    
-    accumulatedDist += segmentDist;
   }
   
-  // If we didn't find a look-ahead point, use the last node
-  if (!targetPoint) {
-    targetPoint = movementState.splinePath[movementState.splinePath.length - 1];
-  }
+  const currentCurvature = movementState.pathCurvatures[movementState.currentNodeIndex] || 0;
+  movementState.currentRotationSpeed = movementState.baseRotationSpeed * (1 - currentCurvature * 0.4);
   
-  movementState.targetPoint = targetPoint;
+  const baseDistance = isSprinting ? movementState.lookAheadDistance * 1.3 : movementState.lookAheadDistance;
+  movementState.targetPoint = getLookAheadPoint(movementState.currentNodeIndex, movementState.splinePath, baseDistance);
 }
 
 function updateRotations() {
   if (!movementState.isWalking || !movementState.targetPoint) return;
   
-  const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-  const isSprinting = Player.getPlayer()?.isSprinting();
+  const now = Date.now();
+  const deltaTime = Math.min((now - movementState.lastUpdateTime) / 1000.0, 0.05);
   
-  let dx = movementState.targetPoint.x - playerPos.x;
-  let dy = movementState.targetPoint.y - playerPos.y;
-  let dz = movementState.targetPoint.z - playerPos.z;
+  const playerPos = Player.getPlayer().getEyePos();
+  const playerPosObj = { x: playerPos.x, y: playerPos.y, z: playerPos.z };
   
-  // When falling, reduce vertical look rotations
-  if (movementState.isFalling) {
-    dy *= 0.3;
+  let dx = movementState.targetPoint.x - playerPosObj.x;
+  let dy = movementState.targetPoint.y - playerPosObj.y;
+  let dz = movementState.targetPoint.z - playerPosObj.z;
+  
+  if (!movementState.isFalling) {
+    dy *= VERTICAL_LOOK_FACTOR; 
+  } else {
+    dy *= 0.3; 
   }
   
   const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
@@ -289,30 +469,48 @@ function updateRotations() {
   let targetPitch = -Math.atan2(dy, dist2D) * (180 / Math.PI);
   
   // Clamp pitch to reasonable values
-  targetPitch = Math.max(-45, Math.min(45, targetPitch));
+  targetPitch = Math.max(-10, Math.min(10, targetPitch));
   
-  // More aggressive smoothing when sprinting to prevent overshooting
-  const smoothingFactor = movementState.isFalling ? 
-    movementState.rotationSmoothing * 0.5 : 
-    (isSprinting ? movementState.rotationSmoothing * 1.5 : movementState.rotationSmoothing);
-    
-  const smoothedRotation = smoothRotation(
-    movementState.lastRotation.yaw,
-    movementState.lastRotation.pitch,
-    targetYaw,
-    targetPitch,
-    smoothingFactor
-  );
+  movementState.targetRotation = { yaw: targetYaw, pitch: targetPitch };
   
-  movementState.lastRotation = smoothedRotation;
-  Rotations.rotateToAngles(smoothedRotation.yaw, smoothedRotation.pitch);
+  let yawDiff = movementState.targetRotation.yaw - movementState.lastRotation.yaw;
+  while (yawDiff > 180) yawDiff -= 360;
+  while (yawDiff < -180) yawDiff += 360;
+  
+  let pitchDiff = movementState.targetRotation.pitch - movementState.lastRotation.pitch;
+  
+  const maxRotation = movementState.currentRotationSpeed * deltaTime;
+  
+  // Apply smoothing
+  const smoothedYawDiff = yawDiff * movementState.rotationSmoothing;
+  const smoothedPitchDiff = pitchDiff * movementState.rotationSmoothing;
+  
+  const yawChange = Math.sign(smoothedYawDiff) * Math.min(Math.abs(smoothedYawDiff), maxRotation);
+  const pitchChange = Math.sign(smoothedPitchDiff) * Math.min(Math.abs(smoothedPitchDiff), maxRotation * 0.5);
+  
+  movementState.lastRotation.yaw += yawChange;
+  movementState.lastRotation.pitch += pitchChange;
+  
+  while (movementState.lastRotation.yaw > 180) movementState.lastRotation.yaw -= 360;
+  while (movementState.lastRotation.yaw < -180) movementState.lastRotation.yaw += 360;
+  
+  Rotations.rotateToAngles(movementState.lastRotation.yaw, movementState.lastRotation.pitch);
 }
 
-// Update movement on tick (for unstuck and path progression)
+// Stuck detection and movement control
+let lastStuckCheck = Date.now();
+let lastBlockPos = null;
+
 register('tick', () => {
   if (!movementState.isWalking) return;
   
+  const now = Date.now();
   const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+  
+  // Update jump cooldown
+  if (movementState.jumpCooldown > 0) {
+    movementState.jumpCooldown--;
+  }
   
   const currentBlockPos = {
     x: Math.floor(playerPos.x),
@@ -320,28 +518,34 @@ register('tick', () => {
     z: Math.floor(playerPos.z)
   };
   
-  if (movementState.lastPosition &&
-      currentBlockPos.x === Math.floor(movementState.lastPosition.x) &&
-      currentBlockPos.y === Math.floor(movementState.lastPosition.y) &&
-      currentBlockPos.z === Math.floor(movementState.lastPosition.z) &&
-      !movementState.isFalling) {
-    movementState.stuckTimer++;
-    
-    if (movementState.stuckTimer >= STUCK_THRESHOLD) {
-      ChatLib.chat("&cStuck detected, attempting to unstuck...");
-      try {
-        mc.options.jumpKey.setPressed(true);
-        Client.scheduleTask(5, () => {
-          mc.options.jumpKey.setPressed(false);
-        });
-      } catch (e) {}
+  if (now - lastStuckCheck > 100) {
+    if (lastBlockPos &&
+        currentBlockPos.x === lastBlockPos.x &&
+        currentBlockPos.y === lastBlockPos.y &&
+        currentBlockPos.z === lastBlockPos.z &&
+        !movementState.isFalling) {
+      movementState.stuckTimer += (now - lastStuckCheck);
+      
+      if (movementState.stuckTimer >= STUCK_THRESHOLD) {
+        ChatLib.chat("&cStuck detected, attempting to unstuck...");
+        
+        try {
+          mc.options.jumpKey.setPressed(true);
+          Client.scheduleTask(5, () => {
+            mc.options.jumpKey.setPressed(false);
+          });
+          movementState.jumpCooldown = JUMP_COOLDOWN_TICKS;
+        } catch (e) {}
+        
+        movementState.stuckTimer = 0;
+      }
+    } else {
       movementState.stuckTimer = 0;
     }
-  } else {
-    movementState.stuckTimer = 0;
+    
+    lastBlockPos = { ...currentBlockPos };
+    lastStuckCheck = now;
   }
-  
-  movementState.lastPosition = { ...playerPos };
   
   updatePath();
   
@@ -353,6 +557,7 @@ register('tick', () => {
       }
       
       const onGround = Player.getPlayer()?.field_70122_E;
+      
       if (!movementState.isFalling && onGround && !movementState.sprintHeld) {
         mc.options.sprintKey.setPressed(true);
         movementState.sprintHeld = true;
@@ -361,16 +566,17 @@ register('tick', () => {
         movementState.sprintHeld = false;
       }
       
-      // Only pulse movement for very large falls
-      if (movementState.isFalling && playerPos.y - movementState.fallStartY > 10) {
-        if (World.getTime() % 4 === 0) {
-          mc.options.forwardKey.setPressed(false);
-        } else {
-          mc.options.forwardKey.setPressed(true);
+      // Auto-jump for non-slab/non-stair blocks
+      if (onGround && movementState.jumpCooldown === 0 && movementState.targetPoint) {
+        if (shouldJumpForBlock(playerPos, movementState.targetPoint)) {
+          mc.options.jumpKey.setPressed(true);
+          Client.scheduleTask(2, () => {
+            mc.options.jumpKey.setPressed(false);
+          });
+          movementState.jumpCooldown = JUMP_COOLDOWN_TICKS;
         }
       }
     }
-    
   } catch (e) {
     console.log("Movement key error:", e);
   }
@@ -380,39 +586,27 @@ register('renderWorld', () => {
   if (movementState.isWalking) {
     updateRotations();
   }
+  
+  movementState.lastUpdateTime = Date.now();
 
-  // Draw raw path nodes
-  for (let i = 0; i < pathNodes.length; i++) {
-    const node = pathNodes[i];
-    const splineIndexForThisNode = movementState.rawToSpline?.[i] ?? 0;
-    const isVisited = splineIndexForThisNode < movementState.currentNodeIndex;
-
-    RendererMain.drawWaypoint(
-      new Vec3i(node.x, node.y, node.z),
-      false,
-      isVisited
-        ? new Color(0.5, 0.5, 0.5, 0.3) // grey
-        : new Color(0.0, 1.0, 0.0, 0.8) // green
-    );
-  }
-
-  // Draw key nodes (red)
-  for (let node of keyNodes) {
+  keyNodes.forEach((node, idx) => {
+    const isVisited = movementState.visitedKeyNodes.has(idx);
     RendererMain.drawWaypoint(
       new Vec3i(node.x, node.y, node.z),
       true,
-      new Color(1.0, 0.0, 0.0, 1.0)
+      isVisited ?
+        new Color(0.5, 0.5, 0.5, 0.5) :
+        new Color(1.0, 0.0, 0.0, 1.0)
     );
-  }
+  });
 
-  // Draw current target block (yellow)
-  if (
-    movementState.isWalking &&
-    movementState.currentNodeIndex < movementState.splinePath.length
-  ) {
-    const currentTarget = movementState.splinePath[movementState.currentNodeIndex];
+  if (movementState.targetPoint) {
     RendererMain.drawWaypoint(
-      new Vec3i(Math.floor(currentTarget.x), Math.floor(currentTarget.y), Math.floor(currentTarget.z)),
+      new Vec3i(
+        Math.floor(movementState.targetPoint.x),
+        Math.floor(movementState.targetPoint.y),
+        Math.floor(movementState.targetPoint.z)
+      ),
       true,
       new Color(1.0, 1.0, 0.0, 1.0)
     );
