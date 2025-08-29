@@ -44,7 +44,7 @@ import "./Modules/Other/DiscordRPC.js";
 //import "./Modules/Skills/FishingMacro.js"
 
 /* VISUALS */
-//import "./Modules/Visuals/MobHider.js";
+//import "./Modules/Visuals/MobHider.js"; - This is depreceated cus it kills your fps by 10x !
 import "./Modules/Visuals/Xray.js";
 
 /* Mixins */
