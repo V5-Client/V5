@@ -1,4 +1,4 @@
-import { getSetting } from "../GUI/GuiSave";
+import { getSetting } from "../../GUI/GuiSave";
 const XrayPackage = Java.type("com.chattriggers.ctjs.v5.Xray");
 
 class Xray {

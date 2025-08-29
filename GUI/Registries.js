@@ -48,6 +48,14 @@ addCategoryItem(
   "Automatically does the excavator task"
 );
 
+addCategoryItem(
+  "Mining",
+  "Pingless Miner",
+  "Breaks hardstone quicker in the Crystal Hollows"
+);
+addToggle("Modules", "Pingless Miner", "Enabled");
+addSlider("Modules", "Pingless Miner", "Tick Delay", 0, 5);
+
 /* VISUAL */
 addCategoryItem("Visuals", "Xray", "See through walls");
 addToggle("Modules", "Xray", "Enabled");

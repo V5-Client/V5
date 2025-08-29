@@ -1,7 +1,7 @@
-import RendererMain from "../Rendering/RendererMain";
-import { MiningUtils } from "../Utility/MiningUtils";
-import { Rotations } from "../Utility/Rotations";
-import { Utils } from "../Utility/Utils";
+import RendererMain from "../../Rendering/RendererMain";
+import { MiningUtils } from "../../Utility/MiningUtils";
+import { Rotations } from "../../Utility/Rotations";
+import { Utils } from "../../Utility/Utils";
 
 class MiningBot {
   constructor() {
