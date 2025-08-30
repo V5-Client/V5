@@ -613,40 +613,86 @@ register('renderWorld', () => {
   }
 });
 
+function loadMap(map) {
+  const url = `http://localhost:3000/api/loadmap?map=${map}`;
+  request({
+      url: url,
+      timeout: 5000, 
+  }).then(() => {
+      ChatLib.chat(`&6[Pathfinder] &aSuccessfully preloaded map '${map}'.`);
+  }).catch(err => {
+      console.log(`Failed to preload map '${map}': ${err}`);
+      ChatLib.chat(`&6[Pathfinder] &cError preloading map '${map}'. See console for details.`);
+  });
+}
 
 function runProgram() {
-  if (!FileLib.exists(path)) return
+  if (!FileLib.exists(path)) {
+    console.log("Pathfinding.exe not found. Pathfinding will not work.");
+    ChatLib.chat("&cPathfinding.exe not found. Pathfinding will not work.");
+    return;
+  }
   stopProgram();
   keepAlive.register();
 
-  console.log("Running program");
+  console.log("Starting Pathfinder.exe...");
 
-  const JavaProcessBuilder = java.lang.ProcessBuilder
-  const JavaScanner = java.util.Scanner
-  const JavaThread = java.lang.Thread
+  const JavaProcessBuilder = java.lang.ProcessBuilder;
+  const JavaScanner = java.util.Scanner;
+  const JavaThread = java.lang.Thread;
 
   new JavaThread(() => {
     try {
       process = new JavaProcessBuilder(path).start();
       const sc = new JavaScanner(process.getInputStream());
-
-      console.log("Program started");
+      console.log("Process started");
 
       while (process !== null && process.isAlive()) {
         JavaThread.sleep(50);
-
         while (sc.hasNextLine()) {
-          let line = sc.nextLine();
-          console.log(line);
+          console.log(sc.nextLine());
         }
       }
 
       if (process !== null) process.waitFor();
-      console.log("Program finished");
+      console.log("Process finished.");
     } catch (e) {
-      console.log(e);
+      console.log(`Error running pathfinder process: ${e}`);
+      process = null; 
     }
   }).start();
+
+  let attempts = 0;
+  const maxAttempts = 10; 
+
+  const poller = register('tick', () => {
+    if (process !== null && !process.isAlive()) {
+      console.log("Process terminated prematurely.");
+      ChatLib.chat("&cPathfinder stopped unexpectedly.");
+      poller.unregister();
+      stopProgram();
+      return;
+    }
+
+    if (attempts >= maxAttempts) {
+      console.log("Server failed to respond in time.");
+      ChatLib.chat("&cPathfinder failed to start");
+      poller.unregister();
+      stopProgram(); 
+      return;
+    }
+
+    attempts++;
+    console.log(`Pinging server (Attempt ${attempts}/${maxAttempts})`);
+
+    request({ url: "http://localhost:3000/keepalive", timeout: 500 })
+      .then(() => {
+        console.log("Server is connected.");
+        poller.unregister();
+        loadMap("mines");
+      })
+      .catch(() => {});
+  });
 }
 
 function stopProgram() {

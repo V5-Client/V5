@@ -113,11 +113,13 @@ register("tick", () => {
   );
 });
 
-Chat.message("&aBlock Visibility Debug loaded!");
-Chat.message("&7Commands:");
-Chat.message(
-  "&7 - &f/checkblockvisibility &7(or &f/cbv&7) - Check current block"
-);
-Chat.message(
-  "&7 - &f/autocheckvisibility &7(or &f/acv&7) - Toggle auto-check mode"
-);
+//Chat.message("&aBlock Visibility Debug loaded!");
+//Chat.message("&7Commands:");
+//Chat.message(
+//  "&7 - &f/checkblockvisibility &7(or &f/cbv&7) - Check current block"
+//);
+//Chat.message(
+//  "&7 - &f/autocheckvisibility &7(or &f/acv&7) - Toggle auto-check mode"
+//);
+
+// HOLY SHIT THAT MESSAGE GOT ANNOYING
