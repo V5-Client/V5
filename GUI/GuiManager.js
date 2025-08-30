@@ -7,7 +7,7 @@ const Module_icon = Image.fromAsset("folder.png");
 import { ToggleButton } from "./Toggle";
 import { Slider } from "./Slider";
 import { MultiToggle } from "./Dropdown";
-import { isInside } from "./Utils";
+import { isInside, playClickSound } from "./Utils";
 
 global.Categories = {
   categories: [
@@ -558,6 +558,7 @@ global.createCategoriesManager = (deps) => {
         global.Categories.selectedItem = null;
         global.Categories.selectedSubcategory = null;
         rightPanelScrollY = 0;
+        playClickSound();
         return true;
       }
       return false;
@@ -589,6 +590,7 @@ global.createCategoriesManager = (deps) => {
         global.Categories.transitionDirection = -1;
         global.Categories.transitionProgress = 0;
         global.Categories.transitionStart = Date.now();
+        playClickSound();
         return;
       }
 
@@ -661,6 +663,7 @@ global.createCategoriesManager = (deps) => {
               };
               global.Categories.selectedSubcategoryButton = buttonRect;
             }
+            playClickSound();
             return;
           }
           currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
@@ -700,6 +703,7 @@ global.createCategoriesManager = (deps) => {
               global.Categories.transitionProgress = 0;
               global.Categories.transitionStart = Date.now();
               global.Categories.selectedItem = item;
+              playClickSound();
               return;
             }
             subcategoryItemsInRow++;
@@ -726,6 +730,7 @@ global.createCategoriesManager = (deps) => {
             global.Categories.transitionProgress = 0;
             global.Categories.transitionStart = Date.now();
             global.Categories.selectedItem = item;
+            playClickSound();
             return;
           }
           itemIndexInRow++;

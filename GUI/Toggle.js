@@ -2,6 +2,7 @@ const Color = java.awt.Color
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat.INSTANCE;
 const matrix = UMatrixStack.get();
 const UIRoundedRectangle = Java.type("gg.essential.elementa.components.UIRoundedRectangle");
+import { playClickSound } from "./Utils";
 
 export class ToggleButton {
   constructor(title, x, y, width = 10, height = 10) {
@@ -51,6 +52,7 @@ export class ToggleButton {
       mouseY <= this.y + this.height
     ) {
       this.enabled = !this.enabled;
+      playClickSound();
       return true;
     }
     return false;

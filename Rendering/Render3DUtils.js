@@ -21,7 +21,7 @@ export default class RenderLib3d {
     size = new Vec3i(1, 1, 1),
     end = undefined,
     color = Renderer.WHITE,
-    //depth = false, force no depth
+    depth = false //force no depth
     // filled = true, Doesnt work so force it true
   } = {}) {
     if (end) size = end.minus(start);
