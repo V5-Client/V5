@@ -1,5 +1,6 @@
 import RendererMain from "../../Rendering/RendererMain";
 import { MiningUtils } from "../../Utility/MiningUtils";
+import { RayTrace } from "../../Utility/Raytrace";
 import { Rotations } from "../../Utility/Rotations";
 import { Utils } from "../../Utility/Utils";
 
@@ -100,14 +101,24 @@ class MiningBot {
       }
 
       if (isTargetBlock) {
-        foundBlock = true;
-        let totalCost = target[blockName] + dist;
-        this.foundLocations.push({
-          x: x,
-          y: y,
-          z: z,
-          cost: totalCost,
-        });
+        const blockPos = new BlockPos(x, y, z);
+
+        if (
+          RayTrace.isBlockVisible(
+            blockPos,
+            Player.getPlayer().getEyePos(),
+            false
+          )
+        ) {
+          foundBlock = true;
+          let totalCost = target[blockName] + dist * 2;
+          this.foundLocations.push({
+            x: x,
+            y: y,
+            z: z,
+            cost: totalCost,
+          });
+        }
       }
 
       if (dist < distance) {
