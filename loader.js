@@ -31,7 +31,7 @@ import "./Utility/Config.js";
 /* FORAGING */
 
 /* MINING */
-//import "./Modules/Mining/MiningBot.js"
+import "./Modules/Mining/MiningBot.js";
 import "./Modules/Mining/PinglessMining.js";
 import "./Modules/Mining/Nuker.js";
 
@@ -89,11 +89,6 @@ emptyTallGrass.attach((instance, cir) => {
   const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
   cir.setReturnValue(VoxelShapes.empty());
 });
-
-
-
-
-
 
 /* RAYTRACE TESTING */
 import "./RAYTRACEDEBUG.js"; // REMOVE THIS BEFORE RELEASE
