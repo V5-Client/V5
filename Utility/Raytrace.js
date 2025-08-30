@@ -6,97 +6,106 @@ let ClipContext = net.minecraft.world.phys.ClipContext
 
 class rayTraceUtils {
   constructor() {
-    // These are the points on the center of each face of a block
-    this.sides = [
-      [0.01, 0.5, 0.5], [0.99, 0.5, 0.5],
-      [0.5, 0.5, 0.01], [0.5, 0.5, 0.99],
-      [0.5, 0.01, 0.5], [0.5, 0.99, 0.5],
+    // Optimized point set for visibility checks
+    this.defaultPoints = [
+      [0.5, 0.5, 0.5],   // Center
+      [0.1, 0.5, 0.5], [0.9, 0.5, 0.5], // X-axis
+      [0.5, 0.1, 0.5], [0.5, 0.9, 0.5], // Y-axis
+      [0.5, 0.5, 0.1], [0.5, 0.5, 0.9], // Z-axis
     ];
-  }
-
-  setSides(sides) {
-    this.sides = sides;
   }
 
   /**
-   * @warning This function is EXTREMELY performance-intensive and should be avoided.
-   * It generates hundreds of points to test for visibility, which is almost never necessary.
-   * The 'getLittlePointsOnBlock' method is the recommended alternative.
+   * Generates optimized points on a block for visibility checking.
+   * @param {BlockPos} pos - The block position
+   * @returns {Array} Array of [x, y, z] points
    */
-  returnPointsFromSides(sides, blockPos) {
-    let returnArray = [
-        [blockPos.x + 0.5, blockPos.y + 0.5, blockPos.z + 0.5],
-        [blockPos.x + 0.5, blockPos.y + 0.3, blockPos.z + 0.5],
-        [blockPos.x + 0.5, blockPos.y + 0.7, blockPos.z + 0.5],
-    ];
-    sides.forEach((side) => {
-      returnArray.push([ blockPos.x + side[0], blockPos.y + side[1], blockPos.z + side[2] ]);
-    });
-    return returnArray;
+  getPointsOnBlock(pos) {
+    return this.defaultPoints.map(p => [
+      pos.x + p[0], 
+      pos.y + p[1], 
+      pos.z + p[2]
+    ]);
   }
 
   /**
-   * Generates a small, reasonable number of points on a block to check for visibility.
-   * This is the preferred method for performance.
+   * Checks if a block is not air.
+   * @param {Block} block - The block to check
+   * @returns {boolean} True if block is not air
    */
-  getLittlePointsOnBlock(pos) {
-    const points = [
-      [0.5, 0.5, 0.5], [0.5, 0.25, 0.5], [0.5, 0.75, 0.5],
-      [0.05, 0.5, 0.5], [0.95, 0.5, 0.5], [0.5, 0.5, 0.05],
-      [0.5, 0.5, 0.95], [0.5, 0.05, 0.5], [0.5, 0.95, 0.5],
-    ];
-    return points.map(p => [pos.x + p[0], pos.y + p[1], pos.z + p[2]]);
-  }
-
-  // A simple check function to see if a block is not air.
   check(block) {
-    return block.type.getID() !== 0;
-  }
-
-  toFloat(number) {
-    return parseFloat(number.toFixed(2));
+    return block && block.type.getID() !== 0;
   }
 
   /**
-   * Finds a visible point on a block from a given vector (e.g., player's eyes).
-   * @param {BlockPos} blockPos The block to check.
-   * @param {Vec3} vector The starting position of the raycast (e.g., Player.getPlayer().getEyePos(1)).
-   * @param {boolean} mcCast - If true, uses Minecraft's faster native raycast. Defaults to true.
-   * @param {boolean} performance - If true, uses a small, optimized set of points to check. Defaults to true.
-   * @returns {Array | null} The [x, y, z] coordinates of the visible point, or null if none are found.
+   * Finds a visible point on a block from the player's eye position.
+   * @param {BlockPos} blockPos - The block to check
+   * @param {Vec3} vector - The starting position (defaults to player eye position)
+   * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster)
+   * @returns {Array|null} The [x, y, z] coordinates of the visible point, or null
    */
-  getPointOnBlock = (
-    blockPos,
-    vector = Player.getPlayer().getEyePos(1),
-    mcCast = true, // OPTIMIZATION: Default to the faster, native raycast.
-    performance = true // OPTIMIZATION: Default to the performant point generation.
-  ) => {
-    const points = performance
-      ? this.getLittlePointsOnBlock(blockPos)
-      : this.returnPointsFromSides(this.sides, blockPos);
+  getPointOnBlock(blockPos, vector = Player.getPlayer().getEyePos(), useNativeRaycast = true) {
+    const points = this.getPointsOnBlock(blockPos);
 
     for (const point of points) {
-      const isVisible = mcCast
+      const isVisible = useNativeRaycast
         ? this.canSeePointMC(blockPos, point, vector)
-        : this.canSeePoint(blockPos, point, vector);
+        : this.canSeePointJS(blockPos, point, vector);
       
       if (isVisible) {
         return point;
       }
     }
     return null;
-  };
+  }
 
   /**
-   * Checks visibility using the custom JS raytracer. Slower, but allows for custom block checks.
+   * NEW FUNCTION: Checks if a block is visible to the player.
+   * @param {BlockPos} blockPos - The block position to check
+   * @param {Vec3} eyePos - The eye position (defaults to player's eye position)
+   * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster, default: true)
+   * @returns {boolean} True if the block is visible to the player
    */
-  canSeePoint(blockPos, point, vector = Player.getPlayer().getEyePos(1)) {
-    const direction = new Vector3(point[0] - vector.x, point[1] - vector.y, point[2] - vector.z);
+  isBlockVisible(blockPos, eyePos = null, useNativeRaycast = true) {
+    if (!eyePos) {
+      const player = Player.getPlayer();
+      if (!player) return false; // no player loaded → nothing visible
+      const pos = player.getEyePos();
+      if (!pos) return false;
+      eyePos = { x: pos.x, y: pos.y, z: pos.z };
+    }
+  
+    // Quick distance check first (optimization)
+    const dx = blockPos.x + 0.5 - eyePos.x;
+    const dy = blockPos.y + 0.5 - eyePos.y;
+    const dz = blockPos.z + 0.5 - eyePos.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+  
+    // If block is too far (>100 blocks), it's not visible
+    if (distSq > 10000) return false;
+  
+    // Check if any point on the block is visible
+    return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
+  }
+
+
+  /**
+   * Checks visibility using JavaScript raytracer.
+   * @private
+   */
+  canSeePointJS(blockPos, point, vector = Player.getPlayer().getEyePos()) {
+    const dx = point[0] - vector.x;
+    const dy = point[1] - vector.y;
+    const dz = point[2] - vector.z;
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    
+    // Normalize direction
+    const direction = new Vector3(dx / distance, dy / distance, dz / distance);
     
     const castResult = raytraceBlocks(
       [vector.x, vector.y, vector.z],
-      direction, // FIX: Pass the newly created Vector3 instance
-      61,
+      direction,
+      distance + 0.1, // Small buffer to ensure we reach the target
       this.check,
       true
     );
@@ -108,68 +117,86 @@ class rayTraceUtils {
   }
 
   /**
-   * Checks visibility using Minecraft's native raytracer. Faster and more accurate.
+   * Checks visibility using Minecraft's built-in raycaster via Player.raycast because ClipContext is complete bullshit
+   * @private
    */
-  canSeePointMC(blockPos, point, vector = Player.getPlayer().getEyePos(1)) {
-    const start = vector;
-    const end = new Vec3(point[0], point[1], point[2]);
+  canSeePointMC(blockPos, point, vector = null) {
+    const player = Player.getPlayer();
+    if (!player) return false;
 
-    const clipContext = new ClipContext(
-      start, end,
-      ClipContext.Block.OUTLINE,
-      ClipContext.Fluid.NONE,
-      Player.getPlayer()
+    if (!vector) {
+      const pos = player.getEyePos();
+      if (!pos) return false;
+      vector = { x: pos.x, y: pos.y, z: pos.z };
+    }
+
+    const dx = point[0] - vector.x;
+    const dy = point[1] - vector.y;
+    const dz = point[2] - vector.z;
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    const result = player.raycast(distance, 0.0, false);
+    if (!result) return false;
+
+    const hitPos = result.getBlockPos();
+    if (!hitPos) return false;
+
+    return (
+      hitPos.getX() === blockPos.x &&
+      hitPos.getY() === blockPos.y &&
+      hitPos.getZ() === blockPos.z
     );
-    const castResult = World.getWorld().clip(clipContext);
-    return castResult && castResult.getBlockPos().equals(blockPos.toMCBlock());
   }
+
   
   /**
-   * Returns the list of blocks in the player's line of sight.
+   * Returns blocks in the player's line of sight.
    */
-  rayTracePlayerBlocks(Reach = 60, checkFunction = null) {
-    const eyes = Player.getPlayer().getEyePos(1);
+  rayTracePlayerBlocks(reach = 60, checkFunction = null) {
+    const eyes = Player.getPlayer().getEyePos();
     return raytraceBlocks(
-      [eyes.x, eyes.y, eyes.z], null, Reach, checkFunction, false, false
+      [eyes.x, eyes.y, eyes.z], 
+      null, 
+      reach, 
+      checkFunction, 
+      false, 
+      false
     );
   }
 
   /**
-   * Returns all block coordinates traversed between two points.
+   * Returns all blocks traversed between two points.
    */
   rayTraceBetweenPoints(begin, end) {
-    const direction = new Vector3(end[0] - begin[0], end[1] - begin[1], end[2] - begin[2]);
-    const distance = direction.getLength();
+    const dx = end[0] - begin[0];
+    const dy = end[1] - begin[1];
+    const dz = end[2] - begin[2];
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    
+    // Normalize direction
+    const direction = new Vector3(dx / distance, dy / distance, dz / distance);
     
     return raytraceBlocks(
       begin,
-      direction, // FIX: Pass the newly created Vector3 instance
-      distance, null, false, false
+      direction,
+      distance,
+      null,
+      false,
+      false
     );
   }
 
   /**
-   * Raytraces from a specific vector with a specific direction.
+   * Uses the player's built-in raycast to find the block they're looking at.
    */
-  rayTraceBlocks(Reach, vec, direction) {
-    return raytraceBlocks(
-      vec,
-      new Vector3(direction[0], direction[1], direction[2]), // FIX: Use 'new Vector3'
-      Reach, null, false, false
-    );
-  }
-
-  /**
-   * Uses the player's built-in raycast to find the block they are looking at.
-   */
-  raytrace(dist) {
-    const castResult = Player.getPlayer().raycast(dist, 0.0);
+  raytrace(dist = 5) {
+    const castResult = Player.getPlayer().raycast(dist, 0.0, false);
     if (!castResult) return null;
     
     const blockPos = castResult.getBlockPos();
     if (!blockPos) return null;
-
-    const blockAt = World.getBlockAt(blockPos);
+  
+    const blockAt = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
     return (blockAt && blockAt.type.getID() !== 0) ? blockAt : null;
   }
 }
