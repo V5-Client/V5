@@ -18,7 +18,7 @@ Client.getMinecraft()
 
 import "./Utility/Misc.js";
 import "./Backend/IRC.js";
-import "./Pathfinding/test.js"; // WHY DID YOU REMOVE THIS I NEED IT
+import "./Pathfinding/pathfinder.js"; // WHY DID YOU REMOVE THIS I NEED IT
 //import "./AutoReload.js";
 
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
