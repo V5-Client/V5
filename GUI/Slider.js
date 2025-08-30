@@ -4,7 +4,7 @@ const matrix = UMatrixStack.get();
 
 const UIRoundedRectangle = Java.type("gg.essential.elementa.components.UIRoundedRectangle");
 
-import { clamp } from "./Utils";
+import { clamp, playClickSound } from "./Utils";
 
 export class Slider {
   constructor(
@@ -102,6 +102,7 @@ export class Slider {
     ) {
       this.dragging = true;
       this.updateValue(mouseX);
+      playClickSound();
       return true;
     }
     return false;

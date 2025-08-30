@@ -2,6 +2,7 @@ const Color = java.awt.Color
 const UMatrixStack = Java.type("gg.essential.universal.UMatrixStack").Compat.INSTANCE;
 const matrix = UMatrixStack.get();
 const UIRoundedRectangle = Java.type("gg.essential.elementa.components.UIRoundedRectangle");
+import { playClickSound } from "./Utils";
 
 export class MultiToggle {
   constructor(title, x, y, options = [], singleSelect = false) {
@@ -117,6 +118,7 @@ export class MultiToggle {
       mouseY <= this.y + this.buttonHeight
     ) {
       this.expanded = !this.expanded;
+      playClickSound();
       return true;
     }
 
@@ -141,6 +143,7 @@ export class MultiToggle {
           } else {
             this.options[i].enabled = !this.options[i].enabled;
           }
+          playClickSound();
           return true;
         }
       }
