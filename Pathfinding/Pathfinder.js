@@ -1,737 +1,791 @@
-import { Rotations } from "../Utility/Rotations";
+import request from "requestV2";
 import RendererMain from "../Rendering/RendererMain";
-import { Chat } from "../Utility/Chat";
+import { Rotations } from "../Utility/Rotations";
 
-/**
- * TODO
- * Custom Rotations
- * Jumping
- * Fix falling down 💀
- * World cache
- * optimizations
- * more optimizations
- */
+const Color = java.awt.Color;
 
-class Node {
-  constructor(x, y, z, parent = null, gScore = Infinity) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.parent = parent;
-    this.gScore = gScore;
-    this.hScore = 0;
-    this.fScore = Infinity;
+let pathNodes = [];
+let keyNodes = [];
+let process = null;
+const path = "./config/ChatTriggers/assets/Pathfinding.exe";
+
+const mc = Client.getMinecraft();
+
+// Movement state
+let movementState = {
+  isWalking: false,
+  currentNodeIndex: 0,
+  splinePath: [],
+  lastPosition: null,
+  stuckTimer: 0,
+  isFalling: false,
+  fallStartY: 0,
+  lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
+  targetRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
+  baseRotationSpeed: 230.0,
+  currentRotationSpeed: 260.0,
+  rotationSmoothing: 2.25,
+  lookAheadDistance: 4.0,
+  visitedKeyNodes: new Set(),
+  movementHeld: false,
+  targetPoint: null,
+  sprintHeld: false,
+  lastUpdateTime: Date.now(),
+  keyNodeIndices: [],
+  pathCurvatures: [],
+  hasReachedEnd: false,
+  jumpCooldown: 0
+};
+
+// Constants
+const STUCK_THRESHOLD = 2000;
+const NODE_REACH_DISTANCE = 2.5;
+const NODE_REACH_DISTANCE_SPRINT = 3.5;
+const END_REACH_DISTANCE = 1.5;
+const SPLINE_SEGMENTS = 10;
+const JUMP_COOLDOWN_TICKS = 10;
+const VERTICAL_LOOK_FACTOR = 0.02;
+
+// Generate spline using key nodes 
+function generateKeyNodeSpline(keyNodes, allNodes) {
+  if (!keyNodes || keyNodes.length < 2) {
+    return simplifyPath(allNodes, 1.0);
   }
-
-  getKey() {
-    return `${this.x},${this.y},${this.z}`;
-  }
-}
-
-export class Pathfinder {
-  constructor() {
-    this.mc = Client.getMinecraft();
-    this.currentPath = [];
-    this.currentSegment = [];
-    this.nextSegment = null;
-    this.isWalking = false;
-    this.isSearching = false;
-    this.pathWaypoints = [];
-    this.stuckTimer = 0;
-    this.lastPosition = null;
-    this.stuckThreshold = 60; // 3 seconds (20 ticks per second)
-    this.nodesProcessed = 0;
-    this.startTime = 0;
-    this.pathComplete = null;
-    this.searchState = {
-      openList: [],
-      openListMap: new Map(),
-      closedList: new Set(),
-      startNode: null,
-      endNode: null,
-    };
-    this.lookAheadRadius = 5;
-    this.registerCommandsAndEvents();
-  }
-
-  createNode(x, y, z, parent = null, gScore = Infinity) {
-    return new Node(x, y, z, parent, gScore);
-  }
-
-  heuristic(nodeA, nodeB) {
-    const dx = Math.abs(nodeA.x - nodeB.x);
-    const dy = Math.abs(nodeA.y - nodeB.y);
-    const dz = Math.abs(nodeA.z - nodeB.z);
-    const manhattan = dx + dy + dz;
-    return manhattan * 1.01;
-  }
-
-  findPath(startPos, endPos, onComplete) {
-    this.stopPathing();
-    this.pathComplete = onComplete;
-    this.isSearching = true;
-    this.searchState.startNode = this.createNode(
-      Math.floor(startPos.x),
-      Math.floor(startPos.y),
-      Math.floor(startPos.z)
-    );
-    this.searchState.endNode = this.createNode(
-      Math.floor(endPos.x),
-      Math.floor(endPos.y),
-      Math.floor(endPos.z)
-    );
-    this.searchState.openList = [this.searchState.startNode];
-    this.searchState.openListMap = new Map();
-    this.searchState.openListMap.set(
-      this.searchState.startNode.getKey(),
-      this.searchState.startNode
-    );
-    this.searchState.closedList = new Set();
-    this.nodesProcessed = 0;
-    this.startTime = Date.now();
-    this.searchState.startNode.gScore = 0;
-    this.searchState.startNode.hScore = this.heuristic(
-      this.searchState.startNode,
-      this.searchState.endNode
-    );
-    this.searchState.startNode.fScore = this.searchState.startNode.hScore;
-    Chat.message(
-      `&aFinding first path segment from (${this.searchState.startNode.x}, ${this.searchState.startNode.y}, ${this.searchState.startNode.z}) to (${this.searchState.endNode.x}, ${this.searchState.endNode.y}, ${this.searchState.endNode.z})...`
-    );
-  }
-
-  continueSearch(segmentLength) {
-    const { openList, openListMap, closedList, endNode } = this.searchState;
-    const nodesPerTick = 500;
-    const maxNodes = 500000;
-
-    if (openList.length === 0) {
-      Chat.message("&cNo path found to the destination. Open list is empty.");
-      this.isSearching = false;
-      return;
-    }
-
-    let nodesProcessedThisTick = 0;
-    while (openList.length > 0 && nodesProcessedThisTick < nodesPerTick) {
-      if (this.nodesProcessed >= maxNodes) {
-        Chat.message(`&cMax nodes (${maxNodes}) reached. Stopping search.`);
-        this.isSearching = false;
-        return;
-      }
-      const currentNode = this.popMinHeap(openList);
-      const currentNodeKey = currentNode.getKey();
-      openListMap.delete(currentNodeKey);
-      if (
-        (segmentLength &&
-          this.reconstructPath(currentNode).length > segmentLength) ||
-        (currentNode.x === endNode.x &&
-          currentNode.y === endNode.y &&
-          currentNode.z === endNode.z)
-      ) {
-        let path = this.reconstructPath(currentNode);
-        path = this.smoothPath(path);
-        const endTime = Date.now();
-        const timeTaken = endTime - this.startTime;
-        ChatLib.chat(`Found segment in ${timeTaken}ms.`);
-        ChatLib.chat(`Nodes Processed: ${this.nodesProcessed}`);
-        ChatLib.chat(`Path Length: ${path.length}`);
-        this.isSearching = false;
-        if (this.currentSegment.length === 0) {
-          this.currentSegment = path;
-          this.isWalking = true;
-        } else {
-          this.nextSegment = path;
+  
+  const splinePoints = [];
+  const curvatures = [];
+  
+  for (let i = 0; i < keyNodes.length - 1; i++) {
+    const startKey = keyNodes[i];
+    const endKey = keyNodes[i + 1];
+    
+    const startIdx = findClosestNodeIndex(startKey, allNodes);
+    const endIdx = findClosestNodeIndex(endKey, allNodes);
+    
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      const segmentNodes = allNodes.slice(startIdx, endIdx + 1);
+      const simplified = simplifyPath(segmentNodes, 0.5);
+      
+      for (let j = 0; j < simplified.length - 1; j++) {
+        const p0 = simplified[Math.max(0, j - 1)];
+        const p1 = simplified[j];
+        const p2 = simplified[j + 1];
+        const p3 = simplified[Math.min(simplified.length - 1, j + 2)];
+        
+        const segments = (j === 0 || j === simplified.length - 2) ? SPLINE_SEGMENTS : 5;
+        
+        for (let t = 0; t < segments; t++) {
+          const tNorm = t / segments;
+          const point = catmullRomPoint(p0, p1, p2, p3, tNorm);
+          splinePoints.push(point);
+          
+          const curvature = calculateCurvature(p0, p1, p2, p3, tNorm);
+          curvatures.push(curvature);
         }
-        this.pathWaypoints = [
-          ...this.currentSegment,
-          ...(this.nextSegment || []),
-        ];
-        this.lastPosition = {
-          x: Player.getX(),
-          y: Player.getY(),
-          z: Player.getZ(),
+      }
+    } else {
+      for (let t = 0; t <= SPLINE_SEGMENTS; t++) {
+        const tNorm = t / SPLINE_SEGMENTS;
+        const point = {
+          x: startKey.x + (endKey.x - startKey.x) * tNorm,
+          y: startKey.y + (endKey.y - startKey.y) * tNorm,
+          z: startKey.z + (endKey.z - startKey.z) * tNorm
         };
-        this.stuckTimer = 0;
-        return;
+        splinePoints.push(point);
+        curvatures.push(0.1);
       }
-      closedList.add(currentNodeKey);
-      let neighbors = this.getNeighbors(currentNode);
-      let deltaX = endNode.x - currentNode.x;
-      let deltaZ = endNode.z - currentNode.z;
-      for (let neighbor of neighbors) {
-        let neighborKey = neighbor.getKey();
-        if (closedList.has(neighborKey)) {
-          continue;
-        }
-        let newGScore =
-          currentNode.gScore + this.distanceBetween(currentNode, neighbor);
-        let openListNeighbor = openListMap.get(neighborKey);
-        if (!openListNeighbor || newGScore < openListNeighbor.gScore) {
-          neighbor.parent = currentNode;
-          neighbor.gScore = newGScore;
-          neighbor.hScore = this.heuristic(neighbor, endNode);
-          neighbor.fScore = neighbor.gScore + neighbor.hScore;
-          if (!openListNeighbor) {
-            this.pushMinHeap(openList, neighbor);
-            openListMap.set(neighborKey, neighbor);
-          } else {
-            this.removeNodeFromHeap(openList, openListNeighbor);
-            this.pushMinHeap(openList, neighbor);
-            openListMap.set(neighborKey, neighbor);
-          }
-        }
-      }
-      nodesProcessedThisTick++;
-      this.nodesProcessed++;
     }
   }
+  
+  splinePoints.push(keyNodes[keyNodes.length - 1]);
+  curvatures.push(0);
+  
+  movementState.pathCurvatures = curvatures;
+  
+  return splinePoints;
+}
 
-  findNextSegment() {
-    if (this.isSearching || !this.isWalking || !this.currentSegment.length) {
-      return;
-    }
-    const lastNode = this.currentSegment[this.currentSegment.length - 1];
-    if (this.nextSegment) {
-      return;
-    }
-    this.isSearching = true;
-    this.searchState.startNode = this.createNode(
-      lastNode.x,
-      lastNode.y,
-      lastNode.z
-    );
-    const endPos = this.searchState.endNode;
-    this.searchState.openList = [this.searchState.startNode];
-    this.searchState.openListMap = new Map();
-    this.searchState.openListMap.set(
-      this.searchState.startNode.getKey(),
-      this.searchState.startNode
-    );
-    this.searchState.closedList = new Set();
-    this.nodesProcessed = 0;
-    this.startTime = Date.now();
-    this.searchState.startNode.gScore = 0;
-    this.searchState.startNode.hScore = this.heuristic(
-      this.searchState.startNode,
-      endPos
-    );
-    this.searchState.startNode.fScore = this.searchState.startNode.hScore;
-    Chat.message("&aFinding next path segment...");
+// Calculate curvature using second derivative
+function calculateCurvature(p0, p1, p2, p3, t) {
+  const dx_dt = 0.5 * (
+    (-p0.x + p2.x) +
+    2 * t * (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) +
+    3 * t * t * (-p0.x + 3 * p1.x - 3 * p2.x + p3.x)
+  );
+  
+  const dz_dt = 0.5 * (
+    (-p0.z + p2.z) +
+    2 * t * (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) +
+    3 * t * t * (-p0.z + 3 * p1.z - 3 * p2.z + p3.z)
+  );
+  
+  const d2x_dt2 = 0.5 * (
+    2 * (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) +
+    6 * t * (-p0.x + 3 * p1.x - 3 * p2.x + p3.x)
+  );
+  
+  const d2z_dt2 = 0.5 * (
+    2 * (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) +
+    6 * t * (-p0.z + 3 * p1.z - 3 * p2.z + p3.z)
+  );
+  
+  const speed = Math.sqrt(dx_dt * dx_dt + dz_dt * dz_dt);
+  if (speed < 0.001) return 0;
+  
+  const crossProduct = Math.abs(dx_dt * d2z_dt2 - dz_dt * d2x_dt2);
+  const curvature = crossProduct / Math.pow(speed, 3);
+  
+  return Math.min(1, curvature * 10);
+}
+
+// Check if block requires jumping (not slab, not stair)
+function shouldJumpForBlock(playerPos, targetPos) {
+  const dx = targetPos.x - playerPos.x;
+  const dz = targetPos.z - playerPos.z;
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  
+  if (dist > 2.0) return false; // Too far to check
+  
+  // Check if there's a block in front at foot level
+  const checkX = Math.floor(playerPos.x + dx * 0.5);
+  const checkY = Math.floor(playerPos.y);
+  const checkZ = Math.floor(playerPos.z + dz * 0.5);
+  
+  const blockInFront = World.getBlockAt(checkX, checkY, checkZ);
+  const blockAbove = World.getBlockAt(checkX, checkY + 1, checkZ);
+  
+  if (!blockInFront || blockInFront.type.isAir()) return false;
+  if (blockAbove && !blockAbove.type.isAir()) return false; // Can't jump if blocked above
+  
+  const blockName = blockInFront.type.getName().toLowerCase();
+  
+  // Don't jump for slabs or stairs
+  if (blockName.includes("slab") || blockName.includes("stair")) {
+    return false;
   }
-
-  getBlock(x, y, z) {
-    try {
-      return World.getBlockAt(x, y, z);
-    } catch (e) {
-      return { type: { getRegistryName: () => "unloaded" } };
-    }
-  }
-
-  getNeighbors(node) {
-    let neighbors = [];
-    const maxJump = 1;
-    const maxDrop = 10;
-    const directions = [
-      [-1, 0, -1],
-      [-1, 0, 0],
-      [-1, 0, 1],
-      [0, 0, -1],
-      [0, 0, 1],
-      [1, 0, -1],
-      [1, 0, 0],
-      [1, 0, 1],
-    ];
-
-    for (const [dx, _, dz] of directions) {
-      let neighborNode = this.createNode(node.x + dx, node.y, node.z + dz);
-      if (
-        this.isWalkable(neighborNode) &&
-        !this.searchState.closedList.has(neighborNode.getKey())
-      ) {
-        neighbors.push(neighborNode);
-      }
-
-      let dropNode = this.createNode(node.x + dx, node.y - 1, node.z + dz);
-      if (
-        this.isWalkable(dropNode) &&
-        !this.searchState.closedList.has(dropNode.getKey())
-      ) {
-        neighbors.push(dropNode);
-      }
-    }
-
-    for (let dy = -2; dy >= -maxDrop; dy--) {
-      let fallNode = this.createNode(node.x, node.y + dy, node.z);
-      if (
-        this.isWalkable(fallNode) &&
-        this.isClearPath(node, fallNode) &&
-        !this.searchState.closedList.has(fallNode.getKey())
-      ) {
-        neighbors.push(fallNode);
-      }
-    }
-
-    for (const [dx, _, dz] of directions) {
-      let jumpNode = this.createNode(
-        node.x + dx,
-        node.y + maxJump,
-        node.z + dz
-      );
-      if (
-        this.isWalkable(jumpNode) &&
-        this.canJumpTo(node, jumpNode) &&
-        !this.searchState.closedList.has(jumpNode.getKey())
-      ) {
-        neighbors.push(jumpNode);
-      }
-    }
-    return neighbors;
-  }
-
-  getObstaclePenalty(node) {
-    let penalty = 0;
-    const checkRadius = 1;
-    for (let dx = -checkRadius; dx <= checkRadius; dx++) {
-      for (let dz = -checkRadius; dz <= checkRadius; dz++) {
-        if (dx === 0 && dz === 0) continue;
-        let block1 = this.getBlock(node.x + dx, node.y + 1, node.z + dz);
-        let block2 = this.getBlock(node.x + dx, node.y + 2, node.z + dz);
-        const block1Name = block1.type.getRegistryName();
-        const block2Name = block2.type.getRegistryName();
-        const isSolidBlock1 =
-          block1Name !== "minecraft:air" &&
-          !block1Name.includes("slab") &&
-          !block1Name.includes("stairs");
-        const isSolidBlock2 =
-          block2Name !== "minecraft:air" &&
-          !block2Name.includes("slab") &&
-          !block2Name.includes("stairs");
-        if (isSolidBlock1 || isSolidBlock2) {
-          penalty += 10;
-        }
-      }
-    }
-    return penalty;
-  }
-
-  isClearPath(fromNode, toNode) {
-    if (fromNode.x !== toNode.x || fromNode.z !== toNode.z) {
-      return false;
-    }
-    for (let y = fromNode.y - 1; y > toNode.y; y--) {
-      const block = this.getBlock(fromNode.x, y, fromNode.z);
-      if (block.type.getRegistryName() !== "minecraft:air") {
-        return false;
-      }
-    }
+  
+  // Check if we need to jump (solid block in front)
+  if (!blockInFront.type.isAir() && targetPos.y > playerPos.y - 0.5) {
     return true;
   }
+  
+  return false;
+}
 
-  canJumpTo(fromNode, toNode) {
-    const blockBelowJump = this.getBlock(toNode.x, toNode.y - 1, toNode.z);
-    if (blockBelowJump.type.getRegistryName() === "minecraft:air") {
-      return false;
-    }
-    const blockAboveFrom = this.getBlock(
-      fromNode.x,
-      fromNode.y + 2,
-      fromNode.z
-    );
-    if (blockAboveFrom.type.getRegistryName() !== "minecraft:air") {
-      return false;
-    }
-    return true;
-  }
-
-  distanceBetween(nodeA, nodeB) {
-    const dx = Math.abs(nodeA.x - nodeB.x);
-    const dy = Math.abs(nodeA.y - nodeB.y);
-    const dz = Math.abs(nodeA.z - nodeB.z);
-    const obstaclePenalty = this.getObstaclePenalty(nodeB);
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    return dist + obstaclePenalty;
-  }
-
-  isWalkable(node) {
-    const blockAtNode = this.getBlock(node.x, node.y, node.z);
-    const standingBlockType = blockAtNode.type.getRegistryName();
-    if (
-      standingBlockType === "minecraft:air" ||
-      standingBlockType === "minecraft:water" ||
-      standingBlockType === "minecraft:lava" ||
-      standingBlockType === "unloaded"
-    ) {
-      return false;
-    }
-    const blockAbove1 = this.getBlock(node.x, node.y + 1, node.z);
-    const blockAbove2 = this.getBlock(node.x, node.y + 2, node.z);
-    const hasClearance =
-      blockAbove1.type.getRegistryName() === "minecraft:air" &&
-      blockAbove2.type.getRegistryName() === "minecraft:air";
-    return hasClearance;
-  }
-
-  pushMinHeap(heap, element) {
-    heap.push(element);
-    let index = heap.length - 1;
-    while (index > 0) {
-      const parentIndex = Math.floor((index - 1) / 2);
-      if (heap[index].fScore < heap[parentIndex].fScore) {
-        [heap[index], heap[parentIndex]] = [heap[parentIndex], heap[index]];
-        index = parentIndex;
-      } else {
-        break;
-      }
+// Simplify path using Ramer-Douglas-Peucker algorithm
+function simplifyPath(points, tolerance) {
+  if (points.length <= 2) return points;
+  
+  let maxDist = 0;
+  let maxIndex = 0;
+  
+  for (let i = 1; i < points.length - 1; i++) {
+    const dist = perpendicularDistance(points[i], points[0], points[points.length - 1]);
+    if (dist > maxDist) {
+      maxDist = dist;
+      maxIndex = i;
     }
   }
-
-  popMinHeap(heap) {
-    if (heap.length === 0) return null;
-    const min = heap[0];
-    const last = heap.pop();
-    if (heap.length > 0) {
-      heap[0] = last;
-      let index = 0;
-      while (true) {
-        const leftChildIndex = 2 * index + 1;
-        const rightChildIndex = 2 * index + 2;
-        let smallestIndex = index;
-        if (
-          leftChildIndex < heap.length &&
-          heap[leftChildIndex].fScore < heap[smallestIndex].fScore
-        ) {
-          smallestIndex = leftChildIndex;
-        }
-        if (
-          rightChildIndex < heap.length &&
-          heap[rightChildIndex].fScore < heap[smallestIndex].fScore
-        ) {
-          smallestIndex = rightChildIndex;
-        }
-        if (smallestIndex !== index) {
-          [heap[index], heap[smallestIndex]] = [
-            heap[smallestIndex],
-            heap[index],
-          ];
-          index = smallestIndex;
-        } else {
-          break;
-        }
-      }
-    }
-    return min;
-  }
-
-  removeNodeFromHeap(heap, node) {
-    const index = heap.indexOf(node);
-    if (index === -1) return;
-    const last = heap.pop();
-    if (index === heap.length) return;
-    heap[index] = last;
-    let parentIndex = Math.floor((index - 1) / 2);
-    if (index > 0 && heap[index].fScore < heap[parentIndex].fScore) {
-      this.pushMinHeap(heap, last);
-    } else {
-      let currentIndex = index;
-      while (true) {
-        const leftChildIndex = 2 * currentIndex + 1;
-        const rightChildIndex = 2 * currentIndex + 2;
-        let smallestIndex = currentIndex;
-        if (
-          leftChildIndex < heap.length &&
-          heap[leftChildIndex].fScore < heap[smallestIndex].fScore
-        ) {
-          smallestIndex = leftChildIndex;
-        }
-        if (
-          rightChildIndex < heap.length &&
-          heap[rightChildIndex].fScore < heap[smallestIndex].fScore
-        ) {
-          smallestIndex = rightChildIndex;
-        }
-        if (smallestIndex !== currentIndex) {
-          [heap[currentIndex], heap[smallestIndex]] = [
-            heap[smallestIndex],
-            heap[currentIndex],
-          ];
-          currentIndex = smallestIndex;
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
-  reconstructPath(endNode) {
-    const path = [];
-    let temp = endNode;
-    while (temp) {
-      path.unshift({ x: temp.x, y: temp.y, z: temp.z });
-      temp = temp.parent;
-    }
-    return path;
-  }
-
-  smoothPath(path) {
-    if (path.length <= 2) return path;
-    const smoothedPath = [path[0]];
-    let lastNode = path[0];
-    for (let i = 1; i < path.length - 1; i++) {
-      const currentNode = path[i];
-      const nextNode = path[i + 1];
-      if (
-        currentNode.x - lastNode.x === nextNode.x - currentNode.x &&
-        currentNode.y - lastNode.y === nextNode.y - currentNode.y &&
-        currentNode.z - lastNode.z === nextNode.z - currentNode.z
-      ) {
-        continue;
-      }
-      smoothedPath.push(currentNode);
-      lastNode = currentNode;
-    }
-    smoothedPath.push(path[path.length - 1]);
-    return smoothedPath;
-  }
-
-  registerCommandsAndEvents() {
-    register("command", (x, y, z) => {
-      if (isNaN(x) || isNaN(y) || isNaN(z)) {
-        ChatLib.chat("&cUsage: /walkto <x> <y> <z>");
-        return;
-      }
-      this.findPath(
-        {
-          x: Player.getX(),
-          y: Player.getY(),
-          z: Player.getZ(),
-        },
-        { x: parseInt(x), y: parseInt(y), z: parseInt(z) }
-      );
-    }).setName("walkto");
-
-    register("tick", () => {
-      if (this.isSearching) {
-        this.continueSearch(70);
-      } else if (this.isWalking) {
-        this.updateMovement();
-      }
-    });
-
-    register("postRenderWorld", () => {
-      const Color = java.awt.Color
-
-      this.pathWaypoints.forEach((node) => {
-        RendererMain.drawWaypoint(
-          new Vec3i(node.x, node.y, node.z),
-          true,
-          new Color(0.0, 1.0, 0.0, 1.0)
-        );
-      });
-    });
-
-    register("worldUnload", () => {
-      this.stopPathing();
-    });
-
-    register("command", () => {
-      this.stopPathing();
-      Rotations.stopRotation();
-    }).setName("stop");
-  }
-
-  updateMovement() {
-    // Check for "stuck" status before proceeding with movement logic.
-    const currentPos = {
-      x: Math.floor(Player.getX()),
-      y: Math.floor(Player.getY()),
-      z: Math.floor(Player.getZ()),
-    };
-
-    if (
-      this.lastPosition &&
-      currentPos.x === this.lastPosition.x &&
-      currentPos.y === this.lastPosition.y &&
-      currentPos.z === this.lastPosition.z
-    ) {
-      this.stuckTimer++;
-    } else {
-      this.stuckTimer = 0;
-    }
-    this.lastPosition = currentPos;
-
-    if (this.stuckTimer >= this.stuckThreshold) {
-      ChatLib.chat("&cStuck for too long, re-pathing...");
-      this.stopPathing();
-      // Re-initiate pathfinding to the original destination to find a new path.
-      this.findPath(
-        { x: Player.getX(), y: Player.getY(), z: Player.getZ() },
-        this.searchState.endNode
-      );
-      return;
-    }
-
-    // Original movement logic starts here
-    if (!this.currentSegment || this.currentSegment.length === 0) {
-      if (this.nextSegment) {
-        this.currentSegment = this.nextSegment;
-        this.nextSegment = null;
-        this.pathWaypoints = [...this.currentSegment];
-        return;
-      }
-      ChatLib.chat("&aReached destination!");
-      if (this.pathComplete) {
-        this.pathComplete();
-        this.pathComplete = null;
-      }
-      this.stopPathing();
-      return;
-    }
-
-    const playerPos = {
-      x: Player.getX(),
-      y: Player.getY(),
-      z: Player.getZ(),
-    };
-
-    let currentPathSegmentStart = null;
-    let currentPathSegmentEnd = null;
-    let segmentIndex = -1;
-
-    for (let i = 0; i < this.currentSegment.length - 1; i++) {
-      const distFromStart = Math.sqrt(
-        Math.pow(playerPos.x - this.currentSegment[i].x - 0.5, 2) +
-          Math.pow(playerPos.y - this.currentSegment[i].y, 2) +
-          Math.pow(playerPos.z - this.currentSegment[i].z - 0.5, 2)
-      );
-      const distFromEnd = Math.sqrt(
-        Math.pow(playerPos.x - this.currentSegment[i + 1].x - 0.5, 2) +
-          Math.pow(playerPos.y - this.currentSegment[i + 1].y, 2) +
-          Math.pow(playerPos.z - this.currentSegment[i + 1].z - 0.5, 2)
-      );
-
-      if (distFromStart < this.lookAheadRadius && distFromEnd > distFromStart) {
-        currentPathSegmentStart = this.currentSegment[i];
-        currentPathSegmentEnd = this.currentSegment[i + 1];
-        segmentIndex = i;
-        break;
-      }
-    }
-
-    if (!currentPathSegmentStart) {
-      currentPathSegmentStart = this.currentSegment[0];
-      currentPathSegmentEnd = this.currentSegment[1] || this.currentSegment[0];
-    }
-
-    const dx = currentPathSegmentEnd.x - currentPathSegmentStart.x;
-    const dy = currentPathSegmentEnd.y - currentPathSegmentStart.y;
-    const dz = currentPathSegmentEnd.z - currentPathSegmentStart.z;
-    const segmentLengthSquared = dx * dx + dy * dy + dz * dz;
-
-    const t =
-      segmentLengthSquared === 0
-        ? 0
-        : ((playerPos.x - currentPathSegmentStart.x) * dx +
-            (playerPos.y - currentPathSegmentStart.y) * dy +
-            (playerPos.z - currentPathSegmentStart.z) * dz) /
-          segmentLengthSquared;
-
-    const projectedPoint = {
-      x: currentPathSegmentStart.x + dx * t,
-      y: currentPathSegmentStart.y + dy * t,
-      z: currentPathSegmentStart.z + dz * t,
-    };
-
-    let targetX, targetY, targetZ;
-    const remainingDistance = this.lookAheadRadius;
-    const remainingSegmentLength = Math.sqrt(
-      Math.pow(currentPathSegmentEnd.x - projectedPoint.x, 2) +
-        Math.pow(currentPathSegmentEnd.y - projectedPoint.y, 2) +
-        Math.pow(currentPathSegmentEnd.z - projectedPoint.z, 2)
-    );
-
-    if (remainingSegmentLength >= remainingDistance) {
-      const ratio = remainingDistance / remainingSegmentLength;
-      targetX =
-        projectedPoint.x + (currentPathSegmentEnd.x - projectedPoint.x) * ratio;
-      targetY =
-        projectedPoint.y + (currentPathSegmentEnd.y - projectedPoint.y) * ratio;
-      targetZ =
-        projectedPoint.z + (currentPathSegmentEnd.z - projectedPoint.z) * ratio;
-    } else {
-      let distanceCovered = remainingSegmentLength;
-      let found = false;
-      for (let i = segmentIndex + 1; i < this.currentSegment.length - 1; i++) {
-        const nextSegmentLength = Math.sqrt(
-          Math.pow(this.currentSegment[i + 1].x - this.currentSegment[i].x, 2) +
-            Math.pow(
-              this.currentSegment[i + 1].y - this.currentSegment[i].y,
-              2
-            ) +
-            Math.pow(this.currentSegment[i + 1].z - this.currentSegment[i].z, 2)
-        );
-        if (distanceCovered + nextSegmentLength >= remainingDistance) {
-          const ratio =
-            (remainingDistance - distanceCovered) / nextSegmentLength;
-          targetX =
-            this.currentSegment[i].x +
-            (this.currentSegment[i + 1].x - this.currentSegment[i].x) * ratio;
-          targetY =
-            this.currentSegment[i].y +
-            (this.currentSegment[i + 1].y - this.currentSegment[i].y) * ratio;
-          targetZ =
-            this.currentSegment[i].z +
-            (this.currentSegment[i + 1].z - this.currentSegment[i].z) * ratio;
-          found = true;
-          break;
-        }
-        distanceCovered += nextSegmentLength;
-      }
-
-      if (!found) {
-        targetX = this.currentSegment[this.currentSegment.length - 1].x;
-        targetY = this.currentSegment[this.currentSegment.length - 1].y;
-        targetZ = this.currentSegment[this.currentSegment.length - 1].z;
-      }
-    }
-
-    if (this.currentSegment.length > 0) {
-      const distToNextNode = Math.sqrt(
-        Math.pow(playerPos.x - this.currentSegment[0].x, 2) +
-          Math.pow(playerPos.y - this.currentSegment[0].y, 2) +
-          Math.pow(playerPos.z - this.currentSegment[0].z, 2)
-      );
-      if (distToNextNode < 5.0) {
-        this.currentSegment.shift();
-      }
-    }
-
-    const dx_rot = targetX - playerPos.x;
-    const dy_rot = targetY - playerPos.y;
-    const dz_rot = targetZ - playerPos.z;
-
-    const yaw = Math.atan2(dz_rot, dx_rot) * (180 / Math.PI) - 90;
-    const dist2D = Math.sqrt(dx_rot * dx_rot + dz_rot * dz_rot);
-    const pitch = -Math.atan2(dy_rot, dist2D) * (180 / Math.PI) - 12.25;
-
-    Rotations.rotateToAngles(yaw, pitch);
-    this.mc.options.forwardKey.setPressed(true);
-
-    if (this.currentSegment.length <= 15) {
-      this.findNextSegment();
-    }
-  }
-
-  stopPathing() {
-    this.isWalking = false;
-    this.isSearching = false;
-    this.currentSegment = [];
-    this.nextSegment = null;
-    this.pathWaypoints = [];
-    this.mc.options.forwardKey.setPressed(false);
-    this.mc.options.leftKey.setPressed(false);
-    this.mc.options.rightKey.setPressed(false);
-    Rotations.stopRotation();
+  
+  if (maxDist > tolerance) {
+    const left = simplifyPath(points.slice(0, maxIndex + 1), tolerance);
+    const right = simplifyPath(points.slice(maxIndex), tolerance);
+    return [...left.slice(0, -1), ...right];
+  } else {
+    return [points[0], points[points.length - 1]];
   }
 }
 
-new Pathfinder();
+// Calculate perpendicular distance from point to line
+function perpendicularDistance(point, lineStart, lineEnd) {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+  const dz = lineEnd.z - lineStart.z;
+  
+  const lineLengthSq = dx * dx + dy * dy + dz * dz;
+  if (lineLengthSq === 0) return getDistance3D(point, lineStart);
+  
+  const t = Math.max(0, Math.min(1, 
+    ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy + (point.z - lineStart.z) * dz) / lineLengthSq
+  ));
+  
+  const projection = {
+    x: lineStart.x + t * dx,
+    y: lineStart.y + t * dy,
+    z: lineStart.z + t * dz
+  };
+  
+  return getDistance3D(point, projection);
+}
+
+// Find closest node index
+function findClosestNodeIndex(target, nodes) {
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  
+  for (let i = 0; i < nodes.length; i++) {
+    const dist = getDistance3D(target, nodes[i]);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  }
+  
+  return bestIdx;
+}
+
+// Catmull-Rom spline point calculation
+function catmullRomPoint(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  
+  return {
+    x: 0.5 * ((2 * p1.x) +
+      (-p0.x + p2.x) * t +
+      (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+      (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+    y: 0.5 * ((2 * p1.y) +
+      (-p0.y + p2.y) * t +
+      (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+      (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+    z: 0.5 * ((2 * p1.z) +
+      (-p0.z + p2.z) * t +
+      (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 +
+      (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3)
+  };
+}
+
+// Helper functions
+function getDistance3D(pos1, pos2) {
+  return Math.sqrt(
+    Math.pow(pos1.x - pos2.x, 2) +
+    Math.pow(pos1.y - pos2.y, 2) +
+    Math.pow(pos1.z - pos2.z, 2)
+  );
+}
+
+function getDistance2D(pos1, pos2) {
+  return Math.sqrt(
+    Math.pow(pos1.x - pos2.x, 2) +
+    Math.pow(pos1.z - pos2.z, 2)
+  );
+}
+
+// Find closest point on path
+function findClosestPointOnPath(playerPos, path) {
+  let closestIdx = 0;
+  let closestDist = Infinity;
+  
+  for (let i = 0; i < path.length; i++) {
+    const dist = getDistance3D(playerPos, path[i]);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestIdx = i;
+    }
+  }
+  
+  return { index: closestIdx, distance: closestDist };
+}
+
+// Get look-ahead point with changing distance
+function getLookAheadPoint(currentIdx, path, baseDistance) {
+  if (currentIdx >= path.length - 1) {
+    return path[path.length - 1];
+  }
+  
+  const curvature = movementState.pathCurvatures[currentIdx] || 0;
+  const adjustedDistance = baseDistance * (1 - curvature * 0.5);
+  
+  let accumulatedDist = 0;
+  let targetPoint = path[currentIdx];
+  
+  for (let i = currentIdx; i < path.length - 1; i++) {
+    const segmentDist = getDistance3D(path[i], path[i + 1]);
+    
+    if (accumulatedDist + segmentDist >= adjustedDistance) {
+      const t = (adjustedDistance - accumulatedDist) / segmentDist;
+      targetPoint = {
+        x: path[i].x + (path[i + 1].x - path[i].x) * t,
+        y: path[i].y + (path[i + 1].y - path[i].y) * t,
+        z: path[i].z + (path[i + 1].z - path[i].z) * t
+      };
+      break;
+    }
+    
+    accumulatedDist += segmentDist;
+    if (i === path.length - 2) {
+      targetPoint = path[path.length - 1];
+    }
+  }
+  
+  return targetPoint;
+}
+
+function stopPathingMovement() {
+  movementState.isWalking = false;
+  movementState.visitedKeyNodes.clear();
+  movementState.currentNodeIndex = 0;
+  movementState.movementHeld = false;
+  movementState.sprintHeld = false;
+  movementState.targetPoint = null;
+  movementState.hasReachedEnd = false;
+  movementState.jumpCooldown = 0;
+  
+  try {
+    mc.options.forwardKey.setPressed(false);
+    mc.options.leftKey.setPressed(false);
+    mc.options.rightKey.setPressed(false);
+    mc.options.backKey.setPressed(false);
+    mc.options.jumpKey.setPressed(false);
+    mc.options.sprintKey.setPressed(false);
+  } catch (e) {}
+  
+  Rotations.stopRotation();
+}
+
+function startPathingFromNodes(nodes) {
+  if (!nodes || nodes.length === 0) return;
+
+  movementState.splinePath = generateKeyNodeSpline(keyNodes, nodes);
+  
+  movementState.keyNodeIndices = [];
+  for (let keyNode of keyNodes) {
+    const closest = findClosestPointOnPath(keyNode, movementState.splinePath);
+    if (closest.distance < 2.0) {
+      movementState.keyNodeIndices.push(closest.index);
+    }
+  }
+  
+  movementState.visitedKeyNodes.clear();
+
+  const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+  
+  const closest = findClosestPointOnPath(playerPos, movementState.splinePath);
+  movementState.currentNodeIndex = closest.index;
+
+  movementState.isWalking = true;
+  movementState.lastPosition = { ...playerPos };
+  movementState.stuckTimer = 0;
+  movementState.lastRotation = { yaw: Player.getYaw(), pitch: Player.getPitch() };
+  movementState.targetRotation = { yaw: Player.getYaw(), pitch: Player.getPitch() };
+  movementState.movementHeld = false;
+  movementState.sprintHeld = false;
+  movementState.lastUpdateTime = Date.now();
+  movementState.hasReachedEnd = false;
+  movementState.jumpCooldown = 0;
+
+  ChatLib.chat(`&aStarting optimized path from node ${movementState.currentNodeIndex}/${movementState.splinePath.length}`);
+}
+
+function updatePath() {
+  if (!movementState.splinePath || movementState.splinePath.length === 0) {
+    stopPathingMovement();
+    return;
+  }
+  
+  const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+  const onGround = Player.getPlayer()?.field_70122_E;
+  const isSprinting = Player.getPlayer()?.isSprinting();
+  
+  const wasFalling = movementState.isFalling;
+  movementState.isFalling = !onGround;
+  
+  if (!wasFalling && movementState.isFalling) {
+    movementState.fallStartY = playerPos.y;
+  }
+  
+  const finalNode = movementState.splinePath[movementState.splinePath.length - 1];
+  const distToEnd = getDistance3D(playerPos, finalNode);
+  
+  if (distToEnd < END_REACH_DISTANCE && !movementState.hasReachedEnd) {
+    movementState.hasReachedEnd = true;
+    ChatLib.chat("&aReached destination!");
+    stopPathingMovement();
+    return;
+  }
+  
+  const reachDistance = isSprinting ? NODE_REACH_DISTANCE_SPRINT : NODE_REACH_DISTANCE;
+  
+  while (movementState.currentNodeIndex < movementState.splinePath.length - 1) {
+    const currentNode = movementState.splinePath[movementState.currentNodeIndex];
+    const nextNode = movementState.splinePath[Math.min(movementState.currentNodeIndex + 1, movementState.splinePath.length - 1)];
+    
+    const distanceToNode = movementState.isFalling ? 
+      getDistance2D(playerPos, currentNode) : 
+      getDistance3D(playerPos, currentNode);
+    
+    const distanceToNext = movementState.isFalling ?
+      getDistance2D(playerPos, nextNode) :
+      getDistance3D(playerPos, nextNode);
+    
+    const nodeToNext = getDistance3D(currentNode, nextNode);
+    
+    // Advance if:
+    // We're within reach distance of current node
+    // We're closer to the next node than the current node
+    // We've passed the current node (closer to next than current is to next)
+    if (distanceToNode < reachDistance || 
+        distanceToNext < distanceToNode || 
+        (distanceToNext < nodeToNext && distanceToNode < reachDistance * 2)) {
+      movementState.currentNodeIndex++;
+      
+      const keyIdx = movementState.keyNodeIndices.indexOf(movementState.currentNodeIndex);
+      if (keyIdx !== -1) {
+        movementState.visitedKeyNodes.add(keyIdx);
+      }
+    } else {
+      break;
+    }
+  }
+  
+  const currentCurvature = movementState.pathCurvatures[movementState.currentNodeIndex] || 0;
+  movementState.currentRotationSpeed = movementState.baseRotationSpeed * (1 - currentCurvature * 0.4);
+  
+  const baseDistance = isSprinting ? movementState.lookAheadDistance * 1.3 : movementState.lookAheadDistance;
+  movementState.targetPoint = getLookAheadPoint(movementState.currentNodeIndex, movementState.splinePath, baseDistance);
+}
+
+function updateRotations() {
+  if (!movementState.isWalking || !movementState.targetPoint) return;
+  
+  const now = Date.now();
+  const deltaTime = Math.min((now - movementState.lastUpdateTime) / 1000.0, 0.05);
+  
+  const playerPos = Player.getPlayer().getEyePos();
+  const playerPosObj = { x: playerPos.x, y: playerPos.y, z: playerPos.z };
+  
+  let dx = movementState.targetPoint.x - playerPosObj.x;
+  let dy = movementState.targetPoint.y - playerPosObj.y;
+  let dz = movementState.targetPoint.z - playerPosObj.z;
+  
+  if (!movementState.isFalling) {
+    dy *= VERTICAL_LOOK_FACTOR; 
+  } else {
+    dy *= 0.3; 
+  }
+  
+  const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+  const dist2D = Math.sqrt(dx * dx + dz * dz);
+  let targetPitch = -Math.atan2(dy, dist2D) * (180 / Math.PI);
+  
+  // Clamp pitch to reasonable values
+  targetPitch = Math.max(-10, Math.min(10, targetPitch));
+  
+  movementState.targetRotation = { yaw: targetYaw, pitch: targetPitch };
+  
+  let yawDiff = movementState.targetRotation.yaw - movementState.lastRotation.yaw;
+  while (yawDiff > 180) yawDiff -= 360;
+  while (yawDiff < -180) yawDiff += 360;
+  
+  let pitchDiff = movementState.targetRotation.pitch - movementState.lastRotation.pitch;
+  
+  const maxRotation = movementState.currentRotationSpeed * deltaTime;
+  
+  // Apply smoothing
+  const smoothedYawDiff = yawDiff * movementState.rotationSmoothing;
+  const smoothedPitchDiff = pitchDiff * movementState.rotationSmoothing;
+  
+  const yawChange = Math.sign(smoothedYawDiff) * Math.min(Math.abs(smoothedYawDiff), maxRotation);
+  const pitchChange = Math.sign(smoothedPitchDiff) * Math.min(Math.abs(smoothedPitchDiff), maxRotation * 0.5);
+  
+  movementState.lastRotation.yaw += yawChange;
+  movementState.lastRotation.pitch += pitchChange;
+  
+  while (movementState.lastRotation.yaw > 180) movementState.lastRotation.yaw -= 360;
+  while (movementState.lastRotation.yaw < -180) movementState.lastRotation.yaw += 360;
+  
+  Rotations.rotateToAngles(movementState.lastRotation.yaw, movementState.lastRotation.pitch);
+}
+
+// Stuck detection and movement control
+let lastStuckCheck = Date.now();
+let lastBlockPos = null;
+
+register('tick', () => {
+  if (!movementState.isWalking) return;
+  
+  const now = Date.now();
+  const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+  
+  // Update jump cooldown
+  if (movementState.jumpCooldown > 0) {
+    movementState.jumpCooldown--;
+  }
+  
+  const currentBlockPos = {
+    x: Math.floor(playerPos.x),
+    y: Math.floor(playerPos.y),
+    z: Math.floor(playerPos.z)
+  };
+  
+  if (now - lastStuckCheck > 100) {
+    if (lastBlockPos &&
+        currentBlockPos.x === lastBlockPos.x &&
+        currentBlockPos.y === lastBlockPos.y &&
+        currentBlockPos.z === lastBlockPos.z &&
+        !movementState.isFalling) {
+      movementState.stuckTimer += (now - lastStuckCheck);
+      
+      if (movementState.stuckTimer >= STUCK_THRESHOLD) {
+        ChatLib.chat("&cStuck detected, attempting to unstuck...");
+        
+        try {
+          mc.options.jumpKey.setPressed(true);
+          Client.scheduleTask(5, () => {
+            mc.options.jumpKey.setPressed(false);
+          });
+          movementState.jumpCooldown = JUMP_COOLDOWN_TICKS;
+        } catch (e) {}
+        
+        movementState.stuckTimer = 0;
+      }
+    } else {
+      movementState.stuckTimer = 0;
+    }
+    
+    lastBlockPos = { ...currentBlockPos };
+    lastStuckCheck = now;
+  }
+  
+  updatePath();
+  
+  try {
+    if (movementState.isWalking) {
+      if (!movementState.movementHeld) {
+        mc.options.forwardKey.setPressed(true);
+        movementState.movementHeld = true;
+      }
+      
+      const onGround = Player.getPlayer()?.field_70122_E;
+      
+      if (!movementState.isFalling && onGround && !movementState.sprintHeld) {
+        mc.options.sprintKey.setPressed(true);
+        movementState.sprintHeld = true;
+      } else if (movementState.isFalling && movementState.sprintHeld) {
+        mc.options.sprintKey.setPressed(false);
+        movementState.sprintHeld = false;
+      }
+      
+      // Auto-jump for non-slab/non-stair blocks
+      if (onGround && movementState.jumpCooldown === 0 && movementState.targetPoint) {
+        if (shouldJumpForBlock(playerPos, movementState.targetPoint)) {
+          mc.options.jumpKey.setPressed(true);
+          Client.scheduleTask(2, () => {
+            mc.options.jumpKey.setPressed(false);
+          });
+          movementState.jumpCooldown = JUMP_COOLDOWN_TICKS;
+        }
+      }
+    }
+  } catch (e) {
+    console.log("Movement key error:", e);
+  }
+});
+
+register('renderWorld', () => {
+  if (movementState.isWalking) {
+    updateRotations();
+  }
+  
+  movementState.lastUpdateTime = Date.now();
+
+  keyNodes.forEach((node, idx) => {
+    const isVisited = movementState.visitedKeyNodes.has(idx);
+    RendererMain.drawWaypoint(
+      new Vec3i(node.x, node.y, node.z),
+      true,
+      isVisited ?
+        new Color(0.5, 0.5, 0.5, 0.5) :
+        new Color(1.0, 0.0, 0.0, 1.0)
+    );
+  });
+
+  if (movementState.targetPoint) {
+    RendererMain.drawWaypoint(
+      new Vec3i(
+        Math.floor(movementState.targetPoint.x),
+        Math.floor(movementState.targetPoint.y),
+        Math.floor(movementState.targetPoint.z)
+      ),
+      true,
+      new Color(1.0, 1.0, 0.0, 1.0)
+    );
+  }
+});
+
+function loadMap(map) {
+  const url = `http://localhost:3000/api/loadmap?map=${map}`;
+  request({
+      url: url,
+      timeout: 5000, 
+  }).then(() => {
+      ChatLib.chat(`&6[Pathfinder] &aSuccessfully preloaded map '${map}'.`);
+  }).catch(err => {
+      console.log(`Failed to preload map '${map}': ${err}`);
+      ChatLib.chat(`&6[Pathfinder] &cError preloading map '${map}'. See console for details.`);
+  });
+}
+
+function runProgram() {
+  if (!FileLib.exists(path)) {
+    console.log("Pathfinding.exe not found. Pathfinding will not work.");
+    ChatLib.chat("&cPathfinding.exe not found. Pathfinding will not work.");
+    return;
+  }
+  stopProgram();
+  keepAlive.register();
+
+  console.log("Starting Pathfinder.exe...");
+
+  const JavaProcessBuilder = java.lang.ProcessBuilder;
+  const JavaScanner = java.util.Scanner;
+  const JavaThread = java.lang.Thread;
+
+  new JavaThread(() => {
+    try {
+      process = new JavaProcessBuilder(path).start();
+      const sc = new JavaScanner(process.getInputStream());
+      console.log("Process started");
+
+      while (process !== null && process.isAlive()) {
+        JavaThread.sleep(50);
+        while (sc.hasNextLine()) {
+          console.log(sc.nextLine());
+        }
+      }
+
+      if (process !== null) process.waitFor();
+      console.log("Process finished.");
+    } catch (e) {
+      console.log(`Error running pathfinder process: ${e}`);
+      process = null; 
+    }
+  }).start();
+
+  let attempts = 0;
+  const maxAttempts = 10; 
+
+  const poller = register('tick', () => {
+    if (process !== null && !process.isAlive()) {
+      console.log("Process terminated prematurely.");
+      ChatLib.chat("&cPathfinder stopped unexpectedly.");
+      poller.unregister();
+      stopProgram();
+      return;
+    }
+
+    if (attempts >= maxAttempts) {
+      console.log("Server failed to respond in time.");
+      ChatLib.chat("&cPathfinder failed to start");
+      poller.unregister();
+      stopProgram(); 
+      return;
+    }
+
+    attempts++;
+    console.log(`Pinging server (Attempt ${attempts}/${maxAttempts})`);
+
+    request({ url: "http://localhost:3000/keepalive", timeout: 500 })
+      .then(() => {
+        console.log("Server is connected.");
+        poller.unregister();
+        loadMap("mines");
+      })
+      .catch(() => {});
+  });
+}
+
+function stopProgram() {
+  if (process !== null) {
+    process.destroy();
+    process = null;
+    console.log("Program stopped");
+    keepAlive.unregister();
+  }
+}
+
+let lastKeepAlive = Date.now() - 50_000;
+
+const keepAlive = register('tick', () => {
+  if (Date.now() - lastKeepAlive > 60_000) {
+    try {
+      request({ url: "http://localhost:3000/keepalive", timeout: 5000, json: true })
+        .then(() => {})
+        .catch(() => {});
+    } catch (e) {}
+    lastKeepAlive = Date.now();
+    console.log(`Keep-alive sent at ${Date.now()}`);
+  }
+}).unregister();
+
+register('worldUnload', () => {
+  stopPathingMovement();
+});
+
+register('worldLoad', runProgram);
+
+register('gameUnload', () => {
+  stopPathingMovement();
+  stopProgram();
+});
+
+const Runtime = java.lang.Runtime
+const runtime = Runtime.getRuntime();
+runtime.addShutdownHook(new java.lang.Thread(() => {
+  stopPathingMovement();
+  stopProgram();
+}));
+
+register("command", (x1, y1, z1, x2, y2, z2) => {
+  pathNodes = [];
+  keyNodes = [];
+  x1 = parseInt(x1);
+  y1 = parseInt(y1);
+  z1 = parseInt(z1);
+  x2 = parseInt(x2);
+  y2 = parseInt(y2);
+  z2 = parseInt(z2);
+
+  const url = `http://localhost:3000/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`;
+  ChatLib.chat(`§eSending request to pathfinder...`);
+
+  request({
+    url: url,
+    json: true,
+    timeout: 15000,
+  })
+    .then((body) => {
+      if (!body || !body.path) {
+        ChatLib.chat("§cResponse received, but no valid path was found in it.");
+        return;
+      }
+
+      pathNodes = body.path;
+      keyNodes = body.keynodes || [];
+
+      startPathingFromNodes(pathNodes);
+
+      ChatLib.chat(
+        `§aPath found with ${pathNodes.length} nodes and ${keyNodes.length} key nodes.`
+      );
+    })
+    .catch((err) => {
+      ChatLib.chat(`§cError during request to pathfinder: ${err}`);
+      console.log(`Error: ${err}`);
+    });
+}).setName("rustpath");
+
+register("command", function () {
+  const block = Player.lookingAt();
+  if (!block) {
+    ChatLib.chat("You are not looking at a block");
+    return;
+  }
+  ChatLib.chat(block?.type?.isTranslucent());
+}).setName("istranslucent");
+
+register('command', () => {
+  stopPathingMovement();
+  Rotations.stopRotation();
+  ChatLib.chat("&cStopped pathfinding");
+}).setName('stop');
