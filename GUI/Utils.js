@@ -3,6 +3,7 @@ const BufferedInputStream = java.io.BufferedInputStream;
 const FileOutputStream = java.io.FileOutputStream;
 const URL = java.net.URL;
 
+
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 export const isInside = (mouseX, mouseY, rect) =>
@@ -86,3 +87,29 @@ export function downloadFile(fileURL, savePath) {
     outStream.close();
   } catch (e) {}
 }
+const SoundCategory = net.minecraft.sound.SoundCategory;
+const Identifier = net.minecraft.util.Identifier;
+const SoundEvent = net.minecraft.sound.SoundEvent;
+
+const JINGLE_BELLS = [
+  12, 12, 12, 12, 12, 12, 12, 15, 8, 10, 12, 13, 13, 13, 13, 13, 12, 12,
+  12, 12, 10, 10, 12, 10, 15, 12, 12, 12, 12, 12, 12, 12, 15, 8, 10, 12,
+  13, 13, 13, 13, 13, 12, 12, 12, 15, 15, 13, 10, 8
+];
+
+let jingleIndex = 0; 
+
+export const playClickSound = () => {
+  const note = JINGLE_BELLS[jingleIndex];
+  const pitch = Math.pow(2, (note - 12) / 12);
+
+  World.getWorld().playSoundClient(
+    SoundEvent.of(Identifier.of("minecraft", "block.note_block.harp")),
+    SoundCategory.MASTER,
+    0.5,
+    pitch
+  );
+
+  jingleIndex = (jingleIndex + 1) % JINGLE_BELLS.length;
+};
+
