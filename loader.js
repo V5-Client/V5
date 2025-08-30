@@ -26,6 +26,8 @@ import "./Pathfinding/test.js"; // WHY DID YOU REMOVE THIS I NEED IT
 /* GUI */
 import "./GUI/GuiDraw.js";
 import "./GUI/Registries.js";
+import "./GUI/NotificationManager.js";
+import "./TestNotification.js"; //REMOVE BEFORE RELEASE
 import "./Utility/Config.js";
 
 /* FORAGING */
