@@ -1,8 +1,8 @@
 {
-  "name": "Rdbt Client",
-  "creator": "rdbt",
-  "description": "discord.gg/Scatha",
-  "version": "4.8.6",
+  "name": "V5",
+  "creator": "Zurviq, Rdbt, EpilsonPhoenix and Contributors",
+  "description": "Cheaters get banned",
+  "version": "1.0.0 beta",
   "entry": "loader.js",
   "mixinEntry": "mixins.js",
   "requires": ["requestV2", "WebSocket"]
