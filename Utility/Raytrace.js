@@ -1,17 +1,20 @@
 import { raytraceBlocks } from "../Dependencies/BloomCore/RaytraceBlocks";
 import { Vector3 } from "../Dependencies/BloomCore/Vector3";
 
-let Vec3 = net.minecraft.util.math.Vec3d
-let ClipContext = net.minecraft.world.phys.ClipContext 
+let Vec3 = net.minecraft.util.math.Vec3d;
+let ClipContext = net.minecraft.world.phys.ClipContext;
 
 class rayTraceUtils {
   constructor() {
     // Optimized point set for visibility checks
     this.defaultPoints = [
-      [0.5, 0.5, 0.5],   // Center
-      [0.1, 0.5, 0.5], [0.9, 0.5, 0.5], // X-axis
-      [0.5, 0.1, 0.5], [0.5, 0.9, 0.5], // Y-axis
-      [0.5, 0.5, 0.1], [0.5, 0.5, 0.9], // Z-axis
+      [0.5, 0.5, 0.5], // Center
+      [0.1, 0.5, 0.5],
+      [0.9, 0.5, 0.5], // X-axis
+      [0.5, 0.1, 0.5],
+      [0.5, 0.9, 0.5], // Y-axis
+      [0.5, 0.5, 0.1],
+      [0.5, 0.5, 0.9], // Z-axis
     ];
   }
 
@@ -21,10 +24,10 @@ class rayTraceUtils {
    * @returns {Array} Array of [x, y, z] points
    */
   getPointsOnBlock(pos) {
-    return this.defaultPoints.map(p => [
-      pos.x + p[0], 
-      pos.y + p[1], 
-      pos.z + p[2]
+    return this.defaultPoints.map((p) => [
+      pos.x + p[0],
+      pos.y + p[1],
+      pos.z + p[2],
     ]);
   }
 
@@ -44,14 +47,18 @@ class rayTraceUtils {
    * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster)
    * @returns {Array|null} The [x, y, z] coordinates of the visible point, or null
    */
-  getPointOnBlock(blockPos, vector = Player.getPlayer().getEyePos(), useNativeRaycast = true) {
+  getPointOnBlock(
+    blockPos,
+    vector = Player.getPlayer().getEyePos(),
+    useNativeRaycast = true
+  ) {
     const points = this.getPointsOnBlock(blockPos);
 
     for (const point of points) {
       const isVisible = useNativeRaycast
         ? this.canSeePointMC(blockPos, point, vector)
-        : this.canSeePointJS(blockPos, point, vector);
-      
+        : this.canSeePointJS(blockPos, point);
+
       if (isVisible) {
         return point;
       }
@@ -74,20 +81,19 @@ class rayTraceUtils {
       if (!pos) return false;
       eyePos = { x: pos.x, y: pos.y, z: pos.z };
     }
-  
+
     // Quick distance check first (optimization)
     const dx = blockPos.x + 0.5 - eyePos.x;
     const dy = blockPos.y + 0.5 - eyePos.y;
     const dz = blockPos.z + 0.5 - eyePos.z;
     const distSq = dx * dx + dy * dy + dz * dz;
-  
+
     // If block is too far (>100 blocks), it's not visible
     if (distSq > 10000) return false;
-  
+
     // Check if any point on the block is visible
     return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
   }
-
 
   /**
    * Checks visibility using JavaScript raytracer.
@@ -98,10 +104,10 @@ class rayTraceUtils {
     const dy = point[1] - vector.y;
     const dz = point[2] - vector.z;
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    
+
     // Normalize direction
     const direction = new Vector3(dx / distance, dy / distance, dz / distance);
-    
+
     const castResult = raytraceBlocks(
       [vector.x, vector.y, vector.z],
       direction,
@@ -109,11 +115,13 @@ class rayTraceUtils {
       this.check,
       true
     );
-    
-    return castResult &&
+
+    return (
+      castResult &&
       castResult[0] === blockPos.x &&
       castResult[1] === blockPos.y &&
-      castResult[2] === blockPos.z;
+      castResult[2] === blockPos.z
+    );
   }
 
   /**
@@ -148,18 +156,17 @@ class rayTraceUtils {
     );
   }
 
-  
   /**
    * Returns blocks in the player's line of sight.
    */
   rayTracePlayerBlocks(reach = 60, checkFunction = null) {
     const eyes = Player.getPlayer().getEyePos();
     return raytraceBlocks(
-      [eyes.x, eyes.y, eyes.z], 
-      null, 
-      reach, 
-      checkFunction, 
-      false, 
+      [eyes.x, eyes.y, eyes.z],
+      null,
+      reach,
+      checkFunction,
+      false,
       false
     );
   }
@@ -172,18 +179,11 @@ class rayTraceUtils {
     const dy = end[1] - begin[1];
     const dz = end[2] - begin[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    
+
     // Normalize direction
     const direction = new Vector3(dx / distance, dy / distance, dz / distance);
-    
-    return raytraceBlocks(
-      begin,
-      direction,
-      distance,
-      null,
-      false,
-      false
-    );
+
+    return raytraceBlocks(begin, direction, distance, null, false, false);
   }
 
   /**
@@ -192,12 +192,16 @@ class rayTraceUtils {
   raytrace(dist = 5) {
     const castResult = Player.getPlayer().raycast(dist, 0.0, false);
     if (!castResult) return null;
-    
+
     const blockPos = castResult.getBlockPos();
     if (!blockPos) return null;
-  
-    const blockAt = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-    return (blockAt && blockAt.type.getID() !== 0) ? blockAt : null;
+
+    const blockAt = World.getBlockAt(
+      blockPos.getX(),
+      blockPos.getY(),
+      blockPos.getZ()
+    );
+    return blockAt && blockAt.type.getID() !== 0 ? blockAt : null;
   }
 }
 
