@@ -571,6 +571,7 @@ global.createCategoriesManager = (deps) => {
       // Don't set to null, keep the current selection or default to Modules or smth
       // makes sure folder icon and separators remain visible
       global.Categories.selected = null;
+      playClickSound();
     }
 
     if (
