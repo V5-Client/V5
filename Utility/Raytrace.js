@@ -1,12 +1,10 @@
 import { raytraceBlocks } from "../Dependencies/BloomCore/RaytraceBlocks";
 import { Vector3 } from "../Dependencies/BloomCore/Vector3";
 
-let Vec3 = net.minecraft.util.math.Vec3d;
-let ClipContext = net.minecraft.world.phys.ClipContext;
+const Vec3 = net.minecraft.util.math.Vec3d;
 
 class rayTraceUtils {
   constructor() {
-    // Optimized point set for visibility checks
     this.defaultPoints = [
       [0.5, 0.5, 0.5], // Center
       [0.1, 0.5, 0.5],
@@ -56,7 +54,7 @@ class rayTraceUtils {
 
     for (const point of points) {
       const isVisible = useNativeRaycast
-        ? this.canSeePointMC(blockPos, point, vector)
+        ? this.canSeePointMC(blockPos, point)
         : this.canSeePointJS(blockPos, point);
 
       if (isVisible) {
@@ -67,7 +65,6 @@ class rayTraceUtils {
   }
 
   /**
-   * NEW FUNCTION: Checks if a block is visible to the player.
    * @param {BlockPos} blockPos - The block position to check
    * @param {Vec3} eyePos - The eye position (defaults to player's eye position)
    * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster, default: true)
@@ -76,22 +73,19 @@ class rayTraceUtils {
   isBlockVisible(blockPos, eyePos = null, useNativeRaycast = true) {
     if (!eyePos) {
       const player = Player.getPlayer();
-      if (!player) return false; // no player loaded → nothing visible
+      if (!player) return false;
       const pos = player.getEyePos();
       if (!pos) return false;
       eyePos = { x: pos.x, y: pos.y, z: pos.z };
     }
 
-    // Quick distance check first (optimization)
     const dx = blockPos.x + 0.5 - eyePos.x;
     const dy = blockPos.y + 0.5 - eyePos.y;
     const dz = blockPos.z + 0.5 - eyePos.z;
     const distSq = dx * dx + dy * dy + dz * dz;
 
-    // If block is too far (>100 blocks), it's not visible
     if (distSq > 10000) return false;
 
-    // Check if any point on the block is visible
     return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
   }
 
@@ -105,13 +99,12 @@ class rayTraceUtils {
     const dz = point[2] - vector.z;
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // Normalize direction
     const direction = new Vector3(dx / distance, dy / distance, dz / distance);
 
     const castResult = raytraceBlocks(
       [vector.x, vector.y, vector.z],
       direction,
-      distance + 0.1, // Small buffer to ensure we reach the target
+      distance + 0.1,
       this.check,
       true
     );
@@ -128,7 +121,7 @@ class rayTraceUtils {
    * Checks visibility using Minecraft's built-in raycaster via Player.raycast because ClipContext is complete bullshit
    * @private
    */
-  canSeePointMC(blockPos, point, vector = null) {
+  canSeePointMC(blockPos, point, vector = Player.getPlayer().getEyePos()) {
     const player = Player.getPlayer();
     if (!player) return false;
 
@@ -180,7 +173,6 @@ class rayTraceUtils {
     const dz = end[2] - begin[2];
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // Normalize direction
     const direction = new Vector3(dx / distance, dy / distance, dz / distance);
 
     return raytraceBlocks(begin, direction, distance, null, false, false);
