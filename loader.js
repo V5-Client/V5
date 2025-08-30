@@ -89,3 +89,11 @@ emptyTallGrass.attach((instance, cir) => {
   const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
   cir.setReturnValue(VoxelShapes.empty());
 });
+
+
+
+
+
+
+/* RAYTRACE TESTING */
+import "./RAYTRACEDEBUG.js"; // REMOVE THIS BEFORE RELEASE

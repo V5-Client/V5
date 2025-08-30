@@ -11,10 +11,11 @@ export const raytraceBlocks = (
   if (!startPos) startPos = getPlayerEyeCoords();
   if (!directionVector) directionVector = getPlayerLookVec();
 
-  const endPos = directionVector
-    .normalize()
+  // Ensure directionVector is normalized
+  const normalizedDir = directionVector.normalize();
+  const endPos = normalizedDir
     .multiply(distance)
-    .add(new Vector3(...startPos)) // Use new Vector3 for addition
+    .add(new Vector3(...startPos))
     .getComponents();
 
   return traverseVoxels(
@@ -27,16 +28,17 @@ export const raytraceBlocks = (
 };
 
 export const getPlayerEyeCoords = (forceSneak = false) => {
-  let x = Player.getX();
-  let y = Player.getY() + Player.getPlayer().getEyeHeight();
-  let z = Player.getZ();
+  const eyePos = Player.getPlayer().getEyePos(); // native Vec3d
+  let x = eyePos.x;
+  let y = eyePos.y;
+  let z = eyePos.z;
 
   if (forceSneak && !Player.isSneaking()) y -= 0.08;
   return [x, y, z];
 };
 
 export const getPlayerLookVec = () => {
-  let lookVec = Player.getPlayer().getRotationVector();
+  const lookVec = Player.getPlayer().getRotationVec(1.0); // tickDelta = 1.0 is standard
   return new Vector3(lookVec.x, lookVec.y, lookVec.z);
 };
 
@@ -59,8 +61,9 @@ export const traverseVoxels = (
     const startCoord = start[i];
     const stepDir = step[i];
     const currentVoxel = Math.floor(startCoord);
-    // Distance to the next voxel boundary
-    const distToBoundary = stepDir > 0 ? (currentVoxel + 1 - startCoord) : (startCoord - currentVoxel);
+    const distToBoundary = stepDir > 0 
+      ? (currentVoxel + 1 - startCoord) 
+      : (startCoord - currentVoxel);
     return distToBoundary * td;
   });
 
@@ -70,52 +73,47 @@ export const traverseVoxels = (
 
   const path = [];
   let iters = 0;
-  // Safety break to prevent infinite loops
-  while (iters < 1000) {
+  const maxIters = Math.ceil(Math.abs(direction[0]) + Math.abs(direction[1]) + Math.abs(direction[2])) + 10;
+
+  while (iters < maxIters && iters < 1000) {
     iters++;
 
-    // Do block check function stuff
+    // Check current block
     const currentBlock = World.getBlockAt(...currentPos);
+    
     if (blockCheckFunc && blockCheckFunc(currentBlock)) {
       if (returnWhenTrue) {
-        if (returnIntersection) return { hit: currentPos, intersection: intersectionPoint };
-        return currentPos;
+        return returnIntersection 
+          ? { hit: currentPos, intersection: intersectionPoint }
+          : currentPos;
       }
-      break;
     }
 
     if (stopWhenNotAir && currentBlock.type.getID() !== 0) {
-      // The `intersectionPoint` was already calculated for the entry into this block.
-      if (returnIntersection) return { hit: currentPos, intersection: intersectionPoint };
-      break; // Stop but return path
+      if (returnIntersection) {
+        return { hit: currentPos, intersection: intersectionPoint };
+      }
+      return returnWhenTrue ? currentPos : [currentPos];
     }
 
     path.push([...currentPos]);
 
     if (currentPos.every((v, i) => v === endPos[i])) break;
 
-    const minIndex = tMax.indexOf(Math.min(...tMax));
+    // Find the next voxel boundary to cross
+    const minIndex = tMax.reduce((minIdx, val, idx) => 
+      val < tMax[minIdx] ? idx : minIdx, 0);
     
-    // Calculate intersection point before advancing tMax.
-    // This gives the point where the ray entered the current block.
+    // Calculate intersection point BEFORE advancing
     if (returnIntersection) {
-        intersectionPoint = start.map((v, i) => v + tMax[minIndex] * direction[i]);
+      const t = tMax[minIndex];
+      intersectionPoint = start.map((v, i) => v + t * direction[i]);
     }
 
+    // Advance to next voxel
     tMax[minIndex] += tDelta[minIndex];
     currentPos[minIndex] += step[minIndex];
   }
 
-  if (returnWhenTrue) return null;
-  // If we stopped due to a non-air block, the last block in the path is the one we want.
-  // Otherwise, return the full path.
-  if (stopWhenNotAir) {
-      const lastBlock = World.getBlockAt(...currentPos);
-      if (lastBlock.type.getID() !== 0) {
-          if (returnWhenTrue) return returnIntersection ? { hit: currentPos, intersection: intersectionPoint } : currentPos;
-          return [currentPos];
-      }
-  }
-
-  return path;
+  return returnWhenTrue ? null : path;
 };
