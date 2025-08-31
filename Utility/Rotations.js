@@ -114,7 +114,7 @@ class RotationsTo {
 
   stopRotation() {
     this.targetVector = null;
-    this.rotate = false;
+    this.rotating = false;
   }
 
   getPlayerRotation() {
@@ -131,3 +131,4 @@ class RotationsTo {
 }
 
 export const Rotations = new RotationsTo();
+

@@ -14,13 +14,12 @@ class MiningBot {
     this.lastScanTime = 0;
     this.lowestCostBlockIndex = 0;
 
-    this.PRIOTITA = true;
-    this.PRIOTITA ? 1 : 5;
+    this.PRIORITIZE_DIORITE = true;
 
     this.TICKGLIDE = true;
 
     this.mithrilCosts = {
-      "minecraft:polished_diorite": this.PRIOTITA,
+      "minecraft:polished_diorite": this.PRIORITIZE_DIORITE ? 1 : 5,
       "minecraft:light_blue_wool": 3,
       "minecraft:prismarine": 5,
       "minecraft:prismarine_bricks": 5,
@@ -109,19 +108,6 @@ class MiningBot {
             );
             let blockName = block?.type?.getRegistryName();
 
-            let rotationPoint = RayTrace.getPointOnBlock(
-              lowestCostBlock,
-              Player.getPlayer().getEyePos(),
-              false
-            );
-
-            if (rotationPoint) {
-              Rotations.rotateTo([
-                rotationPoint[0],
-                rotationPoint[1],
-                rotationPoint[2],
-              ]);
-            }
 
             if (
               !this.lastBlockPos ||
@@ -174,42 +160,78 @@ class MiningBot {
                 currentTarget
               );
 
+              // Start rotating to the next block before the current one is mined
+              const preRotationTicks = 5; // Ticks before break to start rotating
+              let nextTarget =
+                this.foundLocations.length > 1
+                  ? this.foundLocations[1]
+                  : null;
+
+              if (
+                nextTarget &&
+                this.tickCount >= totalTicks - preRotationTicks
+              ) {
+                // Interpolate rotation for a smooth transition (easing)
+                const progress = Math.min(
+                  1,
+                  (this.tickCount - (totalTicks - preRotationTicks)) /
+                    preRotationTicks
+                );
+
+                const interpolatedVector = [
+                  (currentTarget.x + 0.5) + ((nextTarget.x + 0.5) - (currentTarget.x + 0.5)) * progress,
+                  (currentTarget.y + 0.5) + ((nextTarget.y + 0.5) - (currentTarget.y + 0.5)) * progress,
+                  (currentTarget.z + 0.5) + ((nextTarget.z + 0.5) - (currentTarget.z + 0.5)) * progress,
+                ];
+                Rotations.rotateTo(interpolatedVector);
+              } else {
+                // Default rotation to the center of the current block
+                const targetVector = [
+                  currentTarget.x + 0.5,
+                  currentTarget.y + 0.5,
+                  currentTarget.z + 0.5,
+                ];
+                Rotations.rotateTo(targetVector);
+              }
+
               if (this.tickCount >= totalTicks) {
                 this.tickCount = 0;
 
-                let secondLowestBlock =
-                  this.foundLocations[this.lowestCostBlockIndex];
+                // The block is considered mined, remove it from the list
+                this.foundLocations.shift();
 
-                this.currentTarget = secondLowestBlock;
-
-                if (this.foundLocations.length > 1) {
-                  this.lowestCostBlockIndex = 1;
-
+                if (this.foundLocations.length > 0) {
+                  // The next block is now at the top of the list
+                  this.lowestCostBlockIndex = 0; // Should be already 0, but for clarity
+                  this.currentTarget = this.foundLocations[0];
+                  // Scan for more blocks starting from the new target
                   this.scanForBlock(
                     this.COSTTYPE,
                     false,
                     new BlockPos(
-                      secondLowestBlock.x,
-                      secondLowestBlock.y,
-                      secondLowestBlock.z
+                      this.currentTarget.x,
+                      this.currentTarget.y,
+                      this.currentTarget.z
                     )
                   );
                 } else {
                   ChatLib.chat(
-                    "No second lowest block found. Rescanning from current position."
+                    "No more blocks found. Rescanning from player position."
                   );
-                  this.scanForBlock(
-                    this.miningspeed,
-                    false,
-                    new BlockPos(
-                      currentTarget.x,
-                      currentTarget.y,
-                      currentTarget.z
-                    )
-                  );
+                  // No blocks left, do a full scan from player's position
+                  this.scanForBlock(this.COSTTYPE, true, null);
+                  this.lowestCostBlockIndex = 0;
                 }
               }
             } else if (!this.TICKGLIDE) {
+              // Default rotation to the center of the current block
+              const targetVector = [
+                lowestCostBlock.x + 0.5,
+                lowestCostBlock.y + 0.5,
+                lowestCostBlock.z + 0.5,
+              ];
+              Rotations.rotateTo(targetVector);
+
               if (blockName.includes("air") || blockName.includes("bedrock")) {
                 this.scanForBlock(
                   this.COSTTYPE,
@@ -298,7 +320,39 @@ class MiningBot {
               Math.pow(z - playerZ, 2)
           );
 
-          if (RayTrace.isBlockVisible(blockPos, playerEyePos, false)) {
+          const startPoint = [playerEyePos.x, playerEyePos.y, playerEyePos.z];
+          const endPoint = [x + 0.5, y + 0.5, z + 0.5];
+          const traversedBlocks = RayTrace.rayTraceBetweenPoints(
+            startPoint,
+            endPoint
+          );
+
+          let isObstructed = false;
+          if (traversedBlocks) {
+            for (let i = 0; i < traversedBlocks.length; i++) {
+              const blockCoords = traversedBlocks[i];
+              const currentBlockPos = new BlockPos(
+                blockCoords[0],
+                blockCoords[1],
+                blockCoords[2]
+              );
+
+              // If the traversed block is not the target block, check if it's solid
+              if (!currentBlockPos.equals(blockPos)) {
+                const block = World.getBlockAt(
+                  currentBlockPos.getX(),
+                  currentBlockPos.getY(),
+                  currentBlockPos.getZ()
+                );
+                if (block && block.type.getID() !== 0) {
+                  isObstructed = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (!isObstructed) {
             foundBlock = true;
             let toBlockVector = new Vec3d(
               x - Player.getX(),
@@ -335,7 +389,7 @@ class MiningBot {
               Math.pow(nextZ - playerZ, 2)
           );
 
-          if (dist <= 15 && !visited.has(nextKey)) {
+          if (dist <= 5 && !visited.has(nextKey)) {
             visited.add(nextKey);
             queue.push({ x: nextX, y: nextY, z: nextZ });
           }
@@ -347,6 +401,7 @@ class MiningBot {
       } else {
         this.foundLocations.sort((a, b) => a.cost - b.cost);
         this.currentTarget = this.foundLocations[0];
+        this.lowestCostBlockIndex = 0;
         ChatLib.chat("Scan complete. Displaying snake trail...");
       }
       this.scanning = false;
@@ -373,11 +428,11 @@ register("postRenderWorld", () => {
       const b = 0;
       const color = new Color(r, g, b, 1);
 
-      //RendererMain.drawWaypoint(
-      //  new Vec3i(location.x, location.y, location.z),
-      //  true,
-      //  color
-      //);
+      RendererMain.drawWaypoint(
+        new Vec3i(location.x, location.y, location.z),
+        true,
+        color
+      );
     }
   }
 });
