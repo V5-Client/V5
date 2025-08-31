@@ -22,25 +22,30 @@ let movementState = {
   isFalling: false,
   fallStartY: 0,
   lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
-  rotationSmoothing: 0.15, // Smoothing factor for rotations
-  lookAheadDistance: 5.0, // Pure pursuit look-ahead distance (base)
+  rotationSmoothing: 0.15,
+  lookAheadDistance: 5.0,
   visitedNodes: new Set(),
   movementHeld: false,
   targetPoint: null,
   sprintHeld: false,
 
-  // Walkability + autojump
-  predictedJump: null, // { type: 'step'|'edge', at: {x,y,z}, lead: number }
   lastJumpTick: 0,
   jumpCooldownTicks: 8,
-  avoidCostThreshold: 8
+  avoidCostThreshold: 8,
+  
+  groundedTicks: 0,
+  recentlyJumped: false,
+  
+  isClimbingStairs: false,
+  stairEndPoint: null,
+  stairStartY: 0,
 };
 
 // Constants
 const STUCK_THRESHOLD = 60;
-const NODE_REACH_DISTANCE = 3.0; // How close to a node to consider it "reached"
-const NODE_REACH_DISTANCE_SPRINT = 4.5; // more lenient when sprinting
-const SPLINE_RESOLUTION = 4; // Points between each key node for spline (higher = smoother)
+const NODE_REACH_DISTANCE = 3.0;
+const NODE_REACH_DISTANCE_SPRINT = 4.5;
+const SPLINE_RESOLUTION = 4;
 const PLAYER_HALF_WIDTH = 0.3;
 const PLAYER_HEIGHT = 1.8;
 
@@ -61,7 +66,6 @@ function getDistance2D(pos1, pos2) {
   );
 }
 
-// Catmull-Rom spline interpolation
 function catmullRom(p0, p1, p2, p3, t) {
   const t2 = t * t;
   const t3 = t2 * t;
@@ -88,7 +92,7 @@ function generateSplinePathFromKeyNodes(kNodes) {
       splinePath.push(catmullRom(p0, p1, p2, p3, t));
     }
   }
-  splinePath.push(nodes[nodes.length - 1]); // exact last point
+  splinePath.push(nodes[nodes.length - 1]);
   return splinePath;
 }
 
@@ -129,7 +133,6 @@ function getBlockAt(x, y, z) {
 function getBlockTypeName(block) {
   try {
     if (!block || !block.type) return "";
-    // Try a few ways to get a consistent name string
     const t = block.type;
     if (t.getRegistryName) return String(t.getRegistryName());
     if (t.getName) return String(t.getName()).toLowerCase();
@@ -152,8 +155,7 @@ function isProbablySolid(block) {
   if (!block || !block.type) return false;
   const name = getBlockTypeName(block);
   if (name.includes("air")) return false;
-  if (name.includes("water") || name.includes("lava")) return false; // liquids treated as non-solid but penalized
-  // non-translucent OR explicitly solid
+  if (name.includes("water") || name.includes("lava")) return false;
   try {
     if (block.type.isSolid && block.type.isSolid()) return true;
   } catch (e) {}
@@ -164,11 +166,9 @@ function isPassable(block) {
   if (!block || !block.type) return true;
   const name = getBlockTypeName(block);
   if (name.includes("air")) return true;
-  if (name.includes("water") || name.includes("lava") || name.includes("web")) return false; // prefer to avoid
-  // Leaves are translucent; treat as non-passable to avoid headbonks
+  if (name.includes("water") || name.includes("lava") || name.includes("web")) return false;
   if (name.includes("leaves")) return false;
   if (name.includes("slab") || name.includes("stairs")) {
-    // We treat slabs/stairs as solid for collision, but jumpable
     return false;
   }
   return isTranslucent(block);
@@ -176,26 +176,23 @@ function isPassable(block) {
 
 function blockPenalty(block) {
   const name = getBlockTypeName(block);
-  if (name.includes("web")) return 100; // avoid completely
-  if (name.includes("water")) return 8;  // avoid water
-  if (name.includes("lava")) return 200; // never
+  if (name.includes("web")) return 100;
+  if (name.includes("water")) return 8;
+  if (name.includes("lava")) return 200;
   if (name.includes("soul_sand")) return 5;
   if (name.includes("ice")) return 2;
   return 0;
 }
 
-// Check if any part of player box at [x,z] and vertical extent [y, y+PLAYER_HEIGHT] collides with solids
 function collidesAt(x, y, z) {
-  // sample center + 4 corners of the player AABB at this location
   const samples = [
-    [0, 0], // center
+    [0, 0],
     [PLAYER_HALF_WIDTH, PLAYER_HALF_WIDTH],
     [PLAYER_HALF_WIDTH, -PLAYER_HALF_WIDTH],
     [-PLAYER_HALF_WIDTH, PLAYER_HALF_WIDTH],
     [-PLAYER_HALF_WIDTH, -PLAYER_HALF_WIDTH]
   ];
   for (const [ox, oz] of samples) {
-    // sample at multiple vertical points: feet, mid, head
     const sx = Math.floor(x + ox);
     const sz = Math.floor(z + oz);
     const y0 = Math.floor(y);
@@ -209,12 +206,10 @@ function collidesAt(x, y, z) {
   return false;
 }
 
-// Find surface Y around a hint by scanning down/up a bit
 function getSurfaceYNear(x, z, hintY) {
   const fx = Math.floor(x), fz = Math.floor(z);
   let y = Math.floor(hintY);
-  // Try to land player at first passable space above solid ground.
-  // Scan downward a bit to find solid below
+  
   for (let d = 0; d <= 3; d++) {
     const yBelow = y - d - 1;
     if (yBelow < 0) break;
@@ -239,7 +234,7 @@ function getSurfaceYNear(x, z, hintY) {
     const ground = getBlockAt(fx, candidateGroundY, fz);
     if (isProbablySolid(ground)) return candidateGroundY + 1;
   }
-  return y; // as a last resort
+  return y;
 }
 
 function bresenhamLineXZ(x0, z0, x1, z1) {
@@ -270,27 +265,18 @@ function isWalkableSegment(from, to, options = {}) {
 
   const cells = bresenhamLineXZ(from.x, from.z, to.x, to.z);
   if (!cells.length) {
-    return { walkable: true, cost: 0, jump: null };
+    return { walkable: true, cost: 0 };
   }
 
   let totalCost = 0;
   let prevY = getSurfaceYNear(cells[0][0] + 0.5, cells[0][1] + 0.5, yHint);
-  let predictedJump = null;
-  let accumulatedHoriz = 0;
-
-  const horizTotal = getDistance2D(from, to);
-  const stepLen = horizTotal / Math.max(1, cells.length - 1);
 
   for (let i = 0; i < cells.length; i++) {
     const [cx, cz] = cells[i];
     const worldX = cx + 0.5;
     const worldZ = cz + 0.5;
 
-    // Project along path for horizontal distance traveled so far
-    if (i > 0) accumulatedHoriz += stepLen;
-
     const ySurface = getSurfaceYNear(worldX, worldZ, prevY);
-
     const blockedHere = collidesAt(worldX, ySurface, worldZ);
 
     const feetBlock = getBlockAt(Math.floor(worldX), Math.floor(ySurface), Math.floor(worldZ));
@@ -301,13 +287,6 @@ function isWalkableSegment(from, to, options = {}) {
         const stepUpY = ySurface + 1;
         const headClear = !collidesAt(worldX, stepUpY, worldZ);
         if (headClear) {
-          if (!predictedJump) {
-            predictedJump = {
-              type: 'step',
-              at: { x: worldX, y: ySurface, z: worldZ },
-              lead: 0.45 
-            };
-          }
           prevY = stepUpY;
           continue; 
         }
@@ -315,43 +294,285 @@ function isWalkableSegment(from, to, options = {}) {
       return {
         walkable: false,
         reason: 'blocked',
-        cost: totalCost,
-        jump: predictedJump
+        cost: totalCost
       };
     }
 
-    // Check vertical changes between steps to predict edge jumps
     const dy = ySurface - prevY;
-
-    if (dy > 0.51 && dy < 1.26 && allowStepUp && !predictedJump) {
-      predictedJump = {
-        type: 'step',
-        at: { x: worldX, y: ySurface - dy, z: worldZ },
-        lead: 0.40
-      };
-    }
-
-    if (allowEdgeJump && i < cells.length - 1) {
-      const [nx, nz] = cells[i + 1];
-      const nxw = nx + 0.5, nzw = nz + 0.5;
-      const yNext = getSurfaceYNear(nxw, nzw, ySurface);
-      const drop = yNext - ySurface; // negative for drop
-      if (drop <= -1.01 && !predictedJump) {
-        predictedJump = {
-          type: 'edge',
-          at: { x: worldX, y: ySurface, z: worldZ }, // jump at the edge
-          lead: 0.30 // jump right before the edge
-        };
-      }
-    }
-
-    // Penalize variance in Y to prefer smoother ground
     totalCost += Math.abs(dy) * 0.5;
-
     prevY = ySurface;
   }
 
-  return { walkable: true, cost: totalCost, jump: predictedJump };
+  return { walkable: true, cost: totalCost };
+}
+
+function detectStairLine(playerPos) {
+  const playerYaw = Player.getYaw() * Math.PI / 180;
+  const lookDir = { x: Math.sin(playerYaw), z: Math.cos(playerYaw) };
+  
+  const checkX = playerPos.x + lookDir.x * 1.0;
+  const checkZ = playerPos.z + lookDir.z * 1.0;
+  
+  const blockAhead = getBlockAt(
+    Math.floor(checkX),
+    Math.floor(playerPos.y),
+    Math.floor(checkZ)
+  );
+  
+  const blockName = getBlockTypeName(blockAhead);
+  if (!blockName.includes("stair")) return null;
+  
+  let stairBlocks = [];
+  let currentX = checkX;
+  let currentZ = checkZ;
+  let currentY = Math.floor(playerPos.y);
+  let maxStairs = 20;
+  
+  for (let i = 0; i < maxStairs; i++) {
+    const block = getBlockAt(
+      Math.floor(currentX),
+      currentY,
+      Math.floor(currentZ)
+    );
+    
+    const name = getBlockTypeName(block);
+    
+    if (name.includes("stair")) {
+      stairBlocks.push({
+        x: Math.floor(currentX),
+        y: currentY,
+        z: Math.floor(currentZ)
+      });
+      
+      currentX += lookDir.x;
+      currentZ += lookDir.z;
+      
+      const nextSame = getBlockAt(
+        Math.floor(currentX),
+        currentY,
+        Math.floor(currentZ)
+      );
+      const nextUp = getBlockAt(
+        Math.floor(currentX),
+        currentY + 1,
+        Math.floor(currentZ)
+      );
+      
+      if (getBlockTypeName(nextUp).includes("stair")) {
+        currentY += 1;
+      } else if (!getBlockTypeName(nextSame).includes("stair")) {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+  
+  if (stairBlocks.length >= 2) {
+    const lastStair = stairBlocks[stairBlocks.length - 1];
+    return {
+      start: stairBlocks[0],
+      end: lastStair,
+      length: stairBlocks.length,
+      direction: lookDir,
+      blocks: stairBlocks
+    };
+  }
+  
+  return null;
+}
+
+function detectJumpOpportunity(playerPos) {
+  const player = Player.getPlayer();
+  if (!player) return null;
+  
+  const playerYaw = Player.getYaw() * Math.PI / 180;
+  
+  let velocity, velocityZ;
+  try {
+    velocity = player.field_70159_w || player.motionX || 0;
+    velocityZ = player.field_70179_y || player.motionZ || 0;
+  } catch (e) {
+    velocity = 0;
+    velocityZ = 0;
+  }
+  
+  const speed = Math.sqrt(velocity * velocity + velocityZ * velocityZ);
+  const baseLookAhead = 0.7;
+  const lookAhead = baseLookAhead + (speed * 2);
+  
+  const checkPoints = [
+    { dist: 0.3, weight: 1.0 },
+    { dist: 0.5, weight: 0.9 },
+    { dist: lookAhead, weight: 0.7 }
+  ];
+  
+  for (const check of checkPoints) {
+    const checkX = playerPos.x + Math.sin(playerYaw) * check.dist;
+    const checkZ = playerPos.z + Math.cos(playerYaw) * check.dist;
+    
+    const blocks = {
+      feet: getBlockAt(Math.floor(checkX), Math.floor(playerPos.y), Math.floor(checkZ)),
+      knee: getBlockAt(Math.floor(checkX), Math.floor(playerPos.y + 0.5), Math.floor(checkZ)),
+      waist: getBlockAt(Math.floor(checkX), Math.floor(playerPos.y + 1), Math.floor(checkZ)),
+      head: getBlockAt(Math.floor(checkX), Math.floor(playerPos.y + 1.5), Math.floor(checkZ)),
+      above: getBlockAt(Math.floor(checkX), Math.floor(playerPos.y + 2), Math.floor(checkZ)),
+      ground: getBlockAt(Math.floor(checkX), Math.floor(playerPos.y - 1), Math.floor(checkZ))
+    };
+    
+    const feetName = getBlockTypeName(blocks.feet);
+    const kneeName = getBlockTypeName(blocks.knee);
+    
+    const feetSolid = isProbablySolid(blocks.feet);
+    const kneeSolid = isProbablySolid(blocks.knee);
+    const waistSolid = isProbablySolid(blocks.waist);
+    const headClear = isPassable(blocks.head);
+    const aboveClear = isPassable(blocks.above);
+    
+    const isPartialBlock = feetName.includes("slab") || feetName.includes("stair");
+    
+    if ((feetSolid || kneeSolid || isPartialBlock) && !waistSolid && headClear && aboveClear) {
+      return { 
+        type: 'step', 
+        distance: check.dist, 
+        confidence: check.weight,
+        isPartial: isPartialBlock,
+        blockName: feetSolid ? feetName : kneeName
+      };
+    }
+    
+    const groundAhead = blocks.ground;
+    const groundSolid = isProbablySolid(groundAhead);
+    
+    if (!groundSolid && !feetSolid && headClear) {
+      const farX = playerPos.x + Math.sin(playerYaw) * 2.5;
+      const farZ = playerPos.z + Math.cos(playerYaw) * 2.5;
+      
+      let hasLanding = false;
+      for (let yOff = -2; yOff <= 1; yOff++) {
+        const farGround = getBlockAt(
+          Math.floor(farX), 
+          Math.floor(playerPos.y + yOff), 
+          Math.floor(farZ)
+        );
+        if (isProbablySolid(farGround)) {
+          hasLanding = true;
+          break;
+        }
+      }
+      
+      if (hasLanding) {
+        return { 
+          type: 'gap', 
+          distance: check.dist, 
+          confidence: check.weight * 0.8 
+        };
+      } else if (speed > 0.15) {
+        return { 
+          type: 'edge', 
+          distance: check.dist, 
+          confidence: check.weight * 0.6 
+        };
+      }
+    }
+  }
+  
+  return null;
+}
+
+function executeJump(jumpOp) {
+  if (!jumpOp) return false;
+  
+  const onGround = Player.getPlayer()?.field_70122_E;
+  if (!onGround) return false;
+  
+  const isSprinting = Player.getPlayer()?.isSprinting();
+  
+  let threshold;
+  if (jumpOp.type === 'step') {
+    threshold = jumpOp.isPartial ? 0.5 : (isSprinting ? 0.6 : 0.45);
+  } else if (jumpOp.type === 'gap') {
+    threshold = isSprinting ? 0.8 : 0.65;
+  } else {
+    threshold = 0.5;
+  }
+  
+  if (jumpOp.distance <= threshold) {
+    try {
+      mc.options.jumpKey.setPressed(true);
+      movementState.lastJumpTick = World.getTime();
+      movementState.recentlyJumped = true;
+      
+      const jumpDuration = jumpOp.type === 'gap' ? 4 : 3;
+      
+      Client.scheduleTask(jumpDuration, () => {
+        try { 
+          mc.options.jumpKey.setPressed(false);
+          Client.scheduleTask(8, () => {
+            movementState.recentlyJumped = false;
+          });
+        } catch (e) {}
+      });
+      
+      return true;
+    } catch (e) {}
+  }
+  
+  return false;
+}
+
+function handleAutoJump(playerPos) {
+  const player = Player.getPlayer();
+  if (!player) return;
+  
+  let onGround = false;
+  try {
+    onGround = player.field_70122_E || player.onGround || false;
+  } catch (e) {
+    try {
+      onGround = player.func_70090_H === false && player.field_70143_R === 0.0;
+    } catch (e2) {}
+  }
+  
+  if (!onGround) {
+    movementState.groundedTicks = 0;
+    return;
+  }
+  
+  movementState.groundedTicks++;
+  
+  if (!movementState.isClimbingStairs) {
+    const stairLine = detectStairLine(playerPos);
+    if (stairLine && stairLine.length >= 3) {
+      movementState.isClimbingStairs = true;
+      movementState.stairEndPoint = stairLine.end;
+      movementState.stairStartY = playerPos.y;
+      ChatLib.chat(`&aClimbing ${stairLine.length} stairs`);
+      return;
+    }
+  } else {
+    const distToEnd = getDistance2D(playerPos, movementState.stairEndPoint);
+    const climbed = playerPos.y - movementState.stairStartY;
+    
+    if (distToEnd < 1.5 || climbed > 10) {
+      movementState.isClimbingStairs = false;
+      movementState.stairEndPoint = null;
+    } else {
+      return;
+    }
+  }
+  
+  if (movementState.groundedTicks < 2) return;
+  
+  const tickNow = World.getTime();
+  if (tickNow - movementState.lastJumpTick < movementState.jumpCooldownTicks) return;
+  
+  if (movementState.recentlyJumped) return;
+  
+  const jumpOp = detectJumpOpportunity(playerPos);
+  if (jumpOp) {
+    executeJump(jumpOp);
+  }
 }
 
 function stopPathingMovement() {
@@ -361,7 +582,10 @@ function stopPathingMovement() {
   movementState.movementHeld = false;
   movementState.sprintHeld = false;
   movementState.targetPoint = null;
-  movementState.predictedJump = null;
+  movementState.recentlyJumped = false;
+  movementState.groundedTicks = 0;
+  movementState.isClimbingStairs = false;
+  movementState.stairEndPoint = null;
 
   try {
     mc.options.forwardKey.setPressed(false);
@@ -375,14 +599,12 @@ function stopPathingMovement() {
   Rotations.stopRotation();
 }
 
-// Start pathing by building a spline from KEY NODES and following only the spline.
 function startPathingFromKeyNodes(kNodes, rawNodesForRender = []) {
   if (!kNodes || kNodes.length === 0) return;
 
   movementState.splinePath = generateSplinePathFromKeyNodes(kNodes);
   movementState.visitedNodes.clear();
 
-  // Map raw nodes -> closest spline index (for rendering grey/green)
   movementState.rawToSpline = (rawNodesForRender || []).map(n =>
     findClosestPointIndex(n, movementState.splinePath)
   );
@@ -396,7 +618,10 @@ function startPathingFromKeyNodes(kNodes, rawNodesForRender = []) {
   movementState.lastRotation = { yaw: Player.getYaw(), pitch: Player.getPitch() };
   movementState.movementHeld = false;
   movementState.sprintHeld = false;
-  movementState.predictedJump = null;
+  movementState.recentlyJumped = false;
+  movementState.groundedTicks = 0;
+  movementState.isClimbingStairs = false;
+  movementState.stairEndPoint = null;
 
   ChatLib.chat(`&aStarting spline path from key nodes at index ${movementState.currentNodeIndex}/${movementState.splinePath.length}`);
 }
@@ -408,10 +633,9 @@ function updatePath() {
   }
 
   const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-  const onGround = Player.getPlayer()?.field_70122_E; // onGround field
+  const onGround = Player.getPlayer()?.field_70122_E;
   const isSprinting = Player.getPlayer()?.isSprinting();
 
-  // Detect falling
   const wasFalling = movementState.isFalling;
   movementState.isFalling = !onGround;
 
@@ -419,7 +643,6 @@ function updatePath() {
     movementState.fallStartY = playerPos.y;
   }
 
-  // End check
   if (movementState.currentNodeIndex >= movementState.splinePath.length - 1) {
     const finalNode = movementState.splinePath[movementState.splinePath.length - 1];
     const distToEnd = getDistance3D(playerPos, finalNode);
@@ -432,7 +655,6 @@ function updatePath() {
 
   const reachDistance = isSprinting ? NODE_REACH_DISTANCE_SPRINT : NODE_REACH_DISTANCE;
 
-  // Progress current node index along spline
   while (movementState.currentNodeIndex < movementState.splinePath.length - 1) {
     const currentNode = movementState.splinePath[movementState.currentNodeIndex];
     const nextNode = movementState.splinePath[Math.min(movementState.currentNodeIndex + 1, movementState.splinePath.length - 1)];
@@ -460,7 +682,6 @@ function updatePath() {
     ? baseLA * 1.5
     : (isSprinting ? baseLA * 0.7 : baseLA);
 
-  // Walk along spline from current index and seek lookahead target
   let targetPoint = null;
   let accumulatedDist = 0;
   for (let i = movementState.currentNodeIndex; i < movementState.splinePath.length - 1; i++) {
@@ -481,7 +702,6 @@ function updatePath() {
   }
   if (!targetPoint) targetPoint = movementState.splinePath[movementState.splinePath.length - 1];
 
-  // If obstruction or too costly, shorten lookahead until walkable segment is found.
   let evalResult = isWalkableSegment(playerPos, targetPoint, {
     yHint: playerPos.y,
     allowStepUp: true,
@@ -516,7 +736,6 @@ function updatePath() {
   }
 
   movementState.targetPoint = targetPoint;
-  movementState.predictedJump = evalResult?.jump || null;
 }
 
 function updateRotations() {
@@ -530,14 +749,12 @@ function updateRotations() {
   let dy = movementState.targetPoint.y - playerPos.y;
   let dz = movementState.targetPoint.z - playerPos.z;
 
-  // When falling, reduce vertical rotations
   if (movementState.isFalling) {
     dy *= 0.3;
   } else {
-    // If there's a drop ahead and we're still on ground, largely ignore vertical change
     const dropAhead = playerPos.y - movementState.targetPoint.y;
     if (dropAhead > 0.6) {
-      dy *= 0.1; // keep head almost level until we actually fall
+      dy *= 0.1;
     }
   }
 
@@ -545,10 +762,8 @@ function updateRotations() {
   const dist2D = Math.sqrt(dx * dx + dz * dz);
   let targetPitch = -Math.atan2(dy, dist2D) * (180 / Math.PI);
 
-  // Clamp pitch to reasonable values
   targetPitch = Math.max(-45, Math.min(45, targetPitch));
 
-  // don't look down much while still on ground (feels more human)
   if (onGround && targetPitch < -8) {
     targetPitch = -8;
   }
@@ -569,35 +784,6 @@ function updateRotations() {
   Rotations.rotateToAngles(smoothedRotation.yaw, smoothedRotation.pitch);
 }
 
-function handleAutoJump(playerPos) {
-  if (!movementState.predictedJump) return;
-  const onGround = Player.getPlayer()?.field_70122_E;
-  if (!onGround || movementState.isFalling) return;
-
-  // Cooldown to avoid spam
-  const tickNow = World.getTime();
-  if (tickNow - movementState.lastJumpTick < movementState.jumpCooldownTicks) return;
-
-  const jumpAt = movementState.predictedJump.at;
-  const distH = getDistance2D(playerPos, jumpAt);
-  const isSprinting = Player.getPlayer()?.isSprinting();
-  // Lead distance: ensure jump is triggered slightly before reaching obstacle/edge
-  const lead = movementState.predictedJump.lead + (isSprinting ? 0.10 : 0.0);
-
-  if (distH <= Math.max(0.2, lead + 0.1)) {
-    try {
-      mc.options.jumpKey.setPressed(true);
-      movementState.lastJumpTick = tickNow;
-      // Release after 2 ticks
-      Client.scheduleTask(2, () => {
-        try { mc.options.jumpKey.setPressed(false); } catch (e) {}
-      });
-    } catch (e) {}
-    // Consume this prediction so we don't re-trigger
-    movementState.predictedJump = null;
-  }
-}
-
 register('tick', () => {
   if (!movementState.isWalking) return;
 
@@ -608,20 +794,29 @@ register('tick', () => {
     z: Math.floor(playerPos.z)
   };
 
+  const hasVerticalMovement = movementState.lastPosition && 
+    Math.abs(playerPos.y - movementState.lastPosition.y) > 0.1;
+
   if (
     movementState.lastPosition &&
     currentBlockPos.x === Math.floor(movementState.lastPosition.x) &&
     currentBlockPos.y === Math.floor(movementState.lastPosition.y) &&
     currentBlockPos.z === Math.floor(movementState.lastPosition.z) &&
-    !movementState.isFalling
+    !movementState.isFalling &&
+    !hasVerticalMovement
   ) {
     movementState.stuckTimer++;
     if (movementState.stuckTimer >= STUCK_THRESHOLD) {
       ChatLib.chat("&cStuck detected, attempting to unstuck...");
       try {
         mc.options.jumpKey.setPressed(true);
+        mc.options.backKey.setPressed(true);
         Client.scheduleTask(5, () => {
           mc.options.jumpKey.setPressed(false);
+          mc.options.backKey.setPressed(false);
+          Client.scheduleTask(2, () => {
+            mc.options.forwardKey.setPressed(true);
+          });
         });
       } catch (e) {}
       movementState.stuckTimer = 0;
@@ -658,7 +853,6 @@ register('renderWorld', () => {
     updateRotations();
   }
 
-  // Draw raw path nodes (grey when "passed", green otherwise)
   for (let i = 0; i < pathNodes.length; i++) {
     const node = pathNodes[i];
     const splineIndexForThisNode = movementState.rawToSpline?.[i] ?? 0;
@@ -673,7 +867,6 @@ register('renderWorld', () => {
     );
   }
 
-  // Draw key nodes (red)
   for (let node of keyNodes) {
     RendererMain.drawWaypoint(
       new Vec3i(node.x, node.y, node.z),
@@ -682,23 +875,12 @@ register('renderWorld', () => {
     );
   }
 
-  // Draw current target point on the spline (yellow)
   if (movementState.isWalking && movementState.currentNodeIndex < movementState.splinePath.length) {
     const currentTarget = movementState.targetPoint || movementState.splinePath[movementState.currentNodeIndex];
     RendererMain.drawWaypoint(
       new Vec3i(Math.floor(currentTarget.x), Math.floor(currentTarget.y), Math.floor(currentTarget.z)),
       true,
       new Color(1.0, 1.0, 0.0, 1.0)
-    );
-  }
-
-  // draw predicted jump point (cyan)
-  if (movementState.predictedJump) {
-    const p = movementState.predictedJump.at;
-    RendererMain.drawWaypoint(
-      new Vec3i(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z)),
-      true,
-      new Color(0.0, 1.0, 1.0, 0.9)
     );
   }
 });
@@ -853,7 +1035,6 @@ register("command", (x1, y1, z1, x2, y2, z2) => {
       pathNodes = body.path;
       keyNodes = body.keynodes || [];
 
-      // Follow spline built ONLY from key nodes (fallback to nodes if key nodes missing)
       const splineKeys = (keyNodes.length > 1) ? keyNodes : pathNodes;
       startPathingFromKeyNodes(splineKeys, pathNodes);
 
