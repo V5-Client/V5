@@ -320,6 +320,7 @@ register('tick', () => {
     z: Math.floor(playerPos.z)
   };
   
+  // Stuck detection
   if (movementState.lastPosition &&
       currentBlockPos.x === Math.floor(movementState.lastPosition.x) &&
       currentBlockPos.y === Math.floor(movementState.lastPosition.y) &&
@@ -350,6 +351,10 @@ register('tick', () => {
       if (!movementState.movementHeld) {
         mc.options.forwardKey.setPressed(true);
         movementState.movementHeld = true;
+      } else {
+        if (!mc.options.forwardKey.isPressed()) {
+          mc.options.forwardKey.setPressed(true);
+        }
       }
       
       const onGround = Player.getPlayer()?.field_70122_E;
@@ -361,14 +366,6 @@ register('tick', () => {
         movementState.sprintHeld = false;
       }
       
-      // Only pulse movement for very large falls
-      if (movementState.isFalling && playerPos.y - movementState.fallStartY > 10) {
-        if (World.getTime() % 4 === 0) {
-          mc.options.forwardKey.setPressed(false);
-        } else {
-          mc.options.forwardKey.setPressed(true);
-        }
-      }
     }
     
   } catch (e) {
