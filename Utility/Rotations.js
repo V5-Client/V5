@@ -7,9 +7,9 @@ class RotationsTo {
     this.targetPitch = null;
     this.rotating = false;
 
-    this.Speed = 0.06; // speed of rotation per tick
+    this.Speed = 0.0185; // speed of rotation per tick
     this.tremorFrequency = 1; // jitter updates per second
-    this.fadeExponent = 0.05; // controls jitter fade
+    this.fadeExponent = 0.005; // controls jitter fade
     this.Randomness = 0.005; // max random offset (degrees)
 
     this.currentRandomYaw = 0;
@@ -105,7 +105,7 @@ class RotationsTo {
   rotateTo(vector) {
     let vec = Utils.convertToVector(vector);
     this.rotating = true;
-    this.targetVector = new Vector(vec.x + 0.5, vec.y + 0.5, vec.z + 0.5);
+    this.targetVector = new Vector(vec.x, vec.y, vec.z);
   }
 
   onEndRotation(callBack) {

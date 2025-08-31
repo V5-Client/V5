@@ -332,7 +332,7 @@ global.createCategoriesManager = (deps) => {
         component.x = optionX + 10;
         component.y = componentY;
         component.draw();
-        componentY += 25;
+        componentY += 20; // rquires rework so if component is button = 20 if something else 25 etc etc
       }
     });
   };

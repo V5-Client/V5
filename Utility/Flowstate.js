@@ -38,11 +38,11 @@ class FlowstateUtilsClass {
 
       if (
         match &&
-        packet.getPos().getX() == blockx &&
-        packet.getPos().getY() == blocky &&
-        packet.getPos().getZ() == blockz &&
-        (packet.getState().getBlock().toString().includes("bedrock") ||
-          packet.getState().getBlock().toString().includes("air"))
+        packet?.getPos()?.getX() == blockx &&
+        packet?.getPos()?.getY() == blocky &&
+        packet?.getPos()?.getZ() == blockz &&
+        (packet?.getState()?.getBlock()?.toString()?.includes("bedrock") ||
+          packet?.getState()?.getBlock()?.toString()?.includes("air"))
       ) {
         this.countdown = 10;
         this.flowstateBlocksBroken += bonus;

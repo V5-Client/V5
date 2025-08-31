@@ -1,6 +1,6 @@
 //let { ModuleManager } = global.settingSelection
 
-const Prefix = "&6RDBT V5 &7» &r";
+const Prefix = "&6V5 &7» &r";
 const IrcPrefix = "&6IRC &7» &r";
 const date = new java.text.SimpleDateFormat(
   "hh:mm:ss:SSS",
@@ -32,7 +32,7 @@ class ChatClass {
   debugMessage(msg) {
     this.sendMsg(msg, true);
   }
-  
+
   irc(msg) {
     if (!msg) return;
     ChatLib.chat(IrcPrefix + (msg ?? null));

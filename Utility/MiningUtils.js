@@ -346,7 +346,7 @@ class MiningUtilClass {
 
     // add bettertogether speed
 
-    return this.savedSpeed;
+    return this.savedSpeed + Flowstate.CurrentFlowstate();
   }
 
   /**
@@ -357,7 +357,7 @@ class MiningUtilClass {
    * @returns {number} The time in ticks required to mine the block.
    */
   getMineTime(MiningSpeed, SpeedBoost, pos) {
-    let Block = World.getBlockAt(pos);
+    let Block = World.getBlockAt(pos.x, pos.y, pos.z);
     let BlockID = Block.type.getID();
     let Speed = MiningSpeed + Flowstate.CurrentFlowstate();
     let MiningOffset = 0;
@@ -496,7 +496,7 @@ class MiningUtilClass {
 
       return Number((baseSpeed * (1 - reductionPercent / 100)).toFixed());
     } else {
-      return baseSpeed;
+      return baseSpeed + Flowstate.CurrentFlowstate();
     }
   }
 

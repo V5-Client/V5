@@ -10,7 +10,17 @@ const {
 addCategoryItem(
   "Mining",
   "Mining Bot",
-  "Mines blocks of multiple types on all islands"
+  "Universal settings for Mining & block miner"
+);
+addToggle("Modules", "Mining Bot", "Tick Gliding");
+addToggle("Modules", "Mining Bot", "Fakelook");
+addToggle("Modules", "Mining Bot", "Movement");
+addMultiToggle(
+  "Modules",
+  "Mining Bot",
+  "Types",
+  ["Mithril", "Gemstone", "Ore"],
+  true
 );
 
 addCategoryItem(
@@ -65,14 +75,14 @@ addCategoryItem(
 addToggle("Modules", "Xray", "Enabled");
 addSlider("Modules", "Xray", "Transparency", 0, 255);
 
-addCategoryItem("Visuals", "Mob Hider", "Prevent seeing and attacking mobs");
+/*addCategoryItem("Visuals", "Mob Hider", "Prevent seeing and attacking mobs");
 addMultiToggle(
   "Modules",
   "Mob Hider",
   "Mobs",
   ["Kalhuikis", "Sven Pups", "Jerries", "Thysts"],
   false
-);
+); */
 
 /* OTHER */
 addCategoryItem("Other", "Discord RPC", "Show you're playing V5!");

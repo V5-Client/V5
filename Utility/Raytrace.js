@@ -84,7 +84,7 @@ class rayTraceUtils {
     const dz = blockPos.z + 0.5 - eyePos.z;
     const distSq = dx * dx + dy * dy + dz * dz;
 
-    if (distSq > 5) return false;
+    if (distSq > 1000) return false;
 
     return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
   }

@@ -5,15 +5,15 @@ import { ItemObject } from "./DataClasses/ItemObject";
 import { Vector } from "./DataClasses/Vec";
 import { Notifications } from "./Notifications";
 
-let ArrayLists = java.util.ArrayList
-let AxisAlignedBB = net.minecraft.world.phys.AABB
+let ArrayLists = java.util.ArrayList;
+let AxisAlignedBB = net.minecraft.world.phys.AABB;
 
 // mc
 export const mc = Client.getMinecraft();
 
 class UtilsClass {
   constructor() {
-    this.configName = "ClientConfig";
+    this.configName = "V5Config";
   }
 
   /**
