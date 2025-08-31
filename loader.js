@@ -18,7 +18,7 @@ Client.getMinecraft()
 
 import "./Utility/Misc.js";
 import "./Backend/IRC.js";
-import "./Pathfinding/Pathfinder.js"; // WHY DID YOU REMOVE THIS I NEED IT
+import "./Pathfinding/Pathfinder.js"; 
 //import "./AutoReload.js";
 
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
@@ -27,7 +27,7 @@ import "./Pathfinding/Pathfinder.js"; // WHY DID YOU REMOVE THIS I NEED IT
 import "./GUI/GuiDraw.js";
 import "./GUI/Registries.js";
 import "./GUI/NotificationManager.js";
-import "./TestNotification.js"; //REMOVE BEFORE RELEASE
+import "./TestNotification.js"; //REMOVE BEFORE RELEASE - has anyone looked at the notification system yet?
 import "./Utility/Config.js";
 
 /* FORAGING */
@@ -46,7 +46,7 @@ import "./Modules/Other/DiscordRPC.js";
 //import "./Modules/Skills/FishingMacro.js"
 
 /* VISUALS */
-//import "./Modules/Visuals/MobHider.js"; - This is depreceated cus it kills your fps by 10x !
+//import "./Modules/Visuals/MobHider.js"; - This is depreceated cus it kills your fps by 10x ! It's also very useless and retarded
 import "./Modules/Visuals/Xray.js";
 
 /* Mixins */
