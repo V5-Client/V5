@@ -14,12 +14,12 @@ class MiningBot {
     this.lastScanTime = 0;
     this.lowestCostBlockIndex = 0;
 
-    this.PRIORITIZE_DIORITE = true;
+    this.PRIORITIZE_TITANIUM = true;
 
     this.TICKGLIDE = true;
 
     this.mithrilCosts = {
-      "minecraft:polished_diorite": this.PRIORITIZE_DIORITE ? 1 : 5,
+      "minecraft:polished_diorite": this.PRIORITIZE_TITANIUM ? 1 : 5,
       "minecraft:light_blue_wool": 3,
       "minecraft:prismarine": 5,
       "minecraft:prismarine_bricks": 5,
@@ -45,7 +45,7 @@ class MiningBot {
       "minecraft:yellow_stained_glass_pane": 4,
     };
 
-    this.COSTTYPE = this.mithrilCosts;
+    this.COSTTYPE = this.gemstoneCosts;
 
     this.STATES = {
       WAITING: 0,
@@ -80,6 +80,17 @@ class MiningBot {
       this.enabled = true;
       this.state = this.STATES.MINING;
     }).setName("startb");
+
+    register("command", () => {
+      this.enabled = false;
+      this.state = this.STATES.WAITING;
+      Keybind.setKey("leftclick", false);
+      this.foundLocations = [];
+      this.lastBlockPos = null;
+      this.currentTarget = null;
+      this.tickCount = 0;
+      ChatLib.chat("§c[Mining Bot] §7Disabled.");
+    }).setName("stopb");
 
     register("tick", () => {
       if (!this.enabled) return;
@@ -160,39 +171,14 @@ class MiningBot {
                 currentTarget
               );
 
-              // Start rotating to the next block before the current one is mined
-              const preRotationTicks = 5; // Ticks before break to start rotating
-              let nextTarget =
-                this.foundLocations.length > 1
-                  ? this.foundLocations[1]
-                  : null;
+              // Always rotate to the center of the current block
+              const targetVector = [
+                currentTarget.x + 0.5,
+                currentTarget.y + 0.5,
+                currentTarget.z + 0.5,
+              ];
+              Rotations.rotateTo(targetVector);
 
-              if (
-                nextTarget &&
-                this.tickCount >= totalTicks - preRotationTicks
-              ) {
-                // Interpolate rotation for a smooth transition (easing)
-                const progress = Math.min(
-                  1,
-                  (this.tickCount - (totalTicks - preRotationTicks)) /
-                    preRotationTicks
-                );
-
-                const interpolatedVector = [
-                  (currentTarget.x + 0.5) + ((nextTarget.x + 0.5) - (currentTarget.x + 0.5)) * progress,
-                  (currentTarget.y + 0.5) + ((nextTarget.y + 0.5) - (currentTarget.y + 0.5)) * progress,
-                  (currentTarget.z + 0.5) + ((nextTarget.z + 0.5) - (currentTarget.z + 0.5)) * progress,
-                ];
-                Rotations.rotateTo(interpolatedVector);
-              } else {
-                // Default rotation to the center of the current block
-                const targetVector = [
-                  currentTarget.x + 0.5,
-                  currentTarget.y + 0.5,
-                  currentTarget.z + 0.5,
-                ];
-                Rotations.rotateTo(targetVector);
-              }
 
               if (this.tickCount >= totalTicks) {
                 this.tickCount = 0;
