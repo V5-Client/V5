@@ -46,6 +46,8 @@ class MiningBot {
       "minecraft:yellow_stained_glass_pane": 4,
     };
 
+    this.COSTTYPE = this.mithrilCosts;
+
     this.STATES = {
       WAITING: 0,
       MINING: 1,
@@ -89,7 +91,7 @@ class MiningBot {
             this.foundLocations.length === 0 ||
             this.foundLocations.length === 1
           ) {
-            this.scanForBlock(this.gemstoneCosts); //return; //  ChatLib.chat("idk what to do here!"); // if there is not blocks it should be fixed by the actual macro itself e.g falling off cobble -> tp back
+            this.scanForBlock(this.COSTTYPE); //return; //  ChatLib.chat("idk what to do here!"); // if there is not blocks it should be fixed by the actual macro itself e.g falling off cobble -> tp back
           }
 
           this.miningspeed =
@@ -134,15 +136,19 @@ class MiningBot {
             Keybind.setKey("leftclick", true);
 
             if (this.TICKGLIDE) {
+              // i see no reason why mithril should be tickglided (it fails 90% of the time here)
+              if (this.COSTTYPE === this.mithrilCosts) {
+                this.TICKGLIDE = false;
+              }
               let currentTarget =
                 this.foundLocations[this.lowestCostBlockIndex];
               let lookingAt = Player.lookingAt();
 
               if (
                 lookingAt &&
-                lookingAt.getX() === currentTarget.x &&
-                lookingAt.getY() === currentTarget.y &&
-                lookingAt.getZ() === currentTarget.z
+                lookingAt?.getX() === currentTarget?.x &&
+                lookingAt?.getY() === currentTarget?.y &&
+                lookingAt?.getZ() === currentTarget?.z
               ) {
                 this.tickCount++;
               }
@@ -157,7 +163,7 @@ class MiningBot {
                   .includes("air")
               ) {
                 ChatLib.chat("NOT GOOD");
-                this.scanForBlock(this.gemstoneCosts);
+                this.scanForBlock(this.COSTTYPE);
                 this.tickCount = 0;
                 return;
               }
@@ -180,7 +186,7 @@ class MiningBot {
                   this.lowestCostBlockIndex = 1;
 
                   this.scanForBlock(
-                    this.gemstoneCosts,
+                    this.COSTTYPE,
                     false,
                     new BlockPos(
                       secondLowestBlock.x,
@@ -193,7 +199,7 @@ class MiningBot {
                     "No second lowest block found. Rescanning from current position."
                   );
                   this.scanForBlock(
-                    this.gemstoneCosts,
+                    this.miningspeed,
                     false,
                     new BlockPos(
                       currentTarget.x,
@@ -206,7 +212,7 @@ class MiningBot {
             } else if (!this.TICKGLIDE) {
               if (blockName.includes("air") || blockName.includes("bedrock")) {
                 this.scanForBlock(
-                  this.gemstoneCosts,
+                  this.COSTTYPE,
                   true,
                   new BlockPos(
                     lowestCostBlock.x,
@@ -224,6 +230,7 @@ class MiningBot {
   }
 
   scanForBlock(target, specific = true, startPos = null) {
+    if (this.scanning) return;
     new Thread(() => {
       this.tickCount = 0;
 
@@ -342,6 +349,7 @@ class MiningBot {
         this.currentTarget = this.foundLocations[0];
         ChatLib.chat("Scan complete. Displaying snake trail...");
       }
+      this.scanning = false;
     }).start();
   }
 }
