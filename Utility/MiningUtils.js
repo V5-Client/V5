@@ -55,6 +55,7 @@ const blockHardness = {
 class MiningUtilClass {
     constructor() {
         this.miningSpeed = '' || null;
+        this.miningStats = Utils.getConfigFile('miningstats.json') || {};
 
         register('command', () => {
             this.RetreiveStats();
@@ -237,7 +238,7 @@ class MiningUtilClass {
                         `Max Great Explorer: ${solvercolor}${this.maxSolver}`
                     );
 
-                    Utils.writeConfigFile('miningstats.json', {
+                    const stats = {
                         speed: this.miningSpeed,
                         professional: this.professional,
                         strongarm: this.strongArm,
@@ -246,7 +247,9 @@ class MiningUtilClass {
                         hotm: this.hotm,
                         cotm: this.cotm,
                         maxge: this.maxSolver,
-                    });
+                    };
+                    Utils.writeConfigFile('miningstats.json', stats);
+                    this.miningStats = stats;
 
                     cleanup();
                     break;
@@ -372,7 +375,7 @@ class MiningUtilClass {
                 }
             });
 
-            let file = Utils.getConfigFile('miningstats.json');
+            let file = this.miningStats;
 
             if (file.maxge) {
                 Chat.message('Great Explorer is maxed from last stat check!');
@@ -418,7 +421,7 @@ class MiningUtilClass {
      * @returns Total Speed with additional Professional if in crystalHollows
      */
     getMiningSpeed(Area = Utils.area()) {
-        let file = Utils.getConfigFile('miningstats.json');
+        let file = this.miningStats;
         if (!file) return;
         let Speed = file.speed;
         let Professional = file.professional;
@@ -580,7 +583,7 @@ class MiningUtilClass {
      */
     getSpeedWithCold() {
         let baseSpeed = this.savedSpeed ?? this.getMiningSpeed();
-        let baseCold = Utils.getConfigFile('miningstats.json');
+        let baseCold = this.miningStats;
         if (!baseCold) return;
         this.savedColdRes = baseCold.coldres;
 
