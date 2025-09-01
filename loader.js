@@ -57,7 +57,7 @@ import {
     emptyTallGrass,
 } from './mixins.js';
 
-/*try {
+try {
     fullStainedGlassPane.attach((instance, cir) => {
         const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
         const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
