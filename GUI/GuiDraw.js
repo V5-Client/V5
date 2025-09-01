@@ -60,6 +60,11 @@ try {
         )
       );
 
+      if (!data || !data.discord) {
+        ChatLib.chat("Failed to download your Discord pfp :(");
+        return;
+      }
+
       // only get avatar and define file path
       let avatarUrl = data.discord.avatar;
       let saveFile = new File("config/ChatTriggers/assets/discordProfile.png");

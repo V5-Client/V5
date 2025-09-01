@@ -5,14 +5,14 @@ const MessageType = java.awt.TrayIcon.MessageType
 class NotificationUtils {
   constructor() {
     this.trayIcon = null;
-    
-    if (System.getProperty("os.name").startsWith("Windows")) {
-      const SystemTray = java.awt.SystemTray
-      const SystemTrayInstance = SystemTray.getSystemTray();
-      const TrayIcon = java.awt.TrayIcon
-      const Toolkit = java.awt.Toolkit
 
+    if (System.getProperty("os.name").startsWith("Windows")) {
       try {
+        const SystemTray = java.awt.SystemTray
+        const SystemTrayInstance = SystemTray.getSystemTray();
+        const TrayIcon = java.awt.TrayIcon
+        const Toolkit = java.awt.Toolkit
+
         this.trayIcon = SystemTrayInstance
           .getTrayIcons()
           .find((t) => t.getToolTip() === "Client Alerts");
@@ -32,7 +32,7 @@ class NotificationUtils {
       }
     }
   }
-  
+
   sendAlert(msg) {
     const os = System.getProperty("os.name");
     if (os.startsWith("Windows")) this.windowsAlert(msg);

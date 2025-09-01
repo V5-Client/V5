@@ -15,7 +15,6 @@ class MiningBot {
     this.lowestCostBlockIndex = 0;
 
     this.PRIORITIZE_TITANIUM = true;
-
     this.TICKGLIDE = true;
 
     this.mithrilCosts = {
@@ -71,6 +70,7 @@ class MiningBot {
     this.tickCount = 0;
 
     register("step", () => {
+      //wtf are we doing
       this.TICKGLIDE = getSetting("Mining Bot", "Tick Gliding");
       this.FAKELOOK = getSetting("Mining Bot", "Fakelook");
       this.MOVEMENT = getSetting("Mining Bot", "Movement");

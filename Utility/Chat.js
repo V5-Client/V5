@@ -25,6 +25,41 @@ class ChatClass {
   }
 
   /**
+   * Formats a message with clickable links.
+   * @param {string[]} args
+   * @returns {TextComponent} The formatted message
+   */
+  formatLink(...args) {
+    let components = [];
+    
+    for (let i = 0; i < args.length; i++) {
+      let component = args[i];
+      if (!component.includes("http")) {
+        components.push(component);
+      } else {
+        let textComponent = new TextComponent({
+          text: `§9§n${component}§r`,
+          clickEvent: {
+            action: "open_url",
+            value: component
+          },
+          hoverEvent: {
+            action: "show_text",
+            value: "§7Click to open link"
+          }
+        });
+        components.push(textComponent);
+      }
+      
+      if (i < args.length - 1) {
+        components.push(" ");
+      }
+    }
+
+    return new TextComponent(...components);
+  }
+
+  /**
    * Sends a debug message with the client prefix.
    * @param {string} msg
    * fix with gui
@@ -35,7 +70,8 @@ class ChatClass {
 
   irc(msg) {
     if (!msg) return;
-    ChatLib.chat(IrcPrefix + (msg ?? null));
+    const textComponent = new TextComponent(IrcPrefix, msg);
+    textComponent.chat();
   }
 
   log(msg) {

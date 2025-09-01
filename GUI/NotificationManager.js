@@ -112,6 +112,10 @@ class Notification {
   }
 
   wrapText(text, maxWidth) {
+    if (text instanceof Error) {
+      text = text.message;
+    }
+    if (!text) return [""];
     const words = text.split(' ');
     if (!words.length) return [""];
     const lines = [];

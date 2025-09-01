@@ -18,7 +18,7 @@ Client.getMinecraft()
 
 import "./Utility/Misc.js";
 import "./Backend/IRC.js";
-import "./Pathfinding/Pathfinder.js"; 
+import "./Pathfinding/Pathfinder.js";
 //import "./AutoReload.js";
 
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
@@ -58,39 +58,59 @@ import {
   emptyTallGrass,
 } from "./mixins.js";
 
-fullStainedGlassPane.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-  const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
+try {
+  fullStainedGlassPane.attach((instance, cir) => {
+    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+    const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
 
-  if (instance instanceof StainedGlassPaneBlock) {
+    if (instance instanceof StainedGlassPaneBlock) {
+      cir.setReturnValue(VoxelShapes.fullCube());
+    }
+  });
+} catch (e) {
+  global.showNotification("Failed to attach fullStainedGlassPane", e, "ERROR");
+}
+
+try {
+  fullPickle.attach((instance, cir) => {
+    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
     cir.setReturnValue(VoxelShapes.fullCube());
-  }
-});
+  });
+} catch (e) {
+  global.showNotification("Failed to attach fullPickle", e, "ERROR");
+}
 
-fullPickle.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-  cir.setReturnValue(VoxelShapes.fullCube());
-});
+try {
+  emptyKelp.attach((instance, cir) => {
+    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+    const KelpBlock = net.minecraft.block.KelpBlock;
+    const KelpPlant = net.minecraft.block.KelpPlantBlock;
 
-emptyKelp.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-  const KelpBlock = net.minecraft.block.KelpBlock;
-  const KelpPlant = net.minecraft.block.KelpPlantBlock;
+    if (instance instanceof KelpBlock || instance instanceof KelpPlant) {
+      cir.setReturnValue(VoxelShapes.empty());
+    }
+  });
+} catch (e) {
+  global.showNotification("Failed to attach emptyKelp", e, "ERROR");
+}
 
-  if (instance instanceof KelpBlock || instance instanceof KelpPlant) {
+try {
+  emptyGrass.attach((instance, cir) => {
+    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
     cir.setReturnValue(VoxelShapes.empty());
-  }
-});
+  });
+} catch (e) {
+  global.showNotification("Failed to attach emptyGrass", e, "ERROR");
+}
 
-emptyGrass.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-  cir.setReturnValue(VoxelShapes.empty());
-});
-
-emptyTallGrass.attach((instance, cir) => {
-  const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-  cir.setReturnValue(VoxelShapes.empty());
-});
+try {
+  emptyTallGrass.attach((instance, cir) => {
+    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+    cir.setReturnValue(VoxelShapes.empty());
+  });
+} catch (e) {
+  global.showNotification("Failed to attach emptyTallGrass", e, "ERROR");
+}
 
 /* RAYTRACE TESTING */
 import "./RAYTRACEDEBUG.js"; // REMOVE THIS BEFORE RELEASE

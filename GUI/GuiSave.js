@@ -106,39 +106,37 @@ export const getSetting = (
     }
   }
 
-  const category = global.Categories.categories.find(
-    (cat) => cat.name === "Modules"
-  );
-  if (category) {
-    for (const group of category.items) {
-      const itemsToCheck = group.type === "separator" ? group.items : [group];
-      for (const item of itemsToCheck) {
-        if (item.title === moduleName) {
-          for (const component of item.components) {
-            if (component.title === componentTitle) {
-              if (component.enabled !== undefined) {
-                return component.enabled;
-              }
-              if (component.value !== undefined) {
-                return component.value;
-              }
-              if (component.options !== undefined) {
-                if (Array.isArray(optionsToCheck)) {
-                  return component.options
-                    .filter(
-                      (componentOption) =>
-                        optionsToCheck.includes(componentOption.name) &&
-                        componentOption.enabled
-                    )
-                    .map((componentOption) => componentOption.name);
-                }
-                return component.options;
-              }
-            }
-          }
+  const category = global.Categories.categories.find((c) => c.name === "Modules");
+  if (!category) return [];
+
+  for (const group of category.items) {
+    const itemsToCheck = group.type === "separator" ? group.items : [group];
+    for (const item of itemsToCheck) {
+      if (item.title !== moduleName) continue;
+
+      for (const component of item.components) {
+        if (component.title !== componentTitle) continue;
+
+        if (component.enabled !== undefined)
+          return component.enabled;
+
+        if (component.value !== undefined)
+          return component.value;
+
+        if (component.options !== undefined) {
+          if (!Array.isArray(optionsToCheck)) return component.options;
+
+          return component.options
+            .filter(
+              (componentOption) =>
+                optionsToCheck.includes(componentOption.name) &&
+                componentOption.enabled
+            )
+            .map((componentOption) => componentOption.name);
         }
       }
     }
   }
+
   return [];
 };

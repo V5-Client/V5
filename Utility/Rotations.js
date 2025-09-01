@@ -21,8 +21,11 @@ class RotationsTo {
 
     this.actions = [];
 
-    register("postRenderWorld", () => {
-      if (!this.rotating) return;
+    this.lookRegister = register("postRenderWorld", () => {
+      if (!this.rotating) {
+        this.stopRotation();
+        return;
+      };
 
       let player = Player.getPlayer();
       if (!player) return;
@@ -46,22 +49,12 @@ class RotationsTo {
       let yawDiff = this.wrapDegrees(this.targetYaw - currentYaw);
       let pitchDiff = this.wrapDegrees(this.targetPitch - currentPitch);
 
-      if (
-        Math.abs(yawDiff) < this.precision &&
-        Math.abs(pitchDiff) < this.precision
-      ) {
-        this.rotating = false;
+      let isYawClose = Math.abs(yawDiff) < this.precision;
+      let isPitchClose = Math.abs(pitchDiff) < this.precision;
 
-        this.actions.forEach((action) => {
-          try {
-            action();
-          } catch (e) {
-            console.error("Rotation callback error:", e);
-          }
-        });
-
-        this.actions = [];
-
+      if (isYawClose && isPitchClose) {
+        this.runCallbacks();
+        this.stopRotation();
         return;
       }
 
@@ -100,21 +93,39 @@ class RotationsTo {
     this.targetPitch = pitch;
     this.targetVector = null;
     this.rotating = true;
+    this.lookRegister.register();
   }
 
   rotateTo(vector) {
     let vec = Utils.convertToVector(vector);
     this.rotating = true;
     this.targetVector = new Vector(vec.x, vec.y, vec.z);
+    this.lookRegister.register();
   }
 
-  onEndRotation(callBack) {
-    this.actions.push(callBack);
+  runCallbacks() {
+    this.actions.forEach((action) => {
+      try {
+        action.func();
+      } catch (e) {
+        console.error(`Rotation ${action.name || "callback"} error:`, e);
+      }
+    });
+  }
+
+  onEndRotation(callBack, name = null) {
+    this.actions.push({ func: callBack, name });
+  }
+
+  removeCallback(name) {
+    this.actions = this.actions.filter((action) => action.name !== name);
   }
 
   stopRotation() {
     this.targetVector = null;
     this.rotating = false;
+    this.lookRegister.unregister();
+    this.actions = [];
   }
 
   getPlayerRotation() {
@@ -123,11 +134,12 @@ class RotationsTo {
     return { yaw: player.getYaw(), pitch: player.getPitch() };
   }
 
-  getRotationTo(toPos) {
-    const player = Player.getPlayer();
-    if (!player) return null;
-    return this.getRotation(player.getEyePos(), toPos);
-  }
+  // Hello there, this was in the code and this.getRotation does not exist. Honestly idk what this is meant to be
+  // getRotationTo(toPos) {
+  //   const player = Player.getPlayer();
+  //   if (!player) return null;
+  //   return this.getRotation(player.getEyePos(), toPos);
+  // }
 }
 
 export const Rotations = new RotationsTo();

@@ -7,6 +7,14 @@ const MAX_RECONNECT_DELAY = 60000; // 1 minute
 let gameUnload = false;
 let isConnected = false;
 
+function openBrowser(url) {
+  try {
+    java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+  } catch (e) {
+    console.error("Failed to open browser: " + e);
+  }
+}
+
 function connectIRC(svid) {
   ws = new WebSocket("wss://client.rdbt.top/minecraft-ws");
 
@@ -23,8 +31,9 @@ function connectIRC(svid) {
       switch (data.event) {
         case "auth_success":
           if (!data.data.user.discordLinked) {
-            Chat.irc("Link Discord: http://client.rdbt.top/auth/discord/" + Player.getName());
-            java.awt.Desktop.getDesktop().browse(new java.net.URI(`http://client.rdbt.top/auth/discord/${Player.getName()}`));
+            const msg = Chat.formatLink("Link Discord", `http://client.rdbt.top/auth/discord/${Player.getName()}`);
+            Chat.irc(msg);
+            openBrowser(`http://client.rdbt.top/auth/discord/${Player.getName()}`);
           }
           break;
 
@@ -34,8 +43,9 @@ function connectIRC(svid) {
           break;
 
         case "discord_link_reminder":
-          Chat.irc("Link your discord account: http://client.rdbt.top/auth/discord/" + Player.getName());
-          java.awt.Desktop.getDesktop().browse(new java.net.URI(`http://client.rdbt.top/auth/discord/${Player.getName()}`));
+          const msg = Chat.formatLink("Link Discord", `http://client.rdbt.top/auth/discord/${Player.getName()}`);
+          Chat.irc(msg);
+          openBrowser(`http://client.rdbt.top/auth/discord/${Player.getName()}`);
           break;
           
         case "access_upgraded":
@@ -47,8 +57,7 @@ function connectIRC(svid) {
           break;
       }
     } catch (e) {
-      Chat.irc("An error occured");
-      Chat.irc(message);
+      Chat.irc(`An error occured: ${e}`);
     }
   };
 

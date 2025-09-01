@@ -38,24 +38,24 @@ export class Vector {
   }
 
   /**
-   * @returns {vec}
+   * @returns {Vector}
    */
   add(x, y, z) {
-    return new vec(this.x + x, this.y + y, this.z + z);
+    return new Vector(this.x + x, this.y + y, this.z + z);
   }
 
   getBlockPos() {
-    this.x = Math.floor(this.x);
-    this.y = Math.round(this.y);
-    this.z = Math.floor(this.z);
-    return new BlockPos(this.x, this.y, this.z);
+    x = Math.floor(this.x);
+    y = Math.round(this.y);
+    z = Math.floor(this.z);
+    return new BlockPos(x, y, z);
   }
 
   getDistance(x, y, z) {
     let xFinal = 0;
     let yFinal = 0;
     let zFinal = 0;
-    if (x instanceof vec) {
+    if (x instanceof Vector) {
       xFinal = x.x;
       yFinal = x.y;
       zFinal = x.z;
