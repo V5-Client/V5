@@ -142,7 +142,9 @@ function attemptReconnect(svid) {
         );
         let ticks = Math.ceil(delay / 50);
         Chat.irc(
-            `Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`
+            `Attempting to reconnect in ${
+                delay / 1000
+            } seconds... (Attempt ${reconnectAttempts})`
         );
 
         Client.scheduleTask(ticks, () => {
