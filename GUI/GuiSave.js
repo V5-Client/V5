@@ -6,27 +6,24 @@ import { File } from '../Utility/Constants';
 export const saveSettings = () => {
     const settings = {};
     global.Categories.categories.forEach((category) => {
-        if (category.name === 'Modules') {
-            category.items.forEach((group) => {
-                const itemsToSave =
-                    group.type === 'separator' ? group.items : [group];
-                itemsToSave.forEach((item) => {
-                    settings[item.title] = {};
-                    item.components.forEach((component) => {
-                        if (component instanceof ToggleButton) {
-                            settings[item.title][component.title] =
-                                component.enabled;
-                        } else if (component instanceof Slider) {
-                            settings[item.title][component.title] =
-                                component.value;
-                        } else if (component instanceof MultiToggle) {
-                            settings[item.title][component.title] =
-                                component.options;
-                        }
-                    });
+        if (category.name !== 'Modules') return;
+        category.items.forEach((group) => {
+            const itemsToSave =
+                group.type === 'separator' ? group.items : [group];
+            itemsToSave.forEach((item) => {
+                settings[item.title] = {};
+                item.components.forEach((component) => {
+                    if (component instanceof ToggleButton)
+                        settings[item.title][component.title] =
+                            component.enabled;
+                    if (component instanceof Slider)
+                        settings[item.title][component.title] = component.value;
+                    if (component instanceof MultiToggle)
+                        settings[item.title][component.title] =
+                            component.options;
                 });
             });
-        }
+        });
     });
     FileLib.write(
         'V5Config',
@@ -52,45 +49,36 @@ export const loadSettings = () => {
         global.Settings = settings;
 
         global.Categories.categories.forEach((category) => {
-            if (category.name === 'Modules') {
-                category.items.forEach((group) => {
-                    const itemsToLoad =
-                        group.type === 'separator' ? group.items : [group];
-                    itemsToLoad.forEach((item) => {
-                        const savedItemSettings = settings[item.title];
-                        if (savedItemSettings) {
-                            item.components.forEach((component) => {
-                                const savedValue =
-                                    savedItemSettings[component.title];
-                                if (typeof savedValue !== 'undefined') {
-                                    if (component instanceof ToggleButton) {
-                                        component.enabled = savedValue;
-                                    } else if (component instanceof Slider) {
-                                        component.value = savedValue;
-                                    } else if (
-                                        component instanceof MultiToggle
-                                    ) {
-                                        component.options.forEach(
-                                            (option, index) => {
-                                                if (
-                                                    savedValue[index] &&
-                                                    option.name ===
-                                                        savedValue[index].name
-                                                ) {
-                                                    option.enabled =
-                                                        savedValue[
-                                                            index
-                                                        ].enabled;
-                                                }
-                                            }
-                                        );
-                                    }
+            if (category.name !== 'Modules') return;
+            category.items.forEach((group) => {
+                const itemsToLoad =
+                    group.type === 'separator' ? group.items : [group];
+                itemsToLoad.forEach((item) => {
+                    const savedItemSettings = settings[item.title];
+                    if (!savedItemSettings) return;
+                    item.components.forEach((component) => {
+                        const savedValue = savedItemSettings[component.title];
+                        if (typeof savedValue === 'undefined') return;
+
+                        if (component instanceof ToggleButton)
+                            component.enabled = savedValue;
+
+                        if (component instanceof Slider)
+                            component.value = savedValue;
+
+                        if (component instanceof MultiToggle) {
+                            component.options.forEach((option, index) => {
+                                if (
+                                    savedValue[index] &&
+                                    option.name === savedValue[index].name
+                                ) {
+                                    option.enabled = savedValue[index].enabled;
                                 }
                             });
                         }
                     });
                 });
-            }
+            });
         });
     } catch (e) {
         ChatLib.chat(`Error loading settings: ${e}`);

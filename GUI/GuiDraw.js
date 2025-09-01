@@ -237,7 +237,7 @@ const drawGUI = (mouseX, mouseY) => {
     drawRoundedRectangleWithBorder(animatedLeftPanel);
     drawRoundedRectangleWithBorder(animatedRightPanel);
 
-    if (progress >= 0.8) {
+    if (progress >= 0.99) {
         categoryManager.draw(mouseX, mouseY);
     }
 };
