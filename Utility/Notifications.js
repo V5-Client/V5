@@ -1,17 +1,21 @@
 // partial credit: Debuggings
 // Source: (CT Discord https://discord.com/channels/119493402902528000/688773480954855537/917474499341987921)
-const System = java.lang.System;
-const MessageType = java.awt.TrayIcon.MessageType;
+
+import {
+    Toolkit,
+    System,
+    MessageType,
+    SystemTray,
+    TrayIcon,
+} from './Constants';
+
 class NotificationUtils {
     constructor() {
         this.trayIcon = null;
 
         if (System.getProperty('os.name').startsWith('Windows')) {
             try {
-                const SystemTray = java.awt.SystemTray;
                 const SystemTrayInstance = SystemTray.getSystemTray();
-                const TrayIcon = java.awt.TrayIcon;
-                const Toolkit = java.awt.Toolkit;
 
                 this.trayIcon = SystemTrayInstance.getTrayIcons().find(
                     (t) => t.getToolTip() === 'Client Alerts'

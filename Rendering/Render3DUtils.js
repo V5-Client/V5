@@ -2,7 +2,7 @@ import RendererUtils, { RenderLayers } from './RendererUtils';
 
 // Helpers - Use RendererMain.js methods!
 
-const Color = java.awt.Color;
+import { Color } from '../Utility/Constants';
 
 const VertexRendering = Java.type(
     'net.minecraft.client.render.VertexRendering'

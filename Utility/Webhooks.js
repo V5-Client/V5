@@ -2,8 +2,7 @@ import { Utils } from './Utils';
 import { Chat } from './Chat';
 let { Version } = global;
 
-let URL = java.net.URL;
-let DataOutputStream = java.io.DataOutputStream;
+import { URL, DataOutputStream, Toolkit, DataFlavor } from './Constants';
 
 // TODO
 // Failsafe
@@ -32,8 +31,6 @@ class Webhooks {
         });
 
         register('command', () => {
-            const Toolkit = java.awt.Toolkit;
-            const DataFlavor = java.awt.datatransfer.DataFlavor;
             try {
                 url = Toolkit.getDefaultToolkit()
                     .getSystemClipboard()
@@ -107,7 +104,9 @@ class Webhooks {
 
             if (Utils.area() === undefined) {
                 this.payload = {
-                    avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, '')}/100.png`,
+                    avatar_url: `https://minotar.net/cube/${Player.getUUID()
+                        .toString()
+                        .replace(/-/g, '')}/100.png`,
                     username: `${Player.getName()}`,
                     embeds: [
                         {
@@ -121,7 +120,9 @@ class Webhooks {
                 };
             } else {
                 this.payload = {
-                    avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, '')}/100.png`,
+                    avatar_url: `https://minotar.net/cube/${Player.getUUID()
+                        .toString()
+                        .replace(/-/g, '')}/100.png`,
                     username: `${Player.getName()}`,
                     embeds: [
                         {

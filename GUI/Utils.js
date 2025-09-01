@@ -1,6 +1,8 @@
-const BufferedInputStream = java.io.BufferedInputStream;
-const FileOutputStream = java.io.FileOutputStream;
-const URL = java.net.URL;
+import {
+    BufferedInputStream,
+    URL,
+    FileOutputStream,
+} from '../Utility/Constants';
 
 import { Chat } from '../Utility/Chat';
 import { File, Color } from '../Utility/Constants';

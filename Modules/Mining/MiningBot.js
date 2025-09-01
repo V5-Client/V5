@@ -5,6 +5,7 @@ import { MiningUtils } from '../../Utility/MiningUtils';
 import { RayTrace } from '../../Utility/Raytrace';
 import { Rotations } from '../../Utility/Rotations';
 import { Utils } from '../../Utility/Utils';
+import { Color } from '../../Utility/Constants';
 
 const Vec3d = net.minecraft.util.math.Vec3d;
 
@@ -412,7 +413,6 @@ const bot = new MiningBot();
 
 /*register('postRenderWorld', () => {
     if (bot.foundLocations.length > 0) {
-        const Color = java.awt.Color;
         const sortedLocations = bot.foundLocations;
 
         const numLocations = sortedLocations.length;

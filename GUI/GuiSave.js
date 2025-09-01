@@ -1,8 +1,7 @@
 import { ToggleButton } from './Toggle';
 import { Slider } from './Slider';
 import { MultiToggle } from './Dropdown';
-
-const File = java.io.File;
+import { File } from '../Utility/Constants';
 
 export const saveSettings = () => {
     const settings = {};

@@ -5,7 +5,8 @@ import { ItemObject } from './DataClasses/ItemObject';
 import { Vector } from './DataClasses/Vec';
 import { Notifications } from './Notifications';
 
-let ArrayLists = java.util.ArrayList;
+import { ArrayLists } from './Constants';
+
 let AxisAlignedBB = net.minecraft.world.phys.AABB;
 
 // mc

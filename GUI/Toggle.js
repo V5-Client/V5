@@ -1,12 +1,10 @@
-const Color = java.awt.Color;
-const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat
-    .INSTANCE;
-const matrix = UMatrixStack.get();
-const UIRoundedRectangle = Java.type(
-    'gg.essential.elementa.components.UIRoundedRectangle'
-);
 import { playClickSound } from './Utils';
-
+import {
+    Color,
+    UIRoundedRectangle,
+    Matrix,
+    UMatrixStack,
+} from '../Utility/Constants';
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10) {
         this.title = title;
@@ -26,7 +24,7 @@ export class ToggleButton {
         const scale = 0.9;
 
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             this.x,
             this.y,
             this.x + this.width,

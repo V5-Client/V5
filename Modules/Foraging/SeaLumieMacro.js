@@ -3,6 +3,7 @@ import { Chat } from '../Utility/Chat';
 import { Keybind } from '../Utility/Keybinding';
 import { Rotations } from '../Utility/Rotations';
 import { MathUtils } from '../Utility/Math';
+import { Color } from '../../Utility/Constants';
 
 class SeaLumie {
     constructor() {
@@ -212,8 +213,6 @@ class SeaLumie {
 
         register('postRenderWorld', () => {
             if (this.enabled && this.closestPickle) {
-                const Color = java.awt.Color;
-
                 let waypointPos = new Vec3i(
                     this.closestPickle.x,
                     this.closestPickle.y,

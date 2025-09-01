@@ -1,11 +1,9 @@
-const Color = java.awt.Color;
-const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat
-    .INSTANCE;
-const matrix = UMatrixStack.get();
-
-const UIRoundedRectangle = Java.type(
-    'gg.essential.elementa.components.UIRoundedRectangle'
-);
+import {
+    Color,
+    UMatrixStack,
+    Matrix,
+    UIRoundedRectangle,
+} from '../Utility/Constants';
 
 import { clamp, playClickSound } from './Utils';
 
@@ -45,7 +43,7 @@ export class Slider {
 
         // Dark bar (background)
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             this.x,
             this.y,
             this.x + this.width,
@@ -56,7 +54,7 @@ export class Slider {
 
         // Purple bar (foreground)
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             this.x,
             this.y,
             this.x + this.width * progress,
@@ -67,7 +65,7 @@ export class Slider {
 
         // Handle
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             handleX,
             handleY,
             handleX + handleWidth,

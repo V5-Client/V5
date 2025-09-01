@@ -1,6 +1,5 @@
 import { Chat } from './Chat';
-
-let File = java.io.File;
+import { File } from './Constants';
 
 let configName = 'V5Config';
 

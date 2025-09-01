@@ -1,5 +1,3 @@
-const Color = java.awt.Color;
-
 const CATEGORY_BOX_HEIGHT = 40;
 
 const Module_icon = Image.fromAsset('folder.png');
@@ -15,6 +13,8 @@ import {
     BORDER_WIDTH,
     CORNER_RADIUS,
 } from './Utils';
+
+import { Color } from '../Utility/Constants';
 
 global.Categories = {
     categories: [
