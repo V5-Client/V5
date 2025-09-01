@@ -169,6 +169,9 @@ global.createCategoriesManager = (deps) => {
     const SCROLL_SPEED = 15;
     const ANIMATION_DURATION = 300;
     let rightPanelScrollY = 0;
+    let cachedItemLayouts = [];
+    let cachedTotalContentHeight = 0;
+    let isContentHeightCacheValid = false;
 
     const getCategoryRect = (index) => {
         return {
@@ -410,6 +413,7 @@ global.createCategoriesManager = (deps) => {
             global.Categories.currentPage === 'options' || transitionActive;
 
         if (shouldDrawItems) {
+            cachedItemLayouts = [];
             let panelX = panel.x;
             if (global.Categories.transitionDirection === 1) {
                 panelX -= panel.width * global.Categories.transitionProgress;
@@ -495,6 +499,7 @@ global.createCategoriesManager = (deps) => {
                             : CATEGORY_BOX_COLOR;
 
                         deps.draw.drawRoundedRectangleWithBorder(itemRect);
+                        cachedItemLayouts.push({ rect: itemRect, item });
 
                         Renderer.drawString(
                             item.title,
@@ -543,6 +548,7 @@ global.createCategoriesManager = (deps) => {
                         deps.colors.gradientTop,
                         deps.colors.gradientBottom
                     );
+                    cachedItemLayouts.push({ rect: itemRect, item });
                     Renderer.drawString(
                         item.title,
                         itemX + 5,
@@ -572,6 +578,7 @@ global.createCategoriesManager = (deps) => {
                     global.Categories.currentPage = 'categories';
                     global.Categories.selectedItem = null;
                     global.Categories.selectedSubcategory = null;
+                    isContentHeightCacheValid = false;
                     rightPanelScrollY = 0;
                     playClickSound();
                     return true;
@@ -663,6 +670,7 @@ global.createCategoriesManager = (deps) => {
                                 buttonRect;
                             global.Categories.selectedSubcategory =
                                 newSubcatName;
+                            isContentHeightCacheValid = false;
                             rightPanelScrollY = 0;
 
                             global.Categories.subcatTransitionStart =
@@ -693,76 +701,14 @@ global.createCategoriesManager = (deps) => {
                 yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
             }
 
-            yOffset -= rightPanelScrollY;
-            let itemIndexInRow = 0;
-
-            const itemsToDisplay = global.Categories.selectedSubcategory
-                ? cat.items.filter(
-                      (group) =>
-                          group.type === 'separator' &&
-                          group.title === global.Categories.selectedSubcategory
-                  )
-                : cat.items;
-
-            for (const group of itemsToDisplay) {
-                if (group.type === 'separator') {
-                    yOffset += SEPARATOR_HEIGHT;
-                    let subcategoryItemsInRow = 0;
-                    for (const item of group.items) {
-                        const col = subcategoryItemsInRow % 3;
-                        if (col === 0 && subcategoryItemsInRow > 0) {
-                            yOffset +=
-                                CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-                        }
-                        const itemX =
-                            panel.x +
-                            PADDING +
-                            col * (itemWidth + ITEM_SPACING);
-                        const rect = {
-                            x: itemX,
-                            y: yOffset,
-                            width: itemWidth,
-                            height: itemHeight,
-                        };
-                        if (isInside(mouseX, mouseY, rect)) {
-                            global.Categories.transitionDirection = 1;
-                            global.Categories.transitionProgress = 0;
-                            global.Categories.transitionStart = Date.now();
-                            global.Categories.selectedItem = item;
-                            playClickSound();
-                            return;
-                        }
-                        subcategoryItemsInRow++;
-                    }
-                    const itemsInSubcategory = group.items.length;
-                    const numRows = Math.ceil(itemsInSubcategory / 3);
-                    yOffset +=
-                        numRows > 0
-                            ? CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING
-                            : 0;
-                } else {
-                    const item = group;
-                    const col = itemIndexInRow % 3;
-                    if (col === 0 && itemIndexInRow > 0) {
-                        yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-                    }
-                    const itemX =
-                        panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
-                    const rect = {
-                        x: itemX,
-                        y: yOffset,
-                        width: itemWidth,
-                        height: itemHeight,
-                    };
-                    if (isInside(mouseX, mouseY, rect)) {
-                        global.Categories.transitionDirection = 1;
-                        global.Categories.transitionProgress = 0;
-                        global.Categories.transitionStart = Date.now();
-                        global.Categories.selectedItem = item;
-                        playClickSound();
-                        return;
-                    }
-                    itemIndexInRow++;
+            for (const layout of cachedItemLayouts) {
+                if (isInside(mouseX, mouseY, layout.rect)) {
+                    global.Categories.transitionDirection = 1;
+                    global.Categories.transitionProgress = 0;
+                    global.Categories.transitionStart = Date.now();
+                    global.Categories.selectedItem = layout.item;
+                    playClickSound();
+                    return;
                 }
             }
         } else if (
