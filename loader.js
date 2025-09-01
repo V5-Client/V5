@@ -18,16 +18,15 @@ Client.getMinecraft()
 
 import './Utility/Misc.js';
 import './Backend/IRC.js';
-import './Pathfinding/Pathfinder.js';
-//import "./AutoReload.js";
+//import './Pathfinding/Pathfinder.js'; // registers cause fps drops !!!
 
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* GUI */
 import './GUI/GuiDraw.js';
 import './GUI/Registries.js';
-import './GUI/NotificationManager.js';
-import './TestNotification.js'; //REMOVE BEFORE RELEASE - has anyone looked at the notification system yet?
+//import './GUI/NotificationManager.js';
+//import './TestNotification.js'; //REMOVE BEFORE RELEASE - has anyone looked at the notification system yet?
 import './Utility/Config.js';
 
 /* FORAGING */
@@ -58,7 +57,7 @@ import {
     emptyTallGrass,
 } from './mixins.js';
 
-try {
+/*try {
     fullStainedGlassPane.attach((instance, cir) => {
         const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
         const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;

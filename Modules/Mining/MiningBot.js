@@ -77,11 +77,13 @@ class MiningBot {
         }).setFps(1);
 
         register('command', () => {
+            miningbot.register();
             this.enabled = true;
             this.state = this.STATES.MINING;
         }).setName('startb');
 
         register('command', () => {
+            miningbot.unregister();
             this.enabled = false;
             this.state = this.STATES.WAITING;
             Keybind.setKey('leftclick', false);
@@ -92,7 +94,7 @@ class MiningBot {
             ChatLib.chat('§c[Mining Bot] §7Disabled.');
         }).setName('stopb');
 
-        register('tick', () => {
+        let miningbot = register('tick', () => {
             if (!this.enabled) return;
 
             switch (this.state) {
@@ -240,7 +242,7 @@ class MiningBot {
                     }
                     break;
             }
-        });
+        }).unregister();
     }
 
     scanForBlock(target, specific = true, startPos = null) {
@@ -408,7 +410,7 @@ class MiningBot {
 // debugging
 const bot = new MiningBot();
 
-register('postRenderWorld', () => {
+/*register('postRenderWorld', () => {
     if (bot.foundLocations.length > 0) {
         const Color = java.awt.Color;
         const sortedLocations = bot.foundLocations;
@@ -430,4 +432,4 @@ register('postRenderWorld', () => {
             );
         }
     }
-});
+}); */
