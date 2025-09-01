@@ -137,13 +137,6 @@ class RotationsTo {
         if (!player) return null;
         return { yaw: player.getYaw(), pitch: player.getPitch() };
     }
-
-    // Hello there, this was in the code and this.getRotation does not exist. Honestly idk what this is meant to be
-    // getRotationTo(toPos) {
-    //   const player = Player.getPlayer();
-    //   if (!player) return null;
-    //   return this.getRotation(player.getEyePos(), toPos);
-    // }
 }
 
 export const Rotations = new RotationsTo();
