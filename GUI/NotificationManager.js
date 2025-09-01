@@ -101,7 +101,7 @@ class Notification {
     this.createdAt = Date.now();
     this.state = "entering";
     this.animationStart = Date.now();
-    this.x = Renderer.screen.getWidth();``
+    this.x = Renderer.screen.getWidth();
     this.targetX = Renderer.screen.getWidth() - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
     this.y = Renderer.screen.getHeight();
     this.targetY = 0;
@@ -245,13 +245,32 @@ class Notification {
     this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
     // Don't draw progress bar for sticky notifications
     if (this.state === "active" && !this.isSticky) {
-      const progress = 1 - ((Date.now() - this.createdAt) / this.duration);
-      const progressBarHeight = 2;
-      const progressBarY = this.y + this.height - progressBarHeight;
-      const progressBarWidth = NOTIFICATION_WIDTH * progress;
+        const progress = 1 - ((Date.now() - this.createdAt) / this.duration);
+        const progressBarHeight = 4;
+        const progressBarWidth = NOTIFICATION_WIDTH * progress;
+    
+        const progressColor = new Color(PROGRESS_BAR_COLOR.getRed()/255, PROGRESS_BAR_COLOR.getGreen()/255, PROGRESS_BAR_COLOR.getBlue()/255, PROGRESS_BAR_COLOR.getAlpha()/255 * alpha);
 
-      const progressColor = new Color(PROGRESS_BAR_COLOR.getRed()/255, PROGRESS_BAR_COLOR.getGreen()/255, PROGRESS_BAR_COLOR.getBlue()/255, PROGRESS_BAR_COLOR.getAlpha()/255 * alpha);
-      UIRoundedRectangle.Companion.drawRoundedRectangle(matrix, this.x, progressBarY, this.x + progressBarWidth, progressBarY + progressBarHeight, 0, progressColor);
+        if (progressBarWidth > 0) {
+            const scale = Renderer.screen.getScale();
+            const screenHeight = Renderer.screen.getHeight();
+        
+            // Shift height down by one to fix floating point issue
+            const scissorY = screenHeight - (this.y + this.height) - 1; 
+            const scissorHeight = progressBarHeight;
+        
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            GL11.glScissor(
+                Math.round(this.x * scale),
+                Math.round(scissorY * scale),
+                Math.round(progressBarWidth * scale),
+                Math.round(scissorHeight * scale)
+            );
+
+            UIRoundedRectangle.Companion.drawRoundedRectangle(matrix, this.x, this.y, this.x + NOTIFICATION_WIDTH, this.y + this.height, CORNER_RADIUS, progressColor);
+          
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
     }
   }
 
