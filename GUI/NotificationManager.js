@@ -95,10 +95,13 @@ class Notification {
     this.description = description;
     this.type = NOTIFICATION_TYPES[type] ? type : "SUCCESS";
     this.duration = duration;
+    
+    this.isSticky = duration === 'sticky'; // allow duration to be 'sticky'
+
     this.createdAt = Date.now();
     this.state = "entering";
     this.animationStart = Date.now();
-    this.x = Renderer.screen.getWidth();
+    this.x = Renderer.screen.getWidth();``
     this.targetX = Renderer.screen.getWidth() - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
     this.y = Renderer.screen.getHeight();
     this.targetY = 0;
@@ -159,7 +162,10 @@ class Notification {
       this.x = this.targetX;
       this.opacity = 1;
 
-      if (lifetime >= this.duration) this.startExit();
+      if (!this.isSticky && lifetime >= this.duration) {
+          this.startExit();
+      }
+
     } else if (this.state === "exiting") {
       const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
       const eased = this.easeInCubic(progress);
@@ -237,8 +243,8 @@ class Notification {
     }
 
     this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
-
-    if (this.state === "active") {
+    // Don't draw progress bar for sticky notifications
+    if (this.state === "active" && !this.isSticky) {
       const progress = 1 - ((Date.now() - this.createdAt) / this.duration);
       const progressBarHeight = 2;
       const progressBarY = this.y + this.height - progressBarHeight;
