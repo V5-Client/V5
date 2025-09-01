@@ -6,7 +6,7 @@ register("command", (...args) => {
     const showcaseMessages = {
       "SUCCESS": { title: "Success!", description: "It was a success!" },
       "CHECK-IN": { title: "Check In", description: "Are you attending?" },
-      "INFO": { title: "Information", description: "A new update is available" },
+      "INFO": { title: "Information", description: "A new update is available. Also, this is a test of the word wrap feature." },
       "WARNING": { title: "System Warning", description: "You're lagging, be cautious" },
       "ERROR": { title: "Error Occurred", description: "Failed to save settings or something" },
       "DANGER": { title: "Critical Failure", description: "GASP, PRETEND SOMETHING HAPPENED!" }

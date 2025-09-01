@@ -428,7 +428,7 @@ function loadMap(map) {
 
 function runProgram() {
   if (!FileLib.exists(path)) {
-    global.showNotification("Pathfinder.exe Missing", "Download it and \nadd it to the assets folder", 'ERROR', 8000);
+    global.showNotification("Pathfinder.exe missing", "Download it and add it to the assets folder", 'ERROR', 8000);
     return;
   }
   stopProgram();
@@ -540,7 +540,7 @@ register("command", (...args) => {
   keyNodes = [];
 
   if (args.length !== 6) {
-    global.showNotification("Invalid Command", "Usage: \n/rustpath <x1> <y1> <z1> <x2> <y2> <z2>", 'ERROR', 5000);
+    global.showNotification("Invalid Command", "Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2>", 'ERROR', 5000);
     return;
   }
 
