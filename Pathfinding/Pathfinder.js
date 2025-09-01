@@ -6,8 +6,6 @@ const Color = java.awt.Color;
 
 let pathNodes = [];
 let keyNodes = [];
-let process = null;
-const path = './config/ChatTriggers/assets/Pathfinding.exe';
 
 const mc = Client.getMinecraft();
 
@@ -128,7 +126,7 @@ function registerMovementEvents() {
     });
 
     // Register render event for drawing waypoints and updating rotations
-    movementRenderRegister = register('renderWorld', () => {
+    movementRenderRegister = register('postRenderWorld', () => {
         if (movementState.isWalking) {
             updateRotations();
         }
@@ -297,7 +295,7 @@ function getDistance2D(pos1, pos2) {
     );
 }
 
-function stopPathingMovement() {
+export function stopPathingMovement() {
     // Unregister events FIRST
     unregisterMovementEvents();
 
@@ -515,154 +513,6 @@ function updateRotations() {
     Rotations.rotateToAngles(smoothedRotation.yaw, smoothedRotation.pitch);
 }
 
-function loadMap(map) {
-    const url = `http://localhost:3000/api/loadmap?map=${map}`;
-    request({
-        url: url,
-        timeout: 5000,
-    })
-        .then(() => {})
-        .catch((err) => {
-            console.log(`Failed to preload map '${map}': ${err}`);
-            global.showNotification(
-                'Map Load Failed',
-                `Failed to preload map '${map}': ${err}`,
-                'ERROR',
-                8000
-            );
-        });
-}
-
-function runProgram() {
-    if (!FileLib.exists(path)) {
-        global.showNotification(
-            'Pathfinder.exe missing',
-            'Download it and add it to the assets folder',
-            'ERROR',
-            8000
-        );
-        return;
-    }
-    stopProgram();
-    keepAlive.register();
-
-    console.log('Starting Pathfinder.exe...');
-
-    const JavaProcessBuilder = java.lang.ProcessBuilder;
-    const JavaScanner = java.util.Scanner;
-    const JavaThread = java.lang.Thread;
-
-    new JavaThread(() => {
-        try {
-            process = new JavaProcessBuilder(path).start();
-            const sc = new JavaScanner(process.getInputStream());
-            console.log('Process started');
-
-            while (process !== null && process.isAlive()) {
-                JavaThread.sleep(50);
-                while (sc.hasNextLine()) {
-                    console.log(sc.nextLine());
-                }
-            }
-
-            if (process !== null) process.waitFor();
-            console.log('Process finished.');
-        } catch (e) {
-            console.log(`Error running pathfinder process: ${e}`);
-            process = null;
-        }
-    }).start();
-
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const poller = register('tick', () => {
-        if (process !== null && !process.isAlive()) {
-            console.log('Process terminated unexpectedly.');
-            global.showNotification(
-                'Pathfinder Stopped',
-                'Pathfinder.exe stopped unexpectedly.',
-                'ERROR',
-                8000
-            );
-            poller.unregister();
-            stopProgram();
-            return;
-        }
-
-        if (attempts >= maxAttempts) {
-            console.log('Server failed to respond in time.');
-            global.showNotification(
-                'Pathfinder Failed',
-                'Failed to connect to pathfinding server.',
-                'ERROR',
-                8000
-            );
-            poller.unregister();
-            stopProgram();
-            return;
-        }
-
-        attempts++;
-        console.log(`Pinging server (Attempt ${attempts}/${maxAttempts})`);
-
-        request({ url: 'http://localhost:3000/keepalive', timeout: 500 })
-            .then(() => {
-                console.log('Server is connected.');
-                poller.unregister();
-                loadMap('mines');
-            })
-            .catch(() => {});
-    });
-}
-
-function stopProgram() {
-    if (process !== null) {
-        process.destroy();
-        process = null;
-        console.log('Program stopped');
-        keepAlive.unregister();
-    }
-}
-
-let lastKeepAlive = Date.now() - 50_000;
-
-const keepAlive = register('tick', () => {
-    if (Date.now() - lastKeepAlive > 60_000) {
-        try {
-            request({
-                url: 'http://localhost:3000/keepalive',
-                timeout: 5000,
-                json: true,
-            })
-                .then(() => {})
-                .catch(() => {});
-        } catch (e) {}
-        lastKeepAlive = Date.now();
-        console.log(`Keep-alive sent at ${Date.now()}`);
-    }
-}).unregister();
-
-register('worldUnload', () => {
-    stopPathingMovement();
-});
-
-register('worldLoad', runProgram);
-
-register('gameUnload', () => {
-    stopPathingMovement();
-    stopProgram();
-});
-
-const Runtime = java.lang.Runtime;
-const runtime = Runtime.getRuntime();
-runtime.addShutdownHook(
-    new java.lang.Thread(() => {
-        stopPathingMovement();
-        stopProgram();
-    })
-);
-
 register('command', (...args) => {
     pathNodes = [];
     keyNodes = [];
@@ -722,15 +572,6 @@ register('command', (...args) => {
             console.log(`Error: ${err}`);
         });
 }).setName('rustpath');
-
-register('command', function () {
-    const block = Player.lookingAt();
-    if (!block) {
-        ChatLib.chat('You are not looking at a block');
-        return;
-    }
-    ChatLib.chat(block?.type?.isTranslucent());
-}).setName('istranslucent');
 
 register('command', () => {
     stopPathingMovement();

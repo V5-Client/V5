@@ -11,6 +11,7 @@ export const MessageType = java.awt.TrayIcon.MessageType;
 export const ArrayLists = java.util.ArrayList;
 export const SystemTray = java.awt.SystemTray;
 export const TrayIcon = java.awt.TrayIcon;
+export const Runtime = java.lang.Runtime;
 export const Toolkit = java.awt.Toolkit;
 export const System = java.lang.System;
 export const Color = java.awt.Color;

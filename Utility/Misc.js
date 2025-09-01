@@ -9,3 +9,12 @@ register('command', () => {
         ChatLib.chat(block);
     }
 }).setName('blockinfo');
+
+register('command', function () {
+    const block = Player.lookingAt();
+    if (!block) {
+        ChatLib.chat('You are not looking at a block');
+        return;
+    }
+    ChatLib.chat(block?.type?.isTranslucent());
+}).setName('istranslucent');
