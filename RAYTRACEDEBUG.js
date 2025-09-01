@@ -1,116 +1,116 @@
-import { RayTrace } from "./Utility/Raytrace";
-import { Chat } from "./Utility/Chat";
-import { getPlayerEyeCoords } from "./Dependencies/BloomCore/RaytraceBlocks";
+import { RayTrace } from './Utility/Raytrace';
+import { Chat } from './Utility/Chat';
+import { getPlayerEyeCoords } from './Dependencies/BloomCore/RaytraceBlocks';
 /**
  * Reliably finds a Minecraft class using Java Reflection, bypassing class loader issues.
  * @param {string} name - The fully qualified name of the class (e.g., "net.minecraft.world.phys.ClipContext")
  * @returns {JavaClass} The loaded Java class.
  */
 function findClass(name) {
-  return java.lang.Class.forName(
-    name,
-    true,
-    Player.getPlayer().getClass().getClassLoader()
-  );
+    return java.lang.Class.forName(
+        name,
+        true,
+        Player.getPlayer().getClass().getClassLoader()
+    );
 }
 
 // Register command to check visibility of the block you're looking at
-register("command", () => {
-  const lookingAt = RayTrace.raytrace(6); // Get block within 6 blocks
+register('command', () => {
+    const lookingAt = RayTrace.raytrace(6); // Get block within 6 blocks
 
-  if (!lookingAt) {
-    Chat.message("&cNo block found in range!");
-    return;
-  }
+    if (!lookingAt) {
+        Chat.message('&cNo block found in range!');
+        return;
+    }
 
-  const blockPos = new BlockPos(553, 89, 236);
-  const eyeCoords = getPlayerEyeCoords();
-  const eyePos = { x: eyeCoords[0], y: eyeCoords[1], z: eyeCoords[2] };
+    const blockPos = new BlockPos(553, 89, 236);
+    const eyeCoords = getPlayerEyeCoords();
+    const eyePos = { x: eyeCoords[0], y: eyeCoords[1], z: eyeCoords[2] };
 
-  // Test with native raycast (fast)
-  const visibleNative = RayTrace.isBlockVisible(blockPos, null, true);
+    // Test with native raycast (fast)
+    const visibleNative = RayTrace.isBlockVisible(blockPos, null, true);
 
-  // Test with JS raycast (slower but more customizable)
-  const visibleJS = RayTrace.isBlockVisible(blockPos, null, false);
+    // Test with JS raycast (slower but more customizable)
+    const visibleJS = RayTrace.isBlockVisible(blockPos, null, false);
 
-  // Get visible point if any
-  const visiblePoint = RayTrace.getPointOnBlock(blockPos, null, false);
+    // Get visible point if any
+    const visiblePoint = RayTrace.getPointOnBlock(blockPos, null, false);
 
-  // Format output
-  Chat.message(`&e===== Block Visibility Test =====`);
-  Chat.message(
-    `&7Block: &f${World.getBlockAt(
-      blockPos.x,
-      blockPos.y,
-      blockPos.z
-    )?.type?.getRegistryName()} &7at &f[${blockPos.x}, ${blockPos.y}, ${
-      blockPos.z
-    }]`
-  );
-  Chat.message(
-    `&7Distance: &f${Math.sqrt(
-      Math.pow(blockPos.x + 0.5 - eyePos.x, 2) +
-        Math.pow(blockPos.y + 0.5 - eyePos.y, 2) +
-        Math.pow(blockPos.z + 0.5 - eyePos.z, 2)
-    ).toFixed(2)} blocks`
-  );
-  Chat.message(`&7Visible (Native): ${visibleNative ? "&a✓ Yes" : "&c✗ No"}`);
-  Chat.message(`&7Visible (JS): ${visibleJS ? "&a✓ Yes" : "&c✗ No"}`);
-
-  if (visiblePoint) {
+    // Format output
+    Chat.message(`&e===== Block Visibility Test =====`);
     Chat.message(
-      `&7Visible Point: &f[${visiblePoint.map((v) => v.toFixed(2)).join(", ")}]`
+        `&7Block: &f${World.getBlockAt(
+            blockPos.x,
+            blockPos.y,
+            blockPos.z
+        )?.type?.getRegistryName()} &7at &f[${blockPos.x}, ${blockPos.y}, ${
+            blockPos.z
+        }]`
     );
-  } else {
-    Chat.message(`&7Visible Point: &cNone found`);
-  }
+    Chat.message(
+        `&7Distance: &f${Math.sqrt(
+            Math.pow(blockPos.x + 0.5 - eyePos.x, 2) +
+                Math.pow(blockPos.y + 0.5 - eyePos.y, 2) +
+                Math.pow(blockPos.z + 0.5 - eyePos.z, 2)
+        ).toFixed(2)} blocks`
+    );
+    Chat.message(`&7Visible (Native): ${visibleNative ? '&a✓ Yes' : '&c✗ No'}`);
+    Chat.message(`&7Visible (JS): ${visibleJS ? '&a✓ Yes' : '&c✗ No'}`);
 
-  Chat.message(`&e================================`);
+    if (visiblePoint) {
+        Chat.message(
+            `&7Visible Point: &f[${visiblePoint.map((v) => v.toFixed(2)).join(', ')}]`
+        );
+    } else {
+        Chat.message(`&7Visible Point: &cNone found`);
+    }
+
+    Chat.message(`&e================================`);
 })
-  .setName("checkblockvisibility")
-  .setAliases("cbv");
+    .setName('checkblockvisibility')
+    .setAliases('cbv');
 
 // Auto-check mode - continuously check the block you're looking at
 let autoCheckEnabled = false;
 let lastCheckedBlock = null;
 
-register("command", () => {
-  autoCheckEnabled = !autoCheckEnabled;
-  Chat.message(
-    `&7Auto-check mode: ${autoCheckEnabled ? "&aEnabled" : "&cDisabled"}`
-  );
+register('command', () => {
+    autoCheckEnabled = !autoCheckEnabled;
+    Chat.message(
+        `&7Auto-check mode: ${autoCheckEnabled ? '&aEnabled' : '&cDisabled'}`
+    );
 
-  if (!autoCheckEnabled) {
-    lastCheckedBlock = null;
-  }
+    if (!autoCheckEnabled) {
+        lastCheckedBlock = null;
+    }
 })
-  .setName("autocheckvisibility")
-  .setAliases("acv");
+    .setName('autocheckvisibility')
+    .setAliases('acv');
 
-register("tick", () => {
-  if (!autoCheckEnabled) return;
+register('tick', () => {
+    if (!autoCheckEnabled) return;
 
-  const lookingAt = RayTrace.raytrace(6);
-  if (!lookingAt) {
-    lastCheckedBlock = null;
-    return;
-  }
+    const lookingAt = RayTrace.raytrace(6);
+    if (!lookingAt) {
+        lastCheckedBlock = null;
+        return;
+    }
 
-  const blockPos = lookingAt.getPos();
-  const blockKey = `${blockPos.x},${blockPos.y},${blockPos.z}`;
+    const blockPos = lookingAt.getPos();
+    const blockKey = `${blockPos.x},${blockPos.y},${blockPos.z}`;
 
-  // Only check if we're looking at a different block
-  if (lastCheckedBlock === blockKey) return;
-  lastCheckedBlock = blockKey;
+    // Only check if we're looking at a different block
+    if (lastCheckedBlock === blockKey) return;
+    lastCheckedBlock = blockKey;
 
-  const visible = RayTrace.isBlockVisible(blockPos);
-  const blockName = lookingAt.type.getName();
+    const visible = RayTrace.isBlockVisible(blockPos);
+    const blockName = lookingAt.type.getName();
 
-  Chat.message(
-    `&7[${blockPos.x}, ${blockPos.y}, ${blockPos.z}] &f${blockName}: ${
-      visible ? "&aVisible" : "&cNot Visible"
-    }`
-  );
+    Chat.message(
+        `&7[${blockPos.x}, ${blockPos.y}, ${blockPos.z}] &f${blockName}: ${
+            visible ? '&aVisible' : '&cNot Visible'
+        }`
+    );
 });
 
 //Chat.message("&aBlock Visibility Debug loaded!");

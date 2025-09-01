@@ -7,38 +7,38 @@
 
 /* Client Version + Title */
 
-global.Version = "1.0.0";
+global.Version = '1.0.0';
 global.APIKEY_DO_NOT_SHARE = java.util.UUID.randomUUID()
-  .toString()
-  .replaceAll("-", "");
+    .toString()
+    .replaceAll('-', '');
 
 Client.getMinecraft()
-  .getWindow()
-  .setTitle("Client " + global.Version + ` - ${Player.getName()}`);
+    .getWindow()
+    .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
-import "./Utility/Misc.js";
-import "./Backend/IRC.js";
-import "./Pathfinding/Pathfinder.js";
+import './Utility/Misc.js';
+import './Backend/IRC.js';
+import './Pathfinding/Pathfinder.js';
 //import "./AutoReload.js";
 
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* GUI */
-import "./GUI/GuiDraw.js";
-import "./GUI/Registries.js";
-import "./GUI/NotificationManager.js";
-import "./TestNotification.js"; //REMOVE BEFORE RELEASE - has anyone looked at the notification system yet?
-import "./Utility/Config.js";
+import './GUI/GuiDraw.js';
+import './GUI/Registries.js';
+import './GUI/NotificationManager.js';
+import './TestNotification.js'; //REMOVE BEFORE RELEASE - has anyone looked at the notification system yet?
+import './Utility/Config.js';
 
 /* FORAGING */
 
 /* MINING */
-import "./Modules/Mining/MiningBot.js";
-import "./Modules/Mining/PinglessMining.js";
-import "./Modules/Mining/Nuker.js";
+import './Modules/Mining/MiningBot.js';
+import './Modules/Mining/PinglessMining.js';
+import './Modules/Mining/Nuker.js';
 
 /* OTHER */
-import "./Modules/Other/DiscordRPC.js";
+import './Modules/Other/DiscordRPC.js';
 
 /* SKILLS */
 //import "./Modules/Skills/AutoHarp.js"
@@ -47,70 +47,74 @@ import "./Modules/Other/DiscordRPC.js";
 
 /* VISUALS */
 //import "./Modules/Visuals/MobHider.js"; - This is depreceated cus it kills your fps by 10x ! It's also very useless and retarded
-import "./Modules/Visuals/Xray.js";
+import './Modules/Visuals/Xray.js';
 
 /* Mixins */
 import {
-  fullStainedGlassPane,
-  fullPickle,
-  emptyKelp,
-  emptyGrass,
-  emptyTallGrass,
-} from "./mixins.js";
+    fullStainedGlassPane,
+    fullPickle,
+    emptyKelp,
+    emptyGrass,
+    emptyTallGrass,
+} from './mixins.js';
 
 try {
-  fullStainedGlassPane.attach((instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
+    fullStainedGlassPane.attach((instance, cir) => {
+        const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+        const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
 
-    if (instance instanceof StainedGlassPaneBlock) {
-      cir.setReturnValue(VoxelShapes.fullCube());
-    }
-  });
+        if (instance instanceof StainedGlassPaneBlock) {
+            cir.setReturnValue(VoxelShapes.fullCube());
+        }
+    });
 } catch (e) {
-  global.showNotification("Failed to attach fullStainedGlassPane", e, "ERROR");
+    global.showNotification(
+        'Failed to attach fullStainedGlassPane',
+        e,
+        'ERROR'
+    );
 }
 
 try {
-  fullPickle.attach((instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    cir.setReturnValue(VoxelShapes.fullCube());
-  });
+    fullPickle.attach((instance, cir) => {
+        const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+        cir.setReturnValue(VoxelShapes.fullCube());
+    });
 } catch (e) {
-  global.showNotification("Failed to attach fullPickle", e, "ERROR");
+    global.showNotification('Failed to attach fullPickle', e, 'ERROR');
 }
 
 try {
-  emptyKelp.attach((instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    const KelpBlock = net.minecraft.block.KelpBlock;
-    const KelpPlant = net.minecraft.block.KelpPlantBlock;
+    emptyKelp.attach((instance, cir) => {
+        const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+        const KelpBlock = net.minecraft.block.KelpBlock;
+        const KelpPlant = net.minecraft.block.KelpPlantBlock;
 
-    if (instance instanceof KelpBlock || instance instanceof KelpPlant) {
-      cir.setReturnValue(VoxelShapes.empty());
-    }
-  });
+        if (instance instanceof KelpBlock || instance instanceof KelpPlant) {
+            cir.setReturnValue(VoxelShapes.empty());
+        }
+    });
 } catch (e) {
-  global.showNotification("Failed to attach emptyKelp", e, "ERROR");
+    global.showNotification('Failed to attach emptyKelp', e, 'ERROR');
 }
 
 try {
-  emptyGrass.attach((instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    cir.setReturnValue(VoxelShapes.empty());
-  });
+    emptyGrass.attach((instance, cir) => {
+        const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+        cir.setReturnValue(VoxelShapes.empty());
+    });
 } catch (e) {
-  global.showNotification("Failed to attach emptyGrass", e, "ERROR");
+    global.showNotification('Failed to attach emptyGrass', e, 'ERROR');
 }
 
 try {
-  emptyTallGrass.attach((instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    cir.setReturnValue(VoxelShapes.empty());
-  });
+    emptyTallGrass.attach((instance, cir) => {
+        const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
+        cir.setReturnValue(VoxelShapes.empty());
+    });
 } catch (e) {
-  global.showNotification("Failed to attach emptyTallGrass", e, "ERROR");
+    global.showNotification('Failed to attach emptyTallGrass', e, 'ERROR');
 }
 
 /* RAYTRACE TESTING */
-import "./RAYTRACEDEBUG.js"; // REMOVE THIS BEFORE RELEASE
+import './RAYTRACEDEBUG.js'; // REMOVE THIS BEFORE RELEASE

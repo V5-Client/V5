@@ -2,86 +2,87 @@ const actions = new Map();
 
 // Register handlers (called from outside)
 function registerEventSB(name, callback) {
-  const eventName = name.toLowerCase();
-  if (!actions.has(eventName)) {
-    actions.set(eventName, []);
-  }
-  actions.get(eventName).push(callback);
+    const eventName = name.toLowerCase();
+    if (!actions.has(eventName)) {
+        actions.set(eventName, []);
+    }
+    actions.get(eventName).push(callback);
 }
 
 // Internal function to trigger events
 function CheckEvents(event) {
-  const ev = event.toLowerCase();
-  if (actions.has(ev)) {
-    actions.get(ev).forEach((action) => action());
-  }
+    const ev = event.toLowerCase();
+    if (actions.has(ev)) {
+        actions.get(ev).forEach((action) => action());
+    }
 }
 
-register("chat", (event) => {
-  let msg = event.message.getString();
+register('chat', (event) => {
+    let msg = event.message.getString();
 
-  if (msg.includes("Sending to server"))
-    CheckEvents("serverchange"), ChatLib.chat("EOOOOO");
+    if (msg.includes('Sending to server'))
+        (CheckEvents('serverchange'), ChatLib.chat('EOOOOO'));
 
-  /* Ability */
-  if (
-    msg.includes("Mining Speed Boost is now available!") ||
-    msg.includes("Maniac Miner is now available")
-  )
-    CheckEvents("abilityready");
+    /* Ability */
+    if (
+        msg.includes('Mining Speed Boost is now available!') ||
+        msg.includes('Maniac Miner is now available')
+    )
+        CheckEvents('abilityready');
 
-  if (msg.includes("Pickobulus is now available")) CheckEvents("pickoready");
+    if (msg.includes('Pickobulus is now available')) CheckEvents('pickoready');
 
-  if (
-    msg.includes("You used your Mining Speed Boost Pickaxe Ability!") ||
-    msg.includes("You used your Maniac Miner Pickaxe Ability!") ||
-    msg.includes("You used your Pickobulus Pickaxe Ability!")
-  )
-    CheckEvents("abilityused");
+    if (
+        msg.includes('You used your Mining Speed Boost Pickaxe Ability!') ||
+        msg.includes('You used your Maniac Miner Pickaxe Ability!') ||
+        msg.includes('You used your Pickobulus Pickaxe Ability!')
+    )
+        CheckEvents('abilityused');
 
-  if (
-    msg.includes("Your Mining Speed Boost has expired!") ||
-    msg.includes("Your Maniac Miner has expired!") ||
-    msg.includes("Your Pickobulus has expired!")
-  )
-    CheckEvents("abilitygone");
+    if (
+        msg.includes('Your Mining Speed Boost has expired!') ||
+        msg.includes('Your Maniac Miner has expired!') ||
+        msg.includes('Your Pickobulus has expired!')
+    )
+        CheckEvents('abilitygone');
 
-  if (msg.startsWith("This ability is on cooldown for"))
-    CheckEvents("abilitycooldown");
+    if (msg.startsWith('This ability is on cooldown for'))
+        CheckEvents('abilitycooldown');
 
-  /* Misc */
-  if (
-    msg.startsWith("You can't use this while") ||
-    msg.startsWith("You can't fast travel while")
-  )
-    CheckEvents("incombat");
+    /* Misc */
+    if (
+        msg.startsWith("You can't use this while") ||
+        msg.startsWith("You can't fast travel while")
+    )
+        CheckEvents('incombat');
 
-  if (msg.startsWith("Oh no! Your")) CheckEvents("pickonimbusbroke");
+    if (msg.startsWith('Oh no! Your')) CheckEvents('pickonimbusbroke');
 
-  if (msg.startsWith("You uncovered a treasure")) CheckEvents("chestspawn");
+    if (msg.startsWith('You uncovered a treasure')) CheckEvents('chestspawn');
 
-  if (msg.startsWith("You have successfully picked")) CheckEvents("chestsolve");
+    if (msg.startsWith('You have successfully picked'))
+        CheckEvents('chestsolve');
 
-  if (msg.startsWith("Inventory full?")) CheckEvents("fullinventory");
+    if (msg.startsWith('Inventory full?')) CheckEvents('fullinventory');
 
-  if (msg.startsWith("You need the Cookie Buff"))
-    CheckEvents("noboostercookie");
+    if (msg.startsWith('You need the Cookie Buff'))
+        CheckEvents('noboostercookie');
 
-  if (msg.startsWith(" ☠ You ")) CheckEvents("death");
+    if (msg.startsWith(' ☠ You ')) CheckEvents('death');
 });
 
-register("chat", () => {
-  CheckEvents("emptydrill");
+register('chat', () => {
+    CheckEvents('emptydrill');
 })
-  .setCriteria("is empty! Refuel it by talking to a Drill Mechanic!")
-  .setContains();
+    .setCriteria('is empty! Refuel it by talking to a Drill Mechanic!')
+    .setContains();
 
-register("chat", () => {
-  CheckEvents("emptydrill");
+register('chat', () => {
+    CheckEvents('emptydrill');
 })
-  .setCriteria(
-    "has too little fuel to keep mining blocks of this type! Refuel it by talking to a Drill Mechanic!"
-  )
-  .setContains();
+    .setCriteria(
+        'has too little fuel to keep mining blocks of this type! Refuel it by talking to a Drill Mechanic!'
+    )
+    .setContains();
 
 export { registerEventSB };
