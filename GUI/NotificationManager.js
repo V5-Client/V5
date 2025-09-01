@@ -451,14 +451,41 @@ class Notification {
 class NotificationManager {
     constructor() {
         this.notifications = [];
-        this.renderTrigger = register('renderOverlay', () => this.render());
-        this.clickTrigger = register(
-            'guiMouseClick',
-            (mouseX, mouseY, button) => {
-                if (button === 0) this.handleClick(mouseX, mouseY);
-            }
-        );
-        this.tickTrigger = register('tick', () => this.update());
+        this.renderTrigger = null;
+        this.clickTrigger = null;
+        this.tickTrigger = null;
+    }
+
+    registerEvents() {
+        if (!this.renderTrigger) {
+            this.renderTrigger = register('renderOverlay', () => this.render());
+        }
+        if (!this.clickTrigger) {
+            this.clickTrigger = register(
+                'guiMouseClick',
+                (mouseX, mouseY, button) => {
+                    if (button === 0) this.handleClick(mouseX, mouseY);
+                }
+            );
+        }
+        if (!this.tickTrigger) {
+            this.tickTrigger = register('tick', () => this.update());
+        }
+    }
+
+    unregisterEvents() {
+        if (this.renderTrigger) {
+            this.renderTrigger.unregister();
+            this.renderTrigger = null;
+        }
+        if (this.clickTrigger) {
+            this.clickTrigger.unregister();
+            this.clickTrigger = null;
+        }
+        if (this.tickTrigger) {
+            this.tickTrigger.unregister();
+            this.tickTrigger = null;
+        }
     }
 
     add(
@@ -467,6 +494,10 @@ class NotificationManager {
         type = 'SUCCESS',
         duration = DEFAULT_NOTIFICATION_DURATION
     ) {
+        if (this.notifications.length === 0) {
+            this.registerEvents();
+        }
+
         const notification = new Notification(
             title,
             description,
@@ -487,6 +518,10 @@ class NotificationManager {
 
         if (this.notifications.length !== beforeCount) {
             this.updatePositions();
+        }
+
+        if (beforeCount > 0 && this.notifications.length === 0) {
+            this.unregisterEvents();
         }
     }
 
@@ -519,9 +554,7 @@ class NotificationManager {
     }
 
     destroy() {
-        this.renderTrigger.unregister();
-        this.clickTrigger.unregister();
-        this.tickTrigger.unregister();
+        this.unregisterEvents();
     }
 }
 
