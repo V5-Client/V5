@@ -44,7 +44,7 @@ class MiningBot {
             'minecraft:yellow_stained_glass_pane': 4,
         };
 
-        this.COSTTYPE = this.gemstoneCosts;
+        this.COSTTYPE = this.mithrilCosts;
 
         this.STATES = {
             WAITING: 0,
@@ -411,9 +411,7 @@ const bot = new MiningBot();
 register('postRenderWorld', () => {
     if (bot.foundLocations.length > 0) {
         const Color = java.awt.Color;
-        const sortedLocations = [...bot.foundLocations].sort(
-            (a, b) => a.cost - b.cost
-        );
+        const sortedLocations = bot.foundLocations;
 
         const numLocations = sortedLocations.length;
         for (let i = 0; i < numLocations; i++) {
