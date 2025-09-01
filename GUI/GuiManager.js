@@ -172,6 +172,7 @@ global.createCategoriesManager = (deps) => {
     let cachedItemLayouts = [];
     let cachedTotalContentHeight = 0;
     let isContentHeightCacheValid = false;
+    let isLayoutCacheValid = false;
 
     const getCategoryRect = (index) => {
         return {
@@ -338,6 +339,7 @@ global.createCategoriesManager = (deps) => {
                         ? 'options'
                         : 'categories';
                 global.Categories.transitionDirection = 0;
+                isLayoutCacheValid = false;
             }
         }
 
@@ -413,7 +415,10 @@ global.createCategoriesManager = (deps) => {
             global.Categories.currentPage === 'options' || transitionActive;
 
         if (shouldDrawItems) {
-            cachedItemLayouts = [];
+            if (!isLayoutCacheValid) {
+                cachedItemLayouts = [];
+            }
+
             let panelX = panel.x;
             if (global.Categories.transitionDirection === 1) {
                 panelX -= panel.width * global.Categories.transitionProgress;
@@ -499,7 +504,10 @@ global.createCategoriesManager = (deps) => {
                             : CATEGORY_BOX_COLOR;
 
                         deps.draw.drawRoundedRectangleWithBorder(itemRect);
-                        cachedItemLayouts.push({ rect: itemRect, item });
+
+                        if (!isLayoutCacheValid) {
+                            cachedItemLayouts.push({ rect: itemRect, item });
+                        }
 
                         Renderer.drawString(
                             item.title,
@@ -548,7 +556,11 @@ global.createCategoriesManager = (deps) => {
                         deps.colors.gradientTop,
                         deps.colors.gradientBottom
                     );
-                    cachedItemLayouts.push({ rect: itemRect, item });
+
+                    if (!isLayoutCacheValid) {
+                        cachedItemLayouts.push({ rect: itemRect, item });
+                    }
+
                     Renderer.drawString(
                         item.title,
                         itemX + 5,
@@ -559,6 +571,10 @@ global.createCategoriesManager = (deps) => {
                     itemIndexInRow++;
                 }
             });
+
+            if (!isLayoutCacheValid) {
+                isLayoutCacheValid = true;
+            }
         }
         if (shouldDrawOptions) {
             drawOptionsPanel(panel, mouseX, mouseY);
@@ -579,6 +595,7 @@ global.createCategoriesManager = (deps) => {
                     global.Categories.selectedItem = null;
                     global.Categories.selectedSubcategory = null;
                     isContentHeightCacheValid = false;
+                    isLayoutCacheValid = false;
                     rightPanelScrollY = 0;
                     playClickSound();
                     return true;
@@ -592,6 +609,7 @@ global.createCategoriesManager = (deps) => {
             isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
         ) {
             global.Categories.selected = null;
+            isLayoutCacheValid = false;
             playClickSound();
         }
 
@@ -671,6 +689,7 @@ global.createCategoriesManager = (deps) => {
                             global.Categories.selectedSubcategory =
                                 newSubcatName;
                             isContentHeightCacheValid = false;
+                            isLayoutCacheValid = false;
                             rightPanelScrollY = 0;
 
                             global.Categories.subcatTransitionStart =
@@ -787,6 +806,8 @@ global.createCategoriesManager = (deps) => {
         const direction = dir > 0 ? -1 : 1;
         rightPanelScrollY += direction * SCROLL_SPEED;
         rightPanelScrollY = Math.max(0, Math.min(rightPanelScrollY, maxScroll));
+
+        isLayoutCacheValid = false;
     };
 
     const handleMouseDrag = (mouseX, mouseY) => {
