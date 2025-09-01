@@ -1,6 +1,7 @@
 import request from 'requestV2';
 import RendererMain from '../Rendering/RendererMain';
 import { Rotations } from '../Utility/Rotations';
+import './Connection';
 
 const Color = java.awt.Color;
 
@@ -571,9 +572,9 @@ register('command', (...args) => {
             );
             console.log(`Error: ${err}`);
         });
-}).setName('rustpath');
+}).setName('rustpath', true);
 
 register('command', () => {
     stopPathingMovement();
     Rotations.stopRotation();
-}).setName('stop');
+}).setName('stop', true);

@@ -115,9 +115,15 @@ export function runProgram() {
     });
 }
 
-register('worldLoad', () => runProgram(), stopPathingMovement());
+register('worldLoad', () => {
+    runProgram();
+    stopPathingMovement();
+});
 
-register('gameUnload', () => stopProgram(), stopPathingMovement());
+register('gameUnload', () => {
+    stopProgram();
+    stopPathingMovement();
+});
 
 const runtime = Runtime.getRuntime();
 runtime.addShutdownHook(
