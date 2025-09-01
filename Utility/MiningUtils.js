@@ -69,117 +69,197 @@ class MiningUtilClass {
         Player.setHeldItemIndex(drill.slot);
 
         Chat.message('Getting your Mining Data!');
-        new Thread(() => {
-            function getItemLore(slot) {
-                return Player.getContainer().getStackInSlot(slot).getLore();
-            }
 
-            function getFirstMatchFromLore(slot, regex) {
-                let lore = getItemLore(slot);
-                for (let line of lore) {
-                    const cleanLine = ChatLib.removeFormatting(line.toString());
-                    const match = cleanLine.match(regex);
-                    if (match) {
-                        let value = match[1].replace(/,/g, '');
-                        return value.includes('.')
-                            ? parseFloat(value)
-                            : parseInt(value);
-                    }
+        // Helper functions
+        const getItemLore = (slot) => {
+            return Player.getContainer().getStackInSlot(slot).getLore();
+        };
+
+        const getFirstMatchFromLore = (slot, regex) => {
+            let lore = getItemLore(slot);
+            for (let line of lore) {
+                const cleanLine = ChatLib.removeFormatting(line.toString());
+                const match = cleanLine.match(regex);
+                if (match) {
+                    let value = match[1].replace(/,/g, '');
+                    return value.includes('.')
+                        ? parseFloat(value)
+                        : parseInt(value);
                 }
-                return null;
             }
+            return null;
+        };
 
-            Thread.sleep(500);
+        let currentStep = 0;
+        const steps = [
+            'sbmenu', // Step 0: Open sbmenu and get mining speed
+            'hotm', // Step 1: Open hotm menu and get HOTM level
+            'hotm_abilities', // Step 2: Get abilities from HOTM menu
+            'perks_menu', // Step 3: Open perks menu and get more stats
+            'finish', // Step 4: Finish and display results
+        ];
+
+        const cleanup = () => {
+            if (this.guiListener) {
+                this.guiListener.unregister();
+                this.guiListener = null;
+            }
+        };
+
+        const processStep = () => {
+            const step = steps[currentStep];
+            const guiName = Guis.guiName();
+
+            switch (step) {
+                case 'sbmenu':
+                    if (guiName && guiName.includes('SkyBlock Menu')) {
+                        this.miningSpeed = getFirstMatchFromLore(
+                            13,
+                            /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i
+                        );
+                        currentStep++;
+                        ChatLib.command('hotm');
+                    }
+                    break;
+
+                case 'hotm':
+                    if (guiName && guiName.includes('Heart of the Mountain')) {
+                        this.hotm = getFirstMatchFromLore(
+                            4,
+                            /Level\s{0,2}(\d+)/
+                        );
+                        this.cotm = parseInt(this.hotm) === 10;
+
+                        let con = Player.getContainer();
+                        let selected = 'minecraft:emerald_block';
+
+                        let speedboost = con.getStackInSlot(29);
+                        let picko = con.getStackInSlot(33);
+
+                        if (speedboost?.type?.getRegistryName() === selected) {
+                            this.ability = 'SpeedBoost';
+                        } else if (
+                            picko?.type?.getRegistryName() === selected
+                        ) {
+                            this.ability = 'Pickobulus';
+                        }
+
+                        this.professional = getFirstMatchFromLore(
+                            12,
+                            /\+(\d+(\.\d+)?)/
+                        );
+
+                        currentStep++;
+                        Guis.clickSlot(8, false, 'RIGHT');
+                    }
+                    break;
+
+                case 'hotm_abilities':
+                    if (guiName && guiName.includes('Heart of the Mountain')) {
+                        currentStep++;
+                        setTimeout(() => processStep(), 100);
+                    }
+                    break;
+
+                case 'perks_menu':
+                    if (guiName && guiName.includes('Heart of the Mountain')) {
+                        let con = Player.getContainer();
+                        let selected = 'minecraft:emerald_block';
+
+                        let infusion = con.getStackInSlot(1);
+                        let force = con.getStackInSlot(7);
+                        let desire = con.getStackInSlot(37);
+                        let maniac = con.getStackInSlot(43);
+
+                        if (infusion?.type?.getRegistryName() === selected) {
+                            this.ability = 'GemstoneInfusion';
+                        } else if (
+                            force?.type?.getRegistryName() === selected
+                        ) {
+                            this.ability = 'SheerForce';
+                        } else if (
+                            desire?.type?.getRegistryName() === selected
+                        ) {
+                            this.ability = 'AnamolousDesire';
+                        } else if (
+                            maniac?.type?.getRegistryName() === selected
+                        ) {
+                            this.ability = 'ManiacMiner';
+                        }
+
+                        this.strongArm = getFirstMatchFromLore(
+                            21,
+                            /\+(\d+(\.\d+)?)/
+                        );
+                        this.coldRes = getFirstMatchFromLore(
+                            23,
+                            /\+(\d+(\.\d+)?)/
+                        );
+                        this.solver = getFirstMatchFromLore(
+                            42,
+                            /\+(\d+(\.\d+)?)/
+                        );
+                        this.maxSolver = parseInt(this.solver) === 96;
+
+                        currentStep++;
+                        Guis.closeInv();
+
+                        setTimeout(() => processStep(), 100);
+                    }
+                    break;
+
+                case 'finish':
+                    let lore = Player.getHeldItem().getLore().toString();
+                    let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
+                    let bonus = match
+                        ? { I: 1, II: 2, III: 3, IV: 4, V: 5 }[
+                              match[1].toUpperCase()
+                          ] * 20
+                        : 0;
+
+                    if (match) {
+                        this.professional += bonus;
+                        Chat.message(`Lapidary Speed: +${bonus}`);
+                    }
+
+                    let cotmcolor = this.cotm ? '&a' : '&c';
+                    let solvercolor = this.maxSolver ? '&a' : '&c';
+
+                    Chat.message(`Your Mining Data:`);
+                    Chat.message(`Mining Speed: &e${this.miningSpeed}`);
+                    Chat.message(`Professional: &e${this.professional}`);
+                    Chat.message(`Strong Arm: &e${this.strongArm}`);
+                    Chat.message(`Pickaxe Ability: &e${this.ability}`);
+                    Chat.message(`Cold Resistance: &e${this.coldRes}`);
+                    Chat.message(`HOTM Level: &e${this.hotm}`);
+                    Chat.message(`COTM: ${cotmcolor}${this.cotm}`);
+                    Chat.message(
+                        `Max Great Explorer: ${solvercolor}${this.maxSolver}`
+                    );
+
+                    Utils.writeConfigFile('miningstats.json', {
+                        speed: this.miningSpeed,
+                        professional: this.professional,
+                        strongarm: this.strongArm,
+                        ability: this.ability,
+                        coldres: this.coldRes,
+                        hotm: this.hotm,
+                        cotm: this.cotm,
+                        maxge: this.maxSolver,
+                    });
+
+                    cleanup();
+                    break;
+            }
+        };
+
+        this.guiListener = register('guiOpened', () => {
+            setTimeout(() => processStep(), 100);
+        });
+
+        setTimeout(() => {
             ChatLib.command('sbmenu');
-            Thread.sleep(1000);
-            this.miningSpeed = getFirstMatchFromLore(
-                13,
-                /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i
-            );
-
-            // Open HOTM Menu
-            ChatLib.command('hotm');
-            Thread.sleep(1000);
-            this.hotm = getFirstMatchFromLore(4, /Level\s{0,2}(\d+)/);
-            this.cotm = parseInt(this.hotm) === 10;
-
-            let con = Player.getContainer();
-            let selected = 'minecraft:emerald_block';
-
-            let speedboost = con.getStackInSlot(29);
-            let picko = con.getStackInSlot(33);
-
-            if (speedboost?.type?.getRegistryName() === selected) {
-                this.ability = 'SpeedBoost';
-            } else if (picko?.type?.getRegistryName() === selected) {
-                this.ability = 'Pickobulus';
-            }
-
-            this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
-
-            Guis.clickSlot(8, false, 'RIGHT');
-            Thread.sleep(1000);
-
-            let infusion = con.getStackInSlot(1);
-            let force = con.getStackInSlot(7);
-            let desire = con.getStackInSlot(37);
-            let maniac = con.getStackInSlot(43);
-
-            if (infusion?.type?.getRegistryName() === selected) {
-                this.ability = 'GemstoneInfusion';
-            } else if (force?.type?.getRegistryName() === selected) {
-                this.ability = 'SheerForce';
-            } else if (desire?.type?.getRegistryName() === selected) {
-                this.ability = 'AnamolousDesire';
-            } else if (maniac?.type?.getRegistryName() === selected) {
-                this.ability = 'ManiacMiner';
-            }
-
-            this.strongArm = getFirstMatchFromLore(21, /\+(\d+(\.\d+)?)/);
-
-            this.coldRes = getFirstMatchFromLore(23, /\+(\d+(\.\d+)?)/);
-
-            this.solver = getFirstMatchFromLore(42, /\+(\d+(\.\d+)?)/);
-            this.maxSolver = parseInt(this.solver) === 96; // get max percentage instead
-
-            Guis.closeInv();
-            let lore = Player.getHeldItem().getLore().toString();
-            let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
-            let bonus = match
-                ? { I: 1, II: 2, III: 3, IV: 4, V: 5 }[match[1].toUpperCase()] *
-                  20
-                : 0;
-
-            if (match) {
-                this.professional += bonus;
-                Chat.message(`Lapidary Speed: +${bonus}`);
-            }
-
-            let cotmcolor = this.cotm ? '&a' : '&c';
-            let solvercolor = this.maxSolver ? '&a' : '&c';
-
-            Chat.message(`Your Mining Data:`);
-            Chat.message(`Mining Speed: &e${this.miningSpeed}`);
-            Chat.message(`Professional: &e${this.professional}`);
-            Chat.message(`Strong Arm: &e${this.strongArm}`);
-            Chat.message(`Pickaxe Ability: &e${this.ability}`);
-            Chat.message(`Cold Resistance: &e${this.coldRes}`);
-            Chat.message(`HOTM Level: &e${this.hotm}`);
-            Chat.message(`COTM: ${cotmcolor}${this.cotm}`);
-            Chat.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
-
-            // Save stats
-            Utils.writeConfigFile('miningstats.json', {
-                speed: this.miningSpeed,
-                professional: this.professional,
-                strongarm: this.strongArm,
-                ability: this.ability,
-                coldres: this.coldRes,
-                hotm: this.hotm,
-                cotm: this.cotm,
-                maxge: this.maxSolver,
-            });
-        }).start();
+        }, 100);
     }
 
     /**
