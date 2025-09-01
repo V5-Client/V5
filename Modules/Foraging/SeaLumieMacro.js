@@ -8,7 +8,6 @@ import { Color } from '../../Utility/Constants';
 const ConcurrentLinkedQueue = Java.type(
     'java.util.concurrent.ConcurrentLinkedQueue'
 );
-const Thread = Java.type('java.lang.Thread');
 const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
 class SeaLumie {
