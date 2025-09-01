@@ -1,10 +1,9 @@
-const Color = java.awt.Color;
-const UIRoundedRectangle = Java.type(
-    'gg.essential.elementa.components.UIRoundedRectangle'
-);
-const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat
-    .INSTANCE;
-const matrix = UMatrixStack.get();
+import {
+    Color,
+    UIRoundedRectangle,
+    UMatrixStack,
+    Matrix,
+} from '../Utility/Constants';
 
 // Configuration
 const NOTIFICATION_WIDTH = 250;
@@ -258,7 +257,7 @@ class Notification {
             (BACKGROUND_COLOR.getAlpha() / 255) * alpha
         );
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             this.x,
             this.y,
             this.x + NOTIFICATION_WIDTH,
@@ -278,7 +277,7 @@ class Notification {
             alpha
         );
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             iconBgX - 1,
             iconBgY - 1,
             iconBgX + iconBgSize + 1,
@@ -294,7 +293,7 @@ class Notification {
             (ICON_BACKGROUND_COLOR.getAlpha() / 255) * alpha
         );
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             iconBgX,
             iconBgY,
             iconBgX + iconBgSize,
@@ -351,7 +350,7 @@ class Notification {
                 (CLOSE_BUTTON_HOVER_COLOR.getAlpha() / 255) * alpha
             );
             UIRoundedRectangle.Companion.drawRoundedRectangle(
-                matrix,
+                Matrix,
                 closeX,
                 closeY,
                 closeX + closeSize,
@@ -396,7 +395,7 @@ class Notification {
                 );
 
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    matrix,
+                    Matrix,
                     this.x,
                     this.y,
                     this.x + NOTIFICATION_WIDTH,

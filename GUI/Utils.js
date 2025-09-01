@@ -1,9 +1,20 @@
-const File = java.io.File;
 const BufferedInputStream = java.io.BufferedInputStream;
 const FileOutputStream = java.io.FileOutputStream;
 const URL = java.net.URL;
 
+import { Chat } from '../Utility/Chat';
+import { File, Color } from '../Utility/Constants';
+
+export const PADDING = 10;
+export const BORDER_WIDTH = 2;
+export const CORNER_RADIUS = 10;
+
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+
+export const GuiColor = (alpha) => new Color(0.0745, 0.0941, 0.2118, alpha);
+
+export const easeInOutQuad = (t) =>
+    t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
 export const isInside = (mouseX, mouseY, rect) =>
     mouseX >= rect.x &&
@@ -123,4 +134,46 @@ export const playClickSound = () => {
     }
 
     jingleIndex = (jingleIndex + 1) % JINGLE_BELLS.length;
+};
+
+const profilePath = new File('config/ChatTriggers/assets/discordProfile.png');
+export const returnDiscord = () => {
+    try {
+        if (!profilePath.exists()) {
+            new Thread(() => {
+                // make sure folder exists
+                if (!profilePath.getParentFile().exists())
+                    profilePath.getParentFile().mkdirs();
+
+                // get all data
+                let data = JSON.parse(
+                    fetchURL(
+                        `https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
+                            global.APIKEY_DO_NOT_SHARE
+                        }`
+                    )
+                );
+
+                if (!data || !data.discord) {
+                    ChatLib.chat('Failed to download your Discord pfp :(');
+                    return;
+                }
+
+                // only get avatar and define file path
+                let avatarUrl = data.discord.avatar;
+                let saveFile = new File(
+                    'config/ChatTriggers/assets/discordProfile.png'
+                );
+
+                downloadFile(avatarUrl, saveFile.getAbsolutePath());
+            }).start();
+        }
+    } catch (error) {
+        Chat.message('Failed to download your Discord pfp :(');
+    }
+
+    if (profilePath.exists()) {
+        let avatarPath = Image.fromAsset('discordProfile.png');
+        global.discordPfp = createCircularImage(avatarPath);
+    }
 };

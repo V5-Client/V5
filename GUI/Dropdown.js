@@ -1,11 +1,10 @@
-const Color = java.awt.Color;
-const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat
-    .INSTANCE;
-const matrix = UMatrixStack.get();
-const UIRoundedRectangle = Java.type(
-    'gg.essential.elementa.components.UIRoundedRectangle'
-);
 import { playClickSound } from './Utils';
+import {
+    Color,
+    UMatrixStack,
+    Matrix,
+    UIRoundedRectangle,
+} from '../Utility/Constants';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false) {
@@ -29,7 +28,7 @@ export class MultiToggle {
         const cornerRadius = 3;
 
         UIRoundedRectangle.Companion.drawRoundedRectangle(
-            matrix,
+            Matrix,
             this.x,
             this.y,
             this.x + this.buttonWidth,
@@ -59,7 +58,7 @@ export class MultiToggle {
             const dropdownHeight =
                 this.options.length * (this.buttonHeight + 2);
             UIRoundedRectangle.Companion.drawRoundedRectangle(
-                matrix,
+                Matrix,
                 this.x,
                 this.y + this.buttonHeight + 1,
                 this.x + this.buttonWidth,
@@ -75,7 +74,7 @@ export class MultiToggle {
                 const toggleHeight = this.buttonHeight;
 
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    matrix,
+                    Matrix,
                     toggleX,
                     currentY,
                     toggleX + toggleWidth,
@@ -92,7 +91,7 @@ export class MultiToggle {
                 const toggleYPos = currentY + (toggleHeight - toggleSize) / 2;
 
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    matrix,
+                    Matrix,
                     toggleXPos,
                     toggleYPos,
                     toggleXPos + toggleSize,
