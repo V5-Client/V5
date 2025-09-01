@@ -11,6 +11,10 @@ const path = './config/ChatTriggers/assets/Pathfinding.exe';
 
 const mc = Client.getMinecraft();
 
+// Store register objects
+let movementTickRegister = null;
+let movementRenderRegister = null;
+
 // Movement state
 let movementState = {
     isWalking: false,
@@ -34,6 +38,160 @@ const STUCK_THRESHOLD = 60;
 const NODE_REACH_DISTANCE = 3.0; // How close to a node to consider it "reached"
 const NODE_REACH_DISTANCE_SPRINT = 4.5; // more lenient when sprinting
 const SPLINE_RESOLUTION = 3; // Points between each node for spline
+
+// Register movement events when pathing starts
+function registerMovementEvents() {
+    // If the registers already exist, do nothing to prevent duplicates
+    if (movementTickRegister || movementRenderRegister) {
+        return;
+    }
+
+    // Register tick event for movement control
+    movementTickRegister = register('tick', () => {
+        if (!movementState.isWalking) return;
+
+        const playerPos = {
+            x: Player.getX(),
+            y: Player.getY(),
+            z: Player.getZ(),
+        };
+
+        const currentBlockPos = {
+            x: Math.floor(playerPos.x),
+            y: Math.floor(playerPos.y),
+            z: Math.floor(playerPos.z),
+        };
+
+        // Stuck detection
+        if (
+            movementState.lastPosition &&
+            currentBlockPos.x === Math.floor(movementState.lastPosition.x) &&
+            currentBlockPos.y === Math.floor(movementState.lastPosition.y) &&
+            currentBlockPos.z === Math.floor(movementState.lastPosition.z) &&
+            !movementState.isFalling
+        ) {
+            movementState.stuckTimer++;
+
+            if (movementState.stuckTimer >= STUCK_THRESHOLD) {
+                global.showNotification(
+                    'Stuck Detected',
+                    "You're stuck, trying to jump.",
+                    'WARNING',
+                    4000
+                );
+                try {
+                    mc.options.jumpKey.setPressed(true);
+                    Client.scheduleTask(5, () => {
+                        mc.options.jumpKey.setPressed(false);
+                    });
+                } catch (e) {}
+                movementState.stuckTimer = 0;
+            }
+        } else {
+            movementState.stuckTimer = 0;
+        }
+
+        movementState.lastPosition = { ...playerPos };
+
+        updatePath();
+
+        try {
+            if (movementState.isWalking) {
+                if (!movementState.movementHeld) {
+                    mc.options.forwardKey.setPressed(true);
+                    movementState.movementHeld = true;
+                } else {
+                    if (!mc.options.forwardKey.isPressed()) {
+                        mc.options.forwardKey.setPressed(true);
+                    }
+                }
+
+                const onGround = Player.getPlayer()?.field_70122_E;
+                if (
+                    !movementState.isFalling &&
+                    onGround &&
+                    !movementState.sprintHeld
+                ) {
+                    mc.options.sprintKey.setPressed(true);
+                    movementState.sprintHeld = true;
+                } else if (
+                    movementState.isFalling &&
+                    movementState.sprintHeld
+                ) {
+                    mc.options.sprintKey.setPressed(false);
+                    movementState.sprintHeld = false;
+                }
+            }
+        } catch (e) {
+            console.log('Movement key error:', e);
+        }
+    });
+
+    // Register render event for drawing waypoints and updating rotations
+    movementRenderRegister = register('renderWorld', () => {
+        if (movementState.isWalking) {
+            updateRotations();
+        }
+
+        // Draw raw path nodes
+        for (let i = 0; i < pathNodes.length; i++) {
+            const node = pathNodes[i];
+            const splineIndexForThisNode = movementState.rawToSpline?.[i] ?? 0;
+            const isVisited =
+                splineIndexForThisNode < movementState.currentNodeIndex;
+
+            RendererMain.drawWaypoint(
+                new Vec3i(node.x, node.y, node.z),
+                false,
+                isVisited
+                    ? new Color(0.5, 0.5, 0.5, 0.3) // grey
+                    : new Color(0.0, 1.0, 0.0, 0.8) // green
+            );
+        }
+
+        // Draw key nodes (red)
+        for (let node of keyNodes) {
+            RendererMain.drawWaypoint(
+                new Vec3i(node.x, node.y, node.z),
+                true,
+                new Color(1.0, 0.0, 0.0, 1.0)
+            );
+        }
+
+        // Draw current target block (yellow)
+        if (
+            movementState.isWalking &&
+            movementState.currentNodeIndex < movementState.splinePath.length
+        ) {
+            const currentTarget =
+                movementState.splinePath[movementState.currentNodeIndex];
+            RendererMain.drawWaypoint(
+                new Vec3i(
+                    Math.floor(currentTarget.x),
+                    Math.floor(currentTarget.y),
+                    Math.floor(currentTarget.z)
+                ),
+                true,
+                new Color(1.0, 1.0, 0.0, 1.0)
+            );
+        }
+    });
+}
+
+// Unregister movement events when pathing stops
+function unregisterMovementEvents() {
+    // Unregister and clear the tick event if it exists
+    if (movementTickRegister) {
+        movementTickRegister.unregister();
+        movementTickRegister = null;
+    }
+
+    // Unregister and clear the render event if it exists
+    if (movementRenderRegister) {
+        movementRenderRegister.unregister();
+        movementRenderRegister = null;
+    }
+}
 
 // Catmull-Rom spline interpolation
 function catmullRom(p0, p1, p2, p3, t) {
@@ -140,6 +298,9 @@ function getDistance2D(pos1, pos2) {
 }
 
 function stopPathingMovement() {
+    // Unregister events FIRST
+    unregisterMovementEvents();
+
     movementState.isWalking = false;
     movementState.visitedNodes.clear();
     movementState.currentNodeIndex = 0;
@@ -188,6 +349,9 @@ function startPathingFromNodes(nodes) {
     };
     movementState.movementHeld = false;
     movementState.sprintHeld = false;
+
+    // Register events when starting pathing
+    registerMovementEvents();
 }
 
 function updatePath() {
@@ -270,8 +434,8 @@ function updatePath() {
     const lookAheadDist = movementState.isFalling
         ? movementState.lookAheadDistance * 1.5
         : isSprinting
-          ? movementState.lookAheadDistance * 0.7
-          : movementState.lookAheadDistance;
+        ? movementState.lookAheadDistance * 0.7
+        : movementState.lookAheadDistance;
 
     // Start from current node and look ahead
     for (
@@ -336,8 +500,8 @@ function updateRotations() {
     const smoothingFactor = movementState.isFalling
         ? movementState.rotationSmoothing * 0.5
         : isSprinting
-          ? movementState.rotationSmoothing * 1.5
-          : movementState.rotationSmoothing;
+        ? movementState.rotationSmoothing * 1.5
+        : movementState.rotationSmoothing;
 
     const smoothedRotation = smoothRotation(
         movementState.lastRotation.yaw,
@@ -350,129 +514,6 @@ function updateRotations() {
     movementState.lastRotation = smoothedRotation;
     Rotations.rotateToAngles(smoothedRotation.yaw, smoothedRotation.pitch);
 }
-
-// Update movement on tick (for unstuck and path progression)
-register('tick', () => {
-    if (!movementState.isWalking) return;
-
-    const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-
-    const currentBlockPos = {
-        x: Math.floor(playerPos.x),
-        y: Math.floor(playerPos.y),
-        z: Math.floor(playerPos.z),
-    };
-
-    // Stuck detection
-    if (
-        movementState.lastPosition &&
-        currentBlockPos.x === Math.floor(movementState.lastPosition.x) &&
-        currentBlockPos.y === Math.floor(movementState.lastPosition.y) &&
-        currentBlockPos.z === Math.floor(movementState.lastPosition.z) &&
-        !movementState.isFalling
-    ) {
-        movementState.stuckTimer++;
-
-        if (movementState.stuckTimer >= STUCK_THRESHOLD) {
-            global.showNotification(
-                'Stuck Detected',
-                "You're stuck, trying to jump.",
-                'WARNING',
-                4000
-            );
-            try {
-                mc.options.jumpKey.setPressed(true);
-                Client.scheduleTask(5, () => {
-                    mc.options.jumpKey.setPressed(false);
-                });
-            } catch (e) {}
-            movementState.stuckTimer = 0;
-        }
-    } else {
-        movementState.stuckTimer = 0;
-    }
-
-    movementState.lastPosition = { ...playerPos };
-
-    updatePath();
-
-    try {
-        if (movementState.isWalking) {
-            if (!movementState.movementHeld) {
-                mc.options.forwardKey.setPressed(true);
-                movementState.movementHeld = true;
-            } else {
-                if (!mc.options.forwardKey.isPressed()) {
-                    mc.options.forwardKey.setPressed(true);
-                }
-            }
-
-            const onGround = Player.getPlayer()?.field_70122_E;
-            if (
-                !movementState.isFalling &&
-                onGround &&
-                !movementState.sprintHeld
-            ) {
-                mc.options.sprintKey.setPressed(true);
-                movementState.sprintHeld = true;
-            } else if (movementState.isFalling && movementState.sprintHeld) {
-                mc.options.sprintKey.setPressed(false);
-                movementState.sprintHeld = false;
-            }
-        }
-    } catch (e) {
-        console.log('Movement key error:', e);
-    }
-});
-
-register('renderWorld', () => {
-    if (movementState.isWalking) {
-        updateRotations();
-    }
-
-    // Draw raw path nodes
-    for (let i = 0; i < pathNodes.length; i++) {
-        const node = pathNodes[i];
-        const splineIndexForThisNode = movementState.rawToSpline?.[i] ?? 0;
-        const isVisited =
-            splineIndexForThisNode < movementState.currentNodeIndex;
-
-        RendererMain.drawWaypoint(
-            new Vec3i(node.x, node.y, node.z),
-            false,
-            isVisited
-                ? new Color(0.5, 0.5, 0.5, 0.3) // grey
-                : new Color(0.0, 1.0, 0.0, 0.8) // green
-        );
-    }
-
-    // Draw key nodes (red)
-    for (let node of keyNodes) {
-        RendererMain.drawWaypoint(
-            new Vec3i(node.x, node.y, node.z),
-            true,
-            new Color(1.0, 0.0, 0.0, 1.0)
-        );
-    }
-
-    // Draw current target block (yellow)
-    if (
-        movementState.isWalking &&
-        movementState.currentNodeIndex < movementState.splinePath.length
-    ) {
-        const currentTarget =
-            movementState.splinePath[movementState.currentNodeIndex];
-        RendererMain.drawWaypoint(
-            new Vec3i(
-                Math.floor(currentTarget.x),
-                Math.floor(currentTarget.y),
-                Math.floor(currentTarget.z)
-            ),
-            true,
-            new Color(1.0, 1.0, 0.0, 1.0)
-        );
-    }
-});
 
 function loadMap(map) {
     const url = `http://localhost:3000/api/loadmap?map=${map}`;

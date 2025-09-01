@@ -18,7 +18,7 @@ Client.getMinecraft()
 
 import './Utility/Misc.js';
 import './Backend/IRC.js';
-//import './Pathfinding/Pathfinder.js'; // registers cause fps drops !!!
+import './Pathfinding/Pathfinder.js';
 
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
