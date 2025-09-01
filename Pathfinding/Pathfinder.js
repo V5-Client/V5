@@ -170,8 +170,6 @@ function startPathingFromNodes(nodes) {
   movementState.lastRotation = { yaw: Player.getYaw(), pitch: Player.getPitch() };
   movementState.movementHeld = false;
   movementState.sprintHeld = false;
-
-  ChatLib.chat(`&aStarting path from node ${movementState.currentNodeIndex}/${movementState.splinePath.length}`);
 }
 
 
@@ -199,7 +197,6 @@ function updatePath() {
     const distToEnd = getDistance3D(playerPos, finalNode);
     
     if (distToEnd < NODE_REACH_DISTANCE) {
-      ChatLib.chat("&aReached destination!");
       stopPathingMovement();
       return;
     }
@@ -329,7 +326,7 @@ register('tick', () => {
     movementState.stuckTimer++;
     
     if (movementState.stuckTimer >= STUCK_THRESHOLD) {
-      ChatLib.chat("&cStuck detected, attempting to unstuck...");
+      global.showNotification("Stuck Detected", "You're stuck, trying to jump.", 'WARNING', 4000);
       try {
         mc.options.jumpKey.setPressed(true);
         Client.scheduleTask(5, () => {
@@ -423,17 +420,15 @@ function loadMap(map) {
       url: url,
       timeout: 5000,
   }).then(() => {
-      ChatLib.chat(`&6[Pathfinder] &aSuccessfully preloaded map '${map}'.`);
   }).catch(err => {
       console.log(`Failed to preload map '${map}': ${err}`);
-      ChatLib.chat(`&6[Pathfinder] &cError preloading map '${map}'. See console for details.`);
+      global.showNotification("Map Load Failed", `Failed to preload map '${map}': ${err}`, 'ERROR', 8000);
   });
 }
 
 function runProgram() {
   if (!FileLib.exists(path)) {
-    console.log("Pathfinding.exe not found. Pathfinding will not work.");
-    ChatLib.chat("&cPathfinding.exe not found. Pathfinding will not work.");
+    global.showNotification("Pathfinder.exe Missing", "Download it and \nadd it to the assets folder", 'ERROR', 8000);
     return;
   }
   stopProgram();
@@ -471,8 +466,8 @@ function runProgram() {
 
   const poller = register('tick', () => {
     if (process !== null && !process.isAlive()) {
-      console.log("Process terminated prematurely.");
-      ChatLib.chat("&cPathfinder stopped unexpectedly.");
+      console.log("Process terminated unexpectedly.");
+      global.showNotification("Pathfinder Stopped", "Pathfinder.exe stopped unexpectedly.", 'ERROR', 8000);
       poller.unregister();
       stopProgram();
       return;
@@ -480,7 +475,7 @@ function runProgram() {
 
     if (attempts >= maxAttempts) {
       console.log("Server failed to respond in time.");
-      ChatLib.chat("&cPathfinder failed to start");
+      global.showNotification("Pathfinder Failed", "Failed to connect to pathfinding server.", 'ERROR', 8000);
       poller.unregister();
       stopProgram();
       return;
@@ -540,18 +535,23 @@ runtime.addShutdownHook(new java.lang.Thread(() => {
   stopProgram();
 }));
 
-register("command", (x1, y1, z1, x2, y2, z2) => {
+register("command", (...args) => {
   pathNodes = [];
   keyNodes = [];
-  x1 = parseInt(x1);
-  y1 = parseInt(y1);
-  z1 = parseInt(z1);
-  x2 = parseInt(x2);
-  y2 = parseInt(y2);
-  z2 = parseInt(z2);
+
+  if (args.length !== 6) {
+    global.showNotification("Invalid Command", "Usage: \n/rustpath <x1> <y1> <z1> <x2> <y2> <z2>", 'ERROR', 5000);
+    return;
+  }
+
+  let [x1, y1, z1, x2, y2, z2] = args.map(n => parseInt(n));
+
+  if ([x1, y1, z1, x2, y2, z2].some(isNaN)) {
+    global.showNotification("Invalid Coordinates", "All coordinates must be valid numbers.", 'ERROR', 5000);
+    return;
+  }
 
   const url = `http://localhost:3000/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`;
-  ChatLib.chat(`§eSending request to pathfinder...`);
 
   request({
     url: url,
@@ -560,7 +560,7 @@ register("command", (x1, y1, z1, x2, y2, z2) => {
   })
     .then((body) => {
       if (!body || !body.path) {
-        ChatLib.chat("§cResponse received, but no valid path was found in it.");
+        global.showNotification("Pathfinding Failed", "No valid path found in response.", 'ERROR', 5000);
         return;
       }
 
@@ -568,13 +568,9 @@ register("command", (x1, y1, z1, x2, y2, z2) => {
       keyNodes = body.keynodes || [];
 
       startPathingFromNodes(pathNodes);
-
-      ChatLib.chat(
-        `§aPath found with ${pathNodes.length} nodes and ${keyNodes.length} key nodes.`
-      );
     })
     .catch((err) => {
-      ChatLib.chat(`§cError during request to pathfinder: ${err}`);
+      global.showNotification("Pathfinding Error", "See console for details.", 'ERROR', 5000);
       console.log(`Error: ${err}`);
     });
 }).setName("rustpath");
@@ -591,5 +587,4 @@ register("command", function () {
 register('command', () => {
   stopPathingMovement();
   Rotations.stopRotation();
-  ChatLib.chat("&cStopped pathfinding");
 }).setName('stop');

@@ -9,7 +9,7 @@ const NOTIFICATION_HEIGHT = 56;
 const NOTIFICATION_PADDING = 10;
 const NOTIFICATION_SPACING = 8;
 const NOTIFICATION_MARGIN = 20;
-const NOTIFICATION_DURATION = 5000; 
+const DEFAULT_NOTIFICATION_DURATION = 5000; 
 const ANIMATION_DURATION = 300;
 const CORNER_RADIUS = 8;
 
@@ -86,10 +86,11 @@ const NOTIFICATION_TYPES = {
 };
 
 class Notification {
-  constructor(title, description, type = "SUCCESS") {
+  constructor(title, description, type = "SUCCESS", duration = DEFAULT_NOTIFICATION_DURATION) {
     this.title = title;
     this.description = description;
     this.type = NOTIFICATION_TYPES[type] ? type : "SUCCESS";
+    this.duration = duration; // <-- custom duration per notification
     this.createdAt = Date.now();
     this.state = "entering";
     this.animationStart = Date.now();
@@ -120,7 +121,7 @@ class Notification {
       this.x = this.targetX;
       this.opacity = 1;
       
-      if (lifetime >= NOTIFICATION_DURATION) this.startExit();
+      if (lifetime >= this.duration) this.startExit();
     } else if (this.state === "exiting") {
       const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
       const eased = this.easeInCubic(progress);
@@ -198,7 +199,7 @@ class Notification {
     this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
 
     if (this.state === "active") {
-      const progress = 1 - ((Date.now() - this.createdAt) / NOTIFICATION_DURATION);
+      const progress = 1 - ((Date.now() - this.createdAt) / this.duration); 
       const progressBarHeight = 2;
       const progressBarY = this.y + NOTIFICATION_HEIGHT - progressBarHeight;
       const progressBarWidth = NOTIFICATION_WIDTH * progress;
@@ -239,8 +240,8 @@ class NotificationManager {
     this.tickTrigger = register("tick", () => this.update());
   }
 
-  add(title, description, type = "SUCCESS") {
-    const notification = new Notification(title, description, type);
+  add(title, description, type = "SUCCESS", duration = DEFAULT_NOTIFICATION_DURATION) {
+    const notification = new Notification(title, description, type, duration);
     this.notifications.unshift(notification); 
     this.updatePositions();
   }
@@ -284,6 +285,6 @@ class NotificationManager {
 
 global.notificationManager = new NotificationManager();
 
-global.showNotification = (title, description, type = "SUCCESS") => {
-  global.notificationManager.add(title, description, type);
+global.showNotification = (title, description, type = "SUCCESS", duration = DEFAULT_NOTIFICATION_DURATION) => {
+  global.notificationManager.add(title, description, type, duration);
 };
