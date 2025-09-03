@@ -316,13 +316,32 @@ global.createCategoriesManager = (deps) => {
             CATEGORY_DESC_COLOR,
             false
         );
-        let componentY = optionY + 70;
+
+        let regularComponents = [];
+        let expandedDropdowns = [];
+
         selectedItem.components.forEach((component) => {
+            if (component instanceof MultiToggle && component.expanded) {
+                expandedDropdowns.push(component);
+            } else {
+                regularComponents.push(component);
+            }
+        });
+
+        let componentY = optionY + 70;
+        regularComponents.forEach((component) => {
             if (typeof component.draw === 'function') {
                 component.x = optionX + 10;
                 component.y = componentY;
                 component.draw();
                 componentY += 20;
+            }
+        });
+
+        expandedDropdowns.forEach((component) => {
+            if (typeof component.draw === 'function') {
+                component.x = optionX + 10;
+                component.draw();
             }
         });
     };
@@ -586,6 +605,20 @@ global.createCategoriesManager = (deps) => {
     const handleClick = (mouseX, mouseY) => {
         if (global.Categories.transitionDirection !== 0) return;
 
+        if (
+            global.Categories.currentPage === 'options' &&
+            global.Categories.selectedItem
+        ) {
+            let openDropdown = global.Categories.selectedItem.components.find(
+                (comp) => comp instanceof MultiToggle && comp.expanded
+            );
+
+            if (openDropdown) {
+                openDropdown.handleClick(mouseX, mouseY);
+                return;
+            }
+        }
+
         const wasCategoryClicked = global.Categories.categories.some(
             (cat, i) => {
                 const rect = getCategoryRect(i);
@@ -661,8 +694,6 @@ global.createCategoriesManager = (deps) => {
 
             const panel = deps.rectangles.RightPanel;
             const panelWidth = panel.width - PADDING * 2;
-            const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
-            const itemHeight = CATEGORY_BOX_HEIGHT;
             let yOffset = panel.y + PADDING;
 
             if (cat.subcategories.length > 0) {
@@ -811,18 +842,19 @@ global.createCategoriesManager = (deps) => {
     };
 
     const handleMouseDrag = (mouseX, mouseY) => {
+        if (isLayoutCacheValid) isLayoutCacheValid = false;
+
         if (
             global.Categories.currentPage === 'options' &&
             global.Categories.selectedItem
         ) {
             const components = global.Categories.selectedItem.components;
-            if (components) {
-                components.forEach((component) => {
-                    if (typeof component.handleMouseDrag === 'function') {
-                        component.handleMouseDrag(mouseX, mouseY);
-                    }
-                });
-            }
+            if (!components) return;
+            components.forEach((component) => {
+                if (typeof component.handleMouseDrag === 'function') {
+                    component.handleMouseDrag(mouseX, mouseY);
+                }
+            });
         }
     };
 
@@ -832,13 +864,12 @@ global.createCategoriesManager = (deps) => {
             global.Categories.selectedItem
         ) {
             const components = global.Categories.selectedItem.components;
-            if (components) {
-                components.forEach((component) => {
-                    if (typeof component.handleMouseRelease === 'function') {
-                        component.handleMouseRelease();
-                    }
-                });
-            }
+            if (!components) return;
+            components.forEach((component) => {
+                if (typeof component.handleMouseRelease === 'function') {
+                    component.handleMouseRelease();
+                }
+            });
         }
     };
 

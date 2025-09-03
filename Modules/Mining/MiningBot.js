@@ -372,11 +372,17 @@ class MiningBot {
                             Math.pow(y - playerY, 2) +
                             Math.pow(z - playerZ, 2)
                     );
+                    let startPoint = [
+                        playerEyePos.x,
+                        playerEyePos.y,
+                        playerEyePos.z,
+                    ];
 
-                    let traversedBlocks = RayTrace.isBlockVisible(
-                        blockPos,
-                        Player.getPlayer().getEyePos(),
-                        false
+                    let endPoint = [x + 0.5, y + 0.5, z + 0.5];
+
+                    let traversedBlocks = RayTrace.rayTraceBetweenPoints(
+                        startPoint,
+                        endPoint
                     );
 
                     let isObstructed = false;
@@ -489,7 +495,7 @@ class MiningBot {
 // debugging
 const bot = new MiningBot();
 
-register('renderWorld', () => {
+register('postRenderWorld', () => {
     if (bot.foundLocations.length > 0) {
         const sortedLocations = bot.foundLocations;
 
@@ -501,7 +507,7 @@ register('renderWorld', () => {
                 RendererMain.drawWaypoint(
                     new Vec3i(location.x, location.y, location.z),
                     true,
-                    new Color(0, 0, 1, 1) // Pure red
+                    new Color(0, 0, 1, 1) // Pure blue*
                 );
                 continue;
             }
