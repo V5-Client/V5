@@ -24,7 +24,6 @@ import './Pathfinding/Pathfinder.js';
 
 /* GUI */
 import './GUI/GuiDraw.js';
-import './GUI/Registries.js';
 import './GUI/NotificationManager.js';
 import './TestNotification.js'; //REMOVE BEFORE RELEASE - has anyone looked at the notification system yet?
 import './Utility/Config.js';
