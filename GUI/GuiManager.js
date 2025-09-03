@@ -170,8 +170,6 @@ global.createCategoriesManager = (deps) => {
     const ANIMATION_DURATION = 300;
     let rightPanelScrollY = 0;
     let cachedItemLayouts = [];
-    let cachedTotalContentHeight = 0;
-    let isContentHeightCacheValid = false;
     let isLayoutCacheValid = false;
 
     const getCategoryRect = (index) => {
@@ -273,12 +271,11 @@ global.createCategoriesManager = (deps) => {
         if (!selectedItem) return;
 
         let optionPanelX = panel.x;
-        if (global.Categories.transitionDirection === 1) {
+        if (global.Categories.transitionDirection === 1)
             optionPanelX +=
                 panel.width * (1 - global.Categories.transitionProgress);
-        } else if (global.Categories.transitionDirection === -1) {
+        else if (global.Categories.transitionDirection === -1)
             optionPanelX += panel.width * global.Categories.transitionProgress;
-        }
 
         const optionX = optionPanelX + PADDING;
         const optionY = panel.y + PADDING;
@@ -434,17 +431,14 @@ global.createCategoriesManager = (deps) => {
             global.Categories.currentPage === 'options' || transitionActive;
 
         if (shouldDrawItems) {
-            if (!isLayoutCacheValid) {
-                cachedItemLayouts = [];
-            }
+            if (!isLayoutCacheValid) cachedItemLayouts = [];
 
             let panelX = panel.x;
-            if (global.Categories.transitionDirection === 1) {
+            if (global.Categories.transitionDirection === 1)
                 panelX -= panel.width * global.Categories.transitionProgress;
-            } else if (global.Categories.transitionDirection === -1) {
+            else if (global.Categories.transitionDirection === -1)
                 panelX -=
                     panel.width * (1 - global.Categories.transitionProgress);
-            }
 
             let yOffset = panel.y + PADDING;
             if (cat.subcategories.length > 0) {
@@ -499,10 +493,9 @@ global.createCategoriesManager = (deps) => {
                     let subcategoryItemsInRow = 0;
                     group.items.forEach((item) => {
                         const col = subcategoryItemsInRow % 3;
-                        if (col === 0 && subcategoryItemsInRow > 0) {
+                        if (col === 0 && subcategoryItemsInRow > 0)
                             yOffset +=
                                 CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-                        }
 
                         const itemX =
                             panelX + PADDING + col * (itemWidth + ITEM_SPACING);
@@ -524,9 +517,8 @@ global.createCategoriesManager = (deps) => {
 
                         deps.draw.drawRoundedRectangleWithBorder(itemRect);
 
-                        if (!isLayoutCacheValid) {
+                        if (!isLayoutCacheValid)
                             cachedItemLayouts.push({ rect: itemRect, item });
-                        }
 
                         Renderer.drawString(
                             item.title,
@@ -549,9 +541,8 @@ global.createCategoriesManager = (deps) => {
                     if (global.Categories.selectedSubcategory !== null) return;
                     const item = group;
                     const col = itemIndexInRow % 3;
-                    if (col === 0 && itemIndexInRow > 0) {
+                    if (col === 0 && itemIndexInRow > 0)
                         yOffset += CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-                    }
 
                     const itemX =
                         panelX + PADDING + col * (itemWidth + ITEM_SPACING);
@@ -576,9 +567,8 @@ global.createCategoriesManager = (deps) => {
                         deps.colors.gradientBottom
                     );
 
-                    if (!isLayoutCacheValid) {
+                    if (!isLayoutCacheValid)
                         cachedItemLayouts.push({ rect: itemRect, item });
-                    }
 
                     Renderer.drawString(
                         item.title,
@@ -591,13 +581,9 @@ global.createCategoriesManager = (deps) => {
                 }
             });
 
-            if (!isLayoutCacheValid) {
-                isLayoutCacheValid = true;
-            }
+            if (!isLayoutCacheValid) isLayoutCacheValid = true;
         }
-        if (shouldDrawOptions) {
-            drawOptionsPanel(panel, mouseX, mouseY);
-        }
+        if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
     };
@@ -669,16 +655,14 @@ global.createCategoriesManager = (deps) => {
 
             const components = global.Categories.selectedItem.components;
             let wasComponentClicked = false;
-            if (components) {
-                components.forEach((component) => {
-                    if (
-                        typeof component.handleClick === 'function' &&
-                        component.handleClick(mouseX, mouseY)
-                    ) {
-                        wasComponentClicked = true;
-                    }
-                });
-            }
+            if (!components) return;
+            components.forEach((component) => {
+                if (
+                    typeof component.handleClick === 'function' &&
+                    component.handleClick(mouseX, mouseY)
+                )
+                    wasComponentClicked = true;
+            });
 
             if (wasComponentClicked) return;
         }
@@ -693,63 +677,57 @@ global.createCategoriesManager = (deps) => {
             if (!cat) return;
 
             const panel = deps.rectangles.RightPanel;
-            const panelWidth = panel.width - PADDING * 2;
             let yOffset = panel.y + PADDING;
 
-            if (cat.subcategories.length > 0) {
-                let currentX = panel.x + PADDING;
-                const subcategoriesToDraw = ['All', ...cat.subcategories];
-                for (const subcat of subcategoriesToDraw) {
-                    const buttonTextWidth =
-                        Renderer.getStringWidth(subcat) + 10;
-                    const buttonRect = {
-                        x: currentX,
-                        y: yOffset,
-                        width: buttonTextWidth,
-                        height: SUBCATEGORY_BUTTON_HEIGHT,
-                    };
-                    if (isInside(mouseX, mouseY, buttonRect)) {
-                        const newSubcatName = subcat === 'All' ? null : subcat;
-                        if (
-                            global.Categories.selectedSubcategory !==
-                            newSubcatName
-                        ) {
-                            const oldRect =
-                                global.Categories.selectedSubcategoryButton ||
-                                buttonRect;
-                            global.Categories.selectedSubcategory =
-                                newSubcatName;
-                            isContentHeightCacheValid = false;
-                            isLayoutCacheValid = false;
-                            rightPanelScrollY = 0;
+            if (cat.subcategories.length < 0) return;
+            let currentX = panel.x + PADDING;
+            const subcategoriesToDraw = ['All', ...cat.subcategories];
+            for (const subcat of subcategoriesToDraw) {
+                const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+                const buttonRect = {
+                    x: currentX,
+                    y: yOffset,
+                    width: buttonTextWidth,
+                    height: SUBCATEGORY_BUTTON_HEIGHT,
+                };
+                if (isInside(mouseX, mouseY, buttonRect)) {
+                    const newSubcatName = subcat === 'All' ? null : subcat;
+                    if (
+                        global.Categories.selectedSubcategory !== newSubcatName
+                    ) {
+                        const oldRect =
+                            global.Categories.selectedSubcategoryButton ||
+                            buttonRect;
+                        global.Categories.selectedSubcategory = newSubcatName;
+                        isContentHeightCacheValid = false;
+                        isLayoutCacheValid = false;
+                        rightPanelScrollY = 0;
 
-                            global.Categories.subcatTransitionStart =
-                                Date.now();
-                            global.Categories.subcatTransitionProgress = 0;
-                            global.Categories.animationRect = {
-                                startX: oldRect.x,
-                                startY: oldRect.y,
-                                startWidth: oldRect.width,
-                                startHeight: oldRect.height,
-                                endX: buttonRect.x,
-                                endY: buttonRect.y,
-                                endWidth: buttonRect.width,
-                                endHeight: buttonRect.height,
-                                x: oldRect.x,
-                                y: oldRect.y,
-                                width: oldRect.width,
-                                height: oldRect.height,
-                            };
-                            global.Categories.selectedSubcategoryButton =
-                                buttonRect;
-                        }
-                        playClickSound();
-                        return;
+                        global.Categories.subcatTransitionStart = Date.now();
+                        global.Categories.subcatTransitionProgress = 0;
+                        global.Categories.animationRect = {
+                            startX: oldRect.x,
+                            startY: oldRect.y,
+                            startWidth: oldRect.width,
+                            startHeight: oldRect.height,
+                            endX: buttonRect.x,
+                            endY: buttonRect.y,
+                            endWidth: buttonRect.width,
+                            endHeight: buttonRect.height,
+                            x: oldRect.x,
+                            y: oldRect.y,
+                            width: oldRect.width,
+                            height: oldRect.height,
+                        };
+                        global.Categories.selectedSubcategoryButton =
+                            buttonRect;
                     }
-                    currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+                    playClickSound();
+                    return;
                 }
-                yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+                currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
             }
+            yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
 
             for (const layout of cachedItemLayouts) {
                 if (isInside(mouseX, mouseY, layout.rect)) {
@@ -777,13 +755,12 @@ global.createCategoriesManager = (deps) => {
             global.Categories.selectedItem
         ) {
             const components = global.Categories.selectedItem.components;
-            if (components) {
-                components.forEach((component) => {
-                    if (typeof component.handleScroll === 'function') {
-                        component.handleScroll(mouseX, mouseY, dir);
-                    }
-                });
-            }
+            if (!components) return;
+            components.forEach((component) => {
+                if (typeof component.handleScroll !== 'function') return;
+                component.handleScroll(mouseX, mouseY, dir);
+            });
+
             return;
         }
         if (
@@ -806,9 +783,8 @@ global.createCategoriesManager = (deps) => {
         if (!cat) return;
 
         let totalContentHeight = 0;
-        if (cat.subcategories.length > 0) {
+        if (cat.subcategories.length > 0)
             totalContentHeight += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
-        }
 
         const itemsToDisplay = global.Categories.selectedSubcategory
             ? cat.items.filter(
@@ -851,9 +827,8 @@ global.createCategoriesManager = (deps) => {
             const components = global.Categories.selectedItem.components;
             if (!components) return;
             components.forEach((component) => {
-                if (typeof component.handleMouseDrag === 'function') {
-                    component.handleMouseDrag(mouseX, mouseY);
-                }
+                if (typeof component.handleMouseDrag !== 'function') return;
+                component.handleMouseDrag(mouseX, mouseY);
             });
         }
     };
@@ -866,9 +841,8 @@ global.createCategoriesManager = (deps) => {
             const components = global.Categories.selectedItem.components;
             if (!components) return;
             components.forEach((component) => {
-                if (typeof component.handleMouseRelease === 'function') {
-                    component.handleMouseRelease();
-                }
+                if (typeof component.handleMouseRelease !== 'function') return;
+                component.handleMouseRelease();
             });
         }
     };
