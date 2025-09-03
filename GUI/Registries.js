@@ -13,8 +13,13 @@ addCategoryItem(
     'Universal settings for Mining & block miner'
 );
 addToggle('Modules', 'Mining Bot', 'Tick Gliding');
-addToggle('Modules', 'Mining Bot', 'Fakelook');
-addToggle('Modules', 'Mining Bot', 'Movement');
+addMultiToggle(
+    'Modules',
+    'Mining Bot',
+    'Fakelook',
+    ['Off', 'Instant', 'Queued'],
+    true
+);
 addMultiToggle(
     'Modules',
     'Mining Bot',

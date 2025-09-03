@@ -18,26 +18,28 @@ function CheckEvents(event) {
 }
 
 register('chat', (event) => {
-    let msg = event.message.getString();
+    let msg = event.message.getUnformattedText();
 
     if (msg.includes('Sending to server'))
-        (CheckEvents('serverchange'), ChatLib.chat('EOOOOO'));
+        CheckEvents('serverchange'), ChatLib.chat('EOOOOO');
 
     /* Ability */
     if (
         msg.includes('Mining Speed Boost is now available!') ||
-        msg.includes('Maniac Miner is now available')
-    )
+        msg.includes('Maniac Miner is now available!') ||
+        msg.includes('Pickobulus is now available!')
+    ) {
         CheckEvents('abilityready');
-
-    if (msg.includes('Pickobulus is now available')) CheckEvents('pickoready');
+    }
 
     if (
         msg.includes('You used your Mining Speed Boost Pickaxe Ability!') ||
         msg.includes('You used your Maniac Miner Pickaxe Ability!') ||
         msg.includes('You used your Pickobulus Pickaxe Ability!')
-    )
+    ) {
         CheckEvents('abilityused');
+        ChatLib.chat('YUIUUHFHFH');
+    }
 
     if (
         msg.includes('Your Mining Speed Boost has expired!') ||

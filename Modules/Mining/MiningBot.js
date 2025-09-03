@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { getSetting } from '../../GUI/GuiSave';
 import RendererMain from '../../Rendering/RendererMain';
 import { Keybind } from '../../Utility/Keybinding';
@@ -6,6 +7,11 @@ import { RayTrace } from '../../Utility/Raytrace';
 import { Rotations } from '../../Utility/Rotations';
 import { Utils } from '../../Utility/Utils';
 import { Color } from '../../Utility/Constants';
+import { MathUtils } from '../../Utility/Math';
+import { Chat } from '../../Utility/Chat';
+import { registerEventSB } from '../../Utility/SkyblockEvents';
+import { Guis } from '../../Utility/Inventory';
+import { NukerUtils } from '../../Utility/NukerUtils';
 
 const Vec3d = net.minecraft.util.math.Vec3d;
 
@@ -17,6 +23,8 @@ class MiningBot {
 
         this.PRIORITIZE_TITANIUM = true;
         this.TICKGLIDE = true;
+        this.FAKELOOK = false;
+        this.MOVEMENT = false;
 
         this.mithrilCosts = {
             'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 5,
@@ -45,12 +53,12 @@ class MiningBot {
             'minecraft:yellow_stained_glass_pane': 4,
         };
 
-        this.COSTTYPE = this.mithrilCosts;
+        this.COSTTYPE = this.gemstoneCosts;
 
         this.STATES = {
             WAITING: 0,
-            MINING: 1,
-            ABILITY: 2,
+            ABILITY: 1,
+            MINING: 2,
             BUFF: 3,
             REFUEL: 4,
         };
@@ -65,22 +73,33 @@ class MiningBot {
         };
         this.type = this.TYPES.MININGBOT;
 
-        this.enabled = true;
+        this.enabled = false;
         this.miningspeed = 0;
         this.currentTarget = null;
         this.tickCount = 0;
+        this.lastBlockPos = null;
+        this.allowScan = false;
+        this.scanning = false;
+        this.totalTicks = 0;
+        this.miningbot = null;
+        this.ability = null;
+        this.file = null;
+        this.abilityClicked = false;
+        this.speedBoost = false;
+        this.empty = false;
+        this.nuking = false;
 
         register('step', () => {
-            //wtf are we doing
             this.TICKGLIDE = getSetting('Mining Bot', 'Tick Gliding');
-            this.FAKELOOK = getSetting('Mining Bot', 'Fakelook');
-            this.MOVEMENT = getSetting('Mining Bot', 'Movement');
+            this.FAKELOOK = getSetting('Mining Bot', 'Fakelook', [
+                'Off',
+                'Instant',
+                'Queued',
+            ]);
         }).setFps(1);
 
         register('command', () => {
-            miningbot.register();
-            this.enabled = true;
-            this.state = this.STATES.MINING;
+            this.toggle();
         }).setName('startb');
 
         register('command', () => {
@@ -95,16 +114,55 @@ class MiningBot {
             ChatLib.chat('§c[Mining Bot] §7Disabled.');
         }).setName('stopb');
 
-        let miningbot = register('tick', () => {
+        this.miningbot = register('tick', () => {
             if (!this.enabled) return;
 
+            if (Client.isInChat() || Client.isInGui()) return;
+
+            let drillfunc = MiningUtils.getDrills();
+            let drill = drillfunc.drill;
+            let blueCheese = drillfunc.blueCheese;
+
             switch (this.state) {
-                case this.STATES.MINING:
+                case this.STATES.ABILITY:
+                    Guis.setItemSlot(drill.slot);
+                    Keybind.setKey('leftclick', false);
+
+                    if (!this.file) {
+                        file = Utils.getConfigFile('miningstats.json');
+                        this.ability = file.ability;
+                    }
+
+                    if (!this.ability) {
+                        Chat.message(
+                            '&cFailed to get Pickaxe Ability! Run /getminingstats'
+                        );
+                        this.miningbot.unregister();
+                        return;
+                    }
+
+                    // pickobulus will be done soon
                     if (
-                        this.foundLocations.length === 0 ||
-                        this.foundLocations.length === 1
+                        this.ability !== 'Pickobulus' &&
+                        Player.getHeldItemIndex() === drill.slot
                     ) {
-                        this.scanForBlock(this.COSTTYPE); //return; //  ChatLib.chat("idk what to do here!"); // if there is not blocks it should be fixed by the actual macro itself e.g falling off cobble -> tp back
+                        if (!this.abilityClicked) {
+                            Client.scheduleTask(3, () => {
+                                Keybind.rightClick();
+                                this.scanForBlock(this.COSTTYPE);
+                                this.state = this.STATES.MINING;
+                                this.abilityClicked = false;
+                            });
+                            this.abilityClicked = true;
+                        }
+                    }
+                    break;
+                case this.STATES.MINING:
+                    Guis.setItemSlot(drill.slot);
+
+                    if (this.empty) {
+                        Chat.message('NOOOO');
+                        this.state = this.STATES.WAITING;
                     }
 
                     this.miningspeed =
@@ -115,141 +173,141 @@ class MiningBot {
                     let lowestCostBlock =
                         this.foundLocations[this.lowestCostBlockIndex];
 
-                    if (lowestCostBlock) {
-                        let block = World.getBlockAt(
-                            lowestCostBlock.x,
-                            lowestCostBlock.y,
-                            lowestCostBlock.z
-                        );
-                        let blockName = block?.type?.getRegistryName();
+                    if (!lowestCostBlock) return;
+                    let block = World.getBlockAt(
+                        lowestCostBlock.x,
+                        lowestCostBlock.y,
+                        lowestCostBlock.z
+                    );
+
+                    let blockName = block?.type?.getRegistryName();
+
+                    if (
+                        !this.lastBlockPos ||
+                        this.lastBlockPos.x !== lowestCostBlock.x ||
+                        this.lastBlockPos.y !== lowestCostBlock.y ||
+                        this.lastBlockPos.z !== lowestCostBlock.z
+                    ) {
+                        this.tickCount = 0;
+                        this.lastBlockPos = lowestCostBlock;
+                    }
+
+                    this.currentTarget =
+                        this.foundLocations[this.lowestCostBlockIndex];
+
+                    let lookingAt = Player.lookingAt();
+                    if (
+                        lookingAt &&
+                        lookingAt?.getX() === this.currentTarget?.x &&
+                        lookingAt?.getY() === this.currentTarget?.y &&
+                        lookingAt?.getZ() === this.currentTarget?.z
+                    ) {
+                        this.tickCount++;
+                    }
+
+                    this.totalTicks = MiningUtils.getMineTime(
+                        this.miningspeed,
+                        this.speedBoost,
+                        this.currentTarget
+                    );
+
+                    Keybind.setKey('leftclick', true);
+
+                    if (this.FAKELOOK) {
+                        if (this.FAKELOOK?.includes('Instant')) {
+                            // im not sure if ive done this wrong or the way i coded mining bot prevents seeing change
+                            if (!this.currentTarget) return;
+                            if (!this.nuking) {
+                                NukerUtils.nuke(
+                                    [
+                                        this.currentTarget.x,
+                                        this.currentTarget.y,
+                                        this.currentTarget.z,
+                                    ],
+                                    this.totalTicks
+                                );
+                                this.nuking = true;
+                            }
+                        }
+                    }
+
+                    if (this.TICKGLIDE) {
+                        let targetVector = [
+                            this.currentTarget.x + 0.5,
+                            this.currentTarget.y + 0.5,
+                            this.currentTarget.z + 0.5,
+                        ];
+
+                        if (this.currentTarget)
+                            Rotations.rotateTo(targetVector);
 
                         if (
-                            !this.lastBlockPos ||
-                            this.lastBlockPos.x !== lowestCostBlock.x ||
-                            this.lastBlockPos.y !== lowestCostBlock.y ||
-                            this.lastBlockPos.z !== lowestCostBlock.z
+                            this.tickCount > this.totalTicks ||
+                            this.allowScan
                         ) {
                             this.tickCount = 0;
-                            this.lastBlockPos = lowestCostBlock;
-                        }
-
-                        Keybind.setKey('leftclick', true);
-
-                        if (this.TICKGLIDE) {
-                            // i see no reason why mithril should be tickglided (it fails 90% of the time here)
-                            if (this.COSTTYPE === this.mithrilCosts) {
-                                this.TICKGLIDE = false;
-                            }
-                            let currentTarget =
-                                this.foundLocations[this.lowestCostBlockIndex];
-                            let lookingAt = Player.lookingAt();
-
-                            if (
-                                lookingAt &&
-                                lookingAt?.getX() === currentTarget?.x &&
-                                lookingAt?.getY() === currentTarget?.y &&
-                                lookingAt?.getZ() === currentTarget?.z
-                            ) {
-                                this.tickCount++;
-                            }
-
-                            if (
-                                World.getBlockAt(
-                                    currentTarget.x,
-                                    currentTarget.y,
-                                    currentTarget.z
-                                )
-                                    ?.type?.getRegistryName()
-                                    .includes('air')
-                            ) {
-                                ChatLib.chat('NOT GOOD');
-                                this.scanForBlock(this.COSTTYPE);
-                                this.tickCount = 0;
-                                return;
-                            }
-
-                            let totalTicks = MiningUtils.getMineTime(
-                                this.miningspeed,
-                                false,
-                                currentTarget
+                            this.allowScan = false;
+                            this.scanForBlock(
+                                this.COSTTYPE,
+                                true,
+                                null,
+                                this.currentTarget
                             );
+                        }
+                    } else if (!this.TICKGLIDE) {
+                        this.currentTarget = lowestCostBlock;
+                        let targetVector = [
+                            this.currentTarget.x + 0.5,
+                            this.currentTarget.y + 0.5,
+                            this.currentTarget.z + 0.5,
+                        ];
 
-                            // Always rotate to the center of the current block
-                            const targetVector = [
-                                currentTarget.x + 0.5,
-                                currentTarget.y + 0.5,
-                                currentTarget.z + 0.5,
-                            ];
+                        if (this.currentTarget)
                             Rotations.rotateTo(targetVector);
 
-                            if (this.tickCount >= totalTicks) {
-                                this.tickCount = 0;
-
-                                // The block is considered mined, remove it from the list
-                                this.foundLocations.shift();
-
-                                if (this.foundLocations.length > 0) {
-                                    // The next block is now at the top of the list
-                                    this.lowestCostBlockIndex = 0; // Should be already 0, but for clarity
-                                    this.currentTarget = this.foundLocations[0];
-                                    // Scan for more blocks starting from the new target
-                                    this.scanForBlock(
-                                        this.COSTTYPE,
-                                        false,
-                                        new BlockPos(
-                                            this.currentTarget.x,
-                                            this.currentTarget.y,
-                                            this.currentTarget.z
-                                        )
-                                    );
-                                } else {
-                                    ChatLib.chat(
-                                        'No more blocks found. Rescanning from player position.'
-                                    );
-                                    // No blocks left, do a full scan from player's position
-                                    this.scanForBlock(
-                                        this.COSTTYPE,
-                                        true,
-                                        null
-                                    );
-                                    this.lowestCostBlockIndex = 0;
-                                }
-                            }
-                        } else if (!this.TICKGLIDE) {
-                            // Default rotation to the center of the current block
-                            const targetVector = [
-                                lowestCostBlock.x + 0.5,
-                                lowestCostBlock.y + 0.5,
-                                lowestCostBlock.z + 0.5,
-                            ];
-                            Rotations.rotateTo(targetVector);
-
-                            if (
-                                blockName.includes('air') ||
-                                blockName.includes('bedrock')
-                            ) {
-                                this.scanForBlock(
-                                    this.COSTTYPE,
-                                    true,
-                                    new BlockPos(
-                                        lowestCostBlock.x,
-                                        lowestCostBlock.y,
-                                        lowestCostBlock.z
-                                    )
-                                );
-                                this.lowestCostBlockIndex = 0;
-                            }
+                        if (
+                            blockName.includes('air') ||
+                            blockName.includes('bedrock') ||
+                            this.allowScan
+                        ) {
+                            this.scanForBlock(
+                                this.COSTTYPE,
+                                true,
+                                new BlockPos(
+                                    this.currentTarget.x,
+                                    this.currentTarget.y,
+                                    this.currentTarget.z
+                                )
+                            );
+                            this.lowestCostBlockIndex = 0;
+                            this.allowScan = false;
                         }
                     }
                     break;
             }
         }).unregister();
+
+        registerEventSB('abilityready', () => {
+            this.state = this.STATES.ABILITY;
+        });
+
+        registerEventSB('abilityused', () => {
+            if (this.ability === 'SpeedBoost') this.speedBoost = true;
+        });
+
+        registerEventSB('abilitygone', () => (this.speedBoost = false));
     }
 
-    scanForBlock(target, specific = true, startPos = null) {
+    scanForBlock(
+        target,
+        specific = true,
+        startPos = null,
+        excludedBlock = null
+    ) {
         if (this.scanning) return;
         new Thread(() => {
             this.tickCount = 0;
+            this.scanning = true;
 
             this.foundLocations = [];
             let startX, startY, startZ;
@@ -264,7 +322,6 @@ class MiningBot {
                 startZ = Math.floor(Player.getZ());
             }
 
-            let cubeRadius = 4;
             let foundBlock = false;
 
             let playerX = Player.getX();
@@ -290,22 +347,23 @@ class MiningBot {
                 let { x, y, z } = queue.shift();
 
                 if (
-                    Math.abs(x - playerX) > cubeRadius ||
-                    Math.abs(y - playerY) > cubeRadius ||
-                    Math.abs(z - playerZ) > cubeRadius
+                    excludedBlock &&
+                    x === excludedBlock.x &&
+                    y === excludedBlock.y &&
+                    z === excludedBlock.z
                 ) {
                     continue;
                 }
+
+                let dist = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
+                if (dist > 5) continue;
 
                 let block = World.getBlockAt(x, y, z);
                 let blockName = block?.type?.getRegistryName();
 
                 let isTargetBlock = false;
-                if (specific) {
-                    isTargetBlock = target.hasOwnProperty(blockName);
-                } else {
-                    isTargetBlock = Object.keys(target).includes(blockName);
-                }
+                if (specific) isTargetBlock = target.hasOwnProperty(blockName);
+                else isTargetBlock = Object.keys(target).includes(blockName);
 
                 if (isTargetBlock) {
                     let blockPos = new BlockPos(x, y, z);
@@ -315,30 +373,23 @@ class MiningBot {
                             Math.pow(z - playerZ, 2)
                     );
 
-                    const startPoint = [
-                        playerEyePos.x,
-                        playerEyePos.y,
-                        playerEyePos.z,
-                    ];
-                    const endPoint = [x + 0.5, y + 0.5, z + 0.5];
-                    const traversedBlocks = RayTrace.rayTraceBetweenPoints(
-                        startPoint,
-                        endPoint
+                    let traversedBlocks = RayTrace.isBlockVisible(
+                        blockPos,
+                        Player.getPlayer().getEyePos(),
+                        false
                     );
 
                     let isObstructed = false;
                     if (traversedBlocks) {
                         for (let i = 0; i < traversedBlocks.length; i++) {
-                            const blockCoords = traversedBlocks[i];
-                            const currentBlockPos = new BlockPos(
+                            let blockCoords = traversedBlocks[i];
+                            let currentBlockPos = new BlockPos(
                                 blockCoords[0],
                                 blockCoords[1],
                                 blockCoords[2]
                             );
-
-                            // If the traversed block is not the target block, check if it's solid
                             if (!currentBlockPos.equals(blockPos)) {
-                                const block = World.getBlockAt(
+                                let block = World.getBlockAt(
                                     currentBlockPos.getX(),
                                     currentBlockPos.getY(),
                                     currentBlockPos.getZ()
@@ -397,29 +448,65 @@ class MiningBot {
             }
 
             if (!foundBlock) {
-                ChatLib.chat('no found');
+                // ChatLib.chat('no found');
+                this.empty = true;
             } else {
+                this.nuking = false;
                 this.foundLocations.sort((a, b) => a.cost - b.cost);
                 this.currentTarget = this.foundLocations[0];
                 this.lowestCostBlockIndex = 0;
-                ChatLib.chat('Scan complete. Displaying snake trail...');
+                // ChatLib.chat('Scan complete.');
             }
             this.scanning = false;
         }).start();
+    }
+
+    toggle(forceAState = null) {
+        if (forceAState !== null) this.enabled = forceAState;
+        else this.enabled = !this.enabled;
+
+        if (this.enabled) {
+            this.miningbot.register();
+            this.enabled = true;
+            this.empty = false;
+            this.allowScan = true;
+            this.state = this.STATES.ABILITY;
+        }
+
+        if (!this.enabled) {
+            this.miningbot.unregister();
+            this.enabled = false;
+            this.state = this.STATES.WAITING;
+            Keybind.setKey('leftclick', false);
+            this.foundLocations = [];
+            this.lastBlockPos = null;
+            this.currentTarget = null;
+            this.tickCount = 0;
+            this.empty = false;
+        }
     }
 }
 // debugging
 const bot = new MiningBot();
 
-/*register('postRenderWorld', () => {
+register('renderWorld', () => {
     if (bot.foundLocations.length > 0) {
         const sortedLocations = bot.foundLocations;
 
         const numLocations = sortedLocations.length;
         for (let i = 0; i < numLocations; i++) {
             const location = sortedLocations[i];
-            const t = numLocations > 1 ? i / (numLocations - 1) : 0;
 
+            if (i === 0) {
+                RendererMain.drawWaypoint(
+                    new Vec3i(location.x, location.y, location.z),
+                    true,
+                    new Color(0, 0, 1, 1) // Pure red
+                );
+                continue;
+            }
+
+            const t = numLocations > 1 ? i / (numLocations - 1) : 0;
             const r = t;
             const g = 1 - t;
             const b = 0;
@@ -432,4 +519,4 @@ const bot = new MiningBot();
             );
         }
     }
-}); */
+});

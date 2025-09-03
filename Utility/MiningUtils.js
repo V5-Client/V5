@@ -15,6 +15,8 @@ const blockHardness = {
     5: 2000, // Titanium
     143: 1500, // Blue Wool Mithril
     495: 800, // Prismarine Mithril
+    496: 800, // Prismarine Brick Mithril
+    497: 800, // Dark Prismarine Mithril
     461: 500, // Cyan Terracotta Mithril
     147: 500, // Gray Wool Mithril
     /* Tunnels */
@@ -114,8 +116,15 @@ class MiningUtilClass {
             switch (step) {
                 case 'sbmenu':
                     if (guiName && guiName.includes('SkyBlock Menu')) {
+                        Guis.clickSlot(13);
+                    }
+
+                    if (
+                        guiName &&
+                        guiName.includes('Your Equipment and Stats')
+                    ) {
                         this.miningSpeed = getFirstMatchFromLore(
-                            13,
+                            15,
                             /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i
                         );
                         currentStep++;
@@ -453,26 +462,37 @@ class MiningUtilClass {
      */
     getMineTime(MiningSpeed, SpeedBoost, pos) {
         let Block = World.getBlockAt(pos.x, pos.y, pos.z);
+        if (!Block || !Block.type) {
+            return this.returnSpeed(20, 0);
+        }
+
         let BlockID = Block.type.getID();
-        let Speed = MiningSpeed + Flowstate.CurrentFlowstate();
-        let MiningOffset = 0;
+        let BlockName = Block.type.getRegistryName?.() || 'Unknown';
 
-        if (!this.cotm && SpeedBoost) {
-            Speed *= 3;
-        } else if (SpeedBoost) {
-            Speed *= 3.5;
+        /*Chat.message(
+            `Block at (${pos.x}, ${pos.y}, ${pos.z}) → ID: ${BlockID}, Name: ${BlockName}`
+        ); */
+
+        let hardness = blockHardness[BlockID];
+        if (!hardness || isNaN(hardness)) {
+            hardness = 100; // fallback
         }
 
-        const hardness = blockHardness[BlockID];
-        if (hardness) {
-            return this.returnSpeed(
-                Math.round((hardness * 30) / Speed),
-                MiningOffset
-            );
+        let Speed = (MiningSpeed || 0) + Flowstate.CurrentFlowstate();
+        if (!this.cotm && SpeedBoost) Speed *= 3;
+        if (SpeedBoost) Speed *= 3.5;
+
+        let ticks = Math.round((hardness * 30) / Speed);
+        if (!ticks && !SpeedBoost) {
+            if (BlockID !== 34) {
+                Chat.message(
+                    `&c WARNING! Block is undefined. Tell devs immediately. Block Name & ID: ${BlockName}, ${BlockID}`
+                );
+            }
+            ticks = 4;
         }
 
-        // unknown block `panic`
-        this.returnSpeed(100, MiningOffset);
+        return this.returnSpeed(ticks, 0);
     }
 
     /**
