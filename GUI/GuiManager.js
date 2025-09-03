@@ -94,7 +94,7 @@ global.Categories = {
 
         item.components.push(new ToggleButton(toggleTitle, 0, 0));
     },
-    addSlider(categoryName, itemName, sliderTitle, min, max) {
+    addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue) {
         const category = global.Categories.categories.find(
             (c) => c.name === categoryName
         );
@@ -112,7 +112,18 @@ global.Categories = {
         }
         if (!item) return;
 
-        item.components.push(new Slider(sliderTitle, min, max, 0, 0));
+        item.components.push(
+            new Slider(
+                sliderTitle,
+                min,
+                max,
+                0,
+                0,
+                undefined,
+                undefined,
+                defaultValue
+            )
+        );
     },
 
     addMultiToggle(
