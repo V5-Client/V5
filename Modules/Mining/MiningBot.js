@@ -12,8 +12,30 @@ import { Chat } from '../../Utility/Chat';
 import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { Guis } from '../../Utility/Inventory';
 import { NukerUtils } from '../../Utility/NukerUtils';
+const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
+
+addCategoryItem(
+    'Mining',
+    'Mining Bot',
+    'Universal settings for Mining & block miner'
+);
+addToggle('Modules', 'Mining Bot', 'Tick Gliding');
+addMultiToggle(
+    'Modules',
+    'Mining Bot',
+    'Fakelook',
+    ['Off', 'Instant', 'Queued'],
+    true
+);
+addMultiToggle(
+    'Modules',
+    'Mining Bot',
+    'Types',
+    ['Mithril', 'Gemstone', 'Ore'],
+    true
+);
 
 class MiningBot {
     constructor() {

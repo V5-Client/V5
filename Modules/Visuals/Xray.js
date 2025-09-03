@@ -1,6 +1,16 @@
 import { getSetting } from '../../GUI/GuiSave';
 const XrayPackage = Java.type('com.chattriggers.ctjs.v5.Xray');
 
+const { addCategoryItem, addToggle, addSlider } = global.Categories;
+
+addCategoryItem(
+    'Visuals',
+    'Xray',
+    'See through walls - Sodium and Iris will break Xray'
+);
+addToggle('Modules', 'Xray', 'Enabled');
+addSlider('Modules', 'Xray', 'Transparency', 0, 255, 50);
+
 class Xray {
     constructor() {
         this.enabled = false;

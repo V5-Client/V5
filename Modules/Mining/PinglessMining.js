@@ -4,7 +4,16 @@ import { Utils } from '../../Utility/Utils';
 import { getSetting } from '../../GUI/GuiSave';
 import { MiningUtils } from '../../Utility/MiningUtils';
 
-// ghost blocking is much harder in 1.21.5, making this more buggy
+const { addCategoryItem, addToggle, addSlider } = global.Categories;
+
+addCategoryItem(
+    'Mining',
+    'Pingless Miner',
+    'Breaks hardstone quicker in the Crystal Hollows'
+);
+addToggle('Modules', 'Pingless Miner', 'Enabled');
+addSlider('Modules', 'Pingless Miner', 'Tick Delay', 0, 5, 1);
+
 class Pingless {
     constructor() {
         this.mining = false;

@@ -1,15 +1,19 @@
 import { getSetting } from '../../GUI/GuiSave';
 
-const RPCPackage = Java.type('com.chattriggers.v5.qol.DiscordRPC');
+const DiscordRPC = Java.type('com.chattriggers.v5.qol.DiscordRPC');
+
+const { addCategoryItem, addToggle } = global.Categories;
+
+addCategoryItem('Other', 'Discord RPC', "Show you're playing V5!");
+addToggle('Modules', 'Discord RPC', 'Enabled');
 
 class RPC {
     constructor() {
         register('step', () => {
-            this.enabled = getSetting('Discord RPC', 'Enabled');
-
-            if (this.enabled) RPCPackage.stayOn();
-            else RPCPackage.turnOff();
-        });
+            getSetting('Discord RPC', 'Enabled')
+                ? DiscordRPC.stayOn()
+                : DiscordRPC.turnOff();
+        }).setDelay(1);
     }
 }
 
