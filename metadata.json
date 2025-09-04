@@ -1,0 +1,9 @@
+{
+    "name": "V5",
+    "creator": "Zurviq, Rdbt, EpilsonPhoenix and Contributors",
+    "description": "Cheaters get banned",
+    "version": "1.0.0 beta",
+    "entry": "loader.js",
+    "mixinEntry": "mixins.js",
+    "requires": ["requestV2", "WebSocket"]
+}
