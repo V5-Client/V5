@@ -183,6 +183,9 @@ global.createCategoriesManager = (deps) => {
     let cachedItemLayouts = [];
     let isLayoutCacheValid = false;
 
+    let cachedContentHeight = 0;
+    let isContentHeightCacheValid = false;
+
     const getCategoryRect = (index) => {
         return {
             x: deps.rectangles.LeftPanel.x + PADDING,
@@ -654,6 +657,7 @@ global.createCategoriesManager = (deps) => {
         ) {
             global.Categories.selected = null;
             isLayoutCacheValid = false;
+            isContentHeightCacheValid = false;
             playClickSound();
         }
 
@@ -799,41 +803,14 @@ global.createCategoriesManager = (deps) => {
             return;
         }
 
-        const cat = global.Categories.selected
-            ? global.Categories.categories.find(
-                  (c) => c.name === global.Categories.selected
-              )
-            : global.Categories.categories[0];
-
-        if (!cat) return;
-
-        let totalContentHeight = 0;
-        if (cat.subcategories.length > 0)
-            totalContentHeight += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
-
-        const itemsToDisplay = global.Categories.selectedSubcategory
-            ? cat.items.filter(
-                  (group) =>
-                      group.type === 'separator' &&
-                      group.title === global.Categories.selectedSubcategory
-              )
-            : cat.items;
-
-        for (const group of itemsToDisplay) {
-            if (group.type === 'separator') {
-                totalContentHeight += SEPARATOR_HEIGHT;
-                const itemsInRows = Math.ceil(group.items.length / 3);
-                totalContentHeight +=
-                    itemsInRows * (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
-            } else {
-                totalContentHeight +=
-                    CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING;
-            }
+        if (!isContentHeightCacheValid) {
+            cachedContentHeight = calculateContentHeight();
+            isContentHeightCacheValid = true;
         }
 
         const maxScroll = Math.max(
             0,
-            totalContentHeight - panel.height + PADDING
+            cachedContentHeight - panel.height + PADDING
         );
         const direction = dir > 0 ? -1 : 1;
         rightPanelScrollY += direction * SCROLL_SPEED;
@@ -880,6 +857,9 @@ global.createCategoriesManager = (deps) => {
         handleMouseRelease,
         invalidateLayoutCache: () => {
             isLayoutCacheValid = false;
+        },
+        invalidateContentHeightCache: () => {
+            isContentHeightCacheValid = false;
         },
     };
 };
