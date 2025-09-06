@@ -1,10 +1,11 @@
-import { playClickSound } from './Utils';
 import {
-    Color,
-    UIRoundedRectangle,
-    Matrix,
-    UMatrixStack,
-} from '../Utility/Constants';
+    playClickSound,
+    createGrey,
+    drawRoundedRectangleWithBorder,
+    GuiAccentColor,
+} from './Utils';
+import { Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
+
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10) {
         this.title = title;
@@ -13,49 +14,75 @@ export class ToggleButton {
         this.width = width;
         this.height = height;
         this.enabled = false;
+        this.optionPanelWidth = 0;
+        this.optionPanelHeight = 0;
     }
 
     draw() {
-        const enabledColor = new Color(0.6, 0.3, 0.8, 0.8); // purple when enabled
-        const disabledColor = new Color(0.11, 0.11, 0.11, 1); // dark when disabled
-        const textColor = 0xffffff;
+        const componentHeight = 40;
 
-        const toggleColor = this.enabled ? enabledColor : disabledColor;
-        const scale = 0.9;
+        const backgroundColor = new Color(0.1935, 0.1931, 0.2092, 1);
+        const accentColor = GuiAccentColor(0.75);
+        const disabledBoxColor = new Color(0.3, 0.3, 0.3, 1);
+        const textColor = new Color(1, 1, 1, 1);
+        const panelWidth = this.optionPanelWidth - 20;
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            this.x,
-            this.y,
-            this.x + this.width,
-            this.y + this.height,
-            3,
-            toggleColor
-        );
+        drawRoundedRectangleWithBorder({
+            x: this.x - 10,
+            y: this.y,
+            width: panelWidth,
+            height: componentHeight,
+            radius: 6,
+            color: backgroundColor,
+            borderWidth: 0.5,
+            borderColor: createGrey(1, 0.2),
+        });
 
-        Renderer.scale(scale, scale);
         Renderer.drawString(
             this.title,
-            (this.x + this.width + 4) / scale,
-            (this.y + this.height / 2 - 4) / scale,
-            textColor,
+            this.x,
+            this.y + componentHeight / 2 - 4,
+            textColor.getRGB(),
             false
         );
 
-        Renderer.scale(1 / scale, 1 / scale);
+        const boxSize = 15;
+        const rightMargin = 15;
+
+        const boxX = this.x + panelWidth - boxSize - rightMargin - 10;
+        const boxY = this.y + componentHeight / 2 - boxSize / 2;
+        const boxColor = this.enabled ? accentColor : disabledBoxColor;
+
+        UIRoundedRectangle.Companion.drawRoundedRectangle(
+            Matrix,
+            boxX,
+            boxY,
+            boxX + boxSize,
+            boxY + boxSize,
+            4,
+            boxColor
+        );
     }
 
     handleClick(mouseX, mouseY) {
+        const componentHeight = 40;
+        const panelWidth = this.optionPanelWidth - 35;
+        const boxSize = 15;
+        const rightMargin = 15;
+        const boxX = this.x + panelWidth - boxSize - rightMargin;
+        const boxY = this.y + componentHeight / 2 - boxSize / 2;
+
         if (
-            mouseX >= this.x &&
-            mouseX <= this.x + this.width &&
-            mouseY >= this.y &&
-            mouseY <= this.y + this.height
+            mouseX >= boxX &&
+            mouseX <= boxX + boxSize &&
+            mouseY >= boxY &&
+            mouseY <= boxY + boxSize
         ) {
             this.enabled = !this.enabled;
             playClickSound();
             return true;
         }
+
         return false;
     }
 }

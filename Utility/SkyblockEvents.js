@@ -1,6 +1,5 @@
 const actions = new Map();
 
-// Register handlers (called from outside)
 function registerEventSB(name, callback) {
     const eventName = name.toLowerCase();
     if (!actions.has(eventName)) {
@@ -9,7 +8,6 @@ function registerEventSB(name, callback) {
     actions.get(eventName).push(callback);
 }
 
-// Internal function to trigger events
 function CheckEvents(event) {
     const ev = event.toLowerCase();
     if (actions.has(ev)) {
