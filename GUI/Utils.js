@@ -22,10 +22,57 @@ export const SEPARATOR_HEIGHT = 20;
 export const SUBCATEGORY_BUTTON_HEIGHT = 20;
 export const SUBCATEGORY_BUTTON_SPACING = 5;
 
-export const COLORS = {
-    WHITE: 0xffffff,
-    GREY: 0xaaaaaa,
-    PURPLE: 0xccb380e6,
+export const THEME = {
+    // Dropdown
+    DROPDOWN_BACKGROUND: new Color(0.15, 0.15, 0.15, 1),
+    DROPDOWN_FOREGROUND: new Color(0.6, 0.3, 0.8, 0.8),
+    DROPDOWN_TEXT: 0xffffff,
+    DROPDOWN_OPTION_BACKGROUND: new Color(0.2, 0.2, 0.2, 1),
+    DROPDOWN_TOGGLE_DISABLED: new Color(0.4, 0.4, 0.4, 1),
+
+    // GuiDraw
+    GUI_DRAW_BACKGROUND: new Color(0.0745, 0.0941, 0.2118, 0.1),
+    GUI_DRAW_BACKGROUND_BORDER: new Color(0.12, 0.12, 0.12, 0.7),
+    GUI_DRAW_BORDER: new Color(0.18, 0.18, 0.18, 1),
+
+    // GuiManager
+    GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
+    GUI_MANAGER_CATEGORY_DESCRIPTION: 0xaaaaaa,
+    GUI_MANAGER_BACK_TEXT: 0xccb380e6,
+    GUI_MANAGER_CATEGORY_BOX: new Color(0.1935, 0.1931, 0.2092),
+    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.25, 0.25, 0.25, 1),
+    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.502, 0.302, 0.702, 0.3),
+    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.2),
+
+    // NotificationManager
+    NOTIFICATION_BACKGROUND: new Color(0x23 / 255, 0x25 / 255, 0x31 / 255, 0.9),
+    NOTIFICATION_ICON_BACKGROUND: new Color(1, 1, 1, 0.05),
+    NOTIFICATION_ICON_SYMBOL: 0xdddddd,
+    NOTIFICATION_TEXT: 0xffffff,
+    NOTIFICATION_DESCRIPTION: 0x808080,
+    NOTIFICATION_CLOSE_BUTTON: 0x999999,
+    NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.05),
+    NOTIFICATION_PROGRESS_BAR: new Color(1, 1, 1, 0.2),
+    NOTIFICATION_SUCCESS: new Color(parseInt('2b9875', 16)),
+    NOTIFICATION_ERROR: new Color(parseInt('ef4444', 16)),
+    NOTIFICATION_DANGER: new Color(parseInt('ff0f0f', 16)),
+    NOTIFICATION_CHECK_IN: new Color(parseInt('99cc33', 16)),
+    NOTIFICATION_WARNING: new Color(parseInt('f59e0b', 16)),
+    NOTIFICATION_INFO: new Color(parseInt('3b82f6', 16)),
+
+    // Slider
+    SLIDER_BACKGROUND: new Color(0.1935, 0.1931, 0.2092, 1),
+    SLIDER_TEXT: new Color(1, 1, 1, 1),
+    SLIDER_FOREGROUND: new Color(0.502, 0.302, 0.702, 0.75),
+    SLIDER_HANDLE: new Color(0.8, 0.8, 0.8, 1),
+    SLIDER_BAR_BACKGROUND: new Color(0.11, 0.11, 0.11, 1),
+
+    // Toggle
+    TOGGLE_BACKGROUND: new Color(0.1935, 0.1931, 0.2092, 1),
+    TOGGLE_ACCENT: new Color(0.502, 0.302, 0.702, 0.75),
+    TOGGLE_DISABLED_BOX: new Color(0.3, 0.3, 0.3, 1),
+    TOGGLE_TEXT: new Color(1, 1, 1, 1),
+    TOGGLE_BORDER: new Color(1, 1, 1, 0.2),
 };
 
 export const drawRoundedRectangle = ({
@@ -81,12 +128,6 @@ export const drawRoundedRectangleWithBorder = (r) => {
 };
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
-
-export const GuiColor = (alpha) => new Color(0.0745, 0.0941, 0.2118, alpha);
-export const GuiAccentColor = (alpha) => new Color(0.502, 0.302, 0.702, alpha); // i dont really like this accent but dont know what to change it to 🤷‍♂️
-
-export const createGrey = (float, alpha) =>
-    new Color(float, float, float, alpha);
 
 export const easeInOutQuad = (t) =>
     t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;

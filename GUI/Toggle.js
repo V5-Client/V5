@@ -1,9 +1,4 @@
-import {
-    playClickSound,
-    createGrey,
-    drawRoundedRectangleWithBorder,
-    GuiAccentColor,
-} from './Utils';
+import { playClickSound, drawRoundedRectangleWithBorder, THEME } from './Utils';
 import { Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 
 export class ToggleButton {
@@ -21,10 +16,10 @@ export class ToggleButton {
     draw() {
         const componentHeight = 40;
 
-        const backgroundColor = new Color(0.1935, 0.1931, 0.2092, 1);
-        const accentColor = GuiAccentColor(0.75);
-        const disabledBoxColor = new Color(0.3, 0.3, 0.3, 1);
-        const textColor = new Color(1, 1, 1, 1);
+        const backgroundColor = THEME.TOGGLE_BACKGROUND;
+        const accentColor = THEME.TOGGLE_ACCENT;
+        const disabledBoxColor = THEME.TOGGLE_DISABLED_BOX;
+        const textColor = THEME.TOGGLE_TEXT;
         const panelWidth = this.optionPanelWidth - 20;
 
         drawRoundedRectangleWithBorder({
@@ -35,7 +30,7 @@ export class ToggleButton {
             radius: 6,
             color: backgroundColor,
             borderWidth: 0.5,
-            borderColor: createGrey(1, 0.2),
+            borderColor: THEME.TOGGLE_BORDER,
         });
 
         Renderer.drawString(

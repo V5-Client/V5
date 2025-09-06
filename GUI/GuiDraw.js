@@ -4,11 +4,11 @@ import {
     drawRoundedRectangleWithBorder,
     clamp,
     isInside,
-    GuiColor,
     PADDING,
     BORDER_WIDTH,
     CORNER_RADIUS,
     returnDiscord,
+    THEME,
 } from './Utils';
 
 import {
@@ -21,9 +21,9 @@ import {
 
 import { saveSettings, loadSettings } from './GuiSave';
 
-const GUI_COLOR = GuiColor(0.1);
-const BACKGROUND_BORDER_COLOR = new Color(0.12, 0.12, 0.12, 0.7);
-const BORDER_COLOR = new Color(0.18, 0.18, 0.18, 1);
+const GUI_COLOR = THEME.GUI_DRAW_BACKGROUND;
+const BACKGROUND_BORDER_COLOR = THEME.GUI_DRAW_BACKGROUND_BORDER;
+const BORDER_COLOR = THEME.GUI_DRAW_BORDER;
 const ANIMATION_DURATION = 250;
 
 let openStartTime = 0;

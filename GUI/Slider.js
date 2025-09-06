@@ -4,8 +4,7 @@ import {
     clamp,
     playClickSound,
     drawRoundedRectangleWithBorder,
-    createGrey,
-    GuiAccentColor,
+    THEME,
 } from './Utils';
 
 export class Slider {
@@ -34,8 +33,8 @@ export class Slider {
 
     draw() {
         const componentHeight = this.containerHeight;
-        const backgroundColor = new Color(0.1935, 0.1931, 0.2092, 1);
-        const textColor = new Color(1, 1, 1, 1);
+        const backgroundColor = THEME.SLIDER_BACKGROUND;
+        const textColor = THEME.SLIDER_TEXT;
         const panelWidth = this.optionPanelWidth - 20;
 
         drawRoundedRectangleWithBorder({
@@ -46,7 +45,7 @@ export class Slider {
             radius: 6,
             color: backgroundColor,
             borderWidth: 0.5,
-            borderColor: createGrey(1, 0.2),
+            borderColor: THEME.TOGGLE_BORDER,
         });
 
         Renderer.drawString(
@@ -61,8 +60,8 @@ export class Slider {
         const rightMargin = 15;
         const sliderX = this.x + panelWidth - sliderWidth - rightMargin - 10;
         const sliderY = this.y + componentHeight / 2 - this.height / 2;
-        const foregroundColor = GuiAccentColor(0.75);
-        const handleColor = new Color(0.8, 0.8, 0.8, 1);
+        const foregroundColor = THEME.SLIDER_FOREGROUND;
+        const handleColor = THEME.SLIDER_HANDLE;
 
         const progress = (this.value - this.min) / (this.max - this.min);
         const handleWidth = 2;
@@ -77,7 +76,7 @@ export class Slider {
             sliderX + sliderWidth,
             sliderY + this.height,
             3,
-            new Color(0.11, 0.11, 0.11, 1)
+            THEME.SLIDER_BAR_BACKGROUND
         );
 
         UIRoundedRectangle.Companion.drawRoundedRectangle(
