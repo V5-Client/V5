@@ -19,14 +19,45 @@ export class MultiToggle {
         this.buttonHeight = 15;
         this.buttonWidth = 100;
         this.singleSelect = singleSelect;
+
+        this.animStart = 0;
+        this.animFrom = 0;
+        this.animTo = 0;
+        this.animDuration = 200; // ms
+        this.animationProgress = 0;
+    }
+
+    startAnimation(expanding) {
+        this.animStart = Date.now();
+        this.animFrom = this.animationProgress;
+        this.animTo = expanding ? 1 : 0;
+    }
+
+    updateAnimation() {
+        if (this.animStart === 0) return;
+
+        const elapsed = Date.now() - this.animStart;
+        const t = Math.min(elapsed / this.animDuration, 1);
+
+        const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+        this.animationProgress =
+            this.animFrom + (this.animTo - this.animFrom) * eased;
+
+        if (t >= 1) {
+            this.animStart = 0;
+        }
     }
 
     draw() {
+        this.updateAnimation();
+
         const backgroundColor = new Color(0.15, 0.15, 0.15, 1);
         const foregroundColor = new Color(0.6, 0.3, 0.8, 0.8);
         const textColor = 0xffffff;
         const cornerRadius = 3;
 
+        // Main button
         UIRoundedRectangle.Companion.drawRoundedRectangle(
             Matrix,
             this.x,
@@ -54,21 +85,34 @@ export class MultiToggle {
             false
         );
 
-        if (this.expanded) {
-            const dropdownHeight =
+        if (this.animationProgress > 0) {
+            const fullDropdownHeight =
                 this.options.length * (this.buttonHeight + 2);
+            const animatedHeight = fullDropdownHeight * this.animationProgress;
+
+            // Background
             UIRoundedRectangle.Companion.drawRoundedRectangle(
                 Matrix,
                 this.x,
                 this.y + this.buttonHeight + 1,
                 this.x + this.buttonWidth,
-                this.y + this.buttonHeight + 1 + dropdownHeight,
+                this.y + this.buttonHeight + 1 + animatedHeight,
                 cornerRadius,
                 backgroundColor
             );
 
             let currentY = this.y + this.buttonHeight + 2;
-            this.options.forEach((option) => {
+            for (let i = 0; i < this.options.length; i++) {
+                const optionTop = currentY;
+                const optionBottom = optionTop + this.buttonHeight;
+
+                if (
+                    optionTop - (this.y + this.buttonHeight + 1) >=
+                    animatedHeight
+                )
+                    break;
+
+                const option = this.options[i];
                 const toggleX = this.x + 2;
                 const toggleWidth = this.buttonWidth - 4;
                 const toggleHeight = this.buttonHeight;
@@ -76,9 +120,9 @@ export class MultiToggle {
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
                     Matrix,
                     toggleX,
-                    currentY,
+                    optionTop,
                     toggleX + toggleWidth,
-                    currentY + toggleHeight,
+                    optionTop + toggleHeight,
                     cornerRadius,
                     new Color(0.2, 0.2, 0.2, 1)
                 );
@@ -88,7 +132,7 @@ export class MultiToggle {
                     : new Color(0.4, 0.4, 0.4, 1);
                 const toggleSize = toggleHeight - 6;
                 const toggleXPos = toggleX + toggleWidth - toggleSize - 3;
-                const toggleYPos = currentY + (toggleHeight - toggleSize) / 2;
+                const toggleYPos = optionTop + (toggleHeight - toggleSize) / 2;
 
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
                     Matrix,
@@ -103,13 +147,13 @@ export class MultiToggle {
                 Renderer.drawString(
                     option.name,
                     toggleX + 3,
-                    currentY + toggleHeight / 2 - 4,
+                    optionTop + toggleHeight / 2 - 4,
                     textColor,
                     false
                 );
 
-                currentY += toggleHeight + 2;
-            });
+                currentY += this.buttonHeight + 2;
+            }
         }
     }
 
@@ -121,6 +165,7 @@ export class MultiToggle {
             mouseY <= this.y + this.buttonHeight
         ) {
             this.expanded = !this.expanded;
+            this.startAnimation(this.expanded);
             playClickSound();
             return true;
         }

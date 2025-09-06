@@ -294,15 +294,6 @@ global.createCategoriesManager = (deps) => {
         const optionX = optionPanelX + PADDING;
         const optionY = panel.y + PADDING;
 
-        deps.draw.drawRoundedRectangle({
-            x: optionX,
-            y: optionY,
-            width: panel.width - PADDING * 2,
-            height: panel.height - PADDING * 2,
-            radius: CORNER_RADIUS,
-            color: CATEGORY_BOX_COLOR,
-        });
-
         const backButtonText = 'Back';
         const backButtonX = optionX + 10;
         const backButtonY = optionY + 10;
@@ -329,11 +320,14 @@ global.createCategoriesManager = (deps) => {
         );
 
         let regularComponents = [];
-        let expandedDropdowns = [];
+        let animatedDropdowns = [];
 
         selectedItem.components.forEach((component) => {
-            if (component instanceof MultiToggle && component.expanded) {
-                expandedDropdowns.push(component);
+            if (
+                component instanceof MultiToggle &&
+                component.animationProgress > 0
+            ) {
+                animatedDropdowns.push(component);
             } else {
                 regularComponents.push(component);
             }
@@ -343,30 +337,21 @@ global.createCategoriesManager = (deps) => {
 
         for (let i = 0; i < regularComponents.length; i++) {
             const component = regularComponents[i];
-            if (typeof component.draw === 'function') {
-                component.x = optionX + 10;
-                component.y = componentY;
-                component.draw();
+            if (typeof component.draw !== 'function') return;
+            component.x = optionX + 10;
+            component.y = componentY;
+            component.optionPanelWidth = panel.width;
+            component.optionPanelHeight = panel.height;
+            component.draw();
 
-                let nextComponentOffset = 20;
-                if (i + 1 < regularComponents.length) {
-                    let nextComponent = regularComponents[i + 1];
-                    if (nextComponent instanceof ToggleButton)
-                        nextComponentOffset = 15;
-                    else if (nextComponent instanceof MultiToggle)
-                        nextComponentOffset = 20;
-                    else if (nextComponent instanceof Slider)
-                        nextComponentOffset = 30;
-                }
-                componentY += nextComponentOffset;
-            }
+            let ComponentOffset = 45;
+            componentY += ComponentOffset;
         }
 
-        expandedDropdowns.forEach((component) => {
-            if (typeof component.draw === 'function') {
-                component.x = optionX + 10;
-                component.draw();
-            }
+        animatedDropdowns.forEach((component) => {
+            if (typeof component.draw !== 'function') return;
+            component.x = optionX + 10;
+            component.draw();
         });
     };
 
@@ -588,12 +573,6 @@ global.createCategoriesManager = (deps) => {
                         ? UNIVERSAL_GRAY_COLOR
                         : CATEGORY_BOX_COLOR;
 
-                    deps.draw.drawRoundedRectangleWithGradientOutline(
-                        itemRect,
-                        deps.colors.gradientTop,
-                        deps.colors.gradientBottom
-                    );
-
                     if (!isLayoutCacheValid)
                         cachedItemLayouts.push({ rect: itemRect, item });
 
@@ -803,10 +782,7 @@ global.createCategoriesManager = (deps) => {
             return;
         }
 
-        if (!isContentHeightCacheValid) {
-            cachedContentHeight = calculateContentHeight();
-            isContentHeightCacheValid = true;
-        }
+        if (!isContentHeightCacheValid) isContentHeightCacheValid = true;
 
         const maxScroll = Math.max(
             0,
