@@ -4,6 +4,7 @@ import {
     UMatrixStack,
     Matrix,
 } from '../Utility/Constants';
+import { THEME } from './Utils';
 
 // Configuration
 const NOTIFICATION_WIDTH = 250;
@@ -20,18 +21,18 @@ const DESC_SCALE = 0.8;
 const DESC_LINE_SPACING = 10;
 
 // Colors
-const BACKGROUND_COLOR = new Color(0x23 / 255, 0x25 / 255, 0x31 / 255, 0.9);
-const ICON_BACKGROUND_COLOR = new Color(1, 1, 1, 0.05);
-const ICON_SYMBOL_COLOR = 0xdddddd; // Light gray for icons
-const TEXT_COLOR = 0xffffff;
-const DESCRIPTION_COLOR = 0x808080;
-const CLOSE_BUTTON_COLOR = 0x999999;
-const CLOSE_BUTTON_HOVER_COLOR = new Color(1, 1, 1, 0.05);
-const PROGRESS_BAR_COLOR = new Color(1, 1, 1, 0.2);
+const BACKGROUND_COLOR = THEME.NOTIFICATION_BACKGROUND;
+const ICON_BACKGROUND_COLOR = THEME.NOTIFICATION_ICON_BACKGROUND;
+const ICON_SYMBOL_COLOR = THEME.NOTIFICATION_ICON_SYMBOL;
+const TEXT_COLOR = THEME.NOTIFICATION_TEXT;
+const DESCRIPTION_COLOR = THEME.NOTIFICATION_DESCRIPTION;
+const CLOSE_BUTTON_COLOR = THEME.NOTIFICATION_CLOSE_BUTTON;
+const CLOSE_BUTTON_HOVER_COLOR = THEME.NOTIFICATION_CLOSE_BUTTON_HOVER;
+const PROGRESS_BAR_COLOR = THEME.NOTIFICATION_PROGRESS_BAR;
 
 const NOTIFICATION_TYPES = {
     SUCCESS: {
-        outlineColor: new Color(parseInt('2b9875', 16)),
+        outlineColor: THEME.NOTIFICATION_SUCCESS,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             const points = [
@@ -49,7 +50,7 @@ const NOTIFICATION_TYPES = {
         },
     },
     ERROR: {
-        outlineColor: new Color(parseInt('ef4444', 16)),
+        outlineColor: THEME.NOTIFICATION_ERROR,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             const size = 5;
@@ -72,7 +73,7 @@ const NOTIFICATION_TYPES = {
         },
     },
     DANGER: {
-        outlineColor: new Color(parseInt('ff0f0f', 16)),
+        outlineColor: THEME.NOTIFICATION_DANGER,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             Renderer.drawRect(color, centerX - 1.5, centerY - 6, 3, 8);
@@ -80,7 +81,7 @@ const NOTIFICATION_TYPES = {
         },
     },
     'CHECK-IN': {
-        outlineColor: new Color(parseInt('99cc33', 16)),
+        outlineColor: THEME.NOTIFICATION_CHECK_IN,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             const points = [
@@ -98,7 +99,7 @@ const NOTIFICATION_TYPES = {
         },
     },
     WARNING: {
-        outlineColor: new Color(parseInt('f59e0b', 16)),
+        outlineColor: THEME.NOTIFICATION_WARNING,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             Renderer.drawRect(color, centerX - 1.5, centerY - 6, 3, 8);
@@ -106,7 +107,7 @@ const NOTIFICATION_TYPES = {
         },
     },
     INFO: {
-        outlineColor: new Color(parseInt('3b82f6', 16)),
+        outlineColor: THEME.NOTIFICATION_INFO,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             Renderer.drawRect(color, centerX - 1.5, centerY - 6, 3, 3);

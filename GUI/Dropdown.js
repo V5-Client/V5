@@ -1,4 +1,4 @@
-import { playClickSound } from './Utils';
+import { playClickSound, THEME } from './Utils';
 import {
     Color,
     UMatrixStack,
@@ -52,9 +52,9 @@ export class MultiToggle {
     draw() {
         this.updateAnimation();
 
-        const backgroundColor = new Color(0.15, 0.15, 0.15, 1);
-        const foregroundColor = new Color(0.6, 0.3, 0.8, 0.8);
-        const textColor = 0xffffff;
+        const backgroundColor = THEME.DROPDOWN_BACKGROUND;
+        const foregroundColor = THEME.DROPDOWN_FOREGROUND;
+        const textColor = THEME.DROPDOWN_TEXT;
         const cornerRadius = 3;
 
         // Main button
@@ -124,12 +124,12 @@ export class MultiToggle {
                     toggleX + toggleWidth,
                     optionTop + toggleHeight,
                     cornerRadius,
-                    new Color(0.2, 0.2, 0.2, 1)
+                    THEME.DROPDOWN_OPTION_BACKGROUND
                 );
 
                 const toggleColor = option.enabled
                     ? foregroundColor
-                    : new Color(0.4, 0.4, 0.4, 1);
+                    : THEME.DROPDOWN_TOGGLE_DISABLED;
                 const toggleSize = toggleHeight - 6;
                 const toggleXPos = toggleX + toggleWidth - toggleSize - 3;
                 const toggleYPos = optionTop + (toggleHeight - toggleSize) / 2;

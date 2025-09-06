@@ -9,7 +9,6 @@ import {
     isInside,
     playClickSound,
     easeInOutQuad,
-    createGrey,
     PADDING,
     BORDER_WIDTH,
     CORNER_RADIUS,
@@ -22,8 +21,7 @@ import {
     SEPARATOR_HEIGHT,
     SUBCATEGORY_BUTTON_HEIGHT,
     SUBCATEGORY_BUTTON_SPACING,
-    COLORS,
-    GuiAccentColor,
+    THEME,
 } from './Utils';
 
 import { Color } from '../Utility/Constants';
@@ -169,13 +167,13 @@ global.Categories = {
 };
 
 global.createCategoriesManager = (deps) => {
-    const CATEGORY_TITLE_COLOR = COLORS.WHITE;
-    const CATEGORY_DESC_COLOR = COLORS.GREY;
-    const BACK_TEXT_COLOR = COLORS.PURPLE;
+    const CATEGORY_TITLE_COLOR = THEME.GUI_MANAGER_CATEGORY_TITLE;
+    const CATEGORY_DESC_COLOR = THEME.GUI_MANAGER_CATEGORY_DESCRIPTION;
+    const BACK_TEXT_COLOR = THEME.GUI_MANAGER_BACK_TEXT;
 
-    const CATEGORY_BOX_COLOR = new Color(0.1935, 0.1931, 0.2092);
-    const UNIVERSAL_GRAY_COLOR = createGrey(0.25, 1);
-    const CATEGORY_SELECTED_COLOR = GuiAccentColor(0.3);
+    const CATEGORY_BOX_COLOR = THEME.GUI_MANAGER_CATEGORY_BOX;
+    const UNIVERSAL_GRAY_COLOR = THEME.GUI_MANAGER_UNIVERSAL_GRAY;
+    const CATEGORY_SELECTED_COLOR = THEME.GUI_MANAGER_CATEGORY_SELECTED;
 
     const SCROLL_SPEED = 15;
     const ANIMATION_DURATION = 300;
@@ -519,7 +517,7 @@ global.createCategoriesManager = (deps) => {
                             radius: CORNER_RADIUS,
                             color: CATEGORY_BOX_COLOR,
                             borderWidth: 0.5,
-                            borderColor: createGrey(1, 0.2),
+                            borderColor: THEME.GUI_MANAGER_CATEGORY_BOX_BORDER,
                         };
 
                         const isHovered = isInside(mouseX, mouseY, itemRect);
