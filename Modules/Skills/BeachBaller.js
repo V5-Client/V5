@@ -14,6 +14,7 @@ let bounceCount = 0;
 let tickCounter = 0;
 let bounceTimer = 0;
 let startPos = [0, 0];
+let trackedBall = null;
 
 const states = {
     WAITING: 0,
@@ -26,63 +27,66 @@ let state = states.WAITING;
 let beachballer = register('tick', () => {
     if (!enabled) return beachballer.unregister();
     if (Client.isInGui() && !Client.isInChat()) return toggle();
+
     switch (state) {
         case states.WAITING:
             break;
+
         case states.BOUNCE:
             if (bounceCount > 40) {
                 setState(states.RETURN);
                 bounceCount = 0;
+                trackedBall = null;
                 return;
             }
+
             let currentYaw = Player.getYaw();
             Rotations.rotateToAngles(currentYaw, -90);
-            let stands = World.getAllEntitiesOfType(
-                net.minecraft.entity.decoration.ArmorStandEntity.class
-            );
-            stands.forEach((element, index) => {
-                if (element.getStackInSlot(5)) {
-                    let beachBall = element
-                        .getStackInSlot(5)
-                        .getNBT()
-                        .toString();
-                    if (
-                        beachBall.includes(smallBeachBallHash) ||
-                        beachBall.includes(largeBeachBallHash)
-                    ) {
-                        tickCounter = 0;
-                        dx =
-                            element.getX() +
-                            (element.getX() - element.getLastX()) * 3;
-                        dz =
-                            element.getZ() +
-                            (element.getZ() - element.getLastZ()) * 3;
-                        let distance = MathUtils.calculateDistance(
-                            [Player.getX(), Player.getY(), Player.getZ()],
-                            [dx, element.getY(), dz]
+
+            if (trackedBall && !trackedBall.isDead()) {
+                if (trackedBall.getStackInSlot(5)) {
+                    tickCounter = 0;
+                    let dx =
+                        trackedBall.getX() +
+                        (trackedBall.getX() - trackedBall.getLastX()) * 3;
+                    let dz =
+                        trackedBall.getZ() +
+                        (trackedBall.getZ() - trackedBall.getLastZ()) * 3;
+
+                    let distance = MathUtils.calculateDistance(
+                        [Player.getX(), Player.getY(), Player.getZ()],
+                        [dx, trackedBall.getY(), dz]
+                    );
+
+                    if (distance.distance > 15) {
+                        trackedBall = null;
+                        return;
+                    }
+
+                    Keybind.setKey('shift', true);
+                    if (distance.distanceFlat > 0.5) {
+                        Keybind.setKeysForStraightLineCoords(
+                            dx,
+                            trackedBall.getY(),
+                            dz
                         );
-                        if (distance.distance > 15) return;
-                        Keybind.setKey('shift', true);
-                        if (distance.distanceFlat > 0.5) {
-                            Keybind.setKeysForStraightLineCoords(
-                                dx,
-                                element.getY(),
-                                dz
-                            );
-                        }
-                        if (distance.distanceFlat < 0.2) {
-                            Keybind.stopMovement();
-                        }
+                    }
+                    if (distance.distanceFlat < 0.2) {
+                        Keybind.stopMovement();
                     }
                 }
-            });
-            tickCounter++;
-            if (tickCounter > 10) {
-                setState(states.RETURN);
+            } else {
+                tickCounter++;
+                if (tickCounter > 10) {
+                    setState(states.RETURN);
+                    trackedBall = null;
+                }
             }
             break;
+
         case states.RETURN:
             Keybind.unpressKeys();
+            trackedBall = null;
             if (
                 MathUtils.calculateDistance(
                     [Player.getX(), Player.getY(), Player.getZ()],
@@ -92,32 +96,42 @@ let beachballer = register('tick', () => {
                 Keybind.rightClick();
                 setState(states.PLACE);
                 return;
-            } else
+            } else {
                 Rotations.rotateTo([startPos[0], startPos[1] + 2, startPos[2]]);
+            }
             Keybind.setKeysForStraightLineCoords(
                 startPos[0],
                 startPos[1],
                 startPos[2]
             );
             break;
+
         case states.PLACE:
-            let stand = World.getAllEntitiesOfType(
-                net.minecraft.entity.decoration.ArmorStandEntity.class
-            );
-            stand.forEach((element, index) => {
-                if (element.getStackInSlot(5)) {
-                    let beachBall = element
-                        .getStackInSlot(5)
-                        .getNBT()
-                        .toString();
-                    if (
-                        beachBall.includes(smallBeachBallHash) ||
-                        beachBall.includes(largeBeachBallHash)
-                    ) {
-                        setState(states.BOUNCE);
+            if (!trackedBall || trackedBall.isDead()) {
+                let stands = World.getAllEntitiesOfType(
+                    net.minecraft.entity.decoration.ArmorStandEntity.class
+                );
+
+                trackedBall = stands.find((element) => {
+                    if (element.getStackInSlot(5)) {
+                        let beachBall = element
+                            .getStackInSlot(5)
+                            .getNBT()
+                            .toString();
+                        return (
+                            beachBall.includes(smallBeachBallHash) ||
+                            beachBall.includes(largeBeachBallHash)
+                        );
                     }
+                    return false;
+                });
+
+                if (trackedBall) {
+                    setState(states.BOUNCE);
+                    return;
                 }
-            });
+            }
+
             let ballslot = Guis.findItemInHotbar('Bouncy Beach Ball');
             if (ballslot === -1) {
                 Chat.message('No bouncy balls in hotbar!');
@@ -126,6 +140,7 @@ let beachballer = register('tick', () => {
             } else {
                 Player.setHeldItemIndex(ballslot);
             }
+
             tickCounter++;
             if (tickCounter % 10 == 0) Keybind.rightClick();
             break;
@@ -135,6 +150,9 @@ let beachballer = register('tick', () => {
 function setState(newState) {
     state = newState;
     tickCounter = 0;
+    if (newState === states.WAITING || newState === states.RETURN) {
+        trackedBall = null;
+    }
     Chat.message('State changed to: ' + state);
 }
 
@@ -143,10 +161,12 @@ function toggle() {
     Chat.message(enabled ? 'BeachBaller enabled' : 'BeachBaller disabled');
     if (!enabled) {
         beachballer.unregister();
+        trackedBall = null;
     }
     if (enabled) {
         setState(states.PLACE);
         startPos = [Player.getX(), Player.getY(), Player.getZ()];
+        trackedBall = null;
         beachballer.register();
     }
 }
