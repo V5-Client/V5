@@ -624,8 +624,9 @@ global.createCategoriesManager = (deps) => {
             );
 
             if (openDropdown) {
-                openDropdown.handleClick(mouseX, mouseY);
-                return;
+                if (openDropdown.handleClick(mouseX, mouseY)) {
+                    return;
+                }
             }
         }
 

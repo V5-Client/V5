@@ -69,8 +69,8 @@ export class MultiToggle {
 
             let currentY = this.y + this.buttonHeight + 2;
             this.options.forEach((option) => {
-                const toggleX = this.x + 5;
-                const toggleWidth = this.buttonWidth - 10;
+                const toggleX = this.x + 2;
+                const toggleWidth = this.buttonWidth - 4;
                 const toggleHeight = this.buttonHeight;
 
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
