@@ -36,10 +36,7 @@ class ChatClass {
 
     irc(msg) {
         if (!msg) return;
-        const textComponent = new TextComponent(
-            gradientInstance.sendGradientMsg(IrcPrefix, msg, 0x05b9f9, 0x0539f9)
-        );
-        textComponent.chat();
+        gradientInstance.sendGradientMsg(IrcPrefix, msg, 0x05b9f9, 0x0539f9);
     }
 
     log(msg) {
