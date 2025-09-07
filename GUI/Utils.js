@@ -8,7 +8,7 @@ import { Chat } from '../Utility/Chat';
 import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 
 export const PADDING = 10;
-export const BORDER_WIDTH = 2;
+export const BORDER_WIDTH = 0.5;
 export const CORNER_RADIUS = 10;
 
 export const CATEGORY_HEIGHT = 30;
@@ -31,15 +31,16 @@ export const THEME = {
     DROPDOWN_TOGGLE_DISABLED: new Color(0.4, 0.4, 0.4, 1),
 
     // GuiDraw
-    GUI_DRAW_BACKGROUND: new Color(0.0745, 0.0941, 0.2118, 0.1),
-    GUI_DRAW_BACKGROUND_BORDER: new Color(0.12, 0.12, 0.12, 0.7),
-    GUI_DRAW_BORDER: new Color(0.18, 0.18, 0.18, 1),
+    GUI_DRAW_BACKGROUND_BORDER: new Color(0.1, 0.1, 0.1, 0.2),
+    GUI_DRAW_BACKGROUND: new Color(0.1, 0.1, 0.1, 0.5),
+    GUI_DRAW_PANELS: new Color(0.2, 0.2, 0.21, 1),
+    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.2),
 
     // GuiManager
     GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
     GUI_MANAGER_CATEGORY_DESCRIPTION: 0xaaaaaa,
     GUI_MANAGER_BACK_TEXT: 0xccb380e6,
-    GUI_MANAGER_CATEGORY_BOX: new Color(0.1935, 0.1931, 0.2092),
+    GUI_MANAGER_CATEGORY_BOX: new Color(0.2, 0.2, 0.21, 1),
     GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.25, 0.25, 0.25, 1),
     GUI_MANAGER_CATEGORY_SELECTED: new Color(0.502, 0.302, 0.702, 0.3),
     GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.2),
