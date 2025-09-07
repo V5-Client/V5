@@ -22,6 +22,7 @@ addCategoryItem(
     'Universal settings for Mining & block miner'
 );
 addToggle('Modules', 'Mining Bot', 'Tick Gliding');
+addToggle('Modules', 'Mining Bot', 'Jasper Drill Exploit');
 addMultiToggle(
     'Modules',
     'Mining Bot',
@@ -113,11 +114,17 @@ class MiningBot {
 
         register('step', () => {
             this.TICKGLIDE = getSetting('Mining Bot', 'Tick Gliding');
+            this.JASPEREXPLOIT = getSetting(
+                'Mining Bot',
+                'Jasper Drill Exploit'
+            );
             this.FAKELOOK = getSetting('Mining Bot', 'Fakelook', [
                 'Off',
                 'Instant',
                 'Queued',
             ]);
+
+            if (this.JASPEREXPLOIT) this.exploit.register();
         }).setFps(1);
 
         register('command', () => {
@@ -135,6 +142,15 @@ class MiningBot {
             this.tickCount = 0;
             ChatLib.chat('§c[Mining Bot] §7Disabled.');
         }).setName('stopb');
+
+        this.exploit = register('packetSent', (packet, event) => {
+            if (!this.JASPEREXPLOIT) this.exploit.unregister();
+            let packetAction = packet.getAction().toString();
+
+            if (packetAction === 'ABORT_DESTROY_BLOCK') cancel(event);
+        }).setFilteredClass(
+            net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+        );
 
         this.miningbot = register('tick', () => {
             if (!this.enabled) return;
