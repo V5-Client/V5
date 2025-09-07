@@ -21,7 +21,7 @@ import {
 
 import { saveSettings, loadSettings } from './GuiSave';
 
-const GUI_COLOR = THEME.GUI_DRAW_BACKGROUND;
+const GUI_COLOR = THEME.GUI_DRAW_PANELS;
 const BACKGROUND_BORDER_COLOR = THEME.GUI_DRAW_BACKGROUND_BORDER;
 const BORDER_COLOR = THEME.GUI_DRAW_BORDER;
 const ANIMATION_DURATION = 250;
@@ -41,7 +41,7 @@ let rectangles = {
         width: 600,
         height: 420,
         radius: CORNER_RADIUS,
-        color: GUI_COLOR,
+        color: THEME.GUI_DRAW_BACKGROUND,
         borderWidth: BORDER_WIDTH,
         borderColor: BACKGROUND_BORDER_COLOR,
         isAnimated: true,
