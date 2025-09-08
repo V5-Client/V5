@@ -1,9 +1,19 @@
+import { getSetting } from '../../GUI/GuiSave';
+
+const { addCategoryItem, addMultiToggle } = global.Categories;
+
+addCategoryItem('Visuals', 'Mob Hider', 'Hides types of mobs');
+
+addMultiToggle('Modules', 'Mob Hider', 'Mobs', [
+    'Kalhuikis',
+    'Sven Pups',
+    'Jerries',
+    'Thysts',
+]);
+
 class MobHider {
     constructor() {
-        this.kalhuikis = false;
-        this.svenpups = false;
-        this.thysts = false;
-        this.jerry = false;
+        this.registered = false;
 
         this.jerryNames = [
             'Green Jerry',
@@ -12,155 +22,101 @@ class MobHider {
             'Golden Jerry',
         ];
 
-        // recode to use instanceof instead
+        register('step', () => {
+            this.MOBS = getSetting('Mob Hider', 'Mobs', [
+                'Kalhuikis',
+                'Sven Pups',
+                'Jerries',
+                'Thysts',
+            ]);
 
-        this.thystRenderEntity = register('renderEntity', (ent, pt, event) => {
-            let cleanname = ChatLib.removeFormatting(ent.getName());
-            if (cleanname === 'Endermite' || ent.getName().includes('Thyst')) {
-                cancel(event);
+            if ((!this.MOBS || this.MOBS.length === 0) && this.registered) {
+                renderHandler.unregister();
+                attackHandler.unregister();
+                particleHandler.unregister();
+                this.registered = false;
+            } else if (this.MOBS?.length > 0 && !this.registered) {
+                renderHandler.register();
+                attackHandler.register();
+                if (this.MOBS.includes('Thysts'))
+                    this.particleHandler.register();
+
+                this.registered = true;
             }
+        }).setFps(1);
+
+        let renderHandler = register('renderEntity', (ent, pt, event) => {
+            let cleanname = ChatLib.removeFormatting(ent.getName());
+
+            if (
+                this.MOBS?.includes('Kalhuikis') &&
+                cleanname.includes('Kalhuiki')
+            )
+                cancel(event);
+
+            if (
+                this.MOBS?.includes('Sven Pups') &&
+                cleanname.includes('Sven Pup')
+            )
+                cancel(event);
+
+            if (this.MOBS?.includes('Jerries')) {
+                if (
+                    this.jerryNames.some((name) => ent.getName().includes(name))
+                ) {
+                    cancel(event);
+                }
+            }
+
+            if (
+                this.MOBS?.includes('Thysts') &&
+                (cleanname.includes('Thyst') || cleanname.includes('Endermite'))
+            )
+                cancel(event);
         }).unregister();
 
-        this.thystSpawnParticle = register(
-            'spawnParticle',
-            (particle, event) => {
-                if (particle == null) return;
+        let attackHandler = register('playerInteract', (action, pos, event) => {
+            if (!action.toString().includes('AttackEntity')) return;
+            if (!(attackedEntity instanceof Entity)) return;
+            let attackedEntity = Player.lookingAt();
+
+            if (
+                this.MOBS?.includes('Kalhuikis') &&
+                attackedEntity?.toString()?.includes('Kalhuiki')
+            ) {
+                cancel(event);
+            }
+
+            if (
+                this.MOBS?.includes('Sven Pups') &&
+                attackedEntity?.toString()?.includes('Sven Pup')
+            )
+                cancel(event);
+
+            if (
+                this.MOBS?.includes('Jerries') &&
+                attackedEntity?.toString()?.includes('Jerry')
+            ) {
+                cancel(event);
+            }
+
+            if (
+                this.MOBS?.includes('Thysts') &&
+                (attackedEntity?.toString()?.includes('Thyst') ||
+                    attackedEntity?.toString()?.includes('Endermite'))
+            )
+                cancel(event);
+        }).unregister();
+
+        let particleHandler = register('spawnParticle', (particle, event) => {
+            if (particle == null) return;
+            if (this.MOBS?.includes('Thysts')) {
                 if (particle.toString().includes('class_709')) {
                     cancel(event);
                 }
-            }
-        ).unregister();
-
-        this.thystPlayerInteract = register(
-            'playerInteract',
-            (action, pos, event) => {
-                if (action.toString().includes('AttackEntity')) {
-                    let attackedEntity = Player.lookingAt();
-
-                    if (
-                        attackedEntity instanceof Entity &&
-                        attackedEntity?.toString()?.includes('Endermite')
-                    ) {
-                        cancel(event);
-                    }
-                }
-            }
-        ).unregister();
-
-        this.pupRenderEntity = register('renderEntity', (ent, pt, event) => {
-            let cleanname = ChatLib.removeFormatting(ent.getName());
-            if (cleanname.includes('Sven Pup')) {
-                cancel(event);
-            }
+            } else particleHandler.unregister();
         }).unregister();
-
-        this.pupPlayerInteract = register(
-            'playerInteract',
-            (action, pos, event) => {
-                if (action.toString().includes('AttackEntity')) {
-                    let attackedEntity = Player.lookingAt();
-
-                    if (
-                        attackedEntity instanceof Entity &&
-                        attackedEntity?.toString()?.includes('Sven Pup')
-                    ) {
-                        cancel(event);
-                    }
-                }
-            }
-        ).unregister();
-
-        this.jerryRenderEntity = register('renderEntity', (ent, pt, event) => {
-            if (this.jerryNames.some((name) => ent.getName().includes(name))) {
-                cancel(event);
-            }
-        }).unregister();
-
-        this.jerryPlayerInteract = register(
-            'playerInteract',
-            (action, pos, event) => {
-                if (action.toString().includes('AttackEntity')) {
-                    let attackedEntity = Player.lookingAt();
-
-                    if (
-                        attackedEntity instanceof Entity &&
-                        attackedEntity?.toString()?.includes('Jerry')
-                    ) {
-                        cancel(event);
-                    }
-                }
-            }
-        ).unregister();
-
-        this.kalhuikiRenderEntity = register(
-            'renderEntity',
-            (ent, pt, event) => {
-                let cleanname = ChatLib.removeFormatting(ent.getName());
-                if (cleanname.includes('Kalhuiki')) {
-                    cancel(event);
-                }
-            }
-        ).unregister();
-
-        this.kalhuikiPlayerInteract = register(
-            'playerInteract',
-            (action, pos, event) => {
-                if (action.toString().includes('AttackEntity')) {
-                    let attackedEntity = Player.lookingAt();
-
-                    if (
-                        attackedEntity instanceof Entity &&
-                        attackedEntity?.toString()?.includes('Kalhuiki')
-                    ) {
-                        cancel(event);
-                    }
-                }
-            }
-        ).unregister();
-    }
-
-    toggleThyst(enabled = true) {
-        if (enabled) {
-            this.thystRenderEntity.register();
-            this.thystSpawnParticle.register();
-            this.thystPlayerInteract.register();
-        } else {
-            this.thystRenderEntity.unregister();
-            this.thystSpawnParticle.unregister();
-            this.thystPlayerInteract.unregister();
-        }
-    }
-
-    togglePup(enabled = true) {
-        if (enabled) {
-            this.pupRenderEntity.register();
-            this.pupPlayerInteract.register();
-        } else {
-            this.pupRenderEntity.unregister();
-            this.pupPlayerInteract.unregister();
-        }
-    }
-
-    toggleJerry(enabled = true) {
-        if (enabled) {
-            this.jerryRenderEntity.register();
-            this.jerryPlayerInteract.register();
-        } else {
-            this.jerryRenderEntity.unregister();
-            this.jerryPlayerInteract.unregister();
-        }
-    }
-
-    toggleKalhuiki(enabled = true) {
-        if (enabled) {
-            this.kalhuikiRenderEntity.register();
-            this.kalhuikiPlayerInteract.register();
-        } else {
-            this.kalhuikiRenderEntity.unregister();
-            this.kalhuikiPlayerInteract.unregister();
-        }
     }
 }
 
-//MobHider.toggleThyst()
 new MobHider();
