@@ -23,7 +23,7 @@ import './Modules/Mining/Nuker.js';
 
 /* VISUALS */
 import './Modules/Visuals/Xray.js';
-//import "./Modules/Visuals/MobHider.js"; - This is deprecated cus it kills your fps by 10x ! It's also very useless and retarded
+import './Modules/Visuals/MobHider.js';
 
 /* SKILLS */
 //import "./Modules/Skills/AutoHarp.js"
