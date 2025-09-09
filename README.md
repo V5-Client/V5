@@ -8,7 +8,7 @@ Rdbt says if (!this.Toggled) return AutoHarp.unregister() is a good way to toggl
 ---
 
 EXAMPLE:
-
+```javascript
 register("step" , () => {
 this.enabled = getSetting(module, component)
 
@@ -20,3 +20,4 @@ this.enabled = getSetting(module, component)
 let module = register("tick", () => {
 
 })
+```
