@@ -7,7 +7,7 @@ import {
 } from '../Utility/Constants';
 
 export class MultiToggle {
-    constructor(title, x, y, options = [], singleSelect = false) {
+    constructor(title, x, y, options = [], singleSelect = false, callback = null) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -19,6 +19,7 @@ export class MultiToggle {
         this.buttonHeight = 15;
         this.buttonWidth = 100;
         this.singleSelect = singleSelect;
+        this.callback = callback;
 
         this.animStart = 0;
         this.animFrom = 0;
@@ -192,6 +193,10 @@ export class MultiToggle {
                         this.options[i].enabled = !this.options[i].enabled;
                     }
                     playClickSound();
+                    if (this.callback) {
+                        const selectedOptions = this.options.filter(option => option.enabled).map(option => option.name);
+                        this.callback(selectedOptions);
+                    }
                     return true;
                 }
             }

@@ -2,7 +2,7 @@ import { playClickSound, drawRoundedRectangleWithBorder, THEME } from './Utils';
 import { Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 
 export class ToggleButton {
-    constructor(title, x, y, width = 10, height = 10) {
+    constructor(title, x, y, width = 10, height = 10, callback = null) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -11,6 +11,7 @@ export class ToggleButton {
         this.enabled = false;
         this.optionPanelWidth = 0;
         this.optionPanelHeight = 0;
+        this.callback = callback;
     }
 
     draw() {
@@ -75,6 +76,9 @@ export class ToggleButton {
         ) {
             this.enabled = !this.enabled;
             playClickSound();
+            if (this.callback) {
+                this.callback(this.enabled);
+            }
             return true;
         }
 
