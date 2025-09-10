@@ -1,18 +1,9 @@
 // Credits: Kash - MiningModules
 
 import { Utils } from '../../Utility/Utils';
-import { getSetting } from '../../GUI/GuiSave';
 import { MiningUtils } from '../../Utility/MiningUtils';
 
 const { addCategoryItem, addToggle, addSlider } = global.Categories;
-
-addCategoryItem(
-    'Mining',
-    'Pingless Miner',
-    'Breaks hardstone quicker in the Crystal Hollows'
-);
-addToggle('Modules', 'Pingless Miner', 'Enabled');
-addSlider('Modules', 'Pingless Miner', 'Tick Delay', 0, 5, 1);
 
 class Pingless {
     constructor() {
@@ -20,22 +11,6 @@ class Pingless {
         let x;
         let y;
         let z;
-
-        register('step', () => {
-            this.enabled = getSetting('Pingless Miner', 'Enabled');
-            this.tickCount = getSetting('Pingless Miner', 'Tick Delay');
-            let isActive = false;
-
-            if (this.enabled && !isActive) {
-                playerAction.register();
-                handSwing.register();
-                isActive = true;
-            } else if (!this.enabled && isActive) {
-                playerAction.unregister();
-                handSwing.unregister();
-                isActive = false;
-            }
-        }).setFps(1);
 
         let playerAction = register('packetSent', (packet) => {
             if (!this.enabled || Utils.area() !== 'Crystal Hollows') return;
@@ -101,6 +76,27 @@ class Pingless {
                 net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
             )
             .unregister();
+
+        addCategoryItem(
+            'Mining',
+            'Pingless Miner',
+            'Breaks hardstone quicker in the Crystal Hollows'
+        );
+        addToggle('Modules', 'Pingless Miner', 'Enabled', (value) => {
+            value ? playerAction.register() : playerAction.unregister();
+            value ? handSwing.register() : handSwing.unregister();
+        });
+        addSlider(
+            'Modules',
+            'Pingless Miner',
+            'Tick Delay',
+            0,
+            5,
+            1,
+            (value) => {
+                this.tickCount = value;
+            }
+        );
     }
 }
 

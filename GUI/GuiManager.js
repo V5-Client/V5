@@ -23,6 +23,7 @@ import {
     SUBCATEGORY_BUTTON_SPACING,
     THEME,
 } from './Utils';
+import { getSetting } from '../GUI/GuiSave';
 
 import { Color } from '../Utility/Constants';
 
@@ -84,7 +85,7 @@ global.Categories = {
         }
     },
 
-    addToggle(categoryName, itemName, toggleTitle) {
+    addToggle(categoryName, itemName, toggleTitle, callback = null) {
         const category = global.Categories.categories.find(
             (c) => c.name === categoryName
         );
@@ -102,9 +103,22 @@ global.Categories = {
         }
         if (!item) return;
 
-        item.components.push(new ToggleButton(toggleTitle, 0, 0));
+        item.components.push(
+            new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback)
+        );
+        if (callback) {
+            callback(getSetting(itemName, toggleTitle));
+        }
     },
-    addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue) {
+    addSlider(
+        categoryName,
+        itemName,
+        sliderTitle,
+        min,
+        max,
+        defaultValue,
+        callback = null
+    ) {
         const category = global.Categories.categories.find(
             (c) => c.name === categoryName
         );
@@ -131,9 +145,13 @@ global.Categories = {
                 0,
                 undefined,
                 undefined,
-                defaultValue
+                defaultValue,
+                callback
             )
         );
+        if (callback) {
+            callback(getSetting(itemName, sliderTitle));
+        }
     },
 
     addMultiToggle(
@@ -141,7 +159,8 @@ global.Categories = {
         itemName,
         toggleTitle,
         options,
-        singleSelect = false
+        singleSelect = false,
+        callback = null
     ) {
         const category = global.Categories.categories.find(
             (c) => c.name === categoryName
@@ -161,8 +180,11 @@ global.Categories = {
         if (!item) return;
 
         item.components.push(
-            new MultiToggle(toggleTitle, 0, 0, options, singleSelect)
+            new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback)
         );
+        if (callback) {
+            callback(getSetting(itemName, toggleTitle));
+        }
     },
 };
 

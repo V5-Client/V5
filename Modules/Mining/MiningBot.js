@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-import { getSetting } from '../../GUI/GuiSave';
 import RendererMain from '../../Rendering/RendererMain';
 import { Keybind } from '../../Utility/Keybinding';
 import { MiningUtils } from '../../Utility/MiningUtils';
@@ -15,28 +14,6 @@ import { NukerUtils } from '../../Utility/NukerUtils';
 const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
-
-addCategoryItem(
-    'Mining',
-    'Mining Bot',
-    'Universal settings for Mining & block miner'
-);
-addToggle('Modules', 'Mining Bot', 'Tick Gliding');
-addToggle('Modules', 'Mining Bot', 'Jasper Drill Exploit');
-addMultiToggle(
-    'Modules',
-    'Mining Bot',
-    'Fakelook',
-    ['Off', 'Instant', 'Queued'],
-    true
-);
-addMultiToggle(
-    'Modules',
-    'Mining Bot',
-    'Types',
-    ['Mithril', 'Gemstone', 'Ore'],
-    true
-);
 
 class MiningBot {
     constructor() {
@@ -111,21 +88,6 @@ class MiningBot {
         this.speedBoost = false;
         this.empty = false;
         this.nuking = false;
-
-        register('step', () => {
-            this.TICKGLIDE = getSetting('Mining Bot', 'Tick Gliding');
-            this.JASPEREXPLOIT = getSetting(
-                'Mining Bot',
-                'Jasper Drill Exploit'
-            );
-            this.FAKELOOK = getSetting('Mining Bot', 'Fakelook', [
-                'Off',
-                'Instant',
-                'Queued',
-            ]);
-
-            if (this.JASPEREXPLOIT) this.exploit.register();
-        }).setFps(1);
 
         register('command', () => {
             this.toggle();
@@ -334,6 +296,38 @@ class MiningBot {
         });
 
         registerEventSB('abilitygone', () => (this.speedBoost = false));
+
+        addCategoryItem(
+            'Mining',
+            'Mining Bot',
+            'Universal settings for Mining & block miner'
+        );
+        addToggle('Modules', 'Mining Bot', 'Tick Gliding', (value) => {
+            this.TICKGLIDE = value;
+        });
+        addToggle('Modules', 'Mining Bot', 'Jasper Drill Exploit', (value) => {
+            value ? this.exploit.register() : this.exploit.unregister();
+        });
+        addMultiToggle(
+            'Modules',
+            'Mining Bot',
+            'Fakelook',
+            ['Off', 'Instant', 'Queued'],
+            true,
+            (value) => {
+                this.FAKELOOK = value;
+            }
+        );
+        addMultiToggle(
+            'Modules',
+            'Mining Bot',
+            'Types',
+            ['Mithril', 'Gemstone', 'Ore'],
+            true,
+            (value) => {
+                this.COSTTYPE = value;
+            }
+        );
     }
 
     scanForBlock(
