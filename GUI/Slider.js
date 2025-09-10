@@ -16,7 +16,8 @@ export class Slider {
         y,
         width = 100,
         height = 5,
-        value = 50
+        value = 50,
+        callback = null
     ) {
         this.title = title;
         this.x = x;
@@ -29,6 +30,7 @@ export class Slider {
         this.dragging = false;
         this.optionPanelWidth = 0;
         this.containerHeight = 40;
+        this.callback = callback;
     }
 
     draw() {
@@ -154,6 +156,9 @@ export class Slider {
 
         const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
         this.value = Math.round(this.min + (this.max - this.min) * progress);
+        if (this.callback) {
+            this.callback(this.value);
+        }
     }
 
     handleScroll(mouseX, mouseY, dir) {

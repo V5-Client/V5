@@ -1,23 +1,29 @@
-Should we actually document stuff here?
+example module format:
 
-Notes:
-Rdbt says if (!this.Toggled) return AutoHarp.unregister() is a good way to toggle things to make sure they don't get messed up if any bugs occur.
-
-- i did not say that, i said we should try register/unregister all registers, but thats a good backup way to unregister to ensure the loops are not running when the macros are not toggled.
-
----
-
-EXAMPLE:
 ```javascript
-register("step" , () => {
-this.enabled = getSetting(module, component)
+// Imports
 
-    if (this.enabled) module.register()
-    else module.unregister()
+const { addToggle } = global.Categories;
 
-}).setFps(1)
+class Module {
+    constructor() {
+        this.enabled = false
 
-let module = register("tick", () => {
+        let mainLoop = register('step', () => {
+            // Module code
+        }).unregister();
 
-})
+        toggle(value) {
+            this.enabled = value;
+            if (value) mainLoop.register();
+            else mainLoop.unregister();
+        }
+
+        addToggle('Modules', 'Module', 'Enabled', (value) => {
+            toggle(value)
+        });
+    }
+}
+
+new Module();
 ```
