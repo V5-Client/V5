@@ -8,55 +8,62 @@ addCategoryItem(
     'Xray',
     'See through walls - Sodium and Iris will break Xray'
 );
-addToggle('Modules', 'Xray', 'Enabled');
 addSlider('Modules', 'Xray', 'Transparency', 0, 255, 50);
 
 class Xray {
     constructor() {
         this.enabled = false;
-        this.transparency = getSetting('Xray', 'Transparency');
-        this.firstTransparency = this.transparency;
+        this.firstTransparency = getSetting('Xray', 'Transparency');
 
-        let stepEvent = register('step', () => this.update()).setFps(5);
+        let transparencyLoop = register('step', () => {
+            const transparency = getSetting('Xray', 'Transparency');
 
-        Client.scheduleTask(0, () => this.checkInitialState()); // prevent a rendering  bug?
-    }
+            if (this.enabled && transparency !== this.firstTransparency) {
+                XrayPackage.setAlpha(transparency);
+                // The world renderer reload has to be on the main thread
+                Client.scheduleTask(0, () => {
+                    Client.getMinecraft().worldRenderer.reload();
+                });
 
-    checkInitialState() {
-        const enabled = getSetting('Xray', 'Enabled');
-        if (enabled) {
-            this.enableXray();
-        } else {
-            this.disableXray();
-        }
-    }
+                this.firstTransparency = transparency;
+            }
+        })
+            .setFps(5)
+            .unregister();
 
-    update() {
-        const enabled = getSetting('Xray', 'Enabled');
-        const transparency = getSetting('Xray', 'Transparency');
+        this.toggle = (value) => {
+            this.enabled = value;
+            if (this.enabled) {
+                this.enableXray();
+                transparencyLoop.register();
+            } else {
+                this.disableXray();
+                transparencyLoop.unregister();
+            }
+        };
 
-        if (enabled && !this.enabled) {
-            this.enableXray();
-        } else if (!enabled && this.enabled) {
-            this.disableXray();
-        }
+        addToggle('Modules', 'Xray', 'Enabled', this.toggle);
 
-        if (enabled && transparency !== this.firstTransparency) {
-            XrayPackage.setAlpha(transparency);
-            Client.getMinecraft().worldRenderer.reload();
-            this.firstTransparency = transparency;
-        }
+        Client.scheduleTask(0, () =>
+            this.toggle(getSetting('Xray', 'Enabled'))
+        );
     }
 
     enableXray() {
-        XrayPackage.setEnabled();
-        this.enabled = true;
-        this.firstTransparency = this.transparency;
+        // Same thing, run on main thread
+        Client.scheduleTask(0, () => {
+            XrayPackage.setEnabled();
+            const transparency = getSetting('Xray', 'Transparency');
+            XrayPackage.setAlpha(transparency);
+            this.firstTransparency = transparency;
+        });
     }
 
     disableXray() {
-        XrayPackage.setDisabled();
-        this.enabled = false;
+        // Same thing, run on main thread
+        Client.scheduleTask(0, () => {
+            XrayPackage.setDisabled();
+        });
     }
 }
 
