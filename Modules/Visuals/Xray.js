@@ -8,7 +8,12 @@ addCategoryItem(
     'Xray',
     'See through walls - Sodium and Iris will break Xray'
 );
-addSlider('Modules', 'Xray', 'Transparency', 0, 255, 50);
+addSlider('Modules', 'Xray', 'Transparency', 0, 100, 50);
+ 
+function percentToAlpha(percent) {
+    const reversed = 100 - percent;
+    return Math.round(reversed * 255 / 100)
+}
 
 class Xray {
     constructor() {
@@ -19,7 +24,7 @@ class Xray {
             const transparency = getSetting('Xray', 'Transparency');
 
             if (this.enabled && transparency !== this.firstTransparency) {
-                XrayPackage.setAlpha(transparency);
+                XrayPackage.setAlpha(percentToAlpha(transparency));
                 // The world renderer reload has to be on the main thread
                 Client.scheduleTask(0, () => {
                     Client.getMinecraft().worldRenderer.reload();
@@ -54,7 +59,7 @@ class Xray {
         Client.scheduleTask(0, () => {
             XrayPackage.setEnabled();
             const transparency = getSetting('Xray', 'Transparency');
-            XrayPackage.setAlpha(transparency);
+            XrayPackage.setAlpha(percentToAlpha(transparency));
             this.firstTransparency = transparency;
         });
     }
