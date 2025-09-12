@@ -1,12 +1,14 @@
 import request from 'requestV2';
+import { Links } from '../Utility/Constants';
 import { Runtime } from '../Utility/Constants';
 import { stopPathingMovement } from './Pathfinder';
 
 const path = './config/ChatTriggers/assets/Pathfinding.exe';
 let process = null;
+const localhost = `${Links.PATHFINDER_API_URL}`;
 
 function loadMap(map) {
-    const url = `http://localhost:3000/api/loadmap?map=${map}`;
+    const url = `${localhost}/api/loadmap?map=${map}`;
     request({
         url: url,
         timeout: 5000,
@@ -105,7 +107,7 @@ export function runProgram() {
         attempts++;
         console.log(`Pinging server (Attempt ${attempts}/${maxAttempts})`);
 
-        request({ url: 'http://localhost:3000/keepalive', timeout: 500 })
+        request({ url: `${localhost}/keepalive`, timeout: 500 })
             .then(() => {
                 console.log('Server is connected.');
                 poller.unregister();
@@ -138,7 +140,7 @@ let keepAlive = register('tick', () => {
     if (Date.now() - lastKeepAlive > 60_000) {
         try {
             request({
-                url: 'http://localhost:3000/keepalive',
+                url: `${localhost}/keepalive`,
                 timeout: 5000,
                 json: true,
             })
