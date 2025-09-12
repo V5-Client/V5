@@ -4,6 +4,7 @@ import {
     FileOutputStream,
 } from '../Utility/Constants';
 
+import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 
@@ -269,7 +270,9 @@ export const returnDiscord = () => {
                 // get all data
                 let data = JSON.parse(
                     fetchURL(
-                        `https://client.rdbt.top/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
+                        `${
+                            Links.BASE_API_URL
+                        }/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
                             global.APIKEY_DO_NOT_SHARE
                         }`
                     )

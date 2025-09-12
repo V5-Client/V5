@@ -1,6 +1,7 @@
 import WebSocket from 'WebSocket';
-import { Chat } from '../Utility/Chat';
 import RequestV2 from 'RequestV2';
+import { Links } from '../Utility/Constants';
+import { Chat } from '../Utility/Chat';
 
 let reconnectAttempts = 0;
 const MAX_RECONNECT_DELAY = 60000; // 1 minute
@@ -16,7 +17,7 @@ function openBrowser(url) {
 }
 
 function connectIRC(svid) {
-    ws = new WebSocket('wss://client.rdbt.top/minecraft-ws');
+    ws = new WebSocket(Links.WEBSOCKET_URL);
 
     ws.onOpen = (handshake) => {
         Chat.irc('Connected to Minecraft WebSocket server');
@@ -33,11 +34,15 @@ function connectIRC(svid) {
                     if (!data.data.user.discordLinked) {
                         const msg = Chat.formatLink(
                             'Link Discord',
-                            `http://client.rdbt.top/auth/discord/${Player.getName()}`
+                            `${
+                                Links.BASE_API_URL
+                            }/auth/discord/${Player.getName()}`
                         );
                         Chat.irc(msg);
                         openBrowser(
-                            `http://client.rdbt.top/auth/discord/${Player.getName()}`
+                            `${
+                                Links.BASE_API_URL
+                            }/auth/discord/${Player.getName()}`
                         );
                     }
                     break;
@@ -52,11 +57,11 @@ function connectIRC(svid) {
                 case 'discord_link_reminder':
                     const msg = Chat.formatLink(
                         'Link Discord',
-                        `http://client.rdbt.top/auth/discord/${Player.getName()}`
+                        `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`
                     );
                     Chat.irc(msg);
                     openBrowser(
-                        `http://client.rdbt.top/auth/discord/${Player.getName()}`
+                        `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`
                     );
                     break;
 

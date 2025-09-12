@@ -18,3 +18,8 @@ export const Color = java.awt.Color;
 export const Matrix = UMatrixStack.get();
 export const File = java.io.File;
 export const URL = java.net.URL;
+export const Links = {
+    WEBSOCKET_URL: 'wss://client.rdbt.top/minecraft-ws',
+    BASE_API_URL: 'http://client.rdbt.top',
+    PATHFINDER_API_URL: 'http://localhost:3000',
+};
