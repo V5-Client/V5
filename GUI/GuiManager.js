@@ -206,6 +206,19 @@ global.createCategoriesManager = (deps) => {
     let cachedContentHeight = 0;
     let isContentHeightCacheValid = false;
 
+    const closeAllDropdowns = () => {
+        const selectedItem = global.Categories.selectedItem;
+        if (!selectedItem || !selectedItem.components) return;
+
+        selectedItem.components.forEach((component) => {
+            if (component instanceof MultiToggle && component.expanded) {
+                component.expanded = false;
+                component.animationProgress = 0;
+                component.animStart = 0;
+            }
+        });
+    };
+
     const getCategoryRect = (index) => {
         return {
             x: deps.rectangles.LeftPanel.x + PADDING,
@@ -305,11 +318,12 @@ global.createCategoriesManager = (deps) => {
         if (!selectedItem) return;
 
         let optionPanelX = panel.x;
-        if (global.Categories.transitionDirection === 1)
+        if (global.Categories.transitionDirection === 1) {
             optionPanelX +=
                 panel.width * (1 - global.Categories.transitionProgress);
-        else if (global.Categories.transitionDirection === -1)
+        } else if (global.Categories.transitionDirection === -1) {
             optionPanelX += panel.width * global.Categories.transitionProgress;
+        }
 
         const optionX = optionPanelX + PADDING;
         const optionY = panel.y + PADDING;
@@ -339,39 +353,26 @@ global.createCategoriesManager = (deps) => {
             false
         );
 
-        let regularComponents = [];
-        let animatedDropdowns = [];
-
-        selectedItem.components.forEach((component) => {
-            if (
-                component instanceof MultiToggle &&
-                component.animationProgress > 0
-            ) {
-                animatedDropdowns.push(component);
-            } else {
-                regularComponents.push(component);
-            }
-        });
-
         let componentY = optionY + 70;
-
-        for (let i = 0; i < regularComponents.length; i++) {
-            const component = regularComponents[i];
+        selectedItem.components.forEach((component) => {
             if (typeof component.draw !== 'function') return;
+
             component.x = optionX + 10;
             component.y = componentY;
             component.optionPanelWidth = panel.width;
             component.optionPanelHeight = panel.height;
+
             component.draw();
 
-            let ComponentOffset = 45;
-            componentY += ComponentOffset;
-        }
+            componentY += 45;
 
-        animatedDropdowns.forEach((component) => {
-            if (typeof component.draw !== 'function') return;
-            component.x = optionX + 10;
-            component.draw();
+            if (
+                component instanceof MultiToggle &&
+                component.animationProgress > 0
+            ) {
+                componentY +=
+                    component.getExpandedHeight() * component.animationProgress;
+            }
         });
     };
 
@@ -382,6 +383,10 @@ global.createCategoriesManager = (deps) => {
             global.Categories.transitionProgress = easeInOutQuad(rawProgress);
 
             if (rawProgress >= 1) {
+                if (global.Categories.transitionDirection === -1) {
+                    closeAllDropdowns();
+                }
+
                 global.Categories.currentPage =
                     global.Categories.transitionDirection === 1
                         ? 'options'
@@ -437,24 +442,6 @@ global.createCategoriesManager = (deps) => {
         const panel = deps.rectangles.RightPanel;
         const panelWidth = panel.width - PADDING * 2;
         const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
-
-        const scale = Renderer.screen.getScale();
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-
-        const inset = 2;
-        const scissorX = panel.x + inset;
-        const scissorY = panel.y + inset;
-        const scissorW = panel.width - inset * 2;
-        const scissorH = panel.height - inset * 2;
-
-        GL11.glScissor(
-            Math.floor(scissorX * scale),
-            Math.floor(
-                (Renderer.screen.getHeight() - (scissorY + scissorH)) * scale
-            ),
-            Math.floor(scissorW * scale),
-            Math.floor(scissorH * scale)
-        );
 
         const transitionActive = global.Categories.transitionDirection !== 0;
         const shouldDrawItems =
@@ -610,8 +597,6 @@ global.createCategoriesManager = (deps) => {
             if (!isLayoutCacheValid) isLayoutCacheValid = true;
         }
         if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
-
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     };
 
     const handleClick = (mouseX, mouseY) => {
@@ -621,13 +606,64 @@ global.createCategoriesManager = (deps) => {
             global.Categories.currentPage === 'options' &&
             global.Categories.selectedItem
         ) {
-            let openDropdown = global.Categories.selectedItem.components.find(
-                (comp) => comp instanceof MultiToggle && comp.expanded
-            );
+            const panel = deps.rectangles.RightPanel;
+            const optionX = panel.x + PADDING;
+            const optionY = panel.y + PADDING;
 
-            if (openDropdown) {
-                if (openDropdown.handleClick(mouseX, mouseY)) {
-                    return;
+            const backButtonText = 'Back';
+            const backButtonWidth = Renderer.getStringWidth(backButtonText);
+            const backButtonRect = {
+                x: optionX + 10,
+                y: optionY + 10,
+                width: backButtonWidth,
+                height: 10,
+            };
+            if (isInside(mouseX, mouseY, backButtonRect)) {
+                global.Categories.transitionDirection = -1;
+                global.Categories.transitionProgress = 0;
+                global.Categories.transitionStart = Date.now();
+                playClickSound();
+                return;
+            }
+
+            let componentY = optionY + 70;
+            const components = global.Categories.selectedItem.components;
+
+            for (let i = 0; i < components.length; i++) {
+                const component = components[i];
+                if (typeof component.handleClick !== 'function') continue;
+
+                let componentHeight = 40;
+                let clickableArea = {
+                    x: component.x - 10,
+                    y: componentY,
+                    width: component.optionPanelWidth - 20,
+                    height: componentHeight,
+                };
+
+                let handled = false;
+                if (component instanceof MultiToggle) {
+                    if (component.handleClick(mouseX, mouseY)) {
+                        handled = true;
+                    }
+                } else {
+                    if (isInside(mouseX, mouseY, clickableArea)) {
+                        if (component.handleClick(mouseX, mouseY)) {
+                            handled = true;
+                        }
+                    }
+                }
+
+                if (handled) return;
+
+                componentY += 45;
+                if (
+                    component instanceof MultiToggle &&
+                    component.animationProgress > 0
+                ) {
+                    componentY +=
+                        component.getExpandedHeight() *
+                        component.animationProgress;
                 }
             }
         }
@@ -636,6 +672,7 @@ global.createCategoriesManager = (deps) => {
             (cat, i) => {
                 const rect = getCategoryRect(i);
                 if (isInside(mouseX, mouseY, rect)) {
+                    closeAllDropdowns();
                     global.Categories.selected = cat.name;
                     global.Categories.currentPage = 'categories';
                     global.Categories.selectedItem = null;
@@ -654,45 +691,11 @@ global.createCategoriesManager = (deps) => {
             !wasCategoryClicked &&
             isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
         ) {
+            closeAllDropdowns();
             global.Categories.selected = null;
             isLayoutCacheValid = false;
             isContentHeightCacheValid = false;
             playClickSound();
-        }
-
-        if (
-            global.Categories.currentPage === 'options' &&
-            global.Categories.selectedItem
-        ) {
-            const panel = deps.rectangles.RightPanel;
-            const backButtonText = 'Back';
-            const backButtonWidth = Renderer.getStringWidth(backButtonText);
-            const backButtonRect = {
-                x: panel.x + PADDING + 10,
-                y: panel.y + PADDING + 10,
-                width: backButtonWidth,
-                height: 10,
-            };
-            if (isInside(mouseX, mouseY, backButtonRect)) {
-                global.Categories.transitionDirection = -1;
-                global.Categories.transitionProgress = 0;
-                global.Categories.transitionStart = Date.now();
-                playClickSound();
-                return;
-            }
-
-            const components = global.Categories.selectedItem.components;
-            let wasComponentClicked = false;
-            if (!components) return;
-            components.forEach((component) => {
-                if (
-                    typeof component.handleClick === 'function' &&
-                    component.handleClick(mouseX, mouseY)
-                )
-                    wasComponentClicked = true;
-            });
-
-            if (wasComponentClicked) return;
         }
 
         if (
@@ -705,57 +708,59 @@ global.createCategoriesManager = (deps) => {
             if (!cat) return;
 
             const panel = deps.rectangles.RightPanel;
-            let yOffset = panel.y + PADDING;
-
-            if (cat.subcategories.length < 0) return;
-            let currentX = panel.x + PADDING;
-            const subcategoriesToDraw = ['All', ...cat.subcategories];
-            for (const subcat of subcategoriesToDraw) {
-                const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
-                const buttonRect = {
-                    x: currentX,
-                    y: yOffset,
-                    width: buttonTextWidth,
-                    height: SUBCATEGORY_BUTTON_HEIGHT,
-                };
-                if (isInside(mouseX, mouseY, buttonRect)) {
-                    const newSubcatName = subcat === 'All' ? null : subcat;
-                    if (
-                        global.Categories.selectedSubcategory !== newSubcatName
-                    ) {
-                        const oldRect =
-                            global.Categories.selectedSubcategoryButton ||
-                            buttonRect;
-                        global.Categories.selectedSubcategory = newSubcatName;
-                        isContentHeightCacheValid = false;
-                        isLayoutCacheValid = false;
-                        rightPanelScrollY = 0;
-
-                        global.Categories.subcatTransitionStart = Date.now();
-                        global.Categories.subcatTransitionProgress = 0;
-                        global.Categories.animationRect = {
-                            startX: oldRect.x,
-                            startY: oldRect.y,
-                            startWidth: oldRect.width,
-                            startHeight: oldRect.height,
-                            endX: buttonRect.x,
-                            endY: buttonRect.y,
-                            endWidth: buttonRect.width,
-                            endHeight: buttonRect.height,
-                            x: oldRect.x,
-                            y: oldRect.y,
-                            width: oldRect.width,
-                            height: oldRect.height,
-                        };
-                        global.Categories.selectedSubcategoryButton =
-                            buttonRect;
+            if (cat.subcategories.length > 0) {
+                let currentX = panel.x + PADDING;
+                let yOffset = panel.y + PADDING;
+                const subcategoriesToDraw = ['All', ...cat.subcategories];
+                for (const subcat of subcategoriesToDraw) {
+                    const buttonTextWidth =
+                        Renderer.getStringWidth(subcat) + 10;
+                    const buttonRect = {
+                        x: currentX,
+                        y: yOffset,
+                        width: buttonTextWidth,
+                        height: SUBCATEGORY_BUTTON_HEIGHT,
+                    };
+                    if (isInside(mouseX, mouseY, buttonRect)) {
+                        const newSubcatName = subcat === 'All' ? null : subcat;
+                        if (
+                            global.Categories.selectedSubcategory !==
+                            newSubcatName
+                        ) {
+                            const oldRect =
+                                global.Categories.selectedSubcategoryButton ||
+                                buttonRect;
+                            global.Categories.selectedSubcategory =
+                                newSubcatName;
+                            isContentHeightCacheValid = false;
+                            isLayoutCacheValid = false;
+                            rightPanelScrollY = 0;
+                            global.Categories.subcatTransitionStart =
+                                Date.now();
+                            global.Categories.subcatTransitionProgress = 0;
+                            global.Categories.animationRect = {
+                                startX: oldRect.x,
+                                startY: oldRect.y,
+                                startWidth: oldRect.width,
+                                startHeight: oldRect.height,
+                                endX: buttonRect.x,
+                                endY: buttonRect.y,
+                                endWidth: buttonRect.width,
+                                endHeight: buttonRect.height,
+                                x: oldRect.x,
+                                y: oldRect.y,
+                                width: oldRect.width,
+                                height: oldRect.height,
+                            };
+                            global.Categories.selectedSubcategoryButton =
+                                buttonRect;
+                        }
+                        playClickSound();
+                        return;
                     }
-                    playClickSound();
-                    return;
+                    currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
                 }
-                currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
             }
-            yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
 
             for (const layout of cachedItemLayouts) {
                 if (isInside(mouseX, mouseY, layout.rect)) {
