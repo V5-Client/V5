@@ -1,4 +1,9 @@
-import { playClickSound, THEME, drawRoundedRectangleWithBorder } from './Utils';
+import {
+    playClickSound,
+    THEME,
+    drawRoundedRectangleWithBorder,
+    PADDING,
+} from './Utils';
 import {
     Color,
     UMatrixStack,
@@ -59,7 +64,7 @@ export class MultiToggle {
     draw() {
         this.updateAnimation();
 
-        const panelWidth = this.optionPanelWidth - 20;
+        const panelWidth = this.optionPanelWidth - 2 * PADDING;
         const textColor = THEME.TOGGLE_TEXT;
         const cornerRadius = 6;
 
@@ -113,23 +118,11 @@ export class MultiToggle {
                 THEME.TOGGLE_BACKGROUND
             );
 
-            const scale = Renderer.screen.getScale();
-            GL11.glEnable(GL11.GL_SCISSOR_TEST);
-            GL11.glScissor(
-                Math.floor(dropdownX * scale),
-                Math.floor(
-                    (Renderer.screen.getHeight() -
-                        (dropdownY + animatedHeight)) *
-                        scale
-                ),
-                Math.floor(panelWidth * scale),
-                Math.floor(animatedHeight * scale)
-            );
-
             let currentY = dropdownY + 5;
             for (let i = 0; i < this.options.length; i++) {
-                const option = this.options[i];
                 const optionTop = currentY;
+                if (optionTop >= dropdownY + animatedHeight) break;
+                const option = this.options[i];
                 const optionX = this.x - 5;
 
                 const innerBoxSize = 15;
@@ -162,13 +155,11 @@ export class MultiToggle {
 
                 currentY += this.optionHeight + 2;
             }
-
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
         }
     }
 
     handleClick(mouseX, mouseY) {
-        const panelWidth = this.optionPanelWidth - 20;
+        const panelWidth = this.optionPanelWidth - 2 * PADDING;
 
         if (
             mouseX >= this.x - 10 &&

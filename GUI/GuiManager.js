@@ -383,14 +383,14 @@ global.createCategoriesManager = (deps) => {
             global.Categories.transitionProgress = easeInOutQuad(rawProgress);
 
             if (rawProgress >= 1) {
-                if (global.Categories.transitionDirection === -1) {
-                    closeAllDropdowns();
-                }
-
-                global.Categories.currentPage =
+                const newPage =
                     global.Categories.transitionDirection === 1
                         ? 'options'
                         : 'categories';
+                global.Categories.currentPage = newPage;
+                if (newPage === 'categories') {
+                    global.Categories.selectedItem = null;
+                }
                 global.Categories.transitionDirection = 0;
                 isLayoutCacheValid = false;
             }
@@ -442,6 +442,24 @@ global.createCategoriesManager = (deps) => {
         const panel = deps.rectangles.RightPanel;
         const panelWidth = panel.width - PADDING * 2;
         const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
+
+        const scale = Renderer.screen.getScale();
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+
+        const inset = 2;
+        const scissorX = panel.x + inset;
+        const scissorY = panel.y + inset;
+        const scissorW = panel.width - inset * 2;
+        const scissorH = panel.height - inset * 2;
+
+        GL11.glScissor(
+            Math.floor(scissorX * scale),
+            Math.floor(
+                (Renderer.screen.getHeight() - (scissorY + scissorH)) * scale
+            ),
+            Math.floor(scissorW * scale),
+            Math.floor(scissorH * scale)
+        );
 
         const transitionActive = global.Categories.transitionDirection !== 0;
         const shouldDrawItems =
@@ -597,6 +615,8 @@ global.createCategoriesManager = (deps) => {
             if (!isLayoutCacheValid) isLayoutCacheValid = true;
         }
         if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
+
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     };
 
     const handleClick = (mouseX, mouseY) => {
@@ -666,119 +686,142 @@ global.createCategoriesManager = (deps) => {
                         component.animationProgress;
                 }
             }
-        }
 
-        const wasCategoryClicked = global.Categories.categories.some(
-            (cat, i) => {
-                const rect = getCategoryRect(i);
-                if (isInside(mouseX, mouseY, rect)) {
-                    closeAllDropdowns();
-                    global.Categories.selected = cat.name;
-                    global.Categories.currentPage = 'categories';
-                    global.Categories.selectedItem = null;
-                    global.Categories.selectedSubcategory = null;
-                    isContentHeightCacheValid = false;
-                    isLayoutCacheValid = false;
-                    rightPanelScrollY = 0;
-                    playClickSound();
-                    return true;
+            const leftPanel = deps.rectangles.LeftPanel;
+            if (isInside(mouseX, mouseY, leftPanel)) {
+                let clickedCategory = null;
+                global.Categories.categories.forEach((cat, i) => {
+                    const rect = getCategoryRect(i);
+                    if (isInside(mouseX, mouseY, rect)) {
+                        clickedCategory = cat.name;
+                        return;
+                    }
+                });
+                if (
+                    clickedCategory &&
+                    clickedCategory !== global.Categories.selected
+                ) {
+                    global.Categories.selected = clickedCategory;
                 }
-                return false;
+                global.Categories.transitionDirection = -1;
+                global.Categories.transitionProgress = 0;
+                global.Categories.transitionStart = Date.now();
+                playClickSound();
+                return;
             }
-        );
 
-        if (
-            !wasCategoryClicked &&
-            isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
-        ) {
-            closeAllDropdowns();
-            global.Categories.selected = null;
-            isLayoutCacheValid = false;
-            isContentHeightCacheValid = false;
-            playClickSound();
-        }
-
-        if (
-            global.Categories.selected &&
-            global.Categories.currentPage === 'categories'
-        ) {
-            const cat = global.Categories.categories.find(
-                (c) => c.name === global.Categories.selected
+            if (!isInside(mouseX, mouseY, deps.rectangles.RightPanel)) {
+                global.Categories.transitionDirection = -1;
+                global.Categories.transitionProgress = 0;
+                global.Categories.transitionStart = Date.now();
+            }
+        } else {
+            const wasCategoryClicked = global.Categories.categories.some(
+                (cat, i) => {
+                    const rect = getCategoryRect(i);
+                    if (isInside(mouseX, mouseY, rect)) {
+                        global.Categories.selected = cat.name;
+                        global.Categories.currentPage = 'categories';
+                        global.Categories.selectedItem = null;
+                        global.Categories.selectedSubcategory = null;
+                        isContentHeightCacheValid = false;
+                        isLayoutCacheValid = false;
+                        rightPanelScrollY = 0;
+                        playClickSound();
+                        return true;
+                    }
+                    return false;
+                }
             );
-            if (!cat) return;
 
-            const panel = deps.rectangles.RightPanel;
-            if (cat.subcategories.length > 0) {
-                let currentX = panel.x + PADDING;
-                let yOffset = panel.y + PADDING;
-                const subcategoriesToDraw = ['All', ...cat.subcategories];
-                for (const subcat of subcategoriesToDraw) {
-                    const buttonTextWidth =
-                        Renderer.getStringWidth(subcat) + 10;
-                    const buttonRect = {
-                        x: currentX,
-                        y: yOffset,
-                        width: buttonTextWidth,
-                        height: SUBCATEGORY_BUTTON_HEIGHT,
-                    };
-                    if (isInside(mouseX, mouseY, buttonRect)) {
-                        const newSubcatName = subcat === 'All' ? null : subcat;
-                        if (
-                            global.Categories.selectedSubcategory !==
-                            newSubcatName
-                        ) {
-                            const oldRect =
-                                global.Categories.selectedSubcategoryButton ||
-                                buttonRect;
-                            global.Categories.selectedSubcategory =
-                                newSubcatName;
-                            isContentHeightCacheValid = false;
-                            isLayoutCacheValid = false;
-                            rightPanelScrollY = 0;
-                            global.Categories.subcatTransitionStart =
-                                Date.now();
-                            global.Categories.subcatTransitionProgress = 0;
-                            global.Categories.animationRect = {
-                                startX: oldRect.x,
-                                startY: oldRect.y,
-                                startWidth: oldRect.width,
-                                startHeight: oldRect.height,
-                                endX: buttonRect.x,
-                                endY: buttonRect.y,
-                                endWidth: buttonRect.width,
-                                endHeight: buttonRect.height,
-                                x: oldRect.x,
-                                y: oldRect.y,
-                                width: oldRect.width,
-                                height: oldRect.height,
-                            };
-                            global.Categories.selectedSubcategoryButton =
-                                buttonRect;
+            if (
+                !wasCategoryClicked &&
+                isInside(mouseX, mouseY, deps.rectangles.LeftPanel)
+            ) {
+                global.Categories.selected = null;
+                isLayoutCacheValid = false;
+                isContentHeightCacheValid = false;
+                playClickSound();
+            }
+
+            if (
+                global.Categories.selected &&
+                global.Categories.currentPage === 'categories'
+            ) {
+                const cat = global.Categories.categories.find(
+                    (c) => c.name === global.Categories.selected
+                );
+                if (!cat) return;
+
+                const panel = deps.rectangles.RightPanel;
+                if (cat.subcategories.length > 0) {
+                    let currentX = panel.x + PADDING;
+                    let yOffset = panel.y + PADDING;
+                    const subcategoriesToDraw = ['All', ...cat.subcategories];
+                    for (const subcat of subcategoriesToDraw) {
+                        const buttonTextWidth =
+                            Renderer.getStringWidth(subcat) + 10;
+                        const buttonRect = {
+                            x: currentX,
+                            y: yOffset,
+                            width: buttonTextWidth,
+                            height: SUBCATEGORY_BUTTON_HEIGHT,
+                        };
+                        if (isInside(mouseX, mouseY, buttonRect)) {
+                            const newSubcatName =
+                                subcat === 'All' ? null : subcat;
+                            if (
+                                global.Categories.selectedSubcategory !==
+                                newSubcatName
+                            ) {
+                                const oldRect =
+                                    global.Categories
+                                        .selectedSubcategoryButton ||
+                                    buttonRect;
+                                global.Categories.selectedSubcategory =
+                                    newSubcatName;
+                                isContentHeightCacheValid = false;
+                                isLayoutCacheValid = false;
+                                rightPanelScrollY = 0;
+                                global.Categories.subcatTransitionStart =
+                                    Date.now();
+                                global.Categories.subcatTransitionProgress = 0;
+                                global.Categories.animationRect = {
+                                    startX: oldRect.x,
+                                    startY: oldRect.y,
+                                    startWidth: oldRect.width,
+                                    startHeight: oldRect.height,
+                                    endX: buttonRect.x,
+                                    endY: buttonRect.y,
+                                    endWidth: buttonRect.width,
+                                    endHeight: buttonRect.height,
+                                    x: oldRect.x,
+                                    y: oldRect.y,
+                                    width: oldRect.width,
+                                    height: oldRect.height,
+                                };
+                                global.Categories.selectedSubcategoryButton =
+                                    buttonRect;
+                            }
+                            playClickSound();
+                            return;
                         }
+                        currentX +=
+                            buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
+                    }
+                }
+
+                for (const layout of cachedItemLayouts) {
+                    if (isInside(mouseX, mouseY, layout.rect)) {
+                        global.Categories.transitionDirection = 1;
+                        global.Categories.transitionProgress = 0;
+                        global.Categories.transitionStart = Date.now();
+                        global.Categories.selectedItem = layout.item;
                         playClickSound();
                         return;
                     }
-                    currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
                 }
             }
-
-            for (const layout of cachedItemLayouts) {
-                if (isInside(mouseX, mouseY, layout.rect)) {
-                    global.Categories.transitionDirection = 1;
-                    global.Categories.transitionProgress = 0;
-                    global.Categories.transitionStart = Date.now();
-                    global.Categories.selectedItem = layout.item;
-                    playClickSound();
-                    return;
-                }
-            }
-        } else if (
-            global.Categories.currentPage === 'options' &&
-            !isInside(mouseX, mouseY, deps.rectangles.RightPanel)
-        ) {
-            global.Categories.transitionDirection = -1;
-            global.Categories.transitionProgress = 0;
-            global.Categories.transitionStart = Date.now();
         }
     };
 

@@ -189,27 +189,22 @@ const drawGUI = (mouseX, mouseY) => {
 
     Client.getMinecraft().gameRenderer.renderBlur();
 
-    drawRoundedRectangleWithBorder(animatedBackground);
-
-    drawRoundedRectangleWithBorder(animatedTopPanel);
-    drawRoundedRectangleWithBorder(animatedLeftPanel);
-
     const scale = Renderer.screen.getScale();
-    const scissorX = animatedRightPanel.x;
-    const scissorY = animatedRightPanel.y;
-    const scissorW = Math.max(0, animatedRightPanel.width);
-    const scissorH = Math.max(0, animatedRightPanel.height);
-
     GL11.glEnable(GL11.GL_SCISSOR_TEST);
     GL11.glScissor(
-        Math.floor(scissorX * scale),
+        Math.floor(animatedBackground.x * scale),
         Math.floor(
-            (Renderer.screen.getHeight() - (scissorY + scissorH)) * scale
+            (Renderer.screen.getHeight() -
+                (animatedBackground.y + animatedBackground.height)) *
+                scale
         ),
-        Math.floor(scissorW * scale),
-        Math.floor(scissorH * scale)
+        Math.floor(animatedBackground.width * scale),
+        Math.floor(animatedBackground.height * scale)
     );
 
+    drawRoundedRectangleWithBorder(animatedBackground);
+    drawRoundedRectangleWithBorder(animatedTopPanel);
+    drawRoundedRectangleWithBorder(animatedLeftPanel);
     drawRoundedRectangleWithBorder(animatedRightPanel);
 
     if (progress >= 0.99) {
