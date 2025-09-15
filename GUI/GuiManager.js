@@ -47,6 +47,7 @@ global.Categories = {
     subcatTransitionStart: 0,
     subcatAnimationDuration: 200,
     animationRect: null,
+    optionsScrollY: 0,
 
     addCategoryItem(subcategoryName, title, description) {
         const category = global.Categories.categories.find(
@@ -328,51 +329,56 @@ global.createCategoriesManager = (deps) => {
         const optionX = optionPanelX + PADDING;
         const optionY = panel.y + PADDING;
 
+        const scrollY = global.Categories.optionsScrollY;
+
         const backButtonText = 'Back';
         const backButtonX = optionX + 10;
         const backButtonY = optionY + 10;
+        const drawnBackY = backButtonY - scrollY;
         Renderer.drawString(
             backButtonText,
             backButtonX,
-            backButtonY,
+            drawnBackY,
             BACK_TEXT_COLOR
         );
 
+        const drawnTitleY = optionY + 30 - scrollY;
         Renderer.drawString(
             selectedItem.title,
             backButtonX,
-            optionY + 30,
+            drawnTitleY,
             CATEGORY_TITLE_COLOR,
             false
         );
+        const drawnDescY = optionY + 45 - scrollY;
         Renderer.drawString(
             selectedItem.description,
             backButtonX + 10,
-            optionY + 45,
+            drawnDescY,
             CATEGORY_DESC_COLOR,
             false
         );
 
-        let componentY = optionY + 70;
+        let drawnCompY = optionY + 70 - scrollY;
         selectedItem.components.forEach((component) => {
             if (typeof component.draw !== 'function') return;
 
             component.x = optionX + 10;
-            component.y = componentY;
+            component.y = drawnCompY;
             component.optionPanelWidth = panel.width;
             component.optionPanelHeight = panel.height;
 
             component.draw();
 
-            componentY += 45;
-
+            let thisHeight = 45;
             if (
                 component instanceof MultiToggle &&
                 component.animationProgress > 0
             ) {
-                componentY +=
+                thisHeight +=
                     component.getExpandedHeight() * component.animationProgress;
             }
+            drawnCompY += thisHeight;
         });
     };
 
@@ -390,6 +396,9 @@ global.createCategoriesManager = (deps) => {
                 global.Categories.currentPage = newPage;
                 if (newPage === 'categories') {
                     global.Categories.selectedItem = null;
+                }
+                if (newPage === 'options') {
+                    global.Categories.optionsScrollY = 0;
                 }
                 global.Categories.transitionDirection = 0;
                 isLayoutCacheValid = false;
@@ -629,12 +638,14 @@ global.createCategoriesManager = (deps) => {
             const panel = deps.rectangles.RightPanel;
             const optionX = panel.x + PADDING;
             const optionY = panel.y + PADDING;
+            const scrollY = global.Categories.optionsScrollY;
 
             const backButtonText = 'Back';
             const backButtonWidth = Renderer.getStringWidth(backButtonText);
+            const drawnBackY = optionY + 10 - scrollY;
             const backButtonRect = {
                 x: optionX + 10,
-                y: optionY + 10,
+                y: drawnBackY,
                 width: backButtonWidth,
                 height: 10,
             };
@@ -646,28 +657,33 @@ global.createCategoriesManager = (deps) => {
                 return;
             }
 
-            let componentY = optionY + 70;
             const components = global.Categories.selectedItem.components;
+            let currentCompY = optionY + 70;
+            let currentDrawnCompY = currentCompY - scrollY;
 
             for (let i = 0; i < components.length; i++) {
                 const component = components[i];
                 if (typeof component.handleClick !== 'function') continue;
 
-                let componentHeight = 40;
-                let clickableArea = {
-                    x: component.x - 10,
-                    y: componentY,
-                    width: component.optionPanelWidth - 20,
-                    height: componentHeight,
-                };
-
+                const drawnCompY = currentDrawnCompY;
                 let handled = false;
+
+                component.x = optionX + 10;
                 if (component instanceof MultiToggle) {
+                    component.y = drawnCompY;
                     if (component.handleClick(mouseX, mouseY)) {
                         handled = true;
                     }
                 } else {
+                    let componentHeight = 40;
+                    let clickableArea = {
+                        x: optionX, // component.x - 10, but since x = optionX +10, x-10 = optionX
+                        y: drawnCompY,
+                        width: panel.width - 2 * PADDING - 20,
+                        height: componentHeight,
+                    };
                     if (isInside(mouseX, mouseY, clickableArea)) {
+                        component.y = drawnCompY;
                         if (component.handleClick(mouseX, mouseY)) {
                             handled = true;
                         }
@@ -676,15 +692,17 @@ global.createCategoriesManager = (deps) => {
 
                 if (handled) return;
 
-                componentY += 45;
+                let thisHeight = 45;
                 if (
                     component instanceof MultiToggle &&
                     component.animationProgress > 0
                 ) {
-                    componentY +=
+                    thisHeight +=
                         component.getExpandedHeight() *
                         component.animationProgress;
                 }
+                currentCompY += thisHeight;
+                currentDrawnCompY += thisHeight;
             }
 
             const leftPanel = deps.rectangles.LeftPanel;
@@ -830,12 +848,54 @@ global.createCategoriesManager = (deps) => {
             global.Categories.currentPage === 'options' &&
             global.Categories.selectedItem
         ) {
+            const panel = deps.rectangles.RightPanel;
+            const optionX = panel.x + PADDING;
+            const optionY = panel.y + PADDING;
+
+            let scrollHandled = false;
+            let componentY = optionY + 70;
             const components = global.Categories.selectedItem.components;
-            if (!components) return;
-            components.forEach((component) => {
-                if (typeof component.handleScroll !== 'function') return;
-                component.handleScroll(mouseX, mouseY, dir);
-            });
+            if (components) {
+                components.forEach((component) => {
+                    let compHeight = 45;
+                    if (component instanceof MultiToggle) {
+                        compHeight +=
+                            component.getExpandedHeight() *
+                            component.animationProgress;
+                    }
+                    const compRect = {
+                        x: optionX + 10,
+                        y: componentY,
+                        width: panel.width - PADDING * 2 - 20,
+                        height: compHeight,
+                    };
+                    if (
+                        isInside(mouseX, mouseY, compRect) &&
+                        typeof component.handleScroll === 'function'
+                    ) {
+                        component.handleScroll(mouseX, mouseY, dir);
+                        scrollHandled = true;
+                    }
+                    componentY += compHeight;
+                });
+            }
+
+            if (!scrollHandled && isInside(mouseX, mouseY, panel)) {
+                let componentsHeight = componentY - (optionY + 70);
+                const fixedTop = 70 + PADDING;
+                const bottomPadding = PADDING;
+                const availableHeight = panel.height - fixedTop - bottomPadding;
+                const maxScroll = Math.max(
+                    0,
+                    componentsHeight - availableHeight
+                );
+                const direction = dir > 0 ? -1 : 1;
+                global.Categories.optionsScrollY += direction * SCROLL_SPEED;
+                global.Categories.optionsScrollY = Math.max(
+                    0,
+                    Math.min(global.Categories.optionsScrollY, maxScroll)
+                );
+            }
 
             return;
         }
