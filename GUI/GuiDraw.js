@@ -189,6 +189,19 @@ const drawGUI = (mouseX, mouseY) => {
 
     Client.getMinecraft().gameRenderer.renderBlur();
 
+    const scale = Renderer.screen.getScale();
+    GL11.glEnable(GL11.GL_SCISSOR_TEST);
+    GL11.glScissor(
+        Math.floor(animatedBackground.x * scale),
+        Math.floor(
+            (Renderer.screen.getHeight() -
+                (animatedBackground.y + animatedBackground.height)) *
+                scale
+        ),
+        Math.floor(animatedBackground.width * scale),
+        Math.floor(animatedBackground.height * scale)
+    );
+
     drawRoundedRectangleWithBorder(animatedBackground);
     drawRoundedRectangleWithBorder(animatedTopPanel);
     drawRoundedRectangleWithBorder(animatedLeftPanel);
@@ -197,6 +210,8 @@ const drawGUI = (mouseX, mouseY) => {
     if (progress >= 0.99) {
         categoryManager.draw(mouseX, mouseY);
     }
+
+    GL11.glDisable(GL11.GL_SCISSOR_TEST);
 };
 
 returnDiscord();
