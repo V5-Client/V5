@@ -1,4 +1,9 @@
-import { playClickSound, THEME } from './Utils';
+import {
+    playClickSound,
+    THEME,
+    drawRoundedRectangleWithBorder,
+    PADDING,
+} from './Utils';
 import {
     Color,
     UMatrixStack,
@@ -7,7 +12,14 @@ import {
 } from '../Utility/Constants';
 
 export class MultiToggle {
-    constructor(title, x, y, options = [], singleSelect = false, callback = null) {
+    constructor(
+        title,
+        x,
+        y,
+        options = [],
+        singleSelect = false,
+        callback = null
+    ) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -16,15 +28,16 @@ export class MultiToggle {
             enabled: false,
         }));
         this.expanded = false;
-        this.buttonHeight = 15;
-        this.buttonWidth = 100;
+        this.optionHeight = 25;
+        this.containerHeight = 40;
         this.singleSelect = singleSelect;
         this.callback = callback;
+        this.optionPanelWidth = 0;
 
         this.animStart = 0;
         this.animFrom = 0;
         this.animTo = 0;
-        this.animDuration = 200; // ms
+        this.animDuration = 200;
         this.animationProgress = 0;
     }
 
@@ -36,134 +49,123 @@ export class MultiToggle {
 
     updateAnimation() {
         if (this.animStart === 0) return;
-
         const elapsed = Date.now() - this.animStart;
         const t = Math.min(elapsed / this.animDuration, 1);
-
         const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-
         this.animationProgress =
             this.animFrom + (this.animTo - this.animFrom) * eased;
+        if (t >= 1) this.animStart = 0;
+    }
 
-        if (t >= 1) {
-            this.animStart = 0;
-        }
+    getExpandedHeight() {
+        return this.options.length * (this.optionHeight + 2) + 5;
     }
 
     draw() {
         this.updateAnimation();
 
-        const backgroundColor = THEME.DROPDOWN_BACKGROUND;
-        const foregroundColor = THEME.DROPDOWN_FOREGROUND;
-        const textColor = THEME.DROPDOWN_TEXT;
-        const cornerRadius = 3;
+        const panelWidth = this.optionPanelWidth - 2 * PADDING;
+        const textColor = THEME.TOGGLE_TEXT;
+        const cornerRadius = 6;
 
-        // Main button
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            this.x,
-            this.y,
-            this.x + this.buttonWidth,
-            this.y + this.buttonHeight,
-            cornerRadius,
-            backgroundColor
-        );
+        // Main container
+        drawRoundedRectangleWithBorder({
+            x: this.x - 10,
+            y: this.y,
+            width: panelWidth,
+            height: this.containerHeight,
+            radius: cornerRadius,
+            color: THEME.TOGGLE_BACKGROUND,
+            borderWidth: 0.5,
+            borderColor: THEME.TOGGLE_BORDER,
+        });
+
         Renderer.drawString(
             this.title,
-            this.x + 5,
-            this.y + this.buttonHeight / 2 - 4,
-            textColor,
+            this.x,
+            this.y + this.containerHeight / 2 - 4,
+            textColor.getRGB(),
             false
         );
+
+        const boxSize = 15;
+        const rightMargin = 15;
+        const boxX = this.x + panelWidth - boxSize - rightMargin - 10;
 
         const arrow = this.expanded ? '▲' : '▼';
         const arrowWidth = Renderer.getStringWidth(arrow);
         Renderer.drawString(
             arrow,
-            this.x + this.buttonWidth - arrowWidth - 5,
-            this.y + this.buttonHeight / 2 - 4,
-            textColor,
+            boxX + (boxSize - arrowWidth) / 2,
+            this.y + this.containerHeight / 2 - 4,
+            textColor.getRGB(),
             false
         );
 
         if (this.animationProgress > 0) {
-            const fullDropdownHeight =
-                this.options.length * (this.buttonHeight + 2);
+            const fullDropdownHeight = this.getExpandedHeight();
             const animatedHeight = fullDropdownHeight * this.animationProgress;
+            const dropdownX = this.x - 10;
+            const dropdownY = this.y + this.containerHeight + 1;
 
-            // Background
             UIRoundedRectangle.Companion.drawRoundedRectangle(
                 Matrix,
-                this.x,
-                this.y + this.buttonHeight + 1,
-                this.x + this.buttonWidth,
-                this.y + this.buttonHeight + 1 + animatedHeight,
+                dropdownX,
+                dropdownY,
+                dropdownX + panelWidth,
+                dropdownY + animatedHeight,
                 cornerRadius,
-                backgroundColor
+                THEME.TOGGLE_BACKGROUND
             );
 
-            let currentY = this.y + this.buttonHeight + 2;
+            let currentY = dropdownY + 5;
             for (let i = 0; i < this.options.length; i++) {
                 const optionTop = currentY;
-                const optionBottom = optionTop + this.buttonHeight;
-
-                if (
-                    optionTop - (this.y + this.buttonHeight + 1) >=
-                    animatedHeight
-                )
-                    break;
-
+                if (optionTop >= dropdownY + animatedHeight) break;
                 const option = this.options[i];
-                const toggleX = this.x + 2;
-                const toggleWidth = this.buttonWidth - 4;
-                const toggleHeight = this.buttonHeight;
+                const optionX = this.x - 5;
 
-                UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    Matrix,
-                    toggleX,
-                    optionTop,
-                    toggleX + toggleWidth,
-                    optionTop + toggleHeight,
-                    cornerRadius,
-                    THEME.DROPDOWN_OPTION_BACKGROUND
-                );
-
+                const innerBoxSize = 15;
+                const innerRightMargin = 15;
+                const toggleXPos =
+                    this.x + panelWidth - innerBoxSize - innerRightMargin - 10;
+                const toggleYPos =
+                    optionTop + (this.optionHeight - innerBoxSize) / 2;
                 const toggleColor = option.enabled
-                    ? foregroundColor
+                    ? THEME.TOGGLE_ACCENT
                     : THEME.DROPDOWN_TOGGLE_DISABLED;
-                const toggleSize = toggleHeight - 6;
-                const toggleXPos = toggleX + toggleWidth - toggleSize - 3;
-                const toggleYPos = optionTop + (toggleHeight - toggleSize) / 2;
 
                 UIRoundedRectangle.Companion.drawRoundedRectangle(
                     Matrix,
                     toggleXPos,
                     toggleYPos,
-                    toggleXPos + toggleSize,
-                    toggleYPos + toggleSize,
-                    cornerRadius,
+                    toggleXPos + innerBoxSize,
+                    toggleYPos + innerBoxSize,
+                    4,
                     toggleColor
                 );
 
                 Renderer.drawString(
                     option.name,
-                    toggleX + 3,
-                    optionTop + toggleHeight / 2 - 4,
-                    textColor,
+                    optionX + 5,
+                    optionTop + this.optionHeight / 2 - 4,
+                    textColor.getRGB(),
                     false
                 );
 
-                currentY += this.buttonHeight + 2;
+                currentY += this.optionHeight + 2;
             }
         }
     }
 
     handleClick(mouseX, mouseY) {
+        const panelWidth = this.optionPanelWidth - 2 * PADDING;
+
         if (
-            mouseX >= this.x &&
-            mouseX <= this.x + this.buttonWidth &&
+            mouseX >= this.x - 10 &&
+            mouseX <= this.x - 10 + panelWidth &&
             mouseY >= this.y &&
-            mouseY <= this.y + this.buttonHeight
+            mouseY <= this.y + this.containerHeight
         ) {
             this.expanded = !this.expanded;
             this.startAnimation(this.expanded);
@@ -172,32 +174,41 @@ export class MultiToggle {
         }
 
         if (this.expanded) {
-            const startY = this.y + this.buttonHeight + 2;
-            for (let i = 0; i < this.options.length; i++) {
-                const optionY = startY + i * (this.buttonHeight + 2);
-                if (
-                    mouseX >= this.x &&
-                    mouseX <= this.x + this.buttonWidth &&
-                    mouseY >= optionY &&
-                    mouseY <= optionY + this.buttonHeight
-                ) {
-                    if (this.singleSelect) {
-                        if (this.options[i].enabled) {
-                            this.options[i].enabled = false;
+            const dropdownY = this.y + this.containerHeight + 1;
+            const fullDropdownHeight = this.getExpandedHeight();
+
+            if (
+                mouseX >= this.x - 10 &&
+                mouseX <= this.x - 10 + panelWidth &&
+                mouseY >= dropdownY &&
+                mouseY <= dropdownY + fullDropdownHeight
+            ) {
+                let currentY = dropdownY + 5;
+                for (let i = 0; i < this.options.length; i++) {
+                    const optionTop = currentY;
+                    const optionBottom = optionTop + this.optionHeight;
+                    if (mouseY >= optionTop && mouseY <= optionBottom) {
+                        if (this.singleSelect) {
+                            if (this.options[i].enabled) {
+                                this.options[i].enabled = false;
+                            } else {
+                                this.options.forEach((opt, index) => {
+                                    opt.enabled = index === i;
+                                });
+                            }
                         } else {
-                            this.options.forEach((opt, index) => {
-                                opt.enabled = index === i;
-                            });
+                            this.options[i].enabled = !this.options[i].enabled;
                         }
-                    } else {
-                        this.options[i].enabled = !this.options[i].enabled;
+                        playClickSound();
+                        if (this.callback) {
+                            const selectedOptions = this.options
+                                .filter((option) => option.enabled)
+                                .map((option) => option.name);
+                            this.callback(selectedOptions);
+                        }
+                        return true;
                     }
-                    playClickSound();
-                    if (this.callback) {
-                        const selectedOptions = this.options.filter(option => option.enabled).map(option => option.name);
-                        this.callback(selectedOptions);
-                    }
-                    return true;
+                    currentY += this.optionHeight + 2;
                 }
             }
         }
