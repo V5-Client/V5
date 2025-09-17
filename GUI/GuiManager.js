@@ -86,31 +86,33 @@ global.Categories = {
         }
     },
 
-    addToggle(categoryName, itemName, toggleTitle, callback = null) {
+    findItem(categoryName, itemName) {
         const category = global.Categories.categories.find(
             (c) => c.name === categoryName
         );
-        if (!category) return;
+        if (!category) return null;
 
-        let item = null;
         for (const group of category.items) {
             if (group.type === 'separator') {
-                item = group.items.find((i) => i.title === itemName);
-                if (item) break;
+                const item = group.items.find((i) => i.title === itemName);
+                if (item) return item;
             } else if (group.title === itemName) {
-                item = group;
-                break;
+                return group;
             }
         }
+        return null;
+    },
+
+    addToggle(categoryName, itemName, toggleTitle, callback = null) {
+        const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
         item.components.push(
             new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback)
         );
-        if (callback) {
-            callback(getSetting(itemName, toggleTitle));
-        }
+        if (callback) callback(getSetting(itemName, toggleTitle));
     },
+
     addSlider(
         categoryName,
         itemName,
@@ -120,21 +122,7 @@ global.Categories = {
         defaultValue,
         callback = null
     ) {
-        const category = global.Categories.categories.find(
-            (c) => c.name === categoryName
-        );
-        if (!category) return;
-
-        let item = null;
-        for (const group of category.items) {
-            if (group.type === 'separator') {
-                item = group.items.find((i) => i.title === itemName);
-                if (item) break;
-            } else if (group.title === itemName) {
-                item = group;
-                break;
-            }
-        }
+        const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
         item.components.push(
@@ -150,9 +138,7 @@ global.Categories = {
                 callback
             )
         );
-        if (callback) {
-            callback(getSetting(itemName, sliderTitle));
-        }
+        if (callback) callback(getSetting(itemName, sliderTitle));
     },
 
     addMultiToggle(
@@ -163,29 +149,13 @@ global.Categories = {
         singleSelect = false,
         callback = null
     ) {
-        const category = global.Categories.categories.find(
-            (c) => c.name === categoryName
-        );
-        if (!category) return;
-
-        let item = null;
-        for (const group of category.items) {
-            if (group.type === 'separator') {
-                item = group.items.find((i) => i.title === itemName);
-                if (item) break;
-            } else if (group.title === itemName) {
-                item = group;
-                break;
-            }
-        }
+        const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
         item.components.push(
             new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback)
         );
-        if (callback) {
-            callback(getSetting(itemName, toggleTitle));
-        }
+        if (callback) callback(getSetting(itemName, toggleTitle));
     },
 };
 

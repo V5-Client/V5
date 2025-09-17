@@ -8,6 +8,14 @@ import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 
+export const colorWithAlpha = (baseColor, alpha) =>
+    new Color(
+        baseColor.getRed() / 255,
+        baseColor.getGreen() / 255,
+        baseColor.getBlue() / 255,
+        (baseColor.getAlpha() / 255) * alpha
+    );
+
 export const PADDING = 10;
 export const BORDER_WIDTH = 0.5;
 export const CORNER_RADIUS = 10;

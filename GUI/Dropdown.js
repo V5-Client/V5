@@ -189,13 +189,10 @@ export class MultiToggle {
                     const optionBottom = optionTop + this.optionHeight;
                     if (mouseY >= optionTop && mouseY <= optionBottom) {
                         if (this.singleSelect) {
-                            if (this.options[i].enabled) {
-                                this.options[i].enabled = false;
-                            } else {
-                                this.options.forEach((opt, index) => {
-                                    opt.enabled = index === i;
-                                });
-                            }
+                            const isEnabled = this.options[i].enabled;
+                            this.options.forEach((opt, index) => {
+                                opt.enabled = !isEnabled && index === i;
+                            });
                         } else {
                             this.options[i].enabled = !this.options[i].enabled;
                         }

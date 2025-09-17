@@ -4,7 +4,7 @@ import {
     UMatrixStack,
     Matrix,
 } from '../Utility/Constants';
-import { THEME } from './Utils';
+import { THEME, isInside, colorWithAlpha } from './Utils';
 
 // Configuration
 const NOTIFICATION_WIDTH = 250;
@@ -251,12 +251,7 @@ class Notification {
         const alpha = this.opacity;
         const typeInfo = NOTIFICATION_TYPES[this.type];
 
-        const bgColor = new Color(
-            BACKGROUND_COLOR.getRed() / 255,
-            BACKGROUND_COLOR.getGreen() / 255,
-            BACKGROUND_COLOR.getBlue() / 255,
-            (BACKGROUND_COLOR.getAlpha() / 255) * alpha
-        );
+        const bgColor = colorWithAlpha(BACKGROUND_COLOR, alpha);
         UIRoundedRectangle.Companion.drawRoundedRectangle(
             Matrix,
             this.x,
@@ -271,12 +266,7 @@ class Notification {
         const iconBgY = this.y + this.height / 2 - 12;
         const iconBgSize = 24;
 
-        const outlineColor = new Color(
-            typeInfo.outlineColor.getRed() / 255,
-            typeInfo.outlineColor.getGreen() / 255,
-            typeInfo.outlineColor.getBlue() / 255,
-            alpha
-        );
+        const outlineColor = colorWithAlpha(typeInfo.outlineColor, alpha);
         UIRoundedRectangle.Companion.drawRoundedRectangle(
             Matrix,
             iconBgX - 1,
@@ -287,12 +277,7 @@ class Notification {
             outlineColor
         );
 
-        const iconBgColor = new Color(
-            ICON_BACKGROUND_COLOR.getRed() / 255,
-            ICON_BACKGROUND_COLOR.getGreen() / 255,
-            ICON_BACKGROUND_COLOR.getBlue() / 255,
-            (ICON_BACKGROUND_COLOR.getAlpha() / 255) * alpha
-        );
+        const iconBgColor = colorWithAlpha(ICON_BACKGROUND_COLOR, alpha);
         UIRoundedRectangle.Companion.drawRoundedRectangle(
             Matrix,
             iconBgX,
@@ -341,15 +326,10 @@ class Notification {
             width: closeSize,
             height: closeSize,
         };
-        this.closeHovered = this.isInside(mouseX, mouseY, closeRect);
+        this.closeHovered = isInside(mouseX, mouseY, closeRect);
 
         if (this.closeHovered) {
-            const hoverColor = new Color(
-                CLOSE_BUTTON_HOVER_COLOR.getRed() / 255,
-                CLOSE_BUTTON_HOVER_COLOR.getGreen() / 255,
-                CLOSE_BUTTON_HOVER_COLOR.getBlue() / 255,
-                (CLOSE_BUTTON_HOVER_COLOR.getAlpha() / 255) * alpha
-            );
+            const hoverColor = colorWithAlpha(CLOSE_BUTTON_HOVER_COLOR, alpha);
             UIRoundedRectangle.Companion.drawRoundedRectangle(
                 Matrix,
                 closeX,
@@ -372,12 +352,7 @@ class Notification {
             const progressBarHeight = 4;
             const progressBarWidth = NOTIFICATION_WIDTH * progress;
 
-            const progressColor = new Color(
-                PROGRESS_BAR_COLOR.getRed() / 255,
-                PROGRESS_BAR_COLOR.getGreen() / 255,
-                PROGRESS_BAR_COLOR.getBlue() / 255,
-                (PROGRESS_BAR_COLOR.getAlpha() / 255) * alpha
-            );
+            const progressColor = colorWithAlpha(PROGRESS_BAR_COLOR, alpha);
 
             if (progressBarWidth > 0) {
                 const scale = Renderer.screen.getScale();
@@ -428,15 +403,6 @@ class Notification {
             centerX + size,
             centerY - size,
             1.5
-        );
-    }
-
-    isInside(mouseX, mouseY, rect) {
-        return (
-            mouseX >= rect.x &&
-            mouseX <= rect.x + rect.width &&
-            mouseY >= rect.y &&
-            mouseY <= rect.y + rect.height
         );
     }
 
