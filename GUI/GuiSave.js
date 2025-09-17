@@ -5,57 +5,53 @@ import { File } from '../Utility/Constants';
 
 global.SettingsMap = new Map();
 
+const getModuleItems = (category) =>
+    category.items.reduce(
+        (acc, group) =>
+            acc.concat(group.type === 'separator' ? group.items : [group]),
+        []
+    );
+
 function buildSettingsMapFromComponents() {
     global.SettingsMap.clear();
-    global.Categories.categories.forEach((category) => {
-        if (category.name !== 'Modules') return;
-
-        const itemsToProcess = category.items.reduce(
-            (acc, group) =>
-                acc.concat(group.type === 'separator' ? group.items : [group]),
-            []
-        );
-
-        itemsToProcess.forEach((item) => {
-            item.components.forEach((component) => {
-                const key = `${item.title}.${component.title}`;
-                if (component instanceof ToggleButton)
-                    global.SettingsMap.set(key, component.enabled);
-                else if (component instanceof Slider)
-                    global.SettingsMap.set(key, component.value);
-                else if (component instanceof MultiToggle)
-                    global.SettingsMap.set(key, component.options);
+    global.Categories.categories
+        .filter((c) => c.name === 'Modules')
+        .forEach((category) => {
+            getModuleItems(category).forEach((item) => {
+                item.components.forEach((component) => {
+                    const key = `${item.title}.${component.title}`;
+                    if (component instanceof ToggleButton)
+                        global.SettingsMap.set(key, component.enabled);
+                    else if (component instanceof Slider)
+                        global.SettingsMap.set(key, component.value);
+                    else if (component instanceof MultiToggle)
+                        global.SettingsMap.set(key, component.options);
+                });
             });
         });
-    });
 }
 
 export const saveSettings = () => {
     const settings = {};
-    global.Categories.categories.forEach((category) => {
-        if (category.name !== 'Modules') return;
-
-        const itemsToSave = category.items.reduce(
-            (acc, group) =>
-                acc.concat(group.type === 'separator' ? group.items : [group]),
-            []
-        );
-
-        itemsToSave.forEach((item) => {
-            settings[item.title] = {};
-            item.components.forEach((component) => {
-                if (component instanceof ToggleButton)
-                    settings[item.title][component.title] = component.enabled;
-                else if (component instanceof Slider)
-                    settings[item.title][component.title] = component.value;
-                else if (component instanceof MultiToggle)
-                    settings[item.title][component.title] = component.options;
+    global.Categories.categories
+        .filter((c) => c.name === 'Modules')
+        .forEach((category) => {
+            getModuleItems(category).forEach((item) => {
+                settings[item.title] = {};
+                item.components.forEach((component) => {
+                    if (component instanceof ToggleButton)
+                        settings[item.title][component.title] =
+                            component.enabled;
+                    else if (component instanceof Slider)
+                        settings[item.title][component.title] = component.value;
+                    else if (component instanceof MultiToggle)
+                        settings[item.title][component.title] =
+                            component.options;
+                });
             });
         });
-    });
 
     buildSettingsMapFromComponents();
-
     FileLib.write(
         'V5Config',
         'config.json',
@@ -66,51 +62,37 @@ export const saveSettings = () => {
 
 export const loadSettings = () => {
     const fileContent = FileLib.read('V5Config', 'config.json');
-    if (!fileContent) {
-        buildSettingsMapFromComponents();
-        return;
-    }
+    if (!fileContent) return buildSettingsMapFromComponents();
 
     try {
         const settings = JSON.parse(fileContent);
-        if (!settings) {
-            buildSettingsMapFromComponents();
-            return;
-        }
+        if (!settings) return buildSettingsMapFromComponents();
 
-        global.Categories.categories.forEach((category) => {
-            if (category.name !== 'Modules') return;
-
-            const itemsToLoad = category.items.reduce(
-                (acc, group) =>
-                    acc.concat(
-                        group.type === 'separator' ? group.items : [group]
-                    ),
-                []
-            );
-
-            itemsToLoad.forEach((item) => {
-                const savedItemSettings = settings[item.title];
-                if (!savedItemSettings) return;
-                item.components.forEach((component) => {
-                    const savedValue = savedItemSettings[component.title];
-                    if (savedValue === undefined) return;
-                    if (component instanceof ToggleButton)
-                        component.enabled = savedValue;
-                    else if (component instanceof Slider)
-                        component.value = savedValue;
-                    else if (component instanceof MultiToggle) {
-                        component.options.forEach((option, index) => {
-                            if (
-                                savedValue[index] &&
-                                option.name === savedValue[index].name
-                            )
-                                option.enabled = savedValue[index].enabled;
-                        });
-                    }
+        global.Categories.categories
+            .filter((c) => c.name === 'Modules')
+            .forEach((category) => {
+                getModuleItems(category).forEach((item) => {
+                    const savedItemSettings = settings[item.title];
+                    if (!savedItemSettings) return;
+                    item.components.forEach((component) => {
+                        const savedValue = savedItemSettings[component.title];
+                        if (savedValue === undefined) return;
+                        if (component instanceof ToggleButton)
+                            component.enabled = savedValue;
+                        else if (component instanceof Slider)
+                            component.value = savedValue;
+                        else if (component instanceof MultiToggle) {
+                            component.options.forEach((option, index) => {
+                                if (
+                                    savedValue[index] &&
+                                    option.name === savedValue[index].name
+                                )
+                                    option.enabled = savedValue[index].enabled;
+                            });
+                        }
+                    });
                 });
             });
-        });
 
         buildSettingsMapFromComponents();
     } catch (e) {
