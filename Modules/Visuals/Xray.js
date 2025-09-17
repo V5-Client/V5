@@ -6,13 +6,23 @@ const { addCategoryItem, addToggle, addSlider } = global.Categories;
 addCategoryItem(
     'Visuals',
     'Xray',
-    'See through walls - Sodium and Iris will break Xray'
+    'See through walls - Sodium and Iris will break Xray',
+    'This is a description for Xray.'
 );
-addSlider('Modules', 'Xray', 'Transparency', 0, 100, 50);
- 
+addSlider(
+    'Modules',
+    'Xray',
+    'Transparency',
+    0,
+    100,
+    50,
+    null,
+    'This is a description for Transparency.'
+);
+
 function percentToAlpha(percent) {
     const reversed = 100 - percent;
-    return Math.round(reversed * 255 / 100)
+    return Math.round((reversed * 255) / 100);
 }
 
 class Xray {
@@ -47,7 +57,13 @@ class Xray {
             }
         };
 
-        addToggle('Modules', 'Xray', 'Enabled', this.toggle);
+        addToggle(
+            'Modules',
+            'Xray',
+            'Enabled',
+            this.toggle,
+            'This is a description for Enabled.'
+        );
 
         Client.scheduleTask(0, () =>
             this.toggle(getSetting('Xray', 'Enabled'))

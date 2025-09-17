@@ -53,7 +53,7 @@ class MiningBot {
             'minecraft:yellow_stained_glass_pane': 4,
         };
 
-        this.COSTTYPE = this.gemstoneCosts;
+        this.COSTTYPE = this.mithrilCosts;
 
         this.STATES = {
             WAITING: 0,
@@ -91,10 +91,11 @@ class MiningBot {
 
         register('command', () => {
             this.toggle();
+            ChatLib.chat('§c[Mining Bot] §7Enabled.');
         }).setName('startb');
 
         register('command', () => {
-            miningbot.unregister();
+            this.miningbot.unregister(); // uhmmm why was this just miningbot.unregister() ?
             this.enabled = false;
             this.state = this.STATES.WAITING;
             Keybind.setKey('leftclick', false);
@@ -300,14 +301,27 @@ class MiningBot {
         addCategoryItem(
             'Mining',
             'Mining Bot',
-            'Universal settings for Mining & block miner'
+            'Universal settings for Mining & block miner',
+            'This is a description for Mining Bot.'
         );
-        addToggle('Modules', 'Mining Bot', 'Tick Gliding', (value) => {
-            this.TICKGLIDE = value;
-        });
-        addToggle('Modules', 'Mining Bot', 'Jasper Drill Exploit', (value) => {
-            value ? this.exploit.register() : this.exploit.unregister();
-        });
+        addToggle(
+            'Modules',
+            'Mining Bot',
+            'Tick Gliding',
+            (value) => {
+                this.TICKGLIDE = value;
+            },
+            'This is a description for Tick Gliding.'
+        );
+        addToggle(
+            'Modules',
+            'Mining Bot',
+            'Jasper Drill Exploit',
+            (value) => {
+                value ? this.exploit.register() : this.exploit.unregister();
+            },
+            'This is a description for Jasper Drill Exploit.'
+        );
         addMultiToggle(
             'Modules',
             'Mining Bot',
@@ -316,7 +330,8 @@ class MiningBot {
             true,
             (value) => {
                 this.FAKELOOK = value;
-            }
+            },
+            'This is a description for Fakelook.'
         );
         addMultiToggle(
             'Modules',
@@ -326,7 +341,8 @@ class MiningBot {
             true,
             (value) => {
                 this.COSTTYPE = value;
-            }
+            },
+            'This is a description for Types.'
         );
     }
 

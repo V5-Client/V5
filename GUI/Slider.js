@@ -5,6 +5,7 @@ import {
     playClickSound,
     drawRoundedRectangleWithBorder,
     THEME,
+    isInside,
 } from './Utils';
 
 export class Slider {
@@ -31,9 +32,10 @@ export class Slider {
         this.optionPanelWidth = 0;
         this.containerHeight = 40;
         this.callback = callback;
+        this.description = null;
     }
 
-    draw() {
+    draw(mouseX, mouseY) {
         const componentHeight = this.containerHeight;
         const backgroundColor = THEME.SLIDER_BACKGROUND;
         const textColor = THEME.SLIDER_TEXT;
@@ -111,6 +113,17 @@ export class Slider {
             textColor.getRGB(),
             false
         );
+
+        const componentRect = {
+            x: this.x - 10,
+            y: this.y,
+            width: panelWidth,
+            height: componentHeight,
+        };
+
+        if (this.description && isInside(mouseX, mouseY, componentRect)) {
+            global.setTooltip(this.description);
+        }
     }
 
     handleClick(mouseX, mouseY) {

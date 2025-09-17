@@ -80,12 +80,19 @@ class Pingless {
         addCategoryItem(
             'Mining',
             'Pingless Miner',
-            'Breaks hardstone quicker in the Crystal Hollows'
+            'Breaks hardstone quicker in the Crystal Hollows',
+            'This is a description for Pingless Miner.'
         );
-        addToggle('Modules', 'Pingless Miner', 'Enabled', (value) => {
-            value ? playerAction.register() : playerAction.unregister();
-            value ? handSwing.register() : handSwing.unregister();
-        });
+        addToggle(
+            'Modules',
+            'Pingless Miner',
+            'Enabled',
+            (value) => {
+                value ? playerAction.register() : playerAction.unregister();
+                value ? handSwing.register() : handSwing.unregister();
+            },
+            'This is a description for Enabled.'
+        );
         addSlider(
             'Modules',
             'Pingless Miner',
@@ -95,7 +102,8 @@ class Pingless {
             1,
             (value) => {
                 this.tickCount = value;
-            }
+            },
+            'This is a description for Tick Delay.'
         );
     }
 }

@@ -49,7 +49,7 @@ global.Categories = {
     animationRect: null,
     optionsScrollY: 0,
 
-    addCategoryItem(subcategoryName, title, description) {
+    addCategoryItem(subcategoryName, title, description, tooltip = null) {
         const category = global.Categories.categories.find(
             (c) => c.name === 'Modules'
         );
@@ -58,6 +58,7 @@ global.Categories = {
         const newItem = {
             title,
             description,
+            tooltip,
             expanded: false,
             animation: CATEGORY_BOX_HEIGHT,
             components: [],
@@ -103,13 +104,26 @@ global.Categories = {
         return null;
     },
 
-    addToggle(categoryName, itemName, toggleTitle, callback = null) {
+    addToggle(
+        categoryName,
+        itemName,
+        toggleTitle,
+        callback = null,
+        description = null
+    ) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        item.components.push(
-            new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback)
+        const toggle = new ToggleButton(
+            toggleTitle,
+            0,
+            0,
+            undefined,
+            undefined,
+            callback
         );
+        toggle.description = description;
+        item.components.push(toggle);
         if (callback) callback(getSetting(itemName, toggleTitle));
     },
 
@@ -120,24 +134,25 @@ global.Categories = {
         min,
         max,
         defaultValue,
-        callback = null
+        callback = null,
+        description = null
     ) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        item.components.push(
-            new Slider(
-                sliderTitle,
-                min,
-                max,
-                0,
-                0,
-                undefined,
-                undefined,
-                defaultValue,
-                callback
-            )
+        const slider = new Slider(
+            sliderTitle,
+            min,
+            max,
+            0,
+            0,
+            undefined,
+            undefined,
+            defaultValue,
+            callback
         );
+        slider.description = description;
+        item.components.push(slider);
         if (callback) callback(getSetting(itemName, sliderTitle));
     },
 
@@ -147,14 +162,22 @@ global.Categories = {
         toggleTitle,
         options,
         singleSelect = false,
-        callback = null
+        callback = null,
+        description = null
     ) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        item.components.push(
-            new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback)
+        const multiToggle = new MultiToggle(
+            toggleTitle,
+            0,
+            0,
+            options,
+            singleSelect,
+            callback
         );
+        multiToggle.description = description;
+        item.components.push(multiToggle);
         if (callback) callback(getSetting(itemName, toggleTitle));
     },
 };
@@ -338,7 +361,7 @@ global.createCategoriesManager = (deps) => {
             component.optionPanelWidth = panel.width;
             component.optionPanelHeight = panel.height;
 
-            component.draw();
+            component.draw(mouseX, mouseY);
 
             let thisHeight = 45;
             if (
@@ -531,6 +554,10 @@ global.createCategoriesManager = (deps) => {
                             ? UNIVERSAL_GRAY_COLOR
                             : CATEGORY_BOX_COLOR;
 
+                        if (isHovered && item.tooltip) {
+                            global.setTooltip(item.tooltip);
+                        }
+
                         deps.draw.drawRoundedRectangleWithBorder(itemRect);
 
                         if (!isLayoutCacheValid)
@@ -576,6 +603,10 @@ global.createCategoriesManager = (deps) => {
                     itemRect.color = isHovered
                         ? UNIVERSAL_GRAY_COLOR
                         : CATEGORY_BOX_COLOR;
+
+                    if (isHovered && item.tooltip) {
+                        global.setTooltip(item.tooltip);
+                    }
 
                     if (!isLayoutCacheValid)
                         cachedItemLayouts.push({ rect: itemRect, item });
