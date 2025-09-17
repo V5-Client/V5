@@ -3,6 +3,7 @@ import {
     THEME,
     drawRoundedRectangleWithBorder,
     PADDING,
+    isInside,
 } from './Utils';
 import {
     Color,
@@ -39,6 +40,7 @@ export class MultiToggle {
         this.animTo = 0;
         this.animDuration = 200;
         this.animationProgress = 0;
+        this.description = null;
     }
 
     startAnimation(expanding) {
@@ -61,7 +63,7 @@ export class MultiToggle {
         return this.options.length * (this.optionHeight + 2) + 5;
     }
 
-    draw() {
+    draw(mouseX, mouseY) {
         this.updateAnimation();
 
         const panelWidth = this.optionPanelWidth - 2 * PADDING;
@@ -101,6 +103,17 @@ export class MultiToggle {
             textColor.getRGB(),
             false
         );
+
+        const componentRect = {
+            x: this.x - 10,
+            y: this.y,
+            width: panelWidth,
+            height: this.containerHeight,
+        };
+
+        if (this.description && isInside(mouseX, mouseY, componentRect)) {
+            global.setTooltip(this.description);
+        }
 
         if (this.animationProgress > 0) {
             const fullDropdownHeight = this.getExpandedHeight();

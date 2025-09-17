@@ -4,7 +4,12 @@ const { addCategoryItem, addMultiToggle } = global.Categories;
 
 class MobHider {
     constructor() {
-        addCategoryItem('Visuals', 'Mob Hider', 'Hides types of mobs');
+        addCategoryItem(
+            'Visuals',
+            'Mob Hider',
+            'Hides types of mobs',
+            'This is a description for Mob Hider.'
+        );
 
         this.MOBS = [];
         this.jerryNames = [
@@ -90,7 +95,9 @@ class MobHider {
             'Mob Hider',
             'Mobs',
             ['Kalhuikis', 'Sven Pups', 'Jerries', 'Thysts'],
-            this.toggle
+            false,
+            this.toggle,
+            'This is a description for Mobs.'
         );
 
         Client.scheduleTask(0, () =>

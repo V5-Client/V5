@@ -9,10 +9,21 @@ class RPC {
             this.enabled ? DiscordRPC.stayOn() : DiscordRPC.turnOff();
         }).setDelay(1);
 
-        addCategoryItem('Other', 'Discord RPC', "Show you're playing V5!");
-        addToggle('Modules', 'Discord RPC', 'Enabled', (value) => {
-            this.enabled = value;
-        });
+        addCategoryItem(
+            'Other',
+            'Discord RPC',
+            "Show you're playing V5!",
+            'This is a description for Discord RPC.'
+        );
+        addToggle(
+            'Modules',
+            'Discord RPC',
+            'Enabled',
+            (value) => {
+                this.enabled = value;
+            },
+            'This is a description for Enabled.'
+        );
     }
 }
 

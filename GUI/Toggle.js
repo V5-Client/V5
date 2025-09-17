@@ -1,4 +1,9 @@
-import { playClickSound, drawRoundedRectangleWithBorder, THEME } from './Utils';
+import {
+    playClickSound,
+    drawRoundedRectangleWithBorder,
+    THEME,
+    isInside,
+} from './Utils';
 import { Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 
 export class ToggleButton {
@@ -12,9 +17,10 @@ export class ToggleButton {
         this.optionPanelWidth = 0;
         this.optionPanelHeight = 0;
         this.callback = callback;
+        this.description = null;
     }
 
-    draw() {
+    draw(mouseX, mouseY) {
         const componentHeight = 40;
 
         const backgroundColor = THEME.TOGGLE_BACKGROUND;
@@ -58,6 +64,17 @@ export class ToggleButton {
             4,
             boxColor
         );
+
+        const componentRect = {
+            x: this.x - 10,
+            y: this.y,
+            width: panelWidth,
+            height: componentHeight,
+        };
+
+        if (this.description && isInside(mouseX, mouseY, componentRect)) {
+            global.setTooltip(this.description);
+        }
     }
 
     handleClick(mouseX, mouseY) {

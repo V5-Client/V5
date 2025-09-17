@@ -11,14 +11,6 @@ import {
     THEME,
 } from './Utils';
 
-import {
-    UIRoundedRectangle,
-    UMatrixStack,
-    Color,
-    File,
-    Matrix,
-} from '../Utility/Constants';
-
 import { saveSettings, loadSettings } from './GuiSave';
 
 const GUI_COLOR = THEME.GUI_DRAW_PANELS;
@@ -32,6 +24,22 @@ let animatedTopPanel = {};
 let animatedLeftPanel = {};
 let animatedRightPanel = {};
 let dragging = false;
+
+let tooltipToDraw = null;
+let tooltipHoverTime = 0;
+let currentTooltipText = null;
+let isHoveringTooltipSource = false;
+
+global.setTooltip = (text) => {
+    isHoveringTooltipSource = true;
+    if (text !== currentTooltipText) {
+        currentTooltipText = text;
+        tooltipHoverTime = Date.now();
+        tooltipToDraw = null;
+    } else if (Date.now() - tooltipHoverTime > 650) {
+        tooltipToDraw = text;
+    }
+};
 
 let rectangles = {
     Background: {
@@ -137,6 +145,8 @@ const categoryManager = global.createCategoriesManager({
 });
 
 const drawGUI = (mouseX, mouseY) => {
+    isHoveringTooltipSource = false;
+
     let elapsed = Date.now() - openStartTime;
     const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
 
@@ -212,6 +222,46 @@ const drawGUI = (mouseX, mouseY) => {
     }
 
     GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+    if (!isHoveringTooltipSource) {
+        currentTooltipText = null;
+        tooltipToDraw = null;
+    }
+
+    if (tooltipToDraw) {
+        const lines = tooltipToDraw.split('\n');
+        const PADDING = 5;
+        let tooltipWidth = 0;
+        lines.forEach((line) => {
+            const lineWidth = Renderer.getStringWidth(line);
+            if (lineWidth > tooltipWidth) {
+                tooltipWidth = lineWidth;
+            }
+        });
+        tooltipWidth += PADDING * 2;
+        const tooltipHeight = lines.length * 9 + PADDING * 2;
+        const tooltipX = mouseX + 10;
+        const tooltipY = mouseY;
+
+        drawRoundedRectangle({
+            x: tooltipX,
+            y: tooltipY,
+            width: tooltipWidth,
+            height: tooltipHeight,
+            radius: 3,
+            color: THEME.TOOLTIP_BACKGROUND,
+        });
+
+        lines.forEach((line, index) => {
+            Renderer.drawString(
+                line,
+                tooltipX + PADDING,
+                tooltipY + PADDING + index * 9,
+                THEME.TOOLTIP_TEXT,
+                true
+            );
+        });
+    }
 };
 
 returnDiscord();

@@ -83,6 +83,10 @@ export const THEME = {
     TOGGLE_DISABLED_BOX: new Color(0.3, 0.3, 0.3, 1),
     TOGGLE_TEXT: new Color(1, 1, 1, 1),
     TOGGLE_BORDER: new Color(1, 1, 1, 0.2),
+
+    // Tooltip
+    TOOLTIP_BACKGROUND: new Color(0.1, 0.1, 0.1, 0.95),
+    TOOLTIP_TEXT: 0xdddddd,
 };
 
 export const drawRoundedRectangle = ({
