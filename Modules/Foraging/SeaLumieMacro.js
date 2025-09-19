@@ -1,9 +1,7 @@
-import RendererMain from '../Rendering/RendererMain';
-import { Chat } from '../Utility/Chat';
-import { Keybind } from '../Utility/Keybinding';
-import { Rotations } from '../Utility/Rotations';
-import { MathUtils } from '../Utility/Math';
+import RendererMain from '../../Rendering/RendererMain';
+import { Chat } from '../../Utility/Chat';
 import { Color } from '../../Utility/Constants';
+const { addCategoryItem, addToggle } = global.Categories;
 
 class SeaLumie {
     constructor() {
@@ -227,23 +225,28 @@ class SeaLumie {
             }
         });
 
-        register('command', () => {
-            this.enabled = !this.enabled;
-            if (this.enabled) {
-                ChatLib.chat('SeaLumie enabled');
-                this.state = this.STATES.SCANNING;
-            } else {
-                ChatLib.chat('SeaLumie disabled');
-                this.state = this.STATES.WAITING;
-                this.closestPickle = null;
-            }
-        }).setName('sealum');
-
-        this.toggle(value) {
+        this.toggle = (value) => {
             this.enabled = value;
             if (value) this.state = this.STATES.SCANNING;
             else this.state = this.STATES.WAITING;
-        }
+        };
+
+        addCategoryItem(
+            'Foraging',
+            'Sea Lumie',
+            'Automatically farms sea lumies',
+            'Automatically farms sea lumies'
+        );
+
+        addToggle(
+            'Modules',
+            'Sea Lumie',
+            'Enabled (REPLACE ME WITH A KEYBIND)',
+            (value) => {
+                this.toggle(value);
+            },
+            'Toggles the Sea Lumie macro'
+        );
     }
 }
 new SeaLumie();

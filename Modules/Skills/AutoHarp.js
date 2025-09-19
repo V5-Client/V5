@@ -1,11 +1,13 @@
 import { Guis } from '../../Utility/Inventory';
 import { Chat } from '../../Utility/Chat';
+import { getSetting } from '../../GUI/GuiSave';
+const { addCategoryItem, addToggle, addSlider } = global.Categories;
 
 class AutoHarp {
     constructor() {
         this.ModuleName = 'Auto Harp';
         this.delay = 3;
-        this.Toggled = false;
+        this.Enabled = false;
 
         class Note {
             constructor(slot) {
@@ -20,7 +22,7 @@ class AutoHarp {
         );
 
         let tickHandler = register('tick', () => {
-            if (!this.Toggled) return tickHandler.unregister();
+            if (!this.Enabled) return tickHandler.unregister();
 
             const invName = Guis.guiName();
             if (!invName?.includes('Harp')) return;
@@ -57,18 +59,28 @@ class AutoHarp {
             });
         }).unregister();
 
-        register('command', () => {
-            this.Toggled = !this.Toggled;
-            Chat.message(
-                this.Toggled ? 'Auto Harp Enabled' : 'Auto Harp Disabled'
-            );
-            if (this.Toggled) {
+        this.toggle = (value) => {
+            this.Enabled = value;
+            if (this.Enabled) {
                 tickHandler.register();
             } else {
                 tickHandler.unregister();
             }
-        }).setName('autoharp');
+        };
+
+        addCategoryItem('Other', 'Auto Harp', 'Auto Harp', 'Auto Harp');
+
+        addToggle('Modules', 'Auto Harp', 'Enabled', (value) => {
+            this.toggle(value);
+        });
+
+        addSlider('Modules', 'Auto Harp', 'Delay', 0, 10, 3, (value) => {
+            this.delay = value;
+        });
+
+        Client.scheduleTask(1, () => {
+            this.toggle(getSetting('Auto Harp', 'Enabled'));
+        });
     }
 }
-
 new AutoHarp();
