@@ -18,8 +18,7 @@ function CheckEvents(event) {
 register('chat', (event) => {
     let msg = event.message.getUnformattedText();
 
-    if (msg.includes('Sending to server'))
-        CheckEvents('serverchange'), ChatLib.chat('EOOOOO');
+    if (msg.includes('Sending to server')) CheckEvents('serverchange');
 
     /* Ability */
     if (
@@ -36,7 +35,6 @@ register('chat', (event) => {
         msg.includes('You used your Pickobulus Pickaxe Ability!')
     ) {
         CheckEvents('abilityused');
-        ChatLib.chat('YUIUUHFHFH');
     }
 
     if (
