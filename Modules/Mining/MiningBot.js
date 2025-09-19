@@ -302,7 +302,7 @@ class MiningBot {
             'Mining',
             'Mining Bot',
             'Universal settings for Mining & block miner',
-            'This is a description for Mining Bot.'
+            'Automatically mines.'
         );
         addToggle(
             'Modules',
@@ -311,7 +311,7 @@ class MiningBot {
             (value) => {
                 this.TICKGLIDE = value;
             },
-            'This is a description for Tick Gliding.'
+            'Predicts when blocks are broken to begin mining the next block early.'
         );
         addToggle(
             'Modules',
@@ -320,7 +320,7 @@ class MiningBot {
             (value) => {
                 value ? this.exploit.register() : this.exploit.unregister();
             },
-            'This is a description for Jasper Drill Exploit.'
+            'Left click a gemstone with a Gemstone Drill to activate exploit. (Permanent +800 Mining speed)'
         );
         addMultiToggle(
             'Modules',
@@ -331,7 +331,7 @@ class MiningBot {
             (value) => {
                 this.FAKELOOK = value;
             },
-            'This is a description for Fakelook.'
+            'Fakelook begins to mine blocks before the player looks at them.'
         );
         addMultiToggle(
             'Modules',
@@ -342,7 +342,7 @@ class MiningBot {
             (value) => {
                 this.COSTTYPE = value;
             },
-            'This is a description for Types.'
+            'Targets specified block type.'
         );
     }
 
