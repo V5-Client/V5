@@ -19,31 +19,24 @@ class FishingMacro {
             let stand = World.getAllEntitiesOfType(
                 net.minecraft.entity.decoration.ArmorStandEntity
             );
-            stand.forEach((element, index) => {
-                if (element.getName() === '!!!') {
+            const target = stand.find((element) => element.getName() === '!!!');
+            if (target) {
+                Keybind.rightClick();
+                this.time = Date.now();
+                Chat.message('Jerking off rod');
+                Client.scheduleTask(2, () => {
+                    Guis.setItemSlot(this.boomSlot);
+                });
+                Client.scheduleTask(4, () => {
                     Keybind.rightClick();
-                    this.time = Date.now();
-                    Chat.message('Jerking off rod');
-                    Client.scheduleTask(2, () => {
-                        Guis.setItemSlot(this.boomSlot);
-                    });
-                    Client.scheduleTask(4, () => {
-                        Keybind.rightClick();
-                    });
-                    Client.scheduleTask(10, () => {
-                        Keybind.rightClick();
-                    });
-                    Client.scheduleTask(16, () => {
-                        Keybind.rightClick();
-                    });
-                    Client.scheduleTask(18, () => {
-                        Guis.setItemSlot(this.rodSlot);
-                    });
-                    Client.scheduleTask(20, () => {
-                        Keybind.rightClick();
-                    });
-                }
-            });
+                });
+                Client.scheduleTask(6, () => {
+                    Guis.setItemSlot(this.rodSlot);
+                });
+                Client.scheduleTask(8, () => {
+                    Keybind.rightClick();
+                });
+            }
         }).unregister();
 
         this.toggle = (value) => {
@@ -76,6 +69,8 @@ class FishingMacro {
 
         Client.scheduleTask(1, () => {
             this.toggle(getSetting('Fishing Macro', 'Enabled'));
+            this.boomSlot = getSetting('Fishing Macro', 'Boom Slot');
+            this.rodSlot = getSetting('Fishing Macro', 'Rod Slot');
         });
     }
 }

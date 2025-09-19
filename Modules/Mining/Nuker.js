@@ -101,7 +101,7 @@ class NukerClass {
         register('worldUnload', () => {
             if (!this.Enabled) return;
 
-            this.toggle();
+            this.toggle(false);
             Chat.debugMessage(
                 this.ModuleName + ': &cDisabled due to world change'
             );
@@ -236,7 +236,7 @@ class NukerClass {
             (value) => {
                 this.toggle(value);
             },
-            'Toggles the Sea Lumie macro'
+            'Toggles the Nuker module'
         );
     }
 

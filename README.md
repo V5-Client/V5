@@ -27,7 +27,7 @@ class Module {
         );
 
         addToggle('Category', 'Module', 'Enabled', (value) => {
-            toggle(value)
+            this.toggle(value)
         });
     }
 }
