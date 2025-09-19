@@ -56,12 +56,11 @@ class FishingMacro {
         };
 
         addCategoryItem(
-            'Skills',
+            'Other',
             'Fishing Macro',
             'Fishing Macro',
             'Fishing Macro'
         );
-        addCategoryItem('Beans', 'Bean Macro', 'Bean Macro', 'Bean Macro');
 
         addToggle('Modules', 'Fishing Macro', 'Enabled', (value) => {
             this.toggle(value);
