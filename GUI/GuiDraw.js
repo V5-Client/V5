@@ -36,7 +36,7 @@ global.setTooltip = (text) => {
         currentTooltipText = text;
         tooltipHoverTime = Date.now();
         tooltipToDraw = null;
-    } else if (Date.now() - tooltipHoverTime > 650) {
+    } else if (Date.now() - tooltipHoverTime > 400) {
         tooltipToDraw = text;
     }
 };
@@ -329,8 +329,6 @@ myGui.registerClosed(() => {
 myGui.registerDraw(drawGUI);
 
 myGui.registerScrolled(handleScroll);
-
-loadSettings();
 
 register('command', () => {
     isOpening = true;

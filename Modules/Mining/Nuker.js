@@ -1,6 +1,7 @@
 import { NukerUtils } from '../../Utility/NukerUtils';
 import { Chat } from '../../Utility/Chat';
 import { Utils } from '../../Utility/Utils';
+const { addCategoryItem, addToggle } = global.Categories;
 const BP = net.minecraft.util.math.BlockPos;
 
 class NukerClass {
@@ -30,10 +31,6 @@ class NukerClass {
         this.onGroundOnly = false;
         this.autoChest = false;
         this.heightLimit = 5;
-
-        register('command', () => {
-            this.toggle();
-        }).setName('NukerToggle');
 
         register('command', (ticks = 1) => {
             let block = Player.lookingAt();
@@ -104,7 +101,7 @@ class NukerClass {
         register('worldUnload', () => {
             if (!this.Enabled) return;
 
-            this.toggle();
+            this.toggle(false);
             Chat.debugMessage(
                 this.ModuleName + ': &cDisabled due to world change'
             );
@@ -224,6 +221,23 @@ class NukerClass {
         }
       }
     }); */
+
+        addCategoryItem(
+            'Mining',
+            'Nuker',
+            'Automatically nukes nearby blocks. ',
+            'Automatically nukes nearby blocks'
+        );
+
+        addToggle(
+            'Modules',
+            'Nuker',
+            'Enabled (REPLACE ME WITH A KEYBIND)',
+            (value) => {
+                this.toggle(value);
+            },
+            'Toggles the Nuker module'
+        );
     }
 
     isHoldingRequiredItem() {
@@ -328,16 +342,15 @@ class NukerClass {
         this.init();
     }
 
-    toggle() {
-        this.Enabled = !this.Enabled;
-        if (this.Enabled) {
-            this.startTime = Date.now();
-            this.init();
-            Chat.message(this.ModuleName + ': &aEnabled');
-        } else {
-            this.init();
-            Chat.message(this.ModuleName + ': &cDisabled');
+    toggle(value) {
+        if (this.Enabled || value) {
+            Chat.message(
+                this.ModuleName + (value ? ' &aEnabled' : ' &cDisabled')
+            );
         }
+        this.Enabled = value;
+        this.init();
+        this.startTime = Date.now();
     }
 }
 

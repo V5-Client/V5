@@ -14,7 +14,7 @@ import './GUI/NotificationManager.js';
 import './Utility/Config.js';
 
 /* FORAGING */
-//import './Modules/Foraging/SeaLumieMacro.js';
+import './Modules/Foraging/SeaLumieMacro.js';
 
 /* MINING */
 import './Modules/Mining/MiningBot.js';
@@ -26,9 +26,9 @@ import './Modules/Visuals/Xray.js';
 import './Modules/Visuals/MobHider.js';
 
 /* SKILLS */
-//import "./Modules/Skills/AutoHarp.js"
-//import "./Modules/Skills/BeachBaller.js"
-//import "./Modules/Skills/FishingMacro.js"
+import './Modules/Skills/AutoHarp.js';
+//import './Modules/Skills/BeachBaller.js'; some retard completely ruined beach ball macro i think, or im just being a retard but its hella broken
+import './Modules/Skills/FishingMacro.js';
 
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';
@@ -40,6 +40,9 @@ import './Pathfinding/Pathfinder.js';
 /* TESTING */
 import './TestNotification.js'; //REMOVE BEFORE RELEASE
 import './RAYTRACEDEBUG.js'; // REMOVE BEFORE RELEASE
+
+import { loadSettings } from './GUI/GuiSave';
+loadSettings();
 
 /* Mixins */
 import {

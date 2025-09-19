@@ -81,7 +81,7 @@ class Pingless {
             'Mining',
             'Pingless Miner',
             'Breaks hardstone quicker in the Crystal Hollows',
-            'This is a description for Pingless Miner.'
+            'Removes hardstone instantly client-side.'
         );
         addToggle(
             'Modules',
@@ -91,7 +91,7 @@ class Pingless {
                 value ? playerAction.register() : playerAction.unregister();
                 value ? handSwing.register() : handSwing.unregister();
             },
-            'This is a description for Enabled.'
+            'Toggles pingless miner'
         );
         addSlider(
             'Modules',
@@ -103,7 +103,7 @@ class Pingless {
             (value) => {
                 this.tickCount = value;
             },
-            'This is a description for Tick Delay.'
+            'How long to wait before removing hardstone.'
         );
     }
 }

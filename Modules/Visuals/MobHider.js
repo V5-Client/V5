@@ -8,7 +8,7 @@ class MobHider {
             'Visuals',
             'Mob Hider',
             'Hides types of mobs',
-            'This is a description for Mob Hider.'
+            'Hides mobs client-side.'
         );
 
         this.MOBS = [];
@@ -72,8 +72,13 @@ class MobHider {
             }
         }).unregister();
 
-        this.toggle = (mobs) => {
-            this.MOBS = mobs;
+        this.toggle = () => {
+            this.MOBS = getSetting('Mob Hider', 'Mobs', [
+                'Kalhuikis',
+                'Sven Pups',
+                'Jerries',
+                'Thysts',
+            ]);
 
             if (this.MOBS && this.MOBS.length > 0) {
                 renderHandler.register();
@@ -97,12 +102,10 @@ class MobHider {
             ['Kalhuikis', 'Sven Pups', 'Jerries', 'Thysts'],
             false,
             this.toggle,
-            'This is a description for Mobs.'
+            'What mobs to hide.'
         );
 
-        Client.scheduleTask(0, () =>
-            this.toggle(getSetting('Mob Hider', 'Mobs', []))
-        );
+        Client.scheduleTask(1, this.toggle);
     }
 }
 

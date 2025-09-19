@@ -183,12 +183,13 @@ class InventoryUtilsClass {
     }
 
     setItemSlot(slot) {
-        if (slot < 0 || slot > 8)
+        console.log(
+            `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
+        );
+        if (slot < 0 || slot > 8) {
             return chat.message('Invalid slot blocked! Report this ASAP!');
+        }
         if (Player.getHeldItemIndex() !== slot) {
-            console.log(
-                `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
-            );
             Player.setHeldItemIndex(slot);
         }
     }
