@@ -7,7 +7,7 @@ addCategoryItem(
     'Visuals',
     'Xray',
     'See through walls - Sodium and Iris will break Xray',
-    'This is a description for Xray.'
+    'See through walls client-side.'
 );
 addSlider(
     'Modules',
@@ -17,7 +17,7 @@ addSlider(
     100,
     50,
     null,
-    'This is a description for Transparency.'
+    'Transparency of Xray.'
 );
 
 function percentToAlpha(percent) {
@@ -57,13 +57,7 @@ class Xray {
             }
         };
 
-        addToggle(
-            'Modules',
-            'Xray',
-            'Enabled',
-            this.toggle,
-            'This is a description for Enabled.'
-        );
+        addToggle('Modules', 'Xray', 'Enabled', this.toggle, 'Toggles Xray.');
 
         Client.scheduleTask(0, () =>
             this.toggle(getSetting('Xray', 'Enabled'))

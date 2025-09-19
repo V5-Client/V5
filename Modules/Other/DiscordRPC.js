@@ -13,7 +13,7 @@ class RPC {
             'Other',
             'Discord RPC',
             "Show you're playing V5!",
-            'This is a description for Discord RPC.'
+            "Shows you're playing V5 in Discord RPC."
         );
         addToggle(
             'Modules',
@@ -22,7 +22,7 @@ class RPC {
             (value) => {
                 this.enabled = value;
             },
-            'This is a description for Enabled.'
+            'Toggles Discord RPC.'
         );
     }
 }

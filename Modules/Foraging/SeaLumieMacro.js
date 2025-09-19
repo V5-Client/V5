@@ -238,6 +238,12 @@ class SeaLumie {
                 this.closestPickle = null;
             }
         }).setName('sealum');
+
+        this.toggle(value) {
+            this.enabled = value;
+            if (value) this.state = this.STATES.SCANNING;
+            else this.state = this.STATES.WAITING;
+        }
     }
 }
 new SeaLumie();

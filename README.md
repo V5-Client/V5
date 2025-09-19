@@ -19,7 +19,14 @@ class Module {
             else mainLoop.unregister();
         }
 
-        addToggle('Modules', 'Module', 'Enabled', (value) => {
+        addCategoryItem(
+            'Category',
+            'Module',
+            'Description',
+            'Tooltip'
+        );
+
+        addToggle('Category', 'Module', 'Enabled', (value) => {
             toggle(value)
         });
     }

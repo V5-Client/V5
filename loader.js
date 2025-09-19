@@ -41,6 +41,9 @@ import './Pathfinding/Pathfinder.js';
 import './TestNotification.js'; //REMOVE BEFORE RELEASE
 import './RAYTRACEDEBUG.js'; // REMOVE BEFORE RELEASE
 
+import { loadSettings } from './GUI/GuiSave';
+loadSettings();
+
 /* Mixins */
 import {
     fullStainedGlassPane,
