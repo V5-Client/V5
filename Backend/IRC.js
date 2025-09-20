@@ -16,6 +16,12 @@ function openBrowser(url) {
     }
 }
 
+function sendWsMessage(event, data) {
+    if (isConnected) {
+        ws.send(JSON.stringify({ event, data }));
+    }
+}
+
 function connectIRC(svid) {
     ws = new WebSocket(Links.WEBSOCKET_URL);
 
@@ -113,14 +119,10 @@ function authenticateMojang(svid) {
         })
             .then((response) => {
                 if (response.statusCode === 204) {
-                    const authData = JSON.stringify({
-                        event: 'minecraft_auth',
-                        data: {
-                            username: username,
-                            serverId: svid,
-                        },
+                    sendWsMessage('minecraft_auth', {
+                        username: username,
+                        serverId: svid,
                     });
-                    ws.send(authData);
                 } else {
                     Chat.irc('Failed to authenticate with Mojang.');
                 }
@@ -166,16 +168,7 @@ function attemptReconnect(svid) {
 }
 
 function sendChatMessage(content) {
-    if (isConnected) {
-        ws.send(
-            JSON.stringify({
-                event: 'chat_message',
-                data: {
-                    content: content,
-                },
-            })
-        );
-    }
+    sendWsMessage('chat_message', { content: content });
 }
 
 register('packetSent', (packet, event) => {
