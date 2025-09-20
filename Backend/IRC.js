@@ -193,4 +193,4 @@ register('packetSent', (packet, event) => {
 }).setFilteredClass(net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket);
 
 // Start connection
-connectIRC(global.APIKEY_DO_NOT_SHARE);
+connectIRC(global.SESSION_SERVER_HASH);

@@ -1,6 +1,6 @@
 // Client Version + Title (This is kinda useless ngl since Minecraft* 1.21.5 overrides it for some reason)
 global.Version = '1.0.0';
-global.APIKEY_DO_NOT_SHARE = java.util.UUID.randomUUID()
+global.SESSION_SERVER_HASH = java.util.UUID.randomUUID()
     .toString()
     .replaceAll('-', '');
 
