@@ -11,43 +11,37 @@ class MobHider {
             'Hides mobs client-side.'
         );
 
-        this.MOBS = [];
-        this.jerryNames = [
-            'Green Jerry',
-            'Blue Jerry',
-            'Purple Jerry',
-            'Golden Jerry',
-        ];
+        this.mobsToHide = new Set();
+        this.jerryRegex = /^(Green|Blue|Purple|Golden) Jerry$/;
 
         const shouldHideEntity = (entityName) => {
-            if (!this.MOBS || this.MOBS.length === 0) return false;
+            if (this.mobsToHide.size === 0) return false;
 
             const cleanName = ChatLib.removeFormatting(entityName);
 
             if (
-                this.MOBS.includes('Kalhuikis') &&
+                this.mobsToHide.has('Kalhuikis') &&
                 cleanName.includes('Kalhuiki')
             )
                 return true;
             if (
-                this.MOBS.includes('Sven Pups') &&
+                this.mobsToHide.has('Sven Pups') &&
                 cleanName.includes('Sven Pup')
             )
                 return true;
             if (
-                this.MOBS.includes('Jerries') &&
-                this.jerryNames.some((jerry) => cleanName.includes(jerry))
+                this.mobsToHide.has('Thysts') &&
+                (cleanName.includes('Thyst') || cleanName.includes('Endermite'))
             )
                 return true;
             if (
-                this.MOBS.includes('Thysts') &&
-                (cleanName.includes('Thyst') || cleanName.includes('Endermite'))
+                this.mobsToHide.has('Jerries') &&
+                this.jerryRegex.test(cleanName)
             )
                 return true;
 
             return false;
         };
-
         let renderHandler = register('renderEntity', (entity, pt, event) => {
             if (shouldHideEntity(entity.getName())) {
                 cancel(event);
@@ -73,14 +67,15 @@ class MobHider {
         }).unregister();
 
         this.toggle = () => {
-            this.MOBS = getSetting('Mob Hider', 'Mobs', [
+            const selectedMobs = getSetting('Mob Hider', 'Mobs', [
                 'Kalhuikis',
                 'Sven Pups',
                 'Jerries',
                 'Thysts',
             ]);
+            this.mobsToHide = new Set(selectedMobs);
 
-            if (this.MOBS && this.MOBS.length > 0) {
+            if (this.mobsToHide.size > 0) {
                 renderHandler.register();
                 attackHandler.register();
             } else {
@@ -88,7 +83,7 @@ class MobHider {
                 attackHandler.unregister();
             }
 
-            if (this.MOBS && this.MOBS.includes('Thysts')) {
+            if (this.mobsToHide.has('Thysts')) {
                 particleHandler.register();
             } else {
                 particleHandler.unregister();
