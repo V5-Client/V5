@@ -244,6 +244,8 @@ global.createCategoriesManager = (deps) => {
                 cat.animationRect.startWidth +
                 (cat.animationRect.endWidth - cat.animationRect.startWidth) * p;
 
+            cat.animationRect.y = yOffset;
+
             if (rawProgress >= 1) {
                 cat.animationRect = null;
             }
@@ -445,6 +447,63 @@ global.createCategoriesManager = (deps) => {
         const panelWidth = panel.width - PADDING * 2;
         const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
 
+        if (!isContentHeightCacheValid && global.Categories.selected) {
+            let height = 0;
+            const category = global.Categories.categories.find(
+                (c) => c.name === global.Categories.selected
+            );
+
+            if (category) {
+                if (category.subcategories.length > 0) {
+                    height += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+                }
+
+                const itemsToDisplay = global.Categories.selectedSubcategory
+                    ? category.items.filter(
+                          (group) =>
+                              group.type === 'separator' &&
+                              group.title ===
+                                  global.Categories.selectedSubcategory
+                      )
+                    : category.items;
+
+                let nonGroupedItemCount = 0;
+
+                const calculateNonGroupedHeight = () => {
+                    if (nonGroupedItemCount > 0) {
+                        const numRows = Math.ceil(nonGroupedItemCount / 3);
+                        const heightForRows =
+                            numRows *
+                            (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+                        height += heightForRows - CATEGORY_BOX_PADDING;
+                        nonGroupedItemCount = 0;
+                    }
+                };
+
+                itemsToDisplay.forEach((group) => {
+                    if (group.type === 'separator') {
+                        calculateNonGroupedHeight();
+
+                        height += SEPARATOR_HEIGHT;
+                        const itemsInSubcategory = group.items.length;
+                        if (itemsInSubcategory > 0) {
+                            const numRows = Math.ceil(itemsInSubcategory / 3);
+                            height +=
+                                numRows *
+                                (CATEGORY_BOX_HEIGHT + CATEGORY_BOX_PADDING);
+                        }
+                    } else {
+                        nonGroupedItemCount++;
+                    }
+                });
+
+                calculateNonGroupedHeight();
+            }
+
+            cachedContentHeight = height;
+            isContentHeightCacheValid = true;
+        }
+
         const scale = Renderer.screen.getScale();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
 
@@ -479,7 +538,7 @@ global.createCategoriesManager = (deps) => {
                 panelX -=
                     panel.width * (1 - global.Categories.transitionProgress);
 
-            let yOffset = panel.y + PADDING;
+            let yOffset = panel.y + PADDING - rightPanelScrollY;
             if (cat.subcategories.length > 0) {
                 yOffset = drawSubcategoryButtons(
                     panelX,
@@ -489,7 +548,6 @@ global.createCategoriesManager = (deps) => {
                 );
             }
 
-            yOffset -= rightPanelScrollY;
             let itemIndexInRow = 0;
             const itemsToDisplay = global.Categories.selectedSubcategory
                 ? cat.items.filter(
@@ -775,7 +833,7 @@ global.createCategoriesManager = (deps) => {
                 const panel = deps.rectangles.RightPanel;
                 if (cat.subcategories.length > 0) {
                     let currentX = panel.x + PADDING;
-                    let yOffset = panel.y + PADDING;
+                    let yOffset = panel.y + PADDING - rightPanelScrollY;
                     const subcategoriesToDraw = ['All', ...cat.subcategories];
                     for (const subcat of subcategoriesToDraw) {
                         const buttonTextWidth =
@@ -910,8 +968,6 @@ global.createCategoriesManager = (deps) => {
         if (!global.Categories.selected || !isInside(mouseX, mouseY, panel)) {
             return;
         }
-
-        if (!isContentHeightCacheValid) isContentHeightCacheValid = true;
 
         const maxScroll = Math.max(
             0,
