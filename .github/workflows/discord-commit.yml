@@ -12,6 +12,7 @@ jobs:
             - name: Checkout repo
               uses: actions/checkout@v4
               with:
+                  # Fetch depth 2 is needed to compare HEAD with HEAD~1
                   fetch-depth: 2
 
             - name: Get commit info
@@ -23,39 +24,27 @@ jobs:
                   BRANCH_NAME="${GITHUB_REF#refs/heads/}"
                   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+                  # Handle the very first commit in a repo where HEAD~1 doesn't exist
                   if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
-                    ADDED=$(git show --shortstat HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
-                    DELETED=$(git show --shortstat HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
-                    MODIFIED=$(git show --shortstat HEAD | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)
+                    STATS=$(git show --shortstat HEAD)
                     FILES=$(git show --pretty="" --name-only HEAD)
                   else
-                    ADDED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
-                    DELETED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
-                    MODIFIED=$(git diff --shortstat HEAD~1 HEAD | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)
+                    STATS=$(git diff --shortstat HEAD~1 HEAD)
                     FILES=$(git diff --name-only HEAD~1 HEAD)
                   fi
 
+                  ADDED=$(echo "$STATS" | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
+                  DELETED=$(echo "$STATS" | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
+                  MODIFIED=$(echo "$STATS" | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)
+
                   declare -A LANG_MAP=(
-                    ["js"]="JavaScript"
-                    ["ts"]="TypeScript"
-                    ["json"]="JSON"
-                    ["yaml"]="YAML"
-                    ["yml"]="YAML"
-                    ["py"]="Python"
-                    ["java"]="Java"
-                    ["kt"]="Kotlin"
-                    ["c"]="C"
-                    ["cpp"]="C++"
-                    ["cs"]="C#"
-                    ["rb"]="Ruby"
-                    ["go"]="Go"
-                    ["rs"]="Rust"
-                    ["html"]="HTML"
-                    ["css"]="CSS"
+                    ["js"]="JavaScript" ["ts"]="TypeScript" ["json"]="JSON"
+                    ["yaml"]="YAML" ["yml"]="YAML" ["py"]="Python" ["java"]="Java"
+                    ["kt"]="Kotlin" ["c"]="C" ["cpp"]="C++" ["cs"]="C#" ["rb"]="Ruby"
+                    ["go"]="Go" ["rs"]="Rust" ["html"]="HTML" ["css"]="CSS"
                   )
 
                   FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $1, $2}')
-
                   FILETYPES_TEXT=""
                   while read -r count ext; do
                     [ -z "$ext" ] && continue
@@ -63,19 +52,19 @@ jobs:
                     FILETYPES_TEXT+="$lang ($count)\n"
                   done <<< "$FILETYPES"
 
-                  FILETYPES_TEXT=$(echo -e "$FILETYPES_TEXT" | sed '/^$/d')
+                  # Trim trailing newline if it exists
+                  FILETYPES_TEXT=$(echo -e "${FILETYPES_TEXT}" | sed '/^$/d')
 
                   SUMMARY=$(echo -e "📝 Summary\n$COMMIT_MESSAGE\n\n📊 Files Changed\n+${ADDED} added\n~${MODIFIED} modified\n-${DELETED} deleted\n\n📂 File Types\n$FILETYPES_TEXT")
 
                   {
-                    echo "message<<EOF" >> $GITHUB_OUTPUT
-                    echo "$SUMMARY" >> $GITHUB_OUTPUT
-                    echo "EOF" >> $GITHUB_OUTPUT
-                    echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
-                    echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
-                    echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-                    echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
-                  }
+                  echo "message<<EOF" >> $GITHUB_OUTPUT
+                  echo "$SUMMARY" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
+                  echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
+                  echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
+                  echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+                  echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
             - name: Map GitHub user -> Discord username
               id: mapuser
@@ -87,22 +76,26 @@ jobs:
                     ["rdbtCVS"]="<@777346923232886784>"
                     ["IcyHenryT"]="<@1160548899711356958>"
                   )
-
                   GH_USER="${{ steps.commit.outputs.login }}"
                   DISCORD_USER="${USER_MAP[$GH_USER]:-$GH_USER}"
                   echo "discord=$DISCORD_USER" >> $GITHUB_OUTPUT
 
             - name: Send message to Discord
+              env:
+                  DISCORD_WEBHOOK_URL: ${{ secrets.PUSH_NOTIFIER }}
+                  COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
+                  DISCORD_USER: ${{ steps.mapuser.outputs.discord }}
+                  BRANCH_NAME: ${{ steps.commit.outputs.branch }}
+                  TIMESTAMP: ${{ steps.commit.outputs.timestamp }}
               run: |
-                  safe_message=$(echo "${{ steps.commit.outputs.message }}" | jq -Rs .)
-
                   payload=$(jq -n \
                     --arg username "V5 Commits" \
                     --arg avatar_url "https://cdn.donmai.us/sample/bb/4d/__os_tan_and_2_more_drawn_by_raviolimavioli__sample-bb4d90d601466faa9ff6bc816869a25d.jpg" \
                     --arg title "New Commit" \
-                    --argjson description "$safe_message" \
-                    --arg author "${{ steps.mapuser.outputs.discord }}" \
-                    --arg branch "${{ steps.commit.outputs.branch }}" \
+                    --arg description "$COMMIT_MESSAGE" \
+                    --arg author "$DISCORD_USER" \
+                    --arg branch "$BRANCH_NAME" \
+                    --arg timestamp "$TIMESTAMP" \
                     --argjson color 3447003 \
                     '{
                       "username": $username,
@@ -116,11 +109,11 @@ jobs:
                             {"name": "Author", "value": $author, "inline": true},
                             {"name": "Branch", "value": $branch, "inline": true}
                           ],
-                          "timestamp": "'${{ steps.commit.outputs.timestamp }}'"
+                          "timestamp": $timestamp
                         }
                       ]
                     }')
 
                   curl -X POST -H "Content-Type: application/json" \
                        -d "$payload" \
-                       "${{ secrets.PUSH_NOTIFIER }}"
+                       "$DISCORD_WEBHOOK_URL"
