@@ -57,7 +57,6 @@ jobs:
 
                   SUMMARY=$(echo -e "📝 Summary\n$COMMIT_MESSAGE\n\n📊 Files Changed\n+${ADDED} added\n~${MODIFIED} modified\n-${DELETED} deleted\n\n📂 File Types\n$FILETYPES_TEXT")
 
-                  {
                   echo "message<<EOF" >> $GITHUB_OUTPUT
                   echo "$SUMMARY" >> $GITHUB_OUTPUT
                   echo "EOF" >> $GITHUB_OUTPUT
