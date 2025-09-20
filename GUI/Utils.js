@@ -285,7 +285,7 @@ export const returnDiscord = () => {
                         `${
                             Links.BASE_API_URL
                         }/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
-                            global.APIKEY_DO_NOT_SHARE
+                            global.SESSION_SERVER_HASH
                         }`
                     )
                 );
