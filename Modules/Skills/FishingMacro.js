@@ -11,9 +11,13 @@ class FishingMacro {
         this.boomSlot = 1;
         this.rodSlot = 0;
         this.time = Date.now();
+        this.tickCounter = 0;
 
         let tickHandler = register('tick', () => {
             if (!this.Enabled) return tickHandler.unregister();
+
+            this.tickCounter++;
+            if (this.tickCounter % 10 !== 0) return;
 
             if (Date.now() - this.time < 800) return;
             let stand = World.getAllEntitiesOfType(
