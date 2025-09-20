@@ -30,6 +30,11 @@ let beachballer = register('tick', () => {
         case states.WAITING:
             break;
         case states.BOUNCE:
+            tickCounter++;
+            if (tickCounter > 10) {
+                setState(states.RETURN);
+                return;
+            }
             if (bounceCount > 40) {
                 setState(states.RETURN);
                 bounceCount = 0;
@@ -37,6 +42,9 @@ let beachballer = register('tick', () => {
             }
             let currentYaw = Player.getYaw();
             Rotations.rotateToAngles(currentYaw, -90);
+
+            if (tickCounter % 5 !== 0) break;
+
             let stands = World.getAllEntitiesOfType(
                 net.minecraft.entity.decoration.ArmorStandEntity.class
             );
@@ -76,10 +84,6 @@ let beachballer = register('tick', () => {
                     }
                 }
             });
-            tickCounter++;
-            if (tickCounter > 10) {
-                setState(states.RETURN);
-            }
             break;
         case states.RETURN:
             Keybind.unpressKeys();
@@ -101,6 +105,11 @@ let beachballer = register('tick', () => {
             );
             break;
         case states.PLACE:
+            tickCounter++;
+            if (tickCounter % 10 == 0) Keybind.rightClick();
+
+            if (tickCounter % 5 !== 0) break;
+
             let stand = World.getAllEntitiesOfType(
                 net.minecraft.entity.decoration.ArmorStandEntity.class
             );
@@ -126,8 +135,6 @@ let beachballer = register('tick', () => {
             } else {
                 Player.setHeldItemIndex(ballslot);
             }
-            tickCounter++;
-            if (tickCounter % 10 == 0) Keybind.rightClick();
             break;
     }
 }).unregister();
