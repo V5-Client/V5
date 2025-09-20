@@ -124,7 +124,6 @@ global.Categories = {
         );
         toggle.description = description;
         item.components.push(toggle);
-        if (callback) callback(getSetting(itemName, toggleTitle));
     },
 
     addSlider(
@@ -153,7 +152,6 @@ global.Categories = {
         );
         slider.description = description;
         item.components.push(slider);
-        if (callback) callback(getSetting(itemName, sliderTitle));
     },
 
     addMultiToggle(
@@ -178,7 +176,35 @@ global.Categories = {
         );
         multiToggle.description = description;
         item.components.push(multiToggle);
-        if (callback) callback(getSetting(itemName, toggleTitle));
+    },
+
+    applySettings() {
+        const getModuleItems = (category) =>
+            category.items.reduce(
+                (acc, group) =>
+                    acc.concat(
+                        group.type === 'separator' ? group.items : [group]
+                    ),
+                []
+            );
+
+        global.Categories.categories
+            .filter((c) => c.name === 'Modules')
+            .forEach((category) => {
+                getModuleItems(category).forEach((item) => {
+                    item.components.forEach((component) => {
+                        if (component.callback) {
+                            const value = getSetting(
+                                item.title,
+                                component.title
+                            );
+                            if (value !== undefined) {
+                                component.callback(value);
+                            }
+                        }
+                    });
+                });
+            });
     },
 };
 
