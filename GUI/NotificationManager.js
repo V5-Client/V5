@@ -7,6 +7,7 @@ import {
 import { THEME, isInside, colorWithAlpha } from './Utils';
 
 // Configuration
+const RENDER_ABOVE_GUI = true; // toggle rendering above guis
 const NOTIFICATION_WIDTH = 250;
 const NOTIFICATION_HEIGHT = 56;
 const NOTIFICATION_PADDING = 10;
@@ -419,14 +420,29 @@ class NotificationManager {
     constructor() {
         this.notifications = [];
         this.renderTrigger = null;
+        this.guiRenderTrigger = null;
         this.clickTrigger = null;
         this.tickTrigger = null;
     }
 
     registerEvents() {
         if (!this.renderTrigger) {
-            this.renderTrigger = register('renderOverlay', () => this.render());
+            this.renderTrigger = register('renderOverlay', () => {
+                if (!RENDER_ABOVE_GUI || !Client.isInGui()) {
+                    this.render();
+                }
+            });
         }
+
+        if (RENDER_ABOVE_GUI && !this.guiRenderTrigger) {
+            this.guiRenderTrigger = register(
+                'postGuiRender',
+                (mouseX, mouseY, gui) => {
+                    this.renderAboveGui();
+                }
+            );
+        }
+
         if (!this.clickTrigger) {
             this.clickTrigger = register(
                 'guiMouseClick',
@@ -444,6 +460,10 @@ class NotificationManager {
         if (this.renderTrigger) {
             this.renderTrigger.unregister();
             this.renderTrigger = null;
+        }
+        if (this.guiRenderTrigger) {
+            this.guiRenderTrigger.unregister();
+            this.guiRenderTrigger = null;
         }
         if (this.clickTrigger) {
             this.clickTrigger.unregister();
@@ -512,6 +532,22 @@ class NotificationManager {
         for (let i = this.notifications.length - 1; i >= 0; i--) {
             this.notifications[i].draw(mouseX, mouseY);
         }
+    }
+
+    renderAboveGui() {
+        const mouseX = Client.getMouseX();
+        const mouseY = Client.getMouseY();
+
+        //just translate forward on Z axis :)
+        Renderer.translate(0, 0, 500);
+
+        // Render notifications
+        for (let i = this.notifications.length - 1; i >= 0; i--) {
+            this.notifications[i].draw(mouseX, mouseY);
+        }
+
+        // translate back :)
+        Renderer.translate(0, 0, -500);
     }
 
     handleClick(mouseX, mouseY) {
