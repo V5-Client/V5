@@ -3,7 +3,8 @@ import { Links } from '../Utility/Constants';
 import { Runtime } from '../Utility/Constants';
 import { stopPathingMovement } from './Pathfinder';
 
-const path = './config/ChatTriggers/assets/Pathfinding.exe';
+const assetsDir = './config/ChatTriggers/assets/';
+const exePath = `${assetsDir}Pathfinding.exe`;
 let process = null;
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
@@ -13,7 +14,9 @@ function loadMap(map) {
         url: url,
         timeout: 5000,
     })
-        .then(() => {})
+        .then(() => {
+            console.log(`Successfully loaded map '${map}'.`);
+        })
         .catch((err) => {
             console.log(`Failed to preload map '${map}': ${err}`);
             global.showNotification(
@@ -27,6 +30,7 @@ function loadMap(map) {
 
 export function stopProgram() {
     if (process !== null && !World.isLoaded()) {
+        console.log('Attempting to stop Pathfinder process...');
         process.destroy();
         process = null;
         console.log('Program stopped');
@@ -35,7 +39,7 @@ export function stopProgram() {
 }
 
 export function runProgram() {
-    if (!FileLib.exists(path)) {
+    if (!FileLib.exists(exePath)) {
         global.showNotification(
             'Pathfinder.exe missing',
             'Download it and add it to the assets folder',
@@ -52,22 +56,33 @@ export function runProgram() {
     const JavaProcessBuilder = java.lang.ProcessBuilder;
     const JavaScanner = java.util.Scanner;
     const JavaThread = java.lang.Thread;
+    const JavaFile = java.io.File;
 
     new JavaThread(() => {
         try {
-            process = new JavaProcessBuilder(path).start();
-            const sc = new JavaScanner(process.getInputStream());
-            console.log('Process started');
+            const processBuilder = new JavaProcessBuilder(exePath);
+            processBuilder.directory(new JavaFile(assetsDir));
+            process = processBuilder.start();
+
+            const stdOut = new JavaScanner(process.getInputStream());
+            const stdErr = new JavaScanner(process.getErrorStream());
+
+            console.log('Pathfinder process holder started.');
 
             while (process !== null && process.isAlive()) {
                 JavaThread.sleep(50);
-                while (sc.hasNextLine()) {
-                    console.log(sc.nextLine());
+                while (stdOut.hasNextLine()) {
+                    console.log(`[Pathfinder.exe] ${stdOut.nextLine()}`);
+                }
+                while (stdErr.hasNextLine()) {
+                    console.log(`[Pathfinder.exe ERROR] ${stdErr.nextLine()}`);
                 }
             }
 
-            if (process !== null) process.waitFor();
-            console.log('Process finished.');
+            const exitCode = process !== null ? process.exitValue() : -1;
+            console.log(
+                `Pathfinder process finished with exit code ${exitCode}.`
+            );
         } catch (e) {
             console.log(`Error running pathfinder process: ${e}`);
             process = null;
@@ -75,9 +90,9 @@ export function runProgram() {
     }).start();
 
     let attempts = 0;
-    let maxAttempts = 10;
+    const maxAttempts = 10;
 
-    let poller = register('tick', () => {
+    const poller = register('tick', () => {
         if (process !== null && !process.isAlive()) {
             console.log('Process terminated unexpectedly.');
             global.showNotification(
@@ -105,7 +120,7 @@ export function runProgram() {
         }
 
         attempts++;
-        console.log(`Pinging server (Attempt ${attempts}/${maxAttempts})`);
+        // console.log(`Pinging server (Attempt ${attempts}/${maxAttempts})`);
 
         request({ url: `${localhost}/keepalive`, timeout: 500 })
             .then(() => {
@@ -148,6 +163,5 @@ let keepAlive = register('tick', () => {
                 .catch(() => {});
         } catch (e) {}
         lastKeepAlive = Date.now();
-        console.log(`Keep-alive sent at ${Date.now()}`);
     }
 }).unregister();
