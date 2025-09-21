@@ -1,5 +1,6 @@
 import request from 'requestV2';
 import RendererMain from '../Rendering/RendererMain';
+import { Links } from '../Utility/Constants';
 import { Rotations } from '../Utility/Rotations';
 import './Connection';
 
@@ -9,6 +10,7 @@ let pathNodes = [];
 let keyNodes = [];
 
 const mc = Client.getMinecraft();
+const localhost = `${Links.PATHFINDER_API_URL}`;
 
 // Store register objects
 let movementTickRegister = null;
@@ -540,7 +542,7 @@ register('command', (...args) => {
         return;
     }
 
-    const url = `http://localhost:3000/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`;
+    const url = `${localhost}/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`;
 
     request({
         url: url,
