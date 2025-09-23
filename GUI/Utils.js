@@ -289,6 +289,7 @@ export const returnDiscord = () => {
                         }`
                     )
                 );
+                // WHAT THE FUCK IS HAPPENING? IT THROWS ERROR CUZ APPARENTLY JSON IS EMPTY, EVEN THO IT LITERALLY ISN'T????????????
 
                 if (!data || !data.discord) {
                     ChatLib.chat('Failed to download your Discord pfp :(');
