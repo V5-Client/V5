@@ -27,7 +27,7 @@ let movementState = {
     fallStartY: 0,
     lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
     rotationSmoothing: 0.15, // Smoothing factor for rotations
-    lookAheadDistance: 5.0, // Pure pursuit look-ahead distance
+    lookAheadDistance: 1.0, // Pure pursuit look-ahead distance
     visitedNodes: new Set(),
     movementHeld: false,
     targetPoint: null,
