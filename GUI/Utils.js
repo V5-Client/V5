@@ -40,10 +40,10 @@ export const THEME = {
     DROPDOWN_TOGGLE_DISABLED: new Color(0.4, 0.4, 0.4, 1),
 
     // GuiDraw
-    GUI_DRAW_BACKGROUND_BORDER: new Color(0.1, 0.1, 0.1, 0.2),
-    GUI_DRAW_BACKGROUND: new Color(0.1, 0.1, 0.1, 0.5),
+    GUI_DRAW_BACKGROUND_BORDER: new Color(1, 1, 1, 0.22),
+    GUI_DRAW_BACKGROUND: new Color(0.07, 0.09, 0.12, 0.36),
     GUI_DRAW_PANELS: new Color(0.2, 0.2, 0.21, 1),
-    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.2),
+    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.16),
 
     // GuiManager
     GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
