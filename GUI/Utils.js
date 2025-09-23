@@ -279,24 +279,38 @@ export const returnDiscord = () => {
                 if (!profilePath.getParentFile().exists())
                     profilePath.getParentFile().mkdirs();
 
-                // get all data
-                let data = JSON.parse(
-                    fetchURL(
-                        `${
-                            Links.BASE_API_URL
-                        }/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
-                            global.SESSION_SERVER_HASH
-                        }`
-                    )
-                );
-                // WHAT THE FUCK IS HAPPENING? IT THROWS ERROR CUZ APPARENTLY JSON IS EMPTY, EVEN THO IT LITERALLY ISN'T????????????
+                const url = `${
+                    Links.BASE_API_URL
+                }/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${
+                    global.SESSION_SERVER_HASH
+                }`;
+                let responseText = fetchURL(url);
 
-                if (!data || !data.discord) {
-                    ChatLib.chat('Failed to download your Discord pfp :(');
+                if (!responseText || responseText.trim() === '') {
+                    Chat.message(
+                        'Failed to get a valid response for Discord PFP.'
+                    );
                     return;
                 }
 
-                // only get avatar and define file path
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    Chat.message(
+                        'Failed to parse Discord PFP data. Error: ' + e
+                    );
+                    console.log('Invalid JSON received: ' + responseText);
+                    return;
+                }
+
+                if (!data || !data.discord || !data.discord.avatar) {
+                    ChatLib.chat(
+                        'Failed to download your Discord pfp: Invalid data format.'
+                    );
+                    return;
+                }
+
                 let avatarUrl = data.discord.avatar;
                 let saveFile = new File(
                     'config/ChatTriggers/assets/discordProfile.png'
@@ -306,7 +320,9 @@ export const returnDiscord = () => {
             }).start();
         }
     } catch (error) {
-        Chat.message('Failed to download your Discord pfp :(');
+        Chat.message(
+            'An unexpected error occurred while fetching Discord PFP: ' + error
+        );
     }
 
     if (profilePath.exists()) {
