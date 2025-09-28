@@ -13,6 +13,7 @@ const localhost = `${Links.PATHFINDER_API_URL}`;
 const port = parseInt(Links.PATHFINDER_API_URL.split(':').pop());
 
 let programState = 'STOPPED'; // 'STOPPED', 'STARTING', 'RUNNING'
+let currentMap = null;
 
 function waitForPortToBeFree(port, timeout) {
     const startTime = Date.now();
@@ -36,6 +37,10 @@ function waitForPortToBeFree(port, timeout) {
 }
 
 function loadMap(map) {
+    if (currentMap === map) {
+        console.log(`Map '${map}' is already loaded.`);
+        return;
+    }
     const url = `${localhost}/api/loadmap?map=${map}`;
     request({
         url: url,
@@ -43,6 +48,7 @@ function loadMap(map) {
     })
         .then(() => {
             console.log(`Successfully loaded map '${map}'.`);
+            currentMap = map;
         })
         .catch((err) => {
             console.log(`Failed to preload map '${map}': ${err}`);
@@ -57,6 +63,7 @@ function loadMap(map) {
 
 export function stopProgram() {
     programState = 'STOPPED';
+    currentMap = null;
     console.log('Attempting to stop Pathfinder process...');
     keepAlive.unregister();
 
@@ -108,7 +115,9 @@ export function runProgram() {
         return;
     }
 
-    stopProgram();
+    if (programState !== 'STOPPED') {
+        stopProgram();
+    }
 
     if (!waitForPortToBeFree(port, 5000)) {
         global.showNotification(
@@ -180,14 +189,15 @@ export function runProgram() {
                 console.log('Server is connected.');
                 programState = 'RUNNING';
                 poller.unregister();
-                loadMap('mines');
             })
             .catch(() => {});
     });
 }
 
 register('worldLoad', () => {
-    runProgram();
+    if (programState === 'STOPPED') {
+        runProgram();
+    }
     stopPathingMovement();
 });
 register('gameUnload', () => {
@@ -212,3 +222,7 @@ let keepAlive = register('tick', () => {
         }).catch(() => {});
     }
 }).unregister();
+
+register('command', () => {
+    loadMap('mines');
+}).setName('loadmap', true);
