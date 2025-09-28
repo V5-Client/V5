@@ -8,6 +8,8 @@ Client.getMinecraft()
     .getWindow()
     .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
+/* FAILSAFES */
+
 /* GUI */
 import './GUI/GuiDraw.js';
 import './GUI/NotificationManager.js';

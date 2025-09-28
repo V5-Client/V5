@@ -19,7 +19,7 @@ class UtilsClass {
         register('command', () => {
             new Thread(() => {
                 function randomDelay() {
-                    const seconds = Math.floor(Math.random() * 5) + 1;
+                    const seconds = Math.floor(Math.random() * 3) + 1;
                     return seconds * 1000;
                 }
 
