@@ -27,7 +27,7 @@ let movementState = {
     fallStartY: 0,
     lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
     rotationSmoothing: 0.15, // Smoothing factor for rotations
-    lookAheadDistance: 1.0, // Pure pursuit look-ahead distance
+    lookAheadDistance: 0.1, // Pure pursuit look-ahead distance
     visitedNodes: new Set(),
     movementHeld: false,
     targetPoint: null,
@@ -37,7 +37,7 @@ let movementState = {
 // Constants
 const STUCK_THRESHOLD = 60;
 const NODE_REACH_DISTANCE = 3.0; // How close to a node to consider it "reached"
-const NODE_REACH_DISTANCE_SPRINT = 4.5; // more lenient when sprinting
+const NODE_REACH_DISTANCE_SPRINT = 2.5; // more lenient when sprinting
 const SPLINE_RESOLUTION = 3; // Points between each node for spline
 
 // Register movement events when pathing starts
@@ -516,21 +516,25 @@ function updateRotations() {
     Rotations.rotateToAngles(smoothedRotation.yaw, smoothedRotation.pitch);
 }
 
-register('command', (...args) => {
+function handleRustPathCommand(...args) {
+    stopPathingMovement();
     pathNodes = [];
     keyNodes = [];
 
-    if (args.length !== 6) {
+    const renderOnly =
+        args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
+
+    if (args.length < 6) {
         global.showNotification(
             'Invalid Command',
-            'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2>',
+            'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]',
             'ERROR',
             5000
         );
         return;
     }
 
-    let [x1, y1, z1, x2, y2, z2] = args.map((n) => parseInt(n));
+    let [x1, y1, z1, x2, y2, z2] = args.slice(0, 6).map((n) => parseInt(n));
 
     if ([x1, y1, z1, x2, y2, z2].some(isNaN)) {
         global.showNotification(
@@ -564,6 +568,23 @@ register('command', (...args) => {
             keyNodes = body.keynodes || [];
 
             startPathingFromNodes(pathNodes);
+
+            if (renderOnly) {
+                movementState.isWalking = false;
+
+                try {
+                    mc.options.forwardKey.setPressed(false);
+                    mc.options.sprintKey.setPressed(false);
+                } catch (e) {}
+                Rotations.stopRotation();
+
+                global.showNotification(
+                    'Path Rendered',
+                    'Movement not initiated.',
+                    'INFO',
+                    3000
+                );
+            }
         })
         .catch((err) => {
             global.showNotification(
@@ -574,9 +595,13 @@ register('command', (...args) => {
             );
             console.log(`Error: ${err}`);
         });
-}).setName('rustpath', true);
+}
+
+register('command', handleRustPathCommand).setName('rustpath', true);
 
 register('command', () => {
+    pathNodes = [];
+    keyNodes = [];
     stopPathingMovement();
     Rotations.stopRotation();
 }).setName('stop', true);
