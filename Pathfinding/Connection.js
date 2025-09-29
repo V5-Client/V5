@@ -198,6 +198,7 @@ register('worldLoad', () => {
     if (programState === 'STOPPED') {
         runProgram();
     }
+    loadMap('mines');
     stopPathingMovement();
 });
 register('gameUnload', () => {
@@ -222,7 +223,3 @@ let keepAlive = register('tick', () => {
         }).catch(() => {});
     }
 }).unregister();
-
-register('command', () => {
-    loadMap('mines');
-}).setName('loadmap', true);
