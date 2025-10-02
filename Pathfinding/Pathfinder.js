@@ -37,7 +37,7 @@ let movementState = {
 // Constants
 const STUCK_THRESHOLD = 60;
 const NODE_REACH_DISTANCE = 3.0; // How close to a node to consider it "reached"
-const NODE_REACH_DISTANCE_SPRINT = 2.5; // more lenient when sprinting
+const NODE_REACH_DISTANCE_SPRINT = 4.5; // more lenient when sprinting
 const SPLINE_RESOLUTION = 3; // Points between each node for spline
 
 // Register movement events when pathing starts
