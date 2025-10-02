@@ -1,7 +1,7 @@
 import request from 'requestV2';
 import { Links } from '../Utility/Constants';
 import { Runtime } from '../Utility/Constants';
-import { stopPathingMovement } from './Pathfinder';
+import { stopPathing } from './Pathfinder';
 
 const scriptInstanceId = Date.now() + Math.random();
 const lockFilePath = 'config/ChatTriggers/assets/pathfinder.lock';
@@ -221,7 +221,7 @@ function onSuccessfulInit() {
     keepAlive.register();
     console.log('Pathfinder is running. Loading map...');
     loadMap('mines');
-    stopPathingMovement();
+    stopPathing();
 }
 
 function initializePathfinder() {
@@ -276,7 +276,7 @@ register('worldLoad', () => {
 });
 
 register('gameUnload', () => {
-    stopPathingMovement();
+    stopPathing();
     console.log('Game unloaded. Scheduling Pathfinder to stop in 5 seconds...');
     const threadInstanceId = scriptInstanceId;
     stopDebounce = new java.lang.Thread(() => {
@@ -290,7 +290,7 @@ register('gameUnload', () => {
 
 Runtime.getRuntime().addShutdownHook(
     new java.lang.Thread(() => {
-        stopPathingMovement();
+        stopPathing();
         stopProgram();
     })
 );
