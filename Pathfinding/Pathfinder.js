@@ -134,7 +134,10 @@ function updateRotations() {
     const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
     const dist2D = Math.hypot(dx, dz);
     let pitch = -Math.atan2(dy, dist2D) * (180 / Math.PI);
-    pitch = Math.max(-45, Math.min(45, pitch));
+
+    pitch += 7; // look 7 degrees down because humans do that
+
+    pitch = Math.max(-30, Math.min(30, pitch));
 
     let yawDiff = yaw - movementState.lastRotation.yaw;
     while (yawDiff > 180) yawDiff -= 360;
