@@ -10,12 +10,17 @@ const mc = Client.getMinecraft();
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
 const STUCK_THRESHOLD = 60;
-const NODE_REACH_DISTANCE = 4.5; // distance to mark node as visited
+const NODE_REACH_DISTANCE = 4.5;
+const NODE_PASS_DISTANCE = 2.0; // If closer than this, force advance even without visibility
 const LOOK_AHEAD_DISTANCE = 3.0;
 const ROTATION_SMOOTHING = 0.025;
-const FINAL_NODE_THRESHOLD = 1.5;
+const FINAL_NODE_THRESHOLD = 3.5;
 const EYE_HEIGHT = 1.62;
-const DEBUG_MODE = true; // debug logging
+const DEBUG_MODE = true;
+const TARGET_STABILITY_THRESHOLD = 0.5;
+const TARGET_STABILITY_FRAMES = 3;
+const MAX_ROTATION_SPEED = 15;
+const VISIBILITY_LOOKAHEAD = 8.0; // Check visibility up to this distance for next node
 
 let pathNodes = [];
 let keyNodes = [];
@@ -59,8 +64,17 @@ function canSeePoint(point, eyePos) {
     const dz = point.z - eyePos.z;
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // Too far to check
-    if (distance > NODE_REACH_DISTANCE * 3) return false;
+    // Don't check visibility for far points, just go straight (bandaid fix lmfaoooo but it works so well i cant hate)
+    if (distance > VISIBILITY_LOOKAHEAD) {
+        if (DEBUG_MODE) {
+            ChatLib.chat(
+                `§7Point too far to check visibility: ${distance.toFixed(
+                    2
+                )} blocks`
+            );
+        }
+        return false;
+    }
 
     const blocksInPath = RayTrace.rayTraceBetweenPoints(
         [eyePos.x, eyePos.y, eyePos.z],
@@ -118,6 +132,7 @@ function updateCurrentNode() {
     if (!eyePos) return;
 
     const eyePosObj = { x: eyePos.x, y: eyePos.y, z: eyePos.z };
+    const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
 
     // Check if we can advance to the next node
     while (
@@ -130,39 +145,72 @@ function updateCurrentNode() {
             movementState.splinePath[movementState.currentNodeIndex + 1];
 
         const distToCurrent = getDistance3D(eyePosObj, currentNode);
+        const distToCurrentPlayer = getDistance3D(playerPos, currentNode);
 
         if (DEBUG_MODE) {
             ChatLib.chat(
                 `§eNode ${
                     movementState.currentNodeIndex
-                }: dist=${distToCurrent.toFixed(2)}`
+                }: eye_dist=${distToCurrent.toFixed(
+                    2
+                )}, player_dist=${distToCurrentPlayer.toFixed(2)}`
             );
         }
 
-        if (distToCurrent < NODE_REACH_DISTANCE) {
-            const nextVisible = canSeePoint(nextNode, eyePosObj);
-
+        // If we're very close to current node, advance regardless of visibility
+        if (distToCurrentPlayer < NODE_PASS_DISTANCE) {
+            movementState.currentNodeIndex++;
             if (DEBUG_MODE) {
                 ChatLib.chat(
-                    `§eReached node ${movementState.currentNodeIndex}, next visible: ${nextVisible}`
+                    `§aForce advancing (very close): node ${movementState.currentNodeIndex}`
                 );
             }
+            continue;
+        }
 
-            if (nextVisible) {
-                // We've reached current and can see next, advance
+        // Normal advancing node: close enough AND next is visible
+        if (distToCurrent < NODE_REACH_DISTANCE) {
+            const distToNext = getDistance3D(eyePosObj, nextNode);
+
+            // Only check visibility if next node is within range
+            // If too far away, get closer before checking
+            if (distToNext <= VISIBILITY_LOOKAHEAD) {
+                const nextVisible = canSeePoint(nextNode, eyePosObj);
+
+                if (DEBUG_MODE) {
+                    ChatLib.chat(
+                        `§eReached node ${
+                            movementState.currentNodeIndex
+                        }, next dist: ${distToNext.toFixed(
+                            2
+                        )}, visible: ${nextVisible}`
+                    );
+                }
+
+                if (nextVisible) {
+                    movementState.currentNodeIndex++;
+                    if (DEBUG_MODE) {
+                        ChatLib.chat(
+                            `§aAdvancing to node ${movementState.currentNodeIndex}`
+                        );
+                    }
+                } else {
+                    if (DEBUG_MODE) {
+                        ChatLib.chat(
+                            `§6Staying at node ${movementState.currentNodeIndex} - next not visible yet`
+                        );
+                    }
+                    break;
+                }
+            } else {
+                // Next node is too far to check visibility, just advance
+                // it will check visibility when closer
                 movementState.currentNodeIndex++;
                 if (DEBUG_MODE) {
                     ChatLib.chat(
-                        `§aAdvancing to node ${movementState.currentNodeIndex}`
+                        `§bAdvancing (next too far to check): node ${movementState.currentNodeIndex}`
                     );
                 }
-            } else {
-                if (DEBUG_MODE) {
-                    ChatLib.chat(
-                        `§6Staying at node ${movementState.currentNodeIndex} - next not visible`
-                    );
-                }
-                break;
             }
         } else {
             break;
@@ -180,7 +228,11 @@ function updateCurrentNode() {
         const point = movementState.splinePath[i];
         const distToPoint = getDistance3D(eyePosObj, point);
 
-        if (distToPoint < NODE_REACH_DISTANCE * 1.5) {
+        // Only try to skip ahead to nodes that are close enough
+        if (
+            distToPoint < NODE_REACH_DISTANCE * 1.5 &&
+            distToPoint <= VISIBILITY_LOOKAHEAD
+        ) {
             const visible = canSeePoint(point, eyePosObj);
 
             if (visible) {
@@ -294,30 +346,80 @@ function updateRotations() {
     const eyePos = player.getEyePos();
     if (!eyePos) return;
 
+    // check if target has changed SIGNIFCANTLY
+    let targetChanged = false;
+    if (movementState.lastTargetPoint) {
+        const targetDist = getDistance3D(
+            movementState.targetPoint,
+            movementState.lastTargetPoint
+        );
+        if (targetDist > TARGET_STABILITY_THRESHOLD) {
+            targetChanged = true;
+            movementState.targetStableFrames = 0;
+        } else {
+            movementState.targetStableFrames++;
+        }
+    }
+    movementState.lastTargetPoint = { ...movementState.targetPoint };
+
     const dx = movementState.targetPoint.x - eyePos.x;
     let dy = movementState.targetPoint.y - eyePos.y;
     const dz = movementState.targetPoint.z - eyePos.z;
 
     if (movementState.isFalling) dy *= 0.3;
 
-    const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+    const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
     const dist2D = Math.hypot(dx, dz);
-    let pitch = -Math.atan2(dy, dist2D) * (180 / Math.PI);
+    let targetPitch = -Math.atan2(dy, dist2D) * (180 / Math.PI);
 
-    pitch += 3;
-    pitch = Math.max(-35, Math.min(35, pitch));
+    targetPitch += 3;
+    targetPitch = Math.max(-35, Math.min(35, targetPitch));
 
-    let yawDiff = yaw - movementState.lastRotation.yaw;
+    // calculate yaw difference
+    let yawDiff = targetYaw - movementState.lastRotation.yaw;
     while (yawDiff > 180) yawDiff -= 360;
     while (yawDiff < -180) yawDiff += 360;
 
+    const pitchDiff = targetPitch - movementState.lastRotation.pitch;
+
+    // If target just changed and difference is big, limit rotation speed
+    let effectiveYawDiff = yawDiff;
+    let effectivePitchDiff = pitchDiff;
+
+    if (
+        targetChanged &&
+        movementState.targetStableFrames < TARGET_STABILITY_FRAMES
+    ) {
+        // Limit sudden random rotation changes
+        const yawMagnitude = Math.abs(yawDiff);
+        const pitchMagnitude = Math.abs(pitchDiff);
+
+        if (yawMagnitude > MAX_ROTATION_SPEED) {
+            effectiveYawDiff = (yawDiff / yawMagnitude) * MAX_ROTATION_SPEED;
+            if (DEBUG_MODE) {
+                ChatLib.chat(
+                    `§6Limiting yaw rotation: ${yawMagnitude.toFixed(
+                        1
+                    )}° -> ${MAX_ROTATION_SPEED}°`
+                );
+            }
+        }
+
+        if (pitchMagnitude > MAX_ROTATION_SPEED) {
+            effectivePitchDiff =
+                (pitchDiff / pitchMagnitude) * MAX_ROTATION_SPEED;
+        }
+    }
+
+    // apply smoothing AFTER clamping
     const smoothing = player.isSprinting()
-        ? ROTATION_SMOOTHING * 1.2
+        ? ROTATION_SMOOTHING * 1.5
         : ROTATION_SMOOTHING;
-    const newYaw = movementState.lastRotation.yaw + yawDiff * smoothing;
+
+    const newYaw =
+        movementState.lastRotation.yaw + effectiveYawDiff * smoothing;
     const newPitch =
-        movementState.lastRotation.pitch +
-        (pitch - movementState.lastRotation.pitch) * smoothing;
+        movementState.lastRotation.pitch + effectivePitchDiff * smoothing;
 
     movementState.lastRotation = { yaw: newYaw, pitch: newPitch };
     Rotations.rotateToAngles(newYaw, newPitch);
@@ -415,6 +517,8 @@ function startPathing(rawPath, splinePath) {
         lastPosition: playerPos,
         stuckTimer: 0,
         lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
+        lastTargetPoint: null,
+        targetStableFrames: 0,
     });
 
     movementTickRegister = register('tick', () => {
@@ -427,32 +531,7 @@ function startPathing(rawPath, splinePath) {
         };
         movementState.isFalling = !Player.getPlayer()?.field_70122_E; // onGround
 
-        // Stuck detection
-        if (
-            Math.floor(currentPos.x) ===
-                Math.floor(movementState.lastPosition.x) &&
-            Math.floor(currentPos.y) ===
-                Math.floor(movementState.lastPosition.y) &&
-            Math.floor(currentPos.z) ===
-                Math.floor(movementState.lastPosition.z) &&
-            !movementState.isFalling
-        ) {
-            if (++movementState.stuckTimer >= STUCK_THRESHOLD) {
-                global.showNotification(
-                    'Stuck Detected',
-                    'Attempting jump.',
-                    'WARNING',
-                    2000
-                );
-                mc.options.jumpKey.setPressed(true);
-                Client.scheduleTask(5, () =>
-                    mc.options.jumpKey.setPressed(false)
-                );
-                movementState.stuckTimer = 0;
-            }
-        } else {
-            movementState.stuckTimer = 0;
-        }
+        // REMOVED STUCK DETECTION FOR NOW, IT DIDN'T DO ANYTHING
         movementState.lastPosition = currentPos;
 
         updatePathFollow();
