@@ -1,7 +1,7 @@
 import request from 'requestV2';
 import { Links } from '../Utility/Constants';
 import { Runtime } from '../Utility/Constants';
-import { stopPathing } from './Pathfinder';
+import { stopPathing } from './Pathwalker';
 
 const scriptInstanceId = Date.now() + Math.random();
 const lockFilePath = 'config/ChatTriggers/assets/pathfinder.lock';
