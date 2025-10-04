@@ -343,29 +343,72 @@ function findAndFollowPath(start, end, renderOnly = false) {
 
     request({ url, json: true, timeout: 15000 })
         .then((body) => {
-            if (!body?.path?.length || !body?.spline?.length) {
+            if (!body?.spline?.length) {
                 return global.showNotification(
                     'Pathfinding Failed',
-                    'Invalid response from server.',
+                    'No spline path received from server.',
                     'ERROR',
                     5000
                 );
             }
-            pathNodes = body.path;
+
+            pathNodes = body.path || [];
             keyNodes = body.keynodes || [];
-            if (renderOnly) {
-                movementRenderRegister = register(
-                    'postRenderWorld',
-                    renderPath
+
+            const beginPathing = () => {
+                if (renderOnly) {
+                    movementRenderRegister = register(
+                        'postRenderWorld',
+                        renderPath
+                    );
+                    global.showNotification(
+                        'Path Rendered',
+                        'Movement not initiated.',
+                        'INFO',
+                        3000
+                    );
+                } else {
+                    startPathing(body.spline);
+                }
+            };
+
+            if (body.warp_point && body.warp_point.command) {
+                const warpName = body.warp_point.command;
+                let tpCommand = null;
+
+                switch (warpName) {
+                    case '/warp mines':
+                        tpCommand = 'tp @s -49 200 -122 -90 0';
+                        break;
+                    case '/warp forge':
+                        tpCommand = 'tp @s 0 149 -68 0 0';
+                        break;
+                    default:
+                        global.showNotification(
+                            'Pathfinding Error',
+                            `Unknown warp point received: ${warpName}`,
+                            'ERROR',
+                            4000
+                        );
+                        return;
+                }
+
+                ChatLib.chat(
+                    `§aWarp point found! Hardcoding teleport for: §e${warpName}`
                 );
-                global.showNotification(
-                    'Path Rendered',
-                    'Movement not initiated.',
-                    'INFO',
-                    3000
-                );
+                ChatLib.command(tpCommand);
+
+                let ticksWaited = 0;
+                const postWarpRegister = register('tick', () => {
+                    ticksWaited++;
+                    if (ticksWaited >= 5) {
+                        postWarpRegister.unregister();
+                        beginPathing();
+                    }
+                });
             } else {
-                startPathing(body.spline);
+                // No warp point, start pathing
+                beginPathing();
             }
         })
         .catch((err) => {
