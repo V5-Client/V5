@@ -36,7 +36,7 @@ import './Modules/Skills/FishingMacro.js';
 import './Modules/Other/DiscordRPC.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
-import './Pathfinding/Pathfinder.js';
+import './Pathfinding/Pathwalker.js';
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* TESTING */
