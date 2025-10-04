@@ -9,7 +9,6 @@ const Color = java.awt.Color;
 const mc = Client.getMinecraft();
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
-const STUCK_THRESHOLD = 60;
 const NODE_REACH_DISTANCE = 4.5;
 const NODE_PASS_DISTANCE = 2.0; // If closer than this, force advance even without visibility
 const LOOK_AHEAD_DISTANCE = 3.0;
@@ -19,7 +18,7 @@ const EYE_HEIGHT = 1.62;
 const DEBUG_MODE = true;
 const TARGET_STABILITY_THRESHOLD = 0.5;
 const TARGET_STABILITY_FRAMES = 3;
-const MAX_ROTATION_SPEED = 15;
+const MAX_ROTATION_SPEED = 20;
 const VISIBILITY_LOOKAHEAD = 8.0; // Check visibility up to this distance for next node
 
 let pathNodes = [];
@@ -554,6 +553,7 @@ function handleRustPathCommand(...args) {
 
     const renderOnly =
         args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
+
     if (args.length < 6) {
         global.showNotification(
             'Invalid Command',
@@ -619,5 +619,70 @@ function handleRustPathCommand(...args) {
         });
 }
 
+function handlePathCommand(...args) {
+    stopPathing();
+
+    if (args.length < 3) {
+        global.showNotification(
+            'Invalid Command',
+            'Usage: /path <x> <y> <z>',
+            'ERROR',
+            5000
+        );
+        return;
+    }
+
+    const coords = args.slice(0, 3).map(Number);
+    if (coords.some(isNaN)) {
+        global.showNotification(
+            'Invalid Coordinates',
+            'All coordinates must be valid numbers.',
+            'ERROR',
+            5000
+        );
+        return;
+    }
+
+    const x1 = Math.floor(Player.getX());
+    const y1 = Math.floor(Player.getY()) - 1;
+    const z1 = Math.floor(Player.getZ());
+
+    const [x2, y2, z2] = coords;
+
+    const url = `${localhost}/api/pathfinding?start=${x1},${y1},${z1}&end=${x2},${y2},${z2}&map=mines`;
+
+    ChatLib.chat(
+        `§aPathfinding from §e${x1}, ${y1}, ${z1}§a to §e${x2}, ${y2}, ${z2}`
+    );
+
+    request({ url, json: true, timeout: 15000 })
+        .then((body) => {
+            if (!body?.path?.length || !body?.spline?.length) {
+                global.showNotification(
+                    'Pathfinding Failed',
+                    'Invalid response from server.',
+                    'ERROR',
+                    5000
+                );
+                return;
+            }
+
+            pathNodes = body.path;
+            keyNodes = body.keynodes || [];
+
+            startPathing(body.path, body.spline);
+        })
+        .catch((err) => {
+            global.showNotification(
+                'Pathfinding Error',
+                'See console for details.',
+                'ERROR',
+                5000
+            );
+            console.log(`Pathfinding request failed: ${err}`);
+        });
+}
+
 register('command', handleRustPathCommand).setName('rustpath', true);
+register('command', handlePathCommand).setName('path', true);
 register('command', stopPathing).setName('stop', true);
