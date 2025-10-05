@@ -232,8 +232,8 @@ function renderPath() {
 
         RenderUtils.drawStyledBox(
             new Vec3d(node.x, node.y, node.z),
-            isCurrent,
-            isCurrent,
+            color,
+            color,
             5,
             false
         );
