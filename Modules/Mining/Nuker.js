@@ -241,6 +241,8 @@ class NukerClass {
                     return;
 
                 if (
+                    this.Enabled &&
+                    this.autoChest &&
                     !this.chestClickedThisTick &&
                     (!this.lastChestClick[pos] ||
                         Date.now() - this.lastChestClick[pos] >
@@ -269,6 +271,16 @@ class NukerClass {
                 this.toggle(value);
             },
             'Toggles the Nuker module'
+        );
+
+        addToggle(
+            'Modules',
+            'Nuker',
+            'Auto Chest',
+            (value) => {
+                this.autoChest = value;
+            },
+            'Auto-opens chests'
         );
 
         addToggle(
