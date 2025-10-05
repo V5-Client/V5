@@ -34,6 +34,7 @@ import './Modules/Skills/FishingMacro.js';
 
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';
+import './Modules/Other/FastPlace.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
 import './Pathfinding/Pathwalker.js';
