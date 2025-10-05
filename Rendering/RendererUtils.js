@@ -12,7 +12,7 @@ export default class RenderUtils {
      * @param {Float16Array} thickness thickness of each wire
      * @param {Boolean} depth hide behind blocks
      */
-    static drawWireFrame(Vec3d, ColorArray, thickness = 5, depth) {
+    static drawWireFrame(Vec3d, ColorArray, thickness = 5, depth = false) {
         RenderUtilsPackage.drawWireFrameBox(
             Vec3d,
             this.setColor(
@@ -53,7 +53,13 @@ export default class RenderUtils {
      * @param {Float16Array} thickness thickness of each wire
      * @param {Boolean} depth hide behind blocks
      */
-    static drawStyledBox(Vec3d, ColorArray1, ColorArray2, thickness, depth) {
+    static drawStyledBox(
+        Vec3d,
+        ColorArray1,
+        ColorArray2,
+        thickness = 5,
+        depth = false
+    ) {
         RenderUtilsPackage.drawStyledBox(
             Vec3d,
             this.setColor(
@@ -95,7 +101,13 @@ export default class RenderUtils {
      *
      * This is very costly, ill lf fix soon
      */
-    static drawLine(startVec3d, endVec3d, ColorArray, thickness, depth) {
+    static drawLine(
+        startVec3d,
+        endVec3d,
+        ColorArray,
+        thickness = 5,
+        depth = false
+    ) {
         RenderUtilsPackage.drawLine(
             startVec3d,
             endVec3d,
