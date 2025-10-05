@@ -8,6 +8,7 @@ export const DataFlavor = java.awt.datatransfer.DataFlavor;
 export const FileOutputStream = java.io.FileOutputStream;
 export const DataOutputStream = java.io.DataOutputStream;
 export const MessageType = java.awt.TrayIcon.MessageType;
+export const Vec3d = net.minecraft.util.math.Vec3d;
 export const ArrayLists = java.util.ArrayList;
 export const SystemTray = java.awt.SystemTray;
 export const TrayIcon = java.awt.TrayIcon;

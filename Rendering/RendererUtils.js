@@ -1,144 +1,155 @@
-const RenderSystem = com.mojang.blaze3d.systems.RenderSystem;
-const RenderPipeline = net.minecraft.client.gl.RenderPipelines;
+import { Color, Vec3d } from '../Utility/Constants';
 
-// Helpers - Use RendererMain.js methods!
+const RenderUtilsPackage = Java.type('com.chattriggers.v5.render.RenderUtils');
 
-export default class RendererUtils {
-    static getSlotPos(slotIndex) {
-        const screen = Player.getContainer().screen;
-        if (
-            !screen ||
-            !(
-                screen instanceof
-                net.minecraft.client.gui.screen.ingame.HandledScreen
-            )
-        )
-            new Vec3i(0, 0, 0);
-        const slot = screen.getScreenHandler().slots.get(slotIndex);
-        return new Vec3i(screen.x + slot.x, screen.y + slot.y, 0);
-    }
-    static getSlotCenter(slot) {
-        const { x, y } = RendererUtils.getSlotPos(slot);
-        return new Vec3i(x + 8, y + 8, 0);
-    }
-    static getPositionMatrix() {
-        return Renderer.matrixStack.toMC().peek().positionMatrix;
-    }
-    static setupRender() {
-        RenderSystem.disableCull();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-    }
-    static endRender() {
-        RenderSystem.disableBlend();
-        RenderSystem.enableCull();
+export default class RenderUtils {
+    constructor() {
+        register('postRenderWorld', () => {
+            const player = Player.getPlayer(); // get the local player
+
+            RenderUtils.drawBox(
+                new Vec3d(-222, 80, 90),
+                [180, 180, 180, 100],
+                true
+            );
+            ChatLib.chat('HI');
+        });
     }
 
-    // static getSlotCenter(slot) {
-    // 	const invSize = Player.getContainer()?.getSize() || 0;
-    // 	let x = slot % 9;
-    // 	let y = Math.floor(slot / 9);
-    // 	let renderX = Renderer.screen.getWidth() / 2 + (x - 4) * 18;
-    // 	let renderY = (Renderer.screen.getHeight() + 9) / 2 + (y - invSize / 18) * 18;
-    // 	if (slot >= invSize - 36) renderY += 13;
-    // 	return [renderX, renderY];
-    // }
-
-    static colorToARGB(color) {
-        return (
-            (color.getAlpha() << 24) |
-            (color.getRed() << 16) |
-            (color.getGreen() << 8) |
-            color.getBlue()
+    /**
+     * @function drawWireFrame creates a frame around a block
+     * @param {Vec3d} Vec3d a Vec3d coordinate
+     * @param {Array} ColorArray requires 4 items in an array of numbers between 0-255
+     * @param {Float16Array} thickness thickness of each wire
+     * @param {Boolean} depth hide behind blocks
+     */
+    static drawWireFrame(Vec3d, ColorArray, thickness = 5, depth) {
+        RenderUtilsPackage.drawWireFrameBox(
+            Vec3d,
+            this.setColor(
+                ColorArray[0],
+                ColorArray[1],
+                ColorArray[2],
+                ColorArray[3]
+            ),
+            thickness,
+            depth
         );
     }
-}
 
-export class Align {
-    static TOP_LEFT = 'TOP_LEFT';
-    static TOP = 'TOP_CENTER';
-    static TOP_RIGHT = 'TOP_RIGHT';
-    static LEFT = 'CENTER_LEFT';
-    static CENTER = 'CENTER_CENTER';
-    static RIGHT = 'CENTER_RIGHT';
-    static BOTTOM_LEFT = 'BOTTOM_LEFT';
-    static BOTTOM = 'BOTTOM_CENTER';
-    static BOTTOM_RIGHT = 'BOTTOM_RIGHT';
-}
-
-const VertexFormat = net.minecraft.client.render.VertexFormat;
-const VertexFormats = net.minecraft.client.render.VertexFormats;
-const RenderPhase = net.minecraft.client.render.RenderPhase;
-const RenderLayer = net.minecraft.client.render.RenderLayer;
-const OptionalDouble = java.util.OptionalDouble;
-const linesCache = new Map();
-const linesThroughWallsCache = new Map();
-let filledThroughWallsCache = null;
-export class RenderLayers {
-    static getFilledThroughWalls = () => {
-        if (filledThroughWallsCache) {
-            return filledThroughWallsCache;
-        }
-        return (filledThroughWallsCache = RenderLayer.of(
-            'filled_through_walls',
-            VertexFormats.POSITION_COLOR,
-            VertexFormat.class_5596.TRIANGLE_STRIP, // .DrawMode.
-            1536,
-            false,
-            true,
-            RenderLayer.class_4688 // .MultiPhaseParameters.builder()
-                .method_23598()
-                .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-                .layering(RenderPhase.POLYGON_OFFSET_LAYERING)
-                .build(false)
-        ));
-    };
-
-    static getLinesThroughWalls = (lineWidth = 1) => {
-        if (linesThroughWallsCache.has(lineWidth)) {
-            return linesThroughWallsCache.get(lineWidth);
-        }
-        const layer = RenderLayer.of(
-            'lines_through_walls',
-            1536,
-            RenderPipeline.DEBUG_LINE_STRIP, // jank fix but looks good imo
-            RenderLayer.class_4688 // .MultiPhaseParameters.builder()
-                .method_23598()
-                .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-                .target(RenderPhase.OUTLINE_TARGET)
-                .lineWidth(
-                    new RenderPhase.class_4677(OptionalDouble.of(lineWidth))
-                ) // .LineWidth()
-                .build(false)
+    /**
+     * @function drawBox creates a fully filled box around a block
+     * @param {Vec3d} Vec3d a Vec3d coordinate
+     * @param {Array} ColorArray requires 4 items in an array of numbers between 0-255
+     * @param {Boolean} depth hide behind blocks
+     */
+    static drawBox(Vec3d, ColorArray, depth = false) {
+        RenderUtilsPackage.drawFilledBox(
+            Vec3d,
+            this.setColor(
+                ColorArray[0],
+                ColorArray[1],
+                ColorArray[2],
+                ColorArray[3]
+            ),
+            depth
         );
-        linesThroughWallsCache.set(lineWidth, layer);
-        return layer;
-    };
+    }
 
-    static getLines = (lineWidth = 2) => {
-        if (linesCache.has(lineWidth)) {
-            return linesCache.get(lineWidth);
-        }
-        const layer = RenderLayer.of(
-            'lines',
-            1536,
-            RenderPipeline.LINES,
-            RenderLayer.class_4688 // .MultiPhaseParameters.builder()
-                .method_23598()
-                .layering(RenderPhase.VIEW_OFFSET_Z_LAYERING)
-                .target(RenderPhase.ITEM_ENTITY_TARGET)
-                .lineWidth(
-                    new RenderPhase.class_4677(OptionalDouble.of(lineWidth))
-                ) // .LineWidth()
-                .build(false)
+    /**
+     * @function drawStyledBox creates a fully filled box around a block with wireframes, much more peformance costly
+     * @param {Vec3d} Vec3d a Vec3d coordinate
+     * @param {Array} ColorArray1 requires 4 items in an array of numbers between 0-255 - for  the filled box
+     * @param {Array} ColorArray2 requires 4 items in an array of numbers between 0-255 - for the wireframe
+     * @param {Float16Array} thickness thickness of each wire
+     * @param {Boolean} depth hide behind blocks
+     */
+    static drawStyledBox(Vec3d, ColorArray1, ColorArray2, thickness, depth) {
+        RenderUtilsPackage.drawStyledBox(
+            Vec3d,
+            this.setColor(
+                ColorArray1[0],
+                ColorArray1[1],
+                ColorArray1[2],
+                ColorArray1[3]
+            ),
+            this.setColor(
+                ColorArray2[0],
+                ColorArray2[1],
+                ColorArray2[2],
+                ColorArray2[3]
+            ),
+            thickness,
+            depth
         );
-        linesCache.set(lineWidth, layer);
-        return layer;
-    };
+
+        /* RenderUtilsPackage.drawWireFrameBox(
+            Vec3d,
+            this.setColor(
+                ColorArray2[0],
+                ColorArray2[1],
+                ColorArray2[2],
+                ColorArray2[3]
+            ),
+            thickness,
+            depth
+        ); */
+    }
+
+    /**
+     * @function drawLine draws straight lines
+     * @param {Vec3d} startVec3d a Vec3d coordinate
+     * @param {Vec3d} endVec3d a Vec3d coordinate
+     * @param {Array} ColorArray requires 4 items in an array of numbers between 0-255
+     * @param {Float16Array} thickness thickness of each wire
+     * @param {Boolean} depth hide behind blocks
+     *
+     * This is very costly, ill lf fix soon
+     */
+    static drawLine(startVec3d, endVec3d, ColorArray, thickness, depth) {
+        RenderUtilsPackage.drawLine(
+            startVec3d,
+            endVec3d,
+            this.setColor(
+                ColorArray[0],
+                ColorArray[1],
+                ColorArray[2],
+                ColorArray[3]
+            ),
+            thickness,
+            depth
+        );
+    }
+
+    /**
+     * @function drawEntityHitbox renders a box around the bounding box of a mob
+     * @param {MobEntity} Mob the type of mob you want to highlight
+     * @param {Array} ColorArray requires 4 items in an array of numbers between 0-255
+     * @param {Float16Array} thickness thickness of each wire
+     * @param {Boolean} depth hide behind blocks
+     *
+     * under construction
+     */
+    /*drawEntityHitbox(Mob, ColorArray, thickness, depth) {
+        RenderUtilsPackage.drawEntityHitbox(
+            Mob,
+            this.setColor(1, 1, 1, 1),
+            thickness,
+            depth
+        );
+    } */
+
+    /**
+     *
+     * @param {*} r red in 0-255
+     * @param {*} g green in 0-255
+     * @param {*} b blue in 0-255
+     * @param {*} a alpha in 0-255
+     * @returns a data class accessible to other functions
+     */
+    static setColor(r, g, b, a) {
+        return RenderUtilsPackage.createColor(r, g, b, a);
+    }
 }
 
-export class OutlineMode {
-    static CENTER = 'CENTER';
-    static OUTLINE = 'OUTLINE';
-    static INLINE = 'INLINE';
-}
+new RenderUtils();
