@@ -19,6 +19,12 @@ class NukerClass {
         this.chestClickedThisTick = false;
         this.startTime = Date.now();
 
+        this.workerThread = null;
+        this.latestState = new java.util.concurrent.atomic.AtomicReference(
+            null
+        );
+        this.resultQueue = new java.util.concurrent.ConcurrentLinkedQueue();
+
         this.BLOCK_COOLDOWN = 1000;
         this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
 
@@ -122,76 +128,30 @@ class NukerClass {
             this.lastTime = Date.now();
             this.chestClickedThisTick = false;
 
+            const targetPos = this.resultQueue.poll();
+            if (targetPos) {
+                NukerUtils.nuke([targetPos.x, targetPos.y, targetPos.z]);
+                this.target = targetPos;
+                this.minedBlocks.set(targetPos.toString(), Date.now());
+            }
+
             for (const [pos, time] of this.minedBlocks) {
                 if (Date.now() - time > this.BLOCK_COOLDOWN) {
                     this.minedBlocks.delete(pos);
                 }
             }
 
-            let playerX = Math.floor(Player.getX());
-            let playerY = Math.floor(Player.getY());
-            let playerZ = Math.floor(Player.getZ());
-
-            let validBlocks = [];
-
-            new Thread(() => {
-                for (let x = playerX - 5; x <= playerX + 5; x++) {
-                    for (
-                        let y = playerY - (this.nukeBelow ? 0 : 5);
-                        y <= playerY + this.heightLimit;
-                        y++
-                    ) {
-                        for (let z = playerZ - 5; z <= playerZ + 5; z++) {
-                            let pos = new BlockPos(x, y, z);
-                            if (this.nukeBelow && y < playerY) continue;
-                            if (this.minedBlocks.has(pos.toString())) continue;
-                            if (
-                                this.distance(this.cords(), [x, y, z])
-                                    .distance > 4.5
-                            )
-                                continue;
-
-                            let block = World.getBlockStateAt(
-                                new BlockPos(x, y, z)
-                            ).getBlock();
-                            let isValidBlock = false;
-                            if (this.blockType === 'Crystal Hollows') {
-                                let blockA = World.getBlockAt(x, y, z);
-                                isValidBlock =
-                                    block instanceof
-                                        net.minecraft.block.BlockStone ||
-                                    block instanceof
-                                        net.minecraft.block.BlockOre ||
-                                    block instanceof
-                                        net.minecraft.block.BlockRedstoneOre ||
-                                    blockA.type.getID() == 4;
-                            } else if (this.blockType === 'Custom') {
-                                let block = World.getBlockAt(x, y, z);
-                                isValidBlock = this.customBlockList.some(
-                                    (customBlock) =>
-                                        block.type.getID() === customBlock.id
-                                );
-                            }
-
-                            if (isValidBlock) {
-                                validBlocks.push(pos);
-                            }
-                        }
-                    }
-                }
-
-                if (validBlocks.length > 0) {
-                    let targetPos =
-                        validBlocks[
-                            Math.floor(Math.random() * validBlocks.length)
-                        ];
-
-                    NukerUtils.nuke([targetPos.x, targetPos.y, targetPos.z]);
-
-                    this.target = targetPos;
-                    this.minedBlocks.set(targetPos.toString(), Date.now());
-                }
-            }).start();
+            this.latestState.set({
+                playerX: Math.floor(Player.getX()),
+                playerY: Math.floor(Player.getY()),
+                playerZ: Math.floor(Player.getZ()),
+                nukeBelow: this.nukeBelow,
+                heightLimit: this.heightLimit,
+                minedBlocks: Array.from(this.minedBlocks.keys()),
+                blockType: this.blockType,
+                customBlockList: this.customBlockList,
+                cords: this.cords(),
+            });
         });
 
         const nukeHighlight = register('postRenderWorld', () => {
@@ -373,6 +333,8 @@ class NukerClass {
         this.minedBlocks = new Map();
         this.clickQueue = new Set();
         this.chestClickedThisTick = false;
+        this.latestState.set(null);
+        this.resultQueue.clear();
     }
 
     stopMacro(msg) {
@@ -384,14 +346,120 @@ class NukerClass {
     }
 
     toggle(value) {
-        if (this.Enabled || value) {
-            Chat.message(
-                this.ModuleName + (value ? ' &aEnabled' : ' &cDisabled')
-            );
-        }
+        if (this.Enabled === value) return;
         this.Enabled = value;
         this.init();
         this.startTime = Date.now();
+
+        if (this.Enabled) {
+            Chat.message(this.ModuleName + ' &aEnabled');
+            this.workerThread = new Thread(() => {
+                while (this.Enabled) {
+                    try {
+                        const state = this.latestState.get();
+                        if (state) {
+                            let validBlocks = [];
+                            const {
+                                playerX,
+                                playerY,
+                                playerZ,
+                                nukeBelow,
+                                heightLimit,
+                                minedBlocks,
+                                blockType,
+                                customBlockList,
+                                cords,
+                            } = state;
+
+                            const minedBlockSet = new Set(minedBlocks);
+
+                            for (let x = playerX - 5; x <= playerX + 5; x++) {
+                                for (
+                                    let y = playerY - (nukeBelow ? 0 : 5);
+                                    y <= playerY + heightLimit;
+                                    y++
+                                ) {
+                                    for (
+                                        let z = playerZ - 5;
+                                        z <= playerZ + 5;
+                                        z++
+                                    ) {
+                                        let pos = new BP(x, y, z);
+                                        if (nukeBelow && y < playerY) continue;
+                                        if (minedBlockSet.has(pos.toString()))
+                                            continue;
+                                        if (
+                                            this.distance(cords, [x, y, z])
+                                                .distance > 4.5
+                                        )
+                                            continue;
+
+                                        let block = World.getBlockStateAt(
+                                            new BP(x, y, z)
+                                        ).getBlock();
+                                        let isValidBlock = false;
+                                        if (blockType === 'Crystal Hollows') {
+                                            let blockA = World.getBlockAt(
+                                                x,
+                                                y,
+                                                z
+                                            );
+                                            isValidBlock =
+                                                block instanceof
+                                                    net.minecraft.block
+                                                        .BlockStone ||
+                                                block instanceof
+                                                    net.minecraft.block
+                                                        .BlockOre ||
+                                                block instanceof
+                                                    net.minecraft.block
+                                                        .BlockRedstoneOre ||
+                                                blockA.type.getID() == 4;
+                                        } else if (blockType === 'Custom') {
+                                            let block = World.getBlockAt(
+                                                x,
+                                                y,
+                                                z
+                                            );
+                                            isValidBlock = customBlockList.some(
+                                                (customBlock) =>
+                                                    block.type.getID() ===
+                                                    customBlock.id
+                                            );
+                                        }
+
+                                        if (isValidBlock) {
+                                            validBlocks.push(pos);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (validBlocks.length > 0) {
+                                let targetPos =
+                                    validBlocks[
+                                        Math.floor(
+                                            Math.random() * validBlocks.length
+                                        )
+                                    ];
+                                if (this.resultQueue.isEmpty()) {
+                                    this.resultQueue.add(targetPos);
+                                }
+                            }
+                        }
+                        Thread.sleep(50);
+                    } catch (e) {
+                        // maybe thread was interrupted ?
+                    }
+                }
+            });
+            this.workerThread.start();
+        } else {
+            Chat.message(this.ModuleName + ' &cDisabled');
+            if (this.workerThread) {
+                this.workerThread = null;
+            }
+        }
     }
 }
 
