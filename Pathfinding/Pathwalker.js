@@ -383,25 +383,29 @@ function findAndFollowPath(start, end, renderOnly = false) {
                 const warpName = body.warp_point.command;
                 let tpCommand = null;
 
-                switch (warpName) {
-                    case '/warp mines':
-                        tpCommand = 'tp @s -49 200 -122 -90 0';
-                        break;
-                    case '/warp forge':
-                        tpCommand = 'tp @s 0 149 -68 0 0';
-                        break;
-                    default:
-                        global.showNotification(
-                            'Pathfinding Error',
-                            `Unknown warp point received: ${warpName}`,
-                            'ERROR',
-                            4000
-                        );
-                        return;
+                if (Server.getName() === 'SinglePlayer') {
+                    switch (warpName) {
+                        case '/warp mines':
+                            tpCommand = 'tp @s -49 200 -122 -90 0';
+                            break;
+                        case '/warp forge':
+                            tpCommand = 'tp @s 0 149 -68 0 0';
+                            break;
+                        default:
+                            global.showNotification(
+                                'Pathfinding Error',
+                                `Unknown warp point received: ${warpName}`,
+                                'ERROR',
+                                4000
+                            );
+                            return;
+                    }
+                } else {
+                    tpCommand = warpName.slice(1); // remove leading '/'
                 }
 
                 ChatLib.chat(
-                    `§aWarp point found! Hardcoding teleport for: §e${warpName}`
+                    `§aWarp point found! Running command: §e${tpCommand} (might be hardcoded version of warp: ${warpName})`
                 );
                 ChatLib.command(tpCommand);
 
