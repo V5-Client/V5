@@ -3,18 +3,7 @@ import { Color, Vec3d } from '../Utility/Constants';
 const RenderUtilsPackage = Java.type('com.chattriggers.v5.render.RenderUtils');
 
 export default class RenderUtils {
-    constructor() {
-        register('postRenderWorld', () => {
-            const player = Player.getPlayer(); // get the local player
-
-            RenderUtils.drawBox(
-                new Vec3d(-222, 80, 90),
-                [180, 180, 180, 100],
-                true
-            );
-            ChatLib.chat('HI');
-        });
-    }
+    constructor() {}
 
     /**
      * @function drawWireFrame creates a frame around a block
