@@ -23,7 +23,10 @@ class UtilsClass {
                     return seconds * 1000;
                 }
 
+                ChatLib.chat('§cYou were spawned into limbo.');
+                Thread.sleep(50);
                 ChatLib.command('limbo');
+                Thread.sleep(30);
                 ChatLib.chat(
                     '§cAn exception occured in your connection, so you have been routed to limbo!'
                 );
