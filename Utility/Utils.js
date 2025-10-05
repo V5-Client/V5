@@ -323,6 +323,30 @@ class UtilsClass {
         const Text = net.minecraft.text.Text;
         const Formatting = net.minecraft.util.Formatting;
 
+        let banData = this.getConfigFile('bantime.json');
+        let now = Date.now();
+        const totalBanMs = 31103998277; // 360 * 24 * 60 * 60 * 1000: 360 days but i removed 1759 or smth so its like 359 cuz thats what real ones do
+
+        if (!banData.start) {
+            banData.start = now;
+            this.writeConfigFile('bantime.json', banData);
+        }
+
+        let elapsed = now - banData.start;
+        let remaining = Math.max(totalBanMs - elapsed, 0);
+
+        function formatTime(ms) {
+            let totalSec = Math.floor(ms / 1000);
+            let days = Math.floor(totalSec / 86400);
+            let hours = Math.floor((totalSec % 86400) / 3600);
+            let mins = Math.floor((totalSec % 3600) / 60);
+            let secs = totalSec % 60;
+
+            return `${days}d ${hours}h ${mins}m ${secs}s`;
+        }
+
+        let banTimeStr = formatTime(remaining);
+
         let handler = Client.getMinecraft().getNetworkHandler();
         if (!handler) {
             global.showNotification(
@@ -333,20 +357,14 @@ class UtilsClass {
             return;
         }
 
-        let banMessage = Text.literal('')
-            .append(
-                Text.literal('You are temporarily banned for ').formatted(
-                    Formatting.RED
-                )
-            )
-            .append(
-                Text.literal('359d 23h 59m 59s').formatted(Formatting.WHITE)
-            )
+        let banMessage = Text.literal('You are temporarily banned for ')
+            .formatted(Formatting.RED)
+            .append(Text.literal(banTimeStr).formatted(Formatting.WHITE))
             .append(
                 Text.literal(' from this server!\n\n').formatted(Formatting.RED)
             )
             .append(Text.literal('Reason: ').formatted(Formatting.GRAY))
-            .append(Text.literal(reason + '\n\n').formatted(Formatting.WHITE))
+            .append(Text.literal(reason + '\n').formatted(Formatting.WHITE))
             .append(Text.literal('Find out more: ').formatted(Formatting.GRAY))
             .append(
                 Text.literal('https://www.hypixel.net/appeal\n\n').formatted(
