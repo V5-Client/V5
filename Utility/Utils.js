@@ -24,6 +24,9 @@ class UtilsClass {
                 }
 
                 ChatLib.command('limbo');
+                ChatLib.chat(
+                    '§cAn exception occured in your connection, so you have been routed to limbo!'
+                );
                 Thread.sleep(randomDelay());
 
                 this.fakeBan(
