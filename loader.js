@@ -16,10 +16,10 @@ import './GUI/NotificationManager.js';
 import './Utility/Config.js';
 
 /* FORAGING */
-import './Modules/Foraging/SeaLumieMacro.js';
+//import './Modules/Foraging/SeaLumieMacro.js';
 
 /* MINING */
-import './Modules/Mining/MiningBot.js';
+//import './Modules/Mining/MiningBot.js';
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/Nuker.js';
 
@@ -36,7 +36,7 @@ import './Modules/Skills/FishingMacro.js';
 import './Modules/Other/DiscordRPC.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
-import './Pathfinding/Pathwalker.js';
+//import './Pathfinding/Pathwalker.js';
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* TESTING */
