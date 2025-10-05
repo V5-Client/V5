@@ -77,18 +77,6 @@ export default class RenderUtils {
             thickness,
             depth
         );
-
-        /* RenderUtilsPackage.drawWireFrameBox(
-            Vec3d,
-            this.setColor(
-                ColorArray2[0],
-                ColorArray2[1],
-                ColorArray2[2],
-                ColorArray2[3]
-            ),
-            thickness,
-            depth
-        ); */
     }
 
     /**
@@ -129,16 +117,21 @@ export default class RenderUtils {
      * @param {Float16Array} thickness thickness of each wire
      * @param {Boolean} depth hide behind blocks
      *
-     * under construction
+     * im not sure on how to make this work atm :( - im lowk just retard
      */
-    /*drawEntityHitbox(Mob, ColorArray, thickness, depth) {
+    static drawEntityHitbox(Mob, ColorArray, thickness = 5, depth = false) {
         RenderUtilsPackage.drawEntityHitbox(
             Mob,
-            this.setColor(1, 1, 1, 1),
+            this.setColor(
+                ColorArray[0],
+                ColorArray[1],
+                ColorArray[2],
+                ColorArray[3]
+            ),
             thickness,
             depth
         );
-    } */
+    }
 
     /**
      *
