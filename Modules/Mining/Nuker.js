@@ -1,6 +1,8 @@
 import { NukerUtils } from '../../Utility/NukerUtils';
 import { Chat } from '../../Utility/Chat';
 import { Utils } from '../../Utility/Utils';
+import RenderUtils from '../../Rendering/RendererUtils';
+import { Vec3d } from '../../Utility/Constants';
 const { addCategoryItem, addToggle } = global.Categories;
 const BP = net.minecraft.util.math.BlockPos;
 
@@ -35,7 +37,7 @@ class NukerClass {
         register('command', (ticks = 1) => {
             let block = Player.lookingAt();
 
-            if (block.getClass() === Block) {
+            if (block?.getClass() === Block) {
                 let pos = [block.getX(), block.getY(), block.getZ()];
                 Chat.debugMessage(
                     'Nuking ' + block.type.getRegistryName() + ' at ' + pos
@@ -46,7 +48,7 @@ class NukerClass {
 
         register('command', () => {
             let block = Player.lookingAt();
-            if (block.getClass() === Block) {
+            if (block?.getClass() === Block) {
                 const newBlock = {
                     name: block.type.getName(),
                     id: block.type.getID(),
@@ -192,35 +194,65 @@ class NukerClass {
             }).start();
         });
 
-        /*     const nukeHighlight = register("renderWorld", () => {
-      if (!this.Enabled) return;
-      if (this.target) {
-        this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()], [255, 255, 255]);
-      }
-    });
+        const nukeHighlight = register('postRenderWorld', () => {
+            if (!this.Enabled) return;
+            if (this.target) {
+                this.renderRGB([
+                    this.target.getX(),
+                    this.target.getY(),
+                    this.target.getZ(),
+                ]);
+            }
 
-    const chestHighlight = register("renderTileEntity", (entity) => {
-      if (Client.isInGui() && !Client.isInChat()) return;
-      if (!this.isHoldingRequiredItem()) return;
+            if (!this.chestPos) return;
 
-      if (entity?.getBlockType() != null && entity?.getBlockType()?.getID() === 54) {
-        const chest = entity?.getBlock()?.pos;
-        if (!chest) return;
+            RenderUtils.drawBox(
+                new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z),
+                [100, 100, 255, 150],
+                false
+            );
+        });
 
-        const pos = `${chest.x},${chest.y},${chest.z}`;
+        const chestHighlight = register('renderBlockEntity', (entity) => {
+            if (Client.isInGui() && !Client.isInChat()) return;
+            if (!this.isHoldingRequiredItem()) return;
 
-        if (this.clickQueue.has(pos)) return; // Skip if already queued
-        if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
+            if (
+                entity?.getBlockType() != null &&
+                entity?.getBlockType()?.getID() === 188
+            ) {
+                const chest = entity?.getBlock()?.pos;
+                this.chestPos = chest;
+                if (!chest) return;
 
-        if (!this.chestClickedThisTick && (!this.lastChestClick[pos] || Date.now() - this.lastChestClick[pos] > Math.floor(Math.random() * 50) + 50)) {
-          this.clickQueue.add(pos);
-          this.rightClickBlock([chest.x, chest.y, chest.z]);
-          Client.sendPacket(new net.minecraft.network.play.client.C0APacketAnimation());
-          this.lastChestClick[pos] = Date.now();
-          this.chestClickedThisTick = true;
-        }
-      }
-    }); */
+                const pos = `${chest.x},${chest.y},${chest.z}`;
+
+                if (this.clickQueue.has(pos)) return; // Skip if already queued
+
+                RenderUtils.drawBox(
+                    new Vec3d(chest.x, chest.y, chest.z),
+                    [255, 255, 255, 255],
+                    true
+                );
+                if (
+                    this.distance(this.cords(), [chest.x, chest.y, chest.z])
+                        .distance > 6
+                )
+                    return;
+
+                if (
+                    !this.chestClickedThisTick &&
+                    (!this.lastChestClick[pos] ||
+                        Date.now() - this.lastChestClick[pos] >
+                            Math.floor(Math.random() * 50) + 50)
+                ) {
+                    this.clickQueue.add(pos);
+                    this.rightClickBlock([chest.x, chest.y, chest.z]);
+                    this.lastChestClick[pos] = Date.now();
+                    this.chestClickedThisTick = true;
+                }
+            }
+        });
 
         addCategoryItem(
             'Mining',
@@ -237,6 +269,16 @@ class NukerClass {
                 this.toggle(value);
             },
             'Toggles the Nuker module'
+        );
+
+        addToggle(
+            'Modules',
+            'Nuker',
+            "Don't nuke below",
+            (value) => {
+                this.nukeBelow = value;
+            },
+            'Prevents nuking below'
         );
     }
 
@@ -275,52 +317,39 @@ class NukerClass {
         return [eyeVector.x, eyeVector.y, eyeVector.z];
     }
 
-    renderRGB(location, rgb = [1, 1, 1], alpha = 0.3, full = true) {
+    renderRGB(location) {
         let time = Date.now() / 1000;
         let r = Math.sin(time) * 127 + 128;
         let g = Math.sin(time + 2) * 127 + 128;
         let b = Math.sin(time + 4) * 127 + 128;
 
-        if (!full) {
-            RenderLibV2J.drawEspBox(
-                location[0] + 0.5,
-                location[1],
-                location[2] + 0.5,
-                1,
-                1,
-                r / 255,
-                g / 255,
-                b / 255,
-                alpha,
-                false
-            );
-        } else {
-            RenderLibV2J.drawInnerEspBox(
-                location[0] + 0.5,
-                location[1],
-                location[2] + 0.5,
-                1,
-                1,
-                r / 255,
-                g / 255,
-                b / 255,
-                alpha,
-                true
-            );
-        }
+        RenderUtils.drawWireFrame(
+            new Vec3d(location[0], location[1], location[2]),
+            [r, g, b, 255],
+            5,
+            true
+        );
     }
 
     rightClickBlock(xyz) {
         var blockPos = new BP(xyz[0], xyz[1], xyz[2]);
-        var heldItemStack = Player.getHeldItem()?.getItemStack() || null;
+        var direction = net.minecraft.util.math.Direction.UP;
+        var hitVec = new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5);
+
+        var blockHitResult = new net.minecraft.util.hit.BlockHitResult(
+            hitVec,
+            direction,
+            blockPos,
+            false
+        );
+
+        var hand = net.minecraft.util.Hand.MAIN_HAND;
+        var sequence = 0;
         Client.sendPacket(
-            new C08PacketPlayerBlockPlacement(
-                blockPos,
-                0,
-                heldItemStack,
-                0,
-                0,
-                0
+            new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
+                hand,
+                blockHitResult,
+                sequence
             )
         );
     }
