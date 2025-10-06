@@ -5,6 +5,8 @@ const seaPickleBlockMixin = new Mixin('net.minecraft.block.SeaPickleBlock');
 const partBlockMixin = new Mixin('net.minecraft.block.AbstractPlantPartBlock');
 const seaGrassMixin = new Mixin('net.minecraft.block.SeagrassBlock');
 const tallSeaGrassMixin = new Mixin('net.minecraft.block.TallSeagrassBlock');
+const cameraMixin = new Mixin('net.minecraft.client.render.Camera');
+const entityMixin = new Mixin('net.minecraft.entity.Entity');
 
 export const fullStainedGlassPane = horizontalConnectingBlockMixin.inject({
     method: 'getOutlineShape',
@@ -32,6 +34,22 @@ export const emptyGrass = seaGrassMixin.inject({
 
 export const emptyTallGrass = tallSeaGrassMixin.inject({
     method: 'getOutlineShape',
+    at: new At({ value: 'HEAD' }),
+    cancellable: true,
+});
+
+export const cameraUpdateMixin = cameraMixin.inject({
+    method: 'update',
+    at: new At({
+        value: 'INVOKE',
+        target: 'Lnet/minecraft/client/render/Camera;setRotation(FF)V',
+        ordinal: 1,
+        shift: At.AFTER,
+    }),
+});
+
+export const changeLookDirectionMixin = entityMixin.inject({
+    method: 'changeLookDirection',
     at: new At({ value: 'HEAD' }),
     cancellable: true,
 });
