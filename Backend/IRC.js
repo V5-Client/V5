@@ -7,6 +7,7 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_DELAY = 60000; // 1 minute
 let gameUnload = false;
 let isConnected = false;
+let start = Date.now();
 
 function openBrowser(url) {
     try {
@@ -51,6 +52,9 @@ function connectIRC(svid) {
                             }/auth/discord/${Player.getName()}`
                         );
                     }
+                    sendChatMessage(
+                        `Time taken to connect: ${Date.now() - start}ms`
+                    );
                     break;
 
                 case 'chat_message':
