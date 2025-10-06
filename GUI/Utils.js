@@ -33,36 +33,36 @@ export const SUBCATEGORY_BUTTON_SPACING = 5;
 
 export const THEME = {
     // Dropdown
-    DROPDOWN_BACKGROUND: new Color(0.15, 0.15, 0.15, 1),
-    DROPDOWN_FOREGROUND: new Color(0.6, 0.3, 0.8, 0.8),
+    DROPDOWN_BACKGROUND: new Color(0.18, 0.18, 0.22, 1),
+    DROPDOWN_FOREGROUND: new Color(0.65, 0.4, 0.85, 0.9),
     DROPDOWN_TEXT: 0xffffff,
-    DROPDOWN_OPTION_BACKGROUND: new Color(0.2, 0.2, 0.2, 1),
-    DROPDOWN_TOGGLE_DISABLED: new Color(0.4, 0.4, 0.4, 1),
+    DROPDOWN_OPTION_BACKGROUND: new Color(0.22, 0.23, 0.27, 1),
+    DROPDOWN_TOGGLE_DISABLED: new Color(0.35, 0.36, 0.4, 1),
 
     // GuiDraw
     GUI_DRAW_BACKGROUND_BORDER: new Color(1, 1, 1, 0.22),
-    GUI_DRAW_BACKGROUND: new Color(0.07, 0.09, 0.12, 0.36),
-    GUI_DRAW_PANELS: new Color(0.2, 0.2, 0.21, 1),
-    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.16),
+    GUI_DRAW_BACKGROUND: new Color(0.09, 0.1, 0.13, 0.38),
+    GUI_DRAW_PANELS: new Color(0.23, 0.24, 0.26, 1),
+    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.18),
 
     // GuiManager
     GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
     GUI_MANAGER_CATEGORY_DESCRIPTION: 0xaaaaaa,
     GUI_MANAGER_BACK_TEXT: 0xccb380e6,
-    GUI_MANAGER_CATEGORY_BOX: new Color(0.2, 0.2, 0.21, 1),
-    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.25, 0.25, 0.25, 1),
-    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.502, 0.302, 0.702, 0.3),
-    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.2),
+    GUI_MANAGER_CATEGORY_BOX: new Color(0.23, 0.24, 0.26, 1),
+    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.28, 0.29, 0.32, 1),
+    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.502, 0.302, 0.702, 0.35),
+    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.22),
 
     // NotificationManager
-    NOTIFICATION_BACKGROUND: new Color(0x23 / 255, 0x25 / 255, 0x31 / 255, 0.9),
-    NOTIFICATION_ICON_BACKGROUND: new Color(1, 1, 1, 0.05),
+    NOTIFICATION_BACKGROUND: new Color(0.15, 0.16, 0.21, 0.92),
+    NOTIFICATION_ICON_BACKGROUND: new Color(1, 1, 1, 0.06),
     NOTIFICATION_ICON_SYMBOL: 0xdddddd,
     NOTIFICATION_TEXT: 0xffffff,
-    NOTIFICATION_DESCRIPTION: 0x808080,
-    NOTIFICATION_CLOSE_BUTTON: 0x999999,
-    NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.05),
-    NOTIFICATION_PROGRESS_BAR: new Color(1, 1, 1, 0.2),
+    NOTIFICATION_DESCRIPTION: 0xb0b0b0,
+    NOTIFICATION_CLOSE_BUTTON: 0xaaaaaa,
+    NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.08),
+    NOTIFICATION_PROGRESS_BAR: new Color(1, 1, 1, 0.25),
     NOTIFICATION_SUCCESS: new Color(parseInt('2b9875', 16)),
     NOTIFICATION_ERROR: new Color(parseInt('ef4444', 16)),
     NOTIFICATION_DANGER: new Color(parseInt('ff0f0f', 16)),
@@ -71,21 +71,21 @@ export const THEME = {
     NOTIFICATION_INFO: new Color(parseInt('3b82f6', 16)),
 
     // Slider
-    SLIDER_BACKGROUND: new Color(0.1935, 0.1931, 0.2092, 1),
+    SLIDER_BACKGROUND: new Color(0.22, 0.22, 0.25, 1),
     SLIDER_TEXT: new Color(1, 1, 1, 1),
-    SLIDER_FOREGROUND: new Color(0.502, 0.302, 0.702, 0.75),
-    SLIDER_HANDLE: new Color(0.8, 0.8, 0.8, 1),
-    SLIDER_BAR_BACKGROUND: new Color(0.11, 0.11, 0.11, 1),
+    SLIDER_FOREGROUND: new Color(0.502, 0.302, 0.702, 0.8),
+    SLIDER_HANDLE: new Color(0.85, 0.85, 0.85, 1),
+    SLIDER_BAR_BACKGROUND: new Color(0.14, 0.14, 0.16, 1),
 
     // Toggle
-    TOGGLE_BACKGROUND: new Color(0.1935, 0.1931, 0.2092, 1),
-    TOGGLE_ACCENT: new Color(0.502, 0.302, 0.702, 0.75),
-    TOGGLE_DISABLED_BOX: new Color(0.3, 0.3, 0.3, 1),
+    TOGGLE_BACKGROUND: new Color(0.22, 0.22, 0.25, 1),
+    TOGGLE_ACCENT: new Color(0.502, 0.302, 0.702, 0.8),
+    TOGGLE_DISABLED_BOX: new Color(0.38, 0.39, 0.42, 1),
     TOGGLE_TEXT: new Color(1, 1, 1, 1),
-    TOGGLE_BORDER: new Color(1, 1, 1, 0.2),
+    TOGGLE_BORDER: new Color(1, 1, 1, 0.22),
 
     // Tooltip
-    TOOLTIP_BACKGROUND: new Color(0.1, 0.1, 0.1, 0.95),
+    TOOLTIP_BACKGROUND: new Color(0.12, 0.13, 0.15, 0.95),
     TOOLTIP_TEXT: 0xdddddd,
 };
 
