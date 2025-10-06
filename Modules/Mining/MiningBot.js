@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-import RendererMain from '../../Rendering/RendererMain';
 import { Keybind } from '../../Utility/Keybinding';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { RayTrace } from '../../Utility/Raytrace';
@@ -11,9 +10,17 @@ import { Chat } from '../../Utility/Chat';
 import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { Guis } from '../../Utility/Inventory';
 import { NukerUtils } from '../../Utility/NukerUtils';
+import RenderUtils from '../../Rendering/RendererUtils';
 const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
+
+/**
+ * TODO
+ * - movement
+ * - rotations rework
+ * - idk
+ */
 
 class MiningBot {
     constructor() {
@@ -53,7 +60,7 @@ class MiningBot {
             'minecraft:yellow_stained_glass_pane': 4,
         };
 
-        this.COSTTYPE = this.mithrilCosts;
+        this.COSTTYPE = this.gemstoneCosts;
 
         this.STATES = {
             WAITING: 0,
@@ -162,7 +169,7 @@ class MiningBot {
                     Guis.setItemSlot(drill.slot);
 
                     if (this.empty) {
-                        Chat.message('NOOOO');
+                        Chat.message('No more mineable blocks.');
                         this.state = this.STATES.WAITING;
                     }
 
@@ -214,12 +221,35 @@ class MiningBot {
 
                     Keybind.setKey('leftclick', true);
 
-                    if (this.FAKELOOK) {
-                        if (this.FAKELOOK?.includes('Instant')) {
-                            // im not sure if ive done this wrong or the way i coded mining bot prevents seeing change
+                    let Fakelook = this.FAKELOOK.find(
+                        (option) => option.enabled
+                    ).name;
+
+                    if (Fakelook !== 'Off') {
+                        if (
+                            blockName.includes('air') ||
+                            blockName.includes('bedrock')
+                        ) {
+                            this.lowestCostBlockIndex++;
+                        }
+
+                        if (Fakelook === 'Instant') {
                             if (!this.currentTarget) return;
                             if (!this.nuking) {
                                 NukerUtils.nuke(
+                                    [
+                                        this.currentTarget.x,
+                                        this.currentTarget.y,
+                                        this.currentTarget.z,
+                                    ],
+                                    this.totalTicks
+                                );
+                                this.nuking = true;
+                            }
+                        } else if (Fakelook === 'Queued') {
+                            if (!this.currentTarget) return;
+                            if (!this.nuking) {
+                                NukerUtils.nukeQueueAdd(
                                     [
                                         this.currentTarget.x,
                                         this.currentTarget.y,
@@ -340,7 +370,7 @@ class MiningBot {
             ['Mithril', 'Gemstone', 'Ore'],
             true,
             (value) => {
-                this.COSTTYPE = value;
+                //this.COSTTYPE = value;
             },
             'Targets specified block type.'
         );
@@ -552,10 +582,9 @@ register('postRenderWorld', () => {
             const location = sortedLocations[i];
 
             if (i === 0) {
-                RendererMain.drawWaypoint(
-                    new Vec3i(location.x, location.y, location.z),
-                    true,
-                    new Color(0, 0, 1, 1) // Pure blue*
+                RenderUtils.drawWireFrame(
+                    new Vec3d(location.x, location.y, location.z),
+                    [255, 255, 255, 255]
                 );
                 continue;
             }
@@ -566,10 +595,9 @@ register('postRenderWorld', () => {
             const b = 0;
             const color = new Color(r, g, b, 1);
 
-            RendererMain.drawWaypoint(
-                new Vec3i(location.x, location.y, location.z),
-                true,
-                color
+            RenderUtils.drawWireFrame(
+                new Vec3d(location.x, location.y, location.z),
+                [r * 255, g * 255, b * 255, 255]
             );
         }
     }

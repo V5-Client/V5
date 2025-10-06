@@ -90,6 +90,7 @@ class Pingless {
             (value) => {
                 value ? playerAction.register() : playerAction.unregister();
                 value ? handSwing.register() : handSwing.unregister();
+                value ? (this.enabled = true) : (this.enabled = false);
             },
             'Toggles pingless miner'
         );
