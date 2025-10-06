@@ -19,7 +19,7 @@ import './Utility/Config.js';
 //import './Modules/Foraging/SeaLumieMacro.js';
 
 /* MINING */
-//import './Modules/Mining/MiningBot.js';
+import './Modules/Mining/MiningBot.js';
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/Nuker.js';
 
