@@ -211,7 +211,8 @@ class NukerClass {
                     this.chestPos.x,
                     this.chestPos.y,
                     this.chestPos.z,
-                ]).distance > 8
+                ]).distance > 8 ||
+                !this.autoChest
             )
                 return;
 
