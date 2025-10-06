@@ -12,6 +12,8 @@ class RotationsTo {
         this.fadeExponent = 0.005; // controls jitter fade
         this.Randomness = 0.005; // max random offset (degrees)
 
+        this.instantMode = false; // set inside rotation call, do not change here
+
         this.currentRandomYaw = 0;
         this.currentRandomPitch = 0;
         this.lastTremorTime = 0;
@@ -35,7 +37,7 @@ class RotationsTo {
 
             if (this.targetVector) {
                 let playerPos = player.getPos();
-                let eyeHeight = player.getEyePos().y - playerPos.y; // relative eye height
+                let eyeHeight = player.getEyePos().y - playerPos.y;
 
                 let dx = this.targetVector.x - playerPos.x;
                 let dy = this.targetVector.y - (playerPos.y + eyeHeight);
@@ -44,6 +46,15 @@ class RotationsTo {
                 this.targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
                 let dist = Math.sqrt(dx * dx + dz * dz);
                 this.targetPitch = Math.atan2(-dy, dist) * (180 / Math.PI);
+            }
+
+            // instant snap mode
+            if (this.instantMode) {
+                player.setYaw(this.targetYaw);
+                player.setPitch(this.targetPitch);
+                this.runCallbacks();
+                this.stopRotation();
+                return;
             }
 
             let yawDiff = this.wrapDegrees(this.targetYaw - currentYaw);
@@ -89,17 +100,19 @@ class RotationsTo {
         return degrees;
     }
 
-    rotateToAngles(yaw, pitch) {
+    rotateToAngles(yaw, pitch, instant = false) {
         this.targetYaw = yaw;
         this.targetPitch = pitch;
         this.targetVector = null;
+        this.instantMode = instant;
         this.rotating = true;
         this.lookRegister.register();
     }
 
-    rotateTo(vector) {
+    rotateTo(vector, instant = false) {
         let vec = Utils.convertToVector(vector);
         this.rotating = true;
+        this.instantMode = instant;
         this.targetVector = new Vector(vec.x, vec.y, vec.z);
         this.lookRegister.register();
     }
@@ -128,6 +141,7 @@ class RotationsTo {
     stopRotation() {
         this.targetVector = null;
         this.rotating = false;
+        this.instantMode = false; // reset to default
         this.lookRegister.unregister();
         this.actions = [];
     }
