@@ -115,7 +115,7 @@ class MiningBot {
 
         this.exploit = register('packetSent', (packet, event) => {
             if (!this.JASPEREXPLOIT) this.exploit.unregister();
-            let packetAction = packet.getAction().toString();
+            let packetAction = packet?.getAction()?.toString();
 
             if (packetAction === 'ABORT_DESTROY_BLOCK') cancel(event);
         }).setFilteredClass(
