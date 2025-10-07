@@ -6,8 +6,12 @@ const NODE_PASS_DISTANCE = 2.0;
 const LOOK_AHEAD_DISTANCE = 3.0;
 const FINAL_NODE_THRESHOLD = 3.5;
 const EYE_HEIGHT = 1.62;
-const VISIBILITY_LOOKAHEAD = 12.0;
-const DEBUG_MODE = false;
+const VISIBILITY_LOOKAHEAD = 12.5;
+const DEBUG_MODE = true;
+
+const IGNORED_BLOCK_IDS = new Set([
+    209, 518, 513, 514, 182, 208, 271, 610, 601, 427, 211, 605, 246,
+]); // I USED /acv FROM RAYTRACEDEBUG TO FIND THESE MOST COMMON ISSUES IN PATH, FEEL FREE TO ADD MORE.
 
 export const getDistance3D = (p1, p2) =>
     Math.hypot(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
@@ -42,10 +46,11 @@ export function canSeePoint(point, eyePos = Player.getPlayer()?.getEyePos()) {
         if (x === pX && z === pZ && (y === pY || y === pY - 1)) return false;
 
         const block = World.getBlockAt(x, y, z);
-        if (block && block.type.getID() !== 0) {
+        const blockId = block ? block.type.getID() : 0;
+        if (blockId !== 0 && !IGNORED_BLOCK_IDS.has(blockId)) {
             if (DEBUG_MODE)
                 ChatLib.chat(
-                    `§cBlocked by block at ${x}, ${y}, ${z} - ID: ${block.type.getID()}`
+                    `§cBlocked by block at ${x}, ${y}, ${z} - NAME: ${block.type.getRegistryName()} - ID: ${blockId}`
                 );
             return true;
         }
