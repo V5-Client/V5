@@ -22,7 +22,7 @@ import './Utility/Config.js';
 import './Modules/Mining/MiningBot.js';
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/Nuker.js';
-import './Modules/Mining/CommissionMacro.js';
+//import './Modules/Mining/CommissionMacro.js';
 
 /* VISUALS */
 import './Modules/Visuals/Xray.js';
@@ -36,7 +36,7 @@ import './Modules/Skills/FishingMacro.js';
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
-import './Modules/Other/Freelook.js';
+//import './Modules/Other/Freelook.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
 import './Pathfinding/Pathwalker.js';

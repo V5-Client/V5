@@ -18,7 +18,6 @@ const Vec3d = net.minecraft.util.math.Vec3d;
 /**
  * TODO
  * - movement
- * - my awesome coding makes it so if you mine mithril and have spread it will jitter rotate to the next block which is already broken
  * - worker thread for ScanForBlock
  * - idk
  *
@@ -61,6 +60,16 @@ class MiningBot {
             'minecraft:light_blue_stained_glass_pane': 4,
             'minecraft:yellow_stained_glass': 4,
             'minecraft:yellow_stained_glass_pane': 4,
+        };
+
+        this.oreCosts = {
+            'minecraft:coal_block': 4,
+            'minecraft:quartz_block': 4,
+            'minecraft:iron_block': 4,
+            'minecraft:redstone_block': 4,
+            'minecraft:gold_block': 4,
+            'minecraft:diamond_block': 4,
+            'minecraft:emerald_block': 4,
         };
 
         this.TYPE = null;
@@ -106,7 +115,7 @@ class MiningBot {
         }).setName('startb');
 
         register('command', () => {
-            this.miningbot.unregister(); // uhmmm why was this just miningbot.unregister() ?
+            this.miningbot.unregister();
             this.enabled = false;
             this.state = this.STATES.WAITING;
             Keybind.setKey('leftclick', false);
@@ -235,7 +244,10 @@ class MiningBot {
                         (option) => option.enabled
                     ).name;
 
-                    if (Fakelook !== 'Off') {
+                    if (
+                        Fakelook !== 'Off' &&
+                        this.COSTTYPE === this.gemstoneCosts
+                    ) {
                         if (
                             blockName.includes('air') ||
                             blockName.includes('bedrock')
