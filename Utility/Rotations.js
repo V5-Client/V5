@@ -32,7 +32,7 @@ class RotationsTo {
         return degrees;
     }
 
-    rotateToAngles(yaw, pitch, instant = false, steps = 20) {
+    rotateToAngles(yaw, pitch, instant = false, steps = 100) {
         this.targetYaw = yaw;
         this.targetPitch = pitch;
         this.targetVector = null;
@@ -118,7 +118,7 @@ class RotationsTo {
         }).start();
     }
 
-    rotateTo(vector, instant = false, steps = 20) {
+    rotateTo(vector, instant = false, steps = 100) {
         let vec = Utils.convertToVector(vector);
         let player = Player.getPlayer();
         if (!player) return;
