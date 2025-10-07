@@ -19,12 +19,9 @@ const Vec3d = net.minecraft.util.math.Vec3d;
  * TODO
  * - movement
  * - worker thread for ScanForBlock
- * - idk
- *
- * I have currently prioritized gemstones over mithril etc so
  */
 
-class MiningBot {
+class Bot {
     constructor() {
         this.foundLocations = [];
         this.lastScanTime = 0;
@@ -134,6 +131,36 @@ class MiningBot {
             net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
         );
 
+        this.debug = register('postRenderWorld', () => {
+            if (this.foundLocations.length > 0) {
+                let sortedLocations = this.foundLocations;
+
+                let numLocations = sortedLocations.length;
+                for (let i = 0; i < numLocations; i++) {
+                    let location = sortedLocations[i];
+
+                    if (i === 0) {
+                        RenderUtils.drawWireFrame(
+                            new Vec3d(location.x, location.y, location.z),
+                            [255, 255, 255, 255]
+                        );
+                        continue;
+                    }
+
+                    const t = numLocations > 1 ? i / (numLocations - 1) : 0;
+                    const r = t;
+                    const g = 1 - t;
+                    const b = 0;
+                    const color = new Color(r, g, b, 1);
+
+                    RenderUtils.drawWireFrame(
+                        new Vec3d(location.x, location.y, location.z),
+                        [r * 255, g * 255, b * 255, 255]
+                    );
+                }
+            }
+        });
+
         this.miningbot = register('tick', () => {
             if (!this.enabled) return;
 
@@ -242,7 +269,7 @@ class MiningBot {
 
                     let Fakelook = this.FAKELOOK.find(
                         (option) => option.enabled
-                    ).name;
+                    )?.name;
 
                     if (
                         Fakelook !== 'Off' &&
@@ -383,7 +410,6 @@ class MiningBot {
             },
             'Whenever Titanium is in range it will be targeted the most'
         );
-
         addMultiToggle(
             'Modules',
             'Mining Bot',
@@ -405,6 +431,15 @@ class MiningBot {
                 this.TYPE = value;
             },
             'Targets specified block type.'
+        );
+        addToggle(
+            'Modules',
+            'Mining Bot',
+            'Debug Mode',
+            (value) => {
+                value ? this.debug.register() : this.debug.unregister();
+            },
+            'Debugging - not recommended for average use.'
         );
     }
 
@@ -602,35 +637,5 @@ class MiningBot {
         }
     }
 }
-// debugging
-const bot = new MiningBot();
 
-register('postRenderWorld', () => {
-    if (bot.foundLocations.length > 0) {
-        const sortedLocations = bot.foundLocations;
-
-        const numLocations = sortedLocations.length;
-        for (let i = 0; i < numLocations; i++) {
-            const location = sortedLocations[i];
-
-            if (i === 0) {
-                RenderUtils.drawWireFrame(
-                    new Vec3d(location.x, location.y, location.z),
-                    [255, 255, 255, 255]
-                );
-                continue;
-            }
-
-            const t = numLocations > 1 ? i / (numLocations - 1) : 0;
-            const r = t;
-            const g = 1 - t;
-            const b = 0;
-            const color = new Color(r, g, b, 1);
-
-            RenderUtils.drawWireFrame(
-                new Vec3d(location.x, location.y, location.z),
-                [r * 255, g * 255, b * 255, 255]
-            );
-        }
-    }
-});
+export const MiningBot = new Bot();
