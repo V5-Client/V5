@@ -59,7 +59,9 @@ register('command', () => {
 
     if (visiblePoint) {
         Chat.message(
-            `&7Visible Point: &f[${visiblePoint.map((v) => v.toFixed(2)).join(', ')}]`
+            `&7Visible Point: &f[${visiblePoint
+                .map((v) => v.toFixed(2))
+                .join(', ')}]`
         );
     } else {
         Chat.message(`&7Visible Point: &cNone found`);
@@ -109,7 +111,7 @@ register('tick', () => {
     Chat.message(
         `&7[${blockPos.x}, ${blockPos.y}, ${blockPos.z}] &f${blockName}: ${
             visible ? '&aVisible' : '&cNot Visible'
-        }`
+        } &f${lookingAt.type.getID()}`
     );
 });
 
