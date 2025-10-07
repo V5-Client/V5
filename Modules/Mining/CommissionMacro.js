@@ -1,8 +1,3 @@
-example module format:
-
-```javascript
-// Imports
-
 const { addToggle } = global.Categories;
 
 class Module {
@@ -29,4 +24,3 @@ class Module {
 }
 
 new Module();
-```
