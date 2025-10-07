@@ -2,12 +2,15 @@ import { Chat } from './Chat';
 import { Time } from './Timing';
 import { Utils } from './Utils';
 import { mc } from './Utils';
+import { Vec3d } from './Constants';
 
 const LeftClickMouse = mc.getClass().getDeclaredMethod('method_1536');
 LeftClickMouse.setAccessible(true);
 
 const RightClickMouse = mc.getClass().getDeclaredMethod('method_1583');
 RightClickMouse.setAccessible(true);
+
+const BP = net.minecraft.util.math.BlockPos;
 
 class Keybinding {
     constructor() {
@@ -49,40 +52,41 @@ class Keybinding {
      * Sends a right click packet
      * @param {*} ticks
      */
-    /*rightClickPacket(ticks = 0) {
-    if (
-      ticks === 0 &&
-      Player.getInventory().getStackInSlot(Player.getHeldItemIndex())
-    ) {
-      Utils.sendPacket(
-        new PlayerInteractBlockC2SPacket(
-          new BP(-1, -1, -1),
-          255,
-          Player.getInventory()
-            .getStackInSlot(Player.getHeldItemIndex())
-            .getItemStack(),
-          0,
-          0,
-          0
-        )
-      );
-    } else {
-      Client.scheduleTask(ticks, () => {
-        Utils.sendPacket(
-          new PlayerInteractBlockC2SPacket(
-            new BP(-1, -1, -1),
-            255,
-            Player.getInventory()
-              .getStackInSlot(Player.getHeldItemIndex())
-              .getItemStack(),
-            0,
-            0,
-            0
-          )
+    rightClickPacket(ticks = 0, x, y, z) {
+        let blockPos = new BP(x, y, z);
+        let direction = net.minecraft.util.math.Direction.UP;
+        let hitVec = new Vec3d(x + 0.5, y + 0.5, z + 0.5);
+
+        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(
+            hitVec,
+            direction,
+            blockPos,
+            false
         );
-      });
+
+        let hand = net.minecraft.util.Hand.MAIN_HAND;
+        let sequence = 0;
+
+        if (ticks === 0) {
+            Client.sendPacket(
+                new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
+                    hand,
+                    blockHitResult,
+                    sequence
+                )
+            );
+        } else {
+            Client.scheduleTask(ticks, () => {
+                Client.sendPacket(
+                    new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
+                        hand,
+                        blockHitResult,
+                        sequence
+                    )
+                );
+            });
+        }
     }
-  } */
 
     /**
      * @param {string} key - Key identifier

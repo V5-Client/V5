@@ -18,8 +18,11 @@ const Vec3d = net.minecraft.util.math.Vec3d;
 /**
  * TODO
  * - movement
- * - rotations rework
+ * - my awesome coding makes it so if you mine mithril and have spread it will jitter rotate to the next block which is already broken
+ * - worker thread for ScanForBlock
  * - idk
+ *
+ * I have currently prioritized gemstones over mithril etc so
  */
 
 class MiningBot {
@@ -60,7 +63,8 @@ class MiningBot {
             'minecraft:yellow_stained_glass_pane': 4,
         };
 
-        this.COSTTYPE = this.gemstoneCosts;
+        this.TYPE = null;
+        this.COSTTYPE = this.mithrilCosts;
 
         this.STATES = {
             WAITING: 0,
@@ -130,6 +134,13 @@ class MiningBot {
             let drillfunc = MiningUtils.getDrills();
             let drill = drillfunc.drill;
             let blueCheese = drillfunc.blueCheese;
+
+            let Type = this.TYPE.find((option) => option.enabled)?.name;
+
+            if (Type) {
+                let costPropertyName = Type.toLowerCase() + 'Costs';
+                this.COSTTYPE = this[costPropertyName];
+            }
 
             switch (this.state) {
                 case this.STATES.ABILITY:
@@ -293,9 +304,6 @@ class MiningBot {
                             this.currentTarget.z + 0.5,
                         ];
 
-                        if (this.currentTarget)
-                            Rotations.rotateTo(targetVector);
-
                         if (
                             blockName.includes('air') ||
                             blockName.includes('bedrock') ||
@@ -313,6 +321,9 @@ class MiningBot {
                             this.lowestCostBlockIndex = 0;
                             this.allowScan = false;
                         }
+
+                        if (this.currentTarget)
+                            Rotations.rotateTo(targetVector);
                     }
                     break;
             }
@@ -352,6 +363,16 @@ class MiningBot {
             },
             'Left click a gemstone with a Gemstone Drill to activate exploit. (Permanent +800 Mining speed)'
         );
+        addToggle(
+            'Modules',
+            'Mining Bot',
+            'Prioritze Titanium',
+            (value) => {
+                this.PRIORITIZE_TITANIUM = value;
+            },
+            'Whenever Titanium is in range it will be targeted the most'
+        );
+
         addMultiToggle(
             'Modules',
             'Mining Bot',
@@ -370,7 +391,7 @@ class MiningBot {
             ['Mithril', 'Gemstone', 'Ore'],
             true,
             (value) => {
-                //this.COSTTYPE = value;
+                this.TYPE = value;
             },
             'Targets specified block type.'
         );

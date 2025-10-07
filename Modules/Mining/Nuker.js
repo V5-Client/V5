@@ -349,19 +349,19 @@ class NukerClass {
     }
 
     rightClickBlock(xyz) {
-        var blockPos = new BP(xyz[0], xyz[1], xyz[2]);
-        var direction = net.minecraft.util.math.Direction.UP;
-        var hitVec = new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5);
+        let blockPos = new BP(xyz[0], xyz[1], xyz[2]);
+        let direction = net.minecraft.util.math.Direction.UP;
+        let hitVec = new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5);
 
-        var blockHitResult = new net.minecraft.util.hit.BlockHitResult(
+        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(
             hitVec,
             direction,
             blockPos,
             false
         );
 
-        var hand = net.minecraft.util.Hand.MAIN_HAND;
-        var sequence = 0;
+        let hand = net.minecraft.util.Hand.MAIN_HAND;
+        let sequence = 0;
         Client.sendPacket(
             new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
                 hand,
