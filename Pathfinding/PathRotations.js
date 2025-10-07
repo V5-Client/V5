@@ -5,7 +5,7 @@ import { getDistance3D } from './PathMovement';
 // THIS IS FOR TESTING, DO NOT ENABLE IN PRODUCTION
 const INSTANT_SNAP_MODE = false;
 
-const ROTATION_STEPS = 100; // milliseconds for rotation. lower = responsive, higher = smoother
+const ROTATION_STEPS = 80; // milliseconds for rotation. lower = responsive, higher = smoother
 
 export function updateRotations() {
     if (!movementState.targetPoint) return;
