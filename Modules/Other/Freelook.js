@@ -10,11 +10,7 @@ let cameraYaw = 0;
 let firstTime = true;
 let lastPerspective = null;
 
-const freeLookKey = new KeyBind(
-    'Activate FreeLook',
-    Keyboard.KEY_R,
-    'FreeLook'
-);
+const freeLookKey = new KeyBind('Activate FreeLook', Keyboard.KEY_R, 'V5');
 
 function startFreeLooking() {
     const minecraft = Client.getMinecraft();
