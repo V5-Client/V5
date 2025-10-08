@@ -33,6 +33,7 @@ import './Modules/Skills/AutoHarp.js';
 //import './Modules/Skills/BeachBaller.js'; some retard completely ruined beach ball macro i think, or im just being a retard but its hella broken
 import './Modules/Skills/FishingMacro.js';
 import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
+import { Router } from './Utility/Router.js';
 
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';
