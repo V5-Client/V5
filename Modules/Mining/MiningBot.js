@@ -216,7 +216,7 @@ class Bot {
 
                     if (this.empty) {
                         Chat.message('No more mineable blocks.');
-                        this.state = this.STATES.WAITING;
+                        this.miningbot.unregister();
                     }
 
                     this.miningspeed =
@@ -266,6 +266,21 @@ class Bot {
                     );
 
                     Keybind.setKey('leftclick', true);
+
+                    let blockDist = MathUtils.getDistanceToPlayerEyes(
+                        this.currentTarget.x,
+                        this.currentTarget.y,
+                        this.currentTarget.z
+                    ).distance;
+
+                    switch (this.COSTTYPE) {
+                        case this.gemstoneCosts:
+                            if (blockDist < 1) Keybind.setKey('s', true);
+                            else if (blockDist > 4.5) Keybind.setKey('w', true);
+                            else Keybind.stopMovement();
+
+                            break;
+                    }
 
                     let Fakelook = this.FAKELOOK.find(
                         (option) => option.enabled
