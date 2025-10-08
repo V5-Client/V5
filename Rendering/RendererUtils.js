@@ -79,6 +79,33 @@ export default class RenderUtils {
         );
     }
 
+    // tesselator is retarded
+    static drawString(
+        text,
+        x,
+        y,
+        z,
+        color,
+        renderBlackBox = true,
+        scale = 1,
+        increase = false,
+        centered = true,
+        renderThroughBlocks = true
+    ) {
+        RenderUtilsPackage.drawString(
+            text,
+            x,
+            y,
+            z,
+            color,
+            renderBlackBox,
+            scale,
+            increase,
+            centered,
+            renderThroughBlocks
+        );
+    }
+
     /**
      * @function drawLine draws straight lines
      * @param {Vec3d} startVec3d a Vec3d coordinate
