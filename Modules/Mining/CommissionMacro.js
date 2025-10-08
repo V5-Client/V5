@@ -7,6 +7,8 @@ class CommissionMacro {
         this.commissions = [];
         this.lastCommissionCheck = 0;
         this.hasWarned = false;
+        this.mobWhitelist = new Set(); // UUIDs of dead mobs (to ignore)
+
         this.commissionNames = [
             'Royal Mines Titanium',
             'Royal Mines Mithril',
@@ -27,7 +29,6 @@ class CommissionMacro {
 
         this.mainLoop = register('step', () => {
             if (Date.now() - this.lastCommissionCheck > 5000) {
-                // 5 seconds
                 this.readCommissions();
                 this.lastCommissionCheck = Date.now();
             }
@@ -35,8 +36,11 @@ class CommissionMacro {
 
         this.toggle = (value) => {
             this.enabled = value;
-            if (value) this.mainLoop.register();
-            else this.mainLoop.unregister();
+            if (value) {
+                this.mainLoop.register();
+            } else {
+                this.mainLoop.unregister();
+            }
         };
 
         this.toggle(this.enabled);
@@ -64,16 +68,13 @@ class CommissionMacro {
             const tabItems = TabList.getNames();
             let startIndex = -1;
 
-            // Find "Commissions:" in the tab list
             for (let i = 0; i < tabItems.length; i++) {
                 const item = tabItems[i];
                 if (!item) continue;
 
                 const cleaned = ChatLib.removeFormatting(item).trim();
-                console.log(`Index ${i}: "${cleaned}"`);
 
                 if (cleaned === 'Commissions:') {
-                    console.log(`Found Commissions at index ${i}`);
                     startIndex = i;
                     break;
                 }
@@ -165,6 +166,158 @@ class CommissionMacro {
             console.log('Error reading commissions: ' + e);
             this.commissions = [];
         }
+    }
+
+    /**
+     * Finds mob :D
+     *
+     * Usage:
+     *   findMob('goblin')     - Returns array of Goblins and Weaklings
+     *   findMob('icewalker')  - Returns array of Ice Walkers/Glacite Walkers
+     *   findMob('hoarder')    - Returns array of Treasure Hunters ("Treasuer Hunter" typo cuz hypixel is stupid)
+     *
+     * @param {string} type - The type of mob to find ('goblin', 'icewalker', 'hoarder')
+     * @returns {Array<PlayerMP>} - Array of found mobs
+     */
+    findMob(type) {
+        const mobType = type.toLowerCase();
+
+        switch (mobType) {
+            case 'goblin':
+                return this.getGoblins();
+            case 'icewalker':
+            case 'glacite':
+                return this.getIceWalkers();
+            case 'hoarder':
+            case 'treasure':
+                return this.getTreasureHoarders();
+            default:
+                console.log(`Unknown mob type: ${type}`);
+                return [];
+        }
+    }
+
+    getTreasureHoarders() {
+        const hoarders = [];
+
+        World.getAllPlayers().forEach((player) => {
+            try {
+                const nameObj = player.getName();
+                if (!nameObj) return;
+
+                const name = ChatLib.removeFormatting(nameObj);
+                const uuid = player.getUUID();
+
+                if (this.mobWhitelist.has(uuid)) return;
+
+                if (!name.includes('Treasuer Hunter')) return;
+
+                if (
+                    player.isSpectator() ||
+                    player.isInvisible() ||
+                    player.isDead()
+                )
+                    return;
+
+                const y = player.getY();
+                if (y < 200.0 || y > 210.0) return;
+
+                hoarders.push(player);
+            } catch (e) {
+                // skip invalid
+            }
+        });
+
+        return hoarders;
+    }
+
+    getIceWalkers() {
+        const walkers = [];
+        const playerMP = Player.asPlayerMP();
+
+        World.getAllPlayers().forEach((player) => {
+            try {
+                const nameObj = player.getName();
+                if (!nameObj) return;
+
+                const name = ChatLib.removeFormatting(nameObj);
+                const uuid = player.getUUID();
+
+                if (this.mobWhitelist.has(uuid)) return;
+
+                if (
+                    !name.includes('Ice Walker') &&
+                    !name.includes('Glacite Walker')
+                )
+                    return;
+
+                if (
+                    player.isSpectator() ||
+                    player.isInvisible() ||
+                    player.isDead()
+                )
+                    return;
+
+                if (!playerMP.canSeeEntity(player)) return;
+
+                const x = player.getX();
+                const y = player.getY();
+                const z = player.getZ();
+
+                if (y < 127.0 || y > 132.0) return;
+                if (z > 180.0 || z < 147.0) return;
+                if (x > 42.0) return;
+
+                walkers.push(player);
+            } catch (e) {
+                // skip invalid
+            }
+        });
+
+        return walkers;
+    }
+
+    getGoblins() {
+        const goblins = [];
+        const playerMP = Player.asPlayerMP();
+
+        World.getAllPlayers().forEach((player) => {
+            try {
+                const nameObj = player.getName();
+                if (!nameObj) return;
+
+                const name = ChatLib.removeFormatting(nameObj);
+                const uuid = player.getUUID();
+
+                if (this.mobWhitelist.has(uuid)) return;
+
+                if (!name.includes('Goblin') && !name.includes('Weakling'))
+                    return;
+
+                if (
+                    player.isSpectator() ||
+                    player.isInvisible() ||
+                    player.isDead()
+                )
+                    return;
+
+                if (!playerMP.canSeeEntity(player)) return;
+
+                const x = player.getX();
+                const y = player.getY();
+                const z = player.getZ();
+
+                if (y <= 127.0) return;
+                if (z > 153.0 && x < -157.0) return;
+                if (z < 148.0 && x > -77.0) return;
+
+                goblins.push(player);
+            } catch (e) {
+                // skip invalid
+            }
+        });
+
+        return goblins;
     }
 }
 

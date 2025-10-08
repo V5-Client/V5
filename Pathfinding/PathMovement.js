@@ -1,4 +1,5 @@
 import { RayTrace } from '../Utility/Raytrace';
+import { Chat } from '../Utility/Chat';
 import { movementState } from './PathState';
 
 const NODE_REACH_DISTANCE = 4.5;
@@ -25,7 +26,7 @@ export function canSeePoint(point, eyePos = Player.getPlayer()?.getEyePos()) {
     const distance = getDistance3D(point, eyePos);
     if (distance > VISIBILITY_LOOKAHEAD) {
         if (DEBUG_MODE)
-            ChatLib.chat(
+            Chat.message(
                 `§7Point too far to check visibility: ${distance.toFixed(
                     2
                 )} blocks`
@@ -49,7 +50,7 @@ export function canSeePoint(point, eyePos = Player.getPlayer()?.getEyePos()) {
         const blockId = block ? block.type.getID() : 0;
         if (blockId !== 0 && !IGNORED_BLOCK_IDS.has(blockId)) {
             if (DEBUG_MODE)
-                ChatLib.chat(
+                Chat.message(
                     `§cBlocked by block at ${x}, ${y}, ${z} - NAME: ${block.type.getRegistryName()} - ID: ${blockId}`
                 );
             return true;
@@ -106,7 +107,7 @@ export function updateCurrentNode() {
             canSeePoint(point, eyePos)
         ) {
             if (DEBUG_MODE)
-                ChatLib.chat(
+                Chat.message(
                     `§bSkipping ahead to node ${i} (was at ${movementState.currentNodeIndex})`
                 );
             movementState.currentNodeIndex = i;

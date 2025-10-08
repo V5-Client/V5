@@ -23,11 +23,11 @@ class UtilsClass {
                     return seconds * 1000;
                 }
 
-                ChatLib.chat('§cYou were spawned into limbo.');
+                Chat.message('§cYou were spawned into limbo.');
                 Thread.sleep(50);
                 ChatLib.command('limbo');
                 Thread.sleep(30);
-                ChatLib.chat(
+                Chat.message(
                     '§cAn exception occured in your connection, so you have been routed to limbo!'
                 );
                 Thread.sleep(randomDelay());
@@ -274,7 +274,7 @@ class UtilsClass {
             let parse = JSON.parse(content);
             return parse;
         } catch (error) {
-            ChatLib.chat('Error parsing route file: ' + error);
+            Chat.message('Error parsing route file: ' + error);
             return {};
         }
     }
