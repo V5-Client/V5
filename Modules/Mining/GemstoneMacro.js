@@ -14,6 +14,9 @@ const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
 
 /**TODO
  * a thing which reads all files in the folder and sets them to a multitoggle
+ * mob killer
+ * gemstone type selector
+ * ticks with msb etc
  */
 
 class GemstoneMacro {
@@ -157,6 +160,8 @@ class GemstoneMacro {
                     let aotv = Guis.findItemInHotbar('Aspect of the');
                     if (aotv !== -1) Player.setHeldItemIndex(aotv);
 
+                    Keybind.setKey('leftclick', false);
+
                     if (!this.completedFirstPoint) {
                         this.nearestPoint = this.getClosestPoint();
 
@@ -233,9 +238,9 @@ class GemstoneMacro {
 
                             Rotations.rotateTo(
                                 [
-                                    this.nextPoint.x + 0.5,
-                                    this.nextPoint.y + 0.5,
-                                    this.nextPoint.z + 0.5,
+                                    this.nextPoint?.x + 0.5,
+                                    this.nextPoint?.y + 0.5,
+                                    this.nextPoint?.z + 0.5,
                                 ],
                                 false,
                                 150
@@ -248,9 +253,9 @@ class GemstoneMacro {
                         } else {
                             Chat.message('£H');
                             let distData = MathUtils.getDistanceToPlayer(
-                                this.nextPoint.x,
-                                this.nextPoint.y,
-                                this.nextPoint.z
+                                this.nextPoint?.x,
+                                this.nextPoint?.y,
+                                this.nextPoint?.z
                             );
                             let currentDistance = distData.distance;
 
