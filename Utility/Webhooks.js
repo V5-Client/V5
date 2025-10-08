@@ -36,7 +36,7 @@ class Webhooks {
                     .getSystemClipboard()
                     .getData(DataFlavor.stringFlavor);
             } catch (e) {
-                chat.message('Webhook: ' + '&cFailed to get clipboard data');
+                Chat.message('Webhook: ' + '&cFailed to get clipboard data');
                 return;
             }
             this.setWebhook(url);

@@ -1,4 +1,5 @@
 import { cameraUpdateMixin, changeLookDirectionMixin } from '../../mixins.js';
+import { Chat } from '../../Utility/Chat.js';
 
 const USE_TOGGLE_MODE = false;
 const PERSPECTIVE_MODE = 2; // 0 = first person, 1 = third person back, 2 = third person front
@@ -9,11 +10,7 @@ let cameraYaw = 0;
 let firstTime = true;
 let lastPerspective = null;
 
-const freeLookKey = new KeyBind(
-    'Activate FreeLook',
-    Keyboard.KEY_LCONTROL,
-    'FreeLook'
-);
+const freeLookKey = new KeyBind('Activate FreeLook', Keyboard.KEY_R, 'V5');
 
 function startFreeLooking() {
     const minecraft = Client.getMinecraft();
@@ -67,7 +64,7 @@ function attachMixin(mixin, name, callback) {
     try {
         mixin.attach(callback);
     } catch (e) {
-        ChatLib.chat(`&cFailed to attach ${name}: ${e}`);
+        Chat.message(`&cFailed to attach ${name}: ${e}`);
     }
 }
 

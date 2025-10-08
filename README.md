@@ -3,7 +3,7 @@ example module format:
 ```javascript
 // Imports
 
-const { addToggle } = global.Categories;
+const { addToggle, addCategoryItem } = global.Categories;
 
 class Module {
     constructor() {
@@ -22,7 +22,7 @@ class Module {
 
         addCategoryItem('Category', 'Module', 'Description', 'Tooltip');
 
-        addToggle('Category', 'Module', 'Enabled', (value) => {
+        addToggle('Modules', 'Module', 'Enabled', (value) => {
             this.toggle(value);
         });
     }
