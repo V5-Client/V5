@@ -35,7 +35,7 @@ register('postRenderWorld', () => {
             );
         } else {
             RenderUtils.drawBox(
-                new Vec3d(block.x, block.y, block.z),
+                new Vec3d(block?.x, block?.y, block?.z),
                 [255, 0, 0, 255]
             );
         }
