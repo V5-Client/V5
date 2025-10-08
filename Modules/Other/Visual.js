@@ -14,7 +14,7 @@ let lastPitch = 0;
 let cachedBlock = null;
 let cachedColor = null;
 
-const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
+//const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
 
 register('tick', () => {
     const heldItem = Player.getHeldItem();
@@ -32,10 +32,11 @@ register('tick', () => {
     const currentYaw = Player.getYaw();
     const currentPitch = Player.getPitch();
 
-    // only raytrace if camera moved
+    // ig angle diff isnt worth it, idk
     if (
-        Math.abs(currentYaw - lastYaw) > ANGLE_THRESHOLD ||
-        Math.abs(currentPitch - lastPitch) > ANGLE_THRESHOLD
+        true
+        //        Math.abs(currentYaw - lastYaw) > ANGLE_THRESHOLD ||
+        //        Math.abs(currentPitch - lastPitch) > ANGLE_THRESHOLD
     ) {
         cachedBlock = RayTrace.raytrace(61);
 

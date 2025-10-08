@@ -7,7 +7,6 @@ import {
     PADDING,
     BORDER_WIDTH,
     CORNER_RADIUS,
-    returnDiscord,
     THEME,
 } from './Utils';
 
@@ -263,8 +262,6 @@ const drawGUI = (mouseX, mouseY) => {
         });
     }
 };
-
-returnDiscord();
 
 const handleClick = (mouseX, mouseY) => {
     if (

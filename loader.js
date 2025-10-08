@@ -50,6 +50,8 @@ import './RAYTRACEDEBUG.js'; // REMOVE BEFORE RELEASE
 
 import { loadSettings } from './GUI/GuiSave';
 loadSettings();
+import { returnDiscord } from './GUI/Utils.js';
+returnDiscord();
 
 /* Mixins */
 import {
