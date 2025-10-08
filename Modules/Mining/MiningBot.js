@@ -70,7 +70,7 @@ class Bot {
         };
 
         this.TYPE = null;
-        this.COSTTYPE = this.mithrilCosts;
+        this.COSTTYPE = null;
 
         this.STATES = {
             WAITING: 0,
@@ -516,7 +516,7 @@ class Bot {
                 }
 
                 let dist = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
-                if (dist > 5) continue;
+                if (dist > 4.5) continue;
 
                 let block = World.getBlockAt(x, y, z);
                 let blockName = block?.type?.getRegistryName();
@@ -625,6 +625,10 @@ class Bot {
             }
             this.scanning = false;
         }).start();
+    }
+
+    setCost(cost) {
+        this.COSTTYPE = cost;
     }
 
     toggle(forceAState = null) {

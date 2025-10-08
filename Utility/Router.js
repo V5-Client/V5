@@ -10,26 +10,19 @@ class Routes {
         this.myWaypointRoute =
             this.loadRouteFromFile(this.DEFAULT_FILE_ROUTE) || [];
 
-        register('command', (action, ...args) => {
+        register('command', (action, indexArg) => {
             let route = this.myWaypointRoute;
             let indexNum = undefined;
 
-            if (args.length > 0) {
-                let lastArg = args[args.length - 1];
-                let parsedNum = parseInt(lastArg);
+            if (indexArg !== undefined) {
+                let parsedNum = parseInt(indexArg);
 
                 if (!isNaN(parsedNum) && parsedNum >= 1) {
                     indexNum = parsedNum;
-                    args.pop();
                 }
             }
 
-            route = this.simpleEdit(
-                action.toUpperCase(),
-                args,
-                route,
-                indexNum
-            );
+            route = this.simpleEdit(action.toUpperCase(), route, indexNum);
             this.myWaypointRoute = route;
 
             Chat.message(
@@ -38,57 +31,6 @@ class Routes {
         })
             .setName('waypoint')
             .setAliases(['wp', 'route']);
-
-        register('postRenderWorld', () => {
-            const route = this.myWaypointRoute;
-
-            if (!route || route.length === 0) return;
-
-            const lineColor = 0x00ff00;
-            const textColor = 0xffffff;
-            const lineWidth = 2.0;
-
-            for (let i = 0; i < route.length - 1; i++) {
-                const p1 = route[i];
-                const p2 = route[i + 1];
-
-                if (
-                    p1 &&
-                    p2 &&
-                    typeof p1.x === 'number' &&
-                    typeof p2.x === 'number'
-                ) {
-                }
-            }
-
-            for (let i = 0; i < route.length; i++) {
-                const point = route[i];
-                const index = i + 1;
-
-                if (
-                    point &&
-                    typeof point.x === 'number' &&
-                    typeof point.y === 'number' &&
-                    typeof point.z === 'number'
-                ) {
-                    RenderUtils.drawWireFrame(
-                        new Vec3d(point.x, point.y, point.z),
-                        [255, 0, 255, 255]
-                    );
-                    this.point = point;
-                }
-
-                if (!this.point) return;
-                Chat.message('HSHD');
-                RenderUtils.drawString(
-                    'DFHD',
-                    this.point?.x,
-                    this.point?.y,
-                    this.point?.z,
-                    Renderer.WHITE
-                );
-            }
-        });
     }
 
     /**
@@ -144,15 +86,16 @@ class Routes {
         }
     }
 
-    simpleEdit(action, args, route, indexNum) {
-        let indexToUse;
+    /**
+     * @param {String} action
+     * @param {Array<Object>} route
+     * @param {number | undefined} indexNum
+     */
+    simpleEdit(action, route, indexNum) {
+        let indexToUse = undefined;
+        // Logic to determine indexToUse from indexNum only
         if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
-        } else if (args && args.length > 0) {
-            let parsedArg = parseInt(args[0]);
-            if (!isNaN(parsedArg) && parsedArg >= 1) {
-                indexToUse = parsedArg;
-            }
         }
 
         let routeModified = false;
