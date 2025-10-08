@@ -82,13 +82,13 @@ class Routes {
 
     loadRouteFromFile(fileLocation) {
         try {
-            const routeJson = Utils.getConfigFile(fileLocation);
-            if (routeJson) {
-                return JSON.parse(routeJson);
-            }
+            let routeData = Utils.getConfigFile(fileLocation);
+
+            if (routeData) return routeData;
         } catch (error) {
             return null;
         }
+
         return null;
     }
 
