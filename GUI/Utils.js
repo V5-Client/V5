@@ -305,7 +305,7 @@ export const returnDiscord = () => {
                 }
 
                 if (!data || !data.discord || !data.discord.avatar) {
-                    ChatLib.chat(
+                    Chat.Message(
                         'Failed to download your Discord pfp: Invalid data format.'
                     );
                     return;
