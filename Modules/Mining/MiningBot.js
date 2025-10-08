@@ -109,7 +109,7 @@ class Bot {
         register('command', () => {
             this.toggle();
             Chat.message('§c[Mining Bot] §7Enabled.');
-        }).setName('startb');
+        }).setName('startb', true); // shouldnt be a provblem after
 
         register('command', () => {
             this.miningbot.unregister();
@@ -121,7 +121,7 @@ class Bot {
             this.currentTarget = null;
             this.tickCount = 0;
             Chat.message('§c[Mining Bot] §7Disabled.');
-        }).setName('stopb');
+        }).setName('stopb', true);
 
         this.exploit = register('packetSent', (packet, event) => {
             let packetAction = packet?.getAction()?.toString();
