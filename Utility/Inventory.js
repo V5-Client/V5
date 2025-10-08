@@ -1,5 +1,6 @@
 import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
+import { Chat } from './Chat';
 
 class InventoryUtilsClass {
     constructor() {}
@@ -183,11 +184,11 @@ class InventoryUtilsClass {
     }
 
     setItemSlot(slot) {
-        console.log(
+        /*console.log(
             `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
-        );
+        ); */
         if (slot < 0 || slot > 8) {
-            return chat.message('Invalid slot blocked! Report this ASAP!');
+            return Chat.message('Invalid slot blocked! Report this ASAP!');
         }
         if (Player.getHeldItemIndex() !== slot) {
             Player.setHeldItemIndex(slot);
