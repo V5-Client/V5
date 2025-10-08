@@ -38,7 +38,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
     const url = `${localhost}/api/pathfinding?start=${start.join(
         ','
     )}&end=${end.join(',')}&map=mines`;
-    Chat.Message(
+    Chat.message(
         `§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`
     );
 
@@ -85,7 +85,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                             tpCommand = 'tp @s -49 200 -122 -90 0';
                             break;
                         case '/warp forge':
-                            tpCommand = 'tp @s 0 149 -68 0 0';
+                            tpCommand = 'tp @s 0 149 -68 90 0';
                             break;
                         default:
                             global.showNotification(
@@ -100,7 +100,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                     tpCommand = warpName.slice(1);
                 }
 
-                Chat.Message(
+                Chat.message(
                     `§aWarp point found! Running command: §e${tpCommand} (might be hardcoded version of warp: ${warpName})`
                 );
                 ChatLib.command(tpCommand);

@@ -187,7 +187,7 @@ class InventoryUtilsClass {
             `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
         );
         if (slot < 0 || slot > 8) {
-            return chat.message('Invalid slot blocked! Report this ASAP!');
+            return Chat.message('Invalid slot blocked! Report this ASAP!');
         }
         if (Player.getHeldItemIndex() !== slot) {
             Player.setHeldItemIndex(slot);

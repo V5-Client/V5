@@ -68,7 +68,7 @@ function attachMixin(mixin, name, callback) {
     try {
         mixin.attach(callback);
     } catch (e) {
-        Chat.Message(`&cFailed to attach ${name}: ${e}`);
+        Chat.message(`&cFailed to attach ${name}: ${e}`);
     }
 }
 

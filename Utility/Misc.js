@@ -3,20 +3,20 @@ import { Chat } from './Chat';
 register('command', () => {
     let block = Player.lookingAt();
     if (block instanceof Block) {
-        Chat.Message('blockid: ' + block.type.getID());
+        Chat.message('blockid: ' + block.type.getID());
         let Name = block.type.getName();
-        Chat.Message('blockname: ' + Name);
-        Chat.Message('registry: ' + block.type.getRegistryName());
+        Chat.message('blockname: ' + Name);
+        Chat.message('registry: ' + block.type.getRegistryName());
     } else {
-        Chat.Message(block);
+        Chat.message(block);
     }
 }).setName('blockinfo');
 
 register('command', function () {
     const block = Player.lookingAt();
     if (!block) {
-        Chat.Message('You are not looking at a block');
+        Chat.message('You are not looking at a block');
         return;
     }
-    Chat.Message(block?.type?.isTranslucent());
+    Chat.message(block?.type?.isTranslucent());
 }).setName('istranslucent');

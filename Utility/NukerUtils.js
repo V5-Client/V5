@@ -159,7 +159,7 @@ class NukerUtilsClass {
                 Math.floor(blockPos[1]),
                 Math.floor(blockPos[2])
             );
-            /*Chat.Message(
+            /*Chat.message(
                 `nuking ${blockPos[0]}, ${blockPos[1]}, ${blockPos[2]}`
             ); */
             const facing = this.closestDirection(bp);

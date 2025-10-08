@@ -100,7 +100,7 @@ export const loadSettings = () => {
         buildSettingsMapFromComponents();
         if (global.Categories?.applySettings) global.Categories.applySettings();
     } catch (e) {
-        Chat.Message(`Error loading settings: ${e}`);
+        Chat.message(`Error loading settings: ${e}`);
         buildSettingsMapFromComponents();
         if (global.Categories?.applySettings) global.Categories.applySettings();
     }
