@@ -10,8 +10,8 @@ class RotationsTo {
         this.currentRotationID = null; // for cancelling old rotations
 
         this.tremorFrequency = 1; // jitter updates per second
-        this.fadeExponent = 0.005; // controls jitter fade
-        this.Randomness = 0.005; // max random offset (degrees)
+        this.fadeExponent = 0.0025; // controls jitter fade
+        this.Randomness = 0.007; // max random offset
 
         this.instantMode = false;
 
@@ -61,6 +61,13 @@ class RotationsTo {
         const rotationID = Symbol();
         this.currentRotationID = rotationID;
 
+        const initialYawDiff = yawDiff;
+        const initialPitchDiff = pitchDiff;
+        const initialMaxDiff = Math.max(
+            Math.abs(initialYawDiff),
+            Math.abs(initialPitchDiff)
+        );
+
         new Thread(() => {
             for (let i = 0; i < steps; i++) {
                 if (this.currentRotationID !== rotationID) {
@@ -70,8 +77,18 @@ class RotationsTo {
                 const p = Player.getPlayer();
                 if (!p) return;
 
-                let maxDiff = Math.max(Math.abs(yawDiff), Math.abs(pitchDiff));
-                let normalizedDist = Math.min(maxDiff / 180, 1);
+                const currentYawDiff = this.wrapDegrees(
+                    this.targetYaw - p.getYaw()
+                );
+                const currentPitchDiff = this.targetPitch - p.getPitch();
+
+                let maxCurrentDiff = Math.max(
+                    Math.abs(currentYawDiff),
+                    Math.abs(currentPitchDiff)
+                );
+
+                let normalizedDist =
+                    initialMaxDiff > 0 ? maxCurrentDiff / initialMaxDiff : 0.01;
 
                 let now = Date.now();
                 if (now - this.lastTremorTime > 1000 / this.tremorFrequency) {
@@ -97,7 +114,6 @@ class RotationsTo {
                 } catch (err) {}
             }
 
-            // Check if we're close enough to target
             const finalPlayer = Player.getPlayer();
             if (finalPlayer) {
                 let finalYawDiff = Math.abs(
