@@ -1,4 +1,5 @@
 import { cameraUpdateMixin, changeLookDirectionMixin } from '../../mixins.js';
+import { Chat } from '../../Utility/Chat.js';
 
 const USE_TOGGLE_MODE = false;
 const PERSPECTIVE_MODE = 2; // 0 = first person, 1 = third person back, 2 = third person front
@@ -11,7 +12,7 @@ let lastPerspective = null;
 
 const freeLookKey = new KeyBind(
     'Activate FreeLook',
-    Keyboard.KEY_LCONTROL,
+    Keyboard.KEY_R,
     'FreeLook'
 );
 
@@ -67,7 +68,7 @@ function attachMixin(mixin, name, callback) {
     try {
         mixin.attach(callback);
     } catch (e) {
-        ChatLib.chat(`&cFailed to attach ${name}: ${e}`);
+        Chat.Message(`&cFailed to attach ${name}: ${e}`);
     }
 }
 

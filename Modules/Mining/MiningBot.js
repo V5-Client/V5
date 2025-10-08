@@ -102,7 +102,7 @@ class MiningBot {
 
         register('command', () => {
             this.toggle();
-            ChatLib.chat('§c[Mining Bot] §7Enabled.');
+            Chat.Message('§c[Mining Bot] §7Enabled.');
         }).setName('startb');
 
         register('command', () => {
@@ -114,7 +114,7 @@ class MiningBot {
             this.lastBlockPos = null;
             this.currentTarget = null;
             this.tickCount = 0;
-            ChatLib.chat('§c[Mining Bot] §7Disabled.');
+            Chat.Message('§c[Mining Bot] §7Disabled.');
         }).setName('stopb');
 
         this.exploit = register('packetSent', (packet, event) => {
@@ -552,14 +552,14 @@ class MiningBot {
             }
 
             if (!foundBlock) {
-                // ChatLib.chat('no found');
+                // Chat.Message('no found');
                 this.empty = true;
             } else {
                 this.nuking = false;
                 this.foundLocations.sort((a, b) => a.cost - b.cost);
                 this.currentTarget = this.foundLocations[0];
                 this.lowestCostBlockIndex = 0;
-                // ChatLib.chat('Scan complete.');
+                // Chat.Message('Scan complete.');
             }
             this.scanning = false;
         }).start();

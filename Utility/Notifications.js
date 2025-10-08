@@ -8,7 +8,7 @@ import {
     SystemTray,
     TrayIcon,
 } from './Constants';
-
+import { Chat } from './Chat';
 class NotificationUtils {
     constructor() {
         this.trayIcon = null;
@@ -32,7 +32,7 @@ class NotificationUtils {
                 this.trayIcon.setToolTip('Client Alerts');
                 SystemTrayInstance.add(this.trayIcon);
             } catch (e) {
-                ChatLib.chat('Failed to create system tray icon: ' + e);
+                Chat.Message('Failed to create system tray icon: ' + e);
             }
         }
     }

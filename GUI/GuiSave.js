@@ -2,6 +2,7 @@ import { ToggleButton } from './Toggle';
 import { Slider } from './Slider';
 import { MultiToggle } from './Dropdown';
 import { File } from '../Utility/Constants';
+import { Chat } from '../Utility/Chat';
 
 global.SettingsMap = new Map();
 
@@ -99,7 +100,7 @@ export const loadSettings = () => {
         buildSettingsMapFromComponents();
         if (global.Categories?.applySettings) global.Categories.applySettings();
     } catch (e) {
-        ChatLib.chat(`Error loading settings: ${e}`);
+        Chat.Message(`Error loading settings: ${e}`);
         buildSettingsMapFromComponents();
         if (global.Categories?.applySettings) global.Categories.applySettings();
     }
