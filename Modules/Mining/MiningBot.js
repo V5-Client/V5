@@ -15,11 +15,10 @@ const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
 
-/**
- * TODO
- * - movement
- * - worker thread for ScanForBlock
- */
+const ConcurrentLinkedQueue = Java.type(
+    'java.util.concurrent.ConcurrentLinkedQueue'
+);
+const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
 class Bot {
     constructor() {
@@ -106,10 +105,16 @@ class Bot {
         this.empty = false;
         this.nuking = false;
 
+        // worker thread stuff
+        this.workerThread = null;
+        this.taskQueue = new ConcurrentLinkedQueue();
+        this.resultQueue = new ConcurrentLinkedQueue();
+        this.workerRunning = new AtomicBoolean(false);
+
         register('command', () => {
             this.toggle();
             Chat.message('§c[Mining Bot] §7Enabled.');
-        }).setName('startb', true); // shouldnt be a provblem after
+        }).setName('startb', true);
 
         register('command', () => {
             this.miningbot.unregister();
@@ -120,6 +125,7 @@ class Bot {
             this.lastBlockPos = null;
             this.currentTarget = null;
             this.tickCount = 0;
+            this.stopWorker();
             Chat.message('§c[Mining Bot] §7Disabled.');
         }).setName('stopb', true);
 
@@ -165,6 +171,24 @@ class Bot {
             if (!this.enabled) return;
 
             if (Client.isInChat() || Client.isInGui()) return;
+
+            while (!this.resultQueue.isEmpty()) {
+                const result = this.resultQueue.poll();
+                if (result) {
+                    if (result.type === 'SCAN_COMPLETE') {
+                        this.scanning = false;
+
+                        if (result.foundLocations.length === 0) {
+                            this.empty = true;
+                        } else {
+                            this.nuking = false;
+                            this.foundLocations = result.foundLocations;
+                            this.currentTarget = this.foundLocations[0];
+                            this.lowestCostBlockIndex = 0;
+                        }
+                    }
+                }
+            }
 
             let drillfunc = MiningUtils.getDrills();
             let drill = drillfunc.drill;
@@ -458,6 +482,225 @@ class Bot {
         );
     }
 
+    startWorker() {
+        if (this.workerThread && this.workerRunning.get()) {
+            return;
+        }
+
+        this.workerRunning.set(true);
+        this.workerThread = new Thread(() => {
+            while (this.workerRunning.get()) {
+                try {
+                    const task = this.taskQueue.poll();
+
+                    if (!task) {
+                        Thread.sleep(10); // sleep if no task
+                        continue;
+                    }
+
+                    if (task.type === 'SCAN_BLOCKS') {
+                        this.processScanTask(task);
+                    }
+                } catch (e) {
+                    if (e instanceof java.lang.InterruptedException) {
+                        break; // thread interrupted, idk what to do here either!!
+                    }
+                    Chat.debugMessage('Worker thread error: ' + e);
+                }
+            }
+        });
+
+        this.workerThread.start();
+        Chat.debugMessage('Mining Bot worker thread started');
+    }
+
+    stopWorker() {
+        if (!this.workerThread || !this.workerRunning.get()) {
+            return;
+        }
+
+        Chat.debugMessage('Stopping worker thread...');
+        this.workerRunning.set(false);
+
+        if (this.workerThread) {
+            try {
+                this.workerThread.interrupt();
+                this.workerThread.join(1000);
+            } catch (e) {
+                // ignore errors !!
+            }
+            this.workerThread = null;
+        }
+
+        this.taskQueue.clear();
+        this.resultQueue.clear();
+        Chat.debugMessage('Mining Bot worker thread stopped');
+    }
+
+    processScanTask(task) {
+        const {
+            target,
+            specific,
+            startPos,
+            excludedBlock,
+            playerX,
+            playerY,
+            playerZ,
+            playerEyePos,
+            viewVector,
+        } = task;
+
+        this.tickCount = 0;
+
+        let foundLocations = [];
+        let startX, startY, startZ;
+
+        if (startPos) {
+            startX = startPos.x;
+            startY = startPos.y;
+            startZ = startPos.z;
+        } else {
+            startX = Math.floor(playerX);
+            startY = Math.floor(playerY);
+            startZ = Math.floor(playerZ);
+        }
+
+        let foundBlock = false;
+
+        let queue = [{ x: startX, y: startY, z: startZ }];
+        let visited = new Set();
+        visited.add(`${startX},${startY},${startZ}`);
+
+        let directions = [
+            [1, 0, 0],
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, -1],
+        ];
+
+        while (queue.length > 0) {
+            let { x, y, z } = queue.shift();
+
+            if (
+                excludedBlock &&
+                x === excludedBlock.x &&
+                y === excludedBlock.y &&
+                z === excludedBlock.z
+            ) {
+                continue;
+            }
+
+            let dist = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
+            if (dist > 4.5) continue;
+
+            let block = World.getBlockAt(x, y, z);
+            let blockName = block?.type?.getRegistryName();
+
+            let isTargetBlock = false;
+            if (specific) isTargetBlock = target.hasOwnProperty(blockName);
+            else isTargetBlock = Object.keys(target).includes(blockName);
+
+            if (isTargetBlock) {
+                let blockPos = new BlockPos(x, y, z);
+                let dist = Math.sqrt(
+                    Math.pow(x - playerX, 2) +
+                        Math.pow(y - playerY, 2) +
+                        Math.pow(z - playerZ, 2)
+                );
+                let startPoint = [
+                    playerEyePos.x,
+                    playerEyePos.y,
+                    playerEyePos.z,
+                ];
+
+                let endPoint = [x + 0.5, y + 0.5, z + 0.5];
+
+                let traversedBlocks = RayTrace.rayTraceBetweenPoints(
+                    startPoint,
+                    endPoint
+                );
+
+                let isObstructed = false;
+                if (traversedBlocks) {
+                    for (let i = 0; i < traversedBlocks.length; i++) {
+                        let blockCoords = traversedBlocks[i];
+                        let currentBlockPos = new BlockPos(
+                            blockCoords[0],
+                            blockCoords[1],
+                            blockCoords[2]
+                        );
+                        if (!currentBlockPos.equals(blockPos)) {
+                            let block = World.getBlockAt(
+                                currentBlockPos.getX(),
+                                currentBlockPos.getY(),
+                                currentBlockPos.getZ()
+                            );
+                            if (block && block.type.getID() !== 0) {
+                                isObstructed = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!isObstructed) {
+                    foundBlock = true;
+                    let toBlockVector = new Vec3d(
+                        x - playerX,
+                        y - playerEyePos.y,
+                        z - playerZ
+                    ).normalize();
+
+                    let dotProduct =
+                        toBlockVector.x * viewVector.x +
+                        toBlockVector.y * viewVector.y +
+                        toBlockVector.z * viewVector.z;
+
+                    let priorityAdjustment = -dotProduct * 50;
+                    let totalCost =
+                        target[blockName] + dist * 5 + priorityAdjustment;
+
+                    foundLocations.push({
+                        x: x,
+                        y: y,
+                        z: z,
+                        cost: totalCost,
+                    });
+                }
+            }
+
+            for (let i = 0; i < directions.length; i++) {
+                let [dx, dy, dz] = directions[i];
+                let nextX = x + dx;
+                let nextY = y + dy;
+                let nextZ = z + dz;
+                let nextKey = `${nextX},${nextY},${nextZ}`;
+                let dist = Math.sqrt(
+                    Math.pow(nextX - playerX, 2) +
+                        Math.pow(nextY - playerY, 2) +
+                        Math.pow(nextZ - playerZ, 2)
+                );
+
+                if (dist <= 5 && !visited.has(nextKey)) {
+                    visited.add(nextKey);
+                    queue.push({ x: nextX, y: nextY, z: nextZ });
+                }
+            }
+        }
+
+        // sort and send blocks back to main thread
+        if (foundBlock) {
+            foundLocations.sort((a, b) => a.cost - b.cost);
+        }
+
+        this.resultQueue.offer({
+            type: 'SCAN_COMPLETE',
+            foundLocations: foundLocations,
+        });
+    }
+
     scanForBlock(
         target,
         specific = true,
@@ -465,166 +708,40 @@ class Bot {
         excludedBlock = null
     ) {
         if (this.scanning) return;
-        new Thread(() => {
-            this.tickCount = 0;
-            this.scanning = true;
+        this.scanning = true;
 
-            this.foundLocations = [];
-            let startX, startY, startZ;
+        let playerX = Player.getX();
+        let playerY = Player.getY();
+        let playerZ = Player.getZ();
+        let playerEyePos = Player.getPlayer().getEyePos();
+        let viewVector = Player.asPlayerMP().getLookVector();
 
-            if (startPos) {
-                startX = startPos.getX();
-                startY = startPos.getY();
-                startZ = startPos.getZ();
-            } else {
-                startX = Math.floor(Player.getX());
-                startY = Math.floor(Player.getY());
-                startZ = Math.floor(Player.getZ());
-            }
+        const task = {
+            type: 'SCAN_BLOCKS',
+            target: { ...target },
+            specific: specific,
+            startPos: startPos
+                ? { x: startPos.getX(), y: startPos.getY(), z: startPos.getZ() }
+                : null,
+            excludedBlock: excludedBlock
+                ? { x: excludedBlock.x, y: excludedBlock.y, z: excludedBlock.z }
+                : null,
+            playerX: playerX,
+            playerY: playerY,
+            playerZ: playerZ,
+            playerEyePos: {
+                x: playerEyePos.x,
+                y: playerEyePos.y,
+                z: playerEyePos.z,
+            },
+            viewVector: {
+                x: viewVector.x,
+                y: viewVector.y,
+                z: viewVector.z,
+            },
+        };
 
-            let foundBlock = false;
-
-            let playerX = Player.getX();
-            let playerY = Player.getY();
-            let playerZ = Player.getZ();
-            let playerEyePos = Player.getPlayer().getEyePos();
-            let viewVector = Player.asPlayerMP().getLookVector();
-
-            let queue = [{ x: startX, y: startY, z: startZ }];
-            let visited = new Set();
-            visited.add(`${startX},${startY},${startZ}`);
-
-            let directions = [
-                [1, 0, 0],
-                [-1, 0, 0],
-                [0, 1, 0],
-                [0, -1, 0],
-                [0, 0, 1],
-                [0, 0, -1],
-            ];
-
-            while (queue.length > 0) {
-                let { x, y, z } = queue.shift();
-
-                if (
-                    excludedBlock &&
-                    x === excludedBlock.x &&
-                    y === excludedBlock.y &&
-                    z === excludedBlock.z
-                ) {
-                    continue;
-                }
-
-                let dist = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
-                if (dist > 4.5) continue;
-
-                let block = World.getBlockAt(x, y, z);
-                let blockName = block?.type?.getRegistryName();
-
-                let isTargetBlock = false;
-                if (specific) isTargetBlock = target.hasOwnProperty(blockName);
-                else isTargetBlock = Object.keys(target).includes(blockName);
-
-                if (isTargetBlock) {
-                    let blockPos = new BlockPos(x, y, z);
-                    let dist = Math.sqrt(
-                        Math.pow(x - playerX, 2) +
-                            Math.pow(y - playerY, 2) +
-                            Math.pow(z - playerZ, 2)
-                    );
-                    let startPoint = [
-                        playerEyePos.x,
-                        playerEyePos.y,
-                        playerEyePos.z,
-                    ];
-
-                    let endPoint = [x + 0.5, y + 0.5, z + 0.5];
-
-                    let traversedBlocks = RayTrace.rayTraceBetweenPoints(
-                        startPoint,
-                        endPoint
-                    );
-
-                    let isObstructed = false;
-                    if (traversedBlocks) {
-                        for (let i = 0; i < traversedBlocks.length; i++) {
-                            let blockCoords = traversedBlocks[i];
-                            let currentBlockPos = new BlockPos(
-                                blockCoords[0],
-                                blockCoords[1],
-                                blockCoords[2]
-                            );
-                            if (!currentBlockPos.equals(blockPos)) {
-                                let block = World.getBlockAt(
-                                    currentBlockPos.getX(),
-                                    currentBlockPos.getY(),
-                                    currentBlockPos.getZ()
-                                );
-                                if (block && block.type.getID() !== 0) {
-                                    isObstructed = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!isObstructed) {
-                        foundBlock = true;
-                        let toBlockVector = new Vec3d(
-                            x - Player.getX(),
-                            y - playerEyePos.getY(),
-                            z - Player.getZ()
-                        ).normalize();
-
-                        let dotProduct =
-                            toBlockVector.x * viewVector.x +
-                            toBlockVector.y * viewVector.y +
-                            toBlockVector.z * viewVector.z;
-
-                        let priorityAdjustment = -dotProduct * 50;
-                        let totalCost =
-                            target[blockName] + dist * 5 + priorityAdjustment;
-
-                        this.foundLocations.push({
-                            x: x,
-                            y: y,
-                            z: z,
-                            cost: totalCost,
-                        });
-                    }
-                }
-
-                for (let i = 0; i < directions.length; i++) {
-                    let [dx, dy, dz] = directions[i];
-                    let nextX = x + dx;
-                    let nextY = y + dy;
-                    let nextZ = z + dz;
-                    let nextKey = `${nextX},${nextY},${nextZ}`;
-                    let dist = Math.sqrt(
-                        Math.pow(nextX - playerX, 2) +
-                            Math.pow(nextY - playerY, 2) +
-                            Math.pow(nextZ - playerZ, 2)
-                    );
-
-                    if (dist <= 5 && !visited.has(nextKey)) {
-                        visited.add(nextKey);
-                        queue.push({ x: nextX, y: nextY, z: nextZ });
-                    }
-                }
-            }
-
-            if (!foundBlock) {
-                // Chat.message('no found');
-                this.empty = true;
-            } else {
-                this.nuking = false;
-                this.foundLocations.sort((a, b) => a.cost - b.cost);
-                this.currentTarget = this.foundLocations[0];
-                this.lowestCostBlockIndex = 0;
-                // Chat.message('Scan complete.');
-            }
-            this.scanning = false;
-        }).start();
+        this.taskQueue.offer(task);
     }
 
     setCost(cost) {
@@ -636,6 +753,7 @@ class Bot {
         else this.enabled = !this.enabled;
 
         if (this.enabled) {
+            this.startWorker();
             this.miningbot.register();
             this.enabled = true;
             this.empty = false;
@@ -644,6 +762,7 @@ class Bot {
         }
 
         if (!this.enabled) {
+            this.stopWorker();
             this.miningbot.unregister();
             this.enabled = false;
             this.state = this.STATES.WAITING;
