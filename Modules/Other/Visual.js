@@ -8,37 +8,67 @@ const exclusions = [
     111, 9, 11, 50, 106, 39, 40, 36,
 ];
 
-register('postRenderWorld', () => {
-    let heldItem = Player.getHeldItem();
+// caching stuff
+let lastYaw = 0;
+let lastPitch = 0;
+let cachedBlock = null;
+let cachedColor = null;
+
+const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
+
+register('tick', () => {
+    const heldItem = Player.getHeldItem();
 
     if (
-        Player.isSneaking() &&
-        Player.getHeldItem() &&
-        heldItem.getName().toLowerCase().includes('aspect of the')
+        !Player.isSneaking() ||
+        !heldItem ||
+        !heldItem.getName().toLowerCase().includes('aspect of the')
     ) {
-        let block = RayTrace.raytrace(61);
-        if (
-            block &&
-            !exclusions.includes(
-                World.getBlockAt(block.x, block.y, block.z).getType().getID()
-            ) &&
-            World.getBlockAt(block.x, block.y + 1, block.z)
-                .getType()
-                .getID() === 0 &&
-            World.getBlockAt(block.x, block.y + 2, block.z)
-                .getType()
-                .getID() === 0
-        ) {
-            RenderUtils.drawBox(
-                new Vec3d(block.x, block.y, block.z),
-                [0, 255, 0, 255]
-            );
+        cachedBlock = null;
+        cachedColor = null;
+        return;
+    }
+
+    const currentYaw = Player.getYaw();
+    const currentPitch = Player.getPitch();
+
+    // only raytrace if camera moved
+    if (
+        Math.abs(currentYaw - lastYaw) > ANGLE_THRESHOLD ||
+        Math.abs(currentPitch - lastPitch) > ANGLE_THRESHOLD
+    ) {
+        cachedBlock = RayTrace.raytrace(61);
+
+        // precalculate the color based on validity. idk if this is needed but who cares.
+        if (cachedBlock && isValidTeleport(cachedBlock)) {
+            cachedColor = [0, 255, 0, 255]; // green
         } else {
-            if (!block) return;
-            RenderUtils.drawBox(
-                new Vec3d(block?.x, block?.y, block?.z),
-                [255, 0, 0, 255]
-            );
+            cachedColor = [255, 0, 0, 255]; // red
         }
+
+        lastYaw = currentYaw;
+        lastPitch = currentPitch;
     }
 });
+
+register('postRenderWorld', () => {
+    // POST RENDER WORLD ONLY SHOULD DO RENDERING, NOT CHECKING
+    if (!cachedBlock) return;
+
+    RenderUtils.drawBox(
+        new Vec3d(cachedBlock.x, cachedBlock.y, cachedBlock.z),
+        cachedColor
+    );
+});
+
+function isValidTeleport(block) {
+    const targetBlock = World.getBlockAt(block.x, block.y, block.z);
+    const above1 = World.getBlockAt(block.x, block.y + 1, block.z);
+    const above2 = World.getBlockAt(block.x, block.y + 2, block.z);
+
+    return (
+        !exclusions.includes(targetBlock.getType().getID()) &&
+        above1.getType().getID() === 0 &&
+        above2.getType().getID() === 0
+    );
+}
