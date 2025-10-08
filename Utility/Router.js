@@ -75,8 +75,48 @@ class Routes {
                         new Vec3d(point.x, point.y, point.z),
                         [255, 0, 255, 255]
                     );
+                    this.point = point;
                 }
+
+                if (!this.point) return;
+                Chat.message('HSHD');
+                RenderUtils.drawString(
+                    'DFHD',
+                    this.point?.x,
+                    this.point?.y,
+                    this.point?.z,
+                    Renderer.WHITE
+                );
             }
+        });
+    }
+
+    /**
+     * @param {String} Name
+     * @param {Array} Location
+     * @param {Array} Color
+     * @param {Number} size
+     * @param {Boolean} increase
+     */
+    drawString(
+        Name,
+        Location,
+        Color = [255, 255, 255],
+        size = 0.3,
+        increase = false
+    ) {
+        RenderUtils.drawString({
+            // Text to render (required)
+            text: Name,
+            // Coordinates (required)
+            x: Location[0] + 0.5,
+            y: Location[1] + 0.5,
+            z: Location[2] + 0.5,
+            // Optional parameters
+            color: Renderer.color(Color[0], Color[1], Color[2]),
+            renderBlackBox: true, // Corresponds to your old 'true' argument
+            scale: size,
+            increase: increase,
         });
     }
 
