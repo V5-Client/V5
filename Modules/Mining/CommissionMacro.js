@@ -70,10 +70,10 @@ class CommissionMacro {
                 if (!item) continue;
 
                 const cleaned = ChatLib.removeFormatting(item).trim();
-                console.log(`Index ${i}: "${cleaned}"`);
+                // console.log(`Index ${i}: "${cleaned}"`);
 
                 if (cleaned === 'Commissions:') {
-                    console.log(`Found Commissions at index ${i}`);
+                    // console.log(`Found Commissions at index ${i}`);
                     startIndex = i;
                     break;
                 }

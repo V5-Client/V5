@@ -84,7 +84,7 @@ class SeaLumie {
                                             ?.includes('water')
                                     ) {
                                         this.closestPickle = currentBlock;
-                                        Chat.Message(
+                                        Chat.message(
                                             `Found the closest pickle using BFS at x=${this.closestPickle.x}, y=${this.closestPickle.y}, z=${this.closestPickle.z}`
                                         );
                                         this.hasBroken = false;

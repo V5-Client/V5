@@ -22,7 +22,7 @@ import './Utility/Config.js';
 import './Modules/Mining/MiningBot.js';
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/Nuker.js';
-//import './Modules/Mining/CommissionMacro.js';
+import './Modules/Mining/CommissionMacro.js';
 
 /* VISUALS */
 import './Modules/Visuals/Xray.js';

@@ -32,7 +32,7 @@ class NotificationUtils {
                 this.trayIcon.setToolTip('Client Alerts');
                 SystemTrayInstance.add(this.trayIcon);
             } catch (e) {
-                Chat.Message('Failed to create system tray icon: ' + e);
+                Chat.message('Failed to create system tray icon: ' + e);
             }
         }
     }
