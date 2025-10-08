@@ -50,8 +50,15 @@ const blockHardness = {
     290: 3000, // Jade
     288: 3000, // Sapphire
     299: 2300, // Ruby
-    // Gold
-    173: 600,
+
+    /* Ores */
+    523: 600, // Coal
+    173: 600, // Gold
+    174: 600, // Iron
+    443: 600, // Redstone
+    372: 600, // Emerald
+    192: 600, // Diamond
+    446: 600, // Quartz
 };
 
 class MiningUtilClass {
