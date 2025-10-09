@@ -14,7 +14,8 @@ let lastPitch = 0;
 let cachedBlock = null;
 let cachedColor = null;
 
-//const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
+const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
+const MOVEMENT_THRESHOLD = 0.1; // same
 
 register('tick', () => {
     const heldItem = Player.getHeldItem();
@@ -31,12 +32,17 @@ register('tick', () => {
 
     const currentYaw = Player.getYaw();
     const currentPitch = Player.getPitch();
+    const currentX = Player.getX();
+    const currentY = Player.getY();
+    const currentZ = Player.getZ();
 
     // ig angle diff isnt worth it, idk
     if (
-        true
-        //        Math.abs(currentYaw - lastYaw) > ANGLE_THRESHOLD ||
-        //        Math.abs(currentPitch - lastPitch) > ANGLE_THRESHOLD
+        Math.abs(currentYaw - lastYaw) > ANGLE_THRESHOLD ||
+        Math.abs(currentPitch - lastPitch) > ANGLE_THRESHOLD ||
+        Math.abs(currentX - prevX) > MOVEMENT_THRESHOLD ||
+        Math.abs(currentY - prevY) > MOVEMENT_THRESHOLD ||
+        Math.abs(currentZ - prevZ) > MOVEMENT_THRESHOLD
     ) {
         cachedBlock = RayTrace.raytrace(61);
 
@@ -49,6 +55,9 @@ register('tick', () => {
 
         lastYaw = currentYaw;
         lastPitch = currentPitch;
+        prevX = currentX;
+        prevY = currentY;
+        prevZ = currentZ;
     }
 });
 
