@@ -44,10 +44,10 @@ export function startPathing(splinePath, onComplete) {
 
         updateCurrentNode();
         movementState.targetPoint = calculateLookaheadTarget();
-        movementState.isFalling = !player.field_70122_E;
+        movementState.isFalling = !Player.getPlayer().isOnGround();
 
         mc.options.forwardKey.setPressed(true);
-        mc.options.sprintKey.setPressed(!movementState.isFalling);
+        mc.options.sprintKey.setPressed(true);
     });
 
     movementRenderRegister = register('postRenderWorld', () => {
