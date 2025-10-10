@@ -1,7 +1,7 @@
 import request from 'requestV2';
 import { Links } from '../Utility/Constants';
 import { Runtime } from '../Utility/Constants';
-import { stopPathing } from './Pathwalker';
+import { stopPathing } from './PathAPI';
 
 const scriptInstanceId = Date.now() + Math.random();
 const lockFilePath = 'config/ChatTriggers/assets/pathfinder.lock';
@@ -19,12 +19,12 @@ let process = null;
 const localhost = `${Links.PATHFINDER_API_URL}`;
 const port = parseInt(Links.PATHFINDER_API_URL.split(':').pop());
 
-let programState = 'STOPPED'; // 'STOPPED', 'INITIALIZING', 'STARTING', 'RUNNING'
+let programState = 'STOPPED';
 let startupCallbacks = { success: [], failure: [] };
 
 let currentMap = null;
 try {
-    let savedMap = FileLib.read(currentMapPath);
+    const savedMap = FileLib.read(currentMapPath);
     if (savedMap) {
         currentMap = savedMap;
         console.log(`Restored previous map state: '${currentMap}'`);
@@ -36,8 +36,9 @@ function forceStopProcessSync() {
         'Executing synchronous kill command for any orphaned processes...'
     );
     try {
-        const os = java.lang.System.getProperty('os.name').toLowerCase();
-        const command = os.includes('win')
+        const command = java.lang.System.getProperty('os.name')
+            .toLowerCase()
+            .includes('win')
             ? 'taskkill /F /IM Pathfinding.exe'
             : 'killall -9 Pathfinding.exe';
         Runtime.getRuntime().exec(command).waitFor();
@@ -92,23 +93,25 @@ function loadMap(map) {
         });
 }
 
-export function stopProgram(callerInstanceId) {
-    let ownerId = FileLib.read(lockFilePath);
+function cleanupFiles() {
+    FileLib.delete(lockFilePath);
+    FileLib.delete(currentMapPath);
+    currentMap = null;
+}
 
+export function stopProgram(callerInstanceId) {
+    const ownerId = FileLib.read(lockFilePath);
     if (callerInstanceId && ownerId && ownerId != callerInstanceId) {
         console.log(
             `Stop request from obsolete instance (${callerInstanceId}) ignored. Current owner is ${ownerId}.`
         );
         return;
     }
-
     if (programState === 'STOPPED') return;
 
     programState = 'STOPPED';
-    currentMap = null; // Reset internal state
     console.log('Attempting to stop Pathfinder process...');
-    FileLib.delete(lockFilePath);
-    FileLib.delete(currentMapPath);
+    cleanupFiles();
     keepAlive.unregister();
 
     if (process !== null) {
@@ -117,31 +120,31 @@ export function stopProgram(callerInstanceId) {
         } catch (e) {}
         process = null;
     }
-
-    new java.lang.Thread(() => {
-        forceStopProcessSync();
-    }).start();
+    new java.lang.Thread(forceStopProcessSync).start();
 }
 
 export function runProgram(onSuccess, onFailure) {
-    if (programState !== 'STOPPED') {
-        return;
-    }
+    if (programState !== 'STOPPED') return;
+
     programState = 'STARTING';
     console.log("Program state set to 'STARTING'.");
     startupCallbacks = { success: [onSuccess], failure: [onFailure] };
+
     const fail = (error) => {
         programState = 'STOPPED';
         startupCallbacks.failure.forEach((cb) => cb && cb(error));
         startupCallbacks = { success: [], failure: [] };
     };
+
     console.log('Ensuring clean state before startup...');
     forceStopProcessSync();
     FileLib.delete(lockFilePath);
+
     if (!waitForPortToBeFree(port, 5000)) {
         fail(new Error(`Port ${port} remained in use.`));
         return;
     }
+
     FileLib.write(lockFilePath, scriptInstanceId);
     console.log(
         `Instance ${scriptInstanceId} has claimed ownership via lock file.`
@@ -156,6 +159,7 @@ export function runProgram(onSuccess, onFailure) {
             const stdOut = new java.util.Scanner(process.getInputStream());
             const stdErr = new java.util.Scanner(process.getErrorStream());
             console.log('Pathfinder process holder started.');
+
             while (process && process.isAlive()) {
                 java.lang.Thread.sleep(50);
                 while (stdOut.hasNextLine())
@@ -163,10 +167,12 @@ export function runProgram(onSuccess, onFailure) {
                 while (stdErr.hasNextLine())
                     console.log(`[Pathfinding.exe ERROR] ${stdErr.nextLine()}`);
             }
+
             const exitCode = process ? process.exitValue() : -1;
             console.log(
                 `Pathfinder process finished with exit code ${exitCode}.`
             );
+
             if (programState === 'STARTING') {
                 fail(
                     new Error(
@@ -229,7 +235,6 @@ function initializePathfinder() {
 
     const now = Date.now();
     const lastInitTime = parseInt(FileLib.read(initTimestampPath)) || 0;
-    // If initialization was attempted in the last 2 seconds, abort
     if (now - lastInitTime < 2000) {
         console.log(
             'Initialization recently attempted. Backing off to prevent race condition.'

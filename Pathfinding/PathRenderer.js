@@ -2,17 +2,26 @@ import RenderUtils from '../Rendering/RendererUtils';
 import { Vec3d } from '../Utility/Constants';
 import { movementState, pathNodes, keyNodes } from './PathState';
 
-export function renderPath() {
-    movementState.splinePath.forEach((node, i) => {
-        const isCurrent = i === movementState.currentNodeIndex;
-        const color = isCurrent
-            ? [255, 255, 0, 100] // YELLOW for current node
-            : i < movementState.currentNodeIndex
-            ? [76, 76, 76, 76] // GREY for past nodes
-            : [0, 255, 0, 127]; // GREEN for future nodes
+const COLORS = {
+    CURRENT: [255, 255, 0, 100],
+    PAST: [76, 76, 76, 76],
+    FUTURE: [0, 255, 0, 127],
+    KEY: [255, 0, 0, 204],
+    TARGET: [0, 255, 255, 255],
+};
 
+export function renderPath() {
+    const { splinePath, currentNodeIndex, isWalking, targetPoint } =
+        movementState;
+
+    splinePath.forEach((node, i) => {
+        const color =
+            i === currentNodeIndex
+                ? COLORS.CURRENT
+                : i < currentNodeIndex
+                ? COLORS.PAST
+                : COLORS.FUTURE;
         RenderUtils.drawStyledBox(
-            // SPLINE NODES - GREEN for future, grey for past, yellow for current
             new Vec3d(node.x, node.y, node.z),
             color,
             color,
@@ -23,25 +32,19 @@ export function renderPath() {
 
     keyNodes.forEach((node) =>
         RenderUtils.drawStyledBox(
-            // KEY NODES - RED
             new Vec3d(node.x, node.y, node.z),
-            [255, 0, 0, 204],
-            [255, 0, 0, 204],
+            COLORS.KEY,
+            COLORS.KEY,
             5,
             false
         )
     );
 
-    if (movementState.isWalking && movementState.targetPoint) {
+    if (isWalking && targetPoint) {
         RenderUtils.drawStyledBox(
-            // LOOKAHEAD TARGET - CYAN
-            new Vec3d(
-                movementState.targetPoint.x,
-                movementState.targetPoint.y,
-                movementState.targetPoint.z
-            ),
-            [0, 255, 255, 255],
-            [0, 255, 255, 255],
+            new Vec3d(targetPoint.x, targetPoint.y, targetPoint.z),
+            COLORS.TARGET,
+            COLORS.TARGET,
             5,
             false
         );

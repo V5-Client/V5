@@ -1,15 +1,13 @@
 import { Rotations } from '../Utility/Rotations';
 import { movementState } from './PathState';
-import { getDistance3D } from './PathMovement';
 
-// THIS IS FOR TESTING, DO NOT ENABLE IN PRODUCTION
 const INSTANT_SNAP_MODE = false;
-
-const ROTATION_STEPS = 80; // milliseconds for rotation. lower = responsive, higher = smoother
+const ROTATION_STEPS = 80;
 const MIN_PITCH_DISTANCE = 1.5;
 
 export function updateRotations() {
     if (!movementState.targetPoint) return;
+
     const eyePos = Player.getPlayer()?.getEyePos();
     if (!eyePos) return;
 
@@ -32,14 +30,12 @@ export function updateRotations() {
     const dx = movementState.targetPoint.x - eyePos.x;
     const dy = movementState.targetPoint.y - eyePos.y;
     const dz = movementState.targetPoint.z - eyePos.z;
-
     const horizontalDist = Math.hypot(dx, dz);
 
     const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
 
     let pitchMultiplier = 1.0;
 
-    // Only reduce pitch for ACTUAL long falls, not short jumps or steps
     if (movementState.isFalling && movementState.jumpType === 'long_gap') {
         pitchMultiplier = 0.35;
     }
@@ -50,9 +46,7 @@ export function updateRotations() {
 
     let targetPitch =
         -Math.atan2(dy * pitchMultiplier, horizontalDist) * (180 / Math.PI);
-
     targetPitch += 2;
-
     targetPitch = Math.max(-35, Math.min(35, targetPitch));
 
     Rotations.rotateToAngles(
