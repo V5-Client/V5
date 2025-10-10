@@ -32,6 +32,13 @@ class RotationsTo {
         return degrees;
     }
 
+    /**
+     * Rotates the player's view to the target angles with a natural ease-out motion.
+     * @param {number} yaw - The target yaw angle.
+     * @param {number} pitch - The target pitch angle.
+     * @param {boolean} [instant=false] - If true, snap instantly to the target.
+     * @param {number} [steps=100] - The number of steps for the rotation animation.
+     */
     rotateToAngles(yaw, pitch, instant = false, steps = 100) {
         this.targetYaw = yaw;
         this.targetPitch = pitch;
@@ -42,7 +49,6 @@ class RotationsTo {
         const player = Player.getPlayer();
         if (!player) return;
 
-        // Instant mode - just snap
         if (this.instantMode) {
             player.setYaw(yaw);
             player.setPitch(pitch);
@@ -51,25 +57,19 @@ class RotationsTo {
             return;
         }
 
-        // thread based rotation
-        const currentYaw = player.getYaw();
-        const currentPitch = player.getPitch();
+        const initialYaw = player.getYaw();
+        const initialPitch = player.getPitch();
 
-        let yawDiff = this.wrapDegrees(yaw - currentYaw);
-        let pitchDiff = pitch - currentPitch;
+        const yawDiff = this.wrapDegrees(yaw - initialYaw);
+        const pitchDiff = pitch - initialPitch;
 
         const rotationID = Symbol();
         this.currentRotationID = rotationID;
 
-        const initialYawDiff = yawDiff;
-        const initialPitchDiff = pitchDiff;
-        const initialMaxDiff = Math.max(
-            Math.abs(initialYawDiff),
-            Math.abs(initialPitchDiff)
-        );
+        const initialMaxDiff = Math.max(Math.abs(yawDiff), Math.abs(pitchDiff));
 
         new Thread(() => {
-            for (let i = 0; i < steps; i++) {
+            for (let i = 1; i <= steps; i++) {
                 if (this.currentRotationID !== rotationID) {
                     return;
                 }
@@ -77,16 +77,21 @@ class RotationsTo {
                 const p = Player.getPlayer();
                 if (!p) return;
 
-                const currentYawDiff = this.wrapDegrees(
-                    this.targetYaw - p.getYaw()
-                );
-                const currentPitchDiff = this.targetPitch - p.getPitch();
+                const progress = i / steps;
 
+                const easedProgress = Math.sin(progress * (Math.PI / 2));
+
+                let newYaw = initialYaw + yawDiff * easedProgress;
+                let newPitch = initialPitch + pitchDiff * easedProgress;
+
+                const currentYawDiff = this.wrapDegrees(
+                    this.targetYaw - newYaw
+                );
+                const currentPitchDiff = this.targetPitch - newPitch;
                 let maxCurrentDiff = Math.max(
                     Math.abs(currentYawDiff),
                     Math.abs(currentPitchDiff)
                 );
-
                 let normalizedDist =
                     initialMaxDiff > 0 ? maxCurrentDiff / initialMaxDiff : 0.01;
 
@@ -103,11 +108,8 @@ class RotationsTo {
                 let jitterYaw = this.currentRandomYaw * fadeFactor;
                 let jitterPitch = this.currentRandomPitch * fadeFactor;
 
-                const newYaw = p.getYaw() + yawDiff / steps + jitterYaw;
-                const newPitch = p.getPitch() + pitchDiff / steps + jitterPitch;
-
-                p.setYaw(newYaw);
-                p.setPitch(newPitch);
+                p.setYaw(newYaw + jitterYaw);
+                p.setPitch(newPitch + jitterPitch);
 
                 try {
                     Thread.sleep(1);
@@ -115,21 +117,11 @@ class RotationsTo {
             }
 
             const finalPlayer = Player.getPlayer();
-            if (finalPlayer) {
-                let finalYawDiff = Math.abs(
-                    this.wrapDegrees(this.targetYaw - finalPlayer.getYaw())
-                );
-                let finalPitchDiff = Math.abs(
-                    this.targetPitch - finalPlayer.getPitch()
-                );
-
-                if (
-                    finalYawDiff < this.precision &&
-                    finalPitchDiff < this.precision
-                ) {
-                    this.runCallbacks();
-                    this.stopRotation();
-                }
+            if (finalPlayer && this.currentRotationID === rotationID) {
+                finalPlayer.setYaw(this.targetYaw);
+                finalPlayer.setPitch(this.targetPitch);
+                this.runCallbacks();
+                this.stopRotation();
             }
         }).start();
     }
@@ -178,7 +170,7 @@ class RotationsTo {
         this.targetVector = null;
         this.rotating = false;
         this.instantMode = false;
-        this.currentRotationID = null; // cancel any ongoing rotations
+        this.currentRotationID = null;
         this.actions = [];
     }
 
