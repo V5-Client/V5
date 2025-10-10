@@ -6,7 +6,6 @@ class RotationsTo {
         this.targetYaw = null;
         this.targetPitch = null;
         this.rotating = false;
-
         this.currentRotationID = null; // for cancelling old rotations
 
         this.tremorFrequency = 1; // jitter updates per second
@@ -23,6 +22,18 @@ class RotationsTo {
         this.precision = 1.0;
 
         this.actions = [];
+
+        this.initialYaw = 0;
+        this.initialPitch = 0;
+        this.yawDiff = 0;
+        this.pitchDiff = 0;
+        this.stepCount = 0;
+        this.maxSteps = 0;
+        this.initialMaxDiff = 0;
+
+        register('renderWorld', () => {
+            this.tick();
+        });
     }
 
     wrapDegrees(degrees) {
@@ -40,6 +51,8 @@ class RotationsTo {
      * @param {number} [steps=100] - The number of steps for the rotation animation.
      */
     rotateToAngles(yaw, pitch, instant = false, steps = 100) {
+        this.stopRotation();
+
         this.targetYaw = yaw;
         this.targetPitch = pitch;
         this.targetVector = null;
@@ -57,73 +70,76 @@ class RotationsTo {
             return;
         }
 
-        const initialYaw = player.getYaw();
-        const initialPitch = player.getPitch();
+        this.initialYaw = player.getYaw();
+        this.initialPitch = player.getPitch();
 
-        const yawDiff = this.wrapDegrees(yaw - initialYaw);
-        const pitchDiff = pitch - initialPitch;
+        this.yawDiff = this.wrapDegrees(yaw - this.initialYaw);
+        this.pitchDiff = pitch - this.initialPitch;
 
-        const rotationID = Symbol();
-        this.currentRotationID = rotationID;
+        this.stepCount = 0;
+        this.maxSteps = steps;
 
-        const initialMaxDiff = Math.max(Math.abs(yawDiff), Math.abs(pitchDiff));
+        this.initialMaxDiff = Math.max(
+            Math.abs(this.yawDiff),
+            Math.abs(this.pitchDiff)
+        );
 
-        new Thread(() => {
-            for (let i = 1; i <= steps; i++) {
-                if (this.currentRotationID !== rotationID) {
-                    return;
-                }
+        this.currentRotationID = Symbol();
+    }
 
-                const p = Player.getPlayer();
-                if (!p) return;
+    tick() {
+        if (!this.rotating || this.instantMode) {
+            return;
+        }
 
-                const progress = i / steps;
+        const player = Player.getPlayer();
+        if (!player) {
+            this.stopRotation();
+            return;
+        }
 
-                const easedProgress = Math.sin(progress * (Math.PI / 2));
+        this.stepCount++;
 
-                let newYaw = initialYaw + yawDiff * easedProgress;
-                let newPitch = initialPitch + pitchDiff * easedProgress;
+        if (this.stepCount > this.maxSteps) {
+            player.setYaw(this.targetYaw);
+            player.setPitch(this.targetPitch);
+            this.runCallbacks();
+            this.stopRotation();
+            return;
+        }
 
-                const currentYawDiff = this.wrapDegrees(
-                    this.targetYaw - newYaw
-                );
-                const currentPitchDiff = this.targetPitch - newPitch;
-                let maxCurrentDiff = Math.max(
-                    Math.abs(currentYawDiff),
-                    Math.abs(currentPitchDiff)
-                );
-                let normalizedDist =
-                    initialMaxDiff > 0 ? maxCurrentDiff / initialMaxDiff : 0.01;
+        const progress = this.stepCount / this.maxSteps;
 
-                let now = Date.now();
-                if (now - this.lastTremorTime > 1000 / this.tremorFrequency) {
-                    this.currentRandomYaw =
-                        (Math.random() - 0.5) * this.Randomness;
-                    this.currentRandomPitch =
-                        (Math.random() - 0.5) * this.Randomness;
-                    this.lastTremorTime = now;
-                }
+        const easedProgress = Math.sin(progress * (Math.PI / 2));
 
-                let fadeFactor = Math.pow(normalizedDist, this.fadeExponent);
-                let jitterYaw = this.currentRandomYaw * fadeFactor;
-                let jitterPitch = this.currentRandomPitch * fadeFactor;
+        let newYaw = this.initialYaw + this.yawDiff * easedProgress;
+        let newPitch = this.initialPitch + this.pitchDiff * easedProgress;
 
-                p.setYaw(newYaw + jitterYaw);
-                p.setPitch(newPitch + jitterPitch);
+        // Calculate jitter for a "natural" feel
+        const currentYawDiff = this.wrapDegrees(this.targetYaw - newYaw);
+        const currentPitchDiff = this.targetPitch - newPitch;
+        let maxCurrentDiff = Math.max(
+            Math.abs(currentYawDiff),
+            Math.abs(currentPitchDiff)
+        );
+        let normalizedDist =
+            this.initialMaxDiff > 0
+                ? maxCurrentDiff / this.initialMaxDiff
+                : 0.01;
 
-                try {
-                    Thread.sleep(1);
-                } catch (err) {}
-            }
+        let now = Date.now();
+        if (now - this.lastTremorTime > 1000 / this.tremorFrequency) {
+            this.currentRandomYaw = (Math.random() - 0.5) * this.Randomness;
+            this.currentRandomPitch = (Math.random() - 0.5) * this.Randomness;
+            this.lastTremorTime = now;
+        }
 
-            const finalPlayer = Player.getPlayer();
-            if (finalPlayer && this.currentRotationID === rotationID) {
-                finalPlayer.setYaw(this.targetYaw);
-                finalPlayer.setPitch(this.targetPitch);
-                this.runCallbacks();
-                this.stopRotation();
-            }
-        }).start();
+        let fadeFactor = Math.pow(normalizedDist, this.fadeExponent);
+        let jitterYaw = this.currentRandomYaw * fadeFactor;
+        let jitterPitch = this.currentRandomPitch * fadeFactor;
+
+        player.setYaw(newYaw + jitterYaw);
+        player.setPitch(newPitch + jitterPitch);
     }
 
     rotateTo(vector, instant = false, steps = 100) {
@@ -172,6 +188,8 @@ class RotationsTo {
         this.instantMode = false;
         this.currentRotationID = null;
         this.actions = [];
+        this.stepCount = 0;
+        this.maxSteps = 0;
     }
 
     getPlayerRotation() {
