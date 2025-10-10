@@ -6,6 +6,8 @@ import {
     isAtFinalNode,
     adjustSplineToEyeLevel,
     findClosestNodeIndex,
+    shouldJump,
+    detectAndRecoverFromStuck,
 } from './PathMovement';
 import { movementState, initializeMovementState } from './PathState';
 
@@ -43,11 +45,62 @@ export function startPathing(splinePath, onComplete) {
         }
 
         updateCurrentNode();
+        detectAndRecoverFromStuck();
         movementState.targetPoint = calculateLookaheadTarget();
-        movementState.isFalling = !Player.getPlayer().isOnGround();
+
+        const isOnGround = player.isOnGround();
+
+        if (!isOnGround) {
+            movementState.fallingTicks++;
+            if (!movementState.wasInAir) {
+                movementState.wasInAir = true;
+            }
+        } else {
+            const wasInAirBefore = movementState.wasInAir;
+            movementState.fallingTicks = 0;
+
+            if (wasInAirBefore) {
+                if (movementState.jumpType === 'step') {
+                    movementState.jumpStartYaw = null;
+                    movementState.jumpStartPitch = null;
+                }
+
+                movementState.jumpTriggered = false;
+                movementState.anticipatingFall = false;
+                movementState.wasInAir = false;
+                movementState.ticksSinceLanding = 0;
+                movementState.jumpType = null;
+            } else if (movementState.ticksSinceLanding !== null) {
+                movementState.ticksSinceLanding++;
+            }
+        }
+
+        movementState.isFalling = movementState.fallingTicks > 4;
+
+        const canCheckForJump =
+            !movementState.jumpTriggered &&
+            isOnGround &&
+            (movementState.ticksSinceLanding === null ||
+                movementState.ticksSinceLanding >= 2);
+
+        if (canCheckForJump && shouldJump()) {
+            movementState.jumpTriggered = true;
+
+            if (movementState.jumpType !== 'step') {
+                movementState.jumpStartYaw = Player.getYaw();
+                movementState.jumpStartPitch = Player.getPitch();
+            }
+
+            movementState.ticksSinceLanding = null;
+            mc.options.jumpKey.setPressed(true);
+        } else if (movementState.jumpTriggered && !isOnGround) {
+            mc.options.jumpKey.setPressed(false);
+        } else if (!movementState.jumpTriggered) {
+            mc.options.jumpKey.setPressed(false);
+        }
 
         mc.options.forwardKey.setPressed(true);
-        mc.options.sprintKey.setPressed(true);
+        mc.options.sprintKey.setPressed(!movementState.isFalling);
     });
 
     movementRenderRegister = register('postRenderWorld', () => {
