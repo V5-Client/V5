@@ -1,5 +1,6 @@
 //et { Vec3, Vector, Utils } = global.export
 
+import { Vec3d } from './Constants';
 import { Utils } from './Utils';
 
 class MathUtilsClass {
@@ -229,13 +230,13 @@ class MathUtilsClass {
         let vecX = 0;
         let vecY = 0;
         let vecZ = 0;
-        if (vector instanceof Vec3) {
+        if (vector instanceof Vec3d) {
             vecX = vector.x;
             vecY = vector.y;
             vecZ = vector.z;
         }
         if (
-            vector instanceof Vector ||
+            //vector instanceof Vector ||
             vector instanceof BlockPos ||
             vector instanceof Vec3i
         ) {
@@ -253,7 +254,7 @@ class MathUtilsClass {
             vecY = vector.getY();
             vecZ = vector.getZ();
         }
-        let eyes = Player.getEyePosition();
+        let eyes = Player.getPlayer().getEyePos();
         if (!eyes) return { yaw: 0, pitch: 0 };
         let diffX = vecX - eyes.x;
         let diffY = vecY - eyes.y;
@@ -269,6 +270,53 @@ class MathUtilsClass {
         Yaw %= 360.0;
         while (Yaw >= 180.0) Yaw -= 360.0;
         while (Yaw <= -180.0) Yaw += 360.0;
+        return { yaw: Yaw, pitch: Pitch };
+    }
+
+    calculateAbsoluteAngles(vector) {
+        let vecX = 0;
+        let vecY = 0;
+        let vecZ = 0;
+
+        if (vector instanceof Vec3d) {
+            vecX = vector.x;
+            vecY = vector.y;
+            vecZ = vector.z;
+        }
+        if (vector instanceof BlockPos || vector instanceof Vec3i) {
+            vecX = vector.x;
+            vecY = vector.y;
+            vecZ = vector.z;
+        }
+        if (vector instanceof Array) {
+            vecX = vector[0];
+            vecY = vector[1];
+            vecZ = vector[2];
+        }
+        if (vector instanceof Entity) {
+            vecX = vector.getX();
+            vecY = vector.getY();
+            vecZ = vector.getZ();
+        }
+
+        let eyes = Player.getPlayer().getEyePos();
+        if (!eyes) return { yaw: 0, pitch: 0 };
+
+        let diffX = vecX - eyes.x;
+        let diffY = vecY - eyes.y;
+        let diffZ = vecZ - eyes.z;
+
+        let dist = Math.sqrt(diffX * diffX + diffZ * diffZ);
+        let TargetPitchRadians = Math.atan2(diffY, dist);
+        let TargetYawRadians = Math.atan2(diffZ, diffX);
+        let Pitch = (-TargetPitchRadians * 180.0) / Math.PI;
+        let Yaw = (TargetYawRadians * 180.0) / Math.PI - 90.0;
+
+        Pitch = Math.max(-90, Math.min(90, Pitch));
+        Yaw %= 360.0;
+        while (Yaw >= 180.0) Yaw -= 360.0;
+        while (Yaw <= -180.0) Yaw += 360.0;
+
         return { yaw: Yaw, pitch: Pitch };
     }
 

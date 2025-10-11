@@ -94,9 +94,10 @@ class GemstoneMacro {
                 }
             }
 
-            this.route = Router.simpleEdit(
+            this.route = Router.Edit(
                 action.toUpperCase(),
                 this.route,
+                'gemstoneroutes/default_route.txt',
                 indexNum
             );
 
