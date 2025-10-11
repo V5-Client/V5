@@ -139,7 +139,7 @@ class RouteWalkerer {
             switch (this.action) {
                 case this.ACTIONS.WALK:
                     Keybind.setKey('shift', this.SNEAK ? true : false);
-                    Keybind.setKey('leftclick', this.LEFTCLICK ? true : false);
+                    //Keybind.setKey('leftclick', this.LEFTCLICK ? true : false);
 
                     Keybind.setKeysForStraightLineCoords(
                         this.point.x,
@@ -263,8 +263,8 @@ class RouteWalkerer {
             'Modules',
             'RouteWalker',
             'Pitch',
-            -90,
             90,
+            -90,
             45,
             (value) => {
                 this.PITCH = value;
