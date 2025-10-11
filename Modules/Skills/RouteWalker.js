@@ -23,7 +23,7 @@ class RouteWalkerer {
         this.route = this.loadedRoute;
         this.enabled = false;
         this.foundpoint = false;
-        this.indexadder = 0;
+        this.currentIndex = 0;
         this.etherwarpReady = false;
 
         this.ACTIONS = {
@@ -34,6 +34,7 @@ class RouteWalkerer {
 
         register('command', () => {
             this.enabled = true;
+            this.foundpoint = false;
         }).setName('goon');
 
         register('command', (action, arg2, arg3) => {
@@ -121,12 +122,15 @@ class RouteWalkerer {
 
         register('tick', () => {
             if (!this.enabled) return;
+
+            if (!this.route || this.route.length === 0) return;
+
             if (!this.foundpoint) {
                 this.data = this.getClosestPoint();
-                this.point = this.data.point;
                 this.foundpoint = true;
             }
 
+            this.point = this.route[this.currentIndex];
             this.action = this.ACTIONS[this.point.movements];
 
             let distData = MathUtils.getDistanceToPlayer(
@@ -139,7 +143,7 @@ class RouteWalkerer {
             switch (this.action) {
                 case this.ACTIONS.WALK:
                     Keybind.setKey('shift', this.SNEAK ? true : false);
-                    //Keybind.setKey('leftclick', this.LEFTCLICK ? true : false);
+                    Keybind.setKey('leftclick', this.LEFTCLICK ? true : false);
 
                     Keybind.setKeysForStraightLineCoords(
                         this.point.x,
@@ -159,21 +163,17 @@ class RouteWalkerer {
                         angle.yaw,
                         this.LOCKPITCH ? this.PITCH : Player.getPitch()
                     );
+
                     if (currentDistance < 3) {
                         this.etherwarpReady = false;
 
-                        let nextIndex = this.data.index + this.indexadder + 1;
-
-                        if (nextIndex < this.route.length) {
-                            this.indexadder++;
-                            this.point =
-                                this.route[this.data.index + this.indexadder];
-                        } else {
-                            this.point = this.route[0];
-                            this.indexadder = -1;
+                        this.currentIndex++;
+                        if (this.currentIndex >= this.route.length) {
+                            this.currentIndex = 0;
                         }
                     }
                     break;
+
                 case this.ACTIONS.ETHERWARP:
                     Keybind.stopMovement();
                     Keybind.setKey('shift', true);
@@ -210,15 +210,9 @@ class RouteWalkerer {
                     if (currentDistance < 3) {
                         this.etherwarpReady = false;
 
-                        let nextIndex = this.data.index + this.indexadder + 1;
-
-                        if (nextIndex < this.route.length) {
-                            this.indexadder++;
-                            this.point =
-                                this.route[this.data.index + this.indexadder];
-                        } else {
-                            this.point = this.route[0];
-                            this.indexadder = -1;
+                        this.currentIndex++;
+                        if (this.currentIndex >= this.route.length) {
+                            this.currentIndex = 0;
                         }
                     }
                     break;
@@ -319,6 +313,10 @@ class RouteWalkerer {
                     };
                 }
             }
+        }
+
+        if (closestPointData) {
+            this.currentIndex = closestPointData.index;
         }
 
         return closestPointData;
