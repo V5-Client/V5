@@ -1,4 +1,4 @@
-export const movementState = {
+const DEFAULT_STATE = {
     isWalking: false,
     splinePath: [],
     currentNodeIndex: 0,
@@ -19,7 +19,12 @@ export const movementState = {
     lastKnownPosition: null,
     lastKnownNodeIndex: 0,
     ticksWithoutProgress: 0,
+    recoveryAttempts: 0,
+    recoveryLockTicks: 0,
+    hasRequestedRecalc: false,
 };
+
+export const movementState = { ...DEFAULT_STATE };
 
 export let pathNodes = [];
 export let keyNodes = [];
@@ -33,50 +38,16 @@ export function setKeyNodes(nodes) {
 }
 
 export function resetMovementState() {
-    Object.assign(movementState, {
-        isWalking: false,
-        splinePath: [],
-        currentNodeIndex: 0,
-        targetPoint: null,
-        isFalling: false,
-        fallingTicks: 0,
-        lastRotation: { yaw: 0, pitch: 0 },
-        lastTargetPoint: null,
-        targetStableFrames: 0,
-        jumpStartYaw: null,
-        jumpStartPitch: null,
-        jumpTriggered: false,
-        anticipatingFall: false,
-        wasInAir: false,
-        lastJumpPos: null,
-        ticksSinceLanding: null,
-        jumpType: null,
-        lastKnownPosition: null,
-        lastKnownNodeIndex: 0,
-        ticksWithoutProgress: 0,
-    });
+    Object.assign(movementState, DEFAULT_STATE);
 }
 
 export function initializeMovementState(splinePath, startIndex) {
-    Object.assign(movementState, {
+    Object.assign(movementState, DEFAULT_STATE, {
         isWalking: true,
-        splinePath: splinePath,
+        splinePath,
         currentNodeIndex: startIndex,
-        fallingTicks: 0,
         lastRotation: { yaw: Player.getYaw(), pitch: Player.getPitch() },
-        lastTargetPoint: null,
-        targetStableFrames: 0,
-        jumpStartYaw: null,
-        jumpStartPitch: null,
-        jumpTriggered: false,
-        anticipatingFall: false,
-        wasInAir: false,
-        lastJumpPos: null,
-        ticksSinceLanding: null,
-        jumpType: null,
-        lastKnownPosition: null,
         lastKnownNodeIndex: startIndex,
-        ticksWithoutProgress: 0,
     });
 }
 

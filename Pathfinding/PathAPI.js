@@ -1,5 +1,3 @@
-// This is what external modules should import from
-
 import request from 'requestV2';
 import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
@@ -16,11 +14,13 @@ import { adjustSplineToEyeLevel } from './PathMovement';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
+let currentPathRequest = null;
 
 export function stopPathing() {
-    global.pathEngineStop?.();
-    renderOnlyRegister?.unregister();
+    if (global.pathEngineStop) global.pathEngineStop();
+    if (renderOnlyRegister) renderOnlyRegister.unregister();
     renderOnlyRegister = null;
+    currentPathRequest = null;
     resetMovementState();
 
     try {
@@ -33,8 +33,39 @@ export function stopPathing() {
     stopRotation();
 }
 
+function getSinglePlayerWarpCommand(warpName) {
+    const warps = {
+        '/warp mines': 'tp @s -49 200 -122 -90 0',
+        '/warp forge': 'tp @s 0 149 -68 90 0',
+    };
+    return warps[warpName] || null;
+}
+
+function handleWarp(warpCommand, onComplete) {
+    const tpCommand =
+        Server.getName() === 'SinglePlayer'
+            ? getSinglePlayerWarpCommand(warpCommand)
+            : warpCommand.slice(1);
+
+    if (!tpCommand) {
+        global.showNotification(
+            'Pathfinding Error',
+            `Unknown warp point: ${warpCommand}`,
+            'ERROR',
+            4000
+        );
+        return;
+    }
+
+    Chat.message(`§aWarp point found! Running command: §e${tpCommand}`);
+    ChatLib.command(tpCommand);
+
+    setTimeout(onComplete, 250);
+}
+
 export function findAndFollowPath(start, end, renderOnly = false) {
     stopPathing();
+
     const url = `${localhost}/api/pathfinding?start=${start.join(
         ','
     )}&end=${end.join(',')}&map=mines`;
@@ -42,9 +73,17 @@ export function findAndFollowPath(start, end, renderOnly = false) {
         `§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`
     );
 
+    const requestId = Date.now();
+    currentPathRequest = requestId;
+
     request({ url, json: true, timeout: 15000 })
         .then((body) => {
-            if (!body?.spline?.length) {
+            if (currentPathRequest !== requestId) {
+                console.log('Outdated path response ignored.');
+                return;
+            }
+
+            if (!body || !body.spline || !body.spline.length) {
                 return global.showNotification(
                     'Pathfinding Failed',
                     'No spline path received from server.',
@@ -57,6 +96,8 @@ export function findAndFollowPath(start, end, renderOnly = false) {
             setKeyNodes(body.keynodes || []);
 
             const beginPathing = () => {
+                if (currentPathRequest !== requestId) return;
+
                 if (renderOnly) {
                     const adjustedSpline = adjustSplineToEyeLevel(body.spline);
                     setSplineForRendering(adjustedSpline);
@@ -71,53 +112,18 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                         3000
                     );
                 } else {
-                    startPathing(body.spline, stopPathing);
+                    startPathing(body.spline, end, stopPathing);
                 }
             };
 
             if (body.warp_point && body.warp_point.command) {
-                const warpName = body.warp_point.command;
-                let tpCommand = null;
-
-                if (Server.getName() === 'SinglePlayer') {
-                    switch (warpName) {
-                        case '/warp mines':
-                            tpCommand = 'tp @s -49 200 -122 -90 0';
-                            break;
-                        case '/warp forge':
-                            tpCommand = 'tp @s 0 149 -68 90 0';
-                            break;
-                        default:
-                            global.showNotification(
-                                'Pathfinding Error',
-                                `Unknown warp point received: ${warpName}`,
-                                'ERROR',
-                                4000
-                            );
-                            return;
-                    }
-                } else {
-                    tpCommand = warpName.slice(1);
-                }
-
-                Chat.message(
-                    `§aWarp point found! Running command: §e${tpCommand} (might be hardcoded version of warp: ${warpName})`
-                );
-                ChatLib.command(tpCommand);
-
-                let ticksWaited = 0;
-                const postWarpRegister = register('tick', () => {
-                    ticksWaited++;
-                    if (ticksWaited >= 5) {
-                        postWarpRegister.unregister();
-                        beginPathing();
-                    }
-                });
+                handleWarp(body.warp_point.command, beginPathing);
             } else {
                 beginPathing();
             }
         })
         .catch((err) => {
+            if (currentPathRequest !== requestId) return;
             global.showNotification(
                 'Pathfinding Error',
                 'See console for details.',
