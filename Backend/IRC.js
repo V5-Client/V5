@@ -11,7 +11,7 @@ let start = Date.now();
 
 function openBrowser(url) {
     try {
-        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+        // java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
     } catch (e) {
         console.error('Failed to open browser: ' + e);
     }
@@ -39,18 +39,11 @@ function connectIRC(svid) {
             switch (data.event) {
                 case 'auth_success':
                     if (!data.data.user.discordLinked) {
-                        const msg = Chat.formatLink(
-                            'Link Discord',
-                            `${
-                                Links.BASE_API_URL
-                            }/auth/discord/${Player.getName()}`
-                        );
+                        const link = `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`
+
+                        const msg = Chat.formatLink('Link Discord', link);
                         Chat.irc(msg);
-                        openBrowser(
-                            `${
-                                Links.BASE_API_URL
-                            }/auth/discord/${Player.getName()}`
-                        );
+                        openBrowser(link);
                     }
                     sendChatMessage(
                         `Time taken to connect: ${Date.now() - start}ms`
@@ -153,8 +146,7 @@ function attemptReconnect(svid) {
         );
         let ticks = Math.ceil(delay / 50);
         Chat.irc(
-            `Attempting to reconnect in ${
-                delay / 1000
+            `Attempting to reconnect in ${delay / 1000
             } seconds... (Attempt ${reconnectAttempts})`
         );
 
@@ -179,7 +171,7 @@ register('packetSent', (packet, event) => {
     let message;
     try {
         message = packet.chatMessage();
-    } catch (e) {}
+    } catch (e) { }
     if (!message || !message.startsWith('#')) return;
     try {
         sendChatMessage(message.substring(1));

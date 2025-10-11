@@ -1,7 +1,6 @@
 import request from 'requestV2';
 import { Runtime } from '../Utility/Constants';
 import { Links } from '../Utility/Constants';
-import { stopPathing } from './PathAPI';
 const ProcessBuilder = Java.type("java.lang.ProcessBuilder");
 const Scanner = Java.type("java.util.Scanner");
 const InputStreamReader = Java.type("java.io.InputStreamReader");
@@ -11,7 +10,6 @@ const assetsDir = new java.io.File('config/ChatTriggers/assets').getAbsolutePath
 const path = `${assetsDir}/Pathfinding.exe`;
 const localhost = Links.PATHFINDER_API_URL;
 
-let threads = [];
 let process = null;
 let lastKeepAlive = Date.now() - 50_000;
 
@@ -19,7 +17,7 @@ export function runProgram() {
     stopProgram();
     keepAlive.register();
 
-    const thread = new Thread(() => {
+    new Thread(() => {
         try {
             process = new ProcessBuilder(path)
                 .directory(new java.io.File(assetsDir))
@@ -27,30 +25,24 @@ export function runProgram() {
             const reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8);
             const sc = new Scanner(reader);
 
-            while (process !== null && process.isAlive() && !Thread.currentThread().isInterrupted()) {
-                try {
-                    Thread.sleep(50);
-                } catch (e) {
-                    break;
-                }
+            console.log("Program started");
+            loadMap("mines");
+
+            while (process !== null && process.isAlive()) {
+                Thread.sleep(50);
 
                 while (sc.hasNextLine()) {
                     let line = sc.nextLine();
-                    if (line.includes('Thanks for using the TPMM Pathfinder')) {
-                        loadMap("mines");
-                    }
                     console.log(line);
                 }
             }
 
             if (process !== null) process.waitFor();
-            process = null;
+            console.log("Program finished");
         } catch (e) {
             console.log(e);
         }
-    });
-    thread.start();
-    threads.push(thread);
+    }).start();
 }
 
 function loadMap(map) {
@@ -60,6 +52,8 @@ function loadMap(map) {
     request({ url, timeout: 5000 })
         .then(() => {
             console.log(`Successfully loaded map '${map}'.`);
+            currentMap = map;
+            FileLib.write(currentMapPath, map);
         })
         .catch((err) => {
             const errorMessage = `Failed to load map '${map}'. The server may have been busy or unstable.`;
@@ -77,16 +71,13 @@ export function stopProgram() {
     if (process !== null) {
         process.destroy();
         process = null;
+        console.log("Program stopped");
         keepAlive.unregister();
-        threads.forEach(thread => thread.interrupt());
-        threads = [];
     }
 }
 
 Runtime.getRuntime().addShutdownHook(
     new java.lang.Thread(() => {
-        threads.forEach(thread => thread.interrupt());
-        threads = [];
         stopPathing();
         stopProgram();
     })

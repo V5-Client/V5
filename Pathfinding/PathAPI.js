@@ -37,7 +37,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
     stopPathing();
     const url = `${localhost}/api/pathfinding?start=${start.join(
         ','
-    )}&end=${end.join(',')}&map=mines`;
+    )}&end=${end.join(',')}`;
     Chat.message(
         `§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`
     );
