@@ -554,7 +554,7 @@ export function detectAndRecoverFromStuck() {
         return;
     }
 
-    const recoveryThresholds = [30, 50, 70]; // ticks
+    const recoveryThresholds = [15, 35, 55]; // ticks
     const shouldAttemptRecovery =
         recoveryThresholds[movementState.recoveryAttempts] ===
         movementState.ticksWithoutProgress;
