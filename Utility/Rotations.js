@@ -71,6 +71,7 @@ class RotationsTo {
         new Thread(() => {
             for (let i = 1; i <= steps; i++) {
                 if (this.currentRotationID !== rotationID) {
+                    console.log('Rotation cancelled');
                     return;
                 }
 
