@@ -142,14 +142,17 @@ class RouteWalkerer {
 
             switch (this.action) {
                 case this.ACTIONS.WALK:
-                    Keybind.setKey('shift', this.SNEAK ? true : false);
-                    Keybind.setKey('leftclick', this.LEFTCLICK ? true : false);
-
                     Keybind.setKeysForStraightLineCoords(
                         this.point.x,
                         this.point.y,
                         this.point.z
                     );
+
+                    Keybind.setKey('shift', this.SNEAK);
+
+                    if (this.LEFTCLICK) {
+                        Keybind.leftClick();
+                    }
 
                     let angle = MathUtils.calculateAbsoluteAngles(
                         new Vec3d(
