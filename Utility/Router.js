@@ -6,60 +6,6 @@ import { Vec3d } from './Constants';
 class Routes {
     constructor() {
         this.DEFAULT_FILE_ROUTE = 'gemstoneroutes/default_route.txt';
-
-        this.myWaypointRoute =
-            this.loadRouteFromFile(this.DEFAULT_FILE_ROUTE) || [];
-
-        register('command', (action, indexArg) => {
-            let route = this.myWaypointRoute;
-            let indexNum = undefined;
-
-            if (indexArg !== undefined) {
-                let parsedNum = parseInt(indexArg);
-
-                if (!isNaN(parsedNum) && parsedNum >= 1) {
-                    indexNum = parsedNum;
-                }
-            }
-
-            route = this.simpleEdit(action.toUpperCase(), route, indexNum);
-            this.myWaypointRoute = route;
-
-            Chat.message(
-                `Action ${action} performed on route. Route now has ${route.length} points.`
-            );
-        })
-            .setName('waypoint')
-            .setAliases(['wp', 'route']);
-    }
-
-    /**
-     * @param {String} Name
-     * @param {Array} Location
-     * @param {Array} Color
-     * @param {Number} size
-     * @param {Boolean} increase
-     */
-    drawString(
-        Name,
-        Location,
-        Color = [255, 255, 255],
-        size = 0.3,
-        increase = false
-    ) {
-        RenderUtils.drawString({
-            // Text to render (required)
-            text: Name,
-            // Coordinates (required)
-            x: Location[0] + 0.5,
-            y: Location[1] + 0.5,
-            z: Location[2] + 0.5,
-            // Optional parameters
-            color: Renderer.color(Color[0], Color[1], Color[2]),
-            renderBlackBox: true, // Corresponds to your old 'true' argument
-            scale: size,
-            increase: increase,
-        });
     }
 
     loadRouteFromFile(fileLocation) {
@@ -86,14 +32,16 @@ class Routes {
         }
     }
 
-    /**
-     * @param {String} action
-     * @param {Array<Object>} route
-     * @param {number | undefined} indexNum
-     */
-    simpleEdit(action, route, indexNum) {
+    Edit(
+        action,
+        route,
+        file,
+        indexNum,
+        takeMovementTypes = false,
+        allowedMovements = [],
+        userMovementInput = ''
+    ) {
         let indexToUse = undefined;
-        // Logic to determine indexToUse from indexNum only
         if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
         }
@@ -101,6 +49,12 @@ class Routes {
         let routeModified = false;
 
         switch (action) {
+            case 'OFF':
+                Chat.message(
+                    'Route editing is currently OFF. No changes made.'
+                );
+                return route;
+
             case 'ADD':
                 let point = {
                     x: Math.floor(Player.getX()),
@@ -108,22 +62,56 @@ class Routes {
                     z: Math.floor(Player.getZ()),
                 };
 
-                if (indexToUse !== undefined) {
-                    let arrayIndex = indexToUse - 1;
+                let isValidWaypoint = true;
 
-                    if (arrayIndex >= 0 && arrayIndex <= route.length) {
-                        route.splice(arrayIndex, 0, point);
-                        routeModified = true;
+                let allowedMovementsSet = new Set(
+                    Array.isArray(allowedMovements)
+                        ? allowedMovements.map((m) => m.toUpperCase())
+                        : null
+                );
+
+                if (takeMovementTypes) {
+                    if (
+                        !Array.isArray(userMovementInput) ||
+                        userMovementInput.length === 0
+                    ) {
+                        Chat.message(
+                            'ERROR: Movement type required for this command. Waypoint not added.'
+                        );
+                        return route;
+                    }
+
+                    let userMovementUpper = userMovementInput[0].toUpperCase();
+
+                    if (allowedMovementsSet.has(userMovementUpper)) {
+                        point.movements = userMovementUpper;
+                    } else {
+                        isValidWaypoint = false;
+                        Chat.message(
+                            `ERROR: Movement type '${userMovementInput[0]}' not supported. Waypoint not added.`
+                        );
+                        return route;
+                    }
+                }
+
+                if (isValidWaypoint) {
+                    if (indexToUse !== undefined) {
+                        let arrayIndex = indexToUse - 1;
+
+                        if (arrayIndex >= 0 && arrayIndex <= route.length) {
+                            route.splice(arrayIndex, 0, point);
+                            routeModified = true;
+                        } else {
+                            route.push(point);
+                            routeModified = true;
+                            Chat.message(
+                                `Invalid index ${indexToUse}. Added point to the end.`
+                            );
+                        }
                     } else {
                         route.push(point);
                         routeModified = true;
-                        Chat.message(
-                            `Invalid index ${indexToUse}. Added point to the end.`
-                        );
                     }
-                } else {
-                    route.push(point);
-                    routeModified = true;
                 }
                 break;
 
@@ -170,9 +158,7 @@ class Routes {
                 return route;
         }
 
-        if (routeModified) {
-            this.saveRouteToFile(route, this.DEFAULT_FILE_ROUTE);
-        }
+        if (routeModified) this.saveRouteToFile(route, file);
 
         return route;
     }

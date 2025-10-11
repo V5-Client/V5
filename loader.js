@@ -34,6 +34,7 @@ import './Modules/Skills/AutoHarp.js';
 import './Modules/Skills/FishingMacro.js';
 import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
 import { Router } from './Utility/Router.js';
+import './Modules/Skills/RouteWalker.js';
 
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';

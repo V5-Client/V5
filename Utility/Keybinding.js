@@ -164,7 +164,7 @@ class Keybinding {
         );
     }
 
-    setKeysForStraightLine(yaw, jump = true) {
+    setKeysForStraightLine(yaw, jump = false) {
         this.stopMovement();
         if (Client.isInGui() && !Client.isInChat()) return;
         if (22.5 > yaw && yaw > -22.5) {
@@ -196,15 +196,15 @@ class Keybinding {
             this.setKey('s', true);
             this.setKey('d', true);
         }
-        this.setKey(
+        /*this.setKey(
             'space',
             Player.asPlayerMP().isInWater() ||
                 (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) <
                     0.02 &&
                     this.cooldown.hasReached(500) &&
-                    jump &&
-                    Utils.playerIsCollided())
-        );
+                    jump) //&&
+            // Utils.playerIsCollided()
+        ); */
     }
 
     setKeysForStraightLineCoords(x, y, z, jump = false) {
