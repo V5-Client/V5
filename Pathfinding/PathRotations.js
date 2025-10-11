@@ -1,17 +1,33 @@
 import { Rotations } from '../Utility/Rotations';
 import { movementState } from './PathState';
-import { getDistance3D } from './PathMovement';
 
-// THIS IS FOR TESTING, DO NOT ENABLE IN PRODUCTION
 const INSTANT_SNAP_MODE = false;
-
-const ROTATION_STEPS = 80; // milliseconds for rotation. lower = responsive, higher = smoother
+const ROTATION_STEPS = 40;
 const MIN_PITCH_DISTANCE = 1.5;
+
+let lastPitch = 0;
+let consecutiveJumps = 0;
+let ticksSinceLastJump = 0;
 
 export function updateRotations() {
     if (!movementState.targetPoint) return;
+
     const eyePos = Player.getPlayer()?.getEyePos();
     if (!eyePos) return;
+
+    if (movementState.jumpTriggered) {
+        consecutiveJumps++;
+        ticksSinceLastJump = 0;
+    } else {
+        ticksSinceLastJump++;
+        if (ticksSinceLastJump > 20) {
+            consecutiveJumps = 0;
+        }
+    }
+
+    const isInJumpSequence =
+        consecutiveJumps >= 2 ||
+        (consecutiveJumps > 0 && ticksSinceLastJump < 10);
 
     if (
         movementState.jumpStartYaw !== null &&
@@ -32,28 +48,42 @@ export function updateRotations() {
     const dx = movementState.targetPoint.x - eyePos.x;
     const dy = movementState.targetPoint.y - eyePos.y;
     const dz = movementState.targetPoint.z - eyePos.z;
-
     const horizontalDist = Math.hypot(dx, dz);
 
     const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
 
-    let pitchMultiplier = 1.0;
+    let targetPitch = 0;
 
-    // Only reduce pitch for ACTUAL long falls, not short jumps or steps
-    if (movementState.isFalling && movementState.jumpType === 'long_gap') {
-        pitchMultiplier = 0.35;
+    if (isInJumpSequence) {
+        targetPitch = lastPitch * 0.95;
+    } else {
+        const verticalDiff = Math.abs(dy);
+        const shouldUsePitch = verticalDiff > 2.0 && horizontalDist < 5;
+
+        if (shouldUsePitch) {
+            let pitchMultiplier = 0.3;
+
+            if (
+                movementState.isFalling &&
+                movementState.jumpType === 'long_gap'
+            ) {
+                pitchMultiplier = 0.2;
+            }
+
+            if (horizontalDist < MIN_PITCH_DISTANCE) {
+                pitchMultiplier *= 0.1;
+            }
+
+            targetPitch =
+                -Math.atan2(dy * pitchMultiplier, horizontalDist) *
+                (180 / Math.PI);
+        }
+
+        targetPitch = lastPitch * 0.4 + targetPitch * 0.6;
     }
 
-    if (horizontalDist < MIN_PITCH_DISTANCE) {
-        pitchMultiplier *= 0.2;
-    }
-
-    let targetPitch =
-        -Math.atan2(dy * pitchMultiplier, horizontalDist) * (180 / Math.PI);
-
-    targetPitch += 2;
-
-    targetPitch = Math.max(-35, Math.min(35, targetPitch));
+    targetPitch = Math.max(-15, Math.min(15, targetPitch));
+    lastPitch = targetPitch;
 
     Rotations.rotateToAngles(
         targetYaw,
@@ -65,4 +95,7 @@ export function updateRotations() {
 
 export function stopRotation() {
     Rotations.stopRotation();
+    lastPitch = 0;
+    consecutiveJumps = 0;
+    ticksSinceLastJump = 0;
 }
