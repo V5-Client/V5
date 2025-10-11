@@ -12,6 +12,7 @@ const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
 
 class RouteWalkerer {
     constructor() {
+        this.LEFTCLICK = false;
         this.SNEAK = false;
         this.LOCKPITCH = false;
         this.PITCH = 0;
@@ -138,6 +139,7 @@ class RouteWalkerer {
             switch (this.action) {
                 case this.ACTIONS.WALK:
                     Keybind.setKey('shift', this.SNEAK ? true : false);
+                    Keybind.setKey('leftclick', this.LEFTCLICK ? true : false);
 
                     Keybind.setKeysForStraightLineCoords(
                         this.point.x,
@@ -166,7 +168,10 @@ class RouteWalkerer {
                             this.indexadder++;
                             this.point =
                                 this.route[this.data.index + this.indexadder];
-                        } else this.point = this.route[0];
+                        } else {
+                            this.point = this.route[0];
+                            this.indexadder = -1;
+                        }
                     }
                     break;
                 case this.ACTIONS.ETHERWARP:
@@ -211,7 +216,10 @@ class RouteWalkerer {
                             this.indexadder++;
                             this.point =
                                 this.route[this.data.index + this.indexadder];
-                        } else this.point = this.route[0];
+                        } else {
+                            this.point = this.route[0];
+                            this.indexadder = -1;
+                        }
                     }
                     break;
             }
@@ -228,7 +236,9 @@ class RouteWalkerer {
             'Modules',
             'RouteWalker',
             'Leftclick',
-            (value) => {},
+            (value) => {
+                this.LEFTCLICK = value;
+            },
             'LeftClick while macro is active'
         );
         addToggle(
@@ -316,14 +326,3 @@ class RouteWalkerer {
 }
 
 new RouteWalkerer();
-
-/* new SettingToggle("Left Click", false),
-      new SettingToggle("Sneak", false),
-      new SettingToggle("Show All Waypoints", true),
-      new SettingToggle("Show Waypoint Fill", true),
-      new SettingToggle("Show Waypoint Outline", true),
-      new SettingToggle("Show Waypoint Connection Lines", true),
-      new SettingToggle("Lock Pitch", false),
-      new SettingSlider("Pitch", 0, -90, 90, 1),
-      new SettingSlider("Mining slot", 1, 1, 8),
-      new SettingSlider("Ability slot", 2, 1, 8), */
