@@ -80,37 +80,34 @@ class RouteWalkerer {
             let route = this.route;
             if (!route || route.length === 0) return;
 
+            const getColor = (movement) => {
+                if (!movement) return [255, 255, 255, 255];
+                switch (movement.toUpperCase()) {
+                    case 'WALK':
+                        return [0, 128, 255, 255];
+                    case 'ETHERWARP':
+                        return [170, 0, 255, 255];
+                    default:
+                        return [255, 255, 255, 255];
+                }
+            };
+
             for (let i = 0; i < route.length; i++) {
                 const point = route[i];
-                const index = i + 1;
-
                 if (!this.CheckPoint(point)) return;
-                let color = [255, 255, 255, 255];
-
-                if (point.movements && point.movements.length > 0) {
-                    const type = point.movements.toUpperCase();
-                    switch (type) {
-                        case 'WALK':
-                            color = [0, 128, 255, 255];
-                            break;
-                        case 'ETHERWARP':
-                            color = [170, 0, 255, 255];
-                            break;
-                    }
-                }
 
                 RenderUtils.drawStyledBoxWithText(
                     new Vec3d(point.x, point.y, point.z),
-                    color,
+                    getColor(point.movements),
                     5,
                     false,
-                    `${index}`
+                    `${i + 1}`
                 );
 
                 if (i >= route.length - 1) return;
                 const nextPoint = route[i + 1];
-
                 if (!this.CheckPoint(nextPoint)) return;
+
                 RenderUtils.drawLine(
                     new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
                     new Vec3d(
@@ -118,7 +115,7 @@ class RouteWalkerer {
                         nextPoint.y + 1,
                         nextPoint.z + 0.5
                     ),
-                    color,
+                    getColor(nextPoint.movements),
                     3,
                     false
                 );
