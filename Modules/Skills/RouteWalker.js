@@ -33,6 +33,9 @@ class RouteWalkerer {
         this.action = this.ACTIONS.WALK;
 
         register('command', () => {
+            Client.scheduleTask(2, () => {
+                this.RouteWalkerer.register();
+            });
             this.enabled = true;
             this.foundpoint = false;
         }).setName('goon');
@@ -120,7 +123,7 @@ class RouteWalkerer {
             }
         });
 
-        register('tick', () => {
+        this.RouteWalkerer = register('tick', () => {
             if (!this.enabled) return;
 
             if (!this.route || this.route.length === 0) return;
@@ -149,10 +152,7 @@ class RouteWalkerer {
                     );
 
                     Keybind.setKey('shift', this.SNEAK);
-
-                    if (this.LEFTCLICK) {
-                        Keybind.leftClick();
-                    }
+                    Keybind.setKey('leftclick', this.LEFTCLICK);
 
                     let angle = MathUtils.calculateAbsoluteAngles(
                         new Vec3d(
@@ -220,7 +220,7 @@ class RouteWalkerer {
                     }
                     break;
             }
-        });
+        }).unregister();
 
         addCategoryItem(
             'Other',
