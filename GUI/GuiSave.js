@@ -1,6 +1,6 @@
-import { ToggleButton } from './Toggle';
-import { Slider } from './Slider';
-import { MultiToggle } from './Dropdown';
+import { ToggleButton } from './components/Toggle';
+import { Slider } from './components/Slider';
+import { MultiToggle } from './components/Dropdown';
 import { File } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 
@@ -33,10 +33,8 @@ function buildSettingsMapFromComponents() {
 }
 
 export const saveSettings = () => {
-    // Update the map first
     buildSettingsMapFromComponents();
 
-    // Build the file content FROM the map.
     const settings = {};
     for (const [key, value] of global.SettingsMap.entries()) {
         const [itemTitle, componentTitle] = key.split('.');
@@ -54,11 +52,28 @@ export const saveSettings = () => {
     );
 };
 
+export const applySettings = () => {
+    global.Categories.categories
+        .filter((c) => c.name === 'Modules')
+        .forEach((category) => {
+            getModuleItems(category).forEach((item) => {
+                item.components.forEach((component) => {
+                    if (component.callback) {
+                        const value = getSetting(item.title, component.title);
+                        if (value !== undefined) {
+                            component.callback(value);
+                        }
+                    }
+                });
+            });
+        });
+};
+
 export const loadSettings = () => {
     const fileContent = FileLib.read('V5Config', 'config.json');
     if (!fileContent) {
         buildSettingsMapFromComponents();
-        if (global.Categories?.applySettings) global.Categories.applySettings();
+        applySettings();
         return;
     }
 
@@ -66,8 +81,7 @@ export const loadSettings = () => {
         const settings = JSON.parse(fileContent);
         if (!settings) {
             buildSettingsMapFromComponents();
-            if (global.Categories?.applySettings)
-                global.Categories.applySettings();
+            applySettings();
             return;
         }
 
@@ -98,11 +112,11 @@ export const loadSettings = () => {
             });
 
         buildSettingsMapFromComponents();
-        if (global.Categories?.applySettings) global.Categories.applySettings();
+        applySettings();
     } catch (e) {
         Chat.message(`Error loading settings: ${e}`);
         buildSettingsMapFromComponents();
-        if (global.Categories?.applySettings) global.Categories.applySettings();
+        applySettings();
     }
 };
 
