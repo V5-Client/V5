@@ -1,33 +1,27 @@
 import { Chat } from '../../Utility/Chat';
+import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
+import { COMMISSION_DATA } from './CommissionData';
 const { addToggle, addCategoryItem } = global.Categories;
+
+const STATES = {
+    IDLE: 'Idle',
+    CHOOSING: 'Choosing Commission',
+    TRAVELING: 'Traveling to Location',
+};
+
+const PLAYER_AVOIDANCE_RADIUS = 10;
 
 class CommissionMacro {
     constructor() {
         this.enabled = false;
+        this.currentState = STATES.IDLE;
+
         this.commissions = [];
         this.lastCommissionCheck = 0;
+        this.currentCommission = null;
         this.hasWarned = false;
-        this.mobWhitelist = new Set(); // UUIDs of dead mobs (to ignore)
 
-        this.commissionNames = [
-            'Royal Mines Titanium',
-            'Royal Mines Mithril',
-            'Goblin Slayer',
-            'Glacite Walker Slayer',
-            'Lava Springs Mithril',
-            'Lava Springs Titanium',
-            "Rampart's Quarry Titanium",
-            "Rampart's Quarry Mithril",
-            'Titanium Miner',
-            'Mithril Miner',
-            'Upper Mines Titanium',
-            'Upper Mines Mithril',
-            'Cliffside Veins Mithril',
-            'Cliffside Veins Titanium',
-            'Treasure Hoarder Puncher',
-        ];
-
-        this.mainLoop = register('step', () => {
+        this.commissionReader = register('step', () => {
             if (Date.now() - this.lastCommissionCheck > 5000) {
                 this.readCommissions();
                 this.lastCommissionCheck = Date.now();
@@ -37,13 +31,17 @@ class CommissionMacro {
         this.toggle = (value) => {
             this.enabled = value;
             if (value) {
-                this.mainLoop.register();
+                Chat.message('&aCommission Macro Enabled.');
+                this.commissionReader.register();
+                this.runLogic();
             } else {
-                this.mainLoop.unregister();
+                Chat.message('&cCommission Macro Disabled.');
+                this.commissionReader.unregister();
+                stopPathing();
+                this.setState(STATES.IDLE);
+                this.currentCommission = null;
             }
         };
-
-        this.toggle(this.enabled);
 
         addCategoryItem(
             'Mining',
@@ -63,17 +61,146 @@ class CommissionMacro {
         );
     }
 
+    setState(newState) {
+        if (this.currentState !== newState) {
+            Chat.message(`&aCommission Macro: &eChanging state to ${newState}`);
+            this.currentState = newState;
+        }
+    }
+
+    runLogic() {
+        if (!this.enabled) return;
+
+        if (this.currentState === STATES.IDLE) {
+            if (this.commissions.some((c) => c.progress < 1)) {
+                this.setState(STATES.CHOOSING);
+                this.runLogic();
+            }
+        } else if (this.currentState === STATES.CHOOSING) {
+            this.chooseAndStartCommission();
+        }
+    }
+
+    chooseAndStartCommission() {
+        const activeCommissions = this.commissions.filter(
+            (c) => c.progress < 1
+        );
+        if (activeCommissions.length === 0) {
+            this.setState(STATES.IDLE);
+            return;
+        }
+
+        const possibleTasks = activeCommissions
+            .map((tabComm) => {
+                const data = COMMISSION_DATA.find((d) =>
+                    d.names.includes(tabComm.name)
+                );
+                return data ? { ...tabComm, ...data } : null;
+            })
+            .filter((task) => task && task.type === 'MINING');
+
+        if (possibleTasks.length === 0) {
+            this.setState(STATES.IDLE);
+            return;
+        }
+
+        possibleTasks.sort((a, b) => a.cost - b.cost);
+        const chosenTask = possibleTasks[0];
+
+        const otherPlayers = World.getAllPlayers().filter(
+            (p) => p.getName() !== Player.getName()
+        );
+
+        const safeWaypoints = chosenTask.waypoints.filter((waypoint) => {
+            return !otherPlayers.some((player) => {
+                const distance = Math.hypot(
+                    player.getX() - waypoint[0],
+                    player.getY() - waypoint[1],
+                    player.getZ() - waypoint[2]
+                );
+                return distance < PLAYER_AVOIDANCE_RADIUS;
+            });
+        });
+
+        if (safeWaypoints.length === 0) {
+            Chat.message(
+                `&cAll spots for &b${chosenTask.name}&c are occupied. Waiting...`
+            );
+            this.setState(STATES.IDLE);
+            return;
+        }
+
+        const playerPos = {
+            x: Player.getX(),
+            y: Player.getY(),
+            z: Player.getZ(),
+        };
+        let closestWaypoint = safeWaypoints.reduce((closest, current) => {
+            const closestDist = Math.hypot(
+                playerPos.x - closest[0],
+                playerPos.y - closest[1],
+                playerPos.z - closest[2]
+            );
+            const currentDist = Math.hypot(
+                playerPos.x - current[0],
+                playerPos.y - current[1],
+                playerPos.z - current[2]
+            );
+            return currentDist < closestDist ? current : closest;
+        }, safeWaypoints[0]);
+
+        this.currentCommission = chosenTask;
+        const destination = closestWaypoint;
+        const startPos = [
+            Math.floor(Player.getX()),
+            Math.floor(Player.getY()) - 1,
+            Math.floor(Player.getZ()),
+        ];
+
+        Chat.message(
+            `&aStarting commission: &b${
+                chosenTask.name
+            }&a. Pathing to safe spot: &b[${destination.join(', ')}]`
+        );
+
+        this.setState(STATES.TRAVELING);
+        findAndFollowPath(
+            startPos,
+            destination,
+            false,
+            () => this.onPathComplete(),
+            () => this.onPathFail()
+        );
+    }
+
+    onPathComplete() {
+        if (!this.enabled) return;
+        Chat.message(
+            `&aArrived at destination for &b${this.currentCommission.name}`
+        );
+        this.currentCommission = null;
+        this.setState(STATES.IDLE);
+        this.runLogic();
+    }
+
+    onPathFail() {
+        if (!this.enabled) return;
+        Chat.message(
+            `&cFailed to find a path for &b${this.currentCommission.name}. Retrying...`
+        );
+        this.currentCommission = null;
+        this.setState(STATES.IDLE);
+        setTimeout(() => this.runLogic(), 2500);
+    }
+
     readCommissions() {
         try {
             const tabItems = TabList.getNames();
             let startIndex = -1;
-
             for (let i = 0; i < tabItems.length; i++) {
-                const item = tabItems[i];
-                if (!item) continue;
-
-                const cleaned = ChatLib.removeFormatting(item).trim();
-
+                const cleaned = ChatLib.removeFormatting(
+                    tabItems[i] ?? ''
+                ).trim();
                 if (cleaned === 'Commissions:') {
                     startIndex = i;
                     break;
@@ -82,83 +209,65 @@ class CommissionMacro {
 
             if (startIndex === -1) {
                 if (this.commissions.length > 0) this.commissions = [];
-                if (!this.hasWarned) {
-                    Chat.message(
-                        '&cCould not find "Commissions:" in tab list. Make sure you are in the Dwarven Mines.'
-                    );
-                    this.hasWarned = true;
-                }
                 return;
             }
-            this.hasWarned = false;
 
             let endIndex = tabItems.length;
             for (let i = startIndex + 1; i < tabItems.length; i++) {
-                const item = tabItems[i];
-                if (!item) {
-                    endIndex = i;
-                    break;
-                }
-
-                const cleaned = ChatLib.removeFormatting(item).trim();
+                const cleaned = ChatLib.removeFormatting(
+                    tabItems[i] ?? ''
+                ).trim();
                 if (cleaned === '' || cleaned === 'Powders:') {
                     endIndex = i;
                     break;
                 }
             }
 
-            const commissions = [];
+            const newCommissions = [];
             for (let i = startIndex + 1; i < endIndex; i++) {
-                const commissionText = tabItems[i];
-                if (!commissionText) continue;
+                const formattedText = ChatLib.removeFormatting(
+                    tabItems[i] ?? ''
+                ).trim();
+                if (!formattedText.includes(':')) continue;
 
-                const formattedText =
-                    ChatLib.removeFormatting(commissionText).trim();
-                if (!formattedText || formattedText === '') continue;
+                const parts = formattedText.split(':');
+                const name = parts[0].trim();
+                const progressStr = parts[1].trim();
+                let progress;
 
-                if (formattedText.includes(':')) {
-                    const parts = formattedText.split(':');
-                    const name = parts[0].trim();
-                    const progressStr = parts[1].trim();
-
-                    if (
-                        progressStr.includes('%') ||
-                        progressStr.includes('DONE')
-                    ) {
-                        let progress;
-                        if (progressStr.includes('DONE')) {
-                            progress = 1;
-                        } else {
-                            progress =
-                                parseFloat(
-                                    progressStr
-                                        .replace(/ /g, '')
-                                        .replace('%', '')
-                                ) / 100;
-                        }
-
-                        commissions.push({ name, progress });
-                    }
+                if (progressStr.includes('DONE')) {
+                    progress = 1;
+                } else if (progressStr.includes('%')) {
+                    progress =
+                        parseFloat(
+                            progressStr.replace(/ /g, '').replace('%', '')
+                        ) / 100;
+                } else {
+                    continue;
                 }
+                newCommissions.push({ name, progress });
             }
 
             if (
-                JSON.stringify(this.commissions) !== JSON.stringify(commissions)
+                JSON.stringify(this.commissions) !==
+                JSON.stringify(newCommissions)
             ) {
-                this.commissions = commissions;
-                if (this.commissions.length > 0) {
-                    Chat.message('&a--- Commissions ---');
-                    this.commissions.forEach((c) => {
-                        Chat.message(
-                            `&7- &f${c.name}: &b${
-                                c.progress === 1
-                                    ? 'DONE'
-                                    : (c.progress * 100).toFixed(2) + '%'
-                            }`
-                        );
-                    });
-                } else {
-                    Chat.message('&aNo active commissions found.');
+                this.commissions = newCommissions;
+                Chat.message('&a--- Commissions Updated ---');
+                this.commissions.forEach((c) => {
+                    Chat.message(
+                        `&7- &f${c.name}: &b${
+                            c.progress === 1
+                                ? 'DONE'
+                                : (c.progress * 100).toFixed(0) + '%'
+                        }`
+                    );
+                });
+
+                // IMPORTANT: If the state is IDLE and we get a commission update,
+                // we should re-evaluate our logic. This is a key event trigger.
+                if (this.currentState === STATES.IDLE) {
+                    this.runLogic();
                 }
             }
         } catch (e) {
