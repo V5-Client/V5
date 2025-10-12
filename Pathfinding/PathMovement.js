@@ -4,12 +4,12 @@ import { movementState } from './PathState';
 
 const NODE_REACH_DISTANCE = 5.5;
 const NODE_PASS_DISTANCE = 2.5;
-const LOOK_AHEAD_BASE = 4.0;
-const LOOK_AHEAD_MAX = 8.0;
+const LOOK_AHEAD_BASE = 3.0;
+const LOOK_AHEAD_MAX = 5.5;
 const FINAL_NODE_THRESHOLD = 4.5;
 const EYE_HEIGHT = 1.62;
 const VISIBILITY_LOOKAHEAD = 12.5;
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 const STEP_HEIGHT = 0.6;
 
 const IGNORED_BLOCK_IDS = new Set([

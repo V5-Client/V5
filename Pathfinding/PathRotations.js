@@ -1,33 +1,48 @@
 import { Rotations } from '../Utility/Rotations';
 import { movementState } from './PathState';
+import { getDistance3D } from './PathMovement';
 
 const INSTANT_SNAP_MODE = false;
 const ROTATION_STEPS = 40;
-const MIN_PITCH_DISTANCE = 1.5;
+const LARGE_PITCH_THRESHOLD = 45;
+const LARGE_PITCH_DAMPENING = 0.3;
+const MIN_PITCH_DISTANCE = 3.5;
 
-let lastPitch = 0;
-let consecutiveJumps = 0;
-let ticksSinceLastJump = 0;
+let lastCalculatedPitch = 0;
+
+function findPitchTargetNode() {
+    const { splinePath, currentNodeIndex } = movementState;
+    if (!splinePath || !splinePath.length) return null;
+
+    const player = Player.getPlayer();
+    const eyePos = player?.getEyePos();
+    if (!eyePos) return null;
+
+    let targetForPitch = movementState.targetPoint;
+    if (!targetForPitch) return null;
+
+    const distToTarget = getDistance3D(eyePos, targetForPitch);
+
+    if (distToTarget < MIN_PITCH_DISTANCE) {
+        for (let i = currentNodeIndex + 1; i < splinePath.length; i++) {
+            const node = splinePath[i];
+            const dist = getDistance3D(eyePos, node);
+
+            if (dist >= MIN_PITCH_DISTANCE) {
+                return node;
+            }
+        }
+        return splinePath[splinePath.length - 1];
+    }
+
+    return targetForPitch;
+}
 
 export function updateRotations() {
     if (!movementState.targetPoint) return;
 
     const eyePos = Player.getPlayer()?.getEyePos();
     if (!eyePos) return;
-
-    if (movementState.jumpTriggered) {
-        consecutiveJumps++;
-        ticksSinceLastJump = 0;
-    } else {
-        ticksSinceLastJump++;
-        if (ticksSinceLastJump > 20) {
-            consecutiveJumps = 0;
-        }
-    }
-
-    const isInJumpSequence =
-        consecutiveJumps >= 2 ||
-        (consecutiveJumps > 0 && ticksSinceLastJump < 10);
 
     if (
         movementState.jumpStartYaw !== null &&
@@ -46,44 +61,34 @@ export function updateRotations() {
     }
 
     const dx = movementState.targetPoint.x - eyePos.x;
-    const dy = movementState.targetPoint.y - eyePos.y;
     const dz = movementState.targetPoint.z - eyePos.z;
-    const horizontalDist = Math.hypot(dx, dz);
-
     const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
 
+    const pitchTarget = findPitchTargetNode();
     let targetPitch = 0;
 
-    if (isInJumpSequence) {
-        targetPitch = lastPitch * 0.95;
-    } else {
-        const verticalDiff = Math.abs(dy);
-        const shouldUsePitch = verticalDiff > 2.0 && horizontalDist < 5;
+    if (pitchTarget) {
+        const dyPitch = pitchTarget.y - eyePos.y;
+        const dzPitch = pitchTarget.z - eyePos.z;
+        const dxPitch = pitchTarget.x - eyePos.x;
+        const horizontalDistPitch = Math.hypot(dxPitch, dzPitch);
 
-        if (shouldUsePitch) {
-            let pitchMultiplier = 0.3;
+        targetPitch =
+            -Math.atan2(dyPitch, horizontalDistPitch) * (180 / Math.PI);
 
-            if (
-                movementState.isFalling &&
-                movementState.jumpType === 'long_gap'
-            ) {
-                pitchMultiplier = 0.2;
-            }
+        const pitchChange = Math.abs(targetPitch - lastCalculatedPitch);
 
-            if (horizontalDist < MIN_PITCH_DISTANCE) {
-                pitchMultiplier *= 0.1;
-            }
-
-            targetPitch =
-                -Math.atan2(dy * pitchMultiplier, horizontalDist) *
-                (180 / Math.PI);
+        if (pitchChange > LARGE_PITCH_THRESHOLD) {
+            const blendedPitch =
+                lastCalculatedPitch +
+                (targetPitch - lastCalculatedPitch) * LARGE_PITCH_DAMPENING;
+            targetPitch = blendedPitch;
         }
-
-        targetPitch = lastPitch * 0.4 + targetPitch * 0.6;
     }
 
-    targetPitch = Math.max(-15, Math.min(15, targetPitch));
-    lastPitch = targetPitch;
+    targetPitch = Math.max(-30, Math.min(30, targetPitch));
+
+    lastCalculatedPitch = targetPitch;
 
     Rotations.rotateToAngles(
         targetYaw,
@@ -95,7 +100,5 @@ export function updateRotations() {
 
 export function stopRotation() {
     Rotations.stopRotation();
-    lastPitch = 0;
-    consecutiveJumps = 0;
-    ticksSinceLastJump = 0;
+    lastCalculatedPitch = 0;
 }
