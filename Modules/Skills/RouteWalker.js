@@ -189,6 +189,13 @@ class RouteWalkerer {
                         this.point.z
                     );
 
+                    if (
+                        Math.abs(Player.getMotionX()) +
+                            Math.abs(Player.getMotionZ()) >
+                        0.1
+                    )
+                        return;
+
                     let point = RayTrace.getPointOnBlock(
                         targetBlockPos,
                         undefined,
