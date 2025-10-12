@@ -119,7 +119,7 @@ class RouteWalkerer {
                         nextPoint.z + 0.5
                     ),
                     color,
-                    5,
+                    3,
                     false
                 );
             }
