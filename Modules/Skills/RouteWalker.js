@@ -6,6 +6,7 @@ import { Keybind } from '../../Utility/Keybinding';
 import { Rotations } from '../../Utility/Rotations';
 import { RayTrace } from '../../Utility/Raytrace';
 import { Chat } from '../../Utility/Chat';
+import { Mouse } from '../../Utility/Ungrab';
 
 const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
     global.Categories;
@@ -222,14 +223,14 @@ class RouteWalkerer {
 
         addCategoryItem(
             'Other',
-            'RouteWalker',
-            'Walks, Etherwarps and AOTVS Routes',
-            'Walks, Etherwarps and AOTVS Routes'
+            'Route Walker',
+            'Walks and Etherwarps Routes',
+            'Walks and Etherwarps Routes'
         );
 
         addToggle(
             'Modules',
-            'RouteWalker',
+            'Route Walker',
             'Leftclick',
             (value) => {
                 this.LEFTCLICK = value;
@@ -238,7 +239,7 @@ class RouteWalkerer {
         );
         addToggle(
             'Modules',
-            'RouteWalker',
+            'Route Walker',
             'Sneak',
             (value) => {
                 this.SNEAK = value;
@@ -247,7 +248,7 @@ class RouteWalkerer {
         );
         addToggle(
             'Modules',
-            'RouteWalker',
+            'Route Walker',
             'Lock Pitch',
             (value) => {
                 this.LOCKPITCH = value;
@@ -256,7 +257,7 @@ class RouteWalkerer {
         );
         addSlider(
             'Modules',
-            'RouteWalker',
+            'Route Walker',
             'Pitch',
             90,
             -90,
