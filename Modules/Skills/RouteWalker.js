@@ -78,47 +78,50 @@ class RouteWalkerer {
 
         register('postRenderWorld', () => {
             let route = this.route;
-
             if (!route || route.length === 0) return;
 
             for (let i = 0; i < route.length; i++) {
                 const point = route[i];
                 const index = i + 1;
 
-                if (
-                    point &&
-                    typeof point.x === 'number' &&
-                    typeof point.y === 'number' &&
-                    typeof point.z === 'number'
-                ) {
-                    let color = [255, 255, 255, 255];
+                if (!this.CheckPoint(point)) return;
+                let color = [255, 255, 255, 255];
 
-                    if (point.movements && point.movements.length > 0) {
-                        const type = point.movements.toUpperCase();
-                        switch (type) {
-                            case 'WALK':
-                                color = [0, 128, 255, 255];
-                                break;
-                            case 'ETHERWARP':
-                                color = [170, 0, 255, 255];
-                                break;
-                        }
+                if (point.movements && point.movements.length > 0) {
+                    const type = point.movements.toUpperCase();
+                    switch (type) {
+                        case 'WALK':
+                            color = [0, 128, 255, 255];
+                            break;
+                        case 'ETHERWARP':
+                            color = [170, 0, 255, 255];
+                            break;
                     }
-
-                    RenderUtils.drawWireFrame(
-                        new Vec3d(point.x, point.y, point.z),
-                        color
-                    );
-
-                    RenderUtils.drawString(
-                        `${index}`,
-                        point.x + 0.5,
-                        point.y + 1.2,
-                        point.z + 0.5,
-                        Renderer.WHITE,
-                        false
-                    );
                 }
+
+                RenderUtils.drawStyledBoxWithText(
+                    new Vec3d(point.x, point.y, point.z),
+                    color,
+                    5,
+                    false,
+                    `${index}`
+                );
+
+                if (i >= route.length - 1) return;
+                const nextPoint = route[i + 1];
+
+                if (!this.CheckPoint(nextPoint)) return;
+                RenderUtils.drawLine(
+                    new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
+                    new Vec3d(
+                        nextPoint.x + 0.5,
+                        nextPoint.y + 1,
+                        nextPoint.z + 0.5
+                    ),
+                    color,
+                    5,
+                    false
+                );
             }
         });
 
@@ -279,6 +282,18 @@ class RouteWalkerer {
             },
             'Pitch set to amount'
         ); */
+    }
+
+    CheckPoint(point) {
+        if (
+            point &&
+            typeof point.x === 'number' &&
+            typeof point.y === 'number' &&
+            typeof point.z === 'number'
+        )
+            return true;
+
+        return false;
     }
 
     getClosestPoint() {
