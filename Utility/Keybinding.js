@@ -12,11 +12,10 @@ RightClickMouse.setAccessible(true);
 
 const BP = net.minecraft.util.math.BlockPos;
 
-class Keybinding {
-    constructor() {
-        this.cooldown = new Time();
-    }
+let justExitedGui = false;
+let clickReenableTimer = 0;
 
+class Keybinding {
     /**
      * Performs a left click using ChatTriggers API instead of reflection
      * @returns {boolean} Success status
@@ -94,7 +93,40 @@ class Keybinding {
      * @returns {boolean} Success status
      */
     setKey(key, down) {
-        if (Client.isInGui() && !Client.isInChat()) return;
+        let isGuiOpen = Client.isInGui();
+        let isChatOpen = Client.isInChat();
+        let shouldBlockInput = isGuiOpen || isChatOpen;
+
+        if (key === 'leftclick') {
+            const attackKey = mc.options.attackKey;
+
+            if (shouldBlockInput) {
+                attackKey.setPressed(false);
+
+                if (!justExitedGui) {
+                    justExitedGui = true;
+                    clickReenableTimer = 0;
+                }
+                return true;
+            }
+
+            if (justExitedGui) {
+                if (clickReenableTimer === 0) clickReenableTimer = 2;
+                justExitedGui = false;
+            }
+
+            if (clickReenableTimer > 0) {
+                attackKey.setPressed(false);
+                clickReenableTimer--;
+                return true;
+            }
+
+            attackKey.setPressed(down);
+            return true;
+        }
+
+        if (isGuiOpen && !isChatOpen) return false;
+
         const keyMap = {
             a: mc.options.leftKey,
             d: mc.options.rightKey,
@@ -102,12 +134,15 @@ class Keybinding {
             w: mc.options.forwardKey,
             space: mc.options.jumpKey,
             shift: mc.options.sneakKey,
-            leftclick: mc.options.attackKey,
             sprint: mc.options.sprintKey,
         };
-        if (keyMap[key]) {
-            keyMap[key].setPressed(down);
+
+        const targetKey = keyMap[key];
+        if (targetKey) {
+            targetKey.setPressed(down);
+            return true;
         }
+        return false;
     }
 
     /**

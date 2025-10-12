@@ -33,9 +33,7 @@ class RouteWalkerer {
         this.action = this.ACTIONS.WALK;
 
         register('command', () => {
-            Client.scheduleTask(2, () => {
-                this.RouteWalkerer.register();
-            });
+            Client.scheduleTask(2, () => this.RouteWalkerer.register());
             this.enabled = true;
             this.foundpoint = false;
         }).setName('goon');
