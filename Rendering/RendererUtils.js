@@ -79,6 +79,45 @@ export default class RenderUtils {
         );
     }
 
+    static drawStyledBoxWithText(
+        Vec3d,
+        ColorArray1,
+        thickness = 5,
+        depth = false,
+        text,
+        renderBlackBox = true,
+        scale = 1,
+        increase = false,
+        centered = true,
+        renderThroughBlocks = true
+    ) {
+        RenderUtilsPackage.drawStyledBox(
+            Vec3d,
+            this.setColor(ColorArray1[0], ColorArray1[1], ColorArray1[2], 70),
+            this.setColor(
+                ColorArray1[0],
+                ColorArray1[1],
+                ColorArray1[2],
+                ColorArray1[3]
+            ),
+            thickness,
+            depth
+        );
+
+        RenderUtilsPackage.drawString(
+            text,
+            Vec3d.x + 0.5,
+            Vec3d.y + 1.2,
+            Vec3d.z + 0.5,
+            Renderer.WHITE,
+            renderBlackBox,
+            scale,
+            increase,
+            centered,
+            renderThroughBlocks
+        );
+    }
+
     // tesselator is retarded
     static drawString(
         text,
