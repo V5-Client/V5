@@ -9,7 +9,7 @@ const LOOK_AHEAD_MAX = 8.0;
 const FINAL_NODE_THRESHOLD = 4.5;
 const EYE_HEIGHT = 1.62;
 const VISIBILITY_LOOKAHEAD = 12.5;
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 const STEP_HEIGHT = 0.6;
 
 const IGNORED_BLOCK_IDS = new Set([

@@ -1,0 +1,85 @@
+export const COMMISSION_DATA = [
+    {
+        names: ['Royal Mines Titanium', 'Royal Mines Mithril'],
+        type: 'MINING',
+        cost: 5,
+        waypoints: [
+            [141, 152, 24],
+            [173, 149, 70],
+            [166, 148, 90],
+        ],
+    },
+    {
+        names: ['Cliffside Veins Mithril', 'Cliffside Veins Titanium'],
+        type: 'MINING',
+        cost: 10,
+        waypoints: [
+            [46, 134, 11],
+            [25, 128, 27],
+            [10, 127, 37],
+        ],
+    },
+    {
+        names: ['Upper Mines Titanium', 'Upper Mines Mithril'],
+        type: 'MINING',
+        cost: 15,
+        waypoints: [
+            [-113, 166, -75],
+            [-125, 170, -76],
+            [-78, 187, -74],
+        ],
+    },
+    {
+        names: ["Rampart's Quarry Titanium", "Rampart's Quarry Mithril"],
+        type: 'MINING',
+        cost: 15,
+        waypoints: [
+            [-88, 146, 29],
+            [-87, 146, -14],
+            [-118, 149, -31],
+        ],
+    },
+    {
+        names: ['Lava Springs Mithril', 'Lava Springs Titanium'],
+        type: 'MINING',
+        cost: 20,
+        waypoints: [
+            [39, 197, -14],
+            [50, 197, -26],
+            [42, 197, -20],
+        ],
+    },
+    {
+        // GENERIC AREAS
+        names: ['Titanium Miner', 'Mithril Miner'],
+        type: 'MINING',
+        cost: 12,
+        waypoints: [
+            [46, 134, 11],
+            [-88, 146, 29],
+            [-118, 149, -31],
+        ],
+    },
+
+    {
+        names: ['Goblin Slayer'],
+        type: 'SLAYER',
+        cost: 30,
+
+        waypoints: [[-130, 145, 147]],
+    },
+    {
+        names: ['Glacite Walker Slayer'],
+        type: 'SLAYER',
+        cost: 25,
+
+        waypoints: [[0, 127, 157]],
+    },
+    {
+        names: ['Treasure Hoarder Puncher'],
+        type: 'SLAYER',
+        cost: 50,
+
+        waypoints: [[-117, 204, -56]],
+    },
+];
