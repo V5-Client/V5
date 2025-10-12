@@ -4,13 +4,8 @@ import {
     drawRoundedRectangleWithBorder,
     PADDING,
     isInside,
-} from './Utils';
-import {
-    Color,
-    UMatrixStack,
-    Matrix,
-    UIRoundedRectangle,
-} from '../Utility/Constants';
+} from '../Utils';
+import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
 
 export class MultiToggle {
     constructor(

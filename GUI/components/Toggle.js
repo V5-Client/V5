@@ -3,8 +3,8 @@ import {
     drawRoundedRectangleWithBorder,
     THEME,
     isInside,
-} from './Utils';
-import { Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
+} from '../Utils';
+import { UIRoundedRectangle, Matrix } from '../../Utility/Constants';
 
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10, callback = null) {

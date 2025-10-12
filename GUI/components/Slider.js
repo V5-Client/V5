@@ -1,4 +1,4 @@
-import { Color, Matrix, UIRoundedRectangle } from '../Utility/Constants';
+import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
 
 import {
     clamp,
@@ -6,7 +6,7 @@ import {
     drawRoundedRectangleWithBorder,
     THEME,
     isInside,
-} from './Utils';
+} from '../Utils';
 
 export class Slider {
     constructor(
