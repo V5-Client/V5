@@ -232,7 +232,9 @@ export function downloadFile(fileURL, savePath) {
 
         inStream.close();
         outStream.close();
-    } catch (e) {}
+    } catch (e) {
+        console.error(`Failed to download file from ${fileURL}: ${e}`);
+    }
 }
 const SoundCategory = net.minecraft.sound.SoundCategory;
 const Identifier = net.minecraft.util.Identifier;
