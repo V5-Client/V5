@@ -226,6 +226,66 @@ export const drawLeftPanel = (mouseX, mouseY) => {
     });
 };
 
+/**
+ * Function to draw a single item box
+ * @param {Object} item - The item to draw
+ * @param {number} itemX - X position
+ * @param {number} itemY - Y position
+ * @param {number} itemWidth - Width of the item box
+ * @param {number} mouseX - Mouse X position
+ * @param {number} mouseY - Mouse Y position
+ * @param {Array} cachedItemLayouts - Array to cache layout information
+ * @param {boolean} isLayoutCacheValid - Whether the cache is valid
+ * @param {boolean} centerText - Whether to center the text (true) or left align (false)
+ */
+const drawItemBox = (
+    item,
+    itemX,
+    itemY,
+    itemWidth,
+    mouseX,
+    mouseY,
+    cachedItemLayouts,
+    isLayoutCacheValid,
+    centerText = false
+) => {
+    const itemRect = {
+        x: itemX,
+        y: itemY,
+        width: itemWidth,
+        height: 40,
+        radius: CORNER_RADIUS,
+        color: CATEGORY_BOX_COLOR,
+        borderWidth: 0.5,
+        borderColor: THEME.GUI_MANAGER_CATEGORY_BOX_BORDER,
+    };
+
+    const isHovered = isInside(mouseX, mouseY, itemRect);
+    itemRect.color = isHovered ? UNIVERSAL_GRAY_COLOR : CATEGORY_BOX_COLOR;
+
+    if (isHovered && item.tooltip) {
+        global.setTooltip(item.tooltip);
+    }
+
+    drawRoundedRectangleWithBorder(itemRect);
+
+    if (!isLayoutCacheValid) {
+        cachedItemLayouts.push({ rect: itemRect, item });
+    }
+
+    const textX = centerText
+        ? itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2
+        : itemX + 5;
+
+    Renderer.drawString(
+        item.title,
+        textX,
+        itemY + 40 / 2 - 4,
+        CATEGORY_TITLE_COLOR,
+        false
+    );
+};
+
 export const drawCategoryItems = (
     cat,
     panel,
@@ -267,93 +327,58 @@ export const drawCategoryItems = (
                 false
             );
             yOffset += SEPARATOR_HEIGHT;
+
             let subcategoryItemsInRow = 0;
             group.items.forEach((item) => {
                 const col = subcategoryItemsInRow % 3;
-                if (col === 0 && subcategoryItemsInRow > 0)
+                if (col === 0 && subcategoryItemsInRow > 0) {
                     yOffset += CATEGORY_BOX_PADDING + 40;
+                }
 
                 const itemX =
                     panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-                const itemRect = {
-                    x: itemX,
-                    y: yOffset,
-                    width: itemWidth,
-                    height: 40,
-                    radius: CORNER_RADIUS,
-                    color: CATEGORY_BOX_COLOR,
-                    borderWidth: 0.5,
-                    borderColor: THEME.GUI_MANAGER_CATEGORY_BOX_BORDER,
-                };
 
-                const isHovered = isInside(mouseX, mouseY, itemRect);
-                itemRect.color = isHovered
-                    ? UNIVERSAL_GRAY_COLOR
-                    : CATEGORY_BOX_COLOR;
-
-                if (isHovered && item.tooltip) {
-                    global.setTooltip(item.tooltip);
-                }
-
-                drawRoundedRectangleWithBorder(itemRect);
-
-                if (!isLayoutCacheValid)
-                    cachedItemLayouts.push({ rect: itemRect, item });
-
-                Renderer.drawString(
-                    item.title,
-                    itemX +
-                        itemWidth / 2 -
-                        Renderer.getStringWidth(item.title) / 2,
-                    yOffset + 40 / 2 - 4,
-                    CATEGORY_TITLE_COLOR,
-                    false
+                drawItemBox(
+                    item,
+                    itemX,
+                    yOffset,
+                    itemWidth,
+                    mouseX,
+                    mouseY,
+                    cachedItemLayouts,
+                    isLayoutCacheValid,
+                    true // Center text for module separator items things
                 );
+
                 subcategoryItemsInRow++;
             });
+
             const itemsInSubcategory = group.items.length;
             const numRows = Math.ceil(itemsInSubcategory / 3);
             yOffset += numRows > 0 ? 40 + CATEGORY_BOX_PADDING : 0;
         } else {
             if (global.Categories.selectedSubcategory !== null) return;
+
             const item = group;
             const col = itemIndexInRow % 3;
-            if (col === 0 && itemIndexInRow > 0)
+            if (col === 0 && itemIndexInRow > 0) {
                 yOffset += 40 + CATEGORY_BOX_PADDING;
-
-            const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-            const itemRect = {
-                x: itemX,
-                y: yOffset,
-                width: itemWidth,
-                height: 40,
-                radius: CORNER_RADIUS,
-                color: CATEGORY_BOX_COLOR,
-                borderWidth: 0.5,
-                borderColor: THEME.GUI_MANAGER_CATEGORY_BOX_BORDER,
-            };
-
-            const isHovered = isInside(mouseX, mouseY, itemRect);
-            itemRect.color = isHovered
-                ? UNIVERSAL_GRAY_COLOR
-                : CATEGORY_BOX_COLOR;
-
-            if (isHovered && item.tooltip) {
-                global.setTooltip(item.tooltip);
             }
 
-            drawRoundedRectangleWithBorder(itemRect);
+            const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
 
-            if (!isLayoutCacheValid)
-                cachedItemLayouts.push({ rect: itemRect, item });
-
-            Renderer.drawString(
-                item.title,
-                itemX + 5,
-                yOffset + 40 / 2 - 4,
-                CATEGORY_TITLE_COLOR,
-                false
+            drawItemBox(
+                item,
+                itemX,
+                yOffset,
+                itemWidth,
+                mouseX,
+                mouseY,
+                cachedItemLayouts,
+                isLayoutCacheValid,
+                false // Left align text
             );
+
             itemIndexInRow++;
         }
     });
