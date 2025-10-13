@@ -33,18 +33,26 @@ class RouteWalkerer {
         };
         this.action = this.ACTIONS.WALK;
 
-        register('command', () => {
-            Client.scheduleTask(2, () => this.RouteWalkerer.register());
-            this.enabled = true;
-            this.foundpoint = false;
-        }).setName('goon');
-
         register('command', (action, arg2, arg3) => {
+            if (!action) {
+                Chat.message("You didn't input an action!");
+                return;
+            }
+
+            let actionLower = action.toLowerCase();
+            if (actionLower === 'start') {
+                Client.scheduleTask(2, () => this.RouteWalkerer.register());
+                this.enabled = true;
+                this.foundpoint = false;
+                Chat.message('Route Walker started!');
+                return;
+            }
+
             let route = this.route;
 
             let indexNum = undefined;
             let movementTypeArg = undefined;
-            const actionUpper = action ? action.toUpperCase() : '';
+            let actionUpper = action.toUpperCase();
 
             let parsedNum2 = parseInt(arg2);
             let isArg2Index = !isNaN(parsedNum2) && parsedNum2 >= 1;
@@ -53,11 +61,10 @@ class RouteWalkerer {
                 indexNum = parsedNum2;
                 movementTypeArg = arg3;
             } else {
-                indexNum = undefined;
                 movementTypeArg = arg2;
             }
 
-            let allowedMovements = ['WALK', 'ETHERWARP', 'AOTV'];
+            let allowedMovements = ['WALK', 'ETHERWARP'];
 
             let userMovement = movementTypeArg
                 ? [movementTypeArg.toUpperCase()]
@@ -74,43 +81,42 @@ class RouteWalkerer {
             );
 
             this.route = route;
-        }).setName('routewalker');
+        })
+            .setName('routewalker')
+            .setAliases('rw');
 
-        register('postRenderWorld', () => {
+        this.render = register('postRenderWorld', () => {
             let route = this.route;
             if (!route || route.length === 0) return;
 
+            const getColor = (movement) => {
+                if (!movement) return [255, 255, 255, 255];
+                switch (movement.toUpperCase()) {
+                    case 'WALK':
+                        return [0, 128, 255, 255];
+                    case 'ETHERWARP':
+                        return [170, 0, 255, 255];
+                    default:
+                        return [255, 255, 255, 255];
+                }
+            };
+
             for (let i = 0; i < route.length; i++) {
                 const point = route[i];
-                const index = i + 1;
-
                 if (!this.CheckPoint(point)) return;
-                let color = [255, 255, 255, 255];
-
-                if (point.movements && point.movements.length > 0) {
-                    const type = point.movements.toUpperCase();
-                    switch (type) {
-                        case 'WALK':
-                            color = [0, 128, 255, 255];
-                            break;
-                        case 'ETHERWARP':
-                            color = [170, 0, 255, 255];
-                            break;
-                    }
-                }
 
                 RenderUtils.drawStyledBoxWithText(
                     new Vec3d(point.x, point.y, point.z),
-                    color,
+                    getColor(point.movements),
                     5,
                     false,
-                    `${index}`
+                    `${i + 1}`
                 );
 
                 if (i >= route.length - 1) return;
                 const nextPoint = route[i + 1];
-
                 if (!this.CheckPoint(nextPoint)) return;
+
                 RenderUtils.drawLine(
                     new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
                     new Vec3d(
@@ -118,12 +124,12 @@ class RouteWalkerer {
                         nextPoint.y + 1,
                         nextPoint.z + 0.5
                     ),
-                    color,
+                    getColor(nextPoint.movements),
                     3,
                     false
                 );
             }
-        });
+        }).unregister();
 
         this.RouteWalkerer = register('tick', () => {
             if (!this.enabled) return;
@@ -237,7 +243,15 @@ class RouteWalkerer {
             'Walks and Etherwarps Routes',
             'Walks and Etherwarps Routes'
         );
-
+        addToggle(
+            'Modules',
+            'Route Walker',
+            'Render Points',
+            (value) => {
+                value ? this.render.register() : this.render.unregister();
+            },
+            'Renders the points of the route'
+        );
         addToggle(
             'Modules',
             'Route Walker',
