@@ -4,7 +4,7 @@ export const COMMISSION_DATA = [
         type: 'MINING',
         cost: 5,
         waypoints: [
-            [141, 152, 24],
+            [141, 151, 24],
             [173, 149, 70],
             [166, 148, 90],
         ],
@@ -50,36 +50,37 @@ export const COMMISSION_DATA = [
         ],
     },
     {
-        // GENERIC AREAS
+        // GENERIC
         names: ['Titanium Miner', 'Mithril Miner'],
         type: 'MINING',
         cost: 12,
         waypoints: [
+            // Cliffside Veins
             [46, 134, 11],
+            [25, 128, 27],
+            [10, 127, 37],
+            // Rampart's Quarry
             [-88, 146, 29],
+            [-87, 146, -14],
             [-118, 149, -31],
         ],
     },
-
     {
         names: ['Goblin Slayer'],
         type: 'SLAYER',
         cost: 30,
-
         waypoints: [[-130, 145, 147]],
     },
     {
         names: ['Glacite Walker Slayer'],
         type: 'SLAYER',
         cost: 25,
-
         waypoints: [[0, 127, 157]],
     },
     {
         names: ['Treasure Hoarder Puncher'],
         type: 'SLAYER',
         cost: 50,
-
         waypoints: [[-117, 204, -56]],
     },
 ];
