@@ -7,6 +7,25 @@ const seaGrassMixin = new Mixin('net.minecraft.block.SeagrassBlock');
 const tallSeaGrassMixin = new Mixin('net.minecraft.block.TallSeagrassBlock');
 const cameraMixin = new Mixin('net.minecraft.client.render.Camera');
 const entityMixin = new Mixin('net.minecraft.entity.Entity');
+const mouseMixin = new Mixin('net.minecraft.client.Mouse');
+
+export const unlockCursor = mouseMixin.inject({
+    method: 'lockCursor()V',
+    at: new At({ value: 'Head' }),
+    cancellable: true,
+});
+
+export const setLocked = mouseMixin.inject({
+    method: 'isCursorLocked()Z',
+    at: new At({ value: 'Head' }),
+    cancellable: true,
+});
+
+export const stopMovement = mouseMixin.inject({
+    method: 'onCursorPos(JDD)V',
+    at: new At({ value: 'Head' }),
+    cancellable: true,
+});
 
 export const fullStainedGlassPane = horizontalConnectingBlockMixin.inject({
     method: 'getOutlineShape',

@@ -1,60 +1,42 @@
+import { unlockCursor, setLocked, stopMovement } from '../mixins';
+
 class ungrabClass {
     constructor() {
-        this.isUnGrabbed = false;
-        this.oldMouseHelper = null;
-        this.ungrabHandler = null;
-
-        this.ungrabHandler = register('renderWorld', () => {
-            this.handleUngrab();
-        }).unregister();
-
-        register('gameUnload', () => this.reGrabMouse());
-
-        register('command', () => {
-            this.unGrabMouse();
-        }).setName('ungrabmouse');
-
-        register('command', () => {
-            this.reGrabMouse();
-        }).setName('regrabmouse');
+        this.ungrabbed = true;
+        this.Regrab();
     }
 
-    handleUngrab() {
-        let mc = Client.getMinecraft();
-        const Focused = mc.getClass().getDeclaredField('field_1695');
-        Focused.setAccessible(true);
+    Ungrab() {
+        if (this.ungrabbed) return;
 
-        mc.options.pauseOnLostFocus = false;
+        unlockCursor.attach((instance, cir) => {
+            if (!this.ungrabbed) return;
+            cir.cancel();
+        });
 
-        if (!this.oldMouseHelper) this.oldMouseHelper = mc.field_1729;
+        setLocked.attach((instance, cir) => {
+            if (!this.ungrabbed) return;
 
-        mc.field_1729.unlockCursor();
-        Focused.set(mc, false);
+            if (Client.getMinecraft()?.currentScreen == null) {
+                cir.setReturnValue(true);
+                cir.cancel();
+            }
+        });
 
-        this.isUnGrabbed = true;
+        stopMovement.attach((instance, cir) => {
+            if (!this.ungrabbed) return;
+            cir.cancel();
+        });
+
+        this.ungrabbed = true;
     }
 
-    unGrabMouse() {
-        if (this.isUnGrabbed) return;
-        this.ungrabHandler.register();
-    }
-
-    reGrabMouse() {
-        if (this.ungrabHandler) {
-            this.ungrabHandler.unregister();
-        }
-
-        if (!this.isUnGrabbed) return;
-        let mc = Client.getMinecraft();
-        const Focused = mc.getClass().getDeclaredField('field_1695');
-        Focused.setAccessible(true);
-
-        mc.options.pauseOnLostFocus = false;
-        Focused.set(mc, true);
-        mc.field_1729.lockCursor();
-
-        this.oldMouseHelper = null;
-        this.isUnGrabbed = false;
+    Regrab() {
+        if (!this.ungrabbed) return;
+        unlockCursor.attach((instance, cir) => {});
+        setLocked.attach((instance, cir) => {});
+        stopMovement.attach((instance, cir) => {});
+        this.ungrabbed = false;
     }
 }
 
