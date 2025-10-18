@@ -27,6 +27,7 @@ class GemstoneMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Gemstone Miner for the Crystal Hollows',
             tooltip: 'Gemstone Miner for the Crystal Hollows',
+            showEnabledToggle: false,
         });
         this.FASTAOTV = false;
         this.MOBKILLER = false;

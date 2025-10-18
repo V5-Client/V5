@@ -1,5 +1,5 @@
 export class ModuleBase {
-    // options object: { name, subcategory, description?, tooltip?, autoDisableOnWorldUnload? }
+    // options object: { name, subcategory, description?, tooltip?, showEnabledToggle?, autoDisableOnWorldUnload? }
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
         const opts =
             typeof nameOrOpts === 'object'
@@ -20,13 +20,15 @@ export class ModuleBase {
             this.description,
             this.tooltip
         );
-        global.Categories.addToggle(
-            'Modules',
-            this.name,
-            'Enabled',
-            (value) => this.toggle(!!value),
-            `Toggles ${this.name}`
-        );
+        if (opts.showEnabledToggle !== false) {
+            global.Categories.addToggle(
+                'Modules',
+                this.name,
+                'Enabled',
+                (value) => this.toggle(!!value),
+                `Toggles ${this.name}`
+            );
+        }
 
         if (opts.autoDisableOnWorldUnload) {
             register('worldUnload', () => this.toggle(false));

@@ -29,6 +29,7 @@ class CommissionMacro extends ModuleBase {
             description: 'Completes Commissions for you',
             tooltip:
                 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            showEnabledToggle: false,
         });
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;
