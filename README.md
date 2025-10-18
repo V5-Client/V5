@@ -1,32 +1,65 @@
 example module format:
 
 ```javascript
-// Imports
+import { ModuleBase } from './Utility/ModuleBase';
 
-const { addToggle, addCategoryItem } = global.Categories;
-
-class Module {
+class ExampleModule extends ModuleBase {
     constructor() {
-        this.enabled = false;
-
-        let mainLoop = register('step', () => {
-            // Module code
-        }).unregister();
-
-        toggle(value);
-        {
-            this.enabled = value;
-            if (value) mainLoop.register();
-            else mainLoop.unregister();
-        }
-
-        addCategoryItem('Category', 'Module', 'Description', 'Tooltip');
-
-        addToggle('Modules', 'Module', 'Enabled', (value) => {
-            this.toggle(value);
+        super({
+            name: 'Example Module',
+            subcategory: 'Other',
+            description: 'What it does',
+            tooltip: 'Optional tooltip',
         });
+
+        // Create a register and unregister it then track them
+        const step = register('step', () => {
+            // logic here
+        }).unregister();
+        this.trackRegister(step); // this will automatically handle enabling and disabling
+
+        // You can also use this.on(registerType) to create and track a register in one line
+        this.on('step', () => {
+            // logic here
+        });
+
+        // Optional settings
+        this.addToggle(
+            'Some Feature',
+            (value) => {
+                // callback
+            },
+            'Description of the feature'
+        );
+
+        this.addSlider(
+            'Speed',
+            1,
+            10,
+            5,
+            (value) => {
+                // callback
+            },
+            'How fast to go'
+        );
+    }
+
+    // Manually override onEnable and onDisable if you need more control
+    // not required
+    onEnable() {
+        // Runs when Enabled toggle is turned on
+    }
+
+    onDisable() {
+        // Runs when Enabled toggle is turned off
     }
 }
 
-new Module();
+new ExampleModule();
 ```
+
+Notes:
+
+- The `Enabled` toggle is added automatically and controls all handlers tracked via `trackHandler`.
+- All GUI callbacks update the in-memory SettingsMap, and `setEnabled()` also syncs the UI component so saving persists your programmatic toggles.
+- Settings are loaded in `loader.js` via `loadSettings()` which triggers callbacks to initialize modules.
