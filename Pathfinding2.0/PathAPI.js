@@ -1,0 +1,159 @@
+import request from 'requestV2';
+import { Links } from '../Utility/Constants';
+import { Chat } from '../Utility/Chat';
+import { drawFloatingSpline, generateHybridSpline } from './PathDebug';
+import { pathRotations } from './PathWalker/PathRotations';
+import { Rotations } from '../Utility/Rotations';
+import { APICONFIG } from './PathData';
+
+const localhost = `${Links.PATHFINDER_API_URL}`;
+let renderOnlyRegister = null;
+let currentPathRequest = null;
+
+export let pathNodes = [];
+export let keyNodes = [];
+export let betweenNodes = [];
+export let spline = [];
+
+export function setPathNodes(nodes) {
+    pathNodes = nodes;
+}
+
+export function setKeyNodes(nodes) {
+    keyNodes = nodes;
+}
+
+export function setBetweenNodes(nodes) {
+    betweenNodes = nodes;
+}
+
+export function setSpline(nodes) {
+    spline = nodes;
+}
+
+export function stopPathing() {
+    if (global.pathEngineStop) global.pathEngineStop();
+    if (renderOnlyRegister) renderOnlyRegister.unregister();
+    renderOnlyRegister = null;
+    currentPathRequest = null;
+
+    try {
+        const mc = Client.getMinecraft();
+        mc.options.forwardKey.setPressed(false);
+        mc.options.sprintKey.setPressed(false);
+        mc.options.jumpKey.setPressed(false);
+    } catch (e) {}
+}
+
+function getSinglePlayerWarpCommand(warpName) {
+    const warps = {
+        '/warp mines': 'tp @s -49 200 -122 -90 0',
+        '/warp forge': 'tp @s 0 149 -68 90 0',
+    };
+    return warps[warpName] || null;
+}
+
+function handleWarp(warpCommand, onComplete) {
+    const tpCommand =
+        Server.getName() === 'SinglePlayer'
+            ? getSinglePlayerWarpCommand(warpCommand)
+            : warpCommand.slice(1);
+
+    if (!tpCommand) {
+        global.showNotification(
+            'Pathfinding Error',
+            `Unknown warp point: ${warpCommand}`,
+            'ERROR',
+            4000
+        );
+        return;
+    }
+
+    Chat.message(`§aWarp point found! Running command: §e${tpCommand}`);
+    ChatLib.command(tpCommand);
+
+    setTimeout(onComplete, 250);
+}
+
+export function findAndFollowPath(start, end, renderOnly = false) {
+    stopPathing();
+
+    const url = `${localhost}/api/pathfinding?start=${start.join(
+        ','
+    )}&end=${end.join(',')}&map=mines`;
+    Chat.message(
+        `§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`
+    );
+
+    const requestId = Date.now();
+    currentPathRequest = requestId;
+
+    request({ url, json: true, timeout: 15000 })
+        .then((body) => {
+            if (currentPathRequest !== requestId) {
+                console.log('Outdated path response ignored.');
+                return;
+            }
+
+            if (!body || !body.keynodes || body.keynodes.length < 2) {
+                return global.showNotification(
+                    'Pathfinding Failed',
+                    'No path nodes received to generate a curve.',
+                    'ERROR',
+                    5000
+                );
+            }
+
+            if (body.path && body.path.length) setPathNodes(body.path);
+            if (body.keynodes && body.keynodes.length)
+                setKeyNodes(body.keynodes);
+
+            const generatedSpline = generateHybridSpline(
+                body.path_between_key_nodes,
+                APICONFIG.pathtolerance,
+                APICONFIG.smoothSegments
+            );
+            setPathNodes(generatedSpline);
+
+            if (pathNodes.length) {
+                renderOnlyRegister = register('postRenderWorld', () => {
+                    drawFloatingSpline(
+                        generatedSpline,
+                        body.path_between_key_nodes
+                    );
+                    pathRotations(generatedSpline, body.path_between_key_nodes);
+                });
+            }
+
+            const beginPathing = () => {
+                if (currentPathRequest !== requestId) return;
+
+                if (renderOnly) {
+                    global.showNotification(
+                        'Path Rendered',
+                        'Movement not initiated.',
+                        'INFO',
+                        3000
+                    );
+                } else {
+                    // movement
+                }
+            };
+
+            if (body.warp_point && body.warp_point.command) {
+                handleWarp(body.warp_point.command, beginPathing);
+            } else {
+                beginPathing();
+            }
+        })
+        .catch((err) => {
+            if (currentPathRequest !== requestId) return;
+            global.showNotification(
+                'Pathfinding Error',
+                'See console for details.',
+                'ERROR',
+                5000
+            );
+            console.log(`Pathfinding request failed: ${err}`);
+        });
+}
