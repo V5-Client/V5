@@ -1,10 +1,16 @@
 import RendererMain from '../../Rendering/RendererMain';
 import { Chat } from '../../Utility/Chat';
 import { Color } from '../../Utility/Constants';
-const { addCategoryItem, addToggle } = global.Categories;
+import { ModuleBase } from '../../Utility/ModuleBase';
 
-class SeaLumie {
+class SeaLumie extends ModuleBase {
     constructor() {
+        super({
+            name: 'Sea Lumie',
+            subcategory: 'Foraging',
+            description: 'Automatically farms sea lumies',
+            tooltip: 'Automatically farms sea lumies',
+        });
         this.STATES = {
             WAITING: 0,
             SCANNING: 1,
@@ -13,15 +19,13 @@ class SeaLumie {
         };
 
         this.state = this.STATES.WAITING;
-        this.enabled = false;
         this.closestPickle = null;
         this.renderer = null;
         this.startedScan = false;
         this.tryBreak = false;
         this.hasBroken = false;
 
-        register('tick', () => {
-            if (!this.enabled) return;
+        this.on('tick', () => {
 
             switch (this.state) {
                 case this.STATES.SCANNING:
@@ -209,8 +213,8 @@ class SeaLumie {
             }
         });
 
-        register('postRenderWorld', () => {
-            if (this.enabled && this.closestPickle) {
+        this.on('postRenderWorld', () => {
+            if (this.closestPickle) {
                 let waypointPos = new Vec3i(
                     this.closestPickle.x,
                     this.closestPickle.y,
@@ -224,29 +228,14 @@ class SeaLumie {
                 );
             }
         });
+    }
 
-        this.toggle = (value) => {
-            this.enabled = value;
-            if (value) this.state = this.STATES.SCANNING;
-            else this.state = this.STATES.WAITING;
-        };
+    onEnable() {
+        this.state = this.STATES.SCANNING;
+    }
 
-        addCategoryItem(
-            'Foraging',
-            'Sea Lumie',
-            'Automatically farms sea lumies',
-            'Automatically farms sea lumies'
-        );
-
-        addToggle(
-            'Modules',
-            'Sea Lumie',
-            'Enabled (REPLACE ME WITH A KEYBIND)',
-            (value) => {
-                this.toggle(value);
-            },
-            'Toggles the Sea Lumie macro'
-        );
+    onDisable() {
+        this.state = this.STATES.WAITING;
     }
 }
 new SeaLumie();
