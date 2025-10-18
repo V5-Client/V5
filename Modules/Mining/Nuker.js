@@ -3,7 +3,7 @@ import { Chat } from '../../Utility/Chat';
 import { Utils } from '../../Utility/Utils';
 import RenderUtils from '../../Rendering/RendererUtils';
 import { Vec3d } from '../../Utility/Constants';
-const { addCategoryItem, addToggle } = global.Categories;
+import { ModuleBase } from '../../Utility/ModuleBase';
 const BP = net.minecraft.util.math.BlockPos;
 
 const ConcurrentLinkedQueue = Java.type(
@@ -11,10 +11,15 @@ const ConcurrentLinkedQueue = Java.type(
 );
 const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
-class NukerClass {
+class NukerClass extends ModuleBase {
     constructor() {
-        this.ModuleName = 'Nuker';
-        this.Enabled = false;
+        super({
+            name: 'Nuker',
+            subcategory: 'Mining',
+            description: 'Automatically nukes nearby blocks.',
+            tooltip: 'Automatically nukes nearby blocks',
+            autoDisableOnWorldUnload: true,
+        });
 
         this.target = null;
         this.lastTime = 0;
@@ -111,18 +116,7 @@ class NukerClass {
             });
         }).setCommandName('nukerlist');
 
-        register('worldUnload', () => {
-            if (!this.Enabled) return;
-
-            this.toggle(false);
-            Chat.debugMessage(
-                this.ModuleName + ': &cDisabled due to world change'
-            );
-        });
-
-        register('tick', () => {
-            if (!this.Enabled) return;
-
+        this.on('tick', () => {
             if (!this.isHoldingRequiredItem()) return;
             if (Client.isInGui() && !Client.isInChat()) return;
             if (Client.getKeyBindFromDescription('key.attack').isKeyDown())
@@ -166,8 +160,7 @@ class NukerClass {
             this.taskQueue.offer(task);
         });
 
-        this.nukeHighlight = register('postRenderWorld', () => {
-            if (!this.Enabled) return;
+        this.on('postRenderWorld', () => {
             if (this.target) {
                 this.renderRGB([
                     this.target.getX(),
@@ -193,9 +186,9 @@ class NukerClass {
                 [100, 100, 255, 150],
                 false
             );
-        }).unregister();
+        });
 
-        this.chestHighlight = register('renderBlockEntity', (entity) => {
+        this.on('renderBlockEntity', (entity) => {
             if (Client.isInGui() && !Client.isInChat()) return;
             if (!this.isHoldingRequiredItem()) return;
 
@@ -218,7 +211,6 @@ class NukerClass {
                     return;
 
                 if (
-                    this.Enabled &&
                     this.autoChest &&
                     !this.chestClickedThisTick &&
                     (!this.lastChestClick[pos] ||
@@ -231,42 +223,16 @@ class NukerClass {
                     this.chestClickedThisTick = true;
                 }
             }
-        }).unregister();
+        });
 
-        addCategoryItem(
-            'Mining',
-            'Nuker',
-            'Automatically nukes nearby blocks. ',
-            'Automatically nukes nearby blocks'
-        );
-
-        addToggle(
-            'Modules',
-            'Nuker',
-            'Enabled (REPLACE ME WITH A KEYBIND)',
-            (value) => {
-                this.toggle(value);
-            },
-            'Toggles the Nuker module'
-        );
-
-        addToggle(
-            'Modules',
-            'Nuker',
+        this.addToggle(
             'Auto Chest',
-            (value) => {
-                this.autoChest = value;
-            },
+            (v) => (this.autoChest = v),
             'Auto-opens chests'
         );
-
-        addToggle(
-            'Modules',
-            'Nuker',
+        this.addToggle(
             "Don't nuke below",
-            (value) => {
-                this.nukeBelow = value;
-            },
+            (v) => (this.nukeBelow = v),
             'Prevents nuking below'
         );
     }
@@ -469,37 +435,17 @@ class NukerClass {
         this.chestClickedThisTick = false;
     }
 
-    stopMacro(msg) {
-        if (msg) {
-            Utils.warnPlayer(msg);
-        }
-        this.Enabled = false;
-        this.stopWorker();
-        this.init();
-    }
-
-    toggle(value) {
-        if (this.Enabled === value) return;
-        if (this.Enabled || value) {
-            Chat.message(
-                this.ModuleName + (value ? ' &aEnabled' : ' &cDisabled')
-            );
-        }
-
-        this.Enabled = value;
-
-        if (value) {
-            this.startWorker();
-            this.nukeHighlight.register();
-            this.chestHighlight.register();
-        } else {
-            this.stopWorker();
-            this.nukeHighlight.unregister();
-            this.chestHighlight.unregister();
-        }
-
+    onEnable() {
+        Chat.message('Nuker &aEnabled');
+        this.startWorker();
         this.init();
         this.startTime = Date.now();
+    }
+
+    onDisable() {
+        Chat.message('Nuker &cDisabled');
+        this.stopWorker();
+        this.init();
     }
 }
 
