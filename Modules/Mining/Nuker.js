@@ -166,7 +166,7 @@ class NukerClass {
             this.taskQueue.offer(task);
         });
 
-        const nukeHighlight = register('postRenderWorld', () => {
+        this.nukeHighlight = register('postRenderWorld', () => {
             if (!this.Enabled) return;
             if (this.target) {
                 this.renderRGB([
@@ -193,9 +193,9 @@ class NukerClass {
                 [100, 100, 255, 150],
                 false
             );
-        });
+        }).unregister();
 
-        const chestHighlight = register('renderBlockEntity', (entity) => {
+        this.chestHighlight = register('renderBlockEntity', (entity) => {
             if (Client.isInGui() && !Client.isInChat()) return;
             if (!this.isHoldingRequiredItem()) return;
 
@@ -231,7 +231,7 @@ class NukerClass {
                     this.chestClickedThisTick = true;
                 }
             }
-        });
+        }).unregister();
 
         addCategoryItem(
             'Mining',
@@ -479,6 +479,7 @@ class NukerClass {
     }
 
     toggle(value) {
+        if (this.Enabled === value) return;
         if (this.Enabled || value) {
             Chat.message(
                 this.ModuleName + (value ? ' &aEnabled' : ' &cDisabled')
@@ -489,8 +490,12 @@ class NukerClass {
 
         if (value) {
             this.startWorker();
+            this.nukeHighlight.register();
+            this.chestHighlight.register();
         } else {
             this.stopWorker();
+            this.nukeHighlight.unregister();
+            this.chestHighlight.unregister();
         }
 
         this.init();
