@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+﻿/* eslint-disable no-unused-vars */
 import { Keybind } from '../../Utility/Keybinding';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { RayTrace } from '../../Utility/Raytrace';
@@ -11,6 +11,7 @@ import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { Guis } from '../../Utility/Inventory';
 import { NukerUtils } from '../../Utility/NukerUtils';
 import RenderUtils from '../../Rendering/RendererUtils';
+import { ModuleBase } from '../../Utility/ModuleBase';
 const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
@@ -20,8 +21,15 @@ const ConcurrentLinkedQueue = Java.type(
 );
 const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
-class Bot {
+class Bot extends ModuleBase {
     constructor() {
+        super({
+            name: 'Mining Bot',
+            subcategory: 'Mining',
+            description: 'Universal settings for Mining & block miner',
+            tooltip: 'Automatically mines.',
+            showEnabledToggle: false,
+        });
         this.foundLocations = [];
         this.lastScanTime = 0;
         this.lowestCostBlockIndex = 0;
@@ -416,12 +424,6 @@ class Bot {
 
         registerEventSB('abilitygone', () => (this.speedBoost = false));
 
-        addCategoryItem(
-            'Mining',
-            'Mining Bot',
-            'Universal settings for Mining & block miner',
-            'Automatically mines.'
-        );
         addToggle(
             'Modules',
             'Mining Bot',
@@ -748,31 +750,24 @@ class Bot {
         this.COSTTYPE = cost;
     }
 
-    toggle(forceAState = null) {
-        if (forceAState !== null) this.enabled = forceAState;
-        else this.enabled = !this.enabled;
+    onEnable() {
+        this.startWorker();
+        this.miningbot.register();
+        this.empty = false;
+        this.allowScan = true;
+        this.state = this.STATES.ABILITY;
+    }
 
-        if (this.enabled) {
-            this.startWorker();
-            this.miningbot.register();
-            this.enabled = true;
-            this.empty = false;
-            this.allowScan = true;
-            this.state = this.STATES.ABILITY;
-        }
-
-        if (!this.enabled) {
-            this.stopWorker();
-            this.miningbot.unregister();
-            this.enabled = false;
-            this.state = this.STATES.WAITING;
-            Keybind.setKey('leftclick', false);
-            this.foundLocations = [];
-            this.lastBlockPos = null;
-            this.currentTarget = null;
-            this.tickCount = 0;
-            this.empty = false;
-        }
+    onDisable() {
+        this.stopWorker();
+        this.miningbot.unregister();
+        this.state = this.STATES.WAITING;
+        Keybind.setKey('leftclick', false);
+        this.foundLocations = [];
+        this.lastBlockPos = null;
+        this.currentTarget = null;
+        this.tickCount = 0;
+        this.empty = false;
     }
 }
 
