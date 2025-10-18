@@ -9,6 +9,7 @@ import { RayTrace } from '../../Utility/Raytrace';
 import { Rotations } from '../../Utility/Rotations';
 import { Router } from '../../Utility/Router';
 import { MiningBot } from './MiningBot';
+import { ModuleBase } from '../../Utility/ModuleBase';
 const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
     global.Categories;
 
@@ -19,8 +20,14 @@ const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
  * ticks with msb etc
  */
 
-class GemstoneMacro {
+class GemstoneMacro extends ModuleBase {
     constructor() {
+        super({
+            name: 'Gemstone Macro',
+            subcategory: 'Mining',
+            description: 'Gemstone Miner for the Crystal Hollows',
+            tooltip: 'Gemstone Miner for the Crystal Hollows',
+        });
         this.FASTAOTV = false;
         this.MOBKILLER = false;
         this.WEAPONSLOT = 0;
@@ -74,9 +81,8 @@ class GemstoneMacro {
         this.completedFirstPoint = false;
 
         register('command', () => {
-            this.gemstone.register();
+            this.toggle(true);
             this.state = this.STATES.ETHERWARPING;
-            this.enabled = true;
         }).setName('startg');
 
         register('command', (action, indexArg) => {
@@ -106,7 +112,7 @@ class GemstoneMacro {
             );
         }).setName('gemstone');
 
-        register('postRenderWorld', () => {
+        this.on('postRenderWorld', () => {
             const route = this.loadedRoute;
 
             if (!route || route.length === 0) return;
@@ -151,9 +157,7 @@ class GemstoneMacro {
             }
         });
 
-        this.gemstone = register('tick', () => {
-            if (!this.enabled) return;
-
+        this.on('tick', () => {
             MiningBot.setCost(this.gemstoneCosts);
 
             switch (this.state) {
@@ -295,35 +299,23 @@ class GemstoneMacro {
 
                     break;
             }
-        }).unregister();
+        });
 
-        addCategoryItem(
-            'Mining',
-            'Gemstone Macro',
-            'Gemstone Miner for the Crystal Hollows',
-            'Gemstone Miner for the Crystal Hollows'
-        );
-        addToggle(
-            'Modules',
-            'Gemstone Macro',
+        this.addToggle(
             'Fast AOTV',
             (value) => {
                 this.FASTAOTV = value;
             },
             'Decreased amount of ticks before it sends the right click packet'
         );
-        addToggle(
-            'Modules',
-            'Gemstone Macro',
+        this.addToggle(
             'Mob Killer',
             (value) => {
                 this.MOBKILLER = value;
             },
             'Kills mobs if they are in a certain radius'
         );
-        addSlider(
-            'Modules',
-            'Gemstone Macro',
+        this.addSlider(
             'Weapon Slot',
             1,
             9,
@@ -333,9 +325,7 @@ class GemstoneMacro {
             },
             'Slot of your melee weapon'
         );
-        addMultiToggle(
-            'Modules',
-            'Gemstone Macro',
+        this.addMultiToggle(
             'Gemstone Types',
             [
                 'Ruby',
@@ -347,43 +337,26 @@ class GemstoneMacro {
                 'Jasper',
             ],
             false,
-            (value) => {
-                this.AMBER =
-                    value.find((option) => option.name === 'Amber')?.enabled ??
-                    false;
-                this.AMETHYST =
-                    value.find((option) => option.name === 'Amethyst')
-                        ?.enabled ?? false;
-                this.JADE =
-                    value.find((option) => option.name === 'Jade')?.enabled ??
-                    false;
-                this.JASPER =
-                    value.find((option) => option.name === 'Jasper')?.enabled ??
-                    false;
-                this.RUBY =
-                    value.find((option) => option.name === 'Ruby')?.enabled ??
-                    false;
-                this.SAPPHIRE =
-                    value.find((option) => option.name === 'Sapphire')
-                        ?.enabled ?? false;
-                this.TOPAZ =
-                    value.find((option) => option.name === 'Topaz')?.enabled ??
-                    false;
+            (selected) => {
+                const setHas = (name) => selected.includes(name);
+                this.AMBER = setHas('Amber');
+                this.AMETHYST = setHas('Amethyst');
+                this.JADE = setHas('Jade');
+                this.JASPER = setHas('Jasper');
+                this.RUBY = setHas('Ruby');
+                this.SAPPHIRE = setHas('Sapphire');
+                this.TOPAZ = setHas('Topaz');
             },
             'Type of gemstones the macro is able to target'
         );
-        addToggle(
-            'Modules',
-            'Gemstone Macro',
+        this.addToggle(
             'Use Preset Ticks',
             (value) => {
                 this.PRESETTICKS = value;
             },
             'Use an amount of ticks instead of a calculation with mining speed'
         );
-        addSlider(
-            'Modules',
-            'Gemstone Macro',
+        this.addSlider(
             'Ticks with MSB',
             0,
             20,
@@ -393,9 +366,7 @@ class GemstoneMacro {
             },
             'Amount of ticks on each block with mining speed boost'
         );
-        addSlider(
-            'Modules',
-            'Gemstone Macro',
+        this.addSlider(
             'Ticks without MSB',
             0,
             40,
