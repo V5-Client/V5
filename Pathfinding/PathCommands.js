@@ -1,4 +1,4 @@
-import { stopPathing, findAndFollowPath } from './PathAPI';
+import { findAndFollowPath, stopPathing } from '../Pathfinding2.0/PathAPI';
 
 function handleCommand(args, isRustPath) {
     const requiredCoords = isRustPath ? 6 : 3;

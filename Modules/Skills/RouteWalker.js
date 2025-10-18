@@ -161,6 +161,7 @@ class RouteWalkerer {
 
                     Keybind.setKey('shift', this.SNEAK);
                     Keybind.setKey('leftclick', this.LEFTCLICK);
+                    Keybind.setKey('sprint', true);
 
                     let angle = MathUtils.calculateAbsoluteAngles(
                         new Vec3d(
