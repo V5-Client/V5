@@ -2,18 +2,25 @@
 
 import { Utils } from '../../Utility/Utils';
 import { MiningUtils } from '../../Utility/MiningUtils';
+import { ModuleBase } from '../../Utility/ModuleBase';
 
-const { addCategoryItem, addToggle, addSlider } = global.Categories;
-
-class Pingless {
+class Pingless extends ModuleBase {
     constructor() {
+        super({
+            name: 'Pingless Miner',
+            subcategory: 'Mining',
+            description: 'Breaks hardstone quicker in the Crystal Hollows',
+            tooltip: 'Removes hardstone instantly client-side.',
+            autoDisableOnWorldUnload: true,
+        });
+
         this.mining = false;
         let x;
         let y;
         let z;
 
-        let playerAction = register('packetSent', (packet) => {
-            if (!this.enabled || Utils.area() !== 'Crystal Hollows') return;
+        this.on('packetSent', (packet) => {
+            if (Utils.area() !== 'Crystal Hollows') return;
 
             let action = packet.getAction().toString();
             if (action === 'START_DESTROY_BLOCK') {
@@ -54,56 +61,31 @@ class Pingless {
 
                 this.mining = true;
             }
-        })
-            .setFilteredClass(
-                net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-            )
-            .unregister();
+        }).setFilteredClass(
+            net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+        );
 
-        let handSwing = register('packetSent', () => {
-            if (!this.enabled || Utils.area() !== 'Crystal Hollows') return;
+        this.on('packetSent', () => {
+            if (Utils.area() !== 'Crystal Hollows') return;
+            if (!this.mining || !this.pos) return;
 
-            if (this.mining) {
-                if (this.tickCount > 0) {
-                    this.tickCount--;
-                } else {
-                    MiningUtils.GhostBlock(this.pos);
-                    this.mining = false;
-                }
+            if (this.tickCount > 0) {
+                this.tickCount--;
+            } else {
+                MiningUtils.GhostBlock(this.pos);
+                this.mining = false;
+                this.pos = null;
             }
-        })
-            .setFilteredClass(
-                net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
-            )
-            .unregister();
+        }).setFilteredClass(
+            net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
+        );
 
-        addCategoryItem(
-            'Mining',
-            'Pingless Miner',
-            'Breaks hardstone quicker in the Crystal Hollows',
-            'Removes hardstone instantly client-side.'
-        );
-        addToggle(
-            'Modules',
-            'Pingless Miner',
-            'Enabled',
-            (value) => {
-                value ? playerAction.register() : playerAction.unregister();
-                value ? handSwing.register() : handSwing.unregister();
-                value ? (this.enabled = true) : (this.enabled = false);
-            },
-            'Toggles pingless miner'
-        );
-        addSlider(
-            'Modules',
-            'Pingless Miner',
+        this.addSlider(
             'Tick Delay',
             0,
             5,
             1,
-            (value) => {
-                this.tickCount = value;
-            },
+            (v) => (this.tickCount = v),
             'How long to wait before removing hardstone.'
         );
     }
