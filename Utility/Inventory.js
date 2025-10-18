@@ -71,6 +71,24 @@ class InventoryUtilsClass {
     }
 
     /**
+     * Finds an item in the entire inventory, including hotbar, and returns its slot
+     * @param {string} itemName - The name of the item to find
+     * @returns {number} - The slot of the item, or -1 if not found
+     */
+    findItemInInventory(itemName) {
+        const inventory = Player.getInventory();
+        if (!inventory) return -1;
+
+        for (let i = 0; i < inventory.getSize(); i++) {
+            const item = inventory.getStackInSlot(i);
+            if (item && item.getName && item.getName().includes(itemName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * A strange bug occurs when you click while tabbed out then it no longer is able to mine.
      * This function fixes that.
      */
