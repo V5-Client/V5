@@ -46,7 +46,7 @@ export function runProgram() {
                 while (sc.hasNextLine()) {
                     let line = sc.nextLine();
                     if (line.includes('Thanks for using the TPMM Pathfinder')) {
-                        loadMap('mines');
+                        loadMap('galatea');
                     }
                     console.log(line);
                 }

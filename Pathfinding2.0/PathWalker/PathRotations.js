@@ -5,7 +5,7 @@ import { Rotations } from '../../Utility/Rotations';
 import { renderSplineBoxes } from '../PathDebug';
 
 const MIN_SPEED_CONSTANT = 20;
-const MAX_SPEED_CONSTANT = 70;
+const MAX_SPEED_CONSTANT = 50;
 const ANGLE_SCALING_FACTOR = 3.5;
 
 const GENERAL_PITCH_DAMPENING = 0.4;
@@ -153,19 +153,7 @@ export function pathRotations(splineData, dropCheckNodes) {
     const targetPoint = boxPositions[targetPathIndex];
     if (!targetPoint) return;
 
-    const lookAheadBox = boxPositions[targetPathIndex];
-    RenderUtils.drawBox(
-        new Vec3d(lookAheadBox.x, lookAheadBox.y, lookAheadBox.z),
-        [0, 255, 0, 70]
-    );
-
-    const currentBox = boxPositions[currentBoxIndex];
-    RenderUtils.drawBox(
-        new Vec3d(currentBox.x, currentBox.y, currentBox.z),
-        [0, 0, 255, 70]
-    );
-
-    let rotationTargetPoint = new Vec3d(
+    const lookAheadBoxCenter = new Vec3d(
         targetPoint.x + 0.5,
         targetPoint.y + 0.5,
         targetPoint.z + 0.5
@@ -198,7 +186,6 @@ export function pathRotations(splineData, dropCheckNodes) {
     finalPitch = Math.min(finalPitch, MAX_DOWNWARD_PITCH_GRADE);
 
     if (maxDropMagnitude > 0) {
-        // this is pretty useless ngl :sob:
         let pitchIncrease = maxDropMagnitude * DROP_PITCH_FACTOR;
 
         pitchIncrease = Math.min(pitchIncrease, MAX_PITCH_REDUCTION);

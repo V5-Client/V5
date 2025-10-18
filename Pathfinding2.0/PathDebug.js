@@ -3,8 +3,8 @@ import { Vec3d } from '../Utility/Constants';
 
 export function generateHybridSpline(
     keyPathNodes,
-    tolerance = 12,
-    segmentsPerCurve = 10
+    tolerance = 10
+    //segmentsPerCurve = 10
 ) {
     if (!keyPathNodes || keyPathNodes.length < 2) return [];
 
@@ -21,8 +21,9 @@ export function generateHybridSpline(
         const p1 = rawPoints[i];
 
         const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
         const dz = p1.z - p0.z;
-        if (Math.sqrt(dx * dx + dz * dz) > tolerance) {
+        if (Math.sqrt(dx * dx + dy * dy + dz * dz) > tolerance) {
             simplifiedPoints.push(p1);
         }
     }
