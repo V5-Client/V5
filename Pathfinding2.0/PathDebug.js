@@ -67,11 +67,7 @@ export function generateHybridSpline(keyPathNodes, tolerance = 10) {
     return finalPath;
 }
 
-export function renderSplineBoxes(
-    smoothSplineData,
-    boxInterval = 1,
-    draw = false
-) {
+export function renderSplineBoxes(smoothSplineData, boxInterval = 1) {
     const STRONG_SMOOTHING_RADIUS = 5;
     const CURVE_DETECTION_RADIUS = 2;
 
@@ -183,12 +179,6 @@ export function renderSplineBoxes(
         }
 
         distanceCovered += segmentDistance;
-    }
-
-    if (draw) {
-        boxPositions.forEach((pos) => {
-            RenderUtils.drawBox(pos, [255, 0, 0, 50]);
-        });
     }
 
     return boxPositions;
