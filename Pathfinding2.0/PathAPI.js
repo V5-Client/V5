@@ -1,10 +1,15 @@
 import request from 'requestV2';
 import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
-import { drawFloatingSpline, generateHybridSpline } from './PathDebug';
+import {
+    drawFloatingSpline,
+    generateHybridSpline,
+    renderSplineBoxes,
+} from './PathDebug';
 import { pathRotations } from './PathWalker/PathRotations';
 import { Rotations } from '../Utility/Rotations';
 import { APICONFIG } from './PathData';
+import RenderUtils from '../Rendering/RendererUtils';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
@@ -110,18 +115,17 @@ export function findAndFollowPath(start, end, renderOnly = false) {
 
             const generatedSpline = generateHybridSpline(
                 body.path_between_key_nodes,
-                APICONFIG.pathtolerance,
-                APICONFIG.smoothSegments
+                1
             );
             setPathNodes(generatedSpline);
 
             if (pathNodes.length) {
                 renderOnlyRegister = register('postRenderWorld', () => {
-                    drawFloatingSpline(
+                    /*drawFloatingSpline(
                         generatedSpline,
                         body.path_between_key_nodes
                     );
-                    pathRotations(generatedSpline, body.path_between_key_nodes);
+                    renderSplineBoxes(generatedSpline); */
                 });
             }
 
@@ -136,6 +140,12 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                         3000
                     );
                 } else {
+                    register('tick', () => {
+                        pathRotations(
+                            generatedSpline,
+                            body.path_between_key_nodes
+                        );
+                    });
                     // movement
                 }
             };

@@ -217,6 +217,11 @@ class MathUtilsClass {
         return degrees * (pi / 180);
     }
 
+    getAngleDifference(currentYaw, targetYaw) {
+        let diff = targetYaw - currentYaw;
+        return this.wrapTo180(diff);
+    }
+
     wrapTo180(yaw) {
         while (yaw > 180) yaw -= 360;
         while (yaw < -180) yaw += 360;
