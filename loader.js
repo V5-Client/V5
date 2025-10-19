@@ -37,6 +37,7 @@ import './Modules/Skills/RouteWalker.js';
 
 /* OTHER */
 import './Pathfinding/Pathwalker.js';
+import './Pathfinding2.0/PathRegistry.js';
 import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
 //import './Modules/Other/Freelook.js';

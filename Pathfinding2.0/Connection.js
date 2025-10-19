@@ -1,7 +1,7 @@
 import request from 'requestV2';
-import { Runtime } from '../Utility/Constants';
-import { Links } from '../Utility/Constants';
+import { Runtime, Links } from '../Utility/Constants';
 import { stopPathing } from './PathAPI';
+import { Utils } from '../Utility/Utils';
 const ProcessBuilder = Java.type('java.lang.ProcessBuilder');
 const Scanner = Java.type('java.util.Scanner');
 const InputStreamReader = Java.type('java.io.InputStreamReader');
@@ -16,6 +16,12 @@ const localhost = Links.PATHFINDER_API_URL;
 let threads = [];
 let process = null;
 let lastKeepAlive = Date.now() - 50_000;
+
+const Maps = {
+    'Dwarven Mines': 'mines',
+    Galatea: 'galatea',
+    Hub: 'hub',
+};
 
 export function runProgram() {
     stopProgram();
@@ -45,9 +51,30 @@ export function runProgram() {
 
                 while (sc.hasNextLine()) {
                     let line = sc.nextLine();
+
                     if (line.includes('Thanks for using the TPMM Pathfinder')) {
-                        loadMap('galatea');
+                        const area = Utils.area();
+
+                        if (Maps[area]) {
+                            const value = Maps[area];
+                            const key = Object.keys(Maps).find(
+                                (key) => Maps[key] === value
+                            );
+
+                            loadMap(Maps[area]);
+                            global.showNotification(
+                                `Loaded ${key}!`,
+                                'Connection successfully loaded the island you are on',
+                                'SUCCESS',
+                                4000
+                            );
+                        } else {
+                            console.log(
+                                `No matching map found for area: ${area}`
+                            );
+                        }
                     }
+
                     console.log(line);
                 }
             }

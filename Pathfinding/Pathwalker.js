@@ -1,5 +1,5 @@
-import './Connection';
-import './PathCommands'; // register commands
+//import './Connection';
+//import './PathCommands'; // register commands
 import './PathEngine';
 import './PathAPI'; // all the exports
 

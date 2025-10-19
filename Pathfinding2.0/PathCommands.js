@@ -1,4 +1,4 @@
-import { findAndFollowPath, stopPathing } from '../Pathfinding2.0/PathAPI';
+import { findAndFollowPath, stopPathing } from './PathAPI';
 
 function handleCommand(args, isRustPath) {
     const requiredCoords = isRustPath ? 6 : 3;
@@ -33,7 +33,7 @@ function handleCommand(args, isRustPath) {
         ? coords.slice(0, 3)
         : [
               Math.floor(Player.getX()),
-              Math.floor(Player.getY()) - 1,
+              Math.round(Player.getY()) - 1,
               Math.floor(Player.getZ()),
           ];
     const end = isRustPath ? coords.slice(3, 6) : coords.slice(0, 3);

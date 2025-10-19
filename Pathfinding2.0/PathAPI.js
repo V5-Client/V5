@@ -1,15 +1,8 @@
 import request from 'requestV2';
 import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
-import {
-    drawFloatingSpline,
-    generateHybridSpline,
-    renderSplineBoxes,
-} from './PathDebug';
+import { generateHybridSpline } from './PathDebug';
 import { pathRotations } from './PathWalker/PathRotations';
-import { Rotations } from '../Utility/Rotations';
-import { APICONFIG } from './PathData';
-import RenderUtils from '../Rendering/RendererUtils';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
