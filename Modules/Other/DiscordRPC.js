@@ -1,29 +1,22 @@
 const DiscordRPC = Java.type('com.chattriggers.v5.qol.DiscordRPC');
-const { addCategoryItem, addToggle } = global.Categories;
+import { ModuleBase } from '../../Utility/ModuleBase';
 
-class RPC {
+class RPC extends ModuleBase {
     constructor() {
-        this.enabled = false;
+        super({
+            name: 'Discord RPC',
+            subcategory: 'Other',
+            description: "Show you're playing V5!",
+            tooltip: "Shows you're playing V5 in Discord RPC.",
+        });
 
-        register('step', () => {
-            this.enabled ? DiscordRPC.stayOn() : DiscordRPC.turnOff();
+        this.on('step', () => {
+            DiscordRPC.stayOn();
         }).setDelay(1);
+    }
 
-        addCategoryItem(
-            'Other',
-            'Discord RPC',
-            "Show you're playing V5!",
-            "Shows you're playing V5 in Discord RPC."
-        );
-        addToggle(
-            'Modules',
-            'Discord RPC',
-            'Enabled',
-            (value) => {
-                this.enabled = value;
-            },
-            'Toggles Discord RPC.'
-        );
+    onDisable() {
+        DiscordRPC.turnOff();
     }
 }
 
