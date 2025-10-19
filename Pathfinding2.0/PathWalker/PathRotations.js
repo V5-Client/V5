@@ -4,15 +4,17 @@ import { MathUtils } from '../../Utility/Math';
 import { Rotations } from '../../Utility/Rotations';
 import { renderSplineBoxes } from '../PathDebug';
 
-const MIN_SPEED_CONSTANT = 20;
-const MAX_SPEED_CONSTANT = 50;
-const ANGLE_SCALING_FACTOR = 3.5;
+const MIN_SPEED_CONSTANT = 40;
+const MAX_SPEED_CONSTANT = 60;
+const ANGLE_SCALING_FACTOR = 20;
 
-const GENERAL_PITCH_DAMPENING = 0.4;
+const GENERAL_PITCH_DAMPENING = 0.5;
 const MAX_UPWARD_PITCH_GRADE = -15.0;
 const MAX_DOWNWARD_PITCH_GRADE = 20.0;
 
 const LOOK_AHEAD_DISTANCE = 3;
+const YAW_AHEAD_DISTANCE = 5;
+const MAX_YAW_ADJUSTMENT = 15;
 
 let currentBoxIndex = 1;
 
@@ -30,7 +32,8 @@ const MAX_ALLOWED_PITCH_UP = -89.9;
 
 const BOX_RESET_SEARCH_RANGE = 20;
 
-let lastDropCheckNodeIndex = 0;
+let lastSmoothedYaw = Player.getYaw() || 0;
+let isInitialized = false;
 
 function calculateRotationSpeed(targetPoint) {
     const { yaw: relYaw, pitch: relPitch } =
@@ -51,6 +54,18 @@ function calculateRotationSpeed(targetPoint) {
     );
 
     return speedConstant;
+}
+
+function calculateSmoothedYaw(targetYaw, currentSmoothedYaw) {
+    const deltaYaw = MathUtils.getAngleDifference(
+        currentSmoothedYaw,
+        targetYaw
+    );
+
+    const adjustment =
+        Math.min(Math.abs(deltaYaw), MAX_YAW_ADJUSTMENT) * Math.sign(deltaYaw);
+
+    return currentSmoothedYaw + adjustment;
 }
 
 export function pathRotations(splineData, dropCheckNodes) {
@@ -91,127 +106,59 @@ export function pathRotations(splineData, dropCheckNodes) {
         return;
     }
 
-    let dropCheckNode = null;
-    let closestNodeDistanceSq = Infinity;
-    let newDropCheckNodeIndex = lastDropCheckNodeIndex;
-
-    for (let i = lastDropCheckNodeIndex; i < dropCheckNodes.length; i++) {
-        const node = dropCheckNodes[i];
-
-        if (node.y > Player.y) {
-            continue;
-        }
-
-        const dx = playerEyes.x - node.x;
-        const dz = playerEyes.z - node.z;
-        const horizontalDistanceSq = dx * dx + dz * dz;
-
-        if (horizontalDistanceSq < closestNodeDistanceSq) {
-            closestNodeDistanceSq = horizontalDistanceSq;
-            newDropCheckNodeIndex = i;
-        }
-    }
-
-    lastDropCheckNodeIndex = newDropCheckNodeIndex;
-    const targetNodeIndex = Math.min(
-        lastDropCheckNodeIndex + LOOK_AHEAD_NODE_INDEX_OFFSET,
-        dropCheckNodes.length - 1
-    );
-
-    if (dropCheckNodes.length > targetNodeIndex) {
-        dropCheckNode = dropCheckNodes[targetNodeIndex];
-    }
-
-    let maxDropMagnitude = 0;
-    let isDropAhead = false;
-
-    if (dropCheckNode) {
-        const nodeDrop = playerEyes.y - dropCheckNode.y;
-
-        if (nodeDrop > NODE_DROP_THRESHOLD_Y) {
-            isDropAhead = true;
-            ChatLib.chat(`CRITICAL Node Drop Detected! Magnitude: ${nodeDrop}`);
-            maxDropMagnitude = nodeDrop;
-        }
-    }
-
-    if (dropCheckNode) {
-        ChatLib.chat(
-            `Drop Check Node (Index ${targetNodeIndex}) at X:${dropCheckNode.x}, Y:${dropCheckNode.y}, Z:${dropCheckNode.z}`
-        );
-        RenderUtils.drawBox(
-            new Vec3d(dropCheckNode.x, dropCheckNode.y, dropCheckNode.z),
-            [255, 0, 0, 70]
-        );
-    }
-
-    const targetPathIndex = Math.min(
+    const targetPitchIndex = Math.min(
         currentBoxIndex + LOOK_AHEAD_DISTANCE,
         boxPositions.length - 1
     );
 
-    const targetPoint = boxPositions[targetPathIndex];
-    if (!targetPoint) return;
+    const targetPitchPoint = boxPositions[targetPitchIndex];
+    if (!targetPitchPoint) return;
 
     const lookAheadBoxCenter = new Vec3d(
-        targetPoint.x + 0.5,
-        targetPoint.y + 0.5,
-        targetPoint.z + 0.5
+        targetPitchPoint.x + 0.5,
+        targetPitchPoint.y + 0.5,
+        targetPitchPoint.z + 0.5
     );
 
     let rotationSpeedConstant = calculateRotationSpeed(lookAheadBoxCenter);
     ChatLib.chat(`Dynamic Speed Constant: ${rotationSpeedConstant.toFixed(2)}`);
 
-    let finalRotationTargetPoint = lookAheadBoxCenter;
+    const targetYawIndex = Math.min(
+        currentBoxIndex + YAW_AHEAD_DISTANCE,
+        boxPositions.length - 1
+    );
+    const targetYawPoint = boxPositions[targetYawIndex];
+    if (!targetYawPoint) return;
 
-    if (isDropAhead && dropCheckNode) {
-        finalRotationTargetPoint = new Vec3d(
-            dropCheckNode.x,
-            lookAheadBoxCenter.y,
-            dropCheckNode.z
-        );
-        ChatLib.chat('DROP: Yaw directed towards Red Node.');
-    } else {
-        ChatLib.chat('NO DROP: Yaw directed towards Green Node.');
-    }
-
-    const { pitch, yaw } = MathUtils.calculateAbsoluteAngles(
-        finalRotationTargetPoint
+    const finalRotationTargetPoint = new Vec3d(
+        targetYawPoint.x + 0.5,
+        targetYawPoint.y + 0.5,
+        targetYawPoint.z + 0.5
     );
 
-    let finalPitch = pitch;
+    const { pitch: calculatedPitch, yaw: targetYaw } =
+        MathUtils.calculateAbsoluteAngles(finalRotationTargetPoint);
+
+    if (!isInitialized) {
+        lastSmoothedYaw = targetYaw;
+        isInitialized = true;
+    }
+
+    const smoothedYaw = calculateSmoothedYaw(targetYaw, lastSmoothedYaw);
+    lastSmoothedYaw = smoothedYaw;
+
+    let finalPitch = calculatedPitch;
 
     finalPitch *= GENERAL_PITCH_DAMPENING;
     finalPitch = Math.max(finalPitch, MAX_UPWARD_PITCH_GRADE);
     finalPitch = Math.min(finalPitch, MAX_DOWNWARD_PITCH_GRADE);
 
-    if (maxDropMagnitude > 0) {
-        let pitchIncrease = maxDropMagnitude * DROP_PITCH_FACTOR;
-
-        pitchIncrease = Math.min(pitchIncrease, MAX_PITCH_REDUCTION);
-
-        finalPitch += pitchIncrease;
-
-        finalPitch = Math.min(finalPitch, MAX_PITCH_FOR_DROP);
-
-        finalPitch = Math.min(finalPitch, MAX_ALLOWED_PITCH_DOWN);
-        finalPitch = Math.max(finalPitch, MAX_ALLOWED_PITCH_UP);
-    } else {
-        finalPitch = Math.min(finalPitch, MAX_ALLOWED_PITCH_DOWN);
-        finalPitch = Math.max(finalPitch, MAX_ALLOWED_PITCH_UP);
-    }
-
-    if (isDropAhead || !Player.getPlayer().isOnGround()) {
-        rotationSpeedConstant = Math.min(
-            rotationSpeedConstant,
-            MIN_SPEED_CONSTANT
-        );
-        ChatLib.chat('Forcing fastest rotation speed due to drop/air.');
-    }
+    finalPitch = Math.min(finalPitch, MAX_ALLOWED_PITCH_DOWN);
+    finalPitch = Math.max(finalPitch, MAX_ALLOWED_PITCH_UP);
 
     const dynamicSpeed = rotationSpeedConstant;
 
-    Rotations.rotateToAngles(yaw, finalPitch, false, dynamicSpeed);
+    Rotations.rotateToAngles(smoothedYaw, finalPitch, false, dynamicSpeed);
 
     const horizontalDistanceToNextPoint = Math.hypot(
         playerEyes.x - (boxPositions[currentBoxIndex].x + 0.5),
