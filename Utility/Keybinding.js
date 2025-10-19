@@ -21,6 +21,10 @@ class Keybinding {
      * @returns {boolean} Success status
      */
     leftClick() {
+        if (Client.isInGui() && !Client.isInChat())
+            return Chat.message(
+                'Attempted left click while in GUI. Report this ASAP!'
+            );
         LeftClickMouse.invoke(mc);
     }
 
@@ -29,6 +33,10 @@ class Keybinding {
      * @returns {boolean} Success status
      */
     rightClick() {
+        if (Client.isInGui() && !Client.isInChat())
+            return Chat.message(
+                'Attempted right click while in GUI. Report this ASAP!'
+            );
         RightClickMouse.invoke(mc);
     }
 
