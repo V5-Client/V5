@@ -5,7 +5,7 @@ import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { MiningBot } from './MiningBot';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { Guis } from '../../Utility/Inventory';
-const { addSlider, addCategoryItem } = global.Categories;
+import { ModuleBase } from '../../Utility/ModuleBase';
 
 const STATES = {
     IDLE: 'Idle',
@@ -20,9 +20,17 @@ const STATES = {
     SWAPPING_PICK: 'Swapping Pickonimbus',
 };
 
-class CommissionMacro {
+class CommissionMacro extends ModuleBase {
     constructor() {
-        this.enabled = false;
+        super({
+            name: 'Commission Macro',
+            subcategory: 'Mining',
+            description: 'Completes Commissions for you',
+            tooltip:
+                'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            showEnabledToggle: false,
+        });
+        this.bindToggleKey();
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;
 
@@ -52,17 +60,14 @@ class CommissionMacro {
             this.toggle(false);
         }).setName('stopcommission', true);
 
-        register('step', () => {
-            if (!this.enabled) return;
-
+        this.on('step', () => {
             if (Date.now() - this.lastCommissionCheck > 5000) {
                 this.readCommissions();
                 this.lastCommissionCheck = Date.now();
             }
         }).setDelay(1);
 
-        register('tick', () => {
-            if (!this.enabled) return;
+        this.on('tick', () => {
             this.runLogic();
         });
 
@@ -122,22 +127,15 @@ class CommissionMacro {
         });
 
         register('worldUnload', () => {
-            if (!this.enabled) return;
-
-            this.toggle(false);
-            Chat.message('Commission Macro: &cDisabled due to world change');
+            if (this.enabled) {
+                this.toggle(false);
+                Chat.message(
+                    'Commission Macro: &cDisabled due to world change'
+                );
+            }
         });
 
-        addCategoryItem(
-            'Mining',
-            'Commission Macro',
-            'Completes Commissions for you',
-            'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission'
-        );
-
-        addSlider(
-            'Modules',
-            'Commission Macro',
+        this.addSlider(
             'Player Avoidance Radius',
             0,
             200,
@@ -145,8 +143,7 @@ class CommissionMacro {
             (value) => {
                 this.playerAvoidanceRadius = value;
             },
-            'How close another player can be to a mining spot before it is considered occupied.',
-            this.playerAvoidanceRadius
+            'How close another player can be to a mining spot before it is considered occupied.'
         );
 
         addSlider(
@@ -164,21 +161,15 @@ class CommissionMacro {
         );
     }
 
-    toggle(forceAState = null) {
-        if (forceAState !== null) {
-            this.enabled = forceAState;
-        } else {
-            this.enabled = !this.enabled;
-        }
+    onEnable() {
+        Chat.message('&aCommission Macro Enabled.');
+        this.init();
+    }
 
-        if (this.enabled) {
-            Chat.message('&aCommission Macro Enabled.');
-            this.init();
-        } else {
-            Chat.message('&cCommission Macro Disabled.');
-            stopPathing();
-            this.cleanup();
-        }
+    onDisable() {
+        Chat.message('&cCommission Macro Disabled.');
+        stopPathing();
+        this.cleanup();
     }
 
     init() {

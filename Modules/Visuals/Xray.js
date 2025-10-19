@@ -1,70 +1,47 @@
 import { getSetting } from '../../GUI/GuiSave';
+import { ModuleBase } from '../../Utility/ModuleBase';
 const XrayPackage = Java.type('com.chattriggers.ctjs.v5.Xray');
-
-const { addCategoryItem, addToggle, addSlider } = global.Categories;
-
-addCategoryItem(
-    'Visuals',
-    'Xray',
-    'See through walls - Sodium and Iris will break Xray',
-    'See through walls client-side.'
-);
-addSlider(
-    'Modules',
-    'Xray',
-    'Transparency',
-    0,
-    100,
-    50,
-    null,
-    'Transparency of Xray.'
-);
 
 function percentToAlpha(percent) {
     const reversed = 100 - percent;
     return Math.round((reversed * 255) / 100);
 }
 
-class Xray {
+class Xray extends ModuleBase {
     constructor() {
-        this.enabled = false;
+        super({
+            name: 'Xray',
+            subcategory: 'Visuals',
+            description: 'See through walls - Sodium and Iris will break Xray',
+            tooltip: 'See through walls client-side.',
+        });
+
         this.firstTransparency = getSetting('Xray', 'Transparency');
 
-        let transparencyLoop = register('step', () => {
-            const transparency = getSetting('Xray', 'Transparency');
+        // Transparency slider
+        this.addSlider(
+            'Transparency',
+            0,
+            100,
+            50,
+            null,
+            'Transparency of Xray.'
+        );
 
-            if (this.enabled && transparency !== this.firstTransparency) {
+        this.on('step', () => {
+            const transparency = getSetting('Xray', 'Transparency');
+            if (transparency !== this.firstTransparency) {
                 XrayPackage.setAlpha(percentToAlpha(transparency));
-                // The world renderer reload has to be on the main thread
+                // Reload on main thread
                 Client.scheduleTask(0, () => {
                     Client.getMinecraft().worldRenderer.reload();
                 });
-
                 this.firstTransparency = transparency;
             }
-        })
-            .setFps(5)
-            .unregister();
-
-        this.toggle = (value) => {
-            this.enabled = value;
-            if (this.enabled) {
-                this.enableXray();
-                transparencyLoop.register();
-            } else {
-                this.disableXray();
-                transparencyLoop.unregister();
-            }
-        };
-
-        addToggle('Modules', 'Xray', 'Enabled', this.toggle, 'Toggles Xray.');
-
-        Client.scheduleTask(0, () =>
-            this.toggle(getSetting('Xray', 'Enabled'))
-        );
+        }).setFps(5);
     }
 
-    enableXray() {
+    onEnable() {
         // Same thing, run on main thread
         Client.scheduleTask(0, () => {
             XrayPackage.setEnabled();
@@ -74,7 +51,7 @@ class Xray {
         });
     }
 
-    disableXray() {
+    onDisable() {
         // Same thing, run on main thread
         Client.scheduleTask(0, () => {
             XrayPackage.setDisabled();

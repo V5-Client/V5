@@ -1,21 +1,23 @@
 import { Keybind } from '../../Utility/Keybinding';
 import { Chat } from '../../Utility/Chat';
 import { Guis } from '../../Utility/Inventory';
-import { getSetting } from '../../GUI/GuiSave';
-const { addCategoryItem, addToggle, addSlider } = global.Categories;
+import { ModuleBase } from '../../Utility/ModuleBase';
 
-class FishingMacro {
+class FishingMacro extends ModuleBase {
     constructor() {
-        this.ModuleName = 'Fishing Macro';
-        this.Enabled = false;
+        super({
+            name: 'Fishing Macro',
+            subcategory: 'Other',
+            description: 'Fishing Macro',
+            tooltip: 'Fishing Macro',
+        });
+
         this.boomSlot = 1;
         this.rodSlot = 0;
         this.time = Date.now();
         this.tickCounter = 0;
 
-        let tickHandler = register('tick', () => {
-            if (!this.Enabled) return tickHandler.unregister();
-
+        this.on('tick', () => {
             this.tickCounter++;
             if (this.tickCounter % 10 !== 0) return;
 
@@ -24,58 +26,28 @@ class FishingMacro {
                 net.minecraft.entity.decoration.ArmorStandEntity
             );
             const target = stand.find((element) => element.getName() === '!!!');
-            if (target) {
+            if (!target) return;
+
+            Keybind.rightClick();
+            this.time = Date.now();
+            Chat.message('Jerking off rod');
+            Client.scheduleTask(2, () => {
+                Guis.setItemSlot(this.boomSlot);
+            });
+            Client.scheduleTask(4, () => {
                 Keybind.rightClick();
-                this.time = Date.now();
-                Chat.message('Jerking off rod');
-                Client.scheduleTask(2, () => {
-                    Guis.setItemSlot(this.boomSlot);
-                });
-                Client.scheduleTask(4, () => {
-                    Keybind.rightClick();
-                });
-                Client.scheduleTask(6, () => {
-                    Guis.setItemSlot(this.rodSlot);
-                });
-                Client.scheduleTask(8, () => {
-                    Keybind.rightClick();
-                });
-            }
-        }).unregister();
-
-        this.toggle = (value) => {
-            this.Enabled = value;
-            if (this.Enabled) {
-                tickHandler.register();
-            } else {
-                tickHandler.unregister();
-            }
-        };
-
-        addCategoryItem(
-            'Other',
-            'Fishing Macro',
-            'Fishing Macro',
-            'Fishing Macro'
-        );
-
-        addToggle('Modules', 'Fishing Macro', 'Enabled', (value) => {
-            this.toggle(value);
+            });
+            Client.scheduleTask(6, () => {
+                Guis.setItemSlot(this.rodSlot);
+            });
+            Client.scheduleTask(8, () => {
+                Keybind.rightClick();
+            });
         });
 
-        addSlider('Modules', 'Fishing Macro', 'Boom Slot', 0, 8, 1, (value) => {
-            this.boomSlot = value;
-        });
-
-        addSlider('Modules', 'Fishing Macro', 'Rod Slot', 0, 8, 0, (value) => {
-            this.rodSlot = value;
-        });
-
-        Client.scheduleTask(1, () => {
-            this.toggle(getSetting('Fishing Macro', 'Enabled'));
-            this.boomSlot = getSetting('Fishing Macro', 'Boom Slot');
-            this.rodSlot = getSetting('Fishing Macro', 'Rod Slot');
-        });
+        this.addSlider('Boom Slot', 0, 8, 1, (v) => (this.boomSlot = v));
+        this.addSlider('Rod Slot', 0, 8, 0, (v) => (this.rodSlot = v));
     }
 }
+
 new FishingMacro();
