@@ -29,6 +29,7 @@ class GemstoneMacro extends ModuleBase {
             tooltip: 'Gemstone Miner for the Crystal Hollows',
             showEnabledToggle: false,
         });
+        this.bindToggleKey();
         this.FASTAOTV = false;
         this.MOBKILLER = false;
         this.WEAPONSLOT = 0;

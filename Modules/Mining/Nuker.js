@@ -19,7 +19,9 @@ class NukerClass extends ModuleBase {
             description: 'Automatically nukes nearby blocks.',
             tooltip: 'Automatically nukes nearby blocks',
             autoDisableOnWorldUnload: true,
+            showEnabledToggle: true,
         });
+        this.bindToggleKey();
 
         this.target = null;
         this.lastTime = 0;

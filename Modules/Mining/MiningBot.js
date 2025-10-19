@@ -30,6 +30,7 @@ class Bot extends ModuleBase {
             tooltip: 'Automatically mines.',
             showEnabledToggle: false,
         });
+        this.bindToggleKey();
         this.foundLocations = [];
         this.lastScanTime = 0;
         this.lowestCostBlockIndex = 0;

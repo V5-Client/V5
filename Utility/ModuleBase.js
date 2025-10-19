@@ -50,8 +50,9 @@ export class ModuleBase {
     }
 
     // Toggle logic: call hooks and register/unregister tracked registers
+    // If value is undefined, invert current state
     toggle(value) {
-        const newVal = !!value;
+        const newVal = typeof value === 'boolean' ? value : !this.enabled;
         if (this.enabled === newVal) return;
         this.enabled = newVal;
         if (newVal) {
@@ -65,6 +66,12 @@ export class ModuleBase {
                 this.onDisable();
             } catch (e) {}
         }
+    }
+
+    bindToggleKey(title = `Toggle ${this.name}`) {
+        this._toggleKeyBind = new KeyBind(title, Keyboard.KEY_NONE, 'V5');
+        this._toggleKeyBind.registerKeyPress(() => this.toggle());
+        return this;
     }
 
     // helpers for gui stuff

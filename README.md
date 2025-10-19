@@ -12,11 +12,13 @@ class ExampleModule extends ModuleBase {
             tooltip: 'Optional tooltip',
         });
 
+        this.bindToggleKey(title?);
+
         // Create a register and unregister it then track them
         const step = register('step', () => {
             // logic here
         }).unregister();
-        this.trackRegister(step); // this will automatically handle enabling and disabling
+        this.trackRegister(step); // handlers tracked here only run while Enabled
 
         // You can also use this.on(registerType) to create and track a register in one line
         this.on('step', () => {
@@ -25,22 +27,22 @@ class ExampleModule extends ModuleBase {
 
         // Optional settings
         this.addToggle(
-            'Some Feature',
+            'Some Feature', // title
             (value) => {
                 // callback
             },
-            'Description of the feature'
+            'Description of the feature' // description
         );
 
         this.addSlider(
-            'Speed',
-            1,
-            10,
-            5,
+            'Speed', // title
+            1, // min
+            10, // max
+            5, // default
             (value) => {
                 // callback
             },
-            'How fast to go'
+            'How fast to go' // description
         );
     }
 
@@ -60,6 +62,7 @@ new ExampleModule();
 
 Notes:
 
-- The `Enabled` toggle is added automatically and controls all handlers tracked via `trackHandler`.
-- All GUI callbacks update the in-memory SettingsMap, and `setEnabled()` also syncs the UI component so saving persists your programmatic toggles.
-- Settings are loaded in `loader.js` via `loadSettings()` which triggers callbacks to initialize modules.
+- The `Enabled` toggle is added automatically; hide it with `showEnabledToggle: false` in the constructor options for command/keybind modules.
+- Use `this.on(event, cb)` to create handlers that auto-register on enable and unregister on disable.
+- Use `this.trackRegister(reg)` if you build a handler first with `register(...).unregister()` and then want ModuleBase to manage it.
+- `this.bindToggleKey(title?)` adds a hotkey to toggle the module (works even when disabled).

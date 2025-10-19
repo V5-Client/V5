@@ -31,6 +31,7 @@ class CommissionMacro extends ModuleBase {
                 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
             showEnabledToggle: false,
         });
+        this.bindToggleKey();
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;
 
