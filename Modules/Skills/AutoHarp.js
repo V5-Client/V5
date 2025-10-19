@@ -9,7 +9,6 @@ class AutoHarp extends ModuleBase {
             description: 'Auto Harp',
             tooltip: 'Auto Harp',
         });
-        this.ModuleName = 'Auto Harp';
         this.delay = 3;
 
         class Note {

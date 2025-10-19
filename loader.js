@@ -20,7 +20,7 @@ import './Utility/Config.js';
 /* MINING */
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/Nuker.js';
-import './Modules/Mining/CommissionMacro.js';
+//import './Modules/Mining/CommissionMacro.js'; zurviq can fix whenever
 import './Modules/Mining/GemstoneMacro.js';
 
 /* VISUALS */
