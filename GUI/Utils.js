@@ -33,35 +33,35 @@ export const SUBCATEGORY_BUTTON_SPACING = 5;
 
 export const THEME = {
     // Dropdown
-    DROPDOWN_BACKGROUND: new Color(0.18, 0.18, 0.22, 1),
-    DROPDOWN_FOREGROUND: new Color(0.65, 0.4, 0.85, 0.9),
+    DROPDOWN_BACKGROUND: new Color(0.2, 0.2, 0.22, 1),
+    DROPDOWN_FOREGROUND: new Color(0.45, 0.65, 1, 0.9),
     DROPDOWN_TEXT: 0xffffff,
-    DROPDOWN_OPTION_BACKGROUND: new Color(0.22, 0.23, 0.27, 1),
-    DROPDOWN_TOGGLE_DISABLED: new Color(0.38, 0.39, 0.42, 1), // STAY CONSISTENT WITH TOGGLE DISABLED BOX
+    DROPDOWN_OPTION_BACKGROUND: new Color(0.24, 0.24, 0.26, 1),
+    DROPDOWN_TOGGLE_DISABLED: new Color(0.4, 0.4, 0.43, 1),
 
     // GuiDraw
-    GUI_DRAW_BACKGROUND_BORDER: new Color(1, 1, 1, 0.22),
-    GUI_DRAW_BACKGROUND: new Color(0.15, 0.16, 0.21, 0.72), // THIS IS THE BACKGROUND TRANSPARENT THINGY. CHANGED TO SLIGHTLY MATCH NOTIFICATIONS!
-    GUI_DRAW_PANELS: new Color(0.078, 0.078, 0.102, 1), // THIS IS THE ACTUAL FUCKING BACKGROUND OF GUI.
-    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.22),
+    GUI_DRAW_BACKGROUND_BORDER: new Color(1, 1, 1, 0.15),
+    GUI_DRAW_BACKGROUND: new Color(0.18, 0.18, 0.2, 0.75),
+    GUI_DRAW_PANELS: new Color(0.14, 0.14, 0.16, 1),
+    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.15),
 
     // GuiManager
-    GUI_MANAGER_CATEGORY_TITLE: 0xffffff, // WHITE TEXT
-    GUI_MANAGER_CATEGORY_DESCRIPTION: 0xaaaaaa, // GRAY TEXT
-    GUI_MANAGER_BACK_TEXT: 0x01ffa1, //     BACK TEXT
-    GUI_MANAGER_CATEGORY_BOX: new Color(0.133, 0.133, 0.165, 1), // BACKGROUND OF THE MODULES (routewalker, nuker, etc)
-    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.192, 0.2, 0.227, 1), // THIS IS FOR THE FUCKING SEPARATORS?
-    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.004, 1, 0.631, 0.6), // SELECTED CATEGORY (folder icon + All/Mining/Visuals etc) (i love this color but its so strong, so i made it transparent). consistent with toggle accent and slider foreground
-    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.22), // OUTLINE BORDERS AROUND THE MODULES !! like routewalker, nuker, etc. MAKE IT CONSISTENT WITH GUI_DRAW_BORDER and THE COMPONENTS
+    GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
+    GUI_MANAGER_CATEGORY_DESCRIPTION: 0xcccccc,
+    GUI_MANAGER_BACK_TEXT: 0x3ba3ff,
+    GUI_MANAGER_CATEGORY_BOX: new Color(0.16, 0.16, 0.18, 1),
+    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.22, 0.23, 0.25, 1),
+    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.2, 0.6, 1, 0.5), // soft blue selection
+    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.15),
 
     // NotificationManager
-    NOTIFICATION_BACKGROUND: new Color(0.15, 0.16, 0.21, 0.92),
+    NOTIFICATION_BACKGROUND: new Color(0.18, 0.18, 0.2, 0.92),
     NOTIFICATION_ICON_BACKGROUND: new Color(1, 1, 1, 0.06),
     NOTIFICATION_ICON_SYMBOL: 0xdddddd,
     NOTIFICATION_TEXT: 0xffffff,
     NOTIFICATION_DESCRIPTION: 0xb0b0b0,
     NOTIFICATION_CLOSE_BUTTON: 0xaaaaaa,
-    NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.08),
+    NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.1),
     NOTIFICATION_PROGRESS_BAR: new Color(1, 1, 1, 0.25),
     NOTIFICATION_SUCCESS: new Color(parseInt('2b9875', 16)),
     NOTIFICATION_ERROR: new Color(parseInt('ef4444', 16)),
@@ -71,21 +71,21 @@ export const THEME = {
     NOTIFICATION_INFO: new Color(parseInt('3b82f6', 16)),
 
     // Slider
-    SLIDER_BACKGROUND: new Color(0.133, 0.133, 0.165, 1), // THIS NEEDS TO BE THE SAME AS TOGGLE BACKGROUND
+    SLIDER_BACKGROUND: new Color(0.16, 0.16, 0.18, 1),
     SLIDER_TEXT: new Color(1, 1, 1, 1),
-    SLIDER_FOREGROUND: new Color(0.004, 1, 0.631, 0.6), // MAKE THIS CONSISTENT WITH TOGGLE ACCENT
+    SLIDER_FOREGROUND: new Color(0.2, 0.6, 1, 0.6), // blue accent
     SLIDER_HANDLE: new Color(0.85, 0.85, 0.85, 1),
-    SLIDER_BAR_BACKGROUND: new Color(0.192, 0.2, 0.227, 1),
+    SLIDER_BAR_BACKGROUND: new Color(0.22, 0.23, 0.25, 1),
 
     // Toggle
-    TOGGLE_BACKGROUND: new Color(0.133, 0.133, 0.165, 1), // THIS NEEDS TO BE THE SAME AS SLIDER BACKGROUND
-    TOGGLE_ACCENT: new Color(0.004, 1, 0.631, 0.6), // MAKE THIS CONSISTENT WITH SLIDER FOREGROUND
-    TOGGLE_DISABLED_BOX: new Color(0.38, 0.39, 0.42, 1),
+    TOGGLE_BACKGROUND: new Color(0.16, 0.16, 0.18, 1),
+    TOGGLE_ACCENT: new Color(0.2, 0.6, 1, 0.6), // blue toggle
+    TOGGLE_DISABLED_BOX: new Color(0.4, 0.41, 0.44, 1),
     TOGGLE_TEXT: new Color(1, 1, 1, 1),
-    TOGGLE_BORDER: new Color(1, 1, 1, 0.22),
+    TOGGLE_BORDER: new Color(1, 1, 1, 0.15),
 
     // Tooltip
-    TOOLTIP_BACKGROUND: new Color(0.282, 0.282, 0.29, 0.95),
+    TOOLTIP_BACKGROUND: new Color(0.3, 0.3, 0.32, 0.95),
     TOOLTIP_TEXT: 0xdddddd,
 };
 

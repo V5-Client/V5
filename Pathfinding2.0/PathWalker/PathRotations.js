@@ -69,7 +69,7 @@ function calculateSmoothedYaw(targetYaw, currentSmoothedYaw) {
 }
 
 export function pathRotations(splineData, dropCheckNodes) {
-    const boxPositions = renderSplineBoxes(splineData, 1);
+    const boxPositions = renderSplineBoxes(splineData, 1, false);
     const playerEyes = Player.getPlayer().getEyePos();
 
     if (boxPositions.length === 0) {
