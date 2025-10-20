@@ -1,8 +1,10 @@
 import request from 'requestV2';
-import { Links } from '../Utility/Constants';
+import { Links, Vec3d } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { generateHybridSpline } from './PathDebug';
 import { pathRotations } from './PathWalker/PathRotations';
+import RenderUtils from '../Rendering/RendererUtils';
+import { getRenderKeyNodes } from './PathConfig';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
@@ -73,6 +75,33 @@ function handleWarp(warpCommand, onComplete) {
     setTimeout(onComplete, 250);
 }
 
+function drawKeyNodes(keynodes) {
+    if (!keynodes || keynodes.length < 2) return;
+
+    keynodes.forEach((keynode) => {
+        RenderUtils.drawStyledBox(
+            new Vec3d(keynode.x, keynode.y, keynode.z),
+            [0, 100, 200, 120],
+            [0, 100, 200, 255],
+            4,
+            true
+        );
+    });
+
+    for (let i = 0; i < keynodes.length - 1; i++) {
+        const current = keynodes[i];
+        const next = keynodes[i + 1];
+
+        RenderUtils.drawLine(
+            new Vec3d(current.x + 0.5, current.y + 1, current.z + 0.5),
+            new Vec3d(next.x + 0.5, next.y + 1, next.z + 0.5),
+            [0, 150, 255, 255],
+            1,
+            true
+        );
+    }
+}
+
 export function findAndFollowPath(start, end, renderOnly = false) {
     stopPathing();
 
@@ -112,14 +141,15 @@ export function findAndFollowPath(start, end, renderOnly = false) {
             );
             setPathNodes(generatedSpline);
 
-            if (pathNodes.length) {
+            if (getRenderKeyNodes()) {
                 renderOnlyRegister = register('postRenderWorld', () => {
-                    /*drawFloatingSpline(
-                        generatedSpline,
-                        body.path_between_key_nodes
-                    );
-                    renderSplineBoxes(generatedSpline); */
+                    drawKeyNodes(body.keynodes);
                 });
+            } else {
+                if (renderOnlyRegister) {
+                    renderOnlyRegister.unregister();
+                    renderOnlyRegister = null;
+                }
             }
 
             const beginPathing = () => {

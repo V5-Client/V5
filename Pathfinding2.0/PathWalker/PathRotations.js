@@ -77,6 +77,10 @@ export function pathRotations(splineData) {
         return;
     }
 
+    if (currentBoxIndex === boxPositions.length - 1) {
+        return;
+    }
+
     let closestBoxDistanceSq = Infinity;
     let newCurrentBoxIndex = currentBoxIndex;
     const startIndex = Math.max(0, currentBoxIndex - BOX_RESET_SEARCH_RANGE);
@@ -121,7 +125,7 @@ export function pathRotations(splineData) {
     );
 
     let rotationSpeedConstant = calculateRotationSpeed(lookAheadBoxCenter);
-    ChatLib.chat(`Dynamic Speed Constant: ${rotationSpeedConstant.toFixed(2)}`);
+    //ChatLib.chat(`Dynamic Speed Constant: ${rotationSpeedConstant.toFixed(2)}`);
 
     const targetYawIndex = Math.min(
         currentBoxIndex + YAW_AHEAD_DISTANCE,
