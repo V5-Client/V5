@@ -73,12 +73,6 @@ export function runProgram() {
                             );
 
                             loadMap(Maps[area]);
-                            global.showNotification(
-                                `Loaded ${key}!`,
-                                'Connection successfully loaded the island you are on',
-                                'SUCCESS',
-                                4000
-                            );
                         } else {
                             console.log(
                                 `No matching map found for area: ${area}`
@@ -110,13 +104,18 @@ function loadMap(map) {
     request({ url, timeout: 5000 })
         .then(() => {
             console.log(`Successfully loaded map '${map}'.`);
+            global.showNotification(
+                `Loaded ${map}!`,
+                'Connection successfully loaded the island you are on',
+                'SUCCESS',
+                4000
+            );
         })
         .catch((err) => {
-            const errorMessage = `Failed to load map '${map}'. The server may have been busy or unstable.`;
-            console.log(`${errorMessage} Raw error: ${err}`);
+            console.log(`Error loading map ${map}: ${err}`);
             global.showNotification(
                 'Map Load Failed',
-                errorMessage,
+                `Failed to load map ${map}`,
                 'ERROR',
                 8000
             );
