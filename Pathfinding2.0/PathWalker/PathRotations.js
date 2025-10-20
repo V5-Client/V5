@@ -16,15 +16,6 @@ const LOOK_AHEAD_DISTANCE = 3;
 const YAW_AHEAD_DISTANCE = 5;
 const MAX_YAW_ADJUSTMENT = 15;
 
-let currentBoxIndex = 1;
-
-const NODE_DROP_THRESHOLD_Y = 9;
-const LOOK_AHEAD_NODE_INDEX_OFFSET = 10;
-
-const DROP_PITCH_FACTOR = 1.0;
-const MAX_PITCH_REDUCTION = 10.0;
-const MAX_PITCH_FOR_DROP = 30;
-
 const ADVANCE_DISTANCE = 1;
 
 const MAX_ALLOWED_PITCH_DOWN = 89.9;
@@ -32,8 +23,14 @@ const MAX_ALLOWED_PITCH_UP = -89.9;
 
 const BOX_RESET_SEARCH_RANGE = 20;
 
+let currentBoxIndex = 1;
 let lastSmoothedYaw = Player.getYaw() || 0;
+let lastSmoothedPitch = Player.getPitch() || 0;
 let isInitialized = false;
+
+let isJumping = false;
+const JUMP_VELOCITY_THRESHOLD = 0.1;
+const JUMP_SMOOTHING_FACTOR = 0.3;
 
 function calculateRotationSpeed(targetPoint) {
     const { yaw: relYaw, pitch: relPitch } =
@@ -68,18 +65,37 @@ function calculateSmoothedYaw(targetYaw, currentSmoothedYaw) {
     return currentSmoothedYaw + adjustment;
 }
 
+function detectJumping() {
+    const player = Player.getPlayer();
+    if (!player) return false;
+
+    const velocityY = player.getVelocity().y;
+    isJumping = velocityY > JUMP_VELOCITY_THRESHOLD;
+
+    return isJumping;
+}
+
+function applySmoothing(targetPitch, currentPitch) {
+    const pitchSmoothingFactor = JUMP_SMOOTHING_FACTOR;
+
+    const smoothedPitch =
+        currentPitch + (targetPitch - currentPitch) * pitchSmoothingFactor;
+
+    return smoothedPitch;
+}
+
 export function pathRotations(splineData) {
     const boxPositions = renderSplineBoxes(splineData, 1);
     const playerEyes = Player.getPlayer().getEyePos();
 
-    if (boxPositions.length === 0) {
-        currentBoxIndex = -1;
+    if (
+        boxPositions.length === 0 ||
+        currentBoxIndex === boxPositions.length - 1
+    ) {
         return;
     }
 
-    if (currentBoxIndex === boxPositions.length - 1) {
-        return;
-    }
+    detectJumping();
 
     let closestBoxDistanceSq = Infinity;
     let newCurrentBoxIndex = currentBoxIndex;
@@ -125,7 +141,6 @@ export function pathRotations(splineData) {
     );
 
     let rotationSpeedConstant = calculateRotationSpeed(lookAheadBoxCenter);
-    //ChatLib.chat(`Dynamic Speed Constant: ${rotationSpeedConstant.toFixed(2)}`);
 
     const targetYawIndex = Math.min(
         currentBoxIndex + YAW_AHEAD_DISTANCE,
@@ -145,13 +160,17 @@ export function pathRotations(splineData) {
 
     if (!isInitialized) {
         lastSmoothedYaw = targetYaw;
+        lastSmoothedPitch = calculatedPitch;
         isInitialized = true;
     }
 
     const smoothedYaw = calculateSmoothedYaw(targetYaw, lastSmoothedYaw);
     lastSmoothedYaw = smoothedYaw;
 
-    let finalPitch = calculatedPitch;
+    const smoothedPitch = applySmoothing(calculatedPitch, lastSmoothedPitch);
+    lastSmoothedPitch = smoothedPitch;
+
+    let finalPitch = smoothedPitch;
 
     finalPitch *= GENERAL_PITCH_DAMPENING;
     finalPitch = Math.max(finalPitch, MAX_UPWARD_PITCH_GRADE);
@@ -160,9 +179,12 @@ export function pathRotations(splineData) {
     finalPitch = Math.min(finalPitch, MAX_ALLOWED_PITCH_DOWN);
     finalPitch = Math.max(finalPitch, MAX_ALLOWED_PITCH_UP);
 
-    const dynamicSpeed = rotationSpeedConstant;
-
-    Rotations.rotateToAngles(smoothedYaw, finalPitch, false, dynamicSpeed);
+    Rotations.rotateToAngles(
+        smoothedYaw,
+        finalPitch,
+        false,
+        rotationSpeedConstant
+    );
 
     const horizontalDistanceToNextPoint = Math.hypot(
         playerEyes.x - (boxPositions[currentBoxIndex].x + 0.5),
