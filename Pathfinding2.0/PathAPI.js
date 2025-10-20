@@ -122,7 +122,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                 return;
             }
 
-            if (!body || !body.keynodes || body.keynodes.length < 2) {
+            if (!body || !body.keynodes || body.keynodes.length < 1) {
                 return global.showNotification(
                     'Pathfinding Failed',
                     'No path nodes received to generate a curve.',
