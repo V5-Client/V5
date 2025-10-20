@@ -49,6 +49,9 @@ export function runProgram() {
             );
             const sc = new Scanner(reader);
 
+            const errReader = new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8);
+            const errSc = new Scanner(errReader);
+
             while (
                 process !== null &&
                 process.isAlive() &&
@@ -84,6 +87,11 @@ export function runProgram() {
                     if (isPathMessage(line)) {
                         Chat.debugMessage(line);
                     }
+                }
+
+                while (errSc.hasNextLine()) {
+                    let errLine = errSc.nextLine();
+                    console.log('[ERROR] ' + errLine);
                 }
             }
 
