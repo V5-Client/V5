@@ -2,6 +2,7 @@ import request from 'requestV2';
 import { Runtime, Links } from '../Utility/Constants';
 import { stopPathing } from './PathAPI';
 import { Utils } from '../Utility/Utils';
+import { Chat } from '../Utility/Chat';
 const ProcessBuilder = Java.type('java.lang.ProcessBuilder');
 const Scanner = Java.type('java.util.Scanner');
 const InputStreamReader = Java.type('java.io.InputStreamReader');
@@ -22,6 +23,16 @@ const Maps = {
     Galatea: 'galatea',
     Hub: 'hub',
 };
+
+function isPathMessage(line) {
+    return (
+        line.includes('path.') ||
+        // line.includes('nodes in') ||
+        // line.includes('took') ||
+        line.includes('time taken') ||
+        line.includes('Path length:')
+    );
+}
 
 export function runProgram() {
     stopProgram();
@@ -76,6 +87,9 @@ export function runProgram() {
                     }
 
                     console.log(line);
+                    if (isPathMessage(line)) {
+                        Chat.debugMessage(line);
+                    }
                 }
             }
 
