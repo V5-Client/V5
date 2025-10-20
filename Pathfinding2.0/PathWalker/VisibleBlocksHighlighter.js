@@ -3,7 +3,7 @@ import RenderUtils from '../../Rendering/RendererUtils';
 import { Vec3d } from '../../Utility/Constants';
 
 let isEnabled = false;
-let maxDistance = 5;
+let maxDistance = 6;
 let highlightColor = [255, 255, 0, 100];
 let wireframeColor = [255, 255, 0, 255];
 let wireframeThickness = 3;
@@ -25,7 +25,8 @@ function updateVisibleBlocks() {
     const playerPos = player.getEyePos();
     if (!playerPos) return;
 
-    const playerLookVec = Player.getPlayer().getRotationVec(1.0);
+    const playerLookVec = player.getRotationVec(1.0);
+    if (!playerLookVec) return;
 
     const playerMoved =
         !lastPlayerPos ||
@@ -54,28 +55,39 @@ function updateVisibleBlocks() {
     const centerY = Math.floor(playerPos.y);
     const centerZ = Math.floor(playerPos.z);
 
-    const searchRadius = Math.min(radius, 5);
+    const searchRadius = Math.ceil(radius) + 1;
+
+    const fovAngle = Settings.getFOV() / 2;
 
     for (let x = centerX - searchRadius; x <= centerX + searchRadius; x++) {
-        for (let y = centerY - searchRadius; y <= centerY; y++) {
+        for (let y = centerY - searchRadius; y <= centerY + searchRadius; y++) {
             for (
                 let z = centerZ - searchRadius;
                 z <= centerZ + searchRadius;
                 z++
             ) {
-                const dx = x - playerPos.x;
-                const dy = y - playerPos.y;
-                const dz = z - playerPos.z;
+                const dx = x + 0.5 - playerPos.x;
+                const dy = y + 0.5 - playerPos.y;
+                const dz = z + 0.5 - playerPos.z;
                 const distSq = dx * dx + dy * dy + dz * dz;
-                if (distSq > radius * radius) continue;
+                const dist = Math.sqrt(distSq);
 
-                if (y > centerY) continue;
+                if (dist > radius + 0.87 || dist === 0) continue;
+
+                const dirX = dx / dist;
+                const dirY = dy / dist;
+                const dirZ = dz / dist;
 
                 const dotProduct =
-                    playerLookVec.x * dx +
-                    playerLookVec.y * dy +
-                    playerLookVec.z * dz;
-                if (dotProduct < 0) continue;
+                    playerLookVec.x * dirX +
+                    playerLookVec.y * dirY +
+                    playerLookVec.z * dirZ;
+
+                const angle =
+                    Math.acos(Math.max(-1, Math.min(1, dotProduct))) *
+                    (180 / Math.PI);
+
+                if (angle > fovAngle) continue;
 
                 const block = World.getBlockAt(x, y, z);
                 if (!block || block.type.getID() === 0) continue;
