@@ -34,9 +34,7 @@ class RotationsTo {
 
         this.initialMaxDiff = 0;
 
-        register('renderworld', () => {
-            this.tick();
-        });
+        register('step', () => this.tick()).setFps(100);
     }
 
     wrapDegrees(degrees) {
