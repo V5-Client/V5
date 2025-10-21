@@ -391,8 +391,8 @@ export function pathMovement() {
 export function stopMovement() {
     try {
         mc.options.forwardKey.setPressed(false);
-        mc.options.sprintKey.setPressed(false);
         mc.options.jumpKey.setPressed(false);
+        mc.options.sprintKey.setPressed(true);
     } catch (e) {
         console.error('[PathMovement] Error stopping movement:', e);
     }
