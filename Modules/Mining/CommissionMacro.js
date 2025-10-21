@@ -146,9 +146,7 @@ class CommissionMacro extends ModuleBase {
             'How close another player can be to a mining spot before it is considered occupied.'
         );
 
-        addSlider(
-            'Modules',
-            'Commission Macro',
+        this.addSlider(
             'Weapon Slot (Goblin)',
             1,
             8,
@@ -156,8 +154,7 @@ class CommissionMacro extends ModuleBase {
             (value) => {
                 this.goblinWeaponSlot = value;
             },
-            'Hotbar slot with weapon for Goblin Slayer (1-8)',
-            1
+            'Hotbar slot with weapon for Goblin Slayer (1-8)'
         );
     }
 
