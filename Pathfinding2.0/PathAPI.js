@@ -190,10 +190,6 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                                 'SUCCESS',
                                 2000
                             );
-                        } else if (stuck) {
-                            console.log(
-                                '[PathAPI] Player stuck, may need recalculation'
-                            );
                         }
                     });
                 }

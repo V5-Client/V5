@@ -1,88 +1,21 @@
-import { pathState } from './PathState';
+import RenderUtils from '../../Rendering/RendererUtils';
+import { Vec3d } from '../../Utility/Constants';
+import { Keybind } from '../../Utility/Keybinding';
 import { PathfindingMessages } from '../PathConfig';
-import { detectAndRecoverStuck } from './PathStuckRecovery';
+import {
+    IGNORED_BLOCK_PATTERNS,
+    PARTIAL_HEIGHT_BLOCKS,
+} from '../PathConstants';
 
 const STEP_HEIGHT = 0.6;
-const MIN_TICKS_BETWEEN_JUMPS = 3;
-
-const IGNORED_BLOCK_PATTERNS = [
-    'minecraft:air',
-    'minecraft:portal',
-    'minecraft:end_portal',
-    'minecraft:fire',
-    'minecraft:web',
-    'minecraft:tallgrass',
-    'minecraft:double_plant',
-    'minecraft:yellow_flower',
-    'minecraft:red_flower',
-    'minecraft:brown_mushroom',
-    'minecraft:red_mushroom',
-    'minecraft:sapling',
-    'minecraft:reeds',
-    'minecraft:wheat',
-    'minecraft:carrots',
-    'minecraft:potatoes',
-    'minecraft:beetroots',
-    'minecraft:melon_stem',
-    'minecraft:pumpkin_stem',
-    'minecraft:nether_wart',
-    'minecraft:deadbush',
-    'minecraft:vine',
-    'minecraft:ladder',
-    'minecraft:torch',
-    'minecraft:wall_torch',
-    'minecraft:redstone_torch',
-    'minecraft:lever',
-    'minecraft:stone_button',
-    'minecraft:wooden_button',
-    'minecraft:sign',
-    'minecraft:wall_sign',
-    'minecraft:tripwire',
-    'minecraft:tripwire_hook',
-    'minecraft:string',
-    'minecraft:carpet',
-    'minecraft:flower_pot',
-    'minecraft:skull',
-    'minecraft:item_frame',
-    'minecraft:painting',
-    'minecraft:lily_pad',
-    'minecraft:rail',
-    'minecraft:player_head',
-];
-
-const PARTIAL_HEIGHT_BLOCKS = {
-    slab: 0.5,
-    snow_layer: 0.5,
-    snow: 0.5,
-    farmland: 0.9375,
-    grass_path: 0.9375,
-    dirt_path: 0.9375,
-    carpet: 0.0625,
-    pressure_plate: 0.0625,
-    enchanting_table: 0.75,
-    daylight_detector: 0.375,
-    waterlily: 0.015625,
-    lily_pad: 0.015625,
-    cauldron: 0.3125,
-    bed: 0.5625,
-    chest: 0.875,
-    ender_chest: 0.875,
-    trapped_chest: 0.875,
-    hopper: 0.625,
-    soul_sand: 0.875,
-    honey_block: 1.0,
-    composter: 0.9375,
-    lectern: 0.875,
-    grindstone: 0.875,
-    stonecutter: 0.5625,
-    bell: 1.0,
-    anvil: 1.0,
-};
 
 const mc = Client.getMinecraft();
 
 const blockCache = new Map();
 let cacheFrame = 0;
+
+let currentJumpPoints = [];
+const persistentJumpPoints = [];
 
 register('tick', () => {
     cacheFrame++;
@@ -123,6 +56,10 @@ function isSolid(block) {
     if (!block) return false;
     const id = block.type.getID();
     if (id === 0) return false;
+
+    const registryName = block.type.getRegistryName().toLowerCase();
+    if (registryName.includes('water') || registryName.includes('lava'))
+        return false;
 
     return !isBlockPassable(block);
 }
@@ -169,7 +106,7 @@ function hasLowCeiling(x, y, z) {
 
     if (isSolid(block2)) {
         const registryName = block2.type.getRegistryName().toLowerCase();
-        if (registryName.includes('stairs')) return false;
+        if (registryName.includes('stair')) return false;
 
         const height2 = getBlockHeight(block2);
         if (height2 >= 0.9) return true;
@@ -177,7 +114,7 @@ function hasLowCeiling(x, y, z) {
 
     if (isSolid(block3)) {
         const registryName = block3.type.getRegistryName().toLowerCase();
-        if (registryName.includes('stairs')) return false;
+        if (registryName.includes('stair')) return false;
 
         const height3 = getBlockHeight(block3);
         if (height3 >= 0.9) return true;
@@ -186,43 +123,83 @@ function hasLowCeiling(x, y, z) {
     return false;
 }
 
-function getDirection(from, to) {
-    const dx = to.x - from.x;
-    const dz = to.z - from.z;
-    const dist2D = Math.sqrt(dx * dx + dz * dz);
+function getPlayerFacingDirection() {
+    const yaw = Player.getYaw();
+    const radians = (yaw + 90) * (Math.PI / 180);
+
+    const dirX = Math.cos(radians);
+    const dirZ = Math.sin(radians);
+
+    const dist2D = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
     if (dist2D < 0.1) {
         return { dirX: 0, dirZ: 0 };
     }
 
     return {
-        dirX: dx / dist2D,
-        dirZ: dz / dist2D,
+        dirX: dirX / dist2D,
+        dirZ: dirZ / dist2D,
     };
 }
 
-function checkStepUp(checkX, checkY, checkZ, currentGroundHeight) {
+function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
     const blockFoot = getCachedBlock(checkX, checkY, checkZ);
     const blockHead = getCachedBlock(checkX, checkY + 1, checkZ);
+    const blockBelow = getCachedBlock(checkX, checkY - 1, checkZ);
 
-    if (!isSolid(blockFoot) || isSolid(blockHead)) {
-        return { shouldJump: false, reason: null };
+    if (isSolid(blockHead)) {
+        return { shouldJump: false, reason: 'Ceiling block' };
     }
 
-    const targetGroundHeight = checkY + getBlockHeight(blockFoot);
-    const actualHeightDiff = targetGroundHeight - currentGroundHeight;
+    let actualHeightDiff = 0;
+    let targetGroundY = checkY;
+    let targetBlockHeight = 0;
+    let isStepUp = false;
+    let blockToCheck = null;
 
-    if (actualHeightDiff > STEP_HEIGHT) {
-        return {
-            shouldJump: true,
-            reason: `step up ${actualHeightDiff.toFixed(2)}m`,
-        };
+    if (isSolid(blockFoot)) {
+        targetBlockHeight = getBlockHeight(blockFoot);
+        targetGroundY = checkY;
+        blockToCheck = blockFoot;
+        actualHeightDiff =
+            targetGroundY + targetBlockHeight - currentGroundHeight;
+        isStepUp = true;
+    } else if (isSolid(blockBelow)) {
+        targetBlockHeight = getBlockHeight(blockBelow);
+        targetGroundY = checkY - 1;
+        blockToCheck = blockBelow;
+        actualHeightDiff =
+            targetGroundY + targetBlockHeight - currentGroundHeight;
+        isStepUp = true;
+    }
+
+    if (isStepUp) {
+        if (blockToCheck) {
+            const registryName = blockToCheck.type
+                .getRegistryName()
+                .toLowerCase();
+
+            if (
+                registryName.includes('stair') ||
+                (registryName.includes('slab') && targetBlockHeight <= 0.5)
+            ) {
+                return { shouldJump: false, reason: 'Walkable stair/slab' };
+            }
+        }
+
+        if (actualHeightDiff > STEP_HEIGHT) {
+            return {
+                shouldJump: true,
+                reason: `step up ${actualHeightDiff.toFixed(2)}m`,
+            };
+        }
+        return { shouldJump: false, reason: 'Walkable step' };
     }
 
     return { shouldJump: false, reason: null };
 }
 
-function checkGap(checkX, checkY, checkZ, currentGroundHeight) {
+function checkGapRefactored(checkX, checkY, checkZ, currentGroundHeight) {
     const blockFoot = getCachedBlock(checkX, checkY, checkZ);
     const blockBelow = getCachedBlock(checkX, checkY - 1, checkZ);
 
@@ -232,12 +209,15 @@ function checkGap(checkX, checkY, checkZ, currentGroundHeight) {
 
     let fallDepth = 0;
     let destinationHeight = checkY;
+    let destinationBlockHeight = 0;
 
     for (let d = 1; d <= 10; d++) {
         const blockAtDepth = getCachedBlock(checkX, checkY - d, checkZ);
         if (isSolid(blockAtDepth)) {
             fallDepth = d - 1;
-            destinationHeight = checkY - d + getBlockHeight(blockAtDepth);
+            const destinationY = checkY - d;
+            destinationBlockHeight = getBlockHeight(blockAtDepth);
+            destinationHeight = destinationY + destinationBlockHeight;
             break;
         }
         fallDepth = d;
@@ -245,41 +225,21 @@ function checkGap(checkX, checkY, checkZ, currentGroundHeight) {
 
     const actualHeightDiff = destinationHeight - currentGroundHeight;
 
-    if (actualHeightDiff > -STEP_HEIGHT || fallDepth > 2) {
-        const { boxPositions, currentBoxIndex } = pathState;
-        const nextBox =
-            boxPositions[
-                Math.min(currentBoxIndex + 1, boxPositions.length - 1)
-            ];
-
-        if (nextBox) {
-            const playerY = Player.getY();
-            const pathYDiff = nextBox.y - playerY;
-
-            if (pathYDiff > STEP_HEIGHT || fallDepth > 2) {
-                return {
-                    shouldJump: true,
-                    reason: `gap with ${fallDepth} block fall`,
-                };
-            }
+    if (fallDepth === 0) {
+        if (actualHeightDiff >= -0.5) {
+            return {
+                shouldJump: true,
+                reason: `1-block horizontal gap/small drop`,
+            };
         }
     }
 
     return { shouldJump: false, reason: null };
 }
 
-function shouldJump() {
-    if (
-        !pathState.isOnGround ||
-        pathState.ticksSinceLastJump < MIN_TICKS_BETWEEN_JUMPS
-    ) {
-        return false;
-    }
-
-    const { boxPositions, currentBoxIndex } = pathState;
-    if (!boxPositions || currentBoxIndex >= boxPositions.length - 1) {
-        return false;
-    }
+export function shouldJump() {
+    if (!Player.getPlayer().isOnGround())
+        return { shouldJump: false, jumpPoints: [] };
 
     const playerPos = {
         x: Player.getX(),
@@ -291,101 +251,91 @@ function shouldJump() {
     const pY = Math.floor(playerPos.y);
     const pZ = Math.floor(playerPos.z);
 
-    if (hasLowCeiling(pX, pY, pZ)) {
-        return false;
-    }
+    if (hasLowCeiling(pX, pY, pZ)) return { shouldJump: false, jumpPoints: [] };
 
-    const currentGroundHeight = getGroundHeight(pX, pY - 1, pZ);
-    const targetBox =
-        boxPositions[Math.min(currentBoxIndex + 2, boxPositions.length - 1)];
-    const { dirX, dirZ } = getDirection(playerPos, targetBox);
+    const currentGroundHeight = getGroundHeight(pX, pY, pZ);
+    const { dirX, dirZ } = getPlayerFacingDirection();
 
-    if (dirX === 0 && dirZ === 0) {
-        return false;
-    }
+    if (dirX === 0 && dirZ === 0) return { shouldJump: false, jumpPoints: [] };
 
     const checkPoints = [
-        { x: dirX * 0.5, z: dirZ * 0.5 },
         { x: dirX * 0.7, z: dirZ * 0.7 },
         { x: dirX * 1.0, z: dirZ * 1.0 },
-        { x: dirX * 0.5 + dirZ * 0.3, z: dirZ * 0.5 - dirX * 0.3 },
-        { x: dirX * 0.5 - dirZ * 0.3, z: dirZ * 0.5 + dirX * 0.3 },
     ];
 
-    for (const offset of checkPoints) {
+    const jumpPoints = [];
+
+    for (let i = 0; i < checkPoints.length; i++) {
+        const offset = checkPoints[i];
         const checkX = Math.floor(playerPos.x + offset.x);
         const checkZ = Math.floor(playerPos.z + offset.z);
 
         if (checkX === pX && checkZ === pZ) continue;
         if (hasLowCeiling(checkX, pY, checkZ)) continue;
 
-        const stepResult = checkStepUp(checkX, pY, checkZ, currentGroundHeight);
+        const stepResult = checkStepUpRefactored(
+            checkX,
+            pY,
+            checkZ,
+            currentGroundHeight
+        );
         if (stepResult.shouldJump) {
-            PathfindingMessages(`§e[Jump] ${stepResult.reason}`);
-            return true;
+            const blockFoot = getCachedBlock(checkX, pY, checkZ);
+            const targetY = isSolid(blockFoot) ? pY : pY - 1;
+            jumpPoints.push({ x: checkX, y: targetY, z: checkZ });
         }
 
-        const gapResult = checkGap(checkX, pY, checkZ, currentGroundHeight);
+        const gapResult = checkGapRefactored(
+            checkX,
+            pY,
+            checkZ,
+            currentGroundHeight
+        );
+
         if (gapResult.shouldJump) {
-            PathfindingMessages(`§e[Jump] ${gapResult.reason}`);
-            return true;
+            jumpPoints.push({ x: checkX, y: pY, z: checkZ });
         }
     }
 
-    return false;
-}
-
-function updateGroundState() {
-    const player = Player.getPlayer();
-    if (!player) return;
-
-    const onGround = player.isOnGround();
-
-    if (!onGround) {
-        pathState.wasInAir = true;
-        pathState.isOnGround = false;
-    } else if (pathState.wasInAir) {
-        pathState.wasInAir = false;
-        pathState.isOnGround = true;
-        pathState.ticksSinceLastJump = 0;
-        PathfindingMessages('§a[Movement] Landed');
-    } else {
-        pathState.isOnGround = true;
+    if (jumpPoints.length > 0) {
+        return { shouldJump: true, jumpPoints };
     }
 
-    pathState.ticksSinceLastJump++;
+    return { shouldJump: false, jumpPoints: [] };
 }
 
 export function pathMovement() {
-    if (!pathState.isWalking) {
-        return { complete: false, stuck: false, recovered: false };
-    }
-
     const player = Player.getPlayer();
     if (!player) {
-        return { complete: false, stuck: false, recovered: false };
+        currentJumpPoints = [];
+        return { running: false };
     }
 
-    if (pathState.currentBoxIndex >= pathState.boxPositions.length - 1) {
-        stopMovement();
-        return { complete: true, stuck: false, recovered: false };
-    }
+    const jumpCheckResult = shouldJump();
 
-    updateGroundState();
+    currentJumpPoints = jumpCheckResult.jumpPoints;
 
-    mc.options.forwardKey.setPressed(true);
-    mc.options.sprintKey.setPressed(true);
+    if (jumpCheckResult.shouldJump) {
+        PathfindingMessages('Detected a jump position!');
+        Keybind.setKey('space', true);
+        Keybind.setKey('w', true);
 
-    if (shouldJump()) {
-        mc.options.jumpKey.setPressed(true);
-        pathState.ticksSinceLastJump = 0;
+        jumpCheckResult.jumpPoints.forEach((point) => {
+            const key = `${point.x},${point.y},${point.z}`;
+            if (
+                !persistentJumpPoints.some(
+                    (p) => `${p.x},${p.y},${p.z}` === key
+                )
+            ) {
+                persistentJumpPoints.push(point);
+            }
+        });
     } else {
-        mc.options.jumpKey.setPressed(false);
+        Keybind.setKey('space', false);
+        mc.options.sprintKey.setPressed(false);
     }
 
-    const { stuck, recovered } = detectAndRecoverStuck();
-
-    return { complete: false, stuck, recovered };
+    return { running: true };
 }
 
 export function stopMovement() {
@@ -397,3 +347,19 @@ export function stopMovement() {
         console.error('[PathMovement] Error stopping movement:', e);
     }
 }
+
+register('postRenderWorld', () => {
+    if (persistentJumpPoints.length > 0) {
+        persistentJumpPoints.forEach((point) => {
+            const vec3d = new Vec3d(point.x, point.y, point.z);
+            RenderUtils.drawBox(vec3d, [255, 0, 0, 255]);
+        });
+    }
+
+    if (currentJumpPoints.length > 0) {
+        currentJumpPoints.forEach((point) => {
+            const vec3d = new Vec3d(point.x, point.y, point.z);
+            RenderUtils.drawBox(vec3d, [0, 255, 0, 255]);
+        });
+    }
+});

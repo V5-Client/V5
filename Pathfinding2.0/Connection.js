@@ -1,6 +1,6 @@
 import request from 'requestV2';
 import { Runtime, Links } from '../Utility/Constants';
-import { stopPathing } from './PathAPI';
+//import { stopPathing } from './PathAPI';
 import { Utils } from '../Utility/Utils';
 import { Chat } from '../Utility/Chat';
 const ProcessBuilder = Java.type('java.lang.ProcessBuilder');
@@ -35,7 +35,7 @@ function isPathMessage(line) {
 }
 
 export function runProgram() {
-    stopProgram();
+    //stopProgram();
     keepAlive.register();
 
     const thread = new Thread(() => {
@@ -49,7 +49,10 @@ export function runProgram() {
             );
             const sc = new Scanner(reader);
 
-            const errReader = new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8);
+            const errReader = new InputStreamReader(
+                process.getErrorStream(),
+                StandardCharsets.UTF_8
+            );
             const errSc = new Scanner(errReader);
 
             while (
@@ -144,7 +147,7 @@ Runtime.getRuntime().addShutdownHook(
     new java.lang.Thread(() => {
         threads.forEach((thread) => thread.interrupt());
         threads = [];
-        stopPathing();
+        //stopPathing();
         stopProgram();
     })
 );
