@@ -263,6 +263,12 @@ export function shouldJump() {
         { x: dirX * 1.0, z: dirZ * 1.0 },
     ];
 
+    // when moving diagonally, check sides
+    if (Math.abs(dirX) > 0.3 && Math.abs(dirZ) > 0.3) {
+        checkPoints.push({ x: Math.sign(dirX) * 1.0, z: 0 });
+        checkPoints.push({ x: 0, z: Math.sign(dirZ) * 1.0 });
+    }
+
     const jumpPoints = [];
 
     for (let i = 0; i < checkPoints.length; i++) {
