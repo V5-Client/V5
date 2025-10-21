@@ -108,7 +108,7 @@ export function runProgram() {
     threads.push(thread);
 }
 
-function loadMap(map) {
+export function loadMap(map) {
     if (process == null) return;
 
     const url = `${localhost}/api/loadmap?map=${map}`;
@@ -140,6 +140,7 @@ export function stopProgram() {
         keepAlive.unregister();
         threads.forEach((thread) => thread.interrupt());
         threads = [];
+        console.log('Pathfinding program stopped.');
     }
 }
 

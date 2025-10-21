@@ -1,4 +1,5 @@
 import { findAndFollowPath, stopPathing } from './PathAPI';
+import { loadMap, stopProgram } from './Connection';
 
 function handleCommand(args, isRustPath) {
     const requiredCoords = isRustPath ? 6 : 3;
@@ -49,3 +50,17 @@ register('command', (...args) => handleCommand(args, false)).setName(
     true
 );
 register('command', stopPathing).setName('stop', true);
+
+register('command', (map) => {
+    if (!map) {
+        return global.showNotification(
+            'Invalid Command',
+            'Usage: /loadmap [map]',
+            'ERROR',
+            5000
+        );
+    }
+    loadMap(map);
+}).setName('loadmap', true);
+
+register('command', stopProgram).setName('stopprogram', true);
