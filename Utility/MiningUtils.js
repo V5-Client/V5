@@ -85,7 +85,15 @@ class MiningUtilClass {
             return Player.getContainer().getStackInSlot(slot).getLore();
         };
 
-        const getFirstMatchFromLore = (slot, regex) => {
+        const getFirstMatchFromLore = (slot, regex, perk = false) => {
+            if (
+                Player.getContainer()
+                    ?.getStackInSlot(slot)
+                    ?.type?.getRegistryName() == 'minecraft:coal'
+            ) {
+                return 0;
+            }
+
             let lore = getItemLore(slot);
             for (let line of lore) {
                 const cleanLine = ChatLib.removeFormatting(line.toString());
@@ -202,6 +210,8 @@ class MiningUtilClass {
                             maniac?.type?.getRegistryName() === selected
                         ) {
                             this.ability = 'ManiacMiner';
+                        } else {
+                            this.ability = 'None';
                         }
 
                         this.strongArm = getFirstMatchFromLore(
