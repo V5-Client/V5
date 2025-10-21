@@ -23,7 +23,7 @@ import './Pathfinding2.0/PathWalker/VisibleBlocksHighlighter.js';
 /* MINING */
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/Nuker.js';
-//import './Modules/Mining/CommissionMacro.js'; zurviq can fix whenever
+import './Modules/Mining/CommissionMacro.js';
 import './Modules/Mining/GemstoneMacro.js';
 
 /* VISUALS */
