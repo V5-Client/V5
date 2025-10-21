@@ -123,22 +123,19 @@ function hasLowCeiling(x, y, z) {
     return false;
 }
 
-function getPlayerFacingDirection() {
-    const yaw = Player.getYaw();
-    const radians = (yaw + 90) * (Math.PI / 180);
+function getPlayerMovementDirection() {
+    const motionX = Player.getMotionX();
+    const motionZ = Player.getMotionZ();
 
-    const dirX = Math.cos(radians);
-    const dirZ = Math.sin(radians);
+    const movementMag = Math.hypot(motionX, motionZ);
 
-    const dist2D = Math.sqrt(dirX * dirX + dirZ * dirZ);
-
-    if (dist2D < 0.1) {
+    if (movementMag < 0.01) {
         return { dirX: 0, dirZ: 0 };
     }
 
     return {
-        dirX: dirX / dist2D,
-        dirZ: dirZ / dist2D,
+        dirX: motionX / movementMag,
+        dirZ: motionZ / movementMag,
     };
 }
 
@@ -254,7 +251,7 @@ export function shouldJump() {
     if (hasLowCeiling(pX, pY, pZ)) return { shouldJump: false, jumpPoints: [] };
 
     const currentGroundHeight = getGroundHeight(pX, pY, pZ);
-    const { dirX, dirZ } = getPlayerFacingDirection();
+    const { dirX, dirZ } = getPlayerMovementDirection();
 
     if (dirX === 0 && dirZ === 0) return { shouldJump: false, jumpPoints: [] };
 
