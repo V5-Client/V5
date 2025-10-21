@@ -4,33 +4,34 @@ import { MathUtils } from '../../Utility/Math';
 import { Rotations } from '../../Utility/Rotations';
 import { renderSplineBoxes } from '../PathDebug';
 
-const MIN_SPEED_CONSTANT = 60;
-const MAX_SPEED_CONSTANT = 80;
-const ANGLE_SCALING_FACTOR = 20;
+const MIN_SPEED_CONSTANT = 60; // Fastest rotation time (ms).
+const MAX_SPEED_CONSTANT = 80; // Slowest rotation time (ms).
+const ANGLE_SCALING_FACTOR = 20; // Scales speed reduction for large turns.
 
-const GENERAL_PITCH_DAMPENING = 0.5;
-const MAX_UPWARD_PITCH_GRADE = -15.0;
-const MAX_DOWNWARD_PITCH_GRADE = 20.0;
+const GENERAL_PITCH_DAMPENING = 0.5; // Softens vertical angle changes (slopes).
+const MAX_UPWARD_PITCH_GRADE = -15.0; // Max allowed upward pitch (degrees).
+const MAX_DOWNWARD_PITCH_GRADE = 20.0; // Max allowed downward pitch (degrees).
 
-const LOOK_AHEAD_DISTANCE = 3;
-const YAW_AHEAD_DISTANCE = 5;
-const MAX_YAW_ADJUSTMENT = 15;
+const LOOK_AHEAD_DISTANCE = 3; // Path boxes ahead for pitch target.
+const YAW_AHEAD_DISTANCE = 5; // Path boxes ahead for yaw target.
+const MAX_YAW_ADJUSTMENT = 15; // Max horizontal angle change per tick.
 
-const ADVANCE_DISTANCE = 1;
+const ADVANCE_DISTANCE = 1; // Distance (blocks) to pass a box and advance.
 
-const MAX_ALLOWED_PITCH_DOWN = 89.9;
-const MAX_ALLOWED_PITCH_UP = -89.9;
+// Both of these are useless.
+const MAX_ALLOWED_PITCH_DOWN = 89.9; // Hard limit to prevent pointing straight down.
+const MAX_ALLOWED_PITCH_UP = -89.9; // Hard limit to prevent pointing straight up.
 
-const BOX_RESET_SEARCH_RANGE = 20;
+const BOX_RESET_SEARCH_RANGE = 20; // Range to re-find the closest box on path correction.
 
-let currentBoxIndex = 1;
-let lastSmoothedYaw = Player.getYaw() || 0;
-let lastSmoothedPitch = Player.getPitch() || 0;
-let isInitialized = false;
+let currentBoxIndex = 1; // Current target segment index.
+let lastSmoothedYaw = Player.getYaw() || 0; // Last yaw value used for smoothing.
+let lastSmoothedPitch = Player.getPitch() || 0; // Last pitch value used for smoothing.
+let isInitialized = false; // Flag for initial rotation setup.
 
-let isJumping = false;
-const JUMP_VELOCITY_THRESHOLD = 0.1;
-const JUMP_SMOOTHING_FACTOR = 0.3;
+let isJumping = false; // True if player is jumping.
+const JUMP_VELOCITY_THRESHOLD = 0.1; // Min vertical velocity to detect a jump.
+const JUMP_SMOOTHING_FACTOR = 0.3; // Factor to smooth pitch changes on jumps.
 
 function calculateRotationSpeed(targetPoint) {
     const { yaw: relYaw, pitch: relPitch } =
