@@ -41,7 +41,7 @@ const IGNORED_BLOCK_PATTERNS = [
     'minecraft:tripwire_hook',
     'minecraft:string',
     'minecraft:carpet',
-    'minecraft:flower pot',
+    'minecraft:flower_pot',
     'minecraft:skull',
     'minecraft:item_frame',
     'minecraft:painting',
