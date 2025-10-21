@@ -232,7 +232,6 @@ export function updateCurrentNode() {
                 distToNext < NODE_REACH_DISTANCE ||
                 distToNext > VISIBILITY_LOOKAHEAD
             ) {
-                // Re-validate that we can actually reach the next node
                 if (canPhysicallyReach(nextNode, playerPos, isJumping)) {
                     movementState.currentNodeIndex++;
                     continue;
@@ -313,7 +312,6 @@ export function calculateLookaheadTarget() {
         const p1 = splinePath[i];
         const p2 = splinePath[i + 1];
 
-        // Re-validate visibility with reachability
         if (!canPhysicallyReach(p2, playerPos, isJumping)) {
             if (DEBUG_MODE && i > currentNodeIndex) {
                 Chat.message(
@@ -670,7 +668,7 @@ export function detectAndRecoverFromStuck() {
         return;
     }
 
-    const recoveryThresholds = [15, 35, 55]; // ticks
+    const recoveryThresholds = [15, 35, 55];
     const shouldAttemptRecovery =
         recoveryThresholds[movementState.recoveryAttempts] ===
         movementState.ticksWithoutProgress;
@@ -686,7 +684,7 @@ export function detectAndRecoverFromStuck() {
     const eyePos = player.getEyePos();
     if (!eyePos) return;
 
-    // retreating to a visible previous node that's BEHIND
+    
     const playerYaw = Player.getYaw();
     for (
         let i = currentNodeIndex - 1;
@@ -719,7 +717,7 @@ export function detectAndRecoverFromStuck() {
         }
     }
 
-    // finding the absolute closest node that's not too far
+    
     let closestIndex = currentNodeIndex;
     let closestDist = Infinity;
 
@@ -751,7 +749,7 @@ export function detectAndRecoverFromStuck() {
         return;
     }
 
-    // small skip forward if stuck looking at a wall
+    
     for (
         let i = currentNodeIndex + 3;
         i < Math.min(splinePath.length, currentNodeIndex + 15);
