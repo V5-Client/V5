@@ -528,6 +528,13 @@ class CommissionMacro extends ModuleBase {
     }
 
     pathToCommissionNPC() {
+        // [129, 196, 196] king
+        // [42, 134, 22] cliffside veins
+        // [171, 150, 31] royal mines
+        // [-73, 153, -11] ramparts quarry
+        // [-133, 174, -51] upper mines
+        // [-38, 200, -132] warp mines
+        // [89, 198, -93] ch entrance
         const npcPos = [42, 134, 22];
         const startPos = [
             Math.floor(Player.getX()),
