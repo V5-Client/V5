@@ -4,8 +4,8 @@ import { MathUtils } from '../../Utility/Math';
 import { Rotations } from '../../Utility/Rotations';
 import { renderSplineBoxes } from '../PathDebug';
 
-const MIN_SPEED_CONSTANT = 40;
-const MAX_SPEED_CONSTANT = 60;
+const MIN_SPEED_CONSTANT = 60;
+const MAX_SPEED_CONSTANT = 80;
 const ANGLE_SCALING_FACTOR = 20;
 
 const GENERAL_PITCH_DAMPENING = 0.5;
