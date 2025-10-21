@@ -1,6 +1,8 @@
 import { pathState } from './PathState';
 import { PathfindingMessages } from '../PathConfig';
 import { detectAndRecoverStuck } from './PathStuckRecovery';
+import RenderUtils from '../../Rendering/RendererUtils';
+import { Vec3d } from '../../Utility/Constants';
 
 const STEP_HEIGHT = 0.6;
 const MIN_TICKS_BETWEEN_JUMPS = 3;
@@ -397,3 +399,64 @@ export function stopMovement() {
         console.error('[PathMovement] Error stopping movement:', e);
     }
 }
+
+// --- Jump Cause Highlighter (renders the looked-at block if it would trigger a jump) ---
+let jumpViewHighlightEnabled = true;
+const jumpHighlightFill = [255, 180, 0, 70];
+const jumpHighlightOutline = [255, 180, 0, 255];
+const jumpHighlightThickness = 3;
+
+register('postRenderWorld', () => {
+    if (!jumpViewHighlightEnabled) return;
+    if (!pathState.isWalking) return;
+
+    const player = Player.getPlayer();
+    if (!player) return;
+
+    const lookingAt = Player.lookingAt();
+    if (!lookingAt || !(lookingAt instanceof Block)) return;
+
+    // Use player's current ground context for jump decision
+    const playerPos = {
+        x: Player.getX(),
+        y: Player.getY(),
+        z: Player.getZ(),
+    };
+
+    const pX = Math.floor(playerPos.x);
+    const pY = Math.floor(playerPos.y);
+    const pZ = Math.floor(playerPos.z);
+
+    if (!pathState.isOnGround || pathState.ticksSinceLastJump < MIN_TICKS_BETWEEN_JUMPS) return;
+    if (hasLowCeiling(pX, pY, pZ)) return;
+
+    const currentGroundHeight = getGroundHeight(pX, pY - 1, pZ);
+
+    const lookX = Math.floor(lookingAt.getX());
+    const lookY = Math.floor(lookingAt.getY());
+    const lookZ = Math.floor(lookingAt.getZ());
+
+    if (hasLowCeiling(lookX, pY, lookZ)) return;
+
+    const stepResult = checkStepUp(lookX, pY, lookZ, currentGroundHeight);
+    const gapResult = stepResult.shouldJump
+        ? { shouldJump: false }
+        : checkGap(lookX, pY, lookZ, currentGroundHeight);
+
+    if (stepResult.shouldJump || gapResult.shouldJump) {
+        RenderUtils.drawStyledBox(
+            new Vec3d(lookX, lookY, lookZ),
+            jumpHighlightFill,
+            jumpHighlightOutline,
+            jumpHighlightThickness,
+            false
+        );
+    }
+});
+
+register('command', () => {
+    jumpViewHighlightEnabled = !jumpViewHighlightEnabled;
+    ChatLib.chat(
+        `§ePath Jump-View Highlight: ${jumpViewHighlightEnabled ? '§aEnabled' : '§cDisabled'}`
+    );
+}).setName('toggleJumpViewHighlight');
