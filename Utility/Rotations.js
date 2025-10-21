@@ -6,17 +6,17 @@ class RotationsTo {
         this.targetYaw = null;
         this.targetPitch = null;
         this.rotating = false;
-        this.currentRotationID = null; // for cancelling old rotations
+        this.currentRotationID = null;
 
-        this.tremorFrequency = 1; // jitter updates per second
-        this.fadeExponent = 0.0025; // controls jitter fade
-        this.Randomness = 0.007; // max random offset
+        this.tremorFrequency = 1;
+        this.fadeExponent = 0.0025;
+        this.Randomness = 0.007;
 
         this.instantMode = false;
 
-        this.currentRandomYaw = 0;
-        this.currentRandomPitch = 0;
-        this.lastTremorTime = 0;
+        this.currentJitterTime = 0;
+        this.baseRandomYaw = 0;
+        this.baseRandomPitch = 0;
 
         this.targetVector = null;
         this.precision = 1.0;
@@ -27,11 +27,14 @@ class RotationsTo {
         this.initialPitch = 0;
         this.yawDiff = 0;
         this.pitchDiff = 0;
-        this.stepCount = 0;
-        this.maxSteps = 0;
+
+        this.startTime = 0;
+        this.duration = 0;
+        this.lastTime = Date.now();
+
         this.initialMaxDiff = 0;
 
-        register('renderWorld', () => {
+        register('renderworld', () => {
             this.tick();
         });
     }
@@ -43,14 +46,7 @@ class RotationsTo {
         return degrees;
     }
 
-    /**
-     * Rotates the player's view to the target angles with a natural ease-out motion.
-     * @param {number} yaw - The target yaw angle.
-     * @param {number} pitch - The target pitch angle.
-     * @param {boolean} [instant=false] - If true, snap instantly to the target.
-     * @param {number} [steps=100] - The number of steps for the rotation animation.
-     */
-    rotateToAngles(yaw, pitch, instant = false, steps = 100) {
+    rotateToAngles(yaw, pitch, instant = false, durationMs = 500) {
         this.stopRotation();
 
         this.targetYaw = yaw;
@@ -76,19 +72,25 @@ class RotationsTo {
         this.yawDiff = this.wrapDegrees(yaw - this.initialYaw);
         this.pitchDiff = pitch - this.initialPitch;
 
-        this.stepCount = 0;
-        this.maxSteps = steps;
+        this.startTime = Date.now();
+        this.lastTime = this.startTime;
+        this.duration = durationMs;
 
         this.initialMaxDiff = Math.max(
             Math.abs(this.yawDiff),
             Math.abs(this.pitchDiff)
         );
 
+        this.currentJitterTime = 0;
+        this.baseRandomYaw = (Math.random() - 0.5) * this.Randomness;
+        this.baseRandomPitch = (Math.random() - 0.5) * this.Randomness;
+
         this.currentRotationID = Symbol();
     }
 
     tick() {
         if (!this.rotating || this.instantMode) {
+            this.lastTime = Date.now();
             return;
         }
 
@@ -98,9 +100,15 @@ class RotationsTo {
             return;
         }
 
-        this.stepCount++;
+        const now = Date.now();
+        const deltaTime = (now - this.lastTime) / 1000.0;
+        this.lastTime = now;
 
-        if (this.stepCount > this.maxSteps) {
+        const elapsedTime = now - this.startTime;
+
+        let progress = elapsedTime / this.duration;
+
+        if (progress >= 1.0) {
             player.setYaw(this.targetYaw);
             player.setPitch(this.targetPitch);
             this.runCallbacks();
@@ -108,14 +116,27 @@ class RotationsTo {
             return;
         }
 
-        const progress = this.stepCount / this.maxSteps;
+        progress = Math.max(0, Math.min(1.0, progress));
 
         const easedProgress = Math.sin(progress * (Math.PI / 2));
 
         let newYaw = this.initialYaw + this.yawDiff * easedProgress;
         let newPitch = this.initialPitch + this.pitchDiff * easedProgress;
 
-        // Calculate jitter for a "natural" feel
+        this.currentJitterTime += deltaTime;
+
+        if (this.currentJitterTime > 1.0 / this.tremorFrequency) {
+            this.baseRandomYaw = (Math.random() - 0.5) * this.Randomness;
+            this.baseRandomPitch = (Math.random() - 0.5) * this.Randomness;
+            this.currentJitterTime -= 1.0 / this.tremorFrequency;
+        }
+
+        const yawOscillation = Math.sin(this.currentJitterTime * 20.0);
+        const pitchOscillation = Math.cos(this.currentJitterTime * 20.0);
+
+        const currentJitterYaw = this.baseRandomYaw * yawOscillation;
+        const currentJitterPitch = this.baseRandomPitch * pitchOscillation;
+
         const currentYawDiff = this.wrapDegrees(this.targetYaw - newYaw);
         const currentPitchDiff = this.targetPitch - newPitch;
         let maxCurrentDiff = Math.max(
@@ -127,22 +148,16 @@ class RotationsTo {
                 ? maxCurrentDiff / this.initialMaxDiff
                 : 0.01;
 
-        let now = Date.now();
-        if (now - this.lastTremorTime > 1000 / this.tremorFrequency) {
-            this.currentRandomYaw = (Math.random() - 0.5) * this.Randomness;
-            this.currentRandomPitch = (Math.random() - 0.5) * this.Randomness;
-            this.lastTremorTime = now;
-        }
-
         let fadeFactor = Math.pow(normalizedDist, this.fadeExponent);
-        let jitterYaw = this.currentRandomYaw * fadeFactor;
-        let jitterPitch = this.currentRandomPitch * fadeFactor;
+
+        let jitterYaw = currentJitterYaw * fadeFactor;
+        let jitterPitch = currentJitterPitch * fadeFactor;
 
         player.setYaw(newYaw + jitterYaw);
         player.setPitch(newPitch + jitterPitch);
     }
 
-    rotateTo(vector, instant = false, steps = 100) {
+    rotateTo(vector, instant = false, durationMs = 500) {
         let vec = Utils.convertToVector(vector);
         let player = Player.getPlayer();
         if (!player) return;
@@ -158,7 +173,7 @@ class RotationsTo {
         let dist = Math.sqrt(dx * dx + dz * dz);
         let targetPitch = Math.atan2(-dy, dist) * (180 / Math.PI);
 
-        this.rotateToAngles(targetYaw, targetPitch, instant, steps);
+        this.rotateToAngles(targetYaw, targetPitch, instant, durationMs);
     }
 
     runCallbacks() {
@@ -188,8 +203,10 @@ class RotationsTo {
         this.instantMode = false;
         this.currentRotationID = null;
         this.actions = [];
-        this.stepCount = 0;
-        this.maxSteps = 0;
+        this.startTime = 0;
+        this.duration = 0;
+        this.lastTime = Date.now();
+        this.currentJitterTime = 0;
     }
 
     getPlayerRotation() {
