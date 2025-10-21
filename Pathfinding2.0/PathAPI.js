@@ -1,7 +1,10 @@
 import request from 'requestV2';
 import { Links, Vec3d } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
-import { generateHybridSpline } from './PathDebug';
+import { generateHybridSpline, renderSplineBoxes } from './PathDebug';
+import { initializePathState, resetPathState } from './PathWalker/PathState';
+import { resetStuckRecovery } from './PathWalker/PathStuckRecovery';
+import { pathMovement } from './PathWalker/PathMovement';
 import { pathRotations } from './PathWalker/PathRotations';
 import RenderUtils from '../Rendering/RendererUtils';
 import { getRenderKeyNodes } from './PathConfig';
@@ -36,6 +39,10 @@ export function stopPathing() {
     if (renderOnlyRegister) renderOnlyRegister.unregister();
     renderOnlyRegister = null;
     currentPathRequest = null;
+
+    // Reset both states
+    resetPathState();
+    resetStuckRecovery();
 
     try {
         const mc = Client.getMinecraft();
@@ -163,13 +170,32 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                         3000
                     );
                 } else {
-                    register('tick', () => {
-                        pathRotations(
-                            generatedSpline,
-                            body.path_between_key_nodes
-                        );
+                    const boxPositions = renderSplineBoxes(generatedSpline, 1);
+
+                    resetPathState();
+                    resetStuckRecovery();
+
+                    initializePathState(generatedSpline, boxPositions);
+
+                    const tickRegister = register('tick', () => {
+                        pathRotations(generatedSpline);
+                        const { complete, stuck } = pathMovement();
+
+                        if (complete) {
+                            tickRegister.unregister();
+                            stopPathing();
+                            global.showNotification(
+                                'Path Complete',
+                                'Destination reached!',
+                                'SUCCESS',
+                                2000
+                            );
+                        } else if (stuck) {
+                            console.log(
+                                '[PathAPI] Player stuck, may need recalculation'
+                            );
+                        }
                     });
-                    // movement
                 }
             };
 
