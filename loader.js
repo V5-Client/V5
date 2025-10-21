@@ -14,7 +14,7 @@ Client.getMinecraft()
 import './GUI/GUI.js';
 import './Utility/Config.js';
 
-import './Pathfinding2.0/PathConfig.js';
+import './Pathfinding2.0/PathFinder.js';
 import './Pathfinding2.0/PathWalker/VisibleBlocksHighlighter.js';
 
 /* FORAGING */
