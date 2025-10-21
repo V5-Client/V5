@@ -1,49 +1,76 @@
-import './PathCommands';
-import './Connection';
-import { ModuleBase } from '../Utility/ModuleBase';
-import {
-    setRenderKeyNodes,
-    setToggleSprint,
-    setPathfindingDebug,
-} from './PathConfig';
+// Any more such as flowers etc are required
+export const IGNORED_BLOCK_PATTERNS = [
+    'minecraft:air',
+    'minecraft:portal',
+    'minecraft:end_portal',
+    'minecraft:fire',
+    'minecraft:web',
+    'minecraft:short_grass',
+    'minecraft:azure_bluet',
+    'minecraft:tallgrass',
+    'minecraft:double_plant',
+    'minecraft:yellow_flower',
+    'minecraft:red_flower',
+    'minecraft:brown_mushroom',
+    'minecraft:red_mushroom',
+    'minecraft:sapling',
+    'minecraft:reeds',
+    'minecraft:wheat',
+    'minecraft:carrots',
+    'minecraft:potatoes',
+    'minecraft:beetroots',
+    'minecraft:melon_stem',
+    'minecraft:pumpkin_stem',
+    'minecraft:nether_wart',
+    'minecraft:deadbush',
+    'minecraft:vine',
+    'minecraft:ladder',
+    'minecraft:torch',
+    'minecraft:wall_torch',
+    'minecraft:redstone_torch',
+    'minecraft:lever',
+    'minecraft:stone_button',
+    'minecraft:wooden_button',
+    'minecraft:sign',
+    'minecraft:wall_sign',
+    'minecraft:tripwire',
+    'minecraft:tripwire_hook',
+    'minecraft:string',
+    'minecraft:carpet',
+    'minecraft:flower_pot',
+    'minecraft:skull',
+    'minecraft:item_frame',
+    'minecraft:painting',
+    'minecraft:lily_pad',
+    'minecraft:rail',
+    'minecraft:player_head',
+];
 
-class PathRegistry extends ModuleBase {
-    constructor() {
-        super({
-            name: 'Pathfinding',
-            subcategory: 'Core',
-            description: 'Pathfinding Utilities',
-            tooltip: 'Pathfinding Utilities',
-            showEnabledToggle: false,
-        });
-
-        this.addToggle(
-            'Pathfinding Debug',
-            (value) => {
-                setPathfindingDebug(value);
-            },
-            'Enables pathfinding debug mode'
-        );
-
-        this.addToggle(
-            'Render Key Nodes',
-            (value) => {
-                setRenderKeyNodes(value);
-            },
-            'Renders the key nodes of the path'
-        );
-
-        this.addToggle(
-            'Toggle Sprint',
-            (value) => {
-                setToggleSprint(value);
-            },
-            'Toggles sprinting while walking'
-        );
-    }
-}
-
-new PathRegistry();
+export const PARTIAL_HEIGHT_BLOCKS = {
+    slab: 0.5,
+    snow_layer: 0.5,
+    snow: 0.5,
+    farmland: 0.9375,
+    grass_path: 0.9375,
+    dirt_path: 0.9375,
+    carpet: 0.0625,
+    pressure_plate: 0.0625,
+    enchanting_table: 0.75,
+    daylight_detector: 0.375,
+    waterlily: 0.015625,
+    lily_pad: 0.015625,
+    cauldron: 0.3125,
+    bed: 0.5625,
+    chest: 0.875,
+    ender_chest: 0.875,
+    trapped_chest: 0.875,
+    hopper: 0.625,
+    soul_sand: 0.875,
+    composter: 0.9375,
+    lectern: 0.875,
+    grindstone: 0.875,
+    stonecutter: 0.5625,
+};
 
 // These are the default values for the pathfinding API, if configured by player thats their problem.
 // will be added once the pathfinding API is fully implemented
