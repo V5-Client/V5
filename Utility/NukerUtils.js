@@ -20,6 +20,8 @@ class NukerUtilsClass {
         this.sequence = 1;
 
         register('packetSent', (packet) => {
+            // TODO: FIX THIS PROPERLY
+            // IDK HOW SEQUENCE WORKS NEW VERSION SHIT
             if (packet.getSequence() != 0)
                 this.sequence = packet.getSequence() + 1;
         }).setFilteredClass(PlayerActionC2SPacket);
