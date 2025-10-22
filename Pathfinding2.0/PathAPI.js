@@ -1,13 +1,17 @@
 import request from 'requestV2';
 import { Links, Vec3d } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
-import { generateHybridSpline, renderSplineBoxes } from './PathDebug';
+import {
+    generateHybridSpline,
+    renderSplineBoxes,
+    drawFloatingSpline,
+} from './PathDebug';
 import { initializePathState, resetPathState } from './PathWalker/PathState';
 import { resetStuckRecovery } from './PathWalker/PathStuckRecovery';
 import { pathMovement } from './PathWalker/PathMovement';
 import { pathRotations } from './PathWalker/PathRotations';
 import RenderUtils from '../Rendering/RendererUtils';
-import { getRenderKeyNodes } from './PathConfig';
+import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
@@ -148,15 +152,19 @@ export function findAndFollowPath(start, end, renderOnly = false) {
             );
             setPathNodes(generatedSpline);
 
-            if (getRenderKeyNodes()) {
+            if (renderOnlyRegister) {
+                renderOnlyRegister.unregister();
+                renderOnlyRegister = null;
+            }
+            if (getRenderKeyNodes() || getRenderFloatingSpline()) {
                 renderOnlyRegister = register('postRenderWorld', () => {
-                    drawKeyNodes(body.keynodes);
+                    if (getRenderKeyNodes()) {
+                        drawKeyNodes(body.keynodes);
+                    }
+                    if (getRenderFloatingSpline()) {
+                        drawFloatingSpline(generatedSpline);
+                    }
                 });
-            } else {
-                if (renderOnlyRegister) {
-                    renderOnlyRegister.unregister();
-                    renderOnlyRegister = null;
-                }
             }
 
             const beginPathing = () => {

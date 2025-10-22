@@ -3,6 +3,7 @@ import {
     setPathfindingDebug,
     setRenderKeyNodes,
     setToggleSprint,
+    setRenderFloatingSpline,
 } from './PathConfig';
 
 import './PathCommands';
@@ -32,6 +33,14 @@ class PathRegistry extends ModuleBase {
                 setRenderKeyNodes(value);
             },
             'Renders the key nodes of the path'
+        );
+
+        this.addToggle(
+            'Render Floating Spline',
+            (value) => {
+                setRenderFloatingSpline(value);
+            },
+            'Renders the floating spline of the path'
         );
 
         this.addToggle(
