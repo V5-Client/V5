@@ -14,7 +14,12 @@ import {
     ResetRotations,
 } from './PathWalker/PathRotations';
 import RenderUtils from '../Rendering/RendererUtils';
-import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
+import {
+    getRenderKeyNodes,
+    getRenderFloatingSpline,
+    PathfindingMessages,
+} from './PathConfig';
+import { Rotations } from '../Utility/Rotations';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
@@ -120,9 +125,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
     const url = `${localhost}/api/pathfinding?start=${start.join(
         ','
     )}&end=${end.join(',')}&map=mines`;
-    Chat.message(
-        `§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`
-    );
+    PathfindingMessages(`Path from ${start.join(', ')} to ${end.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -187,17 +190,17 @@ export function findAndFollowPath(start, end, renderOnly = false) {
 
                         if (PathComplete()) {
                             tickRegister.unregister();
+                            PathMovement(false);
+                            ResetRotations();
                             stopPathing();
 
+                            PathfindingMessages('Path Complete!');
                             global.showNotification(
                                 'Path Complete',
                                 'Destination reached!',
                                 'SUCCESS',
                                 2000
                             );
-
-                            PathMovement(false);
-                            ResetRotations();
                         }
                     });
                 }

@@ -3,7 +3,6 @@ import { Chat } from '../Utility/Chat';
 
 let renderKeyNodes = false;
 let renderFloatingSpline = false;
-let toggleSprint = false;
 let pathfindingDebug = false;
 
 export function getRenderKeyNodes() {
@@ -14,9 +13,6 @@ export function getRenderFloatingSpline() {
     return renderFloatingSpline;
 }
 
-export function getToggleSprint() {
-    return toggleSprint;
-}
 export function getPathfindingDebug() {
     return pathfindingDebug;
 }
@@ -32,10 +28,6 @@ export function setRenderKeyNodes(value) {
 
 export function setRenderFloatingSpline(value) {
     renderFloatingSpline = value;
-}
-
-export function setToggleSprint(value) {
-    toggleSprint = value;
 }
 
 export function setPathfindingDebug(value) {

@@ -3,6 +3,7 @@ import { Runtime, Links } from '../Utility/Constants';
 //import { stopPathing } from './PathAPI';
 import { Utils } from '../Utility/Utils';
 import { Chat } from '../Utility/Chat';
+import { PathfindingMessages } from './PathConfig';
 const ProcessBuilder = Java.type('java.lang.ProcessBuilder');
 const Scanner = Java.type('java.util.Scanner');
 const InputStreamReader = Java.type('java.io.InputStreamReader');
@@ -88,7 +89,7 @@ export function runProgram() {
 
                     console.log(line);
                     if (isPathMessage(line)) {
-                        Chat.debugMessage(line);
+                        PathfindingMessages(line);
                     }
                 }
 
