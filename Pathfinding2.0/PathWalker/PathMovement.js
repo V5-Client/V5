@@ -147,9 +147,7 @@ function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
     const blockHead = getCachedBlock(checkX, checkY + 1, checkZ);
     const blockBelow = getCachedBlock(checkX, checkY - 1, checkZ);
 
-    if (isSolid(blockHead)) {
-        return { shouldJump: false, reason: 'Ceiling block' };
-    }
+    if (isSolid(blockHead)) return { shouldJump: false };
 
     let actualHeightDiff = 0;
     let targetGroundY = checkY;
@@ -182,21 +180,16 @@ function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
             if (
                 registryName.includes('stair') ||
                 (registryName.includes('slab') && targetBlockHeight <= 0.5)
-            ) {
-                return { shouldJump: false, reason: 'Walkable stair/slab' };
-            }
+            )
+                return { shouldJump: false };
         }
 
-        if (actualHeightDiff > STEP_HEIGHT) {
-            return {
-                shouldJump: true,
-                reason: `step up ${actualHeightDiff.toFixed(2)}m`,
-            };
-        }
-        return { shouldJump: false, reason: 'Walkable step' };
+        if (actualHeightDiff > STEP_HEIGHT) return { shouldJump: true };
+
+        return { shouldJump: false };
     }
 
-    return { shouldJump: false, reason: null };
+    return { shouldJump: false };
 }
 
 function checkGapRefactored(checkX, checkY, checkZ, currentGroundHeight) {
@@ -204,7 +197,7 @@ function checkGapRefactored(checkX, checkY, checkZ, currentGroundHeight) {
     const blockBelow = getCachedBlock(checkX, checkY - 1, checkZ);
 
     if (isSolid(blockFoot) || isSolid(blockBelow)) {
-        return { shouldJump: false, reason: null };
+        return { shouldJump: false };
     }
 
     let fallDepth = 0;
@@ -229,12 +222,66 @@ function checkGapRefactored(checkX, checkY, checkZ, currentGroundHeight) {
         if (actualHeightDiff >= -0.5) {
             return {
                 shouldJump: true,
-                reason: `1-block horizontal gap/small drop`,
             };
         }
     }
 
-    return { shouldJump: false, reason: null };
+    return { shouldJump: false };
+}
+
+function isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight) {
+    const offsets = [
+        { dx: 1, dz: 0 },
+        { dx: -1, dz: 0 },
+        { dx: 0, dz: 1 },
+        { dx: 0, dz: -1 },
+    ];
+
+    for (const { dx, dz } of offsets) {
+        const checkX = pX + dx;
+        const checkZ = pZ + dz;
+
+        let block = getCachedBlock(checkX, pY, checkZ);
+        if (isSolid(block)) {
+            const registryName = block.type.getRegistryName().toLowerCase();
+            const height = getBlockHeight(block);
+
+            if (registryName.includes('slab') && height <= 0.5) {
+                const targetGroundHeight = pY + height;
+                const heightDiff = targetGroundHeight - currentGroundHeight;
+
+                if (
+                    heightDiff <= STEP_HEIGHT &&
+                    heightDiff > 0 &&
+                    !isSolid(getCachedBlock(checkX, pY + 1, checkZ))
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        block = getCachedBlock(checkX, pY - 1, checkZ);
+        if (isSolid(block)) {
+            const registryName = block.type.getRegistryName().toLowerCase();
+            const height = getBlockHeight(block);
+
+            if (registryName.includes('slab') && height <= 0.5) {
+                const targetGroundHeight = pY - 1 + height;
+                const heightDiff = targetGroundHeight - currentGroundHeight;
+
+                if (
+                    heightDiff <= STEP_HEIGHT &&
+                    heightDiff > 0 &&
+                    !isSolid(getCachedBlock(checkX, pY, checkZ)) &&
+                    !isSolid(getCachedBlock(checkX, pY + 1, checkZ))
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 export function shouldJump() {
@@ -251,6 +298,20 @@ export function shouldJump() {
     const pY = Math.floor(playerPos.y);
     const pZ = Math.floor(playerPos.z);
 
+    const blockBelowPlayer = getCachedBlock(pX, pY - 1, pZ);
+    if (blockBelowPlayer) {
+        const registryName = blockBelowPlayer.type
+            .getRegistryName()
+            .toLowerCase();
+        if (registryName.includes('water') || registryName.includes('lava')) {
+            PathfindingMessages('Detected fluid block below');
+            return {
+                shouldJump: true,
+                jumpPoints: [{ x: pX, y: pY - 1, z: pZ }],
+            };
+        }
+    }
+
     if (hasLowCeiling(pX, pY, pZ)) return { shouldJump: false, jumpPoints: [] };
 
     const currentGroundHeight = getGroundHeight(pX, pY, pZ);
@@ -263,13 +324,13 @@ export function shouldJump() {
         { x: dirX * 1.0, z: dirZ * 1.0 },
     ];
 
-    // when moving diagonally, check sides
     if (Math.abs(dirX) > 0.3 && Math.abs(dirZ) > 0.3) {
         checkPoints.push({ x: Math.sign(dirX) * 1.0, z: 0 });
         checkPoints.push({ x: 0, z: Math.sign(dirZ) * 1.0 });
     }
 
     const jumpPoints = [];
+    let isJumpNeeded = false;
 
     for (let i = 0; i < checkPoints.length; i++) {
         const offset = checkPoints[i];
@@ -289,6 +350,7 @@ export function shouldJump() {
             const blockFoot = getCachedBlock(checkX, pY, checkZ);
             const targetY = isSolid(blockFoot) ? pY : pY - 1;
             jumpPoints.push({ x: checkX, y: targetY, z: checkZ });
+            isJumpNeeded = true;
         }
 
         const gapResult = checkGapRefactored(
@@ -300,14 +362,36 @@ export function shouldJump() {
 
         if (gapResult.shouldJump) {
             jumpPoints.push({ x: checkX, y: pY, z: checkZ });
+            isJumpNeeded = true;
         }
     }
 
-    if (jumpPoints.length > 0) {
+    if (
+        isJumpNeeded &&
+        isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight)
+    ) {
+        PathfindingMessages('Jump suppressed due to walkable adjacent slab.');
+        return { shouldJump: false, jumpPoints: [] };
+    }
+
+    if (isJumpNeeded) {
         return { shouldJump: true, jumpPoints };
     }
 
     return { shouldJump: false, jumpPoints: [] };
+}
+
+function isPlayerInFluid(pX, pY, pZ) {
+    const blockAtPlayerY = getCachedBlock(pX, pY, pZ);
+    if (blockAtPlayerY) {
+        const registryName = blockAtPlayerY.type
+            .getRegistryName()
+            .toLowerCase();
+        if (registryName.includes('water') || registryName.includes('lava')) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export function pathMovement() {
@@ -315,6 +399,24 @@ export function pathMovement() {
     if (!player) {
         currentJumpPoints = [];
         return { running: false };
+    }
+
+    const playerPos = {
+        x: Player.getX(),
+        y: Player.getY(),
+        z: Player.getZ(),
+    };
+
+    const pX = Math.floor(playerPos.x);
+    const pY = Math.floor(playerPos.y);
+    const pZ = Math.floor(playerPos.z);
+
+    if (isPlayerInFluid(pX, pY, pZ)) {
+        PathfindingMessages('Player submerged in fluid, forcing jump.');
+        Keybind.setKey('space', true);
+        Keybind.setKey('w', true);
+        currentJumpPoints = [{ x: pX, y: pY, z: pZ }];
+        return { running: true };
     }
 
     const jumpCheckResult = shouldJump();
