@@ -3,6 +3,7 @@ import { Jump, stopJump } from './PathJumps';
 
 /**
  * add velocity detection logic - simple
+ * add aotv movement in liquids and etherwarp aswell
  */
 
 export function PathMovement(on = true) {
