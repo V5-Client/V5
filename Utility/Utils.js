@@ -15,6 +15,10 @@ export const mc = Client.getMinecraft();
 class UtilsClass {
     constructor() {
         this.configName = 'V5Config';
+        this.areaName = 'None';
+        this.areaTime = 0;
+        this.subAreaName = 'None';
+        this.subAreaTime = 0;
 
         register('command', () => {
             new Thread(() => {
@@ -298,31 +302,39 @@ class UtilsClass {
      * @returns {string} area
      */
     area() {
-        let areaLine = TabList.getNames().find((name) => {
-            let str = String(name);
-            return str.indexOf('Area:') !== -1;
-        });
+        if (this.areaTime < Date.now() - 1000) {
+            let areaLine = TabList.getNames().find((name) => {
+                let str = String(name);
+                return str.indexOf('Area:') !== -1;
+            });
 
-        if (areaLine) {
-            let clean = String(areaLine).replace(/§[0-9A-FK-OR]/gi, '');
-            let areaName = clean.split('Area:')[1].trim();
-            return areaName;
+            if (areaLine) {
+                let clean = String(areaLine).replace(/§[0-9A-FK-OR]/gi, '');
+                let areaName = clean.split('Area:')[1].trim();
+                this.areaName = areaName;
+                this.areaTime = Date.now();
+            }
         }
+        return this.areaName;
     }
 
     subArea() {
-        let lines = Scoreboard.getLines();
+        if (this.subAreaTime < Date.now() - 1000) {
+            let lines = Scoreboard.getLines();
 
-        for (let i = 0; i < lines.length; i++) {
-            let str = String(lines[i]);
+            for (let i = 0; i < lines.length; i++) {
+                let str = String(lines[i]);
 
-            if (str.indexOf('⏣') !== -1) {
-                let clean = str.replace(/§[0-9A-FK-OR]/gi, '');
-                let subAreaName = clean.split('⏣')[1].trim();
+                if (str.indexOf('⏣') !== -1) {
+                    let clean = str.replace(/§[0-9A-FK-OR]/gi, '');
+                    let subAreaName = clean.split('⏣')[1].trim();
 
-                return subAreaName;
+                    this.subAreaName = subAreaName;
+                    this.subAreaTime = Date.now();
+                }
             }
         }
+        return this.subAreaName;
     }
 
     fakeBan(reason) {
