@@ -2,7 +2,6 @@ import { ModuleBase } from '../Utility/ModuleBase';
 import {
     setPathfindingDebug,
     setRenderKeyNodes,
-    setToggleSprint,
     setRenderFloatingSpline,
 } from './PathConfig';
 
@@ -41,14 +40,6 @@ class PathRegistry extends ModuleBase {
                 setRenderFloatingSpline(value);
             },
             'Renders the floating spline of the path'
-        );
-
-        this.addToggle(
-            'Toggle Sprint',
-            (value) => {
-                setToggleSprint(value);
-            },
-            'Toggles sprinting while walking'
         );
     }
 }
