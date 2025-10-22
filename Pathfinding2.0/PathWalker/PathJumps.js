@@ -448,19 +448,3 @@ export function Jump() {
 export function stopJump() {
     Keybind.setKey('space', false);
 }
-
-register('postRenderWorld', () => {
-    if (persistentJumpPoints.length > 0) {
-        persistentJumpPoints.forEach((point) => {
-            const vec3d = new Vec3d(point.x, point.y, point.z);
-            RenderUtils.drawBox(vec3d, [255, 0, 0, 255]);
-        });
-    }
-
-    if (currentJumpPoints.length > 0) {
-        currentJumpPoints.forEach((point) => {
-            const vec3d = new Vec3d(point.x, point.y, point.z);
-            RenderUtils.drawBox(vec3d, [0, 255, 0, 255]);
-        });
-    }
-});
