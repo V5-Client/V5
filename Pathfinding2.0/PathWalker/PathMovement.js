@@ -165,8 +165,7 @@ function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
         targetBlockHeight = getBlockHeight(blockFoot);
         targetGroundY = checkY;
         blockToCheck = blockFoot;
-        actualHeightDiff =
-            targetGroundY + targetBlockHeight - Math.floor(Player.getY());
+        actualHeightDiff = targetGroundY + targetBlockHeight - Player.getY();
         isStepUp = true;
     } else if (isSolid(blockBelow)) {
         targetBlockHeight = getBlockHeight(blockBelow);
