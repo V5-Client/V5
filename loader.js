@@ -42,6 +42,7 @@ import './Modules/Skills/RouteWalker.js';
 import './Pathfinding/Pathwalker.js';
 import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
+import './Modules/Other/AutoLoot.js';
 //import './Modules/Other/Freelook.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
