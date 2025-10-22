@@ -16,11 +16,6 @@ const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
 
-const ConcurrentLinkedQueue = Java.type(
-    'java.util.concurrent.ConcurrentLinkedQueue'
-);
-const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
-
 class Bot extends ModuleBase {
     constructor() {
         super({
@@ -32,7 +27,6 @@ class Bot extends ModuleBase {
         });
         this.bindToggleKey();
         this.foundLocations = [];
-        this.lastScanTime = 0;
         this.lowestCostBlockIndex = 0;
 
         this.PRIORITIZE_TITANIUM = true;
@@ -98,13 +92,11 @@ class Bot extends ModuleBase {
         };
         this.type = this.TYPES.MININGBOT;
 
-        this.enabled = false;
         this.miningspeed = 0;
         this.currentTarget = null;
         this.tickCount = 0;
         this.lastBlockPos = null;
         this.allowScan = false;
-        this.scanning = false;
         this.totalTicks = 0;
         this.miningbot = null;
         this.ability = null;
@@ -114,37 +106,15 @@ class Bot extends ModuleBase {
         this.empty = false;
         this.nuking = false;
 
-        // worker thread stuff
-        this.workerThread = null;
-        this.taskQueue = new ConcurrentLinkedQueue();
-        this.resultQueue = new ConcurrentLinkedQueue();
-        this.workerRunning = new AtomicBoolean(false);
-
-        register('command', () => {
-            this.toggle();
-            Chat.message('§c[Mining Bot] §7Enabled.');
-        }).setName('startb', true);
-
-        register('command', () => {
-            this.miningbot.unregister();
-            this.enabled = false;
-            this.state = this.STATES.WAITING;
-            Keybind.setKey('leftclick', false);
-            this.foundLocations = [];
-            this.lastBlockPos = null;
-            this.currentTarget = null;
-            this.tickCount = 0;
-            this.stopWorker();
-            Chat.message('§c[Mining Bot] §7Disabled.');
-        }).setName('stopb', true);
-
         this.exploit = register('packetSent', (packet, event) => {
             let packetAction = packet?.getAction()?.toString();
 
             if (packetAction === 'ABORT_DESTROY_BLOCK') cancel(event);
-        }).setFilteredClass(
-            net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-        );
+        })
+            .setFilteredClass(
+                net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+            )
+            .unregister();
 
         this.debug = register('postRenderWorld', () => {
             if (this.foundLocations.length > 0) {
@@ -174,30 +144,10 @@ class Bot extends ModuleBase {
                     );
                 }
             }
-        });
+        }).unregister();
 
-        this.miningbot = register('tick', () => {
-            if (!this.enabled) return;
-
+        this.on('tick', () => {
             if (Client.isInChat() || Client.isInGui()) return;
-
-            while (!this.resultQueue.isEmpty()) {
-                const result = this.resultQueue.poll();
-                if (result) {
-                    if (result.type === 'SCAN_COMPLETE') {
-                        this.scanning = false;
-
-                        if (result.foundLocations.length === 0) {
-                            this.empty = true;
-                        } else {
-                            this.nuking = false;
-                            this.foundLocations = result.foundLocations;
-                            this.currentTarget = this.foundLocations[0];
-                            this.lowestCostBlockIndex = 0;
-                        }
-                    }
-                }
-            }
 
             let drillfunc = MiningUtils.getDrills();
             let drill = drillfunc.drill;
@@ -216,15 +166,15 @@ class Bot extends ModuleBase {
                     Keybind.setKey('leftclick', false);
 
                     if (!this.file) {
-                        file = Utils.getConfigFile('miningstats.json');
-                        this.ability = file.ability;
+                        this.file = Utils.getConfigFile('miningstats.json');
+                        this.ability = this.file.ability;
                     }
 
                     if (!this.ability) {
                         Chat.message(
                             '&cFailed to get Pickaxe Ability! Run /getminingstats'
                         );
-                        this.miningbot.unregister();
+                        this.toggle(false);
                         return;
                     }
 
@@ -249,7 +199,7 @@ class Bot extends ModuleBase {
 
                     if (this.empty) {
                         Chat.message('No more mineable blocks.');
-                        this.miningbot.unregister();
+                        this.toggle(false);
                     }
 
                     // todo fix this gets called 20 times per second which is intensive due to file read and stuff
@@ -396,15 +346,11 @@ class Bot extends ModuleBase {
                             blockName.includes('bedrock') ||
                             this.allowScan
                         ) {
-                            this.scanForBlock(
-                                this.COSTTYPE,
-                                true,
-                                new BlockPos(
-                                    this.currentTarget.x,
-                                    this.currentTarget.y,
-                                    this.currentTarget.z
-                                )
-                            );
+                            this.scanForBlock(this.COSTTYPE, true, {
+                                x: this.currentTarget.x,
+                                y: this.currentTarget.y,
+                                z: this.currentTarget.z,
+                            });
                             this.lowestCostBlockIndex = 0;
                             this.allowScan = false;
                         }
@@ -414,7 +360,7 @@ class Bot extends ModuleBase {
                     }
                     break;
             }
-        }).unregister();
+        });
 
         registerEventSB('abilityready', () => {
             this.state = this.STATES.ABILITY;
@@ -486,96 +432,34 @@ class Bot extends ModuleBase {
         );
     }
 
-    startWorker() {
-        if (this.workerThread && this.workerRunning.get()) {
-            return;
-        }
-
-        this.workerRunning.set(true);
-        this.workerThread = new Thread(() => {
-            while (this.workerRunning.get()) {
-                try {
-                    const task = this.taskQueue.poll();
-
-                    if (!task) {
-                        Thread.sleep(10); // sleep if no task
-                        continue;
-                    }
-
-                    if (task.type === 'SCAN_BLOCKS') {
-                        this.processScanTask(task);
-                    }
-                } catch (e) {
-                    if (e instanceof java.lang.InterruptedException) {
-                        break; // thread interrupted, idk what to do here either!!
-                    }
-                    Chat.debugMessage('Worker thread error: ' + e);
-                }
-            }
-        });
-
-        this.workerThread.start();
-        Chat.debugMessage('Mining Bot worker thread started');
-    }
-
-    stopWorker() {
-        if (!this.workerThread || !this.workerRunning.get()) {
-            return;
-        }
-
-        Chat.debugMessage('Stopping worker thread...');
-        this.workerRunning.set(false);
-
-        if (this.workerThread) {
-            try {
-                this.workerThread.interrupt();
-                this.workerThread.join(1000);
-            } catch (e) {
-                // ignore errors !!
-            }
-            this.workerThread = null;
-        }
-
-        this.taskQueue.clear();
-        this.resultQueue.clear();
-        Chat.debugMessage('Mining Bot worker thread stopped');
-    }
-
-    processScanTask(task) {
-        const {
-            target,
-            specific,
-            startPos,
-            excludedBlock,
-            playerX,
-            playerY,
-            playerZ,
-            playerEyePos,
-            viewVector,
-        } = task;
+    scanForBlock(
+        target,
+        specific = true,
+        startPos = null,
+        excludedBlock = null
+    ) {
+        const playerX = Player.getX();
+        const playerY = Player.getY();
+        const playerZ = Player.getZ();
+        const playerEyePos = Player.getPlayer().getEyePos();
+        const viewVector = Player.asPlayerMP().getLookVector();
 
         this.tickCount = 0;
 
+        const start = startPos || {
+            x: Math.floor(playerX),
+            y: Math.floor(playerY),
+            z: Math.floor(playerZ),
+        };
+
+        const excluded = excludedBlock || null;
+
         let foundLocations = [];
-        let startX, startY, startZ;
-
-        if (startPos) {
-            startX = startPos.x;
-            startY = startPos.y;
-            startZ = startPos.z;
-        } else {
-            startX = Math.floor(playerX);
-            startY = Math.floor(playerY);
-            startZ = Math.floor(playerZ);
-        }
-
-        let foundBlock = false;
-
-        let queue = [{ x: startX, y: startY, z: startZ }];
+        let queue = [{ x: start.x, y: start.y, z: start.z }];
         let visited = new Set();
-        visited.add(`${startX},${startY},${startZ}`);
+        visited.add(`${start.x},${start.y},${start.z}`);
 
-        let directions = [
+        const directions = [
             [1, 0, 0],
             [-1, 0, 0],
             [0, 1, 0],
@@ -585,63 +469,58 @@ class Bot extends ModuleBase {
         ];
 
         while (queue.length > 0) {
-            let { x, y, z } = queue.shift();
+            const { x, y, z } = queue.shift();
 
             if (
-                excludedBlock &&
-                x === excludedBlock.x &&
-                y === excludedBlock.y &&
-                z === excludedBlock.z
+                excluded &&
+                x === excluded.x &&
+                y === excluded.y &&
+                z === excluded.z
             ) {
                 continue;
             }
 
-            let dist = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
-            if (dist > 4.5) continue;
+            const distEye = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
+            if (distEye > 4.5) continue;
 
-            let block = World.getBlockAt(x, y, z);
-            let blockName = block?.type?.getRegistryName();
+            const block = World.getBlockAt(x, y, z);
+            const blockName = block?.type?.getRegistryName();
 
             let isTargetBlock = false;
             if (specific) isTargetBlock = target.hasOwnProperty(blockName);
             else isTargetBlock = Object.keys(target).includes(blockName);
 
             if (isTargetBlock) {
-                let blockPos = new BlockPos(x, y, z);
-                let dist = Math.sqrt(
+                const blockPos = new BlockPos(x, y, z);
+                const dist = Math.sqrt(
                     Math.pow(x - playerX, 2) +
                         Math.pow(y - playerY, 2) +
                         Math.pow(z - playerZ, 2)
                 );
-                let startPoint = [
+
+                const startPoint = [
                     playerEyePos.x,
                     playerEyePos.y,
                     playerEyePos.z,
                 ];
+                const endPoint = [x + 0.5, y + 0.5, z + 0.5];
 
-                let endPoint = [x + 0.5, y + 0.5, z + 0.5];
-
-                let traversedBlocks = RayTrace.rayTraceBetweenPoints(
+                const traversedBlocks = RayTrace.rayTraceBetweenPoints(
                     startPoint,
                     endPoint
                 );
-
                 let isObstructed = false;
                 if (traversedBlocks) {
                     for (let i = 0; i < traversedBlocks.length; i++) {
-                        let blockCoords = traversedBlocks[i];
-                        let currentBlockPos = new BlockPos(
-                            blockCoords[0],
-                            blockCoords[1],
-                            blockCoords[2]
-                        );
+                        const [bx, by, bz] = traversedBlocks[i];
+                        const currentBlockPos = new BlockPos(bx, by, bz);
                         if (!currentBlockPos.equals(blockPos)) {
-                            let block = World.getBlockAt(
+                            const obBlock = World.getBlockAt(
                                 currentBlockPos.getX(),
                                 currentBlockPos.getY(),
                                 currentBlockPos.getZ()
                             );
-                            if (block && block.type.getID() !== 0) {
+                            if (obBlock && obBlock.type.getID() !== 0) {
                                 isObstructed = true;
                                 break;
                             }
@@ -650,38 +529,32 @@ class Bot extends ModuleBase {
                 }
 
                 if (!isObstructed) {
-                    foundBlock = true;
-                    let toBlockVector = new Vec3d(
+                    const toBlockVector = new Vec3d(
                         x - playerX,
                         y - playerEyePos.y,
                         z - playerZ
                     ).normalize();
 
-                    let dotProduct =
+                    const dotProduct =
                         toBlockVector.x * viewVector.x +
                         toBlockVector.y * viewVector.y +
                         toBlockVector.z * viewVector.z;
 
-                    let priorityAdjustment = -dotProduct * 50;
-                    let totalCost =
+                    const priorityAdjustment = -dotProduct * 50;
+                    const totalCost =
                         target[blockName] + dist * 5 + priorityAdjustment;
 
-                    foundLocations.push({
-                        x: x,
-                        y: y,
-                        z: z,
-                        cost: totalCost,
-                    });
+                    foundLocations.push({ x, y, z, cost: totalCost });
                 }
             }
 
             for (let i = 0; i < directions.length; i++) {
-                let [dx, dy, dz] = directions[i];
-                let nextX = x + dx;
-                let nextY = y + dy;
-                let nextZ = z + dz;
-                let nextKey = `${nextX},${nextY},${nextZ}`;
-                let dist = Math.sqrt(
+                const [dx, dy, dz] = directions[i];
+                const nextX = x + dx;
+                const nextY = y + dy;
+                const nextZ = z + dz;
+                const nextKey = `${nextX},${nextY},${nextZ}`;
+                const dist = Math.sqrt(
                     Math.pow(nextX - playerX, 2) +
                         Math.pow(nextY - playerY, 2) +
                         Math.pow(nextZ - playerZ, 2)
@@ -694,58 +567,17 @@ class Bot extends ModuleBase {
             }
         }
 
-        // sort and send blocks back to main thread
-        if (foundBlock) {
+        // Sort by cost
+        if (foundLocations.length > 0) {
             foundLocations.sort((a, b) => a.cost - b.cost);
+            this.nuking = false;
+            this.foundLocations = foundLocations;
+            this.currentTarget = this.foundLocations[0];
+            this.lowestCostBlockIndex = 0;
+            this.empty = false;
+        } else {
+            this.empty = true;
         }
-
-        this.resultQueue.offer({
-            type: 'SCAN_COMPLETE',
-            foundLocations: foundLocations,
-        });
-    }
-
-    scanForBlock(
-        target,
-        specific = true,
-        startPos = null,
-        excludedBlock = null
-    ) {
-        if (this.scanning) return;
-        this.scanning = true;
-
-        let playerX = Player.getX();
-        let playerY = Player.getY();
-        let playerZ = Player.getZ();
-        let playerEyePos = Player.getPlayer().getEyePos();
-        let viewVector = Player.asPlayerMP().getLookVector();
-
-        const task = {
-            type: 'SCAN_BLOCKS',
-            target: { ...target },
-            specific: specific,
-            startPos: startPos
-                ? { x: startPos.getX(), y: startPos.getY(), z: startPos.getZ() }
-                : null,
-            excludedBlock: excludedBlock
-                ? { x: excludedBlock.x, y: excludedBlock.y, z: excludedBlock.z }
-                : null,
-            playerX: playerX,
-            playerY: playerY,
-            playerZ: playerZ,
-            playerEyePos: {
-                x: playerEyePos.x,
-                y: playerEyePos.y,
-                z: playerEyePos.z,
-            },
-            viewVector: {
-                x: viewVector.x,
-                y: viewVector.y,
-                z: viewVector.z,
-            },
-        };
-
-        this.taskQueue.offer(task);
     }
 
     setCost(cost) {
@@ -753,16 +585,14 @@ class Bot extends ModuleBase {
     }
 
     onEnable() {
-        this.startWorker();
-        this.miningbot.register();
+        Chat.message('Mining Bot Enabled');
         this.empty = false;
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
     }
 
     onDisable() {
-        this.stopWorker();
-        this.miningbot.unregister();
+        Chat.message('Mining Bot Disabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);
         this.foundLocations = [];
