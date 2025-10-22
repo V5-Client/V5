@@ -7,6 +7,12 @@ import {
     PARTIAL_HEIGHT_BLOCKS,
 } from '../PathConstants';
 
+/**
+ * add velocity detection logic - simple
+ * refine diagnol stuff and jumping up complicated blocks - difficult
+ * seperate files into PathJumps.js for jumping utils and main movement (holding w and other things) in PathMovement.js - simple
+ */
+
 const STEP_HEIGHT = 0.6;
 
 const mc = Client.getMinecraft();
