@@ -149,11 +149,10 @@ class MiningUtilClass {
 
                 case 'hotm':
                     if (guiName && guiName.includes('Heart of the Mountain')) {
-                        this.hotm = getFirstMatchFromLore(
+                        this.cotm = getFirstMatchFromLore(
                             4,
                             /Level\s{0,2}(\d+)/
                         );
-                        this.cotm = parseInt(this.hotm) === 10;
 
                         let con = Player.getContainer();
                         let selected = 'minecraft:emerald_block';
@@ -249,7 +248,6 @@ class MiningUtilClass {
                         Chat.message(`Lapidary Speed: +${bonus}`);
                     }
 
-                    let cotmcolor = this.cotm ? '&a' : '&c';
                     let solvercolor = this.maxSolver ? '&a' : '&c';
 
                     Chat.message(`Your Mining Data:`);
@@ -258,8 +256,7 @@ class MiningUtilClass {
                     Chat.message(`Strong Arm: &e${this.strongArm}`);
                     Chat.message(`Pickaxe Ability: &e${this.ability}`);
                     Chat.message(`Cold Resistance: &e${this.coldRes}`);
-                    Chat.message(`HOTM Level: &e${this.hotm}`);
-                    Chat.message(`COTM: ${cotmcolor}${this.cotm}`);
+                    Chat.message(`COTM Level: &e${this.cotm}`);
                     Chat.message(
                         `Max Great Explorer: ${solvercolor}${this.maxSolver}`
                     );
@@ -270,7 +267,6 @@ class MiningUtilClass {
                         strongarm: this.strongArm,
                         ability: this.ability,
                         coldres: this.coldRes,
-                        hotm: this.hotm,
                         cotm: this.cotm,
                         maxge: this.maxSolver,
                     };
@@ -496,8 +492,14 @@ class MiningUtilClass {
         }
 
         let Speed = (MiningSpeed || 0) + Flowstate.CurrentFlowstate();
-        if (!this.cotm && SpeedBoost) Speed *= 3;
-        if (SpeedBoost) Speed *= 3.5;
+
+        if (SpeedBoost) {
+            if (this.cotm >= 2) {
+                Speed *= 3.5;
+            } else {
+                Speed *= 3;
+            }
+        }
 
         let ticks = Math.round((hardness * 30) / Speed);
         if (!ticks && !SpeedBoost) {
