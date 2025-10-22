@@ -252,6 +252,7 @@ class Bot extends ModuleBase {
                         this.miningbot.unregister();
                     }
 
+                    // todo fix this gets called 20 times per second which is intensive due to file read and stuff
                     this.miningspeed =
                         this.type === this.TYPES.TUNNEL
                             ? MiningUtils.getSpeedWithCold()
