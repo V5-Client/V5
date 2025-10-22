@@ -48,7 +48,6 @@ export const IGNORED_BLOCK_PATTERNS = [
 
 export const PARTIAL_HEIGHT_BLOCKS = {
     slab: 0.5,
-    snow_layer: 0.5,
     snow: 0.5,
     farmland: 0.9375,
     grass_path: 0.9375,

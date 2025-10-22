@@ -42,11 +42,11 @@ class MobHider {
 
             return false;
         };
-        let renderHandler = register('renderEntity', (entity, pt, event) => {
+        /* let renderHandler = register('renderEntity', (entity, pt, event) => {
             if (shouldHideEntity(entity.getName())) {
                 cancel(event);
             }
-        }).unregister();
+        }).unregister(); */
 
         let attackHandler = register('playerInteract', (action, pos, event) => {
             if (action.toString() !== 'ATTACK') return;
@@ -76,10 +76,10 @@ class MobHider {
             this.mobsToHide = new Set(selectedMobs);
 
             if (this.mobsToHide.size > 0) {
-                renderHandler.register();
+                //renderHandler.register();
                 attackHandler.register();
             } else {
-                renderHandler.unregister();
+                // renderHandler.unregister();
                 attackHandler.unregister();
             }
 

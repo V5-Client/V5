@@ -43,6 +43,9 @@ function isBlockPassable(block) {
 
     const registryName = block.type.getRegistryName().toLowerCase();
 
+    if (registryName.includes('snow') && !registryName.includes('block'))
+        return true;
+
     for (const pattern of IGNORED_BLOCK_PATTERNS) {
         if (registryName == pattern) {
             return true;
@@ -70,9 +73,11 @@ function getBlockHeight(block) {
     const id = block.type.getID();
     if (id === 0) return 0;
 
-    if (isBlockPassable(block)) return 0;
-
     const registryName = block.type.getRegistryName().toLowerCase();
+    if (registryName.includes('snow') && !registryName.includes('block'))
+        return 0;
+
+    if (isBlockPassable(block)) return 0;
 
     for (const [key, height] of Object.entries(PARTIAL_HEIGHT_BLOCKS)) {
         if (registryName.includes(key)) {
@@ -160,7 +165,7 @@ function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
         targetGroundY = checkY;
         blockToCheck = blockFoot;
         actualHeightDiff =
-            targetGroundY + targetBlockHeight - currentGroundHeight;
+            targetGroundY + targetBlockHeight - Math.floor(Player.getY());
         isStepUp = true;
     } else if (isSolid(blockBelow)) {
         targetBlockHeight = getBlockHeight(blockBelow);
