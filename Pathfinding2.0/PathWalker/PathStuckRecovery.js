@@ -1,6 +1,11 @@
 import { pathState } from './PathState';
 import { PathfindingMessages } from '../PathConfig';
 
+/**
+ * Refine logic
+ * Remove pathstate
+ */
+
 const STUCK_THRESHOLD_TICKS = 20;
 const MIN_MOVEMENT_DISTANCE = 0.12;
 const SEVERE_STUCK_THRESHOLD = 100;

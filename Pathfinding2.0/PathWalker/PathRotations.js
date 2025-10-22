@@ -4,6 +4,10 @@ import { MathUtils } from '../../Utility/Math';
 import { Rotations } from '../../Utility/Rotations';
 import { renderSplineBoxes } from '../PathDebug';
 
+/**
+ * Stop jittery yaw on jumps
+ */
+
 const MIN_SPEED_CONSTANT = 60; // Fastest rotation time (ms).
 const MAX_SPEED_CONSTANT = 80; // Slowest rotation time (ms).
 const ANGLE_SCALING_FACTOR = 20; // Scales speed reduction for large turns.
@@ -32,6 +36,19 @@ let isInitialized = false; // Flag for initial rotation setup.
 let isJumping = false; // True if player is jumping.
 const JUMP_VELOCITY_THRESHOLD = 0.1; // Min vertical velocity to detect a jump.
 const JUMP_SMOOTHING_FACTOR = 0.3; // Factor to smooth pitch changes on jumps.
+
+let complete = false; // Ends the whole path if rotations are complete.
+
+export function PathComplete() {
+    return complete;
+}
+
+export function ResetRotations() {
+    currentBoxIndex = 1;
+    isInitialized = false;
+    isJumping = false;
+    complete = false;
+}
 
 function calculateRotationSpeed(targetPoint) {
     const { yaw: relYaw, pitch: relPitch } =
@@ -93,6 +110,7 @@ export function pathRotations(splineData) {
         boxPositions.length === 0 ||
         currentBoxIndex === boxPositions.length - 1
     ) {
+        complete = true;
         return;
     }
 
