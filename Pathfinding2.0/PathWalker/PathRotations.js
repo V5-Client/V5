@@ -1,3 +1,7 @@
+// TESTING ONLY
+import * as RotationRecorder from './RotationRecorder';
+const ENABLE_RECORDING = true;
+
 import RenderUtils from '../../Rendering/RendererUtils';
 import { Vec3d } from '../../Utility/Constants';
 import { MathUtils } from '../../Utility/Math';
@@ -110,7 +114,16 @@ export function pathRotations(splineData) {
         boxPositions.length === 0 ||
         currentBoxIndex === boxPositions.length - 1
     ) {
-        complete = true;
+        if (!complete) {
+            // complete = true; this was correct, but i had to add recording !!!!!!!!
+            complete = true;
+
+            if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
+                RotationRecorder.stopRecording();
+                RotationRecorder.saveRecording();
+            }
+        }
+
         return;
     }
 
@@ -181,6 +194,10 @@ export function pathRotations(splineData) {
         lastSmoothedYaw = targetYaw;
         lastSmoothedPitch = calculatedPitch;
         isInitialized = true;
+
+        if (ENABLE_RECORDING) {
+            RotationRecorder.startRecording();
+        }
     }
 
     const smoothedYaw = calculateSmoothedYaw(targetYaw, lastSmoothedYaw);
@@ -197,6 +214,10 @@ export function pathRotations(splineData) {
 
     finalPitch = Math.min(finalPitch, MAX_ALLOWED_PITCH_DOWN);
     finalPitch = Math.max(finalPitch, MAX_ALLOWED_PITCH_UP);
+
+    if (ENABLE_RECORDING) {
+        RotationRecorder.recordRotation(smoothedYaw, finalPitch);
+    }
 
     Rotations.rotateToAngles(
         smoothedYaw,
