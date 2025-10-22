@@ -6,10 +6,13 @@ import {
     renderSplineBoxes,
     drawFloatingSpline,
 } from './PathDebug';
-import { initializePathState, resetPathState } from './PathWalker/PathState';
 import { resetStuckRecovery } from './PathWalker/PathStuckRecovery';
-import { pathMovement } from './PathWalker/PathMovement';
-import { pathRotations } from './PathWalker/PathRotations';
+import { PathMovement } from './PathWalker/PathMovement';
+import {
+    pathRotations,
+    PathComplete,
+    ResetRotations,
+} from './PathWalker/PathRotations';
 import RenderUtils from '../Rendering/RendererUtils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 
@@ -44,8 +47,6 @@ export function stopPathing() {
     renderOnlyRegister = null;
     currentPathRequest = null;
 
-    // Reset both states
-    resetPathState();
     resetStuckRecovery();
 
     try {
@@ -178,26 +179,25 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                         3000
                     );
                 } else {
-                    const boxPositions = renderSplineBoxes(generatedSpline, 1);
-
-                    resetPathState();
                     resetStuckRecovery();
-
-                    initializePathState(generatedSpline, boxPositions);
 
                     const tickRegister = register('tick', () => {
                         pathRotations(generatedSpline);
-                        const { complete, stuck } = pathMovement();
+                        PathMovement();
 
-                        if (complete) {
+                        if (PathComplete()) {
                             tickRegister.unregister();
                             stopPathing();
+
                             global.showNotification(
                                 'Path Complete',
                                 'Destination reached!',
                                 'SUCCESS',
                                 2000
                             );
+
+                            PathMovement(false);
+                            ResetRotations();
                         }
                     });
                 }
