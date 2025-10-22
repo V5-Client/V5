@@ -8,9 +8,9 @@ class RotationsTo {
         this.rotating = false;
         this.currentRotationID = null;
 
-        this.tremorFrequency = 1;
+        this.tremorFrequency = 0; // limit both of these for pathfinder (FOR NOW)
         this.fadeExponent = 0.0025;
-        this.Randomness = 0.007;
+        this.Randomness = 0;
 
         this.instantMode = false;
 

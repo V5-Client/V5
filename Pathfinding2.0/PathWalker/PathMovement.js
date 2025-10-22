@@ -43,9 +43,6 @@ function isBlockPassable(block) {
 
     const registryName = block.type.getRegistryName().toLowerCase();
 
-    if (registryName.includes('snow') && !registryName.includes('block'))
-        return true;
-
     for (const pattern of IGNORED_BLOCK_PATTERNS) {
         if (registryName == pattern) {
             return true;
@@ -74,8 +71,6 @@ function getBlockHeight(block) {
     if (id === 0) return 0;
 
     const registryName = block.type.getRegistryName().toLowerCase();
-    if (registryName.includes('snow') && !registryName.includes('block'))
-        return 0;
 
     if (isBlockPassable(block)) return 0;
 
