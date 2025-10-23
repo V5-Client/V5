@@ -1,5 +1,4 @@
-﻿/* eslint-disable no-unused-vars */
-import { Keybind } from '../../Utility/Keybinding';
+﻿import { Keybind } from '../../Utility/Keybinding';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { RayTrace } from '../../Utility/Raytrace';
 import { Rotations } from '../../Utility/Rotations';
@@ -270,10 +269,7 @@ class Bot extends ModuleBase {
                         (option) => option.enabled
                     )?.name;
 
-                    if (
-                        Fakelook !== 'Off' &&
-                        this.COSTTYPE === this.gemstoneCosts
-                    ) {
+                    if (Fakelook !== 'Off') {
                         if (
                             blockName.includes('air') ||
                             blockName.includes('bedrock')
@@ -454,9 +450,15 @@ class Bot extends ModuleBase {
 
         const excluded = excludedBlock || null;
 
-        let foundLocations = [];
-        let queue = [{ x: start.x, y: start.y, z: start.z }];
-        let visited = new Set();
+        const maxReach = 5;
+        const maxReachSq = maxReach * maxReach;
+
+        const foundLocations = [];
+
+        const queue = [{ x: start.x, y: start.y, z: start.z }];
+        let head = 0;
+
+        const visited = new Set();
         visited.add(`${start.x},${start.y},${start.z}`);
 
         const directions = [
@@ -468,8 +470,8 @@ class Bot extends ModuleBase {
             [0, 0, -1],
         ];
 
-        while (queue.length > 0) {
-            const { x, y, z } = queue.shift();
+        while (head < queue.length) {
+            const { x, y, z } = queue[head++];
 
             if (
                 excluded &&
@@ -480,23 +482,27 @@ class Bot extends ModuleBase {
                 continue;
             }
 
+            // Reach check
             const distEye = MathUtils.getDistanceToPlayerEyes(x, y, z).distance;
-            if (distEye > 4.5) continue;
+            if (distEye > maxReach) continue;
 
             const block = World.getBlockAt(x, y, z);
             const blockName = block?.type?.getRegistryName();
 
             let isTargetBlock = false;
-            if (specific) isTargetBlock = target.hasOwnProperty(blockName);
-            else isTargetBlock = Object.keys(target).includes(blockName);
+            if (blockName) {
+                if (specific) {
+                    isTargetBlock = Object.prototype.hasOwnProperty.call(
+                        target,
+                        blockName
+                    );
+                } else {
+                    isTargetBlock = blockName in target;
+                }
+            }
 
             if (isTargetBlock) {
                 const blockPos = new BlockPos(x, y, z);
-                const dist = Math.sqrt(
-                    Math.pow(x - playerX, 2) +
-                        Math.pow(y - playerY, 2) +
-                        Math.pow(z - playerZ, 2)
-                );
 
                 const startPoint = [
                     playerEyePos.x,
@@ -505,6 +511,7 @@ class Bot extends ModuleBase {
                 ];
                 const endPoint = [x + 0.5, y + 0.5, z + 0.5];
 
+                // line of sight by ray tracing from eyes check
                 const traversedBlocks = RayTrace.rayTraceBetweenPoints(
                     startPoint,
                     endPoint
@@ -529,20 +536,19 @@ class Bot extends ModuleBase {
                 }
 
                 if (!isObstructed) {
-                    const toBlockVector = new Vec3d(
-                        x - playerX,
-                        y - playerEyePos.y,
-                        z - playerZ
-                    ).normalize();
-
+                    const dx = x - playerX;
+                    const dy = y - playerEyePos.y;
+                    const dz = z - playerZ;
                     const dotProduct =
-                        toBlockVector.x * viewVector.x +
-                        toBlockVector.y * viewVector.y +
-                        toBlockVector.z * viewVector.z;
+                        (dx * viewVector.x +
+                            dy * viewVector.y +
+                            dz * viewVector.z) /
+                        (distEye || 1); // divide by zero fix
 
+                    // Favor blocks in the center of view
                     const priorityAdjustment = -dotProduct * 50;
                     const totalCost =
-                        target[blockName] + dist * 5 + priorityAdjustment;
+                        target[blockName] + distEye * 5 + priorityAdjustment;
 
                     foundLocations.push({ x, y, z, cost: totalCost });
                 }
@@ -554,20 +560,21 @@ class Bot extends ModuleBase {
                 const nextY = y + dy;
                 const nextZ = z + dz;
                 const nextKey = `${nextX},${nextY},${nextZ}`;
-                const dist = Math.sqrt(
-                    Math.pow(nextX - playerX, 2) +
-                        Math.pow(nextY - playerY, 2) +
-                        Math.pow(nextZ - playerZ, 2)
-                );
 
-                if (dist <= 5 && !visited.has(nextKey)) {
-                    visited.add(nextKey);
-                    queue.push({ x: nextX, y: nextY, z: nextZ });
+                if (!visited.has(nextKey)) {
+                    const ddx = nextX - playerX;
+                    const ddy = nextY - playerY;
+                    const ddz = nextZ - playerZ;
+                    const distSq = ddx * ddx + ddy * ddy + ddz * ddz;
+                    if (distSq <= maxReachSq) {
+                        visited.add(nextKey);
+                        queue.push({ x: nextX, y: nextY, z: nextZ });
+                    }
                 }
             }
         }
 
-        // Sort by cost
+        // Sort by cost (ascending) and set the first as current target
         if (foundLocations.length > 0) {
             foundLocations.sort((a, b) => a.cost - b.cost);
             this.nuking = false;
