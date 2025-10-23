@@ -13,15 +13,14 @@ class AutoSkyblock extends ModuleBase {
             subcategory: 'Other',
             description: 'Completes the early game automatically',
             tooltip: 'Automatically completes early Skyblock tasks',
+            showEnabledToggle: false,
         });
 
         this.bindToggleKey();
 
         this.currentStep = 'CHECK_AREA';
-        this.checkInterval = 500;
-        this.lastCheck = 0;
 
-        this.hubWheatFarmWaypoints = [
+        this.wheatPoints = [
             { pos: [36, 69, -120], name: 'Wheat Farm Start' },
             { pos: [54, 70, -126], name: 'Wheat Farm Point 1' },
             { pos: [67, 70, -132], name: 'Wheat Farm Point 2' },
@@ -33,17 +32,14 @@ class AutoSkyblock extends ModuleBase {
             { pos: [22, 69, -139], name: 'Wheat Farm Point 8' },
             { pos: [27, 69, -130], name: 'Wheat Farm End' },
         ];
-        this.currentWaypointIndex = 0;
+        this.currentIndex = 0;
 
-        this.on('step', () => {
-            if (Date.now() - this.lastCheck < this.checkInterval) return;
-            this.lastCheck = Date.now();
-
-            this.handleCurrentStep();
+        this.on('tick', () => {
+            this.tick();
         });
     }
 
-    handleCurrentStep() {
+    tick() {
         switch (this.currentStep) {
             case 'CHECK_AREA':
                 this.checkArea();
@@ -81,7 +77,7 @@ class AutoSkyblock extends ModuleBase {
     }
 
     startWheatFarmSequence() {
-        this.currentWaypointIndex = 0;
+        this.currentIndex = 0;
         this.currentStep = 'WHEAT_FARMING';
 
         this.enableWheatNuker();
@@ -90,14 +86,12 @@ class AutoSkyblock extends ModuleBase {
     }
 
     pathToNextWaypoint() {
-        if (this.currentWaypointIndex >= this.hubWheatFarmWaypoints.length) {
-            // Loop
-            Chat.message('§aCompleted loop, restarting from beginning...');
-            this.currentWaypointIndex = 0;
+        // check if last waypoint and loop
+        if (this.currentIndex >= this.wheatPoints.length) {
+            this.currentIndex = 0;
         }
 
-        const currentWaypoint =
-            this.hubWheatFarmWaypoints[this.currentWaypointIndex];
+        const currentWaypoint = this.wheatPoints[this.currentIndex];
         const playerCurrentPos = [
             Math.floor(Player.getX()),
             Math.round(Player.getY()) - 1,
@@ -107,26 +101,23 @@ class AutoSkyblock extends ModuleBase {
         Chat.message(
             `§ePathfinding to ${currentWaypoint.name} [${
                 currentWaypoint.pos
-            }] (${this.currentWaypointIndex + 1}/${
-                this.hubWheatFarmWaypoints.length
-            })...`
+            }] (${this.currentIndex + 1}/${this.wheatPoints.length})...`
         );
 
-        findAndFollowPath(playerCurrentPos, currentWaypoint.pos, false, () =>
-            this.onWaypointReached()
-        );
+        findAndFollowPath(playerCurrentPos, currentWaypoint.pos, false, () => {
+            if (this.enabled) {
+                this.onWaypointReached();
+            }
+        });
     }
 
     onWaypointReached() {
-        const reachedWaypoint =
-            this.hubWheatFarmWaypoints[this.currentWaypointIndex];
+        const reachedWaypoint = this.wheatPoints[this.currentIndex];
         Chat.message(`§aReached ${reachedWaypoint.name}!`);
 
-        this.currentWaypointIndex++;
+        this.currentIndex++;
 
-        setTimeout(() => {
-            this.pathToNextWaypoint();
-        }, 100);
+        this.pathToNextWaypoint();
     }
 
     enableWheatNuker() {
@@ -137,34 +128,24 @@ class AutoSkyblock extends ModuleBase {
 
         Nuker.customBlockList = [wheatCropsBlock];
         Nuker.blockType = 'Custom';
-
-        if (!Nuker.enabled) {
-            Nuker.toggle();
-        }
-
-        Chat.message('§aWheat nuker enabled');
+        Nuker.toggle(true);
     }
 
     disableWheatNuker() {
-        if (Nuker.enabled) {
-            Nuker.toggle();
-        }
-        Chat.message('§cWheat nuker disabled');
+        Nuker.toggle(false);
     }
 
     onEnable() {
-        Chat.message('§aAutoSkyblock enabled, starting sequence...');
+        Chat.message('AutoSkyblock §aEnabled');
         this.currentStep = 'CHECK_AREA';
-        this.currentWaypointIndex = 0;
-        this.lastCheck = 0;
+        this.currentIndex = 0;
     }
 
     onDisable() {
-        Chat.message('§cAutoSkyblock disabled');
+        Chat.message('AutoSkyblock §cDisabled');
+        // stopPathing does not seem to work?
         stopPathing();
         this.disableWheatNuker();
-        this.currentStep = 'CHECK_AREA';
-        this.currentWaypointIndex = 0;
     }
 }
 
