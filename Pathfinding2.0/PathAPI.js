@@ -119,7 +119,12 @@ function drawKeyNodes(keynodes) {
     }
 }
 
-export function findAndFollowPath(start, end, renderOnly = false) {
+export function findAndFollowPath(
+    start,
+    end,
+    renderOnly = false,
+    onComplete = null
+) {
     stopPathing();
 
     const url = `${localhost}/api/pathfinding?start=${start.join(
@@ -201,6 +206,13 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                                 'SUCCESS',
                                 2000
                             );
+
+                            if (
+                                onComplete &&
+                                typeof onComplete === 'function'
+                            ) {
+                                onComplete();
+                            }
                         }
                     });
                 }

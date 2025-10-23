@@ -292,7 +292,7 @@ export function shouldJump() {
     };
 
     const pX = Math.floor(playerPos.x);
-    const pY = Math.floor(playerPos.y);
+    const pY = Math.round(playerPos.y);
     const pZ = Math.floor(playerPos.z);
 
     const blockBelowPlayer = getCachedBlock(pX, pY - 1, pZ);
