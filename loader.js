@@ -22,7 +22,6 @@ import './Pathfinding2.0/PathWalker/VisibleBlocksHighlighter.js';
 
 /* MINING */
 import './Modules/Mining/PinglessMining.js';
-import './Modules/Mining/Nuker.js';
 import './Modules/Mining/CommissionMacro.js';
 import './Modules/Mining/GemstoneMacro.js';
 
@@ -43,7 +42,7 @@ import './Pathfinding/Pathwalker.js';
 import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
 import './Modules/Other/AutoLoot.js';
-import './Modules/Other/AutoSkyblock.js';
+import './Modules/Other/AutoSkyblock.js'; // this imports NUKER so it still works idk
 //import './Modules/Other/Freelook.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
