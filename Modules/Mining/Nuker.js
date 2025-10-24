@@ -47,6 +47,7 @@ class NukerClass extends ModuleBase {
 
         // settings
         this.blockType = 'Custom';
+        this.targetMode = 'Random';
         this.nukeBelow = false;
         this.onGroundOnly = false;
         this.autoChest = false;
@@ -152,6 +153,7 @@ class NukerClass extends ModuleBase {
                 type: 'SCAN_BLOCKS',
                 playerPos: { x: playerX, y: playerY, z: playerZ },
                 blockType: this.blockType,
+                targetMode: this.targetMode,
                 nukeBelow: this.nukeBelow,
                 heightLimit: this.heightLimit,
                 customBlockList: [...this.customBlockList],
@@ -237,6 +239,13 @@ class NukerClass extends ModuleBase {
             (v) => (this.nukeBelow = v),
             'Prevents nuking below'
         );
+        this.addMultiToggle(
+            'Target Mode',
+            ['Random', 'Closest'],
+            true,
+            (v) => (this.targetMode = v),
+            'Choose between random or closest block targeting'
+        );
     }
 
     startWorker() {
@@ -298,6 +307,7 @@ class NukerClass extends ModuleBase {
         const {
             playerPos,
             blockType,
+            targetMode,
             nukeBelow,
             heightLimit,
             customBlockList,
@@ -350,9 +360,36 @@ class NukerClass extends ModuleBase {
         }
 
         if (validBlocks.length > 0) {
-            let targetPos =
-                validBlocks[Math.floor(Math.random() * validBlocks.length)];
-            this.resultQueue.offer(targetPos);
+            let targetPos;
+
+            if (targetMode === 'Closest') {
+                // Find the closest block
+                let minDistance = Infinity;
+                let closestBlock = null;
+
+                for (let pos of validBlocks) {
+                    const dist = this.distance(playerCords, [
+                        pos.getX(),
+                        pos.getY(),
+                        pos.getZ(),
+                    ]).distance;
+
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestBlock = pos;
+                    }
+                }
+
+                targetPos = closestBlock;
+            } else {
+                // Pick a random block
+                targetPos =
+                    validBlocks[Math.floor(Math.random() * validBlocks.length)];
+            }
+
+            if (targetPos) {
+                this.resultQueue.offer(targetPos);
+            }
         }
     }
 
