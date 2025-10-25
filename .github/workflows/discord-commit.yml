@@ -17,53 +17,98 @@ jobs:
 
             - name: Get commit info
               id: commit
+              shell: bash
               run: |
+                  set -euo pipefail
+
                   COMMIT_MESSAGE=$(git log -1 --pretty=%B)
                   AUTHOR_NAME=$(git log -1 --pretty=%an)
                   AUTHOR_LOGIN="${{ github.actor }}"
                   BRANCH_NAME="${GITHUB_REF#refs/heads/}"
                   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-                  # Handle the very first commit in a repo where HEAD~1 doesn't exist
+                  # Determine base for diff (handle initial commit)
                   if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
-                    STATS=$(git show --shortstat HEAD)
-                    FILES=$(git show --pretty="" --name-only HEAD)
+                    BASE=""
                   else
-                    STATS=$(git diff --shortstat HEAD~1 HEAD)
-                    FILES=$(git diff --name-only HEAD~1 HEAD)
+                    BASE="HEAD~1"
                   fi
 
+                  # Stats, file lists, and per-file line changes
+                  if [ -z "${BASE}" ]; then
+                    STATS=$(git show --shortstat HEAD | tail -n 1 || true)
+                    FILES=$(git show --pretty="" --name-only HEAD || true)
+                    NUMSTAT=$(git show --numstat --pretty="" HEAD || true)
+                  else
+                    STATS=$(git diff --shortstat "${BASE}" HEAD || true)
+                    FILES=$(git diff --name-only "${BASE}" HEAD || true)
+                    NUMSTAT=$(git diff --numstat "${BASE}" HEAD || true)
+                  fi
+
+                  # Extract totals (fallback to 0 if not present)
                   ADDED=$(echo "$STATS" | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
                   DELETED=$(echo "$STATS" | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
-                  MODIFIED=$(echo "$STATS" | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)
+                  FILES_CHANGED=$(echo "$STATS" | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)
 
+                  # Build file list with bullets
+                  FILES_LIST=$(echo "$FILES" | sed 's/^/- /')
+
+                  # Per-file line changes table like: +12 -3 path
+                  PERF_FILE=$(echo "$NUMSTAT" | awk '{add=($1 ~ /^[0-9]+$/ ? $1 : 0); del=($2 ~ /^[0-9]+$/ ? $2 : 0); $1=""; $2=""; sub(/^\t/ , ""); path=$0; printf "+%s -%s %s\n", add, del, path }')
+
+                  # Detect and summarize file types
                   declare -A LANG_MAP=(
                     ["js"]="JavaScript" ["ts"]="TypeScript" ["json"]="JSON"
                     ["yaml"]="YAML" ["yml"]="YAML" ["py"]="Python" ["java"]="Java"
                     ["kt"]="Kotlin" ["c"]="C" ["cpp"]="C++" ["cs"]="C#" ["rb"]="Ruby"
                     ["go"]="Go" ["rs"]="Rust" ["html"]="HTML" ["css"]="CSS"
                   )
-
                   FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $1, $2}')
                   FILETYPES_TEXT=""
                   while read -r count ext; do
-                    [ -z "$ext" ] && continue
+                    [ -z "${ext:-}" ] && continue
                     lang="${LANG_MAP[$ext]:-$ext}"
                     FILETYPES_TEXT+="$lang ($count)\n"
                   done <<< "$FILETYPES"
-
-                  # Trim trailing newline if it exists
                   FILETYPES_TEXT=$(echo -e "${FILETYPES_TEXT}" | sed '/^$/d')
 
-                  SUMMARY=$(echo -e "📝 Summary\n$COMMIT_MESSAGE\n\n📊 Files Changed\n+${ADDED} added\n~${MODIFIED} modified\n-${DELETED} deleted\n\n📂 File Types\n$FILETYPES_TEXT")
+                  # Trim long fields for Discord limits (keep first 25 lines)
+                  trim_list() {
+                    local input="$1"
+                    local max_lines=25
+                    local count=$(echo -n "$input" | grep -c "." || true)
+                    if [ "$count" -gt "$max_lines" ]; then
+                      local head_part=$(echo -n "$input" | sed -n "1,${max_lines}p")
+                      local remaining=$((count - max_lines))
+                      echo -e "${head_part}\n... and ${remaining} more"
+                    else
+                      echo -n "$input"
+                    fi
+                  }
 
+                  FILES_DISPLAY=$(trim_list "$FILES_LIST")
+                  PERFIL_DISPLAY=$(trim_list "$PERF_FILE")
+
+                  # Outputs
                   echo "message<<EOF" >> $GITHUB_OUTPUT
-                  echo "$SUMMARY" >> $GITHUB_OUTPUT
+                  echo "$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
                   echo "EOF" >> $GITHUB_OUTPUT
                   echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
                   echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
                   echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
                   echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+                  echo "files_list<<EOF" >> $GITHUB_OUTPUT
+                  echo "$FILES_DISPLAY" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
+                  echo "perfile<<EOF" >> $GITHUB_OUTPUT
+                  echo "$PERFIL_DISPLAY" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
+                  echo "added=$ADDED" >> $GITHUB_OUTPUT
+                  echo "deleted=$DELETED" >> $GITHUB_OUTPUT
+                  echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
+                  echo "filetypes<<EOF" >> $GITHUB_OUTPUT
+                  echo "$FILETYPES_TEXT" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
 
             - name: Map GitHub user -> Discord username
               id: mapuser
@@ -86,6 +131,11 @@ jobs:
                   DISCORD_USER: ${{ steps.mapuser.outputs.discord }}
                   BRANCH_NAME: ${{ steps.commit.outputs.branch }}
                   TIMESTAMP: ${{ steps.commit.outputs.timestamp }}
+                  FILES_LIST: ${{ steps.commit.outputs.files_list }}
+                  PER_FILE: ${{ steps.commit.outputs.perfile }}
+                  ADDED: ${{ steps.commit.outputs.added }}
+                  DELETED: ${{ steps.commit.outputs.deleted }}
+                  FILE_TYPES: ${{ steps.commit.outputs.filetypes }}
               run: |
                   payload=$(jq -n \
                     --arg username "V5 Commits" \
@@ -95,6 +145,11 @@ jobs:
                     --arg author "$DISCORD_USER" \
                     --arg branch "$BRANCH_NAME" \
                     --arg timestamp "$TIMESTAMP" \
+                    --arg files "$FILES_LIST" \
+                    --arg perfile "$PER_FILE" \
+                    --arg added "$ADDED" \
+                    --arg deleted "$DELETED" \
+                    --arg filetypes "$FILE_TYPES" \
                     --argjson color 3447003 \
                     '{
                       "username": $username,
@@ -106,7 +161,10 @@ jobs:
                           "color": $color,
                           "fields": [
                             {"name": "Author", "value": $author, "inline": true},
-                            {"name": "Branch", "value": $branch, "inline": true}
+                            {"name": "Branch", "value": $branch, "inline": true},
+                            {"name": "Files Changed", "value": (if ($files | length) > 0 then $files else "(none)" end), "inline": false},
+                            {"name": "Code Line Changes", "value": ("+" + $added + " added, -" + $deleted + " deleted\n\n" + (if ($perfile | length) > 0 then $perfile else "" end)), "inline": false},
+                            {"name": "File Types", "value": (if ($filetypes | length) > 0 then $filetypes else "(n/a)" end), "inline": true}
                           ],
                           "timestamp": $timestamp
                         }
