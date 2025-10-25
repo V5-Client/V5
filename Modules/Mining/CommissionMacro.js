@@ -5,7 +5,17 @@ import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { MiningBot } from './MiningBot';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { Guis } from '../../Utility/Inventory';
+import { Keybind } from '../../Utility/Keybinding';
+import { Rotations } from '../../Utility/Rotations';
 import { ModuleBase } from '../../Utility/ModuleBase';
+
+// TODO
+// UPDATE TO USE NEW PATHFINDER
+// PATHFINDING CALLBACKS
+// ROTATION CALLBACKS FOR NPC CLICK
+// CHAT MESSAGE COMMISSION COMPLETION DETECTION
+// SLAYER COMMISSIONS
+// USE MULTIPLE END POINTS FOR EMISSARRY PATHFINDING
 
 const STATES = {
     IDLE: 'Idle',
@@ -51,6 +61,9 @@ class CommissionMacro extends ModuleBase {
         this.goblinWeaponSlot = 1;
         this.savedState = null;
         this.swapPickaxeStep = 0;
+        this.travelPurpose = null; // 'MINING' | 'SLAYER' | 'EMISSARY' | null
+        this.awaitingTabUpdate = false; // wait for tablist to update
+        this.pauseTicks = 0;
 
         register('command', () => {
             this.toggle(true);
@@ -71,6 +84,7 @@ class CommissionMacro extends ModuleBase {
             this.runLogic();
         });
 
+        // TODO FIX THIS
         register('chat', (event) => {
             if (!this.enabled) return;
 
@@ -96,6 +110,8 @@ class CommissionMacro extends ModuleBase {
                 }
 
                 if (foundCommission && msg.includes('FINISHED')) {
+                    // ok this completely does not work btw :skull:
+                    Chat.message('Detected Commission Completion Chat Message');
                     this.onCommissionComplete();
                 }
             } catch (e) {}
@@ -205,6 +221,9 @@ class CommissionMacro extends ModuleBase {
         this.hasWarned = false;
         this.mobWhitelist.clear();
         this.savedState = null;
+        this.travelPurpose = null;
+        this.pauseTicks = 0;
+        this.awaitingTabUpdate = false;
     }
 
     cleanup() {
@@ -215,6 +234,9 @@ class CommissionMacro extends ModuleBase {
         if (MiningBot.enabled) {
             MiningBot.toggle(false);
         }
+        this.travelPurpose = null;
+        this.pauseTicks = 0;
+        this.awaitingTabUpdate = false;
     }
 
     setState(newState) {
@@ -226,6 +248,11 @@ class CommissionMacro extends ModuleBase {
 
     runLogic() {
         if (!this.enabled) return;
+
+        if (this.pauseTicks > 0) {
+            this.pauseTicks--;
+            return;
+        }
 
         if (this.currentState === STATES.IDLE) {
             if (this.commissions.some((c) => c.progress < 1)) {
@@ -264,7 +291,22 @@ class CommissionMacro extends ModuleBase {
         }
     }
 
+    /**
+     * Pause the macro loop for N ticks
+     * @param {number} ticks
+     */
+    delay(ticks) {
+        const t = Math.max(0, Math.floor(Number(ticks) || 0));
+        if (t > 0) this.pauseTicks = t;
+    }
+
     chooseAndStartCommission() {
+        const hasCompleted = this.commissions.some((c) => c.progress === 1);
+        if (hasCompleted) {
+            this.onCommissionComplete();
+            return;
+        }
+
         const activeCommissions = this.commissions.filter(
             (c) => c.progress < 1
         );
@@ -292,15 +334,10 @@ class CommissionMacro extends ModuleBase {
         });
 
         if (supportedTasks.length === 0) {
-            if (!this.hasWarned) {
-                Chat.message('&eNo supported commissions available.');
-                this.hasWarned = true;
-            }
+            Chat.message('&eNo supported commissions available.');
             this.setState(STATES.IDLE);
             return;
         }
-
-        this.hasWarned = false;
 
         supportedTasks.sort((a, b) => a.cost - b.cost);
 
@@ -352,6 +389,7 @@ class CommissionMacro extends ModuleBase {
                 );
 
                 this.currentCommission = chosenTask;
+                this.travelPurpose = this.currentCommission?.type;
                 this.currentMiningWaypoint = closestWaypoint;
                 const destination = closestWaypoint;
                 const startPos = [
@@ -392,18 +430,35 @@ class CommissionMacro extends ModuleBase {
     onPathComplete() {
         if (!this.enabled) return;
 
+        const purpose = this.travelPurpose || 'UNKNOWN';
+
+        if (purpose === 'EMISSARY') {
+            this.travelPurpose = null;
+            this.onArrivedAtCommissionNPC();
+            return;
+        }
+
         Chat.message(
             `&aArrived at destination for &b${
                 this.currentCommission?.name || 'Unknown'
             }`
         );
 
-        if (this.currentCommission.type === 'MINING') {
+        if (
+            this.currentCommission &&
+            this.currentCommission.type === 'MINING'
+        ) {
             this.setState(STATES.MINING);
             this.startMining();
-        } else if (this.currentCommission.type === 'SLAYER') {
+        } else if (
+            this.currentCommission &&
+            this.currentCommission.type === 'SLAYER'
+        ) {
             this.setState(STATES.SLAYER);
             this.startSlayer();
+        } else {
+            // Unknown purpose; reset to idle
+            this.setState(STATES.IDLE);
         }
     }
 
@@ -505,59 +560,81 @@ class CommissionMacro extends ModuleBase {
             MiningBot.toggle(false);
         }
 
-        if (this.hasRoyalPigeon) {
-            this.claimWithPigeon();
+        this.awaitingTabUpdate = true;
+
+        const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
+        if (pigeonSlot !== -1) {
+            this.claimWithPigeon(pigeonSlot);
         } else {
-            this.setState(STATES.CLAIMING);
             this.pathToCommissionNPC();
         }
     }
 
-    claimWithPigeon() {
-        const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
-        if (pigeonSlot === -1) {
-            Chat.message('&cRoyal Pigeon not in hotbar!');
-            this.pathToCommissionNPC();
-            return;
-        }
-
+    claimWithPigeon(pigeonSlot) {
         Guis.setItemSlot(pigeonSlot);
-        setTimeout(() => {
-            this.setState(STATES.CLAIMING);
-        }, 100);
+        Client.scheduleTask(2, () => {
+            Keybind.rightClick();
+        });
+        this.delay(6);
+        this.setState(STATES.CLAIMING);
     }
 
     pathToCommissionNPC() {
-        // [129, 196, 196] king
-        // [42, 134, 22] cliffside veins
-        // [171, 150, 31] royal mines
-        // [-73, 153, -11] ramparts quarry
-        // [-133, 174, -51] upper mines
-        // [-38, 200, -132] warp mines
-        // [89, 198, -93] ch entrance
-        const npcPos = [42, 134, 22];
+        const emissaries = [
+            [129, 195, 196], // king
+            [42, 134, 22], // cliffside veins
+            [171, 149, 31], // royal mines
+            [-73, 152, -11], // ramparts quarry
+            [-133, 173, -51], // upper mines
+            [-38, 199, -132], // warp mines
+            [89, 197, -93], // ch entrance
+            [58, 197, -8], // lava springs
+        ];
+
+        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+        let closest = emissaries[0];
+        let closestDist = Infinity;
+        for (const pos of emissaries) {
+            const d = Math.hypot(
+                playerPos[0] - pos[0],
+                playerPos[1] - pos[1],
+                playerPos[2] - pos[2]
+            );
+            if (d < closestDist) {
+                closest = pos;
+                closestDist = d;
+            }
+        }
+
+        const npcPos = closest;
         const startPos = [
             Math.floor(Player.getX()),
             Math.floor(Player.getY()) - 1,
             Math.floor(Player.getZ()),
         ];
 
-        findAndFollowPath(
-            startPos,
-            npcPos,
-            false,
-            () => this.onArrivedAtCommissionNPC(),
-            () => {
-                Chat.message('&cFailed to path to Commission NPC');
-                this.setState(STATES.IDLE);
-            }
-        );
+        this.currentMiningWaypoint = npcPos;
+        this.travelPurpose = 'EMISSARY';
+        this.setState(STATES.TRAVELING);
+        findAndFollowPath(startPos, npcPos, false);
     }
 
     onArrivedAtCommissionNPC() {
-        // TODO: Look for NPC entity near [42, 134, 22]
-        // Rotate towards NPC and right-click
-        // Wait for menu to open
+        const target = this.currentMiningWaypoint;
+        if (target) {
+            const adjustedTarget = [
+                target[0] + 0.5,
+                target[1] + 2.0,
+                target[2] + 0.5,
+            ];
+            Rotations.rotateTo(adjustedTarget, false, 200);
+        }
+
+        Client.scheduleTask(5, () => {
+            Keybind.rightClick();
+        });
+
+        this.delay(10);
         this.setState(STATES.CLAIMING);
     }
 
@@ -582,6 +659,7 @@ class CommissionMacro extends ModuleBase {
 
             if (hasCompleted) {
                 Guis.clickSlot(i, false);
+                this.delay(10);
                 foundCompleted = true;
                 return;
             }
@@ -876,6 +954,15 @@ class CommissionMacro extends ModuleBase {
                         }`
                     );
                 });
+
+                if (this.awaitingTabUpdate) {
+                    const stillCompleted = this.commissions.some(
+                        (c) => c.progress === 1
+                    );
+                    if (!stillCompleted) {
+                        this.awaitingTabUpdate = false;
+                    }
+                }
             }
         } catch (e) {
             Chat.message('&cError reading commissions: ' + e);
