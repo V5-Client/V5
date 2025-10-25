@@ -9,6 +9,9 @@ import {
 import { MultiToggle } from '../components/Dropdown';
 
 const ANIMATION_DURATION = 300;
+const ICON_SIZE = 25;
+const HIGHLIGHT_PADDING = 1;
+const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
 
 export const handleCategoryClick = (
     mouseX,
@@ -126,13 +129,59 @@ export const handleCategoryClick = (
             (cat, i) => {
                 const rect = getCategoryRect(i);
                 if (isInside(mouseX, mouseY, rect)) {
-                    global.Categories.selected = cat.name;
-                    global.Categories.currentPage = 'categories';
-                    global.Categories.selectedItem = null;
-                    global.Categories.selectedSubcategory = null;
-                    invalidateContentHeightCache();
-                    invalidateLayoutCache();
-                    playClickSound();
+                    if (cat.name !== global.Categories.selected) {
+                        // 1. Get index and rect for the old and new categories
+                        const oldIndex = global.Categories.categories.findIndex(
+                            (c) => c.name === global.Categories.selected
+                        );
+                        const oldRect = getCategoryRect(oldIndex);
+
+                        // Calculate start/end highlight coordinates
+                        const oldIconX =
+                            oldRect.x +
+                            (oldRect.width - ICON_SIZE) / 2 -
+                            HIGHLIGHT_PADDING;
+                        const oldIconY =
+                            oldRect.y +
+                            (oldRect.height - ICON_SIZE) / 2 -
+                            HIGHLIGHT_PADDING;
+
+                        const newIconX =
+                            rect.x +
+                            (rect.width - ICON_SIZE) / 2 -
+                            HIGHLIGHT_PADDING;
+                        const newIconY =
+                            rect.y +
+                            (rect.height - ICON_SIZE) / 2 -
+                            HIGHLIGHT_PADDING;
+
+                        // 2. Set up the LEFT PANEL highlight animation
+                        global.Categories.catAnimationRect = {
+                            startX: oldIconX,
+                            startY: oldIconY,
+                            endX: newIconX,
+                            endY: newIconY,
+                            width: HIGHLIGHT_SIZE,
+                            height: HIGHLIGHT_SIZE,
+                            radius: 5,
+                        };
+                        global.Categories.catTransitionStart = Date.now();
+
+                        // 3. Update the category and trigger MAIN CONTENT slide
+                        global.Categories.transitionDirection =
+                            i > oldIndex ? 1 : -1;
+                        global.Categories.selected = cat.name;
+                        global.Categories.currentPage = 'categories';
+                        global.Categories.selectedItem = null;
+                        global.Categories.selectedSubcategory = null;
+
+                        global.Categories.transitionProgress = 0;
+                        global.Categories.transitionStart = Date.now();
+
+                        invalidateContentHeightCache();
+                        invalidateLayoutCache();
+                        playClickSound();
+                    }
                     return true;
                 }
                 return false;
@@ -143,9 +192,6 @@ export const handleCategoryClick = (
             !wasCategoryClicked &&
             isInside(mouseX, mouseY, global.GuiRectangles.LeftPanel)
         ) {
-            global.Categories.selected = null;
-            invalidateLayoutCache();
-            invalidateContentHeightCache();
             playClickSound();
         }
 
@@ -322,8 +368,10 @@ export const updateCategoryTransitions = () => {
                 global.Categories.optionsScrollY = 0;
             }
             global.Categories.transitionDirection = 0;
-            return true; // Invalidate cache
+            global.Categories.transitionProgress = 1;
+            return true;
         }
+        return true;
     }
     return false;
 };
