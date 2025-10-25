@@ -189,6 +189,102 @@ class rayTraceUtils {
     }
 
     /**
+     * Fast, allocation-free voxel traversal between two points.
+     * Returns true if all traversed blocks (excluding the ignore cell) are non-solid.
+     * Uses Amanatides & Woo 3D DDA algorithm.
+     * @param {number} sx
+     * @param {number} sy
+     * @param {number} sz
+     * @param {number} ex
+     * @param {number} ey
+     * @param {number} ez
+     * @param {number} ignoreX - cell to treat as passable (usually target block x)
+     * @param {number} ignoreY
+     * @param {number} ignoreZ
+     * @returns {boolean}
+     */
+    isLineClear(sx, sy, sz, ex, ey, ez, ignoreX, ignoreY, ignoreZ) {
+        let cx = Math.floor(sx),
+            cy = Math.floor(sy),
+            cz = Math.floor(sz);
+        const exv = Math.floor(ex),
+            eyv = Math.floor(ey),
+            ezv = Math.floor(ez);
+
+        if (cx === exv && cy === eyv && cz === ezv) return true;
+
+        const dx = ex - sx;
+        const dy = ey - sy;
+        const dz = ez - sz;
+
+        let stepX = 0,
+            stepY = 0,
+            stepZ = 0,
+            tMaxX = Infinity,
+            tMaxY = Infinity,
+            tMaxZ = Infinity,
+            tDeltaX = Infinity,
+            tDeltaY = Infinity,
+            tDeltaZ = Infinity;
+
+        if (dx > 0) {
+            stepX = 1;
+            tMaxX = (cx + 1 - sx) / dx;
+            tDeltaX = 1 / dx;
+        } else if (dx < 0) {
+            stepX = -1;
+            tMaxX = (sx - cx) / -dx;
+            tDeltaX = 1 / -dx;
+        }
+        if (dy > 0) {
+            stepY = 1;
+            tMaxY = (cy + 1 - sy) / dy;
+            tDeltaY = 1 / dy;
+        } else if (dy < 0) {
+            stepY = -1;
+            tMaxY = (sy - cy) / -dy;
+            tDeltaY = 1 / -dy;
+        }
+        if (dz > 0) {
+            stepZ = 1;
+            tMaxZ = (cz + 1 - sz) / dz;
+            tDeltaZ = 1 / dz;
+        } else if (dz < 0) {
+            stepZ = -1;
+            tMaxZ = (sz - cz) / -dz;
+            tDeltaZ = 1 / -dz;
+        }
+
+        let steps = 0;
+        const maxSteps = 256;
+
+        while (cx !== exv || cy !== eyv || cz !== ezv) {
+            if (steps++ > maxSteps) return false;
+
+            const minT = Math.min(tMaxX, tMaxY, tMaxZ);
+
+            if (minT === tMaxX) {
+                cx += stepX;
+                tMaxX += tDeltaX;
+            } else if (minT === tMaxY) {
+                cy += stepY;
+                tMaxY += tDeltaY;
+            } else {
+                //  (minT === tMaxZ)
+                cz += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+            if (!(cx === ignoreX && cy === ignoreY && cz === ignoreZ)) {
+                const blkX = World.getBlockAt(cx, cy, cz);
+                if (blkX && blkX.type.getID() !== 0) return false;
+            }
+            if (cx === exv && cy === eyv && cz === ezv) break;
+        }
+
+        return true;
+    }
+
+    /**
      * Uses the player's built-in raycast to find the block they're looking at.
      */
     raytrace(dist = 5) {
