@@ -188,7 +188,6 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 };
 
 export const drawLeftPanel = (mouseX, mouseY) => {
-    // START LEFT PANEL HIGHLIGHT ANIMATION UPDATE
     if (global.Categories.catAnimationRect) {
         const elapsed = Date.now() - global.Categories.catTransitionStart;
         const rawProgress = Math.min(
@@ -199,7 +198,6 @@ export const drawLeftPanel = (mouseX, mouseY) => {
 
         const rect = global.Categories.catAnimationRect;
 
-        // Update animated position
         rect.x = rect.startX + (rect.endX - rect.startX) * p;
         rect.y = rect.startY + (rect.endY - rect.startY) * p;
 
@@ -251,7 +249,6 @@ export const drawLeftPanel = (mouseX, mouseY) => {
         }
     });
 
-    // DRAW THE ANIMATED HIGHLIGHT OVER EVERYTHING ELSE
     if (global.Categories.catAnimationRect) {
         const rect = global.Categories.catAnimationRect;
         drawRoundedRectangle({

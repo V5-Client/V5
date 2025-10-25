@@ -1,7 +1,6 @@
 import { ToggleButton } from '../components/Toggle';
 import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
-import './Settings';
 
 global.Categories = {
     categories: [

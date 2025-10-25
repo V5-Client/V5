@@ -6,7 +6,6 @@ const BORDER_COLOR = THEME.GUI_DRAW_BORDER;
 
 export const ANIMATION_DURATION = 250;
 
-// GUI state
 global.GuiState = {
     openStartTime: 0,
     dragging: false,
@@ -19,7 +18,6 @@ global.GuiState = {
     animatedRightPanel: {},
 };
 
-// Rectangle definitions
 global.GuiRectangles = {
     Background: {
         name: 'Background',

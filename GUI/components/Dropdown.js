@@ -65,7 +65,6 @@ export class MultiToggle {
         const textColor = THEME.TOGGLE_TEXT;
         const cornerRadius = 6;
 
-        // Main container
         drawRoundedRectangleWithBorder({
             x: this.x - 10,
             y: this.y,
