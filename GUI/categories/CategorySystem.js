@@ -1,11 +1,17 @@
 import { ToggleButton } from '../components/Toggle';
 import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
+import './Settings';
 
 global.Categories = {
     categories: [
         {
             name: 'Modules',
+            items: [],
+            subcategories: [],
+        },
+        {
+            name: 'Settings',
             items: [],
             subcategories: [],
         },
@@ -23,6 +29,10 @@ global.Categories = {
     subcatAnimationDuration: 200,
     animationRect: null,
     optionsScrollY: 0,
+
+    catAnimationRect: null,
+    catTransitionStart: 0,
+    catAnimationDuration: 200,
 
     addCategoryItem(subcategoryName, title, description, tooltip = null) {
         const category = global.Categories.categories.find(

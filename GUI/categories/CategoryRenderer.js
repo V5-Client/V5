@@ -18,6 +18,7 @@ import { MultiToggle } from '../components/Dropdown';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 
 const Module_icon = Image.fromAsset('folder.png');
+const Setting_icon = Image.fromAsset('settings.png');
 
 const CATEGORY_TITLE_COLOR = THEME.GUI_MANAGER_CATEGORY_TITLE;
 const CATEGORY_DESC_COLOR = THEME.GUI_MANAGER_CATEGORY_DESCRIPTION;
@@ -187,34 +188,59 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 };
 
 export const drawLeftPanel = (mouseX, mouseY) => {
+    // START LEFT PANEL HIGHLIGHT ANIMATION UPDATE
+    if (global.Categories.catAnimationRect) {
+        const elapsed = Date.now() - global.Categories.catTransitionStart;
+        const rawProgress = Math.min(
+            1,
+            elapsed / global.Categories.catAnimationDuration
+        );
+        const p = easeInOutQuad(rawProgress);
+
+        const rect = global.Categories.catAnimationRect;
+
+        // Update animated position
+        rect.x = rect.startX + (rect.endX - rect.startX) * p;
+        rect.y = rect.startY + (rect.endY - rect.startY) * p;
+
+        if (rawProgress >= 1) {
+            global.Categories.catAnimationRect = null;
+        }
+    }
+
     global.Categories.categories.forEach((cat, i) => {
         const rect = getCategoryRect(i);
-        const lineY = rect.y + rect.height - 2;
-
-        const iconY =
-            lineY - (rect.height - 2 - LEFT_PANEL_TEXT_HEIGHT) / 2 - 1;
-        const iconX = rect.x + (rect.width - 25) / 2;
         const moduleSize = 25;
+        const iconX = rect.x + (rect.width - moduleSize) / 2;
+        const iconY = rect.y + (rect.height - moduleSize) / 2;
 
-        if (
-            cat.name === 'Modules' &&
-            global.Categories.selected === 'Modules'
-        ) {
-            drawRoundedRectangle({
-                x: iconX - 1,
-                y: iconY - 10,
-                width: moduleSize,
-                height: moduleSize,
-                radius: 5,
-                color: CATEGORY_SELECTED_COLOR,
-            });
+        let iconToDraw;
+        if (cat.name === 'Modules') iconToDraw = Module_icon;
+        else if (cat.name === 'Settings') iconToDraw = Setting_icon;
+        else iconToDraw = Module_icon;
+
+        const highlightRect = {
+            x: iconX - 1,
+            y: iconY - 1,
+            width: moduleSize + 2,
+            height: moduleSize + 2,
+            radius: 5,
+            color: CATEGORY_SELECTED_COLOR,
+        };
+
+        const isSelected = cat.name === global.Categories.selected;
+
+        if (!global.Categories.catAnimationRect && isSelected) {
+            drawRoundedRectangle(highlightRect);
         }
 
-        Module_icon.draw(iconX - 1, iconY - 10, moduleSize, moduleSize);
-        const pfpX = iconX - 1;
-        const pfpY = iconY - 73;
-        const iconSize = moduleSize - 2;
-        if (global.discordPfp) {
+        iconToDraw.draw(iconX, iconY, moduleSize, moduleSize);
+
+        // prevent icon being drawn twice
+        if (i === 0 && global.discordPfp) {
+            const pfpX = iconX - 1;
+            const pfpY = iconY - 58;
+            const iconSize = moduleSize - 2;
             Renderer.drawImage(
                 global.discordPfp,
                 pfpX,
@@ -224,20 +250,21 @@ export const drawLeftPanel = (mouseX, mouseY) => {
             );
         }
     });
+
+    // DRAW THE ANIMATED HIGHLIGHT OVER EVERYTHING ELSE
+    if (global.Categories.catAnimationRect) {
+        const rect = global.Categories.catAnimationRect;
+        drawRoundedRectangle({
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            radius: rect.radius,
+            color: CATEGORY_SELECTED_COLOR,
+        });
+    }
 };
 
-/**
- * Function to draw a single item box
- * @param {Object} item - The item to draw
- * @param {number} itemX - X position
- * @param {number} itemY - Y position
- * @param {number} itemWidth - Width of the item box
- * @param {number} mouseX - Mouse X position
- * @param {number} mouseY - Mouse Y position
- * @param {Array} cachedItemLayouts - Array to cache layout information
- * @param {boolean} isLayoutCacheValid - Whether the cache is valid
- * @param {boolean} centerText - Whether to center the text (true) or left align (false)
- */
 const drawItemBox = (
     item,
     itemX,
@@ -347,7 +374,7 @@ export const drawCategoryItems = (
                     mouseY,
                     cachedItemLayouts,
                     isLayoutCacheValid,
-                    true // Center text for module separator items things
+                    true
                 );
 
                 subcategoryItemsInRow++;
@@ -376,7 +403,7 @@ export const drawCategoryItems = (
                 mouseY,
                 cachedItemLayouts,
                 isLayoutCacheValid,
-                false // Left align text
+                false
             );
 
             itemIndexInRow++;
