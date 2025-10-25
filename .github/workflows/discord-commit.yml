@@ -130,9 +130,8 @@ jobs:
                           "fields": [
                             {"name": "Author", "value": $author, "inline": true},
                             {"name": "Branch", "value": $branch, "inline": true},
-                            {"name": "🗂 Files Changed", "value": ($files_changed + " files changed"), "inline": false},
-                            {"name": "📈 Code Line Changes", "value": ("➕ " + $added + " added, ➖ " + $deleted + " deleted"), "inline": false},
-                            {"name": "🧩 File Types", "value": (if ($filetypes | length) > 0 then $filetypes else "(n/a)" end), "inline": true}
+                            {"name": "📂 Files Changed", "value": (($files_changed + " files changed") + (if ($filetypes | length) > 0 then "\n" + $filetypes else "" end)), "inline": false},
+                            {"name": "📊 Code Line Changes", "value": ("➕ " + $added + " added" + "\n" + "➖ " + $deleted + " deleted"), "inline": false}
                           ],
                           "timestamp": $timestamp
                         }
@@ -142,4 +141,3 @@ jobs:
                   curl -X POST -H "Content-Type: application/json" \
                        -d "$payload" \
                        "$DISCORD_WEBHOOK_URL"
-
