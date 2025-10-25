@@ -301,6 +301,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     chooseAndStartCommission() {
+        if (this.awaitingTabUpdate) return;
         const hasCompleted = this.commissions.some((c) => c.progress === 1);
         if (hasCompleted) {
             this.onCommissionComplete();
