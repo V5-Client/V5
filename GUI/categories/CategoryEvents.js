@@ -130,13 +130,11 @@ export const handleCategoryClick = (
                 const rect = getCategoryRect(i);
                 if (isInside(mouseX, mouseY, rect)) {
                     if (cat.name !== global.Categories.selected) {
-                        // 1. Get index and rect for the old and new categories
                         const oldIndex = global.Categories.categories.findIndex(
                             (c) => c.name === global.Categories.selected
                         );
                         const oldRect = getCategoryRect(oldIndex);
 
-                        // Calculate start/end highlight coordinates
                         const oldIconX =
                             oldRect.x +
                             (oldRect.width - ICON_SIZE) / 2 -
@@ -155,7 +153,6 @@ export const handleCategoryClick = (
                             (rect.height - ICON_SIZE) / 2 -
                             HIGHLIGHT_PADDING;
 
-                        // 2. Set up the LEFT PANEL highlight animation
                         global.Categories.catAnimationRect = {
                             startX: oldIconX,
                             startY: oldIconY,
@@ -167,7 +164,6 @@ export const handleCategoryClick = (
                         };
                         global.Categories.catTransitionStart = Date.now();
 
-                        // 3. Update the category and trigger MAIN CONTENT slide
                         global.Categories.transitionDirection =
                             i > oldIndex ? 1 : -1;
                         global.Categories.selected = cat.name;

@@ -58,7 +58,6 @@ const handleGuiClosed = () => {
     loadSettings();
 };
 
-// Register events
 global.GuiState.myGui.registerClicked((mouseX, mouseY, button) => {
     if (button === 0) handleClick(mouseX, mouseY);
 });
@@ -72,7 +71,6 @@ global.GuiState.myGui.registerClosed(handleGuiClosed);
 global.GuiState.myGui.registerDraw(drawGUI);
 global.GuiState.myGui.registerScrolled(handleScroll);
 
-// THIS IS WHERE GUI COMMAND IS REGISTERED
 register('command', () => {
     global.GuiState.isOpening = true;
     global.GuiState.openStartTime = Date.now();
