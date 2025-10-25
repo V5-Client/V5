@@ -3,6 +3,8 @@ export const IGNORED_BLOCK_PATTERNS = [
     'minecraft:air',
     'minecraft:portal',
     'minecraft:end_portal',
+    'minecraft:oxeye_daisy',
+    'minecraft:allium',
     'minecraft:fire',
     'minecraft:web',
     'minecraft:short_grass',
