@@ -39,15 +39,14 @@ class CommissionMacro extends ModuleBase {
             tooltip:
                 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
             showEnabledToggle: false,
+            autoDisableOnWorldUnload: true,
         });
         this.bindToggleKey();
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;
 
         this.commissions = [];
-        this.lastCommissionCheck = 0;
         this.currentCommission = null;
-        this.hasWarned = false;
         this.mobWhitelist = new Set();
 
         this.currentMiningWaypoint = null;
@@ -56,7 +55,6 @@ class CommissionMacro extends ModuleBase {
         this.blueCheese = null;
         this.pickaxe = null;
         this.weapon = null;
-        this.hasRoyalPigeon = false;
         this.miningSpeed = 0;
         this.goblinWeaponSlot = 1;
         this.savedState = null;
@@ -74,10 +72,7 @@ class CommissionMacro extends ModuleBase {
         }).setName('stopcommission', true);
 
         this.on('step', () => {
-            if (Date.now() - this.lastCommissionCheck > 5000) {
-                this.readCommissions();
-                this.lastCommissionCheck = Date.now();
-            }
+            this.readCommissions();
         }).setDelay(1);
 
         this.on('tick', () => {
@@ -119,15 +114,6 @@ class CommissionMacro extends ModuleBase {
             }
         });
 
-        register('worldUnload', () => {
-            if (this.enabled) {
-                this.toggle(false);
-                Chat.message(
-                    'Commission Macro: &cDisabled due to world change'
-                );
-            }
-        });
-
         this.addSlider(
             'Player Avoidance Radius',
             0,
@@ -158,8 +144,8 @@ class CommissionMacro extends ModuleBase {
 
     onDisable() {
         Chat.message('&cCommission Macro Disabled.');
+        MiningBot.toggle(false);
         stopPathing();
-        this.cleanup();
     }
 
     init() {
@@ -182,8 +168,6 @@ class CommissionMacro extends ModuleBase {
             );
         }
 
-        this.hasRoyalPigeon = Guis.findItemInInventory('Royal Pigeon') !== -1;
-
         this.miningSpeed = MiningUtils.getMiningSpeed('Dwarven Mines');
         if (!this.miningSpeed || this.miningSpeed === 0) {
             Chat.message('&cNo mining speed saved! Run /getminingstats');
@@ -193,24 +177,9 @@ class CommissionMacro extends ModuleBase {
 
         this.currentState = STATES.IDLE;
         this.commissions = [];
-        this.lastCommissionCheck = 0;
         this.currentCommission = null;
-        this.hasWarned = false;
         this.mobWhitelist.clear();
         this.savedState = null;
-        this.travelPurpose = null;
-        this.pauseTicks = 0;
-        this.awaitingTabUpdate = false;
-    }
-
-    cleanup() {
-        this.currentState = STATES.IDLE;
-        this.currentCommission = null;
-        this.mobWhitelist.clear();
-
-        if (MiningBot.enabled) {
-            MiningBot.toggle(false);
-        }
         this.travelPurpose = null;
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
@@ -534,9 +503,7 @@ class CommissionMacro extends ModuleBase {
         Chat.message('&aCommission complete detected!');
         stopPathing();
 
-        if (MiningBot.enabled) {
-            MiningBot.toggle(false);
-        }
+        MiningBot.toggle(false);
 
         this.awaitingTabUpdate = true;
 
@@ -652,9 +619,7 @@ class CommissionMacro extends ModuleBase {
     onInventoryFull() {
         Chat.message('&eInventory full! Selling items...');
 
-        if (MiningBot.enabled) {
-            MiningBot.toggle(false);
-        }
+        MiningBot.toggle(false);
 
         this.savedState = {
             commission: this.currentCommission,
@@ -735,9 +700,7 @@ class CommissionMacro extends ModuleBase {
     onDrillEmpty() {
         Chat.message('&eDrill empty! Refueling...');
 
-        if (MiningBot.enabled) {
-            MiningBot.toggle(false);
-        }
+        MiningBot.toggle(false);
 
         this.setState(STATES.REFUELING);
 
@@ -761,9 +724,7 @@ class CommissionMacro extends ModuleBase {
     onPickonimbusBroke() {
         Chat.message('&ePickonimbus durability low! Swapping...');
 
-        if (MiningBot.enabled) {
-            MiningBot.toggle(false);
-        }
+        MiningBot.toggle(false);
 
         this.setState(STATES.SWAPPING_PICK);
         this.swapPickaxeStep = 0;
