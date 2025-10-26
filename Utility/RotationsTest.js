@@ -21,6 +21,10 @@ class Rotation2 {
             this.rotateToAngles(parseFloat(yaw), parseFloat(pitch));
         }).setName('rotateTo');
 
+        register('command', () => {
+            this.stopRotation();
+        }).setName('stopRotation');
+
         register('renderWorld', () => {
             this.updateRotation();
         });
@@ -79,6 +83,13 @@ class Rotation2 {
         this.lastTime = 0;
     }
 
+    stopRotation() {
+        this.isRotating = false;
+        this.target = null;
+        this.targetVector = null;
+        this.lastTime = 0;
+    }
+
     updateRotation() {
         const now = Date.now();
         if (this.lastTime === 0) {
@@ -125,10 +136,7 @@ class Rotation2 {
             if (!this.yawOnly) {
                 Player.getPlayer().setPitch(finalTarget.pitch);
             }
-            this.isRotating = false;
-            this.targetVector = null;
-            this.target = null;
-            this.lastTime = 0;
+            this.stopRotation();
         }
     }
 

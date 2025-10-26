@@ -48,6 +48,7 @@ import './Modules/Other/AutoSkyblock.js'; // this imports NUKER so it still work
 //import './Modules/Other/Freelook.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
+import './Modules/Other/LobbyHopper.js';
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
 /* TESTING */
