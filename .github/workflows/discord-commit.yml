@@ -131,7 +131,7 @@ jobs:
                             {"name": "Author", "value": $author, "inline": true},
                             {"name": "Branch", "value": $branch, "inline": true},
                             {"name": "📂 Files Changed", "value": (($files_changed + " files changed") + (if ($filetypes | length) > 0 then "\n" + $filetypes else "" end)), "inline": false},
-                            {"name": "📊 Code Line Changes", "value": ("➕ " + $added + " added" + "\n" + "➖ " + $deleted + " deleted"), "inline": false}
+                            {"name": "📊 Code Line Changes", "value": ("+ " + $added + " added" + "\n" + "- " + $deleted + " deleted"), "inline": false}
                           ],
                           "timestamp": $timestamp
                         }
