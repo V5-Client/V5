@@ -38,7 +38,7 @@ class Rotation2 {
         return a + (b - a) * t;
     }
 
-    rotateToAngles(yaw, pitch, precision = 0.5, yawOnly = false) {
+    rotateToAngles(yaw, pitch, precision = 1.0, yawOnly = false) {
         if (isNaN(yaw) || isNaN(pitch)) {
             return;
         }
@@ -108,9 +108,7 @@ class Rotation2 {
         const newAngles = this.interpolate(finalTarget);
 
         Player.getPlayer().setYaw(newAngles.yaw);
-        if (!this.yawOnly) {
-            Player.getPlayer().setPitch(newAngles.pitch);
-        }
+        if (!this.yawOnly) Player.getPlayer().setPitch(newAngles.pitch);
 
         const currentYaw = Player.getYaw();
         const currentPitch = Player.getPitch();
