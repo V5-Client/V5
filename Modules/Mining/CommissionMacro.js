@@ -1,5 +1,5 @@
 import { Chat } from '../../Utility/Chat';
-import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
+import { findAndFollowPath, stopPathing } from '../../Pathfinding2.0/PathAPI';
 import { COMMISSION_DATA } from './CommissionData';
 import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { MiningBot } from './MiningBot';
@@ -85,9 +85,7 @@ class CommissionMacro extends ModuleBase {
         });
 
         // TODO FIX THIS
-        register('chat', (event) => {
-            if (!this.enabled) return;
-
+        this.on('chat', (event) => {
             try {
                 const msg = event.message.getString();
                 if (!msg) return;
@@ -109,8 +107,7 @@ class CommissionMacro extends ModuleBase {
                     }
                 }
 
-                if (foundCommission && msg.includes('FINISHED')) {
-                    // ok this completely does not work btw :skull:
+                if (foundCommission) {
                     Chat.message('Detected Commission Completion Chat Message');
                     this.onCommissionComplete();
                 }
