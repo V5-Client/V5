@@ -480,15 +480,16 @@ class CommissionMacro extends ModuleBase {
         const name = this.currentCommission.name;
         let mobType;
 
-        if (name === 'Glacite Walker Slayer') {
-            mobType = 'icewalker';
-            Guis.setItemSlot(this.pickaxe.slot);
-        } else if (
-            name === 'Goblin Slayer' ||
-            name === 'Treasure Hoarder Puncher'
-        ) {
-            mobType = name === 'Goblin Slayer' ? 'goblin' : 'treasure';
+        if (name === 'Goblin Slayer') {
+            mobType = 'goblin';
             Guis.setItemSlot(this.weapon.slot);
+        } else if (
+            name === 'Glacite Walker Slayer' ||
+            name === 'Treasure Hoarder Puncher' // apparently treasure hoarder takes more damage from pickaxe
+        ) {
+            mobType =
+                name === 'Glacite Walker Slayer' ? 'icewalker' : 'treasure';
+            Guis.setItemSlot(this.pickaxe.slot);
         } else {
             Chat.message('&cUnknown slayer commission type!');
             this.setState(STATES.IDLE);
