@@ -1,106 +1,82 @@
-import { getSetting } from '../../GUI/GuiSave';
+import { ModuleBase } from '../../Utility/ModuleBase';
 
-const { addCategoryItem, addMultiToggle } = global.Categories;
+import { ModuleBase } from '../../Utility/ModuleBase';
 
-class MobHider {
+class MobHider extends ModuleBase {
     constructor() {
-        addCategoryItem(
-            'Visuals',
-            'Mob Hider',
-            'Hides types of mobs',
-            'Hides mobs client-side.'
-        );
+        super({
+            name: 'Mob Hider',
+            subcategory: 'Visuals',
+            description: 'Hides mobs of certain types',
+            tooltip: 'Prevents seeing mobs or hitting them',
+        });
 
-        this.mobsToHide = new Set();
+        this.mobsToHide = [];
+        this.enabledMobNames = [];
         this.jerryRegex = /^(Green|Blue|Purple|Golden) Jerry$/;
 
-        const shouldHideEntity = (entityName) => {
-            if (this.mobsToHide.size === 0) return false;
+        this.addMultiToggle(
+            'Mobs To Hide',
+            ['Kalhuikis', 'Sven Pups', 'Jerries', 'Thysts'],
+            false,
+            (v) => this.handleMobToggleUpdate(v),
+            'The Mobs you want to hide'
+        );
 
-            const cleanName = ChatLib.removeFormatting(entityName);
-
-            if (
-                this.mobsToHide.has('Kalhuikis') &&
-                cleanName.includes('Kalhuiki')
-            )
-                return true;
-            if (
-                this.mobsToHide.has('Sven Pups') &&
-                cleanName.includes('Sven Pup')
-            )
-                return true;
-            if (
-                this.mobsToHide.has('Thysts') &&
-                (cleanName.includes('Thyst') || cleanName.includes('Endermite'))
-            )
-                return true;
-            if (
-                this.mobsToHide.has('Jerries') &&
-                this.jerryRegex.test(cleanName)
-            )
-                return true;
-
-            return false;
-        };
-        /* let renderHandler = register('renderEntity', (entity, pt, event) => {
-            if (shouldHideEntity(entity.getName())) {
+        this.on('renderEntity', (entity, pt, event) => {
+            if (this.shouldHideEntity(entity.getName())) {
                 cancel(event);
             }
-        }).unregister(); */
+        });
 
-        let attackHandler = register('playerInteract', (action, pos, event) => {
-            if (action.toString() !== 'ATTACK') return;
+        this.on('spawnParticle', (particle, event) => {
+            if (particle == null) return;
+            if (
+                this.enabledMobNames.includes('Thysts') &&
+                particle.toString().includes('class_709')
+            ) {
+                cancel(event);
+            }
+        });
 
+        this.on('playerInteract', (action, pos, event) => {
             const attackedEntity = Player.lookingAt();
             if (!(attackedEntity instanceof Entity)) return;
 
-            if (shouldHideEntity(attackedEntity.getName())) {
-                cancel(event);
-            }
-        }).unregister();
+            if (this.shouldHideEntity(attackedEntity.getName())) cancel(event);
+        });
+    }
 
-        let particleHandler = register('spawnParticle', (particle, event) => {
-            if (particle == null) return;
-            if (particle.toString().includes('class_709')) {
-                cancel(event);
-            }
-        }).unregister();
+    shouldHideEntity(entityName) {
+        const enabled = this.enabledMobNames;
+        if (enabled.length === 0) return false;
 
-        this.toggle = () => {
-            const selectedMobs = getSetting('Mob Hider', 'Mobs', [
-                'Kalhuikis',
-                'Sven Pups',
-                'Jerries',
-                'Thysts',
-            ]);
-            this.mobsToHide = new Set(selectedMobs);
+        const cleanName = ChatLib.removeFormatting(entityName);
 
-            if (this.mobsToHide.size > 0) {
-                //renderHandler.register();
-                attackHandler.register();
-            } else {
-                // renderHandler.unregister();
-                attackHandler.unregister();
-            }
-
-            if (this.mobsToHide.has('Thysts')) {
-                particleHandler.register();
-            } else {
-                particleHandler.unregister();
-            }
+        const mobChecks = {
+            Kalhuikis: () => cleanName.includes('Kalhuiki'),
+            'Sven Pups': () => cleanName.includes('Sven Pup'),
+            Thysts: () =>
+                cleanName.includes('Thyst') || cleanName.includes('Endermite'),
+            Jerries: () => this.jerryRegex.test(cleanName),
         };
 
-        addMultiToggle(
-            'Modules',
-            'Mob Hider',
-            'Mobs',
-            ['Kalhuikis', 'Sven Pups', 'Jerries', 'Thysts'],
-            false,
-            this.toggle,
-            'What mobs to hide.'
-        );
+        for (const option of enabled) {
+            const check = mobChecks[option];
+            if (check && check()) {
+                return true;
+            }
+        }
 
-        Client.scheduleTask(1, this.toggle);
+        return false;
+    }
+
+    handleMobToggleUpdate(allMobOptions) {
+        this.mobsToHide = allMobOptions;
+
+        this.enabledMobNames = allMobOptions
+            .filter((mobObject) => mobObject.enabled)
+            .map((mobObject) => mobObject.name);
     }
 }
 
