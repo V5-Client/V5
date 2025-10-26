@@ -503,10 +503,10 @@ class Bot extends ModuleBase {
         const EDGE_MAG = 0.45; // tangential edge magnitude (avoid exact edges)
         const LO = 0.02,
             HI = 0.98;
-        const MID_CAP = 0.35; // cap how far from face center mid samples go
-        const JITTER = 0.05; // randomisation
+        const MID_CAP = 0.3; // cap how far from face center mid samples go
+        const JITTER = 0.0; // randomisation
         const ORTH_OFFSETS = [0, 0.35, -0.35];
-        const ORTH_ORDER = [1, 2, 0].sort(() => Math.random() - 0.5); // randomise order each call
+        const ORTH_ORDER = [1, 2, 0]; // randomise order each call
 
         const mineReach = 4.5;
         const mineReachSq = mineReach * mineReach; // 20.25 when faceReach=4.5
@@ -982,7 +982,8 @@ class Bot extends ModuleBase {
                 const nextX = x + dx;
                 const nextY = y + dy;
                 const nextZ = z + dz;
-                if (!isVisited(idxOf(nextX, nextY, nextZ))) {
+                const vIndex = idxOf(nextX, nextY, nextZ);
+                if (!isVisited(vIndex)) {
                     const ddx = nextX + 0.5 - playerEyePos.x;
                     const ddy = nextY + 0.5 - playerEyePos.y;
                     const ddz = nextZ + 0.5 - playerEyePos.z;
