@@ -10,7 +10,7 @@ class Rotation2 {
 
         this.target = null;
         this.targetVector = null;
-        this.precision = 0.5;
+        this.precision = 1.0;
         this.yawOnly = false;
         this.isRotating = false;
 
