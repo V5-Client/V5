@@ -84,34 +84,14 @@ class CommissionMacro extends ModuleBase {
             this.runLogic();
         });
 
-        // TODO FIX THIS
         this.on('chat', (event) => {
-            try {
-                const msg = event.message.getString();
-                if (!msg) return;
+            const msg = event.message.getUnformattedText();
+            if (!msg) return;
 
-                const commissionNames = [];
-                COMMISSION_DATA.forEach((d) => {
-                    d.names.forEach((name) => {
-                        commissionNames.push(name);
-                    });
-                });
-
-                const upperMsg = msg.toUpperCase();
-
-                let foundCommission = false;
-                for (let i = 0; i < commissionNames.length; i++) {
-                    if (upperMsg.includes(commissionNames[i].toUpperCase())) {
-                        foundCommission = true;
-                        break;
-                    }
-                }
-
-                if (foundCommission) {
-                    Chat.message('Detected Commission Completion Chat Message');
-                    this.onCommissionComplete();
-                }
-            } catch (e) {}
+            if (msg.includes('Commission Complete! Visit the King to claim')) {
+                Chat.message('Detected Commission Completion Chat Message');
+                this.onCommissionComplete();
+            }
         });
 
         registerEventSB('fullinventory', () => {
