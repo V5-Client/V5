@@ -1,4 +1,4 @@
-import { Keybind } from '../../Utility/Keybinding';
+﻿import { Keybind } from '../../Utility/Keybinding';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { RayTrace } from '../../Utility/Raytrace';
 import { Rotations } from '../../Utility/Rotations';
@@ -10,6 +10,7 @@ import { Guis } from '../../Utility/Inventory';
 import { NukerUtils } from '../../Utility/NukerUtils';
 import RenderUtils from '../../Rendering/RendererUtils';
 import { ModuleBase } from '../../Utility/ModuleBase';
+import { RotationRedo } from '../../Utility/RotationsTest';
 const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
@@ -339,11 +340,7 @@ class Bot extends ModuleBase {
                         );
 
                         if (this.currentTarget && targetVector)
-                            Rotations.rotateTo(
-                                targetVector,
-                                false,
-                                this.rotationSpeed
-                            );
+                            RotationRedo.rotateToVector(targetVector);
 
                         if (
                             this.tickCount > this.totalTicks ||
@@ -379,11 +376,7 @@ class Bot extends ModuleBase {
                         }
 
                         if (this.currentTarget && targetVector)
-                            Rotations.rotateTo(
-                                targetVector,
-                                false,
-                                this.rotationSpeed
-                            );
+                            RotationRedo.rotateToVector(targetVector);
                     }
                     break;
             }
@@ -631,12 +624,12 @@ class Bot extends ModuleBase {
                             ? -1
                             : 1
                         : faceAxis === 'y'
-                          ? dirY > 0
-                              ? -1
-                              : 1
-                          : dirZ > 0
+                        ? dirY > 0
                             ? -1
-                            : 1;
+                            : 1
+                        : dirZ > 0
+                        ? -1
+                        : 1;
 
                 const clamp = (vv, lo, hi) =>
                     vv < lo ? lo : vv > hi ? hi : vv;
@@ -877,12 +870,12 @@ class Bot extends ModuleBase {
                                     ? 1
                                     : -1
                                 : axis === 'y'
-                                  ? playerEyePos.y >= centerY
-                                      ? 1
-                                      : -1
-                                  : playerEyePos.z >= centerZ
+                                ? playerEyePos.y >= centerY
                                     ? 1
-                                    : -1;
+                                    : -1
+                                : playerEyePos.z >= centerZ
+                                ? 1
+                                : -1;
                         for (let o = 0; o < orthos.length && !isVisible; o++) {
                             const axis = orthos[o];
                             const s = signFromEye(axis);
@@ -1029,6 +1022,7 @@ class Bot extends ModuleBase {
         this.currentTarget = null;
         this.tickCount = 0;
         this.empty = false;
+        RotationRedo.stopRotation();
     }
 }
 
