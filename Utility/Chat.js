@@ -11,7 +11,14 @@ class ChatClass {
     sendMsg(msg, isDebug = false) {
         if (!msg) return;
         let prefix = isDebug ? DebugPrefix : Prefix;
-        gradientInstance.sendGradientMsg(prefix, msg, 0x05b9f9, 0x0539f9);
+        const colouredMsg = `§f${msg}`;
+
+        gradientInstance.sendGradientMsg(
+            prefix,
+            colouredMsg,
+            0x05b9f9,
+            0x0539f9
+        );
     }
 
     /**
