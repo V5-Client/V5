@@ -79,18 +79,16 @@ export class ToggleButton {
 
     handleClick(mouseX, mouseY) {
         const componentHeight = 40;
-        const panelWidth = this.optionPanelWidth - 35;
-        const boxSize = 15;
-        const rightMargin = 15;
-        const boxX = this.x + panelWidth - boxSize - rightMargin;
-        const boxY = this.y + componentHeight / 2 - boxSize / 2;
+        const panelWidth = this.optionPanelWidth - 20;
 
-        if (
-            mouseX >= boxX &&
-            mouseX <= boxX + boxSize &&
-            mouseY >= boxY &&
-            mouseY <= boxY + boxSize
-        ) {
+        const componentRect = {
+            x: this.x - 10,
+            y: this.y,
+            width: panelWidth,
+            height: componentHeight,
+        };
+
+        if (isInside(mouseX, mouseY, componentRect)) {
             this.enabled = !this.enabled;
             playClickSound();
             if (this.callback) {

@@ -14,8 +14,10 @@ Client.getMinecraft()
 import './GUI/GUI.js';
 import './Utility/Config.js';
 
+/* CORE */
 import './Pathfinding2.0/PathFinder.js';
 import './Pathfinding2.0/PathWalker/VisibleBlocksHighlighter.js';
+import './Failsafes/Failsafes.js';
 
 /* FORAGING */
 //import './Modules/Foraging/SeaLumieMacro.js';
