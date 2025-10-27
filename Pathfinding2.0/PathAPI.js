@@ -24,6 +24,7 @@ import { Rotations } from '../Utility/Rotations';
 const localhost = `${Links.PATHFINDER_API_URL}`;
 let renderOnlyRegister = null;
 let currentPathRequest = null;
+let tickRegister = null;
 
 export let pathNodes = [];
 export let keyNodes = [];
@@ -47,19 +48,17 @@ export function setSpline(nodes) {
 }
 
 export function stopPathing() {
-    if (global.pathEngineStop) global.pathEngineStop();
-    if (renderOnlyRegister) renderOnlyRegister.unregister();
-    renderOnlyRegister = null;
+    Rotations.stopRotation();
+
+    if (tickRegister) {
+        tickRegister.unregister();
+        tickRegister = null;
+    }
+    if (renderOnlyRegister) {
+        renderOnlyRegister.unregister();
+        renderOnlyRegister = null;
+    }
     currentPathRequest = null;
-
-    resetStuckRecovery();
-
-    try {
-        const mc = Client.getMinecraft();
-        mc.options.forwardKey.setPressed(false);
-        mc.options.sprintKey.setPressed(false);
-        mc.options.jumpKey.setPressed(false);
-    } catch (e) {}
 }
 
 function getSinglePlayerWarpCommand(warpName) {
@@ -88,13 +87,11 @@ function handleWarp(warpCommand, onComplete) {
 
     Chat.message(`§aWarp point found! Running command: §e${tpCommand}`);
     ChatLib.command(tpCommand);
-
     setTimeout(onComplete, 250);
 }
 
 function drawKeyNodes(keynodes) {
     if (!keynodes || keynodes.length < 2) return;
-
     keynodes.forEach((keynode) => {
         RenderUtils.drawStyledBox(
             new Vec3d(keynode.x, keynode.y, keynode.z),
@@ -104,11 +101,9 @@ function drawKeyNodes(keynodes) {
             true
         );
     });
-
     for (let i = 0; i < keynodes.length - 1; i++) {
         const current = keynodes[i];
         const next = keynodes[i + 1];
-
         RenderUtils.drawLine(
             new Vec3d(current.x + 0.5, current.y + 1, current.z + 0.5),
             new Vec3d(next.x + 0.5, next.y + 1, next.z + 0.5),
@@ -137,10 +132,7 @@ export function findAndFollowPath(
 
     request({ url, json: true, timeout: 15000 })
         .then((body) => {
-            if (currentPathRequest !== requestId) {
-                console.log('Outdated path response ignored.');
-                return;
-            }
+            if (currentPathRequest !== requestId) return;
 
             if (!body || !body.keynodes || body.keynodes.length < 1) {
                 return global.showNotification(
@@ -167,18 +159,14 @@ export function findAndFollowPath(
             }
             if (getRenderKeyNodes() || getRenderFloatingSpline()) {
                 renderOnlyRegister = register('postRenderWorld', () => {
-                    if (getRenderKeyNodes()) {
-                        drawKeyNodes(body.keynodes);
-                    }
-                    if (getRenderFloatingSpline()) {
+                    if (getRenderKeyNodes()) drawKeyNodes(body.keynodes);
+                    if (getRenderFloatingSpline())
                         drawFloatingSpline(generatedSpline);
-                    }
                 });
             }
 
             const beginPathing = () => {
                 if (currentPathRequest !== requestId) return;
-
                 if (renderOnly) {
                     global.showNotification(
                         'Path Rendered',
@@ -188,13 +176,12 @@ export function findAndFollowPath(
                     );
                 } else {
                     resetStuckRecovery();
-
-                    const tickRegister = register('tick', () => {
+                    tickRegister = register('tick', () => {
                         pathRotations(generatedSpline);
                         PathMovement();
-
                         if (PathComplete()) {
                             tickRegister.unregister();
+                            tickRegister = null;
                             PathMovement(false);
                             ResetRotations();
                             stopPathing();
@@ -206,13 +193,8 @@ export function findAndFollowPath(
                                 'SUCCESS',
                                 2000
                             );
-
-                            if (
-                                onComplete &&
-                                typeof onComplete === 'function'
-                            ) {
+                            if (onComplete && typeof onComplete === 'function')
                                 onComplete();
-                            }
                         }
                     });
                 }
