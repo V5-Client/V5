@@ -42,6 +42,7 @@ export function PathComplete() {
 
 export function ResetRotations() {
     currentBoxIndex = 1;
+    currentPathPosition = 1.0;
     isInitialized = false;
     isJumping = false;
     complete = false;
@@ -105,13 +106,34 @@ function applySmoothing(targetPitch, currentPitch) {
     return smoothedPitch;
 }
 
+function interpolateBox(boxPositions, startIndex, fraction) {
+    const startBox = boxPositions[startIndex];
+    const endBox = boxPositions[startIndex + 1];
+
+    if (!startBox || !endBox) return null;
+
+    return new Vec3d(
+        startBox.x + 0.5 + (endBox.x - startBox.x) * fraction,
+        startBox.y + 0.5 + (endBox.y - startBox.y) * fraction,
+        startBox.z + 0.5 + (endBox.z - startBox.z) * fraction
+    );
+}
+
 export function pathRotations(splineData) {
     const boxPositions = renderSplineBoxes(splineData, 1);
     const playerEyes = Player.getPlayer().getEyePos();
 
+    const velocity = Player.getPlayer().getVelocity();
+
+    const horizontalSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
+
+    const speedBPS = Math.sqrt(horizontalSpeedSq) * 20.0;
+
+    ChatLib.chat(speedBPS);
+
     if (
         boxPositions.length === 0 ||
-        currentBoxIndex === boxPositions.length - 1
+        currentBoxIndex >= boxPositions.length - 1
     ) {
         if (!complete) {
             complete = true;
@@ -145,7 +167,9 @@ export function pathRotations(splineData) {
         }
     }
 
-    if (newCurrentBoxIndex >= currentBoxIndex - 5) {
+    if (newCurrentBoxIndex >= currentBoxIndex) {
+        currentBoxIndex = newCurrentBoxIndex;
+    } else if (newCurrentBoxIndex < currentBoxIndex - 5) {
         currentBoxIndex = newCurrentBoxIndex;
     }
 
@@ -154,39 +178,67 @@ export function pathRotations(splineData) {
         return;
     }
 
-    const targetPitchIndex = Math.min(
-        currentBoxIndex + LOOK_AHEAD_DISTANCE,
-        boxPositions.length - 1
-    );
-
-    const targetPitchPoint = boxPositions[targetPitchIndex];
-    if (!targetPitchPoint) return;
-
-    const lookAheadBoxCenter = new Vec3d(
-        targetPitchPoint.x + 0.5,
-        targetPitchPoint.y + 0.5,
-        targetPitchPoint.z + 0.5
-    );
-
-    let rotationSpeedConstant = calculateRotationSpeed(lookAheadBoxCenter);
-
     const yawLookAhead = detectJumping()
         ? Math.round(YAW_AHEAD_DISTANCE * 1.5)
         : YAW_AHEAD_DISTANCE;
 
-    const targetYawIndex = Math.min(
-        currentBoxIndex + yawLookAhead,
-        boxPositions.length - 1
+    const nextBox = boxPositions[currentBoxIndex + 1];
+    const currentBox = boxPositions[currentBoxIndex];
+
+    if (!nextBox) {
+        currentBoxIndex = boxPositions.length - 1;
+        return;
+    }
+
+    const vectorX = nextBox.x - currentBox.x;
+    const vectorZ = nextBox.z - currentBox.z;
+    const segmentLengthSq = vectorX * vectorX + vectorZ * vectorZ;
+
+    const pointX = playerEyes.x - (currentBox.x + 0.5);
+    const pointZ = playerEyes.z - (currentBox.z + 0.5);
+
+    let t = 0;
+    if (segmentLengthSq > 0.0001) {
+        t = (pointX * vectorX + pointZ * vectorZ) / segmentLengthSq;
+    }
+
+    t = Math.max(0, Math.min(1, t));
+
+    currentPathPosition = currentBoxIndex + t;
+
+    const targetPathIndex = currentPathPosition + LOOK_AHEAD_DISTANCE;
+    const targetYawPathIndex = currentPathPosition + yawLookAhead;
+
+    const pitchStartIndex = Math.min(
+        Math.floor(targetPathIndex),
+        boxPositions.length - 2
+    );
+    const yawStartIndex = Math.min(
+        Math.floor(targetYawPathIndex),
+        boxPositions.length - 2
     );
 
-    const targetYawPoint = boxPositions[targetYawIndex];
-    if (!targetYawPoint) return;
+    const pitchFraction = targetPathIndex - pitchStartIndex;
+    const yawFraction = targetYawPathIndex - yawStartIndex;
 
-    const finalRotationTargetPoint = new Vec3d(
-        targetYawPoint.x + 0.5,
-        targetYawPoint.y + 0.5,
-        targetYawPoint.z + 0.5
+    const lookAheadBoxCenter = interpolateBox(
+        boxPositions,
+        pitchStartIndex,
+        pitchFraction
     );
+
+    const finalRotationTargetPoint = interpolateBox(
+        boxPositions,
+        yawStartIndex,
+        yawFraction
+    );
+
+    if (!lookAheadBoxCenter || !finalRotationTargetPoint) {
+        currentBoxIndex = boxPositions.length - 1;
+        return;
+    }
+
+    let rotationSpeedConstant = calculateRotationSpeed(lookAheadBoxCenter);
 
     const { pitch: calculatedPitch, yaw: targetYaw } =
         MathUtils.calculateAbsoluteAngles(finalRotationTargetPoint);
@@ -233,12 +285,19 @@ export function pathRotations(splineData) {
     );
 
     const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(
-        boxPositions[currentBoxIndex].x + 0.5,
-        boxPositions[currentBoxIndex].y + 0.5,
-        boxPositions[currentBoxIndex].z + 0.5
+        currentBox.x + 0.5,
+        currentBox.y + 0.5,
+        currentBox.z + 0.5
     );
 
-    if (distanceToCurrentPoint < ADVANCE_DISTANCE) {
-        currentBoxIndex++;
+    if (
+        distanceToCurrentPoint < ADVANCE_DISTANCE / 2 &&
+        currentPathPosition > currentBoxIndex + 0.9
+    ) {
+        currentBoxIndex = Math.min(
+            currentBoxIndex + 1,
+            boxPositions.length - 1
+        );
+        currentPathPosition = currentBoxIndex;
     }
 }
