@@ -105,22 +105,12 @@ class CommissionMacro extends ModuleBase {
         this.miningSpeed = 0;
         this.currentMiningWaypoint = null;
 
-        register('command', () => this.toggle(true)).setName(
-            'startcommission',
-            true
-        );
-        register('command', () => this.toggle(false)).setName(
-            'stopcommission',
-            true
-        );
-
         this.on('step', () => this.readCommissions()).setDelay(1);
         this.on('tick', () => this.runLogic());
 
         this.on('chat', (event) => {
             const msg = event.message.getUnformattedText();
             if (msg?.includes('Commission Complete! Visit the King to claim')) {
-                Chat.message('Detected Commission Completion Chat Message');
                 this.onCommissionComplete();
             }
         });
@@ -129,16 +119,19 @@ class CommissionMacro extends ModuleBase {
             if (this.enabled && this.currentState === STATES.MINING)
                 this.onInventoryFull();
         });
+
         registerEventSB('emptydrill', () => {
             if (this.enabled && this.currentState === STATES.MINING)
                 this.onDrillEmpty();
         });
+
         registerEventSB('death', () => {
             if (this.enabled) {
                 Chat.message('&cYou died! Stopping macro...');
                 this.toggle(false);
             }
         });
+
         registerEventSB('pickonimbusbroke', () => {
             if (this.enabled && this.currentState === STATES.MINING)
                 this.onPickonimbusBroke();
@@ -154,6 +147,7 @@ class CommissionMacro extends ModuleBase {
             },
             'How close another player can be to a mining spot before it is considered occupied.'
         );
+
         this.addSlider(
             'Weapon Slot (Goblin)',
             1,
@@ -226,18 +220,13 @@ class CommissionMacro extends ModuleBase {
     }
 
     runLogic() {
-        if (!this.enabled) return;
-
         if (this.pauseTicks > 0) {
             this.pauseTicks--;
             return;
         }
 
         const stateHandlers = {
-            [STATES.IDLE]: () => {
-                if (this.commissions.some((c) => c.progress < 1))
-                    this.setState(STATES.CHOOSING);
-            },
+            [STATES.IDLE]: () => this.setState(STATES.CHOOSING),
             [STATES.CHOOSING]: () => this.chooseAndStartCommission(),
             [STATES.WAITING_FOR_SPOT]: () => this.setState(STATES.CHOOSING),
             [STATES.TRAVELING]: () => this.checkTraveling(),
@@ -278,6 +267,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     chooseAndStartCommission() {
+        this.readCommissions();
         if (this.awaitingTabUpdate) return;
 
         const hasCompleted = this.commissions.some((c) => c.progress === 1);
@@ -289,8 +279,11 @@ class CommissionMacro extends ModuleBase {
         const activeCommissions = this.commissions.filter(
             (c) => c.progress < 1
         );
+
         if (activeCommissions.length === 0) {
-            this.setState(STATES.IDLE);
+            Chat.message('No commissions detected.');
+            Chat.message('Ensure commissions are enabled in /tab');
+            this.toggle(false);
             return;
         }
 
@@ -311,7 +304,7 @@ class CommissionMacro extends ModuleBase {
 
         if (supportedTasks.length === 0) {
             Chat.message('&eNo supported commissions available.');
-            this.setState(STATES.IDLE);
+            this.toggle(false);
             return;
         }
 
@@ -436,47 +429,19 @@ class CommissionMacro extends ModuleBase {
     }
 
     startMining() {
-        Chat.message('&aStarting mining...');
-
         if (!this.drill) {
             Chat.message('&cERROR: No drill found!');
-            this.setState(STATES.IDLE);
+            this.toggle(false);
             return;
         }
 
-        Chat.message(`&7Equipping drill in slot ${this.drill.slot}...`);
         Guis.setItemSlot(this.drill.slot);
 
-        const isMithril =
-            this.currentCommission.name.includes('Titanium') ||
-            this.currentCommission.name.includes('Mithril');
-        if (isMithril) {
-            Chat.message('&7Setting MiningBot cost type to Mithril...');
-            MiningBot.setCost(MiningBot.mithrilCosts);
-        } else {
-            Chat.message(
-                `&cWARNING: Unknown commission type: ${this.currentCommission.name}`
-            );
-        }
-
-        if (!MiningBot.enabled) {
-            Chat.message('&7Starting MiningBot...');
-            MiningBot.toggle(true);
-            Client.scheduleTask(2, () => {
-                if (MiningBot.enabled) {
-                    Chat.message('&aMiningBot successfully started!');
-                } else {
-                    Chat.message('&cERROR: MiningBot failed to start!');
-                    this.setState(STATES.IDLE);
-                }
-            });
-        } else {
-            Chat.message('&7MiningBot already running.');
-        }
+        MiningBot.setCost(MiningBot.mithrilCosts);
+        MiningBot.toggle(true);
     }
 
     startSlayer() {
-        Chat.message('&aStarting slayer...');
         const name = this.currentCommission.name;
         let mobType;
 
@@ -492,7 +457,7 @@ class CommissionMacro extends ModuleBase {
             Guis.setItemSlot(this.pickaxe.slot);
         } else {
             Chat.message('&cUnknown slayer commission type!');
-            this.setState(STATES.IDLE);
+            this.toggle(false);
             return;
         }
 
@@ -588,7 +553,7 @@ class CommissionMacro extends ModuleBase {
         }
 
         Guis.closeInv();
-        this.setState(STATES.IDLE);
+        this.setState(STATES.CHOOSING);
     }
 
     onInventoryFull() {
