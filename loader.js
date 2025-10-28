@@ -24,8 +24,8 @@ import './Failsafes/Failsafes.js';
 
 /* MINING */
 import './Modules/Mining/PinglessMining.js';
-import './Modules/Mining/CommissionMacro.js';
 import './Modules/Mining/GemstoneMacro.js';
+import './Modules/Mining/CommissionMacroA.js';
 
 /* VISUALS */
 import './Modules/Visuals/Xray.js';
@@ -37,7 +37,6 @@ import './Modules/Skills/AutoHarp.js';
 import './Modules/Skills/FishingMacro.js';
 import './Modules/Skills/JerryBoxMacro.js';
 import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
-import './Modules/Skills/RouteWalker.js';
 
 /* OTHER */
 import './Pathfinding/Pathwalker.js';
@@ -59,54 +58,3 @@ import { loadSettings } from './GUI/GuiSave';
 loadSettings();
 import { returnDiscord } from './GUI/Utils.js';
 returnDiscord();
-
-/* Mixins */
-import {
-    fullStainedGlassPane,
-    fullPickle,
-    emptyKelp,
-    emptyGrass,
-    emptyTallGrass,
-} from './mixins.js';
-
-function attachMixin(mixin, name, callback) {
-    try {
-        mixin.attach(callback);
-    } catch (e) {
-        global.showNotification(`Failed to attach ${name}`, e, 'ERROR');
-    }
-}
-
-attachMixin(fullStainedGlassPane, 'fullStainedGlassPane', (instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
-
-    if (instance instanceof StainedGlassPaneBlock) {
-        cir.setReturnValue(VoxelShapes.fullCube());
-    }
-});
-
-attachMixin(fullPickle, 'fullPickle', (instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    cir.setReturnValue(VoxelShapes.fullCube());
-});
-
-attachMixin(emptyKelp, 'emptyKelp', (instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    const KelpBlock = net.minecraft.block.KelpBlock;
-    const KelpPlant = net.minecraft.block.KelpPlantBlock;
-
-    if (instance instanceof KelpBlock || instance instanceof KelpPlant) {
-        cir.setReturnValue(VoxelShapes.empty());
-    }
-});
-
-attachMixin(emptyGrass, 'emptyGrass', (instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    cir.setReturnValue(VoxelShapes.empty());
-});
-
-attachMixin(emptyTallGrass, 'emptyTallGrass', (instance, cir) => {
-    const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-    cir.setReturnValue(VoxelShapes.empty());
-});
