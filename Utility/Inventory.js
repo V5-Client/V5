@@ -230,17 +230,13 @@ class InventoryUtilsClass {
     }
 
     EnableUserInput() {
-        Utils.attachMixin(
+        attachMixin(
             HandleInputEvents,
             'HandleInputEvents',
             (instance, cir) => {}
         );
 
-        Utils.attachMixin(
-            OnMouseScroll,
-            'OnMouseScroll',
-            (instance, cir) => {}
-        );
+        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {});
     }
 
     getHeldItemStackSize() {

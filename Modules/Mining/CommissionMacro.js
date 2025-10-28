@@ -80,7 +80,7 @@ class CommissionMacro extends ModuleBase {
             tooltip:
                 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
             showEnabledToggle: false,
-            autoDisableOnWorldUnload: true,
+            autoDisableOnWorldUnload: false,
         });
 
         this.bindToggleKey();
