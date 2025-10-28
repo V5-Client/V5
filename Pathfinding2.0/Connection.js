@@ -136,7 +136,7 @@ export function loadMap(map) {
 
 export function stopProgram() {
     if (process !== null) {
-        process.destroy();
+        process.destroyForcibly();
         process = null;
         keepAlive.unregister();
         threads.forEach((thread) => thread.interrupt());
@@ -147,10 +147,14 @@ export function stopProgram() {
 
 Runtime.getRuntime().addShutdownHook(
     new java.lang.Thread(() => {
-        threads.forEach((thread) => thread.interrupt());
-        threads = [];
-        //stopPathing();
-        stopProgram();
+        if (process !== null) {
+            console.log(
+                'JVM Shutdown Hook: Forcibly destroying Rust process...'
+            );
+            process.destroyForcibly();
+            threads.forEach((thread) => thread.interrupt());
+            console.log('JVM Shutdown Hook cleanup complete.');
+        }
     })
 );
 
