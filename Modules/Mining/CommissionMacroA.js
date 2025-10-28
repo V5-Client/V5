@@ -124,8 +124,10 @@ class CommissionMacro extends ModuleBase {
                     );
 
                     const maxLines = 4;
-                    let endIndex = startIndex + 1 + maxLines;
-                    if (endIndex > tabItems.length) endIndex = tabItems.length;
+                    let endIndex = Math.min(
+                        startIndex + 1 + maxLines,
+                        tabItems.length
+                    );
 
                     let newCommissions = [];
 
@@ -137,7 +139,8 @@ class CommissionMacro extends ModuleBase {
                         const name = parts[0].trim();
                         const display = parts[1].trim();
 
-                        if (display.length === 0) continue;
+                        if (display.length === 0 || display === 'DONE')
+                            continue;
 
                         newCommissions.push({
                             name,
@@ -175,12 +178,14 @@ class CommissionMacro extends ModuleBase {
                             ...commissionData,
                         };
 
+                        if (!this.commission) return; // do stiff here when no comm like click pigeon
+
                         this.message(
                             `&f${this.commission.name} &7(&b${this.commission.type}&7)`
                         );
                     }
 
-                    this.state = this.STATES.TRAVELLING;
+                    if (this.commission) this.state = this.STATES.TRAVELLING;
                     break;
                 case this.STATES.TRAVELLING:
                     this.message(
