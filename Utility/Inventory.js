@@ -1,6 +1,8 @@
 import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
 import { Chat } from './Chat';
+import { HandleInputEvents, OnMouseScroll } from '../Mixins/SlotChangeMixin';
+import { attachMixin } from './AttachMixin';
 
 class InventoryUtilsClass {
     constructor() {}
@@ -208,9 +210,37 @@ class InventoryUtilsClass {
         if (slot < 0 || slot > 8) {
             return Chat.message('Invalid slot blocked! Report this ASAP!');
         }
-        if (Player.getHeldItemIndex() !== slot) {
+
+        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
+            let hotbarKeys = instance.options.hotbarKeys;
+
+            for (const key of hotbarKeys)
+                if (key.wasPressed()) key.setPressed(false);
+        });
+
+        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
+            if (Client.getMinecraft().world != null) cir.cancel();
+        });
+
+        const currentSlot = Player.getHeldItemIndex();
+
+        if (currentSlot !== slot) {
             Player.setHeldItemIndex(slot);
         }
+    }
+
+    EnableUserInput() {
+        Utils.attachMixin(
+            HandleInputEvents,
+            'HandleInputEvents',
+            (instance, cir) => {}
+        );
+
+        Utils.attachMixin(
+            OnMouseScroll,
+            'OnMouseScroll',
+            (instance, cir) => {}
+        );
     }
 
     getHeldItemStackSize() {

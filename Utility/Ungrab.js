@@ -1,4 +1,5 @@
-import { unlockCursor, setLocked, stopMovement } from '../mixins';
+import { LockCursor, IsCursorLocked, OnCursorPos } from '../Mixins/UngrabMixin';
+import { attachMixin } from './AttachMixin';
 
 class ungrabClass {
     constructor() {
@@ -9,12 +10,12 @@ class ungrabClass {
     Ungrab() {
         if (this.ungrabbed) return;
 
-        unlockCursor.attach((instance, cir) => {
+        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
             if (!this.ungrabbed) return;
             cir.cancel();
         });
 
-        setLocked.attach((instance, cir) => {
+        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
             if (!this.ungrabbed) return;
 
             if (Client.getMinecraft()?.currentScreen == null) {
@@ -23,7 +24,7 @@ class ungrabClass {
             }
         });
 
-        stopMovement.attach((instance, cir) => {
+        attachMixin(OnCursorPos, 'OnCursorPos', (instance, cir) => {
             if (!this.ungrabbed) return;
             cir.cancel();
         });
@@ -33,9 +34,9 @@ class ungrabClass {
 
     Regrab() {
         if (!this.ungrabbed) return;
-        unlockCursor.attach((instance, cir) => {});
-        setLocked.attach((instance, cir) => {});
-        stopMovement.attach((instance, cir) => {});
+        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {});
+        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
+        attachMixin(OnCursorPos, 'OnCursorPos', (instance, cir) => {});
         this.ungrabbed = false;
     }
 }
