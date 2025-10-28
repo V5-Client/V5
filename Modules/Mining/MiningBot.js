@@ -1023,6 +1023,7 @@ class Bot extends ModuleBase {
         this.tickCount = 0;
         this.empty = false;
         RotationRedo.stopRotation();
+        Guis.EnableUserInput();
     }
 }
 
