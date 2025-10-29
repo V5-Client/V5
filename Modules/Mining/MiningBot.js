@@ -94,6 +94,7 @@ class Bot extends ModuleBase {
 
         this.miningspeed = 0;
         this.currentTarget = null;
+        this.mineTickCount = 0;
         this.tickCount = 0;
         this.lastBlockPos = null;
         this.allowScan = false;
@@ -103,8 +104,7 @@ class Bot extends ModuleBase {
         this.file = null;
         this.abilityClicked = false;
         this.speedBoost = false;
-        this.empty = false;
-        this.nuking = false;
+        this.nukedBlock = false;
 
         this.exploit = register('packetSent', (packet, event) => {
             let packetAction = packet?.getAction()?.toString();
@@ -224,9 +224,34 @@ class Bot extends ModuleBase {
 
                     Guis.setItemSlot(drill.slot);
 
-                    if (this.empty) {
-                        Chat.message('No more mineable blocks.');
-                        this.toggle(false);
+                    // Check if block was broken
+                    let needScan = false;
+                    if (!this.currentTarget || this.allowScan) {
+                        needScan = true;
+                    } else {
+                        const block = World.getBlockAt(
+                            this.currentTarget.x,
+                            this.currentTarget.y,
+                            this.currentTarget.z
+                        );
+                        const blockName = block?.type?.getRegistryName();
+                        if (
+                            blockName.includes('air') ||
+                            blockName.includes('bedrock')
+                        ) {
+                            needScan = true;
+                        }
+                    }
+
+                    if (needScan) {
+                        this.scanForBlock(
+                            this.COSTTYPE,
+                            true,
+                            null,
+                            this.currentTarget
+                        );
+                        this.currentTarget = this.foundLocations[0];
+                        this.allowScan = false;
                     }
 
                     // todo fix this gets called 20 times per second which is intensive due to file read and stuff
@@ -236,6 +261,7 @@ class Bot extends ModuleBase {
                             : MiningUtils.getMiningSpeed();
 
                     let lowestCostBlock =
+                        this.currentTarget ||
                         this.foundLocations[this.lowestCostBlockIndex];
 
                     if (!lowestCostBlock) return;
@@ -253,6 +279,7 @@ class Bot extends ModuleBase {
                         this.lastBlockPos.y !== lowestCostBlock.y ||
                         this.lastBlockPos.z !== lowestCostBlock.z
                     ) {
+                        this.mineTickCount = 0;
                         this.tickCount = 0;
                         this.lastBlockPos = lowestCostBlock;
                     }
@@ -261,13 +288,21 @@ class Bot extends ModuleBase {
                         this.foundLocations[this.lowestCostBlockIndex];
 
                     let lookingAt = Player.lookingAt();
+                    const fakeLookMode = this.FAKELOOK.find(
+                        (option) => option.enabled
+                    )?.name;
                     if (
                         lookingAt &&
                         lookingAt?.getX() === this.currentTarget?.x &&
                         lookingAt?.getY() === this.currentTarget?.y &&
                         lookingAt?.getZ() === this.currentTarget?.z
                     ) {
-                        this.tickCount++;
+                        this.mineTickCount++;
+                    }
+                    this.tickCount++;
+
+                    if (fakeLookMode === 'Off') {
+                        Keybind.setKey('leftclick', true);
                     }
 
                     this.totalTicks = MiningUtils.getMineTime(
@@ -275,8 +310,6 @@ class Bot extends ModuleBase {
                         this.speedBoost,
                         this.currentTarget
                     );
-
-                    Keybind.setKey('leftclick', true);
 
                     const blockDist = MathUtils.getDistanceToPlayerEyes(
                         this.currentTarget.x,
@@ -293,11 +326,8 @@ class Bot extends ModuleBase {
                             break;
                     }
 
-                    const fakeLookMode = this.FAKELOOK.find(
-                        (option) => option.enabled
-                    )?.name;
-
                     if (fakeLookMode !== 'Off') {
+                        Keybind.setKey('leftclick', false);
                         if (
                             blockName.includes('air') ||
                             blockName.includes('bedrock')
@@ -307,7 +337,7 @@ class Bot extends ModuleBase {
 
                         if (fakeLookMode === 'Instant') {
                             if (!this.currentTarget) return;
-                            if (!this.nuking) {
+                            if (!this.nukedBlock) {
                                 NukerUtils.nuke(
                                     [
                                         this.currentTarget.x,
@@ -316,11 +346,11 @@ class Bot extends ModuleBase {
                                     ],
                                     this.totalTicks
                                 );
-                                this.nuking = true;
+                                this.nukedBlock = true;
                             }
                         } else if (fakeLookMode === 'Queued') {
                             if (!this.currentTarget) return;
-                            if (!this.nuking) {
+                            if (!this.nukedBlock) {
                                 NukerUtils.nukeQueueAdd(
                                     [
                                         this.currentTarget.x,
@@ -329,23 +359,18 @@ class Bot extends ModuleBase {
                                     ],
                                     this.totalTicks
                                 );
-                                this.nuking = true;
+                                this.nukedBlock = true;
                             }
                         }
                     }
 
                     if (this.TICKGLIDE) {
-                        const targetVector = this.getAimVectorForTarget(
-                            this.currentTarget
-                        );
-
-                        if (this.currentTarget && targetVector)
-                            RotationRedo.rotateToVector(targetVector);
-
                         if (
-                            this.tickCount > this.totalTicks ||
+                            this.mineTickCount > this.totalTicks ||
+                            this.tickCount > this.totalTicks * 2 ||
                             this.allowScan
                         ) {
+                            this.mineTickCount = 0;
                             this.tickCount = 0;
                             this.allowScan = false;
                             this.scanForBlock(
@@ -355,28 +380,46 @@ class Bot extends ModuleBase {
                                 this.currentTarget
                             );
                         }
-                    } else if (!this.TICKGLIDE) {
-                        this.currentTarget = lowestCostBlock;
+
                         const targetVector = this.getAimVectorForTarget(
                             this.currentTarget
                         );
 
+                        if (this.currentTarget && targetVector) {
+                            RotationRedo.rotateToVector(targetVector);
+                        }
+                    } else if (!this.TICKGLIDE) {
+                        this.currentTarget = lowestCostBlock;
+
                         if (
+                            !this.currentTarget ||
                             blockName.includes('air') ||
                             blockName.includes('bedrock') ||
                             this.allowScan
                         ) {
-                            this.scanForBlock(this.COSTTYPE, true, {
-                                x: this.currentTarget.x,
-                                y: this.currentTarget.y,
-                                z: this.currentTarget.z,
-                            });
-                            this.lowestCostBlockIndex = 0;
+                            this.scanForBlock(
+                                this.COSTTYPE,
+                                true,
+                                this.currentTarget
+                                    ? {
+                                          x: this.currentTarget.x,
+                                          y: this.currentTarget.y,
+                                          z: this.currentTarget.z,
+                                      }
+                                    : null
+                            );
                             this.allowScan = false;
+                            this.currentTarget = this.foundLocations[0];
+                            if (!this.currentTarget) break;
                         }
 
-                        if (this.currentTarget && targetVector)
+                        const targetVector = this.getAimVectorForTarget(
+                            this.currentTarget
+                        );
+
+                        if (this.currentTarget && targetVector) {
                             RotationRedo.rotateToVector(targetVector);
+                        }
                     }
                     break;
             }
@@ -508,8 +551,6 @@ class Bot extends ModuleBase {
         const bfsReach = mineReach + this.bfsPad; // 4.5 + ~0.866
         const bfsReachSq = bfsReach * bfsReach;
 
-        this.tickCount = 0;
-
         const start = startPos || {
             x: Math.floor(playerX),
             y: Math.floor(playerY),
@@ -624,12 +665,12 @@ class Bot extends ModuleBase {
                             ? -1
                             : 1
                         : faceAxis === 'y'
-                        ? dirY > 0
+                          ? dirY > 0
+                              ? -1
+                              : 1
+                          : dirZ > 0
                             ? -1
-                            : 1
-                        : dirZ > 0
-                        ? -1
-                        : 1;
+                            : 1;
 
                 const clamp = (vv, lo, hi) =>
                     vv < lo ? lo : vv > hi ? hi : vv;
@@ -870,12 +911,12 @@ class Bot extends ModuleBase {
                                     ? 1
                                     : -1
                                 : axis === 'y'
-                                ? playerEyePos.y >= centerY
+                                  ? playerEyePos.y >= centerY
+                                      ? 1
+                                      : -1
+                                  : playerEyePos.z >= centerZ
                                     ? 1
-                                    : -1
-                                : playerEyePos.z >= centerZ
-                                ? 1
-                                : -1;
+                                    : -1;
                         for (let o = 0; o < orthos.length && !isVisible; o++) {
                             const axis = orthos[o];
                             const s = signFromEye(axis);
@@ -992,13 +1033,14 @@ class Bot extends ModuleBase {
         // Sort by cost (ascending) and set the first as current target
         if (foundLocations.length > 0) {
             foundLocations.sort((a, b) => a.cost - b.cost);
-            this.nuking = false;
+            this.nukedBlock = false;
             this.foundLocations = foundLocations;
             this.currentTarget = this.foundLocations[0];
             this.lowestCostBlockIndex = 0;
-            this.empty = false;
         } else {
-            this.empty = true;
+            this.currentTarget = null;
+            this.foundLocations = [];
+            this.lowestCostBlockIndex = 0;
         }
     }
 
@@ -1008,7 +1050,6 @@ class Bot extends ModuleBase {
 
     onEnable() {
         Chat.message('Mining Bot Enabled');
-        this.empty = false;
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
     }
@@ -1020,8 +1061,8 @@ class Bot extends ModuleBase {
         this.foundLocations = [];
         this.lastBlockPos = null;
         this.currentTarget = null;
+        this.mineTickCount = 0;
         this.tickCount = 0;
-        this.empty = false;
         RotationRedo.stopRotation();
         Guis.EnableUserInput();
     }
