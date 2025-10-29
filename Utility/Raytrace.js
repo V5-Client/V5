@@ -275,8 +275,8 @@ class rayTraceUtils {
                 tMaxZ += tDeltaZ;
             }
             if (!(cx === ignoreX && cy === ignoreY && cz === ignoreZ)) {
-                const blkX = World.getBlockAt(cx, cy, cz);
-                if (blkX && blkX.type.getID() !== 0) return false;
+                const blkID = World.getBlockAt(cx, cy, cz).type.getID();
+                if (blkID !== 0 && blkID !== 513) return false; // air and grey carpet
             }
             if (cx === exv && cy === eyv && cz === ezv) break;
         }
