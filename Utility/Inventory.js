@@ -5,7 +5,9 @@ import { HandleInputEvents, OnMouseScroll } from '../Mixins/SlotChangeMixin';
 import { attachMixin } from './AttachMixin';
 
 class InventoryUtilsClass {
-    constructor() {}
+    constructor() {
+        this.mixinsAttached = false;
+    }
 
     /**
      * Strips Minecraft formatting codes from a string
@@ -211,6 +213,7 @@ class InventoryUtilsClass {
             return Chat.message('Invalid slot blocked! Report this ASAP!');
         }
 
+        if (this.mixinsAttached) return;
         attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
             let hotbarKeys = instance.options.hotbarKeys;
 
@@ -222,6 +225,8 @@ class InventoryUtilsClass {
             if (Client.getMinecraft().world != null) cir.cancel();
         });
 
+        this.mixinsAttached = true;
+
         const currentSlot = Player.getHeldItemIndex();
 
         if (currentSlot !== slot) {
@@ -230,6 +235,7 @@ class InventoryUtilsClass {
     }
 
     EnableUserInput() {
+        this.mixinsAttached = false;
         attachMixin(
             HandleInputEvents,
             'HandleInputEvents',
