@@ -25,7 +25,7 @@ import './Failsafes/Failsafes.js';
 /* MINING */
 import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/GemstoneMacro.js';
-import './Modules/Mining/CommissionMacroA.js';
+import './Modules/Mining/CommissionMacro.js';
 
 /* VISUALS */
 import './Modules/Visuals/Xray.js';
