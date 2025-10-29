@@ -127,9 +127,7 @@ class Rotation2 {
         const deltaYaw = this.normalizeAngle(finalTarget.yaw - currentYaw);
         const deltaPitch = finalTarget.pitch - currentPitch;
 
-        const distance = Math.sqrt(
-            deltaYaw * deltaYaw + deltaPitch * deltaPitch
-        );
+        const distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
         if (distance <= this.precision) {
             Player.getPlayer().setYaw(finalTarget.yaw);
@@ -156,20 +154,10 @@ class Rotation2 {
 
         const deltaYawScaled = deltaYaw * cosPitch;
 
-        const distance = Math.sqrt(
-            deltaYawScaled * deltaYawScaled + deltaPitch * deltaPitch
-        );
+        const distance = Math.sqrt(deltaYawScaled * deltaYawScaled + deltaPitch * deltaPitch);
 
-        const dampingFactor = this.clamp(
-            distance / this.DAMPING_START_DISTANCE,
-            0.0,
-            1.0
-        );
-        const speedMultiplier = this.lerp(
-            this.MIN_SPEED_MULTIPLIER,
-            1.0,
-            dampingFactor
-        );
+        const dampingFactor = this.clamp(distance / this.DAMPING_START_DISTANCE, 0.0, 1.0);
+        const speedMultiplier = this.lerp(this.MIN_SPEED_MULTIPLIER, 1.0, dampingFactor);
         const effectiveSpeed = this.ROTATION_SPEED * speedMultiplier;
 
         const maxAngleStep = effectiveSpeed * this.deltaTime;

@@ -31,13 +31,7 @@ class Pingless extends ModuleBase {
                 z = this.pos.z;
 
                 if (!Player.getPlayer().isOnGround()) return;
-                if (
-                    this.ticks < 4 &&
-                    World.getBlockAt(x, y, z)
-                        ?.type?.getRegistryName()
-                        .includes('stained_glass')
-                )
-                    return; // i dont think this affects anymore ?
+                if (this.ticks < 4 && World.getBlockAt(x, y, z)?.type?.getRegistryName().includes('stained_glass')) return; // i dont think this affects anymore ?
 
                 if (
                     !Player.getHeldItem()
@@ -47,23 +41,12 @@ class Pingless extends ModuleBase {
                 )
                     return; // tools only
 
-                let blockName = World.getBlockAt(
-                    x,
-                    y,
-                    z
-                )?.type?.getRegistryName();
-                if (
-                    (World.getBlockAt(x, y, z)?.type?.getID() !== 1 &&
-                        !blockName.includes('ore')) ||
-                    blockName.includes('redstone')
-                )
-                    return;
+                let blockName = World.getBlockAt(x, y, z)?.type?.getRegistryName();
+                if ((World.getBlockAt(x, y, z)?.type?.getID() !== 1 && !blockName.includes('ore')) || blockName.includes('redstone')) return;
 
                 this.mining = true;
             }
-        }).setFilteredClass(
-            net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-        );
+        }).setFilteredClass(net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket);
 
         this.on('packetSent', () => {
             if (Utils.area() !== 'Crystal Hollows') return;
@@ -76,18 +59,9 @@ class Pingless extends ModuleBase {
                 this.mining = false;
                 this.pos = null;
             }
-        }).setFilteredClass(
-            net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
-        );
+        }).setFilteredClass(net.minecraft.network.packet.c2s.play.HandSwingC2SPacket);
 
-        this.addSlider(
-            'Tick Delay',
-            0,
-            5,
-            1,
-            (v) => (this.tickCount = v),
-            'How long to wait before removing hardstone.'
-        );
+        this.addSlider('Tick Delay', 0, 5, 1, (v) => (this.tickCount = v), 'How long to wait before removing hardstone.');
     }
 }
 

@@ -1,9 +1,4 @@
-import {
-    Color,
-    UIRoundedRectangle,
-    UMatrixStack,
-    Matrix,
-} from '../Utility/Constants';
+import { Color, UIRoundedRectangle, UMatrixStack, Matrix } from '../Utility/Constants';
 import { THEME, isInside, colorWithAlpha } from './Utils';
 
 // Configuration
@@ -55,22 +50,8 @@ const NOTIFICATION_TYPES = {
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
             const size = 5;
-            Renderer.drawLine(
-                color,
-                centerX - size,
-                centerY - size,
-                centerX + size,
-                centerY + size,
-                2
-            );
-            Renderer.drawLine(
-                color,
-                centerX - size,
-                centerY + size,
-                centerX + size,
-                centerY - size,
-                2
-            );
+            Renderer.drawLine(color, centerX - size, centerY - size, centerX + size, centerY + size, 2);
+            Renderer.drawLine(color, centerX - size, centerY + size, centerX + size, centerY - size, 2);
         },
     },
     DANGER: {
@@ -118,12 +99,7 @@ const NOTIFICATION_TYPES = {
 };
 
 class Notification {
-    constructor(
-        title,
-        description,
-        type = 'SUCCESS',
-        duration = DEFAULT_NOTIFICATION_DURATION
-    ) {
+    constructor(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
         this.title = title;
         this.description = description;
         this.type = NOTIFICATION_TYPES[type] ? type : 'SUCCESS';
@@ -135,10 +111,7 @@ class Notification {
         this.state = 'entering';
         this.animationStart = Date.now();
         this.x = Renderer.screen.getWidth();
-        this.targetX =
-            Renderer.screen.getWidth() -
-            NOTIFICATION_WIDTH -
-            NOTIFICATION_MARGIN;
+        this.targetX = Renderer.screen.getWidth() - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
         this.y = Renderer.screen.getHeight();
         this.targetY = 0;
         this.opacity = 0;
@@ -177,8 +150,7 @@ class Notification {
         const closeButtonArea = 30;
 
         const textXOffset = NOTIFICATION_PADDING + iconWidth + textMargin;
-        const maxLineWidth =
-            (NOTIFICATION_WIDTH - textXOffset - closeButtonArea) / DESC_SCALE;
+        const maxLineWidth = (NOTIFICATION_WIDTH - textXOffset - closeButtonArea) / DESC_SCALE;
 
         this.wrappedDescription = this.wrapText(this.description, maxLineWidth);
 
@@ -192,14 +164,9 @@ class Notification {
         const lifetime = now - this.createdAt;
 
         if (this.state === 'entering') {
-            const progress = Math.min(
-                1,
-                (now - this.animationStart) / ANIMATION_DURATION
-            );
+            const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
             const eased = this.easeOutCubic(progress);
-            this.x =
-                Renderer.screen.getWidth() -
-                (Renderer.screen.getWidth() - this.targetX) * eased;
+            this.x = Renderer.screen.getWidth() - (Renderer.screen.getWidth() - this.targetX) * eased;
             this.opacity = eased;
 
             if (progress >= 1) this.state = 'active';
@@ -211,14 +178,9 @@ class Notification {
                 this.startExit();
             }
         } else if (this.state === 'exiting') {
-            const progress = Math.min(
-                1,
-                (now - this.animationStart) / ANIMATION_DURATION
-            );
+            const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
             const eased = this.easeInCubic(progress);
-            this.x =
-                this.targetX +
-                (Renderer.screen.getWidth() - this.targetX) * eased;
+            this.x = this.targetX + (Renderer.screen.getWidth() - this.targetX) * eased;
             this.opacity = 1 - eased;
 
             if (progress >= 1) this.state = 'removed';
@@ -253,15 +215,7 @@ class Notification {
         const typeInfo = NOTIFICATION_TYPES[this.type];
 
         const bgColor = colorWithAlpha(BACKGROUND_COLOR, alpha);
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            this.x,
-            this.y,
-            this.x + NOTIFICATION_WIDTH,
-            this.y + this.height,
-            CORNER_RADIUS,
-            bgColor
-        );
+        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, this.x, this.y, this.x + NOTIFICATION_WIDTH, this.y + this.height, CORNER_RADIUS, bgColor);
 
         const iconBgX = this.x + NOTIFICATION_PADDING;
         const iconBgY = this.y + this.height / 2 - 12;
@@ -279,21 +233,9 @@ class Notification {
         );
 
         const iconBgColor = colorWithAlpha(ICON_BACKGROUND_COLOR, alpha);
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            iconBgX,
-            iconBgY,
-            iconBgX + iconBgSize,
-            iconBgY + iconBgSize,
-            6,
-            iconBgColor
-        );
+        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, iconBgX, iconBgY, iconBgX + iconBgSize, iconBgY + iconBgSize, 6, iconBgColor);
 
-        typeInfo.iconDrawer(
-            iconBgX + iconBgSize / 2,
-            iconBgY + iconBgSize / 2,
-            Math.floor(alpha * 255)
-        );
+        typeInfo.iconDrawer(iconBgX + iconBgSize / 2, iconBgY + iconBgSize / 2, Math.floor(alpha * 255));
 
         const textX = iconBgX + iconBgSize + 8;
         const titleY = this.y + TEXT_TOP_PADDING;
@@ -307,13 +249,7 @@ class Notification {
         Renderer.scale(DESC_SCALE, DESC_SCALE);
         this.wrappedDescription.forEach((line, index) => {
             const currentDescY = descY + index * DESC_LINE_SPACING;
-            Renderer.drawString(
-                line,
-                textX / DESC_SCALE,
-                currentDescY / DESC_SCALE,
-                descAlpha,
-                false
-            );
+            Renderer.drawString(line, textX / DESC_SCALE, currentDescY / DESC_SCALE, descAlpha, false);
         });
         Renderer.scale(1 / DESC_SCALE, 1 / DESC_SCALE);
 
@@ -331,22 +267,10 @@ class Notification {
 
         if (this.closeHovered) {
             const hoverColor = colorWithAlpha(CLOSE_BUTTON_HOVER_COLOR, alpha);
-            UIRoundedRectangle.Companion.drawRoundedRectangle(
-                Matrix,
-                closeX,
-                closeY,
-                closeX + closeSize,
-                closeY + closeSize,
-                4,
-                hoverColor
-            );
+            UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, closeX, closeY, closeX + closeSize, closeY + closeSize, 4, hoverColor);
         }
 
-        this.drawXSymbol(
-            closeX + closeSize / 2,
-            closeY + closeSize / 2,
-            Math.floor(alpha * 255)
-        );
+        this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
         // Don't draw progress bar for sticky notifications
         if (this.state === 'active' && !this.isSticky) {
             const progress = 1 - (Date.now() - this.createdAt) / this.duration;
@@ -389,22 +313,8 @@ class Notification {
     drawXSymbol(centerX, centerY, alpha) {
         const color = (alpha << 24) | CLOSE_BUTTON_COLOR;
         const size = 4;
-        Renderer.drawLine(
-            color,
-            centerX - size,
-            centerY - size,
-            centerX + size,
-            centerY + size,
-            1.5
-        );
-        Renderer.drawLine(
-            color,
-            centerX - size,
-            centerY + size,
-            centerX + size,
-            centerY - size,
-            1.5
-        );
+        Renderer.drawLine(color, centerX - size, centerY - size, centerX + size, centerY + size, 1.5);
+        Renderer.drawLine(color, centerX - size, centerY + size, centerX + size, centerY - size, 1.5);
     }
 
     handleClick(mouseX, mouseY) {
@@ -435,21 +345,15 @@ class NotificationManager {
         }
 
         if (RENDER_ABOVE_GUI && !this.guiRenderTrigger) {
-            this.guiRenderTrigger = register(
-                'postGuiRender',
-                (mouseX, mouseY, gui) => {
-                    this.renderAboveGui();
-                }
-            );
+            this.guiRenderTrigger = register('postGuiRender', (mouseX, mouseY, gui) => {
+                this.renderAboveGui();
+            });
         }
 
         if (!this.clickTrigger) {
-            this.clickTrigger = register(
-                'guiMouseClick',
-                (mouseX, mouseY, button) => {
-                    if (button === 0) this.handleClick(mouseX, mouseY);
-                }
-            );
+            this.clickTrigger = register('guiMouseClick', (mouseX, mouseY, button) => {
+                if (button === 0) this.handleClick(mouseX, mouseY);
+            });
         }
         if (!this.tickTrigger) {
             this.tickTrigger = register('tick', () => this.update());
@@ -475,22 +379,12 @@ class NotificationManager {
         }
     }
 
-    add(
-        title,
-        description,
-        type = 'SUCCESS',
-        duration = DEFAULT_NOTIFICATION_DURATION
-    ) {
+    add(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
         if (this.notifications.length === 0) {
             this.registerEvents();
         }
 
-        const notification = new Notification(
-            title,
-            description,
-            type,
-            duration
-        );
+        const notification = new Notification(title, description, type, duration);
         this.notifications.unshift(notification);
         this.updatePositions();
     }
@@ -499,9 +393,7 @@ class NotificationManager {
         this.notifications.forEach((n) => n.update());
 
         const beforeCount = this.notifications.length;
-        this.notifications = this.notifications.filter(
-            (n) => n.state !== 'removed'
-        );
+        this.notifications = this.notifications.filter((n) => n.state !== 'removed');
 
         if (this.notifications.length !== beforeCount) {
             this.updatePositions();
@@ -515,11 +407,7 @@ class NotificationManager {
     updatePositions() {
         let yOffset = 0;
         this.notifications.forEach((notification) => {
-            const targetY =
-                Renderer.screen.getHeight() -
-                NOTIFICATION_MARGIN -
-                notification.height -
-                yOffset;
+            const targetY = Renderer.screen.getHeight() - NOTIFICATION_MARGIN - notification.height - yOffset;
             notification.targetY = targetY;
             yOffset += notification.height + NOTIFICATION_SPACING;
         });
@@ -563,11 +451,6 @@ class NotificationManager {
 
 global.notificationManager = new NotificationManager();
 
-global.showNotification = (
-    title,
-    description,
-    type = 'SUCCESS',
-    duration = DEFAULT_NOTIFICATION_DURATION
-) => {
+global.showNotification = (title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) => {
     global.notificationManager.add(title, description, type, duration);
 };

@@ -26,21 +26,11 @@ class Routes {
 
             Chat.message(`Route saved successfully to: ${fileLocation}`);
         } catch (error) {
-            Chat.message(
-                `ERROR saving route to ${fileLocation}: ${error.message}`
-            );
+            Chat.message(`ERROR saving route to ${fileLocation}: ${error.message}`);
         }
     }
 
-    Edit(
-        action,
-        route,
-        file,
-        indexNum,
-        takeMovementTypes = false,
-        allowedMovements = [],
-        userMovementInput = ''
-    ) {
+    Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '') {
         let indexToUse = undefined;
         if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
@@ -50,9 +40,7 @@ class Routes {
 
         switch (action) {
             case 'OFF':
-                Chat.message(
-                    'Route editing is currently OFF. No changes made.'
-                );
+                Chat.message('Route editing is currently OFF. No changes made.');
                 return route;
 
             case 'ADD':
@@ -64,20 +52,11 @@ class Routes {
 
                 let isValidWaypoint = true;
 
-                let allowedMovementsSet = new Set(
-                    Array.isArray(allowedMovements)
-                        ? allowedMovements.map((m) => m.toUpperCase())
-                        : null
-                );
+                let allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => m.toUpperCase()) : null);
 
                 if (takeMovementTypes) {
-                    if (
-                        !Array.isArray(userMovementInput) ||
-                        userMovementInput.length === 0
-                    ) {
-                        Chat.message(
-                            'ERROR: Movement type required for this command. Waypoint not added.'
-                        );
+                    if (!Array.isArray(userMovementInput) || userMovementInput.length === 0) {
+                        Chat.message('ERROR: Movement type required for this command. Waypoint not added.');
                         return route;
                     }
 
@@ -87,9 +66,7 @@ class Routes {
                         point.movements = userMovementUpper;
                     } else {
                         isValidWaypoint = false;
-                        Chat.message(
-                            `ERROR: Movement type '${userMovementInput[0]}' not supported. Waypoint not added.`
-                        );
+                        Chat.message(`ERROR: Movement type '${userMovementInput[0]}' not supported. Waypoint not added.`);
                         return route;
                     }
                 }
@@ -104,9 +81,7 @@ class Routes {
                         } else {
                             route.push(point);
                             routeModified = true;
-                            Chat.message(
-                                `Invalid index ${indexToUse}. Added point to the end.`
-                            );
+                            Chat.message(`Invalid index ${indexToUse}. Added point to the end.`);
                         }
                     } else {
                         route.push(point);
@@ -122,21 +97,15 @@ class Routes {
                     if (arrayIndex >= 0 && arrayIndex < route.length) {
                         const removed = route.splice(arrayIndex, 1)[0];
                         routeModified = true;
-                        Chat.message(
-                            `Removed waypoint ${indexToUse} [${removed.x}, ${removed.y}, ${removed.z}]`
-                        );
+                        Chat.message(`Removed waypoint ${indexToUse} [${removed.x}, ${removed.y}, ${removed.z}]`);
                     } else {
-                        Chat.message(
-                            `Invalid index ${indexToUse}. Cannot remove point.`
-                        );
+                        Chat.message(`Invalid index ${indexToUse}. Cannot remove point.`);
                     }
                 } else {
                     if (route.length > 0) {
                         const removed = route.pop();
                         routeModified = true;
-                        Chat.message(
-                            `Removed last waypoint [${removed.x}, ${removed.y}, ${removed.z}]`
-                        );
+                        Chat.message(`Removed last waypoint [${removed.x}, ${removed.y}, ${removed.z}]`);
                     } else {
                         Chat.message('Route is already empty.');
                     }

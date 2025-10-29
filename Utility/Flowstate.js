@@ -41,12 +41,7 @@ class FlowstateUtilsClass {
                 packet?.getPos()?.getX() == blockx &&
                 packet?.getPos()?.getY() == blocky &&
                 packet?.getPos()?.getZ() == blockz &&
-                (packet
-                    ?.getState()
-                    ?.getBlock()
-                    ?.toString()
-                    ?.includes('bedrock') ||
-                    packet?.getState()?.getBlock()?.toString()?.includes('air'))
+                (packet?.getState()?.getBlock()?.toString()?.includes('bedrock') || packet?.getState()?.getBlock()?.toString()?.includes('air'))
             ) {
                 this.countdown = 10;
                 this.flowstateBlocksBroken += bonus;
@@ -57,22 +52,17 @@ class FlowstateUtilsClass {
                         this.multiplier++;
                         return;
                     }
-                    let rounded =
-                        Math.floor(this.flowstateBlocksBroken / 100) * 100;
+                    let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
                     Chat.message(`Current Flowstate: ${rounded}`);
                     this.multiplier++;
                 }
             }
-        }).setFilteredClasses([
-            net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket,
-        ]);
+        }).setFilteredClasses([net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket]);
 
         register('step', () => {
             if (this.countdown === 0) {
                 if (this.flowstateBlocksBroken > 100) {
-                    Chat.debugMessage(
-                        `Flowstate lost at ${this.flowstateBlocksBroken} blocks`
-                    );
+                    Chat.debugMessage(`Flowstate lost at ${this.flowstateBlocksBroken} blocks`);
                 }
                 this.isMax = false;
                 this.flowstateBlocksBroken = 0;

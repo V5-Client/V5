@@ -10,10 +10,7 @@ class MathUtilsClass {
     distanceToPlayerPoint(Point) {
         const eyes = Player.getPlayer().getEyePos().y;
         if (!eyes) return 0;
-        return this.calculateDistance(
-            [eyes.x, eyes.y, eyes.z],
-            [Point.x, Point.y, Point.z]
-        );
+        return this.calculateDistance([eyes.x, eyes.y, eyes.z], [Point.x, Point.y, Point.z]);
     }
 
     /**
@@ -29,10 +26,7 @@ class MathUtilsClass {
      * @param {Array} Point
      */
     distanceToPlayerFeet(Point) {
-        return this.calculateDistance(
-            [Player.getX(), Player.getY(), Player.getZ()],
-            Point
-        );
+        return this.calculateDistance([Player.getX(), Player.getY(), Player.getZ()], Point);
     }
 
     /**
@@ -41,14 +35,7 @@ class MathUtilsClass {
     distanceToPlayerCenter(Point) {
         const eyes = Player.getPlayer().getEyePos().y;
         if (!eyes) return 0;
-        return this.calculateDistance(
-            [
-                eyes.x,
-                Player.getY() + Player.asPlayerMP().getHeight() / 2,
-                eyes.z,
-            ],
-            Point
-        );
+        return this.calculateDistance([eyes.x, Player.getY() + Player.asPlayerMP().getHeight() / 2, eyes.z], Point);
     }
 
     /**
@@ -57,10 +44,7 @@ class MathUtilsClass {
     distanceToPlayerCT(Entity) {
         const eyes = Player.getPlayer().getEyePos().y;
         if (!eyes) return 0;
-        return this.calculateDistance(
-            [eyes.x, eyes.y, eyes.z],
-            [Entity.getX(), Entity.getY(), Entity.getZ()]
-        );
+        return this.calculateDistance([eyes.x, eyes.y, eyes.z], [Entity.getX(), Entity.getY(), Entity.getZ()]);
     }
 
     /**
@@ -69,10 +53,7 @@ class MathUtilsClass {
     distanceToPlayerMC(Entity) {
         const eyes = Player.getPlayer().getEyePos().y;
         if (!eyes) return 0;
-        return this.calculateDistance(
-            [eyes.x, eyes.y, eyes.z],
-            [Entity.getX(), Entity.getY(), Entity.getZ()]
-        );
+        return this.calculateDistance([eyes.x, eyes.y, eyes.z], [Entity.getX(), Entity.getY(), Entity.getZ()]);
     }
     /**
      * @param {BlockPos} pos1
@@ -118,14 +99,7 @@ class MathUtilsClass {
             y = vector.y;
             z = vector.z;
         }
-        return this.getDistance(
-            Player.getX(),
-            Player.getY(),
-            Player.getZ(),
-            x,
-            y,
-            z
-        );
+        return this.getDistance(Player.getX(), Player.getY(), Player.getZ(), x, y, z);
     }
 
     getDistanceToPlayerEyes(xInput, yInput, zInput) {
@@ -197,9 +171,7 @@ class MathUtilsClass {
      * @param {Array} Point
      */
     angleToPlayer(Point) {
-        let angles = this.calculateAngles(
-            new Vec3i(Point[0], Point[1], Point[2])
-        );
+        let angles = this.calculateAngles(new Vec3i(Point[0], Point[1], Point[2]));
         let yaw = angles.yaw;
         let pitch = angles.pitch;
         let distance = Math.sqrt(yaw * yaw + pitch * pitch);

@@ -30,11 +30,7 @@ const CATEGORY_SELECTED_COLOR = THEME.GUI_MANAGER_CATEGORY_SELECTED;
 export const getCategoryRect = (index) => {
     return {
         x: global.GuiRectangles.LeftPanel.x + PADDING,
-        y:
-            global.GuiRectangles.LeftPanel.y +
-            PADDING +
-            CATEGORY_OFFSET_Y +
-            index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
+        y: global.GuiRectangles.LeftPanel.y + PADDING + CATEGORY_OFFSET_Y + index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
         width: global.GuiRectangles.LeftPanel.width - PADDING * 2,
         height: CATEGORY_HEIGHT,
     };
@@ -49,12 +45,8 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         cat.subcatTransitionProgress = easeInOutQuad(rawProgress);
         const p = cat.subcatTransitionProgress;
 
-        cat.animationRect.x =
-            cat.animationRect.startX +
-            (cat.animationRect.endX - cat.animationRect.startX) * p;
-        cat.animationRect.width =
-            cat.animationRect.startWidth +
-            (cat.animationRect.endWidth - cat.animationRect.startWidth) * p;
+        cat.animationRect.x = cat.animationRect.startX + (cat.animationRect.endX - cat.animationRect.startX) * p;
+        cat.animationRect.width = cat.animationRect.startWidth + (cat.animationRect.endWidth - cat.animationRect.startWidth) * p;
 
         cat.animationRect.y = yOffset;
 
@@ -64,10 +56,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
     }
 
     let currentX = panelX + PADDING;
-    const subcategoriesToDraw = [
-        'All',
-        ...cat.categories.find((c) => c.name === cat.selected).subcategories,
-    ];
+    const subcategoriesToDraw = ['All', ...cat.categories.find((c) => c.name === cat.selected).subcategories];
 
     subcategoriesToDraw.forEach((subcat) => {
         const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
@@ -80,10 +69,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
             color: UNIVERSAL_GRAY_COLOR,
         };
 
-        const isSelected =
-            (cat.selectedSubcategory === subcat ||
-                (!cat.selectedSubcategory && subcat === 'All')) &&
-            !cat.animationRect;
+        const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
 
         if (isSelected) cat.selectedSubcategoryButton = buttonRect;
 
@@ -126,8 +112,7 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 
     let optionPanelX = panel.x;
     if (global.Categories.transitionDirection === 1) {
-        optionPanelX +=
-            panel.width * (1 - global.Categories.transitionProgress);
+        optionPanelX += panel.width * (1 - global.Categories.transitionProgress);
     } else if (global.Categories.transitionDirection === -1) {
         optionPanelX += panel.width * global.Categories.transitionProgress;
     }
@@ -140,29 +125,12 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const backButtonX = optionX + 10;
     const backButtonY = optionY + 10;
     const drawnBackY = backButtonY - scrollY;
-    Renderer.drawString(
-        backButtonText,
-        backButtonX,
-        drawnBackY,
-        BACK_TEXT_COLOR
-    );
+    Renderer.drawString(backButtonText, backButtonX, drawnBackY, BACK_TEXT_COLOR);
 
     const drawnTitleY = optionY + 30 - scrollY;
-    Renderer.drawString(
-        selectedItem.title,
-        backButtonX,
-        drawnTitleY,
-        CATEGORY_TITLE_COLOR,
-        false
-    );
+    Renderer.drawString(selectedItem.title, backButtonX, drawnTitleY, CATEGORY_TITLE_COLOR, false);
     const drawnDescY = optionY + 45 - scrollY;
-    Renderer.drawString(
-        selectedItem.description,
-        backButtonX + 10,
-        drawnDescY,
-        CATEGORY_DESC_COLOR,
-        false
-    );
+    Renderer.drawString(selectedItem.description, backButtonX + 10, drawnDescY, CATEGORY_DESC_COLOR, false);
 
     let drawnCompY = optionY + 70 - scrollY;
     selectedItem.components.forEach((component) => {
@@ -176,12 +144,8 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
         component.draw(mouseX, mouseY);
 
         let thisHeight = 45;
-        if (
-            component instanceof MultiToggle &&
-            component.animationProgress > 0
-        ) {
-            thisHeight +=
-                component.getExpandedHeight() * component.animationProgress;
+        if (component instanceof MultiToggle && component.animationProgress > 0) {
+            thisHeight += component.getExpandedHeight() * component.animationProgress;
         }
         drawnCompY += thisHeight;
     });
@@ -190,10 +154,7 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 export const drawLeftPanel = (mouseX, mouseY) => {
     if (global.Categories.catAnimationRect) {
         const elapsed = Date.now() - global.Categories.catTransitionStart;
-        const rawProgress = Math.min(
-            1,
-            elapsed / global.Categories.catAnimationDuration
-        );
+        const rawProgress = Math.min(1, elapsed / global.Categories.catAnimationDuration);
         const p = easeInOutQuad(rawProgress);
 
         const rect = global.Categories.catAnimationRect;
@@ -239,13 +200,7 @@ export const drawLeftPanel = (mouseX, mouseY) => {
             const pfpX = iconX - 1;
             const pfpY = iconY - 58;
             const iconSize = moduleSize - 2;
-            Renderer.drawImage(
-                global.discordPfp,
-                pfpX,
-                pfpY,
-                iconSize,
-                iconSize
-            );
+            Renderer.drawImage(global.discordPfp, pfpX, pfpY, iconSize, iconSize);
         }
     });
 
@@ -262,17 +217,7 @@ export const drawLeftPanel = (mouseX, mouseY) => {
     }
 };
 
-const drawItemBox = (
-    item,
-    itemX,
-    itemY,
-    itemWidth,
-    mouseX,
-    mouseY,
-    cachedItemLayouts,
-    isLayoutCacheValid,
-    centerText = false
-) => {
+const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {
     const itemRect = {
         x: itemX,
         y: itemY,
@@ -297,30 +242,12 @@ const drawItemBox = (
         cachedItemLayouts.push({ rect: itemRect, item });
     }
 
-    const textX = centerText
-        ? itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2
-        : itemX + 5;
+    const textX = centerText ? itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2 : itemX + 5;
 
-    Renderer.drawString(
-        item.title,
-        textX,
-        itemY + 40 / 2 - 4,
-        CATEGORY_TITLE_COLOR,
-        false
-    );
+    Renderer.drawString(item.title, textX, itemY + 40 / 2 - 4, CATEGORY_TITLE_COLOR, false);
 };
 
-export const drawCategoryItems = (
-    cat,
-    panel,
-    panelX,
-    yOffset,
-    mouseX,
-    mouseY,
-    itemsToDisplay,
-    cachedItemLayouts,
-    isLayoutCacheValid
-) => {
+export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid) => {
     const panelWidth = panel.width - PADDING * 2;
     const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
     let itemIndexInRow = 0;
@@ -341,15 +268,8 @@ export const drawCategoryItems = (
             });
 
             const separatorTextWidth = Renderer.getStringWidth(group.title);
-            const separatorTextX =
-                separatorX + separatorWidth / 2 - separatorTextWidth / 2;
-            Renderer.drawString(
-                group.title,
-                separatorTextX,
-                separatorY - 10,
-                CATEGORY_DESC_COLOR,
-                false
-            );
+            const separatorTextX = separatorX + separatorWidth / 2 - separatorTextWidth / 2;
+            Renderer.drawString(group.title, separatorTextX, separatorY - 10, CATEGORY_DESC_COLOR, false);
             yOffset += SEPARATOR_HEIGHT;
 
             let subcategoryItemsInRow = 0;
@@ -359,20 +279,9 @@ export const drawCategoryItems = (
                     yOffset += CATEGORY_BOX_PADDING + 40;
                 }
 
-                const itemX =
-                    panelX + PADDING + col * (itemWidth + ITEM_SPACING);
+                const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
 
-                drawItemBox(
-                    item,
-                    itemX,
-                    yOffset,
-                    itemWidth,
-                    mouseX,
-                    mouseY,
-                    cachedItemLayouts,
-                    isLayoutCacheValid,
-                    true
-                );
+                drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, true);
 
                 subcategoryItemsInRow++;
             });
@@ -391,17 +300,7 @@ export const drawCategoryItems = (
 
             const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
 
-            drawItemBox(
-                item,
-                itemX,
-                yOffset,
-                itemWidth,
-                mouseX,
-                mouseY,
-                cachedItemLayouts,
-                isLayoutCacheValid,
-                false
-            );
+            drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, false);
 
             itemIndexInRow++;
         }

@@ -6,10 +6,7 @@ const configName = 'V5Config';
 const rotationsDir = 'rotations';
 
 if (!FileLib.exists(configName, rotationsDir)) {
-    let dir = new File(
-        './config/ChatTriggers/modules/' + configName,
-        rotationsDir
-    );
+    let dir = new File('./config/ChatTriggers/modules/' + configName, rotationsDir);
     dir.mkdir();
 }
 
@@ -34,9 +31,7 @@ export function stopRecording() {
     }
 
     isRecording = false;
-    Chat.message(
-        `§c[Recorder] Stopped recording (${recordedData.length} samples)`
-    );
+    Chat.message(`§c[Recorder] Stopped recording (${recordedData.length} samples)`);
 }
 
 export function recordRotation(yaw, pitch) {
@@ -65,10 +60,7 @@ export function saveRecording(filename = null) {
 
     if (!filename) {
         const now = new Date();
-        const timestamp = now
-            .toISOString()
-            .replace(/[:.]/g, '-')
-            .substring(0, 19);
+        const timestamp = now.toISOString().replace(/[:.]/g, '-').substring(0, 19);
         filename = `rotation_${timestamp}.json`;
     }
 
@@ -92,9 +84,7 @@ export function saveRecording(filename = null) {
 
         Chat.message(`§a[Recorder] Saved ${recordedData.length} samples`);
         Chat.message(`§7[Recorder] File: ${filename}`);
-        Chat.message(
-            `§7[Recorder] Path: ./config/ChatTriggers/modules/${configName}/${relativePath}`
-        );
+        Chat.message(`§7[Recorder] Path: ./config/ChatTriggers/modules/${configName}/${relativePath}`);
     } catch (e) {
         Chat.message(`§c[Recorder] Error saving: ${e}`);
         console.error(e);
@@ -120,18 +110,14 @@ register('command', () => {
         return;
     }
     stopRecording();
-    Chat.message(
-        '§e[Recorder] Recording stopped but not saved. Use /saverecord to save.'
-    );
+    Chat.message('§e[Recorder] Recording stopped but not saved. Use /saverecord to save.');
 }).setName('stoprecord');
 
 register('command', (...args) => {
     const filename = args.length > 0 ? args.join('_') + '.json' : null;
 
     if (isRecording) {
-        Chat.message(
-            '§e[Recorder] Stopping recording and saving with timestamp name'
-        );
+        Chat.message('§e[Recorder] Stopping recording and saving with timestamp name');
         stopRecording();
     }
 

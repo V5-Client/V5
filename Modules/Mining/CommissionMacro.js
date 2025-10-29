@@ -41,28 +41,18 @@ const EMISSARY_LOCATIONS = [
     [58, 197, -8],
 ];
 
-const TRASH_ITEMS = [
-    'Mithril',
-    'Titanium',
-    'Rune',
-    'Glacite',
-    'Goblin',
-    'Cobblestone',
-    'Stone',
-];
+const TRASH_ITEMS = ['Mithril', 'Titanium', 'Rune', 'Glacite', 'Goblin', 'Cobblestone', 'Stone'];
 
 const MOB_CONFIGS = {
     goblin: {
         names: ['Goblin', 'Weakling'],
         checkVisibility: true,
-        boundaryCheck: (x, y, z) =>
-            y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
+        boundaryCheck: (x, y, z) => y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
     },
     icewalker: {
         names: ['Ice Walker', 'Glacite Walker'],
         checkVisibility: true,
-        boundaryCheck: (x, y, z) =>
-            y >= 127 && y <= 132 && z <= 180 && z >= 147 && x <= 42,
+        boundaryCheck: (x, y, z) => y >= 127 && y <= 132 && z <= 180 && z >= 147 && x <= 42,
     },
     treasure: {
         names: ['Treasuer Hunter'], // MISSPELLED ON PURPOSE (Hypixel typo)
@@ -77,8 +67,7 @@ class CommissionMacro extends ModuleBase {
             name: 'Commission Macro',
             subcategory: 'Mining',
             description: 'Completes Commissions for you',
-            tooltip:
-                'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            tooltip: 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
         });
@@ -117,13 +106,11 @@ class CommissionMacro extends ModuleBase {
         });
 
         registerEventSB('fullinventory', () => {
-            if (this.enabled && this.currentState === STATES.MINING)
-                this.onInventoryFull();
+            if (this.enabled && this.currentState === STATES.MINING) this.onInventoryFull();
         });
 
         registerEventSB('emptydrill', () => {
-            if (this.enabled && this.currentState === STATES.MINING)
-                this.onDrillEmpty();
+            if (this.enabled && this.currentState === STATES.MINING) this.onDrillEmpty();
         });
 
         registerEventSB('death', () => {
@@ -181,9 +168,7 @@ class CommissionMacro extends ModuleBase {
 
         this.weapon = this.getWeaponFromSlot();
         if (!this.weapon) {
-            Chat.message(
-                '&eNo weapon found in Goblin Slayer slot. Goblin commissions will be skipped.'
-            );
+            Chat.message('&eNo weapon found in Goblin Slayer slot. Goblin commissions will be skipped.');
         }
 
         this.miningSpeed = MiningUtils.getMiningSpeed('Dwarven Mines');
@@ -229,17 +214,13 @@ class CommissionMacro extends ModuleBase {
                 this.readCommissions();
                 if (this.awaitingTabUpdate) return;
 
-                const hasCompleted = this.commissions.some(
-                    (c) => c.progress === 1
-                );
+                const hasCompleted = this.commissions.some((c) => c.progress === 1);
                 if (hasCompleted) {
                     this.onCommissionComplete();
                     return;
                 }
 
-                const activeCommissions = this.commissions.filter(
-                    (c) => c.progress < 1
-                );
+                const activeCommissions = this.commissions.filter((c) => c.progress < 1);
 
                 if (activeCommissions.length === 0) {
                     Chat.message('No commissions detected.');
@@ -250,17 +231,10 @@ class CommissionMacro extends ModuleBase {
 
                 const supportedTasks = activeCommissions
                     .map((tabComm) => {
-                        const data = COMMISSION_DATA.find((d) =>
-                            d.names.includes(tabComm.name)
-                        );
+                        const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
                         return data ? { ...tabComm, ...data } : null;
                     })
-                    .filter(
-                        (task) =>
-                            task &&
-                            task.type === 'MINING' &&
-                            (!task.name.includes('Goblin') || this.weapon)
-                    )
+                    .filter((task) => task && task.type === 'MINING' && (!task.name.includes('Goblin') || this.weapon))
                     .sort((a, b) => a.cost - b.cost);
 
                 if (supportedTasks.length === 0) {
@@ -269,28 +243,16 @@ class CommissionMacro extends ModuleBase {
                     return;
                 }
 
-                const otherPlayers =
-                    this.playerAvoidanceRadius > 0
-                        ? World.getAllPlayers().filter(
-                              (p) => p.getName() !== Player.getName()
-                          )
-                        : [];
+                const otherPlayers = this.playerAvoidanceRadius > 0 ? World.getAllPlayers().filter((p) => p.getName() !== Player.getName()) : [];
 
                 for (const chosenTask of supportedTasks) {
-                    const safeWaypoints = chosenTask.waypoints.filter(
-                        (waypoint) => {
-                            if (this.playerAvoidanceRadius <= 0) return true;
-                            return !otherPlayers.some((player) => {
-                                const distance = this.getDistance(
-                                    player.getX(),
-                                    player.getY(),
-                                    player.getZ(),
-                                    ...waypoint
-                                );
-                                return distance < this.playerAvoidanceRadius;
-                            });
-                        }
-                    );
+                    const safeWaypoints = chosenTask.waypoints.filter((waypoint) => {
+                        if (this.playerAvoidanceRadius <= 0) return true;
+                        return !otherPlayers.some((player) => {
+                            const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
+                            return distance < this.playerAvoidanceRadius;
+                        });
+                    });
 
                     if (safeWaypoints.length > 0) {
                         const playerPos = {
@@ -298,43 +260,21 @@ class CommissionMacro extends ModuleBase {
                             y: Player.getY(),
                             z: Player.getZ(),
                         };
-                        const closestWaypoint = safeWaypoints.reduce(
-                            (closest, current) => {
-                                const closestDist = this.getDistance(
-                                    playerPos.x,
-                                    playerPos.y,
-                                    playerPos.z,
-                                    ...closest
-                                );
-                                const currentDist = this.getDistance(
-                                    playerPos.x,
-                                    playerPos.y,
-                                    playerPos.z,
-                                    ...current
-                                );
-                                return currentDist < closestDist
-                                    ? current
-                                    : closest;
-                            }
-                        );
+                        const closestWaypoint = safeWaypoints.reduce((closest, current) => {
+                            const closestDist = this.getDistance(playerPos.x, playerPos.y, playerPos.z, ...closest);
+                            const currentDist = this.getDistance(playerPos.x, playerPos.y, playerPos.z, ...current);
+                            return currentDist < closestDist ? current : closest;
+                        });
 
                         this.currentCommission = chosenTask;
                         this.travelPurpose = chosenTask.type;
                         this.currentMiningWaypoint = closestWaypoint;
 
-                        Chat.message(
-                            `&aStarting commission: &b${
-                                chosenTask.name
-                            }&a. Pathing to: &b[${closestWaypoint.join(', ')}]`
-                        );
+                        Chat.message(`&aStarting commission: &b${chosenTask.name}&a. Pathing to: &b[${closestWaypoint.join(', ')}]`);
 
                         this.setState(STATES.TRAVELING);
                         findAndFollowPath(
-                            [
-                                Math.floor(Player.getX()),
-                                Math.floor(Player.getY()) - 1,
-                                Math.floor(Player.getZ()),
-                            ],
+                            [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
                             closestWaypoint,
                             false,
                             () => this.onPathComplete(),
@@ -344,12 +284,8 @@ class CommissionMacro extends ModuleBase {
                     }
                 }
 
-                const commissionNames = supportedTasks
-                    .map((t) => t.name)
-                    .join('&7, &b');
-                Chat.message(
-                    `&cAll spots occupied for: &b${commissionNames}&c. Waiting...`
-                );
+                const commissionNames = supportedTasks.map((t) => t.name).join('&7, &b');
+                Chat.message(`&cAll spots occupied for: &b${commissionNames}&c. Waiting...`);
                 break;
             case STATES.SLAYER:
                 if (!this.currentMobType) return;
@@ -377,13 +313,8 @@ class CommissionMacro extends ModuleBase {
                     if (!item) continue;
 
                     const name = ChatLib.removeFormatting(item.getName());
-                    const isTrash = TRASH_ITEMS.some((trash) =>
-                        name.includes(trash)
-                    );
-                    const isNotEquipment =
-                        !name.includes('Drill') &&
-                        !name.includes('Pickaxe') &&
-                        !name.includes('Minecart');
+                    const isTrash = TRASH_ITEMS.some((trash) => name.includes(trash));
+                    const isNotEquipment = !name.includes('Drill') && !name.includes('Pickaxe') && !name.includes('Minecart');
 
                     if (isTrash && isNotEquipment) {
                         Guis.clickSlot(i, false);
@@ -407,11 +338,7 @@ class CommissionMacro extends ModuleBase {
                         const stack = Commissions.getStackInSlot(i);
                         if (!stack) continue;
 
-                        const hasCompleted = stack
-                            .getLore()
-                            .some((line) =>
-                                line.toString().includes('COMPLETED')
-                            );
+                        const hasCompleted = stack.getLore().some((line) => line.toString().includes('COMPLETED'));
                         if (hasCompleted) {
                             Guis.clickSlot(i, false);
                             this.delay(10);
@@ -432,23 +359,13 @@ class CommissionMacro extends ModuleBase {
                         Keybind.rightClick();
                     }
                 } else {
-                    const playerPos = [
-                        Player.getX(),
-                        Player.getY(),
-                        Player.getZ(),
-                    ];
+                    const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
                     let closest = EMISSARY_LOCATIONS[0];
-                    let closestDist = this.getDistance(
-                        ...playerPos,
-                        ...closest
-                    );
+                    let closestDist = this.getDistance(...playerPos, ...closest);
 
                     for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
                         const current = EMISSARY_LOCATIONS[i];
-                        const currentDist = this.getDistance(
-                            ...playerPos,
-                            ...current
-                        );
+                        const currentDist = this.getDistance(...playerPos, ...current);
                         if (currentDist < closestDist) {
                             closest = current;
                             closestDist = currentDist;
@@ -458,11 +375,7 @@ class CommissionMacro extends ModuleBase {
                     if (closestDist < 4) {
                         const target = closest;
                         if (target) {
-                            const adjustedTarget = [
-                                target[0] + 0.5,
-                                target[1] + 2.0,
-                                target[2] + 0.5,
-                            ];
+                            const adjustedTarget = [target[0] + 0.5, target[1] + 2.0, target[2] + 0.5];
                             if (Rotations.rotating) return;
                             Rotations.rotateTo(adjustedTarget);
                             Rotations.onEndRotation(() => {
@@ -475,11 +388,7 @@ class CommissionMacro extends ModuleBase {
                         this.pathfinding = true;
                         this.travelPurpose = 'EMISSARY';
                         findAndFollowPath(
-                            [
-                                Math.floor(Player.getX()),
-                                Math.floor(Player.getY()) - 1,
-                                Math.floor(Player.getZ()),
-                            ],
+                            [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
                             closest,
                             false,
                             () => (this.pathfinding = false)
@@ -507,9 +416,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        Chat.message(
-            `&aArrived at destination for &b${this.currentCommission?.name || 'Unknown'}`
-        );
+        Chat.message(`&aArrived at destination for &b${this.currentCommission?.name || 'Unknown'}`);
 
         const type = this.currentCommission?.type;
         if (type === 'MINING') {
@@ -525,9 +432,7 @@ class CommissionMacro extends ModuleBase {
 
     onPathFail() {
         if (!this.enabled) return;
-        Chat.message(
-            `&cFailed to find a path for &b${this.currentCommission?.name || 'Unknown'}. Retrying...`
-        );
+        Chat.message(`&cFailed to find a path for &b${this.currentCommission?.name || 'Unknown'}. Retrying...`);
         this.currentCommission = null;
         this.setState(STATES.IDLE);
     }
@@ -556,8 +461,7 @@ class CommissionMacro extends ModuleBase {
             name === 'Glacite Walker Slayer' ||
             name === 'Treasure Hoarder Puncher' // apparently treasure hoarder takes more damage from pickaxe
         ) {
-            mobType =
-                name === 'Glacite Walker Slayer' ? 'icewalker' : 'treasure';
+            mobType = name === 'Glacite Walker Slayer' ? 'icewalker' : 'treasure';
             Guis.setItemSlot(this.pickaxe.slot);
         } else {
             Chat.message('&cUnknown slayer commission type!');
@@ -609,34 +513,15 @@ class CommissionMacro extends ModuleBase {
         if (!item) return null;
 
         const name = ChatLib.removeFormatting(item.getName());
-        if (
-            name.includes('Mithril') ||
-            name.includes('Titanium') ||
-            name === ''
-        )
-            return null;
+        if (name.includes('Mithril') || name.includes('Titanium') || name === '') return null;
 
         return { slot, name };
     }
 
     getClosestMob(mobs) {
         return mobs.reduce((closest, current) => {
-            const closestDist = this.getDistance(
-                Player.getX(),
-                Player.getY(),
-                Player.getZ(),
-                closest.getX(),
-                closest.getY(),
-                closest.getZ()
-            );
-            const currentDist = this.getDistance(
-                Player.getX(),
-                Player.getY(),
-                Player.getZ(),
-                current.getX(),
-                current.getY(),
-                current.getZ()
-            );
+            const closestDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), closest.getX(), closest.getY(), closest.getZ());
+            const currentDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), current.getX(), current.getY(), current.getZ());
             return currentDist < closestDist ? current : closest;
         }, mobs[0]);
     }
@@ -647,9 +532,7 @@ class CommissionMacro extends ModuleBase {
             let startIndex = -1;
 
             for (let i = 0; i < tabItems.length; i++) {
-                const cleaned = ChatLib.removeFormatting(
-                    tabItems[i] ?? ''
-                ).trim();
+                const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
                 if (cleaned === 'Commissions:') {
                     startIndex = i;
                     break;
@@ -663,9 +546,7 @@ class CommissionMacro extends ModuleBase {
 
             let endIndex = tabItems.length;
             for (let i = startIndex + 1; i < tabItems.length; i++) {
-                const cleaned = ChatLib.removeFormatting(
-                    tabItems[i] ?? ''
-                ).trim();
+                const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
                 if (cleaned === '' || cleaned === 'Powders:') {
                     endIndex = i;
                     break;
@@ -674,9 +555,7 @@ class CommissionMacro extends ModuleBase {
 
             const newCommissions = [];
             for (let i = startIndex + 1; i < endIndex; i++) {
-                const formattedText = ChatLib.removeFormatting(
-                    tabItems[i] ?? ''
-                ).trim();
+                const formattedText = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
                 if (!formattedText.includes(':')) continue;
 
                 const parts = formattedText.split(':');
@@ -687,10 +566,7 @@ class CommissionMacro extends ModuleBase {
                 if (progressStr.includes('DONE')) {
                     progress = 1;
                 } else if (progressStr.includes('%')) {
-                    progress =
-                        parseFloat(
-                            progressStr.replace(/ /g, '').replace('%', '')
-                        ) / 100;
+                    progress = parseFloat(progressStr.replace(/ /g, '').replace('%', '')) / 100;
                 } else {
                     continue;
                 }
@@ -698,23 +574,16 @@ class CommissionMacro extends ModuleBase {
                 newCommissions.push({ name, progress });
             }
 
-            if (
-                JSON.stringify(this.commissions) !==
-                JSON.stringify(newCommissions)
-            ) {
+            if (JSON.stringify(this.commissions) !== JSON.stringify(newCommissions)) {
                 this.commissions = newCommissions;
 
                 Chat.message('&a--- Commissions Updated ---');
                 this.commissions.forEach((c) => {
-                    Chat.message(
-                        `&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`
-                    );
+                    Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
                 });
 
                 if (this.awaitingTabUpdate) {
-                    const stillCompleted = this.commissions.some(
-                        (c) => c.progress === 1
-                    );
+                    const stillCompleted = this.commissions.some((c) => c.progress === 1);
                     if (!stillCompleted) this.awaitingTabUpdate = false;
                 }
             }
@@ -758,16 +627,9 @@ class CommissionMacro extends ModuleBase {
                 const uuid = player.getUUID();
 
                 if (this.mobWhitelist.has(uuid)) return;
-                if (!config.names.some((mobName) => name.includes(mobName)))
-                    return;
-                if (
-                    player.isSpectator() ||
-                    player.isInvisible() ||
-                    player.isDead()
-                )
-                    return;
-                if (config.checkVisibility && !playerMP.canSeeEntity(player))
-                    return;
+                if (!config.names.some((mobName) => name.includes(mobName))) return;
+                if (player.isSpectator() || player.isInvisible() || player.isDead()) return;
+                if (config.checkVisibility && !playerMP.canSeeEntity(player)) return;
 
                 const x = player.getX(),
                     y = player.getY(),

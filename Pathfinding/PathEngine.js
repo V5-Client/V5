@@ -54,11 +54,7 @@ function resetAfterLanding() {
 }
 
 function handleJumping(player) {
-    const canJump =
-        !movementState.jumpTriggered &&
-        player.isOnGround() &&
-        (movementState.ticksSinceLanding === null ||
-            movementState.ticksSinceLanding >= 2);
+    const canJump = !movementState.jumpTriggered && player.isOnGround() && (movementState.ticksSinceLanding === null || movementState.ticksSinceLanding >= 2);
 
     if (canJump && shouldJump()) {
         movementState.jumpTriggered = true;
@@ -71,45 +67,31 @@ function handleJumping(player) {
         movementState.ticksSinceLanding = null;
         mc.options.jumpKey.setPressed(true);
     } else {
-        mc.options.jumpKey.setPressed(
-            movementState.jumpTriggered && !player.isOnGround()
-        );
+        mc.options.jumpKey.setPressed(movementState.jumpTriggered && !player.isOnGround());
     }
 }
 
 function requestNewPathFromEngine(start, end) {
-    const url = `${localhost}/api/pathfinding?start=${start.join(
-        ','
-    )}&end=${end.join(',')}&map=mines`;
+    const url = `${localhost}/api/pathfinding?start=${start.join(',')}&end=${end.join(',')}&map=mines`;
     return request({ url, json: true, timeout: 15000 });
 }
 
 function triggerPathRecalculation() {
     if (isRecalculating || !destinationCoords) {
-        console.log(
-            '§c[Path Recalc] Already recalculating or no destination set'
-        );
+        console.log('§c[Path Recalc] Already recalculating or no destination set');
         return;
     }
 
     isRecalculating = true;
     console.log('§6[Path Recalc] Requesting new path from current position...');
 
-    const currentPos = [
-        Math.floor(Player.getX()),
-        Math.floor(Player.getY()) - 1,
-        Math.floor(Player.getZ()),
-    ];
+    const currentPos = [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())];
 
     requestNewPathFromEngine(currentPos, destinationCoords)
         .then((body) => {
             if (!body || !body.spline || !body.spline.length) {
-                console.log(
-                    '§c[Path Recalc] Failed to get new path - no spline received'
-                );
-                Chat.message(
-                    '§c[Pathfinding] Failed to recalculate path. Stopping...'
-                );
+                console.log('§c[Path Recalc] Failed to get new path - no spline received');
+                Chat.message('§c[Pathfinding] Failed to recalculate path. Stopping...');
                 pathCompleteCallback && pathCompleteCallback();
                 isRecalculating = false;
                 return;
@@ -123,12 +105,8 @@ function triggerPathRecalculation() {
             Chat.message('§a[Pathfinding] New path calculated!');
         })
         .catch((err) => {
-            console.log(
-                '§c[Path Recalc] Network error requesting new path: ' + err
-            );
-            Chat.message(
-                '§c[Pathfinding] Network error during recalculation. Stopping...'
-            );
+            console.log('§c[Path Recalc] Network error requesting new path: ' + err);
+            Chat.message('§c[Pathfinding] Network error during recalculation. Stopping...');
             pathCompleteCallback && pathCompleteCallback();
             isRecalculating = false;
         });
@@ -157,12 +135,7 @@ export function startPathing(splinePath, destination, onComplete) {
 
         if (isAtFinalNode()) {
             onComplete && onComplete();
-            global.showNotification(
-                'Path Complete',
-                'Destination reached.',
-                'SUCCESS',
-                2000
-            );
+            global.showNotification('Path Complete', 'Destination reached.', 'SUCCESS', 2000);
             return;
         }
 

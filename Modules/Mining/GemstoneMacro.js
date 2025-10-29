@@ -10,8 +10,7 @@ import { Rotations } from '../../Utility/Rotations';
 import { Router } from '../../Utility/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../Utility/ModuleBase';
-const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
-    global.Categories;
+const { addToggle, addSlider, addMultiToggle, addCategoryItem } = global.Categories;
 
 /**TODO
  * a thing which reads all files in the folder and sets them to a multitoggle
@@ -74,9 +73,7 @@ class GemstoneMacro extends ModuleBase {
         this.enabled = false;
         this.setCost = false;
         this.point = null;
-        this.loadedRoute = Router.loadRouteFromFile(
-            'gemstoneroutes/default_route.txt'
-        );
+        this.loadedRoute = Router.loadRouteFromFile('gemstoneroutes/default_route.txt');
         this.route = this.loadedRoute;
         this.foundFirstPoint = false;
         this.enableMiningBot = false;
@@ -88,9 +85,7 @@ class GemstoneMacro extends ModuleBase {
         }).setName('startg');
 
         register('command', (action, indexArg) => {
-            this.loadedRoute = Router.loadRouteFromFile(
-                'gemstoneroutes/default_route.txt'
-            );
+            this.loadedRoute = Router.loadRouteFromFile('gemstoneroutes/default_route.txt');
             this.route = this.loadedRoute;
             let indexNum = undefined;
 
@@ -102,16 +97,9 @@ class GemstoneMacro extends ModuleBase {
                 }
             }
 
-            this.route = Router.Edit(
-                action.toUpperCase(),
-                this.route,
-                'gemstoneroutes/default_route.txt',
-                indexNum
-            );
+            this.route = Router.Edit(action.toUpperCase(), this.route, 'gemstoneroutes/default_route.txt', indexNum);
 
-            Chat.message(
-                `Action ${action} performed on route. Route now has ${this.route?.length} points.`
-            );
+            Chat.message(`Action ${action} performed on route. Route now has ${this.route?.length} points.`);
         }).setName('gemstone');
 
         this.on('postRenderWorld', () => {
@@ -123,12 +111,7 @@ class GemstoneMacro extends ModuleBase {
                 const p1 = route[i];
                 const p2 = route[i + 1];
 
-                if (
-                    p1 &&
-                    p2 &&
-                    typeof p1.x === 'number' &&
-                    typeof p2.x === 'number'
-                ) {
+                if (p1 && p2 && typeof p1.x === 'number' && typeof p2.x === 'number') {
                 }
             }
 
@@ -136,25 +119,10 @@ class GemstoneMacro extends ModuleBase {
                 const point = route[i];
                 const index = i + 1;
 
-                if (
-                    point &&
-                    typeof point.x === 'number' &&
-                    typeof point.y === 'number' &&
-                    typeof point.z === 'number'
-                ) {
-                    RenderUtils.drawWireFrame(
-                        new Vec3d(point.x, point.y, point.z),
-                        [255, 0, 255, 255]
-                    );
+                if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') {
+                    RenderUtils.drawWireFrame(new Vec3d(point.x, point.y, point.z), [255, 0, 255, 255]);
 
-                    RenderUtils.drawString(
-                        `${index}`,
-                        point?.x + 0.5,
-                        point?.y + 1.2,
-                        point?.z + 0.5,
-                        Renderer.WHITE,
-                        false
-                    );
+                    RenderUtils.drawString(`${index}`, point?.x + 0.5, point?.y + 1.2, point?.z + 0.5, Renderer.WHITE, false);
                 }
             }
         });
@@ -181,28 +149,15 @@ class GemstoneMacro extends ModuleBase {
                     if (!this.foundFirstPoint) {
                         if (this.nearestPoint) {
                             let playerEyePos = Player.getPlayer().getEyePos();
-                            let begin = [
-                                playerEyePos.x,
-                                playerEyePos.y,
-                                playerEyePos.z,
-                            ];
-                            let end = [
-                                this.nearestPoint.point?.x,
-                                this.nearestPoint.point?.y,
-                                this.nearestPoint.point?.z,
-                            ];
+                            let begin = [playerEyePos.x, playerEyePos.y, playerEyePos.z];
+                            let end = [this.nearestPoint.point?.x, this.nearestPoint.point?.y, this.nearestPoint.point?.z];
 
-                            let traversedBlocks =
-                                RayTrace.rayTraceBetweenPoints(begin, end);
+                            let traversedBlocks = RayTrace.rayTraceBetweenPoints(begin, end);
 
                             let lineOfSightIsClear = true;
 
                             if (traversedBlocks && traversedBlocks.length > 0) {
-                                for (
-                                    let i = 0;
-                                    i < traversedBlocks.length - 1;
-                                    i++
-                                ) {
+                                for (let i = 0; i < traversedBlocks.length - 1; i++) {
                                     const [x, y, z] = traversedBlocks[i];
 
                                     const block = World.getBlockAt(x, y, z);
@@ -218,19 +173,13 @@ class GemstoneMacro extends ModuleBase {
                                 Keybind.setKey('shift', true);
 
                                 Rotations.rotateTo(
-                                    [
-                                        this.nearestPoint.point?.x + 0.5,
-                                        this.nearestPoint.point?.y + 0.5,
-                                        this.nearestPoint.point?.z + 0.5,
-                                    ],
+                                    [this.nearestPoint.point?.x + 0.5, this.nearestPoint.point?.y + 0.5, this.nearestPoint.point?.z + 0.5],
                                     false,
                                     150
                                 );
 
                                 Rotations.onEndRotation(() => {
-                                    Keybind.rightClickDelay(
-                                        this.FASTAOTV ? 4 : 7
-                                    );
+                                    Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);
                                 });
                                 this.foundFirstPoint = true;
                             } else {
@@ -243,15 +192,7 @@ class GemstoneMacro extends ModuleBase {
                         if (MiningBot.empty) {
                             Keybind.setKey('shift', true);
 
-                            Rotations.rotateTo(
-                                [
-                                    this.nextPoint?.x + 0.5,
-                                    this.nextPoint?.y + 0.5,
-                                    this.nextPoint?.z + 0.5,
-                                ],
-                                false,
-                                150
-                            );
+                            Rotations.rotateTo([this.nextPoint?.x + 0.5, this.nextPoint?.y + 0.5, this.nextPoint?.z + 0.5], false, 150);
 
                             Rotations.onEndRotation(() => {
                                 Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);
@@ -259,16 +200,11 @@ class GemstoneMacro extends ModuleBase {
                             MiningBot.empty = false;
                         } else {
                             Chat.message('£H');
-                            let distData = MathUtils.getDistanceToPlayer(
-                                this.nextPoint?.x,
-                                this.nextPoint?.y,
-                                this.nextPoint?.z
-                            );
+                            let distData = MathUtils.getDistanceToPlayer(this.nextPoint?.x, this.nextPoint?.y, this.nextPoint?.z);
                             let currentDistance = distData.distance;
 
                             this.enableMiningBot = false;
-                            if (currentDistance < 2)
-                                this.state = this.STATES.MINING;
+                            if (currentDistance < 2) this.state = this.STATES.MINING;
                         }
                     }
 
@@ -329,15 +265,7 @@ class GemstoneMacro extends ModuleBase {
         );
         this.addMultiToggle(
             'Gemstone Types',
-            [
-                'Ruby',
-                'Amethyst',
-                'Sapphire',
-                'Topaz',
-                'Amber',
-                'Jade',
-                'Jasper',
-            ],
+            ['Ruby', 'Amethyst', 'Sapphire', 'Topaz', 'Amber', 'Jade', 'Jasper'],
             false,
             (selected) => {
                 const setHas = (name) => selected.includes(name);
@@ -391,17 +319,8 @@ class GemstoneMacro extends ModuleBase {
         for (let i = 0; i < this.route.length; i++) {
             const point = this.route[i];
 
-            if (
-                point &&
-                typeof point.x === 'number' &&
-                typeof point.y === 'number' &&
-                typeof point.z === 'number'
-            ) {
-                let distData = MathUtils.getDistanceToPlayer(
-                    point.x,
-                    point.y,
-                    point.z
-                );
+            if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') {
+                let distData = MathUtils.getDistanceToPlayer(point.x, point.y, point.z);
                 let currentDistance = distData.distance;
 
                 if (currentDistance < shortestDistance) {

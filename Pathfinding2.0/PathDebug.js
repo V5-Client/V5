@@ -71,21 +71,14 @@ export function renderSplineBoxes(smoothSplineData, boxInterval = 1) {
     const STRONG_SMOOTHING_RADIUS = 5;
     const CURVE_DETECTION_RADIUS = 2;
 
-    if (
-        !smoothSplineData ||
-        smoothSplineData.length < STRONG_SMOOTHING_RADIUS * 2 + 1
-    )
-        return [];
+    if (!smoothSplineData || smoothSplineData.length < STRONG_SMOOTHING_RADIUS * 2 + 1) return [];
 
     const smoothedPath = [];
 
     for (let i = 0; i < smoothSplineData.length; i++) {
         const currentPoint = smoothSplineData[i];
 
-        const lookAheadIndex = Math.min(
-            smoothSplineData.length - 1,
-            i + CURVE_DETECTION_RADIUS
-        );
+        const lookAheadIndex = Math.min(smoothSplineData.length - 1, i + CURVE_DETECTION_RADIUS);
         const lookBehindIndex = Math.max(0, i - CURVE_DETECTION_RADIUS);
 
         const p_back = smoothSplineData[lookBehindIndex];
@@ -102,19 +95,13 @@ export function renderSplineBoxes(smoothSplineData, boxInterval = 1) {
         const mag1 = Math.sqrt(vx1 * vx1 + vy1 * vy1 + vz1 * vz1);
         const mag2 = Math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2);
 
-        const cosAngle =
-            mag1 > 0 && mag2 > 0
-                ? Math.min(1, Math.max(-1, dot / (mag1 * mag2)))
-                : 1;
+        const cosAngle = mag1 > 0 && mag2 > 0 ? Math.min(1, Math.max(-1, dot / (mag1 * mag2))) : 1;
 
         let curveFactor = 1.0 - Math.min(1, Math.max(0, (cosAngle + 1) / 2));
         curveFactor = Math.pow(curveFactor, 5);
 
         const strongStart = Math.max(0, i - STRONG_SMOOTHING_RADIUS);
-        const strongEnd = Math.min(
-            smoothSplineData.length - 1,
-            i + STRONG_SMOOTHING_RADIUS
-        );
+        const strongEnd = Math.min(smoothSplineData.length - 1, i + STRONG_SMOOTHING_RADIUS);
         let strongSumX = 0,
             strongSumY = 0,
             strongSumZ = 0,
@@ -155,11 +142,7 @@ export function renderSplineBoxes(smoothSplineData, boxInterval = 1) {
         const current = pathForBoxes[i];
         const next = pathForBoxes[i + 1];
 
-        const segmentDistance = Math.sqrt(
-            Math.pow(next.x - current.x, 2) +
-                Math.pow(next.y - current.y, 2) +
-                Math.pow(next.z - current.z, 2)
-        );
+        const segmentDistance = Math.sqrt(Math.pow(next.x - current.x, 2) + Math.pow(next.y - current.y, 2) + Math.pow(next.z - current.z, 2));
 
         if (distanceCovered + segmentDistance >= nextBoxDistance) {
             let remainder = nextBoxDistance - distanceCovered;
@@ -199,24 +182,10 @@ export function drawFloatingSpline(
             const startVec = smoothSplineData[i];
             const endVec = smoothSplineData[i + 1];
 
-            const startRenderVec = new Vec3d(
-                startVec.x + 0.5,
-                startVec.y + verticalOffset,
-                startVec.z + 0.5
-            );
-            const endRenderVec = new Vec3d(
-                endVec.x + 0.5,
-                endVec.y + verticalOffset,
-                endVec.z + 0.5
-            );
+            const startRenderVec = new Vec3d(startVec.x + 0.5, startVec.y + verticalOffset, startVec.z + 0.5);
+            const endRenderVec = new Vec3d(endVec.x + 0.5, endVec.y + verticalOffset, endVec.z + 0.5);
 
-            RenderUtils.drawLine(
-                startRenderVec,
-                endRenderVec,
-                color,
-                thickness,
-                renderThrough
-            );
+            RenderUtils.drawLine(startRenderVec, endRenderVec, color, thickness, renderThrough);
         }
     } catch (e) {
         console.error('Error in drawFloatingSpline:', e);

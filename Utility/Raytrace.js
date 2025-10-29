@@ -22,11 +22,7 @@ class rayTraceUtils {
      * @returns {Array} Array of [x, y, z] points
      */
     getPointsOnBlock(pos) {
-        return this.defaultPoints.map((p) => [
-            pos.x + p[0],
-            pos.y + p[1],
-            pos.z + p[2],
-        ]);
+        return this.defaultPoints.map((p) => [pos.x + p[0], pos.y + p[1], pos.z + p[2]]);
     }
 
     /**
@@ -45,17 +41,11 @@ class rayTraceUtils {
      * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster)
      * @returns {Array|null} The [x, y, z] coordinates of the visible point, or null
      */
-    getPointOnBlock(
-        blockPos,
-        vector = Player.getPlayer().getEyePos(),
-        useNativeRaycast = true
-    ) {
+    getPointOnBlock(blockPos, vector = Player.getPlayer().getEyePos(), useNativeRaycast = true) {
         const points = this.getPointsOnBlock(blockPos);
 
         for (const point of points) {
-            const isVisible = useNativeRaycast
-                ? this.canSeePointMC(blockPos, point)
-                : this.canSeePointJS(blockPos, point);
+            const isVisible = useNativeRaycast ? this.canSeePointMC(blockPos, point) : this.canSeePointJS(blockPos, point);
 
             if (isVisible) {
                 return point;
@@ -86,9 +76,7 @@ class rayTraceUtils {
 
         if (distSq > 1000) return false;
 
-        return (
-            this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null
-        );
+        return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
     }
 
     /**
@@ -101,26 +89,11 @@ class rayTraceUtils {
         const dz = point[2] - vector.z;
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        const direction = new Vector3(
-            dx / distance,
-            dy / distance,
-            dz / distance
-        );
+        const direction = new Vector3(dx / distance, dy / distance, dz / distance);
 
-        const castResult = raytraceBlocks(
-            [vector.x, vector.y, vector.z],
-            direction,
-            distance + 0.1,
-            this.check,
-            true
-        );
+        const castResult = raytraceBlocks([vector.x, vector.y, vector.z], direction, distance + 0.1, this.check, true);
 
-        return (
-            castResult &&
-            castResult[0] === blockPos.x &&
-            castResult[1] === blockPos.y &&
-            castResult[2] === blockPos.z
-        );
+        return castResult && castResult[0] === blockPos.x && castResult[1] === blockPos.y && castResult[2] === blockPos.z;
     }
 
     /**
@@ -148,11 +121,7 @@ class rayTraceUtils {
         const hitPos = result.getBlockPos();
         if (!hitPos) return false;
 
-        return (
-            hitPos.getX() === blockPos.x &&
-            hitPos.getY() === blockPos.y &&
-            hitPos.getZ() === blockPos.z
-        );
+        return hitPos.getX() === blockPos.x && hitPos.getY() === blockPos.y && hitPos.getZ() === blockPos.z;
     }
 
     /**
@@ -160,14 +129,7 @@ class rayTraceUtils {
      */
     rayTracePlayerBlocks(reach = 60, checkFunction = null) {
         const eyes = Player.getPlayer().getEyePos();
-        return raytraceBlocks(
-            [eyes.x, eyes.y, eyes.z],
-            null,
-            reach,
-            checkFunction,
-            false,
-            false
-        );
+        return raytraceBlocks([eyes.x, eyes.y, eyes.z], null, reach, checkFunction, false, false);
     }
 
     /**
@@ -179,11 +141,7 @@ class rayTraceUtils {
         const dz = end[2] - begin[2];
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        const direction = new Vector3(
-            dx / distance,
-            dy / distance,
-            dz / distance
-        );
+        const direction = new Vector3(dx / distance, dy / distance, dz / distance);
 
         return raytraceBlocks(begin, direction, distance, null, false, false);
     }
@@ -294,11 +252,7 @@ class rayTraceUtils {
         const blockPos = castResult.getBlockPos();
         if (!blockPos) return null;
 
-        const blockAt = World.getBlockAt(
-            blockPos.getX(),
-            blockPos.getY(),
-            blockPos.getZ()
-        );
+        const blockAt = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
         return blockAt && blockAt.type.getID() !== 0 ? blockAt : null;
     }
 }

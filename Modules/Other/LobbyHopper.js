@@ -34,9 +34,7 @@ class LobbyHopper extends ModuleBase {
                 this.reset();
             } else {
                 if (this.getLobbyDay() > this.maxDay) {
-                    this.message(
-                        'Crystal Hollows day is too high! Warping to new lobby.'
-                    );
+                    this.message('Crystal Hollows day is too high! Warping to new lobby.');
                     ChatLib.command('is');
 
                     this.reset();

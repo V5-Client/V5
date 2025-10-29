@@ -3,12 +3,7 @@ import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { stopRotation } from './PathRotations';
 import { renderPath } from './PathRenderer';
-import {
-    setPathNodes,
-    setKeyNodes,
-    resetMovementState,
-    setSplineForRendering,
-} from './PathState';
+import { setPathNodes, setKeyNodes, resetMovementState, setSplineForRendering } from './PathState';
 import { startPathing } from './PathEngine';
 import { adjustSplineToEyeLevel } from './PathMovement';
 
@@ -42,18 +37,10 @@ function getSinglePlayerWarpCommand(warpName) {
 }
 
 function handleWarp(warpCommand, onComplete) {
-    const tpCommand =
-        Server.getName() === 'SinglePlayer'
-            ? getSinglePlayerWarpCommand(warpCommand)
-            : warpCommand.slice(1);
+    const tpCommand = Server.getName() === 'SinglePlayer' ? getSinglePlayerWarpCommand(warpCommand) : warpCommand.slice(1);
 
     if (!tpCommand) {
-        global.showNotification(
-            'Pathfinding Error',
-            `Unknown warp point: ${warpCommand}`,
-            'ERROR',
-            4000
-        );
+        global.showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
         return;
     }
 
@@ -66,12 +53,8 @@ function handleWarp(warpCommand, onComplete) {
 export function findAndFollowPath(start, end, renderOnly = false) {
     stopPathing();
 
-    const url = `${localhost}/api/pathfinding?start=${start.join(
-        ','
-    )}&end=${end.join(',')}&map=mines`;
-    Chat.message(
-        `§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`
-    );
+    const url = `${localhost}/api/pathfinding?start=${start.join(',')}&end=${end.join(',')}&map=mines`;
+    Chat.message(`§aPathfinding from §e${start.join(', ')}§a to §e${end.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -84,12 +67,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
             }
 
             if (!body || !body.spline || !body.spline.length) {
-                return global.showNotification(
-                    'Pathfinding Failed',
-                    'No spline path received from server.',
-                    'ERROR',
-                    5000
-                );
+                return global.showNotification('Pathfinding Failed', 'No spline path received from server.', 'ERROR', 5000);
             }
 
             setPathNodes(body.path || []);
@@ -101,16 +79,8 @@ export function findAndFollowPath(start, end, renderOnly = false) {
                 if (renderOnly) {
                     const adjustedSpline = adjustSplineToEyeLevel(body.spline);
                     setSplineForRendering(adjustedSpline);
-                    renderOnlyRegister = register(
-                        'postRenderWorld',
-                        renderPath
-                    );
-                    global.showNotification(
-                        'Path Rendered',
-                        'Movement not initiated.',
-                        'INFO',
-                        3000
-                    );
+                    renderOnlyRegister = register('postRenderWorld', renderPath);
+                    global.showNotification('Path Rendered', 'Movement not initiated.', 'INFO', 3000);
                 } else {
                     startPathing(body.spline, end, stopPathing);
                 }
@@ -124,12 +94,7 @@ export function findAndFollowPath(start, end, renderOnly = false) {
         })
         .catch((err) => {
             if (currentPathRequest !== requestId) return;
-            global.showNotification(
-                'Pathfinding Error',
-                'See console for details.',
-                'ERROR',
-                5000
-            );
+            global.showNotification('Pathfinding Error', 'See console for details.', 'ERROR', 5000);
             console.log(`Pathfinding request failed: ${err}`);
         });
 }

@@ -1,6 +1,5 @@
 export class Vector3 {
-    static fromCoords = (x0, y0, z0, x1, y1, z1) =>
-        new Vector3(x1 - x0, y1 - y0, z1 - z0);
+    static fromCoords = (x0, y0, z0, x1, y1, z1) => new Vector3(x1 - x0, y1 - y0, z1 - z0);
 
     static fromPitchYaw = (pitch, yaw) => {
         const f = Math.cos(-yaw * 0.017453292 - Math.PI);
@@ -21,26 +20,14 @@ export class Vector3 {
     }
 
     subtract(vector3) {
-        return new Vector3(
-            this.x - vector3.x,
-            this.y - vector3.y,
-            this.z - vector3.z
-        );
+        return new Vector3(this.x - vector3.x, this.y - vector3.y, this.z - vector3.z);
     }
 
     add(vector3) {
         if (vector3 instanceof Vector3) {
-            return new Vector3(
-                this.x + vector3.x,
-                this.y + vector3.y,
-                this.z + vector3.z
-            );
+            return new Vector3(this.x + vector3.x, this.y + vector3.y, this.z + vector3.z);
         }
-        return new Vector3(
-            this.x + vector3[0],
-            this.y + vector3[1],
-            this.z + vector3[2]
-        );
+        return new Vector3(this.x + vector3[0], this.y + vector3[1], this.z + vector3[2]);
     }
 
     dotProduct(vector3) {
@@ -48,11 +35,7 @@ export class Vector3 {
     }
 
     crossProduct(vector3) {
-        return new Vector3(
-            this.y * vector3.z - this.z * vector3.y,
-            this.z * vector3.x - this.x * vector3.z,
-            this.x * vector3.y - this.y * vector3.x
-        );
+        return new Vector3(this.y * vector3.z - this.z * vector3.y, this.z * vector3.x - this.x * vector3.z, this.x * vector3.y - this.y * vector3.x);
     }
 
     getLength() {
@@ -60,9 +43,7 @@ export class Vector3 {
     }
 
     getAngleRad(vector3) {
-        return Math.acos(
-            this.dotProduct(vector3) / (this.getLength() * vector3.getLength())
-        );
+        return Math.acos(this.dotProduct(vector3) / (this.getLength() * vector3.getLength()));
     }
 
     getAngleDeg(vector3) {
@@ -70,21 +51,10 @@ export class Vector3 {
     }
 
     getPlaneEquation(point1, point2, point3) {
-        let d1 = new Vector3(
-            point2[0] - point1[0],
-            point2[1] - point1[1],
-            point2[2] - point1[2]
-        );
-        let d2 = new Vector3(
-            point3[0] - point1[0],
-            point3[1] - point1[1],
-            point3[2] - point1[2]
-        );
+        let d1 = new Vector3(point2[0] - point1[0], point2[1] - point1[1], point2[2] - point1[2]);
+        let d2 = new Vector3(point3[0] - point1[0], point3[1] - point1[1], point3[2] - point1[2]);
         let normal = d1.crossProduct(d2);
-        return [
-            ...normal.getComponents(),
-            -new Vector3(...point1).dotProduct(normal),
-        ];
+        return [...normal.getComponents(), -new Vector3(...point1).dotProduct(normal)];
     }
 
     normalize() {

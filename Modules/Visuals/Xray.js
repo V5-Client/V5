@@ -19,14 +19,7 @@ class Xray extends ModuleBase {
         this.firstTransparency = getSetting('Xray', 'Transparency');
 
         // Transparency slider
-        this.addSlider(
-            'Transparency',
-            0,
-            100,
-            50,
-            null,
-            'Transparency of Xray.'
-        );
+        this.addSlider('Transparency', 0, 100, 50, null, 'Transparency of Xray.');
 
         this.on('step', () => {
             const transparency = getSetting('Xray', 'Transparency');
