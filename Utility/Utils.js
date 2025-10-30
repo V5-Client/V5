@@ -5,7 +5,7 @@ import { ItemObject } from './DataClasses/ItemObject';
 import { Vector } from './DataClasses/Vec';
 import { Notifications } from './Notifications';
 
-import { ArrayLists } from './Constants';
+import { ArrayLists, Vec3d } from './Constants';
 
 let AxisAlignedBB = net.minecraft.world.phys.AABB;
 
@@ -247,7 +247,8 @@ class UtilsClass {
      */
     convertToVector(input) {
         if (input instanceof Vector) return input;
-        if (input instanceof Array)
+        if (input instanceof Vec3d) return input;
+        if (input instanceof Array && input.length >= 3)
             return new Vector(input[0], input[1], input[2]);
         else if (input instanceof BlockPos || input instanceof Vec3i)
             return new Vector(input.x, input.y, input.z);
@@ -259,6 +260,15 @@ class UtilsClass {
             input instanceof Entity
         )
             return new Vector(input.getX(), input.getY(), input.getZ());
+        else if (
+            input &&
+            typeof input.x === 'number' &&
+            typeof input.y === 'number' &&
+            typeof input.z === 'number'
+        )
+            return new Vector(input.x, input.y, input.z);
+
+        return null;
     }
 
     isNumber(object) {
