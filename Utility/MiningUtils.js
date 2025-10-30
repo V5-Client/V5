@@ -173,21 +173,13 @@ class MiningUtilClass {
                         let maniac = con.getStackInSlot(43);
 
                         if (this.ability === 'None') {
-                            if (
-                                infusion?.type?.getRegistryName() === selected
-                            ) {
+                            if (infusion?.type?.getRegistryName() === selected) {
                                 this.ability = 'GemstoneInfusion';
-                            } else if (
-                                force?.type?.getRegistryName() === selected
-                            ) {
+                            } else if (force?.type?.getRegistryName() === selected) {
                                 this.ability = 'SheerForce';
-                            } else if (
-                                desire?.type?.getRegistryName() === selected
-                            ) {
+                            } else if (desire?.type?.getRegistryName() === selected) {
                                 this.ability = 'AnamolousDesire';
-                            } else if (
-                                maniac?.type?.getRegistryName() === selected
-                            ) {
+                            } else if (maniac?.type?.getRegistryName() === selected) {
                                 this.ability = 'ManiacMiner';
                             } else {
                                 this.ability = 'None';
