@@ -10,10 +10,7 @@ class Routes {
 
     getFilesinDir(folder) {
         let mcDir = new File(Client.getMinecraft().runDirectory);
-        let configPath = new File(
-            mcDir,
-            'config/ChatTriggers/modules/V5Config/' + folder
-        );
+        let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5Config/' + folder);
 
         if (!configPath.exists() || !configPath.isDirectory()) {
             ChatLib.chat(`&cError: Directory not found.`);
@@ -67,15 +64,7 @@ class Routes {
     }
 
     // ill rework most of this overtime
-    Edit(
-        action,
-        route,
-        file,
-        indexNum,
-        takeMovementTypes = false,
-        allowedMovements = [],
-        userMovementInput = ''
-    ) {
+    Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '') {
         let indexToUse = undefined;
         if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
@@ -100,13 +89,8 @@ class Routes {
                 let allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => m.toUpperCase()) : null);
 
                 if (takeMovementTypes) {
-                    if (
-                        !Array.isArray(userMovementInput) ||
-                        userMovementInput.length === 0
-                    ) {
-                        Chat.message(
-                            'ERROR: Movement type required. Waypoint not added.'
-                        );
+                    if (!Array.isArray(userMovementInput) || userMovementInput.length === 0) {
+                        Chat.message('ERROR: Movement type required. Waypoint not added.');
                         return route;
                     }
 
@@ -132,9 +116,7 @@ class Routes {
                         } else {
                             route.push(point);
                             routeModified = true;
-                            Chat.message(
-                                `Invalid waypoint position, adding to the end.`
-                            );
+                            Chat.message(`Invalid waypoint position, adding to the end.`);
                         }
                     } else {
                         route.push(point);
@@ -156,9 +138,7 @@ class Routes {
                         if (route.length > 0) {
                             route.pop();
                             routeModified = true;
-                            Chat.message(
-                                `Invalid waypoint position, removing the last waypoint.`
-                            );
+                            Chat.message(`Invalid waypoint position, removing the last waypoint.`);
                         } else {
                             Chat.message('Route is already empty!');
                         }
@@ -180,12 +160,9 @@ class Routes {
                     routeModified = true;
                     const lastSlashIndex = file.lastIndexOf('/');
                     let filename = file;
-                    if (lastSlashIndex !== -1)
-                        filename = file.substring(lastSlashIndex + 1);
+                    if (lastSlashIndex !== -1) filename = file.substring(lastSlashIndex + 1);
 
-                    Chat.message(
-                        `Cleared all waypoints from the route ${filename}`
-                    );
+                    Chat.message(`Cleared all waypoints from the route ${filename}`);
                 } else {
                     Chat.message('Route is already empty!');
                 }

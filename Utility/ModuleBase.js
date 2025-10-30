@@ -51,9 +51,7 @@ export class ModuleBase {
         if (!this._conditionalChecker) {
             this._conditionalChecker = this.trackRegister(
                 register('step', () => {
-                    this._conditionalRegisters.forEach((item) =>
-                        this._checkConditional(item)
-                    );
+                    this._conditionalRegisters.forEach((item) => this._checkConditional(item));
                 }).setFps(1)
             );
         }
