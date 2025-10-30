@@ -73,14 +73,10 @@ class MiningUtilClass {
 
     RetreiveStats() {
         const { drill } = this.getDrills();
-        if (!drill) {
-            return; // Exit if no drill is found, message already sent in getDrills()
-        }
-        Player.setHeldItemIndex(drill.slot);
+        if (!drill) Player.setHeldItemIndex(drill.slot);
 
         Chat.message('Getting your Mining Data!');
 
-        // Helper functions
         const getItemLore = (slot) => {
             return Player.getContainer().getStackInSlot(slot).getLore();
         };
@@ -154,6 +150,7 @@ class MiningUtilClass {
                         this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
 
                         currentStep++;
+                        ChatLib.chat(this.ability);
                         Guis.clickSlot(8, false, 'RIGHT');
                     }
                     break;
@@ -175,16 +172,26 @@ class MiningUtilClass {
                         let desire = con.getStackInSlot(37);
                         let maniac = con.getStackInSlot(43);
 
-                        if (infusion?.type?.getRegistryName() === selected) {
-                            this.ability = 'GemstoneInfusion';
-                        } else if (force?.type?.getRegistryName() === selected) {
-                            this.ability = 'SheerForce';
-                        } else if (desire?.type?.getRegistryName() === selected) {
-                            this.ability = 'AnamolousDesire';
-                        } else if (maniac?.type?.getRegistryName() === selected) {
-                            this.ability = 'ManiacMiner';
-                        } else {
-                            this.ability = 'None';
+                        if (this.ability === 'None') {
+                            if (
+                                infusion?.type?.getRegistryName() === selected
+                            ) {
+                                this.ability = 'GemstoneInfusion';
+                            } else if (
+                                force?.type?.getRegistryName() === selected
+                            ) {
+                                this.ability = 'SheerForce';
+                            } else if (
+                                desire?.type?.getRegistryName() === selected
+                            ) {
+                                this.ability = 'AnamolousDesire';
+                            } else if (
+                                maniac?.type?.getRegistryName() === selected
+                            ) {
+                                this.ability = 'ManiacMiner';
+                            } else {
+                                this.ability = 'None';
+                            }
                         }
 
                         this.strongArm = getFirstMatchFromLore(21, /\+(\d+(\.\d+)?)/);

@@ -18,6 +18,8 @@ class Rotation2 {
         this.actions = [];
         this.deltaTime = 0;
 
+        this.actions = [];
+
         register('command', (yaw, pitch) => {
             this.rotateToAngles(parseFloat(yaw), parseFloat(pitch));
         }).setName('rotateTo');
@@ -84,12 +86,28 @@ class Rotation2 {
         this.lastTime = 0;
     }
 
+    onEndRotation(callBack, name = null) {
+        if (typeof callBack === 'function') {
+            this.actions.push({ func: callBack, name });
+        }
+    }
+
     stopRotation() {
+        if (!this.isRotating) return;
+
         this.isRotating = false;
         this.target = null;
         this.targetVector = null;
         this.lastTime = 0;
-        this.actions = [];
+
+        while (this.actions.length > 0) {
+            const action = this.actions.shift();
+            try {
+                action.func();
+            } catch (error) {
+                console.error(`Error executing rotation callback: ${error}`);
+            }
+        }
     }
 
     updateRotation() {
@@ -107,14 +125,13 @@ class Rotation2 {
         if (this.targetVector) {
             finalTarget = this.getAnglesFromVector(this.targetVector);
             if (!finalTarget) {
-                this.isRotating = false;
-                this.targetVector = null;
+                this.stopRotation();
                 return;
             }
         } else if (this.target) {
             finalTarget = this.target;
         } else {
-            this.isRotating = false;
+            this.stopRotation();
             return;
         }
 

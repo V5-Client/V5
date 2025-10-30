@@ -9,6 +9,8 @@ export class ModuleBase {
         this.tooltip = opts.tooltip || null;
         this.enabled = false;
         this._registers = [];
+        this._conditionalRegisters = [];
+        this._conditionalChecker = null;
 
         // add to gui
         global.Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
@@ -33,6 +35,43 @@ export class ModuleBase {
     on(registerName, callback) {
         const h = register(registerName, callback).unregister();
         return this.trackRegister(h);
+    }
+
+    // toggle register based on the condition
+    when(condition, registerName, callback) {
+        const actionRegister = register(registerName, callback).unregister();
+
+        const conditionalItem = {
+            condition: condition,
+            actionRegister: actionRegister,
+            isRegistered: false,
+        };
+        this._conditionalRegisters.push(conditionalItem);
+
+        if (!this._conditionalChecker) {
+            this._conditionalChecker = this.trackRegister(
+                register('step', () => {
+                    this._conditionalRegisters.forEach((item) =>
+                        this._checkConditional(item)
+                    );
+                }).setFps(1)
+            );
+        }
+
+        this._checkConditional(conditionalItem);
+    }
+
+    // check the item and (un)register
+    _checkConditional(item) {
+        const conditionValue = item.condition();
+
+        if (conditionValue && !item.isRegistered) {
+            item.actionRegister.register();
+            item.isRegistered = true;
+        } else if (!conditionValue && item.isRegistered) {
+            item.actionRegister.unregister();
+            item.isRegistered = false;
+        }
     }
 
     // Toggle logic: call hooks and register/unregister tracked registers

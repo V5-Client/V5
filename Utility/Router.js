@@ -2,15 +2,55 @@ import RenderUtils from '../Rendering/RendererUtils';
 import { Utils } from './Utils';
 import { Chat } from './Chat';
 import { Vec3d } from './Constants';
+import { File } from './Constants';
+import { closeGui } from '../GUI/GUI';
 
 class Routes {
-    constructor() {
-        this.DEFAULT_FILE_ROUTE = 'gemstoneroutes/default_route.txt';
+    constructor() {}
+
+    getFilesinDir(folder) {
+        let mcDir = new File(Client.getMinecraft().runDirectory);
+        let configPath = new File(
+            mcDir,
+            'config/ChatTriggers/modules/V5Config/' + folder
+        );
+
+        if (!configPath.exists() || !configPath.isDirectory()) {
+            ChatLib.chat(`&cError: Directory not found.`);
+            return [];
+        }
+
+        const fileArray = configPath.listFiles();
+        const fileNames = [];
+
+        if (!fileArray) return;
+
+        for (let i = 0; i < fileArray.length; i++) {
+            const file = fileArray[i];
+
+            let name = file.getName();
+            name = name.replace('.txt', '');
+
+            fileNames.push(name);
+        }
+
+        return fileNames;
     }
 
-    loadRouteFromFile(fileLocation) {
+    getFilefromCallback(callback) {
+        let enabledObjects = callback.filter((item) => item.enabled === true);
+        let enabledRouteNames = enabledObjects.map((item) => item.name);
+
+        if (enabledRouteNames.length === 0) return null;
+
+        let fileName = enabledRouteNames.join(', ') + '.txt';
+        return fileName;
+    }
+
+    loadRouteFromFile(dir, file) {
+        if (!file) return console.log('No file accessed!');
         try {
-            let routeData = Utils.getConfigFile(fileLocation);
+            let routeData = Utils.getConfigFile(dir + file);
 
             if (routeData) return routeData;
         } catch (error) {
@@ -23,26 +63,31 @@ class Routes {
     saveRouteToFile(route, fileLocation) {
         try {
             Utils.writeConfigFile(fileLocation, route);
-
-            Chat.message(`Route saved successfully to: ${fileLocation}`);
-        } catch (error) {
-            Chat.message(`ERROR saving route to ${fileLocation}: ${error.message}`);
-        }
+        } catch (error) {}
     }
 
-    Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '') {
+    // ill rework most of this overtime
+    Edit(
+        action,
+        route,
+        file,
+        indexNum,
+        takeMovementTypes = false,
+        allowedMovements = [],
+        userMovementInput = ''
+    ) {
         let indexToUse = undefined;
         if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
         }
 
+        if (!route) {
+            return Chat.message("You don't have a route selected");
+        }
+
         let routeModified = false;
 
         switch (action) {
-            case 'OFF':
-                Chat.message('Route editing is currently OFF. No changes made.');
-                return route;
-
             case 'ADD':
                 let point = {
                     x: Math.floor(Player.getX()),
@@ -55,8 +100,13 @@ class Routes {
                 let allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => m.toUpperCase()) : null);
 
                 if (takeMovementTypes) {
-                    if (!Array.isArray(userMovementInput) || userMovementInput.length === 0) {
-                        Chat.message('ERROR: Movement type required for this command. Waypoint not added.');
+                    if (
+                        !Array.isArray(userMovementInput) ||
+                        userMovementInput.length === 0
+                    ) {
+                        Chat.message(
+                            'ERROR: Movement type required. Waypoint not added.'
+                        );
                         return route;
                     }
 
@@ -78,14 +128,18 @@ class Routes {
                         if (arrayIndex >= 0 && arrayIndex <= route.length) {
                             route.splice(arrayIndex, 0, point);
                             routeModified = true;
+                            Chat.message(`Added waypoint ${indexToUse}`);
                         } else {
                             route.push(point);
                             routeModified = true;
-                            Chat.message(`Invalid index ${indexToUse}. Added point to the end.`);
+                            Chat.message(
+                                `Invalid waypoint position, adding to the end.`
+                            );
                         }
                     } else {
                         route.push(point);
                         routeModified = true;
+                        Chat.message(`Added waypoint to the end of the route.`);
                     }
                 }
                 break;
@@ -95,19 +149,27 @@ class Routes {
                     let arrayIndex = indexToUse - 1;
 
                     if (arrayIndex >= 0 && arrayIndex < route.length) {
-                        const removed = route.splice(arrayIndex, 1)[0];
+                        route.splice(arrayIndex, 1)[0];
                         routeModified = true;
-                        Chat.message(`Removed waypoint ${indexToUse} [${removed.x}, ${removed.y}, ${removed.z}]`);
+                        Chat.message(`Removed waypoint ${indexToUse}`);
                     } else {
-                        Chat.message(`Invalid index ${indexToUse}. Cannot remove point.`);
+                        if (route.length > 0) {
+                            route.pop();
+                            routeModified = true;
+                            Chat.message(
+                                `Invalid waypoint position, removing the last waypoint.`
+                            );
+                        } else {
+                            Chat.message('Route is already empty!');
+                        }
                     }
                 } else {
                     if (route.length > 0) {
-                        const removed = route.pop();
+                        route.pop();
                         routeModified = true;
-                        Chat.message(`Removed last waypoint [${removed.x}, ${removed.y}, ${removed.z}]`);
+                        Chat.message(`Removed the last waypoint.`);
                     } else {
-                        Chat.message('Route is already empty.');
+                        Chat.message('Route is already empty!');
                     }
                 }
                 break;
@@ -116,14 +178,21 @@ class Routes {
                 if (route.length > 0) {
                     route.length = 0;
                     routeModified = true;
-                    Chat.message('Cleared all points from the route.');
+                    const lastSlashIndex = file.lastIndexOf('/');
+                    let filename = file;
+                    if (lastSlashIndex !== -1)
+                        filename = file.substring(lastSlashIndex + 1);
+
+                    Chat.message(
+                        `Cleared all waypoints from the route ${filename}`
+                    );
                 } else {
-                    Chat.message('Route is already empty.');
+                    Chat.message('Route is already empty!');
                 }
                 break;
 
             default:
-                Chat.message(action + ' is not a valid edit action');
+                Chat.message('You did not state an action!');
                 return route;
         }
 
