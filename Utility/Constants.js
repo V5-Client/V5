@@ -1,8 +1,5 @@
-export const UIRoundedRectangle = Java.type(
-    'gg.essential.elementa.components.UIRoundedRectangle'
-);
-export const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack')
-    .Compat.INSTANCE;
+export const UIRoundedRectangle = Java.type('gg.essential.elementa.components.UIRoundedRectangle');
+export const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat.INSTANCE;
 export const BufferedInputStream = java.io.BufferedInputStream;
 export const DataFlavor = java.awt.datatransfer.DataFlavor;
 export const FileOutputStream = java.io.FileOutputStream;

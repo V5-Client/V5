@@ -8,8 +8,7 @@ import { RayTrace } from '../../Utility/Raytrace';
 import { Chat } from '../../Utility/Chat';
 import { Mouse } from '../../Utility/Ungrab';
 
-const { addToggle, addSlider, addMultiToggle, addCategoryItem } =
-    global.Categories;
+const { addToggle, addSlider, addMultiToggle, addCategoryItem } = global.Categories;
 
 class RouteWalkerer {
     constructor() {
@@ -18,9 +17,7 @@ class RouteWalkerer {
         this.LOCKPITCH = false;
         this.PITCH = 0;
 
-        this.loadedRoute = Router.loadRouteFromFile(
-            'routewalkerroutes/empty.txt'
-        );
+        this.loadedRoute = Router.loadRouteFromFile('routewalkerroutes/empty.txt');
         this.route = this.loadedRoute;
         this.enabled = false;
         this.foundpoint = false;
@@ -66,19 +63,9 @@ class RouteWalkerer {
 
             let allowedMovements = ['WALK', 'ETHERWARP'];
 
-            let userMovement = movementTypeArg
-                ? [movementTypeArg.toUpperCase()]
-                : [];
+            let userMovement = movementTypeArg ? [movementTypeArg.toUpperCase()] : [];
 
-            route = Router.Edit(
-                actionUpper,
-                route,
-                'routewalkerroutes/empty.txt',
-                indexNum,
-                true,
-                allowedMovements,
-                userMovement
-            );
+            route = Router.Edit(actionUpper, route, 'routewalkerroutes/empty.txt', indexNum, true, allowedMovements, userMovement);
 
             this.route = route;
         })
@@ -105,13 +92,7 @@ class RouteWalkerer {
                 const point = route[i];
                 if (!this.CheckPoint(point)) return;
 
-                RenderUtils.drawStyledBoxWithText(
-                    new Vec3d(point.x, point.y, point.z),
-                    getColor(point.movements),
-                    5,
-                    false,
-                    `${i + 1}`
-                );
+                RenderUtils.drawStyledBoxWithText(new Vec3d(point.x, point.y, point.z), getColor(point.movements), 5, false, `${i + 1}`);
 
                 if (i >= route.length - 1) return;
                 const nextPoint = route[i + 1];
@@ -119,11 +100,7 @@ class RouteWalkerer {
 
                 RenderUtils.drawLine(
                     new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
-                    new Vec3d(
-                        nextPoint.x + 0.5,
-                        nextPoint.y + 1,
-                        nextPoint.z + 0.5
-                    ),
+                    new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
                     getColor(nextPoint.movements),
                     3,
                     false
@@ -144,37 +121,20 @@ class RouteWalkerer {
             this.point = this.route[this.currentIndex];
             this.action = this.ACTIONS[this.point.movements];
 
-            let distData = MathUtils.getDistanceToPlayer(
-                this.point.x,
-                this.point.y,
-                this.point.z
-            );
+            let distData = MathUtils.getDistanceToPlayer(this.point.x, this.point.y, this.point.z);
             let currentDistance = distData.distance;
 
             switch (this.action) {
                 case this.ACTIONS.WALK:
-                    Keybind.setKeysForStraightLineCoords(
-                        this.point.x,
-                        this.point.y,
-                        this.point.z
-                    );
+                    Keybind.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z);
 
                     Keybind.setKey('shift', this.SNEAK);
                     Keybind.setKey('leftclick', this.LEFTCLICK);
                     Keybind.setKey('sprint', true);
 
-                    let angle = MathUtils.calculateAbsoluteAngles(
-                        new Vec3d(
-                            this.point.x + 0.5,
-                            this.point.y + 2,
-                            this.point.z + 0.5
-                        )
-                    );
+                    let angle = MathUtils.calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
 
-                    Rotations.rotateToAngles(
-                        angle.yaw,
-                        this.LOCKPITCH ? this.PITCH : Player.getPitch()
-                    );
+                    Rotations.rotateToAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : Player.getPitch());
 
                     if (currentDistance < 3) {
                         this.etherwarpReady = false;
@@ -190,32 +150,15 @@ class RouteWalkerer {
                     Keybind.stopMovement();
                     Keybind.setKey('shift', true);
 
-                    const targetBlockPos = new BlockPos(
-                        this.point.x,
-                        this.point.y,
-                        this.point.z
-                    );
+                    const targetBlockPos = new BlockPos(this.point.x, this.point.y, this.point.z);
 
-                    if (
-                        Math.abs(Player.getMotionX()) +
-                            Math.abs(Player.getMotionZ()) >
-                        0.1
-                    )
-                        return;
+                    if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) > 0.1) return;
 
-                    let point = RayTrace.getPointOnBlock(
-                        targetBlockPos,
-                        undefined,
-                        false
-                    );
+                    let point = RayTrace.getPointOnBlock(targetBlockPos, undefined, false);
 
                     if (!this.etherwarpReady) {
                         if (point) {
-                            Rotations.rotateTo(
-                                [point[0], point[1], point[2]],
-                                false,
-                                175
-                            );
+                            Rotations.rotateTo([point[0], point[1], point[2]], false, 175);
 
                             Rotations.onEndRotation(() => {
                                 Keybind.rightClickDelay(7);
@@ -238,12 +181,7 @@ class RouteWalkerer {
             }
         }).unregister();
 
-        addCategoryItem(
-            'Other',
-            'Route Walker',
-            'Walks and Etherwarps Routes',
-            'Walks and Etherwarps Routes'
-        );
+        addCategoryItem('Other', 'Route Walker', 'Walks and Etherwarps Routes', 'Walks and Etherwarps Routes');
         addToggle(
             'Modules',
             'Route Walker',
@@ -307,13 +245,7 @@ class RouteWalkerer {
     }
 
     CheckPoint(point) {
-        if (
-            point &&
-            typeof point.x === 'number' &&
-            typeof point.y === 'number' &&
-            typeof point.z === 'number'
-        )
-            return true;
+        if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') return true;
 
         return false;
     }
@@ -329,17 +261,8 @@ class RouteWalkerer {
         for (let i = 0; i < this.route.length; i++) {
             const point = this.route[i];
 
-            if (
-                point &&
-                typeof point.x === 'number' &&
-                typeof point.y === 'number' &&
-                typeof point.z === 'number'
-            ) {
-                let distData = MathUtils.getDistanceToPlayer(
-                    point.x,
-                    point.y,
-                    point.z
-                );
+            if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') {
+                let distData = MathUtils.getDistanceToPlayer(point.x, point.y, point.z);
                 let currentDistance = distData.distance;
 
                 if (currentDistance < shortestDistance) {

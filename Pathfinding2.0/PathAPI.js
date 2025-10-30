@@ -1,24 +1,12 @@
 import request from 'requestV2';
 import { Links, Vec3d } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
-import {
-    generateHybridSpline,
-    renderSplineBoxes,
-    drawFloatingSpline,
-} from './PathDebug';
+import { generateHybridSpline, renderSplineBoxes, drawFloatingSpline } from './PathDebug';
 import { resetStuckRecovery } from './PathWalker/PathStuckRecovery';
 import { PathMovement } from './PathWalker/PathMovement';
-import {
-    pathRotations,
-    PathComplete,
-    ResetRotations,
-} from './PathWalker/PathRotations';
+import { pathRotations, PathComplete, ResetRotations } from './PathWalker/PathRotations';
 import RenderUtils from '../Rendering/RendererUtils';
-import {
-    getRenderKeyNodes,
-    getRenderFloatingSpline,
-    PathfindingMessages,
-} from './PathConfig';
+import { getRenderKeyNodes, getRenderFloatingSpline, PathfindingMessages } from './PathConfig';
 import { Rotations } from '../Utility/Rotations';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
@@ -70,18 +58,10 @@ function getSinglePlayerWarpCommand(warpName) {
 }
 
 function handleWarp(warpCommand, onComplete) {
-    const tpCommand =
-        Server.getName() === 'SinglePlayer'
-            ? getSinglePlayerWarpCommand(warpCommand)
-            : warpCommand.slice(1);
+    const tpCommand = Server.getName() === 'SinglePlayer' ? getSinglePlayerWarpCommand(warpCommand) : warpCommand.slice(1);
 
     if (!tpCommand) {
-        global.showNotification(
-            'Pathfinding Error',
-            `Unknown warp point: ${warpCommand}`,
-            'ERROR',
-            4000
-        );
+        global.showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
         return;
     }
 
@@ -93,13 +73,7 @@ function handleWarp(warpCommand, onComplete) {
 function drawKeyNodes(keynodes) {
     if (!keynodes || keynodes.length < 2) return;
     keynodes.forEach((keynode) => {
-        RenderUtils.drawStyledBox(
-            new Vec3d(keynode.x, keynode.y, keynode.z),
-            [0, 100, 200, 120],
-            [0, 100, 200, 255],
-            4,
-            true
-        );
+        RenderUtils.drawStyledBox(new Vec3d(keynode.x, keynode.y, keynode.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, true);
     });
     for (let i = 0; i < keynodes.length - 1; i++) {
         const current = keynodes[i];
@@ -114,17 +88,10 @@ function drawKeyNodes(keynodes) {
     }
 }
 
-export function findAndFollowPath(
-    start,
-    end,
-    renderOnly = false,
-    onComplete = null
-) {
+export function findAndFollowPath(start, end, renderOnly = false, onComplete = null) {
     stopPathing();
 
-    const url = `${localhost}/api/pathfinding?start=${start.join(
-        ','
-    )}&end=${end.join(',')}&map=mines`;
+    const url = `${localhost}/api/pathfinding?start=${start.join(',')}&end=${end.join(',')}&map=mines`;
     PathfindingMessages(`Path from ${start.join(', ')} to ${end.join(', ')}`);
 
     const requestId = Date.now();
@@ -135,22 +102,13 @@ export function findAndFollowPath(
             if (currentPathRequest !== requestId) return;
 
             if (!body || !body.keynodes || body.keynodes.length < 1) {
-                return global.showNotification(
-                    'Pathfinding Failed',
-                    'No path nodes received to generate a curve.',
-                    'ERROR',
-                    5000
-                );
+                return global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
             }
 
             if (body.path && body.path.length) setPathNodes(body.path);
-            if (body.keynodes && body.keynodes.length)
-                setKeyNodes(body.keynodes);
+            if (body.keynodes && body.keynodes.length) setKeyNodes(body.keynodes);
 
-            const generatedSpline = generateHybridSpline(
-                body.path_between_key_nodes,
-                1
-            );
+            const generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
             setPathNodes(generatedSpline);
 
             if (renderOnlyRegister) {
@@ -160,20 +118,14 @@ export function findAndFollowPath(
             if (getRenderKeyNodes() || getRenderFloatingSpline()) {
                 renderOnlyRegister = register('postRenderWorld', () => {
                     if (getRenderKeyNodes()) drawKeyNodes(body.keynodes);
-                    if (getRenderFloatingSpline())
-                        drawFloatingSpline(generatedSpline);
+                    if (getRenderFloatingSpline()) drawFloatingSpline(generatedSpline);
                 });
             }
 
             const beginPathing = () => {
                 if (currentPathRequest !== requestId) return;
                 if (renderOnly) {
-                    global.showNotification(
-                        'Path Rendered',
-                        'Movement not initiated.',
-                        'INFO',
-                        3000
-                    );
+                    global.showNotification('Path Rendered', 'Movement not initiated.', 'INFO', 3000);
                 } else {
                     resetStuckRecovery();
                     tickRegister = register('tick', () => {
@@ -187,14 +139,8 @@ export function findAndFollowPath(
                             stopPathing();
 
                             PathfindingMessages('Path Complete!');
-                            global.showNotification(
-                                'Path Complete',
-                                'Destination reached!',
-                                'SUCCESS',
-                                2000
-                            );
-                            if (onComplete && typeof onComplete === 'function')
-                                onComplete();
+                            global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+                            if (onComplete && typeof onComplete === 'function') onComplete();
                         }
                     });
                 }
@@ -208,12 +154,7 @@ export function findAndFollowPath(
         })
         .catch((err) => {
             if (currentPathRequest !== requestId) return;
-            global.showNotification(
-                'Pathfinding Error',
-                'See console for details.',
-                'ERROR',
-                5000
-            );
+            global.showNotification('Pathfinding Error', 'See console for details.', 'ERROR', 5000);
             console.log(`Pathfinding request failed: ${err}`);
         });
 }

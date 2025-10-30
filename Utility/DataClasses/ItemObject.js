@@ -9,11 +9,7 @@ export class ItemObject {
     }
 
     equals(item) {
-        return (
-            item.name === this.name &&
-            item.lore === this.lore &&
-            item.slot === this.slot
-        );
+        return item.name === this.name && item.lore === this.lore && item.slot === this.slot;
     }
 
     compareName(item) {

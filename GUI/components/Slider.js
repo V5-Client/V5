@@ -1,25 +1,9 @@
 import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
 
-import {
-    clamp,
-    playClickSound,
-    drawRoundedRectangleWithBorder,
-    THEME,
-    isInside,
-} from '../Utils';
+import { clamp, playClickSound, drawRoundedRectangleWithBorder, THEME, isInside } from '../Utils';
 
 export class Slider {
-    constructor(
-        title,
-        min = 0,
-        max = 100,
-        x,
-        y,
-        width = 100,
-        height = 5,
-        value = 50,
-        callback = null
-    ) {
+    constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -52,13 +36,7 @@ export class Slider {
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        Renderer.drawString(
-            this.title,
-            this.x,
-            this.y + componentHeight / 2 - 4,
-            textColor.getRGB(),
-            false
-        );
+        Renderer.drawString(this.title, this.x, this.y + componentHeight / 2 - 4, textColor.getRGB(), false);
 
         const sliderWidth = 100;
         const rightMargin = 15;
@@ -93,26 +71,12 @@ export class Slider {
             foregroundColor
         );
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            handleX,
-            handleY,
-            handleX + handleWidth,
-            handleY + handleHeight,
-            2,
-            handleColor
-        );
+        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, handleX, handleY, handleX + handleWidth, handleY + handleHeight, 2, handleColor);
 
         const valueString = Math.round(this.value).toString();
         const valueStringWidth = Renderer.getStringWidth(valueString);
         const valueStringX = sliderX - valueStringWidth - 5;
-        Renderer.drawString(
-            valueString,
-            valueStringX,
-            this.y + componentHeight / 2 - 4,
-            textColor.getRGB(),
-            false
-        );
+        Renderer.drawString(valueString, valueStringX, this.y + componentHeight / 2 - 4, textColor.getRGB(), false);
 
         const componentRect = {
             x: this.x - 10,
@@ -134,12 +98,7 @@ export class Slider {
         const sliderX = this.x + panelWidth - sliderWidth - rightMargin;
         const sliderY = this.y + componentHeight / 2 - this.height / 2;
 
-        if (
-            mouseX >= sliderX &&
-            mouseX <= sliderX + sliderWidth &&
-            mouseY >= sliderY - 2 &&
-            mouseY <= sliderY + this.height + 2
-        ) {
+        if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth && mouseY >= sliderY - 2 && mouseY <= sliderY + this.height + 2) {
             this.dragging = true;
             this.updateValue(mouseX);
             playClickSound();
@@ -182,12 +141,7 @@ export class Slider {
         const sliderX = this.x + panelWidth - sliderWidth - rightMargin;
         const sliderY = this.y + componentHeight / 2 - this.height / 2;
 
-        if (
-            mouseX >= sliderX &&
-            mouseX <= sliderX + sliderWidth &&
-            mouseY >= sliderY &&
-            mouseY <= sliderY + this.height
-        ) {
+        if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth && mouseY >= sliderY && mouseY <= sliderY + this.height) {
             const step = dir > 0 ? 1 : -1;
             this.value = clamp(this.value + step, this.min, this.max);
             return true;

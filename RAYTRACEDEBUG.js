@@ -7,11 +7,7 @@ import { getPlayerEyeCoords } from './Dependencies/BloomCore/RaytraceBlocks';
  * @returns {JavaClass} The loaded Java class.
  */
 function findClass(name) {
-    return java.lang.Class.forName(
-        name,
-        true,
-        Player.getPlayer().getClass().getClassLoader()
-    );
+    return java.lang.Class.forName(name, true, Player.getPlayer().getClass().getClassLoader());
 }
 
 // Register command to check visibility of the block you're looking at
@@ -39,30 +35,18 @@ register('command', () => {
     // Format output
     Chat.message(`&e===== Block Visibility Test =====`);
     Chat.message(
-        `&7Block: &f${World.getBlockAt(
-            blockPos.x,
-            blockPos.y,
-            blockPos.z
-        )?.type?.getRegistryName()} &7at &f[${blockPos.x}, ${blockPos.y}, ${
-            blockPos.z
-        }]`
+        `&7Block: &f${World.getBlockAt(blockPos.x, blockPos.y, blockPos.z)?.type?.getRegistryName()} &7at &f[${blockPos.x}, ${blockPos.y}, ${blockPos.z}]`
     );
     Chat.message(
         `&7Distance: &f${Math.sqrt(
-            Math.pow(blockPos.x + 0.5 - eyePos.x, 2) +
-                Math.pow(blockPos.y + 0.5 - eyePos.y, 2) +
-                Math.pow(blockPos.z + 0.5 - eyePos.z, 2)
+            Math.pow(blockPos.x + 0.5 - eyePos.x, 2) + Math.pow(blockPos.y + 0.5 - eyePos.y, 2) + Math.pow(blockPos.z + 0.5 - eyePos.z, 2)
         ).toFixed(2)} blocks`
     );
     Chat.message(`&7Visible (Native): ${visibleNative ? '&a✓ Yes' : '&c✗ No'}`);
     Chat.message(`&7Visible (JS): ${visibleJS ? '&a✓ Yes' : '&c✗ No'}`);
 
     if (visiblePoint) {
-        Chat.message(
-            `&7Visible Point: &f[${visiblePoint
-                .map((v) => v.toFixed(2))
-                .join(', ')}]`
-        );
+        Chat.message(`&7Visible Point: &f[${visiblePoint.map((v) => v.toFixed(2)).join(', ')}]`);
     } else {
         Chat.message(`&7Visible Point: &cNone found`);
     }
@@ -78,9 +62,7 @@ let lastCheckedBlock = null;
 
 register('command', () => {
     autoCheckEnabled = !autoCheckEnabled;
-    Chat.message(
-        `&7Auto-check mode: ${autoCheckEnabled ? '&aEnabled' : '&cDisabled'}`
-    );
+    Chat.message(`&7Auto-check mode: ${autoCheckEnabled ? '&aEnabled' : '&cDisabled'}`);
 
     if (!autoCheckEnabled) {
         lastCheckedBlock = null;
@@ -108,11 +90,7 @@ register('tick', () => {
     const visible = RayTrace.isBlockVisible(blockPos);
     const blockName = lookingAt.type.getName();
 
-    Chat.message(
-        `&7[${blockPos.x}, ${blockPos.y}, ${blockPos.z}] &f${blockName}: ${
-            visible ? '&aVisible' : '&cNot Visible'
-        } &f${lookingAt.type.getID()}`
-    );
+    Chat.message(`&7[${blockPos.x}, ${blockPos.y}, ${blockPos.z}] &f${blockName}: ${visible ? '&aVisible' : '&cNot Visible'} &f${lookingAt.type.getID()}`);
 });
 
 //Chat.message("&aBlock Visibility Debug loaded!");

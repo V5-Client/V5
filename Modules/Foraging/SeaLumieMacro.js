@@ -26,7 +26,6 @@ class SeaLumie extends ModuleBase {
         this.hasBroken = false;
 
         this.on('tick', () => {
-
             switch (this.state) {
                 case this.STATES.SCANNING:
                     if (!this.startedScan) {
@@ -56,9 +55,7 @@ class SeaLumie extends ModuleBase {
                                 count++;
 
                                 let distance = Math.sqrt(
-                                    Math.pow(currentBlock.x - playerX, 2) +
-                                        Math.pow(currentBlock.y - playerY, 2) +
-                                        Math.pow(currentBlock.z - playerZ, 2)
+                                    Math.pow(currentBlock.x - playerX, 2) + Math.pow(currentBlock.y - playerY, 2) + Math.pow(currentBlock.z - playerZ, 2)
                                 );
                                 if (distance > radius) continue;
 
@@ -66,27 +63,11 @@ class SeaLumie extends ModuleBase {
                                 if (visited.has(key)) continue;
                                 visited.add(key);
 
-                                let block = World.getBlockAt(
-                                    currentBlock.x,
-                                    currentBlock.y,
-                                    currentBlock.z
-                                );
+                                let block = World.getBlockAt(currentBlock.x, currentBlock.y, currentBlock.z);
 
-                                if (
-                                    block?.type
-                                        ?.getRegistryName()
-                                        ?.includes('pickle')
-                                ) {
-                                    let blockAbove = World.getBlockAt(
-                                        currentBlock.x,
-                                        currentBlock.y + 1,
-                                        currentBlock.z
-                                    );
-                                    if (
-                                        blockAbove?.type
-                                            ?.getRegistryName()
-                                            ?.includes('water')
-                                    ) {
+                                if (block?.type?.getRegistryName()?.includes('pickle')) {
+                                    let blockAbove = World.getBlockAt(currentBlock.x, currentBlock.y + 1, currentBlock.z);
+                                    if (blockAbove?.type?.getRegistryName()?.includes('water')) {
                                         this.closestPickle = currentBlock;
                                         Chat.message(
                                             `Found the closest pickle using BFS at x=${this.closestPickle.x}, y=${this.closestPickle.y}, z=${this.closestPickle.z}`
@@ -133,21 +114,11 @@ class SeaLumie extends ModuleBase {
                                 neighbors.forEach((neighbor) => {
                                     let neighborKey = `${neighbor.x},${neighbor.y},${neighbor.z}`;
                                     if (!visited.has(neighborKey)) {
-                                        let neighborBlock = World.getBlockAt(
-                                            neighbor.x,
-                                            neighbor.y,
-                                            neighbor.z
-                                        );
+                                        let neighborBlock = World.getBlockAt(neighbor.x, neighbor.y, neighbor.z);
                                         if (
-                                            neighborBlock?.type
-                                                ?.getRegistryName()
-                                                ?.includes('water') ||
-                                            neighborBlock?.type
-                                                ?.getRegistryName()
-                                                ?.includes('air') ||
-                                            neighborBlock?.type
-                                                ?.getRegistryName()
-                                                ?.includes('pickle')
+                                            neighborBlock?.type?.getRegistryName()?.includes('water') ||
+                                            neighborBlock?.type?.getRegistryName()?.includes('air') ||
+                                            neighborBlock?.type?.getRegistryName()?.includes('pickle')
                                         ) {
                                             // allow pathing through pickles
                                             queue.push(neighbor);
@@ -215,17 +186,9 @@ class SeaLumie extends ModuleBase {
 
         this.on('postRenderWorld', () => {
             if (this.closestPickle) {
-                let waypointPos = new Vec3i(
-                    this.closestPickle.x,
-                    this.closestPickle.y,
-                    this.closestPickle.z
-                );
+                let waypointPos = new Vec3i(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                RendererMain.drawWaypoint(
-                    waypointPos,
-                    false,
-                    new Color(1, 0, 0, 1)
-                );
+                RendererMain.drawWaypoint(waypointPos, false, new Color(1, 0, 0, 1));
             }
         });
     }

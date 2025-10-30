@@ -68,54 +68,42 @@ function attachMixin(mixin, name, callback) {
     }
 }
 
-attachMixin(
-    cameraUpdateMixin,
-    'cameraUpdate',
-    (camera, area, entity, thirdPerson, inverseView, tickDelta, ci) => {
-        const PlayerEntity = net.minecraft.entity.player.PlayerEntity;
+attachMixin(cameraUpdateMixin, 'cameraUpdate', (camera, area, entity, thirdPerson, inverseView, tickDelta, ci) => {
+    const PlayerEntity = net.minecraft.entity.player.PlayerEntity;
 
-        if (isFreeLooking && entity instanceof PlayerEntity) {
-            const minecraft = Client.getMinecraft();
-            const player = minecraft.field_1724;
+    if (isFreeLooking && entity instanceof PlayerEntity) {
+        const minecraft = Client.getMinecraft();
+        const player = minecraft.field_1724;
 
-            if (firstTime && player != null) {
-                cameraPitch = player.getPitch();
-                cameraYaw = player.getYaw();
-                firstTime = false;
-            }
-
-            camera.method_19325(cameraYaw, cameraPitch);
+        if (firstTime && player != null) {
+            cameraPitch = player.getPitch();
+            cameraYaw = player.getYaw();
+            firstTime = false;
         }
 
-        if (!isFreeLooking && entity instanceof PlayerEntity) {
-            firstTime = true;
-        }
+        camera.method_19325(cameraYaw, cameraPitch);
     }
-);
 
-attachMixin(
-    changeLookDirectionMixin,
-    'changeLookDirection',
-    (instance, cir) => {
-        const PlayerEntity = net.minecraft.entity.player.PlayerEntity;
-        const MathHelper = net.minecraft.util.math.MathHelper;
-
-        if (isFreeLooking && instance instanceof PlayerEntity) {
-            const args = cir.getArgs ? cir.getArgs() : [];
-            const cursorDeltaX = args[0] || 0;
-            const cursorDeltaY = args[1] || 0;
-
-            const pitchDelta = cursorDeltaY * 0.15;
-            const yawDelta = cursorDeltaX * 0.15;
-
-            cameraPitch = MathHelper.method_15363(
-                cameraPitch + pitchDelta,
-                -90.0,
-                90.0
-            );
-            cameraYaw += yawDelta;
-
-            cir.cancel();
-        }
+    if (!isFreeLooking && entity instanceof PlayerEntity) {
+        firstTime = true;
     }
-);
+});
+
+attachMixin(changeLookDirectionMixin, 'changeLookDirection', (instance, cir) => {
+    const PlayerEntity = net.minecraft.entity.player.PlayerEntity;
+    const MathHelper = net.minecraft.util.math.MathHelper;
+
+    if (isFreeLooking && instance instanceof PlayerEntity) {
+        const args = cir.getArgs ? cir.getArgs() : [];
+        const cursorDeltaX = args[0] || 0;
+        const cursorDeltaY = args[1] || 0;
+
+        const pitchDelta = cursorDeltaY * 0.15;
+        const yawDelta = cursorDeltaX * 0.15;
+
+        cameraPitch = MathHelper.method_15363(cameraPitch + pitchDelta, -90.0, 90.0);
+        cameraYaw += yawDelta;
+
+        cir.cancel();
+    }
+});

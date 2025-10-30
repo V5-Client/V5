@@ -4,11 +4,7 @@ export class Vector {
             this.x = x.x;
             this.y = x.y;
             this.z = x.z;
-        } else if (
-            x instanceof Entity ||
-            x instanceof PlayerMP ||
-            x instanceof Player
-        ) {
+        } else if (x instanceof Entity || x instanceof PlayerMP || x instanceof Player) {
             this.x = x.getX();
             this.y = x.getY();
             this.z = x.getZ();
@@ -17,10 +13,7 @@ export class Vector {
             this.x = ctEntity.getX();
             this.y = ctEntity.getY();
             this.z = ctEntity.getZ();
-        } else if (
-            x instanceof
-            net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
-        ) {
+        } else if (x instanceof net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket) {
             this.x = x.getX();
             this.y = x.getY();
             this.z = x.getZ();

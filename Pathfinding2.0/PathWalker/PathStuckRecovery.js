@@ -57,16 +57,8 @@ function attemptBackwardRecovery(playerPos, playerYaw) {
         const box = boxPositions[i];
         const dist = getDistance3D(playerPos, box);
         // look for reasonable boxes
-        if (
-            dist > 1.5 &&
-            dist < 10 &&
-            isBoxBehindPlayer(box, playerPos, playerYaw)
-        ) {
-            PathfindingMessages(
-                `§e[Recovery] Retreating to box ${i} (${dist.toFixed(
-                    2
-                )}m behind)`
-            );
+        if (dist > 1.5 && dist < 10 && isBoxBehindPlayer(box, playerPos, playerYaw)) {
+            PathfindingMessages(`§e[Recovery] Retreating to box ${i} (${dist.toFixed(2)}m behind)`);
             pathState.currentBoxIndex = i;
             recoveryState.recoveryLockTicks = RECOVERY_LOCK_TICKS;
             return true;
@@ -83,10 +75,7 @@ function attemptClosestBoxRecovery(playerPos) {
     let closestDist = Infinity;
 
     const startIndex = Math.max(0, currentBoxIndex - CLOSEST_SEARCH_RANGE);
-    const endIndex = Math.min(
-        boxPositions.length,
-        currentBoxIndex + CLOSEST_SEARCH_RANGE
-    );
+    const endIndex = Math.min(boxPositions.length, currentBoxIndex + CLOSEST_SEARCH_RANGE);
 
     for (let i = startIndex; i < endIndex; i++) {
         const dist = getDistance3D(playerPos, boxPositions[i]);
@@ -97,15 +86,8 @@ function attemptClosestBoxRecovery(playerPos) {
         }
     }
 
-    if (
-        closestIndex !== currentBoxIndex &&
-        Math.abs(closestIndex - currentBoxIndex) > 2
-    ) {
-        PathfindingMessages(
-            `§c[Recovery] Jumping to closest box ${closestIndex} (${closestDist.toFixed(
-                2
-            )}m away)`
-        );
+    if (closestIndex !== currentBoxIndex && Math.abs(closestIndex - currentBoxIndex) > 2) {
+        PathfindingMessages(`§c[Recovery] Jumping to closest box ${closestIndex} (${closestDist.toFixed(2)}m away)`);
         pathState.currentBoxIndex = closestIndex;
         recoveryState.recoveryLockTicks = RECOVERY_LOCK_TICKS;
         return true;
@@ -118,21 +100,14 @@ function attemptForwardSkipRecovery(playerPos) {
     const { boxPositions, currentBoxIndex } = pathState;
 
     const startIndex = currentBoxIndex + 3;
-    const endIndex = Math.min(
-        boxPositions.length,
-        currentBoxIndex + FORWARD_SEARCH_RANGE
-    );
+    const endIndex = Math.min(boxPositions.length, currentBoxIndex + FORWARD_SEARCH_RANGE);
 
     for (let i = startIndex; i < endIndex; i++) {
         const box = boxPositions[i];
         const dist = getDistance3D(playerPos, box);
 
         if (dist < 8) {
-            PathfindingMessages(
-                `§6[Recovery] Skipping forward to box ${i} (${dist.toFixed(
-                    2
-                )}m ahead)`
-            );
+            PathfindingMessages(`§6[Recovery] Skipping forward to box ${i} (${dist.toFixed(2)}m ahead)`);
             pathState.currentBoxIndex = i;
             recoveryState.recoveryLockTicks = RECOVERY_LOCK_TICKS;
             return true;
@@ -150,9 +125,7 @@ function performRecoveryAttempt(attemptNumber) {
     };
     const playerYaw = Player.getYaw();
 
-    PathfindingMessages(
-        `§c[Stuck] Recovery attempt ${attemptNumber}/${MAX_RECOVERY_ATTEMPTS}`
-    );
+    PathfindingMessages(`§c[Stuck] Recovery attempt ${attemptNumber}/${MAX_RECOVERY_ATTEMPTS}`);
 
     switch (attemptNumber) {
         case 1:
@@ -184,9 +157,7 @@ function requestPathRecalculation() {
         return false;
     }
 
-    PathfindingMessages(
-        '§4[Stuck] Severely stuck - requesting path recalculation...'
-    );
+    PathfindingMessages('§4[Stuck] Severely stuck - requesting path recalculation...');
     global.pathEngineRecalculate();
     recoveryState.hasRequestedRecalc = true;
     return true;
@@ -196,9 +167,7 @@ export function detectAndRecoverStuck() {
     if (recoveryState.recoveryLockTicks > 0) {
         recoveryState.recoveryLockTicks--;
         if (recoveryState.recoveryLockTicks === 0) {
-            PathfindingMessages(
-                '§a[Recovery] Lock released, resuming normal navigation'
-            );
+            PathfindingMessages('§a[Recovery] Lock released, resuming normal navigation');
         }
         return { stuck: false, recovered: false };
     }
@@ -234,23 +203,17 @@ export function detectAndRecoverStuck() {
     recoveryState.ticksWithoutMovement++;
 
     if (recoveryState.recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
-        if (
-            recoveryState.ticksWithoutMovement >= SEVERE_STUCK_THRESHOLD &&
-            !recoveryState.hasRequestedRecalc
-        ) {
+        if (recoveryState.ticksWithoutMovement >= SEVERE_STUCK_THRESHOLD && !recoveryState.hasRequestedRecalc) {
             requestPathRecalculation();
         }
         return { stuck: true, recovered: false };
     }
 
-    const nextAttemptThreshold =
-        RECOVERY_ATTEMPT_INTERVALS[recoveryState.recoveryAttempts];
+    const nextAttemptThreshold = RECOVERY_ATTEMPT_INTERVALS[recoveryState.recoveryAttempts];
 
     if (recoveryState.ticksWithoutMovement === nextAttemptThreshold) {
         recoveryState.recoveryAttempts++;
-        const recovered = performRecoveryAttempt(
-            recoveryState.recoveryAttempts
-        );
+        const recovered = performRecoveryAttempt(recoveryState.recoveryAttempts);
 
         if (recovered) {
             recoveryState.lastPosition = currentPos;

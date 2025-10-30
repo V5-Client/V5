@@ -31,10 +31,7 @@ class MobHider extends ModuleBase {
 
         this.on('spawnParticle', (particle, event) => {
             if (particle == null) return;
-            if (
-                this.enabledMobNames.includes('Thysts') &&
-                particle.toString().includes('class_709')
-            ) {
+            if (this.enabledMobNames.includes('Thysts') && particle.toString().includes('class_709')) {
                 cancel(event);
             }
         });
@@ -56,8 +53,7 @@ class MobHider extends ModuleBase {
         const mobChecks = {
             Kalhuikis: () => cleanName.includes('Kalhuiki'),
             'Sven Pups': () => cleanName.includes('Sven Pup'),
-            Thysts: () =>
-                cleanName.includes('Thyst') || cleanName.includes('Endermite'),
+            Thysts: () => cleanName.includes('Thyst') || cleanName.includes('Endermite'),
             Jerries: () => this.jerryRegex.test(cleanName),
         };
 
@@ -74,9 +70,7 @@ class MobHider extends ModuleBase {
     handleMobToggleUpdate(allMobOptions) {
         this.mobsToHide = allMobOptions;
 
-        this.enabledMobNames = allMobOptions
-            .filter((mobObject) => mobObject.enabled)
-            .map((mobObject) => mobObject.name);
+        this.enabledMobNames = allMobOptions.filter((mobObject) => mobObject.enabled).map((mobObject) => mobObject.name);
     }
 }
 

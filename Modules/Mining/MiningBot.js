@@ -111,9 +111,7 @@ class Bot extends ModuleBase {
 
             if (packetAction === 'ABORT_DESTROY_BLOCK') cancel(event);
         })
-            .setFilteredClass(
-                net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-            )
+            .setFilteredClass(net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket)
             .unregister();
 
         this.debug = register('postRenderWorld', () => {
@@ -121,27 +119,15 @@ class Bot extends ModuleBase {
                 const count = this.foundLocations.length;
                 for (let i = 0; i < count; i++) {
                     const location = this.foundLocations[i];
-                    const blockVec = new Vec3d(
-                        location.x,
-                        location.y,
-                        location.z
-                    );
+                    const blockVec = new Vec3d(location.x, location.y, location.z);
 
                     const t = count > 1 ? i / (count - 1) : 0;
                     const r = i === 0 ? 1 : t;
                     const g = i === 0 ? 1 : 1 - t;
                     const b = i === 0 ? 1 : 0;
-                    RenderUtils.drawWireFrame(blockVec, [
-                        r * 255,
-                        g * 255,
-                        b * 255,
-                        255,
-                    ]);
+                    RenderUtils.drawWireFrame(blockVec, [r * 255, g * 255, b * 255, 255]);
 
-                    const hasAim =
-                        location.aimX !== undefined &&
-                        location.aimY !== undefined &&
-                        location.aimZ !== undefined;
+                    const hasAim = location.aimX !== undefined && location.aimY !== undefined && location.aimZ !== undefined;
                     if (hasAim) {
                         const ax = location.aimX;
                         const ay = location.aimY;
@@ -193,18 +179,13 @@ class Bot extends ModuleBase {
                     }
 
                     if (!this.ability) {
-                        Chat.message(
-                            '&cFailed to get Pickaxe Ability! Run /getminingstats'
-                        );
+                        Chat.message('&cFailed to get Pickaxe Ability! Run /getminingstats');
                         this.toggle(false);
                         return;
                     }
 
                     // pickobulus will be done soon
-                    if (
-                        this.ability !== 'Pickobulus' &&
-                        Player.getHeldItemIndex() === drill.slot
-                    ) {
+                    if (this.ability !== 'Pickobulus' && Player.getHeldItemIndex() === drill.slot) {
                         if (!this.abilityClicked) {
                             Client.scheduleTask(3, () => {
                                 Keybind.rightClick();
@@ -229,47 +210,26 @@ class Bot extends ModuleBase {
                     if (!this.currentTarget || this.allowScan) {
                         needScan = true;
                     } else {
-                        const block = World.getBlockAt(
-                            this.currentTarget.x,
-                            this.currentTarget.y,
-                            this.currentTarget.z
-                        );
+                        const block = World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z);
                         const blockName = block?.type?.getRegistryName();
-                        if (
-                            blockName.includes('air') ||
-                            blockName.includes('bedrock')
-                        ) {
+                        if (blockName.includes('air') || blockName.includes('bedrock')) {
                             needScan = true;
                         }
                     }
 
                     if (needScan) {
-                        this.scanForBlock(
-                            this.COSTTYPE,
-                            true,
-                            null,
-                            this.currentTarget
-                        );
+                        this.scanForBlock(this.COSTTYPE, true, null, this.currentTarget);
                         this.currentTarget = this.foundLocations[0];
                         this.allowScan = false;
                     }
 
                     // todo fix this gets called 20 times per second which is intensive due to file read and stuff
-                    this.miningspeed =
-                        this.type === this.TYPES.TUNNEL
-                            ? MiningUtils.getSpeedWithCold()
-                            : MiningUtils.getMiningSpeed();
+                    this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
 
-                    let lowestCostBlock =
-                        this.currentTarget ||
-                        this.foundLocations[this.lowestCostBlockIndex];
+                    let lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
 
                     if (!lowestCostBlock) return;
-                    let block = World.getBlockAt(
-                        lowestCostBlock.x,
-                        lowestCostBlock.y,
-                        lowestCostBlock.z
-                    );
+                    let block = World.getBlockAt(lowestCostBlock.x, lowestCostBlock.y, lowestCostBlock.z);
 
                     let blockName = block?.type?.getRegistryName();
 
@@ -284,13 +244,10 @@ class Bot extends ModuleBase {
                         this.lastBlockPos = lowestCostBlock;
                     }
 
-                    this.currentTarget =
-                        this.foundLocations[this.lowestCostBlockIndex];
+                    this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
 
                     let lookingAt = Player.lookingAt();
-                    const fakeLookMode = this.FAKELOOK.find(
-                        (option) => option.enabled
-                    )?.name;
+                    const fakeLookMode = this.FAKELOOK.find((option) => option.enabled)?.name;
                     if (
                         lookingAt &&
                         lookingAt?.getX() === this.currentTarget?.x &&
@@ -305,17 +262,9 @@ class Bot extends ModuleBase {
                         Keybind.setKey('leftclick', true);
                     }
 
-                    this.totalTicks = MiningUtils.getMineTime(
-                        this.miningspeed,
-                        this.speedBoost,
-                        this.currentTarget
-                    );
+                    this.totalTicks = MiningUtils.getMineTime(this.miningspeed, this.speedBoost, this.currentTarget);
 
-                    const blockDist = MathUtils.getDistanceToPlayerEyes(
-                        this.currentTarget.x,
-                        this.currentTarget.y,
-                        this.currentTarget.z
-                    ).distance;
+                    const blockDist = MathUtils.getDistanceToPlayerEyes(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z).distance;
 
                     switch (this.COSTTYPE) {
                         case this.gemstoneCosts:
@@ -328,62 +277,34 @@ class Bot extends ModuleBase {
 
                     if (fakeLookMode !== 'Off') {
                         Keybind.setKey('leftclick', false);
-                        if (
-                            blockName.includes('air') ||
-                            blockName.includes('bedrock')
-                        ) {
+                        if (blockName.includes('air') || blockName.includes('bedrock')) {
                             this.lowestCostBlockIndex++;
                         }
 
                         if (fakeLookMode === 'Instant') {
                             if (!this.currentTarget) return;
                             if (!this.nukedBlock) {
-                                NukerUtils.nuke(
-                                    [
-                                        this.currentTarget.x,
-                                        this.currentTarget.y,
-                                        this.currentTarget.z,
-                                    ],
-                                    this.totalTicks
-                                );
+                                NukerUtils.nuke([this.currentTarget.x, this.currentTarget.y, this.currentTarget.z], this.totalTicks);
                                 this.nukedBlock = true;
                             }
                         } else if (fakeLookMode === 'Queued') {
                             if (!this.currentTarget) return;
                             if (!this.nukedBlock) {
-                                NukerUtils.nukeQueueAdd(
-                                    [
-                                        this.currentTarget.x,
-                                        this.currentTarget.y,
-                                        this.currentTarget.z,
-                                    ],
-                                    this.totalTicks
-                                );
+                                NukerUtils.nukeQueueAdd([this.currentTarget.x, this.currentTarget.y, this.currentTarget.z], this.totalTicks);
                                 this.nukedBlock = true;
                             }
                         }
                     }
 
                     if (this.TICKGLIDE) {
-                        if (
-                            this.mineTickCount > this.totalTicks ||
-                            this.tickCount > this.totalTicks * 2 ||
-                            this.allowScan
-                        ) {
+                        if (this.mineTickCount > this.totalTicks || this.tickCount > this.totalTicks * 2 || this.allowScan) {
                             this.mineTickCount = 0;
                             this.tickCount = 0;
                             this.allowScan = false;
-                            this.scanForBlock(
-                                this.COSTTYPE,
-                                true,
-                                null,
-                                this.currentTarget
-                            );
+                            this.scanForBlock(this.COSTTYPE, true, null, this.currentTarget);
                         }
 
-                        const targetVector = this.getAimVectorForTarget(
-                            this.currentTarget
-                        );
+                        const targetVector = this.getAimVectorForTarget(this.currentTarget);
 
                         if (this.currentTarget && targetVector) {
                             RotationRedo.rotateToVector(targetVector);
@@ -391,12 +312,7 @@ class Bot extends ModuleBase {
                     } else if (!this.TICKGLIDE) {
                         this.currentTarget = lowestCostBlock;
 
-                        if (
-                            !this.currentTarget ||
-                            blockName.includes('air') ||
-                            blockName.includes('bedrock') ||
-                            this.allowScan
-                        ) {
+                        if (!this.currentTarget || blockName.includes('air') || blockName.includes('bedrock') || this.allowScan) {
                             this.scanForBlock(
                                 this.COSTTYPE,
                                 true,
@@ -413,9 +329,7 @@ class Bot extends ModuleBase {
                             if (!this.currentTarget) break;
                         }
 
-                        const targetVector = this.getAimVectorForTarget(
-                            this.currentTarget
-                        );
+                        const targetVector = this.getAimVectorForTarget(this.currentTarget);
 
                         if (this.currentTarget && targetVector) {
                             RotationRedo.rotateToVector(targetVector);
@@ -522,12 +436,7 @@ class Bot extends ModuleBase {
         return [ax, ay, az];
     }
 
-    scanForBlock(
-        target,
-        specific = true,
-        startPos = null,
-        excludedBlock = null
-    ) {
+    scanForBlock(target, specific = true, startPos = null, excludedBlock = null) {
         const playerX = Player.getX();
         const playerY = Player.getY();
         const playerZ = Player.getZ();
@@ -576,8 +485,7 @@ class Bot extends ModuleBase {
         const dimZ = maxBz - minBz + 1;
         const size = dimX * dimY * dimZ;
         const visited = new Uint8Array(size);
-        const idxOf = (xx, yy, zz) =>
-            xx - minBx + dimX * (yy - minBy + dimY * (zz - minBz));
+        const idxOf = (xx, yy, zz) => xx - minBx + dimX * (yy - minBy + dimY * (zz - minBz));
         const setVisited = (idx) => (visited[idx] = 1);
         const isVisited = (idx) => visited[idx] === 1;
         setVisited(idxOf(start.x, start.y, start.z));
@@ -594,12 +502,7 @@ class Bot extends ModuleBase {
         while (head < queue.length) {
             const { x, y, z } = queue[head++];
 
-            if (
-                excluded &&
-                x === excluded.x &&
-                y === excluded.y &&
-                z === excluded.z
-            ) {
+            if (excluded && x === excluded.x && y === excluded.y && z === excluded.z) {
                 continue;
             }
 
@@ -609,10 +512,7 @@ class Bot extends ModuleBase {
             let isTargetBlock = false;
             if (blockName) {
                 if (specific) {
-                    isTargetBlock = Object.prototype.hasOwnProperty.call(
-                        target,
-                        blockName
-                    );
+                    isTargetBlock = Object.prototype.hasOwnProperty.call(target, blockName);
                 } else {
                     isTargetBlock = blockName in target;
                 }
@@ -659,44 +559,20 @@ class Bot extends ModuleBase {
                 if (tEntry === tminY) faceAxis = 'y';
                 else if (tEntry === tminZ) faceAxis = 'z';
 
-                const s =
-                    faceAxis === 'x'
-                        ? dirX > 0
-                            ? -1
-                            : 1
-                        : faceAxis === 'y'
-                          ? dirY > 0
-                              ? -1
-                              : 1
-                          : dirZ > 0
-                            ? -1
-                            : 1;
+                const s = faceAxis === 'x' ? (dirX > 0 ? -1 : 1) : faceAxis === 'y' ? (dirY > 0 ? -1 : 1) : dirZ > 0 ? -1 : 1;
 
-                const clamp = (vv, lo, hi) =>
-                    vv < lo ? lo : vv > hi ? hi : vv;
+                const clamp = (vv, lo, hi) => (vv < lo ? lo : vv > hi ? hi : vv);
 
                 // fov culling: skip ray tests for blocks clearly behind view
                 const vLen = Math.sqrt(vX * vX + vY * vY + vZ * vZ) || 1;
-                const dotToCenter =
-                    (vX * viewVector.x +
-                        vY * viewVector.y +
-                        vZ * viewVector.z) /
-                    vLen;
+                const dotToCenter = (vX * viewVector.x + vY * viewVector.y + vZ * viewVector.z) / vLen;
                 if (dotToCenter >= -0.05) {
                     let isVisible = false;
                     let aimX = centerX,
                         aimY = centerY,
                         aimZ = centerZ;
                     const randJ = (m) => (Math.random() * 2 - 1) * m;
-                    const lineClearWithJitter = (
-                        axis,
-                        ttx,
-                        tty,
-                        ttz,
-                        ffx,
-                        ffy,
-                        ffz
-                    ) => {
+                    const lineClearWithJitter = (axis, ttx, tty, ttz, ffx, ffy, ffz) => {
                         let ttx2 = ttx,
                             tty2 = tty,
                             ttz2 = ttz,
@@ -722,30 +598,12 @@ class Bot extends ModuleBase {
                             ffx2 = clamp(ffx + jU, x + LO, x + HI);
                             ffy2 = clamp(ffy + jV, y + LO, y + HI);
                         }
-                        const clear = RayTrace.isLineClear(
-                            ex,
-                            ey,
-                            ez,
-                            ttx2,
-                            tty2,
-                            ttz2,
-                            x,
-                            y,
-                            z
-                        );
+                        const clear = RayTrace.isLineClear(ex, ey, ez, ttx2, tty2, ttz2, x, y, z);
                         return { clear, fx: ffx2, fy: ffy2, fz: ffz2 };
                     };
                     const tryLine = (ttx, tty, ttz, ffx, ffy, ffz) => {
                         if (isVisible) return false;
-                        const res = lineClearWithJitter(
-                            faceAxis,
-                            ttx,
-                            tty,
-                            ttz,
-                            ffx,
-                            ffy,
-                            ffz
-                        );
+                        const res = lineClearWithJitter(faceAxis, ttx, tty, ttz, ffx, ffy, ffz);
                         if (res.clear) {
                             isVisible = true;
                             aimX = res.fx;
@@ -758,153 +616,49 @@ class Bot extends ModuleBase {
                     if (faceAxis === 'x') {
                         const uRaw = clamp(ey, y + LO, y + HI) - centerY;
                         const vRaw = clamp(ez, z + LO, z + HI) - centerZ;
-                        const uMid = Math.max(
-                            -MID_CAP,
-                            Math.min(MID_CAP, uRaw)
-                        );
-                        const vMid = Math.max(
-                            -MID_CAP,
-                            Math.min(MID_CAP, vRaw)
-                        );
+                        const uMid = Math.max(-MID_CAP, Math.min(MID_CAP, uRaw));
+                        const vMid = Math.max(-MID_CAP, Math.min(MID_CAP, vRaw));
                         const uEdge = uRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
                         const vEdge = vRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
                         // modest mid toward eye projection FIRST
-                        tryLine(
-                            centerX + s * INSET,
-                            centerY + uMid,
-                            centerZ + vMid,
-                            centerX + s * FACE_INSET,
-                            centerY + uMid,
-                            centerZ + vMid
-                        );
+                        tryLine(centerX + s * INSET, centerY + uMid, centerZ + vMid, centerX + s * FACE_INSET, centerY + uMid, centerZ + vMid);
                         // center next
-                        tryLine(
-                            centerX + s * INSET,
-                            centerY,
-                            centerZ,
-                            centerX + s * FACE_INSET,
-                            centerY,
-                            centerZ
-                        );
+                        tryLine(centerX + s * INSET, centerY, centerZ, centerX + s * FACE_INSET, centerY, centerZ);
                         // edges only if needed (aim slightly inset, not exactly on edges)
-                        tryLine(
-                            centerX + s * INSET,
-                            centerY + uEdge,
-                            centerZ,
-                            centerX + s * FACE_INSET,
-                            centerY + uEdge,
-                            centerZ
-                        );
-                        tryLine(
-                            centerX + s * INSET,
-                            centerY,
-                            centerZ + vEdge,
-                            centerX + s * FACE_INSET,
-                            centerY,
-                            centerZ + vEdge
-                        );
+                        tryLine(centerX + s * INSET, centerY + uEdge, centerZ, centerX + s * FACE_INSET, centerY + uEdge, centerZ);
+                        tryLine(centerX + s * INSET, centerY, centerZ + vEdge, centerX + s * FACE_INSET, centerY, centerZ + vEdge);
                     } else if (faceAxis === 'y') {
                         const uRaw = clamp(ex, x + LO, x + HI) - centerX;
                         const vRaw = clamp(ez, z + LO, z + HI) - centerZ;
-                        const uMid = Math.max(
-                            -MID_CAP,
-                            Math.min(MID_CAP, uRaw)
-                        );
-                        const vMid = Math.max(
-                            -MID_CAP,
-                            Math.min(MID_CAP, vRaw)
-                        );
+                        const uMid = Math.max(-MID_CAP, Math.min(MID_CAP, uRaw));
+                        const vMid = Math.max(-MID_CAP, Math.min(MID_CAP, vRaw));
                         const uEdge = uRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
                         const vEdge = vRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
                         // mid first
-                        tryLine(
-                            centerX + uMid,
-                            centerY + s * INSET,
-                            centerZ + vMid,
-                            centerX + uMid,
-                            centerY + s * FACE_INSET,
-                            centerZ + vMid
-                        );
+                        tryLine(centerX + uMid, centerY + s * INSET, centerZ + vMid, centerX + uMid, centerY + s * FACE_INSET, centerZ + vMid);
                         // center next
-                        tryLine(
-                            centerX,
-                            centerY + s * INSET,
-                            centerZ,
-                            centerX,
-                            centerY + s * FACE_INSET,
-                            centerZ
-                        );
+                        tryLine(centerX, centerY + s * INSET, centerZ, centerX, centerY + s * FACE_INSET, centerZ);
                         // edges (aim inset)
-                        tryLine(
-                            centerX + uEdge,
-                            centerY + s * INSET,
-                            centerZ,
-                            centerX + uEdge,
-                            centerY + s * FACE_INSET,
-                            centerZ
-                        );
-                        tryLine(
-                            centerX,
-                            centerY + s * INSET,
-                            centerZ + vEdge,
-                            centerX,
-                            centerY + s * FACE_INSET,
-                            centerZ + vEdge
-                        );
+                        tryLine(centerX + uEdge, centerY + s * INSET, centerZ, centerX + uEdge, centerY + s * FACE_INSET, centerZ);
+                        tryLine(centerX, centerY + s * INSET, centerZ + vEdge, centerX, centerY + s * FACE_INSET, centerZ + vEdge);
                     } else {
                         const uRaw = clamp(ex, x + LO, x + HI) - centerX;
                         const vRaw = clamp(ey, y + LO, y + HI) - centerY;
-                        const uMid = Math.max(
-                            -MID_CAP,
-                            Math.min(MID_CAP, uRaw)
-                        );
-                        const vMid = Math.max(
-                            -MID_CAP,
-                            Math.min(MID_CAP, vRaw)
-                        );
+                        const uMid = Math.max(-MID_CAP, Math.min(MID_CAP, uRaw));
+                        const vMid = Math.max(-MID_CAP, Math.min(MID_CAP, vRaw));
                         const uEdge = uRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
                         const vEdge = vRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
                         // mid first
-                        tryLine(
-                            centerX + uMid,
-                            centerY + vMid,
-                            centerZ + s * INSET,
-                            centerX + uMid,
-                            centerY + vMid,
-                            centerZ + s * FACE_INSET
-                        );
+                        tryLine(centerX + uMid, centerY + vMid, centerZ + s * INSET, centerX + uMid, centerY + vMid, centerZ + s * FACE_INSET);
                         // center next
-                        tryLine(
-                            centerX,
-                            centerY,
-                            centerZ + s * INSET,
-                            centerX,
-                            centerY,
-                            centerZ + s * FACE_INSET
-                        );
-                        tryLine(
-                            centerX + uEdge,
-                            centerY,
-                            centerZ + s * INSET,
-                            centerX + uEdge,
-                            centerY,
-                            centerZ + s * FACE_INSET
-                        );
-                        tryLine(
-                            centerX,
-                            centerY + vEdge,
-                            centerZ + s * INSET,
-                            centerX,
-                            centerY + vEdge,
-                            centerZ + s * FACE_INSET
-                        );
+                        tryLine(centerX, centerY, centerZ + s * INSET, centerX, centerY, centerZ + s * FACE_INSET);
+                        tryLine(centerX + uEdge, centerY, centerZ + s * INSET, centerX + uEdge, centerY, centerZ + s * FACE_INSET);
+                        tryLine(centerX, centerY + vEdge, centerZ + s * INSET, centerX, centerY + vEdge, centerZ + s * FACE_INSET);
                     }
 
                     // If near face was fully blocked, try the two orthogonal faces
                     if (!isVisible) {
-                        const orthos = ['x', 'y', 'z'].filter(
-                            (a) => a !== faceAxis
-                        );
+                        const orthos = ['x', 'y', 'z'].filter((a) => a !== faceAxis);
                         const signFromEye = (axis) =>
                             axis === 'x'
                                 ? playerEyePos.x >= centerX
@@ -953,15 +707,7 @@ class Bot extends ModuleBase {
                                     fx = centerX + u;
                                     fy = centerY + v;
                                 }
-                                const res = lineClearWithJitter(
-                                    axis,
-                                    tx,
-                                    ty,
-                                    tz,
-                                    fx,
-                                    fy,
-                                    fz
-                                );
+                                const res = lineClearWithJitter(axis, tx, ty, tz, fx, fy, fz);
                                 if (res.clear) {
                                     isVisible = true;
                                     aimX = res.fx;
@@ -987,11 +733,7 @@ class Bot extends ModuleBase {
 
                         const useDist = Math.sqrt(aimDistSq) || 1;
 
-                        const dotProduct =
-                            (adx * viewVector.x +
-                                ady * viewVector.y +
-                                adz * viewVector.z) /
-                            useDist;
+                        const dotProduct = (adx * viewVector.x + ady * viewVector.y + adz * viewVector.z) / useDist;
 
                         const baseCost = target[blockName] || 10;
                         const distanceCost = useDist * 2; // Distance penalty (closer = lower cost)

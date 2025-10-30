@@ -82,11 +82,7 @@ class MiningUtilClass {
         };
 
         const getFirstMatchFromLore = (slot, regex, perk = false) => {
-            if (
-                Player.getContainer()
-                    ?.getStackInSlot(slot)
-                    ?.type?.getRegistryName() == 'minecraft:coal'
-            ) {
+            if (Player.getContainer()?.getStackInSlot(slot)?.type?.getRegistryName() == 'minecraft:coal') {
                 return 0;
             }
 
@@ -96,9 +92,7 @@ class MiningUtilClass {
                 const match = cleanLine.match(regex);
                 if (match) {
                     let value = match[1].replace(/,/g, '');
-                    return value.includes('.')
-                        ? parseFloat(value)
-                        : parseInt(value);
+                    return value.includes('.') ? parseFloat(value) : parseInt(value);
                 }
             }
             return null;
@@ -130,14 +124,8 @@ class MiningUtilClass {
                         Guis.clickSlot(13);
                     }
 
-                    if (
-                        guiName &&
-                        guiName.includes('Your Equipment and Stats')
-                    ) {
-                        this.miningSpeed = getFirstMatchFromLore(
-                            15,
-                            /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i
-                        );
+                    if (guiName && guiName.includes('Your Equipment and Stats')) {
+                        this.miningSpeed = getFirstMatchFromLore(15, /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i);
                         currentStep++;
                         ChatLib.command('hotm');
                     }
@@ -145,10 +133,7 @@ class MiningUtilClass {
 
                 case 'hotm':
                     if (guiName && guiName.includes('Heart of the Mountain')) {
-                        this.cotm = getFirstMatchFromLore(
-                            4,
-                            /Level\s{0,2}(\d+)/
-                        );
+                        this.cotm = getFirstMatchFromLore(4, /Level\s{0,2}(\d+)/);
 
                         let con = Player.getContainer();
                         let selected = 'minecraft:emerald_block';
@@ -158,16 +143,11 @@ class MiningUtilClass {
 
                         if (speedboost?.type?.getRegistryName() === selected) {
                             this.ability = 'SpeedBoost';
-                        } else if (
-                            picko?.type?.getRegistryName() === selected
-                        ) {
+                        } else if (picko?.type?.getRegistryName() === selected) {
                             this.ability = 'Pickobulus';
                         }
 
-                        this.professional = getFirstMatchFromLore(
-                            12,
-                            /\+(\d+(\.\d+)?)/
-                        );
+                        this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
 
                         currentStep++;
                         ChatLib.chat(this.ability);
@@ -214,18 +194,9 @@ class MiningUtilClass {
                             }
                         }
 
-                        this.strongArm = getFirstMatchFromLore(
-                            21,
-                            /\+(\d+(\.\d+)?)/
-                        );
-                        this.coldRes = getFirstMatchFromLore(
-                            23,
-                            /\+(\d+(\.\d+)?)/
-                        );
-                        this.solver = getFirstMatchFromLore(
-                            42,
-                            /\+(\d+(\.\d+)?)/
-                        );
+                        this.strongArm = getFirstMatchFromLore(21, /\+(\d+(\.\d+)?)/);
+                        this.coldRes = getFirstMatchFromLore(23, /\+(\d+(\.\d+)?)/);
+                        this.solver = getFirstMatchFromLore(42, /\+(\d+(\.\d+)?)/);
                         this.maxSolver = parseInt(this.solver) === 96;
 
                         currentStep++;
@@ -238,11 +209,7 @@ class MiningUtilClass {
                 case 'finish':
                     let lore = Player.getHeldItem().getLore().toString();
                     let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
-                    let bonus = match
-                        ? { I: 1, II: 2, III: 3, IV: 4, V: 5 }[
-                              match[1].toUpperCase()
-                          ] * 20
-                        : 0;
+                    let bonus = match ? { I: 1, II: 2, III: 3, IV: 4, V: 5 }[match[1].toUpperCase()] * 20 : 0;
 
                     if (match) {
                         this.professional += bonus;
@@ -258,9 +225,7 @@ class MiningUtilClass {
                     Chat.message(`Pickaxe Ability: &e${this.ability}`);
                     Chat.message(`Cold Resistance: &e${this.coldRes}`);
                     Chat.message(`COTM Level: &e${this.cotm}`);
-                    Chat.message(
-                        `Max Great Explorer: ${solvercolor}${this.maxSolver}`
-                    );
+                    Chat.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
 
                     const stats = {
                         speed: this.miningSpeed,
@@ -313,10 +278,7 @@ class MiningUtilClass {
                     return success(false);
                 }
 
-                this.Jotraeline = Guis.findFirst(
-                    Player.getContainer(),
-                    'Jotraeline Greatforge'
-                );
+                this.Jotraeline = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
                 if (this.Jotraeline === -1) {
                     Chat.message("You don't have Jotraeline as a contact!");
                     return success(false);
@@ -356,10 +318,7 @@ class MiningUtilClass {
                         }
                     }
 
-                    if (
-                        container.getStackInSlot(29) &&
-                        container.getStackInSlot(33)
-                    ) {
+                    if (container.getStackInSlot(29) && container.getStackInSlot(33)) {
                         Thread.sleep(500);
                         Guis.clickSlot(22, false);
                         Thread.sleep(750);
@@ -390,9 +349,7 @@ class MiningUtilClass {
 
                 if (msg.includes("You don't have enough Gemstone Powder!")) {
                     Thread.sleep(300);
-                    Chat.message(
-                        "You don't have enough powder to max Great Explorer!"
-                    );
+                    Chat.message("You don't have enough powder to max Great Explorer!");
                     Guis.closeInv();
                     return success(false);
                 }
@@ -404,9 +361,7 @@ class MiningUtilClass {
                 Chat.message('Great Explorer is maxed from last stat check!');
                 return success(true);
             } else if (file.maxge === undefined) {
-                Chat.message(
-                    'Great Explorer stat is undefined! Run /getminingstats'
-                );
+                Chat.message('Great Explorer stat is undefined! Run /getminingstats');
                 return success(false);
             }
 
@@ -450,9 +405,7 @@ class MiningUtilClass {
         let Professional = file.professional;
 
         if (!Speed) {
-            Chat.message(
-                'You have not saved your mining stats! use /getminingstats'
-            );
+            Chat.message('You have not saved your mining stats! use /getminingstats');
             return;
         }
 
@@ -505,9 +458,7 @@ class MiningUtilClass {
         let ticks = Math.round((hardness * 30) / Speed);
         if (!ticks && !SpeedBoost) {
             if (BlockID !== 34) {
-                Chat.message(
-                    `&c WARNING! Block is undefined. Tell devs immediately. Block Name & ID: ${BlockName}, ${BlockID}`
-                );
+                Chat.message(`&c WARNING! Block is undefined. Tell devs immediately. Block Name & ID: ${BlockName}, ${BlockID}`);
             }
             ticks = 4;
         }
@@ -552,14 +503,7 @@ class MiningUtilClass {
             if (!drillName) continue;
 
             if (drillName.drill) {
-                const loreHasBlueCheese = item
-                    .getLore()
-                    .some((loreLine) =>
-                        loreLine
-                            .toString()
-                            .replace(/§./g, '')
-                            .includes('Blue Cheese')
-                    );
+                const loreHasBlueCheese = item.getLore().some((loreLine) => loreLine.toString().replace(/§./g, '').includes('Blue Cheese'));
                 if (loreHasBlueCheese) {
                     blueCheese = itemInstance;
                     continue;
@@ -600,15 +544,11 @@ class MiningUtilClass {
         const symbol = symbols[type.toLowerCase()];
         if (!symbol) return 0;
 
-        const line = Scoreboard.getLines().find((line) =>
-            String(line).includes(symbol)
-        );
+        const line = Scoreboard.getLines().find((line) => String(line).includes(symbol));
 
         if (line) {
             const clean = ChatLib.removeFormatting(String(line));
-            const match = clean.match(
-                new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${symbol}`)
-            );
+            const match = clean.match(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${symbol}`));
             if (match) {
                 return parseFloat(match[1]);
             }
@@ -643,10 +583,7 @@ class MiningUtilClass {
     GhostBlock(pos) {
         const Blocks = net.minecraft.block.Blocks;
 
-        Client.getMinecraft().world.setBlockState(
-            pos,
-            Blocks.AIR.getDefaultState()
-        );
+        Client.getMinecraft().world.setBlockState(pos, Blocks.AIR.getDefaultState());
     }
 }
 

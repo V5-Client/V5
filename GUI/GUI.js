@@ -24,89 +24,28 @@ export const updateSettingMap = _updateSettingMap;
 export const applySettings = _applySettings;
 // THIS ISN'T NEEDED PROBABLY, BUT IT WORKS SO WHATEVER LMFAO
 
-export const showNotification = (
-    title,
-    description,
-    type = 'SUCCESS',
-    duration = 5000
-) => {
+export const showNotification = (title, description, type = 'SUCCESS', duration = 5000) => {
     global.notificationManager.add(title, description, type, duration);
 };
 
-export const addCategoryItem = (
-    subcategoryName,
-    title,
-    description,
-    tooltip = null
-) => {
-    global.Categories.addCategoryItem(
-        subcategoryName,
-        title,
-        description,
-        tooltip
-    );
+export const addCategoryItem = (subcategoryName, title, description, tooltip = null) => {
+    global.Categories.addCategoryItem(subcategoryName, title, description, tooltip);
 };
 
 export const findItem = (categoryName, itemName) => {
     return global.Categories.findItem(categoryName, itemName);
 };
 
-export const addToggle = (
-    categoryName,
-    itemName,
-    toggleTitle,
-    callback = null,
-    description = null
-) => {
-    global.Categories.addToggle(
-        categoryName,
-        itemName,
-        toggleTitle,
-        callback,
-        description
-    );
+export const addToggle = (categoryName, itemName, toggleTitle, callback = null, description = null) => {
+    global.Categories.addToggle(categoryName, itemName, toggleTitle, callback, description);
 };
 
-export const addSlider = (
-    categoryName,
-    itemName,
-    sliderTitle,
-    min,
-    max,
-    defaultValue,
-    callback = null,
-    description = null
-) => {
-    global.Categories.addSlider(
-        categoryName,
-        itemName,
-        sliderTitle,
-        min,
-        max,
-        defaultValue,
-        callback,
-        description
-    );
+export const addSlider = (categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) => {
+    global.Categories.addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback, description);
 };
 
-export const addMultiToggle = (
-    categoryName,
-    itemName,
-    toggleTitle,
-    options,
-    singleSelect = false,
-    callback = null,
-    description = null
-) => {
-    global.Categories.addMultiToggle(
-        categoryName,
-        itemName,
-        toggleTitle,
-        options,
-        singleSelect,
-        callback,
-        description
-    );
+export const addMultiToggle = (categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null) => {
+    global.Categories.addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect, callback, description);
 };
 
 export const openGui = () => {

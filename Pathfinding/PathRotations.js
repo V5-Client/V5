@@ -51,12 +51,7 @@ export function updateRotations() {
         movementState.fallingTicks > 0 &&
         movementState.fallingTicks <= 15
     ) {
-        Rotations.rotateToAngles(
-            movementState.jumpStartYaw,
-            movementState.jumpStartPitch,
-            INSTANT_SNAP_MODE,
-            ROTATION_STEPS
-        );
+        Rotations.rotateToAngles(movementState.jumpStartYaw, movementState.jumpStartPitch, INSTANT_SNAP_MODE, ROTATION_STEPS);
         return;
     }
 
@@ -73,15 +68,12 @@ export function updateRotations() {
         const dxPitch = pitchTarget.x - eyePos.x;
         const horizontalDistPitch = Math.hypot(dxPitch, dzPitch);
 
-        targetPitch =
-            -Math.atan2(dyPitch, horizontalDistPitch) * (180 / Math.PI);
+        targetPitch = -Math.atan2(dyPitch, horizontalDistPitch) * (180 / Math.PI);
 
         const pitchChange = Math.abs(targetPitch - lastCalculatedPitch);
 
         if (pitchChange > LARGE_PITCH_THRESHOLD) {
-            const blendedPitch =
-                lastCalculatedPitch +
-                (targetPitch - lastCalculatedPitch) * LARGE_PITCH_DAMPENING;
+            const blendedPitch = lastCalculatedPitch + (targetPitch - lastCalculatedPitch) * LARGE_PITCH_DAMPENING;
             targetPitch = blendedPitch;
         }
     }
@@ -90,12 +82,7 @@ export function updateRotations() {
 
     lastCalculatedPitch = targetPitch;
 
-    Rotations.rotateToAngles(
-        targetYaw,
-        targetPitch,
-        INSTANT_SNAP_MODE,
-        ROTATION_STEPS
-    );
+    Rotations.rotateToAngles(targetYaw, targetPitch, INSTANT_SNAP_MODE, ROTATION_STEPS);
 }
 
 export function stopRotation() {

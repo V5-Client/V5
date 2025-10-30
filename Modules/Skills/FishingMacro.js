@@ -22,9 +22,7 @@ class FishingMacro extends ModuleBase {
             if (this.tickCounter % 10 !== 0) return;
 
             if (Date.now() - this.time < 800) return;
-            let stand = World.getAllEntitiesOfType(
-                net.minecraft.entity.decoration.ArmorStandEntity
-            );
+            let stand = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
             const target = stand.find((element) => element.getName() === '!!!');
             if (!target) return;
 

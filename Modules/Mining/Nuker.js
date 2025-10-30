@@ -6,9 +6,7 @@ import { Vec3d } from '../../Utility/Constants';
 import { ModuleBase } from '../../Utility/ModuleBase';
 const BP = net.minecraft.util.math.BlockPos;
 
-const ConcurrentLinkedQueue = Java.type(
-    'java.util.concurrent.ConcurrentLinkedQueue'
-);
+const ConcurrentLinkedQueue = Java.type('java.util.concurrent.ConcurrentLinkedQueue');
 const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
 class NukerClass extends ModuleBase {
@@ -58,9 +56,7 @@ class NukerClass extends ModuleBase {
 
             if (block?.getClass() === Block) {
                 let pos = [block.getX(), block.getY(), block.getZ()];
-                Chat.debugMessage(
-                    'Nuking ' + block.type.getRegistryName() + ' at ' + pos
-                );
+                Chat.debugMessage('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
                 NukerUtils.nuke(pos, ticks);
             }
         }).setCommandName('nukeit');
@@ -74,11 +70,7 @@ class NukerClass extends ModuleBase {
                 };
                 if (!this.customBlockList.some((b) => b.id === newBlock.id)) {
                     this.customBlockList.push(newBlock);
-                    Chat.message(
-                        'Added ' +
-                            block.type.getName() +
-                            ' to custom nuker list.'
-                    );
+                    Chat.message('Added ' + block.type.getName() + ' to custom nuker list.');
                 } else {
                     Chat.message('Block already in custom nuker list.');
                 }
@@ -93,9 +85,7 @@ class NukerClass extends ModuleBase {
                 return;
             }
             let initialLength = this.customBlockList.length;
-            this.customBlockList = this.customBlockList.filter(
-                (block) => !(block.id === parseInt(id))
-            );
+            this.customBlockList = this.customBlockList.filter((block) => !(block.id === parseInt(id)));
             if (this.customBlockList.length < initialLength) {
                 Chat.message('Removed block(s) from custom nuker list.');
             } else {
@@ -122,8 +112,7 @@ class NukerClass extends ModuleBase {
         this.on('tick', () => {
             if (!this.isHoldingRequiredItem()) return;
             if (Client.isInGui() && !Client.isInChat()) return;
-            if (Client.getKeyBindFromDescription('key.attack').isKeyDown())
-                return;
+            if (Client.getKeyBindFromDescription('key.attack').isKeyDown()) return;
             if (!this.onGround()) return;
             if (Date.now() - this.lastTime < 0 * 50) return; // delay (0)
 
@@ -166,40 +155,21 @@ class NukerClass extends ModuleBase {
 
         this.on('postRenderWorld', () => {
             if (this.target) {
-                this.renderRGB([
-                    this.target.getX(),
-                    this.target.getY(),
-                    this.target.getZ(),
-                ]);
+                this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
             }
 
             if (!this.chestPos) return;
 
-            if (
-                this.distance(this.cords(), [
-                    this.chestPos.x,
-                    this.chestPos.y,
-                    this.chestPos.z,
-                ]).distance > 8 ||
-                !this.autoChest
-            )
-                return;
+            if (this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance > 8 || !this.autoChest) return;
 
-            RenderUtils.drawBox(
-                new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z),
-                [100, 100, 255, 150],
-                false
-            );
+            RenderUtils.drawBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), [100, 100, 255, 150], false);
         });
 
         this.on('renderBlockEntity', (entity) => {
             if (Client.isInGui() && !Client.isInChat()) return;
             if (!this.isHoldingRequiredItem()) return;
 
-            if (
-                entity?.getBlockType() != null &&
-                entity?.getBlockType()?.getID() === 188
-            ) {
+            if (entity?.getBlockType() != null && entity?.getBlockType()?.getID() === 188) {
                 const chest = entity?.getBlock()?.pos;
                 this.chestPos = chest;
                 if (!chest) return;
@@ -208,18 +178,12 @@ class NukerClass extends ModuleBase {
 
                 if (this.clickQueue.has(pos)) return; // Skip if already queued
 
-                if (
-                    this.distance(this.cords(), [chest.x, chest.y, chest.z])
-                        .distance > 6
-                )
-                    return;
+                if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
 
                 if (
                     this.autoChest &&
                     !this.chestClickedThisTick &&
-                    (!this.lastChestClick[pos] ||
-                        Date.now() - this.lastChestClick[pos] >
-                            Math.floor(Math.random() * 50) + 50)
+                    (!this.lastChestClick[pos] || Date.now() - this.lastChestClick[pos] > Math.floor(Math.random() * 50) + 50)
                 ) {
                     this.clickQueue.add(pos);
                     this.rightClickBlock([chest.x, chest.y, chest.z]);
@@ -229,23 +193,9 @@ class NukerClass extends ModuleBase {
             }
         });
 
-        this.addToggle(
-            'Auto Chest',
-            (v) => (this.autoChest = v),
-            'Auto-opens chests'
-        );
-        this.addToggle(
-            "Don't nuke below",
-            (v) => (this.nukeBelow = v),
-            'Prevents nuking below'
-        );
-        this.addMultiToggle(
-            'Target Mode',
-            ['Random', 'Closest'],
-            true,
-            (v) => (this.targetMode = v),
-            'Choose between random or closest block targeting'
-        );
+        this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
+        this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
+        this.addMultiToggle('Target Mode', ['Random', 'Closest'], true, (v) => (this.targetMode = v), 'Choose between random or closest block targeting');
     }
 
     startWorker() {
@@ -304,25 +254,12 @@ class NukerClass extends ModuleBase {
     }
 
     processScanTask(task) {
-        const {
-            playerPos,
-            blockType,
-            targetMode,
-            nukeBelow,
-            heightLimit,
-            customBlockList,
-            minedBlocks,
-            playerCords,
-        } = task;
+        const { playerPos, blockType, targetMode, nukeBelow, heightLimit, customBlockList, minedBlocks, playerCords } = task;
 
         const validBlocks = [];
 
         for (let x = playerPos.x - 5; x <= playerPos.x + 5; x++) {
-            for (
-                let y = playerPos.y - (nukeBelow ? 0 : 5);
-                y <= playerPos.y + heightLimit;
-                y++
-            ) {
+            for (let y = playerPos.y - (nukeBelow ? 0 : 5); y <= playerPos.y + heightLimit; y++) {
                 for (let z = playerPos.z - 5; z <= playerPos.z + 5; z++) {
                     if (nukeBelow && y < playerPos.y) continue;
 
@@ -341,15 +278,11 @@ class NukerClass extends ModuleBase {
                         isValidBlock =
                             block instanceof net.minecraft.block.BlockStone ||
                             block instanceof net.minecraft.block.BlockOre ||
-                            block instanceof
-                                net.minecraft.block.BlockRedstoneOre ||
+                            block instanceof net.minecraft.block.BlockRedstoneOre ||
                             blockA.type.getID() == 4;
                     } else if (blockType === 'Custom') {
                         let blockCheck = World.getBlockAt(x, y, z);
-                        isValidBlock = customBlockList.some(
-                            (customBlock) =>
-                                blockCheck.type.getID() === customBlock.id
-                        );
+                        isValidBlock = customBlockList.some((customBlock) => blockCheck.type.getID() === customBlock.id);
                     }
 
                     if (isValidBlock) {
@@ -368,11 +301,7 @@ class NukerClass extends ModuleBase {
                 let closestBlock = null;
 
                 for (let pos of validBlocks) {
-                    const dist = this.distance(playerCords, [
-                        pos.getX(),
-                        pos.getY(),
-                        pos.getZ(),
-                    ]).distance;
+                    const dist = this.distance(playerCords, [pos.getX(), pos.getY(), pos.getZ()]).distance;
 
                     if (dist < minDistance) {
                         minDistance = dist;
@@ -383,8 +312,7 @@ class NukerClass extends ModuleBase {
                 targetPos = closestBlock;
             } else {
                 // Pick a random block
-                targetPos =
-                    validBlocks[Math.floor(Math.random() * validBlocks.length)];
+                targetPos = validBlocks[Math.floor(Math.random() * validBlocks.length)];
             }
 
             if (targetPos) {
@@ -402,9 +330,7 @@ class NukerClass extends ModuleBase {
 
         let heldItem = Player.getHeldItem();
         if (!heldItem) return false;
-        return this.REQUIRED_ITEMS.some((item) =>
-            heldItem.getName().toLowerCase().includes(item.toLowerCase())
-        );
+        return this.REQUIRED_ITEMS.some((item) => heldItem.getName().toLowerCase().includes(item.toLowerCase()));
     }
 
     distance(from, to) {
@@ -422,9 +348,7 @@ class NukerClass extends ModuleBase {
     }
 
     cords() {
-        let eyeVector = Utils.convertToVector(
-            Player.asPlayerMP().getEyePosition(1)
-        );
+        let eyeVector = Utils.convertToVector(Player.asPlayerMP().getEyePosition(1));
         return [eyeVector.x, eyeVector.y, eyeVector.z];
     }
 
@@ -434,12 +358,7 @@ class NukerClass extends ModuleBase {
         let g = Math.sin(time + 2) * 127 + 128;
         let b = Math.sin(time + 4) * 127 + 128;
 
-        RenderUtils.drawWireFrame(
-            new Vec3d(location[0], location[1], location[2]),
-            [r, g, b, 255],
-            5,
-            true
-        );
+        RenderUtils.drawWireFrame(new Vec3d(location[0], location[1], location[2]), [r, g, b, 255], 5, true);
     }
 
     rightClickBlock(xyz) {
@@ -447,22 +366,11 @@ class NukerClass extends ModuleBase {
         let direction = net.minecraft.util.math.Direction.UP;
         let hitVec = new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5);
 
-        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(
-            hitVec,
-            direction,
-            blockPos,
-            false
-        );
+        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(hitVec, direction, blockPos, false);
 
         let hand = net.minecraft.util.Hand.MAIN_HAND;
         let sequence = 0;
-        Client.sendPacket(
-            new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
-                hand,
-                blockHitResult,
-                sequence
-            )
-        );
+        Client.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
     }
 
     init() {

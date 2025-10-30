@@ -12,10 +12,8 @@ const handleClick = (mouseX, mouseY) => {
         !isInside(mouseX, mouseY, global.GuiRectangles.RightPanel)
     ) {
         global.GuiState.dragging = true;
-        global.GuiRectangles.Background.dx =
-            mouseX - global.GuiRectangles.Background.x;
-        global.GuiRectangles.Background.dy =
-            mouseY - global.GuiRectangles.Background.y;
+        global.GuiRectangles.Background.dx = mouseX - global.GuiRectangles.Background.x;
+        global.GuiRectangles.Background.dy = mouseY - global.GuiRectangles.Background.y;
     }
 
     global.categoryManager?.handleClick(mouseX, mouseY);
@@ -29,16 +27,8 @@ const handleMouseDrag = (mouseX, mouseY) => {
         const screenWidth = Renderer.screen.getWidth();
         const screenHeight = Renderer.screen.getHeight();
 
-        global.GuiRectangles.Background.x = clamp(
-            newX,
-            0,
-            screenWidth - global.GuiRectangles.Background.width
-        );
-        global.GuiRectangles.Background.y = clamp(
-            newY,
-            0,
-            screenHeight - global.GuiRectangles.Background.height
-        );
+        global.GuiRectangles.Background.x = clamp(newX, 0, screenWidth - global.GuiRectangles.Background.width);
+        global.GuiRectangles.Background.y = clamp(newY, 0, screenHeight - global.GuiRectangles.Background.height);
         global.categoryManager?.invalidateLayoutCache();
     }
     global.categoryManager?.handleMouseDrag(mouseX, mouseY);

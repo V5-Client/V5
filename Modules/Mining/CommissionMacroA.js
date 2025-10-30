@@ -21,8 +21,7 @@ class CommissionMacro extends ModuleBase {
             name: 'Commission Macro',
             subcategory: 'Mining',
             description: 'Completes Commissions for you',
-            tooltip:
-                'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            tooltip: 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
         });
@@ -76,16 +75,10 @@ class CommissionMacro extends ModuleBase {
         ];
 
         this.on('chat', (event) => {
-            if (
-                this.state === this.STATES.MINING ||
-                this.state === this.STATES.SLAYER
-            ) {
+            if (this.state === this.STATES.MINING || this.state === this.STATES.SLAYER) {
                 const msg = event.message.getUnformattedText();
 
-                if (
-                    msg.includes('Commission Complete! Visit the King to claim')
-                )
-                    this.state = this.STATES.EMISSIARY;
+                if (msg.includes('Commission Complete! Visit the King to claim')) this.state = this.STATES.EMISSIARY;
             }
         });
 
@@ -116,18 +109,12 @@ class CommissionMacro extends ModuleBase {
                 case this.STATES.COMMISSION:
                     const tabItems = TabList.getNames();
 
-                    const cleanText = (text) =>
-                        ChatLib.removeFormatting(text ?? '').trim();
+                    const cleanText = (text) => ChatLib.removeFormatting(text ?? '').trim();
 
-                    const startIndex = tabItems.findIndex(
-                        (item) => cleanText(item) === 'Commissions:'
-                    );
+                    const startIndex = tabItems.findIndex((item) => cleanText(item) === 'Commissions:');
 
                     const maxLines = 4;
-                    let endIndex = Math.min(
-                        startIndex + 1 + maxLines,
-                        tabItems.length
-                    );
+                    let endIndex = Math.min(startIndex + 1 + maxLines, tabItems.length);
 
                     let newCommissions = [];
 
@@ -139,8 +126,7 @@ class CommissionMacro extends ModuleBase {
                         const name = parts[0].trim();
                         const display = parts[1].trim();
 
-                        if (display.length === 0 || display === 'DONE')
-                            continue;
+                        if (display.length === 0 || display === 'DONE') continue;
 
                         newCommissions.push({
                             name,
@@ -151,25 +137,15 @@ class CommissionMacro extends ModuleBase {
                     // simplify this if you can/want
                     this.commissions = newCommissions;
 
-                    const knownCommissionNames = COMMISSION_DATA.map(
-                        (data) => data.names
-                    ).reduce((acc, val) => acc.concat(val), []);
+                    const knownCommissionNames = COMMISSION_DATA.map((data) => data.names).reduce((acc, val) => acc.concat(val), []);
 
-                    const filterableCommissions = this.commissions.filter(
-                        (activeComm) =>
-                            knownCommissionNames.includes(activeComm.name)
-                    );
+                    const filterableCommissions = this.commissions.filter((activeComm) => knownCommissionNames.includes(activeComm.name));
 
                     if (filterableCommissions.length > 0) {
-                        const randomIndex = this.random(
-                            filterableCommissions.length
-                        );
-                        const randomCommission =
-                            filterableCommissions[randomIndex];
+                        const randomIndex = this.random(filterableCommissions.length);
+                        const randomCommission = filterableCommissions[randomIndex];
 
-                        const commissionData = COMMISSION_DATA.find((data) =>
-                            data.names.includes(randomCommission.name)
-                        );
+                        const commissionData = COMMISSION_DATA.find((data) => data.names.includes(randomCommission.name));
 
                         this.commission = {
                             name: randomCommission.name,
@@ -180,35 +156,25 @@ class CommissionMacro extends ModuleBase {
 
                         if (!this.commission) return; // do stiff here when no comm like click pigeon
 
-                        this.message(
-                            `&f${this.commission.name} &7(&b${this.commission.type}&7)`
-                        );
+                        this.message(`&f${this.commission.name} &7(&b${this.commission.type}&7)`);
                     }
 
                     if (this.commission) this.state = this.STATES.TRAVELLING;
                     break;
                 case this.STATES.TRAVELLING:
-                    this.message(
-                        `Pathing to ${this.commission.name} location!`
-                    );
+                    this.message(`Pathing to ${this.commission.name} location!`);
 
                     const waypoints = this.commission.waypoints;
                     const randomIndex = this.random(waypoints.length);
                     const targetWaypoint = waypoints[randomIndex];
 
                     const PathComplete = () => {
-                        if (this.commission.type === 'MINING')
-                            this.state = this.STATES.MINING;
-                        if (this.commission.type === 'SLAYER')
-                            this.state = this.STATES.SLAYER;
+                        if (this.commission.type === 'MINING') this.state = this.STATES.MINING;
+                        if (this.commission.type === 'SLAYER') this.state = this.STATES.SLAYER;
                     };
 
                     findAndFollowPath(
-                        [
-                            Math.floor(Player.getX()),
-                            Math.floor(Player.getY()) - 1,
-                            Math.floor(Player.getZ()),
-                        ],
+                        [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
                         targetWaypoint,
                         false,
                         PathComplete
@@ -224,24 +190,14 @@ class CommissionMacro extends ModuleBase {
                 case this.STATES.EMISSIARY:
                     Chat.message('WERE HERE');
                     const onPathComplete = () => {
-                        this.message(
-                            'Arrived at Emissary. Commission reward collected.'
-                        );
+                        this.message('Arrived at Emissary. Commission reward collected.');
                         this.state = this.STATES.COLLECTING;
                     };
 
-                    const startPosition = [
-                        Math.floor(Player.getX()),
-                        Math.floor(Player.getY()) - 1,
-                        Math.floor(Player.getZ()),
-                    ];
+                    const startPosition = [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())];
 
                     for (const location of EMISSARY_LOCATIONS) {
-                        let distance = MathUtils.getDistanceToPlayer(
-                            location[0],
-                            location[1],
-                            location[2]
-                        ).distance;
+                        let distance = MathUtils.getDistanceToPlayer(location[0], location[1], location[2]).distance;
 
                         Chat.message(distance);
 
@@ -252,18 +208,9 @@ class CommissionMacro extends ModuleBase {
                     }
 
                     if (this.closestLocation) {
-                        this.message(
-                            `Pathing to closest Emissary at [${this.closestLocation.join(
-                                ', '
-                            )}]`
-                        );
+                        this.message(`Pathing to closest Emissary at [${this.closestLocation.join(', ')}]`);
 
-                        findAndFollowPath(
-                            startPosition,
-                            this.closestLocation,
-                            false,
-                            onPathComplete
-                        );
+                        findAndFollowPath(startPosition, this.closestLocation, false, onPathComplete);
 
                         this.state = this.STATES.WAITING;
                     }

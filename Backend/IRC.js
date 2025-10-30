@@ -39,40 +39,22 @@ function connectIRC(svid) {
             switch (data.event) {
                 case 'auth_success':
                     if (!data.data.user.discordLinked) {
-                        const msg = Chat.formatLink(
-                            'Link Discord',
-                            `${
-                                Links.BASE_API_URL
-                            }/auth/discord/${Player.getName()}`
-                        );
+                        const msg = Chat.formatLink('Link Discord', `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
                         Chat.irc(msg);
-                        openBrowser(
-                            `${
-                                Links.BASE_API_URL
-                            }/auth/discord/${Player.getName()}`
-                        );
+                        openBrowser(`${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
                     }
-                    sendChatMessage(
-                        `Time taken to connect: ${Date.now() - start}ms`
-                    );
+                    sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
                     break;
 
                 case 'chat_message':
-                    const sender =
-                        data.data.sender.minecraftName ||
-                        data.data.sender.discordUsername;
+                    const sender = data.data.sender.minecraftName || data.data.sender.discordUsername;
                     Chat.irc(`&9${sender}` + ': ' + `&r${data.data.content}`);
                     break;
 
                 case 'discord_link_reminder':
-                    const msg = Chat.formatLink(
-                        'Link Discord',
-                        `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`
-                    );
+                    const msg = Chat.formatLink('Link Discord', `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
                     Chat.irc(msg);
-                    openBrowser(
-                        `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`
-                    );
+                    openBrowser(`${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
                     break;
 
                 case 'access_upgraded':
@@ -147,16 +129,9 @@ register('gameUnload', () => {
 function attemptReconnect(svid) {
     if (reconnectAttempts < 3) {
         reconnectAttempts++;
-        let delay = Math.min(
-            2000 * Math.pow(2, reconnectAttempts - 1),
-            MAX_RECONNECT_DELAY
-        );
+        let delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY);
         let ticks = Math.ceil(delay / 50);
-        Chat.irc(
-            `Attempting to reconnect in ${
-                delay / 1000
-            } seconds... (Attempt ${reconnectAttempts})`
-        );
+        Chat.irc(`Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`);
 
         Client.scheduleTask(ticks, () => {
             Chat.irc('Reconnecting...');
@@ -165,9 +140,7 @@ function attemptReconnect(svid) {
         });
     } else {
         // remove this if u want but its annoying asf sometimes
-        Chat.irc(
-            '&cFailed to connect to IRC after 3 attempts! /ct load or wait, backend might be down.'
-        );
+        Chat.irc('&cFailed to connect to IRC after 3 attempts! /ct load or wait, backend might be down.');
     }
 }
 

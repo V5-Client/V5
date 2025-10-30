@@ -6,12 +6,7 @@ import { Chat } from '../Utility/Chat';
 
 global.SettingsMap = new Map();
 
-const getModuleItems = (category) =>
-    category.items.reduce(
-        (acc, group) =>
-            acc.concat(group.type === 'separator' ? group.items : [group]),
-        []
-    );
+const getModuleItems = (category) => category.items.reduce((acc, group) => acc.concat(group.type === 'separator' ? group.items : [group]), []);
 
 function buildSettingsMapFromComponents() {
     global.SettingsMap.clear();
@@ -21,12 +16,9 @@ function buildSettingsMapFromComponents() {
             getModuleItems(category).forEach((item) => {
                 item.components.forEach((component) => {
                     const key = `${item.title}.${component.title}`;
-                    if (component instanceof ToggleButton)
-                        global.SettingsMap.set(key, component.enabled);
-                    else if (component instanceof Slider)
-                        global.SettingsMap.set(key, component.value);
-                    else if (component instanceof MultiToggle)
-                        global.SettingsMap.set(key, component.options);
+                    if (component instanceof ToggleButton) global.SettingsMap.set(key, component.enabled);
+                    else if (component instanceof Slider) global.SettingsMap.set(key, component.value);
+                    else if (component instanceof MultiToggle) global.SettingsMap.set(key, component.options);
                 });
             });
         });
@@ -44,12 +36,7 @@ export const saveSettings = () => {
         settings[itemTitle][componentTitle] = value;
     }
 
-    FileLib.write(
-        'V5Config',
-        'config.json',
-        JSON.stringify(settings, null, 2),
-        true
-    );
+    FileLib.write('V5Config', 'config.json', JSON.stringify(settings, null, 2), true);
 };
 
 export const applySettings = () => {
@@ -94,17 +81,11 @@ export const loadSettings = () => {
                     item.components.forEach((component) => {
                         const savedValue = savedItemSettings[component.title];
                         if (savedValue === undefined) return;
-                        if (component instanceof ToggleButton)
-                            component.enabled = savedValue;
-                        else if (component instanceof Slider)
-                            component.value = savedValue;
+                        if (component instanceof ToggleButton) component.enabled = savedValue;
+                        else if (component instanceof Slider) component.value = savedValue;
                         else if (component instanceof MultiToggle) {
                             component.options.forEach((option, index) => {
-                                if (
-                                    savedValue[index] &&
-                                    option.name === savedValue[index].name
-                                )
-                                    option.enabled = savedValue[index].enabled;
+                                if (savedValue[index] && option.name === savedValue[index].name) option.enabled = savedValue[index].enabled;
                             });
                         }
                     });
@@ -120,11 +101,7 @@ export const loadSettings = () => {
     }
 };
 
-export const getSetting = (
-    moduleName,
-    componentTitle,
-    optionsToCheck = null
-) => {
+export const getSetting = (moduleName, componentTitle, optionsToCheck = null) => {
     const key = `${moduleName}.${componentTitle}`;
 
     if (!global.SettingsMap.has(key)) {
@@ -134,9 +111,7 @@ export const getSetting = (
     const value = global.SettingsMap.get(key);
 
     if (Array.isArray(value) && Array.isArray(optionsToCheck)) {
-        return value
-            .filter((opt) => optionsToCheck.includes(opt.name) && opt.enabled)
-            .map((opt) => opt.name);
+        return value.filter((opt) => optionsToCheck.includes(opt.name) && opt.enabled).map((opt) => opt.name);
     }
 
     return value;

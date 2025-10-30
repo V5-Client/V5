@@ -13,17 +13,7 @@ export default class RenderUtils {
      * @param {Boolean} depth hide behind blocks
      */
     static drawWireFrame(Vec3d, ColorArray, thickness = 5, depth = false) {
-        RenderUtilsPackage.drawWireFrameBox(
-            Vec3d,
-            this.setColor(
-                ColorArray[0],
-                ColorArray[1],
-                ColorArray[2],
-                ColorArray[3]
-            ),
-            thickness,
-            depth
-        );
+        RenderUtilsPackage.drawWireFrameBox(Vec3d, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
     }
 
     /**
@@ -33,16 +23,7 @@ export default class RenderUtils {
      * @param {Boolean} depth hide behind blocks
      */
     static drawBox(Vec3d, ColorArray, depth = false) {
-        RenderUtilsPackage.drawFilledBox(
-            Vec3d,
-            this.setColor(
-                ColorArray[0],
-                ColorArray[1],
-                ColorArray[2],
-                ColorArray[3]
-            ),
-            depth
-        );
+        RenderUtilsPackage.drawFilledBox(Vec3d, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), depth);
     }
 
     /**
@@ -53,27 +34,11 @@ export default class RenderUtils {
      * @param {Float16Array} thickness thickness of each wire
      * @param {Boolean} depth hide behind blocks
      */
-    static drawStyledBox(
-        Vec3d,
-        ColorArray1,
-        ColorArray2,
-        thickness = 5,
-        depth = false
-    ) {
+    static drawStyledBox(Vec3d, ColorArray1, ColorArray2, thickness = 5, depth = false) {
         RenderUtilsPackage.drawStyledBox(
             Vec3d,
-            this.setColor(
-                ColorArray1[0],
-                ColorArray1[1],
-                ColorArray1[2],
-                ColorArray1[3]
-            ),
-            this.setColor(
-                ColorArray2[0],
-                ColorArray2[1],
-                ColorArray2[2],
-                ColorArray2[3]
-            ),
+            this.setColor(ColorArray1[0], ColorArray1[1], ColorArray1[2], ColorArray1[3]),
+            this.setColor(ColorArray2[0], ColorArray2[1], ColorArray2[2], ColorArray2[3]),
             thickness,
             depth
         );
@@ -94,12 +59,7 @@ export default class RenderUtils {
         RenderUtilsPackage.drawStyledBox(
             Vec3d,
             this.setColor(ColorArray1[0], ColorArray1[1], ColorArray1[2], 70),
-            this.setColor(
-                ColorArray1[0],
-                ColorArray1[1],
-                ColorArray1[2],
-                ColorArray1[3]
-            ),
+            this.setColor(ColorArray1[0], ColorArray1[1], ColorArray1[2], ColorArray1[3]),
             thickness,
             depth
         );
@@ -119,30 +79,8 @@ export default class RenderUtils {
     }
 
     // tesselator is retarded
-    static drawString(
-        text,
-        x,
-        y,
-        z,
-        color,
-        renderBlackBox = true,
-        scale = 1,
-        increase = false,
-        centered = true,
-        renderThroughBlocks = true
-    ) {
-        RenderUtilsPackage.drawString(
-            text,
-            x,
-            y,
-            z,
-            color,
-            renderBlackBox,
-            scale,
-            increase,
-            centered,
-            renderThroughBlocks
-        );
+    static drawString(text, x, y, z, color, renderBlackBox = true, scale = 1, increase = false, centered = true, renderThroughBlocks = true) {
+        RenderUtilsPackage.drawString(text, x, y, z, color, renderBlackBox, scale, increase, centered, renderThroughBlocks);
     }
 
     /**
@@ -155,25 +93,8 @@ export default class RenderUtils {
      *
      * This is very costly, ill lf fix soon
      */
-    static drawLine(
-        startVec3d,
-        endVec3d,
-        ColorArray,
-        thickness = 5,
-        depth = false
-    ) {
-        RenderUtilsPackage.drawLine(
-            startVec3d,
-            endVec3d,
-            this.setColor(
-                ColorArray[0],
-                ColorArray[1],
-                ColorArray[2],
-                ColorArray[3]
-            ),
-            thickness,
-            depth
-        );
+    static drawLine(startVec3d, endVec3d, ColorArray, thickness = 5, depth = false) {
+        RenderUtilsPackage.drawLine(startVec3d, endVec3d, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
     }
 
     /**
@@ -186,17 +107,7 @@ export default class RenderUtils {
      * im not sure on how to make this work atm :( - im lowk just retard
      */
     static drawEntityHitbox(Mob, ColorArray, thickness = 5, depth = false) {
-        RenderUtilsPackage.drawEntityHitbox(
-            Mob,
-            this.setColor(
-                ColorArray[0],
-                ColorArray[1],
-                ColorArray[2],
-                ColorArray[3]
-            ),
-            thickness,
-            depth
-        );
+        RenderUtilsPackage.drawEntityHitbox(Mob, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
     }
 
     /**

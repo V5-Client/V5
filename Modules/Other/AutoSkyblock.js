@@ -92,17 +92,9 @@ class AutoSkyblock extends ModuleBase {
         }
 
         const currentWaypoint = this.wheatPoints[this.currentIndex];
-        const playerCurrentPos = [
-            Math.floor(Player.getX()),
-            Math.round(Player.getY()) - 1,
-            Math.floor(Player.getZ()),
-        ];
+        const playerCurrentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
 
-        Chat.message(
-            `§ePathfinding to ${currentWaypoint.name} [${
-                currentWaypoint.pos
-            }] (${this.currentIndex + 1}/${this.wheatPoints.length})...`
-        );
+        Chat.message(`§ePathfinding to ${currentWaypoint.name} [${currentWaypoint.pos}] (${this.currentIndex + 1}/${this.wheatPoints.length})...`);
 
         findAndFollowPath(playerCurrentPos, currentWaypoint.pos, false, () => {
             if (this.enabled) {

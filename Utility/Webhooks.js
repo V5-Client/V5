@@ -32,9 +32,7 @@ class Webhooks {
 
         register('command', () => {
             try {
-                url = Toolkit.getDefaultToolkit()
-                    .getSystemClipboard()
-                    .getData(DataFlavor.stringFlavor);
+                url = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
             } catch (e) {
                 Chat.message('Webhook: ' + '&cFailed to get clipboard data');
                 return;
@@ -104,9 +102,7 @@ class Webhooks {
 
             if (Utils.area() === undefined) {
                 this.payload = {
-                    avatar_url: `https://minotar.net/cube/${Player.getUUID()
-                        .toString()
-                        .replace(/-/g, '')}/100.png`,
+                    avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, '')}/100.png`,
                     username: `${Player.getName()}`,
                     embeds: [
                         {
@@ -120,9 +116,7 @@ class Webhooks {
                 };
             } else {
                 this.payload = {
-                    avatar_url: `https://minotar.net/cube/${Player.getUUID()
-                        .toString()
-                        .replace(/-/g, '')}/100.png`,
+                    avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, '')}/100.png`,
                     username: `${Player.getName()}`,
                     embeds: [
                         {

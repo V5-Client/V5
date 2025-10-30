@@ -61,11 +61,7 @@ function updateVisibleBlocks() {
 
     for (let x = centerX - searchRadius; x <= centerX + searchRadius; x++) {
         for (let y = centerY - searchRadius; y <= centerY + searchRadius; y++) {
-            for (
-                let z = centerZ - searchRadius;
-                z <= centerZ + searchRadius;
-                z++
-            ) {
+            for (let z = centerZ - searchRadius; z <= centerZ + searchRadius; z++) {
                 const dx = x + 0.5 - playerPos.x;
                 const dy = y + 0.5 - playerPos.y;
                 const dz = z + 0.5 - playerPos.z;
@@ -78,14 +74,9 @@ function updateVisibleBlocks() {
                 const dirY = dy / dist;
                 const dirZ = dz / dist;
 
-                const dotProduct =
-                    playerLookVec.x * dirX +
-                    playerLookVec.y * dirY +
-                    playerLookVec.z * dirZ;
+                const dotProduct = playerLookVec.x * dirX + playerLookVec.y * dirY + playerLookVec.z * dirZ;
 
-                const angle =
-                    Math.acos(Math.max(-1, Math.min(1, dotProduct))) *
-                    (180 / Math.PI);
+                const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct))) * (180 / Math.PI);
 
                 if (angle > fovAngle) continue;
 
@@ -104,12 +95,7 @@ function updateVisibleBlocks() {
 function renderCachedBlocks() {
     cachedBlocks.forEach((block) => {
         const blockVec3d = new Vec3d(block.x, block.y, block.z);
-        RenderUtils.drawWireFrame(
-            blockVec3d,
-            wireframeColor,
-            wireframeThickness,
-            false
-        );
+        RenderUtils.drawWireFrame(blockVec3d, wireframeColor, wireframeThickness, false);
     });
 }
 
@@ -122,7 +108,5 @@ register('postRenderWorld', () => {
 
 register('command', () => {
     isEnabled = !isEnabled;
-    ChatLib.chat(
-        `Visible Blocks Highlighter: ${isEnabled ? 'Enabled' : 'Disabled'}`
-    );
+    ChatLib.chat(`Visible Blocks Highlighter: ${isEnabled ? 'Enabled' : 'Disabled'}`);
 }).setName('toggleVisibleBlocks');

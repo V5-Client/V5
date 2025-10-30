@@ -31,14 +31,10 @@ class UtilsClass {
                 Thread.sleep(50);
                 ChatLib.command('limbo');
                 Thread.sleep(30);
-                Chat.message(
-                    '§cAn exception occured in your connection, so you have been routed to limbo!'
-                );
+                Chat.message('§cAn exception occured in your connection, so you have been routed to limbo!');
                 Thread.sleep(randomDelay());
 
-                this.fakeBan(
-                    `You have been detected using the blacklisted modification "Polar Client"`
-                );
+                this.fakeBan(`You have been detected using the blacklisted modification "Polar Client"`);
             }).start();
         }).setName('polar');
     }
@@ -82,8 +78,7 @@ class UtilsClass {
 
         Notifications.sendAlert(msg);
 
-        if (!ModuleManager.getSetting('Failsafes', 'Audio Notifications'))
-            return;
+        if (!ModuleManager.getSetting('Failsafes', 'Audio Notifications')) return;
 
         // Failsafe Sound
         try {
@@ -94,9 +89,7 @@ class UtilsClass {
             audio.setVolume(1);
             audio.play();
         } catch (e) {
-            Chat.message(
-                '&cFailsafe sound assets missing! Try reinstall rdbt client!'
-            );
+            Chat.message('&cFailsafe sound assets missing! Try reinstall rdbt client!');
         }
     };
 
@@ -117,10 +110,7 @@ class UtilsClass {
     getItemByName(name) {
         for (let i = 0; i <= 8; i++) {
             let item = Player.getInventory()?.getStackInSlot(i);
-            if (
-                item &&
-                ChatLib.removeFormatting(item.getName()).includes(name)
-            ) {
+            if (item && ChatLib.removeFormatting(item.getName()).includes(name)) {
                 return new ItemObject(item, i);
             }
         }
@@ -145,10 +135,7 @@ class UtilsClass {
         for (let i = 0; i < Names.length; i++) {
             for (let f = 0; f <= 8; f++) {
                 let item = Player.getInventory()?.getStackInSlot(f);
-                if (
-                    item &&
-                    ChatLib.removeFormatting(item.getName()).includes(Names[i])
-                ) {
+                if (item && ChatLib.removeFormatting(item.getName()).includes(Names[i])) {
                     return new ItemObject(item, f);
                 }
             }
@@ -185,17 +172,9 @@ class UtilsClass {
 
     playerCords = () => {
         return {
-            floor: [
-                Math.floor(Player.getX()),
-                Math.floor(Player.getY()),
-                Math.floor(Player.getZ()),
-            ],
+            floor: [Math.floor(Player.getX()), Math.floor(Player.getY()), Math.floor(Player.getZ())],
             player: [Player.getX(), Player.getY(), Player.getZ()],
-            beneath: [
-                Math.floor(Player.getX()),
-                Math.floor(Player.getY() - 1),
-                Math.floor(Player.getZ()),
-            ],
+            beneath: [Math.floor(Player.getX()), Math.floor(Player.getY() - 1), Math.floor(Player.getZ())],
         };
     };
 
@@ -206,25 +185,13 @@ class UtilsClass {
     }
 
     getBlocks() {
-        let cords = [
-            Math.floor(Player.getX()),
-            Math.floor(Player.getY()),
-            Math.floor(Player.getZ()),
-        ];
+        let cords = [Math.floor(Player.getX()), Math.floor(Player.getY()), Math.floor(Player.getZ())];
         let boxes = [];
         for (let x = -1; x <= 1; x++) {
             for (let z = -1; z <= 1; z++) {
                 for (let y = 0; y <= 1; y++) {
-                    let ctBlock = World.getBlockAt(
-                        cords[0] + x,
-                        cords[1] + y,
-                        cords[2] + z
-                    );
-                    if (
-                        ctBlock.type.mcBlock.func_149669_A() != 1.0 ||
-                        ctBlock.type.getID() === 0
-                    )
-                        continue;
+                    let ctBlock = World.getBlockAt(cords[0] + x, cords[1] + y, cords[2] + z);
+                    if (ctBlock.type.mcBlock.func_149669_A() != 1.0 || ctBlock.type.getID() === 0) continue;
                     boxes.push(
                         new AxisAlignedBB(
                             cords[0] + x - 0.01,
@@ -377,40 +344,21 @@ class UtilsClass {
 
         let handler = Client.getMinecraft().getNetworkHandler();
         if (!handler) {
-            global.showNotification(
-                'fakeBan failed',
-                'No network handler available',
-                'ERROR'
-            );
+            global.showNotification('fakeBan failed', 'No network handler available', 'ERROR');
             return;
         }
 
         let banMessage = Text.literal('You are temporarily banned for ')
             .formatted(Formatting.RED)
             .append(Text.literal(banTimeStr).formatted(Formatting.WHITE))
-            .append(
-                Text.literal(' from this server!\n\n').formatted(Formatting.RED)
-            )
+            .append(Text.literal(' from this server!\n\n').formatted(Formatting.RED))
             .append(Text.literal('Reason: ').formatted(Formatting.GRAY))
             .append(Text.literal(reason + '\n').formatted(Formatting.WHITE))
             .append(Text.literal('Find out more: ').formatted(Formatting.GRAY))
-            .append(
-                Text.literal('https://www.hypixel.net/appeal\n\n').formatted(
-                    Formatting.AQUA,
-                    Formatting.UNDERLINE
-                )
-            )
+            .append(Text.literal('https://www.hypixel.net/appeal\n\n').formatted(Formatting.AQUA, Formatting.UNDERLINE))
             .append(Text.literal('Ban ID: ').formatted(Formatting.GRAY))
-            .append(
-                Text.literal('#' + this.makeId() + '\n').formatted(
-                    Formatting.WHITE
-                )
-            )
-            .append(
-                Text.literal(
-                    'Sharing your Ban ID may affect the processing of your appeal!'
-                ).formatted(Formatting.GRAY)
-            );
+            .append(Text.literal('#' + this.makeId() + '\n').formatted(Formatting.WHITE))
+            .append(Text.literal('Sharing your Ban ID may affect the processing of your appeal!').formatted(Formatting.GRAY));
 
         handler.getConnection().disconnect(banMessage);
     }

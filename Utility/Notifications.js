@@ -1,13 +1,7 @@
 // partial credit: Debuggings
 // Source: (CT Discord https://discord.com/channels/119493402902528000/688773480954855537/917474499341987921)
 
-import {
-    Toolkit,
-    System,
-    MessageType,
-    SystemTray,
-    TrayIcon,
-} from './Constants';
+import { Toolkit, System, MessageType, SystemTray, TrayIcon } from './Constants';
 import { Chat } from './Chat';
 class NotificationUtils {
     constructor() {
@@ -17,15 +11,11 @@ class NotificationUtils {
             try {
                 const SystemTrayInstance = SystemTray.getSystemTray();
 
-                this.trayIcon = SystemTrayInstance.getTrayIcons().find(
-                    (t) => t.getToolTip() === 'Client Alerts'
-                );
+                this.trayIcon = SystemTrayInstance.getTrayIcons().find((t) => t.getToolTip() === 'Client Alerts');
 
                 if (this.trayIcon) return;
 
-                const image = Toolkit.getDefaultToolkit().createImage(
-                    './config/ChatTriggers/assets/icon.png'
-                );
+                const image = Toolkit.getDefaultToolkit().createImage('./config/ChatTriggers/assets/icon.png');
 
                 this.trayIcon = new TrayIcon(image, 'Client Alerts');
                 this.trayIcon.setImageAutoSize(true);
@@ -46,31 +36,16 @@ class NotificationUtils {
 
     windowsAlert(msg) {
         if (this.trayIcon) {
-            this.trayIcon.displayMessage(
-                'Client Alerts',
-                msg,
-                MessageType.WARNING
-            );
+            this.trayIcon.displayMessage('Client Alerts', msg, MessageType.WARNING);
         }
     }
 
     macAlert(msg) {
-        this.execute([
-            '/usr/bin/osascript',
-            '-e',
-            `display notification "${msg}" with title "Client Alerts"`,
-        ]);
+        this.execute(['/usr/bin/osascript', '-e', `display notification "${msg}" with title "Client Alerts"`]);
     }
 
     linuxAlert(msg) {
-        this.execute([
-            'notify-send',
-            '-u',
-            'critical',
-            '-a',
-            'Client Alerts',
-            msg,
-        ]);
+        this.execute(['notify-send', '-u', 'critical', '-a', 'Client Alerts', msg]);
     }
 
     execute(cmd) {
