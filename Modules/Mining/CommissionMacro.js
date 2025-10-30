@@ -375,7 +375,7 @@ class CommissionMacro extends ModuleBase {
                     if (closestDist < 4) {
                         const target = closest;
                         if (target) {
-                            const adjustedTarget = [target[0] + 0.5, target[1] + 2.0, target[2] + 0.5];
+                            const adjustedTarget = [target[0] + 0.5, target[1] + 2.32, target[2] + 0.5];
                             if (RotationRedo.isRotating) return;
                             RotationRedo.rotateToVector(adjustedTarget);
                             RotationRedo.onEndRotation(() => {
@@ -386,6 +386,7 @@ class CommissionMacro extends ModuleBase {
                     } else {
                         if (this.pathfinding) return;
                         this.pathfinding = true;
+                        Client.scheduleTask(300, () => (this.pathfinding = false)); // temp fix since callback doesnt always work?
                         this.travelPurpose = 'EMISSARY';
                         findAndFollowPath(
                             [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
