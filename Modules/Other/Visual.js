@@ -3,9 +3,8 @@ import { Vec3d } from '../../Utility/Constants';
 import { RayTrace } from '../../Utility/Raytrace';
 
 const exclusions = [
-    0, 51, 171, 144, 69, 77, 143, 50, 131, 132, 66, 157, 78, 141, 59, 142, 115,
-    104, 105, 76, 55, 38, 37, 6, 140, 32, 31, 65, 175, 93, 94, 149, 150, 30,
-    111, 9, 11, 50, 106, 39, 40, 36,
+    0, 51, 171, 144, 69, 77, 143, 50, 131, 132, 66, 157, 78, 141, 59, 142, 115, 104, 105, 76, 55, 38, 37, 6, 140, 32, 31, 65, 175, 93, 94, 149, 150, 30, 111, 9,
+    11, 50, 106, 39, 40, 36,
 ];
 
 // caching stuff
@@ -20,11 +19,7 @@ const MOVEMENT_THRESHOLD = 0.1; // same
 register('tick', () => {
     const heldItem = Player.getHeldItem();
 
-    if (
-        !Player.isSneaking() ||
-        !heldItem ||
-        !heldItem.getName().toLowerCase().includes('aspect of the')
-    ) {
+    if (!Player.isSneaking() || !heldItem || !heldItem.getName().toLowerCase().includes('aspect of the')) {
         cachedBlock = null;
         cachedColor = null;
         return;
@@ -65,10 +60,7 @@ register('postRenderWorld', () => {
     // POST RENDER WORLD ONLY SHOULD DO RENDERING, NOT CHECKING
     if (!cachedBlock) return;
 
-    RenderUtils.drawBox(
-        new Vec3d(cachedBlock.x, cachedBlock.y, cachedBlock.z),
-        cachedColor
-    );
+    RenderUtils.drawBox(new Vec3d(cachedBlock.x, cachedBlock.y, cachedBlock.z), cachedColor);
 });
 
 function isValidTeleport(block) {
@@ -76,9 +68,5 @@ function isValidTeleport(block) {
     const above1 = World.getBlockAt(block.x, block.y + 1, block.z);
     const above2 = World.getBlockAt(block.x, block.y + 2, block.z);
 
-    return (
-        !exclusions.includes(targetBlock.getType().getID()) &&
-        above1.getType().getID() === 0 &&
-        above2.getType().getID() === 0
-    );
+    return !exclusions.includes(targetBlock.getType().getID()) && above1.getType().getID() === 0 && above2.getType().getID() === 0;
 }

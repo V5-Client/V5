@@ -1,9 +1,4 @@
-import {
-    playClickSound,
-    drawRoundedRectangleWithBorder,
-    THEME,
-    isInside,
-} from '../Utils';
+import { playClickSound, drawRoundedRectangleWithBorder, THEME, isInside } from '../Utils';
 import { UIRoundedRectangle, Matrix } from '../../Utility/Constants';
 
 export class ToggleButton {
@@ -40,13 +35,7 @@ export class ToggleButton {
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        Renderer.drawString(
-            this.title,
-            this.x,
-            this.y + componentHeight / 2 - 4,
-            textColor.getRGB(),
-            false
-        );
+        Renderer.drawString(this.title, this.x, this.y + componentHeight / 2 - 4, textColor.getRGB(), false);
 
         const boxSize = 15;
         const rightMargin = 15;
@@ -55,15 +44,7 @@ export class ToggleButton {
         const boxY = this.y + componentHeight / 2 - boxSize / 2;
         const boxColor = this.enabled ? accentColor : disabledBoxColor;
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            boxX,
-            boxY,
-            boxX + boxSize,
-            boxY + boxSize,
-            4,
-            boxColor
-        );
+        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, boxX, boxY, boxX + boxSize, boxY + boxSize, 4, boxColor);
 
         const componentRect = {
             x: this.x - 10,

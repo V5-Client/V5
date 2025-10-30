@@ -1,10 +1,7 @@
 export class ModuleBase {
     // options object: { name, subcategory, description?, tooltip?, showEnabledToggle?, autoDisableOnWorldUnload? }
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
-        const opts =
-            typeof nameOrOpts === 'object'
-                ? nameOrOpts
-                : { name: nameOrOpts, subcategory, description, tooltip };
+        const opts = typeof nameOrOpts === 'object' ? nameOrOpts : { name: nameOrOpts, subcategory, description, tooltip };
 
         this.name = opts.name;
         this.subcategory = opts.subcategory;
@@ -16,20 +13,9 @@ export class ModuleBase {
         this._conditionalChecker = null;
 
         // add to gui
-        global.Categories.addCategoryItem(
-            this.subcategory,
-            this.name,
-            this.description,
-            this.tooltip
-        );
+        global.Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
         if (opts.showEnabledToggle !== false) {
-            global.Categories.addToggle(
-                'Modules',
-                this.name,
-                'Enabled',
-                (value) => this.toggle(!!value),
-                `Toggles ${this.name}`
-            );
+            global.Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
         }
 
         if (opts.autoDisableOnWorldUnload) {
@@ -115,36 +101,13 @@ export class ModuleBase {
 
     // helpers for gui stuff
     addToggle(title, callback, description = null) {
-        global.Categories.addToggle(
-            'Modules',
-            this.name,
-            title,
-            callback,
-            description
-        );
+        global.Categories.addToggle('Modules', this.name, title, callback, description);
     }
     addSlider(title, min, max, def, callback, description = null) {
-        global.Categories.addSlider(
-            'Modules',
-            this.name,
-            title,
-            min,
-            max,
-            def,
-            callback,
-            description
-        );
+        global.Categories.addSlider('Modules', this.name, title, min, max, def, callback, description);
     }
     addMultiToggle(title, options, singleSelect, callback, description = null) {
-        global.Categories.addMultiToggle(
-            'Modules',
-            this.name,
-            title,
-            options,
-            !!singleSelect,
-            callback,
-            description
-        );
+        global.Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description);
     }
 
     // Allow for overriding onEnable and onDisable if you need more control

@@ -55,20 +55,11 @@ global.GuiRectangles = {
             return global.GuiRectangles.Background.x + PADDING;
         },
         get y() {
-            return (
-                global.GuiRectangles.TopPanel.y +
-                global.GuiRectangles.TopPanel.height +
-                PADDING -
-                40
-            );
+            return global.GuiRectangles.TopPanel.y + global.GuiRectangles.TopPanel.height + PADDING - 40;
         },
         width: 50,
         get height() {
-            const remainingSpace =
-                global.GuiRectangles.Background.height -
-                PADDING * 3 -
-                global.GuiRectangles.TopPanel.height +
-                40;
+            const remainingSpace = global.GuiRectangles.Background.height - PADDING * 3 - global.GuiRectangles.TopPanel.height + 40;
             return remainingSpace;
         },
         radius: CORNER_RADIUS,
@@ -80,31 +71,17 @@ global.GuiRectangles = {
     RightPanel: {
         name: 'Right',
         get x() {
-            return (
-                global.GuiRectangles.LeftPanel.x +
-                global.GuiRectangles.LeftPanel.width +
-                PADDING
-            );
+            return global.GuiRectangles.LeftPanel.x + global.GuiRectangles.LeftPanel.width + PADDING;
         },
         get y() {
-            return (
-                global.GuiRectangles.TopPanel.y +
-                global.GuiRectangles.TopPanel.height +
-                PADDING
-            );
+            return global.GuiRectangles.TopPanel.y + global.GuiRectangles.TopPanel.height + PADDING;
         },
         get width() {
-            const remainingWidth =
-                global.GuiRectangles.Background.width -
-                PADDING * 3 -
-                global.GuiRectangles.LeftPanel.width;
+            const remainingWidth = global.GuiRectangles.Background.width - PADDING * 3 - global.GuiRectangles.LeftPanel.width;
             return remainingWidth;
         },
         get height() {
-            const remainingSpace =
-                global.GuiRectangles.Background.height -
-                PADDING * 3 -
-                global.GuiRectangles.TopPanel.height;
+            const remainingSpace = global.GuiRectangles.Background.height - PADDING * 3 - global.GuiRectangles.TopPanel.height;
             return remainingSpace;
         },
         radius: CORNER_RADIUS,

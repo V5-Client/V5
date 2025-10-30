@@ -2,10 +2,7 @@ import RenderUtils from '../../Rendering/RendererUtils';
 import { Vec3d } from '../../Utility/Constants';
 import { Keybind } from '../../Utility/Keybinding';
 import { PathfindingMessages } from '../PathConfig';
-import {
-    IGNORED_BLOCK_PATTERNS,
-    PARTIAL_HEIGHT_BLOCKS,
-} from '../PathConstants';
+import { IGNORED_BLOCK_PATTERNS, PARTIAL_HEIGHT_BLOCKS } from '../PathConstants';
 
 const STEP_HEIGHT = 0.6;
 
@@ -21,14 +18,9 @@ register('tick', () => {
 });
 
 function getCachedBlock(x, y, z) {
-    const key = `${Math.floor(x)},${Math.floor(y)},${Math.floor(
-        z
-    )},${cacheFrame}`;
+    const key = `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)},${cacheFrame}`;
     if (!blockCache.has(key)) {
-        blockCache.set(
-            key,
-            World.getBlockAt(Math.floor(x), Math.floor(y), Math.floor(z))
-        );
+        blockCache.set(key, World.getBlockAt(Math.floor(x), Math.floor(y), Math.floor(z)));
     }
     return blockCache.get(key);
 }
@@ -56,8 +48,7 @@ function isSolid(block) {
     if (id === 0) return false;
 
     const registryName = block.type.getRegistryName().toLowerCase();
-    if (registryName.includes('water') || registryName.includes('lava'))
-        return false;
+    if (registryName.includes('water') || registryName.includes('lava')) return false;
 
     return !isBlockPassable(block);
 }
@@ -163,22 +154,15 @@ function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
         targetBlockHeight = getBlockHeight(blockBelow);
         targetGroundY = checkY - 1;
         blockToCheck = blockBelow;
-        actualHeightDiff =
-            targetGroundY + targetBlockHeight - currentGroundHeight;
+        actualHeightDiff = targetGroundY + targetBlockHeight - currentGroundHeight;
         isStepUp = true;
     }
 
     if (isStepUp) {
         if (blockToCheck) {
-            const registryName = blockToCheck.type
-                .getRegistryName()
-                .toLowerCase();
+            const registryName = blockToCheck.type.getRegistryName().toLowerCase();
 
-            if (
-                registryName.includes('stair') ||
-                (registryName.includes('slab') && targetBlockHeight <= 0.5)
-            )
-                return { shouldJump: false };
+            if (registryName.includes('stair') || (registryName.includes('slab') && targetBlockHeight <= 0.5)) return { shouldJump: false };
         }
 
         if (actualHeightDiff > STEP_HEIGHT) return { shouldJump: true };
@@ -247,11 +231,7 @@ function isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight) {
                 const targetGroundHeight = pY + height;
                 const heightDiff = targetGroundHeight - currentGroundHeight;
 
-                if (
-                    heightDiff <= STEP_HEIGHT &&
-                    heightDiff > 0 &&
-                    !isSolid(getCachedBlock(checkX, pY + 1, checkZ))
-                ) {
+                if (heightDiff <= STEP_HEIGHT && heightDiff > 0 && !isSolid(getCachedBlock(checkX, pY + 1, checkZ))) {
                     return true;
                 }
             }
@@ -282,8 +262,7 @@ function isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight) {
 }
 
 export function shouldJump() {
-    if (!Player.getPlayer().isOnGround())
-        return { shouldJump: false, jumpPoints: [] };
+    if (!Player.getPlayer().isOnGround()) return { shouldJump: false, jumpPoints: [] };
 
     const playerPos = {
         x: Player.getX(),
@@ -297,9 +276,7 @@ export function shouldJump() {
 
     const blockBelowPlayer = getCachedBlock(pX, pY - 1, pZ);
     if (blockBelowPlayer) {
-        const registryName = blockBelowPlayer.type
-            .getRegistryName()
-            .toLowerCase();
+        const registryName = blockBelowPlayer.type.getRegistryName().toLowerCase();
         if (registryName.includes('water') || registryName.includes('lava')) {
             PathfindingMessages('Detected fluid block below');
             return {
@@ -337,12 +314,7 @@ export function shouldJump() {
         if (checkX === pX && checkZ === pZ) continue;
         if (hasLowCeiling(checkX, pY, checkZ)) continue;
 
-        const stepResult = checkStepUpRefactored(
-            checkX,
-            pY,
-            checkZ,
-            currentGroundHeight
-        );
+        const stepResult = checkStepUpRefactored(checkX, pY, checkZ, currentGroundHeight);
         if (stepResult.shouldJump) {
             const blockFoot = getCachedBlock(checkX, pY, checkZ);
             const targetY = isSolid(blockFoot) ? pY : pY - 1;
@@ -350,12 +322,7 @@ export function shouldJump() {
             isJumpNeeded = true;
         }
 
-        const gapResult = checkGapRefactored(
-            checkX,
-            pY,
-            checkZ,
-            currentGroundHeight
-        );
+        const gapResult = checkGapRefactored(checkX, pY, checkZ, currentGroundHeight);
 
         if (gapResult.shouldJump) {
             jumpPoints.push({ x: checkX, y: pY, z: checkZ });
@@ -363,10 +330,7 @@ export function shouldJump() {
         }
     }
 
-    if (
-        isJumpNeeded &&
-        isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight)
-    ) {
+    if (isJumpNeeded && isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight)) {
         PathfindingMessages('Jump suppressed due to walkable adjacent slab.');
         return { shouldJump: false, jumpPoints: [] };
     }
@@ -381,9 +345,7 @@ export function shouldJump() {
 function isPlayerInFluid(pX, pY, pZ) {
     const blockAtPlayerY = getCachedBlock(pX, pY, pZ);
     if (blockAtPlayerY) {
-        const registryName = blockAtPlayerY.type
-            .getRegistryName()
-            .toLowerCase();
+        const registryName = blockAtPlayerY.type.getRegistryName().toLowerCase();
         if (registryName.includes('water') || registryName.includes('lava')) {
             return true;
         }
@@ -408,11 +370,7 @@ export function Jump() {
     const pY = Math.floor(playerPos.y);
     const pZ = Math.floor(playerPos.z);
 
-    if (
-        isPlayerInFluid(pX, pY, pZ) ||
-        Player.asPlayerMP().isInLava() ||
-        Player.asPlayerMP().isInWater()
-    ) {
+    if (isPlayerInFluid(pX, pY, pZ) || Player.asPlayerMP().isInLava() || Player.asPlayerMP().isInWater()) {
         PathfindingMessages('Player submerged in fluid, forcing jump.');
         Keybind.setKey('space', true);
         Keybind.setKey('w', true);
@@ -430,11 +388,7 @@ export function Jump() {
 
         jumpCheckResult.jumpPoints.forEach((point) => {
             const key = `${point.x},${point.y},${point.z}`;
-            if (
-                !persistentJumpPoints.some(
-                    (p) => `${p.x},${p.y},${p.z}` === key
-                )
-            ) {
+            if (!persistentJumpPoints.some((p) => `${p.x},${p.y},${p.z}` === key)) {
                 persistentJumpPoints.push(point);
             }
         });

@@ -5,8 +5,7 @@ class AutoChestLoot extends ModuleBase {
         super({
             name: 'Auto Chest Loot',
             subcategory: 'Skywars',
-            description:
-                'Automatically shift-clicks all items from chests into your inventory',
+            description: 'Automatically shift-clicks all items from chests into your inventory',
             tooltip: 'Shift-clicks items from opened chests',
         });
 
@@ -23,8 +22,7 @@ class AutoChestLoot extends ModuleBase {
 
             if (!this.isLooting && container) {
                 const containerName = container.getName();
-                const cleanName =
-                    ChatLib.removeFormatting(containerName).toLowerCase();
+                const cleanName = ChatLib.removeFormatting(containerName).toLowerCase();
                 if (containerName && cleanName == 'chest') {
                     this.actuallyStartLooting();
                 }

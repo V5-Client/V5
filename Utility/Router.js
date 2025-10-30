@@ -97,11 +97,7 @@ class Routes {
 
                 let isValidWaypoint = true;
 
-                let allowedMovementsSet = new Set(
-                    Array.isArray(allowedMovements)
-                        ? allowedMovements.map((m) => m.toUpperCase())
-                        : null
-                );
+                let allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => m.toUpperCase()) : null);
 
                 if (takeMovementTypes) {
                     if (
@@ -120,9 +116,7 @@ class Routes {
                         point.movements = userMovementUpper;
                     } else {
                         isValidWaypoint = false;
-                        Chat.message(
-                            `ERROR: Movement type '${userMovementInput[0]}' not supported. Waypoint not added.`
-                        );
+                        Chat.message(`ERROR: Movement type '${userMovementInput[0]}' not supported. Waypoint not added.`);
                         return route;
                     }
                 }

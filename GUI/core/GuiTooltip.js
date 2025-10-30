@@ -43,11 +43,9 @@ global.GuiTooltip = {
         const screenWidth = Renderer.screen.getWidth();
         const screenHeight = Renderer.screen.getHeight();
 
-        if (tooltipX + tooltipWidth > screenWidth)
-            tooltipX = mouseX - tooltipWidth - MOUSE_OFFSET_X;
+        if (tooltipX + tooltipWidth > screenWidth) tooltipX = mouseX - tooltipWidth - MOUSE_OFFSET_X;
 
-        if (tooltipY + tooltipHeight > screenHeight)
-            tooltipY = screenHeight - tooltipHeight;
+        if (tooltipY + tooltipHeight > screenHeight) tooltipY = screenHeight - tooltipHeight;
 
         if (tooltipY < 0) tooltipY = 0;
         if (tooltipX < 0) tooltipX = 0;
@@ -62,13 +60,7 @@ global.GuiTooltip = {
         });
 
         lines.forEach((line, index) => {
-            Renderer.drawString(
-                line,
-                tooltipX + PADDING,
-                tooltipY + PADDING + index * 9,
-                THEME.TOOLTIP_TEXT,
-                true
-            );
+            Renderer.drawString(line, tooltipX + PADDING, tooltipY + PADDING + index * 9, THEME.TOOLTIP_TEXT, true);
         });
     },
 };

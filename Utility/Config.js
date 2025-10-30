@@ -71,24 +71,7 @@ let Files = [
     {
         path: 'responseMessages.txt',
         FileType: 'text',
-        Content: [
-            '???',
-            'bro wtf',
-            'what',
-            'rly',
-            'hmmmm',
-            'bro',
-            '?',
-            'hello??',
-            'lol',
-            'nice bro',
-            '...',
-            'omg',
-            'pls',
-            'lmfao',
-            'idiot',
-            'really',
-        ],
+        Content: ['???', 'bro wtf', 'what', 'rly', 'hmmmm', 'bro', '?', 'hello??', 'lol', 'nice bro', '...', 'omg', 'pls', 'lmfao', 'idiot', 'really'],
     },
 
     // Routes
@@ -129,10 +112,7 @@ let Files = [
 
 // Handles all the extra files
 Files.forEach((FileData) => {
-    if (
-        !existsFile(configName, FileData.path) ||
-        fileBroken(configName, FileData.path)
-    ) {
+    if (!existsFile(configName, FileData.path) || fileBroken(configName, FileData.path)) {
         if (FileData.FileType === 'file') {
             makeFile(FileData.path, JSON.stringify(FileData.Content, null, 2));
         }

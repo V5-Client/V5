@@ -49,34 +49,23 @@ export function ResetRotations() {
 }
 
 function calculateRotationSpeed(targetPoint) {
-    const { yaw: relYaw, pitch: relPitch } =
-        MathUtils.calculateAngles(targetPoint);
+    const { yaw: relYaw, pitch: relPitch } = MathUtils.calculateAngles(targetPoint);
 
     const totalAngleDifference = Math.abs(relYaw) + Math.abs(relPitch);
 
     const range = MAX_SPEED_CONSTANT - MIN_SPEED_CONSTANT;
 
-    let speedConstant =
-        MIN_SPEED_CONSTANT +
-        range *
-            Math.exp((-ANGLE_SCALING_FACTOR * totalAngleDifference) / 180.0);
+    let speedConstant = MIN_SPEED_CONSTANT + range * Math.exp((-ANGLE_SCALING_FACTOR * totalAngleDifference) / 180.0);
 
-    speedConstant = Math.max(
-        MIN_SPEED_CONSTANT,
-        Math.min(MAX_SPEED_CONSTANT, speedConstant)
-    );
+    speedConstant = Math.max(MIN_SPEED_CONSTANT, Math.min(MAX_SPEED_CONSTANT, speedConstant));
 
     return speedConstant;
 }
 
 function calculateSmoothedYaw(targetYaw, currentSmoothedYaw, maxAdjustment) {
-    const deltaYaw = MathUtils.getAngleDifference(
-        currentSmoothedYaw,
-        targetYaw
-    );
+    const deltaYaw = MathUtils.getAngleDifference(currentSmoothedYaw, targetYaw);
 
-    const adjustment =
-        Math.min(Math.abs(deltaYaw), maxAdjustment) * Math.sign(deltaYaw);
+    const adjustment = Math.min(Math.abs(deltaYaw), maxAdjustment) * Math.sign(deltaYaw);
 
     return currentSmoothedYaw + adjustment;
 }
@@ -100,8 +89,7 @@ function detectJumping() {
 function applySmoothing(targetPitch, currentPitch) {
     const pitchSmoothingFactor = JUMP_SMOOTHING_FACTOR;
 
-    const smoothedPitch =
-        currentPitch + (targetPitch - currentPitch) * pitchSmoothingFactor;
+    const smoothedPitch = currentPitch + (targetPitch - currentPitch) * pitchSmoothingFactor;
 
     return smoothedPitch;
 }
@@ -131,10 +119,7 @@ export function pathRotations(splineData) {
 
     // ChatLib.chat(speedBPS);
 
-    if (
-        boxPositions.length === 0 ||
-        currentBoxIndex >= boxPositions.length - 1
-    ) {
+    if (boxPositions.length === 0 || currentBoxIndex >= boxPositions.length - 1) {
         if (!complete) {
             complete = true;
 
@@ -150,10 +135,7 @@ export function pathRotations(splineData) {
     let closestBoxDistanceSq = Infinity;
     let newCurrentBoxIndex = currentBoxIndex;
     const startIndex = Math.max(0, currentBoxIndex - BOX_RESET_SEARCH_RANGE);
-    const endIndex = Math.min(
-        boxPositions.length,
-        currentBoxIndex + BOX_RESET_SEARCH_RANGE
-    );
+    const endIndex = Math.min(boxPositions.length, currentBoxIndex + BOX_RESET_SEARCH_RANGE);
 
     for (let i = startIndex; i < endIndex; i++) {
         const box = boxPositions[i];
@@ -178,9 +160,7 @@ export function pathRotations(splineData) {
         return;
     }
 
-    const yawLookAhead = detectJumping()
-        ? Math.round(YAW_AHEAD_DISTANCE * 1.5)
-        : YAW_AHEAD_DISTANCE;
+    const yawLookAhead = detectJumping() ? Math.round(YAW_AHEAD_DISTANCE * 1.5) : YAW_AHEAD_DISTANCE;
 
     const nextBox = boxPositions[currentBoxIndex + 1];
     const currentBox = boxPositions[currentBoxIndex];
@@ -209,29 +189,15 @@ export function pathRotations(splineData) {
     const targetPathIndex = currentPathPosition + LOOK_AHEAD_DISTANCE;
     const targetYawPathIndex = currentPathPosition + yawLookAhead;
 
-    const pitchStartIndex = Math.min(
-        Math.floor(targetPathIndex),
-        boxPositions.length - 2
-    );
-    const yawStartIndex = Math.min(
-        Math.floor(targetYawPathIndex),
-        boxPositions.length - 2
-    );
+    const pitchStartIndex = Math.min(Math.floor(targetPathIndex), boxPositions.length - 2);
+    const yawStartIndex = Math.min(Math.floor(targetYawPathIndex), boxPositions.length - 2);
 
     const pitchFraction = targetPathIndex - pitchStartIndex;
     const yawFraction = targetYawPathIndex - yawStartIndex;
 
-    const lookAheadBoxCenter = interpolateBox(
-        boxPositions,
-        pitchStartIndex,
-        pitchFraction
-    );
+    const lookAheadBoxCenter = interpolateBox(boxPositions, pitchStartIndex, pitchFraction);
 
-    const finalRotationTargetPoint = interpolateBox(
-        boxPositions,
-        yawStartIndex,
-        yawFraction
-    );
+    const finalRotationTargetPoint = interpolateBox(boxPositions, yawStartIndex, yawFraction);
 
     if (!lookAheadBoxCenter || !finalRotationTargetPoint) {
         currentBoxIndex = boxPositions.length - 1;
@@ -240,8 +206,7 @@ export function pathRotations(splineData) {
 
     let rotationSpeedConstant = calculateRotationSpeed(lookAheadBoxCenter);
 
-    const { pitch: calculatedPitch, yaw: targetYaw } =
-        MathUtils.calculateAbsoluteAngles(finalRotationTargetPoint);
+    const { pitch: calculatedPitch, yaw: targetYaw } = MathUtils.calculateAbsoluteAngles(finalRotationTargetPoint);
 
     let currentMaxYawAdjustment = MAX_YAW_ADJUSTMENT;
 
@@ -257,11 +222,7 @@ export function pathRotations(splineData) {
         }
     }
 
-    const smoothedYaw = calculateSmoothedYaw(
-        targetYaw,
-        lastSmoothedYaw,
-        currentMaxYawAdjustment
-    );
+    const smoothedYaw = calculateSmoothedYaw(targetYaw, lastSmoothedYaw, currentMaxYawAdjustment);
     lastSmoothedYaw = smoothedYaw;
 
     const smoothedPitch = applySmoothing(calculatedPitch, lastSmoothedPitch);
@@ -274,30 +235,14 @@ export function pathRotations(splineData) {
     finalPitch = Math.min(finalPitch, MAX_ALLOWED_PITCH_DOWN);
     finalPitch = Math.max(finalPitch, MAX_ALLOWED_PITCH_UP);
 
-    if (ENABLE_RECORDING)
-        RotationRecorder.recordRotation(smoothedYaw, finalPitch);
+    if (ENABLE_RECORDING) RotationRecorder.recordRotation(smoothedYaw, finalPitch);
 
-    Rotations.rotateToAngles(
-        smoothedYaw,
-        finalPitch,
-        false,
-        rotationSpeedConstant
-    );
+    Rotations.rotateToAngles(smoothedYaw, finalPitch, false, rotationSpeedConstant);
 
-    const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(
-        currentBox.x + 0.5,
-        currentBox.y + 0.5,
-        currentBox.z + 0.5
-    );
+    const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(currentBox.x + 0.5, currentBox.y + 0.5, currentBox.z + 0.5);
 
-    if (
-        distanceToCurrentPoint < ADVANCE_DISTANCE / 2 &&
-        currentPathPosition > currentBoxIndex + 0.9
-    ) {
-        currentBoxIndex = Math.min(
-            currentBoxIndex + 1,
-            boxPositions.length - 1
-        );
+    if (distanceToCurrentPoint < ADVANCE_DISTANCE / 2 && currentPathPosition > currentBoxIndex + 0.9) {
+        currentBoxIndex = Math.min(currentBoxIndex + 1, boxPositions.length - 1);
         currentPathPosition = currentBoxIndex;
     }
 }

@@ -11,42 +11,16 @@ const COLORS = {
 };
 
 export function renderPath() {
-    const { splinePath, currentNodeIndex, isWalking, targetPoint } =
-        movementState;
+    const { splinePath, currentNodeIndex, isWalking, targetPoint } = movementState;
 
     splinePath.forEach((node, i) => {
-        const color =
-            i === currentNodeIndex
-                ? COLORS.CURRENT
-                : i < currentNodeIndex
-                ? COLORS.PAST
-                : COLORS.FUTURE;
-        RenderUtils.drawStyledBox(
-            new Vec3d(node.x, node.y, node.z),
-            color,
-            color,
-            5,
-            false
-        );
+        const color = i === currentNodeIndex ? COLORS.CURRENT : i < currentNodeIndex ? COLORS.PAST : COLORS.FUTURE;
+        RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), color, color, 5, false);
     });
 
-    keyNodes.forEach((node) =>
-        RenderUtils.drawStyledBox(
-            new Vec3d(node.x, node.y, node.z),
-            COLORS.KEY,
-            COLORS.KEY,
-            5,
-            false
-        )
-    );
+    keyNodes.forEach((node) => RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), COLORS.KEY, COLORS.KEY, 5, false));
 
     if (isWalking && targetPoint) {
-        RenderUtils.drawStyledBox(
-            new Vec3d(targetPoint.x, targetPoint.y, targetPoint.z),
-            COLORS.TARGET,
-            COLORS.TARGET,
-            5,
-            false
-        );
+        RenderUtils.drawStyledBox(new Vec3d(targetPoint.x, targetPoint.y, targetPoint.z), COLORS.TARGET, COLORS.TARGET, 5, false);
     }
 }

@@ -21,10 +21,7 @@ class Keybinding {
      * @returns {boolean} Success status
      */
     leftClick() {
-        if (Client.isInGui() && !Client.isInChat())
-            return Chat.message(
-                'Attempted left click while in GUI. Report this ASAP!'
-            );
+        if (Client.isInGui() && !Client.isInChat()) return Chat.message('Attempted left click while in GUI. Report this ASAP!');
         LeftClickMouse.invoke(mc);
     }
 
@@ -33,10 +30,7 @@ class Keybinding {
      * @returns {boolean} Success status
      */
     rightClick() {
-        if (Client.isInGui() && !Client.isInChat())
-            return Chat.message(
-                'Attempted right click while in GUI. Report this ASAP!'
-            );
+        if (Client.isInGui() && !Client.isInChat()) return Chat.message('Attempted right click while in GUI. Report this ASAP!');
         RightClickMouse.invoke(mc);
     }
 
@@ -64,33 +58,16 @@ class Keybinding {
         let direction = net.minecraft.util.math.Direction.UP;
         let hitVec = new Vec3d(x + 0.5, y + 0.5, z + 0.5);
 
-        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(
-            hitVec,
-            direction,
-            blockPos,
-            false
-        );
+        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(hitVec, direction, blockPos, false);
 
         let hand = net.minecraft.util.Hand.MAIN_HAND;
         let sequence = 0;
 
         if (ticks === 0) {
-            Client.sendPacket(
-                new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
-                    hand,
-                    blockHitResult,
-                    sequence
-                )
-            );
+            Client.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
         } else {
             Client.scheduleTask(ticks, () => {
-                Client.sendPacket(
-                    new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(
-                        hand,
-                        blockHitResult,
-                        sequence
-                    )
-                );
+                Client.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
             });
         }
     }
@@ -181,11 +158,7 @@ class Keybinding {
 
         this.setKey(
             'space',
-            Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) <
-                0.04 &&
-                this.cooldown.hasReached(500) &&
-                jump &&
-                Utils.playerIsCollided()
+            Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.04 && this.cooldown.hasReached(500) && jump && Utils.playerIsCollided()
         );
     }
 
@@ -199,11 +172,7 @@ class Keybinding {
 
         this.setKey(
             'space',
-            Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) <
-                0.02 &&
-                this.cooldown.hasReached(500) &&
-                jump &&
-                Utils.playerIsCollided()
+            Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.02 && this.cooldown.hasReached(500) && jump && Utils.playerIsCollided()
         );
     }
 

@@ -29,14 +29,7 @@ class JerryBoxMacro extends ModuleBase {
         this.guiWaitMax = 10; // anyone above 500ms should quit skyblock
         this.waitLeft = 0;
 
-        this.addSlider(
-            'Delay',
-            0,
-            10,
-            3,
-            (v) => (this.delay = v),
-            'Ticks between actions'
-        );
+        this.addSlider('Delay', 0, 10, 3, (v) => (this.delay = v), 'Ticks between actions');
 
         this.on('tick', () => {
             if (this.cooldown > 0) {
@@ -53,10 +46,7 @@ class JerryBoxMacro extends ModuleBase {
                     // Ensure we are holding a Jerry Box; swap if needed, stop if none
                     {
                         const held = Player.getHeldItem();
-                        const isHoldingJerry = held
-                            ?.getName()
-                            ?.toString()
-                            ?.includes('Jerry Box');
+                        const isHoldingJerry = held?.getName()?.toString()?.includes('Jerry Box');
 
                         if (!isHoldingJerry) {
                             const slot = Guis.findItemInHotbar('Jerry Box');
@@ -91,11 +81,7 @@ class JerryBoxMacro extends ModuleBase {
                 case this.STATES.CLICK_BUTTON: {
                     const container = Player.getContainer();
                     // Check container exists, GUI is jerry box, and Open button exists
-                    if (
-                        !container ||
-                        !container.getStackInSlot(22) ||
-                        !Guis.guiName()?.includes('Open a Jerry Box')
-                    ) {
+                    if (!container || !container.getStackInSlot(22) || !Guis.guiName()?.includes('Open a Jerry Box')) {
                         if (this.waitLeft > 0) {
                             this.waitLeft--;
                         } else {

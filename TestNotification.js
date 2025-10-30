@@ -1,11 +1,4 @@
-const VALID_NOTIFICATION_TYPES = [
-    'SUCCESS',
-    'CHECK-IN',
-    'INFO',
-    'WARNING',
-    'ERROR',
-    'DANGER',
-];
+const VALID_NOTIFICATION_TYPES = ['SUCCESS', 'CHECK-IN', 'INFO', 'WARNING', 'ERROR', 'DANGER'];
 
 register('command', (...args) => {
     if (!args || args.length === 0) {
@@ -18,8 +11,7 @@ register('command', (...args) => {
             },
             INFO: {
                 title: 'Information',
-                description:
-                    'A new update is available. Also, this is a test of the word wrap feature.',
+                description: 'A new update is available. Also, this is a test of the word wrap feature.',
             },
             WARNING: {
                 title: 'System Warning',
@@ -38,22 +30,12 @@ register('command', (...args) => {
         VALID_NOTIFICATION_TYPES.forEach((type, index) => {
             setTimeout(() => {
                 const message = showcaseMessages[type];
-                global.showNotification(
-                    message.title,
-                    message.description,
-                    type,
-                    4000 + index * 500
-                ); // showcase different durations
+                global.showNotification(message.title, message.description, type, 4000 + index * 500); // showcase different durations
             }, index * 1000);
         });
 
         setTimeout(() => {
-            global.showNotification(
-                'Sticky Notification',
-                "This one stays until you click the 'X' button.",
-                'INFO',
-                'sticky'
-            );
+            global.showNotification('Sticky Notification', "This one stays until you click the 'X' button.", 'INFO', 'sticky');
         }, VALID_NOTIFICATION_TYPES.length * 1000);
 
         return;
@@ -90,20 +72,12 @@ register('command', (...args) => {
 register('command', () => {
     ChatLib.chat('&a&m' + ChatLib.getChatBreak('-'));
     ChatLib.chat('&aNotification Test Commands:');
-    ChatLib.chat(
-        '&e/testnotify &7- Shows a sequence of all notification types'
-    );
+    ChatLib.chat('&e/testnotify &7- Shows a sequence of all notification types');
     ChatLib.chat('&e/tn [type] [title] [description...] [duration|sticky]');
-    ChatLib.chat(
-        '&7- Shows a custom notification. Type and duration are optional.'
-    );
+    ChatLib.chat('&7- Shows a custom notification. Type and duration are optional.');
     ChatLib.chat('&bAvailable types: &f' + VALID_NOTIFICATION_TYPES.join(', '));
-    ChatLib.chat(
-        "&7Example 1 (timed): &e/tn warning 'Warning' 'Your failsafe suspiciousness value is high' 10000"
-    );
-    ChatLib.chat(
-        "&7Example 2 (sticky): &e/tn danger 'Alert' 'This is an important message' sticky"
-    );
+    ChatLib.chat("&7Example 1 (timed): &e/tn warning 'Warning' 'Your failsafe suspiciousness value is high' 10000");
+    ChatLib.chat("&7Example 2 (sticky): &e/tn danger 'Alert' 'This is an important message' sticky");
     ChatLib.chat("&7Example 3 (simple): &e/tn 'Hello World'");
     ChatLib.chat('&a&m' + ChatLib.getChatBreak('-'));
 }).setName('notifyhelp');

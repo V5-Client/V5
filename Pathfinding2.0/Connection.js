@@ -9,9 +9,7 @@ const Scanner = Java.type('java.util.Scanner');
 const InputStreamReader = Java.type('java.io.InputStreamReader');
 const StandardCharsets = Java.type('java.nio.charset.StandardCharsets');
 
-const assetsDir = new java.io.File(
-    'config/ChatTriggers/assets'
-).getAbsolutePath();
+const assetsDir = new java.io.File('config/ChatTriggers/assets').getAbsolutePath();
 const path = `${assetsDir}/Pathfinding.exe`;
 const localhost = Links.PATHFINDER_API_URL;
 
@@ -41,26 +39,14 @@ export function runProgram() {
 
     const thread = new Thread(() => {
         try {
-            process = new ProcessBuilder(path)
-                .directory(new java.io.File(assetsDir))
-                .start();
-            const reader = new InputStreamReader(
-                process.getInputStream(),
-                StandardCharsets.UTF_8
-            );
+            process = new ProcessBuilder(path).directory(new java.io.File(assetsDir)).start();
+            const reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8);
             const sc = new Scanner(reader);
 
-            const errReader = new InputStreamReader(
-                process.getErrorStream(),
-                StandardCharsets.UTF_8
-            );
+            const errReader = new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8);
             const errSc = new Scanner(errReader);
 
-            while (
-                process !== null &&
-                process.isAlive() &&
-                !Thread.currentThread().isInterrupted()
-            ) {
+            while (process !== null && process.isAlive() && !Thread.currentThread().isInterrupted()) {
                 try {
                     Thread.sleep(50);
                 } catch (e) {
@@ -75,15 +61,11 @@ export function runProgram() {
 
                         if (Maps[area]) {
                             const value = Maps[area];
-                            const key = Object.keys(Maps).find(
-                                (key) => Maps[key] === value
-                            );
+                            const key = Object.keys(Maps).find((key) => Maps[key] === value);
 
                             loadMap(Maps[area]);
                         } else {
-                            console.log(
-                                `No matching map found for area: ${area}`
-                            );
+                            console.log(`No matching map found for area: ${area}`);
                         }
                     }
 
@@ -116,21 +98,11 @@ export function loadMap(map) {
     request({ url, timeout: 5000 })
         .then(() => {
             console.log(`Successfully loaded map '${map}'.`);
-            global.showNotification(
-                `Loaded ${map}!`,
-                'Connection successfully loaded the island you are on',
-                'SUCCESS',
-                4000
-            );
+            global.showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
         })
         .catch((err) => {
             console.log(`Error loading map ${map}: ${err}`);
-            global.showNotification(
-                'Map Load Failed',
-                `Failed to load map ${map}`,
-                'ERROR',
-                8000
-            );
+            global.showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
         });
 }
 
@@ -148,9 +120,7 @@ export function stopProgram() {
 Runtime.getRuntime().addShutdownHook(
     new java.lang.Thread(() => {
         if (process !== null) {
-            console.log(
-                'JVM Shutdown Hook: Forcibly destroying Rust process...'
-            );
+            console.log('JVM Shutdown Hook: Forcibly destroying Rust process...');
             process.destroyForcibly();
             threads.forEach((thread) => thread.interrupt());
             console.log('JVM Shutdown Hook cleanup complete.');

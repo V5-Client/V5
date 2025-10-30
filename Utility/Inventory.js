@@ -15,9 +15,7 @@ class InventoryUtilsClass {
      * @returns {String} The string without formatting codes
      */
     stripFormatting(str) {
-        return typeof str === 'string'
-            ? str.replace(/\u00A7[0-9A-FK-ORa-fk-or]/g, '')
-            : str;
+        return typeof str === 'string' ? str.replace(/\u00A7[0-9A-FK-ORa-fk-or]/g, '') : str;
     }
 
     /**
@@ -32,11 +30,7 @@ class InventoryUtilsClass {
         let inventory = inv;
         for (let i = 0; i < inventory.getSize(); i++) {
             let item = inventory.getStackInSlot(i);
-            if (
-                item &&
-                item.getName &&
-                item.getName().removeFormatting() === itemn
-            ) {
+            if (item && item.getName && item.getName().removeFormatting() === itemn) {
                 return i; // Returns the slot index where it's found
             }
         }
@@ -48,11 +42,7 @@ class InventoryUtilsClass {
         let result = [];
         for (let i = 0; i < inventory.getSize(); i++) {
             let item = inventory.getStackInSlot(i);
-            if (
-                item &&
-                item.getName &&
-                item.getName().removeFormatting() === itemn
-            ) {
+            if (item && item.getName && item.getName().removeFormatting() === itemn) {
                 result.push(i);
             }
         }
@@ -119,13 +109,7 @@ class InventoryUtilsClass {
      * @returns {Boolean} True if the item was clicked, false otherwise
      * @author Kash MiningModules
      */
-    clickItem(
-        name,
-        shift = false,
-        button = 'LEFT',
-        displayName = true,
-        nameSpecific = false
-    ) {
+    clickItem(name, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
         console.log(`Attempting to click on item: ${name}`);
 
         if (!name || this.guiName() == 'null') return false;
@@ -133,12 +117,8 @@ class InventoryUtilsClass {
         name = name.toLowerCase();
         const items = Player.getContainer().getItems();
         const slot = items.findIndex((item) => {
-            const itemName = displayName
-                ? item?.getName()?.removeFormatting()
-                : item?.getRegistryName();
-            const compare = nameSpecific
-                ? itemName?.toLowerCase() === name
-                : itemName?.toLowerCase()?.removeFormatting()?.includes(name);
+            const itemName = displayName ? item?.getName()?.removeFormatting() : item?.getRegistryName();
+            const compare = nameSpecific ? itemName?.toLowerCase() === name : itemName?.toLowerCase()?.removeFormatting()?.includes(name);
             return compare;
         });
 
@@ -174,30 +154,16 @@ class InventoryUtilsClass {
      * @param {Boolean} nameSpecific If true, the name has to exactly match, otherwise it will use includes.
      * @returns {Boolean} True if all items were attempted to be clicked, false otherwise.
      */
-    clickItems(
-        names,
-        shift = false,
-        button = 'LEFT',
-        displayName = true,
-        nameSpecific = false
-    ) {
+    clickItems(names, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
         if (!Array.isArray(names) || names.length === 0) {
-            chat.debugMessage(
-                'No item names provided or input is not an array.'
-            );
+            chat.debugMessage('No item names provided or input is not an array.');
             return false;
         }
 
         let clicked = false;
         for (let i = 0; i < names.length; i++) {
             let name = names[i];
-            clicked = this.clickItem(
-                name,
-                shift,
-                button,
-                displayName,
-                nameSpecific
-            );
+            clicked = this.clickItem(name, shift, button, displayName, nameSpecific);
             if (clicked) {
                 return true;
             }
@@ -217,8 +183,7 @@ class InventoryUtilsClass {
         attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
             let hotbarKeys = instance.options.hotbarKeys;
 
-            for (const key of hotbarKeys)
-                if (key.wasPressed()) key.setPressed(false);
+            for (const key of hotbarKeys) if (key.wasPressed()) key.setPressed(false);
         });
 
         attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
@@ -236,11 +201,7 @@ class InventoryUtilsClass {
 
     EnableUserInput() {
         this.mixinsAttached = false;
-        attachMixin(
-            HandleInputEvents,
-            'HandleInputEvents',
-            (instance, cir) => {}
-        );
+        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {});
 
         attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {});
     }
@@ -271,9 +232,7 @@ class InventoryUtilsClass {
     guiName() {
         if (!Player.getContainer()) return null;
 
-        return ChatLib.removeFormatting(
-            Player.getContainer().getName().getString()
-        );
+        return ChatLib.removeFormatting(Player.getContainer().getName().getString());
     }
 }
 

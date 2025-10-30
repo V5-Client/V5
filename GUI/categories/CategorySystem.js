@@ -34,9 +34,7 @@ global.Categories = {
     catAnimationDuration: 200,
 
     addCategoryItem(subcategoryName, title, description, tooltip = null) {
-        const category = global.Categories.categories.find(
-            (c) => c.name === 'Modules'
-        );
+        const category = global.Categories.categories.find((c) => c.name === 'Modules');
         if (!category) return;
 
         const newItem = {
@@ -51,10 +49,7 @@ global.Categories = {
         };
 
         if (subcategoryName) {
-            let subcategory = category.items.find(
-                (item) =>
-                    item.type === 'separator' && item.title === subcategoryName
-            );
+            let subcategory = category.items.find((item) => item.type === 'separator' && item.title === subcategoryName);
 
             if (!subcategory) {
                 subcategory = {
@@ -72,9 +67,7 @@ global.Categories = {
     },
 
     findItem(categoryName, itemName) {
-        const category = global.Categories.categories.find(
-            (c) => c.name === categoryName
-        );
+        const category = global.Categories.categories.find((c) => c.name === categoryName);
         if (!category) return null;
 
         for (const group of category.items) {
@@ -88,76 +81,29 @@ global.Categories = {
         return null;
     },
 
-    addToggle(
-        categoryName,
-        itemName,
-        toggleTitle,
-        callback = null,
-        description = null
-    ) {
+    addToggle(categoryName, itemName, toggleTitle, callback = null, description = null) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        const toggle = new ToggleButton(
-            toggleTitle,
-            0,
-            0,
-            undefined,
-            undefined,
-            callback
-        );
+        const toggle = new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback);
         toggle.description = description;
         item.components.push(toggle);
     },
 
-    addSlider(
-        categoryName,
-        itemName,
-        sliderTitle,
-        min,
-        max,
-        defaultValue,
-        callback = null,
-        description = null
-    ) {
+    addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        const slider = new Slider(
-            sliderTitle,
-            min,
-            max,
-            0,
-            0,
-            undefined,
-            undefined,
-            defaultValue,
-            callback
-        );
+        const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback);
         slider.description = description;
         item.components.push(slider);
     },
 
-    addMultiToggle(
-        categoryName,
-        itemName,
-        toggleTitle,
-        options,
-        singleSelect = false,
-        callback = null,
-        description = null
-    ) {
+    addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        const multiToggle = new MultiToggle(
-            toggleTitle,
-            0,
-            0,
-            options,
-            singleSelect,
-            callback
-        );
+        const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback);
         multiToggle.description = description;
         item.components.push(multiToggle);
     },

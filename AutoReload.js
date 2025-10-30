@@ -12,10 +12,8 @@ function onEvent(event) {
     if (extension !== 'js') return;
 
     const fileName = event.context().getFileName();
-    if (event.kind() === WatchEvent.ENTRY_MODIFY)
-        Chat.message(`File &6${fileName} &fhas been modified.`);
-    else if (event.kind() === WatchEvent.ENTRY_CREATE)
-        Chat.message(`File &a${fileName} &fhas been created.`);
+    if (event.kind() === WatchEvent.ENTRY_MODIFY) Chat.message(`File &6${fileName} &fhas been modified.`);
+    else if (event.kind() === WatchEvent.ENTRY_CREATE) Chat.message(`File &a${fileName} &fhas been created.`);
 
     ChatLib.command('ct load', true);
 }
@@ -27,11 +25,7 @@ new Thread(() => {
     function listFiles(file) {
         if (file.isDirectory()) {
             file.listFiles().forEach((f) => listFiles(f));
-            file.toPath().register(
-                watchService,
-                WatchEvent.ENTRY_MODIFY,
-                WatchEvent.ENTRY_CREATE
-            );
+            file.toPath().register(watchService, WatchEvent.ENTRY_MODIFY, WatchEvent.ENTRY_CREATE);
         }
     }
     listFiles(path);

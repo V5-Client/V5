@@ -74,10 +74,7 @@ class RotationsTo {
         this.lastTime = this.startTime;
         this.duration = durationMs;
 
-        this.initialMaxDiff = Math.max(
-            Math.abs(this.yawDiff),
-            Math.abs(this.pitchDiff)
-        );
+        this.initialMaxDiff = Math.max(Math.abs(this.yawDiff), Math.abs(this.pitchDiff));
 
         this.currentJitterTime = 0;
         this.baseRandomYaw = (Math.random() - 0.5) * this.Randomness;
@@ -137,14 +134,8 @@ class RotationsTo {
 
         const currentYawDiff = this.wrapDegrees(this.targetYaw - newYaw);
         const currentPitchDiff = this.targetPitch - newPitch;
-        let maxCurrentDiff = Math.max(
-            Math.abs(currentYawDiff),
-            Math.abs(currentPitchDiff)
-        );
-        let normalizedDist =
-            this.initialMaxDiff > 0
-                ? maxCurrentDiff / this.initialMaxDiff
-                : 0.01;
+        let maxCurrentDiff = Math.max(Math.abs(currentYawDiff), Math.abs(currentPitchDiff));
+        let normalizedDist = this.initialMaxDiff > 0 ? maxCurrentDiff / this.initialMaxDiff : 0.01;
 
         let fadeFactor = Math.pow(normalizedDist, this.fadeExponent);
 
@@ -179,10 +170,7 @@ class RotationsTo {
             try {
                 action.func();
             } catch (e) {
-                console.error(
-                    `Rotation ${action.name || 'callback'} error:`,
-                    e
-                );
+                console.error(`Rotation ${action.name || 'callback'} error:`, e);
             }
         });
     }

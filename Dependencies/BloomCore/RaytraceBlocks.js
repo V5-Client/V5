@@ -18,13 +18,7 @@ export const raytraceBlocks = (
         .add(new Vector3(...startPos))
         .getComponents();
 
-    return traverseVoxels(
-        startPos,
-        endPos,
-        blockCheckFunc,
-        returnWhenTrue,
-        stopWhenNotAir
-    );
+    return traverseVoxels(startPos, endPos, blockCheckFunc, returnWhenTrue, stopWhenNotAir);
 };
 
 export const getPlayerEyeCoords = (forceSneak = false) => {
@@ -42,31 +36,19 @@ export const getPlayerLookVec = () => {
     return new Vector3(lookVec.x, lookVec.y, lookVec.z);
 };
 
-export const traverseVoxels = (
-    start,
-    end,
-    blockCheckFunc = null,
-    returnWhenTrue = false,
-    stopWhenNotAir = false,
-    returnIntersection = false
-) => {
+export const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue = false, stopWhenNotAir = false, returnIntersection = false) => {
     const direction = end.map((v, i) => v - start[i]);
     const step = direction.map((a) => Math.sign(a));
 
     // Handle division by zero for axis-aligned rays
-    const tDelta = direction.map((d) =>
-        d === 0 ? Number.MAX_VALUE : Math.abs(1 / d)
-    );
+    const tDelta = direction.map((d) => (d === 0 ? Number.MAX_VALUE : Math.abs(1 / d)));
 
     const tMax = tDelta.map((td, i) => {
         if (td === Number.MAX_VALUE) return Number.MAX_VALUE;
         const startCoord = start[i];
         const stepDir = step[i];
         const currentVoxel = Math.floor(startCoord);
-        const distToBoundary =
-            stepDir > 0
-                ? currentVoxel + 1 - startCoord
-                : startCoord - currentVoxel;
+        const distToBoundary = stepDir > 0 ? currentVoxel + 1 - startCoord : startCoord - currentVoxel;
         return distToBoundary * td;
     });
 
@@ -76,12 +58,7 @@ export const traverseVoxels = (
 
     const path = [];
     let iters = 0;
-    const maxIters =
-        Math.ceil(
-            Math.abs(direction[0]) +
-                Math.abs(direction[1]) +
-                Math.abs(direction[2])
-        ) + 10;
+    const maxIters = Math.ceil(Math.abs(direction[0]) + Math.abs(direction[1]) + Math.abs(direction[2])) + 10;
 
     while (iters < maxIters && iters < 1000) {
         iters++;
@@ -91,9 +68,7 @@ export const traverseVoxels = (
 
         if (blockCheckFunc && blockCheckFunc(currentBlock)) {
             if (returnWhenTrue) {
-                return returnIntersection
-                    ? { hit: currentPos, intersection: intersectionPoint }
-                    : currentPos;
+                return returnIntersection ? { hit: currentPos, intersection: intersectionPoint } : currentPos;
             }
         }
 
@@ -109,10 +84,7 @@ export const traverseVoxels = (
         if (currentPos.every((v, i) => v === endPos[i])) break;
 
         // Find the next voxel boundary to cross
-        const minIndex = tMax.reduce(
-            (minIdx, val, idx) => (val < tMax[minIdx] ? idx : minIdx),
-            0
-        );
+        const minIndex = tMax.reduce((minIdx, val, idx) => (val < tMax[minIdx] ? idx : minIdx), 0);
 
         // Calculate intersection point BEFORE advancing
         if (returnIntersection) {
