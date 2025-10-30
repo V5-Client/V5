@@ -191,6 +191,7 @@ class CommissionMacro extends ModuleBase {
         this.travelPurpose = null;
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
+        this.pathfinding = false;
     }
 
     setState(newState) {
@@ -386,7 +387,6 @@ class CommissionMacro extends ModuleBase {
                     } else {
                         if (this.pathfinding) return;
                         this.pathfinding = true;
-                        Client.scheduleTask(300, () => (this.pathfinding = false)); // temp fix since callback doesnt always work?
                         this.travelPurpose = 'EMISSARY';
                         findAndFollowPath(
                             [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
