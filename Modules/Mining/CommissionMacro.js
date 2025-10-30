@@ -6,7 +6,7 @@ import { MiningBot } from './MiningBot';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { Guis } from '../../Utility/Inventory';
 import { Keybind } from '../../Utility/Keybinding';
-import { Rotations } from '../../Utility/Rotations';
+import { RotationRedo } from '../../Utility/RotationsTest';
 import { ModuleBase } from '../../Utility/ModuleBase';
 
 // TODO
@@ -38,7 +38,7 @@ const EMISSARY_LOCATIONS = [
     [-133, 173, -51],
     [-38, 199, -132],
     [89, 197, -93],
-    [58, 197, -8],
+    [58, 197, -9],
 ];
 
 const TRASH_ITEMS = ['Mithril', 'Titanium', 'Rune', 'Glacite', 'Goblin', 'Cobblestone', 'Stone'];
@@ -376,11 +376,11 @@ class CommissionMacro extends ModuleBase {
                         const target = closest;
                         if (target) {
                             const adjustedTarget = [target[0] + 0.5, target[1] + 2.0, target[2] + 0.5];
-                            if (Rotations.rotating) return;
-                            Rotations.rotateTo(adjustedTarget);
-                            Rotations.onEndRotation(() => {
+                            if (RotationRedo.isRotating) return;
+                            RotationRedo.rotateToVector(adjustedTarget);
+                            RotationRedo.onEndRotation(() => {
                                 Keybind.rightClick();
-                                this.delay(5);
+                                this.delay(10);
                             });
                         }
                     } else {
