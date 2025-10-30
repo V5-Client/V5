@@ -376,7 +376,7 @@ class CommissionMacro extends ModuleBase {
                     if (closestDist < 4) {
                         const target = closest;
                         if (target) {
-                            const adjustedTarget = [target[0] + 0.5, target[1] + 2.32, target[2] + 0.5];
+                            const adjustedTarget = [target[0] + 0.5, target[1] + 2.2, target[2] + 0.5];
                             if (RotationRedo.isRotating) return;
                             RotationRedo.rotateToVector(adjustedTarget);
                             RotationRedo.onEndRotation(() => {

@@ -152,7 +152,7 @@ class Bot extends ModuleBase {
         }).unregister();
 
         this.on('tick', () => {
-            if (Client.isInChat() || Client.isInGui()) return;
+            if (Client.isInChat() || Client.isInGui()) return Keybind.setKey('leftclick', false);
 
             const { drill } = MiningUtils.getDrills();
 
