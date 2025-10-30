@@ -88,11 +88,31 @@ function drawKeyNodes(keynodes) {
     }
 }
 
+function findGroundY(x, initialY, z) {
+    let y = initialY;
+    const maxDistance = 50;
+
+    for (let i = 0; i < maxDistance; i++) {
+        if (y <= 0 || !World.getBlockAt(x, y, z)?.type?.getRegistryName().includes('air')) {
+            return y;
+        }
+        y--;
+    }
+    return y;
+}
+
 export function findAndFollowPath(start, end, renderOnly = false, onComplete = null) {
     stopPathing();
 
-    const url = `${localhost}/api/pathfinding?start=${start.join(',')}&end=${end.join(',')}&map=mines`;
-    PathfindingMessages(`Path from ${start.join(', ')} to ${end.join(', ')}`);
+    const startGroundY = findGroundY(Math.floor(start[0]), Math.floor(start[1]), Math.floor(start[2]));
+
+    const endGroundY = findGroundY(Math.floor(end[0]), Math.floor(end[1]), Math.floor(end[2]));
+
+    const startAdjusted = [Math.floor(start[0]), startGroundY, Math.floor(start[2])];
+    const endAdjusted = [Math.floor(end[0]), endGroundY, Math.floor(end[2])];
+
+    const url = `${localhost}/api/pathfinding?start=${startAdjusted.join(',')}&end=${endAdjusted.join(',')}&map=mines`;
+    PathfindingMessages(`Path from ${startAdjusted.join(', ')} to ${endAdjusted.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
