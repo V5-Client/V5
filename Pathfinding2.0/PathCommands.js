@@ -1,19 +1,6 @@
 import { findAndFollowPath, stopPathing } from './PathAPI';
 import { loadMap, stopProgram } from './Connection';
 
-function findGroundY(x, initialY, z) {
-    let y = initialY;
-    const maxDistance = 50;
-
-    for (let i = 0; i < maxDistance; i++) {
-        if (y <= 0 || !World.getBlockAt(x, y, z)?.type?.getRegistryName().includes('air')) {
-            return y;
-        }
-        y--;
-    }
-    return y;
-}
-
 function handleCommand(args, isRustPath) {
     const requiredCoords = isRustPath ? 6 : 3;
     const renderOnly = isRustPath && args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
@@ -29,13 +16,6 @@ function handleCommand(args, isRustPath) {
     }
 
     const start = isRustPath ? coords.slice(0, 3) : [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-
-    if (!isRustPath) {
-        const startX = start[0];
-        const startZ = start[2];
-        const groundY = findGroundY(startX, start[1], startZ);
-        start[1] = groundY;
-    }
 
     const end = isRustPath ? coords.slice(3, 6) : coords.slice(0, 3);
     findAndFollowPath(start, end, renderOnly);
