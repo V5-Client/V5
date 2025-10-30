@@ -275,7 +275,7 @@ class CommissionMacro extends ModuleBase {
 
                         this.setState(STATES.TRAVELING);
                         findAndFollowPath(
-                            [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
+                            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
                             closestWaypoint,
                             false,
                             () => this.onPathComplete(),
@@ -389,7 +389,7 @@ class CommissionMacro extends ModuleBase {
                         this.pathfinding = true;
                         this.travelPurpose = 'EMISSARY';
                         findAndFollowPath(
-                            [Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ())],
+                            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
                             closest,
                             false,
                             () => (this.pathfinding = false)
