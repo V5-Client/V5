@@ -10,6 +10,7 @@ import { getRenderKeyNodes, getRenderFloatingSpline, PathfindingMessages } from 
 import { Rotations } from '../Utility/Rotations';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
+
 let renderOnlyRegister = null;
 let currentPathRequest = null;
 let tickRegister = null;
@@ -93,7 +94,7 @@ function findGroundY(x, initialY, z) {
     const maxDistance = 50;
 
     for (let i = 0; i < maxDistance; i++) {
-        if (y <= 0 || !World.getBlockAt(x, y, z)?.type?.getRegistryName().includes('air')) {
+        if (y <= 0 || !World.getBlockAt(x, y, z)?.type?.getRegistryName().includes('minecraft:air')) {
             return y;
         }
         y--;
@@ -101,18 +102,16 @@ function findGroundY(x, initialY, z) {
     return y;
 }
 
-export function findAndFollowPath(start, end, renderOnly = false, onComplete = null) {
+export function findAndFollowPath(start, end, renderOnly = false, onComplete = null, onFail = null, retryCount = 0) {
     stopPathing();
 
     const startGroundY = findGroundY(Math.floor(start[0]), Math.floor(start[1]), Math.floor(start[2]));
 
-    const endGroundY = findGroundY(Math.floor(end[0]), Math.floor(end[1]), Math.floor(end[2]));
-
     const startAdjusted = [Math.floor(start[0]), startGroundY, Math.floor(start[2])];
-    const endAdjusted = [Math.floor(end[0]), endGroundY, Math.floor(end[2])];
+    const endAdjusted = [Math.floor(end[0]), Math.floor(end[1]), Math.round(end[2])];
 
     const url = `${localhost}/api/pathfinding?start=${startAdjusted.join(',')}&end=${endAdjusted.join(',')}&map=mines`;
-    PathfindingMessages(`Path from ${startAdjusted.join(', ')} to ${endAdjusted.join(', ')}`);
+    PathfindingMessages(`Path from ${startAdjusted.join(', ')} to ${endAdjusted.join(', ')} (Attempt: ${retryCount + 1})`); // remove on release
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -122,7 +121,15 @@ export function findAndFollowPath(start, end, renderOnly = false, onComplete = n
             if (currentPathRequest !== requestId) return;
 
             if (!body || !body.keynodes || body.keynodes.length < 1) {
-                return global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
+                if (retryCount < 50) {
+                    const newEnd = [end[0], end[1] - 1, end[2]];
+                    findAndFollowPath(start, newEnd, renderOnly, onComplete, onFail, retryCount + 1);
+                    return;
+                } else {
+                    global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve after retries.', 'ERROR', 5000);
+                    if (onFail && typeof onFail === 'function') onFail();
+                    return;
+                }
             }
 
             if (body.path && body.path.length) setPathNodes(body.path);
@@ -135,6 +142,7 @@ export function findAndFollowPath(start, end, renderOnly = false, onComplete = n
                 renderOnlyRegister.unregister();
                 renderOnlyRegister = null;
             }
+
             if (getRenderKeyNodes() || getRenderFloatingSpline()) {
                 renderOnlyRegister = register('postRenderWorld', () => {
                     if (getRenderKeyNodes()) drawKeyNodes(body.keynodes);
@@ -144,9 +152,8 @@ export function findAndFollowPath(start, end, renderOnly = false, onComplete = n
 
             const beginPathing = () => {
                 if (currentPathRequest !== requestId) return;
-                if (renderOnly) {
-                    global.showNotification('Path Rendered', 'Movement not initiated.', 'INFO', 3000);
-                } else {
+                if (renderOnly) global.showNotification('Path Rendered', 'Movement not initiated.', 'INFO', 3000);
+                else {
                     resetStuckRecovery();
                     tickRegister = register('tick', () => {
                         pathRotations(generatedSpline);
@@ -166,15 +173,21 @@ export function findAndFollowPath(start, end, renderOnly = false, onComplete = n
                 }
             };
 
-            if (body.warp_point && body.warp_point.command) {
-                handleWarp(body.warp_point.command, beginPathing);
-            } else {
-                beginPathing();
-            }
+            if (body.warp_point && body.warp_point.command) handleWarp(body.warp_point.command, beginPathing);
+            else beginPathing();
         })
         .catch((err) => {
             if (currentPathRequest !== requestId) return;
-            global.showNotification('Pathfinding Error', 'See console for details.', 'ERROR', 5000);
-            console.log(`Pathfinding request failed: ${err}`);
+
+            if (retryCount < 50) {
+                global.showNotification('Pathfinding Retrying', `Request failed. Retrying with End Y - 1. (Attempt ${retryCount + 2})`, 'ERROR', 3000);
+                const newEnd = [end[0], end[1] - 1, end[2]];
+                findAndFollowPath(start, newEnd, renderOnly, onComplete, onFail, retryCount + 1);
+                return;
+            } else {
+                global.showNotification('Pathfinding Error', 'Request failed after retries. See console for details.', 'ERROR', 5000);
+                console.log(`Pathfinding request failed: ${err}`);
+                if (onFail && typeof onFail === 'function') onFail();
+            }
         });
 }
