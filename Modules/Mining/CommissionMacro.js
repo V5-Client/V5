@@ -145,16 +145,6 @@ class CommissionMacro extends ModuleBase {
 
     onEnable() {
         Chat.message('&aCommission Macro Enabled.');
-        this.init();
-    }
-
-    onDisable() {
-        Chat.message('&cCommission Macro Disabled.');
-        MiningBot.toggle(false);
-        stopPathing();
-    }
-
-    init() {
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
         this.pickaxe = this.drill;
@@ -179,6 +169,12 @@ class CommissionMacro extends ModuleBase {
         }
 
         this.resetState();
+    }
+
+    onDisable() {
+        Chat.message('&cCommission Macro Disabled.');
+        MiningBot.toggle(false);
+        stopPathing();
     }
 
     resetState() {
