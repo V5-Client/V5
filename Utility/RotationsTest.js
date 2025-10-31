@@ -153,24 +153,10 @@ class Rotation2 {
             if (!this.yawOnly) {
                 Player.getPlayer().setPitch(finalTarget.pitch);
             }
-            this.runCallbacks();
             this.stopRotation();
         }
     }
 
-    runCallbacks() {
-        this.actions.forEach((action) => {
-            try {
-                action.func();
-            } catch (e) {
-                console.error(`Rotation ${action.name || 'callback'} error:`, e);
-            }
-        });
-    }
-
-    onEndRotation(callBack, name = null) {
-        this.actions.push({ func: callBack, name });
-    }
 
     removeCallback(name) {
         this.actions = this.actions.filter((action) => action.name !== name);
