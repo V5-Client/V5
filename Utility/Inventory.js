@@ -232,7 +232,7 @@ class InventoryUtilsClass {
     guiName() {
         if (!Player.getContainer()) return null;
 
-        return ChatLib.removeFormatting(Player.getContainer().getName().getString());
+        return ChatLib.removeFormatting(Player.getContainer().getName().toString());
     }
 }
 

@@ -1,404 +1,103 @@
-import RenderUtils from '../../Rendering/RendererUtils';
 import { Vec3d } from '../../Utility/Constants';
+import RenderUtils from '../../Rendering/RendererUtils';
 import { Keybind } from '../../Utility/Keybinding';
-import { PathfindingMessages } from '../PathConfig';
-import { IGNORED_BLOCK_PATTERNS, PARTIAL_HEIGHT_BLOCKS } from '../PathConstants';
 
-const STEP_HEIGHT = 0.6;
+export let lastLookaheadPositions = [];
 
-const blockCache = new Map();
-let cacheFrame = 0;
-
-let currentJumpPoints = [];
-const persistentJumpPoints = [];
-
-register('tick', () => {
-    cacheFrame++;
-    if (blockCache.size > 1000) blockCache.clear();
-});
-
-function getCachedBlock(x, y, z) {
-    const key = `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)},${cacheFrame}`;
-    if (!blockCache.has(key)) {
-        blockCache.set(key, World.getBlockAt(Math.floor(x), Math.floor(y), Math.floor(z)));
-    }
-    return blockCache.get(key);
+export function isBlockFullCube(world, blockVec) {
+    const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+    const blockState = world.getBlockState(blockPosNMS);
+    return blockState.isFullCube(world, blockPosNMS); // this should be collision not full cubes :(
 }
 
-function isBlockPassable(block) {
-    if (!block) return true;
+export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
+    const player = Player;
+    const world = World.getWorld();
+    if (!player || !pathBetweenKeyNodes || pathBetweenKeyNodes.length === 0) return { lookaheadPositions: [], closestIndex: -1 };
 
-    const id = block.type.getID();
-    if (id === 0) return true;
+    const lookaheadPositions = [];
 
-    const registryName = block.type.getRegistryName().toLowerCase();
+    pathBetweenKeyNodes.forEach((element) => {
+        RenderUtils.drawBox(new Vec3d(element.x, element.y, element.z), [255, 255, 0, 100]);
+    });
 
-    for (const pattern of IGNORED_BLOCK_PATTERNS) {
-        if (registryName == pattern) {
-            return true;
+    const playerPos = new Vec3d(player.getX(), player.getY(), player.getZ());
+    let closestIndex = -1;
+    let minDistanceSq = Infinity;
+
+    pathBetweenKeyNodes.forEach((node, index) => {
+        const nodePos = new Vec3d(node.x + 0.5, node.y + 0.5, node.z + 0.5);
+        const dx = playerPos.x - nodePos.x;
+        const dy = playerPos.y - nodePos.y;
+        const dz = playerPos.z - nodePos.z;
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+
+        if (distanceSq < minDistanceSq) {
+            minDistanceSq = distanceSq;
+            closestIndex = index;
+        }
+    });
+
+    if (closestIndex === -1) return { lookaheadPositions: [], closestIndex: -1 };
+
+    const lookaheadColor = [0, 255, 0, 255];
+    const nodesToHighlight = 3;
+    const startIndex = closestIndex + 1;
+
+    for (let i = 0; i < nodesToHighlight; i++) {
+        const nodeIndex = startIndex + i;
+
+        if (nodeIndex >= pathBetweenKeyNodes.length) break;
+
+        const nextNode = pathBetweenKeyNodes[nodeIndex];
+        const blockVec = new Vec3d(nextNode.x, nextNode.y, nextNode.z);
+
+        const block = World.getBlockAt(blockVec.x, blockVec.y, blockVec.z);
+        const blockName = block ? block?.type?.getRegistryName() : 'minecraft:air';
+
+        const isTraversablePartialBlock = blockName.includes('slab') || blockName.includes('stair');
+
+        if (isBlockFullCube(world, blockVec) || isTraversablePartialBlock) {
+            RenderUtils.drawBox(blockVec, lookaheadColor);
+            lookaheadPositions.push({ vec: blockVec, name: blockName });
         }
     }
 
-    return false;
+    return { lookaheadPositions, closestIndex };
 }
 
-function isSolid(block) {
-    if (!block) return false;
-    const id = block.type.getID();
-    if (id === 0) return false;
+export function checkLookaheadYChange(pathBetweenKeyNodes) {
+    const { lookaheadPositions, closestIndex } = drawPathAndPlayerLookAhead(pathBetweenKeyNodes);
+    const player = Player;
 
-    const registryName = block.type.getRegistryName().toLowerCase();
-    if (registryName.includes('water') || registryName.includes('lava')) return false;
-
-    return !isBlockPassable(block);
-}
-
-function getBlockHeight(block) {
-    if (!block) return 0;
-
-    const id = block.type.getID();
-    if (id === 0) return 0;
-
-    const registryName = block.type.getRegistryName().toLowerCase();
-
-    if (isBlockPassable(block)) return 0;
-
-    for (const [key, height] of Object.entries(PARTIAL_HEIGHT_BLOCKS)) {
-        if (registryName.includes(key)) {
-            if (key === 'slab' && registryName.includes('double')) {
-                return 1.0;
-            }
-            return height;
-        }
+    if (!player || lookaheadPositions.length === 0 || closestIndex === -1) {
+        lastLookaheadPositions = [];
+        return;
     }
 
-    return 1.0;
-}
+    const playerFloorY = Math.floor(player.getY() - 0.001);
 
-function getGroundHeight(x, y, z) {
-    let block = getCachedBlock(x, y, z);
-    if (isSolid(block)) {
-        return y + getBlockHeight(block);
-    }
+    let needsJump = false;
+    let ignoreJumpThisCycle = false;
 
-    block = getCachedBlock(x, y - 1, z);
-    if (isSolid(block)) {
-        return y - 1 + getBlockHeight(block);
-    }
+    for (const lookaheadData of lookaheadPositions) {
+        const blockVec = lookaheadData.vec;
+        const blockName = lookaheadData.name;
 
-    return y;
-}
+        if (blockVec.y > playerFloorY + 0.6) needsJump = true;
 
-function hasLowCeiling(x, y, z) {
-    const block2 = getCachedBlock(x, y + 2, z);
-    const block3 = getCachedBlock(x, y + 3, z);
-
-    if (isSolid(block2)) {
-        const registryName = block2.type.getRegistryName().toLowerCase();
-        if (registryName.includes('stair')) return false;
-
-        const height2 = getBlockHeight(block2);
-        if (height2 >= 0.9) return true;
-    }
-
-    if (isSolid(block3)) {
-        const registryName = block3.type.getRegistryName().toLowerCase();
-        if (registryName.includes('stair')) return false;
-
-        const height3 = getBlockHeight(block3);
-        if (height3 >= 0.9) return true;
-    }
-
-    return false;
-}
-
-function getPlayerFacingDirection() {
-    const yaw = Player.getYaw();
-    const radians = (yaw + 90) * (Math.PI / 180);
-
-    const dirX = Math.cos(radians);
-    const dirZ = Math.sin(radians);
-
-    const dist2D = Math.sqrt(dirX * dirX + dirZ * dirZ);
-
-    if (dist2D < 0.1) {
-        return { dirX: 0, dirZ: 0 };
-    }
-
-    return {
-        dirX: dirX / dist2D,
-        dirZ: dirZ / dist2D,
-    };
-}
-
-function checkStepUpRefactored(checkX, checkY, checkZ, currentGroundHeight) {
-    const blockFoot = getCachedBlock(checkX, checkY, checkZ);
-    const blockHead = getCachedBlock(checkX, checkY + 1, checkZ);
-    const blockBelow = getCachedBlock(checkX, checkY - 1, checkZ);
-
-    if (isSolid(blockHead)) return { shouldJump: false };
-
-    let actualHeightDiff = 0;
-    let targetGroundY = checkY;
-    let targetBlockHeight = 0;
-    let isStepUp = false;
-    let blockToCheck = null;
-
-    if (isSolid(blockFoot)) {
-        targetBlockHeight = getBlockHeight(blockFoot);
-        targetGroundY = checkY;
-        blockToCheck = blockFoot;
-        actualHeightDiff = targetGroundY + targetBlockHeight - Player.getY();
-        isStepUp = true;
-    } else if (isSolid(blockBelow)) {
-        targetBlockHeight = getBlockHeight(blockBelow);
-        targetGroundY = checkY - 1;
-        blockToCheck = blockBelow;
-        actualHeightDiff = targetGroundY + targetBlockHeight - currentGroundHeight;
-        isStepUp = true;
-    }
-
-    if (isStepUp) {
-        if (blockToCheck) {
-            const registryName = blockToCheck.type.getRegistryName().toLowerCase();
-
-            if (registryName.includes('stair') || (registryName.includes('slab') && targetBlockHeight <= 0.5)) return { shouldJump: false };
-        }
-
-        if (actualHeightDiff > STEP_HEIGHT) return { shouldJump: true };
-
-        return { shouldJump: false };
-    }
-
-    return { shouldJump: false };
-}
-
-function checkGapRefactored(checkX, checkY, checkZ, currentGroundHeight) {
-    const blockFoot = getCachedBlock(checkX, checkY, checkZ);
-    const blockBelow = getCachedBlock(checkX, checkY - 1, checkZ);
-
-    if (isSolid(blockFoot) || isSolid(blockBelow)) {
-        return { shouldJump: false };
-    }
-
-    let fallDepth = 0;
-    let destinationHeight = checkY;
-    let destinationBlockHeight = 0;
-
-    for (let d = 1; d <= 10; d++) {
-        const blockAtDepth = getCachedBlock(checkX, checkY - d, checkZ);
-        if (isSolid(blockAtDepth)) {
-            fallDepth = d - 1;
-            const destinationY = checkY - d;
-            destinationBlockHeight = getBlockHeight(blockAtDepth);
-            destinationHeight = destinationY + destinationBlockHeight;
-            break;
-        }
-        fallDepth = d;
-    }
-
-    const actualHeightDiff = destinationHeight - currentGroundHeight;
-
-    if (fallDepth === 0) {
-        if (actualHeightDiff >= -0.5) {
-            return {
-                shouldJump: true,
-            };
-        }
-    }
-
-    return { shouldJump: false };
-}
-
-function isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight) {
-    const offsets = [
-        { dx: 1, dz: 0 },
-        { dx: -1, dz: 0 },
-        { dx: 0, dz: 1 },
-        { dx: 0, dz: -1 },
-    ];
-
-    for (const { dx, dz } of offsets) {
-        const checkX = pX + dx;
-        const checkZ = pZ + dz;
-
-        let block = getCachedBlock(checkX, pY, checkZ);
-        if (isSolid(block)) {
-            const registryName = block.type.getRegistryName().toLowerCase();
-            const height = getBlockHeight(block);
-
-            if (registryName.includes('slab') && height <= 0.5) {
-                const targetGroundHeight = pY + height;
-                const heightDiff = targetGroundHeight - currentGroundHeight;
-
-                if (heightDiff <= STEP_HEIGHT && heightDiff > 0 && !isSolid(getCachedBlock(checkX, pY + 1, checkZ))) {
-                    return true;
-                }
-            }
-        }
-
-        block = getCachedBlock(checkX, pY - 1, checkZ);
-        if (isSolid(block)) {
-            const registryName = block.type.getRegistryName().toLowerCase();
-            const height = getBlockHeight(block);
-
-            if (registryName.includes('slab') && height <= 0.5) {
-                const targetGroundHeight = pY - 1 + height;
-                const heightDiff = targetGroundHeight - currentGroundHeight;
-
-                if (
-                    heightDiff <= STEP_HEIGHT &&
-                    heightDiff > 0 &&
-                    !isSolid(getCachedBlock(checkX, pY, checkZ)) &&
-                    !isSolid(getCachedBlock(checkX, pY + 1, checkZ))
-                ) {
-                    return true;
-                }
+        if (blockName.includes('slab') || blockName.includes('stair')) {
+            if (needsJump) {
+                ignoreJumpThisCycle = true;
             }
         }
     }
 
-    return false;
-}
-
-export function shouldJump() {
-    if (!Player.getPlayer().isOnGround()) return { shouldJump: false, jumpPoints: [] };
-
-    const playerPos = {
-        x: Player.getX(),
-        y: Player.getY(),
-        z: Player.getZ(),
-    };
-
-    const pX = Math.floor(playerPos.x);
-    const pY = Math.round(playerPos.y);
-    const pZ = Math.floor(playerPos.z);
-
-    const blockBelowPlayer = getCachedBlock(pX, pY - 1, pZ);
-    if (blockBelowPlayer) {
-        const registryName = blockBelowPlayer.type.getRegistryName().toLowerCase();
-        if (registryName.includes('water') || registryName.includes('lava')) {
-            PathfindingMessages('Detected fluid block below');
-            return {
-                shouldJump: true,
-                jumpPoints: [{ x: pX, y: pY - 1, z: pZ }],
-            };
-        }
-    }
-
-    if (hasLowCeiling(pX, pY, pZ)) return { shouldJump: false, jumpPoints: [] };
-
-    const currentGroundHeight = getGroundHeight(pX, pY, pZ);
-    const { dirX, dirZ } = getPlayerFacingDirection();
-
-    if (dirX === 0 && dirZ === 0) return { shouldJump: false, jumpPoints: [] };
-
-    const checkPoints = [
-        { x: dirX * 0.7, z: dirZ * 0.7 },
-        { x: dirX * 1.0, z: dirZ * 1.0 },
-    ];
-
-    if (Math.abs(dirX) > 0.3 && Math.abs(dirZ) > 0.3) {
-        checkPoints.push({ x: Math.sign(dirX) * 1.0, z: 0 });
-        checkPoints.push({ x: 0, z: Math.sign(dirZ) * 1.0 });
-    }
-
-    const jumpPoints = [];
-    let isJumpNeeded = false;
-
-    for (let i = 0; i < checkPoints.length; i++) {
-        const offset = checkPoints[i];
-        const checkX = Math.floor(playerPos.x + offset.x);
-        const checkZ = Math.floor(playerPos.z + offset.z);
-
-        if (checkX === pX && checkZ === pZ) continue;
-        if (hasLowCeiling(checkX, pY, checkZ)) continue;
-
-        const stepResult = checkStepUpRefactored(checkX, pY, checkZ, currentGroundHeight);
-        if (stepResult.shouldJump) {
-            const blockFoot = getCachedBlock(checkX, pY, checkZ);
-            const targetY = isSolid(blockFoot) ? pY : pY - 1;
-            jumpPoints.push({ x: checkX, y: targetY, z: checkZ });
-            isJumpNeeded = true;
-        }
-
-        const gapResult = checkGapRefactored(checkX, pY, checkZ, currentGroundHeight);
-
-        if (gapResult.shouldJump) {
-            jumpPoints.push({ x: checkX, y: pY, z: checkZ });
-            isJumpNeeded = true;
-        }
-    }
-
-    if (isJumpNeeded && isAdjacentSlabWalkable(pX, pY, pZ, currentGroundHeight)) {
-        PathfindingMessages('Jump suppressed due to walkable adjacent slab.');
-        return { shouldJump: false, jumpPoints: [] };
-    }
-
-    if (isJumpNeeded) {
-        return { shouldJump: true, jumpPoints };
-    }
-
-    return { shouldJump: false, jumpPoints: [] };
-}
-
-function isPlayerInFluid(pX, pY, pZ) {
-    const blockAtPlayerY = getCachedBlock(pX, pY, pZ);
-    if (blockAtPlayerY) {
-        const registryName = blockAtPlayerY.type.getRegistryName().toLowerCase();
-        if (registryName.includes('water') || registryName.includes('lava')) {
-            return true;
-        }
-    }
-    return false;
-}
-
-export function Jump() {
-    const player = Player.getPlayer();
-    if (!player) {
-        currentJumpPoints = [];
-        return { running: false };
-    }
-
-    const playerPos = {
-        x: Player.getX(),
-        y: Player.getY(),
-        z: Player.getZ(),
-    };
-
-    const pX = Math.floor(playerPos.x);
-    const pY = Math.floor(playerPos.y);
-    const pZ = Math.floor(playerPos.z);
-
-    if (isPlayerInFluid(pX, pY, pZ) || Player.asPlayerMP().isInLava() || Player.asPlayerMP().isInWater()) {
-        PathfindingMessages('Player submerged in fluid, forcing jump.');
+    if (needsJump && !ignoreJumpThisCycle) {
         Keybind.setKey('space', true);
-        Keybind.setKey('w', true);
-        currentJumpPoints = [{ x: pX, y: pY, z: pZ }];
-        return { running: true };
-    }
-
-    const jumpCheckResult = shouldJump();
-
-    currentJumpPoints = jumpCheckResult.jumpPoints;
-
-    if (jumpCheckResult.shouldJump) {
-        PathfindingMessages('Detected a jump position!');
-        Keybind.setKey('space', true);
-
-        jumpCheckResult.jumpPoints.forEach((point) => {
-            const key = `${point.x},${point.y},${point.z}`;
-            if (!persistentJumpPoints.some((p) => `${p.x},${p.y},${p.z}` === key)) {
-                persistentJumpPoints.push(point);
-            }
-        });
     } else {
         Keybind.setKey('space', false);
     }
 
-    return { running: true };
-}
-
-export function stopJump() {
-    Keybind.setKey('space', false);
+    lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
 }

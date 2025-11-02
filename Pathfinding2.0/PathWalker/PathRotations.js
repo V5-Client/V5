@@ -6,6 +6,15 @@ import { MathUtils } from '../../Utility/Math';
 import { Rotations } from '../../Utility/Rotations';
 import { renderSplineBoxes } from '../PathDebug';
 
+// Make yaw look ahead thingy dynamic and based off speed ; slower speed = smaller. look ahead max look ahead is to be 5 (anything over 300 speed should have 5 look ahead)
+/* Quick analysis 
+anything  under 4 bps = ~1
+over 4 & under 7 = ~2
+over 7 = ~5
+*/
+
+// put old rotations in this file so rotationtest can become new rots :)
+
 const MIN_SPEED_CONSTANT = 60; // Fastest rotation time (ms).
 const MAX_SPEED_CONSTANT = 80; // Slowest rotation time (ms).
 const ANGLE_SCALING_FACTOR = 20; // Scales speed reduction for large turns.
@@ -117,7 +126,7 @@ export function pathRotations(splineData) {
 
     const speedBPS = Math.sqrt(horizontalSpeedSq) * 20.0;
 
-    // ChatLib.chat(speedBPS);
+    ChatLib.chat(speedBPS);
 
     if (boxPositions.length === 0 || currentBoxIndex >= boxPositions.length - 1) {
         if (!complete) {

@@ -1,5 +1,4 @@
 import { Keybind } from '../../Utility/Keybinding';
-import { Jump, stopJump } from './PathJumps';
 
 /**
  * add velocity detection logic - simple
@@ -9,9 +8,9 @@ import { Jump, stopJump } from './PathJumps';
 export function PathMovement(on = true) {
     if (on) {
         Keybind.setKey('w', true);
-        Jump();
+        //  Jump();
     } else {
         Keybind.stopMovement();
-        stopJump();
+        //  stopJump();
     }
 }

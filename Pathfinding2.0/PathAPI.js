@@ -8,6 +8,7 @@ import { pathRotations, PathComplete, ResetRotations } from './PathWalker/PathRo
 import RenderUtils from '../Rendering/RendererUtils';
 import { getRenderKeyNodes, getRenderFloatingSpline, PathfindingMessages } from './PathConfig';
 import { Rotations } from '../Utility/Rotations';
+import { checkLookaheadYChange } from './PathWalker/PathJumps';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
@@ -111,7 +112,7 @@ export function findAndFollowPath(start, end, renderOnly = false, onComplete = n
     const endAdjusted = [Math.floor(end[0]), Math.floor(end[1]), Math.round(end[2])];
 
     const url = `${localhost}/api/pathfinding?start=${startAdjusted.join(',')}&end=${endAdjusted.join(',')}&map=mines`;
-    PathfindingMessages(`Path from ${startAdjusted.join(', ')} to ${endAdjusted.join(', ')} (Attempt: ${retryCount + 1})`); // remove on release
+    PathfindingMessages(`Path from ${startAdjusted.join(', ')} to ${endAdjusted.join(', ')} (Attempt: ${retryCount + 1})`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -147,6 +148,7 @@ export function findAndFollowPath(start, end, renderOnly = false, onComplete = n
                 renderOnlyRegister = register('postRenderWorld', () => {
                     if (getRenderKeyNodes()) drawKeyNodes(body.keynodes);
                     if (getRenderFloatingSpline()) drawFloatingSpline(generatedSpline);
+                    checkLookaheadYChange(body.path_between_key_nodes);
                 });
             }
 
