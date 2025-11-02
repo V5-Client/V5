@@ -5,7 +5,7 @@ class AutoHarp extends ModuleBase {
     constructor() {
         super({
             name: 'Auto Harp',
-            subcategory: 'Other',
+            subcategory: 'Skills',
             description: 'Auto Harp',
             tooltip: 'Auto Harp',
         });
