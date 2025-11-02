@@ -8,7 +8,7 @@ class JerryBoxMacro extends ModuleBase {
     constructor() {
         super({
             name: 'Jerry Box Macro',
-            subcategory: 'Other',
+            subcategory: 'Skills',
             description: 'Automatically opens Jerry Boxes',
             tooltip: 'Right click -> click open -> close GUI -> repeat',
             autoDisableOnWorldUnload: true,

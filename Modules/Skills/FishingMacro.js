@@ -7,7 +7,7 @@ class FishingMacro extends ModuleBase {
     constructor() {
         super({
             name: 'Fishing Macro',
-            subcategory: 'Other',
+            subcategory: 'Skills',
             description: 'Fishing Macro',
             tooltip: 'Fishing Macro',
         });
