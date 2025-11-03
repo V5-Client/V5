@@ -4,10 +4,14 @@ import { Keybind } from '../../Utility/Keybinding';
 
 export let lastLookaheadPositions = [];
 
-export function isBlockFullCube(world, blockVec) {
+// TODO
+// Snow :(
+
+export function isBlockNonCollidable(world, blockVec) {
     const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
     const blockState = world.getBlockState(blockPosNMS);
-    return blockState.isFullCube(world, blockPosNMS); // this should be collision not full cubes :(
+    const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
+    return collisionShape.isEmpty();
 }
 
 export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
@@ -57,7 +61,7 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
 
         const isTraversablePartialBlock = blockName.includes('slab') || blockName.includes('stair');
 
-        if (isBlockFullCube(world, blockVec) || isTraversablePartialBlock) {
+        if (!isBlockNonCollidable(world, blockVec) || isTraversablePartialBlock) {
             RenderUtils.drawBox(blockVec, lookaheadColor);
             lookaheadPositions.push({ vec: blockVec, name: blockName });
         }
