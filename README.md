@@ -14,14 +14,8 @@ class ExampleModule extends ModuleBase {
 
         this.bindToggleKey();
 
-        // Create a register and unregister it then track them
-        const step = register('step', () => {
-            // logic here
-        }).unregister();
-        this.trackRegister(step); // handlers tracked here only run while Enabled
-
-        // You can also use this.on(registerType) to create and track a register in one line
-        this.on('step', () => {
+        // You can use this.on(registerType) to create and track a register in one line
+        this.on('tick', () => {
             // logic here
         });
 
