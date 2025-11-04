@@ -9,7 +9,7 @@ Client.getMinecraft()
 /* FAILSAFES */
 
 /* GUI */
-import './GUI/GUI.js';
+import './GUI/index.js';
 import './Utility/Config.js';
 
 /* CORE */
@@ -53,7 +53,7 @@ import './Modules/Other/LobbyHopper.js';
 import './TestNotification.js'; //REMOVE BEFORE RELEASE
 import './RAYTRACEDEBUG.js'; // REMOVE BEFORE RELEASE
 
-import { loadSettings } from './GUI/GuiSave';
+import { loadSettings, returnDiscord, openGui } from './GUI/index';
 loadSettings();
-import { returnDiscord } from './GUI/Utils.js';
 returnDiscord();
+register('command', openGui).setName('gui');

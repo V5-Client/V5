@@ -1,5 +1,8 @@
-import { playClickSound, drawRoundedRectangleWithBorder, THEME, isInside } from '../Utils';
 import { UIRoundedRectangle, Matrix } from '../../Utility/Constants';
+import { playClickSound } from '../utils/sound';
+import { THEME } from '../utils/theme';
+import { drawRoundedRectangleWithBorder } from '../utils/drawing';
+import { isInside } from '../utils/helpers';
 
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10, callback = null) {

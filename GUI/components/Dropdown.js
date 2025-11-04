@@ -1,5 +1,9 @@
-import { playClickSound, THEME, drawRoundedRectangleWithBorder, PADDING, isInside } from '../Utils';
+import { PADDING } from '../utils/constants';
 import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
+import { playClickSound } from '../utils/sound';
+import { THEME } from '../utils/theme';
+import { drawRoundedRectangleWithBorder } from '../utils/drawing';
+import { isInside } from '../utils/helpers';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false, callback = null) {

@@ -1,11 +1,11 @@
-import { Color, UIRoundedRectangle, UMatrixStack, Matrix } from '../Utility/Constants';
-import { THEME, isInside, colorWithAlpha } from './Utils';
+import { UIRoundedRectangle, Matrix, Color } from '../../Utility/Constants';
+import { THEME } from '../utils/theme';
+import { isInside, colorWithAlpha } from '../utils/helpers';
 
 // Configuration
-const RENDER_ABOVE_GUI = true; // toggle rendering above guis
+const RENDER_ABOVE_GUI = true;
 const NOTIFICATION_WIDTH = 250;
 const NOTIFICATION_HEIGHT = 56;
-const NOTIFICATION_PADDING = 10;
 const NOTIFICATION_SPACING = 8;
 const NOTIFICATION_MARGIN = 20;
 const DEFAULT_NOTIFICATION_DURATION = 5000;
@@ -37,10 +37,10 @@ const NOTIFICATION_TYPES = {
                 { x: 6, y: -4 },
             ];
             for (let i = 0; i < points.length - 1; i++) {
-                const x1 = centerX + points[i].x,
-                    y1 = centerY + points[i].y;
-                const x2 = centerX + points[i + 1].x,
-                    y2 = centerY + points[i + 1].y;
+                const x1 = centerX + points[i].x;
+                const y1 = centerY + points[i].y;
+                const x2 = centerX + points[i + 1].x;
+                const y2 = centerY + points[i + 1].y;
                 Renderer.drawLine(color, x1, y1, x2, y2, 2);
             }
         },
@@ -105,7 +105,7 @@ class Notification {
         this.type = NOTIFICATION_TYPES[type] ? type : 'SUCCESS';
         this.duration = duration;
 
-        this.isSticky = duration === 'sticky'; // allow duration to be 'sticky'
+        this.isSticky = duration === 'sticky';
 
         this.createdAt = Date.now();
         this.state = 'entering';
@@ -149,7 +149,7 @@ class Notification {
         const textMargin = 8;
         const closeButtonArea = 30;
 
-        const textXOffset = NOTIFICATION_PADDING + iconWidth + textMargin;
+        const textXOffset = 10 + iconWidth + textMargin;
         const maxLineWidth = (NOTIFICATION_WIDTH - textXOffset - closeButtonArea) / DESC_SCALE;
 
         this.wrappedDescription = this.wrapText(this.description, maxLineWidth);
@@ -188,7 +188,7 @@ class Notification {
 
         const yDiff = this.targetY - this.y;
         if (Math.abs(yDiff) > 0.5) {
-            this.y += yDiff * 0.3; // Smoothly animate to new Y position
+            this.y += yDiff * 0.3;
         } else {
             this.y = this.targetY;
         }
@@ -204,6 +204,7 @@ class Notification {
     easeOutCubic(t) {
         return 1 - Math.pow(1 - t, 3);
     }
+
     easeInCubic(t) {
         return t * t * t;
     }
@@ -217,7 +218,7 @@ class Notification {
         const bgColor = colorWithAlpha(BACKGROUND_COLOR, alpha);
         UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, this.x, this.y, this.x + NOTIFICATION_WIDTH, this.y + this.height, CORNER_RADIUS, bgColor);
 
-        const iconBgX = this.x + NOTIFICATION_PADDING;
+        const iconBgX = this.x + 10;
         const iconBgY = this.y + this.height / 2 - 12;
         const iconBgSize = 24;
 
@@ -271,7 +272,7 @@ class Notification {
         }
 
         this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
-        // Don't draw progress bar for sticky notifications
+
         if (this.state === 'active' && !this.isSticky) {
             const progress = 1 - (Date.now() - this.createdAt) / this.duration;
             const progressBarHeight = 4;
@@ -283,7 +284,6 @@ class Notification {
                 const scale = Renderer.screen.getScale();
                 const screenHeight = Renderer.screen.getHeight();
 
-                // Shift height down by one to fix floating point issue
                 const scissorY = screenHeight - (this.y + this.height) - 1;
                 const scissorHeight = progressBarHeight;
 
@@ -326,7 +326,7 @@ class Notification {
     }
 }
 
-class NotificationManager {
+export class NotificationManager {
     constructor() {
         this.notifications = [];
         this.renderTrigger = null;
@@ -345,7 +345,7 @@ class NotificationManager {
         }
 
         if (RENDER_ABOVE_GUI && !this.guiRenderTrigger) {
-            this.guiRenderTrigger = register('postGuiRender', (mouseX, mouseY, gui) => {
+            this.guiRenderTrigger = register('postGuiRender', () => {
                 this.renderAboveGui();
             });
         }
@@ -355,6 +355,7 @@ class NotificationManager {
                 if (button === 0) this.handleClick(mouseX, mouseY);
             });
         }
+
         if (!this.tickTrigger) {
             this.tickTrigger = register('tick', () => this.update());
         }
@@ -426,15 +427,12 @@ class NotificationManager {
         const mouseX = Client.getMouseX();
         const mouseY = Client.getMouseY();
 
-        //just translate forward on Z axis :)
         Renderer.translate(0, 0, 500);
 
-        // Render notifications
         for (let i = this.notifications.length - 1; i >= 0; i--) {
             this.notifications[i].draw(mouseX, mouseY);
         }
 
-        // translate back :)
         Renderer.translate(0, 0, -500);
     }
 
@@ -448,9 +446,3 @@ class NotificationManager {
         this.unregisterEvents();
     }
 }
-
-global.notificationManager = new NotificationManager();
-
-global.showNotification = (title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) => {
-    global.notificationManager.add(title, description, type, duration);
-};

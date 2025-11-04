@@ -1,22 +1,35 @@
-import { THEME } from '../Utils';
-import { drawRoundedRectangle } from '../Utils';
+import { THEME } from '../utils/theme';
+import { drawRoundedRectangle } from '../utils/drawing';
 
-global.GuiTooltip = {
-    tooltipToDraw: null,
-    tooltipHoverTime: 0,
-    currentTooltipText: null,
-    isHoveringTooltipSource: false,
+export class TooltipManager {
+    constructor() {
+        this.tooltipToDraw = null;
+        this.tooltipHoverTime = 0;
+        this.currentTooltipText = null;
+        this.isHoveringTooltipSource = false;
+    }
 
     reset() {
         this.isHoveringTooltipSource = false;
-    },
+    }
 
     update() {
         if (!this.isHoveringTooltipSource) {
             this.currentTooltipText = null;
             this.tooltipToDraw = null;
         }
-    },
+    }
+
+    setTooltip(text) {
+        this.isHoveringTooltipSource = true;
+        if (text !== this.currentTooltipText) {
+            this.currentTooltipText = text;
+            this.tooltipHoverTime = Date.now();
+            this.tooltipToDraw = null;
+        } else if (Date.now() - this.tooltipHoverTime > 400) {
+            this.tooltipToDraw = text;
+        }
+    }
 
     draw(mouseX, mouseY) {
         if (!this.tooltipToDraw) return;
@@ -44,9 +57,7 @@ global.GuiTooltip = {
         const screenHeight = Renderer.screen.getHeight();
 
         if (tooltipX + tooltipWidth > screenWidth) tooltipX = mouseX - tooltipWidth - MOUSE_OFFSET_X;
-
         if (tooltipY + tooltipHeight > screenHeight) tooltipY = screenHeight - tooltipHeight;
-
         if (tooltipY < 0) tooltipY = 0;
         if (tooltipX < 0) tooltipX = 0;
 
@@ -62,16 +73,9 @@ global.GuiTooltip = {
         lines.forEach((line, index) => {
             Renderer.drawString(line, tooltipX + PADDING, tooltipY + PADDING + index * 9, THEME.TOOLTIP_TEXT, true);
         });
-    },
-};
-
-global.setTooltip = (text) => {
-    global.GuiTooltip.isHoveringTooltipSource = true;
-    if (text !== global.GuiTooltip.currentTooltipText) {
-        global.GuiTooltip.currentTooltipText = text;
-        global.GuiTooltip.tooltipHoverTime = Date.now();
-        global.GuiTooltip.tooltipToDraw = null;
-    } else if (Date.now() - global.GuiTooltip.tooltipHoverTime > 400) {
-        global.GuiTooltip.tooltipToDraw = text;
     }
-};
+}
+
+// Set up global for "backward compatibility" (cope)
+global.GuiTooltip = new TooltipManager();
+global.setTooltip = (text) => global.GuiTooltip.setTooltip(text);

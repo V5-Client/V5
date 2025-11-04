@@ -1,5 +1,8 @@
 import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
-import { clamp, playClickSound, drawRoundedRectangleWithBorder, THEME, isInside, drawRoundedRectangle } from '../Utils';
+import { playClickSound } from '../utils/sound';
+import { THEME } from '../utils/theme';
+import { drawRoundedRectangleWithBorder, drawRoundedRectangle } from '../utils/drawing';
+import { isInside, clamp } from '../utils/helpers';
 
 export class Slider {
     constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null) {
