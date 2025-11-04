@@ -43,9 +43,7 @@ class Keybinding {
         if (ticks === 0) {
             this.rightClick();
         } else {
-            Client.scheduleTask(ticks, () => {
-                this.rightClick();
-            });
+            Client.scheduleTask(ticks, () => this.rightClick());
         }
     }
 
@@ -63,13 +61,11 @@ class Keybinding {
         let hand = net.minecraft.util.Hand.MAIN_HAND;
         let sequence = 0;
 
-        if (ticks === 0) {
+        const sendPacket = () => {
             Client.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
-        } else {
-            Client.scheduleTask(ticks, () => {
-                Client.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
-            });
-        }
+        };
+
+        ticks === 0 ? sendPacket() : Client.scheduleTask(ticks, sendPacket);
     }
 
     /**
@@ -151,11 +147,11 @@ class Keybinding {
     setKeysBasedOnYaw(yaw, jump = true) {
         this.stopMovement();
         if (Client.isInGui() && !Client.isInChat()) return;
-        if (yaw >= -50.0 && yaw <= 50.0) this.setKey('w', true);
-        if (yaw >= -135.5 && yaw <= -7.0) this.setKey('a', true);
-        if (yaw >= 7.0 && yaw <= 135.5) this.setKey('d', true);
-        if (yaw <= -135.5 || yaw >= 135.5) this.setKey('s', true);
 
+        this.setKey('w', yaw >= -50 && yaw <= 50);
+        this.setKey('a', yaw >= -135.5 && yaw <= -7);
+        this.setKey('d', yaw >= 7 && yaw <= 135.5);
+        this.setKey('s', yaw <= -135.5 || yaw >= 135.5);
         this.setKey(
             'space',
             Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.04 && this.cooldown.hasReached(500) && jump && Utils.playerIsCollided()
@@ -165,11 +161,11 @@ class Keybinding {
     setKeysBasedOnYawTemp(yaw, jump = true) {
         this.stopMovement();
         if (Client.isInGui() && !Client.isInChat()) return;
-        if (yaw >= -50.0 && yaw <= 50.0) this.setKey('w', true);
-        if (yaw >= -135.5 && yaw <= -40.0) this.setKey('a', true);
-        if (yaw >= 40.0 && yaw <= 135.5) this.setKey('d', true);
-        if (yaw <= -135.5 || yaw >= 135.5) this.setKey('s', true);
 
+        this.setKey('w', yaw >= -50 && yaw <= 50);
+        this.setKey('a', yaw >= -135.5 && yaw <= -40);
+        this.setKey('d', yaw >= 40 && yaw <= 135.5);
+        this.setKey('s', yaw <= -135.5 || yaw >= 135.5);
         this.setKey(
             'space',
             Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.02 && this.cooldown.hasReached(500) && jump && Utils.playerIsCollided()
@@ -179,35 +175,27 @@ class Keybinding {
     setKeysForStraightLine(yaw, jump = false) {
         this.stopMovement();
         if (Client.isInGui() && !Client.isInChat()) return;
-        if (22.5 > yaw && yaw > -22.5) {
-            // Forwards
-            this.setKey('w', true);
-        } else if (-22.5 > yaw && yaw > -67.5) {
-            // Forwards+Right
-            this.setKey('w', true);
-            this.setKey('a', true);
-        } else if (-67.5 > yaw && yaw > -112.5) {
-            // Right
-            this.setKey('a', true);
-        } else if (-112.5 > yaw && yaw > -157.5) {
-            // Backwards + Right
-            this.setKey('a', true);
-            this.setKey('s', true);
-        } else if ((-157.5 > yaw && yaw > -180) || (180 > yaw && yaw > 157.5)) {
-            // Backwards
-            this.setKey('s', true);
-        } else if (67.5 > yaw && yaw > 22.5) {
-            // Forwards + Left
-            this.setKey('w', true);
-            this.setKey('d', true);
-        } else if (112.5 > yaw && yaw > 67.5) {
-            // Left
-            this.setKey('d', true);
-        } else if (157.5 > yaw && yaw > 112.5) {
-            // Backwards+Left
-            this.setKey('s', true);
-            this.setKey('d', true);
-        }
+
+        // Normalize yaw to 0-360 and get direction index (0-7)
+        const angle = (((yaw + 180) % 360) + 360) % 360;
+        const dir = Math.floor((angle + 22.5) / 45) % 8;
+
+        // W, A, S, D for each 45 degree direction from 0 to 7
+        const keys = [
+            [0, 0, 1, 0],
+            [0, 0, 1, 1],
+            [0, 0, 0, 1],
+            [0, 1, 0, 1],
+            [0, 1, 0, 0],
+            [1, 1, 0, 0],
+            [1, 0, 0, 0],
+            [1, 0, 1, 0],
+        ];
+
+        this.setKey('w', keys[dir][0]);
+        this.setKey('a', keys[dir][1]);
+        this.setKey('s', keys[dir][2]);
+        this.setKey('d', keys[dir][3]);
         /*this.setKey(
             'space',
             Player.asPlayerMP().isInWater() ||
@@ -224,7 +212,7 @@ class Keybinding {
         const dz = z - Player.getZ();
         let yaw = -(Math.atan2(dx, dz) * (180.0 / Math.PI)) - Player.getYaw();
         if (yaw < -180) yaw += 360;
-        if (yaw > 180) yaw += -360;
+        if (yaw > 180) yaw -= 360;
         this.setKeysForStraightLine(yaw, jump);
     }
 
