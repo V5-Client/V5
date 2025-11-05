@@ -102,7 +102,7 @@ class Keybinding {
                 return true;
             }
 
-            attackKey.setPressed(down);
+            attackKey.setPressed(!!down);
             return true;
         }
 
@@ -120,7 +120,7 @@ class Keybinding {
 
         const targetKey = keyMap[key];
         if (targetKey) {
-            targetKey.setPressed(down);
+            targetKey.setPressed(!!down);
             return true;
         }
         return false;
