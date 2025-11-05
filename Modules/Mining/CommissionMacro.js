@@ -10,10 +10,7 @@ import { RotationRedo } from '../../Utility/RotationsTest';
 import { ModuleBase } from '../../Utility/ModuleBase';
 
 // TODO
-// UPDATE TO USE NEW PATHFINDER
-// PATHFINDING CALLBACKS
 // ROTATION CALLBACKS FOR NPC CLICK
-// CHAT MESSAGE COMMISSION COMPLETION DETECTION
 // SLAYER COMMISSIONS
 // USE MULTIPLE END POINTS FOR EMISSARRY PATHFINDING
 
@@ -203,197 +200,269 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        switch (this.currentState) {
-            case STATES.IDLE:
-                this.setState(STATES.CHOOSING);
-                break;
-            case STATES.CHOOSING:
-                this.readCommissions();
-                if (this.awaitingTabUpdate) return;
+        // Route logic to state handlers
+        if (this.currentState === STATES.IDLE) this.handleIdle();
+        else if (this.currentState === STATES.CHOOSING) this.handleChoosing();
+        else if (this.currentState === STATES.SLAYER) this.handleSlayer();
+        else if (this.currentState === STATES.SELLING) this.handleSelling();
+        else if (this.currentState === STATES.CLAIMING) this.handleClaiming();
+    }
 
-                const hasCompleted = this.commissions.some((c) => c.progress === 1);
-                if (hasCompleted) {
-                    this.onCommissionComplete();
-                    return;
-                }
+    handleIdle() {
+        this.setState(STATES.CHOOSING);
+    }
 
-                const activeCommissions = this.commissions.filter((c) => c.progress < 1);
+    handleChoosing() {
+        this.readCommissions();
+        if (this.awaitingTabUpdate) return;
 
-                if (activeCommissions.length === 0) {
-                    Chat.message('No commissions detected.');
-                    Chat.message('Ensure commissions are enabled in /tab');
-                    this.toggle(false);
-                    return;
-                }
-
-                const supportedTasks = activeCommissions
-                    .map((tabComm) => {
-                        const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
-                        return data ? { ...tabComm, ...data } : null;
-                    })
-                    .filter((task) => task && task.type === 'MINING' && (!task.name.includes('Goblin') || this.weapon))
-                    .sort((a, b) => a.cost - b.cost);
-
-                if (supportedTasks.length === 0) {
-                    Chat.message('&eNo supported commissions available.');
-                    this.toggle(false);
-                    return;
-                }
-
-                const otherPlayers = this.playerAvoidanceRadius > 0 ? World.getAllPlayers().filter((p) => p.getName() !== Player.getName()) : [];
-
-                for (const chosenTask of supportedTasks) {
-                    const safeWaypoints = chosenTask.waypoints.filter((waypoint) => {
-                        if (this.playerAvoidanceRadius <= 0) return true;
-                        return !otherPlayers.some((player) => {
-                            const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
-                            return distance < this.playerAvoidanceRadius;
-                        });
-                    });
-
-                    if (safeWaypoints.length > 0) {
-                        const playerPos = {
-                            x: Player.getX(),
-                            y: Player.getY(),
-                            z: Player.getZ(),
-                        };
-                        const closestWaypoint = safeWaypoints.reduce((closest, current) => {
-                            const closestDist = this.getDistance(playerPos.x, playerPos.y, playerPos.z, ...closest);
-                            const currentDist = this.getDistance(playerPos.x, playerPos.y, playerPos.z, ...current);
-                            return currentDist < closestDist ? current : closest;
-                        });
-
-                        this.currentCommission = chosenTask;
-                        this.travelPurpose = chosenTask.type;
-                        this.currentMiningWaypoint = closestWaypoint;
-
-                        Chat.message(`&aStarting commission: &b${chosenTask.name}&a. Pathing to: &b[${closestWaypoint.join(', ')}]`);
-
-                        this.setState(STATES.TRAVELING);
-                        findAndFollowPath(
-                            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
-                            closestWaypoint,
-                            false,
-                            () => this.onPathComplete(),
-                            () => this.onPathFail()
-                        );
-                        return;
-                    }
-                }
-
-                const commissionNames = supportedTasks.map((t) => t.name).join('&7, &b');
-                Chat.message(`&cAll spots occupied for: &b${commissionNames}&c. Waiting...`);
-                break;
-            case STATES.SLAYER:
-                if (!this.currentMobType) return;
-
-                const mobs = this.findMob(this.currentMobType);
-                if (mobs.length === 0) return;
-
-                const closest = this.getClosestMob(mobs);
-                // TODO: Implement rotation, movement, and attacking
-                // Pretty much the same as the original 1.8.9 ig
-                break;
-
-            case STATES.SELLING: // COMPLETELY UNTESTED :)
-                if (Guis.guiName() !== 'Trades') {
-                    ChatLib.command('trades');
-                    this.delay(10);
-                    return;
-                }
-
-                const container = Player.getContainer();
-                const items = container.getItems();
-
-                for (let i = 54; i < items.length; i++) {
-                    const item = items[i];
-                    if (!item) continue;
-
-                    const name = ChatLib.removeFormatting(item.getName());
-                    const isTrash = TRASH_ITEMS.some((trash) => name.includes(trash));
-                    const isNotEquipment = !name.includes('Drill') && !name.includes('Pickaxe') && !name.includes('Minecart');
-
-                    if (isTrash && isNotEquipment) {
-                        Guis.clickSlot(i, false);
-                        return;
-                    }
-                }
-
-                Guis.closeInv();
-                if (this.savedState) {
-                    this.setState(this.savedState);
-                    if (this.savedState === STATES.MINING) this.startMining();
-                    this.savedState = null;
-                } else {
-                    this.setState(STATES.CHOOSING);
-                }
-                break;
-            case STATES.CLAIMING:
-                if (Guis.guiName() === 'Commissions') {
-                    const Commissions = Player.getContainer();
-                    for (let i = 9; i < 17; i++) {
-                        const stack = Commissions.getStackInSlot(i);
-                        if (!stack) continue;
-
-                        const hasCompleted = stack.getLore().some((line) => line.toString().includes('COMPLETED'));
-                        if (hasCompleted) {
-                            Guis.clickSlot(i, false);
-                            this.delay(10);
-                            return;
-                        }
-                    }
-
-                    Guis.closeInv();
-                    this.setState(STATES.CHOOSING);
-                    return;
-                }
-
-                const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
-                if (pigeonSlot !== -1) {
-                    if (Player.getHeldItemIndex() != pigeonSlot) {
-                        Guis.setItemSlot(pigeonSlot);
-                    } else {
-                        Keybind.rightClick();
-                    }
-                } else {
-                    const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-                    let closest = EMISSARY_LOCATIONS[0];
-                    let closestDist = this.getDistance(...playerPos, ...closest);
-
-                    for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
-                        const current = EMISSARY_LOCATIONS[i];
-                        const currentDist = this.getDistance(...playerPos, ...current);
-                        if (currentDist < closestDist) {
-                            closest = current;
-                            closestDist = currentDist;
-                        }
-                    }
-
-                    if (closestDist < 4) {
-                        const target = closest;
-                        if (target) {
-                            const adjustedTarget = [target[0] + 0.5, target[1] + 2.2, target[2] + 0.5];
-                            if (RotationRedo.isRotating) return;
-                            RotationRedo.rotateToVector(adjustedTarget);
-                            RotationRedo.onEndRotation(() => {
-                                Keybind.rightClick();
-                                this.delay(10);
-                            });
-                        }
-                    } else {
-                        if (this.pathfinding) return;
-                        this.pathfinding = true;
-                        this.travelPurpose = 'EMISSARY';
-                        findAndFollowPath(
-                            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
-                            closest,
-                            false,
-                            () => (this.pathfinding = false)
-                        );
-                    }
-                }
-                break;
+        const hasCompleted = this.commissions.some((c) => c.progress === 1);
+        if (hasCompleted) {
+            this.onCommissionComplete();
+            return;
         }
+
+        const activeCommissions = this.commissions.filter((c) => c.progress < 1);
+        if (activeCommissions.length === 0) {
+            Chat.message('No commissions detected.');
+            Chat.message('Ensure commissions are enabled in /tab');
+            this.toggle(false);
+            return;
+        }
+
+        const supportedTasks = this.getSupportedTasks(activeCommissions);
+        if (supportedTasks.length === 0) {
+            Chat.message('&eNo supported commissions available.');
+            this.toggle(false);
+            return;
+        }
+
+        const otherPlayers = this.getOtherPlayers();
+        const chosenCommission = this.findAvailableCommission(supportedTasks, otherPlayers);
+
+        if (chosenCommission) {
+            this.startCommission(chosenCommission);
+        } else {
+            this.handleNoAvailableSpots(supportedTasks);
+        }
+    }
+
+    getSupportedTasks(activeCommissions) {
+        return activeCommissions
+            .map((tabComm) => {
+                const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
+                return data ? { ...tabComm, ...data } : null;
+            })
+            .filter((task) => task && task.type === 'MINING' && (!task.name.includes('Goblin') || this.weapon))
+            .sort((a, b) => a.cost - b.cost);
+    }
+
+    getOtherPlayers() {
+        if (this.playerAvoidanceRadius <= 0) return [];
+        return World.getAllPlayers().filter((p) => p.getName() !== Player.getName());
+    }
+
+    findAvailableCommission(supportedTasks, otherPlayers) {
+        for (const task of supportedTasks) {
+            const safeWaypoints = this.getSafeWaypoints(task.waypoints, otherPlayers);
+            if (safeWaypoints.length > 0) {
+                const closestWaypoint = this.getClosestWaypoint(safeWaypoints);
+                return { task, waypoint: closestWaypoint };
+            }
+        }
+        return null;
+    }
+
+    getSafeWaypoints(waypoints, otherPlayers) {
+        if (this.playerAvoidanceRadius <= 0) return waypoints;
+
+        return waypoints.filter((waypoint) => {
+            return !otherPlayers.some((player) => {
+                const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
+                return distance < this.playerAvoidanceRadius;
+            });
+        });
+    }
+
+    getClosestWaypoint(waypoints) {
+        const playerPos = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+        return waypoints.reduce((closest, current) => {
+            const closestDist = this.getDistance(playerPos.x, playerPos.y, playerPos.z, ...closest);
+            const currentDist = this.getDistance(playerPos.x, playerPos.y, playerPos.z, ...current);
+            return currentDist < closestDist ? current : closest;
+        });
+    }
+
+    startCommission(chosenCommission) {
+        const { task, waypoint } = chosenCommission;
+        this.currentCommission = task;
+        this.travelPurpose = task.type;
+        this.currentMiningWaypoint = waypoint;
+
+        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to: &b[${waypoint.join(', ')}]`);
+
+        this.setState(STATES.TRAVELING);
+        findAndFollowPath(
+            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
+            waypoint,
+            false,
+            () => this.onPathComplete(),
+            () => this.onPathFail()
+        );
+    }
+
+    handleNoAvailableSpots(supportedTasks) {
+        const commissionNames = supportedTasks.map((t) => t.name).join('&7, &b');
+        Chat.message(`&cAll spots occupied for: &b${commissionNames}&c. Waiting...`);
+    }
+
+    handleSlayer() {
+        if (!this.currentMobType) return;
+
+        const mobs = this.findMob(this.currentMobType);
+        if (mobs.length === 0) return;
+
+        const closest = this.getClosestMob(mobs);
+        // TODO: Implement rotation, movement, and attacking
+        // Pretty much the same as the original 1.8.9 ig
+    }
+
+    handleSelling() {
+        // COMPLETELY UNTESTED :)
+        if (Guis.guiName() !== 'Trades') {
+            ChatLib.command('trades');
+            this.delay(10);
+            return;
+        }
+
+        const soldItem = this.sellNextTrashItem();
+        if (soldItem) return;
+
+        // No more items to sell
+        Guis.closeInv();
+        this.restoreStateAfterSelling();
+    }
+
+    sellNextTrashItem() {
+        const container = Player.getContainer();
+        const items = container.getItems();
+
+        for (let i = 54; i < items.length; i++) {
+            const item = items[i];
+            if (!item) continue;
+
+            const name = ChatLib.removeFormatting(item.getName());
+            const isTrash = TRASH_ITEMS.some((trash) => name.includes(trash));
+            const isNotEquipment = !name.includes('Drill') && !name.includes('Pickaxe') && !name.includes('Minecart');
+
+            if (isTrash && isNotEquipment) {
+                Guis.clickSlot(i, false);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    restoreStateAfterSelling() {
+        if (this.savedState) {
+            this.setState(this.savedState);
+            if (this.savedState === STATES.MINING) this.startMining();
+            this.savedState = null;
+        } else {
+            this.setState(STATES.CHOOSING);
+        }
+    }
+
+    handleClaiming() {
+        if (Guis.guiName() === 'Commissions') {
+            this.claimCompletedCommissions();
+            return;
+        }
+
+        const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
+        if (pigeonSlot !== -1) {
+            this.useRoyalPigeon(pigeonSlot);
+        } else {
+            this.travelToEmissary();
+        }
+    }
+
+    claimCompletedCommissions() {
+        const Commissions = Player.getContainer();
+        for (let i = 9; i < 17; i++) {
+            const stack = Commissions.getStackInSlot(i);
+            if (!stack) continue;
+
+            const hasCompleted = stack.getLore().some((line) => line.toString().includes('COMPLETED'));
+            if (hasCompleted) {
+                Guis.clickSlot(i, false);
+                this.delay(10);
+                return;
+            }
+        }
+
+        Guis.closeInv();
+        this.delay(10); // Delay so it doesn't pathfind inside gui BANDAID, FIX IN ROTATIONS
+        this.setState(STATES.CHOOSING);
+    }
+
+    useRoyalPigeon(pigeonSlot) {
+        if (Player.getHeldItemIndex() != pigeonSlot) {
+            Guis.setItemSlot(pigeonSlot);
+        } else {
+            Keybind.rightClick();
+        }
+    }
+
+    travelToEmissary() {
+        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+        const closest = this.getClosestEmissary(playerPos);
+        const closestDist = this.getDistance(...playerPos, ...closest);
+
+        if (closestDist < 4) {
+            this.interactWithEmissary(closest);
+        } else {
+            this.pathToEmissary(closest);
+        }
+    }
+
+    getClosestEmissary(playerPos) {
+        let closest = EMISSARY_LOCATIONS[0];
+        let closestDist = this.getDistance(...playerPos, ...closest);
+
+        for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
+            const current = EMISSARY_LOCATIONS[i];
+            const currentDist = this.getDistance(...playerPos, ...current);
+            if (currentDist < closestDist) {
+                closest = current;
+                closestDist = currentDist;
+            }
+        }
+        return closest;
+    }
+
+    interactWithEmissary(target) {
+        const adjustedTarget = [target[0] + 0.5, target[1] + 2.2, target[2] + 0.5];
+        if (RotationRedo.isRotating) return;
+
+        RotationRedo.rotateToVector(adjustedTarget);
+        RotationRedo.onEndRotation(() => {
+            Keybind.rightClick();
+            this.delay(10);
+        });
+    }
+
+    pathToEmissary(closest) {
+        if (this.pathfinding) return;
+
+        this.pathfinding = true;
+        this.travelPurpose = 'EMISSARY';
+        findAndFollowPath(
+            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
+            closest,
+            false,
+            () => (this.pathfinding = false)
+        );
     }
 
     delay(ticks) {
@@ -526,68 +595,85 @@ class CommissionMacro extends ModuleBase {
     readCommissions() {
         try {
             const tabItems = TabList.getNames();
-            let startIndex = -1;
-
-            for (let i = 0; i < tabItems.length; i++) {
-                const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-                if (cleaned === 'Commissions:') {
-                    startIndex = i;
-                    break;
-                }
-            }
-
+            const startIndex = this.findCommissionsStartIndex(tabItems);
             if (startIndex === -1) {
                 if (this.commissions.length > 0) this.commissions = [];
                 return;
             }
 
-            let endIndex = tabItems.length;
-            for (let i = startIndex + 1; i < tabItems.length; i++) {
-                const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-                if (cleaned === '' || cleaned === 'Powders:') {
-                    endIndex = i;
-                    break;
-                }
-            }
+            const endIndex = this.findCommissionsEndIndex(tabItems, startIndex);
+            const newCommissions = this.parseCommissions(tabItems, startIndex, endIndex);
 
-            const newCommissions = [];
-            for (let i = startIndex + 1; i < endIndex; i++) {
-                const formattedText = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-                if (!formattedText.includes(':')) continue;
-
-                const parts = formattedText.split(':');
-                const name = parts[0].trim();
-                const progressStr = parts[1].trim();
-                let progress;
-
-                if (progressStr.includes('DONE')) {
-                    progress = 1;
-                } else if (progressStr.includes('%')) {
-                    progress = parseFloat(progressStr.replace(/ /g, '').replace('%', '')) / 100;
-                } else {
-                    continue;
-                }
-
-                newCommissions.push({ name, progress });
-            }
-
-            if (JSON.stringify(this.commissions) !== JSON.stringify(newCommissions)) {
-                this.commissions = newCommissions;
-
-                Chat.message('&a--- Commissions Updated ---');
-                this.commissions.forEach((c) => {
-                    Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
-                });
-
-                if (this.awaitingTabUpdate) {
-                    const stillCompleted = this.commissions.some((c) => c.progress === 1);
-                    if (!stillCompleted) this.awaitingTabUpdate = false;
-                }
-            }
+            this.updateCommissionsIfChanged(newCommissions);
         } catch (e) {
             Chat.message('&cError reading commissions: ' + e);
             console.error('Error reading commissions:', e);
             this.commissions = [];
+        }
+    }
+
+    findCommissionsStartIndex(tabItems) {
+        for (let i = 0; i < tabItems.length; i++) {
+            const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
+            if (cleaned === 'Commissions:') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    findCommissionsEndIndex(tabItems, startIndex) {
+        for (let i = startIndex + 1; i < tabItems.length; i++) {
+            const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
+            if (cleaned === '' || cleaned === 'Powders:') {
+                return i;
+            }
+        }
+        return tabItems.length;
+    }
+
+    parseCommissions(tabItems, startIndex, endIndex) {
+        const commissions = [];
+        for (let i = startIndex + 1; i < endIndex; i++) {
+            const formattedText = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
+            if (!formattedText.includes(':')) continue;
+
+            const commission = this.parseCommissionLine(formattedText);
+            if (commission) commissions.push(commission);
+        }
+        return commissions;
+    }
+
+    parseCommissionLine(formattedText) {
+        const parts = formattedText.split(':');
+        const name = parts[0].trim();
+        const progressStr = parts[1].trim();
+        let progress;
+
+        if (progressStr.includes('DONE')) {
+            progress = 1;
+        } else if (progressStr.includes('%')) {
+            progress = parseFloat(progressStr.replace(/ /g, '').replace('%', '')) / 100;
+        } else {
+            return null;
+        }
+
+        return { name, progress };
+    }
+
+    updateCommissionsIfChanged(newCommissions) {
+        if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
+
+        this.commissions = newCommissions;
+
+        Chat.message('&a--- Commissions Updated ---');
+        this.commissions.forEach((c) => {
+            Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
+        });
+
+        if (this.awaitingTabUpdate) {
+            const stillCompleted = this.commissions.some((c) => c.progress === 1);
+            if (!stillCompleted) this.awaitingTabUpdate = false;
         }
     }
 
