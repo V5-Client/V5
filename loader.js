@@ -10,6 +10,7 @@ Client.getMinecraft()
 
 /* GUI */
 import './GUI/GUI.js';
+import './GUI/GIF.js';
 import './Utility/Config.js';
 
 /* CORE */
@@ -31,7 +32,7 @@ import './Modules/Visuals/MobHider.js';
 
 /* SKILLS */
 import './Modules/Skills/AutoHarp.js';
-import './Modules/Skills/BeachBaller.js'; //still fucking broken but less.
+//import './Modules/Skills/BeachBaller.js'; //still fucking broken but less.
 //import './BeachBallerDebug.js';
 import './Modules/Skills/FishingMacro.js';
 import './Modules/Skills/JerryBoxMacro.js';
