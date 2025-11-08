@@ -135,7 +135,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
     });
 
-    return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING + 4;
+    return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
 };
 
 export const drawOptionsPanel = (panel, mouseX, mouseY) => {
@@ -312,7 +312,6 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     }
 
     const textX = centerText ? itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2 : itemX + 12;
-
     Renderer.drawString(item.title, textX, itemY + 48 / 2 - 4, CATEGORY_TITLE_COLOR, false);
 };
 
@@ -321,9 +320,13 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
     const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
     let itemIndexInRow = 0;
 
-    itemsToDisplay.forEach((group) => {
+    itemsToDisplay.forEach((group, groupIndex) => {
         if (group.type === 'separator') {
-            const separatorY = yOffset + SEPARATOR_HEIGHT / 2;
+            if (groupIndex > 0) {
+                yOffset += 12;
+            }
+
+            const separatorY = yOffset;
             const separatorX = panelX + PADDING;
             const separatorWidth = panelWidth;
 
@@ -350,36 +353,34 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             });
 
             Renderer.drawString(group.title, separatorTextX, separatorY + 4, CATEGORY_TITLE_COLOR, false);
-            yOffset += SEPARATOR_HEIGHT + 4;
+            yOffset += 22;
 
             let subcategoryItemsInRow = 0;
             group.items.forEach((item) => {
                 const col = subcategoryItemsInRow % 3;
                 if (col === 0 && subcategoryItemsInRow > 0) {
-                    yOffset += CATEGORY_BOX_PADDING + 48;
+                    yOffset += 48 + 6;
                 }
 
                 const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-
                 drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, true);
 
                 subcategoryItemsInRow++;
             });
 
-            const itemsInSubcategory = group.items.length;
-            const numRows = Math.ceil(itemsInSubcategory / 3);
-            yOffset += numRows > 0 ? 48 + CATEGORY_BOX_PADDING : 0;
+            if (group.items.length > 0) {
+                yOffset += 48;
+            }
         } else {
             if (global.Categories.selectedSubcategory !== null) return;
 
             const item = group;
             const col = itemIndexInRow % 3;
             if (col === 0 && itemIndexInRow > 0) {
-                yOffset += 48 + CATEGORY_BOX_PADDING;
+                yOffset += 48 + 6;
             }
 
             const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-
             drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, false);
 
             itemIndexInRow++;
