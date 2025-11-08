@@ -166,31 +166,44 @@ class Notification {
         if (this.state === 'entering') {
             const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
             const eased = this.easeOutCubic(progress);
-            this.x = Renderer.screen.getWidth() - (Renderer.screen.getWidth() - this.targetX) * eased;
+
+            this.x = Renderer.screen.getWidth() + (this.targetX - Renderer.screen.getWidth()) * eased;
             this.opacity = eased;
 
-            if (progress >= 1) this.state = 'active';
+            const yDiff = this.targetY - this.y;
+            if (Math.abs(yDiff) > 0.5) {
+                this.y += yDiff * 0.3;
+            } else {
+                this.y = this.targetY;
+            }
+
+            if (progress >= 1) {
+                this.state = 'active';
+                this.x = this.targetX;
+            }
         } else if (this.state === 'active') {
             this.x = this.targetX;
             this.opacity = 1;
+
+            const yDiff = this.targetY - this.y;
+            if (Math.abs(yDiff) > 0.5) {
+                this.y += yDiff * 0.3;
+            } else {
+                this.y = this.targetY;
+            }
 
             if (!this.isSticky && lifetime >= this.duration) {
                 this.startExit();
             }
         } else if (this.state === 'exiting') {
             const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
-            const eased = this.easeInCubic(progress);
-            this.x = this.targetX + (Renderer.screen.getWidth() - this.targetX) * eased;
-            this.opacity = 1 - eased;
+
+            this.x = this.exitX + (Renderer.screen.getWidth() - this.exitX) * progress;
+            this.opacity = 1 - progress;
+
+            this.y = this.exitY;
 
             if (progress >= 1) this.state = 'removed';
-        }
-
-        const yDiff = this.targetY - this.y;
-        if (Math.abs(yDiff) > 0.5) {
-            this.y += yDiff * 0.3; // Smoothly animate to new Y position
-        } else {
-            this.y = this.targetY;
         }
     }
 
@@ -198,14 +211,13 @@ class Notification {
         if (this.state !== 'exiting') {
             this.state = 'exiting';
             this.animationStart = Date.now();
+            this.exitX = this.x;
+            this.exitY = this.y;
         }
     }
 
     easeOutCubic(t) {
         return 1 - Math.pow(1 - t, 3);
-    }
-    easeInCubic(t) {
-        return t * t * t;
     }
 
     draw(mouseX, mouseY) {

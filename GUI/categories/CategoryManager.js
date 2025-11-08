@@ -22,7 +22,7 @@ global.createCategoriesManager = (deps) => {
 
             if (category) {
                 if (category.subcategories.length > 0) {
-                    height += 20 + PADDING;
+                    height += 28 + PADDING + 4;
                 }
 
                 const itemsToDisplay = global.Categories.selectedSubcategory
@@ -34,8 +34,8 @@ global.createCategoriesManager = (deps) => {
                 const calculateNonGroupedHeight = () => {
                     if (nonGroupedItemCount > 0) {
                         const numRows = Math.ceil(nonGroupedItemCount / 3);
-                        const heightForRows = numRows * (40 + 5);
-                        height += heightForRows - 5;
+                        const heightForRows = numRows * (48 + 8);
+                        height += heightForRows - 8;
                         nonGroupedItemCount = 0;
                     }
                 };
@@ -43,11 +43,11 @@ global.createCategoriesManager = (deps) => {
                 itemsToDisplay.forEach((group) => {
                     if (group.type === 'separator') {
                         calculateNonGroupedHeight();
-                        height += 20;
+                        height += 24 + 4;
                         const itemsInSubcategory = group.items.length;
                         if (itemsInSubcategory > 0) {
                             const numRows = Math.ceil(itemsInSubcategory / 3);
-                            height += numRows * (40 + 5);
+                            height += numRows * (48 + 8);
                         }
                     } else {
                         nonGroupedItemCount++;

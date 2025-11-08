@@ -1,4 +1,4 @@
-import { playClickSound, drawRoundedRectangleWithBorder, THEME, isInside } from '../Utils';
+import { playClickSound, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING } from '../Utils';
 import { UIRoundedRectangle, Matrix } from '../../Utility/Constants';
 
 export class ToggleButton {
@@ -13,41 +13,74 @@ export class ToggleButton {
         this.optionPanelHeight = 0;
         this.callback = callback;
         this.description = null;
+
+        this.animationProgress = 0;
+        this.animationStart = 0;
+        this.animationDuration = 200;
+    }
+
+    updateAnimation() {
+        if (this.animationStart === 0) return;
+
+        const elapsed = Date.now() - this.animationStart;
+        const t = Math.min(elapsed / this.animationDuration, 1);
+        const target = this.enabled ? 1 : 0;
+
+        this.animationProgress = this.animationProgress + (target - this.animationProgress) * easeOutCubic(t);
+
+        if (t >= 1) {
+            this.animationProgress = target;
+            this.animationStart = 0;
+        }
     }
 
     draw(mouseX, mouseY) {
-        const componentHeight = 40;
+        this.updateAnimation();
 
-        const backgroundColor = THEME.TOGGLE_BACKGROUND;
-        const accentColor = THEME.TOGGLE_ACCENT;
-        const disabledBoxColor = THEME.TOGGLE_DISABLED_BOX;
-        const textColor = THEME.TOGGLE_TEXT;
-        const panelWidth = this.optionPanelWidth - 20;
+        const componentHeight = 48;
+        const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
 
         drawRoundedRectangleWithBorder({
-            x: this.x - 10,
+            x: this.x,
             y: this.y,
             width: panelWidth,
             height: componentHeight,
-            radius: 6,
-            color: backgroundColor,
-            borderWidth: 0.5,
+            radius: 10,
+            color: THEME.TOGGLE_BACKGROUND,
+            borderWidth: 1,
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        Renderer.drawString(this.title, this.x, this.y + componentHeight / 2 - 4, textColor.getRGB(), false);
+        Renderer.drawString(this.title, this.x + 12, this.y + componentHeight / 2 - 4, THEME.TOGGLE_TEXT.getRGB(), false);
 
-        const boxSize = 15;
-        const rightMargin = 15;
+        const switchWidth = 36;
+        const switchHeight = 20;
+        const rightMargin = 12;
 
-        const boxX = this.x + panelWidth - boxSize - rightMargin - 10;
-        const boxY = this.y + componentHeight / 2 - boxSize / 2;
-        const boxColor = this.enabled ? accentColor : disabledBoxColor;
+        const switchX = this.x + panelWidth - switchWidth - rightMargin;
+        const switchY = this.y + componentHeight / 2 - switchHeight / 2;
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, boxX, boxY, boxX + boxSize, boxY + boxSize, 4, boxColor);
+        const trackColor = this.interpolateColor(THEME.TOGGLE_SWITCH_OFF, THEME.TOGGLE_SWITCH_ON, this.animationProgress);
+
+        UIRoundedRectangle.Companion.drawRoundedRectangle(
+            Matrix,
+            switchX,
+            switchY,
+            switchX + switchWidth,
+            switchY + switchHeight,
+            switchHeight / 2,
+            trackColor
+        );
+
+        const knobSize = 14;
+        const knobPadding = 3;
+        const knobX = switchX + knobPadding + (switchWidth - knobSize - knobPadding * 2) * this.animationProgress;
+        const knobY = switchY + switchHeight / 2 - knobSize / 2;
+
+        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, knobX, knobY, knobX + knobSize, knobY + knobSize, knobSize / 2, THEME.TOGGLE_SWITCH_KNOB);
 
         const componentRect = {
-            x: this.x - 10,
+            x: this.x,
             y: this.y,
             width: panelWidth,
             height: componentHeight,
@@ -58,12 +91,20 @@ export class ToggleButton {
         }
     }
 
+    interpolateColor(color1, color2, t) {
+        const r = color1.getRed() / 255 + (color2.getRed() / 255 - color1.getRed() / 255) * t;
+        const g = color1.getGreen() / 255 + (color2.getGreen() / 255 - color1.getGreen() / 255) * t;
+        const b = color1.getBlue() / 255 + (color2.getBlue() / 255 - color1.getBlue() / 255) * t;
+        const a = color1.getAlpha() / 255 + (color2.getAlpha() / 255 - color1.getAlpha() / 255) * t;
+        return new java.awt.Color(r, g, b, a);
+    }
+
     handleClick(mouseX, mouseY) {
-        const componentHeight = 40;
-        const panelWidth = this.optionPanelWidth - 20;
+        const componentHeight = 48;
+        const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
 
         const componentRect = {
-            x: this.x - 10,
+            x: this.x,
             y: this.y,
             width: panelWidth,
             height: componentHeight,
@@ -71,6 +112,7 @@ export class ToggleButton {
 
         if (isInside(mouseX, mouseY, componentRect)) {
             this.enabled = !this.enabled;
+            this.animationStart = Date.now();
             playClickSound();
             if (this.callback) {
                 this.callback(this.enabled);

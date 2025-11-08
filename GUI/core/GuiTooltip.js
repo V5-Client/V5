@@ -1,5 +1,4 @@
-import { THEME } from '../Utils';
-import { drawRoundedRectangle } from '../Utils';
+import { THEME, drawRoundedRectangleWithBorder } from '../Utils';
 
 global.GuiTooltip = {
     tooltipToDraw: null,
@@ -22,9 +21,9 @@ global.GuiTooltip = {
         if (!this.tooltipToDraw) return;
 
         const lines = this.tooltipToDraw.split('\n');
-        const PADDING = 5;
-        const MOUSE_OFFSET_X = 10;
-        const MOUSE_OFFSET_Y = 0;
+        const PADDING = 8;
+        const MOUSE_OFFSET_X = 12;
+        const MOUSE_OFFSET_Y = 12;
         let tooltipWidth = 0;
 
         lines.forEach((line) => {
@@ -35,7 +34,7 @@ global.GuiTooltip = {
         });
 
         tooltipWidth += PADDING * 2;
-        const tooltipHeight = lines.length * 9 + PADDING * 2;
+        const tooltipHeight = lines.length * 10 + PADDING * 2;
 
         let tooltipX = mouseX + MOUSE_OFFSET_X;
         let tooltipY = mouseY + MOUSE_OFFSET_Y;
@@ -50,17 +49,19 @@ global.GuiTooltip = {
         if (tooltipY < 0) tooltipY = 0;
         if (tooltipX < 0) tooltipX = 0;
 
-        drawRoundedRectangle({
+        drawRoundedRectangleWithBorder({
             x: tooltipX,
             y: tooltipY,
             width: tooltipWidth,
             height: tooltipHeight,
-            radius: 3,
+            radius: 8,
             color: THEME.TOOLTIP_BACKGROUND,
+            borderWidth: 1,
+            borderColor: THEME.TOOLTIP_BORDER,
         });
 
         lines.forEach((line, index) => {
-            Renderer.drawString(line, tooltipX + PADDING, tooltipY + PADDING + index * 9, THEME.TOOLTIP_TEXT, true);
+            Renderer.drawString(line, tooltipX + PADDING, tooltipY + PADDING + index * 10, THEME.TOOLTIP_TEXT, true);
         });
     },
 };
