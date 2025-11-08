@@ -21,25 +21,18 @@ export const drawGUI = (mouseX, mouseY) => {
         height: currentHeight,
     });
 
-    Object.assign(global.GuiState.animatedTopPanel, global.GuiRectangles.TopPanel, {
-        x: global.GuiState.animatedBackground.x + PADDING,
-        y: global.GuiState.animatedBackground.y + PADDING,
-        width: (targetBackground.width - PADDING * 2) * progress,
-        height: global.GuiRectangles.TopPanel.height * progress,
-    });
-
     Object.assign(global.GuiState.animatedLeftPanel, global.GuiRectangles.LeftPanel, {
         x: global.GuiState.animatedBackground.x + PADDING,
-        y: global.GuiState.animatedTopPanel.y + global.GuiState.animatedTopPanel.height + PADDING,
+        y: global.GuiState.animatedBackground.y + PADDING,
         width: global.GuiRectangles.LeftPanel.width * progress,
-        height: (targetBackground.height - PADDING * 3 - global.GuiRectangles.TopPanel.height) * progress,
+        height: (targetBackground.height - PADDING * 2) * progress,
     });
 
     Object.assign(global.GuiState.animatedRightPanel, global.GuiRectangles.RightPanel, {
         x: global.GuiState.animatedLeftPanel.x + global.GuiState.animatedLeftPanel.width + PADDING,
-        y: global.GuiState.animatedTopPanel.y + global.GuiState.animatedTopPanel.height + PADDING,
+        y: global.GuiState.animatedBackground.y + PADDING,
         width: (targetBackground.width - PADDING * 3 - global.GuiRectangles.LeftPanel.width) * progress,
-        height: (targetBackground.height - PADDING * 3 - global.GuiRectangles.TopPanel.height) * progress,
+        height: (targetBackground.height - PADDING * 2) * progress,
     });
 
     Client.getMinecraft().gameRenderer.renderBlur();
@@ -54,7 +47,6 @@ export const drawGUI = (mouseX, mouseY) => {
     );
 
     drawRoundedRectangleWithBorder(global.GuiState.animatedBackground);
-    drawRoundedRectangleWithBorder(global.GuiState.animatedTopPanel);
     drawRoundedRectangleWithBorder(global.GuiState.animatedLeftPanel);
     drawRoundedRectangleWithBorder(global.GuiState.animatedRightPanel);
 

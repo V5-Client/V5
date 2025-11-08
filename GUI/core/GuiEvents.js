@@ -7,7 +7,6 @@ import { saveSettings, loadSettings } from '../GuiSave';
 const handleClick = (mouseX, mouseY) => {
     if (
         isInside(mouseX, mouseY, global.GuiRectangles.Background) &&
-        !isInside(mouseX, mouseY, global.GuiRectangles.TopPanel) &&
         !isInside(mouseX, mouseY, global.GuiRectangles.LeftPanel) &&
         !isInside(mouseX, mouseY, global.GuiRectangles.RightPanel)
     ) {
