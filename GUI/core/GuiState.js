@@ -13,7 +13,6 @@ global.GuiState = {
     myGui: new Gui(),
 
     animatedBackground: {},
-    animatedTopPanel: {},
     animatedLeftPanel: {},
     animatedRightPanel: {},
 };
@@ -24,29 +23,11 @@ global.GuiRectangles = {
         x: Renderer.screen.getWidth() / 2 - 300,
         y: Renderer.screen.getHeight() / 2 - 200,
         width: 600,
-        height: 420,
+        height: 400,
         radius: CORNER_RADIUS,
         color: THEME.GUI_DRAW_BACKGROUND,
         borderWidth: BORDER_WIDTH,
         borderColor: BACKGROUND_BORDER_COLOR,
-        isAnimated: true,
-    },
-    TopPanel: {
-        name: 'Top',
-        get x() {
-            return global.GuiRectangles.Background.x + PADDING;
-        },
-        get y() {
-            return global.GuiRectangles.Background.y + PADDING;
-        },
-        get width() {
-            return global.GuiRectangles.Background.width - PADDING * 2;
-        },
-        height: 30,
-        radius: CORNER_RADIUS,
-        color: GUI_COLOR,
-        borderWidth: BORDER_WIDTH,
-        borderColor: BORDER_COLOR,
         isAnimated: true,
     },
     LeftPanel: {
@@ -55,12 +36,11 @@ global.GuiRectangles = {
             return global.GuiRectangles.Background.x + PADDING;
         },
         get y() {
-            return global.GuiRectangles.TopPanel.y + global.GuiRectangles.TopPanel.height + PADDING - 40;
+            return global.GuiRectangles.Background.y + PADDING;
         },
         width: 50,
         get height() {
-            const remainingSpace = global.GuiRectangles.Background.height - PADDING * 3 - global.GuiRectangles.TopPanel.height + 40;
-            return remainingSpace;
+            return global.GuiRectangles.Background.height - PADDING * 2;
         },
         radius: CORNER_RADIUS,
         color: GUI_COLOR,
@@ -74,15 +54,13 @@ global.GuiRectangles = {
             return global.GuiRectangles.LeftPanel.x + global.GuiRectangles.LeftPanel.width + PADDING;
         },
         get y() {
-            return global.GuiRectangles.TopPanel.y + global.GuiRectangles.TopPanel.height + PADDING;
+            return global.GuiRectangles.Background.y + PADDING;
         },
         get width() {
-            const remainingWidth = global.GuiRectangles.Background.width - PADDING * 3 - global.GuiRectangles.LeftPanel.width;
-            return remainingWidth;
+            return global.GuiRectangles.Background.width - PADDING * 3 - global.GuiRectangles.LeftPanel.width;
         },
         get height() {
-            const remainingSpace = global.GuiRectangles.Background.height - PADDING * 3 - global.GuiRectangles.TopPanel.height;
-            return remainingSpace;
+            return global.GuiRectangles.Background.height - PADDING * 2;
         },
         radius: CORNER_RADIUS,
         color: GUI_COLOR,

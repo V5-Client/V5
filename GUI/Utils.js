@@ -13,7 +13,6 @@ export const CORNER_RADIUS = 12;
 export const CATEGORY_HEIGHT = 36;
 export const CATEGORY_PADDING = 8;
 export const LEFT_PANEL_TEXT_HEIGHT = 8;
-export const CATEGORY_OFFSET_Y = 50;
 
 export const CATEGORY_BOX_PADDING = 8;
 export const ITEM_SPACING = 10;

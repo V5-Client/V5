@@ -1,12 +1,7 @@
-// uhh sorry for making this fucking overcomplicated asl. i have no idea what i'm doing,
-// i ended up stacking like 40 bandaid fixes and don't know how to get rid of them.
-// i guess i'll just rewrite this later? -- epsilon
-
 import {
     PADDING,
     CATEGORY_HEIGHT,
     CATEGORY_PADDING,
-    CATEGORY_OFFSET_Y,
     CATEGORY_BOX_PADDING,
     ITEM_SPACING,
     SEPARATOR_HEIGHT,
@@ -34,7 +29,7 @@ const CATEGORY_SELECTED_BORDER = THEME.GUI_MANAGER_CATEGORY_SELECTED_BORDER;
 export const getCategoryRect = (index) => {
     return {
         x: global.GuiRectangles.LeftPanel.x + PADDING,
-        y: global.GuiRectangles.LeftPanel.y + PADDING + CATEGORY_OFFSET_Y + index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
+        y: global.GuiRectangles.LeftPanel.y + PADDING + index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
         width: global.GuiRectangles.LeftPanel.width - PADDING * 2,
         height: CATEGORY_HEIGHT,
     };
@@ -51,7 +46,6 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
 
         cat.animationRect.x = cat.animationRect.startX + (cat.animationRect.endX - cat.animationRect.startX) * p;
         cat.animationRect.width = cat.animationRect.startWidth + (cat.animationRect.endWidth - cat.animationRect.startWidth) * p;
-
         cat.animationRect.y = yOffset;
 
         if (rawProgress >= 1) {
@@ -91,8 +85,6 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
             y: yOffset,
             width: buttonTextWidth,
             height: SUBCATEGORY_BUTTON_HEIGHT,
-            radius: 8,
-            color: UNIVERSAL_GRAY_COLOR,
         };
 
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
@@ -101,33 +93,35 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         if (isSelected) cat.selectedSubcategoryButton = buttonRect;
 
         // Draw the static nonanimated one
-        if (!cat.animationRect && isSelected) {
-            drawRoundedRectangle({
-                x: buttonRect.x,
-                y: buttonRect.y,
-                width: buttonRect.width,
-                height: buttonRect.height,
-                radius: 8,
-                color: CATEGORY_SELECTED_COLOR,
-            });
+        if (!cat.animationRect) {
+            if (isSelected) {
+                drawRoundedRectangle({
+                    x: buttonRect.x,
+                    y: buttonRect.y,
+                    width: buttonRect.width,
+                    height: buttonRect.height,
+                    radius: 8,
+                    color: CATEGORY_SELECTED_COLOR,
+                });
 
-            drawRoundedRectangle({
-                x: buttonRect.x,
-                y: buttonRect.y,
-                width: buttonRect.width,
-                height: 2,
-                radius: 8,
-                color: CATEGORY_SELECTED_BORDER,
-            });
-        } else if (!cat.animationRect && isHovered) {
-            drawRoundedRectangle({
-                x: buttonRect.x,
-                y: buttonRect.y,
-                width: buttonRect.width,
-                height: buttonRect.height,
-                radius: 8,
-                color: UNIVERSAL_GRAY_COLOR,
-            });
+                drawRoundedRectangle({
+                    x: buttonRect.x,
+                    y: buttonRect.y,
+                    width: buttonRect.width,
+                    height: 2,
+                    radius: 8,
+                    color: CATEGORY_SELECTED_BORDER,
+                });
+            } else if (isHovered) {
+                drawRoundedRectangle({
+                    x: buttonRect.x,
+                    y: buttonRect.y,
+                    width: buttonRect.width,
+                    height: buttonRect.height,
+                    radius: 8,
+                    color: UNIVERSAL_GRAY_COLOR,
+                });
+            }
         }
 
         const textColor = isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR;
@@ -178,7 +172,6 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const drawnDescY = optionY + 52 - scrollY;
     Renderer.drawString(selectedItem.description, backButtonX, drawnDescY, CATEGORY_DESC_COLOR, false);
 
-    // Divider line
     const dividerY = optionY + 66 - scrollY;
     drawRoundedRectangle({
         x: backButtonX,
@@ -215,7 +208,6 @@ export const drawLeftPanel = (mouseX, mouseY) => {
         const p = easeInOutQuad(rawProgress);
 
         const rect = global.Categories.catAnimationRect;
-
         rect.x = rect.startX + (rect.endX - rect.startX) * p;
         rect.y = rect.startY + (rect.endY - rect.startY) * p;
 
@@ -226,14 +218,6 @@ export const drawLeftPanel = (mouseX, mouseY) => {
 
     if (global.Categories.catAnimationRect) {
         const rect = global.Categories.catAnimationRect;
-        drawRoundedRectangle({
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            radius: rect.radius,
-            color: CATEGORY_SELECTED_COLOR,
-        });
         drawRoundedRectangleWithBorder({
             x: rect.x,
             y: rect.y,
@@ -244,13 +228,10 @@ export const drawLeftPanel = (mouseX, mouseY) => {
             borderWidth: 1.5,
             borderColor: CATEGORY_SELECTED_BORDER,
         });
-    }
-
-    if (!global.Categories.catAnimationRect) {
-        global.Categories.categories.forEach((cat, i) => {
-            const isSelected = cat.name === global.Categories.selected;
-            if (!isSelected) return;
-
+    } else {
+        const selectedCat = global.Categories.categories.find((cat) => cat.name === global.Categories.selected);
+        if (selectedCat) {
+            const i = global.Categories.categories.indexOf(selectedCat);
             const rect = getCategoryRect(i);
             const moduleSize = 28;
             const iconX = rect.x + (rect.width - moduleSize) / 2;
@@ -264,18 +245,13 @@ export const drawLeftPanel = (mouseX, mouseY) => {
                 radius: 8,
             };
 
-            drawRoundedRectangle({
-                ...highlightRect,
-                color: CATEGORY_SELECTED_COLOR,
-            });
-
             drawRoundedRectangleWithBorder({
                 ...highlightRect,
                 color: CATEGORY_SELECTED_COLOR,
                 borderWidth: 1.5,
                 borderColor: CATEGORY_SELECTED_BORDER,
             });
-        });
+        }
     }
 
     global.Categories.categories.forEach((cat, i) => {
@@ -284,21 +260,16 @@ export const drawLeftPanel = (mouseX, mouseY) => {
         const iconX = rect.x + (rect.width - moduleSize) / 2;
         const iconY = rect.y + (rect.height - moduleSize) / 2;
 
-        let iconToDraw;
-        if (cat.name === 'Modules') iconToDraw = Module_icon;
-        else if (cat.name === 'Settings') iconToDraw = Setting_icon;
-        else iconToDraw = Module_icon;
-
+        let iconToDraw = cat.name === 'Modules' ? Module_icon : Setting_icon;
         iconToDraw.draw(iconX, iconY, moduleSize, moduleSize);
     });
 
+    // bottom left pfp
     if (global.discordPfp) {
-        const topPanel = global.GuiRectangles.TopPanel;
         const leftPanel = global.GuiRectangles.LeftPanel;
-
-        const pfpSize = 26;
+        const pfpSize = 32;
         const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
-        const pfpY = topPanel.y + (topPanel.height - pfpSize) / 2;
+        const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
 
         Renderer.drawImage(global.discordPfp, pfpX, pfpY, pfpSize, pfpSize);
     }
