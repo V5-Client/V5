@@ -1,9 +1,11 @@
+// uhh sorry for making this fucking overcomplicated asl. i have no idea what i'm doing,
+// i ended up stacking like 40 bandaid fixes and don't know how to get rid of them.
+// i guess i'll just rewrite this later? -- epsilon
+
 import {
     PADDING,
-    CORNER_RADIUS,
     CATEGORY_HEIGHT,
     CATEGORY_PADDING,
-    LEFT_PANEL_TEXT_HEIGHT,
     CATEGORY_OFFSET_Y,
     CATEGORY_BOX_PADDING,
     ITEM_SPACING,
@@ -24,8 +26,10 @@ const CATEGORY_TITLE_COLOR = THEME.GUI_MANAGER_CATEGORY_TITLE;
 const CATEGORY_DESC_COLOR = THEME.GUI_MANAGER_CATEGORY_DESCRIPTION;
 const BACK_TEXT_COLOR = THEME.GUI_MANAGER_BACK_TEXT;
 const CATEGORY_BOX_COLOR = THEME.GUI_MANAGER_CATEGORY_BOX;
+const CATEGORY_BOX_HOVER = THEME.GUI_MANAGER_CATEGORY_BOX_HOVER;
 const UNIVERSAL_GRAY_COLOR = THEME.GUI_MANAGER_UNIVERSAL_GRAY;
 const CATEGORY_SELECTED_COLOR = THEME.GUI_MANAGER_CATEGORY_SELECTED;
+const CATEGORY_SELECTED_BORDER = THEME.GUI_MANAGER_CATEGORY_SELECTED_BORDER;
 
 export const getCategoryRect = (index) => {
     return {
@@ -55,55 +59,89 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         }
     }
 
-    let currentX = panelX + PADDING;
     const subcategoriesToDraw = ['All', ...cat.categories.find((c) => c.name === cat.selected).subcategories];
 
+    // Draw selected rectangle first
+    if (cat.animationRect) {
+        drawRoundedRectangle({
+            x: cat.animationRect.x,
+            y: cat.animationRect.y,
+            width: cat.animationRect.width,
+            height: cat.animationRect.height,
+            radius: 8,
+            color: CATEGORY_SELECTED_COLOR,
+        });
+
+        drawRoundedRectangle({
+            x: cat.animationRect.x,
+            y: cat.animationRect.y,
+            width: cat.animationRect.width,
+            height: 2,
+            radius: 8,
+            color: CATEGORY_SELECTED_BORDER,
+        });
+    }
+
+    // Then draw the buttons and text and shit
+    let currentX = panelX + PADDING;
     subcategoriesToDraw.forEach((subcat) => {
-        const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+        const buttonTextWidth = Renderer.getStringWidth(subcat) + 20;
         const buttonRect = {
             x: currentX,
             y: yOffset,
             width: buttonTextWidth,
             height: SUBCATEGORY_BUTTON_HEIGHT,
-            radius: 5,
+            radius: 8,
             color: UNIVERSAL_GRAY_COLOR,
         };
 
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
+        const isHovered = isInside(mouseX, mouseY, buttonRect);
 
         if (isSelected) cat.selectedSubcategoryButton = buttonRect;
 
-        if (cat.animationRect) {
-            drawRoundedRectangle({
-                x: cat.animationRect.x,
-                y: cat.animationRect.y,
-                width: cat.animationRect.width,
-                height: cat.animationRect.height,
-                radius: 5,
-                color: CATEGORY_SELECTED_COLOR,
-            });
-        } else if (isSelected) {
+        // Draw the static nonanimated one
+        if (!cat.animationRect && isSelected) {
             drawRoundedRectangle({
                 x: buttonRect.x,
                 y: buttonRect.y,
                 width: buttonRect.width,
                 height: buttonRect.height,
-                radius: 5,
+                radius: 8,
                 color: CATEGORY_SELECTED_COLOR,
+            });
+
+            drawRoundedRectangle({
+                x: buttonRect.x,
+                y: buttonRect.y,
+                width: buttonRect.width,
+                height: 2,
+                radius: 8,
+                color: CATEGORY_SELECTED_BORDER,
+            });
+        } else if (!cat.animationRect && isHovered) {
+            drawRoundedRectangle({
+                x: buttonRect.x,
+                y: buttonRect.y,
+                width: buttonRect.width,
+                height: buttonRect.height,
+                radius: 8,
+                color: UNIVERSAL_GRAY_COLOR,
             });
         }
 
+        const textColor = isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR;
         Renderer.drawString(
             subcat,
-            currentX + 5,
+            currentX + buttonTextWidth / 2 - Renderer.getStringWidth(subcat) / 2,
             yOffset + (SUBCATEGORY_BUTTON_HEIGHT - 8) / 2,
-            isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR,
+            textColor,
             false
         );
         currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
     });
 
-    return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+    return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING + 4;
 };
 
 export const drawOptionsPanel = (panel, mouseX, mouseY) => {
@@ -123,16 +161,35 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 
     const backButtonText = 'Back';
     const backButtonX = optionX + 10;
-    const backButtonY = optionY + 10;
+    const backButtonY = optionY + 12;
     const drawnBackY = backButtonY - scrollY;
-    Renderer.drawString(backButtonText, backButtonX, drawnBackY, BACK_TEXT_COLOR);
+    const isBackHovered = isInside(mouseX, mouseY, {
+        x: backButtonX,
+        y: drawnBackY,
+        width: Renderer.getStringWidth(backButtonText),
+        height: 10,
+    });
 
-    const drawnTitleY = optionY + 30 - scrollY;
+    Renderer.drawString(backButtonText, backButtonX, drawnBackY, isBackHovered ? CATEGORY_TITLE_COLOR : BACK_TEXT_COLOR);
+
+    const drawnTitleY = optionY + 36 - scrollY;
     Renderer.drawString(selectedItem.title, backButtonX, drawnTitleY, CATEGORY_TITLE_COLOR, false);
-    const drawnDescY = optionY + 45 - scrollY;
-    Renderer.drawString(selectedItem.description, backButtonX + 10, drawnDescY, CATEGORY_DESC_COLOR, false);
 
-    let drawnCompY = optionY + 70 - scrollY;
+    const drawnDescY = optionY + 52 - scrollY;
+    Renderer.drawString(selectedItem.description, backButtonX, drawnDescY, CATEGORY_DESC_COLOR, false);
+
+    // Divider line
+    const dividerY = optionY + 66 - scrollY;
+    drawRoundedRectangle({
+        x: backButtonX,
+        y: dividerY,
+        width: panel.width - PADDING * 2 - 20,
+        height: 1,
+        radius: 1,
+        color: UNIVERSAL_GRAY_COLOR,
+    });
+
+    let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
         if (typeof component.draw !== 'function') return;
 
@@ -143,7 +200,7 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 
         component.draw(mouseX, mouseY);
 
-        let thisHeight = 45;
+        let thisHeight = 48 + 6;
         if (component instanceof MultiToggle && component.animationProgress > 0) {
             thisHeight += component.getExpandedHeight() * component.animationProgress;
         }
@@ -167,43 +224,6 @@ export const drawLeftPanel = (mouseX, mouseY) => {
         }
     }
 
-    global.Categories.categories.forEach((cat, i) => {
-        const rect = getCategoryRect(i);
-        const moduleSize = 25;
-        const iconX = rect.x + (rect.width - moduleSize) / 2;
-        const iconY = rect.y + (rect.height - moduleSize) / 2;
-
-        let iconToDraw;
-        if (cat.name === 'Modules') iconToDraw = Module_icon;
-        else if (cat.name === 'Settings') iconToDraw = Setting_icon;
-        else iconToDraw = Module_icon;
-
-        const highlightRect = {
-            x: iconX - 1,
-            y: iconY - 1,
-            width: moduleSize + 2,
-            height: moduleSize + 2,
-            radius: 5,
-            color: CATEGORY_SELECTED_COLOR,
-        };
-
-        const isSelected = cat.name === global.Categories.selected;
-
-        if (!global.Categories.catAnimationRect && isSelected) {
-            drawRoundedRectangle(highlightRect);
-        }
-
-        iconToDraw.draw(iconX, iconY, moduleSize, moduleSize);
-
-        // prevent icon being drawn twice
-        if (i === 0 && global.discordPfp) {
-            const pfpX = iconX - 1;
-            const pfpY = iconY - 58;
-            const iconSize = moduleSize - 2;
-            Renderer.drawImage(global.discordPfp, pfpX, pfpY, iconSize, iconSize);
-        }
-    });
-
     if (global.Categories.catAnimationRect) {
         const rect = global.Categories.catAnimationRect;
         drawRoundedRectangle({
@@ -214,6 +234,73 @@ export const drawLeftPanel = (mouseX, mouseY) => {
             radius: rect.radius,
             color: CATEGORY_SELECTED_COLOR,
         });
+        drawRoundedRectangleWithBorder({
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            radius: rect.radius,
+            color: CATEGORY_SELECTED_COLOR,
+            borderWidth: 1.5,
+            borderColor: CATEGORY_SELECTED_BORDER,
+        });
+    }
+
+    if (!global.Categories.catAnimationRect) {
+        global.Categories.categories.forEach((cat, i) => {
+            const isSelected = cat.name === global.Categories.selected;
+            if (!isSelected) return;
+
+            const rect = getCategoryRect(i);
+            const moduleSize = 28;
+            const iconX = rect.x + (rect.width - moduleSize) / 2;
+            const iconY = rect.y + (rect.height - moduleSize) / 2;
+
+            const highlightRect = {
+                x: iconX - 2,
+                y: iconY - 2,
+                width: moduleSize + 4,
+                height: moduleSize + 4,
+                radius: 8,
+            };
+
+            drawRoundedRectangle({
+                ...highlightRect,
+                color: CATEGORY_SELECTED_COLOR,
+            });
+
+            drawRoundedRectangleWithBorder({
+                ...highlightRect,
+                color: CATEGORY_SELECTED_COLOR,
+                borderWidth: 1.5,
+                borderColor: CATEGORY_SELECTED_BORDER,
+            });
+        });
+    }
+
+    global.Categories.categories.forEach((cat, i) => {
+        const rect = getCategoryRect(i);
+        const moduleSize = 28;
+        const iconX = rect.x + (rect.width - moduleSize) / 2;
+        const iconY = rect.y + (rect.height - moduleSize) / 2;
+
+        let iconToDraw;
+        if (cat.name === 'Modules') iconToDraw = Module_icon;
+        else if (cat.name === 'Settings') iconToDraw = Setting_icon;
+        else iconToDraw = Module_icon;
+
+        iconToDraw.draw(iconX, iconY, moduleSize, moduleSize);
+    });
+
+    if (global.discordPfp) {
+        const topPanel = global.GuiRectangles.TopPanel;
+        const leftPanel = global.GuiRectangles.LeftPanel;
+
+        const pfpSize = 26;
+        const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
+        const pfpY = topPanel.y + (topPanel.height - pfpSize) / 2;
+
+        Renderer.drawImage(global.discordPfp, pfpX, pfpY, pfpSize, pfpSize);
     }
 };
 
@@ -222,15 +309,15 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
         x: itemX,
         y: itemY,
         width: itemWidth,
-        height: 40,
-        radius: CORNER_RADIUS,
+        height: 48,
+        radius: 10,
         color: CATEGORY_BOX_COLOR,
-        borderWidth: 0.5,
+        borderWidth: 1,
         borderColor: THEME.GUI_MANAGER_CATEGORY_BOX_BORDER,
     };
 
     const isHovered = isInside(mouseX, mouseY, itemRect);
-    itemRect.color = isHovered ? UNIVERSAL_GRAY_COLOR : CATEGORY_BOX_COLOR;
+    itemRect.color = isHovered ? CATEGORY_BOX_HOVER : CATEGORY_BOX_COLOR;
 
     if (isHovered && item.tooltip) {
         global.setTooltip(item.tooltip);
@@ -238,13 +325,24 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
 
     drawRoundedRectangleWithBorder(itemRect);
 
+    if (isHovered) {
+        drawRoundedRectangle({
+            x: itemX + 1,
+            y: itemY + 1,
+            width: 3,
+            height: 46,
+            radius: 10,
+            color: CATEGORY_SELECTED_BORDER,
+        });
+    }
+
     if (!isLayoutCacheValid) {
         cachedItemLayouts.push({ rect: itemRect, item });
     }
 
-    const textX = centerText ? itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2 : itemX + 5;
+    const textX = centerText ? itemX + itemWidth / 2 - Renderer.getStringWidth(item.title) / 2 : itemX + 12;
 
-    Renderer.drawString(item.title, textX, itemY + 40 / 2 - 4, CATEGORY_TITLE_COLOR, false);
+    Renderer.drawString(item.title, textX, itemY + 48 / 2 - 4, CATEGORY_TITLE_COLOR, false);
 };
 
 export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid) => {
@@ -260,23 +358,34 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
 
             drawRoundedRectangle({
                 x: separatorX,
-                y: separatorY,
+                y: separatorY + 8,
                 width: separatorWidth,
                 height: 1,
-                radius: 5,
+                radius: 1,
                 color: UNIVERSAL_GRAY_COLOR,
             });
 
             const separatorTextWidth = Renderer.getStringWidth(group.title);
-            const separatorTextX = separatorX + separatorWidth / 2 - separatorTextWidth / 2;
-            Renderer.drawString(group.title, separatorTextX, separatorY - 10, CATEGORY_DESC_COLOR, false);
-            yOffset += SEPARATOR_HEIGHT;
+            const separatorTextX = separatorX + 8;
+            const separatorBgWidth = separatorTextWidth + 16;
+
+            drawRoundedRectangle({
+                x: separatorTextX - 8,
+                y: separatorY,
+                width: separatorBgWidth,
+                height: 16,
+                radius: 6,
+                color: THEME.GUI_DRAW_PANELS,
+            });
+
+            Renderer.drawString(group.title, separatorTextX, separatorY + 4, CATEGORY_TITLE_COLOR, false);
+            yOffset += SEPARATOR_HEIGHT + 4;
 
             let subcategoryItemsInRow = 0;
             group.items.forEach((item) => {
                 const col = subcategoryItemsInRow % 3;
                 if (col === 0 && subcategoryItemsInRow > 0) {
-                    yOffset += CATEGORY_BOX_PADDING + 40;
+                    yOffset += CATEGORY_BOX_PADDING + 48;
                 }
 
                 const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
@@ -288,14 +397,14 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
 
             const itemsInSubcategory = group.items.length;
             const numRows = Math.ceil(itemsInSubcategory / 3);
-            yOffset += numRows > 0 ? 40 + CATEGORY_BOX_PADDING : 0;
+            yOffset += numRows > 0 ? 48 + CATEGORY_BOX_PADDING : 0;
         } else {
             if (global.Categories.selectedSubcategory !== null) return;
 
             const item = group;
             const col = itemIndexInRow % 3;
             if (col === 0 && itemIndexInRow > 0) {
-                yOffset += 40 + CATEGORY_BOX_PADDING;
+                yOffset += 48 + CATEGORY_BOX_PADDING;
             }
 
             const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);

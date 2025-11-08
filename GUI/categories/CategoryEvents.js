@@ -2,8 +2,8 @@ import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HE
 import { MultiToggle } from '../components/Dropdown';
 
 const ANIMATION_DURATION = 300;
-const ICON_SIZE = 25;
-const HIGHLIGHT_PADDING = 1;
+const ICON_SIZE = 28;
+const HIGHLIGHT_PADDING = 2;
 const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
 
 export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, getCategoryRect, invalidateLayoutCache, invalidateContentHeightCache) => {
@@ -16,7 +16,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
 
         const backButtonText = 'Back';
         const backButtonWidth = Renderer.getStringWidth(backButtonText);
-        const drawnBackY = optionY + 10 - scrollY;
+        const drawnBackY = optionY + 12 - scrollY;
         const backButtonRect = {
             x: optionX + 10,
             y: drawnBackY,
@@ -32,7 +32,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
         }
 
         const components = global.Categories.selectedItem.components;
-        let currentCompY = optionY + 70;
+        let currentCompY = optionY + 78;
         let currentDrawnCompY = currentCompY - scrollY;
 
         for (let i = 0; i < components.length; i++) {
@@ -49,7 +49,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
                     handled = true;
                 }
             } else {
-                let componentHeight = 40;
+                let componentHeight = 48;
                 let clickableArea = {
                     x: optionX,
                     y: drawnCompY,
@@ -66,7 +66,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
 
             if (handled) return;
 
-            let thisHeight = 45;
+            let thisHeight = 54; // 48 component + 6 spacing
             if (component instanceof MultiToggle && component.animationProgress > 0) {
                 thisHeight += component.getExpandedHeight() * component.animationProgress;
             }
@@ -120,7 +120,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
                         endY: newIconY,
                         width: HIGHLIGHT_SIZE,
                         height: HIGHLIGHT_SIZE,
-                        radius: 5,
+                        radius: 8,
                     };
                     global.Categories.catTransitionStart = Date.now();
 
@@ -155,7 +155,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
                 let yOffset = panel.y + PADDING;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];
                 for (const subcat of subcategoriesToDraw) {
-                    const buttonTextWidth = Renderer.getStringWidth(subcat) + 10;
+                    const buttonTextWidth = Renderer.getStringWidth(subcat) + 20;
                     const buttonRect = {
                         x: currentX,
                         y: yOffset,
@@ -216,11 +216,11 @@ export const handleCategoryScroll = (mouseX, mouseY, dir, panel, cachedContentHe
         const optionY = panel.y + PADDING;
 
         let scrollHandled = false;
-        let componentY = optionY + 70;
+        let componentY = optionY + 78;
         const components = global.Categories.selectedItem.components;
         if (components) {
             components.forEach((component) => {
-                let compHeight = 45;
+                let compHeight = 54;
                 if (component instanceof MultiToggle) {
                     compHeight += component.getExpandedHeight() * component.animationProgress;
                 }
@@ -239,8 +239,8 @@ export const handleCategoryScroll = (mouseX, mouseY, dir, panel, cachedContentHe
         }
 
         if (!scrollHandled && isInside(mouseX, mouseY, panel)) {
-            let componentsHeight = componentY - (optionY + 70);
-            const fixedTop = 70 + PADDING;
+            let componentsHeight = componentY - (optionY + 78);
+            const fixedTop = 78 + PADDING;
             const bottomPadding = PADDING;
             const availableHeight = panel.height - fixedTop - bottomPadding;
             const maxScroll = Math.max(0, componentsHeight - availableHeight);

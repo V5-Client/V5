@@ -1,5 +1,4 @@
 import { BufferedInputStream, URL, FileOutputStream } from '../Utility/Constants';
-
 import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
@@ -7,77 +6,84 @@ import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
 export const colorWithAlpha = (baseColor, alpha) =>
     new Color(baseColor.getRed() / 255, baseColor.getGreen() / 255, baseColor.getBlue() / 255, (baseColor.getAlpha() / 255) * alpha);
 
-export const PADDING = 10;
-export const BORDER_WIDTH = 0.5;
-export const CORNER_RADIUS = 10;
+export const PADDING = 12;
+export const BORDER_WIDTH = 1;
+export const CORNER_RADIUS = 12;
 
-export const CATEGORY_HEIGHT = 30;
-export const CATEGORY_PADDING = 5;
+export const CATEGORY_HEIGHT = 36;
+export const CATEGORY_PADDING = 8;
 export const LEFT_PANEL_TEXT_HEIGHT = 8;
 export const CATEGORY_OFFSET_Y = 50;
 
-export const CATEGORY_BOX_PADDING = 5;
-export const ITEM_SPACING = 5;
-export const SEPARATOR_HEIGHT = 20;
-export const SUBCATEGORY_BUTTON_HEIGHT = 20;
-export const SUBCATEGORY_BUTTON_SPACING = 5;
+export const CATEGORY_BOX_PADDING = 8;
+export const ITEM_SPACING = 10;
+export const SEPARATOR_HEIGHT = 24;
+export const SUBCATEGORY_BUTTON_HEIGHT = 28;
+export const SUBCATEGORY_BUTTON_SPACING = 8;
 
 export const THEME = {
     // Dropdown
-    DROPDOWN_BACKGROUND: new Color(0.2, 0.2, 0.22, 1),
-    DROPDOWN_FOREGROUND: new Color(0.45, 0.65, 1, 0.9),
+    DROPDOWN_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
+    DROPDOWN_FOREGROUND: new Color(0.4, 0.7, 1, 1),
     DROPDOWN_TEXT: 0xffffff,
-    DROPDOWN_OPTION_BACKGROUND: new Color(0.24, 0.24, 0.26, 1),
-    DROPDOWN_TOGGLE_DISABLED: new Color(0.4, 0.4, 0.43, 1),
+    DROPDOWN_OPTION_BACKGROUND: new Color(0.13, 0.14, 0.17, 1),
+    DROPDOWN_TOGGLE_DISABLED: new Color(0.25, 0.26, 0.29, 1),
 
     // GuiDraw
-    GUI_DRAW_BACKGROUND_BORDER: new Color(1, 1, 1, 0.15),
-    GUI_DRAW_BACKGROUND: new Color(0.18, 0.18, 0.2, 0.75),
-    GUI_DRAW_PANELS: new Color(0.14, 0.14, 0.16, 1),
-    GUI_DRAW_BORDER: new Color(1, 1, 1, 0.15),
+    GUI_DRAW_BACKGROUND_BORDER: new Color(0.4, 0.7, 1, 0.2),
+    GUI_DRAW_BACKGROUND: new Color(0.06, 0.07, 0.09, 0.85),
+    GUI_DRAW_PANELS: new Color(0.09, 0.1, 0.13, 1),
+    GUI_DRAW_BORDER: new Color(0.4, 0.7, 1, 0.15),
 
     // GuiManager
     GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
-    GUI_MANAGER_CATEGORY_DESCRIPTION: 0xcccccc,
-    GUI_MANAGER_BACK_TEXT: 0x3ba3ff,
-    GUI_MANAGER_CATEGORY_BOX: new Color(0.16, 0.16, 0.18, 1),
-    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.22, 0.23, 0.25, 1),
-    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.2, 0.6, 1, 0.5), // soft blue selection
-    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(1, 1, 1, 0.15),
+    GUI_MANAGER_CATEGORY_DESCRIPTION: 0x99a3b0,
+    GUI_MANAGER_BACK_TEXT: 0x66b3ff,
+    GUI_MANAGER_CATEGORY_BOX: new Color(0.11, 0.12, 0.15, 1),
+    GUI_MANAGER_CATEGORY_BOX_HOVER: new Color(0.13, 0.14, 0.17, 1),
+    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.15, 0.16, 0.19, 1),
+    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.4, 0.7, 1, 0.15),
+    GUI_MANAGER_CATEGORY_SELECTED_BORDER: new Color(0.4, 0.7, 1, 0.6),
+    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(0.2, 0.21, 0.24, 1),
 
     // NotificationManager
-    NOTIFICATION_BACKGROUND: new Color(0.18, 0.18, 0.2, 0.92),
+    NOTIFICATION_BACKGROUND: new Color(0.09, 0.1, 0.13, 0.95),
     NOTIFICATION_ICON_BACKGROUND: new Color(1, 1, 1, 0.06),
     NOTIFICATION_ICON_SYMBOL: 0xdddddd,
     NOTIFICATION_TEXT: 0xffffff,
-    NOTIFICATION_DESCRIPTION: 0xb0b0b0,
+    NOTIFICATION_DESCRIPTION: 0x99a3b0,
     NOTIFICATION_CLOSE_BUTTON: 0xaaaaaa,
     NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.1),
-    NOTIFICATION_PROGRESS_BAR: new Color(1, 1, 1, 0.25),
-    NOTIFICATION_SUCCESS: new Color(parseInt('2b9875', 16)),
+    NOTIFICATION_PROGRESS_BAR: new Color(0.4, 0.7, 1, 0.5),
+    NOTIFICATION_SUCCESS: new Color(parseInt('10b981', 16)),
     NOTIFICATION_ERROR: new Color(parseInt('ef4444', 16)),
     NOTIFICATION_DANGER: new Color(parseInt('ff0f0f', 16)),
-    NOTIFICATION_CHECK_IN: new Color(parseInt('99cc33', 16)),
+    NOTIFICATION_CHECK_IN: new Color(parseInt('84cc16', 16)),
     NOTIFICATION_WARNING: new Color(parseInt('f59e0b', 16)),
     NOTIFICATION_INFO: new Color(parseInt('3b82f6', 16)),
 
     // Slider
-    SLIDER_BACKGROUND: new Color(0.16, 0.16, 0.18, 1),
+    SLIDER_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
     SLIDER_TEXT: new Color(1, 1, 1, 1),
-    SLIDER_FOREGROUND: new Color(0.2, 0.6, 1, 0.6), // blue accent
-    SLIDER_HANDLE: new Color(0.85, 0.85, 0.85, 1),
-    SLIDER_BAR_BACKGROUND: new Color(0.22, 0.23, 0.25, 1),
+    SLIDER_FOREGROUND: new Color(0.4, 0.7, 1, 1),
+    SLIDER_HANDLE: new Color(1, 1, 1, 1),
+    SLIDER_BAR_BACKGROUND: new Color(0.15, 0.16, 0.19, 1),
+    SLIDER_VALUE_BG: new Color(0.15, 0.16, 0.19, 1),
+    SLIDER_VALUE_TEXT: new Color(0.9, 0.9, 0.9, 1),
 
     // Toggle
-    TOGGLE_BACKGROUND: new Color(0.16, 0.16, 0.18, 1),
-    TOGGLE_ACCENT: new Color(0.2, 0.6, 1, 0.6), // blue toggle
-    TOGGLE_DISABLED_BOX: new Color(0.4, 0.41, 0.44, 1),
+    TOGGLE_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
+    TOGGLE_ACCENT: new Color(0.4, 0.7, 1, 1),
+    TOGGLE_SWITCH_ON: new Color(0.4, 0.7, 1, 1),
+    TOGGLE_SWITCH_OFF: new Color(0.25, 0.26, 0.29, 1),
+    TOGGLE_SWITCH_KNOB: new Color(1, 1, 1, 1),
     TOGGLE_TEXT: new Color(1, 1, 1, 1),
-    TOGGLE_BORDER: new Color(1, 1, 1, 0.15),
+    TOGGLE_BORDER: new Color(0.2, 0.21, 0.24, 1),
 
     // Tooltip
-    TOOLTIP_BACKGROUND: new Color(0.3, 0.3, 0.32, 0.95),
-    TOOLTIP_TEXT: 0xdddddd,
+    TOOLTIP_BACKGROUND: new Color(0.11, 0.12, 0.15, 0.98),
+    TOOLTIP_TEXT: 0xf0f0f0,
+    TOOLTIP_BORDER: new Color(0.4, 0.7, 1, 0.3),
 };
 
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
@@ -115,6 +121,19 @@ export const drawRoundedRectangleWithBorder = (r) => {
     } else {
         drawRoundedRectangle(r);
     }
+};
+
+export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) => {
+    const shadowColor = new Color(0, 0, 0, intensity);
+    const offset = 2;
+    drawRoundedRectangle({
+        x: x + offset,
+        y: y + offset,
+        width: width,
+        height: height,
+        radius: radius,
+        color: shadowColor,
+    });
 };
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
