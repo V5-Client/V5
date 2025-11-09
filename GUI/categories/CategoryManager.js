@@ -34,8 +34,7 @@ global.createCategoriesManager = (deps) => {
                 const calculateNonGroupedHeight = () => {
                     if (nonGroupedItemCount > 0) {
                         const numRows = Math.ceil(nonGroupedItemCount / 3);
-                        const heightForRows = numRows * (48 + 6);
-                        height += heightForRows - 6;
+                        height += numRows * (48 + 6);
                         nonGroupedItemCount = 0;
                     }
                 };
@@ -53,8 +52,7 @@ global.createCategoriesManager = (deps) => {
                         const itemsInSubcategory = group.items.length;
                         if (itemsInSubcategory > 0) {
                             const numRows = Math.ceil(itemsInSubcategory / 3);
-                            height += numRows * (48 + 6) - 6;
-                            height += 48;
+                            height += numRows * (48 + 6);
                         }
                     } else {
                         nonGroupedItemCount++;
@@ -62,6 +60,8 @@ global.createCategoriesManager = (deps) => {
                 });
 
                 calculateNonGroupedHeight();
+
+                height += PADDING;
             }
 
             cachedContentHeight = height;
