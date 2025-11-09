@@ -5,14 +5,6 @@ class ungrabClass {
     constructor() {
         this.ungrabbed = true;
         this.Regrab();
-
-        register('command', () => {
-            if (this.ungrabbed) {
-                this.Regrab();
-            } else {
-                this.Ungrab();
-            }
-        }).setName('hi');
     }
 
     Ungrab() {
