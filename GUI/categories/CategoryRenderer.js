@@ -218,15 +218,13 @@ export const drawLeftPanel = (mouseX, mouseY) => {
 
     if (global.Categories.catAnimationRect) {
         const rect = global.Categories.catAnimationRect;
-        drawRoundedRectangleWithBorder({
+        drawRoundedRectangle({
             x: rect.x,
             y: rect.y,
             width: rect.width,
             height: rect.height,
             radius: rect.radius,
             color: CATEGORY_SELECTED_COLOR,
-            borderWidth: 1.5,
-            borderColor: CATEGORY_SELECTED_BORDER,
         });
     } else {
         const selectedCat = global.Categories.categories.find((cat) => cat.name === global.Categories.selected);
@@ -245,11 +243,9 @@ export const drawLeftPanel = (mouseX, mouseY) => {
                 radius: 8,
             };
 
-            drawRoundedRectangleWithBorder({
+            drawRoundedRectangle({
                 ...highlightRect,
                 color: CATEGORY_SELECTED_COLOR,
-                borderWidth: 1.5,
-                borderColor: CATEGORY_SELECTED_BORDER,
             });
         }
     }
@@ -295,17 +291,6 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     }
 
     drawRoundedRectangleWithBorder(itemRect);
-
-    if (isHovered) {
-        drawRoundedRectangle({
-            x: itemX + 1,
-            y: itemY + 1,
-            width: 3,
-            height: 46,
-            radius: 10,
-            color: CATEGORY_SELECTED_BORDER,
-        });
-    }
 
     if (!isLayoutCacheValid) {
         cachedItemLayouts.push({ rect: itemRect, item });
