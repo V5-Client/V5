@@ -5,3 +5,9 @@ export const IsCursorLocked = mouseMixin.inject({
     at: new At({ value: 'Head' }),
     cancellable: true,
 });
+
+export const LockCursor = mouseMixin.inject({
+    method: 'lockCursor()V',
+    at: new At({ value: 'Head' }),
+    cancellable: true,
+});
