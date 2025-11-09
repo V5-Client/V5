@@ -26,6 +26,9 @@ import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/GemstoneMacro.js';
 import './Modules/Mining/CommissionMacro.js';
 
+/* FARMING */
+import './Modules/Farming/FarmingMacro.js';
+
 /* VISUALS */
 import './Modules/Visuals/Xray.js';
 import './Modules/Visuals/MobHider.js';
@@ -59,3 +62,13 @@ import { loadSettings } from './GUI/GuiSave';
 loadSettings();
 import { returnDiscord } from './GUI/Utils.js';
 returnDiscord();
+
+/*register('tick', () => {
+    const velocity = Player.getPlayer().getVelocity();
+
+    const horizontalSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
+
+    const speedBPS = Math.sqrt(horizontalSpeedSq) * 20.0;
+
+    ChatLib.chat(speedBPS);
+}); */
