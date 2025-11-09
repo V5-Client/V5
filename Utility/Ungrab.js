@@ -1,22 +1,26 @@
-import { IsCursorLocked } from '../Mixins/UngrabMixin';
+import { IsCursorLocked, LockCursor } from '../Mixins/UngrabMixin';
 import { attachMixin } from './AttachMixin';
 
 class ungrabClass {
     constructor() {
         this.ungrabbed = true;
         this.Regrab();
-        
+
         register('command', () => {
             if (this.ungrabbed) {
                 this.Regrab();
             } else {
                 this.Ungrab();
             }
-        }).setName("hi")
+        }).setName('hi');
     }
 
     Ungrab() {
         if (this.ungrabbed) return;
+
+        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
+            cir.cancel();
+        });
 
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
             Client.getMinecraft().mouse.unlockCursor();
@@ -30,6 +34,8 @@ class ungrabClass {
     Regrab() {
         if (!this.ungrabbed) return;
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
+        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {});
+        Client.getMinecraft().mouse.lockCursor();
         this.ungrabbed = false;
     }
 }
