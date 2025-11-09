@@ -11,7 +11,6 @@ class Pingless extends ModuleBase {
             subcategory: 'Mining',
             description: 'Breaks hardstone quicker in the Crystal Hollows',
             tooltip: 'Removes hardstone instantly client-side.',
-            autoDisableOnWorldUnload: true,
         });
 
         this.mining = false;
