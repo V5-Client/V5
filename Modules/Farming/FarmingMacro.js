@@ -101,29 +101,30 @@ class FarmingMacro extends ModuleBase {
                     let targetAngles = MathUtils.calculateAbsoluteAngles([this.targetX, this.targetY, this.targetZ]);
                     let targetYaw = targetAngles.yaw;
 
+                    if (targetYaw > 180) targetYaw -= 360;
+                    if (targetYaw <= -180) targetYaw += 360;
+
                     let allowedYaws;
-                    if (this.farmAxis === 'X') allowedYaws = [0, 180, -180];
+                    if (this.farmAxis === 'X') allowedYaws = [0, -180];
                     else if (this.farmAxis === 'Z') allowedYaws = [90, -90];
-                    else allowedYaws = [0, 90, -90, -180, 180];
+                    else allowedYaws = [0, 90, -90, -180];
 
                     let snappedYaw = targetYaw;
                     let minDifference = 361;
 
                     for (const allowed of allowedYaws) {
                         let diff = Math.abs(targetYaw - allowed);
+                        let shortestDiff = Math.min(diff, 360 - diff);
 
-                        if (diff > 180)
-                            if (diff < minDifference) {
-                                minDifference = diff;
-                                snappedYaw = allowed;
-                            }
+                        if (shortestDiff < minDifference) {
+                            minDifference = shortestDiff;
+                            snappedYaw = allowed;
+                        }
                     }
-
-                    if (snappedYaw === 180) snappedYaw = -180;
 
                     this.yaw = snappedYaw;
 
-                    RotationRedo.rotateToAngles(this.yaw, this.pitch); // deviations will be added soon
+                    RotationRedo.rotateToAngles(this.yaw, this.pitch);
                     this.state = this.STATES.MOVEMENT;
                     break;
                 case this.STATES.MOVEMENT:
