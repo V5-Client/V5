@@ -2,13 +2,13 @@ import request from 'requestV2';
 
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
-import { PathMovement } from './PathWalker/PathMovement';
+import { pathMovement } from './PathWalker/PathMovement';
 import { PathfindingMessages } from './PathConfig';
-import { checkLookaheadYChange } from './PathWalker/PathJumps';
 import { Links, Vec3d } from '../Utility/Constants';
 import { Utils } from '../Utility/Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../Rendering/RendererUtils';
+import { detectJump } from './PathWalker/PathJumps';
 
 register('command', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
@@ -167,17 +167,15 @@ function executePathfinding(start, end, onComplete) {
 
             path = register('tick', () => {
                 pathRotations(generatedSpline);
-                PathMovement();
+                detectJump(body.path_between_key_nodes);
+                pathMovement();
 
                 if (!PathComplete()) return;
-
-                called = false;
 
                 path.unregister();
                 path = null;
 
-                checkLookaheadYChange(body.path_between_key_nodes);
-                PathMovement(false);
+                pathMovement(false);
                 ResetRotations();
                 stopPathing();
 
@@ -201,7 +199,6 @@ export function findAndFollowPath(start, end, onComplete) {
             const mapValue = Maps[area];
 
             loadMap(mapValue, area, () => {
-                called = true;
                 executePathfinding(start, end, onComplete);
             });
             return;

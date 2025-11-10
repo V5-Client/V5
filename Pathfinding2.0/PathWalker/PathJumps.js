@@ -70,7 +70,7 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
     return { lookaheadPositions, closestIndex };
 }
 
-export function checkLookaheadYChange(pathBetweenKeyNodes) {
+export function detectJump(pathBetweenKeyNodes) {
     const { lookaheadPositions, closestIndex } = drawPathAndPlayerLookAhead(pathBetweenKeyNodes);
     const player = Player;
 
