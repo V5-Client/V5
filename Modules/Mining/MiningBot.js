@@ -437,6 +437,10 @@ class Bot extends ModuleBase {
     }
 
     scanForBlock(target, specific = true, startPos = null, excludedBlock = null) {
+        if (!target) {
+            Chat.message('No target specified, is cost type set?');
+        }
+
         const playerX = Player.getX();
         const playerY = Player.getY();
         const playerZ = Player.getZ();
@@ -665,12 +669,12 @@ class Bot extends ModuleBase {
                                     ? 1
                                     : -1
                                 : axis === 'y'
-                                  ? playerEyePos.y >= centerY
-                                      ? 1
-                                      : -1
-                                  : playerEyePos.z >= centerZ
+                                ? playerEyePos.y >= centerY
                                     ? 1
-                                    : -1;
+                                    : -1
+                                : playerEyePos.z >= centerZ
+                                ? 1
+                                : -1;
                         for (let o = 0; o < orthos.length && !isVisible; o++) {
                             const axis = orthos[o];
                             const s = signFromEye(axis);
