@@ -27,7 +27,7 @@ class ungrabClass {
         if (!this.ungrabbed) return;
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
         attachMixin(LockCursor, 'LockCursor', (instance, cir) => {});
-        Client.getMinecraft().mouse.lockCursor();
+        if (Player.getPlayer()) Client.getMinecraft().mouse.lockCursor();
         this.ungrabbed = false;
     }
 }
