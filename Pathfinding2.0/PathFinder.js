@@ -1,8 +1,9 @@
 import { ModuleBase } from '../Utility/ModuleBase';
 import { setPathfindingDebug, setRenderKeyNodes, setRenderFloatingSpline } from './PathConfig';
 
-import './PathCommands';
-import './Connection';
+//import './PathCommands';
+//import './Connection';
+import './PathConnections';
 
 class PathRegistry extends ModuleBase {
     constructor() {
