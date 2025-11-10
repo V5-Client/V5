@@ -170,7 +170,21 @@ class Bot extends ModuleBase {
                         break;
                     }
 
-                    Guis.setItemSlot(drill.slot);
+                    const { drill } = MiningUtils.getDrills();
+
+                    if (!drill) {
+                        Chat.message('&cNo drill found in ABILITY state!');
+                        this.toggle(false);
+                        return;
+                    }
+
+                    if (!this.abilitySlotSet) {
+                        Guis.setItemSlot(drill.slot);
+                        this.abilitySlotSet = true;
+                        this.abilityWaitTicks = 0;
+                        break;
+                    }
+
                     Keybind.setKey('leftclick', false);
 
                     if (!this.file) {
@@ -184,14 +198,32 @@ class Bot extends ModuleBase {
                         return;
                     }
 
-                    // pickobulus will be done soon
-                    if (this.ability !== 'Pickobulus' && Player.getHeldItemIndex() === drill.slot) {
+                    this.abilityWaitTicks++;
+                    if (this.abilityWaitTicks > 40) {
+                        Chat.message('&eAbility not ready, skipping to mining...');
+                        this.state = this.STATES.MINING;
+                        this.abilitySlotSet = false;
+                        this.abilityWaitTicks = 0;
+                        this.scanForBlock(this.COSTTYPE, true);
+                        break;
+                    }
+
+                    const currentSlot = Player.getHeldItemIndex();
+                    if (currentSlot !== drill.slot) {
+                        return;
+                    }
+
+                    if (this.ability !== 'Pickobulus') {
                         if (!this.abilityClicked) {
                             Client.scheduleTask(3, () => {
+                                if (!this.enabled || this.state !== this.STATES.ABILITY) return;
+
                                 Keybind.rightClick();
                                 this.scanForBlock(this.COSTTYPE);
                                 this.state = this.STATES.MINING;
                                 this.abilityClicked = false;
+                                this.abilitySlotSet = false;
+                                this.abilityWaitTicks = 0; // ADD: Reset counter
                             });
                             this.abilityClicked = true;
                         }
@@ -797,18 +829,25 @@ class Bot extends ModuleBase {
     onEnable() {
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
+        this.abilityClicked = false;
+        this.abilitySlotSet = false;
+        this.abilityWaitTicks = 0;
         this.state = this.STATES.ABILITY;
+        Keybind.setKey('rightclick', false);
     }
 
     onDisable() {
         Chat.message('Mining Bot Disabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);
+        Keybind.setKey('rightclick', false);
         this.foundLocations = [];
         this.lastBlockPos = null;
         this.currentTarget = null;
         this.mineTickCount = 0;
         this.tickCount = 0;
+        this.abilityClicked = false;
+        this.abilitySlotSet = false;
         RotationRedo.stopRotation();
         Guis.EnableUserInput();
     }

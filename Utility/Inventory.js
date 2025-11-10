@@ -6,7 +6,31 @@ import { attachMixin } from './AttachMixin';
 
 class InventoryUtilsClass {
     constructor() {
-        this.mixinsAttached = false;
+        this.inputLocked = false;
+        this.mixinsInitialized = false;
+    }
+
+    initMixins() {
+        if (this.mixinsInitialized) return;
+
+        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
+            if (!this.inputLocked) return;
+
+            let hotbarKeys = instance.options.hotbarKeys;
+            for (const key of hotbarKeys) {
+                if (key.wasPressed()) key.setPressed(false);
+            }
+        });
+
+        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
+            if (!this.inputLocked) return;
+
+            if (Client.getMinecraft().world != null) {
+                cir.cancel();
+            }
+        });
+
+        this.mixinsInitialized = true;
     }
 
     /**
@@ -179,31 +203,17 @@ class InventoryUtilsClass {
             return Chat.message('Invalid slot blocked! Report this ASAP!');
         }
 
-        if (this.mixinsAttached) return;
-        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
-            let hotbarKeys = instance.options.hotbarKeys;
-
-            for (const key of hotbarKeys) if (key.wasPressed()) key.setPressed(false);
-        });
-
-        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
-            if (Client.getMinecraft().world != null) cir.cancel();
-        });
-
-        this.mixinsAttached = true;
+        this.initMixins();
+        this.inputLocked = true;
 
         const currentSlot = Player.getHeldItemIndex();
-
         if (currentSlot !== slot) {
             Player.setHeldItemIndex(slot);
         }
     }
 
     EnableUserInput() {
-        this.mixinsAttached = false;
-        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {});
-
-        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {});
+        this.inputLocked = false;
     }
 
     getHeldItemStackSize() {
