@@ -1,4 +1,3 @@
-import { findAndFollowPath } from '../../Pathfinding/PathAPI';
 import RenderUtils from '../../Rendering/RendererUtils';
 import { Chat } from '../../Utility/Chat';
 import { Vec3d } from '../../Utility/Constants';
