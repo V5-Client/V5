@@ -1,4 +1,3 @@
-// Centralized configuration for Pathfinding module
 import { Chat } from '../Utility/Chat';
 
 let renderKeyNodes = false;
