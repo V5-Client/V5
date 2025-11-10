@@ -14,13 +14,16 @@ export class ToggleButton {
         this.callback = callback;
         this.description = null;
 
-        this.animationProgress = 0;
+        this.animationProgress = this.enabled ? 1 : 0;
         this.animationStart = 0;
         this.animationDuration = 200;
     }
 
     updateAnimation() {
-        if (this.animationStart === 0) return;
+        if (this.animationStart === 0) {
+            this.animationProgress = this.enabled ? 1 : 0;
+            return;
+        }
 
         const elapsed = Date.now() - this.animationStart;
         const t = Math.min(elapsed / this.animationDuration, 1);
