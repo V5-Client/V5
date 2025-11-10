@@ -172,6 +172,8 @@ class CommissionMacro extends ModuleBase {
         Chat.message('&cCommission Macro Disabled.');
         MiningBot.toggle(false);
         stopPathing();
+        Keybind.setKey('rightclick', false);
+        Guis.EnableUserInput();
     }
 
     resetState() {
@@ -302,13 +304,7 @@ class CommissionMacro extends ModuleBase {
         Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to: &b[${waypoint.join(', ')}]`);
 
         this.setState(STATES.TRAVELING);
-        findAndFollowPath(
-            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
-            waypoint,
-            false,
-            () => this.onPathComplete(),
-            () => this.onPathFail()
-        );
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, () => this.onPathComplete());
     }
 
     handleNoAvailableSpots(supportedTasks) {
@@ -382,8 +378,19 @@ class CommissionMacro extends ModuleBase {
         const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
         if (pigeonSlot !== -1) {
             this.useRoyalPigeon(pigeonSlot);
+            return;
         } else {
             this.travelToEmissary();
+        }
+    }
+
+    useRoyalPigeon(pigeonSlot) {
+        if (Player.getHeldItemIndex() != pigeonSlot) {
+            Guis.setItemSlot(pigeonSlot);
+            this.delay(2);
+        } else {
+            Keybind.rightClick();
+            this.delay(5);
         }
     }
 
@@ -402,16 +409,17 @@ class CommissionMacro extends ModuleBase {
         }
 
         Guis.closeInv();
-        this.delay(10); // Delay so it doesn't pathfind inside gui BANDAID, FIX IN ROTATIONS
-        this.setState(STATES.CHOOSING);
-    }
 
-    useRoyalPigeon(pigeonSlot) {
-        if (Player.getHeldItemIndex() != pigeonSlot) {
-            Guis.setItemSlot(pigeonSlot);
-        } else {
-            Keybind.rightClick();
+        const drills = MiningUtils.getDrills();
+        this.drill = drills.drill;
+        this.pickaxe = this.drill;
+
+        if (this.drill) {
+            Guis.setItemSlot(this.drill.slot);
+            this.delay(5);
         }
+
+        this.setState(STATES.CHOOSING);
     }
 
     travelToEmissary() {
@@ -457,12 +465,7 @@ class CommissionMacro extends ModuleBase {
 
         this.pathfinding = true;
         this.travelPurpose = 'EMISSARY';
-        findAndFollowPath(
-            [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
-            closest,
-            false,
-            () => (this.pathfinding = false)
-        );
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, () => (this.pathfinding = false));
     }
 
     delay(ticks) {
@@ -504,6 +507,9 @@ class CommissionMacro extends ModuleBase {
     }
 
     startMining() {
+        const drills = MiningUtils.getDrills();
+        this.drill = drills.drill;
+
         if (!this.drill) {
             Chat.message('&cERROR: No drill found!');
             this.toggle(false);
@@ -512,8 +518,10 @@ class CommissionMacro extends ModuleBase {
 
         Guis.setItemSlot(this.drill.slot);
 
-        MiningBot.setCost(MiningBot.mithrilCosts);
-        MiningBot.toggle(true);
+        Client.scheduleTask(2, () => {
+            MiningBot.setCost(MiningBot.mithrilCosts);
+            MiningBot.toggle(true);
+        });
     }
 
     startSlayer() {

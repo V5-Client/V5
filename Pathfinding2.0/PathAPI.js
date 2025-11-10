@@ -61,12 +61,20 @@ export function stopPathing() {
     ResetRotations();
 
     if (path) {
-        path.unregister();
+        try {
+            path.unregister();
+        } catch (e) {
+            console.log('Path already unregistered');
+        }
         path = null;
     }
 
     if (renderPath) {
-        renderPath.unregister();
+        try {
+            renderPath.unregister();
+        } catch (e) {
+            console.log('RenderPath already unregistered');
+        }
         renderPath = null;
     }
 
