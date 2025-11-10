@@ -11,7 +11,6 @@ Client.getMinecraft()
 /* GUI */
 import './GUI/GUI.js';
 import './GUI/GIF.js';
-//import './NVGTest.js'; // YOU NEED LATEST CTJS. ITS IN COMMIT CHANNEL. Also, install Inter_28pt-Medium.ttf in /config/assets/ folder.
 import './Utility/Config.js';
 
 /* CORE */
