@@ -1,6 +1,6 @@
 import { getSetting } from '../../GUI/GuiSave';
 import { ModuleBase } from '../../Utility/ModuleBase';
-const XrayPackage = Java.type('com.chattriggers.ctjs.v5.Xray');
+const XrayPackage = Java.type('com.v5.Xray');
 
 function percentToAlpha(percent) {
     const reversed = 100 - percent;

@@ -1,4 +1,4 @@
-const DiscordRPC = Java.type('com.chattriggers.v5.qol.DiscordRPC');
+const DiscordRPC = Java.type('com.v5.qol.DiscordRPC');
 import { ModuleBase } from '../../Utility/ModuleBase';
 
 class RPC extends ModuleBase {
