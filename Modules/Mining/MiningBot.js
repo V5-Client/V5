@@ -170,19 +170,15 @@ class Bot extends ModuleBase {
                         break;
                     }
 
-                    const { drill } = MiningUtils.getDrills();
-
                     if (!drill) {
                         Chat.message('&cNo drill found in ABILITY state!');
                         this.toggle(false);
                         return;
                     }
 
-                    if (!this.abilitySlotSet) {
+                    if (Player.getHeldItemIndex() !== drill.slot) {
                         Guis.setItemSlot(drill.slot);
-                        this.abilitySlotSet = true;
-                        this.abilityWaitTicks = 0;
-                        break;
+                        return;
                     }
 
                     Keybind.setKey('leftclick', false);
@@ -202,31 +198,19 @@ class Bot extends ModuleBase {
                     if (this.abilityWaitTicks > 40) {
                         Chat.message('&eAbility not ready, skipping to mining...');
                         this.state = this.STATES.MINING;
-                        this.abilitySlotSet = false;
-                        this.abilityWaitTicks = 0;
                         this.scanForBlock(this.COSTTYPE, true);
                         break;
                     }
 
-                    const currentSlot = Player.getHeldItemIndex();
-                    if (currentSlot !== drill.slot) {
-                        return;
-                    }
+                    if (!this.abilityClicked) {
+                        this.abilityClicked = true;
 
-                    if (this.ability !== 'Pickobulus') {
-                        if (!this.abilityClicked) {
-                            Client.scheduleTask(3, () => {
-                                if (!this.enabled || this.state !== this.STATES.ABILITY) return;
-
-                                Keybind.rightClick();
-                                this.scanForBlock(this.COSTTYPE);
-                                this.state = this.STATES.MINING;
-                                this.abilityClicked = false;
-                                this.abilitySlotSet = false;
-                                this.abilityWaitTicks = 0; // ADD: Reset counter
-                            });
-                            this.abilityClicked = true;
-                        }
+                        if (!this.enabled || this.state !== this.STATES.ABILITY) return;
+                        Keybind.rightClick();
+                        this.state = this.STATES.MINING;
+                        this.scanForBlock(this.COSTTYPE);
+                        this.abilityClicked = false;
+                        this.abilityWaitTicks = 0;
                     }
                     break;
                 case this.STATES.MINING:
@@ -235,7 +219,10 @@ class Bot extends ModuleBase {
                         break;
                     }
 
-                    Guis.setItemSlot(drill.slot);
+                    if (Player.getHeldItemIndex() !== drill.slot) {
+                        Guis.setItemSlot(drill.slot);
+                        return;
+                    }
 
                     // Check if block was broken
                     let needScan = false;
@@ -359,6 +346,7 @@ class Bot extends ModuleBase {
                             this.allowScan = false;
                             this.currentTarget = this.foundLocations[0];
                             if (!this.currentTarget) break;
+                            ``;
                         }
 
                         const targetVector = this.getAimVectorForTarget(this.currentTarget);
@@ -836,6 +824,7 @@ class Bot extends ModuleBase {
         Keybind.setKey('rightclick', false);
     }
 
+    // In Bot.js, in your onDisable() method
     onDisable() {
         Chat.message('Mining Bot Disabled');
         this.state = this.STATES.WAITING;
