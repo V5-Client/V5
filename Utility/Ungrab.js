@@ -7,6 +7,9 @@ class ungrabClass {
         this.Regrab();
     }
 
+    /**
+     * Attaches both mixins to prevent mouse input by the player.
+     */
     Ungrab() {
         if (this.ungrabbed) return;
 
@@ -23,6 +26,9 @@ class ungrabClass {
         this.ungrabbed = true;
     }
 
+    /**
+     * Resets both mixins to reallow mouse input by the player.
+     */
     Regrab() {
         if (!this.ungrabbed) return;
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
