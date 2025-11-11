@@ -14,7 +14,9 @@ global.createCategoriesManager = (deps) => {
     const setRightPanelScrollY = (value) => {
         rightPanelScrollY = value;
     };
-
+    const resetCategoryScroll = () => {
+        rightPanelScrollY = 0;
+    };
     const calculateContentHeight = () => {
         if (!isContentHeightCacheValid && global.Categories.selected) {
             let height = 0;
@@ -75,6 +77,10 @@ global.createCategoriesManager = (deps) => {
 
         calculateContentHeight();
 
+        const maxScroll = Math.max(0, cachedContentHeight - deps.rectangles.RightPanel.height + PADDING);
+        if (rightPanelScrollY > maxScroll) {
+            rightPanelScrollY = maxScroll;
+        }
         const panel = deps.rectangles.RightPanel;
 
         const scale = Renderer.screen.getScale();
@@ -142,7 +148,8 @@ global.createCategoriesManager = (deps) => {
             () => {
                 isContentHeightCacheValid = false;
                 rightPanelScrollY = 0;
-            }
+            },
+            resetCategoryScroll
         );
     };
 
@@ -186,6 +193,14 @@ global.createCategoriesManager = (deps) => {
         },
         invalidateContentHeightCache: () => {
             isContentHeightCacheValid = false;
+        },
+        resetScroll: () => {
+            resetCategoryScroll();
+            global.Categories.optionsScrollY = 0;
+        },
+        getRightPanelScrollY: () => rightPanelScrollY,
+        setRightPanelScrollY: (value) => {
+            rightPanelScrollY = value;
         },
     };
 };
