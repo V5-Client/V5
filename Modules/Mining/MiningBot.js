@@ -392,7 +392,7 @@ class Bot extends ModuleBase {
             'Mining Bot',
             'Prioritze Titanium',
             (value) => {
-                this.PRIORITIZE_TITANIUM = value;
+                this.setPrioritizeTitanium(value);
             },
             'Whenever Titanium is in range it will be targeted the most'
         );
@@ -441,7 +441,18 @@ class Bot extends ModuleBase {
         this.bfsPad = Math.sqrt(3) * 0.5; // ~0.866, half-diagonal of a block
         this.rotationSpeed = 75; // rotation time (ms)
     }
-
+    setPrioritizeTitanium(value) {
+        this.PRIORITIZE_TITANIUM = value;
+        this.mithrilCosts = {
+            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 5,
+            'minecraft:light_blue_wool': 3,
+            'minecraft:prismarine': 5,
+            'minecraft:prismarine_bricks': 5,
+            'minecraft:dark_prismarine': 5,
+            'minecraft:gray_wool': 7,
+            'minecraft:cyan_terracotta': 7,
+        };
+    }
     /**
      * Returns the aim vector for a target block, preferring precomputed aim (aimX/Y/Z)
      * and falling back to the block center when not provided.
@@ -824,7 +835,6 @@ class Bot extends ModuleBase {
         Keybind.setKey('rightclick', false);
     }
 
-    // In Bot.js, in your onDisable() method
     onDisable() {
         Chat.message('Mining Bot Disabled');
         this.state = this.STATES.WAITING;

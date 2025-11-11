@@ -518,6 +518,9 @@ class CommissionMacro extends ModuleBase {
 
         Guis.setItemSlot(this.drill.slot);
 
+        const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
+        MiningBot.setPrioritizeTitanium(isTitaniumCommission);
+
         Client.scheduleTask(2, () => {
             MiningBot.setCost(MiningBot.mithrilCosts);
             MiningBot.toggle(true);
