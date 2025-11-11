@@ -107,20 +107,16 @@ class InventoryUtilsClass {
     }
 
     /**
-     * A strange bug occurs when you click while tabbed out then it no longer is able to mine.
-     * This function fixes that.
+     * Chattriggers closes GUIs client side, this function both closes it client and server side.
      */
     closeInv() {
+        if (!Player.getContainer()) return;
         mc = Client.getMinecraft();
-        Client.currentGui?.close();
-        //const Focused = mc.getClass().getDeclaredField("field_1695");
-        //Focused.setAccessible(true);
 
-        /* if (!Focused.getBoolean(mc)) {
-      // if (!mc.inGameHasFocus)
-      // mc.field_71415_G = true; // mc.inGameHasFocus = true;
-      mc.mouse.lockCursor(); // mc.mouseHelper.grabMouseCursor();
-    } */
+        let id = mc.player.currentScreenHandler.syncId;
+        Client.sendPacket(new net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket(id));
+
+        Client.currentGui?.close();
     }
 
     /**
