@@ -65,5 +65,6 @@ register('command', () => {
     global.GuiState.openStartTime = Date.now();
     loadSettings();
     global.categoryManager?.invalidateLayoutCache();
+    global.categoryManager?.invalidateContentHeightCache();
     global.GuiState.myGui.open();
 }).setName('gui');

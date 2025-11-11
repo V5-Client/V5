@@ -6,7 +6,16 @@ const ICON_SIZE = 28;
 const HIGHLIGHT_PADDING = 2;
 const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
 
-export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, getCategoryRect, invalidateLayoutCache, invalidateContentHeightCache) => {
+export const handleCategoryClick = (
+    mouseX,
+    mouseY,
+    panel,
+    cachedItemLayouts,
+    getCategoryRect,
+    invalidateLayoutCache,
+    invalidateContentHeightCache,
+    resetCategoryScroll
+) => {
     if (global.Categories.transitionDirection !== 0) return;
 
     if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
@@ -86,6 +95,8 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
             });
             if (clickedCategory && clickedCategory !== global.Categories.selected) {
                 global.Categories.selected = clickedCategory;
+                invalidateContentHeightCache();
+                resetCategoryScroll();
             }
             global.Categories.transitionDirection = -1;
             global.Categories.transitionProgress = 0;
@@ -135,6 +146,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
 
                     invalidateContentHeightCache();
                     invalidateLayoutCache();
+                    resetCategoryScroll();
                     playClickSound();
                 }
                 return true;
@@ -186,6 +198,7 @@ export const handleCategoryClick = (mouseX, mouseY, panel, cachedItemLayouts, ge
                                 height: oldRect.height,
                             };
                             global.Categories.selectedSubcategoryButton = buttonRect;
+                            resetCategoryScroll();
                         }
                         playClickSound();
                         return;
@@ -257,6 +270,10 @@ export const handleCategoryScroll = (mouseX, mouseY, dir, panel, cachedContentHe
         return;
     }
 
+    if (cachedContentHeight <= 0) {
+        return;
+    }
+
     const maxScroll = Math.max(0, cachedContentHeight - panel.height + PADDING);
     const direction = dir > 0 ? -1 : 1;
     const newScroll = rightPanelScrollY + direction * SCROLL_SPEED;
@@ -274,6 +291,7 @@ export const updateCategoryTransitions = () => {
             global.Categories.currentPage = newPage;
             if (newPage === 'categories') {
                 global.Categories.selectedItem = null;
+                global.Categories.optionsScrollY = 0;
             }
             if (newPage === 'options') {
                 global.Categories.optionsScrollY = 0;

@@ -28,6 +28,8 @@ export const saveSettings = () => {
     buildSettingsMapFromComponents();
 
     const settings = {};
+    const dropdownStates = {};
+
     for (const [key, value] of global.SettingsMap.entries()) {
         const [itemTitle, componentTitle] = key.split('.');
         if (!settings[itemTitle]) {
@@ -36,7 +38,29 @@ export const saveSettings = () => {
         settings[itemTitle][componentTitle] = value;
     }
 
-    FileLib.write('V5Config', 'config.json', JSON.stringify(settings, null, 2), true);
+    global.Categories.categories
+        .filter((c) => c.name === 'Modules')
+        .forEach((category) => {
+            getModuleItems(category).forEach((item) => {
+                item.components.forEach((component) => {
+                    if (component instanceof MultiToggle) {
+                        const key = `${item.title}.${component.title}`;
+                        dropdownStates[key] = component.expanded;
+                    }
+                });
+            });
+        });
+
+    const configData = {
+        settings: settings,
+        dropdownStates: dropdownStates,
+        scrollPositions: {
+            rightPanel: global.categoryManager ? global.categoryManager.getRightPanelScrollY() : 0,
+            optionsPanel: global.Categories.optionsScrollY || 0,
+        },
+    };
+
+    FileLib.write('V5Config', 'config.json', JSON.stringify(configData, null, 2), true);
 };
 
 export const applySettings = () => {
@@ -65,12 +89,16 @@ export const loadSettings = () => {
     }
 
     try {
-        const settings = JSON.parse(fileContent);
-        if (!settings) {
+        const configData = JSON.parse(fileContent);
+        if (!configData) {
             buildSettingsMapFromComponents();
             applySettings();
             return;
         }
+
+        const settings = configData.settings || configData;
+        const dropdownStates = configData.dropdownStates || {};
+        const scrollPositions = configData.scrollPositions || {};
 
         global.Categories.categories
             .filter((c) => c.name === 'Modules')
@@ -85,15 +113,33 @@ export const loadSettings = () => {
                         else if (component instanceof Slider) component.value = savedValue;
                         else if (component instanceof MultiToggle) {
                             component.options.forEach((option, index) => {
-                                if (savedValue[index] && option.name === savedValue[index].name) option.enabled = savedValue[index].enabled;
+                                if (savedValue[index] && option.name === savedValue[index].name) {
+                                    option.enabled = savedValue[index].enabled;
+                                }
                             });
+                            const key = `${item.title}.${component.title}`;
+                            if (dropdownStates[key] !== undefined) {
+                                component.expanded = dropdownStates[key];
+                                component.animationProgress = dropdownStates[key] ? 1 : 0;
+                                component.animStart = 0;
+                            }
                         }
                     });
                 });
             });
 
+        if (scrollPositions.optionsPanel !== undefined) {
+            global.Categories.optionsScrollY = scrollPositions.optionsPanel;
+        }
+
         buildSettingsMapFromComponents();
         applySettings();
+
+        if (scrollPositions.rightPanel !== undefined && global.categoryManager) {
+            setTimeout(() => {
+                global.categoryManager.setRightPanelScrollY(scrollPositions.rightPanel);
+            }, 0);
+        }
     } catch (e) {
         Chat.message(`Error loading settings: ${e}`);
         buildSettingsMapFromComponents();
