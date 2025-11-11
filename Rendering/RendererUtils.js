@@ -1,6 +1,6 @@
 import { Color, Vec3d } from '../Utility/Constants';
 
-const RenderUtilsPackage = Java.type('com.chattriggers.v5.render.RenderUtils');
+const RenderUtilsPackage = Java.type('com.v5.render.RenderUtils');
 
 export default class RenderUtils {
     constructor() {}

@@ -162,11 +162,12 @@ class InventoryUtilsClass {
      * @author Kash MiningModules
      */
     clickSlot(slot, shift = false, button = 'LEFT') {
-        if (slot == null || slot < 0 || this.guiName() === 'null') return;
-        const items = Player.getContainer().getItems();
-        if (!items || slot >= items.length) return;
-        Player.getContainer().click(slot, shift, button);
-        return;
+        if (slot == null || slot < 0 || this.guiName() === 'null') return false;
+        const container = Player.getContainer();
+        const items = container.getItems();
+        if (!items || slot >= items.length) return false;
+        container.click(slot, shift, button);
+        return true;
     }
 
     /**

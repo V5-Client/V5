@@ -78,6 +78,7 @@ class UtilsClass {
 
         Notifications.sendAlert(msg);
 
+        return; // this seems to be a bit fucked
         if (!ModuleManager.getSetting('Failsafes', 'Audio Notifications')) return;
 
         // Failsafe Sound
