@@ -73,7 +73,9 @@ class MiningUtilClass {
 
     RetreiveStats() {
         const { drill } = this.getDrills();
-        if (!drill) Player.setHeldItemIndex(drill.slot);
+        if (!drill) return;
+
+        Player.setHeldItemIndex(drill.slot);
 
         Chat.message('Getting your Mining Data!');
 
@@ -512,7 +514,7 @@ class MiningUtilClass {
         }
 
         if (!drill) {
-            Chat.message('Missing a mining item');
+            Chat.message('&cMissing a drill!');
         }
 
         return { blueCheese, drill };
