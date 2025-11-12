@@ -11,6 +11,8 @@ class Xray extends ModuleBase {
             tooltip: 'See through walls client-side.',
         });
 
+        this.bindToggleKey();
+
         this.firstTransparency = getSetting('Xray', 'Transparency');
 
         this.addSlider('Transparency', 0, 100, 50, null, 'Transparency of Xray.');
