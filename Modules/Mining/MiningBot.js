@@ -470,6 +470,7 @@ class Bot extends ModuleBase {
     scanForBlock(target, specific = true, startPos = null, excludedBlock = null) {
         if (!target) {
             Chat.message('No target specified, is cost type set?');
+            return;
         }
 
         const playerX = Player.getX();
