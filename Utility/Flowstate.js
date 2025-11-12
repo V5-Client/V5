@@ -60,7 +60,7 @@ class FlowstateUtilsClass {
         register('step', () => {
             if (this.countdown === 0) {
                 if (this.flowstateBlocksBroken > 100) {
-                    Chat.debugMessage(`Flowstate lost at ${this.flowstateBlocksBroken} blocks`);
+                    Chat.message(`Flowstate lost at ${this.flowstateBlocksBroken} blocks`);
                 }
                 this.isMax = false;
                 this.flowstateBlocksBroken = 0;
