@@ -11,7 +11,7 @@ class AutoExperiments extends ModuleBase {
             tooltip: 'Automatically does the experiments',
         });
 
-        this.clickDelay = 500;
+        this.clickDelay = 150;
         this.serumCountValue = 0;
         this.getMaxXpEnabled = false;
 
@@ -226,9 +226,9 @@ class AutoExperiments extends ModuleBase {
 
         this.addSlider(
             'Click Delay',
-            500,
-            1000,
-            500,
+            150,
+            600,
+            150,
             (value) => {
                 this.clickDelay = value;
             },
