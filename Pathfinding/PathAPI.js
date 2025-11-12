@@ -22,6 +22,10 @@ register('command', (...args) => {
     findAndFollowPath(start, end);
 }).setName('path', true);
 
+register('command', () => {
+    stopPathing();
+}).setName('stoppathing');
+
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
 let renderPath = null;
