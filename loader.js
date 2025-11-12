@@ -14,7 +14,7 @@ import './GUI/GIF.js';
 import './Utility/Config.js';
 
 /* CORE */
-import './Pathfinding2.0/PathFinder.js';
+import './Pathfinding/PathFinder.js';
 import './Failsafes/Failsafes.js';
 
 /* FORAGING */

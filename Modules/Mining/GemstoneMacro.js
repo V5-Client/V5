@@ -171,10 +171,10 @@ class GemstoneMacro extends ModuleBase {
                             if (lineOfSightIsClear) {
                                 Keybind.setKey('shift', true);
 
-                                Rotations.rotateTo(
+                                Rotations.rotateToVector(
                                     [this.nearestPoint.point?.x + 0.5, this.nearestPoint.point?.y + 0.5, this.nearestPoint.point?.z + 0.5],
-                                    false,
-                                    150
+                                    0.5,
+                                    false
                                 );
 
                                 Rotations.onEndRotation(() => {
@@ -191,7 +191,7 @@ class GemstoneMacro extends ModuleBase {
                         if (MiningBot.empty) {
                             Keybind.setKey('shift', true);
 
-                            Rotations.rotateTo([this.nextPoint?.x + 0.5, this.nextPoint?.y + 0.5, this.nextPoint?.z + 0.5], false, 150);
+                            Rotations.rotateToVector([this.nextPoint?.x + 0.5, this.nextPoint?.y + 0.5, this.nextPoint?.z + 0.5], 0.5, false);
 
                             Rotations.onEndRotation(() => {
                                 Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);

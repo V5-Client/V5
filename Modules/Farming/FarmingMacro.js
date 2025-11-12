@@ -5,7 +5,7 @@ import { Guis } from '../../Utility/Inventory';
 import { Keybind } from '../../Utility/Keybinding';
 import { MathUtils } from '../../Utility/Math';
 import { ModuleBase } from '../../Utility/ModuleBase';
-import { RotationRedo } from '../../Utility/RotationsTest';
+import { Rotations } from '../../Utility/Rotations';
 import { Mouse } from '../../Utility/Ungrab';
 import { Utils } from '../../Utility/Utils';
 
@@ -124,7 +124,7 @@ class FarmingMacro extends ModuleBase {
 
                     this.yaw = snappedYaw;
 
-                    RotationRedo.rotateToAngles(this.yaw, this.pitch);
+                    Rotations.rotateToAngles(this.yaw, this.pitch);
                     this.state = this.STATES.MOVEMENT;
                     break;
                 case this.STATES.MOVEMENT:
@@ -177,7 +177,7 @@ class FarmingMacro extends ModuleBase {
 
     onDisable() {
         Mouse.Regrab();
-        RotationRedo.stopRotation();
+        Rotations.stopRotation();
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
         this.farmAxis = null;
