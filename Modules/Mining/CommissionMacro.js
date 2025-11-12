@@ -1,12 +1,12 @@
 import { Chat } from '../../Utility/Chat';
-import { findAndFollowPath, stopPathing } from '../../Pathfinding2.0/PathAPI';
+import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
 import { COMMISSION_DATA } from './CommissionData';
 import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { MiningBot } from './MiningBot';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { Guis } from '../../Utility/Inventory';
 import { Keybind } from '../../Utility/Keybinding';
-import { RotationRedo } from '../../Utility/RotationsTest';
+import { Rotations } from '../../Utility/Rotations';
 import { ModuleBase } from '../../Utility/ModuleBase';
 
 // TODO
@@ -451,10 +451,10 @@ class CommissionMacro extends ModuleBase {
 
     interactWithEmissary(target) {
         const adjustedTarget = [target[0] + 0.5, target[1] + 2.2, target[2] + 0.5];
-        if (RotationRedo.isRotating) return;
+        if (Rotations.isRotating) return;
 
-        RotationRedo.rotateToVector(adjustedTarget);
-        RotationRedo.onEndRotation(() => {
+        Rotations.rotateToVector(adjustedTarget);
+        Rotations.onEndRotation(() => {
             Keybind.rightClick();
             this.delay(10);
         });

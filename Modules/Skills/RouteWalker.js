@@ -134,7 +134,7 @@ class RouteWalkerer {
 
                     let angle = MathUtils.calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
 
-                    Rotations.rotateToAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : Player.getPitch());
+                    Rotations.rotateToAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : Player.getPitch(), 1.0, false);
 
                     if (currentDistance < 3) {
                         this.etherwarpReady = false;
@@ -158,7 +158,7 @@ class RouteWalkerer {
 
                     if (!this.etherwarpReady) {
                         if (point) {
-                            Rotations.rotateTo([point[0], point[1], point[2]], false, 175);
+                            Rotations.rotateToVector([point[0], point[1], point[2]], 0.5, false);
 
                             Rotations.onEndRotation(() => {
                                 Keybind.rightClickDelay(7);

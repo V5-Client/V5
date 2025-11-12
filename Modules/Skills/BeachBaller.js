@@ -86,7 +86,7 @@ class Beachballer extends ModuleBase {
             return;
         }
 
-        Rotations.rotateToAngles(Player.getYaw(), -90);
+        Rotations.rotateToAngles(Player.getYaw(), -90, 1.0, false);
 
         if (this.trackedBall && !this.trackedBall.isDead()) {
             const headItem = this.trackedBall.getStackInSlot(5);
@@ -137,7 +137,7 @@ class Beachballer extends ModuleBase {
             return;
         }
 
-        Rotations.rotateTo([this.startPos[0], this.startPos[1] + 2, this.startPos[2]]);
+        Rotations.rotateToVector([this.startPos[0], this.startPos[1] + 2, this.startPos[2]], 0.5, false);
         Keybind.setKeysForStraightLineCoords(this.startPos[0], this.startPos[1], this.startPos[2]);
     }
 

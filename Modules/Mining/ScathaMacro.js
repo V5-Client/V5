@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../Utility/ModuleBase';
 import { Chat } from '../../Utility/Chat';
-import { RotationRedo } from '../../Utility/RotationsTest';
+import { Rotations } from '../../Utility/RotationsTest';
 import { Keybind } from '../../Utility/Keybinding';
 import { Time } from '../../Utility/Timing';
 import { Guis } from '../../Utility/Inventory';
@@ -82,7 +82,7 @@ class ScathaMacro extends ModuleBase {
         this.on('chat', () => {
             this.scathaSpawnTimer.reset();
             this.menuTimer.reset();
-            RotationRedo.rotateToAngles(90, 10.0);
+            Rotations.rotateToAngles(90, 10.0);
             this.sorrow = false;
             this.pause = true;
             this.setState(this.STATES.KILLING);
@@ -156,7 +156,7 @@ class ScathaMacro extends ModuleBase {
         this.stuckCounter = 0;
         this.unstuckState = 0;
         this.kills = 0;
-        RotationRedo.stopRotation();
+        Rotations.stopRotation();
         Keybind.setKey('leftclick', false);
         //Mouse.Regrab();
         Keybind.stopMovement();
@@ -228,7 +228,7 @@ class ScathaMacro extends ModuleBase {
                 }
 
                 Keybind.stopMovement();
-                RotationRedo.rotateToAngles(90, Player.getPitch());
+                Rotations.rotateToAngles(90, Player.getPitch());
                 Guis.setItemSlot(this.drillSlot);
                 this.setState(this.STATES.MINING);
                 break;
@@ -301,8 +301,8 @@ class ScathaMacro extends ModuleBase {
                 const isSolid = (n) => n && !['minecraft:air', 'minecraft:water', 'minecraft:lava'].includes(n);
                 const blocks = isSolid(block) || isSolid(blockaheadName);
 
-                if (this.pinglessAngles) RotationRedo.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 12.0);
-                else RotationRedo.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 35.0);
+                if (this.pinglessAngles) Rotations.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 12.0);
+                else Rotations.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 35.0);
                 break;
             }
 
@@ -370,7 +370,7 @@ class ScathaMacro extends ModuleBase {
                     if (this.menuState === 5 && this.menuTimer.hasReached(this.menuClickDelay)) {
                         Guis.closeInv();
                         Client.scheduleTask(5, () => {
-                            RotationRedo.rotateToAngles(90, -75);
+                            Rotations.rotateToAngles(90, -75);
                             this.setState(this.STATES.BACKWARDS);
                             this.menuState = 0;
                             this.unstuckState = 1;
@@ -386,7 +386,7 @@ class ScathaMacro extends ModuleBase {
                 if (!this.scathaSpawnTimer.hasReached(27000)) {
                     Keybind.stopMovement();
                     this.stuckTimer.reset();
-                    RotationRedo.rotateToAngles(90, -75);
+                    Rotations.rotateToAngles(90, -75);
                     return;
                 }
                 if (!this.scathaSpawnTimer.hasReached(28000)) {
@@ -522,8 +522,8 @@ class ScathaMacro extends ModuleBase {
 
                 if (blocks || panes) {
                     Keybind.stopMovement();
-                    RotationRedo.rotateToAngles(-90, paneHere ? 70.0 : 35.0);
-                    RotationRedo.onEndRotation(() => {
+                    Rotations.rotateToAngles(-90, paneHere ? 70.0 : 35.0);
+                    Rotations.onEndRotation(() => {
                         let foundBlockAhead = false;
                         for (let offsetX = 1; offsetX <= 7; offsetX++) {
                             const blockAtY = World.getBlockAt(Player.getX() + offsetX, Player.getY(), Player.getZ())?.type?.getRegistryName();
@@ -547,8 +547,8 @@ class ScathaMacro extends ModuleBase {
                 } else {
                     if (!this.normalKilling) {
                         Keybind.stopMovement();
-                        RotationRedo.rotateToAngles(90, -75);
-                        RotationRedo.onEndRotation(() => {
+                        Rotations.rotateToAngles(90, -75);
+                        Rotations.onEndRotation(() => {
                             Keybind.setKey('leftclick', true);
                             Keybind.setKey('s', true);
                         });
@@ -569,14 +569,14 @@ class ScathaMacro extends ModuleBase {
                 }
                 if (Player.getZ() > this.tunnelPos[2]) {
                     this.setState(this.STATES.CENTERING);
-                    RotationRedo.rotateToAngles(90, 35);
+                    Rotations.rotateToAngles(90, 35);
                     Keybind.stopMovement();
                     Keybind.setKey('leftclick', false);
                     Chat.debugMessage('Back to Mining!');
                     return;
                 }
-                RotationRedo.rotateToAngles(0, 60);
-                RotationRedo.onEndRotation(() => {
+                Rotations.rotateToAngles(0, 60);
+                Rotations.onEndRotation(() => {
                     Keybind.setKey('w', true);
                     Keybind.setKey('leftclick', true);
                 });
@@ -587,7 +587,7 @@ class ScathaMacro extends ModuleBase {
                 if (Client.isInGui() && !Client.isInChat()) return;
                 Keybind.setKey('leftclick', false);
                 if (this.tpSlot !== -1) Guis.setItemSlot(this.tpSlot);
-                RotationRedo.rotateToAngles(this.getRoundedYaw(), 85);
+                Rotations.rotateToAngles(this.getRoundedYaw(), 85);
                 this.centeringTimer.reset();
                 Client.scheduleTask(5, () => Keybind.stopMovement());
                 Client.scheduleTask(9, () => {

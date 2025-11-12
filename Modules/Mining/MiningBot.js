@@ -10,7 +10,7 @@ import { Guis } from '../../Utility/Inventory';
 import { NukerUtils } from '../../Utility/NukerUtils';
 import RenderUtils from '../../Rendering/RendererUtils';
 import { ModuleBase } from '../../Utility/ModuleBase';
-import { RotationRedo } from '../../Utility/RotationsTest';
+import { Rotations } from '../../Utility/Rotations';
 const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
 
 const Vec3d = net.minecraft.util.math.Vec3d;
@@ -326,7 +326,7 @@ class Bot extends ModuleBase {
                         const targetVector = this.getAimVectorForTarget(this.currentTarget);
 
                         if (this.currentTarget && targetVector) {
-                            RotationRedo.rotateToVector(targetVector);
+                            Rotations.rotateToVector(targetVector);
                         }
                     } else if (!this.TICKGLIDE) {
                         this.currentTarget = lowestCostBlock;
@@ -352,7 +352,7 @@ class Bot extends ModuleBase {
                         const targetVector = this.getAimVectorForTarget(this.currentTarget);
 
                         if (this.currentTarget && targetVector) {
-                            RotationRedo.rotateToVector(targetVector);
+                            Rotations.rotateToVector(targetVector);
                         }
                     }
                     break;
@@ -848,7 +848,7 @@ class Bot extends ModuleBase {
         this.tickCount = 0;
         this.abilityClicked = false;
         this.abilitySlotSet = false;
-        RotationRedo.stopRotation();
+        Rotations.stopRotation();
         Guis.EnableUserInput();
     }
 }

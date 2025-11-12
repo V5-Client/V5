@@ -3,7 +3,7 @@ const ENABLE_RECORDING = true;
 
 import { Vec3d } from '../../Utility/Constants';
 import { MathUtils } from '../../Utility/Math';
-import { Rotations } from '../../Utility/Rotations';
+import { PathRotationsUtility } from './PathRotationsUtility';
 import { renderSplineBoxes } from '../PathDebug';
 
 // Make yaw look ahead thingy dynamic and based off speed ; slower speed = smaller. look ahead max look ahead is to be 5 (anything over 300 speed should have 5 look ahead)
@@ -246,7 +246,7 @@ export function pathRotations(splineData) {
 
     if (ENABLE_RECORDING) RotationRecorder.recordRotation(smoothedYaw, finalPitch);
 
-    Rotations.rotateToAngles(smoothedYaw, finalPitch, false, rotationSpeedConstant);
+    PathRotationsUtility.rotateToAngles(smoothedYaw, finalPitch, false, rotationSpeedConstant);
 
     const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(currentBox.x + 0.5, currentBox.y + 0.5, currentBox.z + 0.5);
 
