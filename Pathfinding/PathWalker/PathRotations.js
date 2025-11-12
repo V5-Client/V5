@@ -124,9 +124,9 @@ export function pathRotations(splineData) {
 
     const horizontalSpeedSq = velocity.x * velocity.x + velocity.z * velocity.z;
 
-    const speedBPS = Math.sqrt(horizontalSpeedSq) * 20.0;
-
-    ChatLib.chat(speedBPS);
+    //    const speedBPS = Math.sqrt(horizontalSpeedSq) * 20.0;
+    //   // MAKE IT SHUT THE FUCK UP PLEASE THANK YOU
+    //    ChatLib.chat(speedBPS);
 
     if (boxPositions.length === 0 || currentBoxIndex >= boxPositions.length - 1) {
         if (!complete) {
