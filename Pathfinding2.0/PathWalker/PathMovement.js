@@ -5,7 +5,7 @@ import { Keybind } from '../../Utility/Keybinding';
  * add aotv movement in liquids and etherwarp aswell
  */
 
-export function pathMovement(on = true) {
+export function PathMovement(on = true) {
     if (on) {
         Keybind.setKey('w', true);
     } else {

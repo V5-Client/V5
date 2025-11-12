@@ -2,7 +2,7 @@ import request from 'requestV2';
 
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
-import { pathMovement } from './PathWalker/PathMovement';
+import { PathMovement } from './PathWalker/PathMovement';
 import { PathfindingMessages } from './PathConfig';
 import { Links, Vec3d } from '../Utility/Constants';
 import { Utils } from '../Utility/Utils';
@@ -140,6 +140,27 @@ function loadMap(map, area, callback) {
         });
 }
 
+function getSinglePlayerWarpCommand(warpName) {
+    const warps = {
+        '/warp mines': 'tp @s -49 200 -122 -90 0',
+        '/warp forge': 'tp @s 0 149 -68 90 0',
+    };
+    return warps[warpName] || null;
+}
+
+function handleWarp(warpCommand, onComplete) {
+    const tpCommand = Server.getName() === 'SinglePlayer' ? getSinglePlayerWarpCommand(warpCommand) : warpCommand.slice(1);
+
+    if (!tpCommand) {
+        global.showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
+        return;
+    }
+
+    ChatLib.chat(`§aWarp point found! Running command: §e${tpCommand}`);
+    ChatLib.command(tpCommand);
+    setTimeout(onComplete, 250);
+}
+
 function executePathfinding(start, end, onComplete) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
     const adjustedEnd = end;
@@ -153,48 +174,58 @@ function executePathfinding(start, end, onComplete) {
 
     request({ url, json: true, timeout: 15000 })
         .then((body) => {
+            if (currentPathRequest !== requestId) return;
+
             if (!body || !body.keynodes || body.keynodes.length < 1) {
-                global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve after retries.', 'ERROR', 5000);
+                global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
                 return;
             }
 
-            if (body.path && body.path.length) setPathNodes(body.path);
-            if (body.keynodes && body.keynodes.length) setKeyNodes(body.keynodes);
+            const beginPathing = () => {
+                if (currentPathRequest !== requestId) return;
 
-            const generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
-            setPathNodes(generatedSpline);
+                if (body.path && body.path.length) setPathNodes(body.path);
+                if (body.keynodes && body.keynodes.length) setKeyNodes(body.keynodes);
 
-            if (getRenderKeyNodes() || getRenderFloatingSpline()) {
-                renderPath = register('postRenderWorld', () => {
-                    if (getRenderKeyNodes()) drawKeyNodes(body.keynodes);
-                    if (getRenderFloatingSpline()) drawFloatingSpline(generatedSpline);
+                const generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
+                setPathNodes(generatedSpline);
+
+                if (getRenderKeyNodes() || getRenderFloatingSpline()) {
+                    renderPath = register('postRenderWorld', () => {
+                        if (getRenderKeyNodes()) drawKeyNodes(body.keynodes);
+                        if (getRenderFloatingSpline()) drawFloatingSpline(generatedSpline);
+                    });
+                }
+
+                path = register('tick', () => {
+                    pathRotations(generatedSpline);
+                    detectJump(body.path_between_key_nodes);
+                    PathMovement();
+
+                    if (!PathComplete()) return;
+
+                    path.unregister();
+                    path = null;
+
+                    PathMovement(false);
+                    ResetRotations();
+                    stopPathing();
+
+                    global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+                    if (onComplete && typeof onComplete === 'function') onComplete();
                 });
+            };
+
+            if (body.warp_point && body.warp_point.command) {
+                handleWarp(body.warp_point.command, beginPathing);
+            } else {
+                beginPathing();
             }
-
-            if (currentPathRequest !== requestId) return;
-
-            path = register('tick', () => {
-                pathRotations(generatedSpline);
-                detectJump(body.path_between_key_nodes);
-                pathMovement();
-
-                if (!PathComplete()) return;
-
-                path.unregister();
-                path = null;
-
-                pathMovement(false);
-                ResetRotations();
-                stopPathing();
-
-                global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-                if (onComplete && typeof onComplete === 'function') onComplete();
-            });
         })
         .catch((err) => {
             if (currentPathRequest !== requestId) return;
 
-            global.showNotification('Pathfinding Error', 'Request failed after retries. See console for details.', 'ERROR', 5000);
+            global.showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
             console.error(`Pathfinding request failed: ${err}`);
         });
 }
