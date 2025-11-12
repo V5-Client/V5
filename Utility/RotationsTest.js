@@ -5,7 +5,7 @@ import { Utils } from './Utils';
 class Rotation2 {
     constructor() {
         this.ROTATION_SPEED = 300;
-        this.DAMPING_START_DISTANCE = 25.0;
+        this.DAMPING_START_DISTANCE = 28.0;
         this.MIN_SPEED_MULTIPLIER = 0.05;
 
         this.target = null;
@@ -157,7 +157,6 @@ class Rotation2 {
         }
     }
 
-
     removeCallback(name) {
         this.actions = this.actions.filter((action) => action.name !== name);
     }
@@ -172,35 +171,23 @@ class Rotation2 {
         const deltaYaw = this.normalizeAngle(targetYaw - currentYaw);
         const deltaPitch = targetPitch - currentPitch;
 
-        const currentPitchRad = currentPitch * (Math.PI / 180);
-        const cosPitch = Math.cos(currentPitchRad);
-        const EPSILON = 0.001;
-
-        const deltaYawScaled = deltaYaw * cosPitch;
-
-        const distance = Math.sqrt(deltaYawScaled * deltaYawScaled + deltaPitch * deltaPitch);
+        const distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
         const dampingFactor = this.clamp(distance / this.DAMPING_START_DISTANCE, 0.0, 1.0);
         const speedMultiplier = this.lerp(this.MIN_SPEED_MULTIPLIER, 1.0, dampingFactor);
         const effectiveSpeed = this.ROTATION_SPEED * speedMultiplier;
 
         const maxAngleStep = effectiveSpeed * this.deltaTime;
+
         let moveYaw = 0;
         let movePitch = 0;
 
         if (distance > 0) {
             const moveAmount = Math.min(distance, maxAngleStep);
+            const t = moveAmount / distance;
 
-            const directionYawScaled = deltaYawScaled / distance;
-            const directionPitch = deltaPitch / distance;
-
-            movePitch = directionPitch * moveAmount;
-
-            if (Math.abs(cosPitch) > EPSILON) {
-                moveYaw = (directionYawScaled * moveAmount) / cosPitch;
-            } else {
-                moveYaw = 0;
-            }
+            moveYaw = deltaYaw * t;
+            movePitch = deltaPitch * t;
         }
 
         let newYaw = currentYaw + moveYaw;
