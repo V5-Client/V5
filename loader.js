@@ -25,6 +25,7 @@ import './Modules/Mining/PinglessMining.js';
 import './Modules/Mining/GemstoneMacro.js';
 import './Modules/Mining/CommissionMacro.js';
 //import './Modules/Mining/ScathaMacro.js';
+import './Modules/Mining/ExcavatorMacro.js';
 
 /* FARMING */
 import './Modules/Farming/FarmingMacro.js';

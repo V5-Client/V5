@@ -1,0 +1,174 @@
+import { Chat } from '../../Utility/Chat';
+import { Guis } from '../../Utility/Inventory';
+import { Keybind } from '../../Utility/Keybinding';
+import { ModuleBase } from '../../Utility/ModuleBase';
+import { Utils } from '../../Utility/Utils';
+
+class ExcavatorMacro extends ModuleBase {
+    constructor() {
+        super({
+            name: 'Excavator Macro',
+            subcategory: 'Mining',
+            description: 'Completes Commissions for you',
+            tooltip: 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            showEnabledToggle: false,
+            autoDisableOnWorldUnload: false,
+        });
+
+        this.bindToggleKey();
+
+        this.NODELAY = false;
+        this.TICKDELAY = 0;
+
+        this.addToggle(
+            'No delay',
+            (v) => {
+                this.NODELAY = v;
+            },
+            'Tries clicking as soon as possible - risky'
+        );
+
+        this.addSlider(
+            'Tick delay',
+            1,
+            10,
+            5,
+            (v) => {
+                this.TICKDELAY = v;
+            },
+            'Amount of ticks until the player can click again, no delay ignores this'
+        );
+
+        this.STATES = {
+            WAITING: 0,
+            OPENING: 1,
+            SETUP: 2,
+            EXCAVATING: 3,
+        };
+
+        this.state = this.STATES.OPENING;
+
+        this.clickedScrap = false;
+        this.clickedChisel = false;
+        this.tickCount = this.TICKDELAY || 0;
+
+        this.on('tick', () => {
+            if (Utils.subArea() !== 'Fossil Research Center') {
+                this.toggle(false);
+                this.message('&cNot in the Research Center, disabling macro.');
+            }
+
+            switch (this.state) {
+                case this.STATES.OPENING:
+                    if (Player.lookingAt() instanceof Entity) {
+                        Keybind.rightClick();
+                        this.state = this.STATES.SETUP;
+                    }
+
+                    break;
+                case this.STATES.SETUP:
+                    if (Guis.guiName() !== 'Fossil Excavator') return;
+
+                    if (!this.clickedChisel) {
+                        if (!this.clickDelay()) return;
+
+                        let chisel = Guis.clickItem('minecraft:armor_stand', true, 'MIDDLE', false);
+
+                        if (!chisel) {
+                            this.message('&cNo chisel, disabling macro.');
+                            this.toggle(false);
+                            return;
+                        }
+
+                        this.clickedChisel = true;
+                    }
+
+                    if (this.clickedChisel && !this.clickedScrap) {
+                        if (!this.clickDelay()) return;
+
+                        let scrap = Guis.clickItem('Suspicious Scrap');
+
+                        if (!scrap) {
+                            this.message('&cNo scrap, disabling macro.');
+                            this.toggle(false);
+                            return;
+                        }
+
+                        this.clickedScrap = true;
+                    }
+
+                    if (this.clickedChisel && this.clickedScrap) {
+                        if (!this.clickDelay()) return;
+                        this.message('Setup complete. Starting excavation.');
+                        Guis.clickItem('Start Excavator', true, 'MIDDLE');
+                    }
+
+                    this.state = this.STATES.EXCAVATING;
+                    break;
+                case this.STATES.EXCAVATING:
+                    if (Guis.guiName() !== 'Fossil Excavator') return;
+
+                    const brownSlots = [];
+                    for (let i = 0; i < 54; i++) {
+                        let slot = Player.getContainer().getStackInSlot(i);
+
+                        if (slot?.type?.getRegistryName()?.includes('yellow_stained')) {
+                            Guis.closeInv();
+                            this.clickedChisel = false;
+                            this.clickedScrap = false;
+                            this.state = this.STATES.OPENING;
+                            return;
+                        }
+
+                        if (slot?.type?.getRegistryName()?.includes('lime_stained')) {
+                            if (!this.clickDelay()) return;
+                            Guis.clickSlot(i);
+                        }
+
+                        if (slot?.type?.getRegistryName()?.includes('brown_stained')) brownSlots.push(i);
+                    }
+
+                    if (brownSlots.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * brownSlots.length);
+                        const randomBrownSlot = brownSlots[randomIndex];
+
+                        if (!this.clickDelay()) return;
+
+                        Guis.clickSlot(randomBrownSlot);
+                        return;
+                    }
+                    break;
+            }
+        });
+    }
+
+    clickDelay() {
+        if (this.NODELAY) return true;
+
+        if (this.tickCount > 0) {
+            this.tickCount--;
+            return false;
+        }
+
+        this.tickCount = this.TICKDELAY;
+        return true;
+    }
+
+    onEnable() {
+        this.message('&aEnabled');
+        this.state = this.STATES.OPENING;
+    }
+
+    onDisable() {
+        this.message('&cDisabled');
+        this.state = this.STATES.WAITING;
+        this.clickedChisel = false;
+        this.clickedScrap = false;
+    }
+
+    message(msg) {
+        Chat.message('&#4fa6e0Excavator Macro: &f' + msg);
+    }
+}
+
+new ExcavatorMacro();

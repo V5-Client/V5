@@ -137,7 +137,7 @@ class InventoryUtilsClass {
         name = name.toLowerCase();
         const items = Player.getContainer().getItems();
         const slot = items.findIndex((item) => {
-            const itemName = displayName ? item?.getName()?.removeFormatting() : item?.getRegistryName();
+            const itemName = displayName ? item?.getName()?.removeFormatting() : item?.type?.getRegistryName();
             const compare = nameSpecific ? itemName?.toLowerCase() === name : itemName?.toLowerCase()?.removeFormatting()?.includes(name);
             return compare;
         });
