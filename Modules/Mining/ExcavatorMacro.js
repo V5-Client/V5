@@ -50,12 +50,21 @@ class ExcavatorMacro extends ModuleBase {
 
         this.clickedScrap = false;
         this.clickedChisel = false;
+        this.inExcavator = false;
         this.tickCount = this.TICKDELAY || 0;
 
         this.on('tick', () => {
             if (Utils.subArea() !== 'Fossil Research Center') {
                 this.toggle(false);
-                this.message('&cNot in the Research Center, disabling macro.');
+                this.message('&cNot in the Research Center!');
+            }
+
+            if (this.inExcavator) {
+                if (Guis.guiName() !== 'Fossil Excavator') {
+                    this.message('Excavator closed');
+                    this.toggle(false);
+                    return;
+                }
             }
 
             switch (this.state) {
@@ -69,13 +78,15 @@ class ExcavatorMacro extends ModuleBase {
                 case this.STATES.SETUP:
                     if (Guis.guiName() !== 'Fossil Excavator') return;
 
+                    this.inExcavator = true;
+
                     if (!this.clickedChisel) {
                         if (!this.clickDelay()) return;
 
                         let chisel = Guis.clickItem('minecraft:armor_stand', true, 'MIDDLE', false);
 
                         if (!chisel) {
-                            this.message('&cNo chisel, disabling macro.');
+                            this.message('&cNo chisel!');
                             this.toggle(false);
                             return;
                         }
@@ -89,7 +100,7 @@ class ExcavatorMacro extends ModuleBase {
                         let scrap = Guis.clickItem('Suspicious Scrap');
 
                         if (!scrap) {
-                            this.message('&cNo scrap, disabling macro.');
+                            this.message('&cNo scrap!');
                             this.toggle(false);
                             return;
                         }
@@ -99,7 +110,6 @@ class ExcavatorMacro extends ModuleBase {
 
                     if (this.clickedChisel && this.clickedScrap) {
                         if (!this.clickDelay()) return;
-                        this.message('Setup complete. Starting excavation.');
                         Guis.clickItem('Start Excavator', true, 'MIDDLE');
                     }
 
@@ -116,6 +126,7 @@ class ExcavatorMacro extends ModuleBase {
                             Guis.closeInv();
                             this.clickedChisel = false;
                             this.clickedScrap = false;
+                            this.inExcavator = false;
                             this.state = this.STATES.OPENING;
                             return;
                         }
@@ -164,6 +175,7 @@ class ExcavatorMacro extends ModuleBase {
         this.state = this.STATES.WAITING;
         this.clickedChisel = false;
         this.clickedScrap = false;
+        this.inExcavator = false;
     }
 
     message(msg) {
