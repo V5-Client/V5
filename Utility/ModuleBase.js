@@ -1,3 +1,5 @@
+import { Utils } from './Utils';
+
 export class ModuleBase {
     // options object: { name, subcategory, description?, tooltip?, showEnabledToggle?, autoDisableOnWorldUnload? }
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
@@ -92,8 +94,16 @@ export class ModuleBase {
     }
 
     bindToggleKey(title = `Toggle ${this.name}`) {
-        this._toggleKeyBind = new KeyBind(title, Keyboard.KEY_NONE, 'V5');
+        const keybindDescription = title;
+
+        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const savedKeycode = existingKeybinds[keybindDescription] || Keyboard.KEY_NONE;
+
+        this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'V5');
         this._toggleKeyBind.registerKeyPress(() => this.toggle());
+
+        register('gameUnload', () => this._saveKey(keybindDescription, this._toggleKeyBind.getKeyCode()));
+
         return this;
     }
 
@@ -112,4 +122,14 @@ export class ModuleBase {
     // not required
     onEnable() {}
     onDisable() {}
+    /**
+     * @private
+     * Saves a specific keybind description and keycode.
+     */
+
+    _saveKey(description, keycode) {
+        let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        allKeybinds[description] = keycode;
+        Utils.writeConfigFile('keybinds.json', allKeybinds);
+    }
 }
