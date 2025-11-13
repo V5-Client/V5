@@ -69,7 +69,7 @@ class ExcavatorMacro extends ModuleBase {
 
             switch (this.state) {
                 case this.STATES.OPENING:
-                    if (Player.lookingAt() instanceof Entity) {
+                    if (Player.lookingAt() instanceof Entity && !this.inExcavator) {
                         Keybind.rightClick();
                         this.state = this.STATES.SETUP;
                     }
