@@ -1,9 +1,5 @@
-//let { S2DPacketOpenWindow, chat, Blocks, TimeHelper, mcMobs, MathUtils, ItemObject, S30PacketWindowItems, Utils, InventoryUtils, ItemUtils } = global.export
-
 import { Chat } from './Chat';
-//import { Timers } from "./Timing";
 import { MathUtils } from './Math';
-import { ItemObject } from './DataClasses/ItemObject';
 import { Utils } from './Utils';
 import { Guis } from './Inventory';
 import { Keybind } from './Keybinding';
@@ -490,7 +486,7 @@ class MiningUtilClass {
             const item = Player.getInventory().getStackInSlot(i);
             if (!item) continue;
 
-            const itemInstance = new ItemObject(item, i);
+            const itemInstance = { item: item, slot: i };
             const itemName = item.getName().removeFormatting();
 
             const drillName = drillNames.find((d) => itemName.includes(d.name));
