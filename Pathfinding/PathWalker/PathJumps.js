@@ -56,6 +56,43 @@ function isPlayerInFluid() {
     return false;
 }
 
+function canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
+    const world = World.getWorld();
+    const blockPosNMS = new net.minecraft.util.math.BlockPos(blockX, blockY, blockZ);
+    const blockState = world.getBlockState(blockPosNMS);
+
+    try {
+        const stateString = blockState.toString();
+        const facingMatch = stateString.match(/facing=(\w+)/);
+
+        if (!facingMatch) return true;
+
+        const facingDir = facingMatch[1].toLowerCase();
+
+        const dx = blockX + 0.5 - playerX;
+        const dz = blockZ + 0.5 - playerZ;
+
+        let approachDirection;
+        if (Math.abs(dx) > Math.abs(dz)) {
+            approachDirection = dx > 0 ? 'west' : 'east';
+        } else {
+            approachDirection = dz > 0 ? 'north' : 'south';
+        }
+
+        // Stairs are walkable from the opposite of their facing direction for some reason
+        const walkableDirection = {
+            north: 'south',
+            south: 'north',
+            east: 'west',
+            west: 'east',
+        }[facingDir];
+
+        return approachDirection === walkableDirection;
+    } catch (e) {
+        return true; // if error, just assume it. i'll fix pathstuck to jump *eventually*
+    }
+}
+
 function hasLowCeiling(x, y, z, world) {
     for (let offset = 2; offset <= 3; offset++) {
         const block = getCachedBlock(x, y + offset, z);
@@ -184,8 +221,12 @@ export function detectJump(pathBetweenKeyNodes) {
             needsJump = true;
         }
 
-        if (lookaheadData.name.includes('slab') || lookaheadData.name.includes('stair')) {
+        if (lookaheadData.name.includes('slab')) {
             canWalkInstead = true;
+        } else if (lookaheadData.name.includes('stair')) {
+            if (canWalkUpStairs(Player.getX(), Player.getY(), Player.getZ(), lookaheadData.vec.x, lookaheadData.vec.y, lookaheadData.vec.z)) {
+                canWalkInstead = true;
+            }
         }
     }
 
