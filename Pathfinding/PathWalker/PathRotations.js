@@ -5,6 +5,7 @@ import { Vec3d } from '../../Utility/Constants';
 import { MathUtils } from '../../Utility/Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
 import { renderSplineBoxes } from '../PathDebug';
+import { detectStuck, resetStuckDetection } from './PathStuckRecovery';
 
 // Make yaw look ahead thingy dynamic and based off speed ; slower speed = smaller. look ahead max look ahead is to be 5 (anything over 300 speed should have 5 look ahead)
 /* Quick analysis 
@@ -55,6 +56,7 @@ export function ResetRotations() {
     isInitialized = false;
     isJumping = false;
     complete = false;
+    resetStuckDetection();
 }
 
 function calculateRotationSpeed(targetPoint) {
@@ -139,6 +141,18 @@ export function pathRotations(splineData) {
         }
 
         return;
+    }
+
+    const stuckCheck = detectStuck(boxPositions, currentBoxIndex);
+
+    if (stuckCheck === 'RECALCULATE') {
+        complete = true;
+        if (global.requestPathRecalculation) {
+            global.requestPathRecalculation();
+        }
+        return;
+    } else if (typeof stuckCheck === 'number') {
+        currentBoxIndex = stuckCheck;
     }
 
     let closestBoxDistanceSq = Infinity;
