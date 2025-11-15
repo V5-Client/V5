@@ -9,6 +9,7 @@ import { Utils } from '../Utility/Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../Rendering/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
+import { resetStuckDetection } from './PathWalker/PathStuckRecovery';
 
 register('command', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
@@ -24,6 +25,7 @@ register('command', (...args) => {
 
 register('command', () => {
     stopPathing();
+    resetStuckDetection();
 }).setName('stoppathing');
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
@@ -254,3 +256,23 @@ export function findAndFollowPath(start, end, onComplete) {
 
     executePathfinding(start, end, onComplete);
 }
+
+global.requestPathRecalculation = function () {
+    PathfindingMessages('§6[Pathfinding] Recalculating path...');
+
+    const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
+
+    if (keyNodes && keyNodes.length > 0) {
+        const destination = keyNodes[keyNodes.length - 1];
+        const end = [destination.x, destination.y, destination.z];
+
+        stopPathing();
+
+        setTimeout(() => {
+            findAndFollowPath(currentPos, end);
+        }, 100);
+    } else {
+        PathfindingMessages('§c[Pathfinding] Cannot recalculate - no destination stored');
+        stopPathing();
+    }
+};
