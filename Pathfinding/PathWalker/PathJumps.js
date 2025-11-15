@@ -132,6 +132,7 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
     return { lookaheadPositions, closestIndex };
 }
 
+let lastFluidMessage = 0; // i don't want it to spam the message, but it doesn't really matter
 export function detectJump(pathBetweenKeyNodes) {
     const player = Player.getPlayer();
     if (!player) {
@@ -140,7 +141,6 @@ export function detectJump(pathBetweenKeyNodes) {
         return;
     }
 
-    let lastFluidMessage = 0; // i don't want it to spam the message, but it doesn't really matter
     if (isPlayerInFluid()) {
         Keybind.setKey('space', true);
         if (Date.now() - lastFluidMessage > 2000) {
