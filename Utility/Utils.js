@@ -179,34 +179,42 @@ class UtilsClass {
         };
     };
 
-    playerIsCollided() {
-        const playerBB = Player.getPlayer().getBoundingBox();
-        const blocks = this.getBlocks();
-        return blocks.some((block) => block.intersects(playerBB));
+    noCollision(world, blockVec) {
+        const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+        const blockState = world.getBlockState(blockPosNMS);
+        const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
+        return collisionShape.isEmpty();
     }
 
-    getBlocks() {
-        let cords = [Math.floor(Player.getX()), Math.floor(Player.getY()), Math.floor(Player.getZ())];
-        let boxes = [];
-        for (let x = -1; x <= 1; x++) {
-            for (let z = -1; z <= 1; z++) {
-                for (let y = 0; y <= 1; y++) {
-                    let ctBlock = World.getBlockAt(cords[0] + x, cords[1] + y, cords[2] + z);
-                    if (ctBlock.type.mcBlock.func_149669_A() != 1.0 || ctBlock.type.getID() === 0) continue;
-                    boxes.push(
-                        new AxisAlignedBB(
-                            cords[0] + x - 0.01,
-                            cords[1] + y,
-                            cords[2] + z - 0.01,
-                            cords[0] + x + 1.01,
-                            cords[1] + y + ctBlock.type.mcBlock.func_149669_A(),
-                            cords[2] + z + 1.01
-                        )
-                    );
+    playerIsCollided() {
+        const playerBox = Player.getPlayer().getBoundingBox();
+        const expandedBox = playerBox.expand(0.01, 0, 0.01);
+
+        const world = World.getWorld();
+
+        let minX = Math.floor(expandedBox.minX);
+        let minY = Math.floor(expandedBox.minY);
+        let minZ = Math.floor(expandedBox.minZ);
+        let maxX = Math.floor(expandedBox.maxX);
+        let maxY = Math.floor(expandedBox.maxY);
+        let maxZ = Math.floor(expandedBox.maxZ);
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                for (let z = minZ; z <= maxZ; z++) {
+                    let block = World.getBlockAt(x, y, z);
+
+                    if (block?.type?.getID() === 0) return false;
+                    const blockVec = new Vec3d(x, y, z);
+
+                    if (this.noCollision(world, blockVec)) return false;
+
+                    return true;
                 }
             }
         }
-        return boxes;
+
+        return false;
     }
 
     /**
