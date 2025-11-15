@@ -27,11 +27,11 @@ class UtilsClass {
                     return seconds * 1000;
                 }
 
-                Chat.message('§cYou were spawned into limbo.');
-                Thread.sleep(50);
+                ChatLib.chat('§cYou were spawned into limbo.');
                 ChatLib.command('limbo');
-                Thread.sleep(30);
-                Chat.message('§cAn exception occured in your connection, so you have been routed to limbo!');
+                Thread.sleep(50);
+                ChatLib.chat('§cAn exception occured in your connection, so you have been routed to limbo!');
+                ChatLib.chat('&b/limbo for more information');
                 Thread.sleep(randomDelay());
 
                 this.fakeBan(`You have been detected using the blacklisted modification "Polar Client"`);
