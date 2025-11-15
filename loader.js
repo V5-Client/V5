@@ -15,7 +15,7 @@ import './Utility/Config.js';
 
 /* CORE */
 import './Pathfinding/PathFinder.js';
-import './Failsafes/Failsafes.js';
+//import './Failsafes/Failsafes.js';
 
 /* FORAGING */
 //import './Modules/Foraging/SeaLumieMacro.js';

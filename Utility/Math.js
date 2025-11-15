@@ -1,5 +1,3 @@
-//et { Vec3, Vector, Utils } = global.export
-
 import { Vec3d } from './Constants';
 import { Utils } from './Utils';
 
@@ -17,7 +15,7 @@ class MathUtilsClass {
      * @param {Array} Point
      */
     distanceToPlayer(Point) {
-        const eyes = Player.getPlayer().getEyePos().y;
+        const eyes = Player.getPlayer().getEyePos();
         if (!eyes) return 0;
         return this.calculateDistance([eyes.x, eyes.y, eyes.z], Point);
     }

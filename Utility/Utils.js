@@ -54,15 +54,10 @@ class UtilsClass {
     }
 
     /**
-     * Warn the player
-     */
-    /**
      * Warns the player with a message and an optional audio notification.
-     * @param {string} [msg="New Alert!"] - The message to display to the player.
+     * @param {string} msg The message to display to the player.
      */
-    warnPlayer = (msg = 'New Alert!') => {
-        // TODO RC Alert
-
+    warnPlayer(msg = 'New Alert!') {
         Notifications.sendAlert(msg);
 
         return; // this seems to be a bit fucked
@@ -79,8 +74,14 @@ class UtilsClass {
         } catch (e) {
             Chat.message('&cFailsafe sound assets missing! Try reinstall rdbt client!');
         }
-    };
+    }
 
+    /**
+     * Checks if a specfic block coordinate has collision
+     * @param {Object} world The current world
+     * @param {*} blockVec the Vec3d / x, y ,z
+     * @returns wether the block has an empty collision shape
+     */
     noCollision(world, blockVec) {
         const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
         const blockState = world.getBlockState(blockPosNMS);
@@ -88,6 +89,10 @@ class UtilsClass {
         return collisionShape.isEmpty();
     }
 
+    /**
+     * Checks the players hitbox to see if its hitting anything
+     * @returns if the player is collided
+     */
     playerIsCollided() {
         const playerBox = Player.getPlayer().getBoundingBox();
         const expandedBox = playerBox.expand(0.01, 0, 0.01);
@@ -181,6 +186,10 @@ class UtilsClass {
         return this.areaName;
     }
 
+    /**
+     * Returns the subArea from the scoreboard
+     * @returns {string} subArea
+     */
     subArea() {
         if (this.subAreaTime < Date.now() - 1000) {
             let lines = Scoreboard.getLines();
