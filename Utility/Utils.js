@@ -53,14 +53,6 @@ class UtilsClass {
         return JavaArray;
     }
 
-    makeRandomPitch(min, max) {
-        this.randomPitch = Math.random() * (max - min) + min;
-    }
-
-    getRandomPitch() {
-        return this.randomPitch;
-    }
-
     /**
      * Warn the player
      */
@@ -87,22 +79,6 @@ class UtilsClass {
         } catch (e) {
             Chat.message('&cFailsafe sound assets missing! Try reinstall rdbt client!');
         }
-    };
-
-    getRandomInRange(min, max) {
-        return Math.floor(Math.random() * (max - min)) + min;
-    }
-
-    sendPacket(Packet) {
-        Client.getMinecraft().client.getNetworkHandler().sendPacket(Packet);
-    }
-
-    playerCords = () => {
-        return {
-            floor: [Math.floor(Player.getX()), Math.floor(Player.getY()), Math.floor(Player.getZ())],
-            player: [Player.getX(), Player.getY(), Player.getZ()],
-            beneath: [Math.floor(Player.getX()), Math.floor(Player.getY() - 1), Math.floor(Player.getZ())],
-        };
     };
 
     noCollision(world, blockVec) {
@@ -145,7 +121,7 @@ class UtilsClass {
 
     /**
      * @param {Object} input
-     * @returns {vec}
+     * @returns {Vec3d}
      */
     convertToVector(input) {
         if (input && typeof input.x === 'number' && typeof input.y === 'number' && typeof input.z === 'number') return new Vec3d(input.x, input.y, input.z);
@@ -162,7 +138,6 @@ class UtilsClass {
      * @param {string} Name - The name of the configuration file (e.g., "webhook.json").
      * @returns {object} The parsed JSON object from the file.
      */
-
     getConfigFile(Name) {
         let content = FileLib.read(this.configName, Name);
         if (!content) return {};
@@ -231,7 +206,7 @@ class UtilsClass {
 
         let banData = this.getConfigFile('bantime.json');
         let now = Date.now();
-        const totalBanMs = 31103998277; // 360 * 24 * 60 * 60 * 1000: 360 days but i removed 1759 or smth so its like 359 cuz thats what real ones do
+        const totalBanMs = 31103998277;
 
         if (!banData.start) {
             banData.start = now;
