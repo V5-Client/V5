@@ -5,9 +5,9 @@ import { Keybind } from '../../Utility/Keybinding';
 import { Time } from '../../Utility/Timing';
 import { Guis } from '../../Utility/Inventory';
 import { MathUtils } from '../../Utility/Math';
-import { Vector } from '../../Utility/DataClasses/Vec';
 import { Utils } from '../../Utility/Utils';
 import { Mouse } from '../../Utility/Ungrab';
+import { Vec3d } from '../../Utility/Constants';
 
 class ScathaMacro extends ModuleBase {
     constructor() {
@@ -263,7 +263,7 @@ class ScathaMacro extends ModuleBase {
                     return;
                 }
 
-                const playerPos = new Vector(Player.getX(), Player.getY(), Player.getZ());
+                const playerPos = new Vec3d(Player.getX(), Player.getY(), Player.getZ());
                 this.stuckPositions.push(playerPos);
                 if (this.stuckPositions.length > 10) this.stuckPositions.shift();
                 if (this.stuckPositions.some((pos) => pos.getDistance(playerPos) >= 0.5)) this.stuckTimer.reset();
