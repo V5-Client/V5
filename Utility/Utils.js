@@ -1,14 +1,10 @@
 //let { ModuleManager } = global.settingSelection;
 
 import { Chat } from './Chat';
-import { ItemObject } from './DataClasses/ItemObject';
 import { Notifications } from './Notifications';
 
 import { ArrayLists, Vec3d } from './Constants';
 
-let AxisAlignedBB = net.minecraft.world.phys.AABB;
-
-// mc
 export const mc = Client.getMinecraft();
 
 class UtilsClass {
@@ -100,75 +96,6 @@ class UtilsClass {
     sendPacket(Packet) {
         Client.getMinecraft().client.getNetworkHandler().sendPacket(Packet);
     }
-
-    // Item Utils
-
-    /**
-     * @param {String} name
-     * @returns {itemObject}
-     */
-    getItemByName(name) {
-        for (let i = 0; i <= 8; i++) {
-            let item = Player.getInventory()?.getStackInSlot(i);
-            if (item && ChatLib.removeFormatting(item.getName()).includes(name)) {
-                return new ItemObject(item, i);
-            }
-        }
-        return null;
-    }
-    /**
-     * @param {Array<String>} lore
-     * @param {String} string
-     */
-    includesLore(lore, string) {
-        for (let i = 0; i < lore.length; i++) {
-            if (ChatLib.removeFormatting(lore[i]).includes(string)) return true;
-        }
-    }
-
-    /**
-     * Returns an item index filtered by the unformatted name
-     * @param {String[]} Name
-     * @returns {itemHelper}
-     */
-    findItem(Names) {
-        for (let i = 0; i < Names.length; i++) {
-            for (let f = 0; f <= 8; f++) {
-                let item = Player.getInventory()?.getStackInSlot(f);
-                if (item && ChatLib.removeFormatting(item.getName()).includes(Names[i])) {
-                    return new ItemObject(item, f);
-                }
-            }
-        }
-        return null;
-    }
-
-    getItem = (Slot) => {
-        let item = Player.getInventory()?.getStackInSlot(Slot);
-        return new ItemObject(item, Slot);
-    };
-
-    /**
-     * @param {String} ModuleName
-     * @param {String[][]} Items
-     * @returns {Boolean}
-     * checks if all input items are in the hotbar
-     */
-    checkItems = (ModuleName, Items) => {
-        let Missing = [];
-        for (let i = 0; i < Items.length; i++) {
-            if (this.findItem(Items[i]) === null) {
-                Missing.push(Items[i]);
-            }
-        }
-        if (Missing.length > 0) {
-            for (let i = 0; i < Missing.length; i++) {
-                Chat.message('- Missing: ' + Missing[i].toString());
-            }
-            return false;
-        }
-        return true;
-    };
 
     playerCords = () => {
         return {
