@@ -55,10 +55,6 @@ import './Backend/IRC.js';
 import './Modules/Other/LobbyHopper.js';
 // import "./Utility/Webhooks.js"; i honestly fucking hate the webhook load message so much, it just spams me.
 
-/* TESTING */
-import './TestNotification.js'; //REMOVE BEFORE RELEASE
-import './RAYTRACEDEBUG.js'; // REMOVE BEFORE RELEASE
-
 import { loadSettings } from './GUI/GuiSave';
 loadSettings();
 import { returnDiscord } from './GUI/Utils.js';
