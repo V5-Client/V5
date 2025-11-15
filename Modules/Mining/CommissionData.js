@@ -1,3 +1,34 @@
+export const EMISSARY_LOCATIONS = [
+    [129, 195, 196],
+    [42, 134, 22],
+    [171, 149, 31],
+    [-73, 152, -11],
+    [-133, 173, -51],
+    [-38, 199, -132],
+    [89, 197, -93],
+    [58, 197, -9],
+];
+
+export const TRASH_ITEMS = ['Mithril', 'Titanium', 'Rune', 'Glacite', 'Goblin', 'Cobblestone', 'Stone'];
+
+export const MOB_CONFIGS = {
+    goblin: {
+        names: ['Goblin', 'Weakling'],
+        checkVisibility: true,
+        boundaryCheck: (x, y, z) => y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
+    },
+    icewalker: {
+        names: ['Ice Walker', 'Glacite Walker'],
+        checkVisibility: true,
+        boundaryCheck: (x, y, z) => y >= 127 && y <= 132 && z <= 180 && z >= 147 && x <= 42,
+    },
+    treasure: {
+        names: ['Treasuer Hunter'], // MISSPELLED ON PURPOSE (Hypixel typo)
+        checkVisibility: false,
+        boundaryCheck: (x, y, z) => y >= 200 && y <= 210,
+    },
+};
+
 export const COMMISSION_DATA = [
     {
         names: ['Royal Mines Titanium', 'Royal Mines Mithril'],

@@ -46,6 +46,7 @@ import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
+//import './Modules/Other/CakeAura.js'; // broken cuz im a retard
 //import './Modules/Other/AutoLoot.js';
 //import './Modules/Other/AutoSkyblock.js'; // this imports NUKER so it still works idk - cus it needs  connections
 //import './Modules/Other/Freelook.js';

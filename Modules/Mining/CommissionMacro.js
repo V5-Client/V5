@@ -1,6 +1,6 @@
 import { Chat } from '../../Utility/Chat';
 import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
-import { COMMISSION_DATA } from './CommissionData';
+import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
 import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { MiningBot } from './MiningBot';
 import { MiningUtils } from '../../Utility/MiningUtils';
@@ -25,37 +25,6 @@ const STATES = {
     REFUELING: 'Refueling Drill',
     CLAIMING: 'Claiming Rewards',
     SWAPPING_PICK: 'Swapping Pickonimbus',
-};
-
-const EMISSARY_LOCATIONS = [
-    [129, 195, 196],
-    [42, 134, 22],
-    [171, 149, 31],
-    [-73, 152, -11],
-    [-133, 173, -51],
-    [-38, 199, -132],
-    [89, 197, -93],
-    [58, 197, -9],
-];
-
-const TRASH_ITEMS = ['Mithril', 'Titanium', 'Rune', 'Glacite', 'Goblin', 'Cobblestone', 'Stone'];
-
-const MOB_CONFIGS = {
-    goblin: {
-        names: ['Goblin', 'Weakling'],
-        checkVisibility: true,
-        boundaryCheck: (x, y, z) => y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
-    },
-    icewalker: {
-        names: ['Ice Walker', 'Glacite Walker'],
-        checkVisibility: true,
-        boundaryCheck: (x, y, z) => y >= 127 && y <= 132 && z <= 180 && z >= 147 && x <= 42,
-    },
-    treasure: {
-        names: ['Treasuer Hunter'], // MISSPELLED ON PURPOSE (Hypixel typo)
-        checkVisibility: false,
-        boundaryCheck: (x, y, z) => y >= 200 && y <= 210,
-    },
 };
 
 class CommissionMacro extends ModuleBase {
