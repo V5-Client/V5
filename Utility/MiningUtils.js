@@ -67,6 +67,10 @@ class MiningUtilClass {
         }).setName('getminingstats');
     }
 
+    /**
+     * Goes through multiple GUIs to check mining stats
+     * @returns all required mining stats
+     */
     RetreiveStats() {
         const { drill } = this.getDrills();
         if (!drill) return;
@@ -148,7 +152,6 @@ class MiningUtilClass {
                         this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
 
                         currentStep++;
-                        ChatLib.chat(this.ability);
                         Guis.clickSlot(8, false, 'RIGHT');
                     }
                     break;
@@ -301,7 +304,7 @@ class MiningUtilClass {
                         if (!clickFuel) {
                             Chat.message('You have no fuel in your inventory!');
                             Thread.sleep(500);
-                            Guis.clickSlot(29, true); // weird bug where the close function ghosts your drill
+                            Guis.clickSlot(29, true);
                             Thread.sleep(500);
                             Guis.closeInv();
                             return success(false);

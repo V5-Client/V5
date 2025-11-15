@@ -35,14 +35,12 @@ function makeFile(Path, Content) {
     FileLib.append(configName, Path, Content);
 }
 
-// Makes the base folder
 if (!existsFile('./config/ChatTriggers/modules', configName)) {
     let dir = new File('./config/ChatTriggers/modules/', configName);
     dir.mkdir();
 }
 
 let Files = [
-    // Base Files
     {
         path: 'config.json',
         FileType: 'file',
@@ -54,17 +52,7 @@ let Files = [
         Content: [],
     },
     {
-        path: 'dev.json',
-        FileType: 'file',
-        Content: [],
-    },
-    {
         path: 'webhook.json',
-        FileType: 'file',
-        Content: [],
-    },
-    {
-        path: 'TOKEN_DO_NOT_SHARE.json',
         FileType: 'file',
         Content: [],
     },
@@ -74,37 +62,35 @@ let Files = [
         Content: ['???', 'bro wtf', 'what', 'rly', 'hmmmm', 'bro', '?', 'hello??', 'lol', 'nice bro', '...', 'omg', 'pls', 'lmfao', 'idiot', 'really'],
     },
 
-    // Routes
-
     {
-        path: 'gemstoneroutes',
+        path: 'GemstoneRoutes',
         FileType: 'dir',
     },
-    { path: 'gemstoneroutes/empty.txt', FileType: 'file', Content: [] },
+    { path: 'GemstoneRoutes/empty.txt', FileType: 'file', Content: [] },
 
     {
-        path: 'routewalkerroutes',
+        path: 'RoutewalkerRoutes',
         FileType: 'dir',
     },
-    { path: 'routewalkerroutes/empty.txt', FileType: 'file', Content: [] },
+    { path: 'RoutewalkerRoutes/empty.txt', FileType: 'file', Content: [] },
 
     {
-        path: 'tunnelroutes',
+        path: 'TunnelMinerRoutes',
         FileType: 'dir',
     },
-    { path: 'tunnelroutes/empty.txt', FileType: 'file', Content: [] },
+    { path: 'TunnelMinerRoutes/empty.txt', FileType: 'file', Content: [] },
 
     {
-        path: 'oreroutes',
+        path: 'OreRoutes',
         FileType: 'dir',
     },
-    { path: 'oreroutes/empty.txt', FileType: 'file', Content: [] },
+    { path: 'OreRoutes/empty.txt', FileType: 'file', Content: [] },
 
     {
-        path: 'etherwarperoutes',
+        path: 'EtherwarpRoutes',
         FileType: 'dir',
     },
-    { path: 'etherwarperoutes/empty.txt', FileType: 'file', Content: [] },
+    { path: 'EtherwarpRoutes/empty.txt', FileType: 'file', Content: [] },
 
     // Mining Stats
     { path: 'miningstats.json', FileType: 'file', Content: {} },
