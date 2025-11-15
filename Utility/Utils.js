@@ -2,7 +2,6 @@
 
 import { Chat } from './Chat';
 import { ItemObject } from './DataClasses/ItemObject';
-import { Vector } from './DataClasses/Vec';
 import { Notifications } from './Notifications';
 
 import { ArrayLists, Vec3d } from './Constants';
@@ -222,19 +221,13 @@ class UtilsClass {
      * @returns {vec}
      */
     convertToVector(input) {
-        if (input instanceof Vector || input instanceof Vec3d) return input;
-        if (input instanceof Array && input.length >= 3) return new Vector(input[0], input[1], input[2]);
-        else if (input instanceof BlockPos || input instanceof Vec3i) return new Vector(input.x, input.y, input.z);
-        else if (input instanceof net.minecraft.util.math.Vec3d) return new Vector(input.x, input.y, input.z);
-        else if (input instanceof Player || input instanceof PlayerMP || input instanceof Entity) return new Vector(input.getX(), input.getY(), input.getZ());
-        else if (input && typeof input.x === 'number' && typeof input.y === 'number' && typeof input.z === 'number')
-            return new Vector(input.x, input.y, input.z);
+        if (input && typeof input.x === 'number' && typeof input.y === 'number' && typeof input.z === 'number') return new Vec3d(input.x, input.y, input.z);
+        if (input instanceof Player || input instanceof PlayerMP || input instanceof Entity) return new Vec3d(input.getX(), input.getY(), input.getZ());
+        if (input instanceof BlockPos || input instanceof Vec3i) return new Vec3d(input.x, input.y, input.z);
+        if (input instanceof Array && input.length >= 3) return new Vec3d(input[0], input[1], input[2]);
+        if (input instanceof Vec3d) return input;
 
         return null;
-    }
-
-    isNumber(object) {
-        return typeof object === 'number';
     }
 
     /**
@@ -263,10 +256,6 @@ class UtilsClass {
     writeConfigFile(Name, Value) {
         let string = JSON.stringify(Value, null, 2);
         FileLib.write(this.configName, Name, string);
-    }
-
-    blockCode(pos) {
-        return pos.x + '' + pos.y + '' + pos.z;
     }
 
     /**

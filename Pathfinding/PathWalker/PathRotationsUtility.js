@@ -1,4 +1,3 @@
-import { Vector } from '../../Utility/DataClasses/Vec';
 import { Utils } from '../../Utility/Utils';
 
 class PathRotsUtil {
