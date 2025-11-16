@@ -1,17 +1,28 @@
 import { PathfindingMessages } from '../PathConfig';
 import { Vec3d } from '../../Utility/Constants';
+import { Utils } from '../../Utility/Utils';
+import { Keybind } from '../../Utility/Keybinding';
 
 let lastPlayerPos = null;
 let ticksWithoutMovement = 0;
 let recoveryAttempts = 0;
 let recoveryLockTicks = 0;
+let lastRecoveryStrategy = null;
+let recoveryStartBoxIndex = -1;
 
 const MIN_MOVEMENT_THRESHOLD = 0.12;
-const RECOVERY_ATTEMPT_INTERVALS = [20, 40, 60];
+const MIN_MOVEMENT_THRESHOLD_COLLIDED = 0.05;
+
+const RECOVERY_ATTEMPT_INTERVALS = [15, 35, 60];
 const MAX_RECOVERY_ATTEMPTS = 3;
 const RECOVERY_LOCK_DURATION = 20;
 const SEVERE_STUCK_THRESHOLD = 100;
-const BOX_SEARCH_RANGE = 15;
+const MIN_PROGRESS_BOXES = 2; // must advance at least this many boxes or the recovery is considered failed
+
+const JUMP_DURATION = 8;
+
+let isRecoveryJumping = false;
+let jumpRecoveryTicks = 0;
 
 const boxDistanceCache = new Map();
 let cacheFrame = 0;
@@ -19,7 +30,21 @@ let cacheFrame = 0;
 register('tick', () => {
     cacheFrame++;
     if (boxDistanceCache.size > 500) boxDistanceCache.clear();
+
+    if (jumpRecoveryTicks > 0) {
+        jumpRecoveryTicks--;
+        Keybind.setKey('space', true);
+        isRecoveryJumping = true;
+
+        if (jumpRecoveryTicks === 0) {
+            isRecoveryJumping = false;
+        }
+    }
 });
+
+export function isStuckRecoveryJumping() {
+    return isRecoveryJumping;
+}
 
 function getDistance3D(x1, y1, z1, x2, y2, z2) {
     const dx = x1 - x2;
@@ -39,46 +64,54 @@ function getCachedBoxDistance(playerX, playerY, playerZ, box) {
     return boxDistanceCache.get(key);
 }
 
-function findRecoveryBox(boxPositions, currentIndex, playerX, playerY, playerZ) {
-    if (!boxPositions || boxPositions.length === 0) return null;
+function tryJumpRecovery(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
+    const targetIndex = Math.max(0, currentBoxIndex - 1);
+    const box = boxPositions[targetIndex];
+    const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    let bestIndex = null;
-    let bestScore = -Infinity;
+    PathfindingMessages(`§e[Recovery 1/${MAX_RECOVERY_ATTEMPTS}] Jump + slight backup (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
-    const startIndex = Math.max(0, currentIndex - BOX_SEARCH_RANGE);
-    const endIndex = Math.min(boxPositions.length, currentIndex + BOX_SEARCH_RANGE);
+    jumpRecoveryTicks = JUMP_DURATION;
+    isRecoveryJumping = true;
 
-    for (let i = startIndex; i < endIndex; i++) {
-        if (i === currentIndex) continue;
+    lastRecoveryStrategy = 'JUMP';
+    return targetIndex;
+}
 
-        const box = boxPositions[i];
-        const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
+function tryBackupAndJump(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
+    const backupDistance = 3;
+    const targetIndex = Math.max(0, currentBoxIndex - backupDistance);
 
-        // Skip boxes too close or too far
-        if (distance < 1.0 || distance > 20) continue;
+    const box = boxPositions[targetIndex];
+    const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-        // Score: prefer reasonable distance + forward progress
-        const distanceScore = 1 / Math.max(distance, 0.1);
-        const progressBonus = i > currentIndex ? 1.5 : 0.8;
-        const score = distanceScore * progressBonus;
+    PathfindingMessages(`§e[Recovery 2/${MAX_RECOVERY_ATTEMPTS}] Backing up ${backupDistance} boxes + jump (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
-        if (score > bestScore) {
-            bestScore = score;
-            bestIndex = i;
-        }
-    }
+    jumpRecoveryTicks = JUMP_DURATION;
+    isRecoveryJumping = true;
 
-    return bestIndex;
+    lastRecoveryStrategy = 'BACKUP_JUMP';
+    return targetIndex;
+}
+
+function tryMajorBackup(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
+    const backupDistance = 6;
+    const targetIndex = Math.max(0, currentBoxIndex - backupDistance);
+
+    const box = boxPositions[targetIndex];
+    const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
+
+    PathfindingMessages(`§e[Recovery 3/${MAX_RECOVERY_ATTEMPTS}] Major backup ${backupDistance} boxes (${distance.toFixed(1)}m away, box ${targetIndex})`);
+
+    jumpRecoveryTicks = JUMP_DURATION;
+    isRecoveryJumping = true;
+
+    lastRecoveryStrategy = 'MAJOR_BACKUP';
+    return targetIndex;
 }
 
 export function detectStuck(boxPositions, currentBoxIndex) {
     if (!boxPositions || boxPositions.length === 0) return null;
-
-    if (recoveryLockTicks > 0) {
-        recoveryLockTicks--;
-        ticksWithoutMovement++;
-        return null;
-    }
 
     const playerX = Player.getX();
     const playerY = Player.getY();
@@ -88,15 +121,43 @@ export function detectStuck(boxPositions, currentBoxIndex) {
         lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
         ticksWithoutMovement = 0;
         recoveryAttempts = 0;
+        recoveryStartBoxIndex = -1;
         return null;
     }
 
     const distanceMoved = getDistance3D(playerX, playerY, playerZ, lastPlayerPos.x, lastPlayerPos.y, lastPlayerPos.z);
 
-    if (distanceMoved > MIN_MOVEMENT_THRESHOLD) {
+    const isCollided = Utils.playerIsCollided();
+    const movementThreshold = isCollided ? MIN_MOVEMENT_THRESHOLD_COLLIDED : MIN_MOVEMENT_THRESHOLD;
+
+    if (recoveryLockTicks > 0) {
+        recoveryLockTicks--;
+        ticksWithoutMovement++;
+
+        if (recoveryLockTicks === 0) {
+            const madeProgress = currentBoxIndex >= recoveryStartBoxIndex + MIN_PROGRESS_BOXES;
+
+            if (madeProgress) {
+                PathfindingMessages(`§a[Recovery] Success (probably)! Advanced from box ${recoveryStartBoxIndex} to ${currentBoxIndex}`);
+                lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
+                ticksWithoutMovement = 0;
+                recoveryAttempts = 0;
+                recoveryStartBoxIndex = -1;
+                return null;
+            } else {
+                PathfindingMessages(`§c[Recovery] Failed! Only at box ${currentBoxIndex} (started at ${recoveryStartBoxIndex})`);
+                lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
+            }
+        }
+
+        return null;
+    }
+
+    if (distanceMoved > movementThreshold) {
         lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
         ticksWithoutMovement = 0;
         recoveryAttempts = 0;
+        recoveryStartBoxIndex = -1;
         return null;
     }
 
@@ -113,26 +174,21 @@ export function detectStuck(boxPositions, currentBoxIndex) {
 
         if (ticksWithoutMovement >= threshold) {
             recoveryAttempts++;
+            recoveryLockTicks = RECOVERY_LOCK_DURATION;
+            recoveryStartBoxIndex = currentBoxIndex;
+            lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
 
-            const newIndex = findRecoveryBox(boxPositions, currentBoxIndex, playerX, playerY, playerZ);
+            let result = null;
 
-            if (newIndex !== null) {
-                const box = boxPositions[newIndex];
-                const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
-
-                PathfindingMessages(
-                    `§e[Recovery] Attempt ${recoveryAttempts}/${MAX_RECOVERY_ATTEMPTS} - Box ${newIndex} (${distance.toFixed(
-                        1
-                    )}m) [${ticksWithoutMovement} ticks stuck]`
-                );
-
-                recoveryLockTicks = RECOVERY_LOCK_DURATION;
-                lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
-
-                return newIndex;
+            if (recoveryAttempts === 1) {
+                result = tryJumpRecovery(currentBoxIndex, boxPositions, playerX, playerY, playerZ);
+            } else if (recoveryAttempts === 2) {
+                result = tryBackupAndJump(currentBoxIndex, boxPositions, playerX, playerY, playerZ);
+            } else if (recoveryAttempts === 3) {
+                result = tryMajorBackup(currentBoxIndex, boxPositions, playerX, playerY, playerZ);
             }
 
-            PathfindingMessages(`§c[Recovery] Attempt ${recoveryAttempts} - No suitable box found [${ticksWithoutMovement} ticks stuck]`);
+            return result;
         }
     }
 
@@ -144,6 +200,10 @@ export function resetStuckDetection() {
     ticksWithoutMovement = 0;
     recoveryAttempts = 0;
     recoveryLockTicks = 0;
+    lastRecoveryStrategy = null;
+    recoveryStartBoxIndex = -1;
+    jumpRecoveryTicks = 0;
+    isRecoveryJumping = false;
     boxDistanceCache.clear();
 }
 
@@ -152,5 +212,9 @@ export function getStuckInfo() {
         ticksStuck: ticksWithoutMovement,
         attempts: recoveryAttempts,
         locked: recoveryLockTicks > 0,
+        strategy: lastRecoveryStrategy,
+        isCollided: Utils.playerIsCollided(),
+        isRecoveryJumping: isRecoveryJumping,
+        recoveryStartBox: recoveryStartBoxIndex,
     };
 }

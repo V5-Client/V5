@@ -1,4 +1,6 @@
 import { Utils } from '../../Utility/Utils';
+import { MathUtils } from '../../Utility/Math';
+import { Vec3d } from '../../Utility/Constants';
 
 class PathRotsUtil {
     constructor() {
@@ -7,7 +9,7 @@ class PathRotsUtil {
         this.rotating = false;
         this.currentRotationID = null;
 
-        this.tremorFrequency = 0; // limit both of these for pathfinder (FOR NOW)
+        this.tremorFrequency = 0;
         this.fadeExponent = 0.0025;
         this.Randomness = 0;
 
@@ -41,6 +43,39 @@ class PathRotsUtil {
         if (degrees >= 180) degrees -= 360;
         if (degrees < -180) degrees += 360;
         return degrees;
+    }
+
+    calculateSmoothedYaw(targetYaw, currentSmoothedYaw, maxAdjustment) {
+        const deltaYaw = MathUtils.getAngleDifference(currentSmoothedYaw, targetYaw);
+        const adjustment = Math.min(Math.abs(deltaYaw), maxAdjustment) * Math.sign(deltaYaw);
+        return currentSmoothedYaw + adjustment;
+    }
+
+    applySmoothPitchTransition(targetPitch, currentPitch, smoothingFactor) {
+        return currentPitch + (targetPitch - currentPitch) * smoothingFactor;
+    }
+
+    interpolateBoxPosition(boxPositions, startIndex, fraction) {
+        const startBox = boxPositions[startIndex];
+        const endBox = boxPositions[startIndex + 1];
+
+        if (!startBox || !endBox) return null;
+
+        return new Vec3d(
+            startBox.x + 0.5 + (endBox.x - startBox.x) * fraction,
+            startBox.y + 0.5 + (endBox.y - startBox.y) * fraction,
+            startBox.z + 0.5 + (endBox.z - startBox.z) * fraction
+        );
+    }
+
+    calculateRotationSpeed(targetPoint, minSpeed = 60, maxSpeed = 80, scalingFactor = 20) {
+        const { yaw: relYaw, pitch: relPitch } = MathUtils.calculateAngles(targetPoint);
+        const totalAngleDifference = Math.abs(relYaw) + Math.abs(relPitch);
+
+        const range = maxSpeed - minSpeed;
+        let speedConstant = minSpeed + range * Math.exp((-scalingFactor * totalAngleDifference) / 180.0);
+
+        return Math.max(minSpeed, Math.min(maxSpeed, speedConstant));
     }
 
     rotateToAngles(yaw, pitch, instant = false, durationMs = 500) {

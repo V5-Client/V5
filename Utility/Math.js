@@ -91,7 +91,7 @@ class MathUtilsClass {
         let x = xInput;
         let y = yInput;
         let z = zInput;
-        if (!Utils.isNumber(xInput)) {
+        if (typeof xInput !== 'number') {
             let vector = Utils.convertToVector(xInput);
             x = vector.x;
             y = vector.y;
@@ -104,7 +104,7 @@ class MathUtilsClass {
         let x = xInput;
         let y = yInput;
         let z = zInput;
-        if (!Utils.isNumber(xInput)) {
+        if (typeof xInput !== 'number') {
             let vector = Utils.convertToVector(xInput);
             x = vector.x;
             y = vector.y;
