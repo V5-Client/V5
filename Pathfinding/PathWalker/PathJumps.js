@@ -2,14 +2,23 @@ import { Vec3d } from '../../Utility/Constants';
 import RenderUtils from '../../Rendering/RendererUtils';
 import { Keybind } from '../../Utility/Keybinding';
 import { Chat } from '../../Utility/Chat';
+import { PathfindingMessages } from '../PathConfig';
+import { isStuckRecoveryJumping } from './PathStuckRecovery';
 
 export let lastLookaheadPositions = [];
 
 // TODO
-// Snow :(
+// Snow layers. Probably need to look at the block meta? actually collision box might do something idk.
+// edge jump and normal jump affected by those snow layers
 
 const STEP_HEIGHT = 0.6;
 const LOOKAHEAD_NODES = 3;
+
+const EDGE_LOOKAHEAD_NODES = 5;
+const EDGE_JUMP_DISTANCE = 1.8; // jump if gap is within n amount of blocks
+const GAP_CHECK_RESOLUTION = 0.5; // check for gaps more than just at block center stuff. might be useless tbh
+const MIN_GAP_WIDTH = 1.8; // minimum width of gap to actually jump over
+const MAX_GAP_SEARCH = 4; // how far to search for the end of a gap
 
 const blockCache = new Map();
 let cacheFrame = 0;
@@ -34,11 +43,22 @@ export function isBlockNonCollidable(world, blockVec) {
     return collisionShape.isEmpty();
 }
 
+function isBlockSolid(x, y, z) {
+    const block = getCachedBlock(x, y, z);
+    if (!block || block.type.getID() === 0) return false;
+
+    const world = World.getWorld();
+    const blockPosNMS = new net.minecraft.util.math.BlockPos(x, y, z);
+    const blockState = world.getBlockState(blockPosNMS);
+    const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
+
+    return !collisionShape.isEmpty();
+}
+
 function isPlayerInFluid() {
     const playerMP = Player.asPlayerMP();
     if (!playerMP) return false;
 
-    // entity state is less expensive than block check
     if (playerMP.isInLava() || playerMP.isInWater()) {
         return true;
     }
@@ -68,7 +88,6 @@ function canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
         if (!facingMatch) return true;
 
         const facingDir = facingMatch[1].toLowerCase();
-
         const dx = blockX + 0.5 - playerX;
         const dz = blockZ + 0.5 - playerZ;
 
@@ -79,7 +98,6 @@ function canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
             approachDirection = dz > 0 ? 'north' : 'south';
         }
 
-        // Stairs are walkable from the opposite of their facing direction for some reason
         const walkableDirection = {
             north: 'south',
             south: 'north',
@@ -89,7 +107,7 @@ function canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
 
         return approachDirection === walkableDirection;
     } catch (e) {
-        return true; // if error, just assume it. i'll fix pathstuck to jump *eventually*
+        return true;
     }
 }
 
@@ -113,6 +131,101 @@ function hasLowCeiling(x, y, z, world) {
     return false;
 }
 
+function hasGapAt(x, y, z) {
+    const blockX = Math.floor(x);
+    const blockY = Math.floor(y);
+    const blockZ = Math.floor(z);
+
+    if (!isBlockSolid(blockX, blockY, blockZ)) {
+        return true;
+    }
+
+    if (!isBlockSolid(blockX, blockY - 1, blockZ)) {
+        return true;
+    }
+
+    return false;
+}
+
+function calculateGapWidth(startNode, pathBetweenKeyNodes, startIndex) {
+    const maxSearch = Math.min(startIndex + MAX_GAP_SEARCH, pathBetweenKeyNodes.length);
+
+    for (let i = startIndex; i < maxSearch; i++) {
+        const node = pathBetweenKeyNodes[i];
+
+        if (!hasGapAt(node.x, node.y, node.z)) {
+            const dx = node.x - startNode.x;
+            const dz = node.z - startNode.z;
+            return Math.sqrt(dx * dx + dz * dz);
+        }
+    }
+
+    return MAX_GAP_SEARCH + 1;
+}
+
+function hasGapBetweenNodes(node1, node2) {
+    const dx = node2.x - node1.x;
+    const dy = node2.y - node1.y;
+    const dz = node2.z - node1.z;
+
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    const numChecks = Math.ceil(distance / GAP_CHECK_RESOLUTION);
+
+    if (numChecks === 0) return false;
+
+    for (let i = 0; i <= numChecks; i++) {
+        const t = i / numChecks;
+        const checkX = node1.x + dx * t;
+        const checkY = node1.y + dy * t;
+        const checkZ = node1.z + dz * t;
+
+        if (hasGapAt(checkX, checkY, checkZ)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function detectEdgeJump(pathBetweenKeyNodes, closestIndex) {
+    const player = Player.getPlayer();
+    if (!player || !player.isOnGround()) return false;
+
+    const playerX = Player.getX();
+    //const playerY = Math.floor(Player.getY());
+    const playerZ = Player.getZ();
+
+    const startIndex = closestIndex + 1;
+    const endIndex = Math.min(startIndex + EDGE_LOOKAHEAD_NODES, pathBetweenKeyNodes.length);
+
+    for (let i = startIndex; i < endIndex; i++) {
+        const currentNode = pathBetweenKeyNodes[i];
+
+        let hasGap = hasGapAt(currentNode.x, currentNode.y, currentNode.z);
+
+        if (!hasGap && i > startIndex) {
+            const previousNode = pathBetweenKeyNodes[i - 1];
+            hasGap = hasGapBetweenNodes(previousNode, currentNode);
+        }
+
+        if (hasGap) {
+            const gapWidth = calculateGapWidth(currentNode, pathBetweenKeyNodes, i);
+
+            if (gapWidth >= MIN_GAP_WIDTH) {
+                const dx = currentNode.x + 0.5 - playerX;
+                const dz = currentNode.z + 0.5 - playerZ;
+                const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+
+                if (horizontalDistance <= EDGE_JUMP_DISTANCE) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
     const player = Player;
     const world = World.getWorld();
@@ -128,7 +241,6 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
     let closestIndex = -1;
     let minDistanceSq = Infinity;
 
-    // Get closest node to player
     pathBetweenKeyNodes.forEach((node, index) => {
         const dx = playerX - (node.x + 0.5);
         const dy = playerY - (node.y + 0.5);
@@ -146,7 +258,6 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
     const startIndex = closestIndex + 1;
     const endIndex = Math.min(startIndex + LOOKAHEAD_NODES, pathBetweenKeyNodes.length);
 
-    // Check the lookahead nodes
     for (let i = startIndex; i < endIndex; i++) {
         const nextNode = pathBetweenKeyNodes[i];
         const blockVec = new Vec3d(nextNode.x, nextNode.y, nextNode.z);
@@ -169,12 +280,17 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
     return { lookaheadPositions, closestIndex };
 }
 
-let lastFluidMessage = 0; // i don't want it to spam the message, but it doesn't really matter
+let lastFluidMessage = 0;
 export function detectJump(pathBetweenKeyNodes) {
     const player = Player.getPlayer();
     if (!player) {
         lastLookaheadPositions = [];
         Keybind.setKey('space', false);
+        return;
+    }
+
+    if (isStuckRecoveryJumping()) {
+        lastLookaheadPositions = [];
         return;
     }
 
@@ -190,12 +306,12 @@ export function detectJump(pathBetweenKeyNodes) {
 
     if (!player.isOnGround()) {
         lastLookaheadPositions = [];
-        return; // don't change anything if mid air
+        return;
     }
 
     const { lookaheadPositions, closestIndex } = drawPathAndPlayerLookAhead(pathBetweenKeyNodes);
 
-    if (lookaheadPositions.length === 0 || closestIndex === -1) {
+    if (closestIndex === -1) {
         lastLookaheadPositions = [];
         Keybind.setKey('space', false);
         return;
@@ -208,6 +324,19 @@ export function detectJump(pathBetweenKeyNodes) {
     if (hasLowCeiling(pX, playerFloorY, pZ, World.getWorld())) {
         Keybind.setKey('space', false);
         lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
+        return;
+    }
+
+    if (detectEdgeJump(pathBetweenKeyNodes, closestIndex)) {
+        Keybind.setKey('space', true);
+        PathfindingMessages('§6Edge jump detected!');
+        lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
+        return;
+    }
+
+    if (lookaheadPositions.length === 0) {
+        Keybind.setKey('space', false);
+        lastLookaheadPositions = [];
         return;
     }
 
