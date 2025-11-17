@@ -122,7 +122,7 @@ function drawKeyNodes(keynodes) {
             new Vec3d(current.x + 0.5, current.y + 1, current.z + 0.5),
             new Vec3d(next.x + 0.5, next.y + 1, next.z + 0.5),
             [0, 150, 255, 255],
-            1,
+            3,
             true
         );
     }
