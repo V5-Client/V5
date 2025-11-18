@@ -150,7 +150,7 @@ class UtilsClass {
             let parse = JSON.parse(content);
             return parse;
         } catch (error) {
-            Chat.message('Error parsing route file: ' + error);
+            Chat.message('Error parsing config file: ' + error);
             return {};
         }
     }

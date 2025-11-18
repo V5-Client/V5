@@ -18,7 +18,7 @@ class Routes {
         let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5Config/' + folder);
 
         if (!configPath.exists() || !configPath.isDirectory()) {
-            ChatLib.chat(`&cError: Directory not found.`);
+            Chat.message(`&cError: Directory not found.`);
             return [];
         }
 

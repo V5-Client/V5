@@ -3,6 +3,7 @@ import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
 import { File } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
+import { Utils } from '../Utility/Utils';
 
 global.SettingsMap = new Map();
 
@@ -36,7 +37,7 @@ export const saveSettings = () => {
         settings[itemTitle][componentTitle] = value;
     }
 
-    FileLib.write('V5Config', 'config.json', JSON.stringify(settings, null, 2), true);
+    Utils.writeConfigFile('config.json', settings);
 };
 
 export const applySettings = () => {
@@ -57,15 +58,15 @@ export const applySettings = () => {
 };
 
 export const loadSettings = () => {
-    const fileContent = FileLib.read('V5Config', 'config.json');
-    if (!fileContent) {
+    const settings = Utils.getConfigFile('config.json');
+    
+    if (!settings || Object.keys(settings).length === 0) {
         buildSettingsMapFromComponents();
         applySettings();
         return;
     }
 
     try {
-        const settings = JSON.parse(fileContent);
         if (!settings) {
             buildSettingsMapFromComponents();
             applySettings();
