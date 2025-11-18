@@ -162,7 +162,7 @@ function handleWarp(warpCommand, onComplete) {
         return;
     }
 
-    ChatLib.chat(`§aWarp point found! Running command: §e${tpCommand}`);
+    Chat.message(`§aWarp point found! Running command: §e${tpCommand}`);
     ChatLib.command(tpCommand);
     setTimeout(onComplete, 250);
 }
