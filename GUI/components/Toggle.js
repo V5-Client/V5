@@ -1,5 +1,4 @@
-import { playClickSound, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING } from '../Utils';
-import { UIRoundedRectangle, Matrix } from '../../Utility/Constants';
+import { playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING } from '../Utils';
 
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10, callback = null) {
@@ -65,22 +64,28 @@ export class ToggleButton {
 
         const trackColor = this.interpolateColor(THEME.TOGGLE_SWITCH_OFF, THEME.TOGGLE_SWITCH_ON, this.animationProgress);
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            switchX,
-            switchY,
-            switchX + switchWidth,
-            switchY + switchHeight,
-            switchHeight / 2,
-            trackColor
-        );
+        drawRoundedRectangle({
+            x: switchX,
+            y: switchY,
+            width: switchWidth,
+            height: switchHeight,
+            radius: switchHeight / 2,
+            color: trackColor,
+        });
 
         const knobSize = 14;
         const knobPadding = 3;
         const knobX = switchX + knobPadding + (switchWidth - knobSize - knobPadding * 2) * this.animationProgress;
         const knobY = switchY + switchHeight / 2 - knobSize / 2;
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, knobX, knobY, knobX + knobSize, knobY + knobSize, knobSize / 2, THEME.TOGGLE_SWITCH_KNOB);
+        drawRoundedRectangle({
+            x: knobX,
+            y: knobY,
+            width: knobSize,
+            height: knobSize,
+            radius: knobSize / 2,
+            color: THEME.TOGGLE_SWITCH_KNOB,
+        });
 
         const componentRect = {
             x: this.x,

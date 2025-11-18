@@ -1,5 +1,4 @@
-import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
-import { clamp, playClickSound, drawRoundedRectangleWithBorder, THEME, isInside, PADDING } from '../Utils';
+import { clamp, playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, PADDING } from '../Utils';
 
 export class Slider {
     constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null) {
@@ -60,33 +59,38 @@ export class Slider {
         const progress = (this.value - this.min) / (this.max - this.min);
 
         // Track background
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            sliderX,
-            sliderY,
-            sliderX + sliderWidth,
-            sliderY + sliderHeight,
-            sliderHeight / 2,
-            THEME.SLIDER_BAR_BACKGROUND
-        );
+        drawRoundedRectangle({
+            x: sliderX,
+            y: sliderY,
+            width: sliderWidth,
+            height: sliderHeight,
+            radius: sliderHeight / 2,
+            color: THEME.SLIDER_BAR_BACKGROUND,
+        });
 
         // Track foreground (filled portion)
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            sliderX,
-            sliderY,
-            sliderX + sliderWidth * progress,
-            sliderY + sliderHeight,
-            sliderHeight / 2,
-            foregroundColor
-        );
+        drawRoundedRectangle({
+            x: sliderX,
+            y: sliderY,
+            width: sliderWidth * progress,
+            height: sliderHeight,
+            radius: sliderHeight / 2,
+            color: foregroundColor,
+        });
 
         // Handle (circular)
         const handleSize = 14;
         const handleX = sliderX + (sliderWidth - handleSize / 2) * progress - handleSize / 2;
         const handleY = sliderY + sliderHeight / 2 - handleSize / 2;
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, handleX, handleY, handleX + handleSize, handleY + handleSize, handleSize / 2, handleColor);
+        drawRoundedRectangle({
+            x: handleX,
+            y: handleY,
+            width: handleSize,
+            height: handleSize,
+            radius: handleSize / 2,
+            color: handleColor,
+        });
 
         // Value display box
         const valueString = this.value.toFixed(this.precision);
@@ -105,15 +109,14 @@ export class Slider {
             height: valueBoxHeight,
         };
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            valueStringX,
-            valueStringY,
-            valueStringX + valueBoxWidth,
-            valueStringY + valueBoxHeight,
-            6,
-            this.isTyping ? THEME.SLIDER_FOREGROUND : THEME.SLIDER_VALUE_BG
-        );
+        drawRoundedRectangle({
+            x: valueStringX,
+            y: valueStringY,
+            width: valueBoxWidth,
+            height: valueBoxHeight,
+            radius: 6,
+            color: this.isTyping ? THEME.SLIDER_FOREGROUND : THEME.SLIDER_VALUE_BG,
+        });
 
         Renderer.drawString(displayValue, valueStringX + valuePadding, valueStringY + valueBoxHeight / 2 - 4, THEME.SLIDER_VALUE_TEXT.getRGB(), false);
 

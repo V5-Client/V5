@@ -1,5 +1,4 @@
-import { Color, UIRoundedRectangle, UMatrixStack, Matrix } from '../Utility/Constants';
-import { THEME, isInside, colorWithAlpha } from './Utils';
+import { THEME, isInside, colorWithAlpha, drawRoundedRectangle } from './Utils';
 
 // Configuration
 const RENDER_ABOVE_GUI = true; // toggle rendering above guis
@@ -227,25 +226,38 @@ class Notification {
         const typeInfo = NOTIFICATION_TYPES[this.type];
 
         const bgColor = colorWithAlpha(BACKGROUND_COLOR, alpha);
-        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, this.x, this.y, this.x + NOTIFICATION_WIDTH, this.y + this.height, CORNER_RADIUS, bgColor);
+        drawRoundedRectangle({
+            x: this.x,
+            y: this.y,
+            width: NOTIFICATION_WIDTH,
+            height: this.height,
+            radius: CORNER_RADIUS,
+            color: bgColor,
+        });
 
         const iconBgX = this.x + NOTIFICATION_PADDING;
         const iconBgY = this.y + this.height / 2 - 12;
         const iconBgSize = 24;
 
         const outlineColor = colorWithAlpha(typeInfo.outlineColor, alpha);
-        UIRoundedRectangle.Companion.drawRoundedRectangle(
-            Matrix,
-            iconBgX - 1,
-            iconBgY - 1,
-            iconBgX + iconBgSize + 1,
-            iconBgY + iconBgSize + 1,
-            7,
-            outlineColor
-        );
+        drawRoundedRectangle({
+            x: iconBgX - 1,
+            y: iconBgY - 1,
+            width: iconBgSize + 2,
+            height: iconBgSize + 2,
+            radius: 7,
+            color: outlineColor,
+        });
 
         const iconBgColor = colorWithAlpha(ICON_BACKGROUND_COLOR, alpha);
-        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, iconBgX, iconBgY, iconBgX + iconBgSize, iconBgY + iconBgSize, 6, iconBgColor);
+        drawRoundedRectangle({
+            x: iconBgX,
+            y: iconBgY,
+            width: iconBgSize,
+            height: iconBgSize,
+            radius: 6,
+            color: iconBgColor,
+        });
 
         typeInfo.iconDrawer(iconBgX + iconBgSize / 2, iconBgY + iconBgSize / 2, Math.floor(alpha * 255));
 
@@ -279,7 +291,14 @@ class Notification {
 
         if (this.closeHovered) {
             const hoverColor = colorWithAlpha(CLOSE_BUTTON_HOVER_COLOR, alpha);
-            UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, closeX, closeY, closeX + closeSize, closeY + closeSize, 4, hoverColor);
+            drawRoundedRectangle({
+                x: closeX,
+                y: closeY,
+                width: closeSize,
+                height: closeSize,
+                radius: 4,
+                color: hoverColor,
+            });
         }
 
         this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
@@ -307,15 +326,14 @@ class Notification {
                     Math.round(scissorHeight * scale)
                 );
 
-                UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    Matrix,
-                    this.x,
-                    this.y,
-                    this.x + NOTIFICATION_WIDTH,
-                    this.y + this.height,
-                    CORNER_RADIUS,
-                    progressColor
-                );
+                drawRoundedRectangle({
+                    x: this.x,
+                    y: this.y,
+                    width: NOTIFICATION_WIDTH,
+                    height: this.height,
+                    radius: CORNER_RADIUS,
+                    color: progressColor,
+                });
 
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);
             }
