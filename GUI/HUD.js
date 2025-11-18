@@ -1,5 +1,6 @@
 import { ModuleBase } from '../Utility/ModuleBase';
-import { UIRoundedRectangle, Matrix, Color } from '../Utility/Constants';
+import { Color } from '../Utility/Constants';
+import { drawRoundedRectangle } from './Utils';
 
 class HUD extends ModuleBase {
     constructor() {
@@ -73,7 +74,14 @@ class HUD extends ModuleBase {
                 const bgWidth = x + w + 125;
                 const bgLength = y + h + 143;
 
-                UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, bgX - PADDING, bgY - PADDING, bgWidth + PADDING, bgLength + PADDING, r, c);
+                drawRoundedRectangle({
+                    x: bgX - PADDING,
+                    y: bgY - PADDING,
+                    width: bgWidth - bgX + 2 * PADDING,
+                    height: bgLength - bgY + 2 * PADDING,
+                    radius: r,
+                    color: c,
+                });
 
                 const inv = Player.getInventory();
                 if (!inv) return;

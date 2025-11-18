@@ -1,5 +1,4 @@
-import { playClickSound, THEME, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic } from '../Utils';
-import { Matrix, UIRoundedRectangle } from '../../Utility/Constants';
+import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic } from '../Utils';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false, callback = null) {
@@ -92,7 +91,14 @@ export class MultiToggle {
         const arrowX = this.x + panelWidth - arrowSize - rightMargin;
         const arrowY = this.y + this.containerHeight / 2 - arrowSize / 2;
 
-        UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, arrowX, arrowY, arrowX + arrowSize, arrowY + arrowSize, 4, THEME.GUI_MANAGER_UNIVERSAL_GRAY);
+        drawRoundedRectangle({
+            x: arrowX,
+            y: arrowY,
+            width: arrowSize,
+            height: arrowSize,
+            radius: 4,
+            color: THEME.GUI_MANAGER_UNIVERSAL_GRAY,
+        });
 
         const arrow = this.expanded ? '▲' : '▼';
         const arrowWidth = Renderer.getStringWidth(arrow);
@@ -141,15 +147,14 @@ export class MultiToggle {
                 });
 
                 if (isOptionHovered) {
-                    UIRoundedRectangle.Companion.drawRoundedRectangle(
-                        Matrix,
-                        dropdownX + 4,
-                        optionTop,
-                        dropdownX + panelWidth - 4,
-                        optionTop + this.optionHeight,
-                        6,
-                        THEME.GUI_MANAGER_UNIVERSAL_GRAY
-                    );
+                    drawRoundedRectangle({
+                        x: dropdownX + 4,
+                        y: optionTop,
+                        width: panelWidth - 8,
+                        height: this.optionHeight,
+                        radius: 6,
+                        color: THEME.GUI_MANAGER_UNIVERSAL_GRAY,
+                    });
                 }
 
                 const switchWidth = 36;
@@ -159,30 +164,28 @@ export class MultiToggle {
 
                 const trackColor = this.interpolateColor(THEME.TOGGLE_SWITCH_OFF, THEME.TOGGLE_SWITCH_ON, option.animationProgress);
 
-                UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    Matrix,
-                    switchX,
-                    switchY,
-                    switchX + switchWidth,
-                    switchY + switchHeight,
-                    switchHeight / 2,
-                    trackColor
-                );
+                drawRoundedRectangle({
+                    x: switchX,
+                    y: switchY,
+                    width: switchWidth,
+                    height: switchHeight,
+                    radius: switchHeight / 2,
+                    color: trackColor,
+                });
 
                 const knobSize = 14;
                 const knobPadding = 3;
                 const knobX = switchX + knobPadding + (switchWidth - knobSize - knobPadding * 2) * option.animationProgress;
                 const knobY = switchY + switchHeight / 2 - knobSize / 2;
 
-                UIRoundedRectangle.Companion.drawRoundedRectangle(
-                    Matrix,
-                    knobX,
-                    knobY,
-                    knobX + knobSize,
-                    knobY + knobSize,
-                    knobSize / 2,
-                    THEME.TOGGLE_SWITCH_KNOB
-                );
+                drawRoundedRectangle({
+                    x: knobX,
+                    y: knobY,
+                    width: knobSize,
+                    height: knobSize,
+                    radius: knobSize / 2,
+                    color: THEME.TOGGLE_SWITCH_KNOB,
+                });
 
                 Renderer.drawString(option.name, optionX, optionTop + this.optionHeight / 2 - 4, textColor.getRGB(), false);
 
