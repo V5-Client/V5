@@ -2,8 +2,7 @@
 
 import { Chat } from './Chat';
 import { Notifications } from './Notifications';
-
-import { ArrayLists, Vec3d } from './Constants';
+import { ArrayLists, Vec3d, URL, BufferedInputStream, FileOutputStream } from './Constants';
 
 export const mc = Client.getMinecraft();
 
@@ -207,6 +206,31 @@ class UtilsClass {
             }
         }
         return this.subAreaName;
+    }
+
+    downloadFile(fileURL, savePath) {
+        try {
+            if (fileURL.startsWith('"') && fileURL.endsWith('"')) {
+                fileURL = fileURL.substring(1, fileURL.length - 1);
+            }
+
+            let url = new URL(fileURL);
+            let inStream = new BufferedInputStream(url.openStream());
+            let outStream = new FileOutputStream(savePath);
+
+            let buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+            let bytesRead;
+
+            while ((bytesRead = inStream.read(buffer, 0, 1024)) !== -1) {
+                outStream.write(buffer, 0, bytesRead);
+            }
+
+            inStream.close();
+            outStream.close();
+        } catch (e) {
+            console.error(`Failed to download file from ${fileURL}: ${e}`);
+            Chat.message(`&cFailed to download file: ${e}`);
+        }
     }
 
     fakeBan(reason) {

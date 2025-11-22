@@ -53,7 +53,8 @@ import './Modules/Other/FastPlace.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
 import './Modules/Other/LobbyHopper.js';
-import "./Utility/Webhooks.js"; // i honestly fucking hate the webhook load message so much, it just spams me.
+import './Utility/Webhooks.js'; // i honestly fucking hate the webhook load message so much, it just spams me.
+import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 
 import { loadSettings } from './GUI/GuiSave';
 loadSettings();

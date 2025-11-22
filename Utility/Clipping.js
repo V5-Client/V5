@@ -1,0 +1,456 @@
+import { ModuleBase } from './ModuleBase';
+import { Chat } from './Chat';
+import { Utils } from './Utils';
+import { File, URL, System, ProcessBuilder, Runtime } from './Constants';
+
+const os = System.getProperty('os.name').toLowerCase();
+const isWindows = os.includes('win');
+const isMac = os.includes('mac');
+const isLinux = os.includes('nux') || os.includes('nix');
+
+const globalAssetsDir = new File('./config/ChatTriggers/assets');
+if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
+
+const ffmpegName = isWindows ? 'ffmpeg.exe' : 'ffmpeg';
+const ffmpegFile = new File(globalAssetsDir, ffmpegName);
+
+const clipsDir = new File('./config/ChatTriggers/modules/V5Config/clips');
+const bufferDir = new File(clipsDir, 'buffer');
+
+if (!clipsDir.exists()) clipsDir.mkdirs();
+if (!bufferDir.exists()) bufferDir.mkdirs();
+
+const URLS = {
+    WIN: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip',
+    LINUX: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz',
+    MAC: 'https://evermeet.cx/ffmpeg/ffmpeg-8.0.1.7z', // hardcoded version because the site doesn't have a static latest link
+};
+
+class ClippingManager extends ModuleBase {
+    constructor() {
+        super({
+            name: 'Clipping',
+            subcategory: 'Core',
+            description: 'Background recording and clipping utility. Supposed to be used by failsafes.',
+            tooltip: 'Records rolling buffer. Use /clip to save.',
+            showEnabledToggle: true,
+        });
+
+        this.process = null;
+        this.isRecording = false;
+        this.lastClipTime = 0;
+        this.fps = 15;
+
+        this.addSlider(
+            'FPS',
+            15,
+            30,
+            15,
+            (v) => {
+                this.fps = Math.floor(v);
+            },
+            'Recording Framerate. Higher values use more CPU.'
+        );
+
+        register('command', (...args) => {
+            if (args && args[0] && args[0].toLowerCase() === 'compress') {
+                this.compressLatestClip();
+            } else {
+                this.saveClip();
+            }
+        }).setName('clip');
+
+        this.checkAndStart();
+        register('gameUnload', () => this.stopRecording());
+    }
+
+    compressLatestClip() {
+        Chat.message('&7[Clipping] Finding latest clip to compress!!!!!');
+
+        new Thread(() => {
+            try {
+                if (!clipsDir.exists()) return;
+
+                const files = clipsDir.listFiles();
+                if (!files || files.length === 0) {
+                    Chat.message('&c[Clipping] No clips found.');
+                    return;
+                }
+
+                const clips = Array.from(files).filter(
+                    (f) => f.getName().startsWith('Clip_') && f.getName().endsWith('.mp4') && !f.getName().includes('_compressed')
+                );
+
+                if (clips.length === 0) {
+                    Chat.message('&c[Clipping] No eligible clips found.');
+                    return;
+                }
+
+                clips.sort((a, b) => b.lastModified() - a.lastModified());
+                const inputClip = clips[0];
+
+                const outputName = inputClip.getName().replace('.mp4', '_compressed.mp4');
+                const outputFile = new File(clipsDir, outputName);
+
+                Chat.message(`&e[Clipping] Compressing &f${inputClip.getName()}&e...`);
+
+                const args = [
+                    ffmpegFile.getAbsolutePath(),
+                    '-y',
+                    '-i',
+                    inputClip.getAbsolutePath(),
+                    '-c:v',
+                    'libx265',
+                    '-crf',
+                    '28',
+                    '-preset',
+                    'ultrafast',
+                    '-vf',
+                    'scale=-2:1080',
+                    '-an', // no audio but idc
+                    outputFile.getAbsolutePath(),
+                ]; // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
+
+                const pb = new ProcessBuilder(...args);
+                pb.redirectErrorStream(true);
+                const p = pb.start();
+
+                const reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+                let line;
+                let logLines = [];
+
+                while ((line = reader.readLine()) != null) {
+                    logLines.push(line);
+                }
+
+                const exitCode = p.waitFor();
+
+                if (exitCode !== 0) {
+                    Chat.message(`&c[Clipping] Compression failed with code ${exitCode}.`);
+                    logLines.slice(-3).forEach((l) => Chat.message('&c' + l));
+                    try {
+                        outputFile.delete();
+                    } catch (e) {}
+                } else {
+                    Chat.message(`&a[Clipping] Successfully compressed: &b${outputFile.getName()}`);
+                }
+            } catch (e) {
+                Chat.message(`&c[Clipping] Compression failed: ${e}`);
+                console.error(e);
+            }
+        }).start();
+    }
+
+    checkAndStart() {
+        if (ffmpegFile.exists()) {
+            Client.scheduleTask(20, () => this.startRecording());
+        } else {
+            Chat.message('&e[Clipping] FFmpeg not found. Downloading...');
+            this.downloadFFmpeg();
+        }
+    }
+
+    downloadFFmpeg() {
+        new Thread(() => {
+            try {
+                let url = '';
+                let archiveName = '';
+
+                if (isWindows) {
+                    url = URLS.WIN;
+                    archiveName = 'ffmpeg.zip';
+                } else if (isLinux) {
+                    url = URLS.LINUX;
+                    archiveName = 'ffmpeg.tar.xz';
+                } else if (isMac) {
+                    url = URLS.MAC;
+                    archiveName = 'ffmpeg.7z';
+                } else {
+                    Chat.message('&c[Clipping] Unsupported OS for auto-download.');
+                    return;
+                }
+
+                const archiveFile = new File(globalAssetsDir, archiveName);
+                Utils.downloadFile(url, archiveFile.getAbsolutePath());
+
+                Chat.message('&e[Clipping] Download complete. Extracting...');
+                this.extractFFmpeg(archiveFile);
+            } catch (e) {
+                Chat.message(`&c[Clipping] Download failed: ${e}`);
+                console.error(e);
+            }
+        }).start();
+    }
+
+    extractFFmpeg(archiveFile) {
+        try {
+            let cmd = [];
+            const archivePath = archiveFile.getAbsolutePath();
+            const destPath = globalAssetsDir.getAbsolutePath();
+
+            if (isWindows) {
+                cmd = ['powershell', '-command', `Expand-Archive -Path '${archivePath}' -DestinationPath '${destPath}' -Force`];
+            } else if (isLinux) {
+                cmd = ['tar', '-xf', archivePath, '-C', destPath];
+            } else if (isMac) {
+                cmd = ['tar', '-xf', archivePath, '-C', destPath];
+            }
+
+            const pb = new ProcessBuilder(...cmd);
+            pb.directory(globalAssetsDir);
+            const p = pb.start();
+            p.waitFor();
+
+            this.organizeBinaries();
+            archiveFile.delete();
+
+            Chat.message('&a[Clipping] FFmpeg installed! Starting recorder...');
+            this.startRecording();
+        } catch (e) {
+            Chat.message(`&c[Clipping] Extraction failed: ${e}`);
+            console.error(e);
+        }
+    }
+
+    organizeBinaries() {
+        const findFile = (dir, name) => {
+            const files = dir.listFiles();
+            if (!files) return null;
+            for (let f of files) {
+                if (f.isDirectory()) {
+                    const found = findFile(f, name);
+                    if (found) return found;
+                } else if (f.getName() === name) {
+                    return f;
+                }
+            }
+            return null;
+        };
+
+        const foundBin = findFile(globalAssetsDir, ffmpegName);
+        if (foundBin && !foundBin.getParentFile().equals(globalAssetsDir)) {
+            const dest = new File(globalAssetsDir, ffmpegName);
+            if (dest.exists()) dest.delete();
+            foundBin.renameTo(dest);
+        }
+
+        const cleanupDirs = ['ffmpeg-master-latest-win64-gpl', 'ffmpeg-master-latest-linux64-gpl'];
+        cleanupDirs.forEach((name) => {
+            const f = new File(globalAssetsDir, name);
+            if (f.exists()) this.deleteRecursive(f);
+        });
+
+        if (!isWindows) {
+            const pb = new ProcessBuilder('chmod', '+x', ffmpegFile.getAbsolutePath());
+            pb.start().waitFor();
+        }
+    }
+
+    deleteRecursive(file) {
+        if (file.isDirectory()) {
+            file.listFiles().forEach((f) => this.deleteRecursive(f));
+        }
+        file.delete();
+    }
+
+    getWindowTitle() {
+        return `Client ${global.Version || '1.0.0'} - ${Player.getName()}`;
+    }
+
+    startRecording() {
+        if (this.isRecording) return;
+        if (!this.enabled) return;
+
+        const windowTitle = this.getWindowTitle();
+        try {
+            Client.getMinecraft().getWindow().setTitle(windowTitle);
+        } catch (e) {
+            console.error('Failed to set window title: ' + e);
+        }
+
+        this.clearBuffer();
+
+        const outputPath = new File(bufferDir, 'segment_%03d.mp4').getAbsolutePath();
+        const gopSize = Math.floor(this.fps * 5);
+
+        let args = [ffmpegFile.getAbsolutePath(), '-y', '-f', isWindows ? 'gdigrab' : isMac ? 'avfoundation' : 'x11grab', '-framerate', String(this.fps)];
+
+        if (isWindows) {
+            args.push('-i', `title=${windowTitle}`);
+        } else if (isMac) {
+            args.push('-i', '1');
+        } else {
+            args.push('-i', ':0.0');
+        }
+
+        args.push(
+            '-c:v',
+            'libx264',
+            '-vf',
+            'scale=trunc(iw/2)*2:trunc(ih/2)*2', // apparently x264 needs even dimensions? thats what gemini said :p
+            '-pix_fmt',
+            'yuv420p',
+            '-preset',
+            'ultrafast',
+            '-crf',
+            '25',
+            '-g',
+            String(gopSize),
+            '-sc_threshold',
+            '0',
+            '-force_key_frames',
+            `expr:gte(t,n_forced*5)`,
+            '-f',
+            'segment',
+            '-segment_time',
+            '5',
+            '-segment_wrap',
+            '8',
+            '-reset_timestamps',
+            '1',
+            outputPath
+        ); // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
+
+        new Thread(() => {
+            try {
+                const pb = new ProcessBuilder(...args);
+                pb.redirectErrorStream(true);
+
+                const currentProcess = pb.start();
+                this.process = currentProcess;
+                this.isRecording = true;
+                Chat.message('&a[Clipping] Background recording started.');
+
+                const reader = new java.io.BufferedReader(new java.io.InputStreamReader(currentProcess.getInputStream()));
+                let line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+                        console.warn('[FFmpeg Error] ' + line);
+                        if (this.isRecording) {
+                            Chat.message(`&c[Clipping] FFmpeg Error: ${line}`);
+                        }
+                    }
+                }
+
+                currentProcess.waitFor();
+
+                if (this.isRecording) {
+                    Chat.message('&c[Clipping] Recording stopped unexpectedly.');
+                    this.isRecording = false;
+                }
+                this.process = null;
+            } catch (e) {
+                Chat.message(`&c[Clipping] Critical Error: ${e}`);
+                this.isRecording = false;
+                this.process = null;
+            }
+        }).start();
+    }
+
+    stopRecording() {
+        if (this.process && this.process.isAlive()) {
+            this.process.destroy();
+            Chat.message('&e[Clipping] Recorder stopped.');
+        }
+        this.process = null;
+        this.isRecording = false;
+        this.clearBuffer();
+    }
+
+    clearBuffer() {
+        if (!bufferDir.exists()) return;
+        const files = bufferDir.listFiles();
+        if (files) {
+            for (let i = 0; i < files.length; i++) {
+                try {
+                    files[i].delete();
+                } catch (e) {}
+            }
+        }
+    }
+
+    saveClip() {
+        if (Date.now() - this.lastClipTime < 3000) {
+            Chat.message('&c[Clipping] Please wait before clipping again.');
+            return;
+        }
+        this.lastClipTime = Date.now();
+
+        Chat.message('&7[Clipping] Saving clip...');
+
+        new Thread(() => {
+            try {
+                const files = bufferDir.listFiles();
+                if (!files || files.length === 0) {
+                    Chat.message('&c[Clipping] No buffer segments found! Is the recorder running?');
+                    this.startRecording();
+                    return;
+                }
+
+                const segments = Array.from(files).filter((f) => f.getName().endsWith('.mp4'));
+                segments.sort((a, b) => a.lastModified() - b.lastModified());
+                if (segments.length > 0) segments.pop();
+
+                if (segments.length === 0) {
+                    Chat.message('&c[Clipping] Buffer is building... wait 5 seconds.');
+                    return;
+                }
+
+                // take UP to 6 recent segments. so the clips COULD be 5s or 15s or something, max of 30s.
+                const clipsToJoin = segments.slice(Math.max(0, segments.length - 6));
+
+                const listFile = new File(bufferDir, 'mylist.txt');
+                const writer = new java.io.FileWriter(listFile);
+
+                for (let f of clipsToJoin) {
+                    const path = f.getAbsolutePath().replace(/\\/g, '/');
+                    writer.write(`file '${path}'\n`);
+                }
+                writer.close();
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const outFile = new File(clipsDir, `Clip_${timestamp}.mp4`);
+
+                const args = [
+                    ffmpegFile.getAbsolutePath(),
+                    '-y',
+                    '-f',
+                    'concat',
+                    '-safe',
+                    '0',
+                    '-i',
+                    listFile.getAbsolutePath(),
+                    '-c',
+                    'copy',
+                    outFile.getAbsolutePath(),
+                ];
+
+                const pb = new ProcessBuilder(...args);
+                pb.redirectErrorStream(true);
+                const p = pb.start();
+
+                const reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+                while (reader.readLine() != null) {}
+
+                p.waitFor();
+
+                Chat.message(`&a[Clipping] Saved &e${clipsToJoin.length * 5}s &aclip: &b${outFile.getName()}`);
+            } catch (e) {
+                Chat.message(`&c[Clipping] Failed to save clip: ${e}`);
+                console.error(e);
+            }
+        }).start();
+    }
+
+    onEnable() {
+        if (ffmpegFile.exists()) {
+            this.startRecording();
+        }
+    }
+
+    onDisable() {
+        this.stopRecording();
+    }
+}
+
+export const Clipping = new ClippingManager();
