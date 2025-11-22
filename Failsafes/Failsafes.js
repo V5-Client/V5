@@ -1,3 +1,6 @@
+import { ClippingManager } from '../Utility/Clipping.js';
+// should always activate clip on failsafe right? maybe not. configure in gui?
+
 /* VELOCITY PACKET
 register('packetReceived', (packet) => {
     let ent = Client.getMinecraft().world.getEntityById(

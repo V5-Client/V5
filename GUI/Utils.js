@@ -1,4 +1,5 @@
-import { BufferedInputStream, URL, FileOutputStream } from '../Utility/Constants';
+import { BufferedInputStream, FileOutputStream } from '../Utility/Constants';
+import { Utils } from '../Utility/Utils';
 import { Links } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
@@ -172,8 +173,7 @@ export const createCircularImage = (originalImage) => {
 
 export const fetchURL = (url) => {
     try {
-        let URL = new java.net.URL(url);
-        let conn = URL.openConnection();
+        let conn = new java.net.URL(url).openConnection();
         let reader = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
         let inputLine;
         let response = '';
@@ -187,29 +187,6 @@ export const fetchURL = (url) => {
     }
 };
 
-export function downloadFile(fileURL, savePath) {
-    try {
-        if (fileURL.startsWith('"') && fileURL.endsWith('"')) {
-            fileURL = fileURL.substring(1, fileURL.length - 1);
-        }
-
-        let url = new URL(fileURL);
-        let inStream = new BufferedInputStream(url.openStream());
-        let outStream = new FileOutputStream(savePath);
-
-        let buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
-        let bytesRead;
-
-        while ((bytesRead = inStream.read(buffer, 0, 1024)) !== -1) {
-            outStream.write(buffer, 0, bytesRead);
-        }
-
-        inStream.close();
-        outStream.close();
-    } catch (e) {
-        console.error(`Failed to download file from ${fileURL}: ${e}`);
-    }
-}
 const SoundCategory = net.minecraft.sound.SoundCategory;
 const Identifier = net.minecraft.util.Identifier;
 const SoundEvent = net.minecraft.sound.SoundEvent;
@@ -273,7 +250,7 @@ export const returnDiscord = () => {
                 let avatarUrl = data.discord.avatar;
                 let saveFile = new File('config/ChatTriggers/assets/discordProfile.png');
 
-                downloadFile(avatarUrl, saveFile.getAbsolutePath());
+                Utils.downloadFile(avatarUrl, saveFile.getAbsolutePath());
             }).start();
         }
     } catch (error) {
