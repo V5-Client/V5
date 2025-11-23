@@ -40,16 +40,37 @@ class ClippingManager extends ModuleBase {
         this.isRecording = false;
         this.lastClipTime = 0;
         this.fps = 15;
+        this.segmentCount = 6;
+        this.compressClips = false;
 
         this.addSlider(
             'FPS',
             15,
             30,
-            15,
+            20,
             (v) => {
                 this.fps = Math.floor(v);
             },
             'Recording Framerate. Higher values use more CPU.'
+        );
+
+        this.addSlider(
+            'Segment Count',
+            6,
+            30,
+            12,
+            (v) => {
+                this.segmentCount = Math.floor(v);
+            },
+            'Number of segments to include in clips. Each segment is 5 seconds.'
+        );
+
+        this.addToggle(
+            'Compress Clips',
+            (v) => {
+                this.compressClips = v;
+            },
+            'Automatically compresses clips to reduce file size.'
         );
 
         register('command', (...args) => {
@@ -60,34 +81,16 @@ class ClippingManager extends ModuleBase {
             }
         }).setName('clip');
 
-        this.checkAndStart();
         register('gameUnload', () => this.stopRecording());
     }
 
-    compressLatestClip() {
-        Chat.message('&7[Clipping] Finding latest clip to compress!!!!!');
-
+    compressClip(inputClip) {
         new Thread(() => {
             try {
-                if (!clipsDir.exists()) return;
-
-                const files = clipsDir.listFiles();
-                if (!files || files.length === 0) {
-                    Chat.message('&c[Clipping] No clips found.');
+                if (!inputClip.exists()) {
+                    Chat.message('&c[Clipping] Clip file not found.');
                     return;
                 }
-
-                const clips = Array.from(files).filter(
-                    (f) => f.getName().startsWith('Clip_') && f.getName().endsWith('.mp4') && !f.getName().includes('_compressed')
-                );
-
-                if (clips.length === 0) {
-                    Chat.message('&c[Clipping] No eligible clips found.');
-                    return;
-                }
-
-                clips.sort((a, b) => b.lastModified() - a.lastModified());
-                const inputClip = clips[0];
 
                 const outputName = inputClip.getName().replace('.mp4', '_compressed.mp4');
                 const outputFile = new File(clipsDir, outputName);
@@ -141,13 +144,37 @@ class ClippingManager extends ModuleBase {
         }).start();
     }
 
-    checkAndStart() {
-        if (ffmpegFile.exists()) {
-            Client.scheduleTask(20, () => this.startRecording());
-        } else {
-            Chat.message('&e[Clipping] FFmpeg not found. Downloading...');
-            this.downloadFFmpeg();
-        }
+    compressLatestClip() {
+        Chat.message('&7[Clipping] Finding latest clip to compress');
+
+        new Thread(() => {
+            try {
+                if (!clipsDir.exists()) return;
+
+                const files = clipsDir.listFiles();
+                if (!files || files.length === 0) {
+                    Chat.message('&c[Clipping] No clips found.');
+                    return;
+                }
+
+                const clips = Array.from(files).filter(
+                    (f) => f.getName().startsWith('Clip_') && f.getName().endsWith('.mp4') && !f.getName().includes('_compressed')
+                );
+
+                if (clips.length === 0) {
+                    Chat.message('&c[Clipping] No eligible clips found.');
+                    return;
+                }
+
+                clips.sort((a, b) => b.lastModified() - a.lastModified());
+                const inputClip = clips[0];
+
+                this.compressClip(inputClip);
+            } catch (e) {
+                Chat.message(`&c[Clipping] Compression failed: ${e}`);
+                console.error(e);
+            }
+        }).start();
     }
 
     downloadFFmpeg() {
@@ -204,7 +231,7 @@ class ClippingManager extends ModuleBase {
             this.organizeBinaries();
             archiveFile.delete();
 
-            Chat.message('&a[Clipping] FFmpeg installed! Starting recorder...');
+            Chat.message('&a[Clipping] FFmpeg installed!');
             this.startRecording();
         } catch (e) {
             Chat.message(`&c[Clipping] Extraction failed: ${e}`);
@@ -258,6 +285,11 @@ class ClippingManager extends ModuleBase {
     }
 
     startRecording() {
+        if (!ffmpegFile.exists()) {
+            Chat.message('&e[Clipping] FFmpeg not found. Downloading...');
+            this.downloadFFmpeg();
+            return;
+        }
         if (this.isRecording) return;
         if (!this.enabled) return;
 
@@ -305,7 +337,7 @@ class ClippingManager extends ModuleBase {
             '-segment_time',
             '5',
             '-segment_wrap',
-            '8',
+            '30',
             '-reset_timestamps',
             '1',
             outputPath
@@ -396,8 +428,8 @@ class ClippingManager extends ModuleBase {
                     return;
                 }
 
-                // take UP to 6 recent segments. so the clips COULD be 5s or 15s or something, max of 30s.
-                const clipsToJoin = segments.slice(Math.max(0, segments.length - 6));
+                // take UP to segmentCount recent segments. so the clips COULD be 5s or 15s or something, max of segmentCount*5s.
+                const clipsToJoin = segments.slice(Math.max(0, segments.length - this.segmentCount));
 
                 const listFile = new File(bufferDir, 'mylist.txt');
                 const writer = new java.io.FileWriter(listFile);
@@ -435,6 +467,12 @@ class ClippingManager extends ModuleBase {
                 p.waitFor();
 
                 Chat.message(`&a[Clipping] Saved &e${clipsToJoin.length * 5}s &aclip: &b${outFile.getName()}`);
+
+                if (this.compressClips) {
+                    // Small delay to ensure file is fully written
+                    Thread.sleep(500);
+                    this.compressClip(outFile);
+                }
             } catch (e) {
                 Chat.message(`&c[Clipping] Failed to save clip: ${e}`);
                 console.error(e);
@@ -443,9 +481,7 @@ class ClippingManager extends ModuleBase {
     }
 
     onEnable() {
-        if (ffmpegFile.exists()) {
-            this.startRecording();
-        }
+        this.startRecording();
     }
 
     onDisable() {
