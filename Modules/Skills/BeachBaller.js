@@ -24,7 +24,9 @@ class Beachballer extends ModuleBase {
             subcategory: 'Other',
             description: 'Automatically bounces beach balls',
             tooltip: 'Bounces beach balls and returns to start position at 40 bounces',
+            showEnabledToggle: false,
         });
+        this.bindToggleKey();
 
         this.bounceCount = 0;
         this.tickCounter = 0;
@@ -32,10 +34,6 @@ class Beachballer extends ModuleBase {
         this.startPos = [0, 0, 0];
         this.state = States.WAITING;
         this.trackedBall = null;
-
-        this.sneakKey = Client.getMinecraft().options.sneakKey;
-
-        this.bindToggleKey();
 
         this.on('tick', () => {
             if (Client.isInGui() && !Client.isInChat()) {
@@ -64,18 +62,16 @@ class Beachballer extends ModuleBase {
         this.on('actionBar', (text) => {
             const clean = ChatLib.removeFormatting(text);
             const match = clean.match(/Bounces: (\d{1,3})/);
+
             if (match) {
                 this.bounceCount = parseInt(match[1]);
                 this.bounceTimer = Date.now();
             }
+
             if (Date.now() - this.bounceTimer > 2000) {
                 this.bounceCount = 0;
             }
         }).setCriteria('${text}');
-
-        this.on('command', () => {
-            this.toggle();
-        }).setName('beachball');
     }
 
     handleBounceState() {
@@ -86,34 +82,24 @@ class Beachballer extends ModuleBase {
             return;
         }
 
-        Rotations.rotateToAngles(Player.getYaw(), -90, 1.0, false);
-
         if (this.trackedBall && !this.trackedBall.isDead()) {
-            const headItem = this.trackedBall.getStackInSlot(5);
+            this.tickCounter = 0;
 
-            if (headItem) {
-                this.tickCounter = 0;
+            // Predict ball position
+            const dx = this.trackedBall.getX() + (this.trackedBall.getX() - this.trackedBall.getLastX()) * 3;
+            const dz = this.trackedBall.getZ() + (this.trackedBall.getZ() - this.trackedBall.getLastZ()) * 3;
+            const ballY = this.trackedBall.getY();
 
-                // Predict ball position
-                const dx = this.trackedBall.getX() + (this.trackedBall.getX() - this.trackedBall.getLastX()) * 3;
-                const dz = this.trackedBall.getZ() + (this.trackedBall.getZ() - this.trackedBall.getLastZ()) * 3;
-                const ballY = this.trackedBall.getY();
+            const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+            const distance = MathUtils.calculateDistance(playerPos, [dx, ballY, dz]);
 
-                const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-                const distance = MathUtils.calculateDistance(playerPos, [dx, ballY, dz]);
+            Keybind.setKey('shift', true);
 
-                if (distance.distance > 15) {
-                    this.trackedBall = null;
-                    return;
-                }
-
-                this.sneakKey.setPressed(true);
-
-                if (distance.distanceFlat > 0.5) {
-                    Keybind.setKeysForStraightLineCoords(dx, ballY, dz);
-                } else if (distance.distanceFlat < 0.2) {
-                    Keybind.stopMovement();
-                }
+            if (distance.distanceFlat > 0.5) {
+                Keybind.setKeysForStraightLineCoords(dx, ballY, dz);
+            }
+            if (distance.distanceFlat < 0.2) {
+                Keybind.stopMovement();
             }
         } else {
             this.tickCounter++;

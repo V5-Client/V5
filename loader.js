@@ -36,8 +36,7 @@ import './Modules/Visuals/MobHider.js';
 
 /* SKILLS */
 import './Modules/Skills/AutoHarp.js';
-//import './Modules/Skills/BeachBaller.js'; //still fucking broken but less.
-//import './BeachBallerDebug.js';
+import './Modules/Skills/BeachBaller.js';
 import './Modules/Skills/FishingMacro.js';
 import './Modules/Skills/JerryBoxMacro.js';
 import './Modules/Skills/AutoExperiments.js';
@@ -48,12 +47,12 @@ import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
 //import './Modules/Other/CakeAura.js'; // broken cuz im a retard
 //import './Modules/Other/AutoLoot.js';
-//import './Modules/Other/AutoSkyblock.js'; // this imports NUKER so it still works idk - cus it needs  connections
+//import './Modules/Other/AutoSkyblock.js'; // this imports NUKER so it still works idk - cus it needs connections
 //import './Modules/Other/Freelook.js';
 import './Utility/Misc.js';
 import './Backend/IRC.js';
 import './Modules/Other/LobbyHopper.js';
-import './Utility/Webhooks.js'; // i honestly fucking hate the webhook load message so much, it just spams me.
+import './Utility/Webhooks.js';
 import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 
 import { loadSettings } from './GUI/GuiSave';
