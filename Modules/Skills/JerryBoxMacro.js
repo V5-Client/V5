@@ -109,14 +109,14 @@ class JerryBoxMacro extends ModuleBase {
         Chat.message('Jerry Box Macro enabled.');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
-        Mouse.Ungrab();
+        Mouse.ungrab();
     }
 
     onDisable() {
         Chat.message('Jerry Box Macro disabled.');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
-        Mouse.Regrab();
+        Mouse.regrab();
     }
 
     setState(newState, waitTicks = this.delay) {

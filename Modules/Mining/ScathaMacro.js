@@ -144,7 +144,7 @@ class ScathaMacro extends ModuleBase {
     onEnable() {
         this.sendMacroMessage('&aEnabled');
         this.setState(this.STATES.SETUP);
-        //Mouse.Ungrab();
+        //Mouse.ungrab();
     }
 
     onDisable() {
@@ -158,7 +158,7 @@ class ScathaMacro extends ModuleBase {
         this.kills = 0;
         Rotations.stopRotation();
         Keybind.setKey('leftclick', false);
-        //Mouse.Regrab();
+        //Mouse.regrab();
         Keybind.stopMovement();
     }
 

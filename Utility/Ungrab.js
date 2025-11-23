@@ -4,13 +4,13 @@ import { attachMixin } from './AttachMixin';
 class ungrabClass {
     constructor() {
         this.ungrabbed = true;
-        this.Regrab();
+        this.regrab();
     }
 
     /**
      * Attaches both mixins to prevent mouse input by the player.
      */
-    Ungrab() {
+    ungrab() {
         if (this.ungrabbed) return;
 
         attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
@@ -29,7 +29,7 @@ class ungrabClass {
     /**
      * Resets both mixins to reallow mouse input by the player.
      */
-    Regrab() {
+    regrab() {
         if (!this.ungrabbed) return;
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
         attachMixin(LockCursor, 'LockCursor', (instance, cir) => {});

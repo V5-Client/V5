@@ -170,13 +170,13 @@ class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
-        Mouse.Ungrab();
+        Mouse.ungrab();
         this.message('&aEnabled');
         this.state = this.STATES.SCANFORCROP;
     }
 
     onDisable() {
-        Mouse.Regrab();
+        Mouse.regrab();
         Rotations.stopRotation();
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
