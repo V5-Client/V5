@@ -7,9 +7,7 @@ import { isStuckRecoveryJumping } from './PathStuckRecovery';
 
 export let lastLookaheadPositions = [];
 
-// TODO
-// Snow layers. Probably need to look at the block meta? actually collision box might do something idk.
-// edge jump and normal jump affected by those snow layers
+// improve EdgeJump
 
 const STEP_HEIGHT = 0.6;
 const LOOKAHEAD_NODES = 3;
@@ -184,12 +182,66 @@ function hasGapBetweenNodes(node1, node2) {
         }
     }
 
+    return 0;
+}
+
+function getSnowLayers(block) {
+    if (!block || block.type.getID() === 0) return 0;
+
+    const name = block.type.getRegistryName();
+    if (name !== 'minecraft:snow') return 0;
+
+    try {
+        const SnowBlock = net.minecraft.block.SnowBlock;
+        return block.getState().get(SnowBlock.LAYERS);
+    } catch (e) {
+        return 0;
+    }
+}
+
+function detectSnowJump(lookaheadPositions) {
+    const player = Player.getPlayer();
+    if (!player || lookaheadPositions.length < 2) return false;
+
+    // if you could improve this it would be appreciated
+    const data = lookaheadPositions[0];
+    const currentFloorY = Player.getY() - 1;
+
+    const block = data.block;
+    if (!block || block.type.getRegistryName() !== 'minecraft:snow') {
+        return false;
+    }
+
+    const layers = getSnowLayers(block);
+    if (layers === 0) return false;
+
+    const vecY = data.vec.y;
+    const blockSurfaceHeight = vecY - (8 - layers) * 0.125;
+
+    const diff = blockSurfaceHeight - currentFloorY;
+
+    if (diff > 0.75 && layers > 6) {
+        Chat.message(`Snow jump TRIGGERED: layers=${layers} height=${blockSurfaceHeight.toFixed(3)} playerFloorY=${currentFloorY} diff=${diff.toFixed(3)}`);
+        return true;
+    }
+
     return false;
 }
 
 function detectEdgeJump(pathBetweenKeyNodes, closestIndex) {
     const player = Player.getPlayer();
     if (!player || !player.isOnGround()) return false;
+
+    if (closestIndex >= 0 && closestIndex < pathBetweenKeyNodes.length) {
+        const startIndex = closestIndex + 1;
+        const endIndex = Math.min(startIndex + EDGE_LOOKAHEAD_NODES, pathBetweenKeyNodes.length);
+
+        for (let i = startIndex; i < endIndex; i++) {
+            const node = pathBetweenKeyNodes[i];
+            const block = getCachedBlock(node.x, node.y, node.z);
+            if (block && (block.type.getRegistryName() === 'minecraft:snow' || block.type.getRegistryName() === 'minecraft:snow_block')) return false;
+        }
+    }
 
     const playerX = Player.getX();
     //const playerY = Math.floor(Player.getY());
@@ -267,8 +319,11 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
 
         const isTraversablePartialBlock = blockName.includes('slab') || blockName.includes('stair');
 
+        /*register('postRenderWorld', () => {
+            RenderUtils.drawBox(blockVec, [255, 255, 0, 255]);
+        });*/
+
         if (!isBlockNonCollidable(world, blockVec) || isTraversablePartialBlock) {
-            RenderUtils.drawBox(blockVec, [0, 255, 0, 255]);
             lookaheadPositions.push({
                 vec: blockVec,
                 name: blockName,
@@ -319,6 +374,7 @@ export function detectJump(pathBetweenKeyNodes) {
 
     const playerFloorY = Math.floor(Player.getY() - 0.001);
     const pX = Math.floor(Player.getX());
+    const pY = Math.floor(Player.getY());
     const pZ = Math.floor(Player.getZ());
 
     if (hasLowCeiling(pX, playerFloorY, pZ, World.getWorld())) {
@@ -327,9 +383,23 @@ export function detectJump(pathBetweenKeyNodes) {
         return;
     }
 
-    if (detectEdgeJump(pathBetweenKeyNodes, closestIndex)) {
+    if (detectSnowJump(lookaheadPositions)) {
+        PathfindingMessages('Snow jump detected');
         Keybind.setKey('space', true);
-        PathfindingMessages('§6Edge jump detected!');
+        lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
+        return;
+    }
+
+    const currentBlock = getCachedBlock(pX, pY, pZ);
+    if (currentBlock && (currentBlock.type.getRegistryName() === 'minecraft:snow' || currentBlock.type.getRegistryName() === 'minecraft:snow_block')) {
+        Keybind.setKey('space', false);
+        lastLookaheadPositions = [];
+        return;
+    }
+
+    if (detectEdgeJump(pathBetweenKeyNodes, closestIndex)) {
+        PathfindingMessages('Edge jump detected');
+        Keybind.setKey('space', true);
         lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
         return;
     }
@@ -344,6 +414,12 @@ export function detectJump(pathBetweenKeyNodes) {
     let canWalkInstead = false;
 
     for (const lookaheadData of lookaheadPositions) {
+        if (
+            lookaheadData.block &&
+            (lookaheadData.block.type.getRegistryName() === 'minecraft:snow' || lookaheadData.block.type.getRegistryName() === 'minecraft:snow_block')
+        )
+            continue;
+
         const heightDifference = lookaheadData.vec.y - playerFloorY;
 
         if (heightDifference > STEP_HEIGHT) {
@@ -359,6 +435,9 @@ export function detectJump(pathBetweenKeyNodes) {
         }
     }
 
+    if (needsJump && !canWalkInstead) {
+        PathfindingMessages('Standard jump detected');
+    }
     Keybind.setKey('space', needsJump && !canWalkInstead);
     lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
 }

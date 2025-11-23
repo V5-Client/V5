@@ -8,6 +8,7 @@ class InventoryUtilsClass {
     constructor() {
         this.inputLocked = false;
         this.mixinsInitialized = false;
+        this.EnableUserInput();
     }
 
     initMixins() {

@@ -179,7 +179,7 @@ class ExcavatorMacro extends ModuleBase {
     }
 
     message(msg) {
-        Chat.message('&#4fa6e0Excavator Macro: &f' + msg);
+        Chat.message('&#c95b10Excavator Macro: &f' + msg);
     }
 }
 
