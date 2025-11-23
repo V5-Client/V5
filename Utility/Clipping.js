@@ -99,19 +99,15 @@ class ClippingManager extends ModuleBase {
 
                 Chat.message(`&e[Clipping] Compressing &f${inputClip.getName()}&e...`);
 
+                // prettier-ignore
                 const args = [
                     ffmpegFile.getAbsolutePath(),
                     '-y',
-                    '-i',
-                    inputClip.getAbsolutePath(),
-                    '-c:v',
-                    'libx265',
-                    '-crf',
-                    '28',
-                    '-preset',
-                    'ultrafast',
-                    '-vf',
-                    'scale=-2:1080',
+                    '-i', inputClip.getAbsolutePath(),
+                    '-c:v', 'libx265',
+                    '-crf', '28',
+                    '-preset', 'ultrafast',
+                    '-vf', 'scale=-2:1080',
                     '-an', // no audio but idc
                     outputFile.getAbsolutePath(),
                 ]; // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
@@ -317,31 +313,20 @@ class ClippingManager extends ModuleBase {
             args.push('-i', ':0.0');
         }
 
+        // prettier-ignore
         args.push(
-            '-c:v',
-            'libx264',
-            '-vf',
-            'scale=trunc(iw/2)*2:trunc(ih/2)*2', // apparently x264 needs even dimensions? thats what gemini said :p
-            '-pix_fmt',
-            'yuv420p',
-            '-preset',
-            'ultrafast',
-            '-crf',
-            '25',
-            '-g',
-            String(gopSize),
-            '-sc_threshold',
-            '0',
-            '-force_key_frames',
-            `expr:gte(t,n_forced*5)`,
-            '-f',
-            'segment',
-            '-segment_time',
-            '5',
-            '-segment_wrap',
-            '30',
-            '-reset_timestamps',
-            '1',
+            '-c:v', 'libx264',
+            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', // apparently x264 needs even dimensions? thats what gemini said :p
+            '-pix_fmt', 'yuv420p',
+            '-preset', 'ultrafast',
+            '-crf', '25',
+            '-g', String(gopSize),
+            '-sc_threshold', '0',
+            '-force_key_frames', `expr:gte(t,n_forced*5)`,
+            '-f', 'segment',
+            '-segment_time', '5',
+            '-segment_wrap', '30',
+            '-reset_timestamps', '1',
             outputPath
         ); // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
 
@@ -447,17 +432,14 @@ class ClippingManager extends ModuleBase {
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const outFile = new File(clipsDir, `Clip_${timestamp}.mp4`);
 
+                // prettier-ignore
                 const args = [
                     ffmpegFile.getAbsolutePath(),
                     '-y',
-                    '-f',
-                    'concat',
-                    '-safe',
-                    '0',
-                    '-i',
-                    listFile.getAbsolutePath(),
-                    '-c',
-                    'copy',
+                    '-f', 'concat',
+                    '-safe', '0',
+                    '-i', listFile.getAbsolutePath(),
+                    '-c', 'copy',
                     outFile.getAbsolutePath(),
                 ];
 
