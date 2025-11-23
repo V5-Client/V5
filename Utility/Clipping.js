@@ -26,6 +26,9 @@ const URLS = {
     MAC: 'https://evermeet.cx/ffmpeg/ffmpeg-8.0.1.7z', // hardcoded version because the site doesn't have a static latest link
 };
 
+// todo
+// fix resize issue
+
 class ClippingManager extends ModuleBase {
     constructor() {
         super({
@@ -38,7 +41,6 @@ class ClippingManager extends ModuleBase {
 
         this.process = null;
         this.isRecording = false;
-        this.lastClipTime = 0;
         this.fps = 15;
         this.segmentCount = 6;
         this.compressClips = false;
@@ -402,12 +404,6 @@ class ClippingManager extends ModuleBase {
     }
 
     saveClip() {
-        if (Date.now() - this.lastClipTime < 3000) {
-            Chat.message('&c[Clipping] Please wait before clipping again.');
-            return;
-        }
-        this.lastClipTime = Date.now();
-
         Chat.message('&7[Clipping] Saving clip...');
 
         new Thread(() => {
@@ -421,11 +417,19 @@ class ClippingManager extends ModuleBase {
 
                 const segments = Array.from(files).filter((f) => f.getName().endsWith('.mp4'));
                 segments.sort((a, b) => a.lastModified() - b.lastModified());
-                if (segments.length > 0) segments.pop();
 
-                if (segments.length === 0) {
-                    Chat.message('&c[Clipping] Buffer is building... wait 5 seconds.');
-                    return;
+                const currentSegment = segments[segments.length - 1];
+                let lastModified = currentSegment.lastModified();
+                Chat.message('&7[Clipping] Waiting for current segment to finish...');
+                while (true) {
+                    Thread.sleep(300);
+                    const currentModified = currentSegment.lastModified();
+                    if (currentModified === lastModified) {
+                        Thread.sleep(500);
+                        // segment finished
+                        break;
+                    }
+                    lastModified = currentModified;
                 }
 
                 // take UP to segmentCount recent segments. so the clips COULD be 5s or 15s or something, max of segmentCount*5s.
