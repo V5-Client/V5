@@ -39,11 +39,7 @@ class Keybinding {
      * @returns {boolean} Success status
      */
     rightClickDelay(ticks = 0) {
-        if (ticks === 0) {
-            this.rightClick();
-        } else {
-            Client.scheduleTask(ticks, () => this.rightClick());
-        }
+        ticks === 0 ? this.rightClick() : Client.scheduleTask(ticks, () => this.rightClick());
     }
 
     /**
