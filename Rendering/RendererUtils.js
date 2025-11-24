@@ -107,7 +107,7 @@ export default class RenderUtils {
      * im not sure on how to make this work atm :( - im lowk just retard
      */
     static drawEntityHitbox(Mob, ColorArray, thickness = 5, depth = false) {
-        RenderUtilsPackage.drawEntityHitbox(Mob, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
+        RenderUtilsPackage.drawHitbox(Mob, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
     }
 
     /**
