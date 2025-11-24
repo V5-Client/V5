@@ -1,9 +1,6 @@
-import RenderUtils from '../Rendering/RendererUtils';
 import { Utils } from './Utils';
 import { Chat } from './Chat';
-import { Vec3d } from './Constants';
 import { File } from './Constants';
-import { closeGui } from '../GUI/GUI';
 
 class Routes {
     constructor() {}

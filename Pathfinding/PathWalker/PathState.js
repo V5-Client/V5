@@ -1,5 +1,3 @@
-import { Vec3d } from '../../Utility/Constants';
-
 export const pathState = {
     // Path stuff
     splinePath: [],

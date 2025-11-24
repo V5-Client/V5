@@ -6,7 +6,6 @@ import { Keybind } from '../../Utility/Keybinding';
 import { Rotations } from '../../Utility/Rotations';
 import { RayTrace } from '../../Utility/Raytrace';
 import { Chat } from '../../Utility/Chat';
-import { Mouse } from '../../Utility/Ungrab';
 
 const { addToggle, addSlider, addMultiToggle, addCategoryItem } = global.Categories;
 

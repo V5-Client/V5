@@ -3,7 +3,6 @@ import { Utils } from '../../Utility/Utils';
 import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
 import { Nuker } from '../Mining/Nuker';
 import { Chat } from '../../Utility/Chat';
-import { Time } from '../../Utility/Timing';
 
 class AutoSkyblock extends ModuleBase {
     constructor() {

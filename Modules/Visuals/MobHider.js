@@ -1,7 +1,5 @@
 import { ModuleBase } from '../../Utility/ModuleBase';
 
-import { ModuleBase } from '../../Utility/ModuleBase';
-
 class MobHider extends ModuleBase {
     constructor() {
         super({

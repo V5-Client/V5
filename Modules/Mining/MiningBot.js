@@ -369,36 +369,28 @@ class Bot extends ModuleBase {
 
         registerEventSB('abilitygone', () => (this.speedBoost = false));
 
-        addToggle(
-            'Modules',
-            'Mining Bot',
+        this.addToggle(
             'Tick Gliding',
             (value) => {
                 this.TICKGLIDE = value;
             },
             'Predicts when blocks are broken to begin mining the next block early.'
         );
-        addToggle(
-            'Modules',
-            'Mining Bot',
+        this.addToggle(
             'Jasper Drill Exploit',
             (value) => {
                 value ? this.exploit.register() : this.exploit.unregister();
             },
             'Left click a gemstone with a Gemstone Drill to activate exploit. (Permanent +800 Mining speed)'
         );
-        addToggle(
-            'Modules',
-            'Mining Bot',
+        this.addToggle(
             'Prioritze Titanium',
             (value) => {
                 this.setPrioritizeTitanium(value);
             },
             'Whenever Titanium is in range it will be targeted the most'
         );
-        addMultiToggle(
-            'Modules',
-            'Mining Bot',
+        this.addMultiToggle(
             'Fakelook',
             ['Off', 'Instant', 'Queued'],
             true,
@@ -407,9 +399,7 @@ class Bot extends ModuleBase {
             },
             'Fakelook begins to mine blocks before the player looks at them.'
         );
-        addMultiToggle(
-            'Modules',
-            'Mining Bot',
+        this.addMultiToggle(
             'Types',
             ['Mithril', 'Gemstone', 'Ore'],
             true,
@@ -418,18 +408,14 @@ class Bot extends ModuleBase {
             },
             'Targets specified block type.'
         );
-        addToggle(
-            'Modules',
-            'Mining Bot',
+        this.addToggle(
             'Debug Mode',
             (value) => {
                 value ? this.debug.register() : this.debug.unregister();
             },
             'Debugging - not recommended for average use.'
         );
-        addToggle(
-            'Modules',
-            'Mining Bot',
+        this.addToggle(
             'Scan Mode',
             (value) => {
                 this.SCAN_ONLY = value;
