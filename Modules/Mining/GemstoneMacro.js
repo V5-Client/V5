@@ -9,7 +9,6 @@ import { Rotations } from '../../Utility/Rotations';
 import { Router } from '../../Utility/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../Utility/ModuleBase';
-const { addToggle, addSlider, addMultiToggle, addCategoryItem } = global.Categories;
 
 /**TODO
  * a thing which reads all files in the folder and sets them to a multitoggle

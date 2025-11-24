@@ -1,7 +1,4 @@
-//let { ModuleManager } = global.settingSelection
-
 const gradientPackage = Java.type('com.v5.gradient.Chat');
-
 const Prefix = 'V5 » ';
 const DebugPrefix = `V5 Debug » `;
 const IrcPrefix = 'IRC » ';

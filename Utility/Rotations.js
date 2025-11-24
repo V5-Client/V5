@@ -1,4 +1,3 @@
-import { Vec3d } from './Constants';
 import { Utils } from './Utils';
 
 class RotationsTo {

@@ -6,7 +6,6 @@ import { Time } from '../../Utility/Timing';
 import { Guis } from '../../Utility/Inventory';
 import { MathUtils } from '../../Utility/Math';
 import { Utils } from '../../Utility/Utils';
-import { Mouse } from '../../Utility/Ungrab';
 import { Vec3d } from '../../Utility/Constants';
 
 class ScathaMacro extends ModuleBase {

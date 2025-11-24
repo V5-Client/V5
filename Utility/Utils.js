@@ -1,5 +1,3 @@
-//let { ModuleManager } = global.settingSelection;
-
 import { Chat } from './Chat';
 import { Notifications } from './Notifications';
 import { ArrayLists, Vec3d, URL, BufferedInputStream, FileOutputStream } from './Constants';

@@ -1,8 +1,4 @@
-import RenderUtils from '../../Rendering/RendererUtils';
 import { Chat } from '../../Utility/Chat';
-import { Vec3d } from '../../Utility/Constants';
-import { Guis } from '../../Utility/Inventory';
-import { Keybind } from '../../Utility/Keybinding';
 import { MathUtils } from '../../Utility/Math';
 import { ModuleBase } from '../../Utility/ModuleBase';
 import { Rotations } from '../../Utility/Rotations';

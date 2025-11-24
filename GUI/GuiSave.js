@@ -1,7 +1,6 @@
 import { ToggleButton } from './components/Toggle';
 import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
-import { File } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
 import { Utils } from '../Utility/Utils';
 
@@ -59,7 +58,7 @@ export const applySettings = () => {
 
 export const loadSettings = () => {
     const settings = Utils.getConfigFile('config.json');
-    
+
     if (!settings || Object.keys(settings).length === 0) {
         buildSettingsMapFromComponents();
         applySettings();

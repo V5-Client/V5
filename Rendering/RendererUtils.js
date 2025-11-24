@@ -1,4 +1,4 @@
-import { Color, Vec3d } from '../Utility/Constants';
+import { Vec3d } from '../Utility/Constants';
 
 const RenderUtilsPackage = Java.type('com.v5.render.RenderUtils');
 

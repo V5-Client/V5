@@ -1,10 +1,8 @@
 import { Chat } from './Chat';
-import { MathUtils } from './Math';
 import { Utils } from './Utils';
 import { Guis } from './Inventory';
 import { Keybind } from './Keybinding';
 import { Flowstate } from './Flowstate';
-import { registerEventSB } from './SkyblockEvents';
 
 const blockHardness = {
     /* Mithril */
