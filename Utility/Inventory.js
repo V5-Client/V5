@@ -5,35 +5,6 @@ import { HandleInputEvents, OnMouseScroll } from '../Mixins/SlotChangeMixin';
 import { attachMixin } from './AttachMixin';
 
 class InventoryUtilsClass {
-    constructor() {
-        this.inputLocked = false;
-        this.mixinsInitialized = false;
-        this.EnableUserInput();
-    }
-
-    initMixins() {
-        if (this.mixinsInitialized) return;
-
-        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
-            if (!this.inputLocked) return;
-
-            let hotbarKeys = instance.options.hotbarKeys;
-            for (const key of hotbarKeys) {
-                if (key.wasPressed()) key.setPressed(false);
-            }
-        });
-
-        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
-            if (!this.inputLocked) return;
-
-            if (Client.getMinecraft().world != null) {
-                cir.cancel();
-            }
-        });
-
-        this.mixinsInitialized = true;
-    }
-
     /**
      * Strips Minecraft formatting codes from a string
      * @param {String} str - The string to strip formatting from
@@ -201,17 +172,10 @@ class InventoryUtilsClass {
             return Chat.message('Invalid slot blocked! Report this ASAP!');
         }
 
-        this.initMixins();
-        this.inputLocked = true;
-
         const currentSlot = Player.getHeldItemIndex();
         if (currentSlot !== slot) {
             Player.setHeldItemIndex(slot);
         }
-    }
-
-    EnableUserInput() {
-        this.inputLocked = false;
     }
 
     getHeldItemStackSize() {
