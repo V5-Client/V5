@@ -124,7 +124,7 @@ function calculatePathPosition(currentBox, nextBox, playerEyes) {
 }
 
 export function pathRotations(splineData) {
-    const boxPositions = renderSplineBoxes(splineData, 1);
+    const boxPositions = renderSplineBoxes(splineData, 1.5);
     const playerEyes = Player.getPlayer().getEyePos();
 
     // Check completion
