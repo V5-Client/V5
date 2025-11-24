@@ -1,10 +1,46 @@
 import { IsCursorLocked, LockCursor } from '../Mixins/UngrabMixin';
+import { HandleInputEvents, OnMouseScroll } from '../Mixins/SlotChangeMixin';
 import { attachMixin } from './AttachMixin';
 
 class ungrabClass {
     constructor() {
         this.ungrabbed = true;
+        this.inputLocked = false;
+        this.mixinsInitialized = false;
         this.regrab();
+    }
+
+    /**
+     * Prevents the player from interacting with the inventory.
+     */
+    initMixins() {
+        if (this.mixinsInitialized) return;
+
+        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
+            if (!this.inputLocked) return;
+
+            let hotbarKeys = instance.options.hotbarKeys;
+            for (const key of hotbarKeys) {
+                if (key.wasPressed()) key.setPressed(false);
+            }
+        });
+
+        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
+            if (!this.inputLocked) return;
+
+            if (Client.getMinecraft().world != null) {
+                cir.cancel();
+            }
+        });
+
+        this.mixinsInitialized = true;
+    }
+
+    /**
+     * Allows the player to interact with the inventory.
+     */
+    EnableUserInput() {
+        this.inputLocked = false;
     }
 
     /**
@@ -12,6 +48,9 @@ class ungrabClass {
      */
     ungrab() {
         if (this.ungrabbed) return;
+
+        this.initMixins();
+        this.inputLocked = true;
 
         attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
             cir.cancel();
@@ -33,6 +72,7 @@ class ungrabClass {
         if (!this.ungrabbed) return;
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
         attachMixin(LockCursor, 'LockCursor', (instance, cir) => {});
+        this.EnableUserInput();
         if (Player.getPlayer()) Client.getMinecraft().mouse.lockCursor();
         this.ungrabbed = false;
     }
