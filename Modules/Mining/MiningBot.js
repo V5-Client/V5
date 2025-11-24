@@ -11,9 +11,7 @@ import { NukerUtils } from '../../Utility/NukerUtils';
 import RenderUtils from '../../Rendering/RendererUtils';
 import { ModuleBase } from '../../Utility/ModuleBase';
 import { Rotations } from '../../Utility/Rotations';
-const { addCategoryItem, addToggle, addMultiToggle } = global.Categories;
-
-const Vec3d = net.minecraft.util.math.Vec3d;
+import { Vec3d } from '../../Utility/Constants';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -155,13 +153,6 @@ class Bot extends ModuleBase {
             if (Client.isInChat() || Client.isInGui()) return Keybind.setKey('leftclick', false);
 
             const { drill } = MiningUtils.getDrills();
-
-            const Type = this.TYPE.find((option) => option.enabled)?.name;
-
-            if (Type) {
-                const costPropertyName = Type.toLowerCase() + 'Costs';
-                this.COSTTYPE = this[costPropertyName];
-            }
 
             switch (this.state) {
                 case this.STATES.ABILITY:
@@ -405,6 +396,7 @@ class Bot extends ModuleBase {
             true,
             (value) => {
                 this.TYPE = value;
+                this.setCost();
             },
             'Targets specified block type.'
         );
@@ -757,7 +749,9 @@ class Bot extends ModuleBase {
 
                         const dotProduct = (adx * viewVector.x + ady * viewVector.y + adz * viewVector.z) / useDist;
 
-                        const baseCost = target[blockName] || 10;
+                        const baseCost = target[blockName];
+                        if (baseCost === null) continue;
+
                         const distanceCost = useDist * 2; // Distance penalty (closer = lower cost)
                         const fovCost = -dotProduct * 50; // Favor blocks in center of view
                         const totalCost = baseCost + distanceCost + fovCost;
@@ -809,7 +803,23 @@ class Bot extends ModuleBase {
     }
 
     setCost(cost) {
-        this.COSTTYPE = cost;
+        if (cost) {
+            this.COSTTYPE = cost;
+        } else {
+            const Type = this.TYPE.find((option) => option.enabled)?.name;
+            if (Type) {
+                const costPropertyName = Type.toLowerCase() + 'Costs';
+
+                if (this[costPropertyName]) {
+                    this.COSTTYPE = this[costPropertyName];
+                } else {
+                    Chat.message(`&cError: Could not find cost type for ${Type}!`);
+                    this.COSTTYPE = null;
+                }
+            } else {
+                this.COSTTYPE = null;
+            }
+        }
     }
 
     onEnable() {
