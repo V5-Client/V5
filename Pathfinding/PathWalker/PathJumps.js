@@ -18,9 +18,6 @@ const GAP_CHECK_RESOLUTION = 0.5; // check for gaps more than just at block cent
 const MIN_GAP_WIDTH = 1.8; // minimum width of gap to actually jump over
 const MAX_GAP_SEARCH = 4; // how far to search for the end of a gap
 
-const SNOW_LAYER_HEIGHT = 0.125; // each layer is 0.125. no reason to have this as a constant other than clarity
-const SNOW_JUMP_THRESHOLD = 6; // IT SHOULD BE 5 BUT THEN IT JUMPS A TON. this is because humans just keep walking usually to get the player forced onto a walkable block instead of jumping.
-
 const blockCache = new Map();
 let cacheFrame = 0;
 
@@ -185,17 +182,14 @@ function hasGapBetweenNodes(node1, node2) {
         }
     }
 
-    return false;
-}
-
-function isSnowBlock(block) {
-    if (!block) return false;
-    const name = block.type.getRegistryName();
-    return name === 'minecraft:snow' || name === 'minecraft:snow_block';
+    return 0;
 }
 
 function getSnowLayers(block) {
-    if (!block || block.type.getRegistryName() !== 'minecraft:snow') return 0;
+    if (!block || block.type.getID() === 0) return 0;
+
+    const name = block.type.getRegistryName();
+    if (name !== 'minecraft:snow') return 0;
 
     try {
         const SnowBlock = net.minecraft.block.SnowBlock;
@@ -205,28 +199,30 @@ function getSnowLayers(block) {
     }
 }
 
-function getSnowHeight(block, baseY) {
-    if (!isSnowBlock(block)) return baseY;
+function detectSnowJump(lookaheadPositions) {
+    const player = Player.getPlayer();
+    if (!player || lookaheadPositions.length < 2) return false;
+
+    // if you could improve this it would be appreciated
+    const data = lookaheadPositions[0];
+    const currentFloorY = Player.getY() - 1;
+
+    const block = data.block;
+    if (!block || block.type.getRegistryName() !== 'minecraft:snow') {
+        return false;
+    }
 
     const layers = getSnowLayers(block);
-    if (layers === 0) return baseY + 1; // Full snow block
+    if (layers === 0) return false;
 
-    return baseY + layers * SNOW_LAYER_HEIGHT;
-}
+    const vecY = data.vec.y;
+    const blockSurfaceHeight = vecY - (8 - layers) * 0.125;
 
-function detectSnowJump(lookaheadPositions, playerFloorY) {
-    for (const data of lookaheadPositions) {
-        if (!isSnowBlock(data.block)) continue;
+    const diff = blockSurfaceHeight - currentFloorY;
 
-        const layers = getSnowLayers(data.block);
-        if (layers < SNOW_JUMP_THRESHOLD) continue;
-
-        const snowHeight = getSnowHeight(data.block, data.vec.y);
-        const heightDiff = snowHeight - playerFloorY;
-
-        if (heightDiff > STEP_HEIGHT) {
-            return true;
-        }
+    if (diff > 0.75 && layers > 6) {
+        Chat.message(`Snow jump TRIGGERED: layers=${layers} height=${blockSurfaceHeight.toFixed(3)} playerFloorY=${currentFloorY} diff=${diff.toFixed(3)}`);
+        return true;
     }
 
     return false;
@@ -236,18 +232,23 @@ function detectEdgeJump(pathBetweenKeyNodes, closestIndex) {
     const player = Player.getPlayer();
     if (!player || !player.isOnGround()) return false;
 
-    const startIndex = closestIndex + 1;
-    const endIndex = Math.min(startIndex + EDGE_LOOKAHEAD_NODES, pathBetweenKeyNodes.length);
+    if (closestIndex >= 0 && closestIndex < pathBetweenKeyNodes.length) {
+        const startIndex = closestIndex + 1;
+        const endIndex = Math.min(startIndex + EDGE_LOOKAHEAD_NODES, pathBetweenKeyNodes.length);
 
-    // Don't edge jump snow
-    for (let i = startIndex; i < endIndex; i++) {
-        const node = pathBetweenKeyNodes[i];
-        const block = getCachedBlock(node.x, node.y, node.z);
-        if (isSnowBlock(block)) return false;
+        for (let i = startIndex; i < endIndex; i++) {
+            const node = pathBetweenKeyNodes[i];
+            const block = getCachedBlock(node.x, node.y, node.z);
+            if (block && (block.type.getRegistryName() === 'minecraft:snow' || block.type.getRegistryName() === 'minecraft:snow_block')) return false;
+        }
     }
 
     const playerX = Player.getX();
+    //const playerY = Math.floor(Player.getY());
     const playerZ = Player.getZ();
+
+    const startIndex = closestIndex + 1;
+    const endIndex = Math.min(startIndex + EDGE_LOOKAHEAD_NODES, pathBetweenKeyNodes.length);
 
     for (let i = startIndex; i < endIndex; i++) {
         const currentNode = pathBetweenKeyNodes[i];
@@ -318,8 +319,11 @@ export function drawPathAndPlayerLookAhead(pathBetweenKeyNodes) {
 
         const isTraversablePartialBlock = blockName.includes('slab') || blockName.includes('stair');
 
+        /*register('postRenderWorld', () => {
+            RenderUtils.drawBox(blockVec, [255, 255, 0, 255]);
+        });*/
+
         if (!isBlockNonCollidable(world, blockVec) || isTraversablePartialBlock) {
-            RenderUtils.drawBox(blockVec, [0, 255, 0, 255]);
             lookaheadPositions.push({
                 vec: blockVec,
                 name: blockName,
@@ -379,22 +383,22 @@ export function detectJump(pathBetweenKeyNodes) {
         return;
     }
 
-    const currentBlock = getCachedBlock(pX, pY, pZ);
-    if (isSnowBlock(currentBlock)) {
-        Keybind.setKey('space', false);
-        lastLookaheadPositions = [];
-        return;
-    }
-
-    if (detectSnowJump(lookaheadPositions, playerFloorY)) {
-        PathfindingMessages('§eSnow jump detected');
+    if (detectSnowJump(lookaheadPositions)) {
+        PathfindingMessages('Snow jump detected');
         Keybind.setKey('space', true);
         lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
         return;
     }
 
+    const currentBlock = getCachedBlock(pX, pY, pZ);
+    if (currentBlock && (currentBlock.type.getRegistryName() === 'minecraft:snow' || currentBlock.type.getRegistryName() === 'minecraft:snow_block')) {
+        Keybind.setKey('space', false);
+        lastLookaheadPositions = [];
+        return;
+    }
+
     if (detectEdgeJump(pathBetweenKeyNodes, closestIndex)) {
-        PathfindingMessages('§6Edge jump detected');
+        PathfindingMessages('Edge jump detected');
         Keybind.setKey('space', true);
         lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
         return;
@@ -410,7 +414,11 @@ export function detectJump(pathBetweenKeyNodes) {
     let canWalkInstead = false;
 
     for (const lookaheadData of lookaheadPositions) {
-        if (isSnowBlock(lookaheadData.block)) continue;
+        if (
+            lookaheadData.block &&
+            (lookaheadData.block.type.getRegistryName() === 'minecraft:snow' || lookaheadData.block.type.getRegistryName() === 'minecraft:snow_block')
+        )
+            continue;
 
         const heightDifference = lookaheadData.vec.y - playerFloorY;
 
@@ -427,6 +435,9 @@ export function detectJump(pathBetweenKeyNodes) {
         }
     }
 
+    if (needsJump && !canWalkInstead) {
+        PathfindingMessages('Standard jump detected');
+    }
     Keybind.setKey('space', needsJump && !canWalkInstead);
     lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
 }
