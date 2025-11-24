@@ -25,17 +25,33 @@ class Combat extends ModuleBase {
 
         this.on('postRenderWorld', () => {
             if (!this.targets) return;
+
+            if (this.target) {
+                const thickness = 7;
+                const color = [255, 0, 0, 255];
+                const entity = this.target.toMC ? this.target.toMC() : this.target;
+
+                RenderUtils.drawEntityHitbox(entity, color, thickness, false);
+            }
+
+            const blueColor = [0, 70, 200, 100];
+            const blueThickness = 3;
+
             this.targets.forEach((target) => {
-                const thickness = target === this.target ? 7 : 3;
-                RenderUtils.drawWireFrame(new Vec3d(target.x, target.y, target.z).subtract(0.5, -0.9, 0.5), [0, 255, 0, 255], thickness);
+                if (target === this.target) {
+                    return;
+                }
+
+                const entity = target.toMC ? target.toMC() : target;
+
+                RenderUtils.drawEntityHitbox(entity, blueColor, blueThickness, false);
             });
         });
-
         this.on('tick', () => {
             if (!Client.isInChat() && Client.isInGui()) return;
             this.targets = this.detectTargets();
             this.target = this.bestTarget();
-            Rotations.rotateToVector(this.target, 1, true);
+            Rotations.rotateToVector(new Vec3d(this.target.x, this.target.y + 1.5, this.target.z), 1, true);
         });
     }
 
