@@ -209,6 +209,10 @@ class MiningUtilClass {
 
                     let solvercolor = this.maxSolver ? '&a' : '&c';
 
+                    if (!this.ability) {
+                        this.ability = 'none';
+                    }
+
                     Chat.message(`Your Mining Data:`);
                     Chat.message(`Mining Speed: &e${this.miningSpeed}`);
                     Chat.message(`Professional: &e${this.professional}`);
