@@ -473,4 +473,4 @@ class AutoExperiments extends ModuleBase {
     }
 }
 
-export const AutoExperiments = new AutoExperiments();
+export const ae = new AutoExperiments();
