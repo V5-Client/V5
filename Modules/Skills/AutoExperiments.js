@@ -73,10 +73,11 @@ class AutoExperiments extends ModuleBase {
         const containerName = ChatLib.removeFormatting(container.getName());
         if (!containerName) return;
 
+        this.detectState(containerName);
+        if (this.state === STATES.WAITING) return;
+
         const items = container.getItems();
         if (!items) return;
-
-        this.detectState(containerName);
 
         switch (this.state) {
             case STATES.EXPERIMENT_OVER:
