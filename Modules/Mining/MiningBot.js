@@ -189,7 +189,7 @@ class Bot extends ModuleBase {
                     if (this.abilityWaitTicks > 40) {
                         Chat.message('&eAbility not ready, skipping to mining...');
                         this.state = this.STATES.MINING;
-                        this.scanForBlock(this.COSTTYPE, true);
+                        this.scanForBlock(this.COSTTYPE);
                         break;
                     }
 
@@ -206,13 +206,13 @@ class Bot extends ModuleBase {
                     break;
                 case this.STATES.MINING:
                     if (this.SCAN_ONLY) {
-                        this.scanForBlock(this.COSTTYPE, true);
+                        this.scanForBlock(this.COSTTYPE);
                         break;
                     }
 
                     if (Player.getHeldItemIndex() !== drill.slot) {
                         Guis.setItemSlot(drill.slot);
-                        return;
+                        return console.log((java.lang.System.nanoTime() - start) / 1000 + 'ms');
                     }
 
                     // Check if block was broken
@@ -228,13 +228,10 @@ class Bot extends ModuleBase {
                     }
 
                     if (needScan) {
-                        this.scanForBlock(this.COSTTYPE, true, null, this.currentTarget);
+                        this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
                         this.currentTarget = this.foundLocations[0];
                         this.allowScan = false;
                     }
-
-                    // todo fix this gets called 20 times per second which is intensive due to file read and stuff
-                    this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
 
                     let lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
 
@@ -272,6 +269,7 @@ class Bot extends ModuleBase {
                         Keybind.setKey('leftclick', true);
                     }
 
+                    this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
                     this.totalTicks = MiningUtils.getMineTime(this.miningspeed, this.speedBoost, this.currentTarget);
 
                     const blockDist = MathUtils.getDistanceToPlayerEyes(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z).distance;
@@ -311,7 +309,7 @@ class Bot extends ModuleBase {
                             this.mineTickCount = 0;
                             this.tickCount = 0;
                             this.allowScan = false;
-                            this.scanForBlock(this.COSTTYPE, true, null, this.currentTarget);
+                            this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
                         }
 
                         const targetVector = this.getAimVectorForTarget(this.currentTarget);
@@ -325,7 +323,6 @@ class Bot extends ModuleBase {
                         if (!this.currentTarget || blockName.includes('air') || blockName.includes('bedrock') || this.allowScan) {
                             this.scanForBlock(
                                 this.COSTTYPE,
-                                true,
                                 this.currentTarget
                                     ? {
                                           x: this.currentTarget.x,
@@ -337,7 +334,6 @@ class Bot extends ModuleBase {
                             this.allowScan = false;
                             this.currentTarget = this.foundLocations[0];
                             if (!this.currentTarget) break;
-                            ``;
                         }
 
                         const targetVector = this.getAimVectorForTarget(this.currentTarget);
@@ -445,7 +441,7 @@ class Bot extends ModuleBase {
         return [ax, ay, az];
     }
 
-    scanForBlock(target, specific = true, startPos = null, excludedBlock = null) {
+    scanForBlock(target, startPos = null, excludedBlock = null) {
         if (!target) {
             Chat.message('No target specified, is cost type set?');
             return;
@@ -521,16 +517,12 @@ class Bot extends ModuleBase {
             }
 
             const block = World.getBlockAt(x, y, z);
-            const blockName = block?.type?.getRegistryName();
+            if (!block || !block.type) continue;
+            const blockName = block.type.getRegistryName();
+            if (!blockName) continue;
 
             let isTargetBlock = false;
-            if (blockName) {
-                if (specific) {
-                    isTargetBlock = Object.prototype.hasOwnProperty.call(target, blockName);
-                } else {
-                    isTargetBlock = blockName in target;
-                }
-            }
+            isTargetBlock = blockName in target;
 
             if (isTargetBlock) {
                 const centerX = x + 0.5;
@@ -543,48 +535,50 @@ class Bot extends ModuleBase {
                 const vZ = centerZ - playerEyePos.z;
 
                 // Pick the true near face via AABB entry along eye->center ray
-                const ex = playerEyePos.x,
-                    ey = playerEyePos.y,
-                    ez = playerEyePos.z;
-                const dirX = vX,
-                    dirY = vY,
-                    dirZ = vZ;
-                const minX = x,
-                    maxX = x + 1,
-                    minY = y,
-                    maxY = y + 1,
-                    minZ = z,
-                    maxZ = z + 1;
-                const invX = 1 / dirX;
-                const invY = 1 / dirY;
-                const invZ = 1 / dirZ;
-                const tx1 = (minX - ex) * invX;
-                const tx2 = (maxX - ex) * invX;
-                const ty1 = (minY - ey) * invY;
-                const ty2 = (maxY - ey) * invY;
-                const tz1 = (minZ - ez) * invZ;
-                const tz2 = (maxZ - ez) * invZ;
-                const tminX = Math.min(tx1, tx2);
-                const tminY = Math.min(ty1, ty2);
-                const tminZ = Math.min(tz1, tz2);
-                const tEntry = Math.max(tminX, tminY, tminZ);
+                const ex = playerEyePos.x;
+                const ey = playerEyePos.y;
+                const ez = playerEyePos.z;
+                const dirX = vX;
+                const dirY = vY;
+                const dirZ = vZ;
+                const minX = x;
+                const maxX = x + 1;
+                const minY = y;
+                const maxY = y + 1;
+                const minZ = z;
+                const maxZ = z + 1;
 
-                let faceAxis = 'x';
-                if (tEntry === tminY) faceAxis = 'y';
-                else if (tEntry === tminZ) faceAxis = 'z';
-
-                const s = faceAxis === 'x' ? (dirX > 0 ? -1 : 1) : faceAxis === 'y' ? (dirY > 0 ? -1 : 1) : dirZ > 0 ? -1 : 1;
-
-                const clamp = (vv, lo, hi) => (vv < lo ? lo : vv > hi ? hi : vv);
-
-                // fov culling: skip ray tests for blocks clearly behind view
-                const vLen = Math.sqrt(vX * vX + vY * vY + vZ * vZ) || 1;
+                const vLenSq = vX * vX + vY * vY + vZ * vZ;
+                if (vLenSq === 0) continue;
+                const vLen = Math.sqrt(vLenSq);
                 const dotToCenter = (vX * viewVector.x + vY * viewVector.y + vZ * viewVector.z) / vLen;
                 if (dotToCenter >= -0.05) {
+                    const invX = 1 / dirX;
+                    const invY = 1 / dirY;
+                    const invZ = 1 / dirZ;
+                    const tx1 = (minX - ex) * invX;
+                    const tx2 = (maxX - ex) * invX;
+                    const ty1 = (minY - ey) * invY;
+                    const ty2 = (maxY - ey) * invY;
+                    const tz1 = (minZ - ez) * invZ;
+                    const tz2 = (maxZ - ez) * invZ;
+                    const tminX = tx1 < tx2 ? tx1 : tx2;
+                    const tminY = ty1 < ty2 ? ty1 : ty2;
+                    const tminZ = tz1 < tz2 ? tz1 : tz2;
+                    const tEntry = tminX > tminY ? (tminX > tminZ ? tminX : tminZ) : tminY > tminZ ? tminY : tminZ;
+
+                    let faceAxis = 'x';
+                    if (tEntry === tminY) faceAxis = 'y';
+                    else if (tEntry === tminZ) faceAxis = 'z';
+
+                    const s = faceAxis === 'x' ? (dirX > 0 ? -1 : 1) : faceAxis === 'y' ? (dirY > 0 ? -1 : 1) : dirZ > 0 ? -1 : 1;
+
+                    const clamp = (vv, lo, hi) => (vv < lo ? lo : vv > hi ? hi : vv);
+
                     let isVisible = false;
-                    let aimX = centerX,
-                        aimY = centerY,
-                        aimZ = centerZ;
+                    let aimX = centerX;
+                    let aimY = centerY;
+                    let aimZ = centerZ;
                     const randJ = (m) => (Math.random() * 2 - 1) * m;
                     const lineClearWithJitter = (axis, ttx, tty, ttz, ffx, ffy, ffz) => {
                         let ttx2 = ttx,
@@ -739,47 +733,48 @@ class Bot extends ModuleBase {
                         const ady = aimY - playerEyePos.y;
                         const adz = aimZ - playerEyePos.z;
                         const aimDistSq = adx * adx + ady * ady + adz * adz;
-                        const aimInReach = aimDistSq <= mineReachSq;
 
-                        if (!aimInReach) {
+                        if (aimDistSq > mineReachSq) {
                             continue;
                         }
 
-                        const useDist = Math.sqrt(aimDistSq) || 1;
+                        const useDist = Math.sqrt(aimDistSq);
+                        const invDist = 1 / useDist;
 
-                        const dotProduct = (adx * viewVector.x + ady * viewVector.y + adz * viewVector.z) / useDist;
+                        const dotProduct = (adx * viewVector.x + ady * viewVector.y + adz * viewVector.z) * invDist;
 
                         const baseCost = target[blockName];
-                        if (baseCost === null) continue;
+                        if (baseCost === null || baseCost === undefined) continue;
 
                         const distanceCost = useDist * 2; // Distance penalty (closer = lower cost)
                         const fovCost = -dotProduct * 50; // Favor blocks in center of view
                         const totalCost = baseCost + distanceCost + fovCost;
 
                         foundLocations.push({
-                            x,
-                            y,
-                            z,
+                            x: x,
+                            y: y,
+                            z: z,
                             cost: totalCost,
-                            aimX,
-                            aimY,
-                            aimZ,
+                            aimX: aimX,
+                            aimY: aimY,
+                            aimZ: aimZ,
                         });
                     }
                 }
             }
 
-            for (let i = 0; i < directions.length; i++) {
-                const [dx, dy, dz] = directions[i];
-                const nextX = x + dx;
-                const nextY = y + dy;
-                const nextZ = z + dz;
-                const vIndex = idxOf(nextX, nextY, nextZ);
+            let nextX, nextY, nextZ, vIndex, ddx, ddy, ddz, distSq;
+            for (let i = 0; i < 6; i++) {
+                const dir = directions[i];
+                nextX = x + dir[0];
+                nextY = y + dir[1];
+                nextZ = z + dir[2];
+                vIndex = idxOf(nextX, nextY, nextZ);
                 if (!isVisited(vIndex)) {
-                    const ddx = nextX + 0.5 - playerEyePos.x;
-                    const ddy = nextY + 0.5 - playerEyePos.y;
-                    const ddz = nextZ + 0.5 - playerEyePos.z;
-                    const distSq = ddx * ddx + ddy * ddy + ddz * ddz;
+                    ddx = nextX + 0.5 - playerEyePos.x;
+                    ddy = nextY + 0.5 - playerEyePos.y;
+                    ddz = nextZ + 0.5 - playerEyePos.z;
+                    distSq = ddx * ddx + ddy * ddy + ddz * ddz;
                     if (distSq <= bfsReachSq) {
                         setVisited(vIndex);
                         queue.push({ x: nextX, y: nextY, z: nextZ });
