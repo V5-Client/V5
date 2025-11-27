@@ -412,7 +412,13 @@ class NukerClass extends ModuleBase {
     }
 
     posToString(pos) {
-        return `${pos.x || pos[0] || pos?.getX()},${pos.y || pos[1] || pos?.getY()},${pos.z || pos[2] || pos?.getZ()}`;
+        if (pos && typeof pos.getX === 'function') {
+            return `${pos.getX()},${pos.getY()},${pos.getZ()}`;
+        }
+        if (Array.isArray(pos)) {
+            return `${pos[0]},${pos[1]},${pos[2]}`;
+        }
+        return `${pos.x},${pos.y},${pos.z}`;
     }
 
     distance(from, to) {
