@@ -22,14 +22,15 @@ class NukerClass extends ModuleBase {
         this.bindToggleKey();
 
         this.target = null;
-        this.lastTime = 0;
+        this.lastMineTick = 0;
+        this.tickCounter = 0;
         this.lastChestClick = {};
         this.minedBlocks = new Map();
         this.clickQueue = new Set();
         this.chestClickedThisTick = false;
         this.startTime = Date.now();
 
-        this.BLOCK_COOLDOWN = 1000;
+        this.BLOCK_COOLDOWN = 20;
         this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
 
         this.lastNukeTime = Date.now();
@@ -50,6 +51,8 @@ class NukerClass extends ModuleBase {
         this.onGroundOnly = false;
         this.autoChest = false;
         this.heightLimit = 5;
+        this.onGroundDelay = 1;
+        this.offGroundDelay = 1;
 
         register('command', (ticks = 1) => {
             let block = Player.lookingAt();
@@ -110,17 +113,27 @@ class NukerClass extends ModuleBase {
         }).setCommandName('nukerlist');
 
         this.on('tick', () => {
+            this.tickCounter++;
+
             if (!this.isHoldingRequiredItem()) return;
             if (Client.isInGui() && !Client.isInChat()) return;
             if (Client.getKeyBindFromDescription('key.attack').isKeyDown()) return;
             if (!this.onGround()) return;
-            if (Date.now() - this.lastTime < 0 * 50) return; // delay (0)
 
-            this.lastTime = Date.now();
+            let delay;
+            if (Player.asPlayerMP().isOnGround()) {
+                delay = this.onGroundDelay;
+                if (this.tickCounter - this.lastMineTick < this.onGroundDelay) return;
+            } else {
+                delay = this.onGroundDelay;
+                if (this.tickCounter - this.lastMineTick < this.offGroundDelay) return;
+            }
+
+            this.lastMineTick = this.tickCounter;
             this.chestClickedThisTick = false;
 
-            for (const [pos, time] of this.minedBlocks) {
-                if (Date.now() - time > this.BLOCK_COOLDOWN) {
+            for (const [pos, tick] of this.minedBlocks) {
+                if (this.tickCounter - tick > this.BLOCK_COOLDOWN) {
                     this.minedBlocks.delete(pos);
                 }
             }
@@ -128,9 +141,25 @@ class NukerClass extends ModuleBase {
             while (!this.resultQueue.isEmpty()) {
                 const result = this.resultQueue.poll();
                 if (result) {
-                    NukerUtils.nuke([result.x, result.y, result.z]);
+                    NukerUtils.nukeQueueAdd([result.getX(), result.getY(), result.getZ()], delay);
                     this.target = result;
-                    this.minedBlocks.set(result.toString(), Date.now());
+                    this.minedBlocks.set(this.posToString(result), this.tickCounter);
+
+                    // "mining spread" mechanic
+                    if (this.targetMode === 'Random' || this.targetMode === 'Lowest' || this.targetMode === 'Highest') {
+                        // 3x3x3
+                        const resultX = result.getX();
+                        const resultY = result.getY();
+                        const resultZ = result.getZ();
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dz = -1; dz <= 1; dz++) {
+                                    const spreadPos = new BP(resultX + dx, resultY + dy, resultZ + dz);
+                                    this.minedBlocks.set(this.posToString(spreadPos), this.tickCounter);
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -195,7 +224,18 @@ class NukerClass extends ModuleBase {
 
         this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
-        this.addMultiToggle('Target Mode', ['Random', 'Closest'], true, (v) => (this.targetMode = v), 'Choose between random or closest block targeting');
+        this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
+        this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v), 'Delay in ticks when on ground (0-20)');
+        this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v), 'Delay in ticks when off ground (0-20)');
+        this.addMultiToggle(
+            'Target Mode',
+            ['Random', 'Closest', 'Lowest', 'Highest'],
+            true,
+            (v) => {
+                this.targetMode = v.find((option) => option.enabled)?.name;
+            },
+            'Random => high spread\nClosest => no spread\nLowest => Fig trees\nHighest => Mangrove trees'
+        );
     }
 
     startWorker() {
@@ -264,7 +304,8 @@ class NukerClass extends ModuleBase {
                     if (nukeBelow && y < playerPos.y) continue;
 
                     let pos = new BlockPos(x, y, z);
-                    if (minedBlocks.has(pos.toString())) continue;
+                    const posKey = `${x},${y},${z}`;
+                    if (minedBlocks.has(posKey)) continue;
 
                     if (this.distance(playerCords, [x, y, z]).distance > 4.5) {
                         continue;
@@ -310,11 +351,48 @@ class NukerClass extends ModuleBase {
                 }
 
                 targetPos = closestBlock;
-            } else {
+            } else if (targetMode === 'Random') {
                 // Pick a random block
                 targetPos = validBlocks[Math.floor(Math.random() * validBlocks.length)];
-            }
+            } else if (targetMode === 'Lowest') {
+                // Find blocks with the lowest Y coordinate, then pick a random one
+                let lowestY = Infinity;
+                let lowestBlocks = [];
 
+                for (let pos of validBlocks) {
+                    const y = pos.getY();
+                    if (y < lowestY) {
+                        lowestY = y;
+                        lowestBlocks = [pos];
+                    } else if (y === lowestY) {
+                        lowestBlocks.push(pos);
+                    }
+                }
+
+                if (lowestBlocks.length > 0) {
+                    targetPos = lowestBlocks[Math.floor(Math.random() * lowestBlocks.length)];
+                }
+            } else if (targetMode === 'Highest') {
+                // Find blocks with the highest Y coordinate, then pick a random one
+                let highestY = -Infinity;
+                let highestBlocks = [];
+
+                for (let pos of validBlocks) {
+                    const y = pos.getY();
+                    if (y > highestY) {
+                        highestY = y;
+                        highestBlocks = [pos];
+                    } else if (y === highestY) {
+                        highestBlocks.push(pos);
+                    }
+                }
+
+                if (highestBlocks.length > 0) {
+                    targetPos = highestBlocks[Math.floor(Math.random() * highestBlocks.length)];
+                }
+            } else {
+                Chat.message('Incorrect nuker target mode?');
+            }
             if (targetPos) {
                 this.resultQueue.offer(targetPos);
             }
@@ -331,6 +409,10 @@ class NukerClass extends ModuleBase {
         let heldItem = Player.getHeldItem();
         if (!heldItem) return false;
         return this.REQUIRED_ITEMS.some((item) => heldItem.getName().toLowerCase().includes(item.toLowerCase()));
+    }
+
+    posToString(pos) {
+        return `${pos.x || pos[0] || pos?.getX()},${pos.y || pos[1] || pos?.getY()},${pos.z || pos[2] || pos?.getZ()}`;
     }
 
     distance(from, to) {
@@ -375,7 +457,8 @@ class NukerClass extends ModuleBase {
 
     init() {
         this.target = null;
-        this.lastTime = 0;
+        this.lastMineTick = 0;
+        this.tickCounter = 0;
         this.lastChestClick = {};
         this.minedBlocks = new Map();
         this.clickQueue = new Set();
