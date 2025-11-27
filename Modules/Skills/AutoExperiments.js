@@ -132,6 +132,7 @@ class AutoExperiments extends ModuleBase {
 
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
             Guis.closeInv();
+            this.reset();
             return Chat.message('Experiments complete');
         }
 
@@ -206,7 +207,10 @@ class AutoExperiments extends ModuleBase {
         const currentLevel = this.extractXpLevel(items[SLOTS.GRAND_BOTTLE]);
         if (currentLevel >= this.buyXpTargetLevel) {
             this.buyXpTargetLevel = 0;
-            if (this.boughtXP) return this.startReopenSequence();
+            if (this.boughtXP) {
+                this.boughtXP = false;
+                return this.startReopenSequence();
+            }
             Guis.closeInv();
             return Chat.message('Not enough bits!');
         }
@@ -264,6 +268,7 @@ class AutoExperiments extends ModuleBase {
         for (const slot of slots) {
             if (items[slot] && !this.isLocked(items[slot])) {
                 if (slot === 24) this.maxEnchanting = true;
+                else this.maxEnchanting = false;
                 return this.clickSlot(slot);
             }
         }
@@ -339,6 +344,7 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = null;
         this.lastClickTime = Date.now();
         this.buyXpTargetLevel = 0;
+        this.boughtXP = false;
         this.state = STATES.WAITING;
     }
 
@@ -360,14 +366,6 @@ class AutoExperiments extends ModuleBase {
     onCooldown(item) {
         return item?.getLore()?.join(' ').includes('Experiments on cooldown!') ?? true;
     }
-
-    onEnable() {
-        Chat.message('AutoExperiments &aEnabled');
-    }
-
-    onDisable() {
-        Chat.message('AutoExperiments &cDisabled');
-    }
 }
 
-export const ae = new AutoExperiments();
+new AutoExperiments();
