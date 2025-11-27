@@ -204,7 +204,7 @@ class AutoExperiments extends ModuleBase {
 
         this.addSlider(
             'Action Delay (ms)',
-            250,
+            75,
             1000,
             500,
             (value) => {
