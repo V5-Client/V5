@@ -7,8 +7,8 @@ Client.getMinecraft()
     .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
 /* GUI */
-import './GUI/GIF.js';
 import './GUI/GUI.js';
+import './GUI/GIF.js';
 import './Utility/Config.js';
 
 /* CORE */
