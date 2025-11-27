@@ -470,7 +470,8 @@ class AutoExperiments extends ModuleBase {
         if (!item || !item.getLore) return true;
         const lore = item.getLore();
         const loreText = lore.join(' ');
-        return loreText.includes('Experiment completed') || !loreText.includes('Required Enchanting');
+        if (loreText.includes('Experiment completed') || loreText.includes('Add-on locked!')) return true;
+        return false;
     }
 
     onCooldown(item) {
