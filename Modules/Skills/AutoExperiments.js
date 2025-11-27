@@ -81,7 +81,7 @@ class AutoExperiments extends ModuleBase {
                     const chronomatronItem = items[21];
                     const ultrasequencerItem = items[23];
 
-                    if (this.onCooldown(SLOTS.SUPERPAIRS)) {
+                    if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
                         Guis.closeInv();
                         Chat.message('Experiments complete');
                         return;
@@ -155,7 +155,7 @@ class AutoExperiments extends ModuleBase {
                         this.clicks = 0;
                         for (let i = 9; i <= 44; i++) {
                             const it = items[i];
-                            if (it && it.toMC.hasGlint()) {
+                            if (it && it.toMC().hasGlint()) {
                                 this.chronomatronOrder.push(i);
                                 break;
                             }
@@ -489,4 +489,4 @@ class AutoExperiments extends ModuleBase {
     }
 }
 
-new AutoExperiments();
+export const ae = new AutoExperiments();
