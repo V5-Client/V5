@@ -15,7 +15,7 @@ class HuntingHelper extends ModuleBase {
 
         this.on('tick', () => {
             if (this.autoLassoReel) {
-                if (!Player.getHeldItem().getName().includes('Lasso')) return;
+                if (!Player.getHeldItem()?.getName()?.includes('Lasso')) return;
                 let stand = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
                 const reelStand = stand.some((element) => element.getName() === 'REEL');
                 if (!reelStand) return (this.reeled = false);
