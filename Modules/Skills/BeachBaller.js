@@ -1,11 +1,11 @@
-import { ModuleBase } from '../../Utility/ModuleBase';
+import RenderUtils from '../../Rendering/RendererUtils';
 import { Chat } from '../../Utility/Chat';
+import { Vec3d } from '../../Utility/Constants';
+import { Guis } from '../../Utility/Inventory';
 import { Keybind } from '../../Utility/Keybinding';
 import { MathUtils } from '../../Utility/Math';
-import { Guis } from '../../Utility/Inventory';
+import { ModuleBase } from '../../Utility/ModuleBase';
 import { Rotations } from '../../Utility/Rotations';
-import { Vec3d } from '../../Utility/Constants';
-import RenderUtils from '../../Rendering/RendererUtils';
 
 const SMALL_BEACHBALL_BASE64 =
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjQyNzQ4ODAwNCwKICAicHJvZmlsZUlkIiA6ICIzN2JhNjRkYzkxOTg0OGI4YjZhNDdiYTg0ZDgwNDM3MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb3lLb3NhIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJhZGY5ZDcxMzY3Y2Q2ZTUwNWZiNDhjYWFhNWFjZGNkZmYyYTA5ZjY2YzQ4OGRhZjA0ZDA0NWVlMGJmNTI4ZTEiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==';

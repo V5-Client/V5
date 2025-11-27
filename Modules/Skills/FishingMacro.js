@@ -1,6 +1,6 @@
-import { Keybind } from '../../Utility/Keybinding';
 import { Chat } from '../../Utility/Chat';
 import { Guis } from '../../Utility/Inventory';
+import { Keybind } from '../../Utility/Keybinding';
 import { ModuleBase } from '../../Utility/ModuleBase';
 
 class FishingMacro extends ModuleBase {
