@@ -1,11 +1,11 @@
-import { Router } from '../../Utility/Router';
 import RenderUtils from '../../Rendering/RendererUtils';
-import { Vec3d } from '../../Utility/Constants';
-import { MathUtils } from '../../Utility/Math';
-import { Keybind } from '../../Utility/Keybinding';
-import { Rotations } from '../../Utility/Rotations';
-import { RayTrace } from '../../Utility/Raytrace';
 import { Chat } from '../../Utility/Chat';
+import { Vec3d } from '../../Utility/Constants';
+import { Keybind } from '../../Utility/Keybinding';
+import { MathUtils } from '../../Utility/Math';
+import { RayTrace } from '../../Utility/Raytrace';
+import { Rotations } from '../../Utility/Rotations';
+import { Router } from '../../Utility/Router';
 
 const { addToggle, addSlider, addMultiToggle, addCategoryItem } = global.Categories;
 

@@ -1,8 +1,8 @@
 // Credits: Kash - MiningModules
 
-import { Utils } from '../../Utility/Utils';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { ModuleBase } from '../../Utility/ModuleBase';
+import { Utils } from '../../Utility/Utils';
 
 class Pingless extends ModuleBase {
     constructor() {
