@@ -81,12 +81,12 @@ class AutoExperiments extends ModuleBase {
                     const chronomatronItem = items[21];
                     const ultrasequencerItem = items[23];
 
-                    if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
+                    if (this.renewRequired(items)) {
+                        this.renewExperiments(items);
+                        return;
+                    } else if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
                         Guis.closeInv();
                         Chat.message('Experiments complete');
-                        return;
-                    } else if (this.renewRequired(items)) {
-                        this.renewExperiments(items);
                         return;
                     } else if (this.isSelection('Chronomatron', containerName)) {
                         this.selectHighestAvailableStake(items, [24, 23, 22, 21, 20]);
