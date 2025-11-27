@@ -100,7 +100,6 @@ class Bot extends ModuleBase {
         this.miningbot = null;
         this.ability = null;
         this.file = null;
-        this.abilityClicked = false;
         this.speedBoost = false;
         this.nukedBlock = false;
 
@@ -179,30 +178,15 @@ class Bot extends ModuleBase {
                         this.ability = this.file.ability;
                     }
 
-                    if (!this.ability) {
-                        Chat.message('&cFailed to get Pickaxe Ability! Run /getminingstats');
-                        this.toggle(false);
-                        return;
-                    }
-
-                    this.abilityWaitTicks++;
-                    if (this.abilityWaitTicks > 40) {
-                        Chat.message('&eAbility not ready, skipping to mining...');
+                    if (this.ability === 'none') {
                         this.state = this.STATES.MINING;
                         this.scanForBlock(this.COSTTYPE);
                         break;
                     }
 
-                    if (!this.abilityClicked) {
-                        this.abilityClicked = true;
-
-                        if (!this.enabled || this.state !== this.STATES.ABILITY) return;
-                        Keybind.rightClick();
-                        this.state = this.STATES.MINING;
-                        this.scanForBlock(this.COSTTYPE);
-                        this.abilityClicked = false;
-                        this.abilityWaitTicks = 0;
-                    }
+                    Keybind.rightClick();
+                    this.state = this.STATES.MINING;
+                    this.scanForBlock(this.COSTTYPE);
                     break;
                 case this.STATES.MINING:
                     if (this.SCAN_ONLY) {
@@ -820,9 +804,6 @@ class Bot extends ModuleBase {
     onEnable() {
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
-        this.abilityClicked = false;
-        this.abilitySlotSet = false;
-        this.abilityWaitTicks = 0;
         this.state = this.STATES.ABILITY;
         Keybind.setKey('rightclick', false);
     }
@@ -837,8 +818,6 @@ class Bot extends ModuleBase {
         this.currentTarget = null;
         this.mineTickCount = 0;
         this.tickCount = 0;
-        this.abilityClicked = false;
-        this.abilitySlotSet = false;
         Rotations.stopRotation();
         Guis.EnableUserInput();
     }
