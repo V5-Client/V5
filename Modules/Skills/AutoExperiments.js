@@ -14,6 +14,17 @@ const SLOTS = {
     TITANIC_BOTTLE: 14,
 };
 
+const STATES = {
+    WAITING: 0,
+    DECIDING: 1,
+    ULTRASEQUENCER: 2,
+    CHRONOMATRON: 3,
+    SUPERPAIRS: 4,
+    EXPERIMENT_OVER: 5,
+    REOPENING: 6,
+    BUYING_XP: 7,
+};
+
 class AutoExperiments extends ModuleBase {
     constructor() {
         super({
@@ -26,374 +37,269 @@ class AutoExperiments extends ModuleBase {
         this.actionDelay = 500;
         this.serumCountValue = 0;
         this.getMaxXpEnabled = false;
+        this.maxEnchanting = false;
 
         this.ultrasequencerOrder = new Map();
         this.chronomatronOrder = [];
-        this.lastClickTime = 0;
         this.ultraPatternCaptured = false;
         this.clicks = 0;
         this.lastSlot49Item = null;
+        this.lastClickTime = 0;
         this.reopenStep = 0;
         this.buyXpTargetLevel = 0;
-        this.maxEnchanting = false;
+        this.boughtXP = false;
+        this.state = STATES.WAITING;
 
-        this.STATES = {
-            WAITING: 0,
-            DECIDING: 1,
-            ULTRASEQUENCER: 2,
-            CHRONOMATRON: 3,
-            SUPERPAIRS: 4,
-            EXPERIMENT_OVER: 5,
-            REOPENING: 6,
-            BUYING_XP: 7,
-        };
-
-        this.state = this.STATES.WAITING;
-
-        //this.on('guiClosed', () => this.reset());
-
-        this.on('tick', () => {
-            if (this.state === this.STATES.REOPENING) {
-                this.handleReopening();
-                return;
-            }
-
-            const container = Player.getContainer();
-            if (!container) return;
-
-            const containerName = ChatLib.removeFormatting(container.getName());
-            if (!containerName) return;
-
-            const items = container.getItems();
-            if (!items) return;
-
-            this.detectState(containerName);
-
-            switch (this.state) {
-                case this.STATES.EXPERIMENT_OVER:
-                    Chat.message('&aExperiment completed! Claiming...');
-                    this.startReopenSequence();
-                    break;
-                case this.STATES.DECIDING:
-                    if (!this.canClick()) return;
-
-                    const chronomatronItem = items[21];
-                    const ultrasequencerItem = items[23];
-
-                    if (this.renewRequired(items)) {
-                        this.renewExperiments(items);
-                        return;
-                    } else if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
-                        Guis.closeInv();
-                        Chat.message('Experiments complete');
-                        return;
-                    } else if (this.isSelection('Chronomatron', containerName)) {
-                        this.selectHighestAvailableStake(items, [24, 23, 22, 21, 20]);
-                        return;
-                    } else if (this.isSelection('Ultrasequencer', containerName)) {
-                        this.selectHighestAvailableStake(items, [23, 22, 21]);
-                        return;
-                    } else if (!this.isCompleted(chronomatronItem)) {
-                        if (Guis.clickSlot(SLOTS.CHRONOMATRON, false, 'MIDDLE')) this.lastClickTime = Date.now();
-                        return;
-                    } else if (!this.isCompleted(ultrasequencerItem)) {
-                        if (Guis.clickSlot(SLOTS.ULTRASEQUENCER, false, 'MIDDLE')) this.lastClickTime = Date.now();
-                        return;
-                    } else if (this.isSelection('Superpairs', containerName)) {
-                        // auto superpairs todo
-                    } else {
-                        if (Guis.clickSlot(SLOTS.SUPERPAIRS, false, 'MIDDLE')) this.lastClickTime = Date.now();
-                        Chat.message('Superpairs ready');
-                        return;
-                    }
-                    break;
-                case this.STATES.ULTRASEQUENCER: {
-                    const maxDepth = this.getMaxXpEnabled ? 20 : this.maxEnchanting ? 9 - this.serumCountValue : 7 - this.serumCountValue;
-                    const control = this.getControlState(items);
-                    if (!control) return;
-
-                    if (control.isGlow && !this.ultraPatternCaptured) {
-                        if (!items[44]) return;
-                        this.captureUltrasequencerOrder(items);
-                        this.ultraPatternCaptured = true;
-                        this.clicks = 0;
-
-                        if (this.ultrasequencerOrder.size > maxDepth) {
-                            Guis.closeInv();
-                        }
-                    }
-
-                    if (control.isClock && this.ultraPatternCaptured && this.canClick() && this.ultrasequencerOrder.has(this.clicks)) {
-                        const slot = this.ultrasequencerOrder.get(this.clicks);
-                        if (!this.canClick()) return;
-                        if (Guis.clickSlot(slot, false, 'MIDDLE')) {
-                            this.lastClickTime = Date.now();
-                            this.clicks++;
-                        }
-                    }
-
-                    if (control.isGlow && control.wasClockLastFrame) {
-                        this.ultraPatternCaptured = false;
-                    }
-
-                    this.lastSlot49Item = control.name;
-                    break;
-                }
-                case this.STATES.CHRONOMATRON: {
-                    const maxDepth = this.getMaxXpEnabled ? 20 : this.maxEnchanting ? 12 - this.serumCountValue : 9 - this.serumCountValue;
-                    const control = this.getControlState(items);
-                    if (!control) return;
-
-                    const guiRound = this.getChronomatronRound(items);
-                    const expectedLen = Math.min(maxDepth, guiRound || (this.chronomatronOrder.length || 0) + 1);
-
-                    if (guiRound - 1 === maxDepth) {
-                        Guis.closeInv();
-                    }
-                    if (control.isClock && this.chronomatronOrder.length < expectedLen) {
-                        this.clicks = 0;
-                        for (let i = 9; i <= 44; i++) {
-                            const it = items[i];
-                            if (it && it.toMC().hasGlint()) {
-                                this.chronomatronOrder.push(i);
-                                break;
-                            }
-                        }
-                    } else if (control.isClock && this.chronomatronOrder.length > this.clicks && this.canClick()) {
-                        const slot = this.chronomatronOrder[this.clicks];
-                        if (!this.canClick()) return;
-                        if (Guis.clickSlot(slot, false, 'LEFT')) {
-                            this.lastClickTime = Date.now();
-                            this.clicks++;
-                        }
-                    }
-
-                    if (control.isGlow && this.clicks >= this.chronomatronOrder.length && this.chronomatronOrder.length > 0) {
-                        this.clicks = 0;
-                    }
-
-                    this.lastSlot49Item = control.name;
-                    break;
-                }
-                case this.STATES.BUYING_XP:
-                    if (this.buyXpTargetLevel === 0) return;
-
-                    const currentLevel = this.extractXpLevel(items[SLOTS.GRAND_BOTTLE]);
-
-                    if (currentLevel >= this.buyXpTargetLevel) {
-                        this.buyXpTargetLevel = 0;
-                        if (this.boughtXP) {
-                            this.startReopenSequence();
-                        } else {
-                            Guis.closeInv();
-                            Chat.message('Not enough bits!');
-                        }
-                        return;
-                    }
-
-                    const purchaseSlot = this.buyXpTargetLevel <= 100 ? SLOTS.GRAND_BOTTLE : SLOTS.TITANIC_BOTTLE;
-                    if (!items[purchaseSlot]) return;
-                    if (!this.canClick()) return;
-                    if (Guis.clickSlot(purchaseSlot, false, 'MIDDLE')) {
-                        this.lastClickTime = Date.now();
-                        this.boughtXP = true;
-                    }
-                    break;
-            }
-        });
+        this.on('tick', () => this.onTick());
 
         this.addSlider(
             'Action Delay (ms)',
             75,
             1000,
             500,
-            (value) => {
-                this.actionDelay = value;
-            },
+            (v) => (this.actionDelay = v),
             'Delay in milliseconds between experiment clicks and table reopen steps.'
         );
-
-        this.addSlider(
-            'Serum Count',
-            0,
-            3,
-            0,
-            (value) => {
-                this.serumCountValue = Math.floor(value);
-            },
-            'Consumed Metaphysical Serum count.'
-        );
-
-        this.addToggle(
-            'Get Max XP',
-            (value) => {
-                this.getMaxXpEnabled = value;
-            },
-            'Solve Chronomatron to 15 and Ultrasequencer to 20 for max XP.'
-        );
+        this.addSlider('Serum Count', 0, 3, 0, (v) => (this.serumCountValue = Math.floor(v)), 'Consumed Metaphysical Serum count.');
+        this.addToggle('Get Max XP', (v) => (this.getMaxXpEnabled = v), 'Solve Chronomatron to 15 and Ultrasequencer to 20 for max XP.');
     }
 
-    detectState(containerName) {
-        switch (true) {
-            case containerName === 'Experiment Over':
-                if (this.state === this.STATES.EXPERIMENT_OVER) return;
-                this.state = this.STATES.EXPERIMENT_OVER;
-                this.lastClickTime = Date.now();
-                break;
-            case containerName.startsWith('Chronomatron ('):
-                if (this.state === this.STATES.CHRONOMATRON) return;
-                this.state = this.STATES.CHRONOMATRON;
-                this.lastClickTime = Date.now();
+    onTick() {
+        if (this.state === STATES.REOPENING) return this.handleReopening();
 
-                this.chronomatronOrder = [];
-                this.clicks = 0;
-                break;
-            case containerName.startsWith('Ultrasequencer ('):
-                if (this.state === this.STATES.ULTRASEQUENCER) return;
-                this.state = this.STATES.ULTRASEQUENCER;
-                this.lastClickTime = Date.now();
+        const container = Player.getContainer();
+        if (!container) return;
 
-                this.ultraPatternCaptured = false;
-                this.ultrasequencerOrder.clear();
-                this.clicks = 0;
-                this.lastSlot49Item = null;
-                break;
-            case containerName === 'Bottles of Enchanting':
-                if (this.state === this.STATES.BUYING_XP) return;
-                this.state = this.STATES.BUYING_XP;
-                this.lastClickTime = Date.now();
-                break;
-            case containerName === 'Experimentation Table' || containerName === 'Chronomatron ➜ Stakes' || containerName === 'Ultrasequencer ➜ Stakes':
-                if (this.state === this.STATES.DECIDING) return;
-                this.state = this.STATES.DECIDING;
-                this.lastClickTime = Date.now();
+        const containerName = ChatLib.removeFormatting(container.getName());
+        if (!containerName) return;
 
-                this.lastSlot49Item = null;
+        const items = container.getItems();
+        if (!items) return;
+
+        this.detectState(containerName);
+
+        switch (this.state) {
+            case STATES.EXPERIMENT_OVER:
+                Chat.message('&aExperiment completed! Claiming...');
+                this.startReopenSequence();
                 break;
-            default:
-                if (this.state === this.STATES.WAITING) return;
-                this.state = this.STATES.WAITING;
+            case STATES.DECIDING:
+                this.handleDeciding(items, containerName);
+                break;
+            case STATES.ULTRASEQUENCER:
+                this.handleUltrasequencer(items);
+                break;
+            case STATES.CHRONOMATRON:
+                this.handleChronomatron(items);
+                break;
+            case STATES.BUYING_XP:
+                this.handleBuyingXp(items);
                 break;
         }
+    }
+
+    detectState(name) {
+        let newState = STATES.WAITING;
+
+        if (name === 'Experiment Over') newState = STATES.EXPERIMENT_OVER;
+        else if (name.startsWith('Chronomatron (')) newState = STATES.CHRONOMATRON;
+        else if (name.startsWith('Ultrasequencer (')) newState = STATES.ULTRASEQUENCER;
+        else if (name === 'Bottles of Enchanting') newState = STATES.BUYING_XP;
+        else if (name === 'Experimentation Table' || name.endsWith('Stakes')) newState = STATES.DECIDING;
+
+        if (newState === this.state) return;
+
+        this.state = newState;
+        this.lastClickTime = Date.now();
+
+        if (newState === STATES.CHRONOMATRON) {
+            this.chronomatronOrder = [];
+            this.clicks = 0;
+        } else if (newState === STATES.ULTRASEQUENCER) {
+            this.ultraPatternCaptured = false;
+            this.ultrasequencerOrder.clear();
+            this.clicks = 0;
+            this.lastSlot49Item = null;
+        } else if (newState === STATES.DECIDING) {
+            this.lastSlot49Item = null;
+        }
+    }
+
+    handleDeciding(items, containerName) {
+        if (!this.canClick()) return;
+
+        if (this.renewRequired(items)) return this.renewExperiments(items);
+
+        if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
+            Guis.closeInv();
+            return Chat.message('Experiments complete');
+        }
+
+        if (this.isStakeSelection('Chronomatron', containerName)) return this.selectHighestStake(items, [24, 23, 22, 21, 20]);
+        if (this.isStakeSelection('Ultrasequencer', containerName)) return this.selectHighestStake(items, [23, 22, 21]);
+
+        if (!this.isCompleted(items[21])) return this.clickSlot(SLOTS.CHRONOMATRON);
+        if (!this.isCompleted(items[23])) return this.clickSlot(SLOTS.ULTRASEQUENCER);
+
+        if (this.isStakeSelection('Superpairs', containerName)) {
+            // auto superpairs todo
+            return;
+        }
+
+        this.clickSlot(SLOTS.SUPERPAIRS);
+        Chat.message('Superpairs ready');
+    }
+
+    handleUltrasequencer(items) {
+        const maxDepth = this.getMaxXpEnabled ? 20 : (this.maxEnchanting ? 9 : 7) - this.serumCountValue;
+        const control = this.getControlState(items);
+        if (!control) return;
+
+        if (control.isGlow && !this.ultraPatternCaptured && items[44]) {
+            this.captureUltrasequencerOrder(items);
+            this.ultraPatternCaptured = true;
+            this.clicks = 0;
+            if (this.ultrasequencerOrder.size > maxDepth) Guis.closeInv();
+        }
+
+        if (control.isClock && this.ultraPatternCaptured && this.canClick() && this.ultrasequencerOrder.has(this.clicks)) {
+            if (this.clickSlot(this.ultrasequencerOrder.get(this.clicks))) this.clicks++;
+        }
+
+        if (control.isGlow && control.wasClockLastFrame) this.ultraPatternCaptured = false;
+
+        this.lastSlot49Item = control.name;
+    }
+
+    handleChronomatron(items) {
+        const maxDepth = this.getMaxXpEnabled ? 20 : (this.maxEnchanting ? 12 : 9) - this.serumCountValue;
+        const control = this.getControlState(items);
+        if (!control) return;
+
+        const guiRound = this.getChronomatronRound(items);
+        const expectedLen = Math.min(maxDepth, guiRound || this.chronomatronOrder.length + 1);
+
+        if (guiRound - 1 === maxDepth) Guis.closeInv();
+
+        if (control.isClock && this.chronomatronOrder.length < expectedLen) {
+            this.clicks = 0;
+            for (let i = 9; i <= 44; i++) {
+                if (items[i]?.toMC().hasGlint()) {
+                    this.chronomatronOrder.push(i);
+                    break;
+                }
+            }
+        } else if (control.isClock && this.chronomatronOrder.length > this.clicks && this.canClick()) {
+            if (this.clickSlot(this.chronomatronOrder[this.clicks], 'LEFT')) this.clicks++;
+        }
+
+        if (control.isGlow && this.clicks >= this.chronomatronOrder.length && this.chronomatronOrder.length > 0) {
+            this.clicks = 0;
+        }
+
+        this.lastSlot49Item = control.name;
+    }
+
+    handleBuyingXp(items) {
+        if (this.buyXpTargetLevel === 0) return;
+
+        const currentLevel = this.extractXpLevel(items[SLOTS.GRAND_BOTTLE]);
+        if (currentLevel >= this.buyXpTargetLevel) {
+            this.buyXpTargetLevel = 0;
+            if (this.boughtXP) return this.startReopenSequence();
+            Guis.closeInv();
+            return Chat.message('Not enough bits!');
+        }
+
+        const slot = this.buyXpTargetLevel <= 100 ? SLOTS.GRAND_BOTTLE : SLOTS.TITANIC_BOTTLE;
+        if (items[slot] && this.canClick() && this.clickSlot(slot)) this.boughtXP = true;
     }
 
     startReopenSequence() {
         this.reopenStep = 0;
         this.lastClickTime = Date.now();
-        this.state = this.STATES.REOPENING;
+        this.state = STATES.REOPENING;
     }
 
     handleReopening() {
         if (!this.canClick()) return;
 
-        switch (this.reopenStep) {
-            case 0:
-                Guis.closeInv();
-                this.reopenStep = 1;
-                this.lastClickTime = Date.now();
-                break;
-            case 1:
-                this.reopenStep = 2;
-                this.lastClickTime = Date.now();
-                break;
-            case 2:
-                Chat.message('&aReopening Experimentation Table...');
-                Keybind.rightClick();
-                this.reset();
-                break;
+        if (this.reopenStep === 0) {
+            Guis.closeInv();
+            this.reopenStep = 1;
+            this.lastClickTime = Date.now();
+        } else if (this.reopenStep === 1) {
+            this.reopenStep = 2;
+            this.lastClickTime = Date.now();
+        } else {
+            Chat.message('&aReopening Experimentation Table...');
+            Keybind.rightClick();
+            this.reset();
         }
     }
 
     getControlState(items) {
-        const slot49 = items[SLOTS.CONTROL];
-        if (!slot49) {
-            return null;
-        }
+        const item = items[SLOTS.CONTROL];
+        if (!item) return null;
 
-        const isGlow = this.isGlowstone(slot49);
-        const isClock = this.isClock(slot49);
-        const name = ChatLib.removeFormatting(slot49.getName());
-        const wasClockLastFrame = this.lastSlot49Item && this.lastSlot49Item.startsWith('Timer:');
-        return { item: slot49, isGlow, isClock, name, wasClockLastFrame };
+        const name = ChatLib.removeFormatting(item.getName());
+        return {
+            name,
+            isGlow: name === 'Remember the pattern!',
+            isClock: name.startsWith('Timer:'),
+            wasClockLastFrame: this.lastSlot49Item?.startsWith('Timer:'),
+        };
     }
 
     captureUltrasequencerOrder(items) {
         this.ultrasequencerOrder.clear();
         for (let i = 9; i <= 44; i++) {
             if (items[i] && this.isDye(items[i])) {
-                const stackSize = items[i].getStackSize();
-                const orderNumber = stackSize - 1;
-                this.ultrasequencerOrder.set(orderNumber, i);
+                this.ultrasequencerOrder.set(items[i].getStackSize() - 1, i);
             }
         }
     }
 
-    selectHighestAvailableStake(items, slots) {
+    selectHighestStake(items, slots) {
         for (const slot of slots) {
-            const item = items[slot];
-            const locked = item ? this.isLocked(item) : true;
-            if (item && !locked) {
+            if (items[slot] && !this.isLocked(items[slot])) {
                 if (slot === 24) this.maxEnchanting = true;
-                if (Guis.clickSlot(slot, false, 'MIDDLE')) {
-                    this.lastClickTime = Date.now();
-                    return true;
-                }
+                return this.clickSlot(slot);
             }
         }
         return false;
     }
 
     renewRequired(items) {
-        const renewItem = items[31];
-        if (!renewItem) return false;
-        const name = ChatLib.removeFormatting(renewItem.getName());
-        if (name && name.includes('Renew Experiments')) return true;
-        else return false;
+        const name = ChatLib.removeFormatting(items[SLOTS.RENEW]?.getName());
+        return name?.includes('Renew Experiments') ?? false;
     }
 
     renewExperiments(items) {
-        const renewItem = items[31];
-        if (!renewItem) return;
-        const lore = this.getLoreLines(renewItem);
-
-        for (line of lore) {
-            if (line.toLowerCase().includes('click to purchase')) {
-                if (Guis.clickSlot(SLOTS.RENEW, false, 'MIDDLE')) {
-                    this.lastClickTime = Date.now();
-                    return;
-                }
-                return;
-            } else if (line.toLowerCase().includes('cannot afford this!')) {
-                this.buyXpTargetLevel = this.extractRenewCost(renewItem);
-                if (Guis.clickSlot(SLOTS.BOTTLE_MENU, false, 'MIDDLE')) {
-                    this.lastClickTime = Date.now();
-                    return true;
-                }
+        for (const line of this.getLoreLines(items[SLOTS.RENEW])) {
+            const lower = line.toLowerCase();
+            if (lower.includes('click to purchase')) return this.clickSlot(SLOTS.RENEW);
+            if (lower.includes('cannot afford this!')) {
+                this.buyXpTargetLevel = this.extractRenewCost(items[SLOTS.RENEW]);
+                return this.clickSlot(SLOTS.BOTTLE_MENU);
             }
         }
-        return;
+    }
+
+    clickSlot(slot, clickType = 'MIDDLE') {
+        if (Guis.clickSlot(slot, false, clickType)) {
+            this.lastClickTime = Date.now();
+            return true;
+        }
+        return false;
     }
 
     canClick() {
         return Date.now() - this.lastClickTime >= this.actionDelay;
     }
 
-    isSelection(name, containerName) {
-        if (!containerName.includes(name)) return false;
-        if (containerName.includes('Stakes')) return true;
-        return !containerName.includes('(') && !containerName.includes('➜');
-    }
-
-    isChronomatronGame(containerName) {
-        if (!containerName.includes('Chronomatron')) return false;
-        if (containerName.startsWith('Chronomatron (')) return true;
-        return containerName.includes('➜') && !containerName.includes('Stakes');
-    }
-
-    isUltrasequencerGame(containerName) {
-        if (!containerName.includes('Ultrasequencer')) return false;
-        if (containerName.startsWith('Ultrasequencer (')) return true;
-        return containerName.includes('➜') && !containerName.includes('Stakes');
+    isStakeSelection(game, containerName) {
+        return containerName.includes(game) && containerName.includes('Stakes');
     }
 
     extractRenewCost(item) {
@@ -401,33 +307,28 @@ class AutoExperiments extends ModuleBase {
 
         // "000 XP Levels"
         for (const line of loreLines) {
-            const m = line.match(/(\d+)\s*XP\s*Levels?/i);
-            if (m) return parseInt(m[1], 10);
+            const match = line.match(/(\d+)\s*XP\s*Levels?/i);
+            if (match) return parseInt(match[1], 10);
         }
+        return 0;
     }
 
     extractXpLevel(item) {
-        const loreLines = this.getLoreLines(item);
-        for (const line of loreLines) {
-            const m = line.match(/Your\s+Exp\s+Level:\s*(\d+)/i);
-            if (m) return parseInt(m[1], 10);
+        for (const line of this.getLoreLines(item)) {
+            const match = line.match(/Your\s+Exp\s+Level:\s*(\d+)/i);
+            if (match) return parseInt(match[1], 10);
         }
-        return null;
+        return 0;
     }
 
     getChronomatronRound(items) {
         const name = ChatLib.removeFormatting(items[4]?.getName());
-        const m = name.match(/Round:\s*(\d+)/i);
-        return m ? parseInt(m[1], 10) : null;
+        const match = name?.match(/Round:\s*(\d+)/i);
+        return match ? parseInt(match[1], 10) : null;
     }
 
     getLoreLines(item) {
-        if (!item) return [];
-        const lore = item.getLore();
-        if (lore) {
-            return lore.map((line) => ChatLib.removeFormatting(line));
-        }
-        return null;
+        return item?.getLore()?.map((line) => ChatLib.removeFormatting(line)) ?? [];
     }
 
     reset() {
@@ -438,47 +339,26 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = null;
         this.lastClickTime = Date.now();
         this.buyXpTargetLevel = 0;
-        this.state = this.STATES.WAITING;
-    }
-
-    isGlowstone(item) {
-        if (!item || !item.getName) return false;
-        const name = ChatLib.removeFormatting(item.getName());
-        return name === 'Remember the pattern!';
-    }
-
-    isClock(item) {
-        if (!item || !item.getName) return false;
-        const name = ChatLib.removeFormatting(item.getName());
-        return name.startsWith('Timer:');
+        this.state = STATES.WAITING;
     }
 
     isDye(item) {
-        if (!item || !item.getName) return false;
-        const name = ChatLib.removeFormatting(item.getName());
-        return /^\d+$/.test(name);
+        const name = ChatLib.removeFormatting(item?.getName());
+        return name && /^\d+$/.test(name);
     }
 
     isLocked(item) {
-        if (!item || !item.getLore) return true;
-        const lore = item.getLore();
-        const loreText = lore.join(' ');
-        return loreText.includes('Enchanting level too low!');
+        return item?.getLore()?.join(' ').includes('Enchanting level too low!') ?? true;
     }
 
     isCompleted(item) {
-        if (!item || !item.getLore) return true;
-        const lore = item.getLore();
-        const loreText = lore.join(' ');
-        if (loreText.includes('Experiment completed') || loreText.includes('Add-on locked!')) return true;
-        return false;
+        if (!item) return true;
+        const lore = item.getLore()?.join(' ') ?? '';
+        return lore.includes('Experiment completed') || lore.includes('Add-on locked!');
     }
 
     onCooldown(item) {
-        if (!item || !item.getLore) return true;
-        const lore = item.getLore();
-        const loreText = lore.join(' ');
-        return loreText.includes('Experiments on cooldown!');
+        return item?.getLore()?.join(' ').includes('Experiments on cooldown!') ?? true;
     }
 
     onEnable() {
