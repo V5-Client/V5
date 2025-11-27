@@ -7,8 +7,8 @@ Client.getMinecraft()
     .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
 /* GUI */
-import './GUI/GUI.js';
 import './GUI/GIF.js';
+import './GUI/GUI.js';
 import './Utility/Config.js';
 
 /* CORE */
@@ -19,9 +19,9 @@ import './Pathfinding/PathFinder.js';
 //import './Modules/Foraging/SeaLumieMacro.js';
 
 /* MINING */
-import './Modules/Mining/PinglessMining.js';
-import './Modules/Mining/GemstoneMacro.js';
 import './Modules/Mining/CommissionMacro.js';
+import './Modules/Mining/GemstoneMacro.js';
+import './Modules/Mining/PinglessMining.js';
 //import './Modules/Mining/ScathaMacro.js';
 import './Modules/Mining/ExcavatorMacro.js';
 
@@ -29,16 +29,16 @@ import './Modules/Mining/ExcavatorMacro.js';
 import './Modules/Farming/FarmingMacro.js';
 
 /* VISUALS */
-import './Modules/Visuals/Xray.js';
 import './Modules/Visuals/MobHider.js';
+import './Modules/Visuals/Xray.js';
 
 /* SKILLS */
+import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
+import './Modules/Skills/AutoExperiments.js';
 import './Modules/Skills/AutoHarp.js';
 import './Modules/Skills/BeachBaller.js';
 import './Modules/Skills/FishingMacro.js';
 import './Modules/Skills/JerryBoxMacro.js';
-import './Modules/Skills/AutoExperiments.js';
-import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
 
 /* OTHER */
 import './Modules/Other/DiscordRPC.js';
@@ -47,13 +47,13 @@ import './Modules/Other/LobbyHopper.js';
 
 /* Utilities and shit */
 import './Backend/IRC.js';
+import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 import './Utility/Misc.js';
 import './Utility/Webhooks.js';
-import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 
 import { loadSettings } from './GUI/GuiSave';
-loadSettings();
 import { returnDiscord } from './GUI/Utils.js';
+loadSettings();
 returnDiscord();
 
 /*register('tick', () => {
