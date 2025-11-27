@@ -10,6 +10,7 @@ import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../Rendering/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { resetStuckDetection } from './PathWalker/PathStuckRecovery';
+import { Chat } from '../Utility/Chat';
 
 register('command', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
