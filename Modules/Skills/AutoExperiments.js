@@ -81,7 +81,11 @@ class AutoExperiments extends ModuleBase {
                     const chronomatronItem = items[21];
                     const ultrasequencerItem = items[23];
 
-                    if (this.renewRequired(items)) {
+                    if (this.onCooldown(SLOTS.SUPERPAIRS)) {
+                        Guis.closeInv();
+                        Chat.message('Experiments complete');
+                        return;
+                    } else if (this.renewRequired(items)) {
                         this.renewExperiments(items);
                         return;
                     } else if (this.isSelection('Chronomatron', containerName)) {
@@ -230,10 +234,12 @@ class AutoExperiments extends ModuleBase {
             case containerName === 'Experiment Over':
                 if (this.state === this.STATES.EXPERIMENT_OVER) return;
                 this.state = this.STATES.EXPERIMENT_OVER;
+                this.lastClickTime = Date.now();
                 break;
             case containerName.startsWith('Chronomatron ('):
                 if (this.state === this.STATES.CHRONOMATRON) return;
                 this.state = this.STATES.CHRONOMATRON;
+                this.lastClickTime = Date.now();
 
                 this.chronomatronOrder = [];
                 this.clicks = 0;
@@ -241,6 +247,7 @@ class AutoExperiments extends ModuleBase {
             case containerName.startsWith('Ultrasequencer ('):
                 if (this.state === this.STATES.ULTRASEQUENCER) return;
                 this.state = this.STATES.ULTRASEQUENCER;
+                this.lastClickTime = Date.now();
 
                 this.ultraPatternCaptured = false;
                 this.ultrasequencerOrder.clear();
@@ -250,12 +257,14 @@ class AutoExperiments extends ModuleBase {
             case containerName === 'Bottles of Enchanting':
                 if (this.state === this.STATES.BUYING_XP) return;
                 this.state = this.STATES.BUYING_XP;
+                this.lastClickTime = Date.now();
 
                 this.buyXpPending = false;
                 break;
             case containerName === 'Experimentation Table' || containerName === 'Chronomatron ➜ Stakes' || containerName === 'Ultrasequencer ➜ Stakes':
                 if (this.state === this.STATES.DECIDING) return;
                 this.state = this.STATES.DECIDING;
+                this.lastClickTime = Date.now();
 
                 this.lastSlot49Item = null;
                 break;
@@ -464,6 +473,13 @@ class AutoExperiments extends ModuleBase {
         return loreText.includes('Experiment completed');
     }
 
+    onCooldown(item) {
+        if (!item || !item.getLore) return true;
+        const lore = item.getLore();
+        const loreText = lore.join(' ');
+        return loreText.includes('Experiments on cooldown!');
+    }
+
     onEnable() {
         Chat.message('AutoExperiments &aEnabled');
     }
@@ -473,4 +489,4 @@ class AutoExperiments extends ModuleBase {
     }
 }
 
-export const ae = new AutoExperiments();
+new AutoExperiments();
