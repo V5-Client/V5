@@ -35,7 +35,6 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = null;
         this.reopenStep = 0;
         this.buyXpTargetLevel = 0;
-        this.buyXpPending = false;
         this.maxEnchanting = false;
 
         this.STATES = {
@@ -183,8 +182,12 @@ class AutoExperiments extends ModuleBase {
 
                     if (currentLevel >= this.buyXpTargetLevel) {
                         this.buyXpTargetLevel = 0;
-                        this.buyXpPending = false;
-                        this.startReopenSequence();
+                        if (this.boughtXP) {
+                            this.startReopenSequence();
+                        } else {
+                            Guis.closeInv();
+                            Chat.message('Not enough bits!');
+                        }
                         return;
                     }
 
@@ -193,6 +196,7 @@ class AutoExperiments extends ModuleBase {
                     if (!this.canClick()) return;
                     if (Guis.clickSlot(purchaseSlot, false, 'MIDDLE')) {
                         this.lastClickTime = Date.now();
+                        this.boughtXP = true;
                     }
                     break;
             }
@@ -258,8 +262,6 @@ class AutoExperiments extends ModuleBase {
                 if (this.state === this.STATES.BUYING_XP) return;
                 this.state = this.STATES.BUYING_XP;
                 this.lastClickTime = Date.now();
-
-                this.buyXpPending = false;
                 break;
             case containerName === 'Experimentation Table' || containerName === 'Chronomatron ➜ Stakes' || containerName === 'Ultrasequencer ➜ Stakes':
                 if (this.state === this.STATES.DECIDING) return;
@@ -365,7 +367,6 @@ class AutoExperiments extends ModuleBase {
                 this.buyXpTargetLevel = this.extractRenewCost(renewItem);
                 if (Guis.clickSlot(SLOTS.BOTTLE_MENU, false, 'MIDDLE')) {
                     this.lastClickTime = Date.now();
-                    this.buyXpPending = true;
                     return true;
                 }
             }
@@ -437,7 +438,6 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = null;
         this.lastClickTime = Date.now();
         this.buyXpTargetLevel = 0;
-        this.buyXpPending = false;
         this.state = this.STATES.WAITING;
     }
 
