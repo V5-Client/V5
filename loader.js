@@ -42,6 +42,7 @@ import './Modules/Skills/FishingMacro.js';
 import './Modules/Skills/JerryBoxMacro.js';
 
 /* OTHER */
+import './Modules/Other/HuntingHelpers.js';
 import './Modules/Other/DiscordRPC.js';
 import './Modules/Other/FastPlace.js';
 import './Modules/Other/LobbyHopper.js';
