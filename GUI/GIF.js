@@ -19,7 +19,6 @@ class GIFOverlay extends ModuleBase {
             subcategory: 'Core',
             description: 'Display animated GIFs on your screen',
             tooltip: 'Use /gif to change GIF overlays. Open chat to move/resize.',
-            showEnabledToggle: false,
         });
 
         this.state = {
@@ -44,9 +43,9 @@ class GIFOverlay extends ModuleBase {
         };
 
         // Registers always active cuz idgaf
-        register('renderOverlay', () => this.render());
-        register('clicked', (x, y, button, isPressed) => this.handleClick(x, y, button, isPressed));
-        register('dragged', (dx, dy, x, y, button) => this.handleDrag(dx, dy, x, y, button));
+        this.on('renderOverlay', () => this.render());
+        this.on('clicked', (x, y, button, isPressed) => this.handleClick(x, y, button, isPressed));
+        this.on('dragged', (dx, dy, x, y, button) => this.handleDrag(dx, dy, x, y, button));
         register('command', (...args) => this.handleCommand(args)).setName('gif');
     }
 
