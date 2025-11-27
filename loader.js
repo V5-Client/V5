@@ -19,6 +19,7 @@ import './Pathfinding/PathFinder.js';
 //import './Modules/Foraging/SeaLumieMacro.js';
 
 /* MINING */
+import './Modules/Mining/Nuker.js';
 import './Modules/Mining/CommissionMacro.js';
 import './Modules/Mining/GemstoneMacro.js';
 import './Modules/Mining/PinglessMining.js';
