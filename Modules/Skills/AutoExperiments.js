@@ -277,7 +277,9 @@ class AutoExperiments extends ModuleBase {
     }
 
     renewRequired(items) {
-        const name = ChatLib.removeFormatting(items[SLOTS.RENEW]?.getName());
+        const item = items[SLOTS.RENEW];
+        if (!item) return false;
+        const name = ChatLib.removeFormatting(item.getName());
         return name?.includes('Renew Experiments') ?? false;
     }
 
