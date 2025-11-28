@@ -30,7 +30,7 @@ class AutoExperiments extends ModuleBase {
         super({
             name: 'Auto Experiments',
             subcategory: 'Skills',
-            description: 'Automatically do the Chronomatron and Ultrasequencer experiments.',
+            description: 'Automatically do Chronomatron, Ultrasequencer, and Superpairs (soon) experiments.',
             tooltip: 'Automatically does the experiments',
         });
 
@@ -131,6 +131,8 @@ class AutoExperiments extends ModuleBase {
 
         if (this.renewRequired(items)) return this.renewExperiments(items);
 
+        if (this.buyXpTargetLevel > 0) return this.clickSlot(SLOTS.BOTTLE_MENU);
+
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
             Guis.closeInv();
             this.reset();
@@ -139,14 +141,10 @@ class AutoExperiments extends ModuleBase {
 
         if (this.isStakeSelection('Chronomatron', containerName)) return this.selectHighestStake(items, [24, 23, 22, 21, 20]);
         if (this.isStakeSelection('Ultrasequencer', containerName)) return this.selectHighestStake(items, [23, 22, 21]);
+        if (this.isStakeSelection('Superpairs', containerName)) return this.selectSuperpairsStake(items);
 
         if (!this.isCompleted(items[21])) return this.clickSlot(SLOTS.CHRONOMATRON);
         if (!this.isCompleted(items[23])) return this.clickSlot(SLOTS.ULTRASEQUENCER);
-
-        if (this.isStakeSelection('Superpairs', containerName)) {
-            // auto superpairs todo
-            return;
-        }
 
         this.clickSlot(SLOTS.SUPERPAIRS);
         Chat.message('Superpairs ready');
@@ -243,7 +241,13 @@ class AutoExperiments extends ModuleBase {
         } else {
             Chat.message('&aReopening Experimentation Table...');
             Keybind.rightClick();
-            this.reset();
+            this.ultrasequencerOrder.clear();
+            this.chronomatronOrder = [];
+            this.ultraPatternCaptured = false;
+            this.clicks = 0;
+            this.lastSlot49Item = null;
+            this.lastClickTime = Date.now();
+            this.state = STATES.WAITING;
         }
     }
 
@@ -278,6 +282,42 @@ class AutoExperiments extends ModuleBase {
             }
         }
         return false;
+    }
+
+    selectSuperpairsStake(items) {
+        const stakeSlots = [32, 31, 30, 23, 22, 21];
+
+        for (const slot of stakeSlots) {
+            const item = items[slot];
+            if (!item || this.isLocked(item)) continue;
+
+            const loreLines = this.getLoreLines(item);
+            const lastLine = loreLines[loreLines.length - 1];
+
+            if (lastLine && lastLine.includes('Click to play!')) {
+                return this.clickSlot(slot);
+            }
+
+            if (lastLine && lastLine.includes('Not enough experience!')) {
+                const requiredXp = this.extractStakeCost(item);
+                if (requiredXp > 0) {
+                    this.buyXpTargetLevel = requiredXp;
+                    Chat.message('&eNeed more XP for Superpairs. Reopening to buy bottles...');
+                    this.startReopenSequence();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    extractStakeCost(item) {
+        const loreLines = this.getLoreLines(item);
+        for (const line of loreLines) {
+            const match = line.match(/Starting\s+cost:\s*(\d+)\s*XP\s*Levels?/i);
+            if (match) return parseInt(match[1], 10);
+        }
+        return 0;
     }
 
     renewRequired(items) {
@@ -316,8 +356,6 @@ class AutoExperiments extends ModuleBase {
 
     extractRenewCost(item) {
         const loreLines = this.getLoreLines(item);
-
-        // "000 XP Levels"
         for (const line of loreLines) {
             const match = line.match(/(\d+)\s*XP\s*Levels?/i);
             if (match) return parseInt(match[1], 10);
