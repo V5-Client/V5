@@ -13,7 +13,7 @@ export const TRASH_ITEMS = ['Mithril', 'Titanium', 'Rune', 'Glacite', 'Goblin', 
 
 export const MOB_CONFIGS = {
     goblin: {
-        names: ['Goblin', 'Weakling'],
+        names: ['Goblin', 'Weakling', 'Knifethrower', 'Fireslinger'],
         checkVisibility: true,
         boundaryCheck: (x, y, z) => y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
     },

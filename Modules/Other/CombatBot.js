@@ -22,13 +22,15 @@ class Combat extends ModuleBase {
         this.targetNametag = null;
         this.targets = [];
         this.costs = new Map();
+        this.externalTargets = [];
+        this.useExternalTargetsOnly = false;
 
         this.on('postRenderWorld', () => {
-            if (!this.targets) return;
+            if (!this.targets || this.targets.length === 0) return;
 
             if (this.target) {
                 const thickness = 7;
-                const color = [255, 0, 0, 255];
+                const color = [255, 0, 0, 100];
                 const entity = this.target.toMC ? this.target.toMC() : this.target;
 
                 RenderUtils.drawEntityHitbox(entity, color, thickness, false);
@@ -47,33 +49,97 @@ class Combat extends ModuleBase {
                 RenderUtils.drawEntityHitbox(entity, blueColor, blueThickness, false);
             });
         });
+
         this.on('tick', () => {
             if (!Client.isInChat() && Client.isInGui()) return;
-            this.targets = this.detectTargets();
+
+            this.targets = this.getTargets();
             this.target = this.bestTarget();
-            Rotations.rotateToVector(new Vec3d(this.target.x, this.target.y + 1.5, this.target.z), 1, true);
+
+            if (!this.target) return;
+
+            const pos = this.getTargetPosition(this.target);
+            if (!pos) return;
+
+            Rotations.rotateToVector(new Vec3d(pos.x, pos.y + 1.5, pos.z), 1, true);
         });
     }
 
     detectTargets() {
-        // shitty ghosts for now
+        // THIS IS FROM ZURVIQ. comm macro makes sure it doesnt get fallbacked to this if no mobs found
         return World.getAllEntitiesOfType(net.minecraft.class_1548).filter((target) => !target.isDead() && target.y < 77);
+    }
+
+    getTargets() {
+        if (this.useExternalTargetsOnly) {
+            return this.externalTargets || [];
+        }
+
+        if (this.externalTargets && this.externalTargets.length > 0) {
+            return this.externalTargets;
+        }
+
+        return this.detectTargets();
+    }
+
+    setExternalTargets(targets) {
+        this.useExternalTargetsOnly = true;
+
+        if (Array.isArray(targets)) {
+            this.externalTargets = targets;
+        } else {
+            this.externalTargets = [];
+        }
+    }
+
+    clearExternalTargets() {
+        this.externalTargets = [];
+    }
+
+    getTargetPosition(target) {
+        if (!target) return null;
+
+        try {
+            if (typeof target.getX === 'function') {
+                return { x: target.getX(), y: target.getY(), z: target.getZ() };
+            }
+
+            if (typeof target.x === 'number' && typeof target.y === 'number' && typeof target.z === 'number') {
+                return { x: target.x, y: target.y, z: target.z };
+            }
+
+            const entity = target.toMC ? target.toMC() : target;
+            if (entity && typeof entity.getX === 'function') {
+                return { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
+            }
+        } catch (e) {}
+
+        return null;
     }
 
     bestTarget() {
         this.costs.clear();
         let lowestCost = Infinity;
         let bestTarget = null;
+
+        if (!this.targets || this.targets.length === 0) return null;
+
         this.targets.forEach((target) => {
-            const distance = Math.sqrt((Player.getX() - target.x) ** 2 + (Player.getY() - target.y) ** 2 + (Player.getZ() - target.z) ** 2);
-            const angles = MathUtils.angleToPlayer([target.x, target.y, target.z]);
+            const pos = this.getTargetPosition(target);
+            if (!pos) return;
+
+            const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), pos.x, pos.y, pos.z);
+            const angles = MathUtils.angleToPlayer([pos.x, pos.y, pos.z]);
             const cost = distance * 10 + angles.distance;
+
             this.costs.set(target, cost);
+
             if (cost < lowestCost) {
                 lowestCost = cost;
                 bestTarget = target;
             }
         });
+
         return bestTarget;
     }
 
@@ -84,6 +150,11 @@ class Combat extends ModuleBase {
     onDisable() {
         Chat.message('&cCombat Bot Disabled');
         Rotations.stopRotation();
+
+        this.externalTargets = [];
+        this.useExternalTargetsOnly = false;
+        this.targets = [];
+        this.target = null;
     }
 }
 
