@@ -181,14 +181,18 @@ class AutoExperiments extends ModuleBase {
         const guiRound = this.getChronomatronRound(items);
         const expectedLen = Math.min(maxDepth, guiRound || this.chronomatronOrder.length + 1);
 
-        if (guiRound - 1 === maxDepth) Guis.closeInv();
+        if (guiRound && guiRound - 1 === maxDepth) Guis.closeInv();
 
         if (control.isClock && this.chronomatronOrder.length < expectedLen) {
             this.clicks = 0;
             for (let i = 9; i <= 44; i++) {
-                if (items[i]?.toMC().hasGlint()) {
-                    this.chronomatronOrder.push(i);
-                    break;
+                const item = items[i];
+                if (item) {
+                    const mc = item.toMC();
+                    if (mc && mc.hasGlint()) {
+                        this.chronomatronOrder.push(i);
+                        break;
+                    }
                 }
             }
         } else if (control.isClock && this.chronomatronOrder.length > this.clicks && this.canClick()) {
@@ -330,8 +334,11 @@ class AutoExperiments extends ModuleBase {
     }
 
     getChronomatronRound(items) {
-        const name = ChatLib.removeFormatting(items[4]?.getName());
-        const match = name?.match(/Round:\s*(\d+)/i);
+        const item = items[4];
+        if (!item) return null;
+        const name = ChatLib.removeFormatting(item.getName());
+        if (!name) return null;
+        const match = name.match(/Round:\s*(\d+)/i);
         return match ? parseInt(match[1], 10) : null;
     }
 
@@ -352,12 +359,16 @@ class AutoExperiments extends ModuleBase {
     }
 
     isDye(item) {
-        const name = ChatLib.removeFormatting(item?.getName());
+        if (!item) return false;
+        const name = ChatLib.removeFormatting(item.getName());
         return name && /^\d+$/.test(name);
     }
 
     isLocked(item) {
-        return item?.getLore()?.join(' ').includes('Enchanting level too low!') ?? true;
+        if (!item) return true;
+        const lore = item.getLore();
+        if (!lore) return true;
+        return lore.join(' ').includes('Enchanting level too low!');
     }
 
     isCompleted(item) {
@@ -367,7 +378,10 @@ class AutoExperiments extends ModuleBase {
     }
 
     onCooldown(item) {
-        return item?.getLore()?.join(' ').includes('Experiments on cooldown!') ?? true;
+        if (!item) return true;
+        const lore = item.getLore();
+        if (!lore) return true;
+        return lore.join(' ').includes('Experiments on cooldown!');
     }
 }
 
