@@ -3,6 +3,7 @@ import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
 import { registerEventSB } from '../../Utility/SkyblockEvents';
 import { MiningBot } from './MiningBot';
+import { CombatBot } from '../Other/CombatBot';
 import { MiningUtils } from '../../Utility/MiningUtils';
 import { Guis } from '../../Utility/Inventory';
 import { Keybind } from '../../Utility/Keybinding';
@@ -140,6 +141,8 @@ class CommissionMacro extends ModuleBase {
     onDisable() {
         Chat.message('&cCommission Macro Disabled.');
         MiningBot.toggle(false);
+        CombatBot.clearExternalTargets();
+        CombatBot.toggle(false);
         stopPathing();
         Keybind.setKey('rightclick', false);
         Guis.EnableUserInput();
@@ -156,6 +159,9 @@ class CommissionMacro extends ModuleBase {
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
         this.pathfinding = false;
+
+        CombatBot.clearExternalTargets();
+        CombatBot.toggle(false);
     }
 
     setState(newState) {
@@ -224,7 +230,21 @@ class CommissionMacro extends ModuleBase {
                 const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
                 return data ? { ...tabComm, ...data } : null;
             })
-            .filter((task) => task && task.type === 'MINING' && (!task.name.includes('Goblin') || this.weapon))
+            .filter((task) => {
+                if (!task) return false;
+
+                if (task.type === 'MINING') {
+                    if (task.name.includes('Goblin') && !this.weapon) return false;
+                    return true;
+                }
+
+                if (task.type === 'SLAYER') {
+                    if (task.name === 'Goblin Slayer' && !this.weapon) return false;
+                    return true;
+                }
+
+                return false; // unreachable
+            })
             .sort((a, b) => a.cost - b.cost);
     }
 
@@ -282,14 +302,22 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleSlayer() {
-        if (!this.currentMobType) return;
+        if (!this.currentMobType) {
+            CombatBot.clearExternalTargets();
+            CombatBot.toggle(false);
+            return;
+        }
 
         const mobs = this.findMob(this.currentMobType);
-        if (mobs.length === 0) return;
+        if (!mobs || mobs.length === 0) {
+            CombatBot.clearExternalTargets();
+            return;
+        }
 
-        const closest = this.getClosestMob(mobs);
-        // TODO: Implement rotation, movement, and attacking
-        // Pretty much the same as the original 1.8.9 ig
+        CombatBot.setExternalTargets(mobs);
+        if (!CombatBot.enabled) {
+            CombatBot.toggle(true);
+        }
     }
 
     handleSelling() {
@@ -516,12 +544,21 @@ class CommissionMacro extends ModuleBase {
         }
 
         this.currentMobType = mobType;
+
+        CombatBot.clearExternalTargets();
+        if (!CombatBot.enabled) {
+            CombatBot.toggle(true);
+        }
     }
 
     onCommissionComplete() {
         Chat.message('&aCommission complete detected!');
         stopPathing();
         MiningBot.toggle(false);
+
+        CombatBot.clearExternalTargets();
+        CombatBot.toggle(false);
+
         this.awaitingTabUpdate = true;
         this.setState(STATES.CLAIMING);
     }
