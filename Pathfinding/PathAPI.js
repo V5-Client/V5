@@ -251,6 +251,13 @@ export function findAndFollowPath(start, end, onComplete) {
         } else {
             console.log(`No matching map found for area: ${area}`);
             global.showNotification('Map Error', `Cannot pathfind, no map found for area: ${area}`, 'ERROR', 5000);
+            if (Server.getName() === 'SinglePlayer') {
+                const mapValue = Maps['Dwarven Mines']; // just here to load mines as default (singleplayer testing reasons)
+
+                loadMap(mapValue, area, () => {
+                    executePathfinding(start, end, onComplete);
+                });
+            }
             return;
         }
     }
