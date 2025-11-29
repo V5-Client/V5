@@ -21,11 +21,11 @@ const GENERAL_PITCH_DAMPENING = 0.7; // Softens vertical angle changes (slopes).
 const JUMP_SMOOTHING_FACTOR = 0.3;
 
 const LOOK_AHEAD_DISTANCE = 3; // Path boxes ahead for pitch target.
-const BASE_YAW_AHEAD_DISTANCE = 5;
-const YAW_AHEAD_JUMP_MULTIPLIER = 1.5; // Path boxes ahead for yaw target.
+const BASE_YAW_AHEAD_DISTANCE = 4;
+const YAW_AHEAD_JUMP_MULTIPLIER = 1.3; // Path boxes ahead for yaw target.
 
 const MAX_YAW_ADJUSTMENT = 20; // Max horizontal angle change per tick.
-const MAX_YAW_ADJUSTMENT_INITIAL = 80; // Max horizontal angle change per tick for the first rotation
+const MAX_YAW_ADJUSTMENT_INITIAL = 70; // Max horizontal angle change per tick for the first rotation
 
 const ADVANCE_DISTANCE = 1; // Distance (blocks) to pass a box and advance.
 const BOX_RESET_SEARCH_RANGE = 20; // Range to re-find the closest box on path correction.
