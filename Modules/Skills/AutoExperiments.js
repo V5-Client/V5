@@ -23,6 +23,7 @@ const STATES = {
     EXPERIMENT_OVER: 5,
     REOPENING: 6,
     BUYING_XP: 7,
+    SUPERPAIRS_REWARDS: 8,
 };
 
 class AutoExperiments extends ModuleBase {
@@ -49,6 +50,7 @@ class AutoExperiments extends ModuleBase {
         this.buyXpTargetLevel = 0;
         this.boughtXP = false;
         this.state = STATES.WAITING;
+        this.superpairsRewardsClaimed = false;
 
         this.on('tick', () => this.onTick());
 
@@ -96,6 +98,12 @@ class AutoExperiments extends ModuleBase {
             case STATES.BUYING_XP:
                 this.handleBuyingXp(items);
                 break;
+            case STATES.SUPERPAIRS:
+                this.handleSuperpairs(items);
+                break;
+            case STATES.SUPERPAIRS_REWARDS:
+                this.handleSuperpairsRewards(items);
+                break;
         }
     }
 
@@ -105,6 +113,8 @@ class AutoExperiments extends ModuleBase {
         if (name === 'Experiment Over') newState = STATES.EXPERIMENT_OVER;
         else if (name.startsWith('Chronomatron (')) newState = STATES.CHRONOMATRON;
         else if (name.startsWith('Ultrasequencer (')) newState = STATES.ULTRASEQUENCER;
+        else if (name.startsWith('Superpairs (')) newState = STATES.SUPERPAIRS;
+        else if (name === 'Superpairs Rewards') newState = STATES.SUPERPAIRS_REWARDS;
         else if (name === 'Bottles of Enchanting') newState = STATES.BUYING_XP;
         else if (name === 'Experimentation Table' || name.endsWith('Stakes')) newState = STATES.DECIDING;
 
@@ -202,6 +212,48 @@ class AutoExperiments extends ModuleBase {
         }
 
         this.lastSlot49Item = control.name;
+    }
+
+    handleSuperpairs(items) {
+        // idk pls help
+    }
+
+    isSuperpairsComplete(items) {
+        let hasItems = false;
+        for (let i = 9; i <= 44; i++) {
+            const item = items[i];
+            if (!item) continue;
+            hasItems = true;
+
+            const lore = item.getLore();
+            if (!lore) return false;
+
+            const loreText = lore.join(' ');
+            if (!loreText.includes('Click any to proceed!')) {
+                return false;
+            }
+        }
+        return hasItems;
+    }
+
+    handleSuperpairsRewards(items) {
+        if (!this.canClick()) return;
+
+        if (this.superpairsRewardsClaimed) {
+            this.superpairsRewardsClaimed = false;
+            this.startReopenSequence();
+            return;
+        }
+
+        const rewardItem = items[13];
+        if (!rewardItem) return;
+
+        const lore = rewardItem.getLore();
+        if (lore && lore.join(' ').includes('Click to claim rewards')) {
+            Chat.message('&a[Superpairs] Claiming rewards...');
+            this.clickSlot(13, 'LEFT');
+            this.superpairsRewardsClaimed = true;
+        }
     }
 
     handleBuyingXp(items) {
@@ -394,6 +446,7 @@ class AutoExperiments extends ModuleBase {
         this.buyXpTargetLevel = 0;
         this.boughtXP = false;
         this.state = STATES.WAITING;
+        this.superpairsRewardsClaimed = false;
     }
 
     isDye(item) {
