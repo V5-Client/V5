@@ -329,7 +329,6 @@ class AutoExperiments extends ModuleBase {
         for (const slot of slots) {
             if (items[slot] && !this.isLocked(items[slot])) {
                 if (slot === 24) this.maxEnchanting = true;
-                else this.maxEnchanting = false;
                 return this.clickSlot(slot);
             }
         }
@@ -446,6 +445,7 @@ class AutoExperiments extends ModuleBase {
         this.buyXpTargetLevel = 0;
         this.boughtXP = false;
         this.state = STATES.WAITING;
+        this.maxEnchanting = false;
         this.superpairsRewardsClaimed = false;
     }
 
