@@ -3,6 +3,11 @@ import { Guis } from '../../Utility/Inventory';
 import { Chat } from '../../Utility/Chat';
 import { Keybind } from '../../Utility/Keybinding';
 
+/**
+ * @typedef {com.chattriggers.ctjs.api.inventory.Item} item
+ * @typedef {Array<com.chattriggers.ctjs.api.inventory.Item | null | undefined>} items
+ */
+
 const SLOTS = {
     CHRONOMATRON: 29,
     ULTRASEQUENCER: 33,
@@ -46,7 +51,7 @@ class AutoExperiments extends ModuleBase {
         this.clicks = 0;
         this.lastSlot49Item = null;
         this.lastClickTime = 0;
-        this.reopenStep = 0;
+        this.reopeningStarted = false;
         this.buyXpTargetLevel = 0;
         this.boughtXP = false;
         this.state = STATES.WAITING;
@@ -123,19 +128,27 @@ class AutoExperiments extends ModuleBase {
         this.state = newState;
         this.lastClickTime = Date.now();
 
-        if (newState === STATES.CHRONOMATRON) {
-            this.chronomatronOrder = [];
-            this.clicks = 0;
-        } else if (newState === STATES.ULTRASEQUENCER) {
-            this.ultraPatternCaptured = false;
-            this.ultrasequencerOrder.clear();
-            this.clicks = 0;
-            this.lastSlot49Item = null;
-        } else if (newState === STATES.DECIDING) {
-            this.lastSlot49Item = null;
+        switch (newState) {
+            case STATES.CHRONOMATRON:
+                this.chronomatronOrder = [];
+                this.clicks = 0;
+                break;
+            case STATES.ULTRASEQUENCER:
+                this.patternCaptured = false;
+                this.ultrasequencerOrder.clear();
+                this.clicks = 0;
+                this.lastSlot49Item = null;
+                break;
+            case STATES.DECIDING:
+                this.lastSlot49Item = null;
+                break;
         }
     }
 
+    /**
+     * @param {items} items
+     * @param {string} containerName
+     */
     handleDeciding(items, containerName) {
         if (!this.canClick()) return;
 
@@ -160,6 +173,9 @@ class AutoExperiments extends ModuleBase {
         Chat.message('Superpairs ready');
     }
 
+    /**
+     * @param {items} items
+     */
     handleUltrasequencer(items) {
         const maxDepth = this.getMaxXpEnabled ? 20 : (this.maxEnchanting ? 9 : 7) - this.serumCountValue;
         const control = this.getControlState(items);
@@ -181,6 +197,9 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = control.name;
     }
 
+    /**
+     * @param {items} items
+     */
     handleChronomatron(items) {
         const maxDepth = this.getMaxXpEnabled ? 20 : (this.maxEnchanting ? 12 : 9) - this.serumCountValue;
         const control = this.getControlState(items);
@@ -214,10 +233,16 @@ class AutoExperiments extends ModuleBase {
         this.lastSlot49Item = control.name;
     }
 
+    /**
+     * @param {items} items
+     */
     handleSuperpairs(items) {
         // idk pls help
     }
 
+    /**
+     * @param {items} items
+     */
     isSuperpairsComplete(items) {
         let hasItems = false;
         for (let i = 9; i <= 44; i++) {
@@ -236,9 +261,10 @@ class AutoExperiments extends ModuleBase {
         return hasItems;
     }
 
+    /**
+     * @param {items} items
+     */
     handleSuperpairsRewards(items) {
-        if (!this.canClick()) return;
-
         if (this.superpairsRewardsClaimed) {
             this.superpairsRewardsClaimed = false;
             this.startReopenSequence();
@@ -249,13 +275,16 @@ class AutoExperiments extends ModuleBase {
         if (!rewardItem) return;
 
         const lore = rewardItem.getLore();
-        if (lore && lore.join(' ').includes('Click to claim rewards')) {
+        if (this.canClick() && lore && lore.join(' ').includes('Click to claim rewards')) {
             Chat.message('&a[Superpairs] Claiming rewards...');
             this.clickSlot(13, 'LEFT');
             this.superpairsRewardsClaimed = true;
         }
     }
 
+    /**
+     * @param {items} items
+     */
     handleBuyingXp(items) {
         if (this.buyXpTargetLevel === 0) return;
 
@@ -275,7 +304,7 @@ class AutoExperiments extends ModuleBase {
     }
 
     startReopenSequence() {
-        this.reopenStep = 0;
+        this.reopeningStarted = false;
         this.lastClickTime = Date.now();
         this.state = STATES.REOPENING;
     }
@@ -283,12 +312,9 @@ class AutoExperiments extends ModuleBase {
     handleReopening() {
         if (!this.canClick()) return;
 
-        if (this.reopenStep === 0) {
+        if (!this.reopeningStarted) {
             Guis.closeInv();
-            this.reopenStep = 1;
-            this.lastClickTime = Date.now();
-        } else if (this.reopenStep === 1) {
-            this.reopenStep = 2;
+            this.reopeningStarted = true;
             this.lastClickTime = Date.now();
         } else {
             Chat.message('&aReopening Experimentation Table...');
@@ -303,6 +329,9 @@ class AutoExperiments extends ModuleBase {
         }
     }
 
+    /**
+     * @param {items} items
+     */
     getControlState(items) {
         const item = items[SLOTS.CONTROL];
         if (!item) return null;
@@ -316,6 +345,9 @@ class AutoExperiments extends ModuleBase {
         };
     }
 
+    /**
+     * @param {items} items
+     */
     captureUltrasequencerOrder(items) {
         this.ultrasequencerOrder.clear();
         for (let i = 9; i <= 44; i++) {
@@ -325,6 +357,10 @@ class AutoExperiments extends ModuleBase {
         }
     }
 
+    /**
+     * @param {items} items
+     * @param {number[]} slots
+     */
     selectHighestStake(items, slots) {
         for (const slot of slots) {
             if (items[slot] && !this.isLocked(items[slot])) {
@@ -335,6 +371,9 @@ class AutoExperiments extends ModuleBase {
         return false;
     }
 
+    /**
+     * @param {items} items
+     */
     selectSuperpairsStake(items) {
         const stakeSlots = [32, 31, 30, 23, 22, 21];
 
@@ -362,6 +401,9 @@ class AutoExperiments extends ModuleBase {
         return false;
     }
 
+    /**
+     * @param {item} item
+     */
     extractStakeCost(item) {
         const loreLines = this.getLoreLines(item);
         for (const line of loreLines) {
@@ -371,6 +413,9 @@ class AutoExperiments extends ModuleBase {
         return 0;
     }
 
+    /**
+     * @param {items} items
+     */
     renewRequired(items) {
         const item = items[SLOTS.RENEW];
         if (!item) return false;
@@ -378,6 +423,9 @@ class AutoExperiments extends ModuleBase {
         return name?.includes('Renew Experiments') ?? false;
     }
 
+    /**
+     * @param {items} items
+     */
     renewExperiments(items) {
         for (const line of this.getLoreLines(items[SLOTS.RENEW])) {
             const lower = line.toLowerCase();
@@ -402,9 +450,14 @@ class AutoExperiments extends ModuleBase {
     }
 
     isStakeSelection(game, containerName) {
-        return containerName.includes(game) && containerName.includes('Stakes');
+        const hasGameName = containerName.includes(game);
+        const hasStakes = containerName.includes('Stakes');
+        return hasGameName && hasStakes;
     }
 
+    /**
+     * @param {item} item
+     */
     extractRenewCost(item) {
         const loreLines = this.getLoreLines(item);
         for (const line of loreLines) {
@@ -414,6 +467,9 @@ class AutoExperiments extends ModuleBase {
         return 0;
     }
 
+    /**
+     * @param {item} item
+     */
     extractXpLevel(item) {
         for (const line of this.getLoreLines(item)) {
             const match = line.match(/Your\s+Exp\s+Level:\s*(\d+)/i);
@@ -422,6 +478,9 @@ class AutoExperiments extends ModuleBase {
         return 0;
     }
 
+    /**
+     * @param {items} items
+     */
     getChronomatronRound(items) {
         const item = items[4];
         if (!item) return null;
@@ -431,6 +490,9 @@ class AutoExperiments extends ModuleBase {
         return match ? parseInt(match[1], 10) : null;
     }
 
+    /**
+     * @param {item} item
+     */
     getLoreLines(item) {
         return item?.getLore()?.map((line) => ChatLib.removeFormatting(line)) ?? [];
     }
@@ -449,12 +511,18 @@ class AutoExperiments extends ModuleBase {
         this.superpairsRewardsClaimed = false;
     }
 
+    /**
+     * @param {item} item
+     */
     isDye(item) {
         if (!item) return false;
         const name = ChatLib.removeFormatting(item.getName());
         return name && /^\d+$/.test(name);
     }
 
+    /**
+     * @param {item} item
+     */
     isLocked(item) {
         if (!item) return true;
         const lore = item.getLore();
@@ -462,12 +530,18 @@ class AutoExperiments extends ModuleBase {
         return lore.join(' ').includes('Enchanting level too low!');
     }
 
+    /**
+     * @param {item} item
+     */
     isCompleted(item) {
         if (!item) return true;
         const lore = item.getLore()?.join(' ') ?? '';
         return lore.includes('Experiment completed') || lore.includes('Add-on locked!');
     }
 
+    /**
+     * @param {item} item
+     */
     onCooldown(item) {
         if (!item) return true;
         const lore = item.getLore();
