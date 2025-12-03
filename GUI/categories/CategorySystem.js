@@ -81,11 +81,11 @@ global.Categories = {
         return null;
     },
 
-    addToggle(categoryName, itemName, toggleTitle, callback = null, description = null) {
+    addToggle(categoryName, itemName, toggleTitle, callback = null, description = null, defaultValue = false) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        const toggle = new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback);
+        const toggle = new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback, defaultValue);
         toggle.description = description;
         item.components.push(toggle);
     },
@@ -99,11 +99,11 @@ global.Categories = {
         item.components.push(slider);
     },
 
-    addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null) {
+    addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
         const item = global.Categories.findItem(categoryName, itemName);
         if (!item) return;
 
-        const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback);
+        const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback, defaultValue);
         multiToggle.description = description;
         item.components.push(multiToggle);
     },

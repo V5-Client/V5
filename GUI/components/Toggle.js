@@ -1,13 +1,13 @@
 import { playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING } from '../Utils';
 
 export class ToggleButton {
-    constructor(title, x, y, width = 10, height = 10, callback = null) {
+    constructor(title, x, y, width = 10, height = 10, callback = null, defaultValue = false) {
         this.title = title;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.enabled = false;
+        this.enabled = defaultValue;
         this.optionPanelWidth = 0;
         this.optionPanelHeight = 0;
         this.callback = callback;
