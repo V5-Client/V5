@@ -1,7 +1,14 @@
 import { Utils } from './Utils';
 
 export class ModuleBase {
-    // options object: { name, subcategory, description?, tooltip?, showEnabledToggle?, autoDisableOnWorldUnload? }
+    /**
+     * Create a new module
+     * @param {string|object} nameOrOpts - Module name or options object
+     * @param {string} [subcategory] - Subcategory name (required if nameOrOpts is string)
+     * @param {string} [description=''] - Module description (required if nameOrOpts is string)
+     * @param {string} [tooltip=null] - Tooltip text (required if nameOrOpts is string)
+     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, showEnabledToggle, autoDisableOnWorldUnload
+     */
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
         const opts = typeof nameOrOpts === 'object' ? nameOrOpts : { name: nameOrOpts, subcategory, description, tooltip };
 
@@ -74,8 +81,10 @@ export class ModuleBase {
         }
     }
 
-    // Toggle logic: call hooks and register/unregister tracked registers
-    // If value is undefined, invert current state
+    /**
+     * Toggle the module on/off
+     * @param {boolean} [value] - Optional: force specific state (true/false). If undefined, toggles current state.
+     */
     toggle(value) {
         const newVal = typeof value === 'boolean' ? value : !this.enabled;
         if (this.enabled === newVal) return;
@@ -107,15 +116,39 @@ export class ModuleBase {
         return this;
     }
 
-    // helpers for gui stuff
-    addToggle(title, callback, description = null) {
-        global.Categories.addToggle('Modules', this.name, title, callback, description);
+    /**
+     * Add a toggle to the module's GUI
+     * @param {string} title - The title of the toggle
+     * @param {function} callback - Callback function when toggle state changes
+     * @param {string} [description=null] - Description/tooltip for the toggle
+     * @param {boolean} [defaultValue=false] - Optional: Default value for the toggle
+     */
+    addToggle(title, callback, description = null, defaultValue = false) {
+        global.Categories.addToggle('Modules', this.name, title, callback, description, defaultValue);
     }
+    /**
+     * Add a slider control to the module's GUI
+     * @param {string} title - The title of the slider
+     * @param {number} min - Minimum value
+     * @param {number} max - Maximum value
+     * @param {number} def - Default value
+     * @param {function} callback - Callback function when slider value changes
+     * @param {string} [description=null] - Description/tooltip for the slider
+     */
     addSlider(title, min, max, def, callback, description = null) {
         global.Categories.addSlider('Modules', this.name, title, min, max, def, callback, description);
     }
-    addMultiToggle(title, options, singleSelect, callback, description = null) {
-        global.Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description);
+    /**
+     * Add a multi-toggle control to the module's GUI
+     * @param {string} title - The title of the multi-toggle
+     * @param {Array} options - Array of option names
+     * @param {boolean} [singleSelect=false] - Whether only one option can be selected at a time
+     * @param {function} callback - Callback function when selection changes
+     * @param {string} [description=null] - Description/tooltip for the multi-toggle
+     * @param {string} [defaultValue=false] - Optional: Default selected option name
+     */
+    addMultiToggle(title, options, singleSelect, callback, description = null, defaultValue = false) {
+        global.Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
     }
 
     // Allow for overriding onEnable and onDisable if you need more control

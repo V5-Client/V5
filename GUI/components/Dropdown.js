@@ -1,7 +1,7 @@
 import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic } from '../Utils';
 
 export class MultiToggle {
-    constructor(title, x, y, options = [], singleSelect = false, callback = null) {
+    constructor(title, x, y, options = [], singleSelect = false, callback = null, defaultValue = false) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -11,6 +11,13 @@ export class MultiToggle {
             animationProgress: 0,
             animationStart: 0,
         }));
+        if (defaultValue) {
+            const defaultIndex = options.indexOf(defaultValue);
+            if (defaultIndex !== -1) {
+                this.options[defaultIndex].enabled = true;
+                this.options[defaultIndex].animationProgress = 1;
+            }
+        }
         this.expanded = false;
         this.optionHeight = 32;
         this.containerHeight = 48;

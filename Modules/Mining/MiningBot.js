@@ -368,7 +368,8 @@ class Bot extends ModuleBase {
             (value) => {
                 this.FAKELOOK = value;
             },
-            'Fakelook begins to mine blocks before the player looks at them.'
+            'Fakelook begins to mine blocks before the player looks at them.',
+            'Off' // default value
         );
         this.addMultiToggle(
             'Types',
@@ -378,7 +379,8 @@ class Bot extends ModuleBase {
                 this.TYPE = value;
                 this.setCost();
             },
-            'Targets specified block type.'
+            'Targets specified block type.',
+            'Mithril' // default value
         );
         this.addToggle(
             'Debug Mode',
