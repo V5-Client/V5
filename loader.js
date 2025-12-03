@@ -48,7 +48,7 @@ import './Modules/Other/FastPlace.js';
 import './Modules/Other/LobbyHopper.js';
 
 /* Utilities and shit */
-import './Backend/IRC.js';
+//import './Backend/IRC.js';
 import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 import './Utility/Misc.js';
 import './Utility/Webhooks.js';
