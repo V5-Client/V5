@@ -105,7 +105,7 @@ function connectWebSocket() {
     ws = new WebSocket(wsUrl);
 
     ws.onOpen = () => {
-        Chat.irc('Connected to chat server');
+        //Chat.irc('Connected to chat server');
         reconnectAttempts = 0;
         isConnected = true;
         sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
