@@ -1,12 +1,14 @@
 import WebSocket from 'WebSocket';
 import RequestV2 from 'RequestV2';
-import { Links } from '../Utility/Constants';
+import { Links, StandardCharsets, Base64 } from '../Utility/Constants';
 import { Chat } from '../Utility/Chat';
+import { Utils } from '../Utility/Utils';
 
 let reconnectAttempts = 0;
-const MAX_RECONNECT_DELAY = 60000; // 1 minute
 let gameUnload = false;
 let isConnected = false;
+let ws = null;
+let authToken = null;
 let start = Date.now();
 
 function openBrowser(url) {
@@ -17,108 +19,185 @@ function openBrowser(url) {
     }
 }
 
-function sendWsMessage(event, data) {
-    if (isConnected) {
-        ws.send(JSON.stringify({ event, data }));
+function parseJwtPayload(token) {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const decoded = Base64.getUrlDecoder().decode(parts[1]);
+    const json = new java.lang.String(decoded, StandardCharsets.UTF_8);
+    return JSON.parse(json);
+}
+
+function isJwtValid(token) {
+    if (!token) return false;
+    const payload = parseJwtPayload(token);
+    if (!payload || !payload.exp) return false;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    return payload.exp > nowSeconds + 30;
+}
+
+function saveJwt(token) {
+    try {
+        Utils.writeConfigFile(getTokenFileName(), { jwt: token });
+    } catch (e) {
+        console.error('Failed to save chat token: ' + e);
     }
 }
 
-function connectIRC(svid) {
-    ws = new WebSocket(Links.WEBSOCKET_URL);
+function loadSavedJwt() {
+    try {
+        const saved = Utils.getConfigFile(getTokenFileName())?.jwt;
+        if (isJwtValid(saved)) {
+            authToken = saved;
+            return authToken;
+        }
+    } catch (e) {
+        console.error('Failed to load saved chat token: ' + e);
+    }
+    return null;
+}
 
-    ws.onOpen = (handshake) => {
-        Chat.irc('Connected to Minecraft WebSocket server');
+function attemptReconnect() {
+    if (gameUnload) return;
+    if (reconnectAttempts < 10) {
+        reconnectAttempts++;
+        const delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
+        //Chat.irc(`Attempting to reconnect in ${delay / 20} seconds...`);
+        Client.scheduleTask(delay, () => {
+            if (gameUnload) return;
+            if (isConnected) return;
+            Chat.irc('Reconnecting...');
+            connectIRC();
+        });
+    } else {
+        Chat.irc('&cFailed to connect to chat! /ct load or wait, backend might be down.');
+    }
+}
+
+function handleIncomingMessage(raw) {
+    try {
+        const data = JSON.parse(raw);
+        if (data.type === 'message') {
+            const sender = data.user || data.mc_username || 'Unknown';
+            Chat.irc(`&9${sender}&r: ${data.msg}`);
+        } else if (data.type === 'error') {
+            Chat.irc(`Error: ${data.code || 'Unknown'}`);
+        } else if (data.type === 'system') {
+            Chat.irc(`System: ${data.code || ''}`);
+        }
+    } catch (e) {
+        Chat.irc(`An error occurred parsing message: ${e}`);
+    }
+}
+
+function sendChatMessage(content) {
+    if (!isConnected || !ws) return;
+    try {
+        ws.send(content);
+    } catch (e) {
+        Chat.irc('Failed to send message: ' + e);
+    }
+}
+
+function connectWebSocket() {
+    if (!authToken) return;
+
+    const wsUrl = `${Links.WEBSOCKET_URL}?token=${authToken}`;
+    ws = new WebSocket(wsUrl);
+
+    ws.onOpen = () => {
+        Chat.irc('Connected to chat server');
         reconnectAttempts = 0;
         isConnected = true;
-        authenticateMojang(svid);
+        sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
     };
 
     ws.onMessage = (message) => {
-        try {
-            const data = JSON.parse(message);
-            switch (data.event) {
-                case 'auth_success':
-                    if (!data.data.user.discordLinked) {
-                        const msg = Chat.formatLink('Link Discord', `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
-                        Chat.irc(msg);
-                        openBrowser(`${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
-                    }
-                    sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
-                    break;
-
-                case 'chat_message':
-                    const sender = data.data.sender.minecraftName || data.data.sender.discordUsername;
-                    Chat.irc(`&9${sender}` + ': ' + `&r${data.data.content}`);
-                    break;
-
-                case 'discord_link_reminder':
-                    const msg = Chat.formatLink('Link Discord', `${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
-                    Chat.irc(msg);
-                    openBrowser(`${Links.BASE_API_URL}/auth/discord/${Player.getName()}`);
-                    break;
-
-                case 'access_upgraded':
-                    Chat.irc('Discord linked! Full access granted.');
-                    break;
-
-                case 'error':
-                    Chat.irc('Error: ' + data.data.message);
-                    break;
-            }
-        } catch (e) {
-            Chat.irc(`An error occured: ${e}`);
-        }
+        handleIncomingMessage(message);
     };
 
     ws.onError = (exception) => {
         console.error('WebSocket error:', exception);
         Chat.irc('Connection error: ' + exception);
         isConnected = false;
-        attemptReconnect(svid);
+        if (!gameUnload) attemptReconnect();
     };
 
-    ws.onClose = (code, reason, remote) => {
-        console.log('WebSocket closed:', code, reason);
-        Chat.irc('Disconnected from chat server');
+    ws.onClose = (code, reason) => {
+        Chat.irc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
         isConnected = false;
-        if (!gameUnload) attemptReconnect(svid);
+        if (!gameUnload) attemptReconnect();
     };
 
+    start = Date.now();
     ws.connect();
 }
 
-function authenticateMojang(svid) {
-    try {
-        const token = Client.getMinecraft().getSession().getAccessToken();
-        const uuid = Player.getUUID().toString().replaceAll('-', '');
-        const username = Player.getName();
-        //Chat.message("Authenticating with Mojang...");
-        RequestV2({
-            url: 'https://sessionserver.mojang.com/session/minecraft/join',
-            method: 'POST',
-            body: {
-                accessToken: token,
-                selectedProfile: uuid,
-                serverId: svid,
-            },
-            resolveWithFullResponse: true,
-        })
-            .then((response) => {
-                if (response.statusCode === 204) {
-                    sendWsMessage('minecraft_auth', {
-                        username: username,
-                        serverId: svid,
-                    });
-                } else {
-                    Chat.irc('Failed to authenticate with Mojang.');
-                }
-            })
-            .catch((e) => {
-                Chat.irc('Authentication error: ' + e);
-            });
-    } catch (e) {
-        console.log(e);
+function login() {
+    const username = Player.getName();
+    const serverId = global.SESSION_SERVER_HASH;
+    RequestV2({
+        url: `${Links.BASE_API_URL}/api/auth/login`,
+        method: 'POST',
+        body: {
+            username,
+            serverId,
+        },
+        json: true,
+        resolveWithFullResponse: true,
+    }).then((data) => {
+        if (data.body.error === 'NOT_LINKED') {
+            const linkUrl = `${Links.BASE_API_URL}/api/auth/discord/login?state=${data.body.code}`;
+            Chat.irc(Chat.formatLink('Link Discord', linkUrl));
+            Chat.irc('Do /reconnectIRC after you have linked your discord');
+            openBrowser(linkUrl);
+            return;
+        }
+
+        if (!data.body.token) {
+            Chat.irc('Login failed.');
+            return;
+        }
+
+        authToken = data.body.token;
+        saveJwt(authToken);
+        connectWebSocket();
+    });
+}
+
+function getTokenFileName() {
+    const uuid = Player.getUUID()?.toString()?.replaceAll('-', '');
+    return `authCache/${uuid}.json`;
+}
+
+function connectIRC() {
+    start = Date.now();
+    if (loadSavedJwt()) {
+        connectWebSocket();
+        return;
     }
+
+    RequestV2({
+        url: 'https://sessionserver.mojang.com/session/minecraft/join',
+        method: 'POST',
+        body: {
+            accessToken: Client.getMinecraft().getSession().getAccessToken(),
+            selectedProfile: Player.getUUID().toString().replaceAll('-', ''),
+            serverId: global.SESSION_SERVER_HASH,
+        },
+        resolveWithFullResponse: true,
+    })
+        .then((response) => {
+            if (response.statusCode !== 204) {
+                Chat.irc('Failed to authenticate with Mojang.');
+            } else {
+                login();
+            }
+        })
+        .catch((e) => {
+            Chat.irc('Login error: ' + JSON.stringify(e));
+            console.error('Login error stack', e);
+            attemptReconnect();
+        });
 }
 
 register('gameUnload', () => {
@@ -126,41 +205,21 @@ register('gameUnload', () => {
     ws?.close();
 });
 
-function attemptReconnect(svid) {
-    if (reconnectAttempts < 3) {
-        reconnectAttempts++;
-        let delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY);
-        let ticks = Math.ceil(delay / 50);
-        Chat.irc(`Attempting to reconnect in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`);
-
-        Client.scheduleTask(ticks, () => {
-            Chat.irc('Reconnecting...');
-            if (isConnected) return;
-            connectIRC(svid);
-        });
-    } else {
-        // remove this if u want but its annoying asf sometimes
-        Chat.irc('&cFailed to connect to IRC after 3 attempts! /ct load or wait, backend might be down.');
-    }
-}
-
-function sendChatMessage(content) {
-    sendWsMessage('chat_message', { content: content });
-}
-
 register('packetSent', (packet, event) => {
     let message;
     try {
         message = packet.chatMessage();
     } catch (e) {}
     if (!message || !message.startsWith('#')) return;
-    try {
-        sendChatMessage(message.substring(1));
-    } catch (error) {
-        Chat.irc('Failed to send message');
-    }
+    sendChatMessage(message.substring(1));
     cancel(event);
 }).setFilteredClass(net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket);
 
-// Start connection
-connectIRC(global.SESSION_SERVER_HASH);
+register('command', () => {
+    reconnectAttempts = 0;
+    attemptReconnect();
+}).setCommandName('reconnectIRC');
+
+connectIRC();
+import { returnDiscord } from '../GUI/Utils';
+returnDiscord(authToken);
