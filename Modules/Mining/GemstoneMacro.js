@@ -51,7 +51,7 @@ class GemstoneMacro extends ModuleBase {
         this.closestPoint = null;
         this.closestPointIndex = null;
         this.rotatedToPoint = false;
-        this.toggled = false;
+        this.scanned = false;
 
         register('command', (action, indexArg) => {
             this.routesDir = Router.getFilesinDir('GemstoneRoutes');
@@ -144,8 +144,23 @@ class GemstoneMacro extends ModuleBase {
                         this.closestPoint = this.getPointOnBlock(this.closestPoint.point);
                     }
 
+                    let point = World.getBlockAt(this.closestPoint.x, this.closestPoint.y, this.closestPoint.z);
+
+                    // air or chest
+                    if (point?.type?.getID() === 0 || point?.type?.getID() === 188) {
+                        this.message('Next point has been destroyed!');
+                        this.toggle(false);
+                        return;
+                    }
+
                     this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x + 0.5, this.closestPoint.y + 0.5, this.closestPoint.z + 0.5]);
                     this.distance = this.dist.distance;
+
+                    if (this.distance > 60) {
+                        this.message('Point is too far to etherwarp to!');
+                        this.toggle(false);
+                        return;
+                    }
 
                     /*if (this.distance < 2 && !this.rotatedToPoint) {
                         this.message('Already at point ' + this.closestPointIndex);
@@ -153,7 +168,7 @@ class GemstoneMacro extends ModuleBase {
                         this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
                         this.state = this.STATES.MINING;
                         return;
-                    }*/
+                    } */
 
                     if (!this.rotatedToPoint) {
                         Keybind.setKey('shift', true);
@@ -174,32 +189,36 @@ class GemstoneMacro extends ModuleBase {
                             this.message('Arrived at point ' + this.closestPointIndex);
                             this.rotatedToPoint = false;
                             this.closestPointIndex++;
+
+                            if (this.closestPointIndex >= this.route.length) {
+                                Chat.message('Route finished! Resetting to start.');
+                                this.closestPointIndex = 0;
+                            }
+
                             this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
                             this.state = this.STATES.MINING;
+
                             return;
                         }
                     }
                     break;
                 case this.STATES.MINING:
-                    if (!this.toggled) {
-                        this.toggled = true;
+                    if (!this.scanned) {
+                        this.scanned = true;
+                        MiningBot.scanForBlock(this.getGemstoneCosts());
+                    }
+
+                    if (MiningBot.foundLocations.length > 0) {
+                        ChatLib.chat('Found ' + MiningBot.foundLocations.length + ' gemstones');
                         MiningBot.toggle(true);
-                        return;
-                    }
-
-                    if (MiningBot.isEmpty()) {
-                        this.toggled = false;
-
-                        this.message('No more gemstones found');
+                    } else if (MiningBot.foundLocations.length === 0) {
+                        MiningBot.toggle(false);
+                        ChatLib.chat('No more gemstones found');
                         this.state = this.STATES.ETHERWARPING;
+                        this.scanned = false;
                         return;
                     }
 
-                    /*if (MiningBot.isEmpty()) { 
-                        this.toggle(false);
-                        this.message('No more gemstones found');
-                        return;
-                    }*/
                     break;
             }
         });
@@ -325,9 +344,13 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onDisable() {
-        this.toggled = false;
+        this.scanned = false;
+        this.closestPointIndex = null;
+        this.closestPoint = null;
+        this.rotatedToPoint = null;
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
+        Keybind.unpressKeys();
         MiningBot.toggle(false);
     }
 }
