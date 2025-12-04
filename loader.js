@@ -10,6 +10,7 @@ Client.getMinecraft()
 import './GUI/GUI.js';
 import './GUI/GIF.js';
 import './Utility/Config.js';
+import './Backend/IRC.js';
 
 /* CORE */
 import './Pathfinding/PathFinder.js';
@@ -48,15 +49,12 @@ import './Modules/Other/FastPlace.js';
 import './Modules/Other/LobbyHopper.js';
 
 /* Utilities and shit */
-//import './Backend/IRC.js';
 import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 import './Utility/Misc.js';
 import './Utility/Webhooks.js';
 
 import { loadSettings } from './GUI/GuiSave';
-import { returnDiscord } from './GUI/Utils.js';
 loadSettings();
-returnDiscord();
 
 /*register('tick', () => {
     const velocity = Player.getPlayer().getVelocity();

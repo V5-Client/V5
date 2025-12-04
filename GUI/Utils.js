@@ -217,14 +217,14 @@ export const playClickSound = () => {
 };
 
 const profilePath = new File('config/ChatTriggers/assets/discordProfile.png');
-export const returnDiscord = () => {
+export const returnDiscord = (authToken) => {
     try {
         if (!profilePath.exists()) {
             new Thread(() => {
                 // make sure folder exists
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 
-                const url = `${Links.BASE_API_URL}/api/v1/users/discord-profile?minecraftUsername=${Player.getName()}&serverId=${global.SESSION_SERVER_HASH}`;
+                const url = `${Links.BASE_API_URL}/api/me?token=${authToken}`;
                 let responseText = fetchURL(url);
 
                 if (!responseText || responseText.trim() === '') {

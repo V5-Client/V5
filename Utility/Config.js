@@ -91,6 +91,15 @@ let Files = [
         FileType: 'dir',
     },
     { path: 'EtherwarpRoutes/empty.txt', FileType: 'file', Content: [] },
+    {
+        path: 'authCache',
+        FileType: 'dir',
+    },
+    {
+        path: 'authCache/do_not_share_this_folder',
+        FileType: 'file',
+        Content: [],
+    },
 
     // Mining Stats
     { path: 'miningstats.json', FileType: 'file', Content: {} },
