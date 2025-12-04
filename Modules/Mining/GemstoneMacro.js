@@ -9,13 +9,7 @@ import { Rotations } from '../../Utility/Rotations';
 import { Router } from '../../Utility/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../Utility/ModuleBase';
-
-/**TODO
- * a thing which reads all files in the folder and sets them to a multitoggle
- * mob killer
- * gemstone type selector
- * ticks with msb etc
- */
+import { Utils } from '../../Utility/Utils';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
@@ -43,23 +37,6 @@ class GemstoneMacro extends ModuleBase {
         this.SAPPHIRE = false;
         this.TOPAZ = false;
 
-        this.gemstoneCosts = {
-            'minecraft:orange_stained_glass': this.AMBER ? 1 : null,
-            'minecraft:orange_stained_glass_pane': this.AMBER ? 1 : null,
-            'minecraft:purple_stained_glass': this.AMETHYST ? 1 : null,
-            'minecraft:purple_stained_glass_pane': this.AMETHYST ? 1 : null,
-            'minecraft:lime_stained_glass': this.JADE ? 1 : null,
-            'minecraft:lime_stained_glass_pane': this.JADE ? 1 : null,
-            'minecraft:magenta_stained_glass': this.JASPER ? 1 : null,
-            'minecraft:magenta_stained_glass_pane': this.JADE ? 1 : null,
-            'minecraft:red_stained_glass': this.RUBY ? 1 : null,
-            'minecraft:red_stained_glass_pane': this.RUBY ? 1 : null,
-            'minecraft:light_blue_stained_glass': this.SAPPHIRE ? 1 : null,
-            'minecraft:light_blue_stained_glass_pane': this.SAPPHIRE ? 1 : null,
-            'minecraft:yellow_stained_glass': this.TOPAZ ? 1 : null,
-            'minecraft:yellow_stained_glass_pane': this.TOPAZ ? 1 : null,
-        };
-
         this.STATES = {
             WAITING: 0,
             ETHERWARPING: 1,
@@ -68,23 +45,16 @@ class GemstoneMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.enabled = false;
-        this.setCost = false;
-        this.point = null;
-        this.loadedRoute = Router.loadRouteFromFile('gemstoneroutes/default_route.txt');
-        this.route = this.loadedRoute;
-        this.foundFirstPoint = false;
-        this.enableMiningBot = false;
-        this.completedFirstPoint = false;
-
-        register('command', () => {
-            this.toggle(true);
-            this.state = this.STATES.ETHERWARPING;
-        }).setName('startg');
+        this.routesDir = Router.getFilesinDir('GemstoneRoutes');
+        this.route = null;
+        this.loadedFile = null;
+        this.closestPoint = null;
+        this.closestPointIndex = null;
+        this.rotatedToPoint = false;
+        this.toggled = false;
 
         register('command', (action, indexArg) => {
-            this.loadedRoute = Router.loadRouteFromFile('gemstoneroutes/default_route.txt');
-            this.route = this.loadedRoute;
+            this.routesDir = Router.getFilesinDir('GemstoneRoutes');
             let indexNum = undefined;
 
             if (indexArg !== undefined) {
@@ -95,148 +65,171 @@ class GemstoneMacro extends ModuleBase {
                 }
             }
 
-            this.route = Router.Edit(action.toUpperCase(), this.route, 'gemstoneroutes/default_route.txt', indexNum);
+            this.route = Router.Edit(action.toUpperCase(), this.route, 'GemstoneRoutes/' + this.loadedFile, indexNum);
 
             Chat.message(`Action ${action} performed on route. Route now has ${this.route?.length} points.`);
         }).setName('gemstone');
 
-        this.on('postRenderWorld', () => {
-            const route = this.loadedRoute;
+        this.when(
+            () => {
+                return Utils.area() === 'Crystal Hollows';
+            },
+            'postRenderWorld',
+            () => {
+                if (!this.route || this.route.length < 1) return;
 
-            if (!route || route.length === 0) return;
+                for (let i = 0; i < this.route.length; i++) {
+                    const current = this.route[i];
 
-            for (let i = 0; i < route.length - 1; i++) {
-                const p1 = route[i];
-                const p2 = route[i + 1];
+                    if (current && typeof current.x === 'number' && typeof current.y === 'number' && typeof current.z === 'number') {
+                        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, false);
+                    }
+                }
 
-                if (p1 && p2 && typeof p1.x === 'number' && typeof p2.x === 'number') {
+                for (let i = 0; i < this.route.length - 1; i++) {
+                    const current = this.route[i];
+                    const next = this.route[i + 1];
+
+                    RenderUtils.drawLine(
+                        new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
+                        new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
+                        [0, 100, 200, 255],
+                        3,
+                        false
+                    );
+                }
+
+                if (this.route.length > 1) {
+                    const last = this.route[this.route.length - 1];
+                    const first = this.route[0];
+                    RenderUtils.drawLine(
+                        new Vec3d(last.x + 0.5, last.y + 0.5, last.z + 0.5),
+                        new Vec3d(first.x + 0.5, first.y + 0.5, first.z + 0.5),
+                        [0, 100, 200, 255],
+                        3,
+                        false
+                    );
                 }
             }
-
-            for (let i = 0; i < route.length; i++) {
-                const point = route[i];
-                const index = i + 1;
-
-                if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') {
-                    RenderUtils.drawWireFrame(new Vec3d(point.x, point.y, point.z), [255, 0, 255, 255]);
-
-                    RenderUtils.drawString(`${index}`, point?.x + 0.5, point?.y + 1.2, point?.z + 0.5, Renderer.WHITE, false);
-                }
-            }
-        });
+        );
 
         this.on('tick', () => {
-            MiningBot.setCost(this.gemstoneCosts);
+            MiningBot.setCost(this.getGemstoneCosts());
 
             switch (this.state) {
                 case this.STATES.ETHERWARPING:
-                    let aotv = Guis.findItemInHotbar('Aspect of the');
-                    if (aotv !== -1) Player.setHeldItemIndex(aotv);
+                    if (Utils.area() !== 'Crystal Hollows') {
+                        this.toggle(false);
+                        this.message('&cYou are not in Crystal Hollows!');
+                        return;
+                    }
+
+                    MiningBot.toggle(false);
 
                     Keybind.setKey('leftclick', false);
 
-                    if (!this.completedFirstPoint) {
-                        this.nearestPoint = this.getClosestPoint();
+                    let aotv = Guis.findItemInHotbar('Aspect of the Void') || Guis.findItemInHotbar('Aspect of the End'); // can aote etherwarp?
 
-                        if (this.nearestPoint.distance < 2) {
+                    if (aotv === -1) {
+                        this.toggle(false);
+                        this.message('&cYou dont have an Etherwarping item!');
+                        return;
+                    }
+
+                    Player.setHeldItemIndex(aotv);
+
+                    if (!this.closestPoint) {
+                        this.closestPoint = this.getClosestPoint();
+                        this.closestPointIndex = this.closestPoint.index;
+                        this.closestPoint = this.getPointOnBlock(this.closestPoint.point);
+                    }
+
+                    this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x + 0.5, this.closestPoint.y + 0.5, this.closestPoint.z + 0.5]);
+                    this.distance = this.dist.distance;
+
+                    /*if (this.distance < 2 && !this.rotatedToPoint) {
+                        this.message('Already at point ' + this.closestPointIndex);
+                        this.closestPointIndex++;
+                        this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
+                        this.state = this.STATES.MINING;
+                        return;
+                    }*/
+
+                    if (!this.rotatedToPoint) {
+                        Keybind.setKey('shift', true);
+                        if (!Player.getPlayer().isSneaking()) return;
+
+                        Rotations.rotateToVector(this.closestPoint, 1);
+                        Rotations.onEndRotation(() => {
+                            Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);
+                        });
+                        this.message('Rotating to point ' + this.closestPointIndex);
+                        this.rotatedToPoint = true;
+                    }
+
+                    if (this.rotatedToPoint) {
+                        Chat.message('Distance to point ' + this.closestPointIndex + ': ' + this.distance);
+
+                        if (this.distance < 2) {
+                            this.message('Arrived at point ' + this.closestPointIndex);
+                            this.rotatedToPoint = false;
+                            this.closestPointIndex++;
+                            this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
                             this.state = this.STATES.MINING;
                             return;
                         }
                     }
-
-                    if (!this.foundFirstPoint) {
-                        if (this.nearestPoint) {
-                            let playerEyePos = Player.getPlayer().getEyePos();
-                            let begin = [playerEyePos.x, playerEyePos.y, playerEyePos.z];
-                            let end = [this.nearestPoint.point?.x, this.nearestPoint.point?.y, this.nearestPoint.point?.z];
-
-                            let traversedBlocks = RayTrace.rayTraceBetweenPoints(begin, end);
-
-                            let lineOfSightIsClear = true;
-
-                            if (traversedBlocks && traversedBlocks.length > 0) {
-                                for (let i = 0; i < traversedBlocks.length - 1; i++) {
-                                    const [x, y, z] = traversedBlocks[i];
-
-                                    const block = World.getBlockAt(x, y, z);
-
-                                    if (block.type.getID() !== 0) {
-                                        lineOfSightIsClear = false;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (lineOfSightIsClear) {
-                                Keybind.setKey('shift', true);
-
-                                Rotations.rotateToVector(
-                                    [this.nearestPoint.point?.x + 0.5, this.nearestPoint.point?.y + 0.5, this.nearestPoint.point?.z + 0.5],
-                                    0.5,
-                                    false
-                                );
-
-                                Rotations.onEndRotation(() => {
-                                    Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);
-                                });
-                                this.foundFirstPoint = true;
-                            } else {
-                                Chat.message('Failed to reach first point');
-                            }
-                        } else {
-                            Chat.message('No route points found!');
-                        }
-                    } else if (this.completedFirstPoint) {
-                        if (MiningBot.empty) {
-                            Keybind.setKey('shift', true);
-
-                            Rotations.rotateToVector([this.nextPoint?.x + 0.5, this.nextPoint?.y + 0.5, this.nextPoint?.z + 0.5], 0.5, false);
-
-                            Rotations.onEndRotation(() => {
-                                Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);
-                            });
-                            MiningBot.empty = false;
-                        } else {
-                            Chat.message('£H');
-                            let distData = MathUtils.getDistanceToPlayer(this.nextPoint?.x, this.nextPoint?.y, this.nextPoint?.z);
-                            let currentDistance = distData.distance;
-
-                            this.enableMiningBot = false;
-                            if (currentDistance < 2) this.state = this.STATES.MINING;
-                        }
-                    }
-
                     break;
                 case this.STATES.MINING:
-                    Keybind.setKey('shift', true);
-
-                    if (!this.enableMiningBot) {
-                        MiningBot.miningbot.register();
-                        MiningBot.enabled = true;
-                        MiningBot.state = MiningBot.STATES.ABILITY;
-                        this.enableMiningBot = true;
+                    if (!this.toggled) {
+                        this.toggled = true;
+                        MiningBot.toggle(true);
+                        return;
                     }
 
-                    if (MiningBot.empty) {
-                        this.currentIndex = this.nearestPoint.index;
-                        this.nextIndex = this.currentIndex + 1;
+                    if (MiningBot.isEmpty()) {
+                        this.toggled = false;
 
-                        this.nextPoint = this.route[this.nextIndex];
-                        this.nearestPoint = {
-                            point: this.nextPoint,
-                            index: this.nextIndex,
-                        };
-
-                        Chat.message(this.nearestPoint.index);
-
-                        this.completedFirstPoint = true;
+                        this.message('No more gemstones found');
                         this.state = this.STATES.ETHERWARPING;
+                        return;
                     }
 
+                    /*if (MiningBot.isEmpty()) { 
+                        this.toggle(false);
+                        this.message('No more gemstones found');
+                        return;
+                    }*/
                     break;
             }
         });
 
+        this.addMultiToggle(
+            'Routes',
+            this.routesDir,
+            true,
+            (selected) => {
+                this.loadedFile = Router.getFilefromCallback(selected);
+                this.route = Router.loadRouteFromFile('GemstoneRoutes/', this.loadedFile);
+            },
+            'The route the macro will use'
+        );
+        this.addMultiToggle(
+            'Gemstone Types',
+            ['Ruby', 'Amethyst', 'Sapphire', 'Topaz', 'Amber', 'Jade', 'Jasper'],
+            false,
+            (selected) => {
+                const setHas = (name) => selected.some((item) => item.name === name && item.enabled === true);
+                this.AMBER = setHas('Amber');
+                this.AMETHYST = setHas('Amethyst');
+                this.JADE = setHas('Jade');
+                this.JASPER = setHas('Jasper');
+                this.RUBY = setHas('Ruby');
+                this.SAPPHIRE = setHas('Sapphire');
+                this.TOPAZ = setHas('Topaz');
+            },
+            'Type of gemstones the macro is able to target'
+        );
         this.addToggle(
             'Fast AOTV',
             (value) => {
@@ -261,49 +254,35 @@ class GemstoneMacro extends ModuleBase {
             },
             'Slot of your melee weapon'
         );
-        this.addMultiToggle(
-            'Gemstone Types',
-            ['Ruby', 'Amethyst', 'Sapphire', 'Topaz', 'Amber', 'Jade', 'Jasper'],
-            false,
-            (selected) => {
-                const setHas = (name) => selected.includes(name);
-                this.AMBER = setHas('Amber');
-                this.AMETHYST = setHas('Amethyst');
-                this.JADE = setHas('Jade');
-                this.JASPER = setHas('Jasper');
-                this.RUBY = setHas('Ruby');
-                this.SAPPHIRE = setHas('Sapphire');
-                this.TOPAZ = setHas('Topaz');
-            },
-            'Type of gemstones the macro is able to target'
-        );
-        this.addToggle(
-            'Use Preset Ticks',
-            (value) => {
-                this.PRESETTICKS = value;
-            },
-            'Use an amount of ticks instead of a calculation with mining speed'
-        );
-        this.addSlider(
-            'Ticks with MSB',
-            0,
-            20,
-            7,
-            (value) => {
-                this.TICKSWITHMSB = value;
-            },
-            'Amount of ticks on each block with mining speed boost'
-        );
-        this.addSlider(
-            'Ticks without MSB',
-            0,
-            40,
-            15,
-            (value) => {
-                this.TICKSWITHOUTMSB = value;
-            },
-            'Amount of ticks on each block without mining speed boost'
-        );
+    }
+
+    getGemstoneCosts() {
+        return {
+            'minecraft:orange_stained_glass': this.AMBER ? 1 : null,
+            'minecraft:orange_stained_glass_pane': this.AMBER ? 1 : null,
+            'minecraft:purple_stained_glass': this.AMETHYST ? 1 : null,
+            'minecraft:purple_stained_glass_pane': this.AMETHYST ? 1 : null,
+            'minecraft:lime_stained_glass': this.JADE ? 1 : null,
+            'minecraft:lime_stained_glass_pane': this.JADE ? 1 : null,
+            'minecraft:magenta_stained_glass': this.JASPER ? 1 : null,
+            'minecraft:magenta_stained_glass_pane': this.JASPER ? 1 : null,
+            'minecraft:red_stained_glass': this.RUBY ? 1 : null,
+            'minecraft:red_stained_glass_pane': this.RUBY ? 1 : null,
+            'minecraft:light_blue_stained_glass': this.SAPPHIRE ? 1 : null,
+            'minecraft:light_blue_stained_glass_pane': this.SAPPHIRE ? 1 : null,
+            'minecraft:yellow_stained_glass': this.TOPAZ ? 1 : null,
+            'minecraft:yellow_stained_glass_pane': this.TOPAZ ? 1 : null,
+        };
+    }
+
+    getPointOnBlock(point) {
+        const randomOffset = (min, max) => Math.random() * (max - min) + min;
+
+        const newX = point.x + randomOffset(0.1, 0.9);
+        const newY = point.y + randomOffset(0.1, 0.9);
+        const newZ = point.z + randomOffset(0.1, 0.9);
+
+        return new Vec3d(newX, newY, newZ);
     }
 
     getClosestPoint() {
@@ -334,6 +313,22 @@ class GemstoneMacro extends ModuleBase {
         }
 
         return closestPointData;
+    }
+
+    message(msg) {
+        Chat.message('&#f542efGemstone Macro: &f' + msg);
+    }
+
+    onEnable() {
+        this.message('&aEnabled');
+        this.state = this.STATES.ETHERWARPING;
+    }
+
+    onDisable() {
+        this.toggled = false;
+        this.message('&cDisabled');
+        this.state = this.STATES.WAITING;
+        MiningBot.toggle(false);
     }
 }
 

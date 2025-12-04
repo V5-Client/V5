@@ -25,7 +25,7 @@ class ExcavatorMacro extends ModuleBase {
             (v) => {
                 this.NODELAY = v;
             },
-            'Tries clicking as soon as possible - risky'
+            'Ignores tick delay and clicks as soon as possible'
         );
 
         this.addSlider(
@@ -36,7 +36,7 @@ class ExcavatorMacro extends ModuleBase {
             (v) => {
                 this.TICKDELAY = v;
             },
-            'Amount of ticks until the player can click again, no delay ignores this'
+            'Amount of ticks until the player can click again'
         );
 
         this.STATES = {
@@ -110,6 +110,12 @@ class ExcavatorMacro extends ModuleBase {
 
                     if (this.clickedChisel && this.clickedScrap) {
                         if (!this.clickDelay()) return;
+
+                        if (this.NODELAY) {
+                            let chiselSlot = Player.getContainer().getStackInSlot(14);
+                            if (!chiselSlot) return;
+                        }
+
                         Guis.clickItem('Start Excavator', true, 'MIDDLE');
                     }
 
