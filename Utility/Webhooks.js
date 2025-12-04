@@ -20,7 +20,6 @@ class Webhooks {
                 this.webhookUrl = webhookFile.url || null;
                 this.userId = webhookFile.userId || null;
                 this.isEnabled = !!this.webhookUrl;
-                if (this.isEnabled) Chat.debugMessage('&aLoaded webhook from config');
             }
         } catch (e) {
             Chat.message('Webhook: ' + '&cFailed to load webhook config');

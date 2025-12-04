@@ -134,6 +134,3 @@ register('tick', () => {
         recordRotation(yaw, pitch);
     }
 });
-Chat.message('§7  /startrecord - Start recording');
-Chat.message('§7  /stoprecord - Stop recording');
-Chat.message('§7  /saverecord [name] - Save recording');
