@@ -123,6 +123,12 @@ function connectWebSocket() {
     };
 
     ws.onClose = (code, reason) => {
+        if (code == '1000') return;
+        if (code == '1006') {
+            Chat.irc('Backend restarting.');
+            attemptReconnect();
+            return;
+        }
         Chat.irc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
         isConnected = false;
         if (!gameUnload) attemptReconnect();
