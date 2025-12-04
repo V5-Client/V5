@@ -201,7 +201,7 @@ class Routes {
                 return route;
         }
 
-        if (routeModified) this.saveRouteToFile(route, file);
+        if (routeModified) this.saveRouteToFile(file, route);
 
         return route;
     }
