@@ -7,7 +7,7 @@ import { PathfindingMessages } from './PathConfig';
 import { Links, Vec3d } from '../Utility/Constants';
 import { Utils } from '../Utility/Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
-import RenderUtils from '../Rendering/RendererUtils';
+import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { resetStuckDetection } from './PathWalker/PathStuckRecovery';
 import { Chat } from '../Utility/Chat';

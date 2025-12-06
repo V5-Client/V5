@@ -1,5 +1,5 @@
 import { Vec3d } from '../../Utility/Constants';
-import RenderUtils from '../../Rendering/RendererUtils';
+import RenderUtils from '../../render/RendererUtils';
 import { Keybind } from '../../Utility/Keybinding';
 import { Chat } from '../../Utility/Chat';
 import { PathfindingMessages } from '../PathConfig';

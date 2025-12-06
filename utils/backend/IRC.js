@@ -228,5 +228,5 @@ register('command', () => {
 }).setCommandName('reconnectIRC');
 
 connectIRC();
-import { returnDiscord } from '../GUI/Utils';
+import { returnDiscord } from '../../GUI/Utils';
 returnDiscord(authToken);

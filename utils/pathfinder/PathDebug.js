@@ -1,4 +1,4 @@
-import RenderUtils from '../Rendering/RendererUtils';
+import RenderUtils from '../render/RendererUtils';
 import { Vec3d } from '../Utility/Constants';
 
 export function generateHybridSpline(keyPathNodes, tolerance = 10) {
