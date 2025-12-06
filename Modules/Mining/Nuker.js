@@ -9,6 +9,10 @@ const BP = net.minecraft.util.math.BlockPos;
 const ConcurrentLinkedQueue = Java.type('java.util.concurrent.ConcurrentLinkedQueue');
 const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
+// TODO
+// 4:10 : save block config
+// 2/10 : nuker preset commands
+
 class NukerClass extends ModuleBase {
     constructor() {
         super({
@@ -269,7 +273,6 @@ class NukerClass extends ModuleBase {
         //this.workerThread.setName('NukerWorker'); //these dont exist apparently
         //this.workerThread.setDaemon(true); // grrr
         this.workerThread.start();
-        Chat.debugMessage('Worker thread started');
     }
 
     stopWorker() {
@@ -277,7 +280,6 @@ class NukerClass extends ModuleBase {
             return;
         }
 
-        Chat.debugMessage('Stopping worker thread...');
         this.workerRunning.set(false);
 
         if (this.workerThread) {
@@ -290,7 +292,6 @@ class NukerClass extends ModuleBase {
 
         this.taskQueue.clear();
         this.resultQueue.clear();
-        Chat.debugMessage('Worker thread stopped');
     }
 
     processScanTask(task) {
