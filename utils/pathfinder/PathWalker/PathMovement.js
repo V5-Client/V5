@@ -1,4 +1,4 @@
-import { Keybind } from '../../Utility/Keybinding';
+import { Keybind } from '../../player/Keybinding';
 
 /**
  * add velocity detection logic - simple

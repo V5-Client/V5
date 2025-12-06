@@ -1,15 +1,15 @@
-import RenderUtils from '../../Rendering/RendererUtils';
-import { Chat } from '../../Utility/Chat';
-import { Vec3d } from '../../Utility/Constants';
-import { Guis } from '../../Utility/Inventory';
-import { Keybind } from '../../Utility/Keybinding';
-import { MathUtils } from '../../Utility/Math';
-import { RayTrace } from '../../Utility/Raytrace';
-import { Rotations } from '../../Utility/Rotations';
-import { Router } from '../../Utility/Router';
+import RenderUtils from '../../utils/render/RendererUtils';
+import { Chat } from '../../utils/Chat';
+import { Vec3d } from '../../utils/Constants';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
+import { MathUtils } from '../../utils/Math';
+import { RayTrace } from '../../utils/Raytrace';
+import { Rotations } from '../../utils/player/Rotations';
+import { Router } from '../../utils/Router';
 import { MiningBot } from './MiningBot';
-import { ModuleBase } from '../../Utility/ModuleBase';
-import { Utils } from '../../Utility/Utils';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Utils } from '../../utils/Utils';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {

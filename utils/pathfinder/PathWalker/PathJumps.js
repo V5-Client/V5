@@ -1,7 +1,6 @@
-import { Vec3d } from '../../Utility/Constants';
-import RenderUtils from '../../render/RendererUtils';
-import { Keybind } from '../../Utility/Keybinding';
-import { Chat } from '../../Utility/Chat';
+import { Vec3d } from '../../Constants';
+import { Keybind } from '../../player/Keybinding';
+import { Chat } from '../../Chat';
 import { PathfindingMessages } from '../PathConfig';
 import { isStuckRecoveryJumping } from './PathStuckRecovery';
 

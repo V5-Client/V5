@@ -1,6 +1,6 @@
 import request from 'requestV2';
 
-import { Links, System, ProcessBuilder, Scanner, InputStreamReader, StandardCharsets, Runtime } from '../Utility/Constants';
+import { Links, System, ProcessBuilder, Scanner, InputStreamReader, StandardCharsets, Runtime } from '../Constants';
 import { PathfindingMessages } from './PathConfig';
 
 const assetsDir = new java.io.File('config/ChatTriggers/assets').getAbsolutePath();

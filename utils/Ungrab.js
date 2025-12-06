@@ -1,5 +1,5 @@
-import { IsCursorLocked, LockCursor } from '../Mixins/UngrabMixin';
-import { HandleInputEvents, OnMouseScroll } from '../Mixins/SlotChangeMixin';
+import { IsCursorLocked, LockCursor } from '../mixins/UngrabMixin';
+import { HandleInputEvents, OnMouseScroll } from '../mixins/SlotChangeMixin';
 import { attachMixin } from './AttachMixin';
 
 class ungrabClass {

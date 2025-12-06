@@ -1,7 +1,7 @@
-import { Utils } from '../Utility/Utils';
-import { Links } from '../Utility/Constants';
-import { Chat } from '../Utility/Chat';
-import { File, Color, UIRoundedRectangle, Matrix } from '../Utility/Constants';
+import { Utils } from '../utils/Utils';
+import { Links } from '../utils/Constants';
+import { Chat } from '../utils/Chat';
+import { File, Color, UIRoundedRectangle, Matrix } from '../utils/Constants';
 
 export const colorWithAlpha = (baseColor, alpha) =>
     new Color(baseColor.getRed() / 255, baseColor.getGreen() / 255, baseColor.getBlue() / 255, (baseColor.getAlpha() / 255) * alpha);

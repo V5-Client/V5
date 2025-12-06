@@ -1,7 +1,7 @@
 import * as RotationRecorder from './RotationRecorder';
 const ENABLE_RECORDING = true;
 
-import { MathUtils } from '../../Utility/Math';
+import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
 import { renderSplineBoxes } from '../PathDebug';
 import { detectStuck, resetStuckDetection } from './PathStuckRecovery';

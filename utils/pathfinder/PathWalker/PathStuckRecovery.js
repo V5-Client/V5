@@ -1,7 +1,7 @@
 import { PathfindingMessages } from '../PathConfig';
-import { Vec3d } from '../../Utility/Constants';
-import { Utils } from '../../Utility/Utils';
-import { Keybind } from '../../Utility/Keybinding';
+import { Vec3d } from '../../Constants';
+import { Utils } from '../../Utils';
+import { Keybind } from '../../player/Keybinding';
 
 let lastPlayerPos = null;
 let ticksWithoutMovement = 0;

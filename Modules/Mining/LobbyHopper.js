@@ -1,7 +1,7 @@
-import { Chat } from '../../Utility/Chat';
-import { ModuleBase } from '../../Utility/ModuleBase';
-import { Time } from '../../Utility/Timing';
-import { Utils } from '../../Utility/Utils';
+import { Chat } from '../../utils/Chat';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Time } from '../../utils/Timing';
+import { Utils } from '../../utils/Utils';
 
 class LobbyHopper extends ModuleBase {
     constructor() {

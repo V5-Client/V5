@@ -1,14 +1,14 @@
-import { Chat } from '../../Utility/Chat';
-import { findAndFollowPath, stopPathing } from '../../Pathfinding/PathAPI';
+import { Chat } from '../../utils/Chat';
+import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
-import { registerEventSB } from '../../Utility/SkyblockEvents';
+import { registerEventSB } from '../../utils/SkyblockEvents';
 import { MiningBot } from './MiningBot';
-import { CombatBot } from '../Other/CombatBot';
-import { MiningUtils } from '../../Utility/MiningUtils';
-import { Guis } from '../../Utility/Inventory';
-import { Keybind } from '../../Utility/Keybinding';
-import { Rotations } from '../../Utility/Rotations';
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { CombatBot } from '../combat/CombatBot';
+import { MiningUtils } from '../../utils/MiningUtils';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
+import { Rotations } from '../../utils/player/Rotations';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK

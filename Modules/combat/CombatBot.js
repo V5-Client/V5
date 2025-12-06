@@ -1,9 +1,9 @@
-﻿import { ModuleBase } from '../../Utility/ModuleBase';
-import { Chat } from '../../Utility/Chat';
-import { Vec3d } from '../../Utility/Constants';
-import RenderUtils from '../../Rendering/RendererUtils';
-import { MathUtils } from '../../Utility/Math';
-import { Rotations } from '../../Utility/Rotations';
+﻿import { ModuleBase } from '../../utils/ModuleBase';
+import { Chat } from '../../utils/Chat';
+import { Vec3d } from '../../utils/Constants';
+import RenderUtils from '../../utils/render/RendererUtils';
+import { MathUtils } from '../../utils/Math';
+import { Rotations } from '../../utils/player/Rotations';
 // just random tests for now
 
 class Combat extends ModuleBase {

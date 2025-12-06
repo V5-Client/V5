@@ -1,4 +1,4 @@
-import { Chat } from '../Utility/Chat';
+import { Chat } from '../Chat';
 
 let renderKeyNodes = false;
 let renderFloatingSpline = false;

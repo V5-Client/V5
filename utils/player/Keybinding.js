@@ -1,7 +1,6 @@
-import { Chat } from './Chat';
-import { Utils } from './Utils';
-import { mc } from './Utils';
-import { Vec3d } from './Constants';
+import { Chat } from '../Chat';
+import { Utils, mc } from '../Utils';
+import { Vec3d } from '../Constants';
 
 const LeftClickMouse = mc.getClass().getDeclaredMethod('method_1536');
 LeftClickMouse.setAccessible(true);

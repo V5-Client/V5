@@ -1,5 +1,5 @@
 const DiscordRPC = Java.type('com.v5.qol.DiscordRPC');
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class RPC extends ModuleBase {
     constructor() {

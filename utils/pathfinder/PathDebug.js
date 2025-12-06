@@ -1,5 +1,5 @@
 import RenderUtils from '../render/RendererUtils';
-import { Vec3d } from '../Utility/Constants';
+import { Vec3d } from '../Constants';
 
 export function generateHybridSpline(keyPathNodes, tolerance = 10) {
     if (!keyPathNodes || keyPathNodes.length < 2) return [];

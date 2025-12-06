@@ -7,53 +7,53 @@ Client.getMinecraft()
     .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
 /* GUI */
-import './GUI/GUI.js';
-import './GUI/GIF.js';
-import './Utility/Config.js';
-import './Backend/IRC.js';
+import './gui/GUI.js';
+import './gui/GIF.js';
+import './utils/Config.js';
+import './utils/backend/IRC.js';
 
 /* CORE */
-import './Pathfinding/PathFinder.js';
-//import './Failsafes/Failsafes.js';
+import './utils/pathfinder/PathFinder.js';
+//import './failsafes/Failsafes.js';
 
 /* FORAGING */
-//import './Modules/Foraging/SeaLumieMacro.js';
+//import './modules/foraging/SeaLumieMacro.js';
+import './modules/foraging/AutoHarp.js';
+import './modules/foraging/HuntingHelpers.js';
 
 /* MINING */
-import './Modules/Mining/Nuker.js';
-import './Modules/Mining/CommissionMacro.js';
-import './Modules/Mining/GemstoneMacro.js';
-import './Modules/Mining/PinglessMining.js';
+import './modules/mining/Nuker.js';
+import './modules/mining/CommissionMacro.js';
+import './modules/mining/GemstoneMacro.js';
+import './modules/mining/PinglessMining.js';
 //import './Modules/Mining/ScathaMacro.js';
-import './Modules/Mining/ExcavatorMacro.js';
+import './modules/mining/ExcavatorMacro.js';
+import './modules/mining/LobbyHopper.js';
 
 /* FARMING */
-import './Modules/Farming/FarmingMacro.js';
+import './modules/farming/FarmingMacro.js';
 
 /* VISUALS */
-import './Modules/Visuals/MobHider.js';
-import './Modules/Visuals/Xray.js';
+import './modules/visuals/MobHider.js';
+import './modules/visuals/Xray.js';
+import './modules/visuals/Visual.js'; // i need - zurv
 
 /* SKILLS */
-import './Modules/Other/Visual.js'; // this is just for me cus i need - zurv
-import './Modules/Skills/AutoExperiments.js';
-import './Modules/Skills/AutoHarp.js';
-import './Modules/Skills/BeachBaller.js';
-import './Modules/Skills/FishingMacro.js';
-import './Modules/Skills/JerryBoxMacro.js';
+import './modules/skills/AutoExperiments.js';
+import './modules/skills/FishingMacro.js';
+import './modules/skills/JerryBoxMacro.js';
 
 /* OTHER */
-import './Modules/Other/HuntingHelpers.js';
-import './Modules/Other/DiscordRPC.js';
-import './Modules/Other/FastPlace.js';
-import './Modules/Other/LobbyHopper.js';
+import './modules/other/BeachBaller.js';
+import './modules/other/DiscordRPC.js';
+import './modules/other/FastPlace.js';
 
 /* Utilities and shit */
-import './Utility/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
-import './Utility/Misc.js';
-import './Utility/Webhooks.js';
+import './utils/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
+import './utils/Misc.js';
+import './utils/Webhooks.js';
 
-import { loadSettings } from './GUI/GuiSave';
+import { loadSettings } from './gui/GuiSave';
 loadSettings();
 
 /*register('tick', () => {

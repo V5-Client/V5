@@ -1,6 +1,6 @@
-import { ModuleBase } from '../Utility/ModuleBase';
-import { File, Color } from '../Utility/Constants';
-import { Chat } from '../Utility/Chat';
+import { ModuleBase } from '../utils/ModuleBase';
+import { File, Color } from '../utils/Constants';
+import { Chat } from '../utils/Chat';
 
 const ImageIO = Java.type('javax.imageio.ImageIO');
 const BufferedImage = Java.type('java.awt.image.BufferedImage');

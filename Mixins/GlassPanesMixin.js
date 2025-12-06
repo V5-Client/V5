@@ -1,4 +1,4 @@
-import { attachMixin } from '../Utility/AttachMixin';
+import { attachMixin } from '../utils/AttachMixin';
 
 const horizontalConnectingBlockMixin = new Mixin('net.minecraft.block.HorizontalConnectingBlock');
 

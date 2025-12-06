@@ -1,7 +1,7 @@
-import RendererMain from '../../Rendering/RendererMain';
-import { Chat } from '../../Utility/Chat';
-import { Color } from '../../Utility/Constants';
-import { ModuleBase } from '../../Utility/ModuleBase';
+import RendererMain from '../../utils/render/RendererMain';
+import { Chat } from '../../utils/Chat';
+import { Color } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class SeaLumie extends ModuleBase {
     constructor() {

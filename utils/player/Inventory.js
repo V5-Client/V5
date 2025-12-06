@@ -1,8 +1,6 @@
-import { Keybind } from '../Keybinding';
-import { Rotations } from '../Rotations';
+import { Keybind } from './Keybinding';
+import { Rotations } from './Rotations';
 import { Chat } from '../Chat';
-import { HandleInputEvents, OnMouseScroll } from '../../Mixins/SlotChangeMixin';
-import { attachMixin } from '../AttachMixin';
 
 class InventoryUtilsClass {
     /**

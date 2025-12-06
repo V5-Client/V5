@@ -1,7 +1,7 @@
 import { Chat } from './Chat';
 import { Utils } from './Utils';
-import { Guis } from './Inventory';
-import { Keybind } from './Keybinding';
+import { Guis } from './player/Inventory';
+import { Keybind } from './player/Keybinding';
 import { Flowstate } from './Flowstate';
 
 const blockHardness = {

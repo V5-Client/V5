@@ -1,5 +1,5 @@
-import { raytraceBlocks } from '../Dependencies/BloomCore/RaytraceBlocks';
-import { Vector3 } from '../Dependencies/BloomCore/Vector3';
+import { raytraceBlocks } from '../utils/Dependencies/BloomCore/RaytraceBlocks';
+import { Vector3 } from '../utils/Dependencies/BloomCore/Vector3';
 
 const Vec3 = net.minecraft.util.math.Vec3d;
 

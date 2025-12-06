@@ -1,11 +1,11 @@
-import { Guis } from '../../Utility/Inventory';
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { Guis } from '../../utils/player/Inventory';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class AutoHarp extends ModuleBase {
     constructor() {
         super({
             name: 'Auto Harp',
-            subcategory: 'Skills',
+            subcategory: 'Foraging',
             description: 'Auto Harp',
             tooltip: 'Auto Harp',
         });

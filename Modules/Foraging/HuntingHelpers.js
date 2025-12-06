@@ -1,5 +1,5 @@
-import { Keybind } from '../../Utility/Keybinding';
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { Keybind } from '../../utils/player/Keybinding';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class HuntingHelper extends ModuleBase {
     constructor() {

@@ -4,13 +4,13 @@ import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
 import { PathfindingMessages } from './PathConfig';
-import { Links, Vec3d } from '../Utility/Constants';
-import { Utils } from '../Utility/Utils';
+import { Links, Vec3d } from '../Constants';
+import { Utils } from '../Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { resetStuckDetection } from './PathWalker/PathStuckRecovery';
-import { Chat } from '../Utility/Chat';
+import { Chat } from '../Chat';
 
 register('command', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];

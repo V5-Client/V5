@@ -1,7 +1,7 @@
 // dont forget to remove before release
 
-import { File } from '../../Utility/Constants';
-import { Chat } from '../../Utility/Chat';
+import { File } from '../../Constants';
+import { Chat } from '../../Chat';
 const configName = 'V5Config';
 const rotationsDir = 'rotations';
 

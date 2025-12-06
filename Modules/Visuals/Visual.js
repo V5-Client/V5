@@ -1,6 +1,6 @@
-import RenderUtils from '../../Rendering/RendererUtils';
-import { Vec3d } from '../../Utility/Constants';
-import { RayTrace } from '../../Utility/Raytrace';
+import RenderUtils from '../../utils/render/RendererUtils';
+import { Vec3d } from '../../utils/Constants';
+import { RayTrace } from '../../utils/Raytrace';
 
 const exclusions = [
     0, 51, 171, 144, 69, 77, 143, 50, 131, 132, 66, 157, 78, 141, 59, 142, 115, 104, 105, 76, 55, 38, 37, 6, 140, 32, 31, 65, 175, 93, 94, 149, 150, 30, 111, 9,

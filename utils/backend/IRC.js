@@ -1,8 +1,8 @@
 import WebSocket from 'WebSocket';
 import RequestV2 from 'RequestV2';
-import { Links, StandardCharsets, Base64 } from '../Utility/Constants';
-import { Chat } from '../Utility/Chat';
-import { Utils } from '../Utility/Utils';
+import { Links, StandardCharsets, Base64 } from '../Constants';
+import { Chat } from '../Chat';
+import { Utils } from '../Utils';
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -228,5 +228,5 @@ register('command', () => {
 }).setCommandName('reconnectIRC');
 
 connectIRC();
-import { returnDiscord } from '../../GUI/Utils';
+import { returnDiscord } from '../../gui/Utils';
 returnDiscord(authToken);
