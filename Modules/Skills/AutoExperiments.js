@@ -1,7 +1,7 @@
-import { ModuleBase } from '../../Utility/ModuleBase';
-import { Guis } from '../../Utility/Inventory';
-import { Chat } from '../../Utility/Chat';
-import { Keybind } from '../../Utility/Keybinding';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Guis } from '../../utils/player/Inventory';
+import { Chat } from '../../utils/Chat';
+import { Keybind } from '../../utils/player/Keybinding';
 
 /**
  * @typedef {com.chattriggers.ctjs.api.inventory.Item} item

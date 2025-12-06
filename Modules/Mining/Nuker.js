@@ -1,9 +1,9 @@
-import { NukerUtils } from '../../Utility/NukerUtils';
-import { Chat } from '../../Utility/Chat';
-import { Utils } from '../../Utility/Utils';
-import RenderUtils from '../../Rendering/RendererUtils';
-import { Vec3d } from '../../Utility/Constants';
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { NukerUtils } from '../../utils/NukerUtils';
+import { Chat } from '../../utils/Chat';
+import { Utils } from '../../utils/Utils';
+import RenderUtils from '../../utils/render/RendererUtils';
+import { Vec3d } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 const BP = net.minecraft.util.math.BlockPos;
 
 const ConcurrentLinkedQueue = Java.type('java.util.concurrent.ConcurrentLinkedQueue');

@@ -1,4 +1,4 @@
-import { attachMixin } from '../Utility/AttachMixin';
+import { attachMixin } from '../utils/AttachMixin';
 
 const gameRendererMixin = new Mixin('net.minecraft.client.render.GameRenderer');
 

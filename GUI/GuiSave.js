@@ -1,8 +1,8 @@
 import { ToggleButton } from './components/Toggle';
 import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
-import { Chat } from '../Utility/Chat';
-import { Utils } from '../Utility/Utils';
+import { Chat } from '../utils/Chat';
+import { Utils } from '../utils/Utils';
 
 global.SettingsMap = new Map();
 

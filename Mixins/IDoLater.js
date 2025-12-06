@@ -1,4 +1,4 @@
-import { attachMixin } from '../Utility/AttachMixin';
+import { attachMixin } from '../utils/AttachMixin';
 
 //const seaPickleBlockMixin = new Mixin('net.minecraft.block.SeaPickleBlock');
 const partBlockMixin = new Mixin('net.minecraft.block.AbstractPlantPartBlock');

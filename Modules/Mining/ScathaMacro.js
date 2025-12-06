@@ -1,12 +1,12 @@
-import { ModuleBase } from '../../Utility/ModuleBase';
-import { Chat } from '../../Utility/Chat';
-import { Rotations } from '../../Utility/RotationsTest';
-import { Keybind } from '../../Utility/Keybinding';
-import { Time } from '../../Utility/Timing';
-import { Guis } from '../../Utility/Inventory';
-import { MathUtils } from '../../Utility/Math';
-import { Utils } from '../../Utility/Utils';
-import { Vec3d } from '../../Utility/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Chat } from '../../utils/Chat';
+import { Rotations } from '../../utils/player/RotationsTest';
+import { Keybind } from '../../utils/player/Keybinding';
+import { Time } from '../../utils/Timing';
+import { Guis } from '../../utils/player/Inventory';
+import { MathUtils } from '../../utils/Math';
+import { Utils } from '../../utils/Utils';
+import { Vec3d } from '../../utils/Constants';
 
 class ScathaMacro extends ModuleBase {
     constructor() {

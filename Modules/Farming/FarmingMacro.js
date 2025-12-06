@@ -1,9 +1,9 @@
-import { Chat } from '../../Utility/Chat';
-import { MathUtils } from '../../Utility/Math';
-import { ModuleBase } from '../../Utility/ModuleBase';
-import { Rotations } from '../../Utility/Rotations';
-import { Mouse } from '../../Utility/Ungrab';
-import { Utils } from '../../Utility/Utils';
+import { Chat } from '../../utils/Chat';
+import { MathUtils } from '../../utils/Math';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Rotations } from '../../utils/player/Rotations';
+import { Mouse } from '../../utils/Ungrab';
+import { Utils } from '../../utils/Utils';
 
 class FarmingMacro extends ModuleBase {
     constructor() {

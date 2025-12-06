@@ -1,4 +1,4 @@
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class FastPlace extends ModuleBase {
     constructor() {
