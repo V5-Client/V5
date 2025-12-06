@@ -1,4 +1,4 @@
-//import { ClippingManager } from '../Utility/Clipping.js';
+//import { ClippingManager } from '../utils/Clipping.js';
 // should always activate clip on failsafe right? maybe not. configure in gui?
 
 /* VELOCITY PACKET

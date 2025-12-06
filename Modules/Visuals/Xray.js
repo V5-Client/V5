@@ -1,5 +1,5 @@
-import { getSetting } from '../../GUI/GuiSave';
-import { ModuleBase } from '../../Utility/ModuleBase';
+import { getSetting } from '../../gui/GuiSave';
+import { ModuleBase } from '../../utils/ModuleBase';
 const XrayPackage = Java.type('com.v5.qol.Xray');
 
 class Xray extends ModuleBase {
