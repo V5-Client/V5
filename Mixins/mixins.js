@@ -1,10 +1,10 @@
 // If the mixin is persistent, call attatchMixin() in its file and import here, if its not import the injection and use attatchMixin() where needed
 
-import { HandleInputEvents, OnMouseScroll } from './mixins/SlotChangeMixin';
-import { IsCursorLocked, LockCursor } from './mixins/UngrabMixin';
-import { PaneFix } from './mixins/GlassPanesMixin';
-import { DisablePauseOnLostFocus } from './mixins/GameRendererMixin';
-import { emptyKelp, emptyGrass, emptyTallGrass } from './mixins/IDoLater';
+import { HandleInputEvents, OnMouseScroll } from './SlotChangeMixin';
+import { IsCursorLocked, LockCursor } from './UngrabMixin';
+import { PaneFix } from './GlassPanesMixin';
+import { DisablePauseOnLostFocus } from './GameRendererMixin';
+import { emptyKelp, emptyGrass, emptyTallGrass } from './IDoLater';
 
 /* still needed?
 

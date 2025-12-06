@@ -1,7 +1,7 @@
 // credits: ImaDoofus | https://chattriggers.com/modules/v/Reload
 
 // Shouldnt be in public release!
-import { Chat } from './utils/Chat';
+import { Chat } from './Chat';
 
 const File = java.io.File;
 const FileSystems = java.nio.file.FileSystems;
