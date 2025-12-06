@@ -193,8 +193,8 @@ class Bot extends ModuleBase {
                         this.scanForBlock(this.COSTTYPE);
                         break;
                     }
-
                     if (Player.getHeldItemIndex() !== drill.slot) {
+                        let start = java.lang.System.nanoTime();
                         Guis.setItemSlot(drill.slot);
                         return console.log((java.lang.System.nanoTime() - start) / 1000 + 'ms');
                     }

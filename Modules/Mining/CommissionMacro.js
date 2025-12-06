@@ -61,6 +61,7 @@ class CommissionMacro extends ModuleBase {
         this.weapon = null;
         this.miningSpeed = 0;
         this.currentMiningWaypoint = null;
+        this.lastCompletedCommissionName = null;
 
         this.on('step', () => this.readCommissions()).setDelay(1);
         this.on('tick', () => this.runLogic());
@@ -159,6 +160,7 @@ class CommissionMacro extends ModuleBase {
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
         this.pathfinding = false;
+        this.lastCompletedCommissionName = null;
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -192,6 +194,14 @@ class CommissionMacro extends ModuleBase {
     handleChoosing() {
         this.readCommissions();
         if (this.awaitingTabUpdate) return;
+
+        if (this.lastCompletedCommissionName) {
+            const staleCommission = this.commissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress > 0);
+            if (staleCommission) {
+                return;
+            }
+            this.lastCompletedCommissionName = null;
+        }
 
         const hasCompleted = this.commissions.some((c) => c.progress === 1);
         if (hasCompleted) {
@@ -559,6 +569,7 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
 
+        this.lastCompletedCommissionName = this.currentCommission?.name || null;
         this.awaitingTabUpdate = true;
         this.setState(STATES.CLAIMING);
     }
@@ -683,14 +694,23 @@ class CommissionMacro extends ModuleBase {
 
         this.commissions = newCommissions;
 
-        Chat.message('&a--- Commissions Updated ---');
+        Chat.message('&aCommissions Updated');
         this.commissions.forEach((c) => {
             Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
         });
 
         if (this.awaitingTabUpdate) {
             const stillCompleted = this.commissions.some((c) => c.progress === 1);
-            if (!stillCompleted) this.awaitingTabUpdate = false;
+            if (!stillCompleted) {
+                if (this.lastCompletedCommissionName) {
+                    const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
+                    if (!sameNameComm || sameNameComm.progress === 0) {
+                        this.awaitingTabUpdate = false;
+                    }
+                } else {
+                    this.awaitingTabUpdate = false;
+                }
+            }
         }
     }
 
