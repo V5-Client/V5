@@ -1,6 +1,6 @@
-import { ModuleBase } from '../utils/ModuleBase';
-import { File, Color } from '../utils/Constants';
-import { Chat } from '../utils/Chat';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { File, Color } from '../../utils/Constants';
+import { Chat } from '../../utils/Chat';
 
 const ImageIO = Java.type('javax.imageio.ImageIO');
 const BufferedImage = Java.type('java.awt.image.BufferedImage');
@@ -16,7 +16,7 @@ class GIFOverlay extends ModuleBase {
     constructor() {
         super({
             name: 'GIF Overlay',
-            subcategory: 'Core',
+            subcategory: 'Visuals',
             description: 'Display animated GIFs on your screen',
             tooltip: 'Use /gif to change GIF overlays. Open chat to move/resize.',
         });

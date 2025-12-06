@@ -1,3 +1,5 @@
+global.SESSION_SERVER_HASH = java.util.UUID.randomUUID().toString().replaceAll('-', '');
+
 import WebSocket from 'WebSocket';
 import RequestV2 from 'RequestV2';
 import { Links, StandardCharsets, Base64 } from '../Constants';

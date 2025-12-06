@@ -7,7 +7,7 @@ class LobbyHopper extends ModuleBase {
     constructor() {
         super({
             name: 'Lobby Hopper',
-            subcategory: 'Other',
+            subcategory: 'Mining',
             description: 'Switches between CH lobbies',
             tooltip: 'Switches between CH lobbies',
             showEnabledToggle: false,

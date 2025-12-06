@@ -5,7 +5,7 @@ class HuntingHelper extends ModuleBase {
     constructor() {
         super({
             name: 'Hunting Helpers',
-            subcategory: 'Other',
+            subcategory: 'Foraging',
             description: 'Random features to help with hunting',
             tooltip: 'Manual use',
         });
