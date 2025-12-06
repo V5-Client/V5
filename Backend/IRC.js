@@ -216,7 +216,9 @@ register('packetSent', (packet, event) => {
         message = packet.chatMessage();
     } catch (e) {}
     if (!message || !message.startsWith('#')) return;
-    sendChatMessage(message.substring(1));
+
+    sendChatMessage(message.substring(1).trim()); // remove space after # if you have it.
+
     cancel(event);
 }).setFilteredClass(net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket);
 
