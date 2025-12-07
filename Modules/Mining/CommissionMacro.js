@@ -59,6 +59,7 @@ class CommissionMacro extends ModuleBase {
         this.blueCheese = null; // unused rn
         this.pickaxe = null;
         this.weapon = null;
+        this.isActualDrill = false; // true if using a drill, false for pickaxes
         this.miningSpeed = 0;
         this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
@@ -119,9 +120,18 @@ class CommissionMacro extends ModuleBase {
         this.blueCheese = drills.blueCheese; // unused rn
 
         if (!this.drill) {
-            Chat.message('&cNo drill found in hotbar!');
+            Chat.message('&cNo drill or pickaxe found in hotbar!');
             this.toggle(false);
             return;
+        }
+
+        const itemName = ChatLib.removeFormatting(this.drill.item.getName());
+        this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
+
+        if (this.isActualDrill) {
+            Chat.message(`&aUsing drill: &b${itemName}`);
+        } else {
+            Chat.message(`&aUsing pickaxe: &b${itemName}`);
         }
 
         this.weapon = this.getWeaponFromSlot();
@@ -423,6 +433,9 @@ class CommissionMacro extends ModuleBase {
         this.pickaxe = this.drill;
 
         if (this.drill) {
+            const itemName = ChatLib.removeFormatting(this.drill.item.getName());
+            this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
+
             Guis.setItemSlot(this.drill.slot);
             this.delay(5);
         }
@@ -519,10 +532,13 @@ class CommissionMacro extends ModuleBase {
         this.drill = drills.drill;
 
         if (!this.drill) {
-            Chat.message('&cERROR: No drill found!');
+            Chat.message('&cERROR: No drill or pickaxe found!');
             this.toggle(false);
             return;
         }
+
+        const itemName = ChatLib.removeFormatting(this.drill.item.getName());
+        this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
         Guis.setItemSlot(this.drill.slot);
 
@@ -583,6 +599,11 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDrillEmpty() {
+        if (!this.isActualDrill) {
+            Chat.message('&eDrill empty event but using pickaxe. Wtf????');
+            return;
+        }
+
         Chat.message('&eDrill empty! Refueling...');
         MiningBot.toggle(false);
         this.setState(STATES.REFUELING);
@@ -598,6 +619,12 @@ class CommissionMacro extends ModuleBase {
             const drills = MiningUtils.getDrills();
             this.drill = drills.drill;
             this.blueCheese = drills.blueCheese; // unused rn
+
+            if (this.drill) {
+                const itemName = ChatLib.removeFormatting(this.drill.item.getName());
+                this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
+            }
+
             this.setState(STATES.IDLE);
         });
     }
