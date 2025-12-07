@@ -15,7 +15,7 @@ import './utils/pathfinder/PathFinder.js';
 import './utils/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 import './utils/Misc.js';
 import './utils/Webhooks.js';
-//import './failsafes/Failsafes.js';
+import './Failsafes/FailsafeManager.js';
 
 import './modules/loader.js';
 
