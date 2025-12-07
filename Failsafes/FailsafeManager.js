@@ -1,5 +1,6 @@
 import { Chat } from '../utils/Chat.js';
 import { Failsafe } from './Failsafe';
+import { File } from '../utils/Constants'
 
 class FailsafeManager {
     constructor() {
@@ -12,8 +13,24 @@ class FailsafeManager {
     }
 
     autoRegister() {
-        const File = Java.type("java.io.File");
-        const fsDir = new File("./config/ChatTriggers/modules/V5/Failsafes");
+        const modulesDir = new File("./config/ChatTriggers/modules");
+        const moduleFolders = modulesDir.listFiles().filter(f => f.isDirectory());
+        let moduleName = null;
+
+        for (const folder of moduleFolders) {
+            const failsafesDir = new File(folder, "Failsafes");
+            if (failsafesDir.exists() && failsafesDir.isDirectory()) {
+                moduleName = folder.getName();
+                break;
+            }
+        }
+
+        if (!moduleName) {
+            Chat.message("somehow modulename not found, this shouldnt happen!");
+            return;
+        }
+
+        const fsDir = new File(`./config/ChatTriggers/modules/${moduleName}/Failsafes`);
         const files = fsDir.listFiles();
 
         for (let i = 0; i < files.length; i++) {
@@ -22,13 +39,13 @@ class FailsafeManager {
             if (!file.isDirectory() && file.getName().endsWith("Failsafe.js") && file.getName() !== "Failsafe.js") {
                 const name = file.getName();
 
-                const path = "V5/Failsafes/" + name;
+                const path = `${moduleName}/Failsafes/${name}`;
 
                 try {
                     const a = require(path);
                     this.registerFailsafe(a);
                 } catch (e) {
-                    Chat.message("failed to load failsafe: " + name);
+                    Chat.message("Failed to load failsafe: " + name);
                     Chat.message(String(e));
                 }
             }
