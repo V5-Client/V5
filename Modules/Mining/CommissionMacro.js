@@ -174,6 +174,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     runLogic() {
+        if (!this.enabled) return;
         if (this.pauseTicks > 0) {
             this.pauseTicks--;
             return;
