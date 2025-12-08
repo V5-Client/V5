@@ -25,6 +25,12 @@ class Failsafes extends ModuleBase {
             'Enable velocity failsafe',
             this.velocity
         )
+        this.addToggle(
+            'Slot Change Failsafe',
+            (value) => { this.slotChange = value },
+            'Enable slot change failsafe',
+            this.slotChange
+        )
         this.addSlider(
             'Failsafe Detection Delay (ms)',
             500,

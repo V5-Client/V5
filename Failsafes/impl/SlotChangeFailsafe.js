@@ -1,0 +1,31 @@
+import { Chat } from "../../utils/Chat";
+import { Failsafe } from "../Failsafe";
+import { registerEventSB } from "../../utils/SkyblockEvents"
+import FailsafeManager from "../FailsafeManager";
+
+class SlotChangeFailsafe extends Failsafe {
+    constructor() {
+        super();
+        this.ignore = false;
+        this.settings = FailsafeManager.getFailsafeSettings("Slot Change");
+        this.registerSlotChangeListeners();
+    }
+
+    registerSlotChangeListeners() {
+        register("packetReceived", (packet) => {
+            if (this.ignore) return;
+            const currentSlot = Player.getHeldItemIndex() + 1;
+            const newSlot = packet.slot() + 1; // first slot is 0 so +1 to match hotbar index ig
+            if (currentSlot === newSlot) return;
+            setTimeout(() => {
+                this.onTrigger(currentSlot, newSlot);
+            }, this.settings?.["Failsafe Detection Delay (ms)"] - 50 || 600)
+        }).setFilteredClass(net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket);
+    }
+
+    onTrigger(fromSlot, toSlot) {
+        Chat.message(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}!`);
+    }
+}
+
+export default new SlotChangeFailsafe();
