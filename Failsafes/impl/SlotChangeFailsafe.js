@@ -1,13 +1,13 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
-import FailsafeManager from "../FailsafeManager";
+import getFailsafeSettings from "../ConfigWrapper";
 
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
         super();
         this.ignore = false;
-        this.settings = FailsafeManager.getFailsafeSettings("Slot Change");
+        this.settings = getFailsafeSettings("Slot Change");
         this.registerSlotChangeListeners();
     }
 

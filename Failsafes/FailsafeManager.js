@@ -42,7 +42,7 @@ class FailsafeManager {
                 const path = `${moduleName}/Failsafes/impl/${name}`;
 
                 try {
-                    const a = require(path)?.default ?? require(path);
+                    const a = require(path)
                     this._registerFailsafe(a);
                 } catch (e) {
                     Chat.message("Failed to load failsafe: " + name);
@@ -57,17 +57,6 @@ class FailsafeManager {
             this._autoRegister();
         }
         return this.failsafes;
-    }
-
-    getFailsafeSettings(name) {
-        const V5ConfigFile = new File(`${this.modulesDir}/V5Config/config.json`);
-        if (!V5ConfigFile.exists()) { // TODO: make this not be fucking retarded and find another way
-            Chat.message("V5Config not found, this shouldnt happen!");
-            return; // (importing module causes it to double render therefore i have to do this for now?)
-        }
-
-        const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
-        return config["Failsafes"];
     }
 }
 

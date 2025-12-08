@@ -1,7 +1,7 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
-import FailsafeManager from "../FailsafeManager";
+import getFailsafeSettings from "../ConfigWrapper";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -10,7 +10,7 @@ class TeleportFailsafe extends Failsafe {
         this.lastY = null;
         this.lastZ = null;
         this.ignore = false;
-        this.settings = FailsafeManager.getFailsafeSettings("Teleport");
+        this.settings = getFailsafeSettings("Teleport");
         this.registerTPListeners();
     }
 
@@ -45,7 +45,7 @@ class TeleportFailsafe extends Failsafe {
         }.bind(this))
 
         register("step", () => {
-            this.settings = FailsafeManager.getFailsafeSettings("Teleport")
+            this.settings = getFailsafeSettings("Teleport")
         }).setDelay(30)
     }
 
