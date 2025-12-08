@@ -9,7 +9,11 @@ class VelocityFailsafe extends Failsafe {
 
     registerVeloListeners() {
         register("packetReceived", (packet) => {
-            if (packet.getEntityId() !== Player.asPlayerMP().mcValue.getId()) return;
+            if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
+            if (Player.getHeldItem().getName().removeFormatting().includes("Grappling")) return;
+            const playerPos = Player.asPlayerMP().mcValue.getPos();
+            const blockBelow = World.getBlockAt(Math.floor(playerPos.getX()), Math.floor(playerPos.getY()) - 1, Math.floor(playerPos.getZ()));
+            if (blockBelow.getType().getRegistryName().includes("slime_block")) return;
             const vx = packet.getVelocityX();
             const vy = packet.getVelocityY();
             const vz = packet.getVelocityZ();
@@ -19,8 +23,8 @@ class VelocityFailsafe extends Failsafe {
     }
 
     onTrigger(speed) {
-        // Chat.message("Velocity failsafe triggered!")
-        // Chat.message(`Velocity: ${speed}`)
+        Chat.message("Velocity failsafe triggered!")
+        Chat.message(`Velocity: ${speed}`)
     }
 }
 
