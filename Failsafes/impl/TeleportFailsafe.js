@@ -1,6 +1,7 @@
-import { Chat } from "../utils/Chat";
-import { Failsafe } from "./Failsafe";
-import { registerEventSB } from "../utils/SkyblockEvents"
+import { Chat } from "../../utils/Chat";
+import { Failsafe } from "../Failsafe";
+import { registerEventSB } from "../../utils/SkyblockEvents"
+import FailsafeManager from "../FailsafeManager";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -9,12 +10,13 @@ class TeleportFailsafe extends Failsafe {
         this.lastY = null;
         this.lastZ = null;
         this.ignore = false;
-
+        this.settings = FailsafeManager.getFailsafeSettings("Teleport");
         this.registerTPListeners();
     }
 
     registerTPListeners() {
         register("packetReceived", (packet) => {
+            if (Player.getHeldItem().getName().removeFormatting().toLowerCase().includes("aspect of the")) return;
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();
@@ -25,22 +27,26 @@ class TeleportFailsafe extends Failsafe {
             setTimeout(() => {
                 if (this.ignore) return
                 this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2));
-            }, 600)
+            }, this.settings?.["Failsafe Detection Delay (ms)"] - 50|| 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket)
 
         registerEventSB("death", function () {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
-            }, 650)
+            }, this.settings?.["Failsafe Detection Delay (ms)"] || 650)
         }.bind(this))
 
         registerEventSB("warp", function () {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
-            }, 650)
+            }, this.settings?.["Failsafe Detection Delay (ms)"] || 650)
         }.bind(this))
+
+        register("step", () => {
+            this.settings = FailsafeManager.getFailsafeSettings("Teleport")
+        }).setDelay(30)
     }
 
     onTrigger(fromX, fromY, fromZ, toX, toY, toZ) {
