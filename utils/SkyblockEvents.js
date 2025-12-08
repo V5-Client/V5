@@ -56,6 +56,8 @@ register('chat', (event) => {
     if (msg.startsWith('You need the Cookie Buff')) CheckEvents('noboostercookie');
 
     if (msg.startsWith(' ☠ You ')) CheckEvents('death');
+
+    if (msg === 'Warping...') CheckEvents('warp')
 });
 
 register('chat', () => {
