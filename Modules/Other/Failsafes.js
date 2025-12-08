@@ -11,6 +11,8 @@ class Failsafes extends ModuleBase {
 
         this.tp = true;
         this.velocity = true;
+        this.slotChange = true;
+        this.chatMention = true;
         this.actionDelay = 500;
         
         this.addToggle(
@@ -30,6 +32,12 @@ class Failsafes extends ModuleBase {
             (value) => { this.slotChange = value },
             'Enable slot change failsafe',
             this.slotChange
+        )
+        this.addToggle(
+            'Chat Mention Failsafe',
+            (value) => { this.chatMention = value },
+            'Enable chat mention failsafe',
+            this.chatMention
         )
         this.addSlider(
             'Failsafe Detection Delay (ms)',
