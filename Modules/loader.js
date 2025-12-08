@@ -30,3 +30,4 @@ import './skills/JerryBoxMacro.js';
 import './other/BeachBaller.js';
 import './other/DiscordRPC.js';
 import './other/FastPlace.js';
+import './Other/Failsafes.js';

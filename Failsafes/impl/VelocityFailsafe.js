@@ -1,5 +1,5 @@
-import { Chat } from "../utils/Chat";
-import { Failsafe } from "./Failsafe";
+import { Chat } from "../../utils/Chat";
+import { Failsafe } from "../Failsafe";
 
 class VelocityFailsafe extends Failsafe {
     constructor() {
