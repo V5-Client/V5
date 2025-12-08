@@ -16,7 +16,7 @@ class TeleportFailsafe extends Failsafe {
 
     registerTPListeners() {
         register("packetReceived", (packet) => {
-            if (Player.getHeldItem().getName().removeFormatting().toLowerCase().includes("aspect of the")) return;
+            if (Player.getHeldItem()?.getName().removeFormatting().toLowerCase().includes("aspect of the")) return;
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();

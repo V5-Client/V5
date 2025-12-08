@@ -42,7 +42,7 @@ class FailsafeManager {
                 const path = `${moduleName}/Failsafes/impl/${name}`;
 
                 try {
-                    const a = require(path);
+                    const a = require(path)?.default ?? require(path);
                     this._registerFailsafe(a);
                 } catch (e) {
                     Chat.message("Failed to load failsafe: " + name);
