@@ -1,5 +1,6 @@
 import { Chat } from "../utils/Chat";
 import { Failsafe } from "./Failsafe";
+import { registerEventSB } from "../utils/SkyblockEvents"
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -7,6 +8,7 @@ class TeleportFailsafe extends Failsafe {
         this.lastX = null;
         this.lastY = null;
         this.lastZ = null;
+        this.ignore = false;
 
         this.registerTPListeners();
     }
@@ -19,9 +21,26 @@ class TeleportFailsafe extends Failsafe {
             const newX = packet.change().position().x
             const newY = packet.change().position().y
             const newZ = packet.change().position().z
-
-            this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2));
+            if (Number(Math.trunc(newX)) === -48 && Number(Math.trunc(newY)) === 200 && Number(Math.trunc(newZ)) === -121) return // mines warp coords, needed for death ig, maybe redundant/remove?
+            setTimeout(() => {
+                if (this.ignore) return
+                this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2));
+            }, 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket)
+
+        registerEventSB("death", function () {
+            this.ignore = true
+            setTimeout(() => {
+                this.ignore = false
+            }, 650)
+        }.bind(this))
+
+        registerEventSB("warp", function () {
+            this.ignore = true
+            setTimeout(() => {
+                this.ignore = false
+            }, 650)
+        }.bind(this))
     }
 
     onTrigger(fromX, fromY, fromZ, toX, toY, toZ) {
