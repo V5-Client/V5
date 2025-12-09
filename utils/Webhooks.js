@@ -98,6 +98,7 @@ class Webhooks {
                 let conn = url.openConnection();
                 conn.setRequestMethod('POST');
                 conn.setRequestProperty('Content-Type', 'application/json');
+                conn.setRequestProperty('User-Agent', 'Mozilla/5.0');
                 conn.setDoOutput(true);
 
                 let payload = {
