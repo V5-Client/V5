@@ -49,13 +49,23 @@ class GemstoneMacro extends ModuleBase {
         this.route = null;
         this.loadedFile = null;
         this.closestPoint = null;
+        this.rawPoint = null;
         this.closestPointIndex = null;
         this.rotatedToPoint = false;
+        this.attemptedEtherwarp = false;
+        this.etherwarpAttempts = 0;
+        this.etherwarpTicks = 0;
+        this.playerPos = null;
         this.scanned = false;
 
         register('command', (action, indexArg) => {
             this.routesDir = Router.getFilesinDir('GemstoneRoutes');
             let indexNum = undefined;
+
+            if (!action) {
+                this.message('action required: "add", "remove", "clear"');
+                return;
+            }
 
             if (indexArg !== undefined) {
                 let parsedNum = parseInt(indexArg);
@@ -66,8 +76,6 @@ class GemstoneMacro extends ModuleBase {
             }
 
             this.route = Router.Edit(action.toUpperCase(), this.route, 'GemstoneRoutes/' + this.loadedFile, indexNum);
-
-            Chat.message(`Action ${action} performed on route. Route now has ${this.route?.length} points.`);
         }).setName('gemstone');
 
         this.when(
@@ -82,7 +90,7 @@ class GemstoneMacro extends ModuleBase {
                     const current = this.route[i];
 
                     if (current && typeof current.x === 'number' && typeof current.y === 'number' && typeof current.z === 'number') {
-                        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, false);
+                        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), [0, 100, 200, 100], [0, 100, 200, 255], 3, false);
                     }
                 }
 
@@ -124,6 +132,12 @@ class GemstoneMacro extends ModuleBase {
                         return;
                     }
 
+                    if (this.route?.length <= 1) {
+                        this.toggle(false);
+                        this.message('&cRoute needs at least 2 points!');
+                        return;
+                    }
+
                     MiningBot.toggle(false);
 
                     Keybind.setKey('leftclick', false);
@@ -144,6 +158,8 @@ class GemstoneMacro extends ModuleBase {
                         this.closestPoint = this.getPointOnBlock(this.closestPoint.point);
                     }
 
+                    this.rawPoint = this.getClosestPoint().point;
+
                     let point = World.getBlockAt(this.closestPoint.x, this.closestPoint.y, this.closestPoint.z);
 
                     // air or chest
@@ -162,24 +178,61 @@ class GemstoneMacro extends ModuleBase {
                         return;
                     }
 
-                    /*if (this.distance < 2 && !this.rotatedToPoint) {
+                    if (this.distance < 2 && !this.rotatedToPoint) {
                         this.message('Already at point ' + this.closestPointIndex);
                         this.closestPointIndex++;
                         this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
                         this.state = this.STATES.MINING;
                         return;
-                    } */
+                    }
 
                     if (!this.rotatedToPoint) {
                         Keybind.setKey('shift', true);
+
                         if (!Player.getPlayer().isSneaking()) return;
 
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
                             Keybind.rightClickDelay(this.FASTAOTV ? 4 : 7);
+
+                            this.attemptedEtherwarp = true;
+                            this.etherwarpAttempts++;
+
+                            let p = Player.getPlayer().getPos();
+                            this.lastX = p.getX();
+                            this.lastY = p.getY();
+                            this.lastZ = p.getZ();
+
+                            this.etherwarpTicks = 0;
                         });
+
                         this.message('Rotating to point ' + this.closestPointIndex);
                         this.rotatedToPoint = true;
+                    }
+
+                    // needs refining
+                    if (this.attemptedEtherwarp) {
+                        this.etherwarpTicks++;
+
+                        if (this.etherwarpTicks > 20) {
+                            let currentPos = Player.getPlayer().getPos();
+
+                            let hasMoved =
+                                Math.abs(currentPos.getX() - this.lastX) > 0.1 ||
+                                Math.abs(currentPos.getY() - this.lastY) > 0.1 ||
+                                Math.abs(currentPos.getZ() - this.lastZ) > 0.1;
+
+                            if (!hasMoved) {
+                                this.message('Etherwarp failed (Attempts: ' + this.etherwarpAttempts + '), trying again.');
+
+                                this.rotatedToPoint = false;
+
+                                this.etherwarpTicks = 0;
+                            } else {
+                                this.attemptedEtherwarp = false;
+                                this.etherwarpAttempts = 0;
+                            }
+                        }
                     }
 
                     if (this.rotatedToPoint) {
@@ -211,8 +264,13 @@ class GemstoneMacro extends ModuleBase {
                     if (MiningBot.foundLocations.length > 0) {
                         ChatLib.chat('Found ' + MiningBot.foundLocations.length + ' gemstones');
                         MiningBot.toggle(true);
-                    } else if (MiningBot.foundLocations.length === 0) {
+                        return;
+                    }
+
+                    if (MiningBot.foundLocations.length === 0) {
                         MiningBot.toggle(false);
+                        MiningBot.foundLocations = [];
+
                         ChatLib.chat('No more gemstones found');
                         this.state = this.STATES.ETHERWARPING;
                         this.scanned = false;

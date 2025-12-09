@@ -10,7 +10,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Rotations } from '../../utils/player/Rotations';
 import { Vec3d } from '../../utils/Constants';
 
 class Bot extends ModuleBase {

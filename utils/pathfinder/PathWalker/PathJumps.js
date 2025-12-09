@@ -133,11 +133,9 @@ function hasGapAt(x, y, z) {
     const blockY = Math.floor(y);
     const blockZ = Math.floor(z);
 
-    if (!isBlockSolid(blockX, blockY, blockZ)) {
-        return true;
-    }
-
-    if (!isBlockSolid(blockX, blockY - 1, blockZ)) {
+    const solidAtFeet = isBlockSolid(blockX, blockY, blockZ);
+    const solidBelow = isBlockSolid(blockX, blockY - 1, blockZ);
+    if (!solidAtFeet || !solidBelow) {
         return true;
     }
 
@@ -181,7 +179,7 @@ function hasGapBetweenNodes(node1, node2) {
         }
     }
 
-    return 0;
+    return false;
 }
 
 function getSnowLayers(block) {
@@ -252,6 +250,13 @@ function detectEdgeJump(pathBetweenKeyNodes, closestIndex) {
     for (let i = startIndex; i < endIndex; i++) {
         const currentNode = pathBetweenKeyNodes[i];
 
+        const block = getCachedBlock(currentNode.x, currentNode.y, currentNode.z);
+        if (block) {
+            const blockName = block.type.getRegistryName().toLowerCase();
+            if (blockName.includes('slab') || blockName.includes('stair')) {
+                continue;
+            }
+        }
         let hasGap = hasGapAt(currentNode.x, currentNode.y, currentNode.z);
 
         if (!hasGap && i > startIndex) {
