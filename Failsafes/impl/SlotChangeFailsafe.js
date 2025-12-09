@@ -1,20 +1,17 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
-import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
 
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
         super();
-        this.ignore = false;
         this.settings = getFailsafeSettings("Slot Change");
         this.registerSlotChangeListeners();
     }
 
     registerSlotChangeListeners() {
         register("packetReceived", (packet) => {
-            if (this.ignore) return;
             const currentSlot = Player.getHeldItemIndex() + 1;
             const newSlot = packet.slot() + 1; // first slot is 0 so +1 to match hotbar index ig
             if (currentSlot === newSlot) return;
