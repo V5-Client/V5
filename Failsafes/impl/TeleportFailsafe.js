@@ -3,6 +3,7 @@ import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
+import { Vec3d } from "../../utils/Constants";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -11,6 +12,7 @@ class TeleportFailsafe extends Failsafe {
         this.lastY = null;
         this.lastZ = null;
         this.ignore = false;
+        this.nullPacket = new Vec3d(0, 0, 0)
         this.settings = getFailsafeSettings("Teleport");
         this.registerTPListeners();
     }
@@ -32,8 +34,19 @@ class TeleportFailsafe extends Failsafe {
             const newYaw = packet.change().yaw()
             const newPitch = packet.change().pitch()
             
-            if (Number(Math.trunc(newX)) === -48 && Number(Math.trunc(newY)) === 200 && Number(Math.trunc(newZ)) === -121) return // mines warp coords, needed for death ig, maybe redundant/remove?
-
+            if (new Vec3d(newX, newY, newZ).equals(this.nullPacket)) {
+                Chat.message("NULL PACKET DETECTED, DO NOT REACT!")
+                Webhook.sendEmbed([
+                   {
+                       title: "**NULL PACKET DETECTED!**",
+                       description: `Null packet detected: ${newX} ${newY} ${newZ}`,
+                       color: 8388608,
+                       footer: { text: `V5 Failsafes` },
+                       timestamp: new Date().toISOString(),
+                    },
+                ])
+                return;
+            }
             setTimeout(() => {
                 if (this.ignore) return
                 this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2), currYaw.toFixed(2), currPitch.toFixed(2), newYaw.toFixed(2), newPitch.toFixed(2));
