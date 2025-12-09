@@ -31,19 +31,19 @@ class TeleportFailsafe extends Failsafe {
             }, this.settings?.["Failsafe Detection Delay (ms)"] - 50|| 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket)
 
-        registerEventSB("death", function () {
+        registerEventSB("death", () => {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
             }, this.settings?.["Failsafe Detection Delay (ms)"] || 650)
-        }.bind(this))
+        })
 
-        registerEventSB("warp", function () {
+        registerEventSB("warp", () => {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
             }, this.settings?.["Failsafe Detection Delay (ms)"] || 650)
-        }.bind(this))
+        })
 
         register("step", () => {
             this.settings = getFailsafeSettings("Teleport")

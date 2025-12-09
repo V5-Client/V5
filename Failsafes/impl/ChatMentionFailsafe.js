@@ -1,14 +1,11 @@
-import { Utils } from "../../utils/Utils";
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
-import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
         super();
-        this.ignore = false;
         this.settings = getFailsafeSettings("Chat Mention");
         this.registerChatListeners();
         this.blacklistedWords = [
