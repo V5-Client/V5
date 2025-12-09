@@ -512,8 +512,7 @@ register('step', () => {
 
     currentPitch = Math.max(MAX_ALLOWED_PITCH_UP, Math.min(MAX_ALLOWED_PITCH_DOWN, currentPitch));
 
-    player.setYaw(currentYaw);
-    player.setPitch(currentPitch);
+    PathRotationsUtility.applyRotationWithGCD(currentYaw, currentPitch);
 
     if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
         RotationRecorder.recordRotation(currentYaw, currentPitch);
@@ -623,6 +622,7 @@ export function pathRotations(splineData) {
         isInitialized = true;
         rotationActive = true;
 
+        PathRotationsUtility.resetGCDTracking();
         if (ENABLE_RECORDING) {
             RotationRecorder.startRecording();
         }
