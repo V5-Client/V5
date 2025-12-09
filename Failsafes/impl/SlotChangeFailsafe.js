@@ -12,6 +12,8 @@ class SlotChangeFailsafe extends Failsafe {
 
     registerSlotChangeListeners() {
         register("packetReceived", (packet) => {
+            this.settings = getFailsafeSettings("Slot Change");
+            if (!this.settings?.["Slot Change Failsafe"]) return;
             const currentSlot = Player.getHeldItemIndex() + 1;
             const newSlot = packet.slot() + 1; // first slot is 0 so +1 to match hotbar index ig
             if (currentSlot === newSlot) return;

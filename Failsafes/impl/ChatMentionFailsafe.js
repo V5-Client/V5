@@ -20,6 +20,8 @@ class ChatMentionFailsafe extends Failsafe {
 
     registerChatListeners() {
         register("chat", (msg) => {
+            this.settings = getFailsafeSettings("Chat Mention");
+            if (!this.settings?.["Chat Mention Failsafe"]) return;
             if (!this.isBad(msg).isBlocked) return
             Chat.message("Detected blacklisted word! (" + this.isBad(msg).blockedWord + ")");
             this.onTrigger(); 

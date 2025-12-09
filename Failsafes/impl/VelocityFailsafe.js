@@ -1,6 +1,7 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { Webhook } from "../../utils/Webhooks";
+import getFailsafeSettings from "../ConfigWrapper";
 
 class VelocityFailsafe extends Failsafe {
     constructor() {
@@ -10,6 +11,8 @@ class VelocityFailsafe extends Failsafe {
 
     registerVeloListeners() {
         register("packetReceived", (packet) => {
+            this.settings = getFailsafeSettings("Velocity");
+            if (!this.settings?.["Velocity Failsafe"]) return;
             if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes("Grappling")) return;
             const playerPos = Player.asPlayerMP().mcValue.getPos();
