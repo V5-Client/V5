@@ -12,7 +12,6 @@ class TeleportFailsafe extends Failsafe {
         this.lastY = null;
         this.lastZ = null;
         this.ignore = false;
-        this.nullPacket = new Vec3d(0, 0, 0)
         this.settings = getFailsafeSettings("Teleport");
         this.registerTPListeners();
     }
@@ -22,19 +21,23 @@ class TeleportFailsafe extends Failsafe {
             this.settings = getFailsafeSettings("Teleport")
             if (!this.settings?.["TP Failsafe"]) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes("aspect of the")) return;
+            
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();
             const currYaw = Player.getYaw();
             const currPitch = Player.getPitch();
+
+            const pos = packet.change().position()
+            const newX = pos.x
+            const newY = pos.y
+            const newZ = pos.z
             
-            const newX = packet.change().position().x
-            const newY = packet.change().position().y
-            const newZ = packet.change().position().z
-            const newYaw = packet.change().yaw()
-            const newPitch = packet.change().pitch()
+            const change = packet.change()
+            const newYaw = change.yaw()
+            const newPitch = change.pitch()
             
-            if (new Vec3d(newX, newY, newZ).equals(this.nullPacket)) {
+            if (newX === 0 && newY === 0 && newZ === 0) {
                 Chat.message("NULL PACKET DETECTED, DO NOT REACT!")
                 Webhook.sendEmbed([
                    {
