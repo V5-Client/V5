@@ -1,7 +1,9 @@
+import { Utils } from "../../utils/Utils";
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
+import { Webhook } from "../../utils/Webhooks";
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
@@ -22,7 +24,8 @@ class ChatMentionFailsafe extends Failsafe {
     registerChatListeners() {
         register("chat", (msg) => {
             if (!this.isBad(msg).isBlocked) return
-            Chat.message("Detected blacklisted word! (" + this.isBad(msg).blockedWord + ")"); 
+            Chat.message("Detected blacklisted word! (" + this.isBad(msg).blockedWord + ")");
+            this.onTrigger(); 
         }).setCriteria(/(.+)/);
     }
 
@@ -34,7 +37,17 @@ class ChatMentionFailsafe extends Failsafe {
         return { isBlocked: isBlocked, blockedWord: found };
     }
 
-    onTrigger() {}
+    onTrigger() {
+        Webhook.sendEmbed([
+            {
+                title: "**Chat Mention Failsafe Triggered!**",
+                description: `Someone mentioned a blacklisted word!`,
+                color: 8388608,
+                footer: { text: `V5 Failsafes` },
+                timestamp: new Date().toISOString(),
+            },
+        ]);
+    }
 }
 
 export default new ChatMentionFailsafe();

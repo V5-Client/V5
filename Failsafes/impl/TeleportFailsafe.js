@@ -2,6 +2,7 @@ import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
+import { Webhook } from "../../utils/Webhooks";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -52,6 +53,15 @@ class TeleportFailsafe extends Failsafe {
     onTrigger(fromX, fromY, fromZ, toX, toY, toZ) {
         Chat.message(`You have been teleported!`);
         Chat.message(`from ${fromX} ${fromY} ${fromZ} to ${toX} ${toY} ${toZ}`);
+        Webhook.sendEmbed([
+            {
+                title: "**Teleport Failsafe Triggered!**",
+                description: `Teleported from (${fromX}, ${fromY}, ${fromZ}) to (${toX}, ${toY}, ${toZ})`,
+                color: 8388608,
+                footer: { text: `V5 Failsafes` },
+                timestamp: new Date().toISOString(),
+            },
+        ]);
     }
 }
 

@@ -482,6 +482,7 @@ class MiningUtilClass {
             { name: 'Iron Pickaxe', drill: false },
             { name: 'Eon Pickaxe', drill: false },
             { name: 'Chrono Pickaxe', drill: false },
+            { name: 'Gemstone Gauntlet', drill: false}
         ];
 
         let blueCheese = null;

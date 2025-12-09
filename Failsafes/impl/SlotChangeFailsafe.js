@@ -2,6 +2,7 @@ import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
+import { Webhook } from "../../utils/Webhooks";
 
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
@@ -25,6 +26,15 @@ class SlotChangeFailsafe extends Failsafe {
 
     onTrigger(fromSlot, toSlot) {
         Chat.message(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}!`);
+        Webhook.sendEmbed([
+            {
+                title: "**Slot Change Failsafe Triggered!**",
+                description: `Slot changed from ${fromSlot} to ${toSlot}`,
+                color: 8388608,
+                footer: { text: `V5 Failsafes` },
+                timestamp: new Date().toISOString(),
+            },
+        ]);
     }
 }
 

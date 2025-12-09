@@ -1,5 +1,6 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
+import { Webhook } from "../../utils/Webhooks";
 
 class VelocityFailsafe extends Failsafe {
     constructor() {
@@ -25,6 +26,15 @@ class VelocityFailsafe extends Failsafe {
     onTrigger(speed) {
         Chat.message("Velocity failsafe triggered!")
         Chat.message(`Velocity: ${speed}`)
+        Webhook.sendEmbed([
+            {
+                title: "**Velocity Failsafe Triggered!**",
+                description: `High velocity detected: ${speed}`,
+                color: 8388608,
+                footer: { text: `V5 Failsafes` },
+                timestamp: new Date().toISOString(),
+            },
+        ]);
     }
 }
 
