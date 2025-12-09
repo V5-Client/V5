@@ -13,16 +13,31 @@ let recoveryStartBoxIndex = -1;
 const MIN_MOVEMENT_THRESHOLD = 0.12;
 const MIN_MOVEMENT_THRESHOLD_COLLIDED = 0.05;
 
-const RECOVERY_ATTEMPT_INTERVALS = [15, 35, 60];
+const RECOVERY_ATTEMPT_INTERVALS = [12, 30, 50];
 const MAX_RECOVERY_ATTEMPTS = 3;
-const RECOVERY_LOCK_DURATION = 20;
-const SEVERE_STUCK_THRESHOLD = 100;
-const MIN_PROGRESS_BOXES = 2; // must advance at least this many boxes or the recovery is considered failed
+const RECOVERY_LOCK_DURATION = 25;
+const SEVERE_STUCK_THRESHOLD = 80;
+const MIN_PROGRESS_BOXES = 2;
 
 const JUMP_DURATION = 8;
 
+const PHASE_BACKUP = 'backup';
+const PHASE_JUMP = 'jump';
+const PHASE_FORWARD = 'forward';
+
 let isRecoveryJumping = false;
 let jumpRecoveryTicks = 0;
+
+let inRecoveryMode = false;
+let recoveryPhase = null;
+let recoveryPhaseTicks = 0;
+let backupDuration = 0;
+let forwardDelay = 0;
+
+let recoveryMovement = {
+    forward: false,
+    backward: false,
+};
 
 const boxDistanceCache = new Map();
 let cacheFrame = 0;
@@ -30,6 +45,10 @@ let cacheFrame = 0;
 register('tick', () => {
     cacheFrame++;
     if (boxDistanceCache.size > 500) boxDistanceCache.clear();
+
+    if (inRecoveryMode) {
+        updateRecoveryPhase();
+    }
 
     if (jumpRecoveryTicks > 0) {
         jumpRecoveryTicks--;
@@ -41,6 +60,78 @@ register('tick', () => {
         }
     }
 });
+
+function updateRecoveryPhase() {
+    recoveryPhaseTicks++;
+
+    switch (recoveryPhase) {
+        case PHASE_BACKUP:
+            recoveryMovement.forward = false;
+            recoveryMovement.backward = true;
+
+            if (recoveryPhaseTicks >= backupDuration) {
+                recoveryPhase = PHASE_JUMP;
+                recoveryPhaseTicks = 0;
+                recoveryMovement.backward = false;
+                jumpRecoveryTicks = JUMP_DURATION;
+                PathfindingMessages(`§7[Recovery] Backup complete, jumping...`);
+            }
+            break;
+
+        case PHASE_JUMP:
+            recoveryMovement.forward = true;
+            recoveryMovement.backward = false;
+
+            if (recoveryPhaseTicks >= JUMP_DURATION + forwardDelay) {
+                recoveryPhase = PHASE_FORWARD;
+                recoveryPhaseTicks = 0;
+                PathfindingMessages(`§7[Recovery] Resuming forward movement`);
+            }
+            break;
+
+        case PHASE_FORWARD:
+            recoveryMovement.forward = true;
+            recoveryMovement.backward = false;
+
+            if (recoveryPhaseTicks >= 5) {
+                endRecoveryMode();
+            }
+            break;
+    }
+}
+
+function startRecoveryMode(backupTicks, forwardDelayTicks) {
+    inRecoveryMode = true;
+    backupDuration = backupTicks;
+    forwardDelay = forwardDelayTicks;
+    recoveryPhaseTicks = 0;
+
+    if (backupTicks <= 0) {
+        recoveryPhase = PHASE_JUMP;
+        recoveryMovement = { forward: true, backward: false };
+        jumpRecoveryTicks = JUMP_DURATION;
+        PathfindingMessages(`§7[Recovery] Jumping...`);
+    } else {
+        recoveryPhase = PHASE_BACKUP;
+        recoveryMovement = { forward: false, backward: true };
+        PathfindingMessages(`§7[Recovery] Starting backup for ${backupTicks} ticks`);
+    }
+}
+
+function endRecoveryMode() {
+    inRecoveryMode = false;
+    recoveryPhase = null;
+    recoveryPhaseTicks = 0;
+    recoveryMovement = { forward: false, backward: false };
+}
+
+export function isInRecoveryMode() {
+    return inRecoveryMode;
+}
+
+export function getRecoveryMovement() {
+    return recoveryMovement;
+}
 
 export function isStuckRecoveryJumping() {
     return isRecoveryJumping;
@@ -64,47 +155,44 @@ function getCachedBoxDistance(playerX, playerY, playerZ, box) {
     return boxDistanceCache.get(key);
 }
 
-function tryJumpRecovery(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
+function tryJumpOnly(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
     const targetIndex = Math.max(0, currentBoxIndex - 1);
     const box = boxPositions[targetIndex];
     const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    PathfindingMessages(`§e[Recovery 1/${MAX_RECOVERY_ATTEMPTS}] Jump + slight backup (${distance.toFixed(1)}m away, box ${targetIndex})`);
+    PathfindingMessages(`§e[Recovery 1/${MAX_RECOVERY_ATTEMPTS}] Jump only (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
-    jumpRecoveryTicks = JUMP_DURATION;
-    isRecoveryJumping = true;
+    startRecoveryMode(0, 3);
 
-    lastRecoveryStrategy = 'JUMP';
+    lastRecoveryStrategy = 'JUMP_ONLY';
     return targetIndex;
 }
 
 function tryBackupAndJump(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
-    const backupDistance = 3;
-    const targetIndex = Math.max(0, currentBoxIndex - backupDistance);
+    const backupBoxes = 3;
+    const targetIndex = Math.max(0, currentBoxIndex - backupBoxes);
 
     const box = boxPositions[targetIndex];
     const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    PathfindingMessages(`§e[Recovery 2/${MAX_RECOVERY_ATTEMPTS}] Backing up ${backupDistance} boxes + jump (${distance.toFixed(1)}m away, box ${targetIndex})`);
+    PathfindingMessages(`§e[Recovery 2/${MAX_RECOVERY_ATTEMPTS}] Backing up ${backupBoxes} boxes + jump (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
-    jumpRecoveryTicks = JUMP_DURATION;
-    isRecoveryJumping = true;
+    startRecoveryMode(12, 4);
 
     lastRecoveryStrategy = 'BACKUP_JUMP';
     return targetIndex;
 }
 
 function tryMajorBackup(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
-    const backupDistance = 6;
-    const targetIndex = Math.max(0, currentBoxIndex - backupDistance);
+    const backupBoxes = 6;
+    const targetIndex = Math.max(0, currentBoxIndex - backupBoxes);
 
     const box = boxPositions[targetIndex];
     const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    PathfindingMessages(`§e[Recovery 3/${MAX_RECOVERY_ATTEMPTS}] Major backup ${backupDistance} boxes (${distance.toFixed(1)}m away, box ${targetIndex})`);
+    PathfindingMessages(`§e[Recovery 3/${MAX_RECOVERY_ATTEMPTS}] Major backup ${backupBoxes} boxes (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
-    jumpRecoveryTicks = JUMP_DURATION;
-    isRecoveryJumping = true;
+    startRecoveryMode(20, 5);
 
     lastRecoveryStrategy = 'MAJOR_BACKUP';
     return targetIndex;
@@ -112,6 +200,7 @@ function tryMajorBackup(currentBoxIndex, boxPositions, playerX, playerY, playerZ
 
 export function detectStuck(boxPositions, currentBoxIndex) {
     if (!boxPositions || boxPositions.length === 0) return null;
+    if (inRecoveryMode) return null;
 
     const playerX = Player.getX();
     const playerY = Player.getY();
@@ -138,7 +227,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
             const madeProgress = currentBoxIndex >= recoveryStartBoxIndex + MIN_PROGRESS_BOXES;
 
             if (madeProgress) {
-                PathfindingMessages(`§a[Recovery] Success (probably)! Advanced from box ${recoveryStartBoxIndex} to ${currentBoxIndex}`);
+                PathfindingMessages(`§a[Recovery] Success! Advanced from box ${recoveryStartBoxIndex} to ${currentBoxIndex}`);
                 lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
                 ticksWithoutMovement = 0;
                 recoveryAttempts = 0;
@@ -181,7 +270,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
             let result = null;
 
             if (recoveryAttempts === 1) {
-                result = tryJumpRecovery(currentBoxIndex, boxPositions, playerX, playerY, playerZ);
+                result = tryJumpOnly(currentBoxIndex, boxPositions, playerX, playerY, playerZ);
             } else if (recoveryAttempts === 2) {
                 result = tryBackupAndJump(currentBoxIndex, boxPositions, playerX, playerY, playerZ);
             } else if (recoveryAttempts === 3) {
@@ -205,6 +294,8 @@ export function resetStuckDetection() {
     jumpRecoveryTicks = 0;
     isRecoveryJumping = false;
     boxDistanceCache.clear();
+
+    endRecoveryMode();
 }
 
 export function getStuckInfo() {
@@ -216,5 +307,8 @@ export function getStuckInfo() {
         isCollided: Utils.playerIsCollided(),
         isRecoveryJumping: isRecoveryJumping,
         recoveryStartBox: recoveryStartBoxIndex,
+        inRecoveryMode: inRecoveryMode,
+        recoveryPhase: recoveryPhase,
+        recoveryPhaseTicks: recoveryPhaseTicks,
     };
 }
