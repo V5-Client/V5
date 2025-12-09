@@ -35,7 +35,94 @@ class PathRotsUtil {
 
         this.initialMaxDiff = 0;
 
+        this.lastAppliedYaw = 0;
+        this.lastAppliedPitch = 0;
+        this.gcdInitialized = false;
+
         register('step', () => this.tick()).setFps(150);
+    }
+
+    getMouseSensitivity() {
+        try {
+            return Client.getMinecraft().options.mouseSensitivity.value;
+        } catch (e) {
+            console.error('Failed to get mouse sensitivity:', e);
+            return 0.5;
+        }
+    }
+
+    calculateGCD() {
+        const sensitivity = this.getMouseSensitivity();
+        const f = sensitivity * 0.6 + 0.2;
+        return f * f * f * 1.2;
+    }
+
+    normalizeAngle(angle) {
+        let result = angle;
+        while (result > 180) result -= 360;
+        while (result < -180) result += 360;
+        return result;
+    }
+
+    getRotationDelta(from, to) {
+        let delta = this.normalizeAngle(to) - this.normalizeAngle(from);
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        return delta;
+    }
+
+    applyGCD(rotation, prevRotation, min = null, max = null) {
+        const gcd = this.calculateGCD();
+
+        const delta = this.getRotationDelta(prevRotation, rotation);
+        const roundedDelta = Math.round(delta / gcd) * gcd;
+        let result = prevRotation + roundedDelta;
+
+        if (max !== null && result > max) {
+            result -= gcd;
+        }
+        if (min !== null && result < min) {
+            result += gcd;
+        }
+
+        return result;
+    }
+
+    applyYawGCD(targetYaw) {
+        return this.applyGCD(targetYaw, this.lastAppliedYaw);
+    }
+
+    applyPitchGCD(targetPitch) {
+        return this.applyGCD(targetPitch, this.lastAppliedPitch, -90, 90);
+    }
+
+    applyRotationWithGCD(yaw, pitch) {
+        const player = Player.getPlayer();
+        if (!player) return;
+
+        if (!this.gcdInitialized) {
+            this.lastAppliedYaw = player.getYaw();
+            this.lastAppliedPitch = player.getPitch();
+            this.gcdInitialized = true;
+        }
+
+        const gcdYaw = this.applyYawGCD(yaw);
+        const gcdPitch = this.applyPitchGCD(pitch);
+
+        this.lastAppliedYaw = gcdYaw;
+        this.lastAppliedPitch = gcdPitch;
+
+        player.setYaw(gcdYaw);
+        player.setPitch(gcdPitch);
+    }
+
+    resetGCDTracking() {
+        const player = Player.getPlayer();
+        if (player) {
+            this.lastAppliedYaw = player.getYaw();
+            this.lastAppliedPitch = player.getPitch();
+        }
+        this.gcdInitialized = false;
     }
 
     wrapDegrees(degrees) {
@@ -90,9 +177,10 @@ class PathRotsUtil {
         const player = Player.getPlayer();
         if (!player) return;
 
+        this.resetGCDTracking();
+
         if (this.instantMode) {
-            player.setYaw(yaw);
-            player.setPitch(pitch);
+            this.applyRotationWithGCD(yaw, pitch);
             this.runCallbacks();
             this.stopRotation();
             return;
@@ -138,8 +226,7 @@ class PathRotsUtil {
         let progress = elapsedTime / this.duration;
 
         if (progress >= 1.0) {
-            player.setYaw(this.targetYaw);
-            player.setPitch(this.targetPitch);
+            this.applyRotationWithGCD(this.targetYaw, this.targetPitch);
             this.runCallbacks();
             this.stopRotation();
             return;
@@ -176,8 +263,7 @@ class PathRotsUtil {
         let jitterYaw = currentJitterYaw * fadeFactor;
         let jitterPitch = currentJitterPitch * fadeFactor;
 
-        player.setYaw(newYaw + jitterYaw);
-        player.setPitch(newPitch + jitterPitch);
+        this.applyRotationWithGCD(newYaw + jitterYaw, newPitch + jitterPitch);
     }
 
     rotateTo(vector, instant = false, durationMs = 500) {
