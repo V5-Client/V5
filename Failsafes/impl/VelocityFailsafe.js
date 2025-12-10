@@ -7,12 +7,15 @@ class VelocityFailsafe extends Failsafe {
     constructor() {
         super();
         this.registerVeloListeners();
+        this.ignore = false
+        this.settings = getFailsafeSettings("Velocity")
     }
 
     registerVeloListeners() {
         register("packetReceived", (packet) => {
+            if (this.ignore) return
             this.settings = getFailsafeSettings("Velocity");
-            if (!this.settings?.["Velocity Failsafe"]) return;
+            if (!this.settings.isEnabled) return;
             if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes("Grappling")) return;
             const playerPos = Player.asPlayerMP().mcValue.getPos();
@@ -22,8 +25,10 @@ class VelocityFailsafe extends Failsafe {
             const vy = packet.getVelocityY();
             const vz = packet.getVelocityZ();
             const speed = Math.sqrt(vx*vx + vy*vy + vz*vz);
-            this.onTrigger(speed);
+            setTimeout(() => {this.onTrigger(speed)}, this.settings.FailsafeReactionTime - 50|| 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket);
+
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
     }
 
     onTrigger(speed) {

@@ -10,7 +10,9 @@ function getFailsafeSettings(name) {
     }
 
     const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
-    return config["Failsafes"];
+    const FailsafeReactionTime = config["Failsafes"]["Failsafe Detection Delay (ms)"]
+    const isEnabled = config["Failsafes"][`${name} Failsafe`]
+    return {isEnabled: isEnabled, FailsafeReactionTime: FailsafeReactionTime};
 }
 
 export default getFailsafeSettings;
