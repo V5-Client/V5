@@ -2,6 +2,7 @@ import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { Webhook } from "../../utils/Webhooks";
 import getFailsafeSettings from "../ConfigWrapper";
+import { registerEventSB } from "../../utils/SkyblockEvents";
 
 class VelocityFailsafe extends Failsafe {
     constructor() {
@@ -25,10 +26,16 @@ class VelocityFailsafe extends Failsafe {
             const vy = packet.getVelocityY();
             const vz = packet.getVelocityZ();
             const speed = Math.sqrt(vx*vx + vy*vy + vz*vz);
-            setTimeout(() => {this.onTrigger(speed)}, this.settings.FailsafeReactionTime - 50|| 600)
+            setTimeout(() => {
+                if (this.ignore) return;
+                this.onTrigger(speed)
+            }, this.settings.FailsafeReactionTime - 50|| 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket);
 
-        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
+        registerEventSB("death", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("serverchange", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("warp", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
     }
 
     onTrigger(speed) {

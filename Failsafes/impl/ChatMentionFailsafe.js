@@ -2,7 +2,7 @@ import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
-
+import { registerEventSB } from "../../utils/SkyblockEvents";
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
         super();
@@ -34,7 +34,10 @@ class ChatMentionFailsafe extends Failsafe {
             this.onTrigger(); 
         }).setCriteria(/(.+)/);
         
-        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
+        registerEventSB("serverchange", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("death", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("warp", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
     }
 
     isBad(msg) {
