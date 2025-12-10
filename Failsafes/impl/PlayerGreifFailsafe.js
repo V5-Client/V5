@@ -14,7 +14,8 @@ class PlayerGreifFailsafe extends Failsafe {
 
     registerGreifListeners() {
         register("step", () => {
-            this.settings = getFailsafeSettings("Player Greif");
+            if (!MacroState.isMacroRunning()) return;
+            this.settings = getFailsafeSettings("Player Greif"); // this prolly nukes some fps? idk, change later prob
             if (!this.settings.isEnabled) return;
             if (!World.isLoaded() || !Player.asPlayerMP()) return;
             const now = Date.now();
