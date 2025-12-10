@@ -16,10 +16,9 @@ class PlayerGreifFailsafe extends Failsafe {
         register("step", () => {
             this.settings = getFailsafeSettings("Player Greif");
             if (!this.settings.isEnabled) return;
-            
+            if (!World.isLoaded() || !Player.asPlayerMP()) return;
             const now = Date.now();
             if (now - this.lastTrigger < this.cooldownMs) return;
-            
             const look = Player.lookingAt();
             if (!(look instanceof PlayerMP)) return;
             if (look.getUUID()?.version() === 2) return;

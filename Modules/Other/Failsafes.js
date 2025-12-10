@@ -14,8 +14,20 @@ class Failsafes extends ModuleBase {
         this.slotChange = true;
         this.chatMention = true;
         this.playerGreif = true;
+        this.clipOnBan = true;
         this.actionDelay = 500;
         
+        
+        this.on("packetReceived", (packet) => {
+            if (!this.clipOnBan) return;
+            const reason = packet.reason();
+            const fullText = reason.getString();
+            const lowerText = fullText.toLowerCase();
+            if (lowerText.includes("banned") || lowerText.includes("cheating")) {
+                ChatLib.command("clip", true)
+            }
+        }).setFilteredClass(net.minecraft.network.packet.s2c.common.DisconnectS2CPacket)
+
         this.addToggle(
             'TP Failsafe',
             (value) => { this.tp = value },
@@ -54,6 +66,12 @@ class Failsafes extends ModuleBase {
             (value) => { this.actionDelay = value },
             'Delay in milliseconds between detection of failsafe'
         );
+        this.addToggle(
+            'Clip on ban',
+            (value) => { this.clipOnBan = value },
+            'Toggle clip on ban',
+            this.clipOnBan
+        )
     }
 }
 
