@@ -10,6 +10,7 @@ import { Router } from '../../utils/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
+import MacroState from '../../utils/MacroState';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
@@ -397,11 +398,13 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onEnable() {
+        MacroState.setMacroRunning(true);
         this.message('&aEnabled');
         this.state = this.STATES.ETHERWARPING;
     }
 
     onDisable() {
+        MacroState.setMacroRunning(false);
         this.scanned = false;
         this.closestPointIndex = null;
         this.closestPoint = null;

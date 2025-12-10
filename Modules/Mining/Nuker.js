@@ -4,6 +4,8 @@ import { Utils } from '../../utils/Utils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
+import MacroState from '../../utils/MacroState';
+
 const BP = net.minecraft.util.math.BlockPos;
 
 const ConcurrentLinkedQueue = Java.type('java.util.concurrent.ConcurrentLinkedQueue');
@@ -473,6 +475,7 @@ class NukerClass extends ModuleBase {
     }
 
     onEnable() {
+        MacroState.setMacroRunning(true);
         Chat.message('Nuker &aEnabled');
         this.startWorker();
         this.init();
@@ -480,6 +483,7 @@ class NukerClass extends ModuleBase {
     }
 
     onDisable() {
+        MacroState.setMacroRunning(false);
         Chat.message('Nuker &cDisabled');
         this.stopWorker();
         this.init();

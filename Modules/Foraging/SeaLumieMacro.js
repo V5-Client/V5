@@ -2,6 +2,7 @@ import RendererMain from '../../utils/render/RendererMain';
 import { Chat } from '../../utils/Chat';
 import { Color } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
+import MacroState from '../../utils/MacroState';
 
 class SeaLumie extends ModuleBase {
     constructor() {
@@ -194,10 +195,12 @@ class SeaLumie extends ModuleBase {
     }
 
     onEnable() {
+        MacroState.setMacroRunning(true);
         this.state = this.STATES.SCANNING;
     }
 
     onDisable() {
+        MacroState.setMacroRunning(false);
         this.state = this.STATES.WAITING;
     }
 }

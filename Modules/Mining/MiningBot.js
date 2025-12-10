@@ -11,6 +11,7 @@ import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d } from '../../utils/Constants';
+import MacroState from '../../utils/MacroState';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -803,6 +804,7 @@ class Bot extends ModuleBase {
     }
 
     onEnable() {
+        MacroState.setMacroRunning(true);
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
@@ -810,6 +812,7 @@ class Bot extends ModuleBase {
     }
 
     onDisable() {
+        MacroState.setMacroRunning(false);
         Chat.message('Mining Bot Disabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);

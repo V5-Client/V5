@@ -2,6 +2,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
 import { Guis } from '../../utils/player/Inventory';
 import { ModuleBase } from '../../utils/ModuleBase';
+import MacroState from '../../utils/MacroState';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -68,6 +69,14 @@ class FishingMacro extends ModuleBase {
 
         this.addSlider('Boom Slot', 0, 8, 1, (v) => (this.boomSlot = v));
         this.addSlider('Rod Slot', 0, 8, 0, (v) => (this.rodSlot = v));
+    }
+
+    onEnable() {
+        MacroState.setMacroRunning(true);
+    }
+
+    onDisable() {
+        MacroState.setMacroRunning(false);
     }
 }
 

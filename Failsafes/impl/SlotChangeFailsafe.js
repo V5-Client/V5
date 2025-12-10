@@ -3,6 +3,7 @@ import { Failsafe } from "../Failsafe";
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
 import { registerEventSB } from "../../utils/SkyblockEvents";
+import MacroState from "../../utils/MacroState";
 
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
@@ -16,6 +17,7 @@ class SlotChangeFailsafe extends Failsafe {
 
     registerSlotChangeListeners() {
         register("packetReceived", (packet) => {
+            if (!MacroState.isMacroRunning()) return;
             if (this.ignore) return
             this.settings = getFailsafeSettings("Slot Change");
             if (!this.settings.isEnabled) return;
