@@ -3,7 +3,6 @@ import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
-import { Vec3d } from "../../utils/Constants";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -12,16 +11,15 @@ class TeleportFailsafe extends Failsafe {
         this.lastY = null;
         this.lastZ = null;
         this.ignore = false;
-        this.settings = getFailsafeSettings("Teleport");
+        this.settings = getFailsafeSettings("TP");
         this.registerTPListeners();
     }
 
     registerTPListeners() {
         register("packetReceived", (packet) => {
-            this.settings = getFailsafeSettings("Teleport")
-            if (!this.settings?.["TP Failsafe"]) return;
+            this.settings = getFailsafeSettings("TP")
+            if (!this.settings.isEnabled) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes("aspect of the")) return;
-            
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();
@@ -51,23 +49,24 @@ class TeleportFailsafe extends Failsafe {
                 return;
             }
             setTimeout(() => {
-                if (this.ignore) return
                 this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2), currYaw.toFixed(2), currPitch.toFixed(2), newYaw.toFixed(2), newPitch.toFixed(2));
-            }, this.settings?.["Failsafe Detection Delay (ms)"] - 50|| 600)
+            }, this.settings.FailsafeReactionTime - 50|| 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket)
+
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
 
         registerEventSB("death", () => {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
-            }, this.settings?.["Failsafe Detection Delay (ms)"] || 650)
+            }, this.settings.FailsafeReactionTime || 650)
         })
 
         registerEventSB("warp", () => {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
-            }, this.settings?.["Failsafe Detection Delay (ms)"] || 650)
+            }, this.settings.FailsafeReactionTime || 650)
         })
     }
 

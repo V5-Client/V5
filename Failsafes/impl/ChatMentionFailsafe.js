@@ -8,6 +8,9 @@ class ChatMentionFailsafe extends Failsafe {
         super();
         this.settings = getFailsafeSettings("Chat Mention");
         this.registerChatListeners();
+        this.ignore = false;
+        this.FailsafeReactionTime = 600;
+        this.isFailsafeEnabled = true;
         this.blacklistedWords = [
             "macro",
             "report",
@@ -20,12 +23,18 @@ class ChatMentionFailsafe extends Failsafe {
 
     registerChatListeners() {
         register("chat", (msg) => {
+            if (this.ignore) return
+
             this.settings = getFailsafeSettings("Chat Mention");
-            if (!this.settings?.["Chat Mention Failsafe"]) return;
+            if (!this.settings.isEnabled) return;
+            this.FailsafeReactionTime = this.settings.FailsafeReactionTime || 600
+
             if (!this.isBad(msg).isBlocked) return
             Chat.message("Detected blacklisted word! (" + this.isBad(msg).blockedWord + ")");
             this.onTrigger(); 
         }).setCriteria(/(.+)/);
+        
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
     }
 
     isBad(msg) {
