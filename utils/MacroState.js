@@ -55,6 +55,10 @@ class MacroState {
 
         return false;
     }
+
+    getMacroRunning() {
+        return this.runningMacro;
+    }
 }
 
 if (!global.MacroState) {
