@@ -2,6 +2,7 @@ import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
+import { registerEventSB } from "../../utils/SkyblockEvents";
 
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
@@ -22,11 +23,15 @@ class SlotChangeFailsafe extends Failsafe {
             const newSlot = packet.slot() + 1; // first slot is 0 so +1 to match hotbar index ig
             if (currentSlot === newSlot) return;
             setTimeout(() => {
+                if (this.ignore) return;
                 this.onTrigger(currentSlot, newSlot);
             }, this.settings.FailsafeReactionTime - 50 || 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket);
 
-        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("serverchange", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("death", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("warp", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
     }
 
     onTrigger(fromSlot, toSlot) {

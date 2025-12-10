@@ -58,6 +58,8 @@ register('chat', (event) => {
     if (msg.startsWith(' ☠ You ')) CheckEvents('death');
 
     if (msg === 'Warping...') CheckEvents('warp')
+    
+    if (msg.startsWith('Sending to server')) CheckEvents('serverchange');
 });
 
 register('chat', () => {

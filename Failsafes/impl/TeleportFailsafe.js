@@ -49,24 +49,25 @@ class TeleportFailsafe extends Failsafe {
                 return;
             }
             setTimeout(() => {
+                if (this.ignore) return;
                 this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2), currYaw.toFixed(2), currPitch.toFixed(2), newYaw.toFixed(2), newPitch.toFixed(2));
             }, this.settings.FailsafeReactionTime - 50|| 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket)
 
-        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, this.settings.FailsafeReactionTime || 650)})
-
+        register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
+        registerEventSB("serverchange", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
         registerEventSB("death", () => {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
-            }, this.settings.FailsafeReactionTime || 650)
+            }, 1000)
         })
 
         registerEventSB("warp", () => {
             this.ignore = true
             setTimeout(() => {
                 this.ignore = false
-            }, this.settings.FailsafeReactionTime || 650)
+            }, 1000)
         })
     }
 
