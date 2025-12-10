@@ -7,6 +7,7 @@ class Failsafes extends ModuleBase {
             subcategory: 'Core',
             description: 'Failsafe settings.',
             tooltip: 'Failsafe config.',
+            showEnabledToggle: false,
         });
 
         this.tp = true;
@@ -15,6 +16,7 @@ class Failsafes extends ModuleBase {
         this.chatMention = true;
         this.playerGreif = true;
         this.clipOnBan = true;
+        this.playerProximityDistance = 3;
         this.actionDelay = 500;
         
         
@@ -66,6 +68,14 @@ class Failsafes extends ModuleBase {
             (value) => { this.actionDelay = value },
             'Delay in milliseconds between detection of failsafe'
         );
+        this.addSlider(
+            'Player Proximity Distance',
+            1,
+            10,
+            this.playerProximityDistance,
+            (value) => { this.playerProximityDistance = value },
+            'Distance in blocks for player nearby detection'
+        )
         this.addToggle(
             'Clip on ban',
             (value) => { this.clipOnBan = value },
