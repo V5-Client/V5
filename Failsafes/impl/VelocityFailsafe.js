@@ -3,6 +3,7 @@ import { Failsafe } from "../Failsafe";
 import { Webhook } from "../../utils/Webhooks";
 import getFailsafeSettings from "../ConfigWrapper";
 import { registerEventSB } from "../../utils/SkyblockEvents";
+import MacroState from "../../utils/MacroState";
 
 class VelocityFailsafe extends Failsafe {
     constructor() {
@@ -18,6 +19,7 @@ class VelocityFailsafe extends Failsafe {
             this.settings = getFailsafeSettings("Velocity");
             if (!this.settings.isEnabled) return;
             if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
+            if (!MacroState.isMacroRunning()) return
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes("Grappling")) return;
             const playerPos = Player.asPlayerMP().mcValue.getPos();
             const blockBelow = World.getBlockAt(Math.floor(playerPos.getX()), Math.floor(playerPos.getY()) - 1, Math.floor(playerPos.getZ()));

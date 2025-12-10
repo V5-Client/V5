@@ -3,6 +3,7 @@ import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
 import getFailsafeSettings from "../ConfigWrapper";
 import { Webhook } from "../../utils/Webhooks";
+import MacroState from "../../utils/MacroState";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -17,6 +18,7 @@ class TeleportFailsafe extends Failsafe {
 
     registerTPListeners() {
         register("packetReceived", (packet) => {
+            if (!MacroState.isMacroRunning()) return;
             this.settings = getFailsafeSettings("TP")
             if (!this.settings.isEnabled) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes("aspect of the")) return;

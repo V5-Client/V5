@@ -4,6 +4,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Rotations } from '../../utils/player/Rotations';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
+import MacroState from '../../utils/MacroState';
 
 class FarmingMacro extends ModuleBase {
     constructor() {
@@ -166,12 +167,14 @@ class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
+        MacroState.setMacroRunning(true);
         Mouse.ungrab();
         this.message('&aEnabled');
         this.state = this.STATES.SCANFORCROP;
     }
 
     onDisable() {
+        MacroState.setMacroRunning(false);
         Mouse.regrab();
         Rotations.stopRotation();
         this.message('&cDisabled');
