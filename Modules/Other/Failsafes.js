@@ -13,12 +13,13 @@ class Failsafes extends ModuleBase {
         this.velocity = true;
         this.slotChange = true;
         this.chatMention = true;
+        this.playerGreif = true;
         this.actionDelay = 500;
         
         this.addToggle(
             'TP Failsafe',
             (value) => { this.tp = value },
-            'Enable tp failsafe',
+            'Enable tp and rotation failsafes',
             this.tp
         )
         this.addToggle(
@@ -38,6 +39,12 @@ class Failsafes extends ModuleBase {
             (value) => { this.chatMention = value },
             'Enable chat mention failsafe',
             this.chatMention
+        )
+        this.addToggle(
+            'Player Greif Failsafe',
+            (value) => { this.playerGreif = value },
+            'Enable player greif failsafe',
+            this.playerGreif
         )
         this.addSlider(
             'Failsafe Detection Delay (ms)',
