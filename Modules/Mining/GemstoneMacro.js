@@ -58,6 +58,12 @@ class GemstoneMacro extends ModuleBase {
         this.playerPos = null;
         this.scanned = false;
 
+        register('postRenderWorld', () => {
+            if (!this.rawPoint) return;
+
+            this.raytraceBlockFaces(this.rawPoint);
+        });
+
         register('command', (action, indexArg) => {
             this.routesDir = Router.getFilesinDir('GemstoneRoutes');
             let indexNum = undefined;
@@ -154,13 +160,12 @@ class GemstoneMacro extends ModuleBase {
 
                     if (!this.closestPoint) {
                         this.closestPoint = this.getClosestPoint();
+                        this.rawPoint = this.closestPoint.point;
                         this.closestPointIndex = this.closestPoint.index;
                         this.closestPoint = this.getPointOnBlock(this.closestPoint.point);
                     }
 
-                    this.rawPoint = this.getClosestPoint().point;
-
-                    let point = World.getBlockAt(this.closestPoint.x, this.closestPoint.y, this.closestPoint.z);
+                    let point = World.getBlockAt(this.rawPoint.x, this.rawPoint.y, this.rawPoint.z);
 
                     // air or chest
                     if (point?.type?.getID() === 0 || point?.type?.getID() === 188) {
@@ -182,6 +187,7 @@ class GemstoneMacro extends ModuleBase {
                         this.message('Already at point ' + this.closestPointIndex);
                         this.closestPointIndex++;
                         this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
+                        this.rawPoint = this.route[this.closestPointIndex];
                         this.state = this.STATES.MINING;
                         return;
                     }
@@ -224,14 +230,13 @@ class GemstoneMacro extends ModuleBase {
 
                             if (!hasMoved) {
                                 this.message('Etherwarp failed (Attempts: ' + this.etherwarpAttempts + '), trying again.');
-
-                                this.rotatedToPoint = false;
-
                                 this.etherwarpTicks = 0;
                             } else {
                                 this.attemptedEtherwarp = false;
                                 this.etherwarpAttempts = 0;
                             }
+
+                            this.rotatedToPoint = false;
                         }
                     }
 
@@ -249,6 +254,7 @@ class GemstoneMacro extends ModuleBase {
                             }
 
                             this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
+                            this.rawPoint = this.route[this.closestPointIndex];
                             this.state = this.STATES.MINING;
 
                             return;
@@ -355,11 +361,148 @@ class GemstoneMacro extends ModuleBase {
     getPointOnBlock(point) {
         const randomOffset = (min, max) => Math.random() * (max - min) + min;
 
-        const newX = point.x + randomOffset(0.1, 0.9);
-        const newY = point.y + randomOffset(0.1, 0.9);
-        const newZ = point.z + randomOffset(0.1, 0.9);
+        const closestHit = this.raytraceBlockFaces(point);
 
-        return new Vec3d(newX, newY, newZ);
+        if (!closestHit) {
+            return null;
+        }
+
+        const faceName = closestHit.face;
+
+        let fixedX, fixedY, fixedZ;
+        let randMinX, randMaxX;
+        let randMinY, randMaxY;
+        let randMinZ, randMaxZ;
+
+        const rangeMin = 0.25;
+        const rangeMax = 0.85;
+
+        switch (faceName) {
+            case 'EAST': // +X face
+                fixedX = point.x + 1.0;
+                randMinY = point.y + rangeMin;
+                randMaxY = point.y + rangeMax;
+                randMinZ = point.z + rangeMin;
+                randMaxZ = point.z + rangeMax;
+                fixedY = randomOffset(randMinY, randMaxY);
+                fixedZ = randomOffset(randMinZ, randMaxZ);
+                return new Vec3d(fixedX, fixedY, fixedZ);
+
+            case 'WEST': // -X face
+                fixedX = point.x;
+                randMinY = point.y + rangeMin;
+                randMaxY = point.y + rangeMax;
+                randMinZ = point.z + rangeMin;
+                randMaxZ = point.z + rangeMax;
+                fixedY = randomOffset(randMinY, randMaxY);
+                fixedZ = randomOffset(randMinZ, randMaxZ);
+                return new Vec3d(fixedX, fixedY, fixedZ);
+
+            case 'UP': // +Y face
+                fixedY = point.y + 1.0;
+                randMinX = point.x + rangeMin;
+                randMaxX = point.x + rangeMax;
+                randMinZ = point.z + rangeMin;
+                randMaxZ = point.z + rangeMax;
+                fixedX = randomOffset(randMinX, randMaxX);
+                fixedZ = randomOffset(randMinZ, randMaxZ);
+                return new Vec3d(fixedX, fixedY, fixedZ);
+
+            case 'DOWN': // -Y face
+                fixedY = point.y;
+                randMinX = point.x + rangeMin;
+                randMaxX = point.x + rangeMax;
+                randMinZ = point.z + rangeMin;
+                randMaxZ = point.z + rangeMax;
+                fixedX = randomOffset(randMinX, randMaxX);
+                fixedZ = randomOffset(randMinZ, randMaxZ);
+                return new Vec3d(fixedX, fixedY, fixedZ);
+
+            case 'SOUTH': // +Z face
+                fixedZ = point.z + 1.0;
+                randMinX = point.x + rangeMin;
+                randMaxX = point.x + rangeMax;
+                randMinY = point.y + rangeMin;
+                randMaxY = point.y + rangeMax;
+                fixedX = randomOffset(randMinX, randMaxX);
+                fixedY = randomOffset(randMinY, randMaxY);
+                return new Vec3d(fixedX, fixedY, fixedZ);
+
+            case 'NORTH': // -Z face
+                fixedZ = point.z;
+                randMinX = point.x + rangeMin;
+                randMaxX = point.x + rangeMax;
+                randMinY = point.y + rangeMin;
+                randMaxY = point.y + rangeMax;
+                fixedX = randomOffset(randMinX, randMaxX);
+                fixedY = randomOffset(randMinY, randMaxY);
+                return new Vec3d(fixedX, fixedY, fixedZ);
+
+            default:
+                return null;
+        }
+    }
+
+    raytraceBlockFaces(point) {
+        const player = Player.getPlayer();
+        const startX = player.getEyePos().x;
+        const startY = player.getEyePos().y;
+        const startZ = player.getEyePos().z;
+
+        const centerX = point.x + 0.5;
+        const centerY = point.y + 0.5;
+        const centerZ = point.z + 0.5;
+
+        const offset = 0.05;
+
+        const minX = point.x - offset;
+        const maxX = point.x + 1.0 + offset;
+        const minY = point.y - offset;
+        const maxY = point.y + 1.0 + offset;
+        const minZ = point.z - offset;
+        const maxZ = point.z + 1.0 + offset;
+
+        const faces = [
+            { name: 'EAST', target: [maxX, centerY, centerZ] }, // +X
+            { name: 'WEST', target: [minX, centerY, centerZ] }, // -X
+            { name: 'UP', target: [centerX, maxY, centerZ] }, // +Y
+            { name: 'DOWN', target: [centerX, minY, centerZ] }, // -Y
+            { name: 'SOUTH', target: [centerX, centerY, maxZ] }, // +Z
+            { name: 'NORTH', target: [centerX, centerY, minZ] }, // -Z
+        ];
+
+        let closestHit = null;
+        let shortestDistance = Infinity;
+
+        for (const face of faces) {
+            const [targetX, targetY, targetZ] = face.target;
+
+            const isLineOfSightClear = RayTrace.isLineClear(startX, startY, startZ, targetX, targetY, targetZ);
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const dz = targetZ - startZ;
+            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            let lineColor;
+            if (isLineOfSightClear) {
+                lineColor = [0, 255, 0, 255];
+            } else {
+                lineColor = [255, 0, 0, 255];
+            }
+
+            //  temp
+            RenderUtils.drawLine(new Vec3d(startX, startY, startZ), new Vec3d(targetX, targetY, targetZ), lineColor, 3, false);
+            if (isLineOfSightClear && distance < shortestDistance) {
+                shortestDistance = distance;
+                closestHit = {
+                    distance: distance,
+                    face: face.name,
+                    hitPos: { x: targetX, y: targetY, z: targetZ },
+                };
+            }
+        }
+
+        return closestHit;
     }
 
     getClosestPoint() {
