@@ -9,35 +9,7 @@ import { Utils } from '../Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
-import { resetStuckDetection } from './PathWalker/PathStuckRecovery';
 import { Chat } from '../Chat';
-
-register('command', (...args) => {
-    const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-    const coords = args.slice(0, 3).map(Number);
-    if (coords.some(isNaN)) {
-        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
-    }
-    const end = coords.slice(0, 3);
-    findAndFollowPath(start, end);
-}).setName('path', true);
-
-register('command', (...args) => {
-    if (args.length < 6) {
-        return global.showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
-    }
-    const coords = args.slice(0, 6).map(Number);
-    if (coords.some(isNaN)) {
-        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
-    }
-    const renderOnly = args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
-    findAndFollowPath(coords.slice(0, 3), coords.slice(3, 6), renderOnly);
-}).setName('rustpath', true);
-
-register('command', () => {
-    stopPathing();
-    resetStuckDetection();
-}).setName('stop', true);
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
@@ -180,7 +152,8 @@ function handleWarp(warpCommand, onComplete) {
 
 function executePathfinding(start, end, onComplete, renderOnly = false) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
+    const adjustedEnd = end; // dont adjust. if your end coordinate is wrong, that's your fault.
+    //const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
 
     const mapIdentifier = Maps[currentIsland] || 'mines';
 
@@ -341,3 +314,29 @@ global.requestPathRecalculation = function () {
         stopPathing();
     }
 };
+
+register('command', (...args) => {
+    const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
+    const coords = args.slice(0, 3).map(Number);
+    if (coords.some(isNaN)) {
+        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+    }
+    const end = coords.slice(0, 3);
+    findAndFollowPath(start, end);
+}).setName('path', true);
+
+register('command', (...args) => {
+    if (args.length < 6) {
+        return global.showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
+    }
+    const coords = args.slice(0, 6).map(Number);
+    if (coords.some(isNaN)) {
+        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+    }
+    const renderOnly = args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
+    findAndFollowPath(coords.slice(0, 3), coords.slice(3, 6), renderOnly);
+}).setName('rustpath', true);
+
+register('command', () => {
+    stopPathing();
+}).setName('stop', true);

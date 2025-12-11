@@ -16,6 +16,10 @@ class RotationsTo {
         this.actions = [];
         this.deltaTime = 0;
 
+        this.lastAppliedYaw = 0;
+        this.lastAppliedPitch = 0;
+        this.gcdInitialized = false;
+
         register('command', (yaw, pitch) => {
             this.rotateToAngles(parseFloat(yaw), parseFloat(pitch));
         }).setName('rotateTo');
@@ -27,6 +31,75 @@ class RotationsTo {
         register('renderWorld', () => {
             this.updateRotation();
         });
+    }
+
+    getMouseSensitivity() {
+        try {
+            return Client.getMinecraft().options.mouseSensitivity.value;
+        } catch (e) {
+            console.error('Failed to get mouse sensitivity:', e);
+            return 0.5;
+        }
+    }
+
+    calculateGCD() {
+        const sensitivity = this.getMouseSensitivity();
+        const f = sensitivity * 0.6 + 0.2;
+        return f * f * f * 1.2;
+    }
+
+    getGCDRotationDelta(from, to) {
+        let delta = this.normalizeAngle(to) - this.normalizeAngle(from);
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        return delta;
+    }
+
+    applyGCD(rotation, prevRotation, min = null, max = null) {
+        const gcd = this.calculateGCD();
+
+        const delta = this.getGCDRotationDelta(prevRotation, rotation);
+        const roundedDelta = Math.round(delta / gcd) * gcd;
+        let result = prevRotation + roundedDelta;
+
+        if (max !== null && result > max) {
+            result -= gcd;
+        }
+        if (min !== null && result < min) {
+            result += gcd;
+        }
+
+        return result;
+    }
+
+    applyRotationWithGCD(yaw, pitch, yawOnly = false) {
+        const player = Player.getPlayer();
+        if (!player) return;
+
+        if (!this.gcdInitialized) {
+            this.lastAppliedYaw = player.getYaw();
+            this.lastAppliedPitch = player.getPitch();
+            this.gcdInitialized = true;
+        }
+
+        const gcdYaw = this.applyGCD(yaw, this.lastAppliedYaw);
+        this.lastAppliedYaw = gcdYaw;
+        player.setYaw(gcdYaw);
+
+        if (!yawOnly) {
+            const gcdPitch = this.applyGCD(pitch, this.lastAppliedPitch, -90, 90);
+            this.lastAppliedPitch = gcdPitch;
+            player.setPitch(gcdPitch);
+        }
+    }
+
+    resetGCDTracking() {
+        const player = Player.getPlayer();
+        if (player) {
+            this.lastAppliedYaw = player.getYaw();
+            this.lastAppliedPitch = player.getPitch();
+        }
+        this.gcdInitialized = false;
     }
 
     normalizeAngle(angle) {
@@ -51,6 +124,7 @@ class RotationsTo {
         this.yawOnly = yawOnly;
         this.isRotating = true;
         this.lastTime = 0;
+        this.resetGCDTracking();
     }
 
     getAnglesFromVector(Vector) {
@@ -80,6 +154,7 @@ class RotationsTo {
         this.precision = precision;
         this.yawOnly = yawOnly;
         this.lastTime = 0;
+        this.resetGCDTracking();
     }
 
     onEndRotation(callBack, name = null) {
@@ -133,8 +208,7 @@ class RotationsTo {
 
         const newAngles = this.interpolate(finalTarget);
 
-        Player.getPlayer().setYaw(newAngles.yaw);
-        if (!this.yawOnly) Player.getPlayer().setPitch(newAngles.pitch);
+        this.applyRotationWithGCD(newAngles.yaw, newAngles.pitch, this.yawOnly);
 
         const currentYaw = Player.getYaw();
         const currentPitch = Player.getPitch();
@@ -145,10 +219,7 @@ class RotationsTo {
         const distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
         if (distance <= this.precision) {
-            Player.getPlayer().setYaw(finalTarget.yaw);
-            if (!this.yawOnly) {
-                Player.getPlayer().setPitch(finalTarget.pitch);
-            }
+            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch, this.yawOnly);
             this.stopRotation();
         }
     }
