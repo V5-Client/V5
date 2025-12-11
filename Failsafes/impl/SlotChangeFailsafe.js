@@ -1,6 +1,6 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
-import getFailsafeSettings from "../ConfigWrapper";
+import { getFailsafeSettings, incrementFailsafeIntensity } from "../FailsafeUtils";
 import { Webhook } from "../../utils/Webhooks";
 import { registerEventSB } from "../../utils/SkyblockEvents";
 import MacroState from "../../utils/MacroState";
@@ -37,12 +37,14 @@ class SlotChangeFailsafe extends Failsafe {
     }
 
     onTrigger(fromSlot, toSlot) {
-        Chat.message(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}!`);
+
+        Chat.failsafeMsg(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}! (${severity} severity)`);
+        incrementFailsafeIntensity(50);
         Webhook.sendEmbed([
             {
-                title: "**Slot Change Failsafe Triggered!**",
+                title: `**Slot Change Failsafe Triggered! [high severity]**`,
                 description: `Slot changed from ${fromSlot} to ${toSlot}`,
-                color: 8388608,
+                color: 16744448,
                 footer: { text: `V5 Failsafes` },
                 timestamp: new Date().toISOString(),
             },

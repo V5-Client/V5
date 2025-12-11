@@ -11,6 +11,7 @@ class Failsafes extends ModuleBase {
         });
 
         this.tp = true;
+        this.rotation = true;
         this.velocity = true;
         this.slotChange = true;
         this.chatMention = true;
@@ -33,8 +34,14 @@ class Failsafes extends ModuleBase {
         this.addToggle(
             'TP Failsafe',
             (value) => { this.tp = value },
-            'Enable tp and rotation failsafes',
+            'Enable teleport failsafe',
             this.tp
+        )
+        this.addToggle(
+            'Rotation Failsafe',
+            (value) => { this.rotation = value },
+            'Enable rotation failsafe',
+            this.rotation
         )
         this.addToggle(
             'Velocity Failsafe',

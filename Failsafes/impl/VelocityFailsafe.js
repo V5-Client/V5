@@ -1,7 +1,7 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { Webhook } from "../../utils/Webhooks";
-import getFailsafeSettings from "../ConfigWrapper";
+import { getFailsafeSettings, incrementFailsafeIntensity } from "../FailsafeUtils";
 import { registerEventSB } from "../../utils/SkyblockEvents";
 import MacroState from "../../utils/MacroState";
 
@@ -41,13 +41,30 @@ class VelocityFailsafe extends Failsafe {
     }
 
     onTrigger(speed) {
-        Chat.message("Velocity failsafe triggered!")
-        Chat.message(`Velocity: ${speed}`)
+        let pressure;
+        let severity;
+        if (speed < 0.5) {
+            pressure = 10;
+            severity = "low";
+        } else if (speed < 1) {
+            pressure = 20;
+            severity = "medium";
+        } else if (speed < 2) {
+            pressure = 50;
+            severity = "high";
+        } else {
+            pressure = 100;
+            severity = "very high";
+        }
+
+        Chat.failsafeMsg(`Velocity failsafe triggered! (${severity} severity)`)
+        Chat.failsafeMsg(`Velocity: ${speed.toFixed(0)}`)
+        incrementFailsafeIntensity(pressure);
         Webhook.sendEmbed([
             {
-                title: "**Velocity Failsafe Triggered!**",
-                description: `High velocity detected: ${speed}`,
-                color: 8388608,
+                title: `**Velocity Failsafe Triggered! [${severity}]**`,
+                description: `Velocity change detected: ${speed.toFixed(0)}`,
+                color: severity === "very high" ? 16711680 : severity === "high" ? 16744448 : severity === "medium" ? 16776960 : 65280,
                 footer: { text: `V5 Failsafes` },
                 timestamp: new Date().toISOString(),
             },
