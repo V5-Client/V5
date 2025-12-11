@@ -25,7 +25,7 @@ class FailsafeConfig {
         const V5ConfigFile = new File(`${modulesDir}/V5Config/config.json`);
         
         if (!V5ConfigFile.exists()) {
-            console.log("V5Config not found, this shouldnt happen!");
+            console.log("V5Config not found, this shouldn't happen!");
             return null;
         }
 
