@@ -1,10 +1,5 @@
 import { MathUtils } from './Math';
-const BP = net.minecraft.util.math.BlockPos;
-const Vec3 = net.minecraft.util.math.Vec3d;
-const Direction = net.minecraft.util.math.Direction;
-const PlayerActionC2SPacket = net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-const PlayerActionC2SPacketAction = net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket$Action;
-const HandSwingC2SPacket = net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+import { BP, Direction, PlayerActionC2SPacket, PlayerActionC2SPacketAction, HandSwingC2SPacket, Vec3d } from './Constants';
 
 class NukerUtilsClass {
     constructor() {
@@ -88,7 +83,7 @@ class NukerUtilsClass {
                     break;
             }
 
-            const faceVec = new Vec3(blockPos.getX() + 0.5 + offsetX * 0.5, blockPos.getY() + 0.5 + offsetY * 0.5, blockPos.getZ() + 0.5 + offsetZ * 0.5);
+            const faceVec = new Vec3d(blockPos.getX() + 0.5 + offsetX * 0.5, blockPos.getY() + 0.5 + offsetY * 0.5, blockPos.getZ() + 0.5 + offsetZ * 0.5);
             const distance = playerEyePos.distanceTo(faceVec);
 
             if (distance < minDistance) {
