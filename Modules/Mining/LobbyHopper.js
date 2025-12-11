@@ -23,6 +23,7 @@ class LobbyHopper extends ModuleBase {
         });
 
         this.on('step', () => {
+            if (!this.enabled) return;
             let isInCh = Utils.area() === 'Crystal Hollows';
 
             if (this.said && !this.cooldown.hasReached(3000)) return;
