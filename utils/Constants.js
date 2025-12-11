@@ -1,5 +1,13 @@
+export const PlayerInteractBlockC2SPacket = net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+export const PlayerActionC2SPacketAction = net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket$Action;
+export const PlayerActionC2SPacket = net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
+export const HandSwingC2SPacket = net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+
 export const UIRoundedRectangle = Java.type('gg.essential.elementa.components.UIRoundedRectangle');
 export const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat.INSTANCE;
+export const ConcurrentLinkedQueue = java.util.concurrent.ConcurrentLinkedQueue;
+export const AtomicBoolean = java.util.concurrent.atomic.AtomicBoolean;
+export const BlockHitResult = net.minecraft.util.hit.BlockHitResult;
 export const StandardCharsets = java.nio.charset.StandardCharsets;
 export const BufferedInputStream = java.io.BufferedInputStream;
 export const DataFlavor = java.awt.datatransfer.DataFlavor;
@@ -8,7 +16,9 @@ export const FileOutputStream = java.io.FileOutputStream;
 export const DataOutputStream = java.io.DataOutputStream;
 export const MessageType = java.awt.TrayIcon.MessageType;
 export const ProcessBuilder = java.lang.ProcessBuilder;
+export const BP = net.minecraft.util.math.BlockPos;
 export const Vec3d = net.minecraft.util.math.Vec3d;
+export const Direction = net.minecraft.util.math.Direction;
 export const ArrayLists = java.util.ArrayList;
 export const SystemTray = java.awt.SystemTray;
 export const TrayIcon = java.awt.TrayIcon;

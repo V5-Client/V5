@@ -2,14 +2,10 @@ import { NukerUtils } from '../../utils/NukerUtils';
 import { Chat } from '../../utils/Chat';
 import { Utils } from '../../utils/Utils';
 import RenderUtils from '../../utils/render/RendererUtils';
-import { Vec3d } from '../../utils/Constants';
+import { Vec3d, BP, ConcurrentLinkedQueue, AtomicBoolean, PlayerInteractBlockC2SPacket } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import MacroState from '../../utils/MacroState';
 
-const BP = net.minecraft.util.math.BlockPos;
-
-const ConcurrentLinkedQueue = Java.type('java.util.concurrent.ConcurrentLinkedQueue');
-const AtomicBoolean = Java.type('java.util.concurrent.atomic.AtomicBoolean');
 
 // TODO
 // 4:10 : save block config
@@ -461,7 +457,7 @@ class NukerClass extends ModuleBase {
 
         let hand = net.minecraft.util.Hand.MAIN_HAND;
         let sequence = 0;
-        Client.sendPacket(new net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
+        Client.sendPacket(new PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
     }
 
     init() {
