@@ -152,11 +152,11 @@ function handleWarp(warpCommand, onComplete) {
 
 function executePathfinding(start, end, onComplete, renderOnly = false) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
+    const adjustedEnd = end; // dont adjust. if your end coordinate is wrong, that's your fault.
+    //const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
 
     const mapIdentifier = Maps[currentIsland] || 'mines';
-    
-    // NEW API FORMAT - POST request with JSON body
+
     const url = `${localhost}/api/pathfind`;
     const postData = {
         start: adjustedStart.join(','),
@@ -165,20 +165,20 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         use_spline: false,
         use_warp_points: false,
         use_etherwarp: false,
-        is_perfect_path: false
+        is_perfect_path: false,
     };
-    
+
     PathfindingMessages(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
 
-    request({ 
-        url, 
+    request({
+        url,
         method: 'POST',
-        json: true, 
+        json: true,
         body: postData,
-        timeout: 15000 
+        timeout: 15000,
     })
         .then((body) => {
             if (currentPathRequest !== requestId) return;
@@ -201,7 +201,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                 if (body.path && Array.isArray(body.path) && body.path.length) {
                     setPathNodes(body.path);
                 }
-                
+
                 if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
                     setKeyNodes(body.keynodes);
                 }
@@ -213,7 +213,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                     console.log('No path_between_key_nodes, using keynodes for spline');
                     generatedSpline = generateHybridSpline(body.keynodes, 1);
                 }
-                
+
                 setPathNodes(generatedSpline);
 
                 if (getRenderKeyNodes() || getRenderFloatingSpline()) {
@@ -230,13 +230,10 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
 
                 path = register('tick', () => {
                     pathRotations(generatedSpline);
-                    
-                    // Use path_between_key_nodes for jump detection if available, otherwise use keynodes
-                    const jumpPath = (body.path_between_key_nodes && body.path_between_key_nodes.length) 
-                        ? body.path_between_key_nodes 
-                        : body.keynodes;
+
+                    const jumpPath = body.path_between_key_nodes && body.path_between_key_nodes.length ? body.path_between_key_nodes : body.keynodes;
                     detectJump(jumpPath);
-                    
+
                     PathMovement();
 
                     if (!PathComplete()) return;
@@ -270,7 +267,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
 export function findAndFollowPath(start, end, renderOnlyOrCallback) {
     const renderOnly = typeof renderOnlyOrCallback === 'boolean' ? renderOnlyOrCallback : false;
     const onComplete = typeof renderOnlyOrCallback === 'function' ? renderOnlyOrCallback : null;
-    
+
     const area = Utils.area();
 
     if (area !== currentIsland) {

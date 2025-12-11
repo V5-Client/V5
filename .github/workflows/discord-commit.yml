@@ -26,7 +26,7 @@ jobs:
                   AUTHOR_LOGIN="${{ github.actor }}"
                   BRANCH_NAME="${GITHUB_REF#refs/heads/}"
                   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
+                  commit_url=${{ github.event.head_commit.url }}
                   # Determine base for diff (handle initial commit)
                   if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
                     BASE=""
@@ -78,6 +78,7 @@ jobs:
                   echo "filetypes<<EOF" >> $GITHUB_OUTPUT
                   echo "$FILETYPES_TEXT" >> $GITHUB_OUTPUT
                   echo "EOF" >> $GITHUB_OUTPUT
+                  echo "commit_url=${{ github.event.head_commit.url }}" >> $GITHUB_OUTPUT
 
             - name: Map GitHub user -> Discord username
               id: mapuser
@@ -89,6 +90,8 @@ jobs:
                     ["quiteboring"]="<@1367543367277219840>"
                     ["rdbtCVS"]="<@777346923232886784>"
                     ["IcyHenryT"]="<@1160548899711356958>"
+                    ["oblongboot"]="<@768481984242253904>"
+                    ["axlecoffee"]="<@790736254714642453>"
                   )
                   GH_USER="${{ steps.commit.outputs.login }}"
                   DISCORD_USER="${USER_MAP[$GH_USER]:-$GH_USER}"
@@ -105,11 +108,13 @@ jobs:
                   DELETED: ${{ steps.commit.outputs.deleted }}
                   FILES_CHANGED: ${{ steps.commit.outputs.files_changed }}
                   FILE_TYPES: ${{ steps.commit.outputs.filetypes }}
+                  COMMIT_URL: ${{ steps.commit.outputs.commit_url }}
               run: |
                   payload=$(jq -n \
                     --arg username "V5 Commits" \
                     --arg avatar_url "https://cdn.donmai.us/sample/bb/4d/__os_tan_and_2_more_drawn_by_raviolimavioli__sample-bb4d90d601466faa9ff6bc816869a25d.jpg" \
                     --arg title "New Commit" \
+                    --arg commit_url "$COMMIT_URL" \
                     --arg description "$COMMIT_MESSAGE" \
                     --arg author "$DISCORD_USER" \
                     --arg branch "$BRANCH_NAME" \
@@ -125,7 +130,7 @@ jobs:
                       "embeds": [
                         {
                           "title": $title,
-                          "description": ("📝 Summary\n" + $description),
+                          "description": ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
                           "color": $color,
                           "fields": [
                             {"name": "Author", "value": $author, "inline": true},
