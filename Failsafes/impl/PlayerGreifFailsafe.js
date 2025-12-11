@@ -1,6 +1,7 @@
 import { Failsafe } from "../Failsafe";
-import getFailsafeSettings from "../ConfigWrapper";
+import { getFailsafeSettings, incrementFailsafeIntensity } from "../FailsafeUtils";
 import { Chat } from "../../utils/Chat";
+import { Webhook } from "../../utils/Webhooks";
 let MacroState = global.MacroState;
 
 class PlayerGreifFailsafe extends Failsafe {
@@ -9,8 +10,10 @@ class PlayerGreifFailsafe extends Failsafe {
         this.settings = getFailsafeSettings("Player Greif");
         this.lastInsideTrigger = 0;
         this.lastNearbyTrigger = 0;
+        this.lastLookingTrigger = 0;
         this.insideCooldownMs = 5000;
         this.nearbyCooldownMs = 3000;
+        this.lookingCooldownMs = 3000;
         this.registerGreifListeners();
     }
 
@@ -48,10 +51,21 @@ class PlayerGreifFailsafe extends Failsafe {
         if (Math.trunc(lx) === Math.trunc(px) && 
             Math.trunc(ly) === Math.trunc(py) && 
             Math.trunc(lz) === Math.trunc(pz)) {
-            Chat.message(`&c&lWARNING: ${look.getName()} is standing inside you!`);
+            Chat.failsafeMsg(`&c&lWARNING: ${look.getName()} is standing inside you! (very high severity)`);
+            incrementFailsafeIntensity(120);
+            Webhook.sendEmbed([
+                {
+                    title: `**Player Inside Detected! [very high severity]**`,
+                    description: `${look.getName()} is standing inside you!`,
+                    color: 16711680,
+                    footer: { text: `V5 Failsafes` },
+                    timestamp: new Date().toISOString(),
+                },
+            ]);
             this.lastInsideTrigger = now;
         }
     }
+
     
     checkPlayerNearby(now) {
         this.settings = getFailsafeSettings("Player Greif");
@@ -75,7 +89,19 @@ class PlayerGreifFailsafe extends Failsafe {
         const maxDistance = this.settings.playerProximityDistance || 3;
 
         if (distance <= maxDistance && distance > 1) {
-            Chat.message(`${look.getName()} is ${distance.toFixed(1)} blocks away from you! They could be checking you!`);
+            const pressure = 20;
+            const severity = "medium";
+            Chat.failsafeMsg(`${look.getName()} is ${distance.toFixed(1)} blocks away from you! (${severity} severity)`);
+            incrementFailsafeIntensity(pressure);
+            Webhook.sendEmbed([
+                {
+                    title: `**Player Nearby! [${severity}]**`,
+                    description: `${look.getName()} is ${distance.toFixed(1)} blocks away!`,
+                    color: 16776960,
+                    footer: { text: `V5 Failsafes` },
+                    timestamp: new Date().toISOString(),
+                },
+            ]);
             this.lastNearbyTrigger = now;
         }
     }

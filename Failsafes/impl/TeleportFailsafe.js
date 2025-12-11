@@ -1,17 +1,17 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
 import { registerEventSB } from "../../utils/SkyblockEvents"
-import getFailsafeSettings from "../ConfigWrapper";
+import { getFailsafeSettings, incrementFailsafeIntensity } from "../FailsafeUtils";
 import { Webhook } from "../../utils/Webhooks";
 import MacroState from "../../utils/MacroState";
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
         super();
-        this.lastX = null;
-        this.lastY = null;
-        this.lastZ = null;
         this.ignore = false;
+        this.newX = 0;
+        this.newY = 0;
+        this.newZ = 0;
         this.settings = getFailsafeSettings("TP");
         this.registerTPListeners();
     }
@@ -22,27 +22,28 @@ class TeleportFailsafe extends Failsafe {
             this.settings = getFailsafeSettings("TP")
             if (!this.settings.isEnabled) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes("aspect of the")) return;
+            
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();
-            const currYaw = Player.getYaw();
-            const currPitch = Player.getPitch();
 
             const pos = packet.change().position()
-            const newX = pos.x
-            const newY = pos.y
-            const newZ = pos.z
+            this.newX = pos.x
+            this.newY = pos.y
+            this.newZ = pos.z
+            const dx = Math.abs(this.newX - fromX);
+            const dy = Math.abs(this.newY - fromY);
+            const dz = Math.abs(this.newZ - fromZ);
+            const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            const change = packet.change()
-            const newYaw = change.yaw()
-            const newPitch = change.pitch()
+            if (distance < 0.1) return;
             
-            if (newX === 0 && newY === 0 && newZ === 0) {
-                Chat.message("NULL PACKET DETECTED, DO NOT REACT!")
+            if (this.newX === 0 && this.newY === 0 && this.newZ === 0) {
+                Chat.failsafeMsg("NULL PACKET DETECTED, DO NOT REACT!")
                 Webhook.sendEmbed([
                    {
                        title: "**NULL PACKET DETECTED!**",
-                       description: `Null packet detected: ${newX} ${newY} ${newZ}`,
+                       description: `Null packet detected: ${this.newX} ${this.newY} ${this.newZ}`,
                        color: 8388608,
                        footer: { text: `V5 Failsafes` },
                        timestamp: new Date().toISOString(),
@@ -50,10 +51,11 @@ class TeleportFailsafe extends Failsafe {
                 ])
                 return;
             }
+            
             setTimeout(() => {
                 if (this.ignore) return;
-                this.onTrigger(fromX.toFixed(2), fromY.toFixed(2), fromZ.toFixed(2), newX.toFixed(2), newY.toFixed(2), newZ.toFixed(2), currYaw.toFixed(2), currPitch.toFixed(2), newYaw.toFixed(2), newPitch.toFixed(2));
-            }, this.settings.FailsafeReactionTime - 50|| 600)
+                this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
+            }, this.settings.FailsafeReactionTime - 50 || 600)
         }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket)
 
         register("worldLoad", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
@@ -73,18 +75,35 @@ class TeleportFailsafe extends Failsafe {
         })
     }
 
-    onTrigger(fromX, fromY, fromZ, toX, toY, toZ, fromYaw, fromPitch, toYaw, toPitch) {
-        Chat.message(`You have been teleported (or rotated)!`);
-        Chat.message(`from ${fromX} ${fromY} ${fromZ} to ${toX} ${toY} ${toZ} (yaw ${fromYaw} -> ${toYaw}, pitch ${fromPitch} -> ${toPitch})`);
+    onTrigger(fromX, fromY, fromZ, toX, toY, toZ, distance) {
+        let pressure;
+        let severity;
+        if (distance < 1) {
+            pressure = 5;
+            severity = "low";
+        } else if (distance < 2) {
+            pressure = 10;
+            severity = "medium";
+        } else if (distance < 3) {
+            pressure = 20;
+            severity = "high";
+        } else {
+            pressure = 50;
+            severity = "very high";
+        }
+
+        Chat.failsafeMsg(`You have been teleported! (${severity} severity)`);
+        Chat.failsafeMsg(`from ${fromX.toFixed(2)} ${fromY.toFixed(2)} ${fromZ.toFixed(2)} to ${toX.toFixed(2)} ${toY.toFixed(2)} ${toZ.toFixed(2)} (${distance.toFixed(1)} blocks)`);
         Webhook.sendEmbed([
             {
-                title: "**Teleport/Rotation Failsafe Triggered!**",
-                description: `Teleported from (${fromX}, ${fromY}, ${fromZ}) to (${toX}, ${toY}, ${toZ}) (yaw ${fromYaw} -> ${toYaw}, pitch ${fromPitch} -> ${toPitch})`,
-                color: 8388608,
+                title: `**Teleport Failsafe Triggered! [${severity}]**`,
+                description: `Teleported from (${fromX.toFixed(2)}, ${fromY.toFixed(2)}, ${fromZ.toFixed(2)}) to (${toX.toFixed(2)}, ${toY.toFixed(2)}, ${toZ.toFixed(2)})\nDistance: ${distance.toFixed(1)} blocks`,
+                color: severity === "very high" ? 16711680 : severity === "high" ? 16744448 : severity === "medium" ? 16776960 : 65280,
                 footer: { text: `V5 Failsafes` },
                 timestamp: new Date().toISOString(),
             },
         ]);
+        incrementFailsafeIntensity(pressure);
     }
 }
 

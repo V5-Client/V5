@@ -1,7 +1,10 @@
+import { getIntensity } from "../Failsafes/FailsafeUtils";
+
 const gradientPackage = Java.type('com.v5.gradient.Chat');
 const Prefix = 'V5 » ';
 const DebugPrefix = `V5 Debug » `;
 const IrcPrefix = 'IRC » ';
+const FailsafePrefix = 'V5 Failsafes » ';
 const gradientInstance = new gradientPackage();
 
 class ChatClass {
@@ -36,6 +39,12 @@ class ChatClass {
     irc(msg) {
         if (!msg) return;
         gradientInstance.sendGradientMsg(IrcPrefix, msg, 0x05b9f9, 0x0539f9);
+    }
+
+    failsafeMsg(msg) {
+        if (!msg) return;
+        gradientInstance.sendGradientMsg(FailsafePrefix, msg, 0x05b9f9, 0x0539f9);
+        gradientInstance.sendGradientMsg(FailsafePrefix, "&c&lCurrent intensity: " + getIntensity(), 0x05b9f9, 0x0539f9);
     }
 
     log(msg) {

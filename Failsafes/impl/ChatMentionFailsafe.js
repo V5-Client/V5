@@ -1,6 +1,6 @@
 import { Chat } from "../../utils/Chat";
 import { Failsafe } from "../Failsafe";
-import getFailsafeSettings from "../ConfigWrapper";
+import { getFailsafeSettings, incrementFailsafeIntensity } from "../FailsafeUtils";
 import { Webhook } from "../../utils/Webhooks";
 import MacroState from "../../utils/MacroState";
 import { registerEventSB } from "../../utils/SkyblockEvents";
@@ -32,9 +32,9 @@ class ChatMentionFailsafe extends Failsafe {
             if (!this.settings.isEnabled) return;
             this.FailsafeReactionTime = this.settings.FailsafeReactionTime || 600
 
-            if (!this.isBad(msg).isBlocked) return
-            Chat.message("Detected blacklisted word! (" + this.isBad(msg).blockedWord + ")");
-            this.onTrigger(); 
+            const result = this.isBad(msg);
+            if (!result.isBlocked) return
+            this.onTrigger(result.blockedWord); 
         }).setCriteria(/(.+)/);
         
         registerEventSB("serverchange", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
@@ -51,12 +51,25 @@ class ChatMentionFailsafe extends Failsafe {
         return { isBlocked: isBlocked, blockedWord: found };
     }
 
-    onTrigger() {
+    onTrigger(word) {
+        const highSeverityWords = ["wdr", "report", "cheating", "cheater"];
+        let pressure;
+        let severity;
+        if (highSeverityWords.includes(word.toLowerCase())) {
+            pressure = 30;
+            severity = "high";
+        } else {
+            pressure = 10;
+            severity = "medium";
+        }
+
+        Chat.failsafeMsg(`Detected blacklisted word! (${word}) (${severity} severity)`);
+        incrementFailsafeIntensity(pressure);
         Webhook.sendEmbed([
             {
-                title: "**Chat Mention Failsafe Triggered!**",
-                description: `Someone mentioned a blacklisted word!`,
-                color: 8388608,
+                title: `**Chat Mention Failsafe Triggered! [${severity}]**`,
+                description: `Someone mentioned: "${word}"`,
+                color: severity === "high" ? 16744448 : 16776960,
                 footer: { text: `V5 Failsafes` },
                 timestamp: new Date().toISOString(),
             },
