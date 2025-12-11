@@ -9,11 +9,10 @@ import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
 import { PathfindingMessages } from '../PathConfig';
 
-// Lookahead ╭( ๐_๐)╮ these need to be adjusted. Rn it's good for GETTING there, but it over rotates on difficult terrain (/path -128 200 -36 from the bottom, its so shitty)
+// Lookahead
 const LOOK_AHEAD_DISTANCE = 4;
 const BASE_YAW_AHEAD_DISTANCE = 4;
 const YAW_AHEAD_JUMP_MULTIPLIER = 1.3;
-const YAW_LOOKAHEAD_SMOOTHING = 0.2;
 
 const YAW_SMOOTH_SPEED = 0.15;
 const PITCH_SMOOTH_SPEED = 0.12;
@@ -28,7 +27,7 @@ const Y_CHANGE_THRESHOLD = 0.03;
 const Y_CHANGE_SMOOTHING = 0.25;
 const Y_CHANGE_DECAY = 0.92;
 
-// change these to improve fall rotations, it smooths out the node skipping (falls usually make it go from like node 20 to 80 instantly)
+// improves fall rotations, it smooths out the node skipping (falls usually make it go from like node 20 to 80 instantly)
 const NODE_SKIP_THRESHOLD = 6;
 const TARGET_BLEND_NORMAL = 0.4;
 const TARGET_BLEND_SKIP = 0.15;
@@ -39,30 +38,40 @@ const MIN_ADVANCE_DISTANCE = 0.3;
 const BOX_RESET_SEARCH_RANGE = 20;
 const BOX_SWITCH_HYSTERESIS = 3;
 
-// difficulty shit. based on nodes, not player
+// difficulty shit.
 const DIFFICULTY_LOOKAHEAD = 8;
 const SHARP_TURN_THRESHOLD_DEG = 55;
 const VERY_SHARP_TURN_THRESHOLD_DEG = 100;
 const LEDGE_Y_THRESHOLD = 0.5;
 const STRAFE_LEDGE_Y_THRESHOLD = 1;
 
-const MIN_YAW_LOOKAHEAD = 1.5;
-const MIN_PITCH_LOOKAHEAD = 1.5;
+// this shit works. it works.
+const GRADUAL_STEP_MAX_HEIGHT = 0.6;
 
-const STRAFE_ENABLE_COLLISION_TICKS = 6;
+const STRAFE_SINGLE_STEP_THRESHOLD = 0.75;
+const STRAFE_TOTAL_Y_THRESHOLD = 1.3;
+const STRAFE_TOTAL_Y_MIN_SINGLE = 0.6;
+
+// Dynamic yaw ( ˶ˆᗜˆ˵ )
+const MIN_YAW_AHEAD_DISTANCE = 0.5;
+const DYNAMIC_YAW_CURVATURE_RADIUS = 4;
+const CURVATURE_FULL_REDUCTION_ANGLE = 45;
+
+const MIN_PITCH_LOOKAHEAD = 2.5;
+
+const STRAFE_ENABLE_COLLISION_TICKS = 4;
 const STRAFE_ANGLE_THRESHOLD = 30;
-const STRAFE_DURATION_AFTER_UNCOLLIDE = 6;
+const STRAFE_DURATION_AFTER_UNCOLLIDE = 12;
+const STRAFE_MIN_DISTANCE_TO_DIFFICULTY = 2.5;
+const STRAFE_ELIGIBILITY_MEMORY = 10;
 
-// useless. why is this still here?
 const MAX_ALLOWED_PITCH_DOWN = 89.9;
 const MAX_ALLOWED_PITCH_UP = -89.9;
 
-// states should be moved into pathstate later? this is just here cuz im
 let currentBoxIndex = 1;
 let currentPathPosition = 1.0;
 let isInitialized = false;
 let complete = false;
-let smoothedYawLookahead = BASE_YAW_AHEAD_DISTANCE;
 
 let rawTargetYaw = 0;
 let rawTargetPitch = 0;
@@ -82,17 +91,12 @@ let walkingUpDownTicks = 0;
 
 let lastBoxIndex = 0;
 let ticksSinceNodeSkip = 999;
-let lastNodeSkipAmount = 0;
-
-let currentDifficulty = 0;
-let upcomingSharpTurn = false;
-let upcomingLedge = false;
-let smoothedDifficulty = 0;
 
 let collisionTicks = 0;
 let isStrafing = false;
 let strafeDirection = 0;
 let strafeHoldTicks = 0;
+let recentStrafeEligible = 0;
 
 let rotationActive = false;
 
@@ -105,7 +109,6 @@ export function ResetRotations() {
     currentPathPosition = 1.0;
     isInitialized = false;
     complete = false;
-    smoothedYawLookahead = BASE_YAW_AHEAD_DISTANCE;
     resetStuckDetection();
 
     isAirborne = false;
@@ -126,17 +129,12 @@ export function ResetRotations() {
 
     lastBoxIndex = 0;
     ticksSinceNodeSkip = 999;
-    lastNodeSkipAmount = 0;
-
-    currentDifficulty = 0;
-    upcomingSharpTurn = false;
-    upcomingLedge = false;
-    smoothedDifficulty = 0;
 
     collisionTicks = 0;
     isStrafing = false;
     strafeDirection = 0;
     strafeHoldTicks = 0;
+    recentStrafeEligible = 0;
     Keybind.setKey('a', false);
     Keybind.setKey('d', false);
 
@@ -153,6 +151,39 @@ function getAngleDelta(from, to) {
     return wrapAngle(to - from);
 }
 
+function computeLocalCurvature(boxPositions, centerIndex, radius = DYNAMIC_YAW_CURVATURE_RADIUS) {
+    if (!boxPositions || boxPositions.length < 3) return 0;
+
+    const lastIndex = boxPositions.length - 1;
+    const start = Math.max(1, centerIndex - radius);
+    const end = Math.min(lastIndex - 1, centerIndex + radius);
+
+    let maxAngleDeg = 0;
+
+    for (let i = start; i <= end; i++) {
+        const prev = boxPositions[i - 1];
+        const curr = boxPositions[i];
+        const next = boxPositions[i + 1];
+
+        const v1x = curr.x - prev.x;
+        const v1z = curr.z - prev.z;
+        const v2x = next.x - curr.x;
+        const v2z = next.z - curr.z;
+
+        const mag1 = Math.sqrt(v1x * v1x + v1z * v1z);
+        const mag2 = Math.sqrt(v2x * v2x + v2z * v2z);
+        if (mag1 < 0.0001 || mag2 < 0.0001) continue;
+
+        let cosAngle = (v1x * v2x + v1z * v2z) / (mag1 * mag2);
+        cosAngle = Math.max(-1, Math.min(1, cosAngle));
+
+        const angleDeg = (Math.acos(cosAngle) * 180) / Math.PI;
+        if (angleDeg > maxAngleDeg) maxAngleDeg = angleDeg;
+    }
+
+    return maxAngleDeg;
+}
+
 function analyzePathAhead(boxPositions, currentIndex) {
     const result = {
         maxAngle: 0,
@@ -161,10 +192,10 @@ function analyzePathAhead(boxPositions, currentIndex) {
         hasLedge: false,
         hasSharpTurn: false,
         hasVerySharpTurn: false,
-        difficulty: 0,
         turnDirection: 0,
         firstDifficultIndex: -1,
         shouldAllowStrafe: false,
+        isGradualSlope: false,
     };
 
     if (!boxPositions || currentIndex >= boxPositions.length - 2) {
@@ -173,22 +204,33 @@ function analyzePathAhead(boxPositions, currentIndex) {
 
     const endIndex = Math.min(currentIndex + DIFFICULTY_LOOKAHEAD, boxPositions.length - 1);
 
+    for (let i = currentIndex; i < endIndex && i < boxPositions.length - 1; i++) {
+        const yDiff = Math.abs(boxPositions[i + 1].y - boxPositions[i].y);
+
+        if (yDiff > 0.01) {
+            result.totalYChange += yDiff;
+
+            if (yDiff > result.maxSingleYChange) {
+                result.maxSingleYChange = yDiff;
+            }
+        }
+    }
+
+    // if no big jump, gradual. im so smart
+    result.isGradualSlope = result.maxSingleYChange <= GRADUAL_STEP_MAX_HEIGHT;
+
+    if (!result.isGradualSlope && result.maxSingleYChange > LEDGE_Y_THRESHOLD) {
+        result.hasLedge = true;
+    }
+
     for (let i = currentIndex; i < endIndex - 1; i++) {
         const box0 = boxPositions[i];
         const box1 = boxPositions[i + 1];
         const box2 = i + 2 < boxPositions.length ? boxPositions[i + 2] : null;
 
-        const yDiff = box1.y - box0.y;
-        if (yDiff > 0) {
-            result.totalYChange += yDiff;
-            if (yDiff > result.maxSingleYChange) {
-                result.maxSingleYChange = yDiff;
-            }
-        }
-
-        if (yDiff > LEDGE_Y_THRESHOLD) {
-            result.hasLedge = true;
-            if (result.firstDifficultIndex === -1) {
+        if (!result.isGradualSlope) {
+            const yDiff = Math.abs(box1.y - box0.y);
+            if (yDiff > LEDGE_Y_THRESHOLD && result.firstDifficultIndex === -1) {
                 result.firstDifficultIndex = i;
             }
         }
@@ -229,15 +271,54 @@ function analyzePathAhead(boxPositions, currentIndex) {
         }
     }
 
-    const turnDifficulty = Math.min(1, result.maxAngle / 90);
-    const ledgeDifficulty = result.hasLedge ? Math.min(1, result.totalYChange / 1.5) : 0;
+    // Strafing!
+    const hasSignificantSingleStep = result.maxSingleYChange >= STRAFE_SINGLE_STEP_THRESHOLD;
+    const hasSignificantTotalY = result.totalYChange >= STRAFE_TOTAL_Y_THRESHOLD && result.maxSingleYChange >= STRAFE_TOTAL_Y_MIN_SINGLE;
+    const hasOriginalCondition = result.maxSingleYChange >= STRAFE_LEDGE_Y_THRESHOLD;
+    const significantYChange = hasOriginalCondition || hasSignificantSingleStep || hasSignificantTotalY;
 
-    const comboMultiplier = result.hasLedge && result.hasSharpTurn ? 1.4 : 1.0;
-    result.difficulty = Math.min(1, (turnDifficulty + ledgeDifficulty) * comboMultiplier);
+    result.shouldAllowStrafe = result.hasSharpTurn && significantYChange && !result.isGradualSlope;
 
-    result.shouldAllowStrafe = result.hasVerySharpTurn && result.maxSingleYChange >= STRAFE_LEDGE_Y_THRESHOLD;
+    if (result.shouldAllowStrafe && result.firstDifficultIndex !== -1) {
+        const distanceToDifficulty = result.firstDifficultIndex - currentIndex;
+        if (distanceToDifficulty > STRAFE_MIN_DISTANCE_TO_DIFFICULTY * 2) {
+            result.shouldAllowStrafe = false;
+        }
+    }
 
     return result;
+}
+
+function calculateYawLookahead(boxPositions, pathPosition, isGradualSlope, hasSharpTurn) {
+    const baseYawAhead = BASE_YAW_AHEAD_DISTANCE * (isAirborne ? YAW_AHEAD_JUMP_MULTIPLIER : 1);
+    const minYawAhead = MIN_YAW_AHEAD_DISTANCE * (isAirborne ? YAW_AHEAD_JUMP_MULTIPLIER : 1);
+
+    if (isGradualSlope && !hasSharpTurn) {
+        return baseYawAhead;
+    }
+
+    if (!boxPositions || boxPositions.length < 3) {
+        return baseYawAhead;
+    }
+
+    const centerIndex = Math.max(1, Math.min(boxPositions.length - 2, Math.floor(pathPosition)));
+    const localCurvature = computeLocalCurvature(boxPositions, centerIndex);
+
+    const normalizedCurvature = Math.max(0, Math.min(1, localCurvature / CURVATURE_FULL_REDUCTION_ANGLE));
+
+    return baseYawAhead - (baseYawAhead - minYawAhead) * normalizedCurvature;
+}
+
+function calculatePitchLookahead(isGradualSlope, hasSharpTurn) {
+    if (isGradualSlope && !hasSharpTurn) {
+        return LOOK_AHEAD_DISTANCE;
+    }
+
+    if (hasSharpTurn) {
+        return MIN_PITCH_LOOKAHEAD;
+    }
+
+    return LOOK_AHEAD_DISTANCE;
 }
 
 function calculateStrafeDirection(boxPositions, currentIndex, pathAnalysis) {
@@ -284,20 +365,32 @@ function updateStrafeState(boxPositions, currentIndex, pathAnalysis) {
         collisionTicks = 0;
     }
 
-    const shouldConsiderStrafe = pathAnalysis.shouldAllowStrafe;
+    if (pathAnalysis.shouldAllowStrafe) {
+        recentStrafeEligible = STRAFE_ELIGIBILITY_MEMORY;
+    } else if (recentStrafeEligible > 0) {
+        recentStrafeEligible--;
+    }
 
-    if (isCollided && collisionTicks >= STRAFE_ENABLE_COLLISION_TICKS && shouldConsiderStrafe) {
+    const shouldConsiderStrafe = pathAnalysis.shouldAllowStrafe || recentStrafeEligible > 0;
+
+    let requiredCollisionTicks = STRAFE_ENABLE_COLLISION_TICKS;
+    if (pathAnalysis.firstDifficultIndex !== -1) {
+        const distanceToDifficulty = pathAnalysis.firstDifficultIndex - currentIndex;
+        if (distanceToDifficulty <= 2) {
+            requiredCollisionTicks = 3;
+        } else if (distanceToDifficulty <= 4) {
+            requiredCollisionTicks = 5;
+        }
+    }
+
+    if (isCollided && collisionTicks >= requiredCollisionTicks && shouldConsiderStrafe) {
         const newDirection = calculateStrafeDirection(boxPositions, currentIndex, pathAnalysis);
 
         if (newDirection !== 0) {
             strafeDirection = newDirection;
             isStrafing = true;
             strafeHoldTicks = STRAFE_DURATION_AFTER_UNCOLLIDE;
-            PathfindingMessages(
-                `§7[Strafe] Enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(
-                    1
-                )}°, yChange=${pathAnalysis.maxSingleYChange.toFixed(2)}`
-            );
+            PathfindingMessages(`§7[Strafe] Enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(1)}°`);
         }
     }
 
@@ -371,7 +464,6 @@ function updateNodeSkipTracking(newBoxIndex) {
 
     if (skipAmount > NODE_SKIP_THRESHOLD) {
         ticksSinceNodeSkip = 0;
-        lastNodeSkipAmount = skipAmount;
     } else {
         ticksSinceNodeSkip++;
     }
@@ -434,39 +526,6 @@ function calculatePathPosition(currentBox, nextBox, playerEyes) {
     }
 
     return Math.max(0, Math.min(1, t));
-}
-
-function getAdvanceDistance() {
-    return BASE_ADVANCE_DISTANCE - (BASE_ADVANCE_DISTANCE - MIN_ADVANCE_DISTANCE) * smoothedDifficulty;
-}
-
-function getAdjustedYawLookahead() {
-    const base = isAirborne ? BASE_YAW_AHEAD_DISTANCE * YAW_AHEAD_JUMP_MULTIPLIER : BASE_YAW_AHEAD_DISTANCE;
-    return base - (base - MIN_YAW_LOOKAHEAD) * smoothedDifficulty;
-}
-
-function getAdjustedPitchLookahead() {
-    return LOOK_AHEAD_DISTANCE - (LOOK_AHEAD_DISTANCE - MIN_PITCH_LOOKAHEAD) * smoothedDifficulty;
-}
-
-function isAlignedForAdvance(boxPositions, currentIndex, playerYaw) {
-    if (currentIndex + 2 >= boxPositions.length) return true;
-
-    const current = boxPositions[currentIndex];
-    const next = boxPositions[currentIndex + 1];
-
-    const dx = next.x - current.x;
-    const dz = next.z - current.z;
-    const len = Math.sqrt(dx * dx + dz * dz);
-
-    if (len < 0.1) return true;
-
-    const pathYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
-    const yawDiff = Math.abs(getAngleDelta(playerYaw, pathYaw));
-
-    const maxAllowedDiff = 90 - 50 * smoothedDifficulty;
-
-    return yawDiff < maxAllowedDiff;
 }
 
 register('step', () => {
@@ -543,11 +602,6 @@ export function pathRotations(splineData) {
     updateMovementState();
 
     const pathAnalysis = analyzePathAhead(boxPositions, currentBoxIndex);
-    currentDifficulty = pathAnalysis.difficulty;
-    upcomingSharpTurn = pathAnalysis.hasSharpTurn;
-    upcomingLedge = pathAnalysis.hasLedge;
-
-    smoothedDifficulty += (currentDifficulty - smoothedDifficulty) * 0.15;
 
     updateStrafeState(boxPositions, currentBoxIndex, pathAnalysis);
 
@@ -586,13 +640,11 @@ export function pathRotations(splineData) {
     const positionFraction = calculatePathPosition(currentBox, nextBox, playerEyes);
     currentPathPosition = currentBoxIndex + positionFraction;
 
-    const adjustedYawLookahead = getAdjustedYawLookahead();
-    smoothedYawLookahead += (adjustedYawLookahead - smoothedYawLookahead) * YAW_LOOKAHEAD_SMOOTHING;
+    const yawLookahead = calculateYawLookahead(boxPositions, currentPathPosition, pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
+    const pitchLookahead = calculatePitchLookahead(pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
 
-    const adjustedPitchLookahead = getAdjustedPitchLookahead();
-
-    const targetPathIndex = currentPathPosition + adjustedPitchLookahead;
-    const targetYawPathIndex = currentPathPosition + smoothedYawLookahead;
+    const targetPathIndex = currentPathPosition + pitchLookahead;
+    const targetYawPathIndex = currentPathPosition + yawLookahead;
 
     const pitchStartIndex = Math.min(Math.floor(targetPathIndex), boxPositions.length - 2);
     const yawStartIndex = Math.min(Math.floor(targetYawPathIndex), boxPositions.length - 2);
@@ -631,12 +683,9 @@ export function pathRotations(splineData) {
     rawTargetYaw = newRawYaw;
     rawTargetPitch = newRawPitch;
 
-    const advanceDistance = getAdvanceDistance();
     const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(currentBox.x + 0.5, currentBox.y + 0.5, currentBox.z + 0.5);
 
-    const alignedForAdvance = smoothedDifficulty < 0.2 || isAlignedForAdvance(boxPositions, currentBoxIndex, currentYaw);
-
-    if (distanceToCurrentPoint < advanceDistance / 2 && currentPathPosition > currentBoxIndex + 0.9 && alignedForAdvance) {
+    if (distanceToCurrentPoint < BASE_ADVANCE_DISTANCE / 2 && currentPathPosition > currentBoxIndex + 0.9) {
         currentBoxIndex = Math.min(currentBoxIndex + 1, boxPositions.length - 1);
         currentPathPosition = currentBoxIndex;
     }
