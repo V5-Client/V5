@@ -13,14 +13,21 @@ class ChatMentionFailsafe extends Failsafe {
         this.ignore = false;
         this.FailsafeReactionTime = 600;
         this.isFailsafeEnabled = true;
-        this.blacklistedWords = [
-            "macro",
-            "report",
-            "wdr",
-            "cheating",
-            "cheater"
-          //  `${Player.getName()}`, // add later when i can stop false positives
-        ]
+        
+        // High severity patterns - match words commonly associated with reports/bans
+        this.highSeverityPatterns = [
+            /\bwdr\b/i,           // Watchdog Report
+            /\breport(ing|ed)?\b/i,  // report, reporting, reported
+            /\bcheat(ing|er|s)?\b/i, // cheat, cheating, cheater, cheats
+        ];
+        
+        // Medium severity patterns - match words that may indicate suspicion
+        this.mediumSeverityPatterns = [
+            /\bmacro(ing|er|s)?\b/i,      // macro, macroing, macroer, macros
+            /\bbot(ting|ter|s)?\b/i,      // bot, botting, botter, bots
+            /\bautomating?\b/i,           // automate, automating
+            /\bexploit(ing|er|s)?\b/i,    // exploit, exploiting, exploiter, exploits
+        ];
     }
 
     registerChatListeners() {
@@ -34,7 +41,7 @@ class ChatMentionFailsafe extends Failsafe {
 
             const result = this.isBad(msg);
             if (!result.isBlocked) return
-            this.onTrigger(result.blockedWord); 
+            this.onTrigger(result.blockedWord, result.severity); 
         }).setCriteria(/(.+)/);
         
         registerEventSB("serverchange", () => {this.ignore = true; setTimeout(() => this.ignore = false, 1000)})
@@ -44,24 +51,27 @@ class ChatMentionFailsafe extends Failsafe {
     }
 
     isBad(msg) {
-        let found = null;
-        const lower = msg.toLowerCase();
-        const isBlocked = this.blacklistedWords.some(word => { if (lower.includes(word.toLowerCase())) { found = word; return true; } return false; });
+        // Check high severity patterns first
+        for (const pattern of this.highSeverityPatterns) {
+            const match = msg.match(pattern);
+            if (match) {
+                return { isBlocked: true, blockedWord: match[0], severity: "high" };
+            }
+        }
+        
+        // Check medium severity patterns
+        for (const pattern of this.mediumSeverityPatterns) {
+            const match = msg.match(pattern);
+            if (match) {
+                return { isBlocked: true, blockedWord: match[0], severity: "medium" };
+            }
+        }
 
-        return { isBlocked: isBlocked, blockedWord: found };
+        return { isBlocked: false, blockedWord: null, severity: null };
     }
 
-    onTrigger(word) {
-        const highSeverityWords = ["wdr", "report", "cheating", "cheater"];
-        let pressure;
-        let severity;
-        if (highSeverityWords.includes(word.toLowerCase())) {
-            pressure = 30;
-            severity = "high";
-        } else {
-            pressure = 10;
-            severity = "medium";
-        }
+    onTrigger(word, severity) {
+        const pressure = severity === "high" ? 30 : 10;
 
         Chat.failsafeMsg(`Detected blacklisted word! (${word}) (${severity} severity)`);
         incrementFailsafeIntensity(pressure);
