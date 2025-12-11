@@ -69,41 +69,42 @@ class PlayerGreifFailsafe extends Failsafe {
     
     checkPlayerNearby(now) {
         this.settings = getFailsafeSettings("Player Greif");
-        if (!this.settings.playerGreif) return;
-        const look = Player.lookingAt();
-        if (!(look instanceof PlayerMP)) return;
-        if (look.getUUID()?.version() === 2) return;
-        
+        if (!this.settings.isEnabled) return;
         const px = Player.getX();
         const py = Player.getY();
         const pz = Player.getZ();
-        const lx = look.getX();
-        const ly = look.getY();
-        const lz = look.getZ();
-        
-        const dx = lx - px;
-        const dy = ly - py;
-        const dz = lz - pz;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        
-        const maxDistance = this.settings.playerProximityDistance || 3;
+        const allPlayers = World.getAllPlayers();
 
-        if (distance <= maxDistance && distance > 1) {
-            const pressure = 20;
-            const severity = "medium";
-            Chat.failsafeMsg(`${look.getName()} is ${distance.toFixed(1)} blocks away from you! (${severity} severity)`);
-            incrementFailsafeIntensity(pressure);
-            Webhook.sendEmbed([
-                {
-                    title: `**Player Nearby! [${severity}]**`,
-                    description: `${look.getName()} is ${distance.toFixed(1)} blocks away!`,
-                    color: 16776960,
-                    footer: { text: `V5 Failsafes` },
-                    timestamp: new Date().toISOString(),
-                },
-            ]);
-            this.lastNearbyTrigger = now;
-        }
+        allPlayers.forEach(player => {
+            if (player.getName() === Player.getName()) return;
+            if (player.getUUID()?.version() === 2) return;
+            const lx = player.getX();
+            const ly = player.getY();
+            const lz = player.getZ();
+        
+            const dx = lx - px;
+            const dy = ly - py;
+            const dz = lz - pz;
+            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        
+            const maxDistance = this.settings.playerProximityDistance || 3;
+            if (distance <= maxDistance && distance > 1) {
+                const pressure = 20;
+                const severity = "medium";
+                Chat.failsafeMsg(`${player.getName()} is ${distance.toFixed(1)} blocks away from you! (${severity} severity)`);
+                incrementFailsafeIntensity(pressure);
+                Webhook.sendEmbed([
+                    {
+                        title: `**Player Nearby! [${severity}]**`,
+                        description: `${player.getName()} is ${distance.toFixed(1)} blocks away!`,
+                        color: 16776960,
+                        footer: { text: `V5 Failsafes` },
+                        timestamp: new Date().toISOString(),
+                    },
+                ]);
+                this.lastNearbyTrigger = now;
+            }
+        });
     }
 }
 
