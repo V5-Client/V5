@@ -5,18 +5,28 @@ import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 import { PADDING } from '../Utils';
 
 global.createCategoriesManager = (deps) => {
-    let rightPanelScrollY = 0;
+    let targetRightPanelScrollY = 0;
+    let currentRightPanelScrollY = 0;
+
     let cachedItemLayouts = [];
     let isLayoutCacheValid = false;
     let cachedContentHeight = 0;
     let isContentHeightCacheValid = false;
 
+    const SCROLL_SMOOTHING_FACTOR = 0.2;
+
     const setRightPanelScrollY = (value) => {
-        rightPanelScrollY = value;
+        currentRightPanelScrollY = value;
+        targetRightPanelScrollY = value;
     };
     const resetCategoryScroll = () => {
-        rightPanelScrollY = 0;
+        setRightPanelScrollY(0);
     };
+
+    const setTargetRightPanelScrollY = (value) => {
+        targetRightPanelScrollY = value;
+    };
+
     const calculateContentHeight = () => {
         if (!isContentHeightCacheValid && global.Categories.selected) {
             let height = 0;
@@ -78,9 +88,12 @@ global.createCategoriesManager = (deps) => {
         calculateContentHeight();
 
         const maxScroll = Math.max(0, cachedContentHeight - deps.rectangles.RightPanel.height + PADDING);
-        if (rightPanelScrollY > maxScroll) {
-            rightPanelScrollY = maxScroll;
-        }
+
+        targetRightPanelScrollY = Math.max(0, Math.min(targetRightPanelScrollY, maxScroll));
+
+        currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * SCROLL_SMOOTHING_FACTOR;
+
+        const rightPanelScrollY = currentRightPanelScrollY;
         const panel = deps.rectangles.RightPanel;
 
         const scale = Renderer.screen.getScale();
@@ -143,18 +156,18 @@ global.createCategoriesManager = (deps) => {
             getCategoryRect,
             () => {
                 isLayoutCacheValid = false;
-                rightPanelScrollY = 0;
+                resetCategoryScroll();
             },
             () => {
                 isContentHeightCacheValid = false;
-                rightPanelScrollY = 0;
+                resetCategoryScroll();
             },
             resetCategoryScroll
         );
     };
 
     const handleScroll = (mouseX, mouseY, dir) => {
-        handleCategoryScroll(mouseX, mouseY, dir, deps.rectangles.RightPanel, cachedContentHeight, rightPanelScrollY, setRightPanelScrollY);
+        handleCategoryScroll(mouseX, mouseY, dir, deps.rectangles.RightPanel, cachedContentHeight, targetRightPanelScrollY, setTargetRightPanelScrollY);
         isLayoutCacheValid = false;
     };
 
@@ -198,9 +211,10 @@ global.createCategoriesManager = (deps) => {
             resetCategoryScroll();
             global.Categories.optionsScrollY = 0;
         },
-        getRightPanelScrollY: () => rightPanelScrollY,
+
+        getRightPanelScrollY: () => currentRightPanelScrollY,
         setRightPanelScrollY: (value) => {
-            rightPanelScrollY = value;
+            setRightPanelScrollY(value);
         },
     };
 };
