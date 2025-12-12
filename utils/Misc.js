@@ -7,6 +7,7 @@ register('command', () => {
         let Name = block.type.getName();
         Chat.message('blockname: ' + Name);
         Chat.message('registry: ' + block.type.getRegistryName());
+        Chat.message('x: ' + block.x + ' y: ' + block.y + ' z:' + block.z);
     } else {
         Chat.message(block);
     }
