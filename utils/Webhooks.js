@@ -36,7 +36,7 @@ class Webhooks {
                 return;
             }
         })
-            .setName('setwh')
+            .setName('setwh', true)
             .setAliases(['setwebhook', 'setdiscordwebhook']);
 
         register('command', (userId) => {
@@ -46,7 +46,7 @@ class Webhooks {
             }
             this.setUserId(userId);
         })
-            .setName('setid')
+            .setName('setid', true)
             .setAliases(['setuserid', 'setdiscordid', 'setdiscorduser', 'setdiscorduserid']);
     }
 
