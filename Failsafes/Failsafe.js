@@ -1,7 +1,9 @@
 export class Failsafe {
-    constructor() { }
+    constructor() {}
 
-    shouldTrigger() { return true; } // todo: add gui failsafe toggle, add is macroing check
-    onTrigger() { }
-    reset() { }
+    shouldTrigger() {
+        return true;
+    }
+    onTrigger() {}
+    reset() {}
 }

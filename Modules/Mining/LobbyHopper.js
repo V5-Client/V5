@@ -2,8 +2,6 @@ import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Time } from '../../utils/Timing';
 import { Utils } from '../../utils/Utils';
-import MacroState from '../../utils/MacroState';
-
 class LobbyHopper extends ModuleBase {
     constructor() {
         super({
@@ -62,12 +60,12 @@ class LobbyHopper extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true);
+        global.macrostate.setMacroRunning(true, 'LOBBY_HOPPER');
         this.message('&aStarted');
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false);
+        global.macrostate.setMacroRunning(false, 'LOBBY_HOPPER');
         this.message('&cStopped');
     }
 }

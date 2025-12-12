@@ -3,8 +3,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
-import MacroState from '../../utils/MacroState';
-
 class JerryBoxMacro extends ModuleBase {
     constructor() {
         super({
@@ -107,7 +105,7 @@ class JerryBoxMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true);
+        global.macrostate.setMacroRunning(true, 'JERRY_BOX');
         Chat.message('Jerry Box Macro enabled.');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
@@ -115,7 +113,7 @@ class JerryBoxMacro extends ModuleBase {
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false);
+        global.macrostate.setMacroRunning(false, 'JERRY_BOX');
         Chat.message('Jerry Box Macro disabled.');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;

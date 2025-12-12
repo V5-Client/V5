@@ -1,4 +1,4 @@
-import { getIntensity } from "../Failsafes/FailsafeUtils";
+import FailsafeUtils from '../Failsafes/FailsafeUtils';
 
 const gradientPackage = Java.type('com.v5.gradient.Chat');
 const Prefix = 'V5 » ';
@@ -44,7 +44,7 @@ class ChatClass {
     failsafeMsg(msg) {
         if (!msg) return;
         gradientInstance.sendGradientMsg(FailsafePrefix, msg, 0x05b9f9, 0x0539f9);
-        gradientInstance.sendGradientMsg(FailsafePrefix, "&c&lCurrent intensity: " + getIntensity(), 0x05b9f9, 0x0539f9);
+        gradientInstance.sendGradientMsg(FailsafePrefix, '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity(), 0x05b9f9, 0x0539f9);
     }
 
     log(msg) {
