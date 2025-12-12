@@ -28,7 +28,7 @@ class UtilsClass {
 
                 this.fakeBan(`You have been detected using the blacklisted modification "Polar Client"`);
             }).start();
-        }).setName('polar');
+        }).setName('polar', true);
     }
 
     /**
