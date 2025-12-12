@@ -9,7 +9,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
-
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
@@ -113,6 +112,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onEnable() {
+        global.macrostate.setMacroRunning(true, 'COMMISSION');
         Chat.message('&aCommission Macro Enabled.');
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
@@ -150,6 +150,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDisable() {
+        global.macrostate.setMacroRunning(false, 'COMMISSION');
         Chat.message('&cCommission Macro Disabled.');
         MiningBot.toggle(false);
         CombatBot.clearExternalTargets();

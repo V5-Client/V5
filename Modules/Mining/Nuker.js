@@ -4,7 +4,6 @@ import { Utils } from '../../utils/Utils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP, ConcurrentLinkedQueue, AtomicBoolean, PlayerInteractBlockC2SPacket } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-
 // TODO
 // 4:10 : save block config
 // 2/10 : nuker preset commands
@@ -469,6 +468,7 @@ class NukerClass extends ModuleBase {
     }
 
     onEnable() {
+        global.macrostate.setMacroRunning(true, 'NUKER');
         Chat.message('Nuker &aEnabled');
         this.startWorker();
         this.init();
@@ -476,6 +476,7 @@ class NukerClass extends ModuleBase {
     }
 
     onDisable() {
+        global.macrostate.setMacroRunning(false, 'NUKER');
         Chat.message('Nuker &cDisabled');
         this.stopWorker();
         this.init();

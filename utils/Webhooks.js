@@ -90,7 +90,7 @@ class Webhooks {
         Chat.message('&aUser ID saved successfully!');
     }
 
-    sendEmbed(embeds) {
+    sendEmbed(embeds, ping = true) {
         if (!this.webhookUrl || !this.isEnabled) return;
         new Thread(() => {
             try {
@@ -98,6 +98,7 @@ class Webhooks {
                 let conn = url.openConnection();
                 conn.setRequestMethod('POST');
                 conn.setRequestProperty('Content-Type', 'application/json');
+                conn.setRequestProperty(`User-Agent`, `Mozilla/5.0 V5/${Version}`);
                 conn.setDoOutput(true);
 
                 let payload = {
@@ -106,7 +107,7 @@ class Webhooks {
                     embeds: embeds,
                 };
 
-                if (this.userId) {
+                if (this.userId && ping) {
                     payload.content = `<@${this.userId}>`;
                 }
 
