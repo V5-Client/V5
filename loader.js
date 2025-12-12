@@ -11,6 +11,7 @@ import './utils/Config.js';
 import './utils/backend/IRC.js';
 
 /* Utils */
+import './utils/MacroState.js';
 import './utils/pathfinder/PathFinder.js';
 import './utils/Clipping.js'; // register command. it uses modulebase cuz fuck you. it's still a utility!!
 import './utils/Misc.js';

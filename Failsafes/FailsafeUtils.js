@@ -1,29 +1,36 @@
-import { File } from '../utils/Constants.js';
+import { V5ConfigFile } from '../utils/Constants.js';
 
-let failsafeIntensity = 0;
-
-function getFailsafeSettings(name) {
-    const modulesDir = new File("./config/ChatTriggers/modules");
-    const V5ConfigFile = new File(`${modulesDir}/V5Config/config.json`);
-    if (!V5ConfigFile.exists()) {
-        console.log("V5Config not found, this shouldnt happen!");
-        return;
+class FailsafeUtils {
+    constructor() {
+        this.failsafeIntensity = 0;
     }
 
-    const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
-    const FailsafeReactionTime = config["Failsafes"]["Failsafe Detection Delay (ms)"]
-    const isEnabled = config["Failsafes"][`${name} Failsafe`]
-    const playerProximityDistance = config["Failsafes"]["Player Proximity Distance"]
-    return {isEnabled: isEnabled, FailsafeReactionTime: FailsafeReactionTime, playerProximityDistance: playerProximityDistance};
+    getFailsafeSettings(name) {
+        if (!V5ConfigFile.exists()) {
+            console.log('V5Config not found, this shouldnt happen!'); // having this import from failsafemodule causes it to double load so kinda have to do this i think
+            return;
+        }
+        const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
+        const FailsafeReactionTime = config['Failsafes']['Failsafe Detection Delay (ms)'];
+        const isEnabled = config['Failsafes'][`${name} Failsafe`];
+        const playerProximityDistance = config['Failsafes']['Player Proximity Distance'];
+        const pingOnCheck = config['Failsafes']['Ping on check'];
+        return {
+            isEnabled: isEnabled,
+            FailsafeReactionTime: FailsafeReactionTime,
+            playerProximityDistance: playerProximityDistance,
+            pingOnCheck: pingOnCheck,
+        };
+    }
+
+    incrementFailsafeIntensity(amt) {
+        this.failsafeIntensity += amt;
+        setTimeout(() => (this.failsafeIntensity -= amt / 10), 1000);
+    }
+
+    getIntensity() {
+        return this.failsafeIntensity;
+    }
 }
 
-function incrementFailsafeIntensity(amt) {
-    failsafeIntensity += amt;
-    setTimeout(() => failsafeIntensity -= (amt / 10), 1000);
-}
-
-function getIntensity() {
-    return failsafeIntensity;
-}
-
-export { getFailsafeSettings, incrementFailsafeIntensity, getIntensity };
+export default new FailsafeUtils();

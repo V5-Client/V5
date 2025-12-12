@@ -31,6 +31,8 @@ export const Color = java.awt.Color;
 export const Matrix = UMatrixStack.get();
 export const File = java.io.File;
 export const URL = java.net.URL;
+export const modulesDir = new File("./config/ChatTriggers/modules");
+export const V5ConfigFile = new File(`${modulesDir}/V5Config/config.json`);
 export const Links = {
     WEBSOCKET_URL: 'wss://backend.rdbt.top/api/chat',
     BASE_API_URL: 'https://backend.rdbt.top',

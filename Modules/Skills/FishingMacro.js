@@ -2,8 +2,6 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
 import { Guis } from '../../utils/player/Inventory';
 import { ModuleBase } from '../../utils/ModuleBase';
-import MacroState from '../../utils/MacroState';
-
 class FishingMacro extends ModuleBase {
     constructor() {
         super({
@@ -72,11 +70,11 @@ class FishingMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true);
+        global.macrostate.setMacroRunning(true, 'FISHING');
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false);
+        global.macrostate.setMacroRunning(false, 'FISHING');
     }
 }
 

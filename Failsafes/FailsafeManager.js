@@ -1,11 +1,10 @@
 import { Chat } from '../utils/Chat.js';
 import { Failsafe } from './Failsafe';
-import { File } from '../utils/Constants'
+import { File, modulesDir } from '../utils/Constants';
 
 class FailsafeManager {
     constructor() {
         this.failsafes = [];
-        this.modulesDir = new File("./config/ChatTriggers/modules");
         this._autoRegister();
     }
 
@@ -14,11 +13,11 @@ class FailsafeManager {
     }
 
     _autoRegister() {
-        const moduleFolders = this.modulesDir.listFiles().filter(f => f.isDirectory());
+        const moduleFolders = modulesDir.listFiles().filter((f) => f.isDirectory());
         let moduleName = null;
 
         for (const folder of moduleFolders) {
-            const failsafesDir = new File(folder, "Failsafes");
+            const failsafesDir = new File(folder, 'Failsafes');
             if (failsafesDir.exists() && failsafesDir.isDirectory()) {
                 moduleName = folder.getName();
                 break;
@@ -26,7 +25,7 @@ class FailsafeManager {
         }
 
         if (!moduleName) {
-            Chat.message("somehow modulename not found, this shouldnt happen!");
+            Chat.message('somehow modulename not found, this shouldnt happen!');
             return;
         }
 
@@ -36,16 +35,16 @@ class FailsafeManager {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
 
-            if (!file.isDirectory() && file.getName().endsWith("Failsafe.js") && file.getName() !== "Failsafe.js") {
+            if (!file.isDirectory() && file.getName().endsWith('Failsafe.js') && file.getName() !== 'Failsafe.js') {
                 const name = file.getName();
 
                 const path = `${moduleName}/Failsafes/impl/${name}`;
 
                 try {
-                    const a = require(path)
+                    const a = require(path);
                     this._registerFailsafe(a);
                 } catch (e) {
-                    Chat.message("Failed to load failsafe: " + name);
+                    Chat.message('Failed to load failsafe: ' + name);
                     Chat.message(String(e));
                 }
             }
