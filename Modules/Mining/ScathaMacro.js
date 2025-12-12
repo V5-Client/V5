@@ -7,7 +7,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
 import { Vec3d } from '../../utils/Constants';
-
 class ScathaMacro extends ModuleBase {
     constructor() {
         super({
@@ -141,12 +140,14 @@ class ScathaMacro extends ModuleBase {
     }
 
     onEnable() {
+        global.macrostate.setMacroRunning(true, 'SCATHA');
         this.sendMacroMessage('&aEnabled');
         this.setState(this.STATES.SETUP);
         //Mouse.ungrab();
     }
 
     onDisable() {
+        global.macrostate.setMacroRunning(false, 'SCATHA');
         this.sendMacroMessage('&cDisabled');
         this.centeringStart = true;
         this.pickaxeAbility = true;

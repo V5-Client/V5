@@ -2,7 +2,6 @@ import RendererMain from '../../utils/render/RendererMain';
 import { Chat } from '../../utils/Chat';
 import { Color } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-
 class SeaLumie extends ModuleBase {
     constructor() {
         super({
@@ -194,10 +193,12 @@ class SeaLumie extends ModuleBase {
     }
 
     onEnable() {
+        global.macrostate.setMacroRunning(true, 'SEA_LUMIE');
         this.state = this.STATES.SCANNING;
     }
 
     onDisable() {
+        global.macrostate.setMacroRunning(false, 'SEA_LUMIE');
         this.state = this.STATES.WAITING;
     }
 }

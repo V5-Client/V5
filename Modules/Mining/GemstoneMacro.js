@@ -10,6 +10,7 @@ import { Router } from '../../utils/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
+import RouteState from '../../utils/RouteState';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
@@ -247,6 +248,7 @@ class GemstoneMacro extends ModuleBase {
                             this.message('Arrived at point ' + this.closestPointIndex);
                             this.rotatedToPoint = false;
                             this.closestPointIndex++;
+                            RouteState.setCurrentIndex(this.closestPointIndex);
 
                             if (this.closestPointIndex >= this.route.length) {
                                 Chat.message('Route finished! Resetting to start.');
@@ -294,6 +296,7 @@ class GemstoneMacro extends ModuleBase {
             (selected) => {
                 this.loadedFile = Router.getFilefromCallback(selected);
                 this.route = Router.loadRouteFromFile('GemstoneRoutes/', this.loadedFile);
+                RouteState.setRoute(this.route, 'Gemstone Macro');
             },
             'The route the macro will use'
         );
@@ -540,11 +543,15 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onEnable() {
+        global.macrostate.setMacroRunning(true, 'GEMSTONE_MACRO');
+        if (this.route) RouteState.setRoute(this.route, 'Gemstone Macro');
         this.message('&aEnabled');
         this.state = this.STATES.ETHERWARPING;
     }
 
     onDisable() {
+        global.macrostate.setMacroRunning(false, 'GEMSTONE_MACRO');
+        RouteState.clearRoute();
         this.scanned = false;
         this.closestPointIndex = null;
         this.closestPoint = null;
