@@ -69,6 +69,7 @@ function attemptReconnect() {
             if (isConnected) return;
             Chat.irc('Reconnecting...');
             connectIRC();
+            start = Date.now();
         });
     } else {
         Chat.irc('&cFailed to connect to chat! /ct load or wait, backend might be down.');
@@ -84,7 +85,14 @@ function handleIncomingMessage(raw) {
         } else if (data.type === 'error') {
             Chat.irc(`Error: ${data.code || 'Unknown'}`);
         } else if (data.type === 'system') {
-            Chat.irc(`System: ${data.code || ''}`);
+            if (data.code === 'PREFIX_UPDATED') {
+                Chat.irc('Your prefix has been changed');
+                Utils.writeConfigFile(getTokenFileName(), { jwt: 'reset' }); // prefix is stored in jwt soo :()
+            } else if (data.code === 'MUTED') {
+                Chat.irc('You have been muted until ' + new Date(data.mute_expires_at * 1000).toISOString());
+            } else {
+                Chat.irc(`System: ${data.code || ''}`);
+            }
         }
     } catch (e) {
         Chat.irc(`An error occurred parsing message: ${e}`);
@@ -135,7 +143,6 @@ function connectWebSocket() {
         if (!gameUnload) attemptReconnect();
     };
 
-    start = Date.now();
     ws.connect();
 }
 
@@ -177,7 +184,6 @@ function getTokenFileName() {
 }
 
 function connectIRC() {
-    start = Date.now();
     if (loadSavedJwt()) {
         connectWebSocket();
         return;
