@@ -130,8 +130,15 @@ class InventoryUtilsClass {
     clickSlot(slot, shift = false, button = 'LEFT') {
         if (slot == null || slot < 0 || this.guiName() === 'null') return false;
         const container = Player.getContainer();
+        if (!container) {
+            Chat.message('ClickSlot failed due to no container. REPORT THIS ASAP');
+            return;
+        }
         const items = container.getItems();
-        if (!items || slot >= items.length) return false;
+        if (!items || slot >= items.length) {
+            Chat.message('ClickSlot failed due to no items/out of bounds. REPORT THIS ASAP');
+            return;
+        }
         container.click(slot, shift, button);
         return true;
     }
@@ -147,7 +154,7 @@ class InventoryUtilsClass {
      */
     clickItems(names, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
         if (!Array.isArray(names) || names.length === 0) {
-            chat.debugMessage('No item names provided or input is not an array.');
+            Chat.debugMessage('No item names provided or input is not an array.');
             return false;
         }
 
