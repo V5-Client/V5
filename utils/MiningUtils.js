@@ -581,23 +581,19 @@ class MiningUtilClass {
         Client.getMinecraft().world.setBlockState(pos, Blocks.AIR.getDefaultState());
     }
 
-     readCommissions() {
+    readCommissions() {
         try {
             const tabItems = TabList.getNames();
             const startIndex = this.findCommissionsStartIndex(tabItems);
             if (startIndex === -1) {
-                if (this.commissions.length > 0) this.commissions = [];
-                return;
+                return [];
             }
 
             const endIndex = this.findCommissionsEndIndex(tabItems, startIndex);
-            const newCommissions = this.parseCommissions(tabItems, startIndex, endIndex);
-
-            this.updateCommissionsIfChanged(newCommissions);
+            return this.parseCommissions(tabItems, startIndex, endIndex);
         } catch (e) {
-            Chat.message('&cError reading commissions: ' + e);
             console.error('Error reading commissions:', e);
-            this.commissions = [];
+            return [];
         }
     }
 
@@ -648,31 +644,6 @@ class MiningUtilClass {
         }
 
         return { name, progress };
-    }
-
-    updateCommissionsIfChanged(newCommissions) {
-        if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
-
-        this.commissions = newCommissions;
-
-        Chat.message('&aCommissions Updated');
-        this.commissions.forEach((c) => {
-            Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
-        });
-
-        if (this.awaitingTabUpdate) {
-            const stillCompleted = this.commissions.some((c) => c.progress === 1);
-            if (!stillCompleted) {
-                if (this.lastCompletedCommissionName) {
-                    const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
-                    if (!sameNameComm || sameNameComm.progress === 0) {
-                        this.awaitingTabUpdate = false;
-                    }
-                } else {
-                    this.awaitingTabUpdate = false;
-                }
-            }
-        }
     }
 }
 

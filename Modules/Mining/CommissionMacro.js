@@ -63,7 +63,10 @@ class CommissionMacro extends ModuleBase {
         this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
 
-        this.on('step', () => MiningUtils.readCommissions()).setDelay(1);
+        this.on('step', () => {
+            const newCommissions = MiningUtils.readCommissions();
+            this.updateCommissionsIfChanged(newCommissions);
+        }).setDelay(1);
         this.on('tick', () => this.runLogic());
 
         this.on('chat', (event) => {
@@ -204,7 +207,8 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
-        MiningUtils.readCommissions();
+        const newCommissions = MiningUtils.readCommissions();
+        this.updateCommissionsIfChanged(newCommissions);
         if (this.awaitingTabUpdate) return;
 
         if (this.lastCompletedCommissionName) {
@@ -561,9 +565,10 @@ class CommissionMacro extends ModuleBase {
             Guis.setItemSlot(this.weapon.slot);
         } else if (
             name === 'Glacite Walker Slayer' ||
+            name === 'Mines Slayer' ||
             name === 'Treasure Hoarder Puncher' // apparently treasure hoarder takes more damage from pickaxe
         ) {
-            mobType = name === 'Glacite Walker Slayer' ? 'icewalker' : 'treasure';
+            mobType = name === 'Glacite Walker Slayer' || name === 'Mines Slayer' ? 'icewalker' : 'treasure';
             Guis.setItemSlot(this.pickaxe.slot);
         } else {
             Chat.message('&cUnknown slayer commission type!');
@@ -647,6 +652,31 @@ class CommissionMacro extends ModuleBase {
             const currentDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), current.getX(), current.getY(), current.getZ());
             return currentDist < closestDist ? current : closest;
         }, mobs[0]);
+    }
+
+    updateCommissionsIfChanged(newCommissions) {
+        if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
+
+        this.commissions = newCommissions;
+
+        Chat.message('&aCommissions Updated');
+        this.commissions.forEach((c) => {
+            Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
+        });
+
+        if (this.awaitingTabUpdate) {
+            const stillCompleted = this.commissions.some((c) => c.progress === 1);
+            if (!stillCompleted) {
+                if (this.lastCompletedCommissionName) {
+                    const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
+                    if (!sameNameComm || sameNameComm.progress === 0) {
+                        this.awaitingTabUpdate = false;
+                    }
+                } else {
+                    this.awaitingTabUpdate = false;
+                }
+            }
+        }
     }
 
     /**
