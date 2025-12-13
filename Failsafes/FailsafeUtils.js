@@ -8,13 +8,28 @@ class FailsafeUtils {
     getFailsafeSettings(name) {
         if (!V5ConfigFile.exists()) {
             console.log('V5Config not found, this shouldnt happen!'); // having this import from failsafemodule causes it to double load so kinda have to do this i think
-            return;
+            return {
+                isEnabled: true,
+                FailsafeReactionTime: 600,
+                playerProximityDistance: 3,
+                pingOnCheck: true,
+            };
         }
         const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
-        const FailsafeReactionTime = config['Failsafes']['Failsafe Detection Delay (ms)'];
-        const isEnabled = config['Failsafes'][`${name} Failsafe`];
-        const playerProximityDistance = config['Failsafes']['Player Proximity Distance'];
-        const pingOnCheck = config['Failsafes']['Ping on check'];
+
+        if (!config['Failsafes'])
+            return {
+                isEnabled: true,
+                FailsafeReactionTime: 600,
+                playerProximityDistance: 3,
+                pingOnCheck: true,
+            };
+
+        const FailsafeReactionTime = config['Failsafes']['Failsafe Detection Delay (ms)'] ?? 600;
+        const isEnabled = config['Failsafes'][`${name} Failsafe`] ?? true;
+        const playerProximityDistance = config['Failsafes']['Player Proximity Distance'] ?? 3;
+        const pingOnCheck = config['Failsafes']['Ping on check'] ?? true;
+
         return {
             isEnabled: isEnabled,
             FailsafeReactionTime: FailsafeReactionTime,
