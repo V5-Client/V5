@@ -63,7 +63,7 @@ class CommissionMacro extends ModuleBase {
         this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
 
-        this.on('step', () => this.readCommissions()).setDelay(1);
+        this.on('step', () => MiningUtils.readCommissions()).setDelay(1);
         this.on('tick', () => this.runLogic());
 
         this.on('chat', (event) => {
@@ -204,7 +204,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
-        this.readCommissions();
+        MiningUtils.readCommissions();
         if (this.awaitingTabUpdate) return;
 
         if (this.lastCompletedCommissionName) {
@@ -647,100 +647,6 @@ class CommissionMacro extends ModuleBase {
             const currentDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), current.getX(), current.getY(), current.getZ());
             return currentDist < closestDist ? current : closest;
         }, mobs[0]);
-    }
-
-    readCommissions() {
-        try {
-            const tabItems = TabList.getNames();
-            const startIndex = this.findCommissionsStartIndex(tabItems);
-            if (startIndex === -1) {
-                if (this.commissions.length > 0) this.commissions = [];
-                return;
-            }
-
-            const endIndex = this.findCommissionsEndIndex(tabItems, startIndex);
-            const newCommissions = this.parseCommissions(tabItems, startIndex, endIndex);
-
-            this.updateCommissionsIfChanged(newCommissions);
-        } catch (e) {
-            Chat.message('&cError reading commissions: ' + e);
-            console.error('Error reading commissions:', e);
-            this.commissions = [];
-        }
-    }
-
-    findCommissionsStartIndex(tabItems) {
-        for (let i = 0; i < tabItems.length; i++) {
-            const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-            if (cleaned === 'Commissions:') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    findCommissionsEndIndex(tabItems, startIndex) {
-        for (let i = startIndex + 1; i < tabItems.length; i++) {
-            const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-            if (cleaned === '' || cleaned === 'Powders:') {
-                return i;
-            }
-        }
-        return tabItems.length;
-    }
-
-    parseCommissions(tabItems, startIndex, endIndex) {
-        const commissions = [];
-        for (let i = startIndex + 1; i < endIndex; i++) {
-            const formattedText = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-            if (!formattedText.includes(':')) continue;
-
-            const commission = this.parseCommissionLine(formattedText);
-            if (commission) commissions.push(commission);
-        }
-        return commissions;
-    }
-
-    parseCommissionLine(formattedText) {
-        const parts = formattedText.split(':');
-        const name = parts[0].trim();
-        const progressStr = parts[1].trim();
-        let progress;
-
-        if (progressStr.includes('DONE')) {
-            progress = 1;
-        } else if (progressStr.includes('%')) {
-            progress = parseFloat(progressStr.replace(/ /g, '').replace('%', '')) / 100;
-        } else {
-            return null;
-        }
-
-        return { name, progress };
-    }
-
-    updateCommissionsIfChanged(newCommissions) {
-        if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
-
-        this.commissions = newCommissions;
-
-        Chat.message('&aCommissions Updated');
-        this.commissions.forEach((c) => {
-            Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
-        });
-
-        if (this.awaitingTabUpdate) {
-            const stillCompleted = this.commissions.some((c) => c.progress === 1);
-            if (!stillCompleted) {
-                if (this.lastCompletedCommissionName) {
-                    const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
-                    if (!sameNameComm || sameNameComm.progress === 0) {
-                        this.awaitingTabUpdate = false;
-                    }
-                } else {
-                    this.awaitingTabUpdate = false;
-                }
-            }
-        }
     }
 
     /**
