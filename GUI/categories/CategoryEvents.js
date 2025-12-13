@@ -239,13 +239,14 @@ export const handleCategoryScroll = (mouseX, mouseY, dir, panel, cachedContentHe
                 }
                 const compRect = {
                     x: optionX + 10,
-                    y: componentY,
+                    y: componentY - global.Categories.optionsScrollY,
                     width: panel.width - PADDING * 2 - 20,
                     height: compHeight,
                 };
                 if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
-                    component.handleScroll(mouseX, mouseY, dir);
-                    scrollHandled = true;
+                    if (component.handleScroll(mouseX, mouseY, dir)) {
+                        scrollHandled = true;
+                    }
                 }
                 componentY += compHeight;
             });
