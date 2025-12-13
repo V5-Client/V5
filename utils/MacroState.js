@@ -3,7 +3,7 @@ class MacroState {
         this.running = false;
         this.runningMacro = null;
         this.activeMacro = null;
-        this.EXCLUDED_MODULES = ['Mob Hider', 'Xray', 'Visual', 'GIF', 'Discord RPC', 'Fast Place', 'Auto Terminals', 'Failsafes'];
+        this.EXCLUDED_MODULES = ['Mob Hider', 'Xray', 'Visual', 'GIF', 'Discord RPC', 'Fast Place', 'Auto Terminals', 'Failsafes', 'AutoConversation'];
     }
 
     isMacroRunning() {
