@@ -10,6 +10,7 @@ import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { Chat } from '../Chat';
+import { Keybind } from '../player/Keybinding';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
@@ -49,7 +50,7 @@ export function setSpline(nodes) {
 
 export function stopPathing() {
     ResetRotations();
-
+    Keybind.stopMovement();
     if (path) {
         try {
             path.unregister();
