@@ -103,7 +103,7 @@ export const COMMISSION_DATA = [
         waypoints: [[-130, 145, 147]],
     },
     {
-        names: ['Glacite Walker Slayer'],
+        names: ['Glacite Walker Slayer', 'Mines Slayer'],
         type: 'SLAYER',
         cost: 25,
         waypoints: [[0, 127, 157]],

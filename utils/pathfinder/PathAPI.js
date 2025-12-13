@@ -29,6 +29,7 @@ const Maps = {
 };
 
 let currentIsland = null;
+let loadingMap = false;
 
 export function setPathNodes(nodes) {
     pathNodes = nodes;
@@ -112,10 +113,14 @@ function drawKeyNodes(keynodes) {
 }
 
 function loadMap(map, area, callback) {
+    if (loadingMap) return;
+    loadingMap = true;
+
     const url = `${localhost}/api/loadmap?map=${map}`;
     request({ url, timeout: 5000 })
         .then(() => {
             currentIsland = area;
+            loadingMap = false;
             console.log(`Successfully loaded map '${map}'.`);
             global.showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
 
@@ -124,6 +129,7 @@ function loadMap(map, area, callback) {
             }
         })
         .catch((err) => {
+            loadingMap = false;
             console.log(`Error loading map ${map}: ${err}`);
             global.showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
         });
@@ -271,6 +277,10 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback) {
     const area = Utils.area();
 
     if (area !== currentIsland) {
+        if (loadingMap) {
+            return;
+        }
+
         if (Maps[area]) {
             const mapValue = Maps[area];
 
