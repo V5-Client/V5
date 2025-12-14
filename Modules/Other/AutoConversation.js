@@ -10,10 +10,10 @@ class AutoConversation extends ModuleBase {
 
         this.delay = 20;
 
-        this.on('chat', (ev) => {
+        this.on('chat', (event) => {
             if (!this.enabled) return;
-            const uf = ChatLib.removeFormatting(new String(ev.message)).trim();
-            if (!uf.startsWith('[NPC]') && !uf.startsWith('Select an option:')) return;
+            const unformatted = ChatLib.removeFormatting(new String(event.message)).trim();
+            if (!unformatted.startsWith('[NPC]') && !unformatted.startsWith('Select an option:')) return;
             const getAllClickEvents = (comp) => {
                 let commands = [];
                 if (!comp) return commands;
@@ -23,11 +23,12 @@ class AutoConversation extends ModuleBase {
 
                 if (clickEvent && clickEvent.getAction().name() === 'RUN_COMMAND') {
                     let value = null;
-                    if (typeof clickEvent.getValue === 'function') value = clickEvent.getValue(); // likely redundant! but oh well!
-                    else if (typeof clickEvent.comp_3506 === 'function') value = clickEvent.comp_3506();
-                    else if (clickEvent.getValue) value = clickEvent.getValue;
-                    else if (clickEvent.value) value = clickEvent.value;
-                    else if (clickEvent.command) value = clickEvent.command;
+
+                    try {
+                        value = clickEvent.comp_3506();
+                    } catch (e) {
+                        console.log(e);
+                    }
 
                     if (value) commands.push(value);
                 }
@@ -40,7 +41,7 @@ class AutoConversation extends ModuleBase {
                 return commands;
             };
 
-            const commands = getAllClickEvents(ev.message);
+            const commands = getAllClickEvents(event.message);
             if (commands.length === 0) return;
 
             if (commands.length >= 2 && this.autoSelect) {
