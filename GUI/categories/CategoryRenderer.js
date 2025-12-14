@@ -211,7 +211,7 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     if (isHovered && item.tooltip) global.setTooltip(item.tooltip);
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
-    const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, 12) / 2 : itemX + 12;
+    const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, 9) / 2 : itemX + 12;
     drawText(item.title, textX, itemY + 48 / 2, 9, CATEGORY_TITLE_COLOR);
 };
 
@@ -227,7 +227,7 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             const separatorX = panelX + PADDING;
             const separatorWidth = panelWidth;
             drawRoundedRectangle({ x: separatorX, y: separatorY + 8, width: separatorWidth, height: 1, radius: 1, color: UNIVERSAL_GRAY_COLOR });
-            const separatorTextWidth = getTextWidth(group.title, 12);
+            const separatorTextWidth = getTextWidth(group.title, 9);
             const separatorTextX = separatorX + 8;
             const separatorBgWidth = separatorTextWidth + 16;
             drawRoundedRectangle({ x: separatorTextX - 8, y: separatorY, width: separatorBgWidth, height: 16, radius: 6, color: THEME.GUI_DRAW_PANELS });
