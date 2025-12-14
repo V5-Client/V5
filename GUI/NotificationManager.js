@@ -42,6 +42,13 @@ const NOTIFICATION_TYPES = {
                     y2 = centerY + points[i + 1].y;
                 Renderer.drawLine(color, x1, y1, x2, y2, 2);
             }
+            const x = centerX - 2;
+            const y = centerY + 4;
+            Renderer.translate(x, y);
+            Renderer.rotate(45);
+            Renderer.drawRect(color, -1, -1, 2, 2);
+            Renderer.rotate(-45);
+            Renderer.translate(-x, -y);
         },
     },
     ERROR: {
@@ -77,6 +84,13 @@ const NOTIFICATION_TYPES = {
                 const y2 = centerY + points[i + 1].y;
                 Renderer.drawLine(color, x1, y1, x2, y2, 2);
             }
+            const x = centerX - 1;
+            const y = centerY + 4;
+            Renderer.translate(x, y);
+            Renderer.rotate(45);
+            Renderer.drawRect(color, -1, -1, 2, 2);
+            Renderer.rotate(-45);
+            Renderer.translate(-x, -y);
         },
     },
     WARNING: {
@@ -249,7 +263,16 @@ class Notification {
             color: outlineColor,
         });
 
-        const iconBgColor = colorWithAlpha(ICON_BACKGROUND_COLOR, alpha);
+        drawRoundedRectangle({
+            x: iconBgX,
+            y: iconBgY,
+            width: iconBgSize,
+            height: iconBgSize,
+            radius: 6,
+            color: bgColor,
+        });
+
+        const iconBgColor = colorWithAlpha(typeInfo.outlineColor, alpha * 0.2);
         drawRoundedRectangle({
             x: iconBgX,
             y: iconBgY,
