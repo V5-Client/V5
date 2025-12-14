@@ -3,8 +3,22 @@ import { Links } from '../utils/Constants';
 import { Chat } from '../utils/Chat';
 import { File, Color, UIRoundedRectangle, Matrix } from '../utils/Constants';
 
-export const colorWithAlpha = (baseColor, alpha) =>
-    new Color(baseColor.getRed() / 255, baseColor.getGreen() / 255, baseColor.getBlue() / 255, (baseColor.getAlpha() / 255) * alpha);
+export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
+
+export const colorWithAlpha = (baseColor, alpha) => {
+    if (typeof baseColor === 'number') {
+        const r = (baseColor >> 16) & 0xff;
+        const g = (baseColor >> 8) & 0xff;
+        const b = baseColor & 0xff;
+        const originalAlpha = (baseColor >> 24) & 0xff;
+        const a = (originalAlpha === 0 ? 255 : originalAlpha) * alpha;
+        return ((a & 0xff) << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+    }
+    if (baseColor instanceof Color) {
+        return new Color(baseColor.getRed() / 255, baseColor.getGreen() / 255, baseColor.getBlue() / 255, (baseColor.getAlpha() / 255) * alpha);
+    }
+    return new Color(1, 1, 1, 1);
+};
 
 export const PADDING = 12;
 export const BORDER_WIDTH = 1;
@@ -24,7 +38,7 @@ export const THEME = {
     // Dropdown
     DROPDOWN_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
     DROPDOWN_FOREGROUND: new Color(0.4, 0.7, 1, 1),
-    DROPDOWN_TEXT: 0xffffff,
+    DROPDOWN_TEXT: 0xffffffff,
     DROPDOWN_OPTION_BACKGROUND: new Color(0.13, 0.14, 0.17, 1),
     DROPDOWN_TOGGLE_DISABLED: new Color(0.25, 0.26, 0.29, 1),
 
@@ -35,23 +49,22 @@ export const THEME = {
     GUI_DRAW_BORDER: new Color(0.4, 0.7, 1, 0.15),
 
     // GuiManager
-    GUI_MANAGER_CATEGORY_TITLE: 0xffffff,
-    GUI_MANAGER_CATEGORY_DESCRIPTION: 0x99a3b0,
-    GUI_MANAGER_BACK_TEXT: 0x66b3ff,
+    GUI_MANAGER_CATEGORY_TITLE: 0xffffffff,
+    GUI_MANAGER_CATEGORY_DESCRIPTION: 0xff99a3b0,
+    GUI_MANAGER_BACK_TEXT: 0xff66b3ff,
     GUI_MANAGER_CATEGORY_BOX: new Color(0.11, 0.12, 0.15, 1),
     GUI_MANAGER_CATEGORY_BOX_HOVER: new Color(0.17, 0.18, 0.22, 1),
     GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.15, 0.16, 0.19, 1),
     GUI_MANAGER_CATEGORY_SELECTED: new Color(0.4, 0.7, 1, 0.15),
-    GUI_MANAGER_CATEGORY_SELECTED_BORDER: new Color(0.4, 0.7, 1, 0.6),
     GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(0.2, 0.21, 0.24, 1),
 
     // NotificationManager
     NOTIFICATION_BACKGROUND: new Color(0.11, 0.12, 0.15, 0.95),
     NOTIFICATION_ICON_BACKGROUND: new Color(0.15, 0.16, 0.19, 1),
     NOTIFICATION_ICON_SYMBOL: 0xdddddd,
-    NOTIFICATION_TEXT: 0xffffff,
-    NOTIFICATION_DESCRIPTION: 0x99a3b0,
-    NOTIFICATION_CLOSE_BUTTON: 0xaaaaaa,
+    NOTIFICATION_TEXT: 0xffffffff,
+    NOTIFICATION_DESCRIPTION: 0xff99a3b0,
+    NOTIFICATION_CLOSE_BUTTON: 0xffaaaaaa,
     NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.1),
     NOTIFICATION_PROGRESS_BAR: new Color(0.4, 0.7, 1, 0.5),
     NOTIFICATION_SUCCESS: new Color(parseInt('10b981', 16)),
@@ -81,67 +94,67 @@ export const THEME = {
 
     // Tooltip
     TOOLTIP_BACKGROUND: new Color(0.11, 0.12, 0.15, 0.98),
-    TOOLTIP_TEXT: 0xf0f0f0,
+    TOOLTIP_TEXT: 0xfff0f0f0,
     TOOLTIP_BORDER: new Color(0.4, 0.7, 1, 0.3),
 };
 
+export const drawRect = ({ x, y, width, height, color }) => {
+    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    NVG.drawRect(x, y, width, height, c);
+};
+
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
-    UIRoundedRectangle.Companion.drawRoundedRectangle(Matrix, x, y, x + width, y + height, radius, color);
+    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    NVG.drawRoundedRect(x, y, width, height, radius, c);
 };
 
 export const drawRoundedRectangleWithBorder = (r) => {
-    if (r.borderWidth && r.borderWidth > 0) {
+    if (r.borderWidth && r.borderWidth > 0 && r.borderColor) {
         const bw = r.borderWidth;
-        const innerWidth = Math.max(0, r.width - bw * 2);
-        const innerHeight = Math.max(0, r.height - bw * 2);
-        const innerRadius = Math.max(0, r.radius - bw);
-
-        if (r.borderColor && bw > 0) {
-            drawRoundedRectangle({
-                x: r.x,
-                y: r.y,
-                width: r.width,
-                height: r.height,
-                radius: r.radius,
-                color: r.borderColor,
-            });
-        }
-
-        if (innerWidth > 0 && innerHeight > 0) {
-            drawRoundedRectangle({
-                x: r.x + bw,
-                y: r.y + bw,
-                width: innerWidth,
-                height: innerHeight,
-                radius: innerRadius,
-                color: r.color,
-            });
-        }
-    } else {
-        drawRoundedRectangle(r);
+        const bc = (r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor) | 0;
+        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, r.radius, bc);
     }
+    const c = (r.color instanceof Color ? r.color.getRGB() : r.color) | 0;
+    NVG.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
 };
 
 export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) => {
-    const shadowColor = new Color(0, 0, 0, intensity);
-    const offset = 2;
-    drawRoundedRectangle({
-        x: x + offset,
-        y: y + offset,
-        width: width,
-        height: height,
-        radius: radius,
-        color: shadowColor,
-    });
+    const shadowColor = new Color(0, 0, 0, intensity).getRGB() | 0;
+    NVG.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
+};
+
+export const drawText = (text, x, y, size, color, align = 17) => {
+    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    NVG.text(text, x, y, size, c, NVG.defaultFont, align);
+};
+
+export const getTextWidth = (text, size) => {
+    return NVG.textWidth(text, size, NVG.defaultFont);
+};
+
+// THIS METHOD MIGHT BE OUTDATED, ASK @rdbtCVS. WE NEED TO SWITCH TO NVGRENDERER BUT IT SUCKS.
+export const drawImage = (image, x, y, width, height) => {
+    if (!image) return;
+    Renderer.drawImage(image, x, y, width, height);
+};
+
+export const scissor = (x, y, w, h) => {
+    NVG.scissor(x, y, w, h);
+};
+
+export const resetScissor = () => {
+    NVG.resetScissor();
+};
+
+export const composite = (op) => {
+    NVG.setGlobalCompositeOperation(op);
 };
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 export const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
-export const easeOutCubic = (t) => {
-    return 1 - Math.pow(1 - t, 3);
-};
+export const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
 export const isInside = (mouseX, mouseY, rect) => mouseX >= rect.x && mouseX <= rect.x + rect.width && mouseY >= rect.y && mouseY <= rect.y + rect.height;
 

@@ -1,4 +1,4 @@
-import { clamp, playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, PADDING } from '../Utils';
+import { clamp, playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, PADDING, drawText, getTextWidth } from '../Utils';
 
 export class Slider {
     constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null) {
@@ -46,7 +46,7 @@ export class Slider {
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        Renderer.drawString(this.title, this.x + 12, this.y + componentHeight / 2 - 4, textColor.getRGB(), false);
+        drawText(this.title, this.x + 12, this.y + componentHeight / 2, 9, textColor);
 
         const sliderWidth = 140;
         const rightMargin = 12;
@@ -95,7 +95,7 @@ export class Slider {
         // Value display box
         const valueString = this.value.toFixed(this.precision);
         const displayValue = this.isTyping ? this.inputValue : valueString;
-        const valueStringWidth = Renderer.getStringWidth(displayValue);
+        const valueStringWidth = getTextWidth(displayValue, 12);
         const valuePadding = 8;
         const valueBoxWidth = valueStringWidth + valuePadding * 2;
         const valueBoxHeight = 20;
@@ -118,7 +118,7 @@ export class Slider {
             color: this.isTyping ? THEME.SLIDER_FOREGROUND : THEME.SLIDER_VALUE_BG,
         });
 
-        Renderer.drawString(displayValue, valueStringX + valuePadding, valueStringY + valueBoxHeight / 2 - 4, THEME.SLIDER_VALUE_TEXT.getRGB(), false);
+        drawText(displayValue, valueStringX + valuePadding, valueStringY + valueBoxHeight / 2, 9, THEME.SLIDER_VALUE_TEXT);
 
         const componentRect = {
             x: this.x,
