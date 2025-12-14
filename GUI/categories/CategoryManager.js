@@ -1,4 +1,5 @@
 import './CategorySystem';
+import { MultiToggle } from '../components/Dropdown';
 import { drawSubcategoryButtons, drawOptionsPanel, drawLeftPanel, drawCategoryItems, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
@@ -7,6 +8,9 @@ import { PADDING } from '../Utils';
 global.createCategoriesManager = (deps) => {
     let targetRightPanelScrollY = 0;
     let currentRightPanelScrollY = 0;
+
+    let targetOptionsScrollY = 0;
+    let currentOptionsScrollY = 0;
 
     let cachedItemLayouts = [];
     let isLayoutCacheValid = false;
@@ -19,13 +23,24 @@ global.createCategoriesManager = (deps) => {
         currentRightPanelScrollY = value;
         targetRightPanelScrollY = value;
     };
-    const resetCategoryScroll = () => {
-        setRightPanelScrollY(0);
-    };
-
     const setTargetRightPanelScrollY = (value) => {
         targetRightPanelScrollY = value;
     };
+
+    const setOptionsScrollY = (value) => {
+        currentOptionsScrollY = value;
+        targetOptionsScrollY = value;
+        global.Categories.optionsScrollY = value;
+    };
+    const setTargetOptionsScrollY = (value) => {
+        targetOptionsScrollY = value;
+    };
+
+    const resetCategoryScroll = () => {
+        setRightPanelScrollY(0);
+        setOptionsScrollY(0);
+    };
+
 
     const calculateContentHeight = () => {
         if (!isContentHeightCacheValid && global.Categories.selected) {
@@ -81,9 +96,32 @@ global.createCategoriesManager = (deps) => {
         }
     };
 
+    const calculateOptionsContentHeight = () => {
+        if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
+            let height = 78 + PADDING;
+            const components = global.Categories.selectedItem.components;
+            if (components) {
+                components.forEach((component) => {
+                    let compHeight = 54;
+                    if (component instanceof MultiToggle) {
+                        compHeight += component.getExpandedHeight() * (component.animationProgress || 0);
+                    }
+                    height += compHeight;
+                });
+            }
+            height += PADDING;
+            return height;
+        }
+        return 0;
+    };
+
     const draw = (mouseX, mouseY) => {
         const cacheInvalidated = updateCategoryTransitions();
         if (cacheInvalidated) isLayoutCacheValid = false;
+
+        const transitionActive = global.Categories.transitionDirection !== 0;
+        const shouldDrawItems = global.Categories.currentPage === 'categories' || transitionActive;
+        const shouldDrawOptions = global.Categories.currentPage === 'options' || transitionActive;
 
         calculateContentHeight();
 
@@ -92,6 +130,15 @@ global.createCategoriesManager = (deps) => {
         targetRightPanelScrollY = Math.max(0, Math.min(targetRightPanelScrollY, maxScroll));
 
         currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * SCROLL_SMOOTHING_FACTOR;
+
+        if (shouldDrawOptions) {
+            const optionsContentHeight = calculateOptionsContentHeight();
+            const maxOptionsScroll = Math.max(0, optionsContentHeight - deps.rectangles.RightPanel.height);
+            targetOptionsScrollY = Math.max(0, Math.min(targetOptionsScrollY, maxOptionsScroll));
+            currentOptionsScrollY += (targetOptionsScrollY - currentOptionsScrollY) * SCROLL_SMOOTHING_FACTOR;
+            global.Categories.optionsScrollY = currentOptionsScrollY;
+        }
+
 
         const rightPanelScrollY = currentRightPanelScrollY;
         const panel = deps.rectangles.RightPanel;
@@ -112,9 +159,6 @@ global.createCategoriesManager = (deps) => {
             Math.floor(scissorH * scale)
         );
 
-        const transitionActive = global.Categories.transitionDirection !== 0;
-        const shouldDrawItems = global.Categories.currentPage === 'categories' || transitionActive;
-        const shouldDrawOptions = global.Categories.currentPage === 'options' || transitionActive;
 
         if (shouldDrawItems) {
             if (!isLayoutCacheValid) cachedItemLayouts = [];
@@ -167,7 +211,18 @@ global.createCategoriesManager = (deps) => {
     };
 
     const handleScroll = (mouseX, mouseY, dir) => {
-        handleCategoryScroll(mouseX, mouseY, dir, deps.rectangles.RightPanel, cachedContentHeight, targetRightPanelScrollY, setTargetRightPanelScrollY);
+        handleCategoryScroll(
+            mouseX,
+            mouseY,
+            dir,
+            deps.rectangles.RightPanel,
+            cachedContentHeight,
+            targetRightPanelScrollY,
+            setTargetRightPanelScrollY,
+            targetOptionsScrollY,
+            setTargetOptionsScrollY,
+            calculateOptionsContentHeight()
+        );
         isLayoutCacheValid = false;
     };
 
@@ -209,7 +264,6 @@ global.createCategoriesManager = (deps) => {
         },
         resetScroll: () => {
             resetCategoryScroll();
-            global.Categories.optionsScrollY = 0;
         },
 
         getRightPanelScrollY: () => currentRightPanelScrollY,
