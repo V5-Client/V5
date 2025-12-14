@@ -13,6 +13,11 @@ if (!FileLib.exists(configName, rotationsDir)) {
 let isRecording = false;
 let recordedData = [];
 let startTime = null;
+let isPathRecording = false;
+
+export function setPathRecording(value) {
+    isPathRecording = value;
+}
 
 export function startRecording() {
     if (isRecording) {
@@ -69,6 +74,7 @@ export function saveRecording(filename = null) {
         startTime: startTime,
         duration: Date.now() - startTime,
         samples: recordedData.length,
+        sampleRate: '20hz',
         data: recordedData,
     };
 
@@ -125,7 +131,7 @@ register('command', (...args) => {
 }).setName('saverecord');
 
 register('tick', () => {
-    if (!isRecording) return;
+    if (!isRecording || isPathRecording) return;
 
     const yaw = Player.getYaw();
     const pitch = Player.getPitch();
