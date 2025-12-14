@@ -528,6 +528,14 @@ function calculatePathPosition(currentBox, nextBox, playerEyes) {
     return Math.max(0, Math.min(1, t));
 }
 
+register('tick', () => {
+    if (!rotationActive) return;
+    if (!ENABLE_RECORDING) return;
+    if (!RotationRecorder.isCurrentlyRecording()) return;
+
+    RotationRecorder.recordRotation(currentYaw, currentPitch);
+});
+
 register('step', () => {
     if (!rotationActive) return;
 
@@ -573,9 +581,7 @@ register('step', () => {
 
     PathRotationsUtility.applyRotationWithGCD(currentYaw, currentPitch);
 
-    if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
-        RotationRecorder.recordRotation(currentYaw, currentPitch);
-    }
+    // REMOVED: Recording was here at 120hz, now moved to tick handler above
 }).setFps(120);
 
 export function pathRotations(splineData) {
@@ -592,6 +598,7 @@ export function pathRotations(splineData) {
             Keybind.setKey('a', false);
             Keybind.setKey('d', false);
             if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
+                RotationRecorder.setPathRecording(false); // ADD THIS
                 RotationRecorder.stopRecording();
                 RotationRecorder.saveRecording();
             }
@@ -676,6 +683,7 @@ export function pathRotations(splineData) {
 
         PathRotationsUtility.resetGCDTracking();
         if (ENABLE_RECORDING) {
+            RotationRecorder.setPathRecording(true);
             RotationRecorder.startRecording();
         }
     }
