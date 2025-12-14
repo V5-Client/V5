@@ -1,4 +1,4 @@
-import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic } from '../Utils';
+import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic, drawText, getTextWidth } from '../Utils';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false, callback = null, defaultValue = false) {
@@ -91,7 +91,7 @@ export class MultiToggle {
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        Renderer.drawString(this.title, this.x + 12, this.y + this.containerHeight / 2 - 4, textColor.getRGB(), false);
+        drawText(this.title, this.x + 12, this.y + this.containerHeight / 2, 9, textColor);
 
         const arrowSize = 16;
         const rightMargin = 12;
@@ -108,8 +108,8 @@ export class MultiToggle {
         });
 
         const arrow = this.expanded ? '▲' : '▼';
-        const arrowWidth = Renderer.getStringWidth(arrow);
-        Renderer.drawString(arrow, arrowX + (arrowSize - arrowWidth) / 2, arrowY + arrowSize / 2 - 4, textColor.getRGB(), false);
+        const arrowWidth = getTextWidth(arrow, 10);
+        drawText(arrow, arrowX + (arrowSize - arrowWidth) / 2, arrowY + arrowSize / 2, 7, textColor);
 
         const componentRect = {
             x: this.x,
@@ -194,7 +194,7 @@ export class MultiToggle {
                     color: THEME.TOGGLE_SWITCH_KNOB,
                 });
 
-                Renderer.drawString(option.name, optionX, optionTop + this.optionHeight / 2 - 4, textColor.getRGB(), false);
+                drawText(option.name, optionX, optionTop + this.optionHeight / 2, 9, textColor);
 
                 currentY += this.optionHeight + 4;
             }
