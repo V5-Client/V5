@@ -221,7 +221,18 @@ export const handleCategoryClick = (
     }
 };
 
-export const handleCategoryScroll = (mouseX, mouseY, dir, panel, cachedContentHeight, rightPanelScrollY, setRightPanelScrollY) => {
+export const handleCategoryScroll = (
+    mouseX,
+    mouseY,
+    dir,
+    panel,
+    cachedContentHeight,
+    rightPanelScrollY,
+    setRightPanelScrollY,
+    optionsScrollY,
+    setOptionsScrollY,
+    optionsContentHeight
+) => {
     const SCROLL_SPEED = 15;
 
     if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
@@ -253,14 +264,12 @@ export const handleCategoryScroll = (mouseX, mouseY, dir, panel, cachedContentHe
         }
 
         if (!scrollHandled && isInside(mouseX, mouseY, panel)) {
-            let componentsHeight = componentY - (optionY + 78);
-            const fixedTop = 78 + PADDING;
-            const bottomPadding = PADDING;
-            const availableHeight = panel.height - fixedTop - bottomPadding;
-            const maxScroll = Math.max(0, componentsHeight - availableHeight);
+            const availableHeight = panel.height;
+            const maxScroll = Math.max(0, optionsContentHeight - availableHeight);
             const direction = dir > 0 ? -1 : 1;
-            global.Categories.optionsScrollY += direction * SCROLL_SPEED;
-            global.Categories.optionsScrollY = Math.max(0, Math.min(global.Categories.optionsScrollY, maxScroll));
+
+            const newScroll = optionsScrollY + direction * SCROLL_SPEED;
+            setOptionsScrollY(Math.max(0, Math.min(newScroll, maxScroll)));
         }
 
         return;
