@@ -20,10 +20,28 @@ global.GuiState = {
 global.GuiRectangles = {
     Background: {
         name: 'Background',
-        x: Renderer.screen.getWidth() / 2 - 300,
-        y: Renderer.screen.getHeight() / 2 - 200,
-        width: 600,
-        height: 400,
+        _x: null,
+        _y: null,
+        get x() {
+            if (this._x === null) return (Renderer.screen.getWidth() - this.width) / 2;
+            return this._x;
+        },
+        set x(val) {
+            this._x = val;
+        },
+        get y() {
+            if (this._y === null) return (Renderer.screen.getHeight() - this.height) / 2;
+            return this._y;
+        },
+        set y(val) {
+            this._y = val;
+        },
+        get width() {
+            return Math.round(Renderer.screen.getWidth() * 0.7);
+        },
+        get height() {
+            return Math.round(Renderer.screen.getHeight() * 0.875);
+        },
         radius: CORNER_RADIUS,
         color: THEME.GUI_DRAW_BACKGROUND,
         borderWidth: BORDER_WIDTH,
