@@ -13,7 +13,9 @@ class ChatClass {
         let prefix = isDebug ? DebugPrefix : Prefix;
         const colouredMsg = `§f${msg}`;
 
-        gradientInstance.sendGradientMsg(prefix, colouredMsg, 0x05b9f9, 0x0539f9);
+        Client.scheduleTask(0, () => {
+            gradientInstance.sendGradientMsg(prefix, colouredMsg, 0x05b9f9, 0x0539f9);
+        });
     }
 
     /**
@@ -38,13 +40,17 @@ class ChatClass {
 
     irc(msg) {
         if (!msg) return;
-        gradientInstance.sendGradientMsg(IrcPrefix, msg, 0x05b9f9, 0x0539f9);
+        Client.scheduleTask(0, () => {
+            gradientInstance.sendGradientMsg(IrcPrefix, msg, 0x05b9f9, 0x0539f9);
+        });
     }
 
     failsafeMsg(msg) {
         if (!msg) return;
-        gradientInstance.sendGradientMsg(FailsafePrefix, msg, 0x05b9f9, 0x0539f9);
-        gradientInstance.sendGradientMsg(FailsafePrefix, '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity(), 0x05b9f9, 0x0539f9);
+        Client.scheduleTask(0, () => {
+            gradientInstance.sendGradientMsg(FailsafePrefix, msg, 0x05b9f9, 0x0539f9);
+            gradientInstance.sendGradientMsg(FailsafePrefix, '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity(), 0x05b9f9, 0x0539f9);
+        });
     }
 
     log(msg) {
