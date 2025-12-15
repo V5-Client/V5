@@ -108,7 +108,19 @@ export class ModuleBase {
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[keybindDescription] || Keyboard.KEY_NONE;
 
-        this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'V5');
+        if (global.mcVersion >= 12109) {
+            // temp fix due to jewtriggers, (you cant use the same catergory more than once(including ct reload??!??!?)?!??!??)
+            const sanitizedName = (this.name || 'module')
+                .toLowerCase()
+                .replace(/[^a-z0-9/._-]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            const keybindCategory = `v5:${sanitizedName + Math.random()}`;
+
+            this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, keybindCategory);
+        } else {
+            this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'V5');
+        }
+
         this._toggleKeyBind.registerKeyPress(() => this.toggle());
 
         register('gameUnload', () => this._saveKey(keybindDescription, this._toggleKeyBind.getKeyCode()));
