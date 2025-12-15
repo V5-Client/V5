@@ -5,7 +5,6 @@ import { IsCursorLocked, LockCursor } from './UngrabMixin';
 import { PaneFix } from './GlassPanesMixin';
 import { DisablePauseOnLostFocus } from './GameRendererMixin';
 import { emptyKelp, emptyGrass, emptyTallGrass } from './IDoLater';
-import { rsaNuker } from './RSANukerMixin';
 
 /* still needed?
 
