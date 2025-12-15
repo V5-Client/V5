@@ -1,6 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { File, Color } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
+import { NVG, drawImage } from '../../GUI/Utils';
 
 const ImageIO = Java.type('javax.imageio.ImageIO');
 const BufferedImage = Java.type('java.awt.image.BufferedImage');
@@ -32,7 +33,7 @@ class GIFOverlay extends ModuleBase {
             accMs: 0,
             frameIndex: 0,
             selectedName: null,
-            frames: [],
+            framePaths: [],
             delaysMs: [],
             dragging: false,
             scaling: false,
@@ -42,7 +43,6 @@ class GIFOverlay extends ModuleBase {
             initialMouseX: 0,
         };
 
-        // Registers always active cuz idgaf
         this.on('renderOverlay', () => this.render());
         this.on('clicked', (x, y, button, isPressed) => this.handleClick(x, y, button, isPressed));
         this.on('dragged', (dx, dy, x, y, button) => this.handleDrag(dx, dy, x, y, button));
@@ -52,13 +52,11 @@ class GIFOverlay extends ModuleBase {
     isChatOpen() {
         const gui = Client.currentGui.get();
         if (!gui) return false;
-        const className = gui.class.simpleName;
-        return className == 'class_408';
+        return gui.class.simpleName == 'class_408';
     }
 
     handleCommand(args) {
         const sub = (args[0] || 'help').toLowerCase();
-
         switch (sub) {
             case 'list':
                 this.listGifs();
@@ -81,15 +79,13 @@ class GIFOverlay extends ModuleBase {
             return;
         }
         Chat.message('&b[GIF] Select a GIF by running &e/gif pick <index>');
-        gifs.forEach((file, i) => {
-            Chat.message(`&7[${i}] &f${file.getName()}`);
-        });
+        gifs.forEach((file, i) => Chat.message(`&7[${i}] &f${file.getName()}`));
     }
 
     pickGif(indexStr) {
         const gifs = this.getGifFiles();
         if (gifs.length === 0) {
-            Chat.message('&c[GIF] No .gif files found in &econfig/ChatTriggers/modules/V5Config/gifs');
+            Chat.message('&c[GIF] No .gif files found');
             return;
         }
         const idx = parseInt(indexStr, 10);
@@ -98,9 +94,8 @@ class GIFOverlay extends ModuleBase {
             this.listGifs();
             return;
         }
-        const file = gifs[idx];
-        if (this.loadGif(String(file.getName()))) {
-            Chat.message('&a[GIF] Selected &f' + file.getName());
+        if (this.loadGif(String(gifs[idx].getName()))) {
+            Chat.message('&a[GIF] Selected &f' + gifs[idx].getName());
         }
     }
 
@@ -110,13 +105,7 @@ class GIFOverlay extends ModuleBase {
     }
 
     showHelp() {
-        Chat.message(
-            '&bGIF Overlay Help\n' +
-                '&e/gif list &7- &fLists available GIFs.\n' +
-                '&e/gif pick <index> &7- &fLoads a GIF from the list.\n' +
-                '&e/gif toggle &7- &fToggles GIF visibility.\n' +
-                '&e/gif help &7- &fShows this message.'
-        );
+        Chat.message('&bGIF Overlay Help\n&e/gif list &7- Lists GIFs\n&e/gif pick <index> &7- Load a GIF\n&e/gif toggle &7- Toggle visibility');
     }
 
     getGifFiles() {
@@ -134,8 +123,7 @@ class GIFOverlay extends ModuleBase {
     readMeta(baseName) {
         try {
             const metaStr = FileLib.read('V5Config', `gif_cache/${baseName}/meta.json`);
-            if (!metaStr) return null;
-            return JSON.parse(metaStr);
+            return metaStr ? JSON.parse(metaStr) : null;
         } catch (e) {
             return null;
         }
@@ -143,8 +131,7 @@ class GIFOverlay extends ModuleBase {
 
     writeMeta(baseName, metaObj) {
         try {
-            const json = JSON.stringify(metaObj, null, 2);
-            FileLib.write('V5Config', `gif_cache/${baseName}/meta.json`, json);
+            FileLib.write('V5Config', `gif_cache/${baseName}/meta.json`, JSON.stringify(metaObj, null, 2));
         } catch (e) {}
     }
 
@@ -153,7 +140,6 @@ class GIFOverlay extends ModuleBase {
         const baseName = name.replace(/\.gif$/i, '');
         const outDir = this.getCacheDir(baseName);
 
-        // Check if cached
         const meta = this.readMeta(baseName);
         if (meta && outDir.exists()) {
             const pngs = outDir.listFiles();
@@ -167,7 +153,7 @@ class GIFOverlay extends ModuleBase {
         const readers = ImageIO.getImageReadersByFormatName('gif');
         if (!readers.hasNext()) {
             stream.close();
-            throw new Error('No GIF reader available');
+            throw new Error('No GIF reader');
         }
         const reader = readers.next();
         reader.setInput(stream, false);
@@ -186,12 +172,11 @@ class GIFOverlay extends ModuleBase {
             const frameImage = reader.read(i);
             const frameMeta = reader.getImageMetadata(i);
             const root = frameMeta.getAsTree('javax_imageio_gif_image_1.0');
-            let delayMs = 100;
-            let disposal = 'none';
-            let x = 0;
-            let y = 0;
+            let delayMs = 100,
+                disposal = 'none',
+                x = 0,
+                y = 0;
 
-            // Take the frame delay
             const gceNodes = root.getElementsByTagName('GraphicControlExtension');
             if (gceNodes && gceNodes.getLength() > 0) {
                 const gce = gceNodes.item(0);
@@ -201,7 +186,6 @@ class GIFOverlay extends ModuleBase {
             }
             delays.push(delayMs);
 
-            // Take the position from the image descriptor
             const idNodes = root.getElementsByTagName('ImageDescriptor');
             if (idNodes && idNodes.getLength() > 0) {
                 const id = idNodes.item(0);
@@ -209,11 +193,9 @@ class GIFOverlay extends ModuleBase {
                 y = parseInt(id.getAttribute('imageTopPosition'), 10);
             }
 
-            // Draw the frame
             graphics.drawImage(frameImage, x, y, null);
             ImageIO.write(masterCanvas, 'png', new File(outDir, `frame_${i}.png`));
 
-            // Handle the disposal for the next frame
             if (disposal === 'restoreToBackgroundColor') {
                 graphics.setComposite(AlphaComposite.Clear);
                 graphics.fillRect(x, y, frameImage.getWidth(), frameImage.getHeight());
@@ -241,31 +223,28 @@ class GIFOverlay extends ModuleBase {
         try {
             meta = this.extractGifToCache(file);
         } catch (e) {
-            Chat.message('&c[GIF] Failed to decode GIF: &f' + e);
-            console.log(e.toString() + '\n' + e.getStackTrace().join('\n'));
+            Chat.message('&c[GIF] Failed to decode: &f' + e);
             return false;
         }
 
         const baseName = name.replace(/\.gif$/i, '');
         const dir = this.getCacheDir(baseName);
-        const imgs = [];
+        const paths = [];
 
         for (let i = 0; i < meta.frameCount; i++) {
             const frameFile = new File(dir, `frame_${i}.png`);
-            try {
-                imgs.push(Image.fromFile(frameFile));
-            } catch (e) {
-                console.log(`Failed to load frame ${i}: ${e}`);
+            if (frameFile.exists()) {
+                paths.push(frameFile.getAbsolutePath());
             }
         }
 
-        if (imgs.length === 0) {
-            Chat.message('&c[GIF] No frames were loaded for: &f' + name);
+        if (paths.length === 0) {
+            Chat.message('&c[GIF] No frames loaded for: &f' + name);
             return false;
         }
 
         this.state.selectedName = name;
-        this.state.frames = imgs;
+        this.state.framePaths = paths;
         this.state.delaysMs = meta.delaysMs;
         this.state.baseWidth = meta.width;
         this.state.baseHeight = meta.height;
@@ -278,18 +257,17 @@ class GIFOverlay extends ModuleBase {
     }
 
     render() {
-        if (!this.state.visible || this.state.frames.length === 0) return;
+        if (!this.state.visible || this.state.framePaths.length === 0) return;
 
         const now = Date.now();
         const dt = now - this.state.lastTimestamp;
         this.state.lastTimestamp = now;
 
-        // Advance frame
         this.state.accMs += dt;
         const currentDelay = this.state.delaysMs[this.state.frameIndex] || 100;
         while (this.state.accMs >= currentDelay) {
             this.state.accMs -= currentDelay;
-            this.state.frameIndex = (this.state.frameIndex + 1) % this.state.frames.length;
+            this.state.frameIndex = (this.state.frameIndex + 1) % this.state.framePaths.length;
         }
 
         const drawW = Math.max(1, Math.round(this.state.baseWidth * this.state.scale));
@@ -297,17 +275,15 @@ class GIFOverlay extends ModuleBase {
         const x = Math.round(this.state.posX);
         const y = Math.round(this.state.posY);
 
-        // Draw current frame
-        try {
-            this.state.frames[this.state.frameIndex].draw(x, y, drawW, drawH);
-        } catch (e) {
-            console.log(`Failed to draw frame: ${e}`);
-        }
+        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
 
-        // Draw the movemode thing when chat is open
+        drawImage(this.state.framePaths[this.state.frameIndex], x, y, drawW, drawH);
+
         if (this.isChatOpen()) {
             this.drawMoveUI(x, y, drawW, drawH);
         }
+
+        NVG.endFrame();
     }
 
     drawMoveUI(x, y, width, height) {
@@ -316,76 +292,63 @@ class GIFOverlay extends ModuleBase {
         const handleHoverColor = new Color(0.5, 0.7, 1, 1).getRGB();
         const cornerColor = new Color(1, 1, 1, 0.8).getRGB();
 
-        // Edges of moveGUI cuz it looks cool
-        Renderer.drawRect(borderColor, x - 2, y - 2, width + 4, 2); // Top
-        Renderer.drawRect(borderColor, x - 2, y + height, width + 4, 2); // Bottom
-        Renderer.drawRect(borderColor, x - 2, y, 2, height); // Left
-        Renderer.drawRect(borderColor, x + width, y, 2, height); // Right
+        NVG.drawRect(x - 2, y - 2, width + 4, 2, borderColor);
+        NVG.drawRect(x - 2, y + height, width + 4, 2, borderColor);
+        NVG.drawRect(x - 2, y, 2, height, borderColor);
+        NVG.drawRect(x + width, y, 2, height, borderColor);
 
-        // Corner markers cuz they look cool too
-        const cornerSize = 6;
-        const cornerThickness = 2;
+        const cs = 6,
+            ct = 2;
+        NVG.drawRect(x - 2, y - 2, cs, ct, cornerColor);
+        NVG.drawRect(x - 2, y - 2, ct, cs, cornerColor);
+        NVG.drawRect(x + width - cs + 2, y - 2, cs, ct, cornerColor);
+        NVG.drawRect(x + width, y - 2, ct, cs, cornerColor);
+        NVG.drawRect(x - 2, y + height, cs, ct, cornerColor);
+        NVG.drawRect(x - 2, y + height - cs + 2, ct, cs, cornerColor);
 
-        // Top left
-        Renderer.drawRect(cornerColor, x - 2, y - 2, cornerSize, cornerThickness);
-        Renderer.drawRect(cornerColor, x - 2, y - 2, cornerThickness, cornerSize);
+        const hs = 14;
+        const hx = x + width - hs,
+            hy = y + height - hs;
+        const mx = Client.getMouseX(),
+            my = Client.getMouseY();
+        const isHovering = this.isInside(mx, my, hx, hy, hs, hs);
+        const hc = isHovering || this.state.scaling ? handleHoverColor : handleColor;
 
-        // Top right
-        Renderer.drawRect(cornerColor, x + width - cornerSize + 2, y - 2, cornerSize, cornerThickness);
-        Renderer.drawRect(cornerColor, x + width, y - 2, cornerThickness, cornerSize);
+        NVG.drawRect(hx, hy, hs, hs, hc);
+        NVG.drawRect(hx, hy, hs, 1, borderColor);
+        NVG.drawRect(hx, hy, 1, hs, borderColor);
 
-        // Bottom left
-        Renderer.drawRect(cornerColor, x - 2, y + height, cornerSize, cornerThickness);
-        Renderer.drawRect(cornerColor, x - 2, y + height - cornerSize + 2, cornerThickness, cornerSize);
-
-        // Bottom right, this one is a resize handle
-        const handleSize = 14;
-        const handleX = x + width - handleSize;
-        const handleY = y + height - handleSize;
-
-        const mouseX = Client.getMouseX();
-        const mouseY = Client.getMouseY();
-        const isHovering = this.isInside(mouseX, mouseY, handleX, handleY, handleSize, handleSize);
-
-        const currentHandleColor = isHovering || this.state.scaling ? handleHoverColor : handleColor;
-
-        // Draw the resize handle with border
-        Renderer.drawRect(currentHandleColor, handleX, handleY, handleSize, handleSize);
-        Renderer.drawRect(borderColor, handleX, handleY, handleSize, 1); // Top
-        Renderer.drawRect(borderColor, handleX, handleY, 1, handleSize); // Left
-
-        // Draw resize icon arrow thingy
-        const iconColor = new Color(1, 1, 1, 0.9).getRGB();
+        const ic = new Color(1, 1, 1, 0.9).getRGB();
         for (let i = 0; i < 4; i++) {
-            const offset = i * 3 + 3;
-            const lineLen = handleSize - offset - 2;
-            Renderer.drawRect(iconColor, handleX + offset, handleY + handleSize - 3, lineLen, 1);
-            Renderer.drawRect(iconColor, handleX + handleSize - 3, handleY + offset, 1, lineLen);
+            const off = i * 3 + 3,
+                len = hs - off - 2;
+            NVG.drawRect(hx + off, hy + hs - 3, len, 1, ic);
+            NVG.drawRect(hx + hs - 3, hy + off, 1, len, ic);
         }
     }
 
-    isInside(mouseX, mouseY, x, y, width, height) {
-        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+    isInside(mx, my, x, y, w, h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
     handleClick(x, y, button, isPressed) {
         if (!this.state.visible || !this.isChatOpen() || button !== 0) return;
 
         if (isPressed) {
-            const drawW = Math.max(1, Math.round(this.state.baseWidth * this.state.scale));
-            const drawH = Math.max(1, Math.round(this.state.baseHeight * this.state.scale));
-            const posX = Math.round(this.state.posX);
-            const posY = Math.round(this.state.posY);
-            const handleSize = 14;
+            const dw = Math.max(1, Math.round(this.state.baseWidth * this.state.scale));
+            const dh = Math.max(1, Math.round(this.state.baseHeight * this.state.scale));
+            const px = Math.round(this.state.posX),
+                py = Math.round(this.state.posY);
+            const hs = 14;
 
-            if (this.isInside(x, y, posX + drawW - handleSize, posY + drawH - handleSize, handleSize, handleSize)) {
+            if (this.isInside(x, y, px + dw - hs, py + dh - hs, hs, hs)) {
                 this.state.scaling = true;
                 this.state.initialScale = this.state.scale;
                 this.state.initialMouseX = x;
                 return;
             }
 
-            if (this.isInside(x, y, posX, posY, drawW, drawH)) {
+            if (this.isInside(x, y, px, py, dw, dh)) {
                 this.state.dragging = true;
                 this.state.dragOffsetX = x - this.state.posX;
                 this.state.dragOffsetY = y - this.state.posY;
@@ -405,8 +368,7 @@ class GIFOverlay extends ModuleBase {
         } else if (this.state.scaling) {
             const initialDrawW = this.state.baseWidth * this.state.initialScale;
             const newDrawW = initialDrawW + (x - this.state.initialMouseX);
-            const newScale = newDrawW / this.state.baseWidth;
-            this.state.scale = Math.max(0.1, Math.min(newScale, 10)); // Clamp size between 0.1 and 10 cuz literally who would need anything outside this? 10 is GIANT way off screen and 0.1 isn't visible.
+            this.state.scale = Math.max(0.1, Math.min(newDrawW / this.state.baseWidth, 10));
         }
     }
 }
