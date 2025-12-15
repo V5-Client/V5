@@ -58,7 +58,6 @@ export class Slider {
 
         const progress = (this.value - this.min) / (this.max - this.min);
 
-        // Track background
         drawRoundedRectangle({
             x: sliderX,
             y: sliderY,
@@ -68,7 +67,6 @@ export class Slider {
             color: THEME.SLIDER_BAR_BACKGROUND,
         });
 
-        // Track foreground (filled portion)
         drawRoundedRectangle({
             x: sliderX,
             y: sliderY,
@@ -78,7 +76,6 @@ export class Slider {
             color: foregroundColor,
         });
 
-        // Handle (circular)
         const handleSize = 14;
         const handleX = sliderX + (sliderWidth - handleSize / 2) * progress - handleSize / 2;
         const handleY = sliderY + sliderHeight / 2 - handleSize / 2;
@@ -92,13 +89,13 @@ export class Slider {
             color: handleColor,
         });
 
-        // Value display box
         const valueString = this.value.toFixed(this.precision);
         const displayValue = this.isTyping ? this.inputValue : valueString;
-        const valueStringWidth = getTextWidth(displayValue, 12);
+        const valueStringWidth = getTextWidth(displayValue, 9);
         const valuePadding = 8;
-        const valueBoxWidth = valueStringWidth + valuePadding * 2;
         const valueBoxHeight = 20;
+        const valueBoxWidth = valueStringWidth + valuePadding * 2;
+
         const valueStringX = sliderX - valueBoxWidth - 8;
         const valueStringY = this.y + componentHeight / 2 - valueBoxHeight / 2;
 
@@ -118,7 +115,9 @@ export class Slider {
             color: this.isTyping ? THEME.SLIDER_FOREGROUND : THEME.SLIDER_VALUE_BG,
         });
 
-        drawText(displayValue, valueStringX + valuePadding, valueStringY + valueBoxHeight / 2, 9, THEME.SLIDER_VALUE_TEXT);
+        const textCenteredX = valueStringX + valueBoxWidth / 2 - valueStringWidth / 2;
+
+        drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, 9, THEME.SLIDER_VALUE_TEXT);
 
         const componentRect = {
             x: this.x,
