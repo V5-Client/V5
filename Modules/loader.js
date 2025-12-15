@@ -32,3 +32,4 @@ import './other/DiscordRPC.js';
 import './other/FastPlace.js';
 import './Other/Failsafes.js';
 import './Other/AutoConversation.js';
+import './other/InventoryWalk.js';
