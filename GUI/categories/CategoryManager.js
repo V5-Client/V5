@@ -1,6 +1,6 @@
 import './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
-import { drawSubcategoryButtons, drawOptionsPanel, drawLeftPanel, drawCategoryItems, getCategoryRect } from './CategoryRenderer';
+import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 import { PADDING } from '../Utils';
@@ -41,7 +41,6 @@ global.createCategoriesManager = (deps) => {
         setOptionsScrollY(0);
     };
 
-
     const calculateContentHeight = () => {
         if (!isContentHeightCacheValid && global.Categories.selected) {
             let height = 0;
@@ -70,10 +69,7 @@ global.createCategoriesManager = (deps) => {
                     if (group.type === 'separator') {
                         calculateNonGroupedHeight();
 
-                        if (groupIndex > 0) {
-                            height += 12;
-                        }
-
+                        if (groupIndex > 0) height += 12;
                         height += 22;
 
                         const itemsInSubcategory = group.items.length;
@@ -85,12 +81,9 @@ global.createCategoriesManager = (deps) => {
                         nonGroupedItemCount++;
                     }
                 });
-
                 calculateNonGroupedHeight();
-
                 height += PADDING;
             }
-
             cachedContentHeight = height;
             isContentHeightCacheValid = true;
         }
@@ -139,26 +132,8 @@ global.createCategoriesManager = (deps) => {
             global.Categories.optionsScrollY = currentOptionsScrollY;
         }
 
-
         const rightPanelScrollY = currentRightPanelScrollY;
         const panel = deps.rectangles.RightPanel;
-
-        const scale = Renderer.screen.getScale();
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-
-        const inset = 2;
-        const scissorX = panel.x + inset;
-        const scissorY = panel.y + inset;
-        const scissorW = panel.width - inset * 2;
-        const scissorH = panel.height - inset * 2;
-
-        GL11.glScissor(
-            Math.floor(scissorX * scale),
-            Math.floor((Renderer.screen.getHeight() - (scissorY + scissorH)) * scale),
-            Math.floor(scissorW * scale),
-            Math.floor(scissorH * scale)
-        );
-
 
         if (shouldDrawItems) {
             if (!isLayoutCacheValid) cachedItemLayouts = [];
@@ -185,10 +160,6 @@ global.createCategoriesManager = (deps) => {
         }
 
         if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
-
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
-
-        drawLeftPanel(mouseX, mouseY);
     };
 
     const handleClick = (mouseX, mouseY) => {

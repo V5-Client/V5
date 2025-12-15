@@ -1,4 +1,4 @@
-import { THEME, isInside, colorWithAlpha, drawRoundedRectangle } from './Utils';
+import { THEME, isInside, colorWithAlpha, drawRoundedRectangle, drawText, NVG, composite } from './Utils';
 
 // Configuration
 const RENDER_ABOVE_GUI = true; // toggle rendering above guis
@@ -10,10 +10,10 @@ const NOTIFICATION_MARGIN = 20;
 const DEFAULT_NOTIFICATION_DURATION = 5000;
 const ANIMATION_DURATION = 300;
 const CORNER_RADIUS = 8;
-const TEXT_TOP_PADDING = 18;
-const TEXT_LINE_HEIGHT = 14;
+const TEXT_TOP_PADDING = 21;
+const TEXT_LINE_HEIGHT = 15;
 const DESC_SCALE = 0.8;
-const DESC_LINE_SPACING = 10;
+const DESC_LINE_SPACING = 7;
 
 // Colors
 const BACKGROUND_COLOR = THEME.NOTIFICATION_BACKGROUND;
@@ -30,83 +30,60 @@ const NOTIFICATION_TYPES = {
         outlineColor: THEME.NOTIFICATION_SUCCESS,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
-            const points = [
-                { x: -6, y: 0 },
-                { x: -2, y: 4 },
-                { x: 6, y: -4 },
-            ];
-            for (let i = 0; i < points.length - 1; i++) {
-                const x1 = centerX + points[i].x,
-                    y1 = centerY + points[i].y;
-                const x2 = centerX + points[i + 1].x,
-                    y2 = centerY + points[i + 1].y;
-                Renderer.drawLine(color, x1, y1, x2, y2, 2);
-            }
-            const x = centerX - 2;
-            const y = centerY + 4;
-            Renderer.translate(x, y);
-            Renderer.rotate(45);
-            Renderer.drawRect(color, -1, -1, 2, 2);
-            Renderer.rotate(-45);
-            Renderer.translate(-x, -y);
+            NVG.save();
+            NVG.translate(centerX - 2, centerY + 4);
+            NVG.rotate(-45);
+            NVG.drawRect(-1.5, -7, 3, 8.5, color);
+            NVG.drawRect(-1.5, -1.5, 14, 3, color);
+            NVG.restore();
         },
     },
     ERROR: {
         outlineColor: THEME.NOTIFICATION_ERROR,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
-            const size = 5;
-            Renderer.drawLine(color, centerX - size, centerY - size, centerX + size, centerY + size, 2);
-            Renderer.drawLine(color, centerX - size, centerY + size, centerX + size, centerY - size, 2);
+            NVG.save();
+            NVG.translate(centerX, centerY);
+            NVG.rotate(45);
+            NVG.drawRect(-1.5, -7, 3, 14, color);
+            NVG.drawRect(-7, -1.5, 14, 3, color);
+            NVG.restore();
         },
     },
     DANGER: {
         outlineColor: THEME.NOTIFICATION_DANGER,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
-            Renderer.drawRect(color, centerX - 1.5, centerY - 6, 3, 8);
-            Renderer.drawRect(color, centerX - 1.5, centerY + 4, 3, 3);
+            NVG.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
+            NVG.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
         },
     },
     'CHECK-IN': {
         outlineColor: THEME.NOTIFICATION_CHECK_IN,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
-            const points = [
-                { x: 0, y: 1 },
-                { x: 3, y: 4 },
-                { x: 8, y: -4 },
-            ];
-            for (let i = 0; i < points.length - 1; i++) {
-                const x1 = centerX + points[i].x - 4;
-                const y1 = centerY + points[i].y;
-                const x2 = centerX + points[i + 1].x - 4;
-                const y2 = centerY + points[i + 1].y;
-                Renderer.drawLine(color, x1, y1, x2, y2, 2);
-            }
-            const x = centerX - 1;
-            const y = centerY + 4;
-            Renderer.translate(x, y);
-            Renderer.rotate(45);
-            Renderer.drawRect(color, -1, -1, 2, 2);
-            Renderer.rotate(-45);
-            Renderer.translate(-x, -y);
+            NVG.save();
+            NVG.translate(centerX - 2, centerY + 4);
+            NVG.rotate(-45);
+            NVG.drawRect(-1.5, -7, 3, 8.5, color);
+            NVG.drawRect(-1.5, -1.5, 14, 3, color);
+            NVG.restore();
         },
     },
     WARNING: {
         outlineColor: THEME.NOTIFICATION_WARNING,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
-            Renderer.drawRect(color, centerX - 1.5, centerY - 6, 3, 8);
-            Renderer.drawRect(color, centerX - 1.5, centerY + 4, 3, 3);
+            NVG.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
+            NVG.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
         },
     },
     INFO: {
         outlineColor: THEME.NOTIFICATION_INFO,
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | ICON_SYMBOL_COLOR;
-            Renderer.drawRect(color, centerX - 1.5, centerY - 6, 3, 3);
-            Renderer.drawRect(color, centerX - 1.5, centerY - 2, 3, 8);
+            NVG.drawRect(centerX - 1.5, centerY - 8, 3, 3, color);
+            NVG.drawRect(centerX - 1.5, centerY - 3, 3, 10, color);
         },
     },
 };
@@ -117,9 +94,7 @@ class Notification {
         this.description = description;
         this.type = NOTIFICATION_TYPES[type] ? type : 'SUCCESS';
         this.duration = duration;
-
-        this.isSticky = duration === 'sticky'; // allow duration to be 'sticky'
-
+        this.isSticky = duration === 'sticky';
         this.createdAt = Date.now();
         this.state = 'entering';
         this.animationStart = Date.now();
@@ -129,14 +104,11 @@ class Notification {
         this.targetY = 0;
         this.opacity = 0;
         this.closeHovered = false;
-
         this.calculateLayout();
     }
 
     wrapText(text, maxWidth) {
-        if (text instanceof Error) {
-            text = text.message;
-        }
+        if (text instanceof Error) text = text.message;
         if (!text) return [''];
         const words = text.split(' ');
         if (!words.length) return [''];
@@ -146,7 +118,7 @@ class Notification {
         for (let i = 1; i < words.length; i++) {
             const word = words[i];
             const testLine = currentLine + ' ' + word;
-            if (Renderer.getStringWidth(testLine) > maxWidth) {
+            if (NVG.textWidth(testLine, 6, NVG.defaultFont) > maxWidth) {
                 lines.push(currentLine);
                 currentLine = word;
             } else {
@@ -160,13 +132,12 @@ class Notification {
     calculateLayout() {
         const iconWidth = 24;
         const textMargin = 8;
-        const closeButtonArea = 30;
-
+        const closeButtonArea = 40;
         const textXOffset = NOTIFICATION_PADDING + iconWidth + textMargin;
-        const maxLineWidth = (NOTIFICATION_WIDTH - textXOffset - closeButtonArea) / DESC_SCALE;
+
+        const maxLineWidth = NOTIFICATION_WIDTH - textXOffset - closeButtonArea;
 
         this.wrappedDescription = this.wrapText(this.description, maxLineWidth);
-
         const baseHeight = NOTIFICATION_HEIGHT;
         const extraLines = Math.max(0, this.wrappedDescription.length - 1);
         this.height = baseHeight + extraLines * DESC_LINE_SPACING;
@@ -175,21 +146,14 @@ class Notification {
     update() {
         const now = Date.now();
         const lifetime = now - this.createdAt;
-
         if (this.state === 'entering') {
             const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
             const eased = this.easeOutCubic(progress);
-
             this.x = Renderer.screen.getWidth() + (this.targetX - Renderer.screen.getWidth()) * eased;
             this.opacity = eased;
-
             const yDiff = this.targetY - this.y;
-            if (Math.abs(yDiff) > 0.5) {
-                this.y += yDiff * 0.3;
-            } else {
-                this.y = this.targetY;
-            }
-
+            if (Math.abs(yDiff) > 0.5) this.y += yDiff * 0.3;
+            else this.y = this.targetY;
             if (progress >= 1) {
                 this.state = 'active';
                 this.x = this.targetX;
@@ -197,25 +161,15 @@ class Notification {
         } else if (this.state === 'active') {
             this.x = this.targetX;
             this.opacity = 1;
-
             const yDiff = this.targetY - this.y;
-            if (Math.abs(yDiff) > 0.5) {
-                this.y += yDiff * 0.3;
-            } else {
-                this.y = this.targetY;
-            }
-
-            if (!this.isSticky && lifetime >= this.duration) {
-                this.startExit();
-            }
+            if (Math.abs(yDiff) > 0.5) this.y += yDiff * 0.3;
+            else this.y = this.targetY;
+            if (!this.isSticky && lifetime >= this.duration) this.startExit();
         } else if (this.state === 'exiting') {
             const progress = Math.min(1, (now - this.animationStart) / ANIMATION_DURATION);
-
             this.x = this.exitX + (Renderer.screen.getWidth() - this.exitX) * progress;
             this.opacity = 1 - progress;
-
             this.y = this.exitY;
-
             if (progress >= 1) this.state = 'removed';
         }
     }
@@ -237,9 +191,9 @@ class Notification {
         if (this.state === 'removed') return;
 
         const alpha = this.opacity;
-        const typeInfo = NOTIFICATION_TYPES[this.type];
-
+        const typeInfo = NOTIFICATION_TYPES[this.type] || NOTIFICATION_TYPES['SUCCESS'];
         const bgColor = colorWithAlpha(BACKGROUND_COLOR, alpha);
+
         drawRoundedRectangle({
             x: this.x,
             y: this.y,
@@ -262,7 +216,7 @@ class Notification {
             radius: 7,
             color: outlineColor,
         });
-
+        // Main bg
         drawRoundedRectangle({
             x: iconBgX,
             y: iconBgY,
@@ -271,45 +225,40 @@ class Notification {
             radius: 6,
             color: bgColor,
         });
-
-        const iconBgColor = colorWithAlpha(typeInfo.outlineColor, alpha * 0.2);
+        // Tinted overlay
+        const iconTint = colorWithAlpha(typeInfo.outlineColor, alpha * 0.2);
         drawRoundedRectangle({
             x: iconBgX,
             y: iconBgY,
             width: iconBgSize,
             height: iconBgSize,
             radius: 6,
-            color: iconBgColor,
+            color: iconTint,
         });
 
-        typeInfo.iconDrawer(iconBgX + iconBgSize / 2, iconBgY + iconBgSize / 2, Math.floor(alpha * 255));
+        if (typeInfo.iconDrawer) {
+            typeInfo.iconDrawer(iconBgX + iconBgSize / 2, iconBgY + iconBgSize / 2, Math.floor(alpha * 255));
+        }
 
         const textX = iconBgX + iconBgSize + 8;
         const titleY = this.y + TEXT_TOP_PADDING;
         const descY = titleY + TEXT_LINE_HEIGHT;
 
-        const textAlpha = (Math.floor(alpha * 255) << 24) | TEXT_COLOR;
-        const descAlpha = (Math.floor(alpha * 255) << 24) | DESCRIPTION_COLOR;
+        const textAlpha = colorWithAlpha(TEXT_COLOR, alpha);
+        const descAlpha = colorWithAlpha(DESCRIPTION_COLOR, alpha);
 
-        Renderer.drawString(this.title, textX, titleY, textAlpha, false);
+        drawText(this.title, textX, titleY, 10, textAlpha);
 
-        Renderer.scale(DESC_SCALE, DESC_SCALE);
         this.wrappedDescription.forEach((line, index) => {
             const currentDescY = descY + index * DESC_LINE_SPACING;
-            Renderer.drawString(line, textX / DESC_SCALE, currentDescY / DESC_SCALE, descAlpha, false);
+            drawText(line, textX, currentDescY, 6, descAlpha);
         });
-        Renderer.scale(1 / DESC_SCALE, 1 / DESC_SCALE);
 
         const closeX = this.x + NOTIFICATION_WIDTH - 30;
         const closeY = this.y + this.height / 2 - 10;
         const closeSize = 20;
 
-        const closeRect = {
-            x: closeX,
-            y: closeY,
-            width: closeSize,
-            height: closeSize,
-        };
+        const closeRect = { x: closeX, y: closeY, width: closeSize, height: closeSize };
         this.closeHovered = isInside(mouseX, mouseY, closeRect);
 
         if (this.closeHovered) {
@@ -324,30 +273,21 @@ class Notification {
             });
         }
 
-        this.drawXSymbol(closeX + closeSize / 2, closeY + closeSize / 2, Math.floor(alpha * 255));
-        // Don't draw progress bar for sticky notifications
+        const closeColor = (Math.floor(alpha * 255) << 24) | CLOSE_BUTTON_COLOR;
+        NVG.save();
+        NVG.translate(closeX + closeSize / 2, closeY + closeSize / 2);
+        NVG.rotate(45);
+        NVG.drawRect(-0.75, -5, 1.5, 10, closeColor);
+        NVG.drawRect(-5, -0.75, 10, 1.5, closeColor);
+        NVG.restore();
+
         if (this.state === 'active' && !this.isSticky) {
             const progress = 1 - (Date.now() - this.createdAt) / this.duration;
-            const progressBarHeight = 4;
             const progressBarWidth = NOTIFICATION_WIDTH * progress;
-
             const progressColor = colorWithAlpha(PROGRESS_BAR_COLOR, alpha);
 
             if (progressBarWidth > 0) {
-                const scale = Renderer.screen.getScale();
-                const screenHeight = Renderer.screen.getHeight();
-
-                // Shift height down by one to fix floating point issue
-                const scissorY = screenHeight - (this.y + this.height) - 1;
-                const scissorHeight = progressBarHeight;
-
-                GL11.glEnable(GL11.GL_SCISSOR_TEST);
-                GL11.glScissor(
-                    Math.round(this.x * scale),
-                    Math.round(scissorY * scale),
-                    Math.round(progressBarWidth * scale),
-                    Math.round(scissorHeight * scale)
-                );
+                NVG.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
 
                 drawRoundedRectangle({
                     x: this.x,
@@ -358,16 +298,9 @@ class Notification {
                     color: progressColor,
                 });
 
-                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+                NVG.resetScissor();
             }
         }
-    }
-
-    drawXSymbol(centerX, centerY, alpha) {
-        const color = (alpha << 24) | CLOSE_BUTTON_COLOR;
-        const size = 4;
-        Renderer.drawLine(color, centerX - size, centerY - size, centerX + size, centerY + size, 1.5);
-        Renderer.drawLine(color, centerX - size, centerY + size, centerX + size, centerY - size, 1.5);
     }
 
     handleClick(mouseX, mouseY) {
@@ -431,32 +364,19 @@ class NotificationManager {
             this.tickTrigger = null;
         }
     }
-
     add(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
-        if (this.notifications.length === 0) {
-            this.registerEvents();
-        }
-
+        if (this.notifications.length === 0) this.registerEvents();
         const notification = new Notification(title, description, type, duration);
         this.notifications.unshift(notification);
         this.updatePositions();
     }
-
     update() {
         this.notifications.forEach((n) => n.update());
-
         const beforeCount = this.notifications.length;
         this.notifications = this.notifications.filter((n) => n.state !== 'removed');
-
-        if (this.notifications.length !== beforeCount) {
-            this.updatePositions();
-        }
-
-        if (beforeCount > 0 && this.notifications.length === 0) {
-            this.unregisterEvents();
-        }
+        if (this.notifications.length !== beforeCount) this.updatePositions();
+        if (beforeCount > 0 && this.notifications.length === 0) this.unregisterEvents();
     }
-
     updatePositions() {
         let yOffset = 0;
         this.notifications.forEach((notification) => {
@@ -465,38 +385,29 @@ class NotificationManager {
             yOffset += notification.height + NOTIFICATION_SPACING;
         });
     }
-
     render() {
+        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         const mouseX = Client.getMouseX();
         const mouseY = Client.getMouseY();
-
         for (let i = this.notifications.length - 1; i >= 0; i--) {
             this.notifications[i].draw(mouseX, mouseY);
         }
+        NVG.endFrame();
     }
-
     renderAboveGui() {
+        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         const mouseX = Client.getMouseX();
         const mouseY = Client.getMouseY();
-
-        //just translate forward on Z axis :)
-        Renderer.translate(0, 0, 500);
-
-        // Render notifications
         for (let i = this.notifications.length - 1; i >= 0; i--) {
             this.notifications[i].draw(mouseX, mouseY);
         }
-
-        // translate back :)
-        Renderer.translate(0, 0, -500);
+        NVG.endFrame();
     }
-
     handleClick(mouseX, mouseY) {
         for (const notification of this.notifications) {
             if (notification.handleClick(mouseX, mouseY)) break;
         }
     }
-
     destroy() {
         this.unregisterEvents();
     }

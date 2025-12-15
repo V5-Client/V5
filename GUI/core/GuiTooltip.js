@@ -1,4 +1,4 @@
-import { THEME, drawRoundedRectangleWithBorder } from '../Utils';
+import { THEME, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../Utils';
 
 global.GuiTooltip = {
     tooltipToDraw: null,
@@ -24,17 +24,18 @@ global.GuiTooltip = {
         const PADDING = 8;
         const MOUSE_OFFSET_X = 12;
         const MOUSE_OFFSET_Y = 12;
+        const fontSize = 7;
         let tooltipWidth = 0;
 
         lines.forEach((line) => {
-            const lineWidth = Renderer.getStringWidth(line);
+            const lineWidth = getTextWidth(line, fontSize);
             if (lineWidth > tooltipWidth) {
                 tooltipWidth = lineWidth;
             }
         });
 
         tooltipWidth += PADDING * 2;
-        const tooltipHeight = lines.length * 10 + PADDING * 2;
+        const tooltipHeight = lines.length * (fontSize + 2) + PADDING * 2;
 
         let tooltipX = mouseX + MOUSE_OFFSET_X;
         let tooltipY = mouseY + MOUSE_OFFSET_Y;
@@ -61,7 +62,7 @@ global.GuiTooltip = {
         });
 
         lines.forEach((line, index) => {
-            Renderer.drawString(line, tooltipX + PADDING, tooltipY + PADDING + index * 10, THEME.TOOLTIP_TEXT, true);
+            drawText(line, tooltipX + PADDING, tooltipY + PADDING + index * (fontSize + 2), fontSize, THEME.TOOLTIP_TEXT, 9);
         });
     },
 };

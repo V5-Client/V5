@@ -1,7 +1,10 @@
 import { ANIMATION_DURATION } from './GuiState';
-import { drawRoundedRectangleWithBorder, clamp, PADDING } from '../Utils';
+import { drawRoundedRectangleWithBorder, clamp, PADDING, NVG, scissor, resetScissor } from '../Utils';
+import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
 
 export const drawGUI = (mouseX, mouseY) => {
+    NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
+
     global.GuiTooltip.reset();
 
     const elapsed = Date.now() - global.GuiState.openStartTime;
@@ -37,25 +40,25 @@ export const drawGUI = (mouseX, mouseY) => {
 
     Client.getMinecraft().gameRenderer.renderBlur();
 
-    const scale = Renderer.screen.getScale();
-    GL11.glEnable(GL11.GL_SCISSOR_TEST);
-    GL11.glScissor(
-        Math.floor(global.GuiState.animatedBackground.x * scale),
-        Math.floor((Renderer.screen.getHeight() - (global.GuiState.animatedBackground.y + global.GuiState.animatedBackground.height)) * scale),
-        Math.floor(global.GuiState.animatedBackground.width * scale),
-        Math.floor(global.GuiState.animatedBackground.height * scale)
-    );
-
     drawRoundedRectangleWithBorder(global.GuiState.animatedBackground);
     drawRoundedRectangleWithBorder(global.GuiState.animatedLeftPanel);
     drawRoundedRectangleWithBorder(global.GuiState.animatedRightPanel);
 
     if (progress >= 0.99) {
-        global.categoryManager?.draw(mouseX, mouseY);
-    }
+        drawLeftPanelBackgrounds(mouseX, mouseY);
 
-    GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        const panel = global.GuiRectangles.RightPanel;
+        scissor(panel.x, panel.y, panel.width, panel.height);
+        global.categoryManager?.draw(mouseX, mouseY);
+        resetScissor();
+    }
 
     global.GuiTooltip.update();
     global.GuiTooltip.draw(mouseX, mouseY);
+
+    NVG.endFrame();
+
+    if (progress >= 0.99) {
+        drawLeftPanelIcons(mouseX, mouseY);
+    }
 };
