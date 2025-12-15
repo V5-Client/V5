@@ -1,6 +1,6 @@
 import { ModuleBase } from '../utils/ModuleBase';
 import { Color } from '../utils/Constants';
-import { drawRoundedRectangle } from './Utils';
+import { drawRoundedRectangle, NVG } from './Utils';
 
 class HUD extends ModuleBase {
     constructor() {
@@ -54,52 +54,55 @@ class HUD extends ModuleBase {
         this.y = null;
 
         this.on('renderOverlay', () => {
-            if (this.INVENTORY_HUD) {
-                const { pad, slot, titleH, scale, cols, rows } = LAYOUT;
+            if (!this.INVENTORY_HUD) return;
 
-                const x = 50;
-                const y = 100;
+            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
 
-                const w = cols * slot + 2 * pad;
-                const h = titleH + (rows + 1) * slot + 2 * pad;
+            const { pad, slot, titleH, scale, cols, rows } = LAYOUT;
 
-                const r = 5;
-                const c = new Color(0, 0, 0, 0.4);
+            const x = 50;
+            const y = 100;
 
-                const PADDING = 1;
+            const w = cols * slot + 2 * pad;
+            const h = titleH + (rows + 1) * slot + 2 * pad;
 
-                // someone please fix this
-                const bgX = x + 43;
-                const bgY = y + 125;
-                const bgWidth = x + w + 125;
-                const bgLength = y + h + 143;
+            const r = 5;
+            const c = new Color(0, 0, 0, 0.4);
 
-                drawRoundedRectangle({
-                    x: bgX - PADDING,
-                    y: bgY - PADDING,
-                    width: bgWidth - bgX + 2 * PADDING,
-                    height: bgLength - bgY + 2 * PADDING,
-                    radius: r,
-                    color: c,
-                });
+            const PADDING = 1;
 
-                const inv = Player.getInventory();
-                if (!inv) return;
+            const bgX = x + 43;
+            const bgY = y + 125;
+            const bgWidth = x + w + 125;
+            const bgLength = y + h + 143;
 
-                const items = inv.getItems();
-                const hotbar = items.slice(0, 9);
-                const main = items.slice(9, 36);
+            drawRoundedRectangle({
+                x: bgX - PADDING,
+                y: bgY - PADDING,
+                width: bgWidth - bgX + 2 * PADDING,
+                height: bgLength - bgY + 2 * PADDING,
+                radius: r,
+                color: c,
+            });
 
-                hotbar.forEach((item, i) => this.drawItems(item, x + pad + i * slot, y + titleH + pad + rows * slot, scale));
+            NVG.endFrame();
 
-                main.forEach((item, i) => {
-                    const row = Math.floor(i / cols);
-                    if (row < rows) {
-                        const col = i % cols;
-                        this.drawItems(item, x + pad + col * slot, y + titleH + pad + row * slot, scale);
-                    }
-                });
-            }
+            const inv = Player.getInventory();
+            if (!inv) return;
+
+            const items = inv.getItems();
+            const hotbar = items.slice(0, 9);
+            const main = items.slice(9, 36);
+
+            hotbar.forEach((item, i) => this.drawItems(item, x + pad + i * slot, y + titleH + pad + rows * slot, scale));
+
+            main.forEach((item, i) => {
+                const row = Math.floor(i / cols);
+                if (row < rows) {
+                    const col = i % cols;
+                    this.drawItems(item, x + pad + col * slot, y + titleH + pad + row * slot, scale);
+                }
+            });
         });
     }
 
