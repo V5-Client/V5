@@ -46,6 +46,7 @@ export const drawGUI = (mouseX, mouseY) => {
 
     if (progress >= 0.99) {
         drawLeftPanelBackgrounds(mouseX, mouseY);
+        drawLeftPanelIcons(mouseX, mouseY);
 
         const panel = global.GuiRectangles.RightPanel;
         scissor(panel.x, panel.y, panel.width, panel.height);
@@ -57,8 +58,4 @@ export const drawGUI = (mouseX, mouseY) => {
     global.GuiTooltip.draw(mouseX, mouseY);
 
     NVG.endFrame();
-
-    if (progress >= 0.99) {
-        drawLeftPanelIcons(mouseX, mouseY);
-    }
 };

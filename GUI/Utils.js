@@ -1,7 +1,7 @@
 import { Utils } from '../utils/Utils';
 import { Links } from '../utils/Constants';
 import { Chat } from '../utils/Chat';
-import { File, Color, UIRoundedRectangle, Matrix } from '../utils/Constants';
+import { File, Color } from '../utils/Constants';
 
 export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
 
@@ -125,17 +125,21 @@ export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) =>
 
 export const drawText = (text, x, y, size, color, align = 17) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.text(text, x, y, size, c, NVG.defaultFont, align);
+    NVG.text(text, x, y, size, c, NVG.getDefaultFont(), align);
 };
 
 export const getTextWidth = (text, size) => {
-    return NVG.textWidth(text, size, NVG.defaultFont);
+    return NVG.textWidth(text, size, NVG.getDefaultFont());
 };
 
-// THIS METHOD MIGHT BE OUTDATED, ASK @rdbtCVS. WE NEED TO SWITCH TO NVGRENDERER BUT IT SUCKS.
-export const drawImage = (image, x, y, width, height) => {
-    if (!image) return;
-    Renderer.drawImage(image, x, y, width, height);
+export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {
+    if (!path) return;
+    NVG.drawImage(path, x, y, width, height, radius, alpha);
+};
+
+export const drawCircularImage = (path, x, y, size, alpha = 1) => {
+    if (!path) return;
+    NVG.drawImage(path, x, y, size, size, size / 2, alpha);
 };
 
 export const scissor = (x, y, w, h) => {
@@ -157,31 +161,6 @@ export const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t +
 export const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
 export const isInside = (mouseX, mouseY, rect) => mouseX >= rect.x && mouseX <= rect.x + rect.width && mouseY >= rect.y && mouseY <= rect.y + rect.height;
-
-export const createCircularImage = (originalImage) => {
-    if (!originalImage) return null;
-
-    const originalBuffered = originalImage.getImage();
-    const size = Math.min(originalBuffered.getWidth(), originalBuffered.getHeight());
-
-    const circularBuffered = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-
-    const graphics = circularBuffered.createGraphics();
-
-    graphics.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-
-    graphics.setColor(java.awt.Color.WHITE);
-    graphics.fillOval(0, 0, size, size);
-
-    graphics.setComposite(java.awt.AlphaComposite.SrcAtop);
-
-    const xOffset = (originalBuffered.getWidth() - size) / 2;
-    const yOffset = (originalBuffered.getHeight() - size) / 2;
-    graphics.drawImage(originalBuffered, -xOffset, -yOffset, null);
-
-    graphics.dispose();
-    return new Image(circularBuffered);
-};
 
 export const fetchURL = (url) => {
     try {
@@ -260,17 +239,13 @@ export const returnDiscord = (authToken) => {
                 }
 
                 let avatarUrl = data.discord.avatar;
-                let saveFile = new File('config/ChatTriggers/assets/discordProfile.png');
-
-                Utils.downloadFile(avatarUrl, saveFile.getAbsolutePath());
+                Utils.downloadFile(avatarUrl, profilePath.getAbsolutePath());
+                global.discordPfpPath = profilePath.getAbsolutePath();
             }).start();
+        } else {
+            global.discordPfpPath = profilePath.getAbsolutePath();
         }
     } catch (error) {
         Chat.message('An unexpected error occurred while fetching Discord PFP: ' + error);
-    }
-
-    if (profilePath.exists()) {
-        let avatarPath = Image.fromAsset('discordProfile.png');
-        global.discordPfp = createCircularImage(avatarPath);
     }
 };
