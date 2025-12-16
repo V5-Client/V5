@@ -1,3 +1,4 @@
+import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 
 class InventoryWalk extends ModuleBase {
@@ -5,7 +6,7 @@ class InventoryWalk extends ModuleBase {
         super({
             name: 'Inventory Walk',
             subcategory: 'Other',
-            description: 'Use at your own risk!',
+            description: 'Use at your own risk!\nTested on 150 ping and no ban but idk',
             tooltip: 'Use at your own risk.',
         });
 
@@ -40,6 +41,10 @@ class InventoryWalk extends ModuleBase {
                 keybind.setState(false);
             });
         }).setFilteredClass(net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket);
+
+        this.on('packetReceived', () => {
+            this.clicked = false;
+        }).setFilteredClass(net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket);
     }
 }
 
