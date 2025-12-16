@@ -13,6 +13,7 @@ class FailsafeUtils {
                 FailsafeReactionTime: 600,
                 playerProximityDistance: 3,
                 pingOnCheck: true,
+                playSoundOnCheck: true,
             };
         }
         const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
@@ -23,18 +24,21 @@ class FailsafeUtils {
                 FailsafeReactionTime: 600,
                 playerProximityDistance: 3,
                 pingOnCheck: true,
+                playSoundOnCheck: true,
             };
 
         const FailsafeReactionTime = config['Failsafes']['Failsafe Detection Delay (ms)'] ?? 600;
         const isEnabled = config['Failsafes'][`${name} Failsafe`] ?? true;
         const playerProximityDistance = config['Failsafes']['Player Proximity Distance'] ?? 3;
         const pingOnCheck = config['Failsafes']['Ping on check'] ?? true;
+        const playSoundOnCheck = config['Failsafes']['Play sound on check'] ?? true;
 
         return {
             isEnabled: isEnabled,
             FailsafeReactionTime: FailsafeReactionTime,
             playerProximityDistance: playerProximityDistance,
             pingOnCheck: pingOnCheck,
+            playSoundOnCheck: playSoundOnCheck,
         };
     }
 

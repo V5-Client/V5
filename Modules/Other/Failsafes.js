@@ -22,6 +22,7 @@ class Failsafes extends ModuleBase {
         this.playerProximityDistance = 3;
         this.actionDelay = 500;
         this.pingOnCheck = true;
+        this.playSoundOnCheck = true;
 
         this.on('packetReceived', (packet) => {
             if (!this.clipOnBan) return;
@@ -116,12 +117,20 @@ class Failsafes extends ModuleBase {
             this.clipOnBan
         );
         this.addToggle(
-            'Play sound on check',
+            'Discord ping on Check',
             (value) => {
                 this.pingOnCheck = value;
             },
-            'Toggle play sound on check',
+            'Toggle discord ping on check',
             this.pingOnCheck
+        );
+        this.addToggle(
+            'Play sound on check',
+            (value) => {
+                this.playSoundOnCheck = value;
+            },
+            'Toggle play sound on check',
+            this.playSoundOnCheck
         );
         this.addMultiToggle('Failsafe sound', this.getFilesinDir('Failsafes/sounds'), true, (v) => {
             // someone sort this out properly

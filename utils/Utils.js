@@ -51,29 +51,6 @@ class UtilsClass {
     }
 
     /**
-     * Warns the player with a message and an optional audio notification.
-     * @param {string} msg The message to display to the player.
-     */
-    warnPlayer(msg = 'New Alert!') {
-        Notifications.sendAlert(msg);
-
-        return; // this seems to be a bit fucked
-        if (!ModuleManager.getSetting('Failsafes', 'Audio Notifications')) return;
-
-        // Failsafe Sound
-        try {
-            let audio = new Sound({
-                source: global.export.FailsafeManager.getAudioSource()?.toString(),
-            });
-            Chat.message('New Alert! ' + msg);
-            audio.setVolume(1);
-            audio.play();
-        } catch (e) {
-            Chat.message('&cFailsafe sound assets missing! Try reinstall rdbt client!');
-        }
-    }
-
-    /**
      * Checks if a specfic block coordinate has collision
      * @param {Object} world The current world
      * @param {*} blockVec the Vec3d / x, y ,z
