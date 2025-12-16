@@ -1,4 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
+import { getSetting } from '../../gui/GuiSave';
+import { File } from '../../utils/Constants';
 
 class Failsafes extends ModuleBase {
     constructor() {
@@ -114,13 +116,51 @@ class Failsafes extends ModuleBase {
             this.clipOnBan
         );
         this.addToggle(
-            'Ping on check',
+            'Play sound on check',
             (value) => {
                 this.pingOnCheck = value;
             },
-            'Toggle ping on check',
+            'Toggle play sound on check',
             this.pingOnCheck
         );
+        this.addMultiToggle('Failsafe sound', this.getFilesinDir('Failsafes/sounds'), true, (v) => {
+            // someone sort this out properly
+            const selectedFiles = getSetting('Failsafes', 'Failsafe sound');
+            const enabledNames = selectedFiles.filter((fileObject) => fileObject.enabled).map((fileObject) => fileObject.name);
+
+            const singleEnabledName = enabledNames[0] + '.wav';
+
+            global.failsafeSound = singleEnabledName;
+        });
+    }
+
+    getFilesinDir(folder) {
+        let mcDir = new File(Client.getMinecraft().runDirectory);
+        let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5/' + folder);
+
+        if (!configPath.exists() || !configPath.isDirectory()) {
+            Chat.message(`&cError: Directory not found.`);
+            return [];
+        }
+
+        const fileArray = configPath.listFiles();
+        const fileNames = [];
+
+        if (!fileArray) return [];
+
+        for (let i = 0; i < fileArray.length; i++) {
+            const file = fileArray[i];
+
+            let name = file.getName();
+
+            if (name.endsWith('.wav')) {
+                name = name.replace('.wav', '');
+
+                fileNames.push(name);
+            }
+        }
+
+        return fileNames;
     }
 }
 
