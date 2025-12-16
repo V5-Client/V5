@@ -1,4 +1,4 @@
-import { SoundHelper } from './sounds/SoundHelper';
+import { SoundHelper } from './AlertUtils.js';
 
 export class Failsafe {
     constructor() {
@@ -12,11 +12,4 @@ export class Failsafe {
     }
     onTrigger() {}
     reset() {}
-
-    PlaySound() {
-        let sound = new Sound({ source: 'alarm-check.ogg' });
-        ChatLib.chat(global.failsafeSound);
-        sound.setVolume(1);
-        sound.play();
-    }
 }
