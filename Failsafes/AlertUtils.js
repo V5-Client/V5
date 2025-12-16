@@ -4,7 +4,7 @@ import FailsafeUtils from './FailsafeUtils';
 const AudioSystem = javax.sound.sampled.AudioSystem;
 const FloatControl = javax.sound.sampled.FloatControl;
 
-class SoundHelperClass {
+class AlertUtilsClass {
     constructor() {
         this.clip = null;
         this.audioStream = null;
@@ -50,4 +50,4 @@ class SoundHelperClass {
     }
 }
 
-export const SoundHelper = new SoundHelperClass();
+export const AlertUtils = new AlertUtilsClass();
