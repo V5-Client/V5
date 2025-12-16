@@ -1,9 +1,9 @@
-import { SoundHelper } from './AlertUtils.js';
+import { AlertUtils } from './AlertUtils.js';
 
 export class Failsafe {
     constructor() {
         register('command', () => {
-            SoundHelper.playSound();
+            AlertUtils.playSound();
         }).setName('trigger');
     }
 
