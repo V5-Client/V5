@@ -3,7 +3,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 class AutoConversation extends ModuleBase {
     constructor() {
         super({
-            name: 'AutoConversation',
+            name: 'Auto Conversation',
             subcategory: 'Other',
             description: 'auto clicks on npc options in conversations',
         });
