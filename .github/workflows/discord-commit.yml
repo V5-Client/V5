@@ -8,11 +8,11 @@ on:
 jobs:
     notify-discord:
         runs-on: ubuntu-latest
+
         steps:
             - name: Checkout repo
               uses: actions/checkout@v4
               with:
-                  # Fetch depth 2 is needed to compare HEAD with HEAD~1
                   fetch-depth: 2
 
             - name: Get commit info
@@ -26,59 +26,57 @@ jobs:
                   AUTHOR_LOGIN="${{ github.actor }}"
                   BRANCH_NAME="${GITHUB_REF#refs/heads/}"
                   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                  commit_url=${{ github.event.head_commit.url }}
-                  # Determine base for diff (handle initial commit)
+
                   if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
                     BASE=""
                   else
                     BASE="HEAD~1"
                   fi
 
-                  # Stats only (no per-file details)
-                  if [ -z "${BASE}" ]; then
+                  if [ -z "$BASE" ]; then
                     STATS=$(git show --shortstat HEAD | tail -n 1 || true)
                     FILES=$(git show --pretty="" --name-only HEAD || true)
                   else
-                    STATS=$(git diff --shortstat "${BASE}" HEAD || true)
-                    FILES=$(git diff --name-only "${BASE}" HEAD || true)
+                    STATS=$(git diff --shortstat "$BASE" HEAD || true)
+                    FILES=$(git diff --name-only "$BASE" HEAD || true)
                   fi
 
-                  # Extract totals (fallback to 0 if not present)
                   ADDED=$(echo "$STATS" | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)
                   DELETED=$(echo "$STATS" | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)
                   FILES_CHANGED=$(echo "$STATS" | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)
 
-                  # Detect and summarize file types
                   declare -A LANG_MAP=(
                     ["js"]="JavaScript" ["ts"]="TypeScript" ["json"]="JSON"
-                    ["yaml"]="YAML" ["yml"]="YAML" ["py"]="Python" ["java"]="Java"
-                    ["kt"]="Kotlin" ["c"]="C" ["cpp"]="C++" ["cs"]="C#" ["rb"]="Ruby"
+                    ["yaml"]="YAML" ["yml"]="YAML" ["py"]="Python"
+                    ["java"]="Java" ["kt"]="Kotlin" ["c"]="C"
+                    ["cpp"]="C++" ["cs"]="C#" ["rb"]="Ruby"
                     ["go"]="Go" ["rs"]="Rust" ["html"]="HTML" ["css"]="CSS"
                   )
-                  FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | awk '{print $1, $2}')
+
+                  FILETYPES=$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c)
                   FILETYPES_TEXT=""
                   while read -r count ext; do
                     [ -z "${ext:-}" ] && continue
                     lang="${LANG_MAP[$ext]:-$ext}"
                     FILETYPES_TEXT+="$lang ($count)\n"
                   done <<< "$FILETYPES"
-                  FILETYPES_TEXT=$(echo -e "${FILETYPES_TEXT}" | sed '/^$/d')
 
-                  # Outputs
-                  echo "message<<EOF" >> $GITHUB_OUTPUT
-                  echo "$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-                  echo "EOF" >> $GITHUB_OUTPUT
-                  echo "author=$AUTHOR_NAME" >> $GITHUB_OUTPUT
-                  echo "login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
-                  echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-                  echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
-                  echo "added=$ADDED" >> $GITHUB_OUTPUT
-                  echo "deleted=$DELETED" >> $GITHUB_OUTPUT
-                  echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
-                  echo "filetypes<<EOF" >> $GITHUB_OUTPUT
-                  echo "$FILETYPES_TEXT" >> $GITHUB_OUTPUT
-                  echo "EOF" >> $GITHUB_OUTPUT
-                  echo "commit_url=${{ github.event.head_commit.url }}" >> $GITHUB_OUTPUT
+                  {
+                    echo "message<<EOF"
+                    echo "$COMMIT_MESSAGE"
+                    echo "EOF"
+                    echo "author=$AUTHOR_NAME"
+                    echo "login=$AUTHOR_LOGIN"
+                    echo "branch=$BRANCH_NAME"
+                    echo "timestamp=$TIMESTAMP"
+                    echo "added=$ADDED"
+                    echo "deleted=$DELETED"
+                    echo "files_changed=$FILES_CHANGED"
+                    echo "filetypes<<EOF"
+                    echo -e "$FILETYPES_TEXT"
+                    echo "EOF"
+                    echo "commit_url=${{ github.event.head_commit.url }}"
+                  } >> "$GITHUB_OUTPUT"
 
             - name: Map GitHub user -> Discord username
               id: mapuser
@@ -93,11 +91,21 @@ jobs:
                     ["oblongboot"]="<@768481984242253904>"
                     ["axlecoffee"]="<@790736254714642453>"
                   )
+
                   GH_USER="${{ steps.commit.outputs.login }}"
                   DISCORD_USER="${USER_MAP[$GH_USER]:-$GH_USER}"
-                  echo "discord=$DISCORD_USER" >> $GITHUB_OUTPUT
+                  echo "discord=$DISCORD_USER" >> "$GITHUB_OUTPUT"
 
-            - name: Send message to Discord
+            # ZIP ONLY ON MAIN
+            - name: Zip repository (main only)
+              if: github.ref == 'refs/heads/main'
+              run: |
+                  zip -r V5.zip . \
+                    -x ".git/*"
+
+            # MAIN BRANCH: EMBED + ZIP
+            - name: Send Discord message (main + zip)
+              if: github.ref == 'refs/heads/main'
               env:
                   DISCORD_WEBHOOK_URL: ${{ secrets.PUSH_NOTIFIER }}
                   COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
@@ -112,13 +120,60 @@ jobs:
               run: |
                   payload=$(jq -n \
                     --arg username "V5 Commits" \
-                    --arg avatar_url "https://cdn.donmai.us/sample/bb/4d/__os_tan_and_2_more_drawn_by_raviolimavioli__sample-bb4d90d601466faa9ff6bc816869a25d.jpg" \
-                    --arg title "New Commit" \
-                    --arg commit_url "$COMMIT_URL" \
+                    --arg title "New Commit (main)" \
                     --arg description "$COMMIT_MESSAGE" \
                     --arg author "$DISCORD_USER" \
                     --arg branch "$BRANCH_NAME" \
                     --arg timestamp "$TIMESTAMP" \
+                    --arg commit_url "$COMMIT_URL" \
+                    --arg added "$ADDED" \
+                    --arg deleted "$DELETED" \
+                    --arg files_changed "$FILES_CHANGED" \
+                    --arg filetypes "$FILE_TYPES" \
+                    --argjson color 3066993 \
+                    '{
+                      "username": $username,
+                      "embeds": [{
+                        "title": $title,
+                        "description": ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
+                        "color": $color,
+                        "fields": [
+                          {"name": "Author", "value": $author, "inline": true},
+                          {"name": "Branch", "value": $branch, "inline": true},
+                          {"name": "📂 Files Changed", "value": (($files_changed + " files changed") + "\n" + $filetypes), "inline": false},
+                          {"name": "📊 Code Line Changes", "value": ("+" + $added + " added\n-" + $deleted + " deleted"), "inline": false}
+                        ],
+                        "timestamp": $timestamp
+                      }]
+                    }')
+
+                  curl -X POST "$DISCORD_WEBHOOK_URL" \
+                    -F "payload_json=$payload" \
+                    -F "file=@V5.zip"
+
+            # NON-MAIN: EMBED ONLY
+            - name: Send Discord message (non-main)
+              if: github.ref != 'refs/heads/main'
+              env:
+                  DISCORD_WEBHOOK_URL: ${{ secrets.PUSH_NOTIFIER }}
+                  COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
+                  DISCORD_USER: ${{ steps.mapuser.outputs.discord }}
+                  BRANCH_NAME: ${{ steps.commit.outputs.branch }}
+                  TIMESTAMP: ${{ steps.commit.outputs.timestamp }}
+                  ADDED: ${{ steps.commit.outputs.added }}
+                  DELETED: ${{ steps.commit.outputs.deleted }}
+                  FILES_CHANGED: ${{ steps.commit.outputs.files_changed }}
+                  FILE_TYPES: ${{ steps.commit.outputs.filetypes }}
+                  COMMIT_URL: ${{ steps.commit.outputs.commit_url }}
+              run: |
+                  payload=$(jq -n \
+                    --arg username "V5 Commits" \
+                    --arg title "New Commit" \
+                    --arg description "$COMMIT_MESSAGE" \
+                    --arg author "$DISCORD_USER" \
+                    --arg branch "$BRANCH_NAME" \
+                    --arg timestamp "$TIMESTAMP" \
+                    --arg commit_url "$COMMIT_URL" \
                     --arg added "$ADDED" \
                     --arg deleted "$DELETED" \
                     --arg files_changed "$FILES_CHANGED" \
@@ -126,21 +181,18 @@ jobs:
                     --argjson color 3447003 \
                     '{
                       "username": $username,
-                      "avatar_url": $avatar_url,
-                      "embeds": [
-                        {
-                          "title": $title,
-                          "description": ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
-                          "color": $color,
-                          "fields": [
-                            {"name": "Author", "value": $author, "inline": true},
-                            {"name": "Branch", "value": $branch, "inline": true},
-                            {"name": "📂 Files Changed", "value": (($files_changed + " files changed") + (if ($filetypes | length) > 0 then "\n" + $filetypes else "" end)), "inline": false},
-                            {"name": "📊 Code Line Changes", "value": ("+" + $added + " added" + "\n" + "-" + $deleted + " deleted"), "inline": false}
-                          ],
-                          "timestamp": $timestamp
-                        }
-                      ]
+                      "embeds": [{
+                        "title": $title,
+                        "description": ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
+                        "color": $color,
+                        "fields": [
+                          {"name": "Author", "value": $author, "inline": true},
+                          {"name": "Branch", "value": $branch, "inline": true},
+                          {"name": "📂 Files Changed", "value": (($files_changed + " files changed") + "\n" + $filetypes), "inline": false},
+                          {"name": "📊 Code Line Changes", "value": ("+" + $added + " added\n-" + $deleted + " deleted"), "inline": false}
+                        ],
+                        "timestamp": $timestamp
+                      }]
                     }')
 
                   curl -X POST -H "Content-Type: application/json" \
