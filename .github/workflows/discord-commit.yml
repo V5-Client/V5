@@ -121,7 +121,7 @@ jobs:
               run: |
                   payload=$(jq -n \
                     --arg username "V5 Commits" \
-                    --arg title "New Commit (main)" \
+                    --arg title "New Commit" \
                     --arg description "$COMMIT_MESSAGE" \
                     --arg author "$DISCORD_USER" \
                     --arg branch "$BRANCH_NAME" \
@@ -131,7 +131,7 @@ jobs:
                     --arg deleted "$DELETED" \
                     --arg files_changed "$FILES_CHANGED" \
                     --arg filetypes "$FILE_TYPES" \
-                    --argjson color 3066993 \
+                    --argjson color 3447003 \
                     '{
                       "username": $username,
                       "embeds": [{
