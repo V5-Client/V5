@@ -133,12 +133,11 @@ class RotationsTo {
 
         if (!player) return null;
 
-        let playerPos = player.getPos();
-        let eyeHeight = player.getEyePos().y - playerPos.y;
+        let eyeHeight = player.getEyePos().y - player.y;
 
-        let dx = vec.x - playerPos.x;
-        let dy = vec.y - (playerPos.y + eyeHeight);
-        let dz = vec.z - playerPos.z;
+        let dx = vec.x - player.x;
+        let dy = vec.y - (player.y + eyeHeight);
+        let dz = vec.z - player.z;
 
         let targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         let dist = Math.sqrt(dx * dx + dz * dz);
