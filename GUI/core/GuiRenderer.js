@@ -3,10 +3,6 @@ import { drawRoundedRectangleWithBorder, clamp, PADDING, NVG, scissor, resetScis
 import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
 
 export const drawGUI = (mouseX, mouseY) => {
-    NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-
-    global.GuiTooltip.reset();
-
     const elapsed = Date.now() - global.GuiState.openStartTime;
     const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
 
@@ -40,22 +36,32 @@ export const drawGUI = (mouseX, mouseY) => {
 
     Client.getMinecraft().gameRenderer.renderBlur();
 
-    drawRoundedRectangleWithBorder(global.GuiState.animatedBackground);
-    drawRoundedRectangleWithBorder(global.GuiState.animatedLeftPanel);
-    drawRoundedRectangleWithBorder(global.GuiState.animatedRightPanel);
+    try {
+        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
 
-    if (progress >= 0.99) {
-        drawLeftPanelBackgrounds(mouseX, mouseY);
-        drawLeftPanelIcons(mouseX, mouseY);
+        global.GuiTooltip.reset();
 
-        const panel = global.GuiRectangles.RightPanel;
-        scissor(panel.x, panel.y, panel.width, panel.height);
-        global.categoryManager?.draw(mouseX, mouseY);
-        resetScissor();
+        drawRoundedRectangleWithBorder(global.GuiState.animatedBackground);
+        drawRoundedRectangleWithBorder(global.GuiState.animatedLeftPanel);
+        drawRoundedRectangleWithBorder(global.GuiState.animatedRightPanel);
+
+        if (progress >= 0.99) {
+            drawLeftPanelBackgrounds(mouseX, mouseY);
+            drawLeftPanelIcons(mouseX, mouseY);
+
+            const panel = global.GuiRectangles.RightPanel;
+            scissor(panel.x, panel.y, panel.width, panel.height);
+            global.categoryManager?.draw(mouseX, mouseY);
+            resetScissor();
+        }
+
+        global.GuiTooltip.update();
+        global.GuiTooltip.draw(mouseX, mouseY);
+    } catch (e) {
+        console.error('V5 GUI Error: ' + e);
+    } finally {
+        try {
+            NVG.endFrame();
+        } catch (e) {}
     }
-
-    global.GuiTooltip.update();
-    global.GuiTooltip.draw(mouseX, mouseY);
-
-    NVG.endFrame();
 };

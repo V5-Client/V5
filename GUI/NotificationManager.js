@@ -22,7 +22,6 @@ const ICON_SYMBOL_COLOR = THEME.NOTIFICATION_ICON_SYMBOL;
 const TEXT_COLOR = THEME.NOTIFICATION_TEXT;
 const DESCRIPTION_COLOR = THEME.NOTIFICATION_DESCRIPTION;
 const CLOSE_BUTTON_COLOR = THEME.NOTIFICATION_CLOSE_BUTTON;
-const CLOSE_BUTTON_HOVER_COLOR = THEME.NOTIFICATION_CLOSE_BUTTON_HOVER;
 const PROGRESS_BAR_COLOR = THEME.NOTIFICATION_PROGRESS_BAR;
 
 const NOTIFICATION_TYPES = {
@@ -104,6 +103,10 @@ class Notification {
         this.targetY = 0;
         this.opacity = 0;
         this.closeHovered = false;
+        this.closeSize = 14;
+        this.closeClickSize = 20;
+        this.closeXOffset = NOTIFICATION_WIDTH - 24;
+
         this.calculateLayout();
     }
 
@@ -141,6 +144,7 @@ class Notification {
         const baseHeight = NOTIFICATION_HEIGHT;
         const extraLines = Math.max(0, this.wrappedDescription.length - 1);
         this.height = baseHeight + extraLines * DESC_LINE_SPACING;
+        this.closeYOffset = this.height / 2 - this.closeClickSize / 2;
     }
 
     update() {
@@ -254,28 +258,9 @@ class Notification {
             drawText(line, textX, currentDescY, 6, descAlpha);
         });
 
-        const closeX = this.x + NOTIFICATION_WIDTH - 30;
-        const closeY = this.y + this.height / 2 - 10;
-        const closeSize = 20;
-
-        const closeRect = { x: closeX, y: closeY, width: closeSize, height: closeSize };
-        this.closeHovered = isInside(mouseX, mouseY, closeRect);
-
-        if (this.closeHovered) {
-            const hoverColor = colorWithAlpha(CLOSE_BUTTON_HOVER_COLOR, alpha);
-            drawRoundedRectangle({
-                x: closeX,
-                y: closeY,
-                width: closeSize,
-                height: closeSize,
-                radius: 4,
-                color: hoverColor,
-            });
-        }
-
         const closeColor = (Math.floor(alpha * 255) << 24) | CLOSE_BUTTON_COLOR;
         NVG.save();
-        NVG.translate(closeX + closeSize / 2, closeY + closeSize / 2);
+        NVG.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
         NVG.rotate(45);
         NVG.drawRect(-0.75, -5, 1.5, 10, closeColor);
         NVG.drawRect(-5, -0.75, 10, 1.5, closeColor);
@@ -286,7 +271,7 @@ class Notification {
             const progressBarWidth = NOTIFICATION_WIDTH * progress;
             const progressColor = colorWithAlpha(PROGRESS_BAR_COLOR, alpha);
 
-            if (progressBarWidth > 0) {
+            if (progressBarWidth > 0.5) {
                 NVG.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
 
                 drawRoundedRectangle({
@@ -304,7 +289,17 @@ class Notification {
     }
 
     handleClick(mouseX, mouseY) {
-        if (this.closeHovered) {
+        const closeX = this.x + this.closeXOffset;
+        const closeY = this.y + this.closeYOffset;
+
+        const buffer = 5;
+
+        if (
+            mouseX >= closeX - buffer &&
+            mouseX <= closeX + this.closeClickSize + buffer &&
+            mouseY >= closeY - buffer &&
+            mouseY <= closeY + this.closeClickSize + buffer
+        ) {
             this.startExit();
             return true;
         }
@@ -386,26 +381,38 @@ class NotificationManager {
         });
     }
     render() {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-        const mouseX = Client.getMouseX();
-        const mouseY = Client.getMouseY();
-        for (let i = this.notifications.length - 1; i >= 0; i--) {
-            this.notifications[i].draw(mouseX, mouseY);
+        try {
+            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
+            const mouseX = Client.getMouseX();
+            const mouseY = Client.getMouseY();
+            for (let i = this.notifications.length - 1; i >= 0; i--) {
+                this.notifications[i].draw(mouseX, mouseY);
+            }
+        } catch (e) {
+        } finally {
+            try {
+                NVG.endFrame();
+            } catch (e) {}
         }
-        NVG.endFrame();
     }
     renderAboveGui() {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-        const mouseX = Client.getMouseX();
-        const mouseY = Client.getMouseY();
-        for (let i = this.notifications.length - 1; i >= 0; i--) {
-            this.notifications[i].draw(mouseX, mouseY);
+        try {
+            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
+            const mouseX = Client.getMouseX();
+            const mouseY = Client.getMouseY();
+            for (let i = this.notifications.length - 1; i >= 0; i--) {
+                this.notifications[i].draw(mouseX, mouseY);
+            }
+        } catch (e) {
+        } finally {
+            try {
+                NVG.endFrame();
+            } catch (e) {}
         }
-        NVG.endFrame();
     }
     handleClick(mouseX, mouseY) {
-        for (const notification of this.notifications) {
-            if (notification.handleClick(mouseX, mouseY)) break;
+        for (let i = 0; i < this.notifications.length; i++) {
+            if (this.notifications[i].handleClick(mouseX, mouseY)) break;
         }
     }
     destroy() {
