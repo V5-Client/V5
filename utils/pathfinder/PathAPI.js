@@ -1,18 +1,15 @@
-import request from 'requestV2';
-
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
 import { PathfindingMessages } from './PathConfig';
-import { Links, Vec3d } from '../Constants';
+import { Vec3d } from '../Constants';
 import { Utils } from '../Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { Chat } from '../Chat';
 import { Keybind } from '../player/Keybinding';
-
-const localhost = `${Links.PATHFINDER_API_URL}`;
+import { SwiftBridge } from './SwiftBridge';
 
 let renderPath = null;
 let currentPathRequest = null;
@@ -22,15 +19,6 @@ export let pathNodes = [];
 export let keyNodes = [];
 export let betweenNodes = [];
 export let spline = [];
-
-const Maps = {
-    'Dwarven Mines': 'mines',
-    Galatea: 'galatea',
-    Hub: 'hub',
-};
-
-let currentIsland = null;
-let loadingMap = false;
 
 export function setPathNodes(nodes) {
     pathNodes = nodes;
@@ -113,195 +101,89 @@ function drawKeyNodes(keynodes) {
     }
 }
 
-function loadMap(map, area, callback) {
-    if (loadingMap) return;
-    loadingMap = true;
-
-    const url = `${localhost}/api/loadmap?map=${map}`;
-    request({ url, timeout: 5000 })
-        .then(() => {
-            currentIsland = area;
-            loadingMap = false;
-            console.log(`Successfully loaded map '${map}'.`);
-            global.showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
-
-            if (typeof callback === 'function') {
-                callback();
-            }
-        })
-        .catch((err) => {
-            loadingMap = false;
-            console.log(`Error loading map ${map}: ${err}`);
-            global.showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
-        });
-}
-
-function getSinglePlayerWarpCommand(warpName) {
-    const warps = {
-        '/warp mines': 'tp @s -49 200 -122 -90 0',
-        '/warp forge': 'tp @s 0 149 -68 90 0',
-    };
-    return warps[warpName] || null;
-}
-
-function handleWarp(warpCommand, onComplete) {
-    const tpCommand = Server.getName() === 'SinglePlayer' ? getSinglePlayerWarpCommand(warpCommand) : warpCommand.slice(1);
-
-    if (!tpCommand) {
-        global.showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
-        return;
-    }
-
-    Chat.message(`§aWarp point found! Running command: §e${tpCommand}`);
-    ChatLib.command(tpCommand);
-    setTimeout(onComplete, 250);
-}
-
 function executePathfinding(start, end, onComplete, renderOnly = false) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = end; // dont adjust. if your end coordinate is wrong, that's your fault.
-    //const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
-
-    const mapIdentifier = Maps[currentIsland] || 'mines';
-
-    const url = `${localhost}/api/pathfind`;
-    const postData = {
-        start: adjustedStart.join(','),
-        end: adjustedEnd.join(','),
-        use_keynodes: true,
-        use_spline: false,
-        use_warp_points: false,
-        use_etherwarp: false,
-        is_perfect_path: false,
-    };
+    const adjustedEnd = end;
 
     PathfindingMessages(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
 
-    request({
-        url,
-        method: 'POST',
-        json: true,
-        body: postData,
-        timeout: 15000,
-    })
-        .then((body) => {
-            if (currentPathRequest !== requestId) return;
+    const body = SwiftBridge.findPath(adjustedStart[0], adjustedStart[1], adjustedStart[2], adjustedEnd[0], adjustedEnd[1], adjustedEnd[2]);
 
-            if (!body) {
-                global.showNotification('Pathfinding Failed', 'Empty response from pathfinder.', 'ERROR', 5000);
-                console.error('Pathfinding response was null or undefined');
-                return;
-            }
+    if (currentPathRequest !== requestId) return;
 
-            if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
-                global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
-                console.error('Invalid keynodes in response:', body);
-                return;
-            }
+    if (!body) {
+        const error = SwiftBridge.getLastError() || 'Unknown error';
+        global.showNotification('Pathfinding Failed', error, 'ERROR', 5000);
+        console.error('Pathfinding failed:', error);
+        return;
+    }
 
-            const beginPathing = () => {
-                if (currentPathRequest !== requestId) return;
+    if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
+        global.showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
+        console.error('Invalid keynodes in response:', body);
+        return;
+    }
 
-                if (body.path && Array.isArray(body.path) && body.path.length) {
-                    setPathNodes(body.path);
-                }
+    PathfindingMessages(`Path found in ${body.time_ms}ms`);
 
-                if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
-                    setKeyNodes(body.keynodes);
-                }
+    if (body.path && Array.isArray(body.path) && body.path.length) {
+        setPathNodes(body.path);
+    }
 
-                let generatedSpline = [];
-                if (body.path_between_key_nodes && Array.isArray(body.path_between_key_nodes) && body.path_between_key_nodes.length) {
-                    generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
-                } else if (body.keynodes && body.keynodes.length) {
-                    console.log('No path_between_key_nodes, using keynodes for spline');
-                    generatedSpline = generateHybridSpline(body.keynodes, 1);
-                }
+    if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
+        setKeyNodes(body.keynodes);
+    }
 
-                setPathNodes(generatedSpline);
+    let generatedSpline = [];
+    if (body.path_between_key_nodes && Array.isArray(body.path_between_key_nodes) && body.path_between_key_nodes.length) {
+        generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
+    } else if (body.keynodes && body.keynodes.length) {
+        console.log('No path_between_key_nodes, using keynodes for spline');
+        generatedSpline = generateHybridSpline(body.keynodes, 1);
+    }
 
-                if (getRenderKeyNodes() || getRenderFloatingSpline()) {
-                    renderPath = register('postRenderWorld', () => {
-                        if (getRenderKeyNodes() && body.keynodes) drawKeyNodes(body.keynodes);
-                        if (getRenderFloatingSpline() && generatedSpline.length) drawFloatingSpline(generatedSpline);
-                    });
-                }
+    setPathNodes(generatedSpline);
 
-                if (renderOnly) {
-                    global.showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
-                    return;
-                }
-
-                path = register('tick', () => {
-                    pathRotations(generatedSpline);
-
-                    const jumpPath = body.path_between_key_nodes && body.path_between_key_nodes.length ? body.path_between_key_nodes : body.keynodes;
-                    detectJump(jumpPath);
-
-                    PathMovement();
-
-                    if (!PathComplete()) return;
-
-                    path.unregister();
-                    path = null;
-
-                    PathMovement(false);
-                    ResetRotations();
-                    stopPathing();
-
-                    global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-                    if (onComplete && typeof onComplete === 'function') onComplete();
-                });
-            };
-
-            if (body.warp_point && body.warp_point.command) {
-                handleWarp(body.warp_point.command, beginPathing);
-            } else {
-                beginPathing();
-            }
-        })
-        .catch((err) => {
-            if (currentPathRequest !== requestId) return;
-
-            global.showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
-            console.error(`Pathfinding request failed: ${err}`);
+    if (getRenderKeyNodes() || getRenderFloatingSpline()) {
+        renderPath = register('postRenderWorld', () => {
+            if (getRenderKeyNodes() && body.keynodes) drawKeyNodes(body.keynodes);
+            if (getRenderFloatingSpline() && generatedSpline.length) drawFloatingSpline(generatedSpline);
         });
+    }
+
+    if (renderOnly) {
+        global.showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
+        return;
+    }
+
+    path = register('tick', () => {
+        pathRotations(generatedSpline);
+
+        const jumpPath = body.path_between_key_nodes && body.path_between_key_nodes.length ? body.path_between_key_nodes : body.keynodes;
+        detectJump(jumpPath);
+
+        PathMovement();
+
+        if (!PathComplete()) return;
+
+        path.unregister();
+        path = null;
+
+        PathMovement(false);
+        ResetRotations();
+        stopPathing();
+
+        global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+        if (onComplete && typeof onComplete === 'function') onComplete();
+    });
 }
 
 export function findAndFollowPath(start, end, renderOnlyOrCallback) {
     const renderOnly = typeof renderOnlyOrCallback === 'boolean' ? renderOnlyOrCallback : false;
     const onComplete = typeof renderOnlyOrCallback === 'function' ? renderOnlyOrCallback : null;
-
-    const area = Utils.area();
-
-    if (area !== currentIsland) {
-        if (loadingMap) {
-            return;
-        }
-
-        if (Maps[area]) {
-            const mapValue = Maps[area];
-
-            loadMap(mapValue, area, () => {
-                executePathfinding(start, end, onComplete, renderOnly);
-            });
-            return;
-        } else {
-            console.log(`No matching map found for area: ${area}`);
-            global.showNotification('Map Error', `Cannot pathfind, no map found for area: ${area}`, 'ERROR', 5000);
-            if (Server.getName() === 'SinglePlayer') {
-                const mapValue = Maps['Dwarven Mines']; // just here to load mines as default (singleplayer testing reasons)
-
-                loadMap(mapValue, area, () => {
-                    executePathfinding(start, end, onComplete, renderOnly);
-                });
-            }
-            return;
-        }
-    }
 
     executePathfinding(start, end, onComplete, renderOnly);
 }
