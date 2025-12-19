@@ -12,6 +12,7 @@ const FloatControl = javax.sound.sampled.FloatControl;
 // touchen up colours rn they ugly
 // touch up code
 // rewrite some stuff!
+// allow edit of failsafe sound
 
 class AlertUtilsClass {
     constructor() {
@@ -24,21 +25,22 @@ class AlertUtilsClass {
         this.cancelKeyBind = null;
         this.cancelKey = null;
 
-        this.alertText = null;
-        this.alertScreen = null;
+        this.render = null;
         this.tracker = null;
 
         this._makeFailsafeKeybind();
     }
 
+    /**
+     * Combines all internal methods to create a failsafe alert
+     */
     triggerReaction() {
-        if (this.alertText || this.alertScreen) return;
-
         Chat.failsafeMessage('Suspicious activity detected, reaction occuring!');
         Chat.failsafeMessage(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
         this.isAlerting = true;
         this.playSound();
+        this._grabWindowOnFailsafe();
 
         const line1 = 'V5 BELIEVES YOU HAVE BEEN MACRO CHECKED!';
         const key = `${this.cancelKey}`;
@@ -54,7 +56,7 @@ class AlertUtilsClass {
         const redColor = 0xffff0000; // change this
         const highlightColor = 0xffffffff; // this too
 
-        this.alertText = register('renderOverlay', () => {
+        this.render = register('renderOverlay', () => {
             const scale = fontSize / 10;
             const x1 = screenW / 2 - (Renderer.getStringWidth(line1) * scale) / 2;
             const totalLine2Width = (Renderer.getStringWidth(line2Start) + Renderer.getStringWidth(key) + Renderer.getStringWidth(line2End)) * scale;
@@ -66,13 +68,13 @@ class AlertUtilsClass {
 
             drawText(line1, x1, startY, fontSize, redColor);
             drawText(line2Start, currentX2, y2, fontSize, redColor);
+
             currentX2 += Renderer.getStringWidth(line2Start) * scale;
             drawText(key, currentX2, y2, fontSize, highlightColor);
+
             currentX2 += Renderer.getStringWidth(key) * scale;
             drawText(line2End, currentX2, y2, fontSize, redColor);
-        });
 
-        this.alertScreen = register('renderOverlay', () => {
             this._renderAlertScreen();
         });
 
@@ -81,27 +83,26 @@ class AlertUtilsClass {
                 Chat.failsafeMessage('Reaction disabled due to keybind being pressed');
                 this.disableReaction();
             }
-
-            if (Client.isInGui()) {
-                this.disableReaction();
-            }
         });
     }
 
+    /**
+     * Disables the reaction & nulls all registers included
+     */
     disableReaction() {
         this.isAlerting = false;
         this.stopSound();
 
-        this.alertText.unregister();
-        this.alertText = null;
-
-        this.alertScreen.unregister();
-        this.alertScreen = null;
+        this.render.unregister();
+        this.render = null;
 
         this.tracker.unregister();
         this.tracker = null;
     }
 
+    /**
+     * Plays a sound if the player has the setting toggled
+     */
     playSound() {
         if (!FailsafeUtils.getFailsafeSettings('Play sound on check').playSoundOnCheck) return;
         if (!this.clip || this.savedSound !== global.failsafeSound) this._loadsoundFile();
@@ -113,12 +114,20 @@ class AlertUtilsClass {
         }
     }
 
+    /**
+     * Stops any sounds from playing
+     */
     stopSound() {
         if (this.clip && this.clip.isRunning()) this.clip.stop();
     }
 
+    /**
+     * Loads a sound file using Java methods
+     */
     _loadsoundFile() {
-        this.savedSound = global.failsafeSound;
+        this.savedSound = global.failsafeSound || 'Tave Check.wav';
+        if (global.failsafeSound.includes('undefined')) this.savedSound = 'Tave Check.wav';
+
         this.soundFile = new File(Client.getMinecraft().runDirectory, `config/ChatTriggers/modules/V5/Failsafes/sounds/${this.savedSound}`);
         if (!this.soundFile.exists()) return;
 
@@ -134,6 +143,9 @@ class AlertUtilsClass {
         }
     }
 
+    /**
+     * Uses NVG to draw a overlay over the whole screen
+     */
     _renderAlertScreen() {
         if (Client.isInChat()) return;
         try {
@@ -157,6 +169,9 @@ class AlertUtilsClass {
         }
     }
 
+    /**
+     * Creates a keybind for canceling the reaction
+     */
     _makeFailsafeKeybind() {
         const keyName = 'Cancel Reaction';
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
@@ -171,7 +186,26 @@ class AlertUtilsClass {
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
             allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
             Utils.writeConfigFile('keybinds.json', allKeybinds);
+
+            this.stopSound();
         });
+    }
+
+    /**
+     * Uses GLFW to grab the window on a failsafe if they have the setting toggled (WIP)
+     */
+    _grabWindowOnFailsafe() {
+        try {
+            const GLFW = org.lwjgl.glfw.GLFW;
+            const windowHandle = Client.getMinecraft().getWindow().getHandle();
+
+            GLFW.glfwShowWindow(windowHandle);
+            GLFW.glfwRestoreWindow(windowHandle);
+            GLFW.glfwFocusWindow(windowHandle);
+            GLFW.glfwRequestWindowAttention(windowHandle);
+        } catch (e) {
+            Chat.failsafeMessage('GLFW error occured! report this.' + e);
+        }
     }
 }
 
