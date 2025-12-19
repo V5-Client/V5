@@ -38,6 +38,15 @@ class ChatClass {
         this.sendMsg(msg, true);
     }
 
+    failsafeMessage(msg) {
+        if (!msg) return;
+        const colouredMsg = `§f${msg}`;
+
+        Client.scheduleTask(0, () => {
+            gradientInstance.sendGradientMsg(FailsafePrefix, colouredMsg, 0x05b9f9, 0x0539f9);
+        });
+    }
+
     irc(msg) {
         if (!msg) return;
         Client.scheduleTask(0, () => {
