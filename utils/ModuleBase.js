@@ -118,7 +118,7 @@ export class ModuleBase {
 
             this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, keybindCategory);
         } else {
-            this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'V5');
+            this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'v5');
         }
 
         this._toggleKeyBind.registerKeyPress(() => this.toggle());
