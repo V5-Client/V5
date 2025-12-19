@@ -5,9 +5,11 @@ global.mcVersion = (net.minecraft.SharedConstants.getGameVersion()?.getId() || n
     .reduce((acc, val) => acc * 100 + parseInt(val), 0);
 
 global.Version = '1.0.0';
-Client.getMinecraft()
-    .getWindow()
-    .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
+// comment out because mac. please edit ctjs to not break!
+
+//Client.getMinecraft()
+//    .getWindow()
+//    .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
 /* GUI */
 import './gui/GUI.js';
