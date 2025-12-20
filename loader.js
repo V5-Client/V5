@@ -25,8 +25,13 @@ import './utils/Clipping.js'; // register command. it uses modulebase cuz fuck y
 import './utils/Misc.js';
 import './utils/Webhooks.js';
 import './Failsafes/FailsafeManager.js';
+import './utils/V5Mod.js';
 
 import './modules/loader.js';
 
 import { loadSettings } from './gui/GuiSave';
 loadSettings();
+
+const Fabric = net.fabricmc.loader.api.FabricLoader;
+
+ChatLib.chat(Fabric.getInstance().isModLoaded('v5'));
