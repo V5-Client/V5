@@ -106,8 +106,10 @@ class Notification {
         this.closeSize = 14;
         this.closeClickSize = 20;
         this.closeXOffset = NOTIFICATION_WIDTH - 24;
-
-        this.calculateLayout();
+        this.height = NOTIFICATION_HEIGHT;
+        this.closeYOffset = 0;
+        this.layoutCalculated = false;
+        this.wrappedDescription = [];
     }
 
     wrapText(text, maxWidth) {
@@ -145,9 +147,15 @@ class Notification {
         const extraLines = Math.max(0, this.wrappedDescription.length - 1);
         this.height = baseHeight + extraLines * DESC_LINE_SPACING;
         this.closeYOffset = this.height / 2 - this.closeClickSize / 2;
+        this.layoutCalculated = true;
     }
 
     update() {
+        if (!this.layoutCalculated) {
+            this.calculateLayout();
+            global.notificationManager.updatePositions();
+        }
+
         const now = Date.now();
         const lifetime = now - this.createdAt;
         if (this.state === 'entering') {
@@ -258,6 +266,8 @@ class Notification {
             drawText(line, textX, currentDescY, 6, descAlpha);
         });
 
+        const closeX = this.x + this.closeXOffset;
+        const closeY = this.y + this.closeYOffset;
         const closeColor = (Math.floor(alpha * 255) << 24) | CLOSE_BUTTON_COLOR;
         NVG.save();
         NVG.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
@@ -272,6 +282,7 @@ class Notification {
             const progressColor = colorWithAlpha(PROGRESS_BAR_COLOR, alpha);
 
             if (progressBarWidth > 0.5) {
+                NVG.save();
                 NVG.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
 
                 drawRoundedRectangle({
@@ -284,6 +295,7 @@ class Notification {
                 });
 
                 NVG.resetScissor();
+                NVG.restore();
             }
         }
     }
