@@ -25,6 +25,7 @@ import './utils/Clipping.js'; // register command. it uses modulebase cuz fuck y
 import './utils/Misc.js';
 import './utils/Webhooks.js';
 import './Failsafes/FailsafeManager.js';
+import './utils/V5Mod.js';
 
 import './modules/loader.js';
 
