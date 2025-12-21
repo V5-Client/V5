@@ -31,7 +31,3 @@ import './modules/loader.js';
 
 import { loadSettings } from './gui/GuiSave';
 loadSettings();
-
-const Fabric = net.fabricmc.loader.api.FabricLoader;
-
-ChatLib.chat(Fabric.getInstance().isModLoaded('v5'));

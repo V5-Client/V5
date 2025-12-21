@@ -1,12 +1,10 @@
 import { NukerUtils } from '../../utils/NukerUtils';
 import { Chat } from '../../utils/Chat';
 import { Utils } from '../../utils/Utils';
+import { Executor } from '../../utils/ThreadExecutor';
 import RenderUtils from '../../utils/render/RendererUtils';
-import { Vec3d, BP, ConcurrentLinkedQueue, AtomicBoolean, PlayerInteractBlockC2SPacket } from '../../utils/Constants';
+import { Vec3d, BP, PlayerInteractBlockC2SPacket } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-// TODO
-// 4:10 : save block config
-// 2/10 : nuker preset commands
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -31,17 +29,9 @@ class NukerClass extends ModuleBase {
 
         this.BLOCK_COOLDOWN = 20;
         this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
-
         this.lastNukeTime = Date.now();
 
-        this.customBlockID = 0;
         this.customBlockList = [];
-
-        // worker thread stuff
-        this.workerThread = null;
-        this.taskQueue = new ConcurrentLinkedQueue();
-        this.resultQueue = new ConcurrentLinkedQueue();
-        this.workerRunning = new AtomicBoolean(false);
 
         // settings
         this.blockType = 'Custom';
@@ -53,9 +43,9 @@ class NukerClass extends ModuleBase {
         this.onGroundDelay = 1;
         this.offGroundDelay = 1;
 
+        // Commands
         register('command', (ticks = 1) => {
             let block = Player.lookingAt();
-
             if (block?.getClass() === Block) {
                 let pos = [block.getX(), block.getY(), block.getZ()];
                 Chat.debugMessage('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
@@ -66,10 +56,7 @@ class NukerClass extends ModuleBase {
         register('command', () => {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {
-                const newBlock = {
-                    name: block.type.getName(),
-                    id: block.type.getID(),
-                };
+                const newBlock = { name: block.type.getName(), id: block.type.getID() };
                 if (!this.customBlockList.some((b) => b.id === newBlock.id)) {
                     this.customBlockList.push(newBlock);
                     Chat.message('Added ' + block.type.getName() + ' to custom nuker list.');
@@ -82,34 +69,16 @@ class NukerClass extends ModuleBase {
         }).setCommandName('nukeradd');
 
         register('command', (id) => {
-            if (id === undefined) {
-                Chat.message('Usage: /nukerremove <id>');
-                return;
-            }
+            if (id === undefined) return Chat.message('Usage: /nukerremove <id>');
             let initialLength = this.customBlockList.length;
             this.customBlockList = this.customBlockList.filter((block) => !(block.id === parseInt(id)));
-            if (this.customBlockList.length < initialLength) {
-                Chat.message('Removed block(s) from custom nuker list.');
-            } else {
-                Chat.message('Block not found in custom nuker list.');
-            }
+            if (this.customBlockList.length < initialLength) Chat.message('Removed block(s).');
         }).setCommandName('nukerremove');
 
         register('command', () => {
             this.customBlockList = [];
             Chat.message('Cleared custom nuker list.');
         }).setCommandName('nukerclear');
-
-        register('command', () => {
-            if (this.customBlockList.length === 0) {
-                Chat.message('Custom nuker list is empty.');
-                return;
-            }
-            Chat.message('Custom Nuker List:');
-            this.customBlockList.forEach((block) => {
-                Chat.message(`Name: ${block.name} - ID: ${block.id}`);
-            });
-        }).setCommandName('nukerlist');
 
         this.on('tick', () => {
             this.tickCounter++;
@@ -119,103 +88,68 @@ class NukerClass extends ModuleBase {
             if (Client.getKeyBindFromDescription('key.attack').isKeyDown()) return;
             if (!this.onGround()) return;
 
-            let delay;
-            if (Player.asPlayerMP().isOnGround()) {
-                delay = this.onGroundDelay;
-                if (this.tickCounter - this.lastMineTick < this.onGroundDelay) return;
-            } else {
-                delay = this.onGroundDelay;
-                if (this.tickCounter - this.lastMineTick < this.offGroundDelay) return;
-            }
+            let delay = Player.asPlayerMP().isOnGround() ? this.onGroundDelay : this.offGroundDelay;
+            if (this.tickCounter - this.lastMineTick < delay) return;
 
             this.lastMineTick = this.tickCounter;
             this.chestClickedThisTick = false;
 
+            // Cleanup cooldown map
             for (const [pos, tick] of this.minedBlocks) {
                 if (this.tickCounter - tick > this.BLOCK_COOLDOWN) {
                     this.minedBlocks.delete(pos);
                 }
             }
 
-            while (!this.resultQueue.isEmpty()) {
-                const result = this.resultQueue.poll();
-                if (result) {
-                    NukerUtils.nukeQueueAdd([result.getX(), result.getY(), result.getZ()], delay);
-                    this.target = result;
-                    this.minedBlocks.set(this.posToString(result), this.tickCounter);
+            // Perform Scan directly on tick
+            Executor.execute(() => {
+                const target = this.scanForBlock();
 
-                    // "mining spread" mechanic
-                    if (this.targetMode === 'Random' || this.targetMode === 'Lowest' || this.targetMode === 'Highest') {
-                        // 3x3x3
-                        const resultX = result.getX();
-                        const resultY = result.getY();
-                        const resultZ = result.getZ();
+                if (target) {
+                    const posArr = [target.getX(), target.getY(), target.getZ()];
+                    NukerUtils.nukeQueueAdd(posArr, delay);
+                    this.target = target;
+                    this.minedBlocks.set(this.posToString(target), this.tickCounter);
+
+                    // Handle "mining spread" logic
+                    if (['Random', 'Lowest', 'Highest'].includes(this.targetMode)) {
                         for (let dx = -1; dx <= 1; dx++) {
                             for (let dy = -1; dy <= 1; dy++) {
                                 for (let dz = -1; dz <= 1; dz++) {
-                                    const spreadPos = new BP(resultX + dx, resultY + dy, resultZ + dz);
+                                    const spreadPos = new BP(target.getX() + dx, target.getY() + dy, target.getZ() + dz);
                                     this.minedBlocks.set(this.posToString(spreadPos), this.tickCounter);
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            let playerX = Math.floor(Player.getX());
-            let playerY = Math.floor(Player.getY());
-            let playerZ = Math.floor(Player.getZ());
-
-            const task = {
-                type: 'SCAN_BLOCKS',
-                playerPos: { x: playerX, y: playerY, z: playerZ },
-                blockType: this.blockType,
-                targetMode: this.targetMode,
-                nukeBelow: this.nukeBelow,
-                heightLimit: this.heightLimit,
-                customBlockList: [...this.customBlockList],
-                minedBlocks: new Set(this.minedBlocks.keys()),
-                playerCords: this.cords(),
-            };
-
-            this.taskQueue.offer(task);
+            });
         });
 
         this.on('postRenderWorld', () => {
-            if (this.target) {
-                this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
+            if (this.target) this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
+            if (this.chestPos && this.autoChest && this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance <= 8) {
+                RenderUtils.drawBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), [100, 100, 255, 150], false);
             }
-
-            if (!this.chestPos) return;
-
-            if (this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance > 8 || !this.autoChest) return;
-
-            RenderUtils.drawBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), [100, 100, 255, 150], false);
         });
 
         this.on('renderBlockEntity', (entity) => {
             if (Client.isInGui() && !Client.isInChat()) return;
             if (!this.isHoldingRequiredItem()) return;
 
-            if (entity?.getBlockType() != null && entity?.getBlockType()?.getID() === 188) {
+            if (entity?.getBlockType()?.getID() === 188) {
                 const chest = entity?.getBlock()?.pos;
-                this.chestPos = chest;
                 if (!chest) return;
+                this.chestPos = chest;
+                const posStr = `${chest.x},${chest.y},${chest.z}`;
 
-                const pos = `${chest.x},${chest.y},${chest.z}`;
-
-                if (this.clickQueue.has(pos)) return; // Skip if already queued
-
+                if (this.clickQueue.has(posStr)) return;
                 if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
 
-                if (
-                    this.autoChest &&
-                    !this.chestClickedThisTick &&
-                    (!this.lastChestClick[pos] || Date.now() - this.lastChestClick[pos] > Math.floor(Math.random() * 50) + 50)
-                ) {
-                    this.clickQueue.add(pos);
+                if (this.autoChest && !this.chestClickedThisTick && (!this.lastChestClick[posStr] || Date.now() - this.lastChestClick[posStr] > 50)) {
+                    this.clickQueue.add(posStr);
                     this.rightClickBlock([chest.x, chest.y, chest.z]);
-                    this.lastChestClick[pos] = Date.now();
+                    this.lastChestClick[posStr] = Date.now();
                     this.chestClickedThisTick = true;
                 }
             }
@@ -224,261 +158,125 @@ class NukerClass extends ModuleBase {
         this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
         this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
-        this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v), 'Delay in ticks when on ground (0-20)');
-        this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v), 'Delay in ticks when off ground (0-20)');
-        this.addMultiToggle(
-            'Target Mode',
-            ['Random', 'Closest', 'Lowest', 'Highest'],
-            true,
-            (v) => {
-                this.targetMode = v.find((option) => option.enabled)?.name;
-            },
-            'Random => high spread\nClosest => no spread\nLowest => Fig trees\nHighest => Mangrove trees'
-        );
-    }
-
-    startWorker() {
-        if (this.workerThread && this.workerRunning.get()) {
-            return;
-        }
-
-        this.workerRunning.set(true);
-        this.workerThread = new Thread(() => {
-            while (this.workerRunning.get()) {
-                try {
-                    const task = this.taskQueue.poll();
-
-                    if (!task) {
-                        Thread.sleep(10);
-                        continue;
-                    }
-
-                    if (task.type === 'SCAN_BLOCKS') {
-                        this.processScanTask(task);
-                    }
-                } catch (e) {
-                    if (e instanceof java.lang.InterruptedException) {
-                        break; // interrupted, what do i do
-                    }
-                    Chat.debugMessage('Worker thread error: ' + e);
-                }
-            }
+        this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
+        this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v));
+        this.addMultiToggle('Target Mode', ['Random', 'Closest', 'Lowest', 'Highest'], true, (v) => {
+            this.targetMode = v.find((o) => o.enabled)?.name;
         });
-
-        //this.workerThread.setName('NukerWorker'); //these dont exist apparently
-        //this.workerThread.setDaemon(true); // grrr
-        this.workerThread.start();
     }
 
-    stopWorker() {
-        if (!this.workerThread || !this.workerRunning.get()) {
-            return;
-        }
-
-        this.workerRunning.set(false);
-
-        if (this.workerThread) {
-            try {
-                this.workerThread.interrupt();
-                this.workerThread.join(1000);
-            } catch (e) {}
-            this.workerThread = null;
-        }
-
-        this.taskQueue.clear();
-        this.resultQueue.clear();
-    }
-
-    processScanTask(task) {
-        const { playerPos, blockType, targetMode, nukeBelow, heightLimit, customBlockList, minedBlocks, playerCords } = task;
-
+    scanForBlock() {
+        const pPos = { x: Math.floor(Player.getX()), y: Math.floor(Player.getY()), z: Math.floor(Player.getZ()) };
+        const pCords = this.cords();
         const validBlocks = [];
 
-        for (let x = playerPos.x - 5; x <= playerPos.x + 5; x++) {
-            for (let y = playerPos.y - (nukeBelow ? 0 : 5); y <= playerPos.y + heightLimit; y++) {
-                for (let z = playerPos.z - 5; z <= playerPos.z + 5; z++) {
-                    if (nukeBelow && y < playerPos.y) continue;
-
-                    let pos = new BlockPos(x, y, z);
+        for (let x = pPos.x - 5; x <= pPos.x + 5; x++) {
+            for (let y = pPos.y - (this.nukeBelow ? 0 : 5); y <= pPos.y + this.heightLimit; y++) {
+                for (let z = pPos.z - 5; z <= pPos.z + 5; z++) {
                     const posKey = `${x},${y},${z}`;
-                    if (minedBlocks.has(posKey)) continue;
+                    if (this.minedBlocks.has(posKey)) continue;
+                    if (this.distance(pCords, [x, y, z]).distance > 4.5) continue;
 
-                    if (this.distance(playerCords, [x, y, z]).distance > 4.5) {
-                        continue;
+                    let blockPos = new BlockPos(x, y, z);
+                    let blockState = World.getBlockStateAt(blockPos).getBlock();
+                    let isValid = false;
+
+                    if (this.blockType === 'Crystal Hollows') {
+                        isValid =
+                            blockState instanceof net.minecraft.block.BlockStone ||
+                            blockState instanceof net.minecraft.block.BlockOre ||
+                            blockState instanceof net.minecraft.block.BlockRedstoneOre;
+                    } else if (this.blockType === 'Custom') {
+                        let id = World.getBlockAt(x, y, z).type.getID();
+                        isValid = this.customBlockList.some((b) => b.id === id);
                     }
 
-                    let block = World.getBlockStateAt(pos).getBlock();
-                    let isValidBlock = false;
-
-                    if (blockType === 'Crystal Hollows') {
-                        let blockA = World.getBlockAt(x, y, z);
-                        isValidBlock =
-                            block instanceof net.minecraft.block.BlockStone ||
-                            block instanceof net.minecraft.block.BlockOre ||
-                            block instanceof net.minecraft.block.BlockRedstoneOre ||
-                            blockA.type.getID() == 4;
-                    } else if (blockType === 'Custom') {
-                        let blockCheck = World.getBlockAt(x, y, z);
-                        isValidBlock = customBlockList.some((customBlock) => blockCheck.type.getID() === customBlock.id);
-                    }
-
-                    if (isValidBlock) {
-                        validBlocks.push(pos);
-                    }
+                    if (isValid) validBlocks.push(blockPos);
                 }
             }
         }
 
-        if (validBlocks.length > 0) {
-            let targetPos;
+        if (validBlocks.length === 0) return null;
 
-            if (targetMode === 'Closest') {
-                // Find the closest block
-                let minDistance = Infinity;
-                let closestBlock = null;
-
-                for (let pos of validBlocks) {
-                    const dist = this.distance(playerCords, [pos.getX(), pos.getY(), pos.getZ()]).distance;
-
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        closestBlock = pos;
-                    }
-                }
-
-                targetPos = closestBlock;
-            } else if (targetMode === 'Random') {
-                // Pick a random block
-                targetPos = validBlocks[Math.floor(Math.random() * validBlocks.length)];
-            } else if (targetMode === 'Lowest') {
-                // Find blocks with the lowest Y coordinate, then pick a random one
-                let lowestY = Infinity;
-                let lowestBlocks = [];
-
-                for (let pos of validBlocks) {
-                    const y = pos.getY();
-                    if (y < lowestY) {
-                        lowestY = y;
-                        lowestBlocks = [pos];
-                    } else if (y === lowestY) {
-                        lowestBlocks.push(pos);
-                    }
-                }
-
-                if (lowestBlocks.length > 0) {
-                    targetPos = lowestBlocks[Math.floor(Math.random() * lowestBlocks.length)];
-                }
-            } else if (targetMode === 'Highest') {
-                // Find blocks with the highest Y coordinate, then pick a random one
-                let highestY = -Infinity;
-                let highestBlocks = [];
-
-                for (let pos of validBlocks) {
-                    const y = pos.getY();
-                    if (y > highestY) {
-                        highestY = y;
-                        highestBlocks = [pos];
-                    } else if (y === highestY) {
-                        highestBlocks.push(pos);
-                    }
-                }
-
-                if (highestBlocks.length > 0) {
-                    targetPos = highestBlocks[Math.floor(Math.random() * highestBlocks.length)];
-                }
-            } else {
-                Chat.message('Incorrect nuker target mode?');
-            }
-            if (targetPos) {
-                this.resultQueue.offer(targetPos);
-            }
+        if (this.targetMode === 'Closest') {
+            return validBlocks.sort(
+                (a, b) => this.distance(pCords, [a.getX(), a.getY(), a.getZ()]).distance - this.distance(pCords, [b.getX(), b.getY(), b.getZ()]).distance
+            )[0];
+        } else if (this.targetMode === 'Lowest') {
+            let minY = Math.min(...validBlocks.map((b) => b.getY()));
+            let lowest = validBlocks.filter((b) => b.getY() === minY);
+            return lowest[Math.floor(Math.random() * lowest.length)];
+        } else if (this.targetMode === 'Highest') {
+            let maxY = Math.max(...validBlocks.map((b) => b.getY()));
+            let highest = validBlocks.filter((b) => b.getY() === maxY);
+            return highest[Math.floor(Math.random() * highest.length)];
         }
+
+        return validBlocks[Math.floor(Math.random() * validBlocks.length)];
     }
 
     isHoldingRequiredItem() {
-        if (this.blockType === 'Crystal Hollows') {
-            this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
-        } else if (this.blockType === 'Custom') {
-            return true;
-        }
-
+        if (this.blockType === 'Custom') return true;
         let heldItem = Player.getHeldItem();
         if (!heldItem) return false;
         return this.REQUIRED_ITEMS.some((item) => heldItem.getName().toLowerCase().includes(item.toLowerCase()));
     }
 
     posToString(pos) {
-        if (pos && typeof pos.getX === 'function') {
-            return `${pos.getX()},${pos.getY()},${pos.getZ()}`;
-        }
-        if (Array.isArray(pos)) {
-            return `${pos[0]},${pos[1]},${pos[2]}`;
-        }
-        return `${pos.x},${pos.y},${pos.z}`;
+        return pos.getX ? `${pos.getX()},${pos.getY()},${pos.getZ()}` : `${pos[0]},${pos[1]},${pos[2]}`;
     }
 
     distance(from, to) {
-        const diffX = from[0] - to[0];
-        const diffY = from[1] - to[1];
-        const diffZ = from[2] - to[2];
-        const distanceFlat = Math.sqrt(diffX * diffX + diffZ * diffZ);
-        const distance = Math.sqrt(distanceFlat * distanceFlat + diffY * diffY);
-        return { distance, distanceFlat, distanceY: Math.abs(diffY) };
+        const dx = from[0] - to[0],
+            dy = from[1] - to[1],
+            dz = from[2] - to[2];
+        return { distance: Math.sqrt(dx * dx + dy * dy + dz * dz) };
     }
 
     onGround() {
-        if (!this.onGroundOnly) return true;
-        return Player.asPlayerMP().isOnGround();
+        return this.onGroundOnly ? Player.asPlayerMP().isOnGround() : true;
     }
 
     cords() {
-        let eyeVector = Utils.convertToVector(Player.asPlayerMP().getEyePosition(1));
-        return [eyeVector.x, eyeVector.y, eyeVector.z];
+        let eye = Utils.convertToVector(Player.asPlayerMP().getEyePosition(1));
+        return [eye.x, eye.y, eye.z];
     }
 
-    renderRGB(location) {
+    renderRGB(loc) {
         let time = Date.now() / 1000;
-        let r = Math.sin(time) * 127 + 128;
-        let g = Math.sin(time + 2) * 127 + 128;
-        let b = Math.sin(time + 4) * 127 + 128;
-
-        RenderUtils.drawWireFrame(new Vec3d(location[0], location[1], location[2]), [r, g, b, 255], 5, true);
+        let r = Math.sin(time) * 127 + 128,
+            g = Math.sin(time + 2) * 127 + 128,
+            b = Math.sin(time + 4) * 127 + 128;
+        RenderUtils.drawWireFrame(new Vec3d(loc[0], loc[1], loc[2]), [r, g, b, 255], 5, true);
     }
 
     rightClickBlock(xyz) {
-        let blockPos = new BP(xyz[0], xyz[1], xyz[2]);
-        let direction = net.minecraft.util.math.Direction.UP;
-        let hitVec = new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5);
-
-        let blockHitResult = new net.minecraft.util.hit.BlockHitResult(hitVec, direction, blockPos, false);
-
-        let hand = net.minecraft.util.Hand.MAIN_HAND;
-        let sequence = 0;
-        Client.sendPacket(new PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
+        let hitResult = new net.minecraft.util.hit.BlockHitResult(
+            new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5),
+            net.minecraft.util.math.Direction.UP,
+            new BP(xyz[0], xyz[1], xyz[2]),
+            false
+        );
+        Client.sendPacket(new PlayerInteractBlockC2SPacket(net.minecraft.util.Hand.MAIN_HAND, hitResult, 0));
     }
 
     init() {
         this.target = null;
         this.lastMineTick = 0;
         this.tickCounter = 0;
-        this.lastChestClick = {};
-        this.minedBlocks = new Map();
-        this.clickQueue = new Set();
-        this.chestClickedThisTick = false;
+        this.minedBlocks.clear();
+        this.clickQueue.clear();
     }
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'NUKER');
         Chat.message('Nuker &aEnabled');
-        this.startWorker();
         this.init();
-        this.startTime = Date.now();
     }
 
     onDisable() {
         global.macrostate.setMacroRunning(false, 'NUKER');
         Chat.message('Nuker &cDisabled');
-        this.stopWorker();
         this.init();
     }
 }
