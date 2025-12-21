@@ -6,7 +6,7 @@ class ThreadExecutor {
         this.threadNumber = new AtomicInteger(1);
 
         this.service = Executors.newCachedThreadPool((runnable) => {
-            const thread = new Thread(runnable);
+            const thread = new java.lang.Thread(runnable);
 
             thread.setDaemon(true);
             thread.setName(`V5-Executor-${this.threadNumber.getAndIncrement()}`);
