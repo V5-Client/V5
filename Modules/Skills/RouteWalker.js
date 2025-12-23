@@ -9,7 +9,7 @@ import { Router } from '../../utils/Router';
 import { ModuleBase } from '../../utils/ModuleBase';
 import RouteState from '../../utils/RouteState';
 import { Guis } from '../../utils/player/Inventory';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { Mouse } from '../../utils/Ungrab';
 
 class RouteWalkerer extends ModuleBase {
     constructor() {
@@ -192,7 +192,9 @@ class RouteWalkerer extends ModuleBase {
                             });
                             this.etherwarpReady = true;
                         } else {
-                            Chat.message("Can't see point!");
+                            this.message("&cCan't see point!");
+                            this.toggle(false);
+                            return;
                         }
                     }
 
@@ -320,12 +322,15 @@ class RouteWalkerer extends ModuleBase {
 
     onEnable() {
         this.message('&aEnabled!');
+        Mouse.ungrab();
     }
 
     onDisable() {
         this.message('&cDisabled!');
-        Keybind.stopMovement();
+        Keybind.unpressKeys();
+        Keybind.setKey('leftclick', false);
         Rotations.stopRotation();
+        Mouse.regrab();
         this.foundpoint = false;
         this.currentIndex = 0;
         this.etherwarpReady = false;

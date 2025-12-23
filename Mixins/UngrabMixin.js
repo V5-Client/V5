@@ -11,3 +11,9 @@ export const LockCursor = mouseMixin.inject({
     at: new At({ value: 'Head' }),
     cancellable: true,
 });
+
+export const UpdateMouse = mouseMixin.inject({
+    method: 'updateMouse(D)V',
+    at: new At({ value: 'Head' }),
+    cancellable: true,
+});
