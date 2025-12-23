@@ -36,10 +36,7 @@ class UngrabManager {
         });
 
         attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
-            if (this.ungrabbed) {
-                cir.setReturnValue(true);
-                cir.cancel();
-            }
+            if (this.ungrabbed) cir.setReturnValue(true);
         });
 
         attachMixin(UpdateMouse, 'UpdateMouse', (instance, cir) => {
