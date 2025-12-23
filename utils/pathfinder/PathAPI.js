@@ -193,12 +193,14 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
             if (!body) {
                 global.showNotification('Pathfinding Failed', 'Empty response from pathfinder.', 'ERROR', 5000);
                 console.error('Pathfinding response was null or undefined');
+                if (onComplete && typeof onComplete === 'function') onComplete(false);
                 return;
             }
 
             if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
                 global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
                 console.error('Invalid keynodes in response:', body);
+                if (onComplete && typeof onComplete === 'function') onComplete(false);
                 return;
             }
 
@@ -253,7 +255,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                     stopPathing();
 
                     global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-                    if (onComplete && typeof onComplete === 'function') onComplete();
+                    if (onComplete && typeof onComplete === 'function') onComplete(true);
                 });
             };
 
@@ -268,6 +270,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
 
             global.showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
             console.error(`Pathfinding request failed: ${err}`);
+            if (onComplete && typeof onComplete === 'function') onComplete(false);
         });
 }
 
