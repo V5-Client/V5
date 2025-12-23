@@ -85,7 +85,7 @@ class NukerClass extends ModuleBase {
 
             if (!this.isHoldingRequiredItem()) return;
             if (Client.isInGui() && !Client.isInChat()) return;
-            if (Client.getKeyBindFromDescription('key.attack').isKeyDown()) return;
+            if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.attackKey?.isPressed()) return;
             if (!this.onGround()) return;
 
             let delay = Player.asPlayerMP().isOnGround() ? this.onGroundDelay : this.offGroundDelay;
