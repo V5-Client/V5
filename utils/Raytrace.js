@@ -37,11 +37,10 @@ class rayTraceUtils {
     /**
      * Finds a visible point on a block from the player's eye position.
      * @param {BlockPos} blockPos - The block to check
-     * @param {Vec3} vector - The starting position (defaults to player eye position)
      * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster)
      * @returns {Array|null} The [x, y, z] coordinates of the visible point, or null
      */
-    getPointOnBlock(blockPos, vector = Player.getPlayer().getEyePos(), useNativeRaycast = true) {
+    getPointOnBlock(blockPos, useNativeRaycast = true) {
         const points = this.getPointsOnBlock(blockPos);
 
         for (const point of points) {
@@ -76,7 +75,7 @@ class rayTraceUtils {
 
         if (distSq > 1000) return false;
 
-        return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
+        return this.getPointOnBlock(blockPos, useNativeRaycast) !== null;
     }
 
     /**

@@ -277,7 +277,8 @@ class Combat extends ModuleBase {
 
         Rotations.stopRotation();
 
-        findAndFollowPath(start, end, () => {
+        findAndFollowPath(start, end, (success) => {
+            if (!success) return;
             this.isPathing = false;
             this.combatState = 'APPROACHING';
         });

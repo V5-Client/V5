@@ -319,7 +319,9 @@ class CommissionMacro extends ModuleBase {
         Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to: &b[${waypoint.join(', ')}]`);
 
         this.setState(STATES.TRAVELING);
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, () => this.onPathComplete());
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, (success) =>
+            this.onPathComplete(success)
+        );
     }
 
     handleNoAvailableSpots(supportedTasks) {
@@ -491,7 +493,10 @@ class CommissionMacro extends ModuleBase {
 
         this.pathfinding = true;
         this.travelPurpose = 'EMISSARY';
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, () => (this.pathfinding = false));
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
+            if (!success) return;
+            this.pathfinding = false;
+        });
     }
 
     delay(ticks) {
@@ -502,8 +507,9 @@ class CommissionMacro extends ModuleBase {
         return Math.hypot(x1 - x2, y1 - y2, z1 - z2);
     }
 
-    onPathComplete() {
+    onPathComplete(success) {
         if (!this.enabled) return;
+        if (!success) return;
 
         if (this.travelPurpose === 'EMISSARY') {
             this.travelPurpose = null;
