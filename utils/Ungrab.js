@@ -35,6 +35,13 @@ class UngrabManager {
             if (this.ungrabbed) cir.cancel();
         });
 
+        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
+            if (this.ungrabbed) {
+                cir.setReturnValue(true);
+                cir.cancel();
+            }
+        });
+
         attachMixin(UpdateMouse, 'UpdateMouse', (instance, cir) => {
             if (this.ungrabbed) {
                 Client.getMinecraft().mouse.unlockCursor();
