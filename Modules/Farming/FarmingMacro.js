@@ -320,24 +320,31 @@ class FarmingMacro extends ModuleBase {
         const playerBlockY = Math.round(Player.getPlayer().getY());
         const playerBlockZ = Math.floor(Player.getPlayer().getZ());
 
-        let yaw = Player.getYaw();
-        while (yaw < 0) yaw += 360;
-        yaw %= 360;
+        let yaw = ((Player.getYaw() % 360) + 360) % 360;
 
         const scanResults = [];
         const range = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
 
-        const facingNorthSouth = yaw <= 45 || (yaw >= 135 && yaw <= 225) || yaw >= 315;
+        let dx = 0;
+        let dz = 0;
+
+        if (yaw >= 315 || yaw < 45) {
+            // Facing South (+Z)
+            dx = -1; // Right is West (-X)
+        } else if (yaw >= 45 && yaw < 135) {
+            // Facing West (-X)
+            dz = -1; // Right is North (-Z)
+        } else if (yaw >= 135 && yaw < 225) {
+            // Facing North (-Z)
+            dx = 1; // Right is East (+X)
+        } else if (yaw >= 225 && yaw < 315) {
+            // Facing East (+X)
+            dz = 1; // Right is South (+Z)
+        }
 
         for (const offset of range) {
-            let scanX = playerBlockX;
-            let scanZ = playerBlockZ;
-
-            if (facingNorthSouth) {
-                scanX = playerBlockX + offset;
-            } else {
-                scanZ = playerBlockZ + offset;
-            }
+            let scanX = playerBlockX + dx * offset;
+            let scanZ = playerBlockZ + dz * offset;
 
             const block = World.getBlockAt(scanX, playerBlockY, scanZ);
 
@@ -346,12 +353,13 @@ class FarmingMacro extends ModuleBase {
                 y: playerBlockY,
                 z: scanZ,
                 name: block?.type?.getRegistryName(),
-                offset: offset,
+                offset: offset, // Positive = Right of player, Negative = Left of player
             });
         }
 
         return scanResults;
     }
+
     message(msg) {
         Chat.message('&#33ba11Farming Macro: &f' + msg);
     }
