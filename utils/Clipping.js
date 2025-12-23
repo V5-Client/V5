@@ -287,13 +287,13 @@ class ClippingManager extends ModuleBase {
 
         if (this.isRecording || !this.enabled) return;
 
-        /*const windowTitle = this.getWindowTitle();
+        const windowTitle = this.getWindowTitle();
 
         try {
             Client.getMinecraft().getWindow().setTitle(windowTitle);
         } catch (e) {
             console.error('Failed to set window title: ' + e);
-        } */ // is this really needed?
+        }
 
         this.clearBuffer();
 
