@@ -115,32 +115,39 @@ function connectWebSocket() {
     ws = new WebSocket(wsUrl);
 
     ws.onOpen = () => {
-        //Chat.irc('Connected to chat server');
-        reconnectAttempts = 0;
-        isConnected = true;
-        sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
+        Client.scheduleTask(0, () => {
+            reconnectAttempts = 0;
+            isConnected = true;
+            sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
+        });
     };
 
     ws.onMessage = (message) => {
-        handleIncomingMessage(message);
+        Client.scheduleTask(0, () => {
+            handleIncomingMessage(message);
+        });
     };
 
     ws.onError = (exception) => {
-        console.error('WebSocket error:', exception);
-        Chat.irc('Connection error: ' + exception);
-        isConnected = false;
-        if (!gameUnload) attemptReconnect();
+        Client.scheduleTask(0, () => {
+            console.error('WebSocket error:', exception);
+            Chat.irc('Connection error: ' + exception);
+            isConnected = false;
+            if (!gameUnload) attemptReconnect();
+        });
     };
 
     ws.onClose = (code, reason) => {
-        if (code == '1000') return;
-        if (code == '1006') {
-            Chat.irc('Backend restarting.');
-        } else {
-            Chat.irc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
-        }
-        isConnected = false;
-        if (!gameUnload) attemptReconnect();
+        Client.scheduleTask(0, () => {
+            if (code == '1000') return;
+            if (code == '1006') {
+                Chat.irc('Backend restarting.');
+            } else {
+                Chat.irc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
+            }
+            isConnected = false;
+            if (!gameUnload) attemptReconnect();
+        });
     };
 
     ws.connect();

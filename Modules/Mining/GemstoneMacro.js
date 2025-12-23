@@ -163,9 +163,16 @@ class GemstoneMacro extends ModuleBase {
                         this.closestPoint = this.getClosestPoint();
                         this.rawPoint = this.closestPoint.point;
                         this.closestPointIndex = this.closestPoint.index;
-                        this.closestPoint = this.getPointOnBlock(this.closestPoint.point);
-                    }
 
+                        let target = this.getPointOnBlock(this.closestPoint.point);
+                        if (!target) {
+                            this.message('Could not find a valid face on the block!');
+                            this.toggle(false);
+                            return;
+                        }
+
+                        this.closestPoint = target;
+                    }
                     let point = World.getBlockAt(this.rawPoint.x, this.rawPoint.y, this.rawPoint.z);
 
                     // air or chest
@@ -185,9 +192,22 @@ class GemstoneMacro extends ModuleBase {
                     }
 
                     if (this.distance < 2 && !this.rotatedToPoint) {
-                        this.message('Already at point ' + this.closestPointIndex);
+                        this.message('Arrived at point ' + this.closestPointIndex);
+                        this.rotatedToPoint = false;
                         this.closestPointIndex++;
-                        this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
+
+                        if (this.closestPointIndex >= this.route.length) {
+                            this.closestPointIndex = 0;
+                        }
+
+                        let nextPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
+                        if (!nextPoint) {
+                            this.message('Next point face is not visible!');
+                            this.toggle(false);
+                            return;
+                        }
+
+                        this.closestPoint = nextPoint;
                         this.rawPoint = this.route[this.closestPointIndex];
                         this.state = this.STATES.MINING;
                         return;
@@ -255,7 +275,14 @@ class GemstoneMacro extends ModuleBase {
                                 this.closestPointIndex = 0;
                             }
 
-                            this.closestPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
+                            let target = this.getPointOnBlock(this.route[this.closestPointIndex]);
+                            if (!target) {
+                                this.message('Next point face is not visible!');
+                                this.toggle(false);
+                                return;
+                            }
+
+                            this.closestPoint = target;
                             this.rawPoint = this.route[this.closestPointIndex];
                             this.state = this.STATES.MINING;
 
@@ -366,9 +393,7 @@ class GemstoneMacro extends ModuleBase {
 
         const closestHit = this.raytraceBlockFaces(point);
 
-        if (!closestHit) {
-            return null;
-        }
+        if (!closestHit) return null;
 
         const faceName = closestHit.face;
 

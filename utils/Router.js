@@ -88,8 +88,8 @@ class Routes {
      * @param {*} file the file to save the route to
      * @param {*} indexNum the index the waypoint should be set to e.g. 1 or 15
      * @param {*} takeMovementTypes decides wether the route should take more complex actions, e.g. "WALK", "ETHERWARP"
-     * @param {*} allowedMovements
-     * @param {*} userMovementInput
+     * @param {*} allowedMovements movement types allowed for the waypoint
+     * @param {*} userMovementInput movement type selected by the user
      * @returns returns the updated or unchanged route
      */
     Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '') {
