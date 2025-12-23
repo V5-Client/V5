@@ -25,6 +25,7 @@ import './visuals/GIF.js';
 import './skills/AutoExperiments.js';
 import './skills/FishingMacro.js';
 import './skills/JerryBoxMacro.js';
+import './skills/RouteWalker.js';
 
 /* OTHER */
 import './other/BeachBaller.js';
