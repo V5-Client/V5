@@ -803,6 +803,7 @@ class Bot extends ModuleBase {
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'MINING_BOT');
+        this.setCost();
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;

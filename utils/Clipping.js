@@ -2,6 +2,7 @@ import { ModuleBase } from './ModuleBase';
 import { Chat } from './Chat';
 import { Utils } from './Utils';
 import { File, System, ProcessBuilder } from './Constants';
+import { Executor } from './ThreadExecutor';
 
 const os = System.getProperty('os.name').toLowerCase();
 const isWindows = os.includes('win');
@@ -87,17 +88,14 @@ class ClippingManager extends ModuleBase {
     }
 
     compressClip(inputClip) {
-        new Thread(() => {
+        Executor.execute(() => {
             try {
-                if (!inputClip.exists()) {
-                    Chat.message('&c[Clipping] Clip file not found.');
-                    return;
-                }
+                if (!inputClip.exists()) return this.message('&cClip file not found!');
 
                 const outputName = inputClip.getName().replace('.mp4', '_compressed.mp4');
                 const outputFile = new File(clipsDir, outputName);
 
-                Chat.message(`&e[Clipping] Compressing &f${inputClip.getName()}&e...`);
+                this.message(`&eCompressing &f${inputClip.getName()}&e...`);
 
                 // prettier-ignore
                 const args = [
@@ -108,9 +106,10 @@ class ClippingManager extends ModuleBase {
                     '-crf', '28',
                     '-preset', 'ultrafast',
                     '-vf', 'scale=-2:1080',
-                    '-an', // no audio but idc
+                    '-c:a', 'aac',
+                    '-b:a', '128k',
                     outputFile.getAbsolutePath(),
-                ]; // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
+                ]; // updated to have audio (no clue if work)
 
                 const pb = new ProcessBuilder(...args);
                 pb.redirectErrorStream(true);
@@ -120,63 +119,56 @@ class ClippingManager extends ModuleBase {
                 let line;
                 let logLines = [];
 
-                while ((line = reader.readLine()) != null) {
-                    logLines.push(line);
-                }
+                while ((line = reader.readLine()) != null) logLines.push(line);
 
                 const exitCode = p.waitFor();
 
                 if (exitCode !== 0) {
-                    Chat.message(`&c[Clipping] Compression failed with code ${exitCode}.`);
-                    logLines.slice(-3).forEach((l) => Chat.message('&c' + l));
+                    this.message(`&cCompression failed with code ${exitCode}.`);
+                    logLines.slice(-3).forEach((l) => this.message('&c' + l));
                     try {
                         outputFile.delete();
                     } catch (e) {}
                 } else {
-                    Chat.message(`&a[Clipping] Successfully compressed: &b${outputFile.getName()}`);
+                    this.message(`&aSuccessfully compressed: &b${outputFile.getName()}`);
                 }
             } catch (e) {
-                Chat.message(`&c[Clipping] Compression failed: ${e}`);
+                this.message(`&cCompression failed: ${e}`);
                 console.error(e);
             }
-        }).start();
+        });
     }
 
     compressLatestClip() {
-        Chat.message('&7[Clipping] Finding latest clip to compress');
+        this.message('&7Finding latest clip to compress');
 
-        new Thread(() => {
+        Executor.execute(() => {
             try {
                 if (!clipsDir.exists()) return;
 
                 const files = clipsDir.listFiles();
-                if (!files || files.length === 0) {
-                    Chat.message('&c[Clipping] No clips found.');
-                    return;
-                }
+
+                if (!files || files.length === 0) return this.message('&cNo clips found.');
 
                 const clips = Array.from(files).filter(
                     (f) => f.getName().startsWith('Clip_') && f.getName().endsWith('.mp4') && !f.getName().includes('_compressed')
                 );
 
-                if (clips.length === 0) {
-                    Chat.message('&c[Clipping] No eligible clips found.');
-                    return;
-                }
+                if (clips.length === 0) return this.message('&cNo eligible clips found.');
 
                 clips.sort((a, b) => b.lastModified() - a.lastModified());
                 const inputClip = clips[0];
 
                 this.compressClip(inputClip);
             } catch (e) {
-                Chat.message(`&c[Clipping] Compression failed: ${e}`);
+                this.message(`&cCompression failed: ${e}`);
                 console.error(e);
             }
-        }).start();
+        });
     }
 
     downloadFFmpeg() {
-        new Thread(() => {
+        Executor.execute(() => {
             try {
                 let url = '';
                 let archiveName = '';
@@ -191,20 +183,20 @@ class ClippingManager extends ModuleBase {
                     url = URLS.MAC;
                     archiveName = 'ffmpeg.7z';
                 } else {
-                    Chat.message('&c[Clipping] Unsupported OS for auto-download.');
+                    this.message('&cUnsupported OS for auto-download!');
                     return;
                 }
 
                 const archiveFile = new File(globalAssetsDir, archiveName);
                 Utils.downloadFile(url, archiveFile.getAbsolutePath());
 
-                Chat.message('&e[Clipping] Download complete. Extracting...');
+                this.message('Download complete. Extracting...');
                 this.extractFFmpeg(archiveFile);
             } catch (e) {
-                Chat.message(`&c[Clipping] Download failed: ${e}`);
+                this.message(`Download failed: ${e}`);
                 console.error(e);
             }
-        }).start();
+        });
     }
 
     extractFFmpeg(archiveFile) {
@@ -229,10 +221,10 @@ class ClippingManager extends ModuleBase {
             this.organizeBinaries();
             archiveFile.delete();
 
-            Chat.message('&a[Clipping] FFmpeg installed!');
+            this.message('&aFFmpeg installed!');
             this.startRecording();
         } catch (e) {
-            Chat.message(`&c[Clipping] Extraction failed: ${e}`);
+            this.message(`&cExtraction failed: ${e}`);
             console.error(e);
         }
     }
@@ -260,6 +252,7 @@ class ClippingManager extends ModuleBase {
         }
 
         const cleanupDirs = ['ffmpeg-master-latest-win64-gpl', 'ffmpeg-master-latest-linux64-gpl'];
+
         cleanupDirs.forEach((name) => {
             const f = new File(globalAssetsDir, name);
             if (f.exists()) this.deleteRecursive(f);
@@ -272,31 +265,35 @@ class ClippingManager extends ModuleBase {
     }
 
     deleteRecursive(file) {
-        if (file.isDirectory()) {
-            file.listFiles().forEach((f) => this.deleteRecursive(f));
-        }
+        if (file.isDirectory()) file.listFiles().forEach((f) => this.deleteRecursive(f));
+
         file.delete();
     }
 
     getWindowTitle() {
-        return `Client ${global.Version || '1.0.0'} - ${Player.getName()}`;
+        let mcClass = Client.getMinecraft().getClass();
+        let method = mcClass.getDeclaredMethod('method_24287'); // getWindowTitle()
+        method.setAccessible(true);
+
+        return method.invoke(Client.getMinecraft());
     }
 
     startRecording() {
         if (!ffmpegFile.exists()) {
-            Chat.message('&e[Clipping] FFmpeg not found. Downloading...');
+            this.message('FFmpeg not found. Downloading...');
             this.downloadFFmpeg();
             return;
         }
-        if (this.isRecording) return;
-        if (!this.enabled) return;
 
-        const windowTitle = this.getWindowTitle();
+        if (this.isRecording || !this.enabled) return;
+
+        /*const windowTitle = this.getWindowTitle();
+
         try {
             Client.getMinecraft().getWindow().setTitle(windowTitle);
         } catch (e) {
             console.error('Failed to set window title: ' + e);
-        }
+        } */ // is this really needed?
 
         this.clearBuffer();
 
@@ -330,7 +327,7 @@ class ClippingManager extends ModuleBase {
             outputPath
         ); // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
 
-        new Thread(() => {
+        Executor.execute(() => {
             try {
                 const pb = new ProcessBuilder(...args);
                 pb.redirectErrorStream(true);
@@ -338,7 +335,7 @@ class ClippingManager extends ModuleBase {
                 const currentProcess = pb.start();
                 this.process = currentProcess;
                 this.isRecording = true;
-                Chat.message('&a[Clipping] Background recording started.');
+                this.message('&7Background recording started.');
 
                 const reader = new java.io.BufferedReader(new java.io.InputStreamReader(currentProcess.getInputStream()));
                 let line;
@@ -346,7 +343,7 @@ class ClippingManager extends ModuleBase {
                     if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
                         console.warn('[FFmpeg Error] ' + line);
                         if (this.isRecording) {
-                            Chat.message(`&c[Clipping] FFmpeg Error: ${line}`);
+                            this.message(`&cFFmpeg Error: ${line}`);
                         }
                     }
                 }
@@ -354,23 +351,25 @@ class ClippingManager extends ModuleBase {
                 currentProcess.waitFor();
 
                 if (this.isRecording) {
-                    Chat.message('&c[Clipping] Recording stopped unexpectedly.');
+                    this.message('&cRecording stopped unexpectedly.');
                     this.isRecording = false;
                 }
+
                 this.process = null;
             } catch (e) {
-                Chat.message(`&c[Clipping] Critical Error: ${e}`);
+                this.message(`&cCritical Error: ${e}`);
                 this.isRecording = false;
                 this.process = null;
             }
-        }).start();
+        });
     }
 
     stopRecording() {
         if (this.process && this.process.isAlive()) {
             this.process.destroy();
-            Chat.message('&e[Clipping] Recorder stopped.');
+            this.message('&7Recorder stopped.');
         }
+
         this.process = null;
         this.isRecording = false;
         this.clearBuffer();
@@ -379,23 +378,25 @@ class ClippingManager extends ModuleBase {
     clearBuffer() {
         if (!bufferDir.exists()) return;
         const files = bufferDir.listFiles();
-        if (files) {
-            for (let i = 0; i < files.length; i++) {
-                try {
-                    files[i].delete();
-                } catch (e) {}
-            }
+
+        if (!files) return;
+
+        for (let i = 0; i < files.length; i++) {
+            try {
+                files[i].delete();
+            } catch (e) {}
         }
     }
 
     saveClip() {
-        Chat.message('&7[Clipping] Saving clip...');
+        this.message('&7Saving clip...');
 
-        new Thread(() => {
+        Executor.execute(() => {
             try {
                 const files = bufferDir.listFiles();
+
                 if (!files || files.length === 0) {
-                    Chat.message('&c[Clipping] No buffer segments found! Is the recorder running?');
+                    this.message('&cNo buffer segments found! Is the recorder running?');
                     this.startRecording();
                     return;
                 }
@@ -405,7 +406,8 @@ class ClippingManager extends ModuleBase {
 
                 const currentSegment = segments[segments.length - 1];
                 let lastModified = currentSegment.lastModified();
-                Chat.message('&7[Clipping] Waiting for current segment to finish...');
+                this.message('&7Waiting for current segment to finish...');
+
                 while (true) {
                     Thread.sleep(300);
                     const currentModified = currentSegment.lastModified();
@@ -427,6 +429,7 @@ class ClippingManager extends ModuleBase {
                     const path = f.getAbsolutePath().replace(/\\/g, '/');
                     writer.write(`file '${path}'\n`);
                 }
+
                 writer.close();
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -452,18 +455,38 @@ class ClippingManager extends ModuleBase {
 
                 p.waitFor();
 
-                Chat.message(`&a[Clipping] Saved &e${clipsToJoin.length * 5}s &aclip: &b${outFile.getName()}`);
+                let clipName = outFile.getName();
+                let folderPath = clipsDir.getAbsolutePath();
+                let clipDuration = clipsToJoin.length * 5;
+
+                let linkComponent = new TextComponent({
+                    text: `\n&7Saved ${clipDuration}s &7clip: &d&n${clipName}`,
+                    clickEvent: {
+                        action: 'open_file',
+                        value: folderPath,
+                    },
+                    hoverEvent: {
+                        action: 'show_text',
+                        value: `&7Click to open folder`,
+                    },
+                });
+
+                this.message('&7Clip Saved: ');
+                ChatLib.chat(linkComponent);
 
                 if (this.compressClips) {
-                    // Small delay to ensure file is fully written
                     Thread.sleep(500);
                     this.compressClip(outFile);
                 }
             } catch (e) {
-                Chat.message(`&c[Clipping] Failed to save clip: ${e}`);
+                this.message(`&cFailed to save clip: &f${e}`);
                 console.error(e);
             }
-        }).start();
+        });
+    }
+
+    message(msg) {
+        Chat.clippingMessage(msg);
     }
 
     onEnable() {
