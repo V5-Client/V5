@@ -134,20 +134,20 @@ class Bot extends ModuleBase {
         });
 
         registerEventSB('abilityready', () => {
-            this.requestMiningReset('ability_ready');
+            this.resetMining();
             this.state = this.STATES.ABILITY;
         });
         registerEventSB('abilityused', () => {
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
-            this.requestMiningReset('ability_used');
+            this.resetMining();
         });
         registerEventSB('abilitygone', () => {
             this.speedBoost = false;
-            this.requestMiningReset('ability_gone');
+            this.resetMining();
         });
     }
 
-    requestMiningReset(reason = 'unknown') {
+    resetMining() {
         if (this.state !== this.STATES.MINING && this.state !== this.STATES.ABILITY) return;
 
         Keybind.setKey('leftclick', false);
@@ -160,22 +160,22 @@ class Bot extends ModuleBase {
     initSettings() {
         this.addToggle(
             'Tick Gliding',
-            (v) => {
-                this.TICKGLIDE = v;
+            (value) => {
+                this.TICKGLIDE = value;
             },
             'Predicts when blocks are broken to begin mining the next block early.'
         );
         this.addToggle(
             'Jasper Drill Exploit',
-            (v) => {
-                v ? this.exploit.register() : this.exploit.unregister();
+            (value) => {
+                value ? this.exploit.register() : this.exploit.unregister();
             },
             'Left click a gemstone with a Gemstone Drill to activate exploit.'
         );
         this.addToggle(
             'Prioritze Titanium',
-            (v) => {
-                this.setPrioritizeTitanium(v);
+            (value) => {
+                this.setPrioritizeTitanium(value);
             },
             'Whenever Titanium is in range it will be targeted the most'
         );
@@ -183,8 +183,8 @@ class Bot extends ModuleBase {
             'Fakelook',
             ['Off', 'Instant', 'Queued'],
             true,
-            (v) => {
-                this.FAKELOOK = v;
+            (value) => {
+                this.FAKELOOK = value;
             },
             'Fakelook begins to mine blocks before the player looks at them.',
             'Off'
@@ -193,8 +193,8 @@ class Bot extends ModuleBase {
             'Types',
             ['Mithril', 'Gemstone', 'Ore'],
             true,
-            (v) => {
-                this.TYPE = v;
+            (value) => {
+                this.TYPE = value;
                 this.setCost();
             },
             'Targets specified block type.',
@@ -202,15 +202,15 @@ class Bot extends ModuleBase {
         );
         this.addToggle(
             'Debug Mode',
-            (v) => {
-                v ? this.debug.register() : this.debug.unregister();
+            (value) => {
+                value ? this.debug.register() : this.debug.unregister();
             },
             'Debugging - not recommended for average use.'
         );
         this.addToggle(
             'Scan Mode',
-            (v) => {
-                this.SCAN_ONLY = v;
+            (value) => {
+                this.SCAN_ONLY = value;
             },
             'Continuously scans for targets every tick.'
         );
@@ -307,7 +307,7 @@ class Bot extends ModuleBase {
         ) {
             if (!blockName.includes('air') && !blockName.includes('bedrock')) {
                 this.lastBlockType = blockName;
-                this.requestMiningReset('block_transformed');
+                this.resetMining();
                 return;
             }
         }
