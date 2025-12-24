@@ -6,6 +6,9 @@ import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
+import { Router } from '../../utils/Router';
+import RenderUtils from '../../utils/render/RendererUtils';
+import { Vec3d } from '../../utils/Constants';
 
 const FARMING_DATA = [
     {
@@ -49,14 +52,19 @@ class FarmingMacro extends ModuleBase {
             DECIDEITEM: 3,
             DECIDEMOVEMENT: 4,
             IDLECHECKS: 5,
+            REWARP: 6,
         };
 
         this.state = this.STATES.WAITING;
+
         this.farmAxis = null;
         this.movementKey = null;
         this.ignoreKey = null;
         this.inAir = false;
         this.deciding = false;
+        this.warp = false;
+
+        this.points = Utils.getConfigFile('FarmingMacro/points.txt') || {};
 
         this.bindToggleKey();
 
@@ -68,7 +76,9 @@ class FarmingMacro extends ModuleBase {
             true,
             (v) => {
                 this.CROPS = v;
-            }
+            },
+            'Type of crop to farm',
+            'Vertical NetherWart / Potato / Wheat / Carrot'
         );
 
         this.addToggle(
@@ -80,6 +90,60 @@ class FarmingMacro extends ModuleBase {
             false
         );
 
+        register('command', () => {
+            if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
+
+            this.points.start = {
+                x: Math.floor(Player.getX()),
+                y: Math.floor(Player.getY()),
+                z: Math.floor(Player.getZ()),
+            };
+
+            ChatLib.command('sethome');
+            Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
+            this.message('&aStart point saved!');
+        }).setName('setstart');
+
+        register('command', () => {
+            if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
+
+            this.points.end = {
+                x: Math.floor(Player.getX()),
+                y: Math.floor(Player.getY()),
+                z: Math.floor(Player.getZ()),
+            };
+
+            Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
+            this.message('&aEnd point saved!');
+        }).setName('setend');
+
+        this.when(
+            () => Utils.area() === 'Garden',
+            'postRenderWorld',
+            () => {
+                if (!this.points) return;
+                if (this.points.end) {
+                    RenderUtils.drawStyledBox(
+                        new Vec3d(this.points.end.x, this.points.end.y, this.points.end.z),
+                        [240, 90, 90, 100],
+                        [240, 90, 90, 255],
+                        4,
+                        false
+                    );
+                }
+
+                if (this.points.start) {
+                    RenderUtils.drawStyledBox(
+                        new Vec3d(this.points.start.x, this.points.start.y, this.points.start.z),
+                        [100, 220, 150, 100],
+                        [100, 220, 150, 255],
+                        4,
+                        false
+                    );
+                }
+            }
+        );
+
         this.on('tick', () => {
             if (Utils.area() !== 'Garden') {
                 this.message('&cYou are not on the Garden!');
@@ -89,6 +153,13 @@ class FarmingMacro extends ModuleBase {
 
             switch (this.state) {
                 case this.STATES.SCANFORCROP:
+                    if (!this.points.start || !this.points.end) {
+                        this.message('&cYou need to set both start and end points!');
+                        this.message('&c/setstart and /setend');
+                        this.toggle(false);
+                        return;
+                    }
+
                     const crop = this.CROPS.find((option) => option.enabled)?.name;
                     const cropData = FARMING_DATA.find((data) => data.name === crop);
 
@@ -137,22 +208,38 @@ class FarmingMacro extends ModuleBase {
 
                         this.state = this.STATES.DECIDEROTATION;
                     } else {
-                        this.message('&cYou are not near your selected crop!');
-                        this.toggle(false);
+                        if (!this.warp) {
+                            this.message('&cYou are not near your selected crop!');
+                            ChatLib.command('warp garden');
+                            this.warp = true;
+                            return;
+                        }
                         return;
                     }
                     break;
                 case this.STATES.DECIDEROTATION:
+                    if (this.warp) {
+                        let check = MathUtils.getDistanceToPlayer(this.points.start.x + 0.5, this.points.start.y, this.points.start.z + 0.5).distance;
+                        if (check < 1) this.warp = false;
+                        return;
+                    }
+
+                    // make this more realistic, slow it down abit
+                    if (Player.isFlying()) {
+                        Keybind.setKey('shift', true);
+                        return;
+                    } else Keybind.setKey('shift', false);
+
                     // this looks atrocious imo needs rewrite to visually look better
                     const blockAhead = this.getBlockInFront(1, 1);
-                    const aheadRegistry = blockAhead?.type?.getRegistryName();
+                    const aheadRegistry = blockAhead?.name;
 
                     const isCrop = (reg) => (Array.isArray(this.registry) ? this.registry.includes(reg) : reg === this.registry);
                     let targetYaw;
 
                     if (isCrop(aheadRegistry)) {
                         this.message('&7Targetting crop by getting the block ahead!', true);
-                        targetYaw = MathUtils.calculateAbsoluteAngles([blockAhead.getX(), blockAhead.getY(), blockAhead.getZ()]).yaw;
+                        targetYaw = MathUtils.calculateAbsoluteAngles([blockAhead.x, blockAhead.y, blockAhead.z]).yaw;
                     } else {
                         const lookingAt = Player.lookingAt();
                         const lookReg = lookingAt ? World.getBlockAt(lookingAt.x, lookingAt.y, lookingAt.z)?.type?.getRegistryName() : null;
@@ -308,6 +395,17 @@ class FarmingMacro extends ModuleBase {
                     }
                     break;
                 case this.STATES.IDLECHECKS:
+                    let endPoint = MathUtils.getDistanceToPlayer(this.points.end.x, this.points.end.y, this.points.end.z);
+                    let distance = endPoint.distance;
+
+                    if (distance < 1) {
+                        this.message('&aReached end of farm! rewarping.');
+                        Keybind.unpressKeys();
+                        Keybind.setKey('leftclick', false);
+                        this.state = this.STATES.REWARP;
+                        return;
+                    }
+
                     if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
                         Keybind.setKey('leftclick', true);
                         Keybind.setKey(this.movementKey, true);
@@ -324,6 +422,27 @@ class FarmingMacro extends ModuleBase {
                             this.state = this.STATES.DECIDEMOVEMENT;
                         }
                     }
+                    break;
+                case this.STATES.REWARP:
+                    if (!this.warpDelay) {
+                        const randomDelay = Math.floor(Math.random() * (750 - 500 + 1)) + 500;
+                        this.warpDelay = Date.now() + randomDelay;
+                        this.message(`&7Warping in ${randomDelay}ms...`, true);
+                        return;
+                    }
+
+                    if (Date.now() >= this.warpDelay) {
+                        ChatLib.command('warp garden');
+                    }
+
+                    let check = MathUtils.getDistanceToPlayer(this.points.start.x, this.points.start.y, this.points.start.z);
+                    distance = check.distance;
+
+                    if (distance < 1) {
+                        this.warpDelay = null;
+                        this.state = this.STATES.SCANFORCROP;
+                    }
+
                     break;
             }
         });
@@ -504,6 +623,7 @@ class FarmingMacro extends ModuleBase {
         Keybind.setKey('leftclick', false);
         this.movementKey = null;
         this.deciding = false;
+        this.warp = false;
         this.ignoreKey = null;
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
