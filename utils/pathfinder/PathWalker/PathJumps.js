@@ -1,7 +1,6 @@
 import { Vec3d } from '../../Constants';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
-import { PathfindingMessages } from '../PathConfig';
 import { isStuckRecoveryJumping } from './PathStuckRecovery';
 
 export let lastLookaheadPositions = [];
@@ -388,7 +387,7 @@ export function detectJump(pathBetweenKeyNodes) {
     }
 
     if (detectSnowJump(lookaheadPositions)) {
-        PathfindingMessages('Snow jump detected');
+        Chat.messagePathfinder('Snow jump detected');
         Keybind.setKey('space', true);
         lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
         return;
@@ -402,7 +401,7 @@ export function detectJump(pathBetweenKeyNodes) {
     }
 
     if (detectEdgeJump(pathBetweenKeyNodes, closestIndex)) {
-        PathfindingMessages('Edge jump detected');
+        Chat.messagePathfinder('Edge jump detected');
         Keybind.setKey('space', true);
         lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);
         return;
@@ -440,7 +439,7 @@ export function detectJump(pathBetweenKeyNodes) {
     }
 
     if (needsJump && !canWalkInstead) {
-        PathfindingMessages('Standard jump detected');
+        Chat.messagePathfinder('Standard jump detected');
     }
     Keybind.setKey('space', needsJump && !canWalkInstead);
     lastLookaheadPositions = lookaheadPositions.map((data) => data.vec.y);

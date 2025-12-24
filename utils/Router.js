@@ -58,7 +58,7 @@ class Routes {
      * @returns the data in the file or null if no file
      */
     loadRouteFromFile(dir, file) {
-        if (!file) return console.log('No file accessed!');
+        if (!file) return Chat.log('No file accessed!');
         try {
             let routeData = Utils.getConfigFile(dir + file);
 

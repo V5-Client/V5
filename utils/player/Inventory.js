@@ -100,7 +100,7 @@ class InventoryUtilsClass {
      * @author Kash MiningModules
      */
     clickItem(name, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
-        console.log(`Attempting to click on item: ${name}`);
+        Chat.log(`Attempting to click on item: ${name}`);
 
         if (!name || this.guiName() == 'null') return false;
 
@@ -154,7 +154,7 @@ class InventoryUtilsClass {
      */
     clickItems(names, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
         if (!Array.isArray(names) || names.length === 0) {
-            Chat.debugMessage('No item names provided or input is not an array.');
+            Chat.messageDebug('No item names provided or input is not an array.');
             return false;
         }
 
@@ -170,7 +170,7 @@ class InventoryUtilsClass {
     }
 
     setItemSlot(slot) {
-        /*console.log(
+        /*Chat.log(
             `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
         ); */
         if (slot < 0 || slot > 8) {

@@ -89,5 +89,5 @@ register('command', (args) => {
     ChatLib.chat(output);
 
     const consoleOutput = output.replace(/§[0-9a-fk-or]/g, '');
-    console.log(consoleOutput);
+    Chat.log(consoleOutput);
 }).setName('packetinfo');
