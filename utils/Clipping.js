@@ -90,12 +90,12 @@ class ClippingManager extends ModuleBase {
     compressClip(inputClip) {
         Executor.execute(() => {
             try {
-                if (!inputClip.exists()) return this.message('&cClip file not found!');
+                if (!inputClip.exists()) return Chat.messageClip('&cClip file not found!');
 
                 const outputName = inputClip.getName().replace('.mp4', '_compressed.mp4');
                 const outputFile = new File(clipsDir, outputName);
 
-                this.message(`&eCompressing &f${inputClip.getName()}&e...`);
+                Chat.messageClip(`&eCompressing &f${inputClip.getName()}&e...`);
 
                 // prettier-ignore
                 const args = [
@@ -124,23 +124,23 @@ class ClippingManager extends ModuleBase {
                 const exitCode = p.waitFor();
 
                 if (exitCode !== 0) {
-                    this.message(`&cCompression failed with code ${exitCode}.`);
-                    logLines.slice(-3).forEach((l) => this.message('&c' + l));
+                    Chat.messageClip(`&cCompression failed with code ${exitCode}.`);
+                    logLines.slice(-3).forEach((l) => Chat.messageClip('&c' + l));
                     try {
                         outputFile.delete();
                     } catch (e) {}
                 } else {
-                    this.message(`&aSuccessfully compressed: &b${outputFile.getName()}`);
+                    Chat.messageClip(`&aSuccessfully compressed: &b${outputFile.getName()}`);
                 }
             } catch (e) {
-                this.message(`&cCompression failed: ${e}`);
+                Chat.messageClip(`&cCompression failed: ${e}`);
                 console.error(e);
             }
         });
     }
 
     compressLatestClip() {
-        this.message('&7Finding latest clip to compress');
+        Chat.messageClip('&7Finding latest clip to compress');
 
         Executor.execute(() => {
             try {
@@ -148,20 +148,20 @@ class ClippingManager extends ModuleBase {
 
                 const files = clipsDir.listFiles();
 
-                if (!files || files.length === 0) return this.message('&cNo clips found.');
+                if (!files || files.length === 0) return Chat.messageClip('&cNo clips found.');
 
                 const clips = Array.from(files).filter(
                     (f) => f.getName().startsWith('Clip_') && f.getName().endsWith('.mp4') && !f.getName().includes('_compressed')
                 );
 
-                if (clips.length === 0) return this.message('&cNo eligible clips found.');
+                if (clips.length === 0) return Chat.messageClip('&cNo eligible clips found.');
 
                 clips.sort((a, b) => b.lastModified() - a.lastModified());
                 const inputClip = clips[0];
 
                 this.compressClip(inputClip);
             } catch (e) {
-                this.message(`&cCompression failed: ${e}`);
+                Chat.messageClip(`&cCompression failed: ${e}`);
                 console.error(e);
             }
         });
@@ -183,17 +183,17 @@ class ClippingManager extends ModuleBase {
                     url = URLS.MAC;
                     archiveName = 'ffmpeg.7z';
                 } else {
-                    this.message('&cUnsupported OS for auto-download!');
+                    Chat.messageClip('&cUnsupported OS for auto-download!');
                     return;
                 }
 
                 const archiveFile = new File(globalAssetsDir, archiveName);
                 Utils.downloadFile(url, archiveFile.getAbsolutePath());
 
-                this.message('Download complete. Extracting...');
+                Chat.messageClip('Download complete. Extracting...');
                 this.extractFFmpeg(archiveFile);
             } catch (e) {
-                this.message(`Download failed: ${e}`);
+                Chat.messageClip(`Download failed: ${e}`);
                 console.error(e);
             }
         });
@@ -221,10 +221,10 @@ class ClippingManager extends ModuleBase {
             this.organizeBinaries();
             archiveFile.delete();
 
-            this.message('&aFFmpeg installed!');
+            Chat.messageClip('&aFFmpeg installed!');
             this.startRecording();
         } catch (e) {
-            this.message(`&cExtraction failed: ${e}`);
+            Chat.messageClip(`&cExtraction failed: ${e}`);
             console.error(e);
         }
     }
@@ -280,7 +280,7 @@ class ClippingManager extends ModuleBase {
 
     startRecording() {
         if (!ffmpegFile.exists()) {
-            this.message('FFmpeg not found. Downloading...');
+            Chat.messageClip('FFmpeg not found. Downloading...');
             this.downloadFFmpeg();
             return;
         }
@@ -335,7 +335,7 @@ class ClippingManager extends ModuleBase {
                 const currentProcess = pb.start();
                 this.process = currentProcess;
                 this.isRecording = true;
-                this.message('&7Background recording started.');
+                Chat.messageClip('&7Background recording started.');
 
                 const reader = new java.io.BufferedReader(new java.io.InputStreamReader(currentProcess.getInputStream()));
                 let line;
@@ -343,7 +343,7 @@ class ClippingManager extends ModuleBase {
                     if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
                         console.warn('[FFmpeg Error] ' + line);
                         if (this.isRecording) {
-                            this.message(`&cFFmpeg Error: ${line}`);
+                            Chat.messageClip(`&cFFmpeg Error: ${line}`);
                         }
                     }
                 }
@@ -351,13 +351,13 @@ class ClippingManager extends ModuleBase {
                 currentProcess.waitFor();
 
                 if (this.isRecording) {
-                    this.message('&cRecording stopped unexpectedly.');
+                    Chat.messageClip('&cRecording stopped unexpectedly.');
                     this.isRecording = false;
                 }
 
                 this.process = null;
             } catch (e) {
-                this.message(`&cCritical Error: ${e}`);
+                Chat.messageClip(`&cCritical Error: ${e}`);
                 this.isRecording = false;
                 this.process = null;
             }
@@ -367,7 +367,7 @@ class ClippingManager extends ModuleBase {
     stopRecording() {
         if (this.process && this.process.isAlive()) {
             this.process.destroy();
-            this.message('&7Recorder stopped.');
+            Chat.messageClip('&7Recorder stopped.');
         }
 
         this.process = null;
@@ -389,14 +389,14 @@ class ClippingManager extends ModuleBase {
     }
 
     saveClip() {
-        this.message('&7Saving clip...');
+        Chat.messageClip('&7Saving clip...');
 
         Executor.execute(() => {
             try {
                 const files = bufferDir.listFiles();
 
                 if (!files || files.length === 0) {
-                    this.message('&cNo buffer segments found! Is the recorder running?');
+                    Chat.messageClip('&cNo buffer segments found! Is the recorder running?');
                     this.startRecording();
                     return;
                 }
@@ -406,7 +406,7 @@ class ClippingManager extends ModuleBase {
 
                 const currentSegment = segments[segments.length - 1];
                 let lastModified = currentSegment.lastModified();
-                this.message('&7Waiting for current segment to finish...');
+                Chat.messageClip('&7Waiting for current segment to finish...');
 
                 while (true) {
                     Thread.sleep(300);
@@ -471,7 +471,7 @@ class ClippingManager extends ModuleBase {
                     },
                 });
 
-                this.message('&7Clip Saved: ');
+                Chat.messageClip('&7Clip Saved: ');
                 ChatLib.chat(linkComponent);
 
                 if (this.compressClips) {
@@ -479,14 +479,10 @@ class ClippingManager extends ModuleBase {
                     this.compressClip(outFile);
                 }
             } catch (e) {
-                this.message(`&cFailed to save clip: &f${e}`);
+                Chat.messageClip(`&cFailed to save clip: &f${e}`);
                 console.error(e);
             }
         });
-    }
-
-    message(msg) {
-        Chat.clippingMessage(msg);
     }
 
     onEnable() {

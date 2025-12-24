@@ -48,7 +48,7 @@ class NukerClass extends ModuleBase {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {
                 let pos = [block.getX(), block.getY(), block.getZ()];
-                Chat.debugMessage('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
+                Chat.messageDebug('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
                 NukerUtils.nuke(pos, ticks);
             }
         }).setCommandName('nukeit');

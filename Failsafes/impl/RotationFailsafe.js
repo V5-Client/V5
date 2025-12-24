@@ -91,8 +91,8 @@ class RotationFailsafe extends Failsafe {
             severity = 'very high';
         }
 
-        Chat.failsafeMsg(`You were rotated by the server! (${severity} severity)`);
-        Chat.failsafeMsg(
+        Chat.messageFailsafe(`You were rotated by the server! (${severity} severity)`);
+        Chat.messageFailsafe(
             `yaw ${fromYaw.toFixed(2)} -> ${toYaw.toFixed(2)}, pitch ${fromPitch.toFixed(2)} -> ${toPitch.toFixed(2)} (${totalRotation.toFixed(1)}° total)`
         );
         Webhook.sendEmbed(

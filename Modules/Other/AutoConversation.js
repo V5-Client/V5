@@ -1,4 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
+import { Chat } from '../../utils/Chat';
 
 class AutoConversation extends ModuleBase {
     constructor() {
@@ -27,7 +28,7 @@ class AutoConversation extends ModuleBase {
                     try {
                         value = clickEvent.comp_3506();
                     } catch (e) {
-                        console.log(e);
+                        Chat.log(e);
                     }
 
                     if (value) commands.push(value);
