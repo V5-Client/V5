@@ -229,7 +229,7 @@ export const returnDiscord = (authToken) => {
                     data = JSON.parse(responseText);
                 } catch (e) {
                     Chat.message('Failed to parse Discord PFP data. Error: ' + e);
-                    console.log('Invalid JSON received: ' + responseText);
+                    Chat.log('Invalid JSON received: ' + responseText);
                     return;
                 }
 

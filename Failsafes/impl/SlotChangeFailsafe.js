@@ -47,7 +47,7 @@ class SlotChangeFailsafe extends Failsafe {
     }
 
     onTrigger(fromSlot, toSlot) {
-        Chat.failsafeMsg(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}! (high severity)`);
+        Chat.messageFailsafe(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}! (high severity)`);
         FailsafeUtils.incrementFailsafeIntensity(50);
         Webhook.sendEmbed(
             [
