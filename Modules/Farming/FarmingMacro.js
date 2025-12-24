@@ -131,41 +131,37 @@ class FarmingMacro extends ModuleBase {
                     }
                     break;
                 case this.STATES.DECIDEROTATION:
-                    let lookingAt = Player.lookingAt();
-                    let isTargetCrop = false;
+                    const blockAhead = this.getBlockInFront(1, 1);
+                    const aheadRegistry = blockAhead?.type?.getRegistryName();
 
-                    if (lookingAt) {
-                        let block = World.getBlockAt(lookingAt.x, lookingAt.y, lookingAt.z);
-                        let registry = block?.type?.getRegistryName();
-
-                        isTargetCrop = Array.isArray(this.registry) ? this.registry.includes(registry) : registry === this.registry;
-                    }
-
+                    const isCrop = (reg) => (Array.isArray(this.registry) ? this.registry.includes(reg) : reg === this.registry);
                     let targetYaw;
 
-                    if (isTargetCrop) {
-                        let currentBlockAngles = MathUtils.calculateAbsoluteAngles([lookingAt.x, lookingAt.y, lookingAt.z]);
-                        targetYaw = currentBlockAngles.yaw;
+                    if (isCrop(aheadRegistry)) {
+                        this.message('Targeting: Block Ahead');
+                        targetYaw = MathUtils.calculateAbsoluteAngles([blockAhead.getX(), blockAhead.getY(), blockAhead.getZ()]).yaw;
                     } else {
-                        let targetAngles = MathUtils.calculateAbsoluteAngles([this.targetX, this.targetY, this.targetZ]);
-                        targetYaw = targetAngles.yaw;
+                        const lookingAt = Player.lookingAt();
+                        const lookReg = lookingAt ? World.getBlockAt(lookingAt.x, lookingAt.y, lookingAt.z)?.type?.getRegistryName() : null;
+
+                        if (lookingAt && isCrop(lookReg)) {
+                            this.message('Targeting: Crosshair');
+                            targetYaw = MathUtils.calculateAbsoluteAngles([lookingAt.x, lookingAt.y, lookingAt.z]).yaw;
+                        } else {
+                            this.message('Targeting: Fallback');
+                            targetYaw = MathUtils.calculateAbsoluteAngles([this.targetX, this.targetY, this.targetZ]).yaw;
+                        }
                     }
 
-                    if (targetYaw > 180) targetYaw -= 360;
-                    if (targetYaw <= -180) targetYaw += 360;
+                    targetYaw = ((((targetYaw + 180) % 360) + 360) % 360) - 180;
 
-                    let allowedYaws;
-                    if (this.farmAxis === 'X') allowedYaws = [0, -180];
-                    else if (this.farmAxis === 'Z') allowedYaws = [90, -90];
-                    else allowedYaws = [0, 90, -90, -180];
-
+                    let allowedYaws = this.farmAxis === 'X' ? [0, -180] : this.farmAxis === 'Z' ? [90, -90] : [0, 90, -90, -180];
                     let snappedYaw = targetYaw;
                     let minDifference = 361;
 
                     for (const allowed of allowedYaws) {
                         let diff = Math.abs(targetYaw - allowed);
                         let shortestDiff = Math.min(diff, 360 - diff);
-
                         if (shortestDiff < minDifference) {
                             minDifference = shortestDiff;
                             snappedYaw = allowed;
@@ -173,22 +169,21 @@ class FarmingMacro extends ModuleBase {
                     }
 
                     this.yaw = snappedYaw;
-
                     Rotations.rotateToAngles(this.yaw, this.pitch, 0.1);
                     Rotations.onEndRotation(() => (this.state = this.STATES.DECIDEITEM));
                     break;
                 case this.STATES.DECIDEITEM:
                     let looking = Player.lookingAt();
 
-                    if (!looking) {
-                        // rare case
-                        this.message('&cYou are not looking at a crop!');
-                        this.toggle(false);
-                        return;
-                    }
+                    let registry = null;
 
-                    let block = World.getBlockAt(looking.x, looking.y, looking.z);
-                    let registry = block?.type?.getRegistryName();
+                    if (looking) {
+                        let block = World.getBlockAt(looking.x, looking.y, looking.z);
+                        registry = block?.type?.getRegistryName();
+                    } else {
+                        const blockAhead = this.getBlockInFront(1, 1);
+                        registry = blockAhead?.type?.getRegistryName();
+                    }
 
                     const cropTools = {
                         'minecraft:nether_wart': 'Nether Wart Hoe',
@@ -262,7 +257,7 @@ class FarmingMacro extends ModuleBase {
                     if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
                         Keybind.setKey('leftclick', true);
                         Keybind.setKey(this.movementKey, true);
-                        this.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
+                        //this.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
 
                         let isOnGround = Player.asPlayerMP().isOnGround();
 
@@ -316,11 +311,12 @@ class FarmingMacro extends ModuleBase {
     }
 
     scanSides() {
-        const playerBlockX = Math.floor(Player.getPlayer().getX());
-        const playerBlockY = Math.round(Player.getPlayer().getY());
-        const playerBlockZ = Math.floor(Player.getPlayer().getZ());
+        const player = Player.getPlayer();
+        const playerBlockX = Math.floor(player.getX());
+        const playerBlockY = Math.round(player.getY());
+        const playerBlockZ = Math.floor(player.getZ());
 
-        let yaw = ((Player.getYaw() % 360) + 360) % 360;
+        const facing = player.getFacing().toString().toUpperCase();
 
         const scanResults = [];
         const range = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
@@ -328,18 +324,19 @@ class FarmingMacro extends ModuleBase {
         let dx = 0;
         let dz = 0;
 
-        if (yaw >= 315 || yaw < 45) {
-            // Facing South (+Z)
-            dx = -1; // Right is West (-X)
-        } else if (yaw >= 45 && yaw < 135) {
-            // Facing West (-X)
-            dz = -1; // Right is North (-Z)
-        } else if (yaw >= 135 && yaw < 225) {
-            // Facing North (-Z)
-            dx = 1; // Right is East (+X)
-        } else if (yaw >= 225 && yaw < 315) {
-            // Facing East (+X)
-            dz = 1; // Right is South (+Z)
+        switch (facing) {
+            case 'SOUTH': // Facing +Z
+                dx = -1; // Right is West (-X)
+                break;
+            case 'WEST': // Facing -X
+                dz = -1; // Right is North (-Z)
+                break;
+            case 'NORTH': // Facing -Z
+                dx = 1; // Right is East (+X)
+                break;
+            case 'EAST': // Facing +X
+                dz = 1; // Right is South (+Z)
+                break;
         }
 
         for (const offset of range) {
@@ -360,6 +357,30 @@ class FarmingMacro extends ModuleBase {
         return scanResults;
     }
 
+    getBlockInFront(offsetDist = 1, yOffset = 0) {
+        const player = Player.getPlayer();
+        const facing = player.getFacing().toString().toUpperCase();
+
+        const px = Math.floor(player.getX());
+        const py = Math.round(player.getY());
+        const pz = Math.floor(player.getZ());
+
+        const directions = {
+            NORTH: [0, -1],
+            SOUTH: [0, 1],
+            WEST: [-1, 0],
+            EAST: [1, 0],
+        };
+
+        const [dx, dz] = directions[facing] || [0, 0];
+
+        const targetX = px + dx * offsetDist;
+        const targetY = py + yOffset;
+        const targetZ = pz + dz * offsetDist;
+
+        return World.getBlockAt(targetX, targetY, targetZ);
+    }
+
     message(msg) {
         Chat.message('&#33ba11Farming Macro: &f' + msg);
     }
@@ -375,6 +396,7 @@ class FarmingMacro extends ModuleBase {
         global.macrostate.setMacroRunning(false, 'FARMING');
         Mouse.regrab();
         Rotations.stopRotation();
+        Keybind.setKey('leftclick', false);
         this.movementKey = null;
         this.ignoreKey = null;
         this.message('&cDisabled');
