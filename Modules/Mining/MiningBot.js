@@ -43,6 +43,7 @@ class Bot extends ModuleBase {
         this.miningspeed = 0;
         this.currentTarget = null;
         this.lastBlockPos = null;
+        this.lastBlockType = null;
         this.miningbot = null;
         this.ability = null;
         this.file = null;
@@ -53,6 +54,9 @@ class Bot extends ModuleBase {
         this.allowScan = false;
         this.speedBoost = false;
         this.nukedBlock = false;
+
+        this.miningResetPending = false;
+        this.miningResetTicks = 0;
 
         this.faceReach = 4.5;
         this.bfsPad = Math.sqrt(3) * 0.5;
@@ -130,12 +134,27 @@ class Bot extends ModuleBase {
         });
 
         registerEventSB('abilityready', () => {
+            this.requestMiningReset('ability_ready');
             this.state = this.STATES.ABILITY;
         });
         registerEventSB('abilityused', () => {
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
+            this.requestMiningReset('ability_used');
         });
-        registerEventSB('abilitygone', () => (this.speedBoost = false));
+        registerEventSB('abilitygone', () => {
+            this.speedBoost = false;
+            this.requestMiningReset('ability_gone');
+        });
+    }
+
+    requestMiningReset(reason = 'unknown') {
+        if (this.state !== this.STATES.MINING && this.state !== this.STATES.ABILITY) return;
+
+        Keybind.setKey('leftclick', false);
+        this.miningResetPending = true;
+        this.miningResetTicks = 1;
+        this.mineTickCount = 0;
+        this.tickCount = 0;
     }
 
     initSettings() {
@@ -241,6 +260,16 @@ class Bot extends ModuleBase {
             return;
         }
 
+        if (this.miningResetPending) {
+            Keybind.setKey('leftclick', false);
+            if (this.miningResetTicks > 0) {
+                this.miningResetTicks--;
+                return;
+            }
+            this.miningResetPending = false;
+            this.allowScan = true;
+        }
+
         const { drill } = MiningUtils.getDrills();
         if (Player.getHeldItemIndex() !== drill.slot) {
             Guis.setItemSlot(drill.slot);
@@ -269,6 +298,21 @@ class Bot extends ModuleBase {
         let blockName = block?.type?.getRegistryName();
 
         if (
+            this.lastBlockPos &&
+            this.lastBlockPos.x === lowestCostBlock.x &&
+            this.lastBlockPos.y === lowestCostBlock.y &&
+            this.lastBlockPos.z === lowestCostBlock.z &&
+            this.lastBlockType &&
+            this.lastBlockType !== blockName
+        ) {
+            if (!blockName.includes('air') && !blockName.includes('bedrock')) {
+                this.lastBlockType = blockName;
+                this.requestMiningReset('block_transformed');
+                return;
+            }
+        }
+
+        if (
             !this.lastBlockPos ||
             this.lastBlockPos.x !== lowestCostBlock.x ||
             this.lastBlockPos.y !== lowestCostBlock.y ||
@@ -277,6 +321,7 @@ class Bot extends ModuleBase {
             this.mineTickCount = 0;
             this.tickCount = 0;
             this.lastBlockPos = lowestCostBlock;
+            this.lastBlockType = blockName;
         }
 
         this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
@@ -666,6 +711,8 @@ class Bot extends ModuleBase {
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
+        this.miningResetPending = false;
+        this.miningResetTicks = 0;
         Keybind.setKey('rightclick', false);
     }
 
@@ -677,9 +724,12 @@ class Bot extends ModuleBase {
         Keybind.setKey('rightclick', false);
         this.foundLocations = [];
         this.lastBlockPos = null;
+        this.lastBlockType = null;
         this.currentTarget = null;
         this.mineTickCount = 0;
         this.tickCount = 0;
+        this.miningResetPending = false;
+        this.miningResetTicks = 0;
         Rotations.stopRotation();
         Guis.EnableUserInput();
     }
