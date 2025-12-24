@@ -1,4 +1,4 @@
-const PathManager = Java.type('dev.quiteboring.swift.api.PathManager');
+const PathManager = Java.type('com.v5.pathfinding.PathManager');
 
 export const SwiftBridge = {
     findPath(startX, startY, startZ, endX, endY, endZ) {
