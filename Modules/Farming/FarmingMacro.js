@@ -6,8 +6,6 @@ import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import RenderUtils from '../../utils/render/RendererUtils';
-import { Vec3d } from '../../utils/Constants';
 
 const FARMING_DATA = [
     {
@@ -62,6 +60,8 @@ class FarmingMacro extends ModuleBase {
 
         this.bindToggleKey();
 
+        this.DEBUG = false;
+
         this.addMultiToggle(
             'Crop',
             FARMING_DATA.map((data) => data.name),
@@ -69,6 +69,15 @@ class FarmingMacro extends ModuleBase {
             (v) => {
                 this.CROPS = v;
             }
+        );
+
+        this.addToggle(
+            'Debug Messages (Highly recommended)',
+            (v) => {
+                this.DEBUG = v;
+            },
+            'Various debug messages to help with debugging',
+            false
         );
 
         this.on('tick', () => {
@@ -134,6 +143,7 @@ class FarmingMacro extends ModuleBase {
                     }
                     break;
                 case this.STATES.DECIDEROTATION:
+                    // this looks atrocious imo needs rewrite to visually look better
                     const blockAhead = this.getBlockInFront(1, 1);
                     const aheadRegistry = blockAhead?.type?.getRegistryName();
 
@@ -141,17 +151,17 @@ class FarmingMacro extends ModuleBase {
                     let targetYaw;
 
                     if (isCrop(aheadRegistry)) {
-                        this.message('Targeting: Block Ahead');
+                        this.message('&7Targetting crop by getting the block ahead!', true);
                         targetYaw = MathUtils.calculateAbsoluteAngles([blockAhead.getX(), blockAhead.getY(), blockAhead.getZ()]).yaw;
                     } else {
                         const lookingAt = Player.lookingAt();
                         const lookReg = lookingAt ? World.getBlockAt(lookingAt.x, lookingAt.y, lookingAt.z)?.type?.getRegistryName() : null;
 
                         if (lookingAt && isCrop(lookReg)) {
-                            this.message('Targeting: Crosshair');
+                            this.message('&7Targetting crop by looking at it!', true);
                             targetYaw = MathUtils.calculateAbsoluteAngles([lookingAt.x, lookingAt.y, lookingAt.z]).yaw;
                         } else {
-                            this.message('Targeting: Fallback');
+                            this.message('&7Targetting crop by fallback!', true);
                             targetYaw = MathUtils.calculateAbsoluteAngles([this.targetX, this.targetY, this.targetZ]).yaw;
                         }
                     }
@@ -176,16 +186,18 @@ class FarmingMacro extends ModuleBase {
                     Rotations.onEndRotation(() => (this.state = this.STATES.DECIDEITEM));
                     break;
                 case this.STATES.DECIDEITEM:
-                    let looking = Player.lookingAt();
+                    let block = this.getBlockInFront(1, 1);
+                    let registry = block?.name;
 
-                    let registry = null;
+                    if (!registry) {
+                        let looking = Player.lookingAt();
+                        if (!looking) {
+                            ChatLib.chat('Errored big');
+                            this.toggle(false);
+                            return;
+                        }
 
-                    if (looking) {
-                        let block = World.getBlockAt(looking.x, looking.y, looking.z);
-                        registry = block?.type?.getRegistryName();
-                    } else {
-                        const blockAhead = this.getBlockInFront(1, 1);
-                        registry = blockAhead?.type?.getRegistryName();
+                        registry = World.getBlockAt(looking.x, looking.y, looking.z)?.type?.getRegistryName();
                     }
 
                     const cropTools = {
@@ -212,10 +224,9 @@ class FarmingMacro extends ModuleBase {
 
                     if (targetSlot !== -1) {
                         Guis.setItemSlot(targetSlot);
-                        this.message(`Found ${requiredToolName} in slot ${targetSlot}`);
                         if (Player.getHeldItemIndex() === targetSlot) this.state = this.STATES.DECIDEMOVEMENT;
                     } else {
-                        this.message(`&cRequired tool "${requiredToolName}" not found in hotbar!`);
+                        this.message(`&cMissing "${requiredToolName}"!`);
                         this.toggle(false);
                     }
 
@@ -252,11 +263,11 @@ class FarmingMacro extends ModuleBase {
                         });
 
                         if (maxDistRight > maxDistLeft) {
-                            this.message(`Wall detected on RIGHT. Moving LEFT!`);
+                            this.message(`&7Wall RIGHT moving LEFT!`, true);
                             this.movementKey = 'a';
                             this.ignoreKeys = ['d', 's'];
                         } else if (maxDistLeft > maxDistRight) {
-                            this.message(`Wall detected on LEFT. Moving RIGHT!`);
+                            this.message(`&7Wall LEFT moving RIGHT!`, true);
                             this.movementKey = 'd';
                             this.ignoreKeys = ['a', 's'];
                         } else {
@@ -265,15 +276,15 @@ class FarmingMacro extends ModuleBase {
                             let rightAge = corners.right.age;
 
                             if (leftAge > rightAge) {
-                                this.message(`Higher age on LEFT (${leftAge}). Moving LEFT!`);
+                                this.message(`&7Older crop LEFT, moving LEFT!`, true);
                                 this.movementKey = 'a';
                                 this.ignoreKeys = ['d', 's'];
                             } else if (rightAge > leftAge) {
-                                this.message(`Higher age on RIGHT (${rightAge}). Moving RIGHT!`);
+                                this.message(`&7Older crop RIGHT, moving RIGHT!`, true);
                                 this.movementKey = 'd';
                                 this.ignoreKeys = ['a', 's'];
                             } else if (leftAge === rightAge) {
-                                if (!this.deciding) this.message(`Macro couldn't decide! Press A or D to set direction...`);
+                                if (!this.deciding) this.message(`Macro can't decide which way to move, press A or D to proceed!`);
                                 this.deciding = true;
 
                                 let aDown = Client.getMinecraft().options.leftKey.isPressed();
@@ -282,11 +293,11 @@ class FarmingMacro extends ModuleBase {
                                 if (aDown) {
                                     this.movementKey = 'a';
                                     this.ignoreKeys = ['d', 's'];
-                                    this.message(`&aDirection set to LEFT (A)`);
+                                    this.message(`Direction set to LEFT!`, true);
                                 } else if (dDown) {
                                     this.movementKey = 'd';
                                     this.ignoreKeys = ['a', 's'];
-                                    this.message(`&aDirection set to RIGHT (D)`);
+                                    this.message(`Direction set to RIGHT!`, true);
                                 }
 
                                 if (this.movementKey === null) return;
@@ -427,16 +438,13 @@ class FarmingMacro extends ModuleBase {
 
         const [dx, dz] = directions[facing] || [0, 0];
 
-        // Use exact coordinates for the target to keep distance math accurate
         const targetX = player.getX() + dx * offsetDist;
         const targetY = player.getY() + yOffset;
         const targetZ = player.getZ() + dz * offsetDist;
 
-        // Get the block at the floored position
         const block = World.getBlockAt(Math.floor(targetX), Math.floor(targetY), Math.floor(targetZ));
 
         return {
-            // Return the exact center of the block for the distance check
             x: Math.floor(targetX) + 0.5,
             y: Math.floor(targetY),
             z: Math.floor(targetZ) + 0.5,
@@ -476,8 +484,10 @@ class FarmingMacro extends ModuleBase {
         return { left, right };
     }
 
-    message(msg) {
-        Chat.message('&#33ba11Farming Macro: &f' + msg);
+    message(msg, debug = false) {
+        let prefix = 'Farming Macro:';
+        if (this.DEBUG && debug) prefix = 'Farming Macro: &c[DEBUG]';
+        Chat.message(`&#33ba11${prefix}&f ${msg}`);
     }
 
     onEnable() {
@@ -493,6 +503,7 @@ class FarmingMacro extends ModuleBase {
         Rotations.stopRotation();
         Keybind.setKey('leftclick', false);
         this.movementKey = null;
+        this.deciding = false;
         this.ignoreKey = null;
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
