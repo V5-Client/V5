@@ -62,7 +62,7 @@ class FarmingMacro extends ModuleBase {
         this.ignoreKey = null;
         this.inAir = false;
         this.deciding = false;
-        this.warp = false;
+        this.warping = false;
 
         this.points = Utils.getConfigFile('FarmingMacro/points.txt') || {};
 
@@ -177,7 +177,7 @@ class FarmingMacro extends ModuleBase {
                     if (Array.isArray(this.registry)) targetBlocks = cube.filter((block) => this.registry.includes(block.name));
                     else targetBlocks = cube.filter((block) => block.name === this.registry);
 
-                    if (targetBlocks.length > 0) {
+                    if (targetBlocks.length > 0 && !this.warping) {
                         const sumX = targetBlocks.reduce((sum, block) => sum + block.x, 0);
                         const sumY = targetBlocks.reduce((sum, block) => sum + block.y, 0);
                         const sumZ = targetBlocks.reduce((sum, block) => sum + block.z, 0);
@@ -206,32 +206,26 @@ class FarmingMacro extends ModuleBase {
                         else if (spanZ > spanX) this.farmAxis = 'Z';
                         else this.farmAxis = 'X'; // idk what the fuck to do here
 
-                        this.state = this.STATES.DECIDEROTATION;
-                    } else {
-                        if (!this.warp) {
-                            this.message('&cYou are not near your selected crop!');
-                            ChatLib.command('warp garden');
-                            this.warp = true;
-                            return;
+                        if (Player.isFlying()) {
+                            Keybind.setKey('shift', true);
+                        } else {
+                            Keybind.setKey('shift', false);
+                            this.state = this.STATES.DECIDEROTATION;
                         }
-                        return;
-                    }
+                    } else if (!this.warping) {
+                        if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z)) {
+                            this.message('&cAt start point but no crops found!');
+                            this.toggle(false);
+                        } else {
+                            this.message('&cNot near your selected crop! Warping...');
+                            ChatLib.command('warp garden');
+                            this.warping = true;
+                        }
+                    } else if (this.warping && this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z)) this.warping = false;
                     break;
                 case this.STATES.DECIDEROTATION:
-                    if (this.warp) {
-                        let check = MathUtils.getDistanceToPlayer(this.points.start.x + 0.5, this.points.start.y, this.points.start.z + 0.5).distance;
-                        if (check < 1) this.warp = false;
-                        return;
-                    }
-
-                    // make this more realistic, slow it down abit
-                    if (Player.isFlying()) {
-                        Keybind.setKey('shift', true);
-                        return;
-                    } else Keybind.setKey('shift', false);
-
                     // this looks atrocious imo needs rewrite to visually look better
-                    const blockAhead = this.getBlockInFront(1, 1);
+                    const blockAhead = this.getBlockInFront(1, 1); // only works for melonkinde pumpkin and melon and vertical; maybe sugarcane
                     const aheadRegistry = blockAhead?.name;
 
                     const isCrop = (reg) => (Array.isArray(this.registry) ? this.registry.includes(reg) : reg === this.registry);
@@ -395,10 +389,7 @@ class FarmingMacro extends ModuleBase {
                     }
                     break;
                 case this.STATES.IDLECHECKS:
-                    let endPoint = MathUtils.getDistanceToPlayer(this.points.end.x, this.points.end.y, this.points.end.z);
-                    let distance = endPoint.distance;
-
-                    if (distance < 1) {
+                    if (this.isAtPoint(this.points.end.x, this.points.end.y, this.points.end.z, 1)) {
                         this.message('&aReached end of farm! rewarping.');
                         Keybind.unpressKeys();
                         Keybind.setKey('leftclick', false);
@@ -431,14 +422,9 @@ class FarmingMacro extends ModuleBase {
                         return;
                     }
 
-                    if (Date.now() >= this.warpDelay) {
-                        ChatLib.command('warp garden');
-                    }
+                    if (Date.now() >= this.warpDelay) ChatLib.command('warp garden');
 
-                    let check = MathUtils.getDistanceToPlayer(this.points.start.x, this.points.start.y, this.points.start.z);
-                    distance = check.distance;
-
-                    if (distance < 1) {
+                    if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z, 1)) {
                         this.warpDelay = null;
                         this.state = this.STATES.SCANFORCROP;
                     }
@@ -603,6 +589,12 @@ class FarmingMacro extends ModuleBase {
         return { left, right };
     }
 
+    isAtPoint(x, y, z, minDist = 1) {
+        let check = MathUtils.getDistanceToPlayer(x, y, z).distance;
+        if (check < minDist) return true;
+        return false;
+    }
+
     message(msg, debug = false) {
         let prefix = 'Farming Macro:';
         if (this.DEBUG && debug) prefix = 'Farming Macro: &c[DEBUG]';
@@ -623,7 +615,7 @@ class FarmingMacro extends ModuleBase {
         Keybind.setKey('leftclick', false);
         this.movementKey = null;
         this.deciding = false;
-        this.warp = false;
+        this.warping = false;
         this.ignoreKey = null;
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
