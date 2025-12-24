@@ -6,6 +6,8 @@ import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
+import RenderUtils from '../../utils/render/RendererUtils';
+import { Vec3d } from '../../utils/Constants';
 
 const FARMING_DATA = [
     {
@@ -29,7 +31,7 @@ const FARMING_DATA = [
 // then decide Movement only tells Idlechecks where to go and what to do
 // if you plan on adding other crops follow this pattern
 
-// todo : rewarp, check block  metadata for crop type when sides is balanced out etc
+// todo : rewarp
 
 class FarmingMacro extends ModuleBase {
     constructor() {
@@ -56,6 +58,7 @@ class FarmingMacro extends ModuleBase {
         this.movementKey = null;
         this.ignoreKey = null;
         this.inAir = false;
+        this.deciding = false;
 
         this.bindToggleKey();
 
@@ -220,6 +223,16 @@ class FarmingMacro extends ModuleBase {
                 case this.STATES.DECIDEMOVEMENT:
                     if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
                         Keybind.setKey('leftclick', true);
+
+                        let blockData = this.getBlockInFront(1, 0);
+                        let distCheck = MathUtils.getDistanceToPlayer(blockData.x, blockData.y, blockData.z);
+                        let distance = distCheck.distanceFlat;
+
+                        if (distance > 1) {
+                            Keybind.setKey('w', true);
+                            return;
+                        } else Keybind.setKey('w', false);
+
                         let scan = this.scanSides();
 
                         let maxDistLeft = 0;
@@ -239,15 +252,45 @@ class FarmingMacro extends ModuleBase {
                         });
 
                         if (maxDistRight > maxDistLeft) {
-                            this.message(`Wall detected on RIGHT. Moving LEFT to avoid!`);
+                            this.message(`Wall detected on RIGHT. Moving LEFT!`);
                             this.movementKey = 'a';
                             this.ignoreKeys = ['d', 's'];
                         } else if (maxDistLeft > maxDistRight) {
-                            this.message(`Wall detected on LEFT. Moving RIGHT to avoid!`);
+                            this.message(`Wall detected on LEFT. Moving RIGHT!`);
                             this.movementKey = 'd';
                             this.ignoreKeys = ['a', 's'];
                         } else {
-                            // check the crop metadata here then smh
+                            let corners = this.checkFrontCorners();
+                            let leftAge = corners.left.age;
+                            let rightAge = corners.right.age;
+
+                            if (leftAge > rightAge) {
+                                this.message(`Higher age on LEFT (${leftAge}). Moving LEFT!`);
+                                this.movementKey = 'a';
+                                this.ignoreKeys = ['d', 's'];
+                            } else if (rightAge > leftAge) {
+                                this.message(`Higher age on RIGHT (${rightAge}). Moving RIGHT!`);
+                                this.movementKey = 'd';
+                                this.ignoreKeys = ['a', 's'];
+                            } else if (leftAge === rightAge) {
+                                if (!this.deciding) this.message(`Macro couldn't decide! Press A or D to set direction...`);
+                                this.deciding = true;
+
+                                let aDown = Client.getMinecraft().options.leftKey.isPressed();
+                                let dDown = Client.getMinecraft().options.rightKey.isPressed();
+
+                                if (aDown) {
+                                    this.movementKey = 'a';
+                                    this.ignoreKeys = ['d', 's'];
+                                    this.message(`&aDirection set to LEFT (A)`);
+                                } else if (dDown) {
+                                    this.movementKey = 'd';
+                                    this.ignoreKeys = ['a', 's'];
+                                    this.message(`&aDirection set to RIGHT (D)`);
+                                }
+
+                                if (this.movementKey === null) return;
+                            }
                         }
 
                         this.state = this.STATES.IDLECHECKS;
@@ -257,19 +300,15 @@ class FarmingMacro extends ModuleBase {
                     if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
                         Keybind.setKey('leftclick', true);
                         Keybind.setKey(this.movementKey, true);
-                        //this.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
+                        this.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
 
                         let isOnGround = Player.asPlayerMP().isOnGround();
-
                         if (!isOnGround) {
-                            ChatLib.chat('&cNot on ground!');
                             Keybind.stopMovement();
                             this.inAir = true;
                         }
 
                         if (this.inAir && isOnGround) {
-                            this.message('&aLanded! Recalculating movement...');
-
                             this.inAir = false;
                             this.state = this.STATES.DECIDEMOVEMENT;
                         }
@@ -279,6 +318,10 @@ class FarmingMacro extends ModuleBase {
         });
     }
 
+    /**
+     * Scans a 3x3x3 area around the player.
+     * @returns {Array} An array of objects containing block information.
+     */
     scan3x3x3() {
         const playerBlockX = Math.floor(Player.getPlayer().getX());
         const playerBlockY = Math.round(Player.getPlayer().getY());
@@ -310,6 +353,10 @@ class FarmingMacro extends ModuleBase {
         return scanResults;
     }
 
+    /**
+     * Scans the sides of the player for 20 blocks eachside in the direction the player is facing.
+     * @returns {Array} An array of objects containing block information.
+     */
     scanSides() {
         const player = Player.getPlayer();
         const playerBlockX = Math.floor(player.getX());
@@ -319,7 +366,11 @@ class FarmingMacro extends ModuleBase {
         const facing = player.getFacing().toString().toUpperCase();
 
         const scanResults = [];
-        const range = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
+        const range = [];
+        for (let i = -5; i <= 5; i++) {
+            if (i === 0) continue;
+            range.push(i);
+        }
 
         let dx = 0;
         let dz = 0;
@@ -357,13 +408,15 @@ class FarmingMacro extends ModuleBase {
         return scanResults;
     }
 
+    /**
+     * Gets the block in front of the player.
+     * @param {*} offsetDist The distance to offset the block in front of the player.
+     * @param {*} yOffset The y offset of the block.
+     * @returns The block in front of the player.
+     */
     getBlockInFront(offsetDist = 1, yOffset = 0) {
         const player = Player.getPlayer();
         const facing = player.getFacing().toString().toUpperCase();
-
-        const px = Math.floor(player.getX());
-        const py = Math.round(player.getY());
-        const pz = Math.floor(player.getZ());
 
         const directions = {
             NORTH: [0, -1],
@@ -374,11 +427,53 @@ class FarmingMacro extends ModuleBase {
 
         const [dx, dz] = directions[facing] || [0, 0];
 
-        const targetX = px + dx * offsetDist;
-        const targetY = py + yOffset;
-        const targetZ = pz + dz * offsetDist;
+        // Use exact coordinates for the target to keep distance math accurate
+        const targetX = player.getX() + dx * offsetDist;
+        const targetY = player.getY() + yOffset;
+        const targetZ = player.getZ() + dz * offsetDist;
 
-        return World.getBlockAt(targetX, targetY, targetZ);
+        // Get the block at the floored position
+        const block = World.getBlockAt(Math.floor(targetX), Math.floor(targetY), Math.floor(targetZ));
+
+        return {
+            // Return the exact center of the block for the distance check
+            x: Math.floor(targetX) + 0.5,
+            y: Math.floor(targetY),
+            z: Math.floor(targetZ) + 0.5,
+            name: block.type.getRegistryName(),
+        };
+    }
+
+    /**
+     * Checks the front corners of the player.
+     * @param {*} yOffset The y offset of the block.
+     * @returns The block in front of the player.
+     */
+    checkFrontCorners(yOffset = 1) {
+        const p = Player.getPlayer();
+        const facing = p.getFacing().toString().toUpperCase();
+
+        const directions = {
+            NORTH: [0, -1, 1, 0], // Forward is -Z, Right is +X
+            SOUTH: [0, 1, -1, 0], // Forward is +Z, Right is -X
+            WEST: [-1, 0, 0, -1], // Forward is -X, Right is -Z
+            EAST: [1, 0, 0, 1], // Forward is +X, Right is +Z
+        };
+
+        const [fx, fz, sx, sz] = directions[facing] || [0, 0, 0, 0];
+
+        const getInfo = (offX, offZ) => {
+            const pos = new net.minecraft.util.math.BlockPos(Math.floor(p.getX() + offX), Math.floor(p.getY() + yOffset), Math.floor(p.getZ() + offZ));
+            const state = World.getWorld().getBlockState(pos);
+            const ageProp = state.getBlock().getStateManager().getProperty('age');
+
+            return { age: ageProp ? state.get(ageProp) : -1 };
+        };
+
+        const right = getInfo(fx + sx, fz + sz);
+        const left = getInfo(fx - sx, fz - sz);
+
+        return { left, right };
     }
 
     message(msg) {
