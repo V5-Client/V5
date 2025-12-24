@@ -422,11 +422,20 @@ class FarmingMacro extends ModuleBase {
                         return;
                     }
 
-                    if (Date.now() >= this.warpDelay) ChatLib.command('warp garden');
+                    if (Date.now() >= this.warpDelay) {
+                        ChatLib.command('warp garden');
+                    }
 
                     if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z, 1)) {
-                        this.warpDelay = null;
-                        this.state = this.STATES.SCANFORCROP;
+                        const chunkX = Math.floor(this.points.start.x) >> 4;
+                        const chunkZ = Math.floor(this.points.start.z) >> 4;
+
+                        if (World.getWorld().getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
+                            this.warpDelay = null;
+                            this.state = this.STATES.SCANFORCROP;
+                        } else {
+                            this.message('Waiting for chunks to load', true);
+                        }
                     }
 
                     break;
@@ -591,6 +600,7 @@ class FarmingMacro extends ModuleBase {
 
     isAtPoint(x, y, z, minDist = 1) {
         let check = MathUtils.getDistanceToPlayer(x, y, z).distance;
+        ChatLib.chat(check);
         if (check < minDist) return true;
         return false;
     }
