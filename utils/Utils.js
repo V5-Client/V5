@@ -82,7 +82,6 @@ class UtilsClass {
         const playerBox = player.getBoundingBox();
         const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
 
-        // Normalize Yaw: 0=S, 90=W, 180=N, 270=E
         let yaw = ((player.getYaw() % 360) + 360) % 360;
 
         const world = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
@@ -111,27 +110,22 @@ class UtilsClass {
 
         let res = { front: false, back: false, left: false, right: false };
 
-        // Map world collisions to player-relative sides based on rotation
         if (yaw >= 315 || yaw < 45) {
-            // Facing South (+Z)
             res.front = world.SOUTH;
             res.back = world.NORTH;
             res.left = world.EAST;
             res.right = world.WEST;
         } else if (yaw >= 45 && yaw < 135) {
-            // Facing West (-X)
             res.front = world.WEST;
             res.back = world.EAST;
             res.left = world.SOUTH;
             res.right = world.NORTH;
         } else if (yaw >= 135 && yaw < 225) {
-            // Facing North (-Z)
             res.front = world.NORTH;
             res.back = world.SOUTH;
             res.left = world.WEST;
             res.right = world.EAST;
         } else if (yaw >= 225 && yaw < 315) {
-            // Facing East (+X)
             res.front = world.EAST;
             res.back = world.WEST;
             res.left = world.NORTH;
