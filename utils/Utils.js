@@ -32,34 +32,14 @@ class UtilsClass {
     }
 
     /**
-     * @param {Map} map
-     */
-    mapToArray(map) {
-        let array = [];
-        map.forEach((element) => {
-            array.push(element);
-        });
-        return array;
-    }
-
-    makeJavaArray(array) {
-        let JavaArray = new ArrayLists();
-        for (let i = 0; i < array.length; i++) {
-            JavaArray.add(array[i]);
-        }
-        return JavaArray;
-    }
-
-    /**
      * Checks if a specfic block coordinate has collision
-     * @param {Object} world The current world
      * @param {*} blockVec the Vec3d / x, y ,z
      * @returns wether the block has an empty collision shape
      */
-    noCollision(world, blockVec) {
+    noCollision(blockVec) {
         const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
-        const blockState = world.getBlockState(blockPosNMS);
-        const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
+        const blockState = World.getWorld().getBlockState(blockPosNMS);
+        const collisionShape = blockState.getCollisionShape(blockPosNMS);
         return collisionShape.isEmpty();
     }
 
@@ -70,8 +50,6 @@ class UtilsClass {
     playerIsCollided() {
         const playerBox = Player.getPlayer().getBoundingBox();
         const expandedBox = playerBox.expand(0.01, 0, 0.01);
-
-        const world = World.getWorld();
 
         let minX = Math.floor(expandedBox.minX);
         let minY = Math.floor(expandedBox.minY);
@@ -88,7 +66,7 @@ class UtilsClass {
                     if (block?.type?.getID() === 0) return false;
                     const blockVec = new Vec3d(x, y, z);
 
-                    if (this.noCollision(world, blockVec)) return false;
+                    if (this.noCollision(blockVec)) return false;
 
                     return true;
                 }

@@ -63,16 +63,16 @@ function attemptReconnect() {
     if (reconnectAttempts < 10) {
         reconnectAttempts++;
         const delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
-        //Chat.irc(`Attempting to reconnect in ${delay / 20} seconds...`);
+        //Chat.messageIrc(`Attempting to reconnect in ${delay / 20} seconds...`);
         Client.scheduleTask(delay, () => {
             if (gameUnload) return;
             if (isConnected) return;
-            Chat.irc('Reconnecting...');
+            Chat.messageIrc('Reconnecting...');
             connectIRC();
             start = Date.now();
         });
     } else {
-        Chat.irc('&cFailed to connect to chat! /ct load or wait, backend might be down.');
+        Chat.messageIrc('&cFailed to connect to chat! /ct load or wait, backend might be down.');
     }
 }
 
@@ -81,21 +81,21 @@ function handleIncomingMessage(raw) {
         const data = JSON.parse(raw);
         if (data.type === 'message') {
             const sender = data.user || data.mc_username || 'Unknown';
-            Chat.irc(`&9${sender}&r: ${data.msg}`);
+            Chat.messageIrc(`&9${sender}&r: ${data.msg}`);
         } else if (data.type === 'error') {
-            Chat.irc(`Error: ${data.code || 'Unknown'}`);
+            Chat.messageIrc(`Error: ${data.code || 'Unknown'}`);
         } else if (data.type === 'system') {
             if (data.code === 'PREFIX_UPDATED') {
-                Chat.irc('Your prefix has been changed');
+                Chat.messageIrc('Your prefix has been changed');
                 Utils.writeConfigFile(getTokenFileName(), { jwt: 'reset' }); // prefix is stored in jwt soo :()
             } else if (data.code === 'MUTED') {
-                Chat.irc('You have been muted until ' + new Date(data.mute_expires_at * 1000).toISOString());
+                Chat.messageIrc('You have been muted until ' + new Date(data.mute_expires_at * 1000).toISOString());
             } else {
-                Chat.irc(`System: ${data.code || ''}`);
+                Chat.messageIrc(`System: ${data.code || ''}`);
             }
         }
     } catch (e) {
-        Chat.irc(`An error occurred parsing message: ${e}`);
+        Chat.messageIrc(`An error occurred parsing message: ${e}`);
     }
 }
 
@@ -104,7 +104,7 @@ function sendChatMessage(content) {
     try {
         ws.send(content);
     } catch (e) {
-        Chat.irc('Failed to send message: ' + e);
+        Chat.messageIrc('Failed to send message: ' + e);
     }
 }
 
@@ -115,39 +115,31 @@ function connectWebSocket() {
     ws = new WebSocket(wsUrl);
 
     ws.onOpen = () => {
-        Client.scheduleTask(0, () => {
-            reconnectAttempts = 0;
-            isConnected = true;
-            sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
-        });
+        reconnectAttempts = 0;
+        isConnected = true;
+        sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
     };
 
     ws.onMessage = (message) => {
-        Client.scheduleTask(0, () => {
-            handleIncomingMessage(message);
-        });
+        handleIncomingMessage(message);
     };
 
     ws.onError = (exception) => {
-        Client.scheduleTask(0, () => {
-            console.error('WebSocket error:', exception);
-            Chat.irc('Connection error: ' + exception);
-            isConnected = false;
-            if (!gameUnload) attemptReconnect();
-        });
+        console.error('WebSocket error:', exception);
+        Chat.messageIrc('Connection error: ' + exception);
+        isConnected = false;
+        if (!gameUnload) attemptReconnect();
     };
 
     ws.onClose = (code, reason) => {
-        Client.scheduleTask(0, () => {
-            if (code == '1000') return;
-            if (code == '1006') {
-                Chat.irc('Backend restarting.');
-            } else {
-                Chat.irc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
-            }
-            isConnected = false;
-            if (!gameUnload) attemptReconnect();
-        });
+        if (code == '1000') return;
+        if (code == '1006') {
+            Chat.messageIrc('Backend restarting.');
+        } else {
+            Chat.messageIrc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
+        }
+        isConnected = false;
+        if (!gameUnload) attemptReconnect();
     };
 
     ws.connect();
@@ -168,14 +160,14 @@ function login() {
     }).then((data) => {
         if (data.body.error === 'NOT_LINKED') {
             const linkUrl = `${Links.BASE_API_URL}/api/auth/discord/login?state=${data.body.code}`;
-            Chat.irc(Chat.formatLink('Link Discord', linkUrl));
-            Chat.irc('Do /reconnectIRC after you have linked your discord');
+            Chat.messageIrc(Chat.formatLink('Link Discord', linkUrl));
+            Chat.messageIrc('Do /reconnectIRC after you have linked your discord');
             openBrowser(linkUrl);
             return;
         }
 
         if (!data.body.token) {
-            Chat.irc('Login failed.');
+            Chat.messageIrc('Login failed.');
             return;
         }
 
@@ -208,13 +200,13 @@ function connectIRC() {
     })
         .then((response) => {
             if (response.statusCode !== 204) {
-                Chat.irc('Failed to authenticate with Mojang.');
+                Chat.messageIrc('Failed to authenticate with Mojang.');
             } else {
                 login();
             }
         })
         .catch((e) => {
-            Chat.irc('Login error: ' + JSON.stringify(e));
+            Chat.messageIrc('Login error: ' + JSON.stringify(e));
             console.error('Login error stack', e);
             attemptReconnect();
         });

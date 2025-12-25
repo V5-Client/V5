@@ -1,4 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
+//import { Chat } from '../../utils/Chat';
 import RequestV2 from 'RequestV2';
 
 class RatProtection extends ModuleBase {
@@ -28,7 +29,7 @@ class RatProtection extends ModuleBase {
             },
             resolveWithFullResponse: true,
         }).then((response) => {
-            //console.log(JSON.stringify(response));
+            //Chat.log(JSON.stringify(response));
         });
     }
 }

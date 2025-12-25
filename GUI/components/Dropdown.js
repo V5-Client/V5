@@ -94,9 +94,9 @@ export class MultiToggle {
         drawText(this.title, this.x + 12, this.y + this.containerHeight / 2, 9, textColor);
 
         const arrowSize = 16;
-        const rightMargin = 12;
+        const rightMargin = 16;
         const arrowX = this.x + panelWidth - arrowSize - rightMargin;
-        const arrowY = this.y + this.containerHeight / 2 - arrowSize / 2;
+        const arrowY = this.y + (this.containerHeight - arrowSize) / 2;
 
         drawRoundedRectangle({
             x: arrowX,
@@ -108,8 +108,13 @@ export class MultiToggle {
         });
 
         const arrow = this.expanded ? '▲' : '▼';
-        const arrowWidth = getTextWidth(arrow, 10);
-        drawText(arrow, arrowX + (arrowSize - arrowWidth) / 2, arrowY + arrowSize / 2, 7, textColor);
+        const arrowFontSize = 7;
+        const arrowWidth = getTextWidth(arrow, arrowFontSize);
+
+        const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
+        const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 3;
+
+        drawText(arrow, centeredArrowX, centeredArrowY, arrowFontSize, textColor);
 
         const componentRect = {
             x: this.x,
@@ -166,7 +171,7 @@ export class MultiToggle {
 
                 const switchWidth = 36;
                 const switchHeight = 20;
-                const switchX = this.x + panelWidth - switchWidth - rightMargin;
+                const switchX = this.x + panelWidth - switchWidth - 12;
                 const switchY = optionTop + (this.optionHeight - switchHeight) / 2;
 
                 const trackColor = this.interpolateColor(THEME.TOGGLE_SWITCH_OFF, THEME.TOGGLE_SWITCH_ON, option.animationProgress);

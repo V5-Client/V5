@@ -96,6 +96,15 @@ let Files = [
         FileType: 'dir',
     },
     {
+        path: 'FarmingMacro',
+        FileType: 'dir',
+    },
+    {
+        path: 'FarmingMacro/points.txt',
+        FileType: 'file',
+        Content: {},
+    },
+    {
         path: 'authCache/do_not_share_this_folder',
         FileType: 'file',
         Content: [],

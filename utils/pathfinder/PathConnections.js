@@ -1,7 +1,7 @@
 import request from 'requestV2';
 
 import { Links, System, ProcessBuilder, Scanner, InputStreamReader, StandardCharsets, Runtime } from '../Constants';
-import { PathfindingMessages } from './PathConfig';
+import { Chat } from '../Chat';
 
 const assetsDir = new java.io.File('config/ChatTriggers/assets').getAbsolutePath();
 const path = `${assetsDir}/Pathfinding.exe`;
@@ -61,7 +61,7 @@ const keepAlive = register('tick', () => {
             json: true,
         });
         lastKeepAlive = Date.now();
-        console.log(`Keep-alive sent at ${Date.now()}`);
+        Chat.log(`Keep-alive sent at ${Date.now()}`);
     }
 }).unregister();
 
@@ -69,13 +69,13 @@ function startKeepAlive() {
     if (!keepAliveRegistered) {
         keepAlive.register();
         keepAliveRegistered = true;
-        console.log('Pathfinding keep-alive registered.');
+        Chat.log('Pathfinding keep-alive registered.');
     }
 }
 
 export function runProgram() {
     if (isPathfindingProcessRunning()) {
-        console.log('Pathfinding program is already running. Skipping startup.');
+        Chat.log('Pathfinding program is already running. Skipping startup.');
         startKeepAlive();
         return;
     }
@@ -83,7 +83,7 @@ export function runProgram() {
     const thread = new Thread(() => {
         try {
             pathfindingProcess = new ProcessBuilder(path).directory(new java.io.File(assetsDir)).start();
-            console.log('Pathfinding program started successfully.');
+            Chat.log('Pathfinding program started successfully.');
 
             startKeepAlive();
 
@@ -102,8 +102,8 @@ export function runProgram() {
 
                 while (sc.hasNextLine()) {
                     let line = sc.nextLine();
-                    console.log(line);
-                    if (isPathMessage(line)) PathfindingMessages(line);
+                    Chat.log(line);
+                    if (isPathMessage(line)) Chat.messagePathfinder(line);
                 }
 
                 while (errSc.hasNextLine()) {
@@ -115,7 +115,7 @@ export function runProgram() {
             if (pathfindingProcess !== null) pathfindingProcess.waitFor();
             pathfindingProcess = null;
         } catch (e) {
-            console.log(e);
+            Chat.log(e);
             console.error('Pathfinding program failed to start or crashed.');
         }
     });
@@ -133,11 +133,11 @@ export function stopProgram() {
     if (pathfindingProcess !== null) {
         pathfindingProcess.destroyForcibly();
         pathfindingProcess = null;
-        console.log('Pathfinding program stopped via process handle.');
+        Chat.log('Pathfinding program stopped via process handle.');
     }
 
     if (isPathfindingProcessRunning()) {
-        console.log('Pathfinding process detected as running. Attempting forceful termination by name...');
+        Chat.log('Pathfinding process detected as running. Attempting forceful termination by name...');
 
         const os = System.getProperty('os.name');
         let command;
@@ -157,22 +157,22 @@ export function stopProgram() {
         try {
             const killProcess = new ProcessBuilder(command, ...args).start();
             killProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
-            console.log('Pathfinding program forcefully terminated by OS command.');
+            Chat.log('Pathfinding program forcefully terminated by OS command.');
         } catch (e) {
             console.error('Error running process termination command:', e);
         }
     } else {
-        console.log('Pathfinding program was not running or has already stopped.');
+        Chat.log('Pathfinding program was not running or has already stopped.');
     }
 }
 
 Runtime.getRuntime().addShutdownHook(
     new java.lang.Thread(() => {
         if (pathfindingProcess !== null) {
-            console.log('JVM Shutdown Hook: Forcibly destroying Rust process...');
+            Chat.log('JVM Shutdown Hook: Forcibly destroying Rust process...');
             pathfindingProcess.destroyForcibly();
             threads.forEach((thread) => thread.interrupt());
-            console.log('JVM Shutdown Hook cleanup complete.');
+            Chat.log('JVM Shutdown Hook cleanup complete.');
         }
 
         if (isPathfindingProcessRunning()) {

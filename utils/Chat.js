@@ -1,63 +1,46 @@
 import FailsafeUtils from '../Failsafes/FailsafeUtils';
 
 const gradientPackage = Java.type('com.v5.gradient.Chat');
-const Prefix = 'V5 » ';
-const DebugPrefix = `V5 Debug » `;
-const IrcPrefix = 'IRC » ';
-const FailsafePrefix = 'V5 Failsafes » ';
-const ClippingPrefix = 'V5 Clipping » ';
 const gradientInstance = new gradientPackage();
 
 class ChatClass {
-    sendMsg(msg, isDebug = false) {
-        if (!msg) return;
-        let prefix = isDebug ? DebugPrefix : Prefix;
-        const colouredMsg = `§f${msg}`;
-
-        gradientInstance.sendGradientMsg(prefix, colouredMsg, 0x05b9f9, 0x0539f9);
-    }
-
-    /**
-     * Sends a message with the client prefix.
-     * @param {string} msg
-     */
     message(msg) {
-        this.sendMsg(msg, false);
+        this._sendGradient('V5 » ', msg);
     }
 
-    /**
-     * Sends a debug message with the client prefix.
-     * @param {string} msg
-     * fix with gui
-     */
-    debugMessage(msg) {
-        // if (isDebug && !global.settingSelection?.ModuleManager?.getSetting("Other", "Debug Messages")) {
-        //   return;
-        // }
-        this.sendMsg(msg, true);
+    // todo for release: add debug toggle somewhere
+    messageDebug(msg) {
+        this._sendGradient(`V5 Debug » `, msg);
     }
 
-    clippingMessage(msg) {
+    messageClip(msg) {
+        this._sendGradient('V5 Clipping » ', msg);
+    }
+
+    messageIrc(msg) {
+        this._sendGradient('IRC » ', msg);
+    }
+
+    messageFailsafe(msg) {
+        this._sendGradient('V5 Failsafes » ', msg);
+        this._sendGradient('V5 Failsafes » ', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
+    }
+
+    messagePathfinder(msg) {
+        this._sendGradient('V5 Pathfinding » ', msg);
+    }
+
+    _sendGradient(prefix, msg) {
+        //schedule task required to not cause random error cause idk
         if (!msg) return;
-        const colouredMsg = `§f${msg}`;
-
-        gradientInstance.sendGradientMsg(ClippingPrefix, colouredMsg, 0x05b9f9, 0x0539f9);
-    }
-
-    irc(msg) {
-        if (!msg) return;
-        gradientInstance.sendGradientMsg(IrcPrefix, msg, 0x05b9f9, 0x0539f9);
-    }
-
-    failsafeMsg(msg) {
-        if (!msg) return;
-        gradientInstance.sendGradientMsg(FailsafePrefix, msg, 0x05b9f9, 0x0539f9);
-        gradientInstance.sendGradientMsg(FailsafePrefix, '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity(), 0x05b9f9, 0x0539f9);
+        Client.scheduleTask(0, () => {
+            gradientInstance.sendGradientMsg(prefix, `§f${msg}`, 0x05b9f9, 0x0539f9);
+        });
     }
 
     log(msg) {
         if (!msg) return;
-        console.log(Prefix + msg);
+        console.log('V5 » ' + msg);
     }
 
     /**
