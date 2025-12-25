@@ -210,10 +210,13 @@ class FarmingMacro extends ModuleBase {
                             Keybind.setKey('shift', true);
                         } else {
                             Keybind.setKey('shift', false);
-                            if (this.areChunksLoaded(this.points.start.x, this.points.start.z)) this.state = this.STATES.DECIDEROTATION;
+                            this.state = this.STATES.DECIDEROTATION;
                         }
                     } else if (!this.warping) {
-                        if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z)) {
+                        if (
+                            this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z) &&
+                            this.areChunksLoaded(this.points.start.x, this.points.start.z)
+                        ) {
                             this.message('&cAt start point but no crops found!');
                             this.toggle(false);
                         } else {
