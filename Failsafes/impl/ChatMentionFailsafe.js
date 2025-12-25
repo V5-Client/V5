@@ -83,7 +83,7 @@ class ChatMentionFailsafe extends Failsafe {
             severity = 'medium';
         }
 
-        Chat.failsafeMsg(`Detected blacklisted word! (${word}) (${severity} severity)`);
+        Chat.messageFailsafe(`Detected blacklisted word! (${word}) (${severity} severity)`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
         Webhook.sendEmbed(
             [

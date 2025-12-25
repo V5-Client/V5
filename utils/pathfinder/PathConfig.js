@@ -16,11 +16,6 @@ export function getPathfindingDebug() {
     return pathfindingDebug;
 }
 
-export function PathfindingMessages(msg) {
-    if (!getPathfindingDebug()) return;
-    Chat.message('&7Pathfinder: ' + msg);
-}
-
 export function setRenderKeyNodes(value) {
     renderKeyNodes = value;
 }

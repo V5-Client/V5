@@ -49,7 +49,7 @@ class PlayerGreifFailsafe extends Failsafe {
         const lz = look.getZ();
 
         if (Math.trunc(lx) === Math.trunc(px) && Math.trunc(ly) === Math.trunc(py) && Math.trunc(lz) === Math.trunc(pz)) {
-            Chat.failsafeMsg(`&c&lWARNING: ${look.getName()} is standing inside you! (very high severity)`);
+            Chat.messageFailsafe(`&c&lWARNING: ${look.getName()} is standing inside you! (very high severity)`);
             FailsafeUtils.incrementFailsafeIntensity(120);
             Webhook.sendEmbed(
                 [
@@ -92,7 +92,7 @@ class PlayerGreifFailsafe extends Failsafe {
             if (distance <= maxDistance && distance > 1) {
                 const pressure = 20;
                 const severity = 'medium';
-                Chat.failsafeMsg(`${player.getName()} is ${distance.toFixed(1)} blocks away from you! (${severity} severity)`);
+                Chat.messageFailsafe(`${player.getName()} is ${distance.toFixed(1)} blocks away from you! (${severity} severity)`);
                 FailsafeUtils.incrementFailsafeIntensity(pressure);
                 Webhook.sendEmbed(
                     [

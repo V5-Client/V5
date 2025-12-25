@@ -97,6 +97,10 @@ export default class RenderUtils {
         RenderUtilsPackage.drawLine(startVec3d, endVec3d, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
     }
 
+    static drawTracer(target, color, thickness = 5, depth = false) {
+        RenderUtilsPackage.drawTracer(target, this.setColor(color[0], color[1], color[2], color[3]), thickness, depth);
+    }
+
     /**
      * @function drawEntityHitbox renders a box around the bounding box of a mob
      * @param {MobEntity} Mob the type of mob you want to highlight

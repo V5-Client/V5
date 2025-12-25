@@ -43,6 +43,7 @@ export function stopPathing() {
             path.unregister();
         } catch (e) {
             Chat.log('Path already unregistered');
+            Chat.log('Path already unregistered');
         }
         path = null;
     }
@@ -51,6 +52,7 @@ export function stopPathing() {
         try {
             renderPath.unregister();
         } catch (e) {
+            Chat.log('RenderPath already unregistered');
             Chat.log('RenderPath already unregistered');
         }
         renderPath = null;
@@ -190,7 +192,7 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback) {
 }
 
 global.requestPathRecalculation = function () {
-    PathfindingMessages('§6[Pathfinding] Recalculating path...');
+    Chat.messagePathfinder('§6[Pathfinding] Recalculating path...');
 
     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
 
@@ -204,7 +206,7 @@ global.requestPathRecalculation = function () {
             findAndFollowPath(currentPos, end);
         }, 100);
     } else {
-        PathfindingMessages('§c[Pathfinding] Cannot recalculate - no destination stored');
+        Chat.messagePathfinder('§c[Pathfinding] Cannot recalculate - no destination stored');
         stopPathing();
     }
 };

@@ -35,8 +35,8 @@ class AlertUtilsClass {
      * Combines all internal methods to create a failsafe alert
      */
     triggerReaction() {
-        Chat.failsafeMessage('Suspicious activity detected, reaction occuring!');
-        Chat.failsafeMessage(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
+        Chat.messageFailsafe('Suspicious activity detected, reaction occuring!');
+        Chat.messageFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
         this.isAlerting = true;
         this.playSound();
@@ -80,7 +80,7 @@ class AlertUtilsClass {
 
         this.tracker = register('step', () => {
             if (this.cancelKeyBind.isPressed()) {
-                Chat.failsafeMessage('Reaction disabled due to keybind being pressed');
+                Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
                 this.disableReaction();
             }
         });
@@ -204,7 +204,7 @@ class AlertUtilsClass {
             GLFW.glfwFocusWindow(windowHandle);
             GLFW.glfwRequestWindowAttention(windowHandle);
         } catch (e) {
-            Chat.failsafeMessage('GLFW error occured! report this.' + e);
+            Chat.messageFailsafe('GLFW error occured! report this.' + e);
         }
     }
 }

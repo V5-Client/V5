@@ -48,7 +48,7 @@ class NukerClass extends ModuleBase {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {
                 let pos = [block.getX(), block.getY(), block.getZ()];
-                Chat.debugMessage('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
+                Chat.messageDebug('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
                 NukerUtils.nuke(pos, ticks);
             }
         }).setCommandName('nukeit');
@@ -85,7 +85,7 @@ class NukerClass extends ModuleBase {
 
             if (!this.isHoldingRequiredItem()) return;
             if (Client.isInGui() && !Client.isInChat()) return;
-            if (Client.getKeyBindFromDescription('key.attack').isKeyDown()) return;
+            if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.attackKey?.isPressed()) return;
             if (!this.onGround()) return;
 
             let delay = Player.asPlayerMP().isOnGround() ? this.onGroundDelay : this.offGroundDelay;

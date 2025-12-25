@@ -1,7 +1,7 @@
-import { PathfindingMessages } from '../PathConfig';
 import { Vec3d } from '../../Constants';
 import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
+import { Chat } from '../../Chat';
 
 let lastPlayerPos = null;
 let ticksWithoutMovement = 0;
@@ -74,7 +74,7 @@ function updateRecoveryPhase() {
                 recoveryPhaseTicks = 0;
                 recoveryMovement.backward = false;
                 jumpRecoveryTicks = JUMP_DURATION;
-                PathfindingMessages(`§7[Recovery] Backup complete, jumping...`);
+                Chat.messagePathfinder(`§7[Recovery] Backup complete, jumping...`);
             }
             break;
 
@@ -85,7 +85,7 @@ function updateRecoveryPhase() {
             if (recoveryPhaseTicks >= JUMP_DURATION + forwardDelay) {
                 recoveryPhase = PHASE_FORWARD;
                 recoveryPhaseTicks = 0;
-                PathfindingMessages(`§7[Recovery] Resuming forward movement`);
+                Chat.messagePathfinder(`§7[Recovery] Resuming forward movement`);
             }
             break;
 
@@ -110,11 +110,11 @@ function startRecoveryMode(backupTicks, forwardDelayTicks) {
         recoveryPhase = PHASE_JUMP;
         recoveryMovement = { forward: true, backward: false };
         jumpRecoveryTicks = JUMP_DURATION;
-        PathfindingMessages(`§7[Recovery] Jumping...`);
+        Chat.messagePathfinder(`§7[Recovery] Jumping...`);
     } else {
         recoveryPhase = PHASE_BACKUP;
         recoveryMovement = { forward: false, backward: true };
-        PathfindingMessages(`§7[Recovery] Starting backup for ${backupTicks} ticks`);
+        Chat.messagePathfinder(`§7[Recovery] Starting backup for ${backupTicks} ticks`);
     }
 }
 
@@ -160,7 +160,7 @@ function tryJumpOnly(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
     const box = boxPositions[targetIndex];
     const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    PathfindingMessages(`§e[Recovery 1/${MAX_RECOVERY_ATTEMPTS}] Jump only (${distance.toFixed(1)}m away, box ${targetIndex})`);
+    Chat.messagePathfinder(`§e[Recovery 1/${MAX_RECOVERY_ATTEMPTS}] Jump only (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
     startRecoveryMode(0, 3);
 
@@ -175,7 +175,7 @@ function tryBackupAndJump(currentBoxIndex, boxPositions, playerX, playerY, playe
     const box = boxPositions[targetIndex];
     const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    PathfindingMessages(`§e[Recovery 2/${MAX_RECOVERY_ATTEMPTS}] Backing up ${backupBoxes} boxes + jump (${distance.toFixed(1)}m away, box ${targetIndex})`);
+    Chat.messagePathfinder(`§e[Recovery 2/${MAX_RECOVERY_ATTEMPTS}] Backing up ${backupBoxes} boxes + jump (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
     startRecoveryMode(12, 4);
 
@@ -190,7 +190,7 @@ function tryMajorBackup(currentBoxIndex, boxPositions, playerX, playerY, playerZ
     const box = boxPositions[targetIndex];
     const distance = getCachedBoxDistance(playerX, playerY, playerZ, box);
 
-    PathfindingMessages(`§e[Recovery 3/${MAX_RECOVERY_ATTEMPTS}] Major backup ${backupBoxes} boxes (${distance.toFixed(1)}m away, box ${targetIndex})`);
+    Chat.messagePathfinder(`§e[Recovery 3/${MAX_RECOVERY_ATTEMPTS}] Major backup ${backupBoxes} boxes (${distance.toFixed(1)}m away, box ${targetIndex})`);
 
     startRecoveryMode(20, 5);
 
@@ -227,14 +227,14 @@ export function detectStuck(boxPositions, currentBoxIndex) {
             const madeProgress = currentBoxIndex >= recoveryStartBoxIndex + MIN_PROGRESS_BOXES;
 
             if (madeProgress) {
-                PathfindingMessages(`§a[Recovery] Success! Advanced from box ${recoveryStartBoxIndex} to ${currentBoxIndex}`);
+                Chat.messagePathfinder(`§a[Recovery] Success! Advanced from box ${recoveryStartBoxIndex} to ${currentBoxIndex}`);
                 lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
                 ticksWithoutMovement = 0;
                 recoveryAttempts = 0;
                 recoveryStartBoxIndex = -1;
                 return null;
             } else {
-                PathfindingMessages(`§c[Recovery] Failed! Only at box ${currentBoxIndex} (started at ${recoveryStartBoxIndex})`);
+                Chat.messagePathfinder(`§c[Recovery] Failed! Only at box ${currentBoxIndex} (started at ${recoveryStartBoxIndex})`);
                 lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
             }
         }
@@ -253,7 +253,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
     ticksWithoutMovement++;
 
     if (ticksWithoutMovement >= SEVERE_STUCK_THRESHOLD) {
-        PathfindingMessages(`§4[Stuck] Severe (${ticksWithoutMovement} ticks) - requesting path recalculation`);
+        Chat.messagePathfinder(`§4[Stuck] Severe (${ticksWithoutMovement} ticks) - requesting path recalculation`);
         resetStuckDetection();
         return 'RECALCULATE';
     }

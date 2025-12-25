@@ -14,6 +14,7 @@ import './foraging/HuntingHelpers.js';
 
 /* FARMING */
 import './farming/FarmingMacro.js';
+import './farming/PestESP.js';
 
 /* VISUALS */
 import './visuals/MobHider.js';
@@ -25,6 +26,7 @@ import './visuals/GIF.js';
 import './skills/AutoExperiments.js';
 import './skills/FishingMacro.js';
 import './skills/JerryBoxMacro.js';
+import './skills/RouteWalker.js';
 
 /* OTHER */
 import './other/BeachBaller.js';
@@ -33,3 +35,4 @@ import './other/FastPlace.js';
 import './Other/Failsafes.js';
 import './Other/AutoConversation.js';
 import './other/InventoryWalk.js';
+import './Other/RatProtection.js';

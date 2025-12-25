@@ -1,5 +1,7 @@
 import { MathUtils } from './Math';
 import { BP, Direction, PlayerActionC2SPacket, PlayerActionC2SPacketAction, HandSwingC2SPacket, Vec3d } from './Constants';
+import { attachMixin } from './AttachMixin';
+import { PlayerActionPacket } from '../Mixins/PlayerAction';
 
 class NukerUtilsClass {
     constructor() {
@@ -9,13 +11,9 @@ class NukerUtilsClass {
         this.tickCounter = 0;
         this.delay = 0;
         this.fakelookMode = 'Queue';
-        this.sequence = 1;
+        this.sequence = 0;
 
-        register('packetSent', (packet) => {
-            // TODO: FIX THIS PROPERLY
-            // IDK HOW SEQUENCE WORKS NEW VERSION SHIT
-            if (packet.getSequence() != 0) this.sequence = packet.getSequence() + 1;
-        }).setFilteredClass(PlayerActionC2SPacket);
+        attachMixin(PlayerActionPacket, 'PlayerActionMixin', (instance, cir) => (this.sequence = cir.getReturnValue()));
 
         register('tick', () => {
             if (this.fakelookMode === 'Queue') {

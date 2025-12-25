@@ -87,7 +87,7 @@ class ScathaMacro extends ModuleBase {
             Keybind.stopMovement();
             Keybind.setKey('leftclick', false);
             Keybind.setKey('w', false);
-            Chat.debugMessage('Detected Worm. Killing');
+            Chat.messageDebug('Detected Worm. Killing');
 
             Client.scheduleTask(15, () => {
                 if (this.rodSlot !== -1) Guis.setItemSlot(this.rodSlot);
@@ -135,7 +135,7 @@ class ScathaMacro extends ModuleBase {
     setState(next) {
         const prevName = this.getStateName(this.state);
         const nextName = this.getStateName(next);
-        Chat.debugMessage(`State: ${prevName} -> ${nextName}`);
+        Chat.messageDebug(`State: ${prevName} -> ${nextName}`);
         this.state = next;
     }
 
@@ -288,7 +288,7 @@ class ScathaMacro extends ModuleBase {
                     Keybind.setKey('leftclick', false);
                     Keybind.setKey('s', true);
                     this.setState(this.STATES.CENTERING);
-                    Chat.debugMessage('Getting unstuck');
+                    Chat.messageDebug('Getting unstuck');
                     return;
                 }
 
@@ -513,7 +513,7 @@ class ScathaMacro extends ModuleBase {
                     Keybind.setKey('leftclick', false);
                     Keybind.setKey('s', true);
                     this.setState(this.STATES.CENTERING);
-                    Chat.debugMessage('Getting unstuck');
+                    Chat.messageDebug('Getting unstuck');
                     return;
                 }
 
@@ -572,7 +572,7 @@ class ScathaMacro extends ModuleBase {
                     Rotations.rotateToAngles(90, 35);
                     Keybind.stopMovement();
                     Keybind.setKey('leftclick', false);
-                    Chat.debugMessage('Back to Mining!');
+                    Chat.messageDebug('Back to Mining!');
                     return;
                 }
                 Rotations.rotateToAngles(0, 60);
@@ -592,12 +592,12 @@ class ScathaMacro extends ModuleBase {
                 Client.scheduleTask(5, () => Keybind.stopMovement());
                 Client.scheduleTask(9, () => {
                     Keybind.rightClick();
-                    Chat.debugMessage('Centering with AOTV.');
+                    Chat.messageDebug('Centering with AOTV.');
                 });
                 Client.scheduleTask(18, () => {
                     if (this.unstuckState === 0) this.setState(this.STATES.SETUP);
                     else if (this.unstuckState === 1) this.setState(this.STATES.BACKWARDS);
-                    Chat.debugMessage('Finished Centering.');
+                    Chat.messageDebug('Finished Centering.');
                 });
                 this.setState(this.STATES.WAITING);
                 break;
@@ -655,7 +655,7 @@ class ScathaMacro extends ModuleBase {
                     if (!this.normalKilling) Keybind.setKey('w', true);
                     if (this.wormDetected) {
                         this.wormDetected = false;
-                        Chat.debugMessage('Worm killed!');
+                        Chat.messageDebug('Worm killed!');
                         this.pause = true;
                         this.kills++;
                         Keybind.stopMovement();
@@ -800,10 +800,10 @@ class ScathaMacro extends ModuleBase {
                 }
             });
         } catch (e) {
-            Chat.debugMessage('Heat not detected');
+            Chat.messageDebug('Heat not detected');
         }
         if (heat === undefined || isNaN(heat) || heat === null) {
-            Chat.debugMessage('Heat not detected');
+            Chat.messageDebug('Heat not detected');
             return 0;
         }
         return heat;

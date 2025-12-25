@@ -1,34 +1,47 @@
-import { IsCursorLocked, LockCursor } from '../mixins/UngrabMixin';
+import { IsCursorLocked, LockCursor, UpdateMouse } from '../mixins/UngrabMixin';
 import { HandleInputEvents, OnMouseScroll } from '../mixins/SlotChangeMixin';
 import { attachMixin } from './AttachMixin';
 
-class ungrabClass {
+class UngrabManager {
     constructor() {
-        this.ungrabbed = true;
+        this.ungrabbed = false;
         this.inputLocked = false;
         this.mixinsInitialized = false;
-        this.regrab();
+
+        this.initMixins();
     }
 
     /**
-     * Prevents the player from interacting with the inventory.
+     * Attaches all necessary mixins with logic that checks the current state.
      */
     initMixins() {
         if (this.mixinsInitialized) return;
 
-        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance, cir) => {
+        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance) => {
             if (!this.inputLocked) return;
 
-            let hotbarKeys = instance.options.hotbarKeys;
-            for (const key of hotbarKeys) {
+            instance.options.hotbarKeys.forEach((key) => {
                 if (key.wasPressed()) key.setPressed(false);
-            }
+            });
         });
 
         attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
-            if (!this.inputLocked) return;
+            if (this.inputLocked && Client.getMinecraft().world) {
+                cir.cancel();
+            }
+        });
 
-            if (Client.getMinecraft().world != null) {
+        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
+            if (this.ungrabbed) cir.cancel();
+        });
+
+        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
+            if (this.ungrabbed) cir.setReturnValue(true);
+        });
+
+        attachMixin(UpdateMouse, 'UpdateMouse', (instance, cir) => {
+            if (this.ungrabbed) {
+                Client.getMinecraft().mouse.unlockCursor();
                 cir.cancel();
             }
         });
@@ -37,45 +50,26 @@ class ungrabClass {
     }
 
     /**
-     * Allows the player to interact with the inventory.
-     */
-    EnableUserInput() {
-        this.inputLocked = false;
-    }
-
-    /**
-     * Attaches both mixins to prevent mouse input by the player.
+     * Prevents the player from controlling the camera and locks inventory interaction.
      */
     ungrab() {
         if (this.ungrabbed) return;
 
-        this.initMixins();
-        this.inputLocked = true;
-
-        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
-            cir.cancel();
-        });
-
-        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
-            Client.getMinecraft().mouse.unlockCursor();
-            cir.setReturnValue(false);
-            cir.cancel();
-        });
-
         this.ungrabbed = true;
+        this.inputLocked = true;
     }
 
     /**
-     * Resets both mixins to reallow mouse input by the player.
+     * Returns control to the player.
      */
     regrab() {
         if (!this.ungrabbed) return;
-        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {});
-        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {});
-        this.EnableUserInput();
-        if (Player.getPlayer()) Client.getMinecraft().mouse.lockCursor();
+
         this.ungrabbed = false;
+        this.inputLocked = false;
+
+        if (Player.getPlayer()) Client.getMinecraft().mouse.lockCursor();
     }
 }
 
-export const Mouse = new ungrabClass();
+export const Mouse = new UngrabManager();

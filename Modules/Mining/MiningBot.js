@@ -194,7 +194,7 @@ class Bot extends ModuleBase {
                     if (Player.getHeldItemIndex() !== drill.slot) {
                         let start = java.lang.System.nanoTime();
                         Guis.setItemSlot(drill.slot);
-                        return console.log((java.lang.System.nanoTime() - start) / 1000 + 'ms');
+                        return Chat.log((java.lang.System.nanoTime() - start) / 1000 + 'ms');
                     }
 
                     // Check if block was broken
@@ -803,6 +803,7 @@ class Bot extends ModuleBase {
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'MINING_BOT');
+        this.setCost();
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;

@@ -67,8 +67,8 @@ class VelocityFailsafe extends Failsafe {
             severity = 'very high';
         }
 
-        Chat.failsafeMsg(`Velocity failsafe triggered! (${severity} severity)`);
-        Chat.failsafeMsg(`Velocity: ${speed.toFixed(0)}`);
+        Chat.messageFailsafe(`Velocity failsafe triggered! (${severity} severity)`);
+        Chat.messageFailsafe(`Velocity: ${speed.toFixed(0)}`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
         Webhook.sendEmbed(
             [
