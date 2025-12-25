@@ -17,13 +17,13 @@ const FARMING_DATA = [
         avgBPS: 2.19,
         pitch: 3,
     },
-    {
+    /*{
         name: "MelonKingDe's Melon / Pumpkin",
         registry: ['minecraft:melon', 'minecraft:carved_pumpkin'],
         blockCheck: 1,
         avgBPS: 2.19,
         pitch: -59.2,
-    },
+    },*/
 ];
 
 // how i decided to make this work
@@ -210,7 +210,7 @@ class FarmingMacro extends ModuleBase {
                             Keybind.setKey('shift', true);
                         } else {
                             Keybind.setKey('shift', false);
-                            this.state = this.STATES.DECIDEROTATION;
+                            if (this.areChunksLoaded(this.points.start.x, this.points.start.z)) this.state = this.STATES.DECIDEROTATION;
                         }
                     } else if (!this.warping) {
                         if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z)) {
@@ -224,26 +224,35 @@ class FarmingMacro extends ModuleBase {
                     } else if (this.warping && this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z)) this.warping = false;
                     break;
                 case this.STATES.DECIDEROTATION:
-                    // this looks atrocious imo needs rewrite to visually look better
-                    const blockAhead = this.getBlockInFront(1, 1); // only works for melonkinde pumpkin and melon and vertical; maybe sugarcane
-                    const aheadRegistry = blockAhead?.name;
-
                     const isCrop = (reg) => (Array.isArray(this.registry) ? this.registry.includes(reg) : reg === this.registry);
+
                     let targetYaw;
 
-                    if (isCrop(aheadRegistry)) {
-                        this.message('&7Targetting crop by getting the block ahead!', true);
-                        targetYaw = MathUtils.calculateAbsoluteAngles([blockAhead.x, blockAhead.y, blockAhead.z]).yaw;
-                    } else {
-                        const lookingAt = Player.lookingAt();
-                        const lookReg = lookingAt ? World.getBlockAt(lookingAt.x, lookingAt.y, lookingAt.z)?.type?.getRegistryName() : null;
+                    if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
+                        const blockAhead = this.getBlockInFront(1, 1);
+                        const aheadRegistry = blockAhead?.name;
 
-                        if (lookingAt && isCrop(lookReg)) {
-                            this.message('&7Targetting crop by looking at it!', true);
-                            targetYaw = MathUtils.calculateAbsoluteAngles([lookingAt.x, lookingAt.y, lookingAt.z]).yaw;
+                        if (isCrop(aheadRegistry)) {
+                            this.message('&7Targetting crop by getting the block ahead!', true);
+                            targetYaw = this.getAngle(blockAhead);
                         } else {
-                            this.message('&7Targetting crop by fallback!', true);
-                            targetYaw = MathUtils.calculateAbsoluteAngles([this.targetX, this.targetY, this.targetZ]).yaw;
+                            const lookingAt = Player.lookingAt();
+                            const lookReg = lookingAt ? this.getRegistry(lookingAt) : null;
+
+                            if (lookingAt && isCrop(lookReg)) {
+                                this.message('&7Targetting crop by looking at!', true);
+                                targetYaw = this.getAngle(lookingAt);
+                            } else {
+                                this.message('&7Targetting crop by fallback!', true);
+
+                                let target = {
+                                    x: this.targetX,
+                                    y: this.targetY,
+                                    z: this.targetZ,
+                                };
+
+                                targetYaw = this.getAngle(target);
+                            }
                         }
                     }
 
@@ -267,38 +276,37 @@ class FarmingMacro extends ModuleBase {
                     Rotations.onEndRotation(() => (this.state = this.STATES.DECIDEITEM));
                     break;
                 case this.STATES.DECIDEITEM:
-                    let block = this.getBlockInFront(1, 1);
-                    let registry = block?.name;
+                    let registry = null;
+                    let requiredToolName = null;
 
-                    if (!registry) {
-                        let looking = Player.lookingAt();
-                        if (!looking) {
-                            ChatLib.chat('Errored big');
-                            this.toggle(false);
-                            return;
+                    if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
+                        let block = this.getBlockInFront(1, 1);
+                        registry = block?.name;
+
+                        if (!registry) {
+                            let looking = Player.lookingAt();
+                            if (!looking) {
+                                ChatLib.chat('Errored big');
+                                this.toggle(false);
+                                return;
+                            }
+                            registry = World.getBlockAt(looking.x, looking.y, looking.z)?.type?.getRegistryName();
                         }
 
-                        registry = World.getBlockAt(looking.x, looking.y, looking.z)?.type?.getRegistryName();
-                    }
+                        const cropTools = {
+                            'minecraft:nether_wart': 'Nether Wart Hoe',
+                            'minecraft:potatoes': 'Potato Hoe',
+                            'minecraft:wheat': 'Wheat Hoe',
+                            'minecraft:carrots': 'Carrot Hoe',
+                        };
 
-                    const cropTools = {
-                        'minecraft:nether_wart': 'Nether Wart Hoe',
-                        'minecraft:potatoes': 'Potato Hoe',
-                        'minecraft:wheat': 'Wheat Hoe',
-                        'minecraft:carrots': 'Carrot Hoe',
-                        'minecraft:melon': 'Melon Dicer',
-                        'minecraft:carved_pumpkin': 'Pumpkin Dicer',
-                        // fungi
-                        // dead rose or smth
-                        // the other two
-                    };
+                        requiredToolName = cropTools[registry];
 
-                    let requiredToolName = cropTools[registry];
-
-                    if (!requiredToolName) {
-                        this.message(`&cNo tool mapped for block: ${registry}`);
-                        this.toggle(false);
-                        break;
+                        if (!requiredToolName) {
+                            this.message(`&cNo tool mapped for block: ${registry}`);
+                            this.toggle(false);
+                            break;
+                        }
                     }
 
                     let targetSlot = Guis.findItemInHotbar(requiredToolName);
@@ -427,10 +435,7 @@ class FarmingMacro extends ModuleBase {
                     }
 
                     if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z, 1)) {
-                        const chunkX = Math.floor(this.points.start.x) >> 4;
-                        const chunkZ = Math.floor(this.points.start.z) >> 4;
-
-                        if (World.getWorld().getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
+                        if (this.areChunksLoaded(this.points.start.x, this.points.start.z)) {
                             this.warpDelay = null;
                             this.state = this.STATES.SCANFORCROP;
                         } else {
@@ -600,9 +605,23 @@ class FarmingMacro extends ModuleBase {
 
     isAtPoint(x, y, z, minDist = 1) {
         let check = MathUtils.getDistanceToPlayer(x, y, z).distance;
-        ChatLib.chat(check);
         if (check < minDist) return true;
         return false;
+    }
+
+    areChunksLoaded(x, z) {
+        const chunkX = Math.floor(x) >> 4;
+        const chunkZ = Math.floor(z) >> 4;
+        return World.getWorld().getChunkManager().isChunkLoaded(chunkX, chunkZ);
+    }
+
+    getAngle(point) {
+        return MathUtils.calculateAbsoluteAngles([point.x, point.y, point.z]).yaw;
+    }
+
+    getRegistry(point) {
+        if (!point) return null;
+        return World.getBlockAt(point.x, point.y, point.z)?.type?.getRegistryName();
     }
 
     message(msg, debug = false) {
