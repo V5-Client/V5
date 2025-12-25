@@ -13,7 +13,6 @@ global.Version = '1.0.0';
 
 /* GUI */
 import './gui/GUI.js';
-
 /* CORE */
 import './utils/Config.js';
 import './utils/backend/IRC.js';
@@ -26,6 +25,7 @@ import './utils/Misc.js';
 import './utils/Webhooks.js';
 import './Failsafes/FailsafeManager.js';
 import './utils/V5Mod.js';
+import './utils/SkyblockEvents.js';
 
 import './modules/loader.js';
 

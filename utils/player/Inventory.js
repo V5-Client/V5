@@ -2,215 +2,177 @@ import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
 import { Chat } from '../Chat';
 
-class InventoryUtilsClass {
-    /**
-     * Strips Minecraft formatting codes from a string
-     * @param {String} str - The string to strip formatting from
-     * @returns {String} The string without formatting codes
-     */
-    stripFormatting(str) {
-        return typeof str === 'string' ? str.replace(/\u00A7[0-9A-FK-ORa-fk-or]/g, '') : str;
+class ItemSearcher {
+    constructor() {}
+
+    stripCodes(text) {
+        if (!text || typeof text !== 'string') return text;
+        return text.replace(/\u00A7[0-9A-FK-ORa-fk-or]/g, '');
     }
 
-    /**
-     * Gets the player's inventory
-     * @returns {Object} The player's inventory or null if not available
-     */
-    getInventory() {
-        return Player.getInventory();
+    matchName(item, targetName, exact) {
+        if (!item || !item.getName) return false;
+        const cleanName = this.stripCodes(item.getName());
+        if (!cleanName) return false;
+        
+        const lowerName = cleanName.toLowerCase();
+        const lowerTarget = targetName.toLowerCase();
+
+        return exact ? lowerName === lowerTarget : lowerName.indexOf(lowerTarget) !== -1;
     }
 
-    findFirst(inv, itemn) {
-        let inventory = inv;
-        for (let i = 0; i < inventory.getSize(); i++) {
-            let item = inventory.getStackInSlot(i);
-            if (item && item.getName && item.getName().removeFormatting() === itemn) {
-                return i; // Returns the slot index where it's found
-            }
-        }
-        return -1; // Not found
-    }
-
-    findAll(inv, itemn) {
-        let inventory = inv;
-        let result = [];
-        for (let i = 0; i < inventory.getSize(); i++) {
-            let item = inventory.getStackInSlot(i);
-            if (item && item.getName && item.getName().removeFormatting() === itemn) {
-                result.push(i);
-            }
-        }
-        return result; // Returns an array of all matching slot indices
-    }
-
-    /**
-     * Finds an item in the hotbar and returns its slot
-     * @param {string} itemName - The name of the item to find
-     * @returns {number} - The slot of the item, or -1 if not found
-     */
-    findItemInHotbar(itemName) {
-        for (let slot = 0; slot < 8; slot++) {
-            let item = Player.getInventory()?.getStackInSlot(slot);
-            if (item && item.getName().includes(itemName)) {
-                return slot;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Finds an item in the entire inventory, including hotbar, and returns its slot
-     * @param {string} itemName - The name of the item to find
-     * @returns {number} - The slot of the item, or -1 if not found
-     */
-    findItemInInventory(itemName) {
-        const inventory = Player.getInventory();
-        if (!inventory) return -1;
-
-        for (let i = 0; i < inventory.getSize(); i++) {
-            const item = inventory.getStackInSlot(i);
-            if (item && item.getName && item.getName().includes(itemName)) {
+    findInList(inventory, targetName, exact) {
+        for (var i = 0; i < inventory.getSize(); i++) {
+            if (this.matchName(inventory.getStackInSlot(i), targetName, exact)) {
                 return i;
             }
         }
         return -1;
     }
 
-    /**
-     * Chattriggers closes GUIs client side, this function both closes it client and server side.
-     */
-    closeInv() {
-        if (!Player.getContainer()) return;
-        mc = Client.getMinecraft();
-
-        let id = mc.player.currentScreenHandler.syncId;
-        Client.sendPacket(new net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket(id));
-
-        Client.currentGui?.close();
-    }
-
-    /**
-     * Clicks an item with the specified name
-     * @param {String} name name to search for
-     * @param {Boolean} shift whether shift is being held
-     * @param {String} button the mouse button to use
-     * @param {Boolean} displayName whether to use display name or registry name
-     * @param {Boolean} nameSpecific if true, the name has to exactly match, otherwise it will use includes
-     * @returns {Boolean} True if the item was clicked, false otherwise
-     * @author Kash MiningModules
-     */
-    clickItem(name, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
-        Chat.log(`Attempting to click on item: ${name}`);
-
-        if (!name || this.guiName() == 'null') return false;
-
-        name = name.toLowerCase();
-        const items = Player.getContainer().getItems();
-        const slot = items.findIndex((item) => {
-            const itemName = displayName ? item?.getName()?.removeFormatting() : item?.type?.getRegistryName();
-            const compare = nameSpecific ? itemName?.toLowerCase() === name : itemName?.toLowerCase()?.removeFormatting()?.includes(name);
-            return compare;
-        });
-
-        if (slot < 0) {
-            return false; // item not found
+    findAllInList(inventory, targetName) {
+        let slots = [];
+        for (var i = 0; i < inventory.getSize(); i++) {
+            if (this.matchName(inventory.getStackInSlot(i), targetName, false)) {
+                slots.push(i);
+            }
         }
+        return slots;
+    }
+}
 
-        Player.getContainer().click(slot, shift, button);
-        return true;
+class InterfaceHandler {
+    constructor() {
+        this.search = new ItemSearcher();
     }
 
-    /**
-     * Clicks the specified slot number
-     * @param {Number} slot the slot number to click
-     * @param {Boolean} shift whether shift is being held
-     * @param {String} button the mouse button to use (MIDDLE by default, or LEFT/RIGHT)
-     * @author Kash MiningModules
-     */
-    clickSlot(slot, shift = false, button = 'LEFT') {
-        if (slot == null || slot < 0 || this.guiName() === 'null') return false;
+    getCurrentTitle() {
         const container = Player.getContainer();
-        if (!container) {
-            Chat.message('ClickSlot failed due to no container. REPORT THIS ASAP');
-            return;
-        }
-        const items = container.getItems();
-        if (!items || slot >= items.length) {
-            Chat.message('ClickSlot failed due to no items/out of bounds. REPORT THIS ASAP');
-            return;
-        }
-        container.click(slot, shift, button);
-        return true;
+        if (!container) return null;
+        return ChatLib.removeFormatting(container.getName().toString());
     }
 
-    /**
-     * Loops through an array and clicks the first item it can find.
-     * @param {Array<String>} names An array of item names to search for.
-     * @param {Boolean} shift Whether shift is being held.
-     * @param {String} button The mouse button to use.
-     * @param {Boolean} displayName Whether to use display name or registry name.
-     * @param {Boolean} nameSpecific If true, the name has to exactly match, otherwise it will use includes.
-     * @returns {Boolean} True if all items were attempted to be clicked, false otherwise.
-     */
-    clickItems(names, shift = false, button = 'LEFT', displayName = true, nameSpecific = false) {
-        if (!Array.isArray(names) || names.length === 0) {
-            Chat.messageDebug('No item names provided or input is not an array.');
+    performClick(slot, shift, type) {
+        const container = Player.getContainer();
+        if (!container || slot < 0) return false;
+        
+        try {
+            container.click(slot, shift, type || 'LEFT');
+            return true;
+        } catch (e) {
             return false;
         }
+    }
 
-        let clicked = false;
-        for (let i = 0; i < names.length; i++) {
-            let name = names[i];
-            clicked = this.clickItem(name, shift, button, displayName, nameSpecific);
-            if (clicked) {
+    terminateGui() {
+        const player = Player.getPlayer();
+        if (!player || !Player.getContainer()) return;
+
+        try {
+            const syncId = Client.getMinecraft().player.currentScreenHandler.syncId;
+            const Packet = net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
+            Client.sendPacket(new Packet(syncId));
+            
+            if (Client.currentGui) {
+                Client.currentGui.close();
+            }
+        } catch (err) {}
+    }
+}
+
+const handler = new InterfaceHandler();
+const searcher = new ItemSearcher();
+
+export const Guis = {
+    stripFormatting: (s) => searcher.stripCodes(s),
+    getInventory: () => Player.getInventory(),
+    
+    findFirst: function(inv, name) {
+        return searcher.findInList(inv, name, true);
+    },
+    
+    findAll: function(inv, name) {
+        return searcher.findAllInList(inv, name);
+    },
+
+    findItemInHotbar: function(name) {
+        const inv = Player.getInventory();
+        if (!inv) return -1;
+        for (var i = 0; i < 9; i++) {
+            if (searcher.matchName(inv.getStackInSlot(i), name, false)) {
+                return i;
+            }
+        }
+        return -1;
+    },
+
+    findItemInInventory: function(name) {
+        const inv = Player.getInventory();
+        return inv ? searcher.findInList(inv, name, false) : -1;
+    },
+
+    closeInv: () => handler.terminateGui(),
+
+    clickItem: function(name, shift, button, displayName, exact) {
+        const container = Player.getContainer();
+        if (!container) return false;
+        
+        const items = container.getItems();
+        for (var i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (!item) continue;
+
+            const itemName = (displayName !== false) 
+                ? item.getName().removeFormatting() 
+                : item.type.getRegistryName();
+            
+            const match = exact 
+                ? itemName.toLowerCase() === name.toLowerCase()
+                : itemName.toLowerCase().indexOf(name.toLowerCase()) !== -1;
+
+            if (match) {
+                this.clickSlot(i, shift, button);
                 return true;
             }
         }
         return false;
-    }
+    },
 
-    setItemSlot(slot) {
-        /*Chat.log(
-            `Swapping hotbar slots from ${Player.getHeldItemIndex()} to ${slot}`
-        ); */
-        if (slot < 0 || slot > 8) {
-            return Chat.message('Invalid slot blocked! Report this ASAP!');
+    clickSlot: function(slot, shift, button) {
+        return handler.performClick(slot, shift, button);
+    },
+
+    clickItems: function(names, shift, button, displayName, exact) {
+        if (!Array.isArray(names)) return false;
+        for (var i = 0; i < names.length; i++) {
+            if (this.clickItem(names[i], shift, button, displayName, exact)) {
+                return true;
+            }
         }
+        return false;
+    },
 
-        const currentSlot = Player.getHeldItemIndex();
-        if (currentSlot !== slot) {
-            Player.setHeldItemIndex(slot);
+    setItemSlot: function(slot) {
+        if (slot >= 0 && slot <= 8) {
+            if (Player.getHeldItemIndex() !== slot) {
+                Player.setHeldItemIndex(slot);
+            }
         }
-    }
+    },
 
-    getHeldItemStackSize() {
-        let item = Player.getHeldItem();
-        if (item && item.getStackSize) {
-            return item.getStackSize();
-        }
-        return 0;
-    }
+    getHeldItemStackSize: function() {
+        const item = Player.getHeldItem();
+        return (item && item.getStackSize) ? item.getStackSize() : 0;
+    },
 
-    stopInGui() {
-        if (this.guiName !== 'null') {
+    stopInGui: function() {
+        if (handler.getCurrentTitle() !== null) {
             Keybind.stopMovement();
             Keybind.setKey('shift', false);
             Keybind.setKey('leftclick', false);
             Rotations.stopRotation();
-            return;
         }
-    }
+    },
 
-    /**
-     * Gets the name of the current GUI
-     * @returns {String} The name of the current GUI
-     * @author Kash MiningModules
-     */
-    guiName() {
-        if (!Player.getContainer()) return null;
-
-        return ChatLib.removeFormatting(Player.getContainer().getName().toString());
-    }
-}
-
-export const Guis = new InventoryUtilsClass();
+    guiName: () => handler.getCurrentTitle()
+};

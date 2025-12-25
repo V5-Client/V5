@@ -1,57 +1,75 @@
-// partial credit: Debuggings
-// Source: (CT Discord https://discord.com/channels/119493402902528000/688773480954855537/917474499341987921)
-
 import { Toolkit, System, MessageType, SystemTray, TrayIcon } from './Constants';
 import { Chat } from './Chat';
-class NotificationUtils {
+
+class AlertManager {
     constructor() {
         this.trayIcon = null;
+        this.appName = 'V5 Client';
+        this.setupTray();
+    }
 
-        if (System.getProperty('os.name').startsWith('Windows')) {
-            try {
-                const SystemTrayInstance = SystemTray.getSystemTray();
+    setupTray() {
+        if (!System.getProperty('os.name').toLowerCase().includes('win')) return;
 
-                this.trayIcon = SystemTrayInstance.getTrayIcons().find((t) => t.getToolTip() === 'Client Alerts');
-
-                if (this.trayIcon) return;
-
-                const image = Toolkit.getDefaultToolkit().createImage('./config/ChatTriggers/assets/icon.png');
-
-                this.trayIcon = new TrayIcon(image, 'Client Alerts');
-                this.trayIcon.setImageAutoSize(true);
-                this.trayIcon.setToolTip('Client Alerts');
-                SystemTrayInstance.add(this.trayIcon);
-            } catch (e) {
-                Chat.message('Failed to create system tray icon: ' + e);
+        try {
+            const tray = SystemTray.getSystemTray();
+            const existingIcons = tray.getTrayIcons();
+            
+            for (var i = 0; i < existingIcons.length; i++) {
+                if (existingIcons[i].getToolTip() === this.appName) {
+                    this.trayIcon = existingIcons[i];
+                    return;
+                }
             }
+
+            const iconPath = './config/ChatTriggers/assets/icon.png';
+            const img = Toolkit.getDefaultToolkit().createImage(iconPath);
+            
+            this.trayIcon = new TrayIcon(img, this.appName);
+            this.trayIcon.setImageAutoSize(true);
+            this.trayIcon.setToolTip(this.appName);
+            tray.add(this.trayIcon);
+        } catch (err) {
+            Chat.messageDebug('Desktop tray initialization failed: ' + err);
         }
     }
 
-    sendAlert(msg) {
-        const os = System.getProperty('os.name');
-        if (os.startsWith('Windows')) this.windowsAlert(msg);
-        else if (os.startsWith('Mac')) this.macAlert(msg);
-        else if (os.startsWith('Linux')) this.linuxAlert(msg);
+    dispatch(content) {
+        const platform = System.getProperty('os.name').toLowerCase();
+        
+        if (platform.includes('win')) {
+            this.sendWin(content);
+        } else if (platform.includes('mac')) {
+            this.sendMac(content);
+        } else if (platform.includes('nix') || platform.includes('nux')) {
+            this.sendNix(content);
+        }
     }
 
-    windowsAlert(msg) {
+    sendWin(msg) {
         if (this.trayIcon) {
-            this.trayIcon.displayMessage('Client Alerts', msg, MessageType.WARNING);
+            this.trayIcon.displayMessage(this.appName, msg, MessageType.WARNING);
         }
     }
 
-    macAlert(msg) {
-        this.execute(['/usr/bin/osascript', '-e', `display notification "${msg}" with title "Client Alerts"`]);
+    sendMac(msg) {
+        this.runCmd(['/usr/bin/osascript', '-e', `display notification "${msg}" with title "${this.appName}"`]);
     }
 
-    linuxAlert(msg) {
-        this.execute(['notify-send', '-u', 'critical', '-a', 'Client Alerts', msg]);
+    sendNix(msg) {
+        this.runCmd(['notify-send', '-u', 'critical', '-a', this.appName, msg]);
     }
 
-    execute(cmd) {
-        const process = new java.lang.ProcessBuilder(cmd.map(String));
-        process.start();
+    runCmd(args) {
+        try {
+            const pb = new java.lang.ProcessBuilder(args.map(String));
+            pb.start();
+        } catch (e) {}
     }
 }
 
-export const Notifications = new NotificationUtils();
+const manager = new AlertManager();
+
+export const Notifications = {
+    sendAlert: (msg) => manager.dispatch(msg)
+};

@@ -3,369 +3,532 @@ import { Utils } from './Utils';
 import { Guis } from './player/Inventory';
 import { Keybind } from './player/Keybinding';
 import { Flowstate } from './Flowstate';
+import { Executor } from './ThreadExecutor';
 
-const blockHardness = {
-    /* Mithril */
-    5: 2000, // Titanium
-    143: 1500, // Blue Wool Mithril
-    495: 800, // Prismarine Mithril
-    496: 800, // Prismarine Brick Mithril
-    497: 800, // Dark Prismarine Mithril
-    461: 500, // Cyan Terracotta Mithril
-    147: 500, // Gray Wool Mithril
-    /* Tunnels */
-    524: 6000, // Glacite
-    268: 5600, // Tungsten Clay
-    318: 5600, // Tungsten Cobble
-    464: 5600, // Umber Brown Terracotta
-    595: 5600, // Umber Smooth Red Sandstone
-    522: 5600, // Umber Terracotta
-    /* Gems (Panes) */
-    479: 5200, // Aquamarine
-    480: 5200, // Citrine
-    481: 5200, // Peridot
-    483: 5200, // Onyx
-    470: 4800, // Jasper
-    472: 3800, // Topaz
-    469: 3000, // Amber
-    478: 3000, // Amethyst
-    473: 3000, // Jade
-    471: 3000, // Sapphire
-    482: 2300, // Ruby
-    /* Gems (Blocks) */
-    296: 5200, // Aquamarine
-    297: 5200, // Citrine
-    298: 5200, // Peridot
-    300: 5200, // Onyx
-    287: 4800, // Jasper
-    289: 3800, // Topaz
-    286: 3000, // Amber
-    295: 3000, // Amethyst
-    290: 3000, // Jade
-    288: 3000, // Sapphire
-    299: 2300, // Ruby
-
-    /* Ores */
-    523: 600, // Coal
-    173: 600, // Gold
-    174: 600, // Iron
-    443: 600, // Redstone
-    372: 600, // Emerald
-    192: 600, // Diamond
-    446: 600, // Quartz
+const BLOCK_HARDNESS_DATA = {
+    5: { h: 2000, n: 'Titanium' },
+    143: { h: 1500, n: 'Blue Wool Mithril' },
+    495: { h: 800, n: 'Prismarine Mithril' },
+    496: { h: 800, n: 'Prismarine Brick Mithril' },
+    497: { h: 800, n: 'Dark Prismarine Mithril' },
+    461: { h: 500, n: 'Cyan Terracotta Mithril' },
+    147: { h: 500, n: 'Gray Wool Mithril' },
+    524: { h: 6000, n: 'Glacite' },
+    268: { h: 5600, n: 'Tungsten Clay' },
+    318: { h: 5600, n: 'Tungsten Cobble' },
+    464: { h: 5600, n: 'Umber Brown Terracotta' },
+    595: { h: 5600, n: 'Umber Smooth Red Sandstone' },
+    522: { h: 5600, n: 'Umber Terracotta' },
+    479: { h: 5200, n: 'Aquamarine Pane' },
+    480: { h: 5200, n: 'Citrine Pane' },
+    481: { h: 5200, n: 'Peridot Pane' },
+    483: { h: 5200, n: 'Onyx Pane' },
+    470: { h: 4800, n: 'Jasper Pane' },
+    472: { h: 3800, n: 'Topaz Pane' },
+    469: { h: 3000, n: 'Amber Pane' },
+    478: { h: 3000, n: 'Amethyst Pane' },
+    473: { h: 3000, n: 'Jade Pane' },
+    471: { h: 3000, n: 'Sapphire Pane' },
+    482: { h: 2300, n: 'Ruby Pane' },
+    296: { h: 5200, n: 'Aquamarine Block' },
+    297: { h: 5200, n: 'Citrine Block' },
+    298: { h: 5200, n: 'Peridot Block' },
+    300: { h: 5200, n: 'Onyx Block' },
+    287: { h: 4800, n: 'Jasper Block' },
+    289: { h: 3800, n: 'Topaz Block' },
+    286: { h: 3000, n: 'Amber Block' },
+    295: { h: 3000, n: 'Amethyst Block' },
+    290: { h: 3000, n: 'Jade Block' },
+    288: { h: 3000, n: 'Sapphire Block' },
+    299: { h: 2300, n: 'Ruby Block' },
+    523: { h: 600, n: 'Coal Ore' },
+    173: { h: 600, n: 'Gold Block' },
+    174: { h: 600, n: 'Iron Ore' },
+    443: { h: 600, n: 'Redstone Ore' },
+    372: { h: 600, n: 'Emerald Ore' },
+    192: { h: 600, n: 'Diamond Ore' },
+    446: { h: 600, n: 'Quartz Ore' },
 };
 
-class MiningUtilClass {
-    constructor() {
-        this.miningSpeed = '' || null;
-        this.miningStats = Utils.getConfigFile('miningstats.json') || {};
+const TOOL_PRIORITY_LIST = [
+    { match: 'Gauntlet', priority: 5, fuel: true },
+    { match: 'Drill', priority: 5, fuel: true },
+    { match: 'Pickonimbus', priority: 3, fuel: false },
+    { match: 'Eon Pickaxe', priority: 2, fuel: false },
+    { match: 'Chrono Pickaxe', priority: 2, fuel: false },
+    { match: 'Titanium Pickaxe', priority: 1, fuel: false },
+    { match: 'Mithril Pickaxe', priority: 1, fuel: false },
+];
 
-        register('command', () => {
-            this.RetreiveStats();
-        }).setName('getminingstats');
+class MiningStatsCollector {
+    constructor() {
+        this.stats = Utils.getConfigFile('miningstats.json') || {};
+        this.isCollecting = false;
+        this.statsFile = 'miningstats.json';
+        this.collectedData = {};
     }
 
-    /**
-     * Goes through multiple GUIs to check mining stats
-     * @returns all required mining stats
-     */
-    RetreiveStats() {
-        const { drill } = this.getDrills();
-        if (!drill) return;
+    beginCollection() {
+        if (this.isCollecting) {
+            Chat.message('already collecting stats!');
+            return;
+        }
 
-        Player.setHeldItemIndex(drill.slot);
+        let toolData = ToolFinder.findBest();
+        if (!toolData) {
+            Chat.message('no valid mining tool found!');
+            return;
+        }
 
-        Chat.message('Getting your Mining Data!');
+        this.isCollecting = true;
+        Chat.message('starting mining stat collection...');
 
-        const getItemLore = (slot) => {
-            return Player.getContainer().getStackInSlot(slot).getLore();
+        try {
+            Chat.messageDebug('Starting collection logic...');
+            Player.setHeldItemIndex(toolData.slot);
+            Thread.sleep(250);
+
+            Chat.messageDebug('Opening sbmenu...');
+            ChatLib.command('sbmenu');
+            if (!this.waitForGui('SkyBlock Menu')) return this.timeout();
+            Chat.messageDebug('Clicking Equipment (Slot 13)...');
+            Thread.sleep(250);
+            Guis.clickSlot(13, false, 'RIGHT');
+            if (!this.waitForGui('Your Equipment and Stats')) return this.timeout();
+            Chat.messageDebug('In Equipment GUI, waiting for load...');
+            Thread.sleep(300);
+
+            this.collectedData = {};
+            this.collectedData.speed = this.extractNumericFromSlot(15, /Mining\s+Speed[:\s]*([\d,]+)/i);
+            Chat.messageDebug('Extracted Speed: ' + this.collectedData.speed);
+
+            Chat.messageDebug('Executing /hotm...');
+            ChatLib.command('hotm');
+            if (!this.waitForGui('Heart of the Mountain')) return this.timeout();
+
+            this.collectedData.cotm = this.extractNumericFromSlot(4, /Level[:\s]*(\d+)/i);
+            this.collectedData.professional = this.extractNumericFromSlot(12, /\+(\d+)/);
+            Chat.messageDebug('Extracted COTM: ' + this.collectedData.cotm + ', Prof: ' + this.collectedData.professional);
+
+            let container = Player.getContainer();
+            let activeMarker = 'minecraft:emerald_block';
+            let ability = 'None';
+            if (this.checkSlotForBlock(container, 29, activeMarker)) ability = 'SpeedBoost';
+            else if (this.checkSlotForBlock(container, 33, activeMarker)) ability = 'Pickobulus';
+
+            this.collectedData.ability = ability;
+            Chat.messageDebug('Initial Ability: ' + ability);
+
+            Chat.messageDebug('Opening Perks Submenu (Slot 8)...');
+            Guis.clickSlot(8, false, 'RIGHT');
+            Thread.sleep(500);
+            if (this.collectedData.ability === 'None') {
+                if (this.checkSlotForBlock(container, 1, activeMarker)) this.collectedData.ability = 'GemstoneInfusion';
+                else if (this.checkSlotForBlock(container, 7, activeMarker)) this.collectedData.ability = 'SheerForce';
+                else if (this.checkSlotForBlock(container, 37, activeMarker)) this.collectedData.ability = 'AnomalousDesire';
+                else if (this.checkSlotForBlock(container, 43, activeMarker)) this.collectedData.ability = 'ManiacMiner';
+                Chat.messageDebug('Secondary Ability Check: ' + this.collectedData.ability);
+            }
+
+            this.collectedData.strongarm = this.extractNumericFromSlot(21, /\+(\d+)/);
+            this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+)/);
+            Chat.messageDebug('Strong Arm: ' + this.collectedData.strongarm + ', Cold Res: ' + this.collectedData.coldres);
+
+            let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+)/);
+            this.collectedData.maxge = parseInt(explorerLevel) >= 96;
+            Chat.messageDebug('Great Explorer Level Extracted: ' + explorerLevel);
+
+            Chat.messageDebug('Closing GUI and finishing...');
+            Guis.closeInv();
+            this.finishCollection();
+        } catch (e) {
+            Chat.message('error collecting stats: ' + e);
+            Chat.log('Stats Collector Error: ' + e);
+        } finally {
+            this.isCollecting = false;
+        }
+    }
+
+    waitForGui(name, timeoutMs = 4000) {
+        let waited = 0;
+        while (waited < timeoutMs) {
+            let current = Guis.guiName();
+            if (current && current.includes(name)) return true;
+            Thread.sleep(100);
+            waited += 100;
+        }
+        return false;
+    }
+
+    timeout() {
+        Chat.message('stat collection timed out!');
+        Guis.closeInv();
+        return false;
+    }
+
+    finishCollection() {
+        let heldItem = Player.getHeldItem();
+        if (heldItem) {
+            let fullLore = heldItem.getLore().join(' ');
+            let lapMatch = fullLore.match(/lapidary\s+(i{1,3}|iv|v)/i);
+
+            if (lapMatch) {
+                let levels = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
+                let levelText = lapMatch[1].toUpperCase();
+                let bonus = (levels[levelText] || 0) * 20;
+                this.collectedData.professional = (this.collectedData.professional || 0) + bonus;
+                Chat.message('lapidary ' + levelText + ' detected: +' + bonus);
+            }
+        }
+
+        this.saveAndDisplay();
+    }
+
+    saveAndDisplay() {
+        let finalStats = {
+            speed: this.collectedData.speed || 0,
+            professional: this.collectedData.professional || 0,
+            strongarm: this.collectedData.strongarm || 0,
+            ability: this.collectedData.ability || 'None',
+            coldres: this.collectedData.coldres || 0,
+            cotm: this.collectedData.cotm || 0,
+            maxge: this.collectedData.maxge || false,
         };
 
-        const getFirstMatchFromLore = (slot, regex, perk = false) => {
-            if (Player.getContainer()?.getStackInSlot(slot)?.type?.getRegistryName() == 'minecraft:coal') {
+        Utils.writeConfigFile(this.statsFile, finalStats);
+        this.stats = finalStats;
+
+        Chat.message('Speed: ' + finalStats.speed);
+        Chat.message('Professional: +' + finalStats.professional);
+        Chat.message('Strong Arm: +' + finalStats.strongarm);
+        Chat.message('Ability: ' + finalStats.ability);
+        Chat.message('Cold Resistance: +' + finalStats.coldres);
+        Chat.message('COTM Level: ' + finalStats.cotm);
+        Chat.message('Max Great Explorer: ' + (finalStats.maxge ? 'Yes' : 'No'));
+    }
+
+    extractNumericFromSlot(slot, pattern) {
+        try {
+            let container = Player.getContainer();
+            let item = container?.getStackInSlot(slot);
+            if (!item) return 0;
+
+            if (item.type?.getRegistryName?.() === 'minecraft:coal') {
                 return 0;
             }
 
-            let lore = getItemLore(slot);
-            for (let line of lore) {
-                const cleanLine = ChatLib.removeFormatting(line.toString());
-                const match = cleanLine.match(regex);
+            let lore = item.getLore();
+            for (var i = 0; i < lore.length; i++) {
+                let cleanLine = ChatLib.removeFormatting(String(lore[i]));
+                let match = cleanLine.match(pattern);
                 if (match) {
                     let value = match[1].replace(/,/g, '');
-                    return value.includes('.') ? parseFloat(value) : parseInt(value);
+                    return value.indexOf('.') !== -1 ? parseFloat(value) : parseInt(value);
                 }
             }
-            return null;
-        };
-
-        let currentStep = 0;
-        const steps = [
-            'sbmenu', // Step 0: Open sbmenu and get mining speed
-            'hotm', // Step 1: Open hotm menu and get HOTM level
-            'hotm_abilities', // Step 2: Get abilities from HOTM menu
-            'perks_menu', // Step 3: Open perks menu and get more stats
-            'finish', // Step 4: Finish and display results
-        ];
-
-        const cleanup = () => {
-            if (this.guiListener) {
-                this.guiListener.unregister();
-                this.guiListener = null;
-            }
-        };
-
-        const processStep = () => {
-            const step = steps[currentStep];
-            const guiName = Guis.guiName();
-
-            switch (step) {
-                case 'sbmenu':
-                    if (guiName && guiName.includes('SkyBlock Menu')) {
-                        Guis.clickSlot(13);
-                    }
-
-                    if (guiName && guiName.includes('Your Equipment and Stats')) {
-                        this.miningSpeed = getFirstMatchFromLore(15, /Mining Speed\s{0,7}([\d,]+(\.\d+)?)/i);
-                        currentStep++;
-                        ChatLib.command('hotm');
-                    }
-                    break;
-
-                case 'hotm':
-                    if (guiName && guiName.includes('Heart of the Mountain')) {
-                        this.cotm = getFirstMatchFromLore(4, /Level\s{0,2}(\d+)/);
-
-                        let con = Player.getContainer();
-                        let selected = 'minecraft:emerald_block';
-
-                        let speedboost = con.getStackInSlot(29);
-                        let picko = con.getStackInSlot(33);
-
-                        if (speedboost?.type?.getRegistryName() === selected) {
-                            this.ability = 'SpeedBoost';
-                        } else if (picko?.type?.getRegistryName() === selected) {
-                            this.ability = 'Pickobulus';
-                        }
-
-                        this.professional = getFirstMatchFromLore(12, /\+(\d+(\.\d+)?)/);
-
-                        currentStep++;
-                        Guis.clickSlot(8, false, 'RIGHT');
-                    }
-                    break;
-
-                case 'hotm_abilities':
-                    if (guiName && guiName.includes('Heart of the Mountain')) {
-                        currentStep++;
-                        setTimeout(() => processStep(), 100);
-                    }
-                    break;
-
-                case 'perks_menu':
-                    if (guiName && guiName.includes('Heart of the Mountain')) {
-                        let con = Player.getContainer();
-                        let selected = 'minecraft:emerald_block';
-
-                        let infusion = con.getStackInSlot(1);
-                        let force = con.getStackInSlot(7);
-                        let desire = con.getStackInSlot(37);
-                        let maniac = con.getStackInSlot(43);
-
-                        if (this.ability === 'None') {
-                            if (infusion?.type?.getRegistryName() === selected) {
-                                this.ability = 'GemstoneInfusion';
-                            } else if (force?.type?.getRegistryName() === selected) {
-                                this.ability = 'SheerForce';
-                            } else if (desire?.type?.getRegistryName() === selected) {
-                                this.ability = 'AnamolousDesire';
-                            } else if (maniac?.type?.getRegistryName() === selected) {
-                                this.ability = 'ManiacMiner';
-                            } else {
-                                this.ability = 'None';
-                            }
-                        }
-
-                        this.strongArm = getFirstMatchFromLore(21, /\+(\d+(\.\d+)?)/);
-                        this.coldRes = getFirstMatchFromLore(23, /\+(\d+(\.\d+)?)/);
-                        this.solver = getFirstMatchFromLore(42, /\+(\d+(\.\d+)?)/);
-                        this.maxSolver = parseInt(this.solver) === 96;
-
-                        currentStep++;
-                        Guis.closeInv();
-
-                        setTimeout(() => processStep(), 100);
-                    }
-                    break;
-
-                case 'finish':
-                    let lore = Player.getHeldItem().getLore().toString();
-                    let match = lore.match(/lapidary\s*(i{1,3}|iv|v)/i);
-                    let bonus = match ? { I: 1, II: 2, III: 3, IV: 4, V: 5 }[match[1].toUpperCase()] * 20 : 0;
-
-                    if (match) {
-                        this.professional += bonus;
-                        Chat.message(`Lapidary Speed: +${bonus}`);
-                    }
-
-                    let solvercolor = this.maxSolver ? '&a' : '&c';
-
-                    if (!this.ability) {
-                        this.ability = 'none';
-                    }
-
-                    Chat.message(`Your Mining Data:`);
-                    Chat.message(`Mining Speed: &e${this.miningSpeed}`);
-                    Chat.message(`Professional: &e${this.professional}`);
-                    Chat.message(`Strong Arm: &e${this.strongArm}`);
-                    Chat.message(`Pickaxe Ability: &e${this.ability}`);
-                    Chat.message(`Cold Resistance: &e${this.coldRes}`);
-                    Chat.message(`COTM Level: &e${this.cotm}`);
-                    Chat.message(`Max Great Explorer: ${solvercolor}${this.maxSolver}`);
-
-                    const stats = {
-                        speed: this.miningSpeed,
-                        professional: this.professional,
-                        strongarm: this.strongArm,
-                        ability: this.ability,
-                        coldres: this.coldRes,
-                        cotm: this.cotm,
-                        maxge: this.maxSolver,
-                    };
-                    Utils.writeConfigFile('miningstats.json', stats);
-                    this.miningStats = stats;
-
-                    cleanup();
-                    break;
-            }
-        };
-
-        this.guiListener = register('guiOpened', () => {
-            setTimeout(() => processStep(), 100);
-        });
-
-        setTimeout(() => {
-            ChatLib.command('sbmenu');
-        }, 100);
+        } catch (e) {
+            return 0;
+        }
+        return 0;
     }
 
-    /**
-     * @function doRefueling Refuels drill during a macro
-     * @param {*} isComm Special type of refuel for commission macro
-     * @param {*} success Allows for the macro to carry on or stop if a problem occurs
-     * @returns a refueled drill
-     */
-    doRefueling(isComm = false, success) {
-        new Thread(() => {
-            if (!isComm) {
-                this.abiphone = Guis.findItemInHotbar('Abiphone');
-                if (this.abiphone === -1) {
-                    Chat.message('Unable to refuel without Abiphone!');
-                    return success(false);
+    checkSlotForBlock(container, slot, blockId) {
+        let item = container?.getStackInSlot(slot);
+        return item && item.type?.getRegistryName?.() === blockId;
+    }
+
+    getStoredStats() {
+        return this.stats;
+    }
+}
+
+const miningStatsCollector = new MiningStatsCollector();
+register('command', () => {
+    Executor.execute(() => {
+        miningStatsCollector.beginCollection();
+    });
+}).setName('getminingstats');
+
+class ToolFinder {
+    static findBest() {
+        let inventory = Player.getInventory();
+        if (!inventory) return null;
+
+        let foundTools = [];
+
+        for (var slot = 0; slot <= 7; slot++) {
+            let item = inventory.getStackInSlot(slot);
+            if (!item) continue;
+
+            let itemName = ChatLib.removeFormatting(item.getName());
+            let toolInfo = this.matchTool(itemName);
+
+            if (toolInfo) {
+                let hasCheese = this.checkBlueCheese(item);
+                foundTools.push({
+                    item: item,
+                    slot: slot,
+                    priority: toolInfo.priority + (hasCheese ? 10 : 0),
+                    needsFuel: toolInfo.fuel,
+                    blueCheese: hasCheese,
+                });
+            }
+        }
+
+        if (foundTools.length === 0) return null;
+
+        foundTools.sort(function (a, b) {
+            return b.priority - a.priority;
+        });
+
+        return foundTools[0];
+    }
+
+    static matchTool(name) {
+        for (var i = 0; i < TOOL_PRIORITY_LIST.length; i++) {
+            if (name.indexOf(TOOL_PRIORITY_LIST[i].match) !== -1) {
+                return TOOL_PRIORITY_LIST[i];
+            }
+        }
+        return null;
+    }
+
+    static checkBlueCheese(item) {
+        try {
+            let lore = item.getLore();
+            for (var i = 0; i < lore.length; i++) {
+                let clean = ChatLib.removeFormatting(String(lore[i]));
+                if (clean.indexOf('Blue Cheese') !== -1) {
+                    return true;
+                }
+            }
+        } catch (e) {
+            return false;
+        }
+        return false;
+    }
+}
+
+class SpeedCalculations {
+    constructor(collector) {
+        this.collector = collector;
+        this.lastCalculated = null;
+    }
+
+    getBaseSpeed(area) {
+        let stats = this.collector.getStoredStats();
+        if (!stats || !stats.speed) {
+            Chat.message('§cNo stats saved! Use /getminingstats');
+            return null;
+        }
+
+        let targetArea = area || Utils.area();
+        let base = stats.speed;
+
+        if (targetArea === 'Crystal Hollows' && stats.professional) {
+            base = base + stats.professional;
+        }
+
+        let flowBonus = Flowstate.CurrentFlowstate ? Flowstate.CurrentFlowstate() : 0;
+        this.lastCalculated = base + flowBonus;
+
+        return this.lastCalculated;
+    }
+
+    getSpeedWithColdPenalty() {
+        let base = this.lastCalculated || this.getBaseSpeed();
+        if (!base) return null;
+
+        let stats = this.collector.getStoredStats();
+        let resistance = stats?.coldres || 0;
+        let currentCold = ScoreboardDebuffReader.readCold();
+
+        let penalty = Math.max(0, currentCold - resistance);
+        if (penalty === 0) return base;
+
+        let reduction = Math.min(100, penalty / 2);
+        return Math.round(base * (1 - reduction / 100));
+    }
+}
+
+class MineTimeCalculations {
+    constructor(collector) {
+        this.collector = collector;
+    }
+
+    calculateTicks(position, speed, boosted) {
+        if (!position || typeof position !== 'object') {
+            return this.clamp(100);
+        }
+
+        const x = position.x ?? (typeof position.getX === 'function' ? position.getX() : null);
+        const y = position.y ?? (typeof position.getY === 'function' ? position.getY() : null);
+        const z = position.z ?? (typeof position.getZ === 'function' ? position.getZ() : null);
+
+        if (x === null || y === null || z === null) {
+            return this.clamp(100);
+        }
+
+        let block = World.getBlockAt(x, y, z);
+        if (!block || !block.type) {
+            return this.clamp(100);
+        }
+
+        let blockId = block.type.getID();
+        let data = BLOCK_HARDNESS_DATA[blockId];
+        let hardness = data ? data.h : 100;
+
+        let effectiveSpeed = speed + (Flowstate.CurrentFlowstate ? Flowstate.CurrentFlowstate() : 0);
+
+        if (boosted) {
+            let stats = this.collector.getStoredStats();
+            let multiplier = (stats?.cotm || 0) >= 2 ? 3.5 : 3.0;
+            effectiveSpeed = effectiveSpeed * multiplier;
+        }
+
+        let rawTicks = (hardness * 30) / effectiveSpeed;
+        return this.clamp(Math.round(rawTicks));
+    }
+
+    clamp(ticks) {
+        return Math.max(4, ticks || 4);
+    }
+}
+
+class RefuelService {
+    refuel(callback) {
+        let self = this;
+
+        new Thread(function () {
+            try {
+                let abiphoneSlot = Guis.findItemInHotbar('Abiphone');
+                if (abiphoneSlot === -1) {
+                    Chat.message('Abiphone not found!');
+                    return callback(false);
                 }
 
-                Player.setHeldItemIndex(this.abiphone);
+                Player.setHeldItemIndex(abiphoneSlot);
                 Thread.sleep(250);
                 Keybind.rightClick();
+                Thread.sleep(1000);
+
+                if (!Guis.guiName() || Guis.guiName().indexOf('Abiphone') === -1) {
+                    Chat.message('Abiphone failed to open!');
+                    return callback(false);
+                }
+
+                let jotraelineSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                if (jotraelineSlot === -1) {
+                    Chat.message('Jotraeline contact missing!');
+                    return callback(false);
+                }
+
+                Guis.clickSlot(jotraelineSlot);
+                Thread.sleep(1000);
+
+                if (!self.waitForAnvil()) {
+                    Chat.message('drill anvil timeout!');
+                    return callback(false);
+                }
 
                 Thread.sleep(1000);
-                if (!Guis.guiName()?.includes('Abiphone')) {
-                    Chat.message('Took too long to open the Abiphone!');
-                    return success(false);
+                let tool = ToolFinder.findBest();
+                if (!tool) {
+                    Chat.message('no drill found!');
+                    return callback(false);
                 }
 
-                this.Jotraeline = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
-                if (this.Jotraeline === -1) {
-                    Chat.message("You don't have Jotraeline as a contact!");
-                    return success(false);
-                }
-                Guis.clickSlot(this.Jotraeline);
+                Guis.clickSlot(tool.slot + 81, true);
+                Thread.sleep(500);
 
-                waited = 0;
-                while (Guis.guiName() !== 'Drill Anvil' && waited < 5000) {
-                    Thread.sleep(50);
-                    waited += 50;
+                let container = Player.getContainer();
+                if (!container.getStackInSlot(29)) {
+                    Chat.message('drill not in anvil!');
+                    return callback(false);
                 }
 
-                if (waited >= 5000) {
-                    Chat.message('Took too long to open Drill Anvil!');
-                    return success(false);
+                let fuelAdded = Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel'], true);
+                if (!fuelAdded) {
+                    Chat.message('no fuel available!');
+                    Guis.clickSlot(29, true);
+                    Thread.sleep(500);
+                    Guis.closeInv();
+                    return callback(false);
                 }
 
-                if (Guis.guiName() === 'Drill Anvil') {
-                    Thread.sleep(1000);
-                    let Drills = this.getDrills().drill;
-                    Guis.clickSlot(Drills.slot + 81, true); // retarded method 💀
+                Thread.sleep(500);
+                Guis.clickSlot(22, false);
+                Thread.sleep(750);
+                Guis.clickSlot(13, true);
+                Thread.sleep(500);
+                Guis.closeInv();
 
-                    let container = Player.getContainer();
-
-                    if (container.getStackInSlot(29)) {
-                        Thread.sleep(500);
-                        let fuels = ['Volta', 'Oil Barrel', 'Biofuel'];
-                        let clickFuel = Guis.clickItems(fuels, true);
-
-                        if (!clickFuel) {
-                            Chat.message('You have no fuel in your inventory!');
-                            Thread.sleep(500);
-                            Guis.clickSlot(29, true);
-                            Thread.sleep(500);
-                            Guis.closeInv();
-                            return success(false);
-                        }
-                    }
-
-                    if (container.getStackInSlot(29) && container.getStackInSlot(33)) {
-                        Thread.sleep(500);
-                        Guis.clickSlot(22, false);
-                        Thread.sleep(750);
-                        Guis.clickSlot(13, true);
-                        Thread.sleep(500);
-                        Guis.closeInv();
-                    }
-                } else {
-                    Chat.message('Failed to open Drill Anvil!');
-                    return success(false);
-                }
-                return success(true);
+                callback(true);
+            } catch (e) {
+                Chat.message('refuel error: ' + e.message);
+                callback(false);
             }
         }).start();
     }
 
-    MaxGreatExplorer(success) {
-        new Thread(() => {
-            register('chat', (event) => {
+    waitForAnvil() {
+        let waited = 0;
+        while (Guis.guiName() !== 'Drill Anvil' && waited < 5000) {
+            Thread.sleep(50);
+            waited = waited + 50;
+        }
+        return waited < 5000;
+    }
+}
+
+class ExplorerUpgrade {
+    constructor(collector) {
+        this.collector = collector;
+    }
+
+    upgrade(callback) {
+        let self = this;
+
+        new Thread(function () {
+            let stats = self.collector.getStoredStats();
+
+            if (stats?.maxge) {
+                Chat.message('Great Explorer already maxed!');
+                return callback(true);
+            }
+
+            if (stats?.maxge === undefined) {
+                Chat.message('Run /getminingstats first!');
+                return callback(false);
+            }
+
+            let chatWatcher = register('chat', function (event) {
                 let msg = event.message.getString();
 
-                if (msg.startsWith('You must first unlock')) {
+                if (msg.indexOf('You must first unlock') !== -1) {
                     Thread.sleep(300);
-                    Chat.message("Great Explorer can't be enabled!");
+                    Chat.message("great explorer can't be unlocked!");
                     Guis.closeInv();
-                    return success(false);
+                    chatWatcher.unregister();
+                    return callback(false);
                 }
 
-                if (msg.includes("You don't have enough Gemstone Powder!")) {
+                if (msg.indexOf("You don't have enough Gemstone Powder!") !== -1) {
                     Thread.sleep(300);
-                    Chat.message("You don't have enough powder to max Great Explorer!");
+                    Chat.message('insufficient powder!');
                     Guis.closeInv();
-                    return success(false);
+                    chatWatcher.unregister();
+                    return callback(false);
                 }
             });
-
-            let file = this.miningStats;
-
-            if (file.maxge) {
-                Chat.message('Great Explorer is maxed from last stat check!');
-                return success(true);
-            } else if (file.maxge === undefined) {
-                Chat.message('Great Explorer stat is undefined! Run /getminingstats');
-                return success(false);
-            }
 
             ChatLib.command('hotm');
             Thread.sleep(1000);
 
             if (Guis.guiName() !== 'Heart of the Mountain') {
-                Chat.message('Took too long to open Heart of The Mountain!');
-                return success(false);
+                Chat.message('HOTM failed to open!');
+                chatWatcher.unregister();
+                return callback(false);
             }
 
             Guis.clickSlot(8, false, 'RIGHT');
@@ -373,278 +536,169 @@ class MiningUtilClass {
 
             while (Guis.guiName() === 'Heart of the Mountain') {
                 Thread.sleep(500);
+
                 let slot = Player.getContainer()?.getStackInSlot(42);
                 if (!slot) continue;
 
-                let nbt = slot.getNBT().toString();
-                if (nbt.includes('item.minecraft.coal')) {
-                    Guis.clickSlot(42, false); // Normal click for coal
-                } else if (nbt.includes('item.minecraft.emerald')) {
-                    Guis.clickSlot(42, true); // Shift-click for emerald
+                let nbtString = slot.getNBT().toString();
+
+                if (nbtString.indexOf('item.minecraft.coal') !== -1) {
+                    Guis.clickSlot(42, false);
+                } else if (nbtString.indexOf('item.minecraft.emerald') !== -1) {
+                    Guis.clickSlot(42, true);
+                } else {
+                    break;
                 }
             }
 
-            return success(true);
+            chatWatcher.unregister();
+            callback(true);
         }).start();
     }
+}
 
-    /**
-     * @function getMiningSpeed Returns your mining speed for an island
-     * @param {*} Area  Checks what island you're in
-     * @returns Total Speed with additional Professional if in crystalHollows
-     */
-    getMiningSpeed(Area = Utils.area()) {
-        let file = this.miningStats;
-        if (!file) return;
-        let Speed = file.speed;
-        let Professional = file.professional;
-
-        if (!Speed) {
-            Chat.message('You have not saved your mining stats! use /getminingstats');
-            return;
-        }
-
-        if (Area === 'Crystal Hollows') {
-            this.savedSpeed = Speed + Professional;
-        } else {
-            this.savedSpeed = Speed;
-        }
-
-        // add bettertogether speed
-
-        return this.savedSpeed + Flowstate.CurrentFlowstate();
+class ScoreboardDebuffReader {
+    static readCold() {
+        return this.readDebuff('❄');
     }
 
-    /**
-     * @function getMineTime Calculates the time it takes to mine a specific block.
-     * @param {number} MiningSpeed - The player's current mining speed.
-     * @param {BlockPos} pos - The position of the block to be mined.
-     * @param {boolean} SpeedBoost - Indicates if a speed boost is active.
-     * @returns {number} The time in ticks required to mine the block.
-     */
-    getMineTime(MiningSpeed, SpeedBoost, pos) {
-        let Block = World.getBlockAt(pos.x, pos.y, pos.z);
-        if (!Block || !Block.type) {
-            return this.returnSpeed(20, 0);
-        }
-
-        let BlockID = Block.type.getID();
-        let BlockName = Block.type.getRegistryName?.() || 'Unknown';
-
-        /*Chat.message(
-            `Block at (${pos.x}, ${pos.y}, ${pos.z}) → ID: ${BlockID}, Name: ${BlockName}`
-        ); */
-
-        let hardness = blockHardness[BlockID];
-        if (!hardness || isNaN(hardness)) {
-            hardness = 100; // fallback
-        }
-
-        let Speed = (MiningSpeed || 0) + Flowstate.CurrentFlowstate();
-
-        if (SpeedBoost) {
-            if (this.cotm >= 2) {
-                Speed *= 3.5;
-            } else {
-                Speed *= 3;
-            }
-        }
-
-        let ticks = Math.round((hardness * 30) / Speed);
-        if (!ticks && !SpeedBoost) {
-            if (BlockID !== 34) {
-                Chat.message(`&c WARNING! Block is undefined. Tell devs immediately. Block Name & ID: ${BlockName}, ${BlockID}`);
-            }
-            ticks = 4;
-        }
-
-        return this.returnSpeed(ticks, 0);
+    static readHeat() {
+        return this.readDebuff('♨');
     }
 
-    /**
-     * @function returnSpeed
-     * @description Helper function to calculate the final mining speed based on ticks and offset.
-     * @param {number} Ticks - The base mining time in ticks.
-     * @param {number} Offset - An offset to be applied to the mining time.
-     * @returns {number} The adjusted mining time, with a minimum of 4 ticks.
-     */
-    returnSpeed(Ticks, Offset) {
-        return Math.max(4, Ticks + Offset);
-    }
+    static readDebuff(symbol) {
+        let lines = Scoreboard.getLines();
 
-    getDrills() {
-        const drillNames = [
-            { name: 'Pickonimbus', drill: false },
-            { name: 'Drill', drill: true },
-            { name: 'Gauntlet', drill: true },
-            { name: 'Mithril Pickaxe', drill: false },
-            { name: 'Titanium Pickaxe', drill: false },
-            { name: 'Iron Pickaxe', drill: false },
-            { name: 'Eon Pickaxe', drill: false },
-            { name: 'Chrono Pickaxe', drill: false },
-        ];
+        for (var i = 0; i < lines.length; i++) {
+            let lineText = String(lines[i]);
+            if (lineText.indexOf(symbol) !== -1) {
+                let clean = ChatLib.removeFormatting(lineText);
+                let pattern = new RegExp('(\\d+(?:\\.\\d+)?)\\s*' + symbol);
+                let match = clean.match(pattern);
 
-        let blueCheese = null;
-        let drill = null;
-
-        for (let i = 0; i <= 7; i++) {
-            const item = Player.getInventory().getStackInSlot(i);
-            if (!item) continue;
-
-            const itemInstance = { item: item, slot: i };
-            const itemName = item.getName().removeFormatting();
-
-            const drillName = drillNames.find((d) => itemName.includes(d.name));
-            if (!drillName) continue;
-
-            if (drillName.drill) {
-                const loreHasBlueCheese = item.getLore().some((loreLine) => loreLine.toString().replace(/§./g, '').includes('Blue Cheese'));
-                if (loreHasBlueCheese) {
-                    blueCheese = itemInstance;
-                    continue;
+                if (match) {
+                    return parseFloat(match[1]);
                 }
-                drill = itemInstance;
-                break;
-            } else if (!drill) {
-                drill = itemInstance;
-            }
-        }
-
-        if (!drill) {
-            drill = blueCheese;
-        }
-
-        if (!drill) {
-            Chat.message('&cMissing a drill!');
-        }
-
-        return { blueCheese, drill };
-    }
-
-    inCamp() {
-        return Player.getZ() > 185 && Utils.area() === 'Dwarven Mines';
-    }
-
-    /**
-     * @function getDebuff Returns your current heat or cold or 0 if null
-     * @param {*} type The type of debuff you want to get - "heat" or "cold"
-     * @returns amount of debuff you have from that type
-     */
-    getDebuff(type) {
-        const symbols = {
-            cold: '❄',
-            heat: '♨',
-        };
-
-        const symbol = symbols[type.toLowerCase()];
-        if (!symbol) return 0;
-
-        const line = Scoreboard.getLines().find((line) => String(line).includes(symbol));
-
-        if (line) {
-            const clean = ChatLib.removeFormatting(String(line));
-            const match = clean.match(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${symbol}`));
-            if (match) {
-                return parseFloat(match[1]);
             }
         }
 
         return 0;
     }
+}
 
-    /**
-     * @function getSpeedWithCold Calculates Miningspeed after calculating cold res against speed
-     * @returns your affected mining speed after calculating total cold reduction
-     */
-    getSpeedWithCold() {
-        let baseSpeed = this.savedSpeed ?? this.getMiningSpeed();
-        let baseCold = this.miningStats;
-        if (!baseCold) return;
-        this.savedColdRes = baseCold.coldres;
-
-        let cold = this.getDebuff('cold');
-        let effectiveCold = cold - this.savedColdRes;
-
-        if (effectiveCold > 0) {
-            let reductionPercent = effectiveCold / 2;
-            if (reductionPercent > 100) reductionPercent = 100;
-
-            return Number((baseSpeed * (1 - reductionPercent / 100)).toFixed());
-        } else {
-            return baseSpeed + Flowstate.CurrentFlowstate();
-        }
-    }
-
-    GhostBlock(pos) {
-        const Blocks = net.minecraft.block.Blocks;
-
-        Client.getMinecraft().world.setBlockState(pos, Blocks.AIR.getDefaultState());
-    }
-
-    readCommissions() {
+class CommissionParser {
+    static parse() {
         try {
-            const tabItems = TabList.getNames();
-            const startIndex = this.findCommissionsStartIndex(tabItems);
-            if (startIndex === -1) {
-                return [];
-            }
+            let tabNames = TabList.getNames();
+            let startIdx = this.findIndex(tabNames, 'Commissions:');
 
-            const endIndex = this.findCommissionsEndIndex(tabItems, startIndex);
-            return this.parseCommissions(tabItems, startIndex, endIndex);
+            if (startIdx === -1) return [];
+
+            let endIdx = this.findIndex(tabNames, 'Powders:', startIdx + 1);
+            if (endIdx === -1) endIdx = tabNames.length;
+
+            return this.extractCommissionData(tabNames, startIdx + 1, endIdx);
         } catch (e) {
-            console.error('Error reading commissions:', e);
             return [];
         }
     }
 
-    findCommissionsStartIndex(tabItems) {
-        for (let i = 0; i < tabItems.length; i++) {
-            const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-            if (cleaned === 'Commissions:') {
-                return i;
-            }
+    static findIndex(items, target, start) {
+        start = start || 0;
+        for (var i = start; i < items.length; i++) {
+            let cleaned = ChatLib.removeFormatting(items[i] || '').trim();
+            if (cleaned === target) return i;
         }
         return -1;
     }
 
-    findCommissionsEndIndex(tabItems, startIndex) {
-        for (let i = startIndex + 1; i < tabItems.length; i++) {
-            const cleaned = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-            if (cleaned === '' || cleaned === 'Powders:') {
-                return i;
+    static extractCommissionData(items, start, end) {
+        let commissions = [];
+
+        for (var i = start; i < end; i++) {
+            let text = ChatLib.removeFormatting(items[i] || '').trim();
+            if (text.indexOf(':') === -1) continue;
+
+            let parts = text.split(':');
+            let name = parts[0].trim();
+            let progressText = parts[1].trim();
+            let progress;
+
+            if (progressText.indexOf('DONE') !== -1) {
+                progress = 1;
+            } else if (progressText.indexOf('%') !== -1) {
+                progress = parseFloat(progressText.replace(/ /g, '').replace('%', '')) / 100;
+            } else {
+                continue;
             }
-        }
-        return tabItems.length;
-    }
 
-    parseCommissions(tabItems, startIndex, endIndex) {
-        const commissions = [];
-        for (let i = startIndex + 1; i < endIndex; i++) {
-            const formattedText = ChatLib.removeFormatting(tabItems[i] ?? '').trim();
-            if (!formattedText.includes(':')) continue;
-
-            const commission = this.parseCommissionLine(formattedText);
-            if (commission) commissions.push(commission);
+            commissions.push({ name: name, progress: progress });
         }
+
         return commissions;
-    }
-
-    parseCommissionLine(formattedText) {
-        const parts = formattedText.split(':');
-        const name = parts[0].trim();
-        const progressStr = parts[1].trim();
-        let progress;
-
-        if (progressStr.includes('DONE')) {
-            progress = 1;
-        } else if (progressStr.includes('%')) {
-            progress = parseFloat(progressStr.replace(/ /g, '').replace('%', '')) / 100;
-        } else {
-            return null;
-        }
-
-        return { name, progress };
     }
 }
 
-export const MiningUtils = new MiningUtilClass();
+class BlockUtils {
+    static setToAir(pos) {
+        if (!pos) return;
+        try {
+            const x = pos.x ?? (typeof pos.getX === 'function' ? pos.getX() : null);
+            const y = pos.y ?? (typeof pos.getY === 'function' ? pos.getY() : null);
+            const z = pos.z ?? (typeof pos.getZ === 'function' ? pos.getZ() : null);
+
+            if (x === null || y === null || z === null) return;
+
+            let Blocks = net.minecraft.block.Blocks;
+            let blockPos = new net.minecraft.util.math.BlockPos(x, y, z);
+            Client.getMinecraft().world.setBlockState(blockPos, Blocks.AIR.getDefaultState());
+        } catch (e) {
+            Chat.message('error setting ghost block');
+        }
+    }
+}
+
+const speedCalc = new SpeedCalculations(miningStatsCollector);
+const timeCalc = new MineTimeCalculations(miningStatsCollector);
+const refueler = new RefuelService();
+const explorer = new ExplorerUpgrade(miningStatsCollector);
+
+export const MiningUtils = {
+    getMiningSpeed: function (area) {
+        return speedCalc.getBaseSpeed(area);
+    },
+    getSpeedWithCold: function () {
+        return speedCalc.getSpeedWithColdPenalty();
+    },
+    getMineTime: function (pos, speed, boost) {
+        return timeCalc.calculateTicks(pos, speed, boost);
+    },
+    getDrills: function () {
+        let bestTool = ToolFinder.findBest();
+        if (!bestTool) {
+            return { blueCheese: null, drill: null };
+        }
+        return {
+            blueCheese: bestTool.blueCheese ? bestTool : null,
+            drill: bestTool,
+        };
+    },
+    doRefueling: function (isComm, callback) {
+        refueler.refuel(callback);
+    },
+    MaxGreatExplorer: function (callback) {
+        explorer.upgrade(callback);
+    },
+    inCamp: function () {
+        return Player.getZ() > 185 && Utils.area() === 'Dwarven Mines';
+    },
+    getDebuff: function (type) {
+        return type.toLowerCase() === 'cold' ? ScoreboardDebuffReader.readCold() : ScoreboardDebuffReader.readHeat();
+    },
+    GhostBlock: function (pos) {
+        BlockUtils.setToAir(pos);
+    },
+    readCommissions: function () {
+        return CommissionParser.parse();
+    },
+};

@@ -1,164 +1,137 @@
 import { Utils } from './Utils';
 import { Chat } from './Chat';
-let { Version } = global;
-
 import { URL, DataOutputStream, Toolkit, DataFlavor } from './Constants';
 
-// TODO
-// Failsafe
-// Periodic report
-
-class Webhooks {
+class DiscordNotifier {
     constructor() {
-        this.webhookUrl = null;
-        this.userId = null;
-        this.isEnabled = false;
+        this.endpoint = null;
+        this.mentionId = null;
+        this.active = false;
+        this.clientVersion = global.Version;
 
+        this.loadSettings();
+        this.initTriggers();
+    }
+
+    loadSettings() {
         try {
-            const webhookFile = Utils.getConfigFile('webhook.json');
-            if (webhookFile) {
-                this.webhookUrl = webhookFile.url || null;
-                this.userId = webhookFile.userId || null;
-                this.isEnabled = !!this.webhookUrl;
+            const cfg = Utils.getConfigFile('webhook.json');
+            if (cfg) {
+                this.endpoint = cfg.url || null;
+                this.mentionId = cfg.userId || null;
+                this.active = !!this.endpoint;
             }
         } catch (e) {
-            Chat.message('Webhook: ' + '&cFailed to load webhook config');
+            Chat.messageDebug('Failed to initialize webhook settings.');
         }
+    }
 
-        register('gameLoad', () => this.gameLoadEmbed());
+    persistSettings() {
+        try {
+            Utils.writeConfigFile('webhook.json', {
+                url: this.endpoint,
+                userId: this.mentionId
+            });
+        } catch (e) {}
+    }
+
+    initTriggers() {
+        register('gameLoad', () => this.onStartup());
 
         register('command', () => {
             try {
-                let url = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
-                this.setWebhook(url);
+                const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+                this.updateEndpoint(clipboard);
             } catch (e) {
-                Chat.message('Webhook: ' + '&cFailed to get clipboard data');
+                Chat.message('Webhook: &cCould not access system clipboard.');
+            }
+        }).setName('setwh', true).setAliases(['setwebhook']);
+
+        register('command', (uid) => {
+            if (!uid) {
+                Chat.message('&cUsage: /setuserid <id>');
                 return;
             }
-        })
-            .setName('setwh', true)
-            .setAliases(['setwebhook', 'setdiscordwebhook']);
-
-        register('command', (userId) => {
-            if (!userId) {
-                Chat.message('&cUsage: /setuserid <discord_id>');
-                return;
-            }
-            this.setUserId(userId);
-        })
-            .setName('setid', true)
-            .setAliases(['setuserid', 'setdiscordid', 'setdiscorduser', 'setdiscorduserid']);
+            this.updateMention(uid);
+        }).setName('setid', true).setAliases(['setuserid']);
     }
 
-    saveConfig() {
-        try {
-            Utils.writeConfigFile('webhook.json', {
-                url: this.webhookUrl,
-                userId: this.userId,
-            });
-        } catch (e) {
-            Chat.message('&cFailed to save webhook config: ' + e);
-        }
-    }
-
-    /**
-     * @function setWebhook
-     * @description Sets the Discord webhook URL and saves it to a configuration file.
-     * @param {string} url - The Discord webhook URL.
-     */
-    setWebhook(url) {
-        if (!url.startsWith('https://discord.com/api/webhooks/')) {
-            Chat.message('&cInvalid Discord webhook URL!');
+    updateEndpoint(url) {
+        if (!url || !url.startsWith('https://discord.com/api/webhooks/')) {
+            Chat.message('&cInvalid Discord webhook format.');
             return;
         }
-
-        this.webhookUrl = url;
-        this.isEnabled = true;
-
-        this.saveConfig();
-        Chat.message('&aWebhook saved successfully!');
+        this.endpoint = url;
+        this.active = true;
+        this.persistSettings();
+        Chat.message('&aDiscord webhook endpoint updated.');
     }
 
-    /**
-     * @function setUserId
-     * @description Sets the Discord user ID for pinging and saves it to the configuration file.
-     * @param {string} userId - The Discord user ID.
-     */
-    setUserId(userId) {
-        this.userId = userId;
-        this.saveConfig();
-        Chat.message('&aUser ID saved successfully!');
+    updateMention(id) {
+        this.mentionId = id;
+        this.persistSettings();
+        Chat.message('&aDiscord user ID for mentions updated.');
     }
 
-    sendEmbed(embeds, ping = true) {
-        if (!this.webhookUrl || !this.isEnabled) return;
+    publish(embeds, shouldMention = true) {
+        if (!this.endpoint || !this.active) return;
+
         new Thread(() => {
             try {
-                let url = new URL(this.webhookUrl);
-                let conn = url.openConnection();
-                conn.setRequestMethod('POST');
-                conn.setRequestProperty('Content-Type', 'application/json');
-                conn.setRequestProperty(`User-Agent`, `Mozilla/5.0 V5/${Version}`);
-                conn.setDoOutput(true);
+                const connection = new URL(this.endpoint).openConnection();
+                connection.setRequestMethod('POST');
+                connection.setRequestProperty('Content-Type', 'application/json');
+                connection.setRequestProperty('User-Agent', 'V5-Client/' + this.clientVersion);
+                connection.setDoOutput(true);
 
-                let payload = {
-                    avatar_url: `https://minotar.net/cube/${Player.getUUID().toString().replace(/-/g, '')}/100.png`,
-                    username: `${Player.getName()}`,
-                    embeds: embeds,
+                const playerUuid = Player.getUUID().toString().replace(/-/g, '');
+                const body = {
+                    username: Player.getName(),
+                    avatar_url: 'https://minotar.net/cube/' + playerUuid + '/100.png',
+                    embeds: embeds
                 };
 
-                if (this.userId && ping) {
-                    payload.content = `<@${this.userId}>`;
+                if (this.mentionId && shouldMention) {
+                    body.content = '<@' + this.mentionId + '>';
                 }
 
-                let json = JSON.stringify(payload);
-                let wr = new DataOutputStream(conn.getOutputStream());
-                wr.writeBytes(json);
-                wr.flush();
-                wr.close();
-                conn.getInputStream();
-            } catch (e) {
-                if (e.toString().substr(0, 45) === 'JavaException: java.io.FileNotFoundException:') {
-                    Chat.message('&cWebhook URL is invalid!');
-                } else {
-                    Chat.message('&cThere was an unknown error! ' + e);
-                }
+                const stream = new DataOutputStream(connection.getOutputStream());
+                stream.writeBytes(JSON.stringify(body));
+                stream.flush();
+                stream.close();
+                
+                connection.getInputStream();
+            } catch (err) {
+                Chat.messageDebug('Webhook transmission failed: ' + err);
             }
         }).start();
     }
 
-    gameLoadEmbed() {
-        try {
-            let embeds;
-            if (Utils.area() === undefined) {
-                // I dont think this works as intended but i cba
-                embeds = [
-                    {
-                        title: '**Game successfully loaded!**',
-                        description: `Module loaded with game launch!`,
-                        color: 8388608,
-                        footer: { text: `Client ${Version}` },
-                        timestamp: new Date().toISOString(),
-                    },
-                ];
-            } else {
-                embeds = [
-                    {
-                        title: '**Client successfully reloaded!**',
-                        description: `**Module was reloaded with no error!**
-                            Area: ${Utils.area()}
-                            Subarea: ${Utils.subArea()}`,
-                        color: 8388608,
-                        footer: { text: `Client ${Version}` },
-                        timestamp: new Date().toISOString(),
-                    },
-                ];
-            }
-            this.sendEmbed(embeds);
-        } catch (e) {
-            Chat.message('&cThere was an error! ' + e);
+    onStartup() {
+        const areaName = Utils.area();
+        const subAreaName = Utils.subArea();
+        
+        const embed = {
+            title: areaName ? '**Client Initialized**' : '**Environment Loaded**',
+            color: 0x800000,
+            timestamp: new Date().toISOString(),
+            footer: { text: 'V5 Engine ' + this.clientVersion }
+        };
+
+        if (areaName) {
+            embed.description = 'Module reloaded successfully.\n**Location**: ' + areaName + ' (' + subAreaName + ')';
+        } else {
+            embed.description = 'Game launched with V5 module active.';
         }
+
+        this.publish([embed]);
     }
 }
 
-export const Webhook = new Webhooks();
+export const notifier = new DiscordNotifier();
+
+export const Webhook = {
+    setWebhook: (url) => notifier.updateEndpoint(url),
+    setUserId: (id) => notifier.updateMention(id),
+    sendEmbed: (e, p) => notifier.publish(e, p)
+};

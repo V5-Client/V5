@@ -181,7 +181,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) > 0.1) return;
 
-                    let point = RayTrace.getPointOnBlock(targetBlockPos, false);
+                    let point = RayTrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 
                     if (!this.etherwarpReady) {
                         if (point) {

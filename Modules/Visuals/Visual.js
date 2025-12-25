@@ -39,7 +39,7 @@ register('tick', () => {
         Math.abs(currentY - prevY) > MOVEMENT_THRESHOLD ||
         Math.abs(currentZ - prevZ) > MOVEMENT_THRESHOLD
     ) {
-        cachedBlock = RayTrace.raytrace(61);
+        cachedBlock = RayTrace.getLookingAt(61);
 
         // precalculate the color based on validity. idk if this is needed but who cares.
         if (cachedBlock && isValidTeleport(cachedBlock)) {
