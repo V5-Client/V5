@@ -3,7 +3,6 @@ import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRo
 import { PathMovement } from './PathWalker/PathMovement';
 import { PathfindingMessages } from './PathConfig';
 import { Vec3d } from '../Constants';
-import { Utils } from '../Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
@@ -43,7 +42,7 @@ export function stopPathing() {
         try {
             path.unregister();
         } catch (e) {
-            console.log('Path already unregistered');
+            Chat.log('Path already unregistered');
         }
         path = null;
     }
@@ -52,7 +51,7 @@ export function stopPathing() {
         try {
             renderPath.unregister();
         } catch (e) {
-            console.log('RenderPath already unregistered');
+            Chat.log('RenderPath already unregistered');
         }
         renderPath = null;
     }
@@ -118,12 +117,14 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         const error = SwiftBridge.getLastError() || 'Unknown error';
         global.showNotification('Pathfinding Failed', error, 'ERROR', 5000);
         console.error('Pathfinding failed:', error);
+        if (onComplete && typeof onComplete === 'function') onComplete(false);
         return;
     }
 
     if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
         global.showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
         console.error('Invalid keynodes in response:', body);
+        if (onComplete && typeof onComplete === 'function') onComplete(false);
         return;
     }
 
@@ -141,7 +142,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
     if (body.path_between_key_nodes && Array.isArray(body.path_between_key_nodes) && body.path_between_key_nodes.length) {
         generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
     } else if (body.keynodes && body.keynodes.length) {
-        console.log('No path_between_key_nodes, using keynodes for spline');
+        Chat.log('No path_between_key_nodes, using keynodes for spline');
         generatedSpline = generateHybridSpline(body.keynodes, 1);
     }
 
@@ -177,7 +178,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         stopPathing();
 
         global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-        if (onComplete && typeof onComplete === 'function') onComplete();
+        if (onComplete && typeof onComplete === 'function') onComplete(true);
     });
 }
 
