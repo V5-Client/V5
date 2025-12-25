@@ -10,20 +10,29 @@ const WindowInjection = Window.inject({
 });
 
 export const BorderlessFullscreenMixin = attachMixin(WindowInjection, 'WindowInjection', (instance, cir) => {
-    let handle = Client.getMinecraft().getWindow().getHandle();
+    let handle = instance.getHandle();
+    if (handle === 0) return;
 
-    GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_FALSE);
+    let options = Client.getMinecraft().options;
 
-    let monitor = GLFW.glfwGetPrimaryMonitor();
-    let videoMode = GLFW.glfwGetVideoMode(monitor);
+    if (options.fullscreen) {
+        GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_FALSE);
 
-    if (videoMode != null) {
-        let width = videoMode.width();
-        let height = videoMode.height();
+        let monitor = GLFW.glfwGetWindowMonitor(handle);
+        if (monitor === 0) monitor = GLFW.glfwGetPrimaryMonitor();
 
-        GLFW.glfwSetWindowPos(handle, 0, 0);
-        GLFW.glfwSetWindowSize(handle, width, height);
+        let videoMode = GLFW.glfwGetVideoMode(monitor);
+
+        if (videoMode != null) {
+            let width = videoMode.width();
+            let height = videoMode.height();
+
+            GLFW.glfwSetWindowPos(handle, 0, 0);
+            GLFW.glfwSetWindowSize(handle, width, height);
+        }
+
+        cir.cancel();
+    } else {
+        GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_TRUE);
     }
-
-    cir.cancel();
 });
