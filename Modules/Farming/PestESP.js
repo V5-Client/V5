@@ -36,8 +36,10 @@ class PestESP extends ModuleBase {
             });
 
             this.persistentPests.forEach((data, uuid) => {
-                const timeSinceSeen = now - data.lastSeen;
+                const isDead = data.entity.isDead();
+                if (isDead) this.persistentPests.delete(uuid);
 
+                const timeSinceSeen = now - data.lastSeen;
                 if (timeSinceSeen > 15000) this.persistentPests.delete(uuid);
             });
         });
