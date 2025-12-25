@@ -39,7 +39,7 @@ class UtilsClass {
     noCollision(blockVec) {
         const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
         const blockState = World.getWorld().getBlockState(blockPosNMS);
-        const collisionShape = blockState.getCollisionShape(blockPosNMS);
+        const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
         return collisionShape.isEmpty();
     }
 
@@ -74,6 +74,71 @@ class UtilsClass {
         }
 
         return false;
+    }
+
+    // ik this is so ugly idgaf
+    sidesOfCollision() {
+        const player = Player.getPlayer();
+        const playerBox = player.getBoundingBox();
+        const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
+
+        // Normalize Yaw: 0=S, 90=W, 180=N, 270=E
+        let yaw = ((player.getYaw() % 360) + 360) % 360;
+
+        const world = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
+
+        let minX = Math.floor(expandedBox.minX);
+        let minY = Math.floor(expandedBox.minY);
+        let minZ = Math.floor(expandedBox.minZ);
+        let maxX = Math.floor(expandedBox.maxX);
+        let maxY = Math.floor(expandedBox.maxY);
+        let maxZ = Math.floor(expandedBox.maxZ);
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                for (let z = minZ; z <= maxZ; z++) {
+                    let block = World.getBlockAt(x, y, z);
+                    if (!block || block.type.getID() === 0) continue;
+                    if (this.noCollision(new Vec3d(x, y, z))) continue;
+
+                    if (Math.abs(playerBox.minX - (x + 1)) < 0.02) world.WEST = true;
+                    if (Math.abs(playerBox.maxX - x) < 0.02) world.EAST = true;
+                    if (Math.abs(playerBox.minZ - (z + 1)) < 0.02) world.NORTH = true;
+                    if (Math.abs(playerBox.maxZ - z) < 0.02) world.SOUTH = true;
+                }
+            }
+        }
+
+        let res = { front: false, back: false, left: false, right: false };
+
+        // Map world collisions to player-relative sides based on rotation
+        if (yaw >= 315 || yaw < 45) {
+            // Facing South (+Z)
+            res.front = world.SOUTH;
+            res.back = world.NORTH;
+            res.left = world.EAST;
+            res.right = world.WEST;
+        } else if (yaw >= 45 && yaw < 135) {
+            // Facing West (-X)
+            res.front = world.WEST;
+            res.back = world.EAST;
+            res.left = world.SOUTH;
+            res.right = world.NORTH;
+        } else if (yaw >= 135 && yaw < 225) {
+            // Facing North (-Z)
+            res.front = world.NORTH;
+            res.back = world.SOUTH;
+            res.left = world.WEST;
+            res.right = world.EAST;
+        } else if (yaw >= 225 && yaw < 315) {
+            // Facing East (+X)
+            res.front = world.EAST;
+            res.back = world.WEST;
+            res.left = world.NORTH;
+            res.right = world.SOUTH;
+        }
+
+        return res;
     }
 
     /**
