@@ -7,3 +7,4 @@ import { DisablePauseOnLostFocus } from './GameRendererMixin';
 import { emptyKelp, emptyGrass, emptyTallGrass } from './IDoLater';
 import { PlayerActionPacket } from './PlayerAction';
 import { BorderlessFullscreenMixin } from './BorderlessFullscreenMixins';
+import { spawnBreakParticles } from './SpawnBreakParticlesMixin';
