@@ -11,8 +11,8 @@ class RotationConfig extends ModuleBase {
             showEnabledToggle: false,
         });
 
-        this.ROTATION_SPEED = 300;
-        this.LINEAR = false;
+        this.ROTATION_SPEED = 400;
+        this.LINEAR = true;
         this.INSTANT = false;
         this.DAMPING_DIST = 60.0;
 
