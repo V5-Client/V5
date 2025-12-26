@@ -20,7 +20,7 @@ class RotationConfig extends ModuleBase {
             (v) => {
                 this.LINEAR = v;
             },
-            'Rotations become linear',
+            '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise',
             true
         );
 
