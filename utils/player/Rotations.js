@@ -13,6 +13,7 @@ class RotationConfig extends ModuleBase {
 
         this.ROTATION_SPEED = 300;
         this.LINEAR = false;
+        this.INSTANT = false;
         this.DAMPING_DIST = 60.0;
 
         this.addToggle(
@@ -24,6 +25,15 @@ class RotationConfig extends ModuleBase {
             true
         );
 
+        this.addToggle(
+            'Instant Rotations',
+            (v) => {
+                this.INSTANT = v;
+            },
+            'Skips the transition and snaps to the target immediately. Use with caution!',
+            false
+        );
+
         this.addSlider(
             'Rotation Speed',
             30,
@@ -32,7 +42,7 @@ class RotationConfig extends ModuleBase {
             (v) => {
                 this.ROTATION_SPEED = v * 10;
             },
-            'speed of the rotations'
+            'Degrees per second for the camera movement'
         );
     }
 }
@@ -76,7 +86,7 @@ class RotationsTo {
     }
 
     getCurveOffset(distance) {
-        if (RotationModule.LINEAR || !this.initialDistance) return { x: 0, y: 0 };
+        if (RotationModule.LINEAR || RotationModule.INSTANT || !this.initialDistance) return { x: 0, y: 0 };
 
         let progress = 1 - distance / this.initialDistance;
         let curveEffect = Math.sin(progress * Math.PI);
@@ -91,26 +101,28 @@ class RotationsTo {
     updateRotation() {
         if (!this.isRotating) return;
 
-        const now = Date.now();
-        if (this.lastTime === 0) {
-            this.lastTime = now;
-            this.startTime = now;
-            this.curveSeed = Math.random() * Math.PI * 2;
-
-            let startTarget = this.targetVector ? this.getAnglesFromVector(this.targetVector) : this.target;
-            if (startTarget) {
-                let dy = this.normalizeAngle(startTarget.yaw - Player.getYaw());
-                let dp = startTarget.pitch - Player.getPitch();
-                this.initialDistance = Math.sqrt(dy * dy + dp * dp);
-            }
-            return;
-        }
-
         let finalTarget = this.targetVector ? this.getAnglesFromVector(this.targetVector) : this.target;
         if (!finalTarget) return this.stopRotation();
 
         let realYaw = Player.getYaw();
         let realPitch = Player.getPitch();
+
+        if (RotationModule.INSTANT) {
+            Player.getPlayer().setYaw(this.applyGCD(finalTarget.yaw, realYaw));
+            Player.getPlayer().setPitch(Math.max(-90, Math.min(90, this.applyGCD(finalTarget.pitch, realPitch))));
+            return this.stopRotation();
+        }
+
+        const now = Date.now();
+        if (this.lastTime === 0) {
+            this.lastTime = now;
+            this.startTime = now;
+            this.curveSeed = Math.random() * Math.PI * 2;
+            let dy = this.normalizeAngle(finalTarget.yaw - realYaw);
+            let dp = finalTarget.pitch - realPitch;
+            this.initialDistance = Math.sqrt(dy * dy + dp * dp);
+            return;
+        }
 
         let deltaYaw = this.normalizeAngle(finalTarget.yaw - realYaw);
         let deltaPitch = finalTarget.pitch - realPitch;
