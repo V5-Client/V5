@@ -1,6 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { getSetting } from '../../gui/GuiSave';
 import { File } from '../../utils/Constants';
+import { Chat } from '../../utils/Chat';
 
 class Failsafes extends ModuleBase {
     constructor() {
