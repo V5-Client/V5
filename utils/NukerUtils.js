@@ -10,12 +10,12 @@ class NukerUtilsClass {
     static SWING_DELAY = 10;
 
     constructor() {
-        this.initializeState();
+        this.initialize();
         this.setupMixin();
         this.registerTickHandler();
     }
 
-    initializeState() {
+    initialize() {
         this.lastNukeTime = Date.now();
         this.nukeQueue = [];
         this.tickCounter = 0;
@@ -35,20 +35,13 @@ class NukerUtilsClass {
         register('tick', () => {
             if (this.fakelookMode !== 'Queue') return;
 
-            if (this.shouldProcessQueue()) {
+            if (this.nukeQueue.length > 0) {
                 this.processNextQueuedAction();
-            } else if (this.shouldSwingHand()) {
-                this.swingHand();
+            } else if (this.tickCounter > 0) {
+                this.tickCounter--;
+                Client.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
             }
         });
-    }
-
-    shouldProcessQueue() {
-        return this.nukeQueue.length > 0;
-    }
-
-    shouldSwingHand() {
-        return this.tickCounter > 0;
     }
 
     processNextQueuedAction() {
@@ -64,11 +57,6 @@ class NukerUtilsClass {
 
         this.sendBreakPackets(blockPos, facing);
         this.tickCounter = ticksToWait;
-    }
-
-    swingHand() {
-        this.tickCounter--;
-        Client.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
     }
 
     sendBreakPackets(blockPos, facing) {
