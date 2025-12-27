@@ -25,13 +25,14 @@ export const TrayIcon = java.awt.TrayIcon;
 export const Runtime = java.lang.Runtime;
 export const Scanner = java.util.Scanner;
 export const Toolkit = java.awt.Toolkit;
+export const GLFW = org.lwjgl.glfw.GLFW;
 export const System = java.lang.System;
 export const Base64 = java.util.Base64;
 export const Color = java.awt.Color;
 export const Matrix = UMatrixStack.get();
 export const File = java.io.File;
 export const URL = java.net.URL;
-export const modulesDir = new File("./config/ChatTriggers/modules");
+export const modulesDir = new File('./config/ChatTriggers/modules');
 export const V5ConfigFile = new File(`${modulesDir}/V5Config/config.json`);
 export const Links = {
     WEBSOCKET_URL: 'wss://backend.rdbt.top/api/chat',

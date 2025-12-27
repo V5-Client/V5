@@ -1,7 +1,10 @@
 import { IsCursorLocked, LockCursor, UpdateMouse } from '../mixins/UngrabMixin';
 import { HandleInputEvents, OnMouseScroll } from '../mixins/SlotChangeMixin';
 import { attachMixin } from './AttachMixin';
+import { System, GLFW } from './Constants';
 
+const os = System.getProperty('os.name').toLowerCase();
+const isLinux = os.includes('nux') || os.includes('nix');
 class UngrabManager {
     constructor() {
         this.ungrabbed = false;
@@ -41,6 +44,7 @@ class UngrabManager {
 
         attachMixin(UpdateMouse, 'UpdateMouse', (instance, cir) => {
             if (this.ungrabbed) {
+                if (isLinux) GLFW.glfwSetInputMode(Client.getMinecraft().getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
                 Client.getMinecraft().mouse.unlockCursor();
                 cir.cancel();
             }
