@@ -1,7 +1,7 @@
 import { MathUtils } from './Math';
 import { BP, Direction, PlayerActionC2SPacket, PlayerActionC2SPacketAction, HandSwingC2SPacket, Vec3d } from './Constants';
 import { attachMixin } from './AttachMixin';
-import { PlayerActionPacket } from '../Mixins/PlayerAction';
+import { PlayerActionPacket } from '../mixins/PlayerAction';
 
 class NukerUtilsClass {
     constructor() {

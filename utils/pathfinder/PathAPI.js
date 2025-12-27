@@ -1,4 +1,4 @@
-import request from 'requestV2';
+import request from 'RequestV2';
 
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
