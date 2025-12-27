@@ -182,6 +182,12 @@ class RotationsTo {
         this.rotateToAngles(angles.yaw, angles.pitch);
     }
 
+    onEndRotation(callBack, name = null) {
+        if (typeof callBack === 'function') {
+            this.actions.push({ func: callBack, name });
+        }
+    }
+
     stopRotation() {
         this.isRotating = false;
         this.target = null;
