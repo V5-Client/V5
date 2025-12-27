@@ -1,5 +1,5 @@
 import { File } from '../utils/Constants';
-import { drawRect, NVG, drawText, THEME } from '../GUI/Utils.js';
+import { drawRect, NVG, drawText, THEME } from '../gui/Utils.js';
 import { ModuleBase } from '../utils/ModuleBase.js';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';

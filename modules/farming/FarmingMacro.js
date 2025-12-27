@@ -9,8 +9,8 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Router } from '../../utils/Router';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
-import { attachMixin } from '../../utils/attachMixin';
-import { spawnBreakParticles } from '../../Mixins/SpawnBreakParticlesMixin';
+import { attachMixin } from '../../utils/AttachMixin';
+import { spawnBreakParticles } from '../../mixins/SpawnBreakParticlesMixin';
 const FARMING_DATA = [
     {
         name: 'Vertical NetherWart / Potato / Wheat / Carrot',
