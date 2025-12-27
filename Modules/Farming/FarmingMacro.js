@@ -9,7 +9,8 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Router } from '../../utils/Router';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
-
+import { attachMixin } from '../../utils/attachMixin';
+import { spawnBreakParticles } from '../../Mixins/SpawnBreakParticlesMixin';
 const FARMING_DATA = [
     {
         name: 'Vertical NetherWart / Potato / Wheat / Carrot',
@@ -17,13 +18,13 @@ const FARMING_DATA = [
         avgBPS: 2.19,
         pitch: 3,
     },
-    /*{
+    {
         name: "MelonKingDe's Melon / Pumpkin",
         registry: ['minecraft:melon', 'minecraft:carved_pumpkin'],
         blockCheck: 1,
         avgBPS: 2.19,
         pitch: -59.2,
-    },*/
+    },
 ];
 
 // how i decided to make this work
@@ -57,18 +58,25 @@ class FarmingMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
+        // universal
         this.farmAxis = null;
         this.movementKey = null;
         this.ignoreKey = null;
-        this.inAir = false;
         this.deciding = false;
         this.warping = false;
+
+        // vertical crops
+        this.inAir = false;
+
+        // pumpking / melon
+        this.offWall = false;
 
         this.points = Utils.getConfigFile('FarmingMacro/points.txt') || {};
 
         this.bindToggleKey();
 
         this.DEBUG = false;
+        this.HIDEPARTICLES = false;
 
         this.addMultiToggle(
             'Crop',
@@ -82,6 +90,15 @@ class FarmingMacro extends ModuleBase {
         );
 
         this.addToggle(
+            'Hide Crop Particles',
+            (v) => {
+                this.HIDEPARTICLES = v;
+            },
+            'Prevents crop particles from being shown when you break a crop',
+            false
+        );
+
+        this.addToggle(
             'Debug Messages (Highly recommended)',
             (v) => {
                 this.DEBUG = v;
@@ -90,12 +107,37 @@ class FarmingMacro extends ModuleBase {
             false
         );
 
+        attachMixin(spawnBreakParticles, 'Block', (instance, cir) => {
+            if (!this.HIDEPARTICLES) return;
+
+            const blockKey = instance.getTranslationKey();
+
+            const targetKeys = [
+                'block.minecraft.melon',
+                'block.minecraft.pumpkin',
+                'block.minecraft.carrots',
+                'block.minecraft.potatoes',
+                'block.minecraft.wheat',
+                'block.minecraft.nether_wart',
+                'block.minecraft.sugar_cane',
+                'block.minecraft.cactus',
+                'block.minecraft.cocoa',
+                'block.minecraft.melon_stem',
+                'block.minecraft.pumpkin_stem',
+                'block.minecraft.carved_pumpkin',
+            ];
+
+            const isTarget = targetKeys.some((key) => blockKey === key);
+
+            if (isTarget) cir.cancel();
+        });
+
         register('command', () => {
             if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
 
             this.points.start = {
                 x: Math.floor(Player.getX()),
-                y: Math.floor(Player.getY()),
+                y: Math.round(Player.getY()),
                 z: Math.floor(Player.getZ()),
             };
 
@@ -121,6 +163,22 @@ class FarmingMacro extends ModuleBase {
             () => Utils.area() === 'Garden',
             'postRenderWorld',
             () => {
+                let sideBlocks = this.scanSides();
+                sideBlocks.forEach((block) => {
+                    let isWall = block.name && !block.name.includes('air') && !block.name.includes('water');
+
+                    // Color logic: Green for walls, Red for air/passable
+                    let fillColor = isWall ? [0, 255, 0, 80] : [255, 0, 0, 50];
+                    let outlineColor = isWall ? [0, 255, 0, 200] : [255, 0, 0, 150];
+
+                    RenderUtils.drawStyledBox(
+                        new Vec3d(block.x, block.y, block.z),
+                        fillColor,
+                        outlineColor,
+                        2, // Thinner line for side blocks
+                        false
+                    );
+                });
                 if (!this.points) return;
                 if (this.points.end) {
                     RenderUtils.drawStyledBox(
@@ -210,10 +268,13 @@ class FarmingMacro extends ModuleBase {
                             Keybind.setKey('shift', true);
                         } else {
                             Keybind.setKey('shift', false);
-                            if (this.areChunksLoaded(this.points.start.x, this.points.start.z)) this.state = this.STATES.DECIDEROTATION;
+                            this.state = this.STATES.DECIDEROTATION;
                         }
                     } else if (!this.warping) {
-                        if (this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z)) {
+                        if (
+                            this.isAtPoint(this.points.start.x, this.points.start.y, this.points.start.z) &&
+                            this.areChunksLoaded(this.points.start.x, this.points.start.z)
+                        ) {
                             this.message('&cAt start point but no crops found!');
                             this.toggle(false);
                         } else {
@@ -256,6 +317,16 @@ class FarmingMacro extends ModuleBase {
                         }
                     }
 
+                    if (this.name === "MelonKingDe's Melon / Pumpkin") {
+                        let target = {
+                            x: this.targetX,
+                            y: this.targetY,
+                            z: this.targetZ,
+                        };
+
+                        targetYaw = this.getAngle(target);
+                    }
+
                     targetYaw = ((((targetYaw + 180) % 360) + 360) % 360) - 180;
 
                     let allowedYaws = this.farmAxis === 'X' ? [0, -180] : this.farmAxis === 'Z' ? [90, -90] : [0, 90, -90, -180];
@@ -279,8 +350,10 @@ class FarmingMacro extends ModuleBase {
                     let registry = null;
                     let requiredToolName = null;
 
+                    let block = null;
+
                     if (this.name === 'Vertical NetherWart / Potato / Wheat / Carrot') {
-                        let block = this.getBlockInFront(1, 1);
+                        block = this.getBlockInFront(1, 1);
                         registry = block?.name;
 
                         if (!registry) {
@@ -309,6 +382,43 @@ class FarmingMacro extends ModuleBase {
                         }
                     }
 
+                    if (this.name === "MelonKingDe's Melon / Pumpkin") {
+                        block = this.getBlockInFront(2, 1);
+                        registry = block?.name;
+
+                        let sides = Utils.sidesOfCollision();
+
+                        if (!sides.front) return Keybind.setKey('w', true);
+
+                        if (sides.front) {
+                            let lookingAt = Player.lookingAt();
+                            if (!registry.includes('stem')) {
+                                ChatLib.chat('got from looking');
+
+                                // i mean this isnt really needed ?
+                                registry = this.getRegistry(lookingAt);
+                            } else ChatLib.chat('got with func');
+
+                            const cropTools = {
+                                'minecraft:melon': 'Melon Dicer',
+                                'minecraft:melon_stem': 'Melon Dicer',
+
+                                'minecraft:carved_pumpkin': 'Pumpkin Dicer',
+                                'minecraft:pumpkin_stem': 'Pumpkin Dicer',
+                            };
+
+                            requiredToolName = cropTools[registry];
+
+                            if (!requiredToolName) {
+                                this.message(`&cMake sure you are looking at a melon or pumpkin!`);
+                                this.toggle(false);
+                                break;
+                            }
+                        }
+
+                        this.checkSidesFirst = true;
+                    }
+
                     let targetSlot = Guis.findItemInHotbar(requiredToolName);
 
                     if (targetSlot !== -1) {
@@ -333,67 +443,17 @@ class FarmingMacro extends ModuleBase {
                             return;
                         } else Keybind.setKey('w', false);
 
-                        let scan = this.scanSides();
-
-                        let maxDistLeft = 0;
-                        let maxDistRight = 0;
-
-                        scan.forEach((block) => {
-                            let diff = block.offset;
-                            let distance = Math.abs(diff);
-
-                            if (block.name && !block.name.includes('air') && !block.name.includes('water')) {
-                                if (diff < 0) {
-                                    if (distance > maxDistLeft) maxDistLeft = distance;
-                                } else if (diff > 0) {
-                                    if (distance > maxDistRight) maxDistRight = distance;
-                                }
-                            }
-                        });
-
-                        if (maxDistRight > maxDistLeft) {
-                            this.message(`&7Wall RIGHT moving LEFT!`, true);
-                            this.movementKey = 'a';
-                            this.ignoreKeys = ['d', 's'];
-                        } else if (maxDistLeft > maxDistRight) {
-                            this.message(`&7Wall LEFT moving RIGHT!`, true);
-                            this.movementKey = 'd';
-                            this.ignoreKeys = ['a', 's'];
-                        } else {
-                            let corners = this.checkFrontCorners();
-                            let leftAge = corners.left.age;
-                            let rightAge = corners.right.age;
-
-                            if (leftAge > rightAge) {
-                                this.message(`&7Older crop LEFT, moving LEFT!`, true);
-                                this.movementKey = 'a';
-                                this.ignoreKeys = ['d', 's'];
-                            } else if (rightAge > leftAge) {
-                                this.message(`&7Older crop RIGHT, moving RIGHT!`, true);
-                                this.movementKey = 'd';
-                                this.ignoreKeys = ['a', 's'];
-                            } else if (leftAge === rightAge) {
-                                if (!this.deciding) this.message(`Macro can't decide which way to move, press A or D to proceed!`);
-                                this.deciding = true;
-
-                                let aDown = Client.getMinecraft().options.leftKey.isPressed();
-                                let dDown = Client.getMinecraft().options.rightKey.isPressed();
-
-                                if (aDown) {
-                                    this.movementKey = 'a';
-                                    this.ignoreKeys = ['d', 's'];
-                                    this.message(`Direction set to LEFT!`, true);
-                                } else if (dDown) {
-                                    this.movementKey = 'd';
-                                    this.ignoreKeys = ['a', 's'];
-                                    this.message(`Direction set to RIGHT!`, true);
-                                }
-
-                                if (this.movementKey === null) return;
-                            }
-                        }
+                        this.decideDirection(true);
+                        if (this.movementKey === null) return;
 
                         this.state = this.STATES.IDLECHECKS;
+                    }
+
+                    if (this.name === "MelonKingDe's Melon / Pumpkin") {
+                        this.decideDirection(false);
+                        if (this.movementKey === null) return;
+
+                        this.state = this.STATES.IDLECHECKS; // Move to the actual farming state
                     }
                     break;
                 case this.STATES.IDLECHECKS:
@@ -418,6 +478,28 @@ class FarmingMacro extends ModuleBase {
 
                         if (this.inAir && isOnGround) {
                             this.inAir = false;
+                            this.state = this.STATES.DECIDEMOVEMENT;
+                        }
+                    }
+
+                    if (this.name === "MelonKingDe's Melon / Pumpkin") {
+                        ChatLib.chat(this.movementKey);
+                        Keybind.setKey('w', true);
+                        Keybind.setKey('leftclick', true);
+                        Keybind.setKey(this.movementKey, true);
+                        //this.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
+
+                        let sides = Utils.sidesOfCollision();
+
+                        if (!sides.front) {
+                            this.offWall = true;
+                            Keybind.stopMovement();
+                            Keybind.setKey('w', true);
+                        }
+
+                        if (this.offWall && sides.front) {
+                            this.offWall = false;
+                            Keybind.stopMovement();
                             this.state = this.STATES.DECIDEMOVEMENT;
                         }
                     }
@@ -446,6 +528,73 @@ class FarmingMacro extends ModuleBase {
                     break;
             }
         });
+    }
+
+    decideDirection(actualAge, yOffset = 1) {
+        const { maxDistLeft, maxDistRight } = this.getSidesDistance();
+
+        if (maxDistRight > maxDistLeft) {
+            this.message(`&7Wall RIGHT moving LEFT!`, true);
+            this.movementKey = 'a';
+            this.ignoreKeys = ['d', 's'];
+        } else if (maxDistLeft > maxDistRight) {
+            this.message(`&7Wall LEFT moving RIGHT!`, true);
+            this.movementKey = 'd';
+            this.ignoreKeys = ['a', 's'];
+        } else {
+            let corners = this.checkForCrop(actualAge, yOffset);
+
+            let leftAge = actualAge ? corners.left.age : corners.left.exists;
+            let rightAge = actualAge ? corners.right.age : corners.right.exists;
+
+            if (leftAge > rightAge) {
+                this.message(`&7Older crop LEFT, moving LEFT!`, true);
+                this.movementKey = 'a';
+                this.ignoreKeys = ['d', 's'];
+            } else if (rightAge > leftAge) {
+                this.message(`&7Older crop RIGHT, moving RIGHT!`, true);
+                this.movementKey = 'd';
+                this.ignoreKeys = ['a', 's'];
+            } else if (leftAge === rightAge) {
+                if (!this.deciding) this.message(`Macro can't decide which way to move, press A or D to proceed!`);
+                this.deciding = true;
+
+                let aDown = Client.getMinecraft().options.leftKey.isPressed();
+                let dDown = Client.getMinecraft().options.rightKey.isPressed();
+
+                if (aDown) {
+                    this.movementKey = 'a';
+                    this.ignoreKeys = ['d', 's'];
+                    this.message(`Direction set to LEFT!`, true);
+                } else if (dDown) {
+                    this.movementKey = 'd';
+                    this.ignoreKeys = ['a', 's'];
+                    this.message(`Direction set to RIGHT!`, true);
+                }
+            }
+        }
+    }
+
+    getSidesDistance() {
+        let sides = this.scanSides();
+
+        let maxDistLeft = 0;
+        let maxDistRight = 0;
+
+        sides.forEach((block) => {
+            let diff = block.offset;
+            let distance = Math.abs(diff);
+
+            if (block.name && !block.name.includes('air') && !block.name.includes('water')) {
+                if (diff < 0) {
+                    if (distance > maxDistLeft) maxDistLeft = distance;
+                } else if (diff > 0) {
+                    if (distance > maxDistRight) maxDistRight = distance;
+                }
+            }
+        });
+
+        return { maxDistLeft, maxDistRight };
     }
 
     /**
@@ -484,6 +633,7 @@ class FarmingMacro extends ModuleBase {
     }
 
     /**
+     * UNIVERSAL FUNCTION
      * Scans the sides of the player for 20 blocks eachside in the direction the player is facing.
      * @returns {Array} An array of objects containing block information.
      */
@@ -493,7 +643,7 @@ class FarmingMacro extends ModuleBase {
         const playerBlockY = Math.round(player.getY());
         const playerBlockZ = Math.floor(player.getZ());
 
-        const facing = player.getFacing().toString().toUpperCase();
+        let yaw = ((player.getYaw() % 360) + 360) % 360;
 
         const scanResults = [];
         const range = [];
@@ -505,19 +655,18 @@ class FarmingMacro extends ModuleBase {
         let dx = 0;
         let dz = 0;
 
-        switch (facing) {
-            case 'SOUTH': // Facing +Z
-                dx = -1; // Right is West (-X)
-                break;
-            case 'WEST': // Facing -X
-                dz = -1; // Right is North (-Z)
-                break;
-            case 'NORTH': // Facing -Z
-                dx = 1; // Right is East (+X)
-                break;
-            case 'EAST': // Facing +X
-                dz = 1; // Right is South (+Z)
-                break;
+        if (yaw >= 315 || yaw < 45) {
+            // SOUTH (+Z): Right is West (-X)
+            dx = -1;
+        } else if (yaw >= 45 && yaw < 135) {
+            // WEST (-X): Right is North (-Z)
+            dz = -1;
+        } else if (yaw >= 135 && yaw < 225) {
+            // NORTH (-Z): Right is East (+X)
+            dx = 1;
+        } else if (yaw >= 225 && yaw < 315) {
+            // EAST (+X): Right is South (+Z)
+            dz = 1;
         }
 
         for (const offset of range) {
@@ -531,7 +680,7 @@ class FarmingMacro extends ModuleBase {
                 y: playerBlockY,
                 z: scanZ,
                 name: block?.type?.getRegistryName(),
-                offset: offset, // Positive = Right of player, Negative = Left of player
+                offset: offset, // Positive = Right, Negative = Left
             });
         }
 
@@ -539,6 +688,7 @@ class FarmingMacro extends ModuleBase {
     }
 
     /**
+     * UNIVERSAL FUNCTION
      * Gets the block in front of the player.
      * @param {*} offsetDist The distance to offset the block in front of the player.
      * @param {*} yOffset The y offset of the block.
@@ -546,57 +696,111 @@ class FarmingMacro extends ModuleBase {
      */
     getBlockInFront(offsetDist = 1, yOffset = 0) {
         const player = Player.getPlayer();
-        const facing = player.getFacing().toString().toUpperCase();
 
-        const directions = {
-            NORTH: [0, -1],
-            SOUTH: [0, 1],
-            WEST: [-1, 0],
-            EAST: [1, 0],
-        };
+        let yaw = ((player.getYaw() % 360) + 360) % 360;
 
-        const [dx, dz] = directions[facing] || [0, 0];
+        let dx = 0;
+        let dz = 0;
 
-        const targetX = player.getX() + dx * offsetDist;
-        const targetY = player.getY() + yOffset;
-        const targetZ = player.getZ() + dz * offsetDist;
+        if (yaw >= 315 || yaw < 45) {
+            // SOUTH
+            dz = 1;
+        } else if (yaw >= 45 && yaw < 135) {
+            // WEST
+            dx = -1;
+        } else if (yaw >= 135 && yaw < 225) {
+            // NORTH
+            dz = -1;
+        } else if (yaw >= 225 && yaw < 315) {
+            // EAST
+            dx = 1;
+        }
 
-        const block = World.getBlockAt(Math.floor(targetX), Math.floor(targetY), Math.floor(targetZ));
+        const targetX = Math.floor(player.getX() + dx * offsetDist);
+        const targetY = Math.round(player.getY() + yOffset);
+        const targetZ = Math.floor(player.getZ() + dz * offsetDist);
+
+        const block = World.getBlockAt(targetX, targetY, targetZ);
+
+        if (!block) return null;
 
         return {
-            x: Math.floor(targetX) + 0.5,
-            y: Math.floor(targetY),
-            z: Math.floor(targetZ) + 0.5,
+            x: targetX + 0.5,
+            y: targetY,
+            z: targetZ + 0.5,
             name: block.type.getRegistryName(),
+            id: block.type.getID(),
         };
     }
 
     /**
-     * Checks the front corners of the player.
-     * @param {*} yOffset The y offset of the block.
-     * @returns The block in front of the player.
+     * Checks the front corners (left and right) of the player based on Yaw.
+     * @param {number} yOffset - The y offset of the block relative to player feet.
+     * @param {boolean} checkForAge - If true, returns age. If false, returns 1 for valid, 0 for air/water/dirt.
+     * @returns {object} Object containing left and right block data.
      */
-    checkFrontCorners(yOffset = 1) {
+    checkForCrop(checkForAge = true, yOffset = 1) {
         const p = Player.getPlayer();
-        const facing = p.getFacing().toString().toUpperCase();
 
-        const directions = {
-            NORTH: [0, -1, 1, 0], // Forward is -Z, Right is +X
-            SOUTH: [0, 1, -1, 0], // Forward is +Z, Right is -X
-            WEST: [-1, 0, 0, -1], // Forward is -X, Right is -Z
-            EAST: [1, 0, 0, 1], // Forward is +X, Right is +Z
-        };
+        // Standardize Yaw to 0-360 (matching getBlockInFront logic)
+        let yaw = ((p.getYaw() % 360) + 360) % 360;
 
-        const [fx, fz, sx, sz] = directions[facing] || [0, 0, 0, 0];
+        let fx = 0,
+            fz = 0; // Forward vectors
+        let sx = 0,
+            sz = 0; // Side vectors (Right)
+
+        // Determine direction vectors based on Yaw
+        if (yaw >= 315 || yaw < 45) {
+            // SOUTH (+Z) -> Right is -X
+            fx = 0;
+            fz = 1;
+            sx = -1;
+            sz = 0;
+        } else if (yaw >= 45 && yaw < 135) {
+            // WEST (-X) -> Right is -Z
+            fx = -1;
+            fz = 0;
+            sx = 0;
+            sz = -1;
+        } else if (yaw >= 135 && yaw < 225) {
+            // NORTH (-Z) -> Right is +X
+            fx = 0;
+            fz = -1;
+            sx = 1;
+            sz = 0;
+        } else if (yaw >= 225 && yaw < 315) {
+            // EAST (+X) -> Right is +Z
+            fx = 1;
+            fz = 0;
+            sx = 0;
+            sz = 1;
+        }
 
         const getInfo = (offX, offZ) => {
-            const pos = new net.minecraft.util.math.BlockPos(Math.floor(p.getX() + offX), Math.floor(p.getY() + yOffset), Math.floor(p.getZ() + offZ));
-            const state = World.getWorld().getBlockState(pos);
-            const ageProp = state.getBlock().getStateManager().getProperty('age');
+            const targetX = Math.floor(p.getX() + offX);
+            const targetY = Math.round(p.getY()) + yOffset;
+            const targetZ = Math.floor(p.getZ() + offZ);
 
-            return { age: ageProp ? state.get(ageProp) : -1 };
+            const pos = new net.minecraft.util.math.BlockPos(targetX, targetY, targetZ);
+            const state = World.getWorld().getBlockState(pos);
+            const block = state.getBlock();
+
+            const CTBlock = World.getBlockAt(targetX, targetY, targetZ);
+
+            if (checkForAge) {
+                const ageProp = block.getStateManager().getProperty('age');
+                return { age: ageProp ? state.get(ageProp) : -1 };
+            }
+
+            const blockName = CTBlock?.type?.getRegistryName();
+            const isInvalid = blockName.includes('air') || blockName.includes('water') || blockName.includes('dirt');
+
+            return { exists: isInvalid ? 0 : 1 };
         };
 
+        // Calculate Right: (Forward + Side)
+        // Calculate Left:  (Forward - Side)
         const right = getInfo(fx + sx, fz + sz);
         const left = getInfo(fx - sx, fz - sz);
 

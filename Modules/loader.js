@@ -14,6 +14,7 @@ import './foraging/HuntingHelpers.js';
 
 /* FARMING */
 import './farming/FarmingMacro.js';
+import './farming/PestESP.js';
 
 /* VISUALS */
 import './visuals/MobHider.js';

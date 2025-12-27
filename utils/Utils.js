@@ -356,13 +356,104 @@ class UtilsClass {
     }
 
     noCollision(blockVec) {
-        return !collisionChecker.hasCollision(blockVec.x, blockVec.y, blockVec.z);
+        const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+        const blockState = World.getWorld().getBlockState(blockPosNMS);
+        const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
+        return collisionShape.isEmpty();
     }
 
     playerIsCollided() {
-        return collisionChecker.checkPlayerCollision();
+        const playerBox = Player.getPlayer().getBoundingBox();
+        const expandedBox = playerBox.expand(0.01, 0, 0.01);
+
+        let minX = Math.floor(expandedBox.minX);
+        let minY = Math.floor(expandedBox.minY);
+        let minZ = Math.floor(expandedBox.minZ);
+        let maxX = Math.floor(expandedBox.maxX);
+        let maxY = Math.floor(expandedBox.maxY);
+        let maxZ = Math.floor(expandedBox.maxZ);
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                for (let z = minZ; z <= maxZ; z++) {
+                    let block = World.getBlockAt(x, y, z);
+
+                    if (block?.type?.getID() === 0) return false;
+                    const blockVec = new Vec3d(x, y, z);
+
+                    if (this.noCollision(blockVec)) return false;
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
+    // ik this is so ugly idgaf
+    sidesOfCollision() {
+        const player = Player.getPlayer();
+        const playerBox = player.getBoundingBox();
+        const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
+
+        let yaw = ((player.getYaw() % 360) + 360) % 360;
+
+        const world = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
+
+        let minX = Math.floor(expandedBox.minX);
+        let minY = Math.floor(expandedBox.minY);
+        let minZ = Math.floor(expandedBox.minZ);
+        let maxX = Math.floor(expandedBox.maxX);
+        let maxY = Math.floor(expandedBox.maxY);
+        let maxZ = Math.floor(expandedBox.maxZ);
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                for (let z = minZ; z <= maxZ; z++) {
+                    let block = World.getBlockAt(x, y, z);
+                    if (!block || block.type.getID() === 0) continue;
+                    if (this.noCollision(new Vec3d(x, y, z))) continue;
+
+                    if (Math.abs(playerBox.minX - (x + 1)) < 0.02) world.WEST = true;
+                    if (Math.abs(playerBox.maxX - x) < 0.02) world.EAST = true;
+                    if (Math.abs(playerBox.minZ - (z + 1)) < 0.02) world.NORTH = true;
+                    if (Math.abs(playerBox.maxZ - z) < 0.02) world.SOUTH = true;
+                }
+            }
+        }
+
+        let res = { front: false, back: false, left: false, right: false };
+
+        if (yaw >= 315 || yaw < 45) {
+            res.front = world.SOUTH;
+            res.back = world.NORTH;
+            res.left = world.EAST;
+            res.right = world.WEST;
+        } else if (yaw >= 45 && yaw < 135) {
+            res.front = world.WEST;
+            res.back = world.EAST;
+            res.left = world.SOUTH;
+            res.right = world.NORTH;
+        } else if (yaw >= 135 && yaw < 225) {
+            res.front = world.NORTH;
+            res.back = world.SOUTH;
+            res.left = world.WEST;
+            res.right = world.EAST;
+        } else if (yaw >= 225 && yaw < 315) {
+            res.front = world.EAST;
+            res.back = world.WEST;
+            res.left = world.NORTH;
+            res.right = world.SOUTH;
+        }
+
+        return res;
+    }
+
+    /**
+     * @param {Object} input
+     * @returns {Vec3d}
+     */
     convertToVector(input) {
         return vectorConverter.convert(input);
     }
