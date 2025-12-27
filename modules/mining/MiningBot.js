@@ -30,6 +30,7 @@ class Bot extends ModuleBase {
         this.FAKELOOK = false;
         this.MOVEMENT = false;
         this.SCAN_ONLY = false;
+        this.DEBUG_MODE = false;
 
         this.STATES = { WAITING: 0, ABILITY: 1, MINING: 2, BUFF: 3, REFUEL: 4 };
         this.TYPES = { MININGBOT: 0, COMMISSION: 1, GEMSTONE: 2, ORE: 3, TUNNEL: 4 };
@@ -119,6 +120,7 @@ class Bot extends ModuleBase {
             .unregister();
 
         this.debug = register('postRenderWorld', () => this.renderDebug()).unregister();
+        this.normalRender = register('postRenderWorld', () => this.renderNormal()).unregister();
 
         this.on('tick', () => {
             if (Client.isInChat() || Client.isInGui()) return Keybind.setKey('leftclick', false);
@@ -203,6 +205,7 @@ class Bot extends ModuleBase {
         this.addToggle(
             'Debug Mode',
             (value) => {
+                this.DEBUG_MODE = value;
                 value ? this.debug.register() : this.debug.unregister();
             },
             'Debugging - not recommended for average use.'
@@ -714,6 +717,7 @@ class Bot extends ModuleBase {
         this.miningResetPending = false;
         this.miningResetTicks = 0;
         Keybind.setKey('rightclick', false);
+        this.normalRender.register();
     }
 
     onDisable() {
@@ -732,6 +736,105 @@ class Bot extends ModuleBase {
         this.miningResetTicks = 0;
         Rotations.stopRotation();
         Guis.EnableUserInput();
+        this.normalRender.unregister();
+    }
+
+    renderNormal() {
+        if (this.DEBUG_MODE) return;
+        if (this.foundLocations.length === 0) return;
+
+        const fakeLookMode = this.FAKELOOK?.find?.((option) => option.enabled)?.name;
+        const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
+
+        // cyan for normal, purple for fakelook
+        const currentFillColor = isFakelook ? [180, 100, 255, 60] : [85, 255, 255, 60];
+        const currentWireframeColor = isFakelook ? [180, 100, 255, 255] : [85, 255, 255, 255];
+        const aimColor = isFakelook ? [255, 150, 255, 255] : [255, 220, 80, 255];
+
+        // orange for normal, redish orange for fakelook
+        const nextFillColor = isFakelook ? [255, 130, 70, 60] : [255, 170, 100, 60];
+        const nextWireframeColor = isFakelook ? [255, 130, 70, 255] : [255, 170, 100, 255];
+
+        const current = this.foundLocations[0];
+        if (!current) return;
+
+        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), currentFillColor, currentWireframeColor, 6, false);
+
+        if (current.aimX !== undefined) {
+            const d = 0.08;
+            RenderUtils.drawLine(
+                new Vec3d(current.aimX - d, current.aimY, current.aimZ),
+                new Vec3d(current.aimX + d, current.aimY, current.aimZ),
+                aimColor,
+                2,
+                false
+            );
+            RenderUtils.drawLine(
+                new Vec3d(current.aimX, current.aimY - d, current.aimZ),
+                new Vec3d(current.aimX, current.aimY + d, current.aimZ),
+                aimColor,
+                2,
+                false
+            );
+            RenderUtils.drawLine(
+                new Vec3d(current.aimX, current.aimY, current.aimZ - d),
+                new Vec3d(current.aimX, current.aimY, current.aimZ + d),
+                aimColor,
+                2,
+                false
+            );
+        }
+
+        // If you just used the next lowest cost block, it rarely will ACTUALLY be the next best block because look direction. This fixes that by pretending to be at the current aim point.
+        if (this.foundLocations.length > 1 && current.aimX !== undefined) {
+            const eyePos = Player.getPlayer().getEyePos();
+
+            const simLookX = current.aimX - eyePos.x;
+            const simLookY = current.aimY - eyePos.y;
+            const simLookZ = current.aimZ - eyePos.z;
+            const simLookLen = Math.sqrt(simLookX * simLookX + simLookY * simLookY + simLookZ * simLookZ);
+
+            if (simLookLen > 0) {
+                const normLookX = simLookX / simLookLen;
+                const normLookY = simLookY / simLookLen;
+                const normLookZ = simLookZ / simLookLen;
+
+                let bestNext = null;
+                let bestCost = Infinity;
+
+                for (let i = 1; i < this.foundLocations.length; i++) {
+                    const loc = this.foundLocations[i];
+                    if (loc.aimX === undefined) continue;
+
+                    const dx = loc.aimX - eyePos.x;
+                    const dy = loc.aimY - eyePos.y;
+                    const dz = loc.aimZ - eyePos.z;
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (dist === 0) continue;
+
+                    const dot = (dx * normLookX + dy * normLookY + dz * normLookZ) / dist;
+
+                    const block = World.getBlockAt(loc.x, loc.y, loc.z);
+                    const blockName = block?.type?.getRegistryName();
+                    const baseCost = this.COSTTYPE?.[blockName] ?? 5;
+
+                    const cost = this.calculateBlockCost(baseCost, dist, dot);
+
+                    if (cost < bestCost) {
+                        bestCost = cost;
+                        bestNext = loc;
+                    }
+                }
+
+                if (bestNext) {
+                    RenderUtils.drawStyledBox(new Vec3d(bestNext.x, bestNext.y, bestNext.z), nextFillColor, nextWireframeColor, 6, false);
+                }
+            }
+        } else if (this.foundLocations.length > 1) {
+            const next = this.foundLocations[1];
+            RenderUtils.drawStyledBox(new Vec3d(next.x, next.y, next.z), nextFillColor, nextWireframeColor, 6, false);
+        }
     }
 
     renderDebug() {
