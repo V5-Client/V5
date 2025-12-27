@@ -14,7 +14,7 @@ class AlertManager {
         try {
             const tray = SystemTray.getSystemTray();
             const existingIcons = tray.getTrayIcons();
-            
+
             for (var i = 0; i < existingIcons.length; i++) {
                 if (existingIcons[i].getToolTip() === this.appName) {
                     this.trayIcon = existingIcons[i];
@@ -24,7 +24,7 @@ class AlertManager {
 
             const iconPath = './config/ChatTriggers/assets/icon.png';
             const img = Toolkit.getDefaultToolkit().createImage(iconPath);
-            
+
             this.trayIcon = new TrayIcon(img, this.appName);
             this.trayIcon.setImageAutoSize(true);
             this.trayIcon.setToolTip(this.appName);
@@ -36,13 +36,13 @@ class AlertManager {
 
     dispatch(content) {
         const platform = System.getProperty('os.name').toLowerCase();
-        
+
         if (platform.includes('win')) {
             this.sendWin(content);
         } else if (platform.includes('mac')) {
             this.sendMac(content);
         } else if (platform.includes('nix') || platform.includes('nux')) {
-            this.sendNix(content);
+            this.sendLinux(content);
         }
     }
 
@@ -56,7 +56,7 @@ class AlertManager {
         this.runCmd(['/usr/bin/osascript', '-e', `display notification "${msg}" with title "${this.appName}"`]);
     }
 
-    sendNix(msg) {
+    sendLinux(msg) {
         this.runCmd(['notify-send', '-u', 'critical', '-a', this.appName, msg]);
     }
 
@@ -71,5 +71,5 @@ class AlertManager {
 const manager = new AlertManager();
 
 export const Notifications = {
-    sendAlert: (msg) => manager.dispatch(msg)
+    sendAlert: (msg) => manager.dispatch(msg),
 };

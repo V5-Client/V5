@@ -30,7 +30,7 @@ class DiscordNotifier {
         try {
             Utils.writeConfigFile('webhook.json', {
                 url: this.endpoint,
-                userId: this.mentionId
+                userId: this.mentionId,
             });
         } catch (e) {}
     }
@@ -45,7 +45,9 @@ class DiscordNotifier {
             } catch (e) {
                 Chat.message('Webhook: &cCould not access system clipboard.');
             }
-        }).setName('setwh', true).setAliases(['setwebhook']);
+        })
+            .setName('setwh', true)
+            .setAliases(['setwebhook']);
 
         register('command', (uid) => {
             if (!uid) {
@@ -53,7 +55,9 @@ class DiscordNotifier {
                 return;
             }
             this.updateMention(uid);
-        }).setName('setid', true).setAliases(['setuserid']);
+        })
+            .setName('setid', true)
+            .setAliases(['setuserid']);
     }
 
     updateEndpoint(url) {
@@ -88,7 +92,7 @@ class DiscordNotifier {
                 const body = {
                     username: Player.getName(),
                     avatar_url: 'https://minotar.net/cube/' + playerUuid + '/100.png',
-                    embeds: embeds
+                    embeds: embeds,
                 };
 
                 if (this.mentionId && shouldMention) {
@@ -99,7 +103,7 @@ class DiscordNotifier {
                 stream.writeBytes(JSON.stringify(body));
                 stream.flush();
                 stream.close();
-                
+
                 connection.getInputStream();
             } catch (err) {
                 Chat.messageDebug('Webhook transmission failed: ' + err);
@@ -110,12 +114,12 @@ class DiscordNotifier {
     onStartup() {
         const areaName = Utils.area();
         const subAreaName = Utils.subArea();
-        
+
         const embed = {
             title: areaName ? '**Client Initialized**' : '**Environment Loaded**',
             color: 0x800000,
             timestamp: new Date().toISOString(),
-            footer: { text: 'V5 Engine ' + this.clientVersion }
+            footer: { text: 'V5 Engine ' + this.clientVersion },
         };
 
         if (areaName) {
@@ -133,5 +137,5 @@ export const notifier = new DiscordNotifier();
 export const Webhook = {
     setWebhook: (url) => notifier.updateEndpoint(url),
     setUserId: (id) => notifier.updateMention(id),
-    sendEmbed: (e, p) => notifier.publish(e, p)
+    sendEmbed: (e, p) => notifier.publish(e, p),
 };

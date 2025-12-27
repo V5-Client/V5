@@ -41,20 +41,9 @@ class ControlSystem {
 
     sendRightClickPacket(delay, x, y, z) {
         const bp = new BLOCK_POS_CLASS(x, y, z);
-        const hitResult = new BlockHitResult(
-            new Vec3d(x + 0.5, y + 0.5, z + 0.5),
-            Direction.UP,
-            bp,
-            false
-        );
+        const hitResult = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5), Direction.UP, bp, false);
         const action = () => {
-            Client.sendPacket(
-                new PlayerInteractBlockC2SPacket(
-                    net.minecraft.util.Hand.MAIN_HAND,
-                    hitResult,
-                    0
-                )
-            );
+            Client.sendPacket(new PlayerInteractBlockC2SPacket(net.minecraft.util.Hand.MAIN_HAND, hitResult, 0));
         };
 
         if (!delay || delay <= 0) action();
@@ -95,13 +84,13 @@ class ControlSystem {
 
         const options = mc.options;
         const mapping = {
-            'w': options.forwardKey,
-            's': options.backKey,
-            'a': options.leftKey,
-            'd': options.rightKey,
-            'space': options.jumpKey,
-            'shift': options.sneakKey,
-            'sprint': options.sprintKey
+            w: options.forwardKey,
+            s: options.backKey,
+            a: options.leftKey,
+            d: options.rightKey,
+            space: options.jumpKey,
+            shift: options.sneakKey,
+            sprint: options.sprintKey,
         };
 
         const keyObj = mapping[action];
@@ -115,14 +104,14 @@ class ControlSystem {
     checkKeyDown(key) {
         const options = mc.options;
         const mapping = {
-            'w': options.forwardKey,
-            's': options.backKey,
-            'a': options.leftKey,
-            'd': options.rightKey,
-            'space': options.jumpKey,
-            'shift': options.sneakKey,
-            'leftclick': options.attackKey,
-            'sprint': options.sprintKey
+            w: options.forwardKey,
+            s: options.backKey,
+            a: options.leftKey,
+            d: options.rightKey,
+            space: options.jumpKey,
+            shift: options.sneakKey,
+            leftclick: options.attackKey,
+            sprint: options.sprintKey,
         };
         return mapping[key] ? mapping[key].isPressed() : false;
     }
@@ -138,7 +127,7 @@ class ControlSystem {
 
         const motionScale = Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ());
         const timeElapsed = Date.now() - this.lastActionTime;
-        
+
         if (shouldJump && motionScale < 0.04 && timeElapsed > 500 && Utils.playerIsCollided()) {
             this.updateKeyState('space', true);
         }
@@ -174,7 +163,7 @@ class ControlSystem {
             { min: 157.5, max: 180, keys: ['s'] },
             { min: 22.5, max: 67.5, keys: ['w', 'd'] },
             { min: 67.5, max: 112.5, keys: ['d'] },
-            { min: 112.5, max: 157.5, keys: ['s', 'd'] }
+            { min: 112.5, max: 157.5, keys: ['s', 'd'] },
         ];
 
         for (var i = 0; i < quadrants.length; i++) {
@@ -192,10 +181,10 @@ class ControlSystem {
         const dx = x - Player.getX();
         const dz = z - Player.getZ();
         let angle = -(Math.atan2(dx, dz) * (180 / Math.PI)) - Player.getYaw();
-        
+
         while (angle < -180) angle += 360;
         while (angle > 180) angle -= 360;
-        
+
         this.setCardinalMovement(angle, shouldJump);
     }
 
@@ -232,5 +221,5 @@ export const Keybind = {
     setKeysForStraightLineCoords: (x, y, z, j) => controls.setMovementToCoords(x, y, z, j),
     setCooldown: () => controls.refreshCooldown(),
     stopMovement: () => controls.haltMovement(),
-    unpressKeys: () => controls.fullRelease()
+    unpressKeys: () => controls.fullRelease(),
 };

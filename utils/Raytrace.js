@@ -14,9 +14,9 @@ class VisibilityChecker {
 
     generateFaceOffsets() {
         let offsets = [];
-        
+
         offsets.push([0.5, 0.5, 0.5]);
-        
+
         let faceConfigs = [
             { axis: 0, value: 0.05, otherAxes: [1, 2] },
             { axis: 0, value: 0.95, otherAxes: [1, 2] },
@@ -32,15 +32,15 @@ class VisibilityChecker {
 
             for (var j = 0; j < SAMPLE_POINTS_PER_FACE; j++) {
                 let offset1 = 0.1 + j * step;
-                
+
                 for (var k = 0; k < SAMPLE_POINTS_PER_FACE; k++) {
                     let offset2 = 0.1 + k * step;
                     let point = [0.5, 0.5, 0.5];
-                    
+
                     point[config.axis] = config.value;
                     point[config.otherAxes[0]] = offset1;
                     point[config.otherAxes[1]] = offset2;
-                    
+
                     offsets.push(point);
                 }
             }
@@ -220,7 +220,7 @@ class VoxelTraverser {
 
             if (currentX !== ignoreX || currentY !== ignoreY || currentZ !== ignoreZ) {
                 let blockId = World.getBlockAt(currentX, currentY, currentZ).type.getID();
-                
+
                 if (!PASSABLE_BLOCKS.has(blockId)) {
                     return false;
                 }
@@ -244,9 +244,11 @@ class BlockScanner {
         let eyePos = this.visibilityChecker.getPlayerEyePosition();
         if (!eyePos) return [];
 
-        let filterFunc = filterFunction || function (block) {
-            return block && block.type && block.type.getID() !== AIR_BLOCK_ID;
-        };
+        let filterFunc =
+            filterFunction ||
+            function (block) {
+                return block && block.type && block.type.getID() !== AIR_BLOCK_ID;
+            };
 
         return raytraceBlocks([eyePos.x, eyePos.y, eyePos.z], null, maxDistance, filterFunc, false, false);
     }
@@ -278,7 +280,7 @@ class BlockScanner {
             if (!blockPos) return null;
 
             let block = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-            
+
             return block && block.type.getID() !== AIR_BLOCK_ID ? block : null;
         } catch (err) {
             return null;

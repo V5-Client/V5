@@ -18,7 +18,7 @@ class NetworkMonitor {
         if (this.lastTpsPacket > 0) {
             const delta = now - this.lastTpsPacket;
             const instant = Math.min(20, 20000 / delta);
-            this.currentTps = (instant * this.tpsAlpha) + (this.currentTps * (1 - this.tpsAlpha));
+            this.currentTps = instant * this.tpsAlpha + this.currentTps * (1 - this.tpsAlpha);
         }
         this.lastTpsPacket = now;
     }
@@ -36,7 +36,7 @@ class NetworkMonitor {
         if (this.waitingForPing) {
             const elapsedMs = (System.nanoTime() - this.pingStartNano) / 1_000_000;
             this.waitingForPing = false;
-            
+
             this.pingHistory.push(elapsedMs);
             if (this.pingHistory.length > this.maxHistory) {
                 this.pingHistory.shift();
@@ -82,10 +82,10 @@ register('step', () => {
 export const ServerInfo = {
     getPing: () => Math.round(monitor.avgPing),
     getTPS: () => parseFloat(monitor.currentTps.toFixed(1)),
-    getServerInfo: function() {
+    getServerInfo: function () {
         return {
             ping: this.getPing(),
-            tps: this.getTPS()
+            tps: this.getTPS(),
         };
-    }
+    },
 };
