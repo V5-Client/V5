@@ -93,11 +93,15 @@ class AlertUtilsClass {
         this.isAlerting = false;
         this.stopSound();
 
-        this.render.unregister();
-        this.render = null;
+        if (this.render) {
+            this.render.unregister();
+            this.render = null;
+        }
 
-        this.tracker.unregister();
-        this.tracker = null;
+        if (this.tracker) {
+            this.tracker.unregister();
+            this.tracker = null;
+        }
     }
 
     /**
@@ -209,4 +213,8 @@ class AlertUtilsClass {
     }
 }
 
-export const AlertUtils = new AlertUtilsClass();
+if (!global.V5_ALERT_UTILS) {
+    global.V5_ALERT_UTILS = new AlertUtilsClass();
+}
+
+export const AlertUtils = global.V5_ALERT_UTILS;
