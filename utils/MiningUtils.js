@@ -70,45 +70,35 @@ class MiningStatsCollector {
 
     beginCollection() {
         if (this.isCollecting) {
-            Chat.message('already collecting stats!');
+            Chat.message('Already collecting stats. Wait a moment.');
             return;
         }
 
         let toolData = ToolFinder.findBest();
         if (!toolData) {
-            Chat.message('no valid mining tool found!');
+            Chat.message('No mining tool found!');
             return;
         }
 
         this.isCollecting = true;
-        Chat.message('starting mining stat collection...');
-
         try {
-            Chat.messageDebug('Starting collection logic...');
             Player.setHeldItemIndex(toolData.slot);
-            Thread.sleep(250);
+            Thread.sleep(500);
 
-            Chat.messageDebug('Opening sbmenu...');
-            ChatLib.command('sbmenu');
-            if (!this.waitForGui('SkyBlock Menu')) return this.timeout();
-            Chat.messageDebug('Clicking Equipment (Slot 13)...');
-            Thread.sleep(250);
-            Guis.clickSlot(13, false, 'RIGHT');
+            ChatLib.command('stats');
             if (!this.waitForGui('Your Equipment and Stats')) return this.timeout();
-            Chat.messageDebug('In Equipment GUI, waiting for load...');
-            Thread.sleep(300);
-
+            if (!this.waitForItem('Mining Stats')) return this.timeout();
+            Thread.sleep(100);
             this.collectedData = {};
             this.collectedData.speed = this.extractNumericFromSlot(15, /Mining\s+Speed[:\s]*([\d,]+)/i);
-            Chat.messageDebug('Extracted Speed: ' + this.collectedData.speed);
 
-            Chat.messageDebug('Executing /hotm...');
             ChatLib.command('hotm');
             if (!this.waitForGui('Heart of the Mountain')) return this.timeout();
+            if (!this.waitForItem('Tier 5')) return this.timeout();
+            Thread.sleep(100);
 
             this.collectedData.cotm = this.extractNumericFromSlot(4, /Level[:\s]*(\d+)/i);
             this.collectedData.professional = this.extractNumericFromSlot(12, /\+(\d+)/);
-            Chat.messageDebug('Extracted COTM: ' + this.collectedData.cotm + ', Prof: ' + this.collectedData.professional);
 
             let container = Player.getContainer();
             let activeMarker = 'minecraft:emerald_block';
@@ -116,29 +106,23 @@ class MiningStatsCollector {
             if (this.checkSlotForBlock(container, 29, activeMarker)) ability = 'SpeedBoost';
             else if (this.checkSlotForBlock(container, 33, activeMarker)) ability = 'Pickobulus';
 
-            this.collectedData.ability = ability;
-            Chat.messageDebug('Initial Ability: ' + ability);
-
-            Chat.messageDebug('Opening Perks Submenu (Slot 8)...');
             Guis.clickSlot(8, false, 'RIGHT');
-            Thread.sleep(500);
-            if (this.collectedData.ability === 'None') {
-                if (this.checkSlotForBlock(container, 1, activeMarker)) this.collectedData.ability = 'GemstoneInfusion';
-                else if (this.checkSlotForBlock(container, 7, activeMarker)) this.collectedData.ability = 'SheerForce';
-                else if (this.checkSlotForBlock(container, 37, activeMarker)) this.collectedData.ability = 'AnomalousDesire';
-                else if (this.checkSlotForBlock(container, 43, activeMarker)) this.collectedData.ability = 'ManiacMiner';
-                Chat.messageDebug('Secondary Ability Check: ' + this.collectedData.ability);
+            if (!this.waitForItem('Tier 10')) return this.timeout();
+            if (ability === 'None') {
+                container = Player.getContainer();
+                if (this.checkSlotForBlock(container, 1, activeMarker)) ability = 'GemstoneInfusion';
+                else if (this.checkSlotForBlock(container, 7, activeMarker)) ability = 'SheerForce';
+                else if (this.checkSlotForBlock(container, 37, activeMarker)) ability = 'AnomalousDesire';
+                else if (this.checkSlotForBlock(container, 43, activeMarker)) ability = 'ManiacMiner';
             }
+            this.collectedData.ability = ability;
 
             this.collectedData.strongarm = this.extractNumericFromSlot(21, /\+(\d+)/);
             this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+)/);
-            Chat.messageDebug('Strong Arm: ' + this.collectedData.strongarm + ', Cold Res: ' + this.collectedData.coldres);
 
             let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+)/);
             this.collectedData.maxge = parseInt(explorerLevel) >= 96;
-            Chat.messageDebug('Great Explorer Level Extracted: ' + explorerLevel);
 
-            Chat.messageDebug('Closing GUI and finishing...');
             Guis.closeInv();
             this.finishCollection();
         } catch (e) {
@@ -154,15 +138,27 @@ class MiningStatsCollector {
         while (waited < timeoutMs) {
             let current = Guis.guiName();
             if (current && current.includes(name)) return true;
-            Thread.sleep(100);
-            waited += 100;
+            Thread.sleep(50);
+            waited += 50;
+        }
+        return false;
+    }
+
+    waitForItem(itemName, timeoutMs = 4000) {
+        let waited = 0;
+        while (waited < timeoutMs) {
+            let inventory = Player.getContainer();
+            if (Guis.findFirst(inventory, itemName) != -1) return true;
+            Thread.sleep(50);
+            waited += 50;
         }
         return false;
     }
 
     timeout() {
-        Chat.message('stat collection timed out!');
+        Chat.message('Failed to get mining stats.');
         Guis.closeInv();
+        this.isCollecting = false;
         return false;
     }
 
@@ -176,8 +172,7 @@ class MiningStatsCollector {
                 let levels = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
                 let levelText = lapMatch[1].toUpperCase();
                 let bonus = (levels[levelText] || 0) * 20;
-                this.collectedData.professional = (this.collectedData.professional || 0) + bonus;
-                Chat.message('lapidary ' + levelText + ' detected: +' + bonus);
+                this.collectedData.lapidary = bonus;
             }
         }
 
@@ -188,6 +183,7 @@ class MiningStatsCollector {
         let finalStats = {
             speed: this.collectedData.speed || 0,
             professional: this.collectedData.professional || 0,
+            lapidary: this.collectedData.lapidary || 0,
             strongarm: this.collectedData.strongarm || 0,
             ability: this.collectedData.ability || 'None',
             coldres: this.collectedData.coldres || 0,
@@ -198,13 +194,14 @@ class MiningStatsCollector {
         Utils.writeConfigFile(this.statsFile, finalStats);
         this.stats = finalStats;
 
-        Chat.message('Speed: ' + finalStats.speed);
-        Chat.message('Professional: +' + finalStats.professional);
-        Chat.message('Strong Arm: +' + finalStats.strongarm);
-        Chat.message('Ability: ' + finalStats.ability);
-        Chat.message('Cold Resistance: +' + finalStats.coldres);
-        Chat.message('COTM Level: ' + finalStats.cotm);
-        Chat.message('Max Great Explorer: ' + (finalStats.maxge ? 'Yes' : 'No'));
+        Chat.message('Speed: &6' + finalStats.speed + ' Mining Speed');
+        Chat.message('Lapidary: &6+' + finalStats.lapidary + ' Mining Speed');
+        Chat.message('Professional: &6+' + finalStats.professional + ' Mining Speed');
+        Chat.message('Strong Arm: &6+' + finalStats.strongarm + ' Mining Speed');
+        Chat.message('Ability: &e' + finalStats.ability);
+        Chat.message('Cold Resistance: &b' + finalStats.coldres);
+        Chat.message('COTM Level: &e' + finalStats.cotm);
+        Chat.message('Max Great Explorer: ' + (finalStats.maxge ? '&aYes' : '&cNo'));
     }
 
     extractNumericFromSlot(slot, pattern) {
@@ -234,7 +231,7 @@ class MiningStatsCollector {
 
     checkSlotForBlock(container, slot, blockId) {
         let item = container?.getStackInSlot(slot);
-        return item && item.type?.getRegistryName?.() === blockId;
+        return item && item.type?.getRegistryName() === blockId;
     }
 
     getStoredStats() {

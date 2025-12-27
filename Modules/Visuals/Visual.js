@@ -12,6 +12,9 @@ let lastYaw = 0;
 let lastPitch = 0;
 let cachedBlock = null;
 let cachedColor = null;
+let prevX = Player.getX();
+let prevY = Player.getY();
+let prevZ = Player.getZ();
 
 const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
 const MOVEMENT_THRESHOLD = 0.1; // same

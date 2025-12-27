@@ -14,16 +14,18 @@ class ItemSearcher {
         if (!item || !item.getName) return false;
         const cleanName = this.stripCodes(item.getName());
         if (!cleanName) return false;
-        
+
         const lowerName = cleanName.toLowerCase();
         const lowerTarget = targetName.toLowerCase();
 
         return exact ? lowerName === lowerTarget : lowerName.indexOf(lowerTarget) !== -1;
     }
 
-    findInList(inventory, targetName, exact) {
+    findInList(inventory, targetName, exact = false) {
+        if (!inventory) return -1;
         for (var i = 0; i < inventory.getSize(); i++) {
-            if (this.matchName(inventory.getStackInSlot(i), targetName, exact)) {
+            const stack = inventory.getStackInSlot(i);
+            if (this.matchName(stack, targetName, exact)) {
                 return i;
             }
         }
@@ -32,8 +34,10 @@ class ItemSearcher {
 
     findAllInList(inventory, targetName) {
         let slots = [];
+        if (!inventory) return -1;
         for (var i = 0; i < inventory.getSize(); i++) {
-            if (this.matchName(inventory.getStackInSlot(i), targetName, false)) {
+            const stack = inventory.getStackInSlot(i);
+            if (this.matchName(stack, targetName, false)) {
                 slots.push(i);
             }
         }
@@ -55,7 +59,7 @@ class InterfaceHandler {
     performClick(slot, shift, type) {
         const container = Player.getContainer();
         if (!container || slot < 0) return false;
-        
+
         try {
             container.click(slot, shift, type || 'LEFT');
             return true;
@@ -72,7 +76,7 @@ class InterfaceHandler {
             const syncId = Client.getMinecraft().player.currentScreenHandler.syncId;
             const Packet = net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
             Client.sendPacket(new Packet(syncId));
-            
+
             if (Client.currentGui) {
                 Client.currentGui.close();
             }
@@ -80,55 +84,55 @@ class InterfaceHandler {
     }
 }
 
-const handler = new InterfaceHandler();
-const searcher = new ItemSearcher();
+export const handler = new InterfaceHandler();
+export const searcher = new ItemSearcher();
 
 export const Guis = {
     stripFormatting: (s) => searcher.stripCodes(s),
     getInventory: () => Player.getInventory(),
-    
-    findFirst: function(inv, name) {
-        return searcher.findInList(inv, name, true);
+
+    findFirst: function (inv, name) {
+        return searcher.findInList(inv, name);
     },
-    
-    findAll: function(inv, name) {
+
+    findAll: function (inv, name) {
         return searcher.findAllInList(inv, name);
     },
 
-    findItemInHotbar: function(name) {
+    findItemInHotbar: function (name) {
         const inv = Player.getInventory();
         if (!inv) return -1;
-        for (var i = 0; i < 9; i++) {
-            if (searcher.matchName(inv.getStackInSlot(i), name, false)) {
+
+        const max = Math.min(inv.getSize(), 9);
+        for (var i = 0; i < max; i++) {
+            const stack = inv.getStackInSlot(i);
+            if (searcher.matchName(stack, name, false)) {
                 return i;
             }
         }
+
         return -1;
     },
 
-    findItemInInventory: function(name) {
+    findItemInInventory: function (name) {
         const inv = Player.getInventory();
         return inv ? searcher.findInList(inv, name, false) : -1;
     },
 
     closeInv: () => handler.terminateGui(),
 
-    clickItem: function(name, shift, button, displayName, exact) {
+    clickItem: function (name, shift, button, displayName, exact) {
         const container = Player.getContainer();
         if (!container) return false;
-        
+
         const items = container.getItems();
         for (var i = 0; i < items.length; i++) {
             const item = items[i];
             if (!item) continue;
 
-            const itemName = (displayName !== false) 
-                ? item.getName().removeFormatting() 
-                : item.type.getRegistryName();
-            
-            const match = exact 
-                ? itemName.toLowerCase() === name.toLowerCase()
-                : itemName.toLowerCase().indexOf(name.toLowerCase()) !== -1;
+            const itemName = displayName !== false ? ChatLib.removeFormatting(String(item.getName())) : String(item.type.getRegistryName());
+
+            const match = exact ? itemName.toLowerCase() === name.toLowerCase() : itemName.toLowerCase().indexOf(name.toLowerCase()) !== -1;
 
             if (match) {
                 this.clickSlot(i, shift, button);
@@ -138,11 +142,11 @@ export const Guis = {
         return false;
     },
 
-    clickSlot: function(slot, shift, button) {
+    clickSlot: function (slot, shift, button) {
         return handler.performClick(slot, shift, button);
     },
 
-    clickItems: function(names, shift, button, displayName, exact) {
+    clickItems: function (names, shift, button, displayName, exact) {
         if (!Array.isArray(names)) return false;
         for (var i = 0; i < names.length; i++) {
             if (this.clickItem(names[i], shift, button, displayName, exact)) {
@@ -152,7 +156,7 @@ export const Guis = {
         return false;
     },
 
-    setItemSlot: function(slot) {
+    setItemSlot: function (slot) {
         if (slot >= 0 && slot <= 8) {
             if (Player.getHeldItemIndex() !== slot) {
                 Player.setHeldItemIndex(slot);
@@ -160,12 +164,12 @@ export const Guis = {
         }
     },
 
-    getHeldItemStackSize: function() {
+    getHeldItemStackSize: function () {
         const item = Player.getHeldItem();
-        return (item && item.getStackSize) ? item.getStackSize() : 0;
+        return item && item.getStackSize ? item.getStackSize() : 0;
     },
 
-    stopInGui: function() {
+    stopInGui: function () {
         if (handler.getCurrentTitle() !== null) {
             Keybind.stopMovement();
             Keybind.setKey('shift', false);
@@ -174,5 +178,7 @@ export const Guis = {
         }
     },
 
-    guiName: () => handler.getCurrentTitle()
+    guiName: () => handler.getCurrentTitle(),
 };
+
+console.log(searcher.findInList(Player.getInventory(), 'hype'));
