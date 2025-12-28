@@ -159,9 +159,10 @@ export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 export const FontSizes = {
     TINY: 6,
     SMALL: 7,
+    MEDIUM: 8,
     REGULAR: 9,
     LARGE: 10,
-    HEADER: 11
+    HEADER: 11,
 };
 
 export const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
