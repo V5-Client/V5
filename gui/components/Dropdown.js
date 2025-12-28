@@ -1,4 +1,4 @@
-import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic, drawText, getTextWidth } from '../Utils';
+import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic, drawText, getTextWidth, FontSizes } from '../Utils';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false, callback = null, defaultValue = false) {
@@ -91,7 +91,7 @@ export class MultiToggle {
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        drawText(this.title, this.x + 12, this.y + this.containerHeight / 2, 9, textColor);
+        drawText(this.title, this.x + 12, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
 
         const arrowSize = 16;
         const rightMargin = 16;
@@ -108,7 +108,7 @@ export class MultiToggle {
         });
 
         const arrow = this.expanded ? '▲' : '▼';
-        const arrowFontSize = 7;
+        const arrowFontSize = FontSizes.SMALL;
         const arrowWidth = getTextWidth(arrow, arrowFontSize);
 
         const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
@@ -199,7 +199,7 @@ export class MultiToggle {
                     color: THEME.TOGGLE_SWITCH_KNOB,
                 });
 
-                drawText(option.name, optionX, optionTop + this.optionHeight / 2, 9, textColor);
+                drawText(option.name, optionX, optionTop + this.optionHeight / 2, FontSizes.REGULAR, textColor);
 
                 currentY += this.optionHeight + 4;
             }
