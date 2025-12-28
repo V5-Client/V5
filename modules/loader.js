@@ -13,7 +13,7 @@ import './foraging/HuntingHelpers.js';
 //import './foraging/SeaLumieMacro.js';
 
 /* FARMING */
-import './farming/FarmingMacro.js';
+import './farming/FarmingMacro/FarmingMacro.js';
 import './farming/PestESP.js';
 
 /* VISUALS */
