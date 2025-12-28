@@ -20,8 +20,8 @@ import { MultiToggle } from '../components/Dropdown';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 
 const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
-const Module_icon_path = ASSETS_PATH + 'folder.png';
-const Setting_icon_path = ASSETS_PATH + 'settings.png';
+const Module_icon_path = ASSETS_PATH + 'folder.svg';
+const Setting_icon_path = ASSETS_PATH + 'settings.svg';
 
 const CATEGORY_TITLE_COLOR = THEME.GUI_MANAGER_CATEGORY_TITLE;
 const CATEGORY_DESC_COLOR = THEME.GUI_MANAGER_CATEGORY_DESCRIPTION;
@@ -60,9 +60,9 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
     const drawSelectedButton = (rect) => {
         drawRoundedRectangle({
             x: rect.x,
-            y: rect.y,
+            y: rect.y + 2.5,
             width: rect.width,
-            height: rect.height,
+            height: rect.height - 5,
             radius: 8,
             color: CATEGORY_SELECTED_COLOR,
         });
@@ -74,7 +74,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
 
     let currentX = panelX + PADDING;
     subcategoriesToDraw.forEach((subcat) => {
-        const buttonTextWidth = getTextWidth(subcat, FontSizes.SMALL) + 20;
+        const buttonTextWidth = getTextWidth(subcat, FontSizes.MEDIUM) + 20;
         const buttonRect = { x: currentX, y: yOffset, width: buttonTextWidth, height: SUBCATEGORY_BUTTON_HEIGHT };
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
         const isHovered = isInside(mouseX, mouseY, buttonRect);
@@ -97,7 +97,13 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         }
 
         const textColor = isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR;
-        drawText(subcat, currentX + buttonTextWidth / 2 - getTextWidth(subcat, FontSizes.SMALL) / 2, yOffset + SUBCATEGORY_BUTTON_HEIGHT / 2, FontSizes.SMALL, textColor);
+        drawText(
+            subcat,
+            currentX + buttonTextWidth / 2 - getTextWidth(subcat, FontSizes.MEDIUM) / 2,
+            yOffset + SUBCATEGORY_BUTTON_HEIGHT / 2,
+            FontSizes.MEDIUM,
+            textColor
+        );
         currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
     });
 
@@ -166,10 +172,10 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         if (selectedCat) {
             const i = global.Categories.categories.indexOf(selectedCat);
             const rect = getCategoryRect(i);
-            const moduleSize = 28;
-            const iconX = rect.x + (rect.width - moduleSize) / 2;
-            const iconY = rect.y + (rect.height - moduleSize) / 2;
-            const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleSize + 4, height: moduleSize + 4, radius: 8 };
+            const moduleRectSize = 28;
+            const iconX = rect.x + (rect.width - moduleRectSize) / 2;
+            const iconY = rect.y + (rect.height - moduleRectSize) / 2;
+            const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
             drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
         }
     }
@@ -178,7 +184,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
 export const drawLeftPanelIcons = (mouseX, mouseY) => {
     global.Categories.categories.forEach((cat, i) => {
         const rect = getCategoryRect(i);
-        const moduleSize = 28;
+        const moduleSize = 17;
         const iconX = rect.x + (rect.width - moduleSize) / 2;
         const iconY = rect.y + (rect.height - moduleSize) / 2;
         const iconPath = cat.name === 'Modules' ? Module_icon_path : Setting_icon_path;
@@ -187,7 +193,7 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
 
     if (global.discordPfpPath) {
         const leftPanel = global.GuiRectangles.LeftPanel;
-        const pfpSize = 32;
+        const pfpSize = 28;
         const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
         const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
         drawCircularImage(global.discordPfpPath, pfpX, pfpY, pfpSize);
