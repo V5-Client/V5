@@ -1,62 +1,44 @@
 import { ANIMATION_DURATION } from './GuiState';
-import { drawRoundedRectangleWithBorder, clamp, PADDING, NVG, scissor, resetScissor } from '../Utils';
+import { drawRoundedRectangleWithBorder, clamp, PADDING, NVG, scissor, resetScissor, easeOutBack } from '../Utils';
 import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
 
 export const drawGUI = (mouseX, mouseY) => {
     const elapsed = Date.now() - global.GuiState.openStartTime;
     const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
+    const ease = easeOutBack(progress);
 
     const targetBackground = global.GuiRectangles.Background;
-    const startX = targetBackground.x + targetBackground.width / 2;
-    const startY = targetBackground.y + targetBackground.height / 2;
-
-    const currentWidth = targetBackground.width * progress;
-    const currentHeight = targetBackground.height * progress;
-
-    Object.assign(global.GuiState.animatedBackground, targetBackground, {
-        x: startX - currentWidth / 2,
-        y: startY - currentHeight / 2,
-        width: currentWidth,
-        height: currentHeight,
-    });
-
-    Object.assign(global.GuiState.animatedLeftPanel, global.GuiRectangles.LeftPanel, {
-        x: global.GuiState.animatedBackground.x + PADDING,
-        y: global.GuiState.animatedBackground.y + PADDING,
-        width: global.GuiRectangles.LeftPanel.width * progress,
-        height: (targetBackground.height - PADDING * 2) * progress,
-    });
-
-    Object.assign(global.GuiState.animatedRightPanel, global.GuiRectangles.RightPanel, {
-        x: global.GuiState.animatedLeftPanel.x + global.GuiState.animatedLeftPanel.width + PADDING,
-        y: global.GuiState.animatedBackground.y + PADDING,
-        width: (targetBackground.width - PADDING * 3 - global.GuiRectangles.LeftPanel.width) * progress,
-        height: (targetBackground.height - PADDING * 2) * progress,
-    });
+    const centerX = targetBackground.x + targetBackground.width / 2;
+    const centerY = targetBackground.y + targetBackground.height / 2;
 
     Client.getMinecraft().gameRenderer.renderBlur();
 
     try {
         NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
+        NVG.save();
+
+        NVG.translate(centerX, centerY);
+        NVG.scale(ease, ease);
+        NVG.translate(-centerX, -centerY);
 
         global.GuiTooltip.reset();
 
-        drawRoundedRectangleWithBorder(global.GuiState.animatedBackground);
-        drawRoundedRectangleWithBorder(global.GuiState.animatedLeftPanel);
-        drawRoundedRectangleWithBorder(global.GuiState.animatedRightPanel);
+        drawRoundedRectangleWithBorder(global.GuiRectangles.Background);
+        drawRoundedRectangleWithBorder(global.GuiRectangles.LeftPanel);
+        drawRoundedRectangleWithBorder(global.GuiRectangles.RightPanel);
 
-        if (progress >= 0.99) {
-            drawLeftPanelBackgrounds(mouseX, mouseY);
-            drawLeftPanelIcons(mouseX, mouseY);
+        drawLeftPanelBackgrounds(mouseX, mouseY);
+        drawLeftPanelIcons(mouseX, mouseY);
 
-            const panel = global.GuiRectangles.RightPanel;
-            scissor(panel.x, panel.y, panel.width, panel.height);
-            global.categoryManager?.draw(mouseX, mouseY);
-            resetScissor();
-        }
+        const panel = global.GuiRectangles.RightPanel;
+        scissor(panel.x, panel.y, panel.width, panel.height);
+        global.categoryManager?.draw(mouseX, mouseY);
+        resetScissor();
 
         global.GuiTooltip.update();
         global.GuiTooltip.draw(mouseX, mouseY);
+
+        NVG.restore();
     } catch (e) {
         console.error('V5 GUI Error: ' + e);
     } finally {

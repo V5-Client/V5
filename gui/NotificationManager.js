@@ -1,4 +1,4 @@
-import { THEME, isInside, colorWithAlpha, drawRoundedRectangle, drawText, NVG, composite } from './Utils';
+import { THEME, isInside, colorWithAlpha, drawRoundedRectangle, drawText, NVG, composite, FontSizes } from './Utils';
 
 // Configuration
 const RENDER_ABOVE_GUI = true; // toggle rendering above guis
@@ -123,7 +123,7 @@ class Notification {
         for (let i = 1; i < words.length; i++) {
             const word = words[i];
             const testLine = currentLine + ' ' + word;
-            if (NVG.textWidth(testLine, 6, NVG.defaultFont) > maxWidth) {
+            if (NVG.textWidth(testLine, FontSizes.TINY, NVG.defaultFont) > maxWidth) {
                 lines.push(currentLine);
                 currentLine = word;
             } else {
@@ -259,11 +259,11 @@ class Notification {
         const textAlpha = colorWithAlpha(TEXT_COLOR, alpha);
         const descAlpha = colorWithAlpha(DESCRIPTION_COLOR, alpha);
 
-        drawText(this.title, textX, titleY, 10, textAlpha);
+        drawText(this.title, textX, titleY, FontSizes.LARGE, textAlpha);
 
         this.wrappedDescription.forEach((line, index) => {
             const currentDescY = descY + index * DESC_LINE_SPACING;
-            drawText(line, textX, currentDescY, 6, descAlpha);
+            drawText(line, textX, currentDescY, FontSizes.TINY, descAlpha);
         });
 
         const closeX = this.x + this.closeXOffset;

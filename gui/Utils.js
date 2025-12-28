@@ -156,9 +156,23 @@ export const composite = (op) => {
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
+export const FontSizes = {
+    TINY: 6,
+    SMALL: 7,
+    REGULAR: 9,
+    LARGE: 10,
+    HEADER: 11
+};
+
 export const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
 export const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+export const easeOutBack = (x) => {
+    const c1 = 1;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+};
 
 export const isInside = (mouseX, mouseY, rect) => mouseX >= rect.x && mouseX <= rect.x + rect.width && mouseY >= rect.y && mouseY <= rect.y + rect.height;
 
