@@ -10,7 +10,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Vec3d } from '../../utils/Constants';
+import { Vec3d, HandSwingC2SPacket } from '../../utils/Constants';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -372,6 +372,7 @@ class Bot extends ModuleBase {
             if (this.currentTarget) {
                 this.swingTickCounter++;
                 if (this.swingTickCounter >= 4) {
+                    Client.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
                     Player.getPlayer().swingHand(Hand.MAIN_HAND);
                     this.swingTickCounter = 0;
                 }
