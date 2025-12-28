@@ -1,4 +1,4 @@
-import { playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING, drawText } from '../Utils';
+import { playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING, drawText, FontSizes } from '../Utils';
 
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10, callback = null, defaultValue = false) {
@@ -53,7 +53,7 @@ export class ToggleButton {
             borderColor: THEME.TOGGLE_BORDER,
         });
 
-        drawText(this.title, this.x + 12, this.y + componentHeight / 2, 9, THEME.TOGGLE_TEXT);
+        drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, THEME.TOGGLE_TEXT);
 
         const switchWidth = 36;
         const switchHeight = 20;

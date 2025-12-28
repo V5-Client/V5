@@ -14,6 +14,7 @@ import {
     drawCircularImage,
     scissor,
     resetScissor,
+    FontSizes,
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
@@ -73,7 +74,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
 
     let currentX = panelX + PADDING;
     subcategoriesToDraw.forEach((subcat) => {
-        const buttonTextWidth = getTextWidth(subcat, 7) + 20;
+        const buttonTextWidth = getTextWidth(subcat, FontSizes.SMALL) + 20;
         const buttonRect = { x: currentX, y: yOffset, width: buttonTextWidth, height: SUBCATEGORY_BUTTON_HEIGHT };
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
         const isHovered = isInside(mouseX, mouseY, buttonRect);
@@ -96,7 +97,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         }
 
         const textColor = isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR;
-        drawText(subcat, currentX + buttonTextWidth / 2 - getTextWidth(subcat, 7) / 2, yOffset + SUBCATEGORY_BUTTON_HEIGHT / 2, 7, textColor);
+        drawText(subcat, currentX + buttonTextWidth / 2 - getTextWidth(subcat, FontSizes.SMALL) / 2, yOffset + SUBCATEGORY_BUTTON_HEIGHT / 2, FontSizes.SMALL, textColor);
         currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
     });
 
@@ -121,11 +122,11 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const drawnBackY = backButtonY - scrollY;
     const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: getTextWidth(backButtonText, 10), height: 10 });
 
-    drawText(backButtonText, backButtonX, drawnBackY + 5, 7, isBackHovered ? CATEGORY_TITLE_COLOR : BACK_TEXT_COLOR);
+    drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? CATEGORY_TITLE_COLOR : BACK_TEXT_COLOR);
     const drawnTitleY = optionY + 36 - scrollY;
-    drawText(selectedItem.title, backButtonX, drawnTitleY + 7, 11, CATEGORY_TITLE_COLOR);
+    drawText(selectedItem.title, backButtonX, drawnTitleY + 7, FontSizes.HEADER, CATEGORY_TITLE_COLOR);
     const drawnDescY = optionY + 52 - scrollY;
-    drawText(selectedItem.description, backButtonX, drawnDescY + 5, 7, CATEGORY_DESC_COLOR);
+    drawText(selectedItem.description, backButtonX, drawnDescY + 5, FontSizes.SMALL, CATEGORY_DESC_COLOR);
 
     const dividerY = optionY + 66 - scrollY;
     drawRoundedRectangle({ x: backButtonX, y: dividerY, width: panel.width - PADDING * 2 - 20, height: 1, radius: 1, color: UNIVERSAL_GRAY_COLOR });
@@ -209,8 +210,8 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     if (isHovered && item.tooltip) global.setTooltip(item.tooltip);
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
-    const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, 9) / 2 : itemX + 12;
-    drawText(item.title, textX, itemY + 48 / 2, 9, CATEGORY_TITLE_COLOR);
+    const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
+    drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, CATEGORY_TITLE_COLOR);
 };
 
 export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid) => {
@@ -225,11 +226,11 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             const separatorX = panelX + PADDING;
             const separatorWidth = panelWidth;
             drawRoundedRectangle({ x: separatorX, y: separatorY + 8, width: separatorWidth, height: 1, radius: 1, color: UNIVERSAL_GRAY_COLOR });
-            const separatorTextWidth = getTextWidth(group.title, 9);
+            const separatorTextWidth = getTextWidth(group.title, FontSizes.REGULAR);
             const separatorTextX = separatorX + 8;
             const separatorBgWidth = separatorTextWidth + 16;
             drawRoundedRectangle({ x: separatorTextX - 8, y: separatorY, width: separatorBgWidth, height: 16, radius: 6, color: THEME.GUI_DRAW_PANELS });
-            drawText(group.title, separatorTextX, separatorY + 8, 9, CATEGORY_TITLE_COLOR);
+            drawText(group.title, separatorTextX, separatorY + 8, FontSizes.REGULAR, CATEGORY_TITLE_COLOR);
             yOffset += 22;
             let subcategoryItemsInRow = 0;
             group.items.forEach((item) => {

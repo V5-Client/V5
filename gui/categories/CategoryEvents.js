@@ -1,4 +1,4 @@
-import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth } from '../Utils';
+import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 
 const ANIMATION_DURATION = 300;
@@ -24,7 +24,7 @@ export const handleCategoryClick = (
         const scrollY = global.Categories.optionsScrollY;
 
         const backButtonText = 'Back';
-        const backButtonWidth = getTextWidth(backButtonText, 7);
+        const backButtonWidth = getTextWidth(backButtonText, FontSizes.SMALL);
         const drawnBackY = optionY + 12 - scrollY;
         const backButtonRect = {
             x: optionX + 10,
@@ -167,7 +167,7 @@ export const handleCategoryClick = (
                 let yOffset = panel.y + PADDING;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];
                 for (const subcat of subcategoriesToDraw) {
-                    const buttonTextWidth = getTextWidth(subcat, 7) + 20;
+                    const buttonTextWidth = getTextWidth(subcat, FontSizes.SMALL) + 20;
                     const buttonRect = {
                         x: currentX,
                         y: yOffset,
