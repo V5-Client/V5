@@ -23,6 +23,8 @@ class NukerUtilsClass {
                     ticksToWait = nextAction[1];
                     this.nukeQueue = [];
 
+                    Client.getMinecraft().player.swingHand(net.minecraft.util.Hand.MAIN_HAND);
+
                     const blockPos = new BP(Math.floor(blockCoords[0]), Math.floor(blockCoords[1]), Math.floor(blockCoords[2]));
                     if (MathUtils.getDistanceToPlayerEyes(blockCoords[0], blockCoords[1], blockCoords[2]).distance > 5) return;
                     const facing = this.closestDirection(blockPos);
