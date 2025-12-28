@@ -711,3 +711,13 @@ export const MiningUtils = {
         return CommissionParser.parse();
     },
 };
+
+register("command", () => {
+    MiningUtils.MaxGreatExplorer((success) => {
+        if (success) {
+            Chat.message('Great Explorer upgrade completed');
+        } else {
+            Chat.message('Great Explorer upgrade failed');
+        }
+    });
+}).setName("maxge")
