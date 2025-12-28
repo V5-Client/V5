@@ -102,7 +102,11 @@ jobs:
               run: |
                   zip -r V5.zip . \
                     -x ".git/*" \
-                    -x ".git/**"
+                    -x ".github/*" \
+                    -x ".vscode/*" \
+                    -x "README.md" \
+                    -x ".gitignore" \
+                    -x ".prettierrc.json"
 
             # MAIN BRANCH: EMBED + ZIP
             - name: Send Discord message (main + zip)
