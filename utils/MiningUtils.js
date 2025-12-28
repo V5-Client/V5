@@ -416,12 +416,13 @@ class RefuelService {
                 }
 
                 let jotraelineSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                //ChatLib.chat("jotraeline slot: " + jotraelineSlot)
                 if (jotraelineSlot === -1) {
                     Chat.message('Jotraeline contact missing!');
                     return callback(false);
                 }
-
-                Guis.clickSlot(jotraelineSlot);
+                Thread.sleep(500)
+                Guis.clickSlot(jotraelineSlot, false, 'LEFT');
                 Thread.sleep(1000);
 
                 if (!self.waitForAnvil()) {
@@ -660,6 +661,16 @@ const speedCalc = new SpeedCalculations(miningStatsCollector);
 const timeCalc = new MineTimeCalculations(miningStatsCollector);
 const refueler = new RefuelService();
 const explorer = new ExplorerUpgrade(miningStatsCollector);
+
+register("command", () => {
+    refueler.refuel((success) => {
+        if (success) {
+            Chat.message('Refueling completed');
+        } else {
+            Chat.message('Refueling failed');
+        }
+    });
+}).setName("refueldrill");
 
 export const MiningUtils = {
     getMiningSpeed: function (area) {
