@@ -59,6 +59,8 @@ class Bot extends ModuleBase {
         this.miningResetPending = false;
         this.miningResetTicks = 0;
 
+        this.swingTickCounter = 0;
+
         this.faceReach = 4.5;
         this.bfsPad = Math.sqrt(3) * 0.5;
         this.rotationSpeed = 75;
@@ -366,6 +368,16 @@ class Bot extends ModuleBase {
                 else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
                 this.nukedBlock = true;
             }
+
+            if (this.currentTarget) {
+                this.swingTickCounter++;
+                if (this.swingTickCounter >= 4) {
+                    Player.getPlayer().swingHand(Hand.MAIN_HAND);
+                    this.swingTickCounter = 0;
+                }
+            }
+        } else {
+            this.swingTickCounter = 0;
         }
 
         const shouldRotate = this.TICKGLIDE
@@ -731,6 +743,7 @@ class Bot extends ModuleBase {
         this.lastBlockType = null;
         this.currentTarget = null;
         this.mineTickCount = 0;
+        this.swingTickCounter = 0;
         this.tickCount = 0;
         this.miningResetPending = false;
         this.miningResetTicks = 0;
