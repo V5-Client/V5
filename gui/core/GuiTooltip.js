@@ -1,4 +1,4 @@
-import { THEME, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../Utils';
+import { THEME, drawRoundedRectangleWithBorder, drawText, getTextWidth, FontSizes } from '../Utils';
 
 global.GuiTooltip = {
     tooltipToDraw: null,
@@ -24,7 +24,7 @@ global.GuiTooltip = {
         const PADDING = 8;
         const MOUSE_OFFSET_X = 12;
         const MOUSE_OFFSET_Y = 12;
-        const fontSize = 7;
+        const fontSize = FontSizes.SMALL;
         let tooltipWidth = 0;
 
         lines.forEach((line) => {
