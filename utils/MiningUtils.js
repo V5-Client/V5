@@ -98,7 +98,7 @@ class MiningStatsCollector {
             Thread.sleep(100);
 
             this.collectedData.cotm = this.extractNumericFromSlot(4, /Level[:\s]*(\d+)/i);
-            this.collectedData.professional = this.extractNumericFromSlot(12, /\+(\d+)/);
+            this.collectedData.professional = this.extractNumericFromSlot(12, /\+(\d+(\.\d+)?)/);
 
             let container = Player.getContainer();
             let activeMarker = 'minecraft:emerald_block';
@@ -117,10 +117,10 @@ class MiningStatsCollector {
             }
             this.collectedData.ability = ability;
 
-            this.collectedData.strongarm = this.extractNumericFromSlot(21, /\+(\d+)/);
-            this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+)/);
+            this.collectedData.strongarm = this.extractNumericFromSlot(21, /\+(\d+(\.\d+)?)/);
+            this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+(\.\d+)?)/);
 
-            let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+)/);
+            let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/);
             this.collectedData.maxge = parseInt(explorerLevel) >= 96;
 
             Guis.closeInv();
@@ -216,6 +216,7 @@ class MiningStatsCollector {
 
             let lore = item.getLore();
             for (var i = 0; i < lore.length; i++) {
+               // ChatLib.chat(lore[i])
                 let cleanLine = ChatLib.removeFormatting(String(lore[i]));
                 let match = cleanLine.match(pattern);
                 if (match) {
