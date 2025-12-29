@@ -1,6 +1,7 @@
 import { Utils } from './Utils';
 import { Chat } from './Chat';
 import { URL, DataOutputStream, Toolkit, DataFlavor } from './Constants';
+import { Executor } from './ThreadExecutor';
 
 class DiscordNotifier {
     constructor() {
@@ -80,7 +81,7 @@ class DiscordNotifier {
     publish(embeds, shouldMention = true) {
         if (!this.endpoint || !this.active) return;
 
-        new Thread(() => {
+        Executor.execute(() => {
             try {
                 const connection = new URL(this.endpoint).openConnection();
                 connection.setRequestMethod('POST');
@@ -108,7 +109,7 @@ class DiscordNotifier {
             } catch (err) {
                 Chat.messageDebug('Webhook transmission failed: ' + err);
             }
-        }).start();
+        });
     }
 
     onStartup() {

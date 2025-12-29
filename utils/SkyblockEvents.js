@@ -1,3 +1,5 @@
+import { Chat } from './Chat';
+
 class SkyblockEventManager {
     constructor() {
         this.listeners = {};
@@ -11,8 +13,7 @@ class SkyblockEventManager {
      */
     subscribe(name, callback) {
         const id = name.toLowerCase();
-        if (!this.listeners[id]) this.listeners[id] = [];
-        this.listeners[id].push(callback);
+        (this.listeners[id] ??= []).push(callback);
     }
 
     /**
@@ -27,43 +28,45 @@ class SkyblockEventManager {
             try {
                 fn();
             } catch (e) {
-                console.error('SkyblockEvent execution error: ' + id, e);
+                Chat.log(`SkyblockEvent error: ${id}`, e);
             }
         });
     }
 
     setupTriggers() {
+        const STARTSWITH_CHECKS = {
+            ' ☠ You ': 'death',
+            'Oh no! Your': 'pickonimbusbroke',
+            'You uncovered a treasure': 'chestspawn',
+            'You have successfully picked': 'chestsolve',
+            'Inventory full?': 'fullinventory',
+            'This ability is on cooldown': 'abilitycooldown',
+            'You need the Cookie Buff': 'noboostercookie',
+        };
+
+        const INCLUDE_CHECKS = {
+            'Sending to server': 'serverchange',
+            'Warping...': 'warp',
+            'is empty! Refuel it': 'emptydrill',
+            'too little fuel to keep mining': 'emptydrill',
+            'available!': 'abilityready',
+            'you used your': 'abilityused',
+            'expired!': 'abilitygone',
+            "can't use this while": 'incombat',
+            "can't fast travel while": 'incombat',
+        };
+
         register('chat', (event) => {
-            const raw = event.message.getUnformattedText();
-            const lower = raw.toLowerCase();
+            const msg = event.message.getUnformattedText();
+            const lower = msg.toLowerCase();
 
-            if (raw.includes('Sending to server')) this.emit('serverchange');
-            if (raw === 'Warping...') this.emit('warp');
-            if (raw.startsWith(' ☠ You ')) this.emit('death');
-
-            if (raw.includes('is empty! Refuel it')) this.emit('emptydrill');
-            if (raw.includes('has too little fuel to keep mining')) this.emit('emptydrill');
-            if (raw.startsWith('Oh no! Your')) this.emit('pickonimbusbroke');
-
-            if (lower.includes('available!') && (lower.includes('speed boost') || lower.includes('maniac miner') || lower.includes('pickobulus'))) {
-                this.emit('abilityready');
-            }
-            if (lower.includes('you used your') && (lower.includes('speed boost') || lower.includes('maniac miner') || lower.includes('pickobulus'))) {
-                this.emit('abilityused');
+            for (let [phrase, id] of Object.entries(STARTSWITH_CHECKS)) {
+                if (msg.startsWith(phrase)) return this.emit(id);
             }
 
-            if (raw.includes('Your Mining Speed Boost has expired!') || raw.includes('Your Maniac Miner has expired!')) {
-                // no clue if maniac miner has a message, autocomplete suggested this
-                this.emit('abilitygone');
+            for (let [phrase, id] of Object.entries(INCLUDE_CHECKS)) {
+                if (lower.includes(phrase.toLowerCase())) return this.emit(id);
             }
-
-            if (raw.startsWith('This ability is on cooldown for')) this.emit('abilitycooldown');
-
-            if (raw.startsWith('You uncovered a treasure')) this.emit('chestspawn');
-            if (raw.startsWith('You have successfully picked')) this.emit('chestsolve');
-            if (raw.startsWith('Inventory full?')) this.emit('fullinventory');
-            if (raw.startsWith("You can't use this while") || raw.startsWith("You can't fast travel while")) this.emit('incombat');
-            if (raw.startsWith('You need the Cookie Buff')) this.emit('noboostercookie');
         });
     }
 }
