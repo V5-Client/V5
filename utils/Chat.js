@@ -31,9 +31,9 @@ class ChatClass {
     }
 
     _sendGradient(prefix, msg) {
-        //schedule task required to not cause random error cause idk
         if (!msg) return;
-        Client.scheduleTask(0, () => {
+
+        Client.getMinecraft().execute(() => {
             gradientInstance.sendGradientMsg(prefix, `§f${msg}`, 0x05b9f9, 0x0539f9);
         });
     }
