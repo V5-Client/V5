@@ -1,10 +1,20 @@
 const PathManager = Java.type('com.v5.pathfinding.PathManager');
 
 export const SwiftBridge = {
-    findPath(startX, startY, startZ, endX, endY, endZ) {
-        const success = PathManager.findPath(startX, startY + 1, startZ, endX, endY + 1, endZ);
+    startPath(startX, startY, startZ, endX, endY, endZ) {
+        return PathManager.findPath(startX, startY + 1, startZ, endX, endY + 1, endZ);
+    },
 
-        if (!success) {
+    isSearching() {
+        return PathManager.isSearching();
+    },
+
+    hasPath() {
+        return PathManager.hasPath();
+    },
+
+    getResult() {
+        if (!PathManager.hasPath()) {
             return null;
         }
 
@@ -26,11 +36,16 @@ export const SwiftBridge = {
             keynodes: keynodes,
             path_between_key_nodes: path,
             time_ms: PathManager.getLastTimeMs(),
+            nodes_explored: PathManager.getNodesExplored(),
         };
     },
 
     getLastError() {
         return PathManager.getLastError();
+    },
+
+    cancel() {
+        PathManager.cancelSearch();
     },
 
     clear() {
