@@ -412,10 +412,10 @@ class CommissionMacro extends ModuleBase {
     useRoyalPigeon(pigeonSlot) {
         if (Player.getHeldItemIndex() != pigeonSlot) {
             Guis.setItemSlot(pigeonSlot);
-            this.delay(2);
+            this.delay(3);
         } else {
             Keybind.rightClick();
-            this.delay(5);
+            this.delay(10);
         }
     }
 
@@ -443,10 +443,16 @@ class CommissionMacro extends ModuleBase {
             const itemName = ChatLib.removeFormatting(this.drill.item.getName());
             this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
-            Guis.setItemSlot(this.drill.slot);
-            this.delay(5);
+            Client.scheduleTask(5, () => {
+                Guis.setItemSlot(this.drill.slot);
+            });
+
+            Client.scheduleTask(10, () => {
+                Keybind.leftClick();
+            });
         }
 
+        this.delay(12);
         this.setState(STATES.CHOOSING);
     }
 
@@ -557,6 +563,10 @@ class CommissionMacro extends ModuleBase {
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
 
         Client.scheduleTask(2, () => {
+            Keybind.leftClick();
+        });
+
+        Client.scheduleTask(4, () => {
             MiningBot.setCost(MiningBot.mithrilCosts);
             MiningBot.toggle(true);
         });

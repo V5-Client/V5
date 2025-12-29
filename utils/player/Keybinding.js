@@ -236,6 +236,11 @@ class Keybinding {
         this.stopMovement();
         this.setKey('shift', false);
     }
+
+    resetLeftClickState() {
+        justExitedGui = false;
+        clickReenableTimer = 0;
+    }
 }
 
 export const Keybind = new Keybinding();
