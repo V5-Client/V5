@@ -107,7 +107,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
     const adjustedEnd = end;
 
-    messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
+    Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -131,7 +131,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         return;
     }
 
-    messagePathfinder(`Path found in ${body.time_ms}ms`);
+    Chat.messagePathfinder(`Path found in ${body.time_ms}ms`);
 
     if (body.path && Array.isArray(body.path) && body.path.length) {
         setPathNodes(body.path);
