@@ -246,14 +246,21 @@ class Bot extends ModuleBase {
 
         Keybind.setKey('leftclick', false);
 
-        if (!this.file) {
-            this.file = Utils.getConfigFile('miningstats.json');
+        this.file = Utils.getConfigFile('miningstats.json');
+        if (this.file) {
             this.ability = this.file.ability;
         }
 
-        if (this.ability !== 'none') {
-            Keybind.rightClick();
+        const hasAbility = this.ability && this.ability !== 'none' && this.ability !== 'None' && this.ability !== '';
+
+        if (hasAbility) {
+            Client.scheduleTask(0, () => {
+                Keybind.rightClick();
+            });
         }
+
+        // no idea how any of this bullshit works. and yet it does.
+        // it fixes the ability usage (for some reason, it didnt use it before)
 
         this.state = this.STATES.MINING;
         this.scanForBlock(this.COSTTYPE);
@@ -723,6 +730,7 @@ class Bot extends ModuleBase {
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'MINING_BOT');
+        Keybind.resetLeftClickState();
         this.setCost();
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
@@ -730,6 +738,7 @@ class Bot extends ModuleBase {
         this.miningResetPending = false;
         this.miningResetTicks = 0;
         Keybind.setKey('rightclick', false);
+        Keybind.setKey('leftclick', false);
         this.normalRender.register();
     }
 
