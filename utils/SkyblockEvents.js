@@ -13,7 +13,8 @@ class SkyblockEventManager {
      */
     subscribe(name, callback) {
         const id = name.toLowerCase();
-        (this.listeners[id] ??= []).push(callback);
+        if (!this.listeners[id]) this.listeners[id] = [];
+        this.listeners[id].push(callback);
     }
 
     /**
@@ -60,12 +61,16 @@ class SkyblockEventManager {
             const msg = event.message.getUnformattedText();
             const lower = msg.toLowerCase();
 
-            for (let [phrase, id] of Object.entries(STARTSWITH_CHECKS)) {
-                if (msg.startsWith(phrase)) return this.emit(id);
+            for (const phrase in STARTSWITH_CHECKS) {
+                if (msg.startsWith(phrase)) {
+                    return this.emit(STARTSWITH_CHECKS[phrase]);
+                }
             }
 
-            for (let [phrase, id] of Object.entries(INCLUDE_CHECKS)) {
-                if (lower.includes(phrase.toLowerCase())) return this.emit(id);
+            for (const phraseKey in INCLUDE_CHECKS) {
+                if (lower.includes(phraseKey.toLowerCase())) {
+                    return this.emit(INCLUDE_CHECKS[phraseKey]);
+                }
             }
         });
     }
