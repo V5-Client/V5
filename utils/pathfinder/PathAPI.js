@@ -3,7 +3,6 @@ import request from 'RequestV2';
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
-import { PathfindingMessages } from './PathConfig';
 import { Vec3d } from '../Constants';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
@@ -108,7 +107,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
     const adjustedEnd = end;
 
-    PathfindingMessages(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
+    messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -132,7 +131,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         return;
     }
 
-    PathfindingMessages(`Path found in ${body.time_ms}ms`);
+    messagePathfinder(`Path found in ${body.time_ms}ms`);
 
     if (body.path && Array.isArray(body.path) && body.path.length) {
         setPathNodes(body.path);
