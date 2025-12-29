@@ -3,6 +3,7 @@ import { BP, Direction, PlayerActionC2SPacket, PlayerActionC2SPacketAction, Hand
 import { attachMixin } from './AttachMixin';
 import { PlayerActionPacket } from '../Mixins/PlayerAction';
 import { Chat } from './Chat';
+import { PlayerActionPacket } from '../mixins/PlayerAction';
 
 class NukerUtilsClass {
     static MAX_REACH_DISTANCE = 5;

@@ -1,4 +1,4 @@
-import request from 'requestV2';
+import request from 'RequestV2';
 
 import { Links, System, ProcessBuilder, Scanner, InputStreamReader, StandardCharsets, Runtime } from '../Constants';
 import { Chat } from '../Chat';
@@ -74,6 +74,12 @@ function startKeepAlive() {
 }
 
 export function runProgram() {
+    const exeFile = new java.io.File(path);
+    if (!exeFile.exists()) {
+        Chat.log('Pathfinding.exe not found.');
+        return;
+    }
+
     if (isPathfindingProcessRunning()) {
         Chat.log('Pathfinding program is already running. Skipping startup.');
         startKeepAlive();

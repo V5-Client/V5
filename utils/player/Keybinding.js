@@ -204,6 +204,11 @@ class ControlSystem {
     refreshCooldown() {
         this.lastActionTime = Date.now();
     }
+
+    resetLeftClickState() {
+        justExitedGui = false;
+        clickReenableTimer = 0;
+    }
 }
 
 const controls = new ControlSystem();

@@ -1,4 +1,5 @@
 import { Utils } from './Utils';
+import { KeyBindUtils } from './KeybindInitializer';
 
 export class ModuleBase {
     /**
@@ -101,27 +102,22 @@ export class ModuleBase {
     }
 
     bindToggleKey(title = `Toggle ${this.name}`) {
-        const keybindDescription = title;
-
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
-        const savedKeycode = existingKeybinds[keybindDescription] || Keyboard.KEY_NONE;
+        const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
 
-        if (global.mcVersion >= 12109) {
-            // temp fix due to jewtriggers, (you cant use the same catergory more than once(including ct reload??!??!?)?!??!??)
-            const sanitizedName = (this.name || 'module')
-                .toLowerCase()
-                .replace(/[^a-z0-9/._-]+/g, '-')
-                .replace(/^-+|-+$/g, '');
-            const keybindCategory = `v5:${sanitizedName + Math.random()}`;
+        const id = (this.name || 'module').toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-            this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, keybindCategory);
-        } else {
-            this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'v5');
-        }
+        this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
 
-        this._toggleKeyBind.registerKeyPress(() => this.toggle());
+        this._wrappedKey.onKeyPress(() => {
+            this.toggle();
+        });
 
-        register('gameUnload', () => this._saveKey(keybindDescription, this._toggleKeyBind.getKeyCode()));
+        register('gameUnload', () => {
+            const currentCode = this._wrappedKey.keyBinding.boundKey.code;
+            console.log(`KEYYYYYY ${currentCode}`);
+            this._saveKey(title, currentCode);
+        });
 
         return this;
     }

@@ -1,9 +1,10 @@
 import { File } from '../utils/Constants';
-import { drawRect, NVG, drawText, THEME } from '../GUI/Utils.js';
+import { drawRect, NVG, drawText, THEME } from '../gui/Utils.js';
 import { ModuleBase } from '../utils/ModuleBase.js';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
 import { Chat } from '../utils/Chat.js';
+import { KeyBindUtils } from '../utils/KeybindInitializer.js';
 
 const AudioSystem = javax.sound.sampled.AudioSystem;
 const FloatControl = javax.sound.sampled.FloatControl;
@@ -93,11 +94,15 @@ class AlertUtilsClass {
         this.isAlerting = false;
         this.stopSound();
 
-        this.render.unregister();
-        this.render = null;
+        if (this.render) {
+            this.render.unregister();
+            this.render = null;
+        }
 
-        this.tracker.unregister();
-        this.tracker = null;
+        if (this.tracker) {
+            this.tracker.unregister();
+            this.tracker = null;
+        }
     }
 
     /**
@@ -180,11 +185,11 @@ class AlertUtilsClass {
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
 
         this.cancelKey = Keyboard.getKeyName(savedKeycode);
-        this.cancelKeyBind = new KeyBind(keyName, savedKeycode, 'v5');
+        this.cancelKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
 
         register('gameUnload', () => {
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-            allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
+            allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
             Utils.writeConfigFile('keybinds.json', allKeybinds);
 
             this.stopSound();
@@ -209,4 +214,8 @@ class AlertUtilsClass {
     }
 }
 
-export const AlertUtils = new AlertUtilsClass();
+if (!global.V5_ALERT_UTILS) {
+    global.V5_ALERT_UTILS = new AlertUtilsClass();
+}
+
+export const AlertUtils = global.V5_ALERT_UTILS;

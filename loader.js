@@ -26,6 +26,7 @@ import './utils/Webhooks.js';
 import './Failsafes/FailsafeManager.js';
 import './utils/V5Mod.js';
 import './utils/SkyblockEvents.js';
+import './utils/KeybindInitializer.js';
 
 import './modules/loader.js';
 

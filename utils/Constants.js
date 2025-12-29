@@ -25,6 +25,7 @@ export const TrayIcon = java.awt.TrayIcon;
 export const Runtime = java.lang.Runtime;
 export const Scanner = java.util.Scanner;
 export const Toolkit = java.awt.Toolkit;
+export const GLFW = org.lwjgl.glfw.GLFW;
 export const System = java.lang.System;
 export const Base64 = java.util.Base64;
 export const Color = java.awt.Color;
