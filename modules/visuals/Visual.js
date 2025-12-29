@@ -56,12 +56,12 @@ register('tick', () => {
     }
 });
 
-register('postRenderWorld', () => {
-    // POST RENDER WORLD ONLY SHOULD DO RENDERING, NOT CHECKING
-    if (!cachedBlock) return;
+// register('postRenderWorld', () => {
+//     // POST RENDER WORLD ONLY SHOULD DO RENDERING, NOT CHECKING
+//     if (!cachedBlock) return;
 
-    RenderUtils.drawBox(new Vec3d(cachedBlock.x, cachedBlock.y, cachedBlock.z), cachedColor);
-});
+//     RenderUtils.drawBox(new Vec3d(cachedBlock.x, cachedBlock.y, cachedBlock.z), cachedColor);
+// });
 
 function isValidTeleport(block) {
     const targetBlock = World.getBlockAt(block.x, block.y, block.z);
