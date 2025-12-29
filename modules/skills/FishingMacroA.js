@@ -10,7 +10,9 @@ class FishingMacro extends ModuleBase {
             subcategory: 'Skills',
             description: 'Fishing Macro general hype',
             tooltip: 'Fishing Macro general hype',
+            showEnabledToggle: false,
         });
+        this.bindToggleKey();
 
         this.tickDelay = 3;
 
@@ -144,6 +146,7 @@ class FishingMacro extends ModuleBase {
     }
 
     onEnable() {
+        Chat.message('fishing macro enabled');
         global.macrostate.setMacroRunning(true, 'FISHING');
         this.step = -2;
         this.tickDelay = 0;
@@ -152,6 +155,7 @@ class FishingMacro extends ModuleBase {
     }
 
     onDisable() {
+        Chat.message('fishing macro un-enabled');
         global.macrostate.setMacroRunning(false, 'FISHING');
     }
 }
