@@ -1,4 +1,5 @@
 import { Utils } from './Utils';
+import { KeyBindUtils } from './KeybindInitializer';
 
 export class ModuleBase {
     /**
@@ -101,16 +102,22 @@ export class ModuleBase {
     }
 
     bindToggleKey(title = `Toggle ${this.name}`) {
-        const keybindDescription = title;
-
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
-        const savedKeycode = existingKeybinds[keybindDescription] || Keyboard.KEY_NONE;
+        const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
 
-        this._toggleKeyBind = new KeyBind(keybindDescription, savedKeycode, 'v5');
+        const id = (this.name || 'module').toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-        this._toggleKeyBind.registerKeyPress(() => this.toggle());
+        this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
 
-        register('gameUnload', () => this._saveKey(keybindDescription, this._toggleKeyBind.getKeyCode()));
+        this._wrappedKey.onKeyPress(() => {
+            this.toggle();
+        });
+
+        register('gameUnload', () => {
+            const currentCode = this._wrappedKey.keyBinding.boundKey.code;
+            console.log(`KEYYYYYY ${currentCode}`);
+            this._saveKey(title, currentCode);
+        });
 
         return this;
     }

@@ -4,6 +4,7 @@ import { ModuleBase } from '../utils/ModuleBase.js';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
 import { Chat } from '../utils/Chat.js';
+import { KeyBindUtils } from '../utils/KeybindInitializer.js';
 
 const AudioSystem = javax.sound.sampled.AudioSystem;
 const FloatControl = javax.sound.sampled.FloatControl;
@@ -184,11 +185,11 @@ class AlertUtilsClass {
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
 
         this.cancelKey = Keyboard.getKeyName(savedKeycode);
-        this.cancelKeyBind = new KeyBind(keyName, savedKeycode, 'v5');
+        this.cancelKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
 
         register('gameUnload', () => {
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-            allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
+            allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
             Utils.writeConfigFile('keybinds.json', allKeybinds);
 
             this.stopSound();

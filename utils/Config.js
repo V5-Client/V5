@@ -49,7 +49,7 @@ let Files = [
     {
         path: 'keybinds.json',
         FileType: 'file',
-        Content: [],
+        Content: {},
     },
     {
         path: 'webhook.json',
