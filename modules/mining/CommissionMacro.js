@@ -20,6 +20,7 @@ const STATES = {
     CHOOSING: 'Choosing Commission',
     TRAVELING: 'Traveling to Location',
     WAITING: 'Waiting for Spot',
+    WAITING_GUI_CLOSE: 'Closing GUI',
     MINING: 'Mining',
     SLAYER: 'Killing Mobs',
     SELLING: 'Selling Items',
@@ -284,14 +285,13 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        // Route logic to state handlers
         if (this.currentState === STATES.IDLE) this.handleIdle();
         else if (this.currentState === STATES.CHOOSING) this.handleChoosing();
+        else if (this.currentState === STATES.WAITING_GUI_CLOSE) this.handleWaitingGuiClose();
         else if (this.currentState === STATES.SLAYER) this.handleSlayer();
         else if (this.currentState === STATES.SELLING) this.handleSelling();
         else if (this.currentState === STATES.CLAIMING) this.handleClaiming();
     }
-
     handleIdle() {
         this.setState(STATES.CHOOSING);
     }
@@ -524,7 +524,19 @@ class CommissionMacro extends ModuleBase {
         }
 
         Guis.closeInv();
+        this.setState(STATES.WAITING_GUI_CLOSE);
+    }
 
+    handleWaitingGuiClose() {
+        if (Client.isInGui()) {
+            return;
+        }
+
+        this.refreshDrillReference();
+        this.setState(STATES.CHOOSING);
+    }
+
+    refreshDrillReference() {
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
         this.pickaxe = this.drill;
@@ -532,18 +544,8 @@ class CommissionMacro extends ModuleBase {
         if (this.drill) {
             const itemName = ChatLib.removeFormatting(this.drill.item.getName());
             this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
-
-            Client.scheduleTask(5, () => {
-                Guis.setItemSlot(this.drill.slot);
-            });
-
-            Client.scheduleTask(10, () => {
-                Keybind.leftClick();
-            });
+            Guis.setItemSlot(this.drill.slot);
         }
-
-        this.delay(12);
-        this.setState(STATES.CHOOSING);
     }
 
     travelToEmissary() {
@@ -635,6 +637,12 @@ class CommissionMacro extends ModuleBase {
     }
 
     startMining() {
+        if (Client.isInGui()) {
+            Chat.message('&eWaiting for GUI to close before mining...');
+            this.delay(5);
+            return;
+        }
+
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
 
@@ -653,14 +661,8 @@ class CommissionMacro extends ModuleBase {
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
 
-        Client.scheduleTask(2, () => {
-            Keybind.leftClick();
-        });
-
-        Client.scheduleTask(4, () => {
-            MiningBot.setCost(MiningBot.mithrilCosts);
-            MiningBot.toggle(true);
-        });
+        MiningBot.setCost(MiningBot.mithrilCosts);
+        MiningBot.toggle(true);
     }
 
     startSlayer() {
