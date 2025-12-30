@@ -7,7 +7,7 @@ import { renderSplineBoxes } from '../PathDebug';
 import { detectStuck, resetStuckDetection } from './PathStuckRecovery';
 import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
-import { PathfindingMessages } from '../PathConfig';
+import { Chat } from '../../Chat';
 
 // Lookahead
 const LOOK_AHEAD_DISTANCE = 4;
@@ -390,7 +390,7 @@ function updateStrafeState(boxPositions, currentIndex, pathAnalysis) {
             strafeDirection = newDirection;
             isStrafing = true;
             strafeHoldTicks = STRAFE_DURATION_AFTER_UNCOLLIDE;
-            PathfindingMessages(`§7[Strafe] Enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(1)}°`);
+            Chat.messagePathfinder(`§7[Strafe] Enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(1)}°`);
         }
     }
 

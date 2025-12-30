@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import { registerEventSB } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
+import { PlayerPositionLookS2C } from '../../utils/Packets';
 
 class RotationFailsafe extends Failsafe {
     constructor() {
@@ -47,7 +48,7 @@ class RotationFailsafe extends Failsafe {
                 if (this.ignore) return;
                 this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
             }, this.settings.FailsafeReactionTime - 50 || 600);
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket);
+        }).setFilteredClass(PlayerPositionLookS2C);
 
         register('worldLoad', () => {
             this.ignore = true;
@@ -91,8 +92,8 @@ class RotationFailsafe extends Failsafe {
             severity = 'very high';
         }
 
-        Chat.failsafeMsg(`You were rotated by the server! (${severity} severity)`);
-        Chat.failsafeMsg(
+        Chat.messageFailsafe(`You were rotated by the server! (${severity} severity)`);
+        Chat.messageFailsafe(
             `yaw ${fromYaw.toFixed(2)} -> ${toYaw.toFixed(2)}, pitch ${fromPitch.toFixed(2)} -> ${toPitch.toFixed(2)} (${totalRotation.toFixed(1)}° total)`
         );
         Webhook.sendEmbed(

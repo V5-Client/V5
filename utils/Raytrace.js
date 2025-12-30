@@ -1,260 +1,325 @@
 import { raytraceBlocks } from '../utils/Dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../utils/Dependencies/BloomCore/Vector3';
 
-const Vec3 = net.minecraft.util.math.Vec3d;
+export const SAMPLE_POINTS_PER_FACE = 9;
+export const MAX_DDA_ITERATIONS = 300;
+export const AIR_BLOCK_ID = 0;
+export const PASSABLE_BLOCKS = new Set([0, 513]);
 
-class rayTraceUtils {
+class VisibilityChecker {
     constructor() {
-        this.defaultPoints = [
-            [0.5, 0.5, 0.5], // Center
-            [0.1, 0.5, 0.5],
-            [0.9, 0.5, 0.5], // X-axis
-            [0.5, 0.1, 0.5],
-            [0.5, 0.9, 0.5], // Y-axis
-            [0.5, 0.5, 0.1],
-            [0.5, 0.5, 0.9], // Z-axis
+        this.faceOffsets = this.generateFaceOffsets();
+        this.eyeCache = { pos: null, time: 0 };
+    }
+
+    generateFaceOffsets() {
+        let offsets = [];
+
+        offsets.push([0.5, 0.5, 0.5]);
+
+        let faceConfigs = [
+            { axis: 0, value: 0.05, otherAxes: [1, 2] },
+            { axis: 0, value: 0.95, otherAxes: [1, 2] },
+            { axis: 1, value: 0.05, otherAxes: [0, 2] },
+            { axis: 1, value: 0.95, otherAxes: [0, 2] },
+            { axis: 2, value: 0.05, otherAxes: [0, 1] },
+            { axis: 2, value: 0.95, otherAxes: [0, 1] },
         ];
-    }
 
-    /**
-     * Generates optimized points on a block for visibility checking.
-     * @param {BlockPos} pos - The block position
-     * @returns {Array} Array of [x, y, z] points
-     */
-    getPointsOnBlock(pos) {
-        return this.defaultPoints.map((p) => [pos.x + p[0], pos.y + p[1], pos.z + p[2]]);
-    }
+        for (var i = 0; i < faceConfigs.length; i++) {
+            let config = faceConfigs[i];
+            let step = 0.8 / (SAMPLE_POINTS_PER_FACE - 1);
 
-    /**
-     * Checks if a block is not air.
-     * @param {Block} block - The block to check
-     * @returns {boolean} True if block is not air
-     */
-    check(block) {
-        return block && block.type.getID() !== 0;
-    }
+            for (var j = 0; j < SAMPLE_POINTS_PER_FACE; j++) {
+                let offset1 = 0.1 + j * step;
 
-    /**
-     * Finds a visible point on a block from the player's eye position.
-     * @param {BlockPos} blockPos - The block to check
-     * @param {Vec3} vector - The starting position (defaults to player eye position)
-     * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster)
-     * @returns {Array|null} The [x, y, z] coordinates of the visible point, or null
-     */
-    getPointOnBlock(blockPos, vector = Player.getPlayer().getEyePos(), useNativeRaycast = true) {
-        const points = this.getPointsOnBlock(blockPos);
+                for (var k = 0; k < SAMPLE_POINTS_PER_FACE; k++) {
+                    let offset2 = 0.1 + k * step;
+                    let point = [0.5, 0.5, 0.5];
 
-        for (const point of points) {
-            const isVisible = useNativeRaycast ? this.canSeePointMC(blockPos, point) : this.canSeePointJS(blockPos, point);
+                    point[config.axis] = config.value;
+                    point[config.otherAxes[0]] = offset1;
+                    point[config.otherAxes[1]] = offset2;
 
-            if (isVisible) {
-                return point;
+                    offsets.push(point);
+                }
             }
         }
+
+        return offsets;
+    }
+
+    getPlayerEyePosition() {
+        let now = Date.now();
+        if (this.eyeCache.pos && now - this.eyeCache.time < 50) {
+            return this.eyeCache.pos;
+        }
+
+        let player = Player.getPlayer();
+        if (!player) return null;
+
+        let eyePos = player.getEyePos();
+        if (!eyePos) return null;
+
+        this.eyeCache.pos = { x: eyePos.x, y: eyePos.y, z: eyePos.z };
+        this.eyeCache.time = now;
+
+        return this.eyeCache.pos;
+    }
+
+    checkBlockVisibility(blockX, blockY, blockZ, useMinecraftRaycast) {
+        let eyePos = this.getPlayerEyePosition();
+        if (!eyePos) return null;
+
+        let dx = blockX + 0.5 - eyePos.x;
+        let dy = blockY + 0.5 - eyePos.y;
+        let dz = blockZ + 0.5 - eyePos.z;
+        let distanceSq = dx * dx + dy * dy + dz * dz;
+
+        if (distanceSq > 4096) {
+            return null;
+        }
+
+        for (var i = 0; i < this.faceOffsets.length; i++) {
+            let offset = this.faceOffsets[i];
+            let testPoint = [blockX + offset[0], blockY + offset[1], blockZ + offset[2]];
+
+            let visible = useMinecraftRaycast
+                ? this.testPointNative(blockX, blockY, blockZ, testPoint, eyePos)
+                : this.testPointCustom(blockX, blockY, blockZ, testPoint, eyePos);
+
+            if (visible) {
+                return testPoint;
+            }
+        }
+
         return null;
     }
 
-    /**
-     * @param {BlockPos} blockPos - The block position to check
-     * @param {Vec3} eyePos - The eye position (defaults to player's eye position)
-     * @param {boolean} useNativeRaycast - Use Minecraft's native raycast (faster, default: true)
-     * @returns {boolean} True if the block is visible to the player
-     */
-    isBlockVisible(blockPos, eyePos = null, useNativeRaycast = true) {
-        if (!eyePos) {
-            const player = Player.getPlayer();
+    testPointNative(targetX, targetY, targetZ, point, eyePos) {
+        try {
+            let player = Player.getPlayer();
             if (!player) return false;
-            const pos = player.getEyePos();
-            if (!pos) return false;
-            eyePos = { x: pos.x, y: pos.y, z: pos.z };
+
+            let px = point[0] - eyePos.x;
+            let py = point[1] - eyePos.y;
+            let pz = point[2] - eyePos.z;
+            let distance = Math.sqrt(px * px + py * py + pz * pz);
+
+            let result = player.raycast(distance + 0.1, 0.0, false);
+            if (!result) return false;
+
+            let hitPos = result.getBlockPos();
+            if (!hitPos) return false;
+
+            return hitPos.getX() === targetX && hitPos.getY() === targetY && hitPos.getZ() === targetZ;
+        } catch (err) {
+            return false;
         }
-
-        const dx = blockPos.x + 0.5 - eyePos.x;
-        const dy = blockPos.y + 0.5 - eyePos.y;
-        const dz = blockPos.z + 0.5 - eyePos.z;
-        const distSq = dx * dx + dy * dy + dz * dz;
-
-        if (distSq > 1000) return false;
-
-        return this.getPointOnBlock(blockPos, eyePos, useNativeRaycast) !== null;
     }
 
-    /**
-     * Checks visibility using JavaScript raytracer.
-     * @private
-     */
-    canSeePointJS(blockPos, point, vector = Player.getPlayer().getEyePos()) {
-        const dx = point[0] - vector.x;
-        const dy = point[1] - vector.y;
-        const dz = point[2] - vector.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    testPointCustom(targetX, targetY, targetZ, point, eyePos) {
+        try {
+            let dx = point[0] - eyePos.x;
+            let dy = point[1] - eyePos.y;
+            let dz = point[2] - eyePos.z;
+            let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        const direction = new Vector3(dx / distance, dy / distance, dz / distance);
+            let dir = new Vector3(dx / dist, dy / dist, dz / dist);
 
-        const castResult = raytraceBlocks([vector.x, vector.y, vector.z], direction, distance + 0.1, this.check, true);
+            let hit = raytraceBlocks([eyePos.x, eyePos.y, eyePos.z], dir, dist + 0.2, this.nonAirFilter, true);
 
-        return castResult && castResult[0] === blockPos.x && castResult[1] === blockPos.y && castResult[2] === blockPos.z;
+            return hit && hit[0] === targetX && hit[1] === targetY && hit[2] === targetZ;
+        } catch (err) {
+            return false;
+        }
     }
 
-    /**
-     * Checks visibility using Minecraft's built-in raycaster via Player.raycast because ClipContext is complete bullshit
-     * @private
-     */
-    canSeePointMC(blockPos, point, vector = Player.getPlayer().getEyePos()) {
-        const player = Player.getPlayer();
-        if (!player) return false;
-
-        if (!vector) {
-            const pos = player.getEyePos();
-            if (!pos) return false;
-            vector = { x: pos.x, y: pos.y, z: pos.z };
-        }
-
-        const dx = point[0] - vector.x;
-        const dy = point[1] - vector.y;
-        const dz = point[2] - vector.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        const result = player.raycast(distance, 0.0, false);
-        if (!result) return false;
-
-        const hitPos = result.getBlockPos();
-        if (!hitPos) return false;
-
-        return hitPos.getX() === blockPos.x && hitPos.getY() === blockPos.y && hitPos.getZ() === blockPos.z;
+    nonAirFilter(block) {
+        return block && block.type && block.type.getID() !== AIR_BLOCK_ID;
     }
+}
 
-    /**
-     * Returns blocks in the player's line of sight.
-     */
-    rayTracePlayerBlocks(reach = 60, checkFunction = null) {
-        const eyes = Player.getPlayer().getEyePos();
-        return raytraceBlocks([eyes.x, eyes.y, eyes.z], null, reach, checkFunction, false, false);
-    }
+class VoxelTraverser {
+    checkLineClearance(startX, startY, startZ, endX, endY, endZ, ignoreX, ignoreY, ignoreZ) {
+        let currentX = Math.floor(startX);
+        let currentY = Math.floor(startY);
+        let currentZ = Math.floor(startZ);
 
-    /**
-     * Returns all blocks traversed between two points.
-     */
-    rayTraceBetweenPoints(begin, end) {
-        const dx = end[0] - begin[0];
-        const dy = end[1] - begin[1];
-        const dz = end[2] - begin[2];
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        let goalX = Math.floor(endX);
+        let goalY = Math.floor(endY);
+        let goalZ = Math.floor(endZ);
 
-        const direction = new Vector3(dx / distance, dy / distance, dz / distance);
-
-        return raytraceBlocks(begin, direction, distance, null, false, false);
-    }
-
-    /**
-     * Fast, allocation-free voxel traversal between two points.
-     * Returns true if all traversed blocks (excluding the ignore cell) are non-solid.
-     * Uses Amanatides & Woo 3D DDA algorithm.
-     * @param {number} sx
-     * @param {number} sy
-     * @param {number} sz
-     * @param {number} ex
-     * @param {number} ey
-     * @param {number} ez
-     * @param {number} ignoreX - cell to treat as passable (usually target block x)
-     * @param {number} ignoreY
-     * @param {number} ignoreZ
-     * @returns {boolean}
-     */
-    isLineClear(sx, sy, sz, ex, ey, ez, ignoreX, ignoreY, ignoreZ) {
-        let cx = Math.floor(sx),
-            cy = Math.floor(sy),
-            cz = Math.floor(sz);
-        const exv = Math.floor(ex),
-            eyv = Math.floor(ey),
-            ezv = Math.floor(ez);
-
-        if (cx === exv && cy === eyv && cz === ezv) return true;
-
-        const dx = ex - sx;
-        const dy = ey - sy;
-        const dz = ez - sz;
-
-        let stepX = 0,
-            stepY = 0,
-            stepZ = 0,
-            tMaxX = Infinity,
-            tMaxY = Infinity,
-            tMaxZ = Infinity,
-            tDeltaX = Infinity,
-            tDeltaY = Infinity,
-            tDeltaZ = Infinity;
-
-        if (dx > 0) {
-            stepX = 1;
-            tMaxX = (cx + 1 - sx) / dx;
-            tDeltaX = 1 / dx;
-        } else if (dx < 0) {
-            stepX = -1;
-            tMaxX = (sx - cx) / -dx;
-            tDeltaX = 1 / -dx;
-        }
-        if (dy > 0) {
-            stepY = 1;
-            tMaxY = (cy + 1 - sy) / dy;
-            tDeltaY = 1 / dy;
-        } else if (dy < 0) {
-            stepY = -1;
-            tMaxY = (sy - cy) / -dy;
-            tDeltaY = 1 / -dy;
-        }
-        if (dz > 0) {
-            stepZ = 1;
-            tMaxZ = (cz + 1 - sz) / dz;
-            tDeltaZ = 1 / dz;
-        } else if (dz < 0) {
-            stepZ = -1;
-            tMaxZ = (sz - cz) / -dz;
-            tDeltaZ = 1 / -dz;
+        if (currentX === goalX && currentY === goalY && currentZ === goalZ) {
+            return true;
         }
 
-        let steps = 0;
-        const maxSteps = 256;
+        let deltaX = endX - startX;
+        let deltaY = endY - startY;
+        let deltaZ = endZ - startZ;
 
-        while (cx !== exv || cy !== eyv || cz !== ezv) {
-            if (steps++ > maxSteps) return false;
+        let stepDirectionX = 0;
+        let stepDirectionY = 0;
+        let stepDirectionZ = 0;
+        let nextCrossingX = Infinity;
+        let nextCrossingY = Infinity;
+        let nextCrossingZ = Infinity;
+        let crossingIncrementX = Infinity;
+        let crossingIncrementY = Infinity;
+        let crossingIncrementZ = Infinity;
 
-            const minT = Math.min(tMaxX, tMaxY, tMaxZ);
+        if (deltaX > 0) {
+            stepDirectionX = 1;
+            nextCrossingX = (currentX + 1 - startX) / deltaX;
+            crossingIncrementX = 1 / deltaX;
+        } else if (deltaX < 0) {
+            stepDirectionX = -1;
+            nextCrossingX = (startX - currentX) / -deltaX;
+            crossingIncrementX = 1 / -deltaX;
+        }
 
-            if (minT === tMaxX) {
-                cx += stepX;
-                tMaxX += tDeltaX;
-            } else if (minT === tMaxY) {
-                cy += stepY;
-                tMaxY += tDeltaY;
+        if (deltaY > 0) {
+            stepDirectionY = 1;
+            nextCrossingY = (currentY + 1 - startY) / deltaY;
+            crossingIncrementY = 1 / deltaY;
+        } else if (deltaY < 0) {
+            stepDirectionY = -1;
+            nextCrossingY = (startY - currentY) / -deltaY;
+            crossingIncrementY = 1 / -deltaY;
+        }
+
+        if (deltaZ > 0) {
+            stepDirectionZ = 1;
+            nextCrossingZ = (currentZ + 1 - startZ) / deltaZ;
+            crossingIncrementZ = 1 / deltaZ;
+        } else if (deltaZ < 0) {
+            stepDirectionZ = -1;
+            nextCrossingZ = (startZ - currentZ) / -deltaZ;
+            crossingIncrementZ = 1 / -deltaZ;
+        }
+
+        let iterationCount = 0;
+
+        while (currentX !== goalX || currentY !== goalY || currentZ !== goalZ) {
+            if (iterationCount++ > MAX_DDA_ITERATIONS) {
+                return false;
+            }
+
+            let minCrossing = Math.min(nextCrossingX, nextCrossingY, nextCrossingZ);
+
+            if (minCrossing === nextCrossingX) {
+                currentX = currentX + stepDirectionX;
+                nextCrossingX = nextCrossingX + crossingIncrementX;
+            } else if (minCrossing === nextCrossingY) {
+                currentY = currentY + stepDirectionY;
+                nextCrossingY = nextCrossingY + crossingIncrementY;
             } else {
-                //  (minT === tMaxZ)
-                cz += stepZ;
-                tMaxZ += tDeltaZ;
+                currentZ = currentZ + stepDirectionZ;
+                nextCrossingZ = nextCrossingZ + crossingIncrementZ;
             }
-            if (!(cx === ignoreX && cy === ignoreY && cz === ignoreZ)) {
-                const blkID = World.getBlockAt(cx, cy, cz).type.getID();
-                if (blkID !== 0 && blkID !== 513) return false; // air and grey carpet
+
+            if (currentX !== ignoreX || currentY !== ignoreY || currentZ !== ignoreZ) {
+                let blockId = World.getBlockAt(currentX, currentY, currentZ).type.getID();
+
+                if (!PASSABLE_BLOCKS.has(blockId)) {
+                    return false;
+                }
             }
-            if (cx === exv && cy === eyv && cz === ezv) break;
+
+            if (currentX === goalX && currentY === goalY && currentZ === goalZ) {
+                break;
+            }
         }
 
         return true;
     }
+}
 
-    /**
-     * Uses the player's built-in raycast to find the block they're looking at.
-     */
-    raytrace(dist = 5) {
-        const castResult = Player.getPlayer().raycast(dist, 0.0, false);
-        if (!castResult) return null;
+class BlockScanner {
+    constructor() {
+        this.visibilityChecker = new VisibilityChecker();
+    }
 
-        const blockPos = castResult.getBlockPos();
-        if (!blockPos) return null;
+    scanPlayerView(maxDistance, filterFunction) {
+        let eyePos = this.visibilityChecker.getPlayerEyePosition();
+        if (!eyePos) return [];
 
-        const blockAt = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-        return blockAt && blockAt.type.getID() !== 0 ? blockAt : null;
+        let filterFunc =
+            filterFunction ||
+            function (block) {
+                return block && block.type && block.type.getID() !== AIR_BLOCK_ID;
+            };
+
+        return raytraceBlocks([eyePos.x, eyePos.y, eyePos.z], null, maxDistance, filterFunc, false, false);
+    }
+
+    scanBetweenPoints(point1, point2) {
+        let dx = point2[0] - point1[0];
+        let dy = point2[1] - point1[1];
+        let dz = point2[2] - point1[2];
+        let distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (distance === 0) return [];
+
+        let direction = new Vector3(dx / distance, dy / distance, dz / distance);
+
+        return raytraceBlocks(point1, direction, distance, null, false, false);
+    }
+
+    findLookingAtBlock(maxDistance) {
+        maxDistance = maxDistance || 5;
+
+        try {
+            let player = Player.getPlayer();
+            if (!player) return null;
+
+            let result = player.raycast(maxDistance, 0.0, false);
+            if (!result) return null;
+
+            let blockPos = result.getBlockPos();
+            if (!blockPos) return null;
+
+            let block = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+
+            return block && block.type.getID() !== AIR_BLOCK_ID ? block : null;
+        } catch (err) {
+            return null;
+        }
     }
 }
 
-export const RayTrace = new rayTraceUtils();
+export const visibilityChecker = new VisibilityChecker();
+export const voxelTraverser = new VoxelTraverser();
+export const blockScanner = new BlockScanner();
+
+export const RayTrace = {
+    getVisiblePoint: function (blockX, blockY, blockZ, useNative) {
+        useNative = useNative !== false;
+        return visibilityChecker.checkBlockVisibility(blockX, blockY, blockZ, useNative);
+    },
+
+    isBlockVisible: function (blockX, blockY, blockZ, useNative) {
+        useNative = useNative !== false;
+        return visibilityChecker.checkBlockVisibility(blockX, blockY, blockZ, useNative) !== null;
+    },
+
+    isLineClear: function (startX, startY, startZ, endX, endY, endZ, ignoreX, ignoreY, ignoreZ) {
+        return voxelTraverser.checkLineClearance(startX, startY, startZ, endX, endY, endZ, ignoreX, ignoreY, ignoreZ);
+    },
+
+    scanBlocks: function (maxDistance, filter) {
+        return blockScanner.scanPlayerView(maxDistance, filter);
+    },
+
+    scanPath: function (start, end) {
+        return blockScanner.scanBetweenPoints(start, end);
+    },
+
+    getLookingAt: function (distance) {
+        return blockScanner.findLookingAtBlock(distance);
+    },
+
+    clearCache: function () {
+        visibilityChecker.eyeCache = { pos: null, time: 0 };
+    },
+};

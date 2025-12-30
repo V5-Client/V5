@@ -1,10 +1,9 @@
-import request from 'requestV2';
+import request from 'RequestV2';
 
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
-import { PathfindingMessages } from './PathConfig';
-import { Links, Vec3d } from '../Constants';
+import { Links, Vec3d, BP } from '../Constants';
 import { Utils } from '../Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
@@ -55,7 +54,7 @@ export function stopPathing() {
         try {
             path.unregister();
         } catch (e) {
-            console.log('Path already unregistered');
+            Chat.log('Path already unregistered');
         }
         path = null;
     }
@@ -64,7 +63,7 @@ export function stopPathing() {
         try {
             renderPath.unregister();
         } catch (e) {
-            console.log('RenderPath already unregistered');
+            Chat.log('RenderPath already unregistered');
         }
         renderPath = null;
     }
@@ -89,7 +88,7 @@ function findStartY(x, initialY, z) {
 }
 
 export function isBlockWalkable(world, blockVec) {
-    const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+    const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
     const blockState = world.getBlockState(blockPosNMS);
     const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
     return collisionShape.isEmpty();
@@ -122,7 +121,7 @@ function loadMap(map, area, callback) {
         .then(() => {
             currentIsland = area;
             loadingMap = false;
-            console.log(`Successfully loaded map '${map}'.`);
+            Chat.log(`Successfully loaded map '${map}'.`);
             global.showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
 
             if (typeof callback === 'function') {
@@ -131,7 +130,7 @@ function loadMap(map, area, callback) {
         })
         .catch((err) => {
             loadingMap = false;
-            console.log(`Error loading map ${map}: ${err}`);
+            Chat.log(`Error loading map ${map}: ${err}`);
             global.showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
         });
 }
@@ -175,7 +174,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         is_perfect_path: false,
     };
 
-    PathfindingMessages(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
+    Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
@@ -193,12 +192,14 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
             if (!body) {
                 global.showNotification('Pathfinding Failed', 'Empty response from pathfinder.', 'ERROR', 5000);
                 console.error('Pathfinding response was null or undefined');
+                if (onComplete && typeof onComplete === 'function') onComplete(false);
                 return;
             }
 
             if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
                 global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
                 console.error('Invalid keynodes in response:', body);
+                if (onComplete && typeof onComplete === 'function') onComplete(false);
                 return;
             }
 
@@ -217,7 +218,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                 if (body.path_between_key_nodes && Array.isArray(body.path_between_key_nodes) && body.path_between_key_nodes.length) {
                     generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
                 } else if (body.keynodes && body.keynodes.length) {
-                    console.log('No path_between_key_nodes, using keynodes for spline');
+                    Chat.log('No path_between_key_nodes, using keynodes for spline');
                     generatedSpline = generateHybridSpline(body.keynodes, 1);
                 }
 
@@ -253,7 +254,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                     stopPathing();
 
                     global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-                    if (onComplete && typeof onComplete === 'function') onComplete();
+                    if (onComplete && typeof onComplete === 'function') onComplete(true);
                 });
             };
 
@@ -268,6 +269,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
 
             global.showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
             console.error(`Pathfinding request failed: ${err}`);
+            if (onComplete && typeof onComplete === 'function') onComplete(false);
         });
 }
 
@@ -290,7 +292,7 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback) {
             });
             return;
         } else {
-            console.log(`No matching map found for area: ${area}`);
+            Chat.log(`No matching map found for area: ${area}`);
             global.showNotification('Map Error', `Cannot pathfind, no map found for area: ${area}`, 'ERROR', 5000);
             if (Server.getName() === 'SinglePlayer') {
                 const mapValue = Maps['Dwarven Mines']; // just here to load mines as default (singleplayer testing reasons)
@@ -307,7 +309,7 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback) {
 }
 
 global.requestPathRecalculation = function () {
-    PathfindingMessages('§6[Pathfinding] Recalculating path...');
+    Chat.messagePathfinder('§6[Pathfinding] Recalculating path...');
 
     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
 
@@ -321,7 +323,7 @@ global.requestPathRecalculation = function () {
             findAndFollowPath(currentPos, end);
         }, 100);
     } else {
-        PathfindingMessages('§c[Pathfinding] Cannot recalculate - no destination stored');
+        Chat.messagePathfinder('§c[Pathfinding] Cannot recalculate - no destination stored');
         stopPathing();
     }
 };

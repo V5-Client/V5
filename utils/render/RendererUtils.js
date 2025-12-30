@@ -1,6 +1,4 @@
-import { Vec3d } from '../Constants';
-
-const RenderUtilsPackage = Java.type('com.v5.render.RenderUtils');
+import { Vec3d, RenderUtils as RenderUtilsPackage } from '../Constants';
 
 export default class RenderUtils {
     constructor() {}
@@ -95,6 +93,10 @@ export default class RenderUtils {
      */
     static drawLine(startVec3d, endVec3d, ColorArray, thickness = 5, depth = false) {
         RenderUtilsPackage.drawLine(startVec3d, endVec3d, this.setColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]), thickness, depth);
+    }
+
+    static drawTracer(target, color, thickness = 5, depth = false) {
+        RenderUtilsPackage.drawTracer(target, this.setColor(color[0], color[1], color[2], color[3]), thickness, depth);
     }
 
     /**

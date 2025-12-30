@@ -1,5 +1,5 @@
-import { File } from '../utils/Constants';
-import { drawRect, NVG, drawText, THEME } from '../GUI/Utils.js';
+import { File, NVG, KeyBindUtils } from '../utils/Constants';
+import { drawRect, drawText, THEME } from '../gui/Utils.js';
 import { ModuleBase } from '../utils/ModuleBase.js';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
@@ -35,8 +35,8 @@ class AlertUtilsClass {
      * Combines all internal methods to create a failsafe alert
      */
     triggerReaction() {
-        Chat.failsafeMessage('Suspicious activity detected, reaction occuring!');
-        Chat.failsafeMessage(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
+        Chat.messageFailsafe('Suspicious activity detected, reaction occuring!');
+        Chat.messageFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
         this.isAlerting = true;
         this.playSound();
@@ -80,7 +80,7 @@ class AlertUtilsClass {
 
         this.tracker = register('step', () => {
             if (this.cancelKeyBind.isPressed()) {
-                Chat.failsafeMessage('Reaction disabled due to keybind being pressed');
+                Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
                 this.disableReaction();
             }
         });
@@ -93,11 +93,15 @@ class AlertUtilsClass {
         this.isAlerting = false;
         this.stopSound();
 
-        this.render.unregister();
-        this.render = null;
+        if (this.render) {
+            this.render.unregister();
+            this.render = null;
+        }
 
-        this.tracker.unregister();
-        this.tracker = null;
+        if (this.tracker) {
+            this.tracker.unregister();
+            this.tracker = null;
+        }
     }
 
     /**
@@ -180,11 +184,11 @@ class AlertUtilsClass {
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
 
         this.cancelKey = Keyboard.getKeyName(savedKeycode);
-        this.cancelKeyBind = new KeyBind(keyName, savedKeycode, 'v5');
+        this.cancelKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
 
         register('gameUnload', () => {
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-            allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
+            allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
             Utils.writeConfigFile('keybinds.json', allKeybinds);
 
             this.stopSound();
@@ -204,9 +208,13 @@ class AlertUtilsClass {
             GLFW.glfwFocusWindow(windowHandle);
             GLFW.glfwRequestWindowAttention(windowHandle);
         } catch (e) {
-            Chat.failsafeMessage('GLFW error occured! report this.' + e);
+            Chat.messageFailsafe('GLFW error occured! report this.' + e);
         }
     }
 }
 
-export const AlertUtils = new AlertUtilsClass();
+if (!global.V5_ALERT_UTILS) {
+    global.V5_ALERT_UTILS = new AlertUtilsClass();
+}
+
+export const AlertUtils = global.V5_ALERT_UTILS;

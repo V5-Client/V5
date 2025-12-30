@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import { registerEventSB } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
+import { PlayerPositionLookS2C } from '../../utils/Packets';
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -38,7 +39,7 @@ class TeleportFailsafe extends Failsafe {
             if (distance < 0.1) return;
 
             if (this.newX === 0 && this.newY === 0 && this.newZ === 0) {
-                Chat.failsafeMsg('NULL PACKET DETECTED, DO NOT REACT!');
+                Chat.messageFailsafe('NULL PACKET DETECTED, DO NOT REACT!');
                 Webhook.sendEmbed(
                     [
                         {
@@ -58,7 +59,7 @@ class TeleportFailsafe extends Failsafe {
                 if (this.ignore) return;
                 this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
             }, this.settings.FailsafeReactionTime - 50 || 600);
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket);
+        }).setFilteredClass(PlayerPositionLookS2C);
 
         register('worldLoad', () => {
             this.ignore = true;
@@ -100,8 +101,8 @@ class TeleportFailsafe extends Failsafe {
             severity = 'very high';
         }
 
-        Chat.failsafeMsg(`You have been teleported! (${severity} severity)`);
-        Chat.failsafeMsg(
+        Chat.messageFailsafe(`You have been teleported! (${severity} severity)`);
+        Chat.messageFailsafe(
             `from ${fromX.toFixed(2)} ${fromY.toFixed(2)} ${fromZ.toFixed(2)} to ${toX.toFixed(2)} ${toY.toFixed(2)} ${toZ.toFixed(2)} (${distance.toFixed(
                 1
             )} blocks)`

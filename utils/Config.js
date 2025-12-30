@@ -1,121 +1,94 @@
 import { Chat } from './Chat';
 import { File } from './Constants';
 
-let configName = 'V5Config';
+class ConfigInitializer {
+    constructor(baseName) {
+        this.root = baseName;
+        this.basePath = `./config/ChatTriggers/modules/`;
+        this.fullRootPath = `${this.basePath}${this.root}`;
 
-function existsFile(configName, FileName) {
-    return FileLib.exists(configName, FileName);
-}
-
-function deleteFile(configName, FileName) {
-    FileLib.delete(configName, FileName);
-}
-
-function fileBroken(configName, FileName) {
-    let config = FileLib.read(configName, FileName);
-    if (FileName === 'responseMessages.txt') {
-        return;
+        this.setupBaseDirectory();
     }
-    try {
-        JSON.parse(config);
-    } catch (error) {
-        Chat.message('Replaced corrupted file: ' + FileName);
-        deleteFile(configName, FileName);
-        return true;
+
+    setupBaseDirectory() {
+        const rootDir = new File(this.basePath, this.root);
+        if (!rootDir.exists()) rootDir.mkdir();
     }
-    return false;
-}
 
-function makeDir(Name) {
-    let dir = new File('./config/ChatTriggers/modules/' + configName, Name);
-    dir.mkdir();
-}
+    isCorrupted(path) {
+        if (path.endsWith('.txt')) return false;
 
-function makeFile(Path, Content) {
-    FileLib.append(configName, Path, Content);
-}
-
-if (!existsFile('./config/ChatTriggers/modules', configName)) {
-    let dir = new File('./config/ChatTriggers/modules/', configName);
-    dir.mkdir();
-}
-
-let Files = [
-    {
-        path: 'config.json',
-        FileType: 'file',
-        Content: [],
-    },
-    {
-        path: 'keybinds.json',
-        FileType: 'file',
-        Content: [],
-    },
-    {
-        path: 'webhook.json',
-        FileType: 'file',
-        Content: [],
-    },
-    {
-        path: 'responseMessages.txt',
-        FileType: 'text',
-        Content: ['???', 'bro wtf', 'what', 'rly', 'hmmmm', 'bro', '?', 'hello??', 'lol', 'nice bro', '...', 'omg', 'pls', 'lmfao', 'idiot', 'really'],
-    },
-
-    {
-        path: 'GemstoneRoutes',
-        FileType: 'dir',
-    },
-    { path: 'GemstoneRoutes/empty.txt', FileType: 'file', Content: [] },
-
-    {
-        path: 'RoutewalkerRoutes',
-        FileType: 'dir',
-    },
-    { path: 'RoutewalkerRoutes/empty.txt', FileType: 'file', Content: [] },
-
-    {
-        path: 'TunnelMinerRoutes',
-        FileType: 'dir',
-    },
-    { path: 'TunnelMinerRoutes/empty.txt', FileType: 'file', Content: [] },
-
-    {
-        path: 'OreRoutes',
-        FileType: 'dir',
-    },
-    { path: 'OreRoutes/empty.txt', FileType: 'file', Content: [] },
-
-    {
-        path: 'EtherwarpRoutes',
-        FileType: 'dir',
-    },
-    { path: 'EtherwarpRoutes/empty.txt', FileType: 'file', Content: [] },
-    {
-        path: 'authCache',
-        FileType: 'dir',
-    },
-    {
-        path: 'authCache/do_not_share_this_folder',
-        FileType: 'file',
-        Content: [],
-    },
-
-    // Mining Stats
-    { path: 'miningstats.json', FileType: 'file', Content: {} },
-];
-
-// Handles all the extra files
-Files.forEach((FileData) => {
-    if (!existsFile(configName, FileData.path) || fileBroken(configName, FileData.path)) {
-        if (FileData.FileType === 'file') {
-            makeFile(FileData.path, JSON.stringify(FileData.Content, null, 2));
-        }
-        if (FileData.FileType === 'text') {
-            makeFile(FileData.path, FileData.Content.join('\n'));
-        }
-        if (FileData.FileType === 'dir') {
-            makeDir(FileData.path);
+        const rawContent = FileLib.read(this.root, path);
+        try {
+            JSON.parse(rawContent);
+            return false;
+        } catch (e) {
+            Chat.message(`§cRepairing corrupted data: ${path}`);
+            FileLib.delete(this.root, path);
+            return true;
         }
     }
-});
+
+    generate(path, type, payload = []) {
+        const alreadyExists = FileLib.exists(this.root, path);
+        if (alreadyExists && !this.isCorrupted(path)) return;
+
+        switch (type) {
+            case 'dir':
+                new File(this.fullRootPath, path).mkdir();
+                break;
+            case 'text':
+                FileLib.append(this.root, path, payload.join('\n'));
+                break;
+            case 'file':
+            default:
+                FileLib.append(this.root, path, JSON.stringify(payload, null, 4));
+                break;
+        }
+    }
+}
+
+const Manager = new ConfigInitializer('V5Config');
+
+const manifest = {
+    directories: ['GemstoneRoutes', 'RoutewalkerRoutes', 'TunnelMinerRoutes', 'OreRoutes', 'EtherwarpRoutes', 'authCache', 'FarmingMacro'],
+
+    jsonFiles: {
+        'config.json': {},
+        'keybinds.json': {},
+        'webhook.json': {},
+        'miningstats.json': {},
+        'GemstoneRoutes/empty.txt': {},
+        'RoutewalkerRoutes/empty.txt': {},
+        'TunnelMinerRoutes/empty.txt': {},
+        'OreRoutes/empty.txt': {},
+        'EtherwarpRoutes/empty.txt': {},
+        'FarmingMacro/points.txt': {},
+        'authCache/do_not_share_this_folder': [],
+    },
+
+    textFiles: {
+        'responseMessages.txt': [
+            '???',
+            'bro wtf',
+            'what',
+            'rly',
+            'hmmmm',
+            'bro',
+            '?',
+            'hello??',
+            'lol',
+            'nice bro',
+            '...',
+            'omg',
+            'pls',
+            'lmfao',
+            'idiot',
+            'really',
+        ],
+    },
+};
+
+manifest.directories.forEach((dir) => Manager.generate(dir, 'dir'));
+Object.entries(manifest.jsonFiles).forEach(([path, data]) => Manager.generate(path, 'file', data));
+Object.entries(manifest.textFiles).forEach(([path, data]) => Manager.generate(path, 'text', data));

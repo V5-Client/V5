@@ -1,5 +1,3 @@
-import { Chat } from "./Chat";
-
 class RouteState {
     constructor() {
         this.route = null;
