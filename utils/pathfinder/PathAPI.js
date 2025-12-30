@@ -141,8 +141,10 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
 
     searchingTrigger = register('tick', () => {
         if (currentPathRequest !== requestId) {
-            searchingTrigger.unregister();
-            searchingTrigger = null;
+            if (searchingTrigger) {
+                searchingTrigger.unregister();
+                searchingTrigger = null;
+            }
             return;
         }
 
