@@ -9,6 +9,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { OverlayManager } from '../../gui/OverlayUtils';
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
@@ -18,7 +19,7 @@ const STATES = {
     IDLE: 'Idle',
     CHOOSING: 'Choosing Commission',
     TRAVELING: 'Traveling to Location',
-    WAITING_FOR_SPOT: 'Waiting for Spot',
+    WAITING: 'Waiting for Spot',
     MINING: 'Mining',
     SLAYER: 'Killing Mobs',
     SELLING: 'Selling Items',
@@ -38,7 +39,11 @@ class CommissionMacro extends ModuleBase {
             autoDisableOnWorldUnload: false,
         });
 
-        this.createOverlay({ Time: 2022, THis: 34, YEs: 'Bruh' });
+        this.overlayName = 'Commission Macro';
+        this.commissionsCompleted = 0;
+        this.currentToolType = 'None'; // 'Drill', 'Pickaxe', 'Weapon'
+        this.currentToolName = 'None';
+        this.initOverlay();
 
         this.bindToggleKey();
         this.currentState = STATES.IDLE;
@@ -57,10 +62,10 @@ class CommissionMacro extends ModuleBase {
         this.pathfinding = false;
 
         this.drill = null;
-        this.blueCheese = null; // unused rn
+        this.blueCheese = null;
         this.pickaxe = null;
         this.weapon = null;
-        this.isActualDrill = false; // true if using a drill, false for pickaxes
+        this.isActualDrill = false;
         this.miningSpeed = 0;
         this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
@@ -68,12 +73,16 @@ class CommissionMacro extends ModuleBase {
         this.on('step', () => {
             const newCommissions = MiningUtils.readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
+            if (this.enabled) {
+                this.updateOverlay();
+            }
         }).setDelay(1);
         this.on('tick', () => this.runLogic());
 
         this.on('chat', (event) => {
             const msg = event.message.getUnformattedText();
             if (msg?.includes('Commission Complete! Visit the King to claim')) {
+                this.commissionsCompleted++;
                 this.onCommissionComplete();
             }
         });
@@ -116,13 +125,87 @@ class CommissionMacro extends ModuleBase {
         );
     }
 
+    initOverlay() {
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: 'Idle',
+                    Commission: 'None',
+                    Progress: '0%',
+                    Completed: '0',
+                    Tool: 'None',
+                },
+            },
+        ]);
+    }
+
+    getToolDisplay() {
+        if (this.currentState === STATES.SLAYER && this.currentCommission?.name === 'Goblin Slayer' && this.weapon) {
+            return {
+                type: 'Weapon',
+                name: this.weapon.name,
+            };
+        }
+
+        if (this.drill) {
+            const fullName = ChatLib.removeFormatting(this.drill.item.getName());
+            if (this.isActualDrill) {
+                return {
+                    type: 'Drill',
+                    name: fullName,
+                };
+            } else {
+                return {
+                    type: 'Pickaxe',
+                    name: fullName,
+                };
+            }
+        }
+
+        return {
+            type: 'None',
+            name: 'None',
+        };
+    }
+
+    updateOverlay() {
+        const currentCommName = this.currentCommission?.name || 'None';
+        const currentCommData = this.commissions.find((c) => c.name === currentCommName);
+        const currentProgress = currentCommData?.progress || 0;
+        const progressStr = currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
+
+        const toolInfo = this.getToolDisplay();
+        const maxToolNameLen = 45;
+        let toolDisplay = toolInfo.name;
+        if (toolDisplay.length > maxToolNameLen) {
+            toolDisplay = toolDisplay.substring(0, maxToolNameLen - 2) + '..';
+        }
+
+        OverlayManager.createID(this.overlayName, [
+            {
+                title: 'Status',
+                data: {
+                    State: this.currentState,
+                    Commission: currentCommName,
+                    Progress: progressStr,
+                    Completed: String(this.commissionsCompleted),
+                    [toolInfo.type]: toolDisplay,
+                },
+            },
+        ]);
+    }
+
     onEnable() {
         global.macrostate.setMacroRunning(true, 'COMMISSION');
         Chat.message('&aCommission Macro Enabled.');
+
+        this.commissionsCompleted = 0;
+
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
         this.pickaxe = this.drill;
-        this.blueCheese = drills.blueCheese; // unused rn
+        this.blueCheese = drills.blueCheese;
 
         if (!this.drill) {
             Chat.message('&cNo drill or pickaxe found in hotbar!');
@@ -142,6 +225,8 @@ class CommissionMacro extends ModuleBase {
         this.weapon = this.getWeaponFromSlot();
         if (!this.weapon) {
             Chat.message('&eNo weapon found in Goblin Slayer slot. Goblin commissions will be skipped.');
+        } else {
+            Chat.message(`&aUsing weapon: &b${this.weapon.name}`);
         }
 
         this.miningSpeed = MiningUtils.getMiningSpeed('Dwarven Mines');
@@ -152,11 +237,13 @@ class CommissionMacro extends ModuleBase {
         }
 
         this.resetState();
+        this.updateOverlay();
     }
 
     onDisable() {
         global.macrostate.setMacroRunning(false, 'COMMISSION');
         Chat.message('&cCommission Macro Disabled.');
+
         MiningBot.toggle(false);
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -186,6 +273,7 @@ class CommissionMacro extends ModuleBase {
         if (this.currentState !== newState) {
             Chat.message(`&aCommission Macro: &eChanging state to ${newState}`);
             this.currentState = newState;
+            this.updateOverlay();
         }
     }
 
@@ -560,6 +648,7 @@ class CommissionMacro extends ModuleBase {
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
         Guis.setItemSlot(this.drill.slot);
+        this.updateOverlay();
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
@@ -589,6 +678,8 @@ class CommissionMacro extends ModuleBase {
             this.toggle(false);
             return;
         }
+
+        this.updateOverlay();
 
         this.currentMobConfig = MOB_CONFIGS[mobType];
         if (!this.currentMobConfig) {
@@ -678,11 +769,6 @@ class CommissionMacro extends ModuleBase {
 
         this.commissions = newCommissions;
 
-        Chat.message('&aCommissions Updated');
-        this.commissions.forEach((c) => {
-            Chat.message(`&7- &f${c.name}: &b${c.progress === 1 ? 'DONE' : (c.progress * 100).toFixed(0) + '%'}`);
-        });
-
         if (this.awaitingTabUpdate) {
             const stillCompleted = this.commissions.some((c) => c.progress === 1);
             if (!stillCompleted) {
@@ -696,6 +782,8 @@ class CommissionMacro extends ModuleBase {
                 }
             }
         }
+
+        this.updateOverlay();
     }
 }
 
