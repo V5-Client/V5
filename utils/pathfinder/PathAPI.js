@@ -3,7 +3,7 @@ import request from 'RequestV2';
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
-import { Vec3d } from '../Constants';
+import { Vec3d, BP } from '../Constants';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
@@ -15,6 +15,7 @@ let renderPath = null;
 let currentPathRequest = null;
 let path = null;
 let searchingTrigger = null;
+let currentPathCallback = null;
 
 export let pathNodes = [];
 export let keyNodes = [];
@@ -69,6 +70,10 @@ export function stopPathing() {
     }
 
     currentPathRequest = null;
+}
+
+export function clearPathCallback() {
+    currentPathCallback = null;
 }
 
 function findStartY(x, initialY, z) {
@@ -218,7 +223,11 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
             stopPathing();
 
             global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-            if (onComplete && typeof onComplete === 'function') onComplete(true);
+
+            if (onComplete && typeof onComplete === 'function') {
+                onComplete(true);
+            }
+            currentPathCallback = null;
         });
     });
 }
@@ -226,6 +235,8 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
 export function findAndFollowPath(start, end, renderOnlyOrCallback) {
     const renderOnly = typeof renderOnlyOrCallback === 'boolean' ? renderOnlyOrCallback : false;
     const onComplete = typeof renderOnlyOrCallback === 'function' ? renderOnlyOrCallback : null;
+
+    currentPathCallback = onComplete;
 
     executePathfinding(start, end, onComplete, renderOnly);
 }
@@ -238,11 +249,12 @@ global.requestPathRecalculation = function () {
     if (keyNodes && keyNodes.length > 0) {
         const destination = keyNodes[keyNodes.length - 1];
         const end = [destination.x, destination.y, destination.z];
+        const savedCallback = currentPathCallback;
 
         stopPathing();
 
         setTimeout(() => {
-            findAndFollowPath(currentPos, end);
+            findAndFollowPath(currentPos, end, savedCallback);
         }, 100);
     } else {
         Chat.messagePathfinder('§c[Pathfinding] Cannot recalculate - no destination stored');
@@ -274,4 +286,5 @@ register('command', (...args) => {
 
 register('command', () => {
     stopPathing();
+    clearPathCallback();
 }).setName('stop', true);
