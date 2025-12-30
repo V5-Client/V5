@@ -213,7 +213,13 @@ class RotationsTo {
         this.applyRotationWithGCD(nextYaw, nextPitch);
     }
 
-    rotateToAngles(yaw, pitch) {
+    rotateToAngles(yaw, pitch, continuous = false) {
+        if (continuous && this.isRotating) {
+            this.target = { yaw, pitch };
+            this.targetVector = null;
+            return;
+        }
+
         if (this.target && Math.abs(this.target.yaw - yaw) < 0.01 && Math.abs(this.target.pitch - pitch) < 0.01) return;
 
         this.target = { yaw, pitch };
@@ -225,10 +231,10 @@ class RotationsTo {
         this.resetGCDTracking();
     }
 
-    rotateToVector(Vector) {
+    rotateToVector(Vector, continuous = false) {
         const angles = this.getAnglesFromVector(Vector);
         if (!angles) return;
-        this.rotateToAngles(angles.yaw, angles.pitch);
+        this.rotateToAngles(angles.yaw, angles.pitch, continuous);
     }
 
     onEndRotation(callBack, name = null) {

@@ -40,6 +40,7 @@ export const SnowBlock = net.minecraft.block.SnowBlock;
 export const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
 export const ArmorStandEntity = net.minecraft.entity.decoration.ArmorStandEntity;
 export const ZombieEntity = net.minecraft.entity.mob.ZombieEntity;
+export const EndermanEntity = net.minecraft.entity.mob.EndermanEntity;
 export const Class709 = net.minecraft.class_709; // pls rename to the correct name idk what it is
 
 export const MinecraftText = net.minecraft.text.Text;
