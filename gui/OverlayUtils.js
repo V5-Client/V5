@@ -6,6 +6,7 @@ import {
     FontSizes,
     THEME,
     isInside,
+    drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
     colorWithAlpha,
     drawRect,
@@ -31,6 +32,7 @@ class OverlayUtils {
         this.animations = {};
         this.stepTrigger = null;
         this.drawRegistered = false;
+        this.pendingSave = false;
 
         this.mainRenderTrigger = register('renderOverlay', () => {
             if (global.Overlays.Gui.isOpen()) return;
@@ -45,10 +47,19 @@ class OverlayUtils {
         }
     }
 
+    ensureArray(val) {
+        if (Array.isArray(val)) return val;
+        if (val && typeof val === 'object') {
+            return Object.values(val).filter((item) => item && typeof item === 'object');
+        }
+        return [];
+    }
+
     startAnimationLoop() {
         if (this.stepTrigger) return;
         this.stepTrigger = register('step', () => {
             let activeAnimations = 0;
+
             for (let name in this.animations) {
                 let anim = this.animations[name];
                 let diff = anim.target - anim.progress;
@@ -100,21 +111,35 @@ class OverlayUtils {
     }
 
     formatUptime(startTime) {
-        if (!startTime) return '0.00';
+        if (!startTime) return '0s';
         const diff = Date.now() - startTime;
-        const totalSeconds = Math.floor(diff / 1000);
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
-        const ms = Math.floor((diff % 1000) / 10)
-            .toString()
-            .padStart(2, '0');
-        let timeStr = h > 0 ? `${h}:${m.toString().padStart(2, '0')}:` : m > 0 ? `${m}:` : '';
-        return `${timeStr}${s.toString().padStart(m > 0 || h > 0 ? 2 : 1, '0')}.${ms}`;
+        const s = Math.floor(diff / 1000);
+        const m = Math.floor(s / 60);
+        const h = Math.floor(m / 60);
+        const d = Math.floor(h / 24);
+
+        const secs = s % 60;
+        const mins = m % 60;
+        const hours = h % 24;
+
+        const parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0) parts.push(`${hours}h`);
+        if (m > 0) parts.push(`${mins}m`);
+        parts.push(`${secs}s`);
+
+        return parts.join(' ');
     }
 
     initTriggers() {
-        global.Overlays.Gui.registerClosed(() => openModuleGui());
+        global.Overlays.Gui.registerClosed(() => {
+            // Save positions when GUI closes
+            if (this.pendingSave) {
+                this.saveIDs();
+                this.pendingSave = false;
+            }
+            openModuleGui();
+        });
         global.Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
         global.Overlays.Gui.registerMouseDragged((x, y, b) => b === 0 && this.handleMouseDrag(x, y));
         global.Overlays.Gui.registerMouseReleased(() => this.handleMouseRelease());
@@ -127,27 +152,31 @@ class OverlayUtils {
     }
 
     createID(idName, sections = []) {
+        const sectionsArray = this.ensureArray(sections);
+
         let existing = this.ids.find((id) => id.name === idName);
         if (existing) {
-            existing.sections = sections;
+            if (JSON.stringify(existing.sections) !== JSON.stringify(sectionsArray)) {
+                existing.sections = sectionsArray;
+            }
         } else {
             const textWidth = getTextWidth(idName, this.fontSize);
-            const width = Math.max(160 * this.scale, textWidth + this.boxPadding * 2);
+            const width = Math.max(200 * this.scale, textWidth + this.boxPadding * 2);
             const newId = {
                 name: idName,
-                sections: sections,
+                sections: sectionsArray,
                 x: 10,
                 y: 10 + this.ids.length * (80 * this.scale),
                 width: width,
                 height: this.minBoxHeight,
             };
             this.ids.push(newId);
+            this.saveIDs();
         }
 
         if (!this.animations[idName]) {
             this.animations[idName] = { progress: 0, target: 0 };
         }
-        this.saveIDs();
     }
 
     handleMouseClick(mouseX, mouseY) {
@@ -168,12 +197,55 @@ class OverlayUtils {
         const sh = Renderer.screen.getHeight();
         this.draggingId.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - this.draggingId.width));
         this.draggingId.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - this.draggingId.height));
+        this.pendingSave = true;
     }
 
     handleMouseRelease() {
         if (this.draggingId) {
             this.draggingId = null;
             this.saveIDs();
+            this.pendingSave = false;
+        }
+    }
+
+    drawAccentGlow(x, y, width, height, radius, progress) {
+        const accentColor = THEME.DROPDOWN_FOREGROUND;
+        const glowIntensity = 0.12;
+
+        for (let i = 3; i >= 0; i--) {
+            const expand = i * 2;
+            const alpha = (glowIntensity - i * 0.025) * progress;
+            if (alpha <= 0) continue;
+
+            drawRoundedRectangle({
+                x: x - expand,
+                y: y - expand,
+                width: width + expand * 2,
+                height: height + expand * 2,
+                radius: radius + expand,
+                color: colorWithAlpha(accentColor.getRGB(), alpha),
+            });
+        }
+    }
+
+    drawSectionDivider(x, y, width, progress) {
+        const accentColor = THEME.DROPDOWN_FOREGROUND;
+        const dividerHeight = 1;
+
+        const segments = 20;
+        const segmentWidth = width / segments;
+
+        for (let i = 0; i < segments; i++) {
+            const distFromCenter = Math.abs(i - segments / 2) / (segments / 2);
+            const alpha = Math.max(0, (1 - distFromCenter * distFromCenter) * 0.3 * progress);
+
+            drawRect({
+                x: x + i * segmentWidth,
+                y: y,
+                width: segmentWidth + 1,
+                height: dividerHeight,
+                color: colorWithAlpha(accentColor.getRGB(), alpha),
+            });
         }
     }
 
@@ -184,78 +256,104 @@ class OverlayUtils {
 
         if (!forceGUI && (!anim || (anim.target === 0 && anim.progress <= 0.01))) return;
 
+        const sections = this.ensureArray(id.sections);
         const uptimeVal = this.formatUptime(this.startTimes[id.name]);
-        let runningY = 25 * this.scale;
-        let maxWidth = getTextWidth(id.name, this.fontSize) + this.boxPadding * 2;
 
-        id.sections.forEach((section) => {
-            runningY += 30 * this.scale;
-            Object.entries(section.data).forEach(([k, v]) => {
-                const lineW = getTextWidth(`${k}: ${v}`, this.argFontSize) + 35 * this.scale;
+        let maxWidth = getTextWidth(id.name, this.fontSize) + this.boxPadding * 3;
+
+        let calculatedHeight = 0;
+        calculatedHeight += 20 * this.scale;
+        calculatedHeight += 10 * this.scale;
+
+        sections.forEach((section, sIdx) => {
+            if (!section || typeof section !== 'object') return;
+            calculatedHeight += 10 * this.scale;
+
+            const sectionData = section.data || {};
+            const entries = Object.entries(sectionData);
+
+            entries.forEach(([k, v]) => {
+                const lineW = getTextWidth(`${k}:`, this.argFontSize) + getTextWidth(String(v), this.argFontSize) + 65 * this.scale;
                 if (lineW > maxWidth) maxWidth = lineW;
-                runningY += 16 * this.scale;
             });
+
+            if (sIdx === 0) {
+                const lineW = getTextWidth(`Uptime:`, this.argFontSize) + getTextWidth(uptimeVal, this.argFontSize) + 65 * this.scale;
+                if (lineW > maxWidth) maxWidth = lineW;
+            }
+
+            let lineCount = entries.length + (sIdx === 0 ? 1 : 0);
+            calculatedHeight += lineCount * 14 * this.scale;
+            calculatedHeight += 2 * this.scale;
         });
 
-        id.width = Math.max(160 * this.scale, maxWidth);
-        id.height = Math.max(this.minBoxHeight, runningY + 10 * this.scale);
-        const currentHeight = id.height * progress;
+        calculatedHeight += 6 * this.scale;
 
-        NVG.resetScissor();
-        NVG.scissor(id.x - 5, id.y - 5, id.width + 10, currentHeight + 10);
-        drawShadow(id.x, id.y, id.width, currentHeight, 10 * this.scale, 0.35 * progress);
+        id.width = Math.max(220 * this.scale, maxWidth);
+        id.height = Math.max(this.minBoxHeight, calculatedHeight);
+
+        const currentHeight = id.height * progress;
+        const radius = CORNER_RADIUS * this.scale;
+
+        const bgColor = colorWithAlpha(THEME.GUI_DRAW_BACKGROUND.getRGB(), 0.95 * progress);
+
+        drawShadow(id.x, id.y, id.width, currentHeight, 18 * this.scale, 0.45 * progress);
+
         drawRoundedRectangleWithBorder({
             x: id.x,
             y: id.y,
             width: id.width,
             height: currentHeight,
-            radius: CORNER_RADIUS * this.scale,
-            color: THEME.GUI_DRAW_BACKGROUND,
+            radius: radius,
+            color: bgColor,
             borderWidth: BORDER_WIDTH * this.scale,
-            borderColor: THEME.GUI_DRAW_BACKGROUND_BORDER,
+            borderColor: colorWithAlpha(THEME.GUI_DRAW_BACKGROUND_BORDER.getRGB(), 0.7 * progress),
         });
 
-        if (progress > 0.4) {
-            const titleY = id.y + 13 * this.scale;
-            drawText(id.name, id.x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2, titleY, this.fontSize, colorWithAlpha(0xffffffff, progress), 16);
-            let contentY = titleY + 15 * this.scale;
-            id.sections.forEach((section, sIdx) => {
-                drawRect({
-                    x: id.x + 10 * this.scale,
-                    y: contentY,
-                    width: id.width - 20 * this.scale,
-                    height: 1,
-                    color: colorWithAlpha(THEME.GUI_DRAW_BORDER, 0.2 * progress),
-                });
-                contentY += 8 * this.scale;
-                const secTitle = section.title.toUpperCase();
-                drawText(
-                    secTitle,
-                    id.x + id.width / 2 - getTextWidth(secTitle, this.argFontSize * 0.9) / 2,
-                    contentY,
-                    this.argFontSize * 0.9,
-                    colorWithAlpha(0xffaaaaaa, progress),
-                    16
-                );
-                contentY += 14 * this.scale;
-                const renderLine = (label, val) => {
-                    drawText(label, id.x + 15 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xffffffff, progress), 16);
-                    drawText(
-                        String(val),
-                        id.x + 15 * this.scale + getTextWidth(label, this.argFontSize),
-                        contentY,
-                        this.argFontSize,
-                        colorWithAlpha(0xff99a3b0, progress),
-                        16
-                    );
-                    contentY += 16 * this.scale;
+        this.drawAccentGlow(id.x, id.y, id.width, currentHeight, radius, progress * 0.4);
+
+        if (progress > 0.1) {
+            const contentAlpha = Math.min(1, progress * 3);
+
+            NVG.scissor(id.x, id.y, id.width, currentHeight);
+
+            const titleY = id.y + 20 * this.scale;
+            const titleX = id.x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
+
+            drawText(id.name, titleX + 1, titleY + 1, this.fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), 16);
+            drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
+
+            let contentY = titleY + 10 * this.scale;
+            sections.forEach((section, sIdx) => {
+                if (!section || typeof section !== 'object') return;
+
+                this.drawSectionDivider(id.x + 18 * this.scale, contentY, id.width - 36 * this.scale, contentAlpha);
+                contentY += 10 * this.scale;
+
+                const renderLine = (label, val, isUptime = false) => {
+                    const labelWidth = getTextWidth(label, this.argFontSize);
+
+                    drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
+
+                    const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
+                    const valueColor = isUptime
+                        ? colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha)
+                        : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
+
+                    drawText(String(val), valueX, contentY, this.argFontSize, valueColor, 17);
+
+                    contentY += 14 * this.scale;
                 };
-                if (sIdx === 0) renderLine('Uptime: ', uptimeVal);
-                Object.entries(section.data).forEach(([k, v]) => renderLine(`${k}: `, v));
-                contentY += 5 * this.scale;
+
+                if (sIdx === 0) renderLine('Uptime:', uptimeVal, true);
+
+                const sectionData = section.data || {};
+                Object.entries(sectionData).forEach(([k, v]) => renderLine(`${k}:`, v, false));
+                contentY += 4 * this.scale;
             });
+
+            NVG.resetScissor();
         }
-        NVG.resetScissor();
     }
 
     drawGUI() {
@@ -297,24 +395,29 @@ class OverlayUtils {
 
     saveIDs() {
         const data = {};
-        this.ids.forEach((id) => (data[id.name] = { x: id.x, y: id.y, sections: id.sections }));
+        this.ids.forEach((id) => {
+            const sections = this.ensureArray(id.sections);
+            data[id.name] = { x: id.x, y: id.y, sections: sections };
+        });
         Utils.writeConfigFile('overlays.json', data);
     }
 
     loadIDs() {
         const data = Utils.getConfigFile('overlays.json') || {};
-        this.ids = Object.keys(data).map((name) => ({
-            name,
-            x: data[name].x,
-            y: data[name].y,
-            sections: data[name].sections || [],
-            width: 0,
-            height: this.minBoxHeight,
-        }));
+        this.ids = Object.keys(data).map((name) => {
+            const entry = data[name] || {};
+            return {
+                name,
+                x: entry.x !== undefined ? entry.x : 10,
+                y: entry.y !== undefined ? entry.y : 10,
+                sections: this.ensureArray(entry.sections),
+                width: 0,
+                height: this.minBoxHeight,
+            };
+        });
     }
 
     openPositionsGUI() {
-        this.loadIDs();
         global.GuiState.myGui.close();
         global.Overlays.Gui.open();
     }
