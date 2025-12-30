@@ -2,6 +2,7 @@
 import './mining/Nuker.js';
 import './mining/CommissionMacro.js';
 import './mining/GemstoneMacro.js';
+import './mining/PowderMacro.js';
 import './mining/PinglessMining.js';
 //import './Mining/ScathaMacro.js';
 import './mining/ExcavatorMacro.js';
