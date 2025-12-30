@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import { registerEventSB } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
+import { PlayerPositionLookS2C } from '../../utils/Packets';
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -58,7 +59,7 @@ class TeleportFailsafe extends Failsafe {
                 if (this.ignore) return;
                 this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
             }, this.settings.FailsafeReactionTime - 50 || 600);
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket);
+        }).setFilteredClass(PlayerPositionLookS2C);
 
         register('worldLoad', () => {
             this.ignore = true;

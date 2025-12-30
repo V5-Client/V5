@@ -1,6 +1,6 @@
 ﻿import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
-import { Vec3d } from '../../utils/Constants';
+import { Vec3d, ZombieEntity } from '../../utils/Constants';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
@@ -9,7 +9,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 
 const COMBAT_PRESETS = {
     Graveyard: {
-        entityClass: net.minecraft.entity.mob.ZombieEntity,
+        entityClass: ZombieEntity,
         checkVisibility: false,
         boundaryCheck: (x, y, z) => y >= 60 && y <= 100 && x <= -72,
     },

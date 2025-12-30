@@ -1,4 +1,5 @@
 import { MathUtils } from '../../../utils/Math';
+import { BP } from '../../../utils/Constants';
 
 export default class FarmHandler {
     constructor(parent) {
@@ -125,7 +126,7 @@ export default class FarmHandler {
             const targetY = Math.round(p.getY()) + yOffset;
             const targetZ = Math.floor(p.getZ() + offZ);
 
-            const pos = new net.minecraft.util.math.BlockPos(targetX, targetY, targetZ);
+            const pos = new BP(targetX, targetY, targetZ);
             const state = World.getWorld().getBlockState(pos);
             const block = state.getBlock();
             const CTBlock = World.getBlockAt(targetX, targetY, targetZ);

@@ -1,4 +1,5 @@
-import { THEME, isInside, colorWithAlpha, drawRoundedRectangle, drawText, NVG, composite, FontSizes } from './Utils';
+import { THEME, colorWithAlpha, drawRoundedRectangle, drawText, FontSizes } from './Utils';
+import { NVG } from '../utils/Constants';
 
 // Configuration
 const RENDER_ABOVE_GUI = true; // toggle rendering above guis

@@ -3,7 +3,7 @@
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import { PlayerActionC2SPacket, HandSwingC2SPacket } from '../../utils/Constants';
+import { PlayerActionC2S, HandSwingC2S } from '../../utils/Packets';
 
 class Pingless extends ModuleBase {
     constructor() {
@@ -46,7 +46,7 @@ class Pingless extends ModuleBase {
 
                 this.mining = true;
             }
-        }).setFilteredClass(PlayerActionC2SPacket);
+        }).setFilteredClass(PlayerActionC2S);
 
         this.on('packetSent', () => {
             if (Utils.area() !== 'Crystal Hollows') return;
@@ -59,7 +59,7 @@ class Pingless extends ModuleBase {
                 this.mining = false;
                 this.pos = null;
             }
-        }).setFilteredClass(HandSwingC2SPacket);
+        }).setFilteredClass(HandSwingC2S);
 
         this.addSlider('Tick Delay', 0, 5, 1, (v) => (this.tickCount = v), 'How long to wait before removing hardstone.');
     }

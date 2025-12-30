@@ -1,102 +1,91 @@
 import { System } from '../Constants.js';
+import { ClientStatusC2S, WorldTimeUpdateS2C, StatisticsS2C, GameJoinS2C } from '../Packets';
 
-const GameJoin = net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
-const Statistics = net.minecraft.network.packet.s2c.play.StatisticsS2CPacket;
-const ClientStatus = net.minecraft.network.packet.c2s.play.ClientStatusC2SPacket;
-const WorldTimeUpdate = net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
-
-class ServerInfoClass {
+class NetworkMonitor {
     constructor() {
-        this.prevTime = null;
-        this.averageTps = 20;
-        this.tpsWindow = 5;
+        this.lastTpsPacket = 0;
+        this.tpsAlpha = 0.3;
+        this.currentTps = 20;
 
-        this.averagePing = 0;
-        this.pingWindow = 5;
-        this.isPinging = false;
-        this.pingCache = -1;
-        this.lastPingAt = -1;
-
-        this.system = System;
-
-        this.initializeTracking();
+        this.pingHistory = [];
+        this.maxHistory = 5;
+        this.waitingForPing = false;
+        this.pingStartNano = 0;
+        this.avgPing = 0;
     }
 
-    initializeTracking() {
-        register('worldLoad', () => {
-            this.prevTime = null;
-            this.averageTps = 20;
-            this.pingCache = -1;
-            this.isPinging = false;
-            this.averagePing = 0;
-        });
-
-        register('packetReceived', () => {
-            if (this.lastPingAt > 0) {
-                this.lastPingAt = -1;
-                this.isPinging = false;
-            }
-        }).setFilteredClass(GameJoin);
-
-        // ping calculation
-        register('packetReceived', () => {
-            if (this.lastPingAt > 0) {
-                let diff = Math.abs((this.system.nanoTime() - this.lastPingAt) / 1_000_000);
-                this.lastPingAt *= -1;
-                this.pingCache = diff;
-                let alpha = 2 / (this.pingWindow + 1);
-                this.averagePing = diff * alpha + (this.averagePing > 0 ? this.averagePing * (1 - alpha) : diff);
-                this.isPinging = false;
-            }
-        }).setFilteredClass(Statistics);
-
-        // tps calculation
-        register('packetReceived', () => {
-            if (this.prevTime !== null) {
-                let time = Date.now() - this.prevTime;
-                let instantTps = MathLib.clampFloat(20000 / time, 0, 20);
-                let alpha = 2 / (this.tpsWindow + 1);
-                this.averageTps = instantTps * alpha + this.averageTps * (1 - alpha);
-            }
-            this.prevTime = Date.now();
-        }).setFilteredClass(WorldTimeUpdate);
-
-        // send ping requests
-        register('step', () => {
-            this.sendPing();
-        }).setDelay(1);
+    recordTpsPacket() {
+        const now = Date.now();
+        if (this.lastTpsPacket > 0) {
+            const delta = now - this.lastTpsPacket;
+            const instant = Math.min(20, 20000 / delta);
+            this.currentTps = instant * this.tpsAlpha + this.currentTps * (1 - this.tpsAlpha);
+        }
+        this.lastTpsPacket = now;
     }
 
-    sendPing() {
-        if (!this.isPinging) {
-            Client.sendPacket(new ClientStatus(ClientStatus.class_2800.REQUEST_STATS));
-            this.lastPingAt = this.system.nanoTime();
-            this.isPinging = true;
+    sendPingRequest() {
+        if (!this.waitingForPing) {
+            Client.sendPacket(new ClientStatusC2S(ClientStatusC2S.class_2800.REQUEST_STATS));
+            this.pingStartNano = System.nanoTime();
+            this.waitingForPing = true;
         }
     }
 
-    /**
-     * Get the current server ping in milliseconds
-     * @returns {number} The average ping in milliseconds, or -1 if not available
-     */
-    getPing() {
-        return Math.round(this.averagePing);
+    resolvePing() {
+        if (this.waitingForPing) {
+            const elapsedMs = (System.nanoTime() - this.pingStartNano) / 1_000_000;
+            this.waitingForPing = false;
+
+            this.pingHistory.push(elapsedMs);
+            if (this.pingHistory.length > this.maxHistory) {
+                this.pingHistory.shift();
+            }
+
+            let sum = 0;
+            for (var i = 0; i < this.pingHistory.length; i++) {
+                sum += this.pingHistory[i];
+            }
+            this.avgPing = sum / this.pingHistory.length;
+        }
     }
 
-    /**
-     * Get the current server TPS (Ticks Per Second)
-     * @returns {number} The average TPS, typically between 0-20
-     */
-    getTPS() {
-        return parseFloat(this.averageTps.toFixed(1));
+    reset() {
+        this.lastTpsPacket = 0;
+        this.currentTps = 20;
+        this.pingHistory = [];
+        this.avgPing = 0;
+        this.waitingForPing = false;
     }
+}
 
-    getServerInfo() {
+const monitor = new NetworkMonitor();
+
+register('worldLoad', () => monitor.reset());
+
+register('packetReceived', (packet) => {
+    monitor.recordTpsPacket();
+}).setFilteredClass(WorldTimeUpdateS2C);
+
+register('packetReceived', (packet) => {
+    monitor.resolvePing();
+}).setFilteredClass(StatisticsS2C);
+
+register('packetReceived', () => {
+    monitor.waitingForPing = false;
+}).setFilteredClass(GameJoinS2C);
+
+register('step', () => {
+    monitor.sendPingRequest();
+}).setDelay(1);
+
+export const ServerInfo = {
+    getPing: () => Math.round(monitor.avgPing),
+    getTPS: () => parseFloat(monitor.currentTps.toFixed(1)),
+    getServerInfo: function () {
         return {
             ping: this.getPing(),
             tps: this.getTPS(),
         };
-    }
-}
-
-export const ServerInfo = new ServerInfoClass();
+    },
+};

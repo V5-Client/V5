@@ -181,14 +181,16 @@ class RouteWalkerer extends ModuleBase {
 
                     if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) > 0.1) return;
 
-                    let point = RayTrace.getPointOnBlock(targetBlockPos, false);
+                    let point = RayTrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 
                     if (!this.etherwarpReady) {
                         if (point) {
                             Rotations.rotateToVector([point[0], point[1], point[2]], 0.5, false);
 
                             Rotations.onEndRotation(() => {
-                                Keybind.rightClickDelay(7);
+                                Client.scheduleTask(7, () => {
+                                    Keybind.rightClick();
+                                });
                             });
                             this.etherwarpReady = true;
                         } else {

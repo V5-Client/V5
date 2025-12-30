@@ -12,6 +12,9 @@ let lastYaw = 0;
 let lastPitch = 0;
 let cachedBlock = null;
 let cachedColor = null;
+let prevX = Player.getX();
+let prevY = Player.getY();
+let prevZ = Player.getZ();
 
 const ANGLE_THRESHOLD = 0.1; // this is prob really low but idc tbh
 const MOVEMENT_THRESHOLD = 0.1; // same
@@ -39,7 +42,7 @@ register('tick', () => {
         Math.abs(currentY - prevY) > MOVEMENT_THRESHOLD ||
         Math.abs(currentZ - prevZ) > MOVEMENT_THRESHOLD
     ) {
-        cachedBlock = RayTrace.raytrace(61);
+        cachedBlock = RayTrace.getLookingAt(61);
 
         // precalculate the color based on validity. idk if this is needed but who cares.
         if (cachedBlock && isValidTeleport(cachedBlock)) {

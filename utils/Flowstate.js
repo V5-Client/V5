@@ -1,4 +1,5 @@
 import { Chat } from './Chat';
+import { BlockUpdateS2C } from './Packets';
 
 class FlowstateUtilsClass {
     constructor() {
@@ -55,7 +56,7 @@ class FlowstateUtilsClass {
                     this.multiplier++;
                 }
             }
-        }).setFilteredClasses([net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket]);
+        }).setFilteredClass(BlockUpdateS2C);
 
         register('step', () => {
             if (this.countdown === 0) {

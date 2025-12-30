@@ -10,7 +10,8 @@ import { Guis } from '../../utils/player/Inventory';
 import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Vec3d, HandSwingC2SPacket } from '../../utils/Constants';
+import { Vec3d, MCHand } from '../../utils/Constants';
+import { HandSwingC2S, PlayerActionC2S } from '../../utils/Packets';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -118,7 +119,7 @@ class Bot extends ModuleBase {
         this.exploit = register('packetSent', (packet, event) => {
             if (packet?.getAction()?.toString() === 'ABORT_DESTROY_BLOCK') cancel(event);
         })
-            .setFilteredClass(net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket)
+            .setFilteredClass(PlayerActionC2S)
             .unregister();
 
         this.debug = register('postRenderWorld', () => this.renderDebug()).unregister();
@@ -379,8 +380,8 @@ class Bot extends ModuleBase {
             if (this.currentTarget) {
                 this.swingTickCounter++;
                 if (this.swingTickCounter >= 4) {
-                    Client.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
-                    Player.getPlayer().swingHand(Hand.MAIN_HAND);
+                    Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
+                    Player.getPlayer().swingHand(MCHand.MAIN_HAND);
                     this.swingTickCounter = 0;
                 }
             }

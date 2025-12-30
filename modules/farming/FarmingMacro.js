@@ -8,7 +8,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Router } from '../../utils/Router';
 import RenderUtils from '../../utils/render/RendererUtils';
-import { Vec3d } from '../../utils/Constants';
+import { Vec3d, BP } from '../../utils/Constants';
 import { attachMixin } from '../../utils/AttachMixin';
 import { spawnBreakParticles } from '../../mixins/SpawnBreakParticlesMixin';
 const FARMING_DATA = [
@@ -782,7 +782,7 @@ class FarmingMacro extends ModuleBase {
             const targetY = Math.round(p.getY()) + yOffset;
             const targetZ = Math.floor(p.getZ() + offZ);
 
-            const pos = new net.minecraft.util.math.BlockPos(targetX, targetY, targetZ);
+            const pos = new BP(targetX, targetY, targetZ);
             const state = World.getWorld().getBlockState(pos);
             const block = state.getBlock();
 

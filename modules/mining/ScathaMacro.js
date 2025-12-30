@@ -6,7 +6,7 @@ import { Time } from '../../utils/Timing';
 import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
-import { Vec3d } from '../../utils/Constants';
+import { Vec3d, ArmorStandEntity } from '../../utils/Constants';
 class ScathaMacro extends ModuleBase {
     constructor() {
         super({
@@ -755,7 +755,7 @@ class ScathaMacro extends ModuleBase {
     findTarget() {
         const py = Math.floor(Player.getY());
         const pz = Math.floor(Player.getZ());
-        const list = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
+        const list = World.getAllEntitiesOfType(ArmorStandEntity);
         const ent =
             list.find((e) => {
                 const raw = e.getName?.() || '';
@@ -774,7 +774,7 @@ class ScathaMacro extends ModuleBase {
     findTargetStand() {
         const py = Math.floor(Player.getY());
         const pz = Math.floor(Player.getZ());
-        const list = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
+        const list = World.getAllEntitiesOfType(ArmorStandEntity);
         const ent =
             list.find((e) => {
                 const name = e.getName?.() || '';

@@ -2,6 +2,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
 import { Guis } from '../../utils/player/Inventory';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { ArmorStandEntity } from '../../utils/Constants';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -80,7 +81,7 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 0: // detect fish bobber pull ready thing
-                let stand = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
+                let stand = World.getAllEntitiesOfType(ArmorStandEntity);
                 const target = stand.find((element) => element.getName() === '!!!');
                 if (!target) return;
                 Keybind.rightClick();

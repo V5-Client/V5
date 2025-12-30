@@ -1,77 +1,86 @@
-const actions = new Map();
+import { Chat } from './Chat';
 
-function registerEventSB(name, callback) {
-    const eventName = name.toLowerCase();
-    if (!actions.has(eventName)) {
-        actions.set(eventName, []);
+class SkyblockEventManager {
+    constructor() {
+        this.listeners = {};
+        this.setupTriggers();
     }
-    actions.get(eventName).push(callback);
+
+    /**
+     * Subscribe to a custom event
+     * @param {string} name - Event identifier
+     * @param {function} callback - Execution block
+     */
+    subscribe(name, callback) {
+        const id = name.toLowerCase();
+        if (!this.listeners[id]) this.listeners[id] = [];
+        this.listeners[id].push(callback);
+    }
+
+    /**
+     * Dispatches all callbacks associated with an event key
+     * @param {string} key - Event identifier
+     */
+    emit(key) {
+        const id = key.toLowerCase();
+        if (!this.listeners[id]) return;
+
+        this.listeners[id].forEach((fn) => {
+            try {
+                fn();
+            } catch (e) {
+                Chat.log(`SkyblockEvent error: ${id}`, e);
+            }
+        });
+    }
+
+    setupTriggers() {
+        const STARTSWITH_CHECKS = {
+            ' ☠ You ': 'death',
+            'Oh no! Your': 'pickonimbusbroke',
+            'You uncovered a treasure': 'chestspawn',
+            'You have successfully picked': 'chestsolve',
+            'Inventory full?': 'fullinventory',
+            'This ability is on cooldown': 'abilitycooldown',
+            'You need the Cookie Buff': 'noboostercookie',
+        };
+
+        const INCLUDE_CHECKS = {
+            'Sending to server': 'serverchange',
+            'Warping...': 'warp',
+            'is empty! Refuel it': 'emptydrill',
+            'too little fuel to keep mining': 'emptydrill',
+            'available!': 'abilityready',
+            'you used your': 'abilityused',
+            'expired!': 'abilitygone',
+            "can't use this while": 'incombat',
+            "can't fast travel while": 'incombat',
+        };
+
+        register('chat', (event) => {
+            const msg = event.message.getUnformattedText();
+            const lower = msg.toLowerCase();
+
+            for (const phrase in STARTSWITH_CHECKS) {
+                if (msg.startsWith(phrase)) {
+                    return this.emit(STARTSWITH_CHECKS[phrase]);
+                }
+            }
+
+            for (const phraseKey in INCLUDE_CHECKS) {
+                if (lower.includes(phraseKey.toLowerCase())) {
+                    return this.emit(INCLUDE_CHECKS[phraseKey]);
+                }
+            }
+        });
+    }
 }
 
-function CheckEvents(event) {
-    const ev = event.toLowerCase();
-    if (actions.has(ev)) {
-        actions.get(ev).forEach((action) => action());
-    }
-}
+export const manager = new SkyblockEventManager();
 
-register('chat', (event) => {
-    let msg = event.message.getUnformattedText();
-
-    if (msg.includes('Sending to server')) CheckEvents('serverchange');
-
-    /* Ability */
-    if (
-        msg.includes('Mining Speed Boost is now available!') ||
-        msg.includes('Maniac Miner is now available!') ||
-        msg.includes('Pickobulus is now available!')
-    ) {
-        CheckEvents('abilityready');
-    }
-
-    if (
-        msg.includes('You used your Mining Speed Boost Pickaxe Ability!') ||
-        msg.includes('You used your Maniac Miner Pickaxe Ability!') ||
-        msg.includes('You used your Pickobulus Pickaxe Ability!')
-    ) {
-        CheckEvents('abilityused');
-    }
-
-    if (msg.includes('Your Mining Speed Boost has expired!') || msg.includes('Your Maniac Miner has expired!') || msg.includes('Your Pickobulus has expired!'))
-        CheckEvents('abilitygone');
-
-    if (msg.startsWith('This ability is on cooldown for')) CheckEvents('abilitycooldown');
-
-    /* Misc */
-    if (msg.startsWith("You can't use this while") || msg.startsWith("You can't fast travel while")) CheckEvents('incombat');
-
-    if (msg.startsWith('Oh no! Your')) CheckEvents('pickonimbusbroke');
-
-    if (msg.startsWith('You uncovered a treasure')) CheckEvents('chestspawn');
-
-    if (msg.startsWith('You have successfully picked')) CheckEvents('chestsolve');
-
-    if (msg.startsWith('Inventory full?')) CheckEvents('fullinventory');
-
-    if (msg.startsWith('You need the Cookie Buff')) CheckEvents('noboostercookie');
-
-    if (msg.startsWith(' ☠ You ')) CheckEvents('death');
-
-    if (msg === 'Warping...') CheckEvents('warp')
-    
-    if (msg.startsWith('Sending to server')) CheckEvents('serverchange');
-});
-
-register('chat', () => {
-    CheckEvents('emptydrill');
-})
-    .setCriteria('is empty! Refuel it by talking to a Drill Mechanic!')
-    .setContains();
-
-register('chat', () => {
-    CheckEvents('emptydrill');
-})
-    .setCriteria('has too little fuel to keep mining blocks of this type! Refuel it by talking to a Drill Mechanic!')
-    .setContains();
-
-export { registerEventSB };
+/**
+ * @deprecated Use the manager instead
+ * @param {string} name
+ * @param {function} callback
+ */
+export const registerEventSB = (name, callback) => manager.subscribe(name, callback);

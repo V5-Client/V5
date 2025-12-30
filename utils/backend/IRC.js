@@ -3,6 +3,7 @@ global.SESSION_SERVER_HASH = java.util.UUID.randomUUID().toString().replaceAll('
 import WebSocket from 'WebSocket';
 import RequestV2 from 'RequestV2';
 import { Links, StandardCharsets, Base64 } from '../Constants';
+import { ChatMessageC2S } from '../Packets';
 import { Chat } from '../Chat';
 import { Utils } from '../Utils';
 
@@ -227,7 +228,7 @@ register('packetSent', (packet, event) => {
     sendChatMessage(message.substring(1));
 
     cancel(event);
-}).setFilteredClass(net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket);
+}).setFilteredClass(ChatMessageC2S);
 
 register('command', () => {
     reconnectAttempts = 0;

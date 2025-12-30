@@ -1,6 +1,6 @@
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Chat } from '../../utils/Chat';
-import { Vec3d } from '../../utils/Constants';
+import { Vec3d, ArmorStandEntity } from '../../utils/Constants';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { MathUtils } from '../../utils/Math';
@@ -330,7 +330,7 @@ class Beachballer extends ModuleBase {
     }
 
     findBeachBall() {
-        const stands = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity.class);
+        const stands = World.getAllEntitiesOfType(ArmorStandEntity.class);
 
         for (const element of stands) {
             const headItem = element.getStackInSlot(5);

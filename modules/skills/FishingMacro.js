@@ -1,8 +1,8 @@
 import { Keybind } from '../../utils/player/Keybinding';
-import { Chat } from '../../utils/Chat';
 import { Guis } from '../../utils/player/Inventory';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Rotations } from '../../utils/player/Rotations';
+import { ArmorStandEntity } from '../../utils/Constants';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -53,7 +53,7 @@ class FishingMacro extends ModuleBase {
 
         switch (this.step) {
             case 0: {
-                const armorStands = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity);
+                const armorStands = World.getAllEntitiesOfType(ArmorStandEntity);
                 const target = armorStands.find((element) => element.getName() === '!!!');
                 if (!target) return;
 
@@ -71,9 +71,7 @@ class FishingMacro extends ModuleBase {
             }
             case 1: {
                 if (this.autoTotem) {
-                    const totemExists = World.getAllEntitiesOfType(net.minecraft.entity.decoration.ArmorStandEntity).find(
-                        (element) => element.getName() === 'Totem of Corruption'
-                    );
+                    const totemExists = World.getAllEntitiesOfType(ArmorStandEntity).find((element) => element.getName() === 'Totem of Corruption');
                     if (totemExists) return;
 
                     Guis.setItemSlot(this.totemSlot);
