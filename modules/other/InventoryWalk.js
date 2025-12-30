@@ -22,7 +22,7 @@ class InventoryWalk extends ModuleBase {
         ];
 
         this.on('tick', () => {
-            if (!Player.getContainer()) this.clicked = false;
+            if (!Client.isInGui()) this.clicked = false;
             if ((!this.clicked && Date.now() - this.lastPing > 125) || Date.now() > this.time + 325 + (Date.now() - this.lastPing)) {
                 Client.scheduleTask(0, () => {
                     this.keybinds.forEach((keybind) => {
