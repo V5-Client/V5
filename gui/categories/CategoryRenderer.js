@@ -22,6 +22,7 @@ import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
 const Module_icon_path = ASSETS_PATH + 'folder.svg';
 const Setting_icon_path = ASSETS_PATH + 'settings.svg';
+const Edit_icon_path = ASSETS_PATH + 'edit.svg';
 
 const CATEGORY_TITLE_COLOR = THEME.GUI_MANAGER_CATEGORY_TITLE;
 const CATEGORY_DESC_COLOR = THEME.GUI_MANAGER_CATEGORY_DESCRIPTION;
@@ -177,6 +178,15 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             const iconY = rect.y + (rect.height - moduleRectSize) / 2;
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
             drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
+        } else if (global.Categories.selected === 'Edit') {
+            const leftPanel = global.GuiRectangles.LeftPanel;
+            const pfpSize = 28;
+            const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
+            const editIconSize = 16;
+            const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
+            const editIconY = pfpY - editIconSize - 15;
+            const highlightRect = { x: editIconX - 6, y: editIconY - 6, width: editIconSize + 12, height: editIconSize + 12, radius: 8 };
+            drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
         }
     }
 };
@@ -191,11 +201,18 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
     });
 
+    const leftPanel = global.GuiRectangles.LeftPanel;
+    const pfpSize = 28;
+    const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
+    const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
+
+    const editIconSize = 16;
+    const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
+    const editIconY = pfpY - editIconSize - 15;
+
+    drawImage(Edit_icon_path, editIconX, editIconY, editIconSize, editIconSize);
+
     if (global.discordPfpPath) {
-        const leftPanel = global.GuiRectangles.LeftPanel;
-        const pfpSize = 28;
-        const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
-        const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
         drawCircularImage(global.discordPfpPath, pfpX, pfpY, pfpSize);
     }
 };

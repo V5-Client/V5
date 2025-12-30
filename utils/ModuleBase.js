@@ -1,5 +1,6 @@
 import { Utils } from './Utils';
 import { KeyBindUtils } from './Constants';
+import { OverlayManager } from '../gui/OverlayUtils';
 
 export class ModuleBase {
     /**
@@ -120,6 +121,10 @@ export class ModuleBase {
         });
 
         return this;
+    }
+
+    createOverlay(args) {
+        OverlayManager.createID(this.name, args);
     }
 
     /**
