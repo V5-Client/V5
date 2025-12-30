@@ -352,7 +352,7 @@ class UtilsClass {
     }
 
     noCollision(blockVec) {
-        const blockPosNMS = new BlockPos(blockVec.x, blockVec.y, blockVec.z);
+        const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
         const blockState = World.getWorld().getBlockState(blockPosNMS);
         const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
         return collisionShape.isEmpty();
