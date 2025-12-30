@@ -1,6 +1,6 @@
 ﻿import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
-import { Vec3d, ZombieEntity } from '../../utils/Constants';
+import { Vec3d, ZombieEntity, EndermanEntity } from '../../utils/Constants';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
@@ -12,6 +12,11 @@ const COMBAT_PRESETS = {
         entityClass: ZombieEntity,
         checkVisibility: false,
         boundaryCheck: (x, y, z) => y >= 60 && y <= 100 && x <= -72,
+    },
+    Endermen: {
+        entityClass: EndermanEntity,
+        checkVisibility: true,
+        boundaryCheck: (x, y, z) => true,
     },
 };
 
@@ -123,6 +128,8 @@ class Combat extends ModuleBase {
         this.lastPathTarget = null;
         this.pathTargetMoveThreshold = 3;
 
+        this.isTrackingTarget = false;
+
         this.on('postRenderWorld', () => {
             if (!this.targets || this.targets.length === 0) return;
 
@@ -160,15 +167,18 @@ class Combat extends ModuleBase {
                 Rotations.stopRotation();
                 this.target = null;
                 this.combatState = 'IDLE';
+                this.isTrackingTarget = false;
             }
 
             if (!this.target) {
                 this.target = this.bestTarget();
+                this.isTrackingTarget = false;
             }
 
             if (!this.target) {
                 this.combatState = 'IDLE';
                 Rotations.stopRotation();
+                this.isTrackingTarget = false;
                 return;
             }
 
@@ -180,7 +190,8 @@ class Combat extends ModuleBase {
             this.handleState(pos, distance);
 
             if (this.combatState !== 'PATHING') {
-                Rotations.rotateToVector(new Vec3d(pos.x, pos.y + 1.5, pos.z), 1, true);
+                Rotations.rotateToVector(new Vec3d(pos.x, pos.y + 1.5, pos.z), this.isTrackingTarget);
+                this.isTrackingTarget = true;
             }
         });
     }
@@ -274,6 +285,7 @@ class Combat extends ModuleBase {
         this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
         this.isPathing = true;
         this.combatState = 'PATHING';
+        this.isTrackingTarget = false;
 
         Rotations.stopRotation();
 
@@ -380,6 +392,7 @@ class Combat extends ModuleBase {
     clearExternalTargets() {
         this.externalTargets = [];
         this.useExternalTargetsOnly = false;
+        this.isTrackingTarget = false;
     }
 
     getTargetPosition(target) {
@@ -429,6 +442,50 @@ class Combat extends ModuleBase {
         return bestTarget;
     }
 
+    /**
+     * Finds mobs :D
+     *
+     * @param {Object} config - Mob configuration object
+     * @param {string[]} config.names - Array of name substrings to match
+     * @param {boolean} config.checkVisibility - Whether to check if player can see entity
+     * @param {Function} config.boundaryCheck - Function(x,y,z) returning boolean
+     * @param {Set} [whitelist] - Optional set of UUIDs to exclude from results
+     * @returns {Array<PlayerMP>} - Array of found mobs
+     */
+    findMob(config, whitelist = null) {
+        if (!config || !config.names) {
+            console.error('Invalid mob config provided');
+            return [];
+        }
+
+        const mobs = [];
+        const playerMP = config.checkVisibility ? Player.asPlayerMP() : null;
+
+        World.getAllPlayers().forEach((player) => {
+            try {
+                const nameObj = player.getName();
+                if (!nameObj) return;
+
+                const name = ChatLib.removeFormatting(nameObj);
+                const uuid = player.getUUID();
+
+                if (whitelist && whitelist.has(uuid)) return;
+                if (!config.names.some((mobName) => name.includes(mobName))) return;
+                if (player.isSpectator() || player.isInvisible() || player.isDead()) return;
+                if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(player)) return;
+
+                const x = player.getX(),
+                    y = player.getY(),
+                    z = player.getZ();
+                if (config.boundaryCheck && !config.boundaryCheck(x, y, z)) return;
+
+                mobs.push(player);
+            } catch (e) {}
+        });
+
+        return mobs;
+    }
+
     onEnable() {
         Chat.message('&aCombat Bot Enabled');
 
@@ -438,6 +495,8 @@ class Combat extends ModuleBase {
             const presets = Array.from(this.enabledPresets).join(', ');
             Chat.message(`&7Targeting: &b${presets || 'None selected'}`);
         }
+
+        this.isTrackingTarget = false;
     }
 
     onDisable() {
@@ -458,6 +517,7 @@ class Combat extends ModuleBase {
         this.isPathing = false;
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
+        this.isTrackingTarget = false;
     }
 }
 

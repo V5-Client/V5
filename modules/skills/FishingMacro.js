@@ -3,6 +3,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Rotations } from '../../utils/player/Rotations';
 import { ArmorStandEntity } from '../../utils/Constants';
+import { Chat } from '../../utils/Chat';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -11,7 +12,10 @@ class FishingMacro extends ModuleBase {
             subcategory: 'Skills',
             description: 'Fishing Macro for stridersurfer',
             tooltip: 'Fishing Macro for stridersurfer',
+            autoDisableOnWorldUnload: true,
+            showEnabledToggle: false,
         });
+        this.bindToggleKey();
 
         this.tickDelay = 0;
         this.step = 0;
@@ -169,12 +173,14 @@ class FishingMacro extends ModuleBase {
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'FISHING');
+        Chat.message('Fishing Macro Enabled');
         this.resetSequence();
         Keybind.setKey('shift', false);
     }
 
     onDisable() {
         global.macrostate.setMacroRunning(false, 'FISHING');
+        Chat.message('Fishing Macro disabled');
         Keybind.setKey('shift', false);
     }
 }

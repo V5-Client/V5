@@ -49,7 +49,7 @@ class CommissionMacro extends ModuleBase {
 
         this.commissions = [];
         this.currentCommission = null;
-        this.currentMobType = null;
+        this.currentMobConfig = null;
         this.mobWhitelist = new Set();
         this.savedState = null;
         this.awaitingTabUpdate = false;
@@ -169,7 +169,7 @@ class CommissionMacro extends ModuleBase {
         this.currentState = STATES.IDLE;
         this.commissions = [];
         this.currentCommission = null;
-        this.currentMobType = null;
+        this.currentMobConfig = null;
         this.mobWhitelist.clear();
         this.savedState = null;
         this.travelPurpose = null;
@@ -332,13 +332,13 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleSlayer() {
-        if (!this.currentMobType) {
+        if (!this.currentMobConfig) {
             CombatBot.clearExternalTargets();
             CombatBot.toggle(false);
             return;
         }
 
-        const mobs = this.findMob(this.currentMobType);
+        const mobs = CombatBot.findMob(this.currentMobConfig, this.mobWhitelist);
         if (!mobs || mobs.length === 0) {
             CombatBot.clearExternalTargets();
             return;
@@ -581,11 +581,7 @@ class CommissionMacro extends ModuleBase {
         if (name === 'Goblin Slayer') {
             mobType = 'goblin';
             Guis.setItemSlot(this.weapon.slot);
-        } else if (
-            name === 'Glacite Walker Slayer' ||
-            name === 'Mines Slayer' ||
-            name === 'Treasure Hoarder Puncher' // apparently treasure hoarder takes more damage from pickaxe
-        ) {
+        } else if (name === 'Glacite Walker Slayer' || name === 'Mines Slayer' || name === 'Treasure Hoarder Puncher') {
             mobType = name === 'Glacite Walker Slayer' || name === 'Mines Slayer' ? 'icewalker' : 'treasure';
             Guis.setItemSlot(this.pickaxe.slot);
         } else {
@@ -594,7 +590,12 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        this.currentMobType = mobType;
+        this.currentMobConfig = MOB_CONFIGS[mobType];
+        if (!this.currentMobConfig) {
+            Chat.message(`&cNo mob config found for: ${mobType}`);
+            this.toggle(false);
+            return;
+        }
 
         CombatBot.clearExternalTargets();
         if (!CombatBot.enabled) {
@@ -695,57 +696,6 @@ class CommissionMacro extends ModuleBase {
                 }
             }
         }
-    }
-
-    /**
-     * Finds mobs
-     *
-     * Usage:
-     *   findMob('goblin')     - Returns array of Goblins and Weaklings
-     *   findMob('icewalker')  - Returns array of Ice Walkers/Glacite Walkers
-     *   findMob('treasure')   - Returns array of Treasure Hunters
-     *
-     * @param {string} type - The type of mob to find ('goblin', 'icewalker', 'treasure')
-     * @returns {Array<PlayerMP>} - Array of found mobs
-     */
-    findMob(type) {
-        const config = MOB_CONFIGS[type.toLowerCase()];
-        if (!config) {
-            console.error(`Unknown mob type: ${type}`);
-            return [];
-        }
-        return this.getMobs(config);
-    }
-
-    getMobs(config) {
-        const mobs = [];
-        const playerMP = config.checkVisibility ? Player.asPlayerMP() : null;
-
-        World.getAllPlayers().forEach((player) => {
-            try {
-                const nameObj = player.getName();
-                if (!nameObj) return;
-
-                const name = ChatLib.removeFormatting(nameObj);
-                const uuid = player.getUUID();
-
-                if (this.mobWhitelist.has(uuid)) return;
-                if (!config.names.some((mobName) => name.includes(mobName))) return;
-                if (player.isSpectator() || player.isInvisible() || player.isDead()) return;
-                if (config.checkVisibility && !playerMP.canSeeEntity(player)) return;
-
-                const x = player.getX(),
-                    y = player.getY(),
-                    z = player.getZ();
-                if (!config.boundaryCheck(x, y, z)) return;
-
-                mobs.push(player);
-            } catch (e) {
-                // Skip invalid entities
-            }
-        });
-
-        return mobs;
     }
 }
 
