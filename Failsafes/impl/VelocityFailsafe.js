@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import { Webhook } from '../../utils/Webhooks';
 import FailsafeUtils from '../FailsafeUtils';
 import { registerEventSB } from '../../utils/SkyblockEvents';
+import { EntityVelocityUpdateS2C } from '../../utils/Packets';
 class VelocityFailsafe extends Failsafe {
     constructor() {
         super();
@@ -29,7 +30,7 @@ class VelocityFailsafe extends Failsafe {
                 if (this.ignore) return;
                 this.onTrigger(speed);
             }, this.settings.FailsafeReactionTime - 50 || 600);
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket);
+        }).setFilteredClass(EntityVelocityUpdateS2C);
 
         registerEventSB('death', () => {
             this.ignore = true;

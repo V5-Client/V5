@@ -1,7 +1,7 @@
 import FailsafeUtils from '../Failsafes/FailsafeUtils';
+import { GradientChat } from './Constants';
 
-const gradientPackage = Java.type('com.v5.gradient.Chat');
-const gradientInstance = new gradientPackage();
+const gradientInstance = new GradientChat();
 
 class ChatClass {
     message(msg) {

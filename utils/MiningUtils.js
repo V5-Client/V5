@@ -4,6 +4,7 @@ import { Guis } from './player/Inventory';
 import { Keybind } from './player/Keybinding';
 import { Flowstate } from './Flowstate';
 import { Executor } from './ThreadExecutor';
+import { Blocks, BP } from './Constants';
 
 const BLOCK_HARDNESS_DATA = {
     5: { h: 2000, n: 'Titanium' },
@@ -216,7 +217,7 @@ class MiningStatsCollector {
 
             let lore = item.getLore();
             for (var i = 0; i < lore.length; i++) {
-               // ChatLib.chat(lore[i])
+                // ChatLib.chat(lore[i])
                 let cleanLine = ChatLib.removeFormatting(String(lore[i]));
                 let match = cleanLine.match(pattern);
                 if (match) {
@@ -421,7 +422,7 @@ class RefuelService {
                     Chat.message('Jotraeline contact missing!');
                     return callback(false);
                 }
-                Thread.sleep(500)
+                Thread.sleep(500);
                 Guis.clickSlot(jotraelineSlot, false, 'LEFT');
                 Thread.sleep(1000);
 
@@ -648,8 +649,7 @@ class BlockUtils {
 
             if (x === null || y === null || z === null) return;
 
-            let Blocks = net.minecraft.block.Blocks;
-            let blockPos = new net.minecraft.util.math.BlockPos(x, y, z);
+            let blockPos = new BP(x, y, z);
             Client.getMinecraft().world.setBlockState(blockPos, Blocks.AIR.getDefaultState());
         } catch (e) {
             Chat.message('error setting ghost block');
@@ -662,7 +662,7 @@ const timeCalc = new MineTimeCalculations(miningStatsCollector);
 const refueler = new RefuelService();
 const explorer = new ExplorerUpgrade(miningStatsCollector);
 
-register("command", () => {
+register('command', () => {
     refueler.refuel((success) => {
         if (success) {
             Chat.message('Refueling completed');
@@ -670,7 +670,7 @@ register("command", () => {
             Chat.message('Refueling failed');
         }
     });
-}).setName("refueldrill");
+}).setName('refueldrill');
 
 export const MiningUtils = {
     getMiningSpeed: function (area) {
@@ -712,7 +712,7 @@ export const MiningUtils = {
     },
 };
 
-register("command", () => {
+register('command', () => {
     MiningUtils.MaxGreatExplorer((success) => {
         if (success) {
             Chat.message('Great Explorer upgrade completed');
@@ -720,4 +720,4 @@ register("command", () => {
             Chat.message('Great Explorer upgrade failed');
         }
     });
-}).setName("maxge")
+}).setName('maxge');

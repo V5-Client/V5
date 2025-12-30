@@ -3,7 +3,7 @@ import request from 'RequestV2';
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
-import { Links, Vec3d } from '../Constants';
+import { Links, Vec3d, BP } from '../Constants';
 import { Utils } from '../Utils';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
@@ -88,7 +88,7 @@ function findStartY(x, initialY, z) {
 }
 
 export function isBlockWalkable(world, blockVec) {
-    const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+    const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
     const blockState = world.getBlockState(blockPosNMS);
     const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
     return collisionShape.isEmpty();

@@ -1,6 +1,7 @@
 import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
 import { Chat } from '../Chat';
+import { CloseHandledScreenC2S } from '../Packets';
 
 class ItemSearcher {
     constructor() {}
@@ -74,8 +75,7 @@ class InterfaceHandler {
 
         try {
             const syncId = Client.getMinecraft().player.currentScreenHandler.syncId;
-            const Packet = net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
-            Client.sendPacket(new Packet(syncId));
+            Client.sendPacket(new CloseHandledScreenC2S(syncId));
 
             if (Client.currentGui) {
                 Client.currentGui.close();

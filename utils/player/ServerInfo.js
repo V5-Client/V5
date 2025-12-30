@@ -1,4 +1,5 @@
 import { System } from '../Constants.js';
+import { ClientStatusC2S, WorldTimeUpdateS2C, StatisticsS2C, GameJoinS2C } from '../Packets';
 
 class NetworkMonitor {
     constructor() {
@@ -25,8 +26,7 @@ class NetworkMonitor {
 
     sendPingRequest() {
         if (!this.waitingForPing) {
-            const Packet = net.minecraft.network.packet.c2s.play.ClientStatusC2SPacket;
-            Client.sendPacket(new Packet(Packet.class_2800.REQUEST_STATS));
+            Client.sendPacket(new ClientStatusC2S(ClientStatusC2S.class_2800.REQUEST_STATS));
             this.pingStartNano = System.nanoTime();
             this.waitingForPing = true;
         }
@@ -65,15 +65,15 @@ register('worldLoad', () => monitor.reset());
 
 register('packetReceived', (packet) => {
     monitor.recordTpsPacket();
-}).setFilteredClass(net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket);
+}).setFilteredClass(WorldTimeUpdateS2C);
 
 register('packetReceived', (packet) => {
     monitor.resolvePing();
-}).setFilteredClass(net.minecraft.network.packet.s2c.play.StatisticsS2CPacket);
+}).setFilteredClass(StatisticsS2C);
 
 register('packetReceived', () => {
     monitor.waitingForPing = false;
-}).setFilteredClass(net.minecraft.network.packet.s2c.play.GameJoinS2CPacket);
+}).setFilteredClass(GameJoinS2C);
 
 register('step', () => {
     monitor.sendPingRequest();

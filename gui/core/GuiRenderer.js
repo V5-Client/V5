@@ -1,5 +1,6 @@
 import { ANIMATION_DURATION } from './GuiState';
-import { drawRoundedRectangleWithBorder, clamp, PADDING, NVG, scissor, resetScissor, easeOutBack } from '../Utils';
+import { drawRoundedRectangleWithBorder, clamp, scissor, resetScissor, easeOutBack } from '../Utils';
+import { NVG } from '../../utils/Constants';
 import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
 
 export const drawGUI = (mouseX, mouseY) => {

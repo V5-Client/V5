@@ -1,6 +1,6 @@
 import { getSetting } from '../../gui/GuiSave';
 import { ModuleBase } from '../../utils/ModuleBase';
-const XrayPackage = Java.type('com.v5.qol.Xray');
+import { XrayPackage } from '../../utils/Constants';
 
 class Xray extends ModuleBase {
     constructor() {

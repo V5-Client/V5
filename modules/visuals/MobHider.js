@@ -1,4 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
+import { Class709 } from '../../utils/Constants';
 
 class MobHider extends ModuleBase {
     constructor() {
@@ -29,7 +30,7 @@ class MobHider extends ModuleBase {
 
         this.on('spawnParticle', (particle, event) => {
             if (particle == null) return;
-            if (this.enabledMobNames.includes('Thysts') && particle instanceof net.minecraft.class_709) {
+            if (this.enabledMobNames.includes('Thysts') && particle instanceof Class709) {
                 cancel(event);
             }
         });

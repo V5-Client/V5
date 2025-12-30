@@ -1,4 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
+import { MinecraftClient } from '../../utils/Constants';
 
 class FastPlace extends ModuleBase {
     constructor() {
@@ -9,7 +10,6 @@ class FastPlace extends ModuleBase {
             tooltip: 'Sets itemUseCooldown to 0 (instant block placement)',
         });
 
-        const MinecraftClient = net.minecraft.client.MinecraftClient;
         const client = MinecraftClient.getInstance();
         const field = MinecraftClient.class.getDeclaredField('field_1752');
         field.setAccessible(true);

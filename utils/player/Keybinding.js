@@ -1,13 +1,12 @@
 import { Chat } from '../Chat';
 import { Utils, mc } from '../Utils';
-import { Vec3d, Direction, BlockHitResult, PlayerInteractBlockC2SPacket } from '../Constants';
+import { Vec3d, Direction, BlockHitResult, MCHand, BP } from '../Constants';
+import { PlayerInteractBlockC2S } from '../Packets';
 
 const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1536');
 const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
 LEFT_CLICK_METHOD.setAccessible(true);
 RIGHT_CLICK_METHOD.setAccessible(true);
-
-const BLOCK_POS_CLASS = net.minecraft.util.math.BlockPos;
 
 class ControlSystem {
     constructor() {
@@ -31,19 +30,11 @@ class ControlSystem {
         RIGHT_CLICK_METHOD.invoke(mc);
     }
 
-    delayedRightClick(delayTicks) {
-        if (!delayTicks || delayTicks <= 0) {
-            this.triggerRightClick();
-        } else {
-            Client.scheduleTask(delayTicks, () => this.triggerRightClick());
-        }
-    }
-
     sendRightClickPacket(delay, x, y, z) {
-        const bp = new BLOCK_POS_CLASS(x, y, z);
+        const bp = new BP(x, y, z);
         const hitResult = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5), Direction.UP, bp, false);
         const action = () => {
-            Client.sendPacket(new PlayerInteractBlockC2SPacket(net.minecraft.util.Hand.MAIN_HAND, hitResult, 0));
+            Client.sendPacket(new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, 0));
         };
 
         if (!delay || delay <= 0) action();
@@ -130,23 +121,7 @@ class ControlSystem {
 
         if (shouldJump && motionScale < 0.04 && timeElapsed > 500 && Utils.playerIsCollided()) {
             this.updateKeyState('space', true);
-        }
-    }
-
-    setMovementByYawAlt(yaw, shouldJump) {
-        this.haltMovement();
-        if (Client.isInGui() && !Client.isInChat()) return;
-
-        if (yaw > -50 && yaw < 50) this.updateKeyState('w', true);
-        if (yaw > -135.5 && yaw < -40) this.updateKeyState('a', true);
-        if (yaw > 40 && yaw < 135.5) this.updateKeyState('d', true);
-        if (yaw > 135.5 || yaw < -135.5) this.updateKeyState('s', true);
-
-        const motionScale = Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ());
-        const timeElapsed = Date.now() - this.lastActionTime;
-
-        if (shouldJump && motionScale < 0.02 && timeElapsed > 500 && Utils.playerIsCollided()) {
-            this.updateKeyState('space', true);
+            this.refreshCooldown();
         }
     }
 
@@ -216,15 +191,12 @@ const controls = new ControlSystem();
 export const Keybind = {
     leftClick: () => controls.triggerLeftClick(),
     rightClick: () => controls.triggerRightClick(),
-    rightClickDelay: (t) => controls.delayedRightClick(t),
     rightClickPacket: (t, x, y, z) => controls.sendRightClickPacket(t, x, y, z),
     setKey: (k, d) => controls.updateKeyState(k, d),
     isKeyDown: (k) => controls.checkKeyDown(k),
     setKeysBasedOnYaw: (y, j) => controls.setMovementByYaw(y, j),
-    setKeysBasedOnYawTemp: (y, j) => controls.setMovementByYawAlt(y, j),
     setKeysForStraightLine: (y, j) => controls.setCardinalMovement(y, j),
     setKeysForStraightLineCoords: (x, y, z, j) => controls.setMovementToCoords(x, y, z, j),
-    setCooldown: () => controls.refreshCooldown(),
     stopMovement: () => controls.haltMovement(),
     unpressKeys: () => controls.fullRelease(),
 };

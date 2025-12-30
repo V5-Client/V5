@@ -1,9 +1,6 @@
 import { Utils } from '../utils/Utils';
-import { Links } from '../utils/Constants';
+import { Links, File, Color, NVG, SoundCategory, Identifier, SoundEvent } from '../utils/Constants';
 import { Chat } from '../utils/Chat';
-import { File, Color } from '../utils/Constants';
-
-export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
 
 export const colorWithAlpha = (baseColor, alpha) => {
     if (typeof baseColor === 'number') {
@@ -192,10 +189,6 @@ export const fetchURL = (url) => {
         return null;
     }
 };
-
-const SoundCategory = net.minecraft.sound.SoundCategory;
-const Identifier = net.minecraft.util.Identifier;
-const SoundEvent = net.minecraft.sound.SoundEvent;
 
 const JINGLE_BELLS = [
     12, 12, 12, 12, 12, 12, 12, 15, 8, 10, 12, 13, 13, 13, 13, 13, 12, 12, 12, 12, 10, 10, 12, 10, 15, 12, 12, 12, 12, 12, 12, 12, 15, 8, 10, 12, 13, 13, 13,

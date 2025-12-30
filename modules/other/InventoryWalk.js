@@ -1,5 +1,5 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { ClickSlotC2S, OpenScreenS2C, CommonPingS2C } from '../../utils/Packets';
 
 class InventoryWalk extends ModuleBase {
     constructor() {
@@ -43,7 +43,7 @@ class InventoryWalk extends ModuleBase {
             this.keybinds.forEach((keybind) => {
                 keybind.setState(false);
             });
-        }).setFilteredClass(net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket);
+        }).setFilteredClass(ClickSlotC2S);
 
         this.on('packetReceived', (packet) => {
             this.clicked = false;
@@ -53,11 +53,11 @@ class InventoryWalk extends ModuleBase {
                     keybind.setState(down);
                 });
             });
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket);
+        }).setFilteredClass(OpenScreenS2C);
 
         this.on('packetReceived', (packet) => {
             this.lastPing = Date.now();
-        }).setFilteredClass(net.minecraft.network.packet.s2c.common.CommonPingS2CPacket);
+        }).setFilteredClass(CommonPingS2C);
     }
 }
 

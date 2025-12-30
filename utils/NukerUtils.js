@@ -1,5 +1,6 @@
 import { MathUtils } from './Math';
-import { BP, Direction, PlayerActionC2SPacket, PlayerActionC2SPacketAction, HandSwingC2SPacket, Vec3d } from './Constants';
+import { BP, Direction, MCHand, Vec3d } from './Constants';
+import { PlayerActionC2S, PlayerActionC2SAction, HandSwingC2S } from './Packets';
 import { attachMixin } from './AttachMixin';
 import { PlayerActionPacket } from '../Mixins/PlayerAction';
 import { Chat } from './Chat';
@@ -40,7 +41,7 @@ class NukerUtilsClass {
                 this.processNextQueuedAction();
             } else if (this.tickCounter > 0) {
                 this.tickCounter--;
-                Client.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
+                Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
             }
         });
     }
@@ -61,8 +62,8 @@ class NukerUtilsClass {
     }
 
     sendBreakPackets(blockPos, facing) {
-        Client.sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacketAction.START_DESTROY_BLOCK, blockPos, facing, this.sequence));
-        Client.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
+        Client.sendPacket(new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPos, facing, this.sequence));
+        Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
     }
 
     nukeQueueAdd(blockPos, ticks) {
@@ -99,7 +100,7 @@ class NukerUtilsClass {
         const blockPosition = this.createBlockPosition(blockPos);
         const facing = this.closestDirection(blockPosition);
 
-        Client.sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacketAction.START_DESTROY_BLOCK, blockPosition, facing, this.sequence));
+        Client.sendPacket(new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPosition, facing, this.sequence));
 
         this.currentBreakingBlockPos = blockPos;
     }

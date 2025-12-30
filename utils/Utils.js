@@ -1,6 +1,5 @@
 import { Chat } from './Chat';
-import { Notifications } from './Notifications';
-import { ArrayLists, Vec3d, URL, BufferedInputStream, FileOutputStream } from './Constants';
+import { Vec3d, URL, BufferedInputStream, FileOutputStream, BP, MinecraftText, Formatting } from './Constants';
 
 export const mc = Client.getMinecraft();
 
@@ -187,7 +186,7 @@ class CollisionChecker {
 
     hasCollision(x, y, z) {
         try {
-            let blockPos = new net.minecraft.util.math.BlockPos(x, y, z);
+            let blockPos = new BP(x, y, z);
             let blockState = World.getWorld().getBlockState(blockPos);
             let shape = blockState.getCollisionShape(blockPos);
             return !shape.isEmpty();
@@ -261,9 +260,6 @@ class BanSimulator {
 
     trigger(reason) {
         try {
-            let Text = net.minecraft.text.Text;
-            let Formatting = net.minecraft.util.Formatting;
-
             let banRecord = this.configManager.read('bantime.json');
             let currentTime = Date.now();
 
@@ -284,17 +280,17 @@ class BanSimulator {
 
             let banId = this.generateBanId();
 
-            let message = Text.literal('You are temporarily banned for ')
+            let message = MinecraftText.literal('You are temporarily banned for ')
                 .formatted(Formatting.RED)
-                .append(Text.literal(timeString).formatted(Formatting.WHITE))
-                .append(Text.literal(' from this server!\\n\\n').formatted(Formatting.RED))
-                .append(Text.literal('Reason: ').formatted(Formatting.GRAY))
-                .append(Text.literal(reason + '\\n').formatted(Formatting.WHITE))
-                .append(Text.literal('Find out more: ').formatted(Formatting.GRAY))
-                .append(Text.literal('https://www.hypixel.net/appeal\\n\\n').formatted(Formatting.AQUA, Formatting.UNDERLINE))
-                .append(Text.literal('Ban ID: ').formatted(Formatting.GRAY))
-                .append(Text.literal('#' + banId + '\\n').formatted(Formatting.WHITE))
-                .append(Text.literal('Sharing your Ban ID may affect the processing of your appeal!').formatted(Formatting.GRAY));
+                .append(MinecraftText.literal(timeString).formatted(Formatting.WHITE))
+                .append(MinecraftText.literal(' from this server!\\n\\n').formatted(Formatting.RED))
+                .append(MinecraftText.literal('Reason: ').formatted(Formatting.GRAY))
+                .append(MinecraftText.literal(reason + '\\n').formatted(Formatting.WHITE))
+                .append(MinecraftText.literal('Find out more: ').formatted(Formatting.GRAY))
+                .append(MinecraftText.literal('https://www.hypixel.net/appeal\\n\\n').formatted(Formatting.AQUA, Formatting.UNDERLINE))
+                .append(MinecraftText.literal('Ban ID: ').formatted(Formatting.GRAY))
+                .append(MinecraftText.literal('#' + banId + '\\n').formatted(Formatting.WHITE))
+                .append(MinecraftText.literal('Sharing your Ban ID may affect the processing of your appeal!').formatted(Formatting.GRAY));
 
             networkHandler.getConnection().disconnect(message);
         } catch (err) {
@@ -356,7 +352,7 @@ class UtilsClass {
     }
 
     noCollision(blockVec) {
-        const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+        const blockPosNMS = new BlockPos(blockVec.x, blockVec.y, blockVec.z);
         const blockState = World.getWorld().getBlockState(blockPosNMS);
         const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
         return collisionShape.isEmpty();

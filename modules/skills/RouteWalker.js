@@ -188,7 +188,9 @@ class RouteWalkerer extends ModuleBase {
                             Rotations.rotateToVector([point[0], point[1], point[2]], 0.5, false);
 
                             Rotations.onEndRotation(() => {
-                                Keybind.rightClickDelay(7);
+                                Client.scheduleTask(7, () => {
+                                    Keybind.rightClick();
+                                });
                             });
                             this.etherwarpReady = true;
                         } else {

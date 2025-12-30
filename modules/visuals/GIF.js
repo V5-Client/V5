@@ -1,11 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { File, Color } from '../../utils/Constants';
+import { File, Color, ImageIO, BufferedImage, AlphaComposite, NVG } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
-import { NVG, drawImage } from '../../gui/Utils';
-
-const ImageIO = Java.type('javax.imageio.ImageIO');
-const BufferedImage = Java.type('java.awt.image.BufferedImage');
-const AlphaComposite = Java.type('java.awt.AlphaComposite');
+import { drawImage } from '../../gui/Utils';
 
 const GIF_SOURCE_DIR = new File('./config/ChatTriggers/modules/V5Config/gifs');
 const GIF_CACHE_DIR = new File('./config/ChatTriggers/modules/V5Config/gif_cache');
