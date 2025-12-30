@@ -1,6 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { Failsafe } from '../Failsafe';
-import { registerEventSB } from '../../utils/SkyblockEvents';
+import { manager } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
 import { PlayerPositionLookS2C } from '../../utils/Packets';
@@ -54,18 +54,18 @@ class RotationFailsafe extends Failsafe {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
-        registerEventSB('serverchange', () => {
+        manager.subscribe('serverchange', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
-        registerEventSB('death', () => {
+        manager.subscribe('death', () => {
             this.ignore = true;
             setTimeout(() => {
                 this.ignore = false;
             }, 1000);
         });
 
-        registerEventSB('warp', () => {
+        manager.subscribe('warp', () => {
             this.ignore = true;
             setTimeout(() => {
                 this.ignore = false;
