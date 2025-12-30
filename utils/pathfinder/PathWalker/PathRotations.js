@@ -580,8 +580,6 @@ register('step', () => {
     currentPitch = Math.max(MAX_ALLOWED_PITCH_UP, Math.min(MAX_ALLOWED_PITCH_DOWN, currentPitch));
 
     PathRotationsUtility.applyRotationWithGCD(currentYaw, currentPitch);
-
-    // REMOVED: Recording was here at 120hz, now moved to tick handler above
 }).setFps(120);
 
 export function pathRotations(splineData) {
@@ -598,7 +596,7 @@ export function pathRotations(splineData) {
             Keybind.setKey('a', false);
             Keybind.setKey('d', false);
             if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
-                RotationRecorder.setPathRecording(false); // ADD THIS
+                RotationRecorder.setPathRecording(false);
                 RotationRecorder.stopRecording();
                 RotationRecorder.saveRecording();
             }
