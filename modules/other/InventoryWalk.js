@@ -11,7 +11,7 @@ class InventoryWalk extends ModuleBase {
         });
 
         this.clicked = false;
-        this.time = Date.now();
+        this.time = 0;
         this.lastPing = Date.now();
         this.keybinds = [
             new KeyBind(Client.getMinecraft().options.forwardKey),
