@@ -2,7 +2,7 @@ import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
-import { registerEventSB } from '../../utils/SkyblockEvents';
+import { manager } from '../../utils/SkyblockEvents';
 
 const CHEST_BLOCK_IDS = new Set([54, 146]);
 const CHEST_SEARCH_RADIUS = 3;
@@ -70,8 +70,8 @@ class PowderMacro extends ModuleBase {
     }
 
     registerSkyblockEvents() {
-        registerEventSB('chestspawn', () => this.onChestSpawn());
-        registerEventSB('chestopen', () => this.onChestOpen());
+        manager.subscribe('chestspawn', () => this.onChestSpawn());
+        manager.subscribe('chestopen', () => this.onChestOpen());
     }
 
     onChestSpawn() {

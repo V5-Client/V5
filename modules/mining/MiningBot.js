@@ -5,7 +5,7 @@ import { Rotations } from '../../utils/player/Rotations';
 import { Utils } from '../../utils/Utils';
 import { MathUtils } from '../../utils/Math';
 import { Chat } from '../../utils/Chat';
-import { registerEventSB } from '../../utils/SkyblockEvents';
+import { manager } from '../../utils/SkyblockEvents';
 import { Guis } from '../../utils/player/Inventory';
 import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
@@ -138,15 +138,15 @@ class Bot extends ModuleBase {
             }
         });
 
-        registerEventSB('abilityready', () => {
+        manager.subscribe('abilityready', () => {
             this.resetMining();
             this.state = this.STATES.ABILITY;
         });
-        registerEventSB('abilityused', () => {
+        manager.subscribe('abilityused', () => {
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
             this.resetMining();
         });
-        registerEventSB('abilitygone', () => {
+        manager.subscribe('abilitygone', () => {
             this.speedBoost = false;
             this.resetMining();
         });

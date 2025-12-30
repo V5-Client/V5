@@ -2,7 +2,7 @@ import { Chat } from '../../utils/Chat';
 import { Failsafe } from '../Failsafe';
 import { Webhook } from '../../utils/Webhooks';
 import FailsafeUtils from '../FailsafeUtils';
-import { registerEventSB } from '../../utils/SkyblockEvents';
+import { manager } from '../../utils/SkyblockEvents';
 import { EntityVelocityUpdateS2C } from '../../utils/Packets';
 class VelocityFailsafe extends Failsafe {
     constructor() {
@@ -22,9 +22,9 @@ class VelocityFailsafe extends Failsafe {
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes('Grappling')) return;
             const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
             if (blockBelow.getType().getRegistryName().includes('slime_block')) return;
-            const vx = packet.getVelocityX();
-            const vy = packet.getVelocityY();
-            const vz = packet.getVelocityZ();
+            const vx = packet.getVelocity().x;
+            const vy = packet.getVelocity().y;
+            const vz = packet.getVelocity().z;
             const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
             setTimeout(() => {
                 if (this.ignore) return;
@@ -32,15 +32,15 @@ class VelocityFailsafe extends Failsafe {
             }, this.settings.FailsafeReactionTime - 50 || 600);
         }).setFilteredClass(EntityVelocityUpdateS2C);
 
-        registerEventSB('death', () => {
+        manager.subscribe('death', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
-        registerEventSB('serverchange', () => {
+        manager.subscribe('serverchange', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
-        registerEventSB('warp', () => {
+        manager.subscribe('warp', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });

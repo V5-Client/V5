@@ -1,7 +1,7 @@
 import { Chat } from '../../utils/Chat';
 import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
-import { registerEventSB } from '../../utils/SkyblockEvents';
+import { manager } from '../../utils/SkyblockEvents';
 import { MiningBot } from './MiningBot';
 import { CombatBot } from '../combat/CombatBot';
 import { MiningUtils } from '../../utils/MiningUtils';
@@ -78,15 +78,15 @@ class CommissionMacro extends ModuleBase {
             }
         });
 
-        registerEventSB('fullinventory', () => {
+        manager.subscribe('fullinventory', () => {
             if (this.enabled && this.currentState === STATES.MINING) this.onInventoryFull();
         });
 
-        registerEventSB('emptydrill', () => {
+        manager.subscribe('emptydrill', () => {
             if (this.enabled && this.currentState === STATES.MINING) this.onDrillEmpty();
         });
 
-        registerEventSB('death', () => {
+        manager.subscribe('death', () => {
             if (this.enabled) {
                 Chat.message('&cYou died! Stopping macro...');
                 this.toggle(false);

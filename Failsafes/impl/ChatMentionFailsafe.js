@@ -2,7 +2,7 @@ import { Chat } from '../../utils/Chat';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
-import { registerEventSB } from '../../utils/SkyblockEvents';
+import { manager } from '../../utils/SkyblockEvents';
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
@@ -39,7 +39,7 @@ class ChatMentionFailsafe extends Failsafe {
             this.onTrigger(result.blockedWord);
         }).setCriteria(/(.+)/);
 
-        registerEventSB('serverchange', () => {
+        manager.subscribe('serverchange', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
@@ -47,11 +47,11 @@ class ChatMentionFailsafe extends Failsafe {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
-        registerEventSB('death', () => {
+        manager.subscribe('death', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
-        registerEventSB('warp', () => {
+        manager.subscribe('warp', () => {
             this.ignore = true;
             setTimeout(() => (this.ignore = false), 1000);
         });
