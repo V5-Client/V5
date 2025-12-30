@@ -69,15 +69,6 @@ class FarmingMacro extends ModuleBase {
 
         this.currentHandler = null;
 
-        this.createOverlay([
-            {
-                title: 'INFO',
-                data: {
-                    Crop: this.crop || 'None',
-                },
-            },
-        ]);
-
         this.initGui();
         this.initCommands();
         this.initListeners();
