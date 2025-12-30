@@ -43,6 +43,7 @@ class SkyblockEventManager {
             'Inventory full?': 'fullinventory',
             'This ability is on cooldown': 'abilitycooldown',
             'You need the Cookie Buff': 'noboostercookie',
+            'CHEST LOCKPICKED': 'chestopen',
         };
 
         const INCLUDE_CHECKS = {
