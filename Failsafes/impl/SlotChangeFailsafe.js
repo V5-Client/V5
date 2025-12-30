@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
 import { registerEventSB } from '../../utils/SkyblockEvents';
+import { UpdateSelectedSlotS2C } from '../../utils/Packets';
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
         super();
@@ -26,7 +27,7 @@ class SlotChangeFailsafe extends Failsafe {
                 if (this.ignore) return;
                 this.onTrigger(currentSlot, newSlot);
             }, this.settings.FailsafeReactionTime - 50 || 600);
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket);
+        }).setFilteredClass(UpdateSelectedSlotS2C);
 
         register('worldLoad', () => {
             this.ignore = true;

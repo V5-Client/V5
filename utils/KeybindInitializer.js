@@ -1,4 +1,4 @@
-export const KeyBindUtils = Java.type('com.v5.keybind.KeyBindUtils');
+import { KeyBindUtils } from './Constants';
 
 class Keybind {
     static initalizer() {

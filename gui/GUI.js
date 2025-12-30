@@ -17,7 +17,7 @@ import {
     applySettings as _applySettings,
 } from './GuiSave';
 
-import { NVG } from './Utils';
+import { NVG } from '../utils/Constants';
 
 const warmupTrigger = register('renderOverlay', () => {
     try {

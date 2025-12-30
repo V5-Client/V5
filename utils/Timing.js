@@ -1,64 +1,67 @@
 export class Time {
     constructor() {
-        this.StartTime = Date.now();
-
-        this.isPaused = false;
-        this.pauseTime = null;
-
-        this.randomTime = 0;
+        this.epoch = Date.now();
+        this.pausedAt = 0;
+        this.waiting = false;
+        this.delayTarget = 0;
     }
 
-    hasReached(Time) {
-        return Date.now() - this.StartTime > Time;
+    hasReached(duration) {
+        if (this.waiting) {
+            const now = Date.now();
+            const elapsed = now - this.epoch;
+            const effectiveElapsed = this.pausedAt > 0 ? elapsed - (now - this.pausedAt) : elapsed;
+            return effectiveElapsed >= duration;
+        }
+        return Date.now() - this.epoch >= duration;
     }
 
     setHasReached() {
-        this.StartTime = 0;
+        this.epoch = 0;
     }
 
     reset() {
-        this.StartTime = Date.now();
-        this.isPaused = false;
-        this.pauseTime = null;
+        this.epoch = Date.now();
+        this.pausedAt = 0;
+        this.waiting = false;
     }
 
     getTime() {
-        return this.StartTime;
+        return this.epoch;
     }
 
-    setTime(Time) {
-        this.StartTime = Time;
+    setTime(newTime) {
+        this.epoch = newTime;
     }
 
     getTimePassed() {
-        const currentTime = Date.now();
-
-        let dt = currentTime - this.StartTime;
-        if (this.isPaused) dt += currentTime - this.pauseTime;
-
-        return dt;
+        const now = Date.now();
+        if (this.pausedAt > 0) {
+            return this.pausedAt - this.epoch;
+        }
+        return now - this.epoch;
     }
 
     pause() {
-        if (!this.isPaused) {
-            this.isPaused = true;
-            this.pauseTime = Date.now();
+        if (this.pausedAt === 0) {
+            this.pausedAt = Date.now();
         }
     }
 
     unpause() {
-        if (this.isPaused) {
-            this.isPaused = false;
-            this.StartTime += Date.now() - this.pauseTime;
-            this.pauseTime = null;
+        if (this.pausedAt > 0) {
+            const pauseDuration = Date.now() - this.pausedAt;
+            this.epoch += pauseDuration;
+            this.pausedAt = 0;
         }
     }
 
     setRandomReached(min, max) {
-        this.randomTime = max - Math.round(Math.random() * min);
+        this.delayTarget = Math.floor(Math.random() * (max - min + 1)) + min;
+        this.waiting = true;
     }
 
     reachedRandom() {
-        return Date.now() - this.StartTime > this.randomTime;
+        return this.hasReached(this.delayTarget);
     }
 }

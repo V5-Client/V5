@@ -8,6 +8,10 @@ import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
 
+const MAX_SCAN = 500;
+const MAX_DISTANCE = 30;
+const IGNORE_RADIUS = 1;
+
 // todo
 // better targetting
 // "failsafes" if it fucks up pathfinding or whatever since current antistuck is haram
@@ -26,12 +30,10 @@ class ForagingBot extends ModuleBase {
         this.connectedBlocks = [];
         this.targetBlock = null;
         this.debug = false;
+        this.pathInProgress = false;
 
         // delete on release
-        register('command', () => {
-            let text = '[' + Math.floor(Player.getX()) + ',' + (Math.floor(Player.getY()) - 1) + ',' + Math.floor(Player.getZ()) + ']';
-            Client.copy(text);
-        }).setName('addwaypoint1');
+        this.registerWaypointCommand();
 
         this.pointIndex = 0;
         this.route = [
@@ -68,10 +70,37 @@ class ForagingBot extends ModuleBase {
         this.state = this.STATES.WAITING;
 
         this.bindToggleKey();
-        this.addToggle('Debug', (v) => (this.debug = v), 'Render stuff');
+        this.addToggle('Debug', this.setDebug.bind(this), 'Render stuff');
 
-        this.on('tick', () => this.tick());
-        this.on('postRenderWorld', () => this.renderConnectedBlocks());
+        this.on('tick', this.tick.bind(this));
+        this.on('postRenderWorld', this.renderConnectedBlocks.bind(this));
+    }
+
+    setDebug(value) {
+        this.debug = value;
+    }
+
+    registerWaypointCommand() {
+        register('command', () => {
+            const x = Math.floor(Player.getX());
+            const y = Math.floor(Player.getY()) - 1;
+            const z = Math.floor(Player.getZ());
+            const text = '[' + x + ',' + y + ',' + z + ']';
+            Client.copy(text);
+        }).setName('addwaypoint1');
+    }
+
+    resetState(state, pointIndex) {
+        this.state = state;
+        this.pointIndex = pointIndex;
+
+        this.connectedBlocks = [];
+        this.scannedBlocksSnapshot = [];
+        this.targetBlock = null;
+        this.scanOrigin = null;
+        this.lastClickedBlock = null;
+        this.rotationInProgress = false;
+        this.pathInProgress = false;
     }
 
     tick() {
@@ -79,50 +108,71 @@ class ForagingBot extends ModuleBase {
 
         switch (this.state) {
             case this.STATES.PATHFINDING:
-                // some people say its a broken pathfinder, i say its just route randomisation
-                let start = [
-                    Math.round(Player.getX() + Math.random() * 3 - 1.5),
-                    Math.round(Player.getY()) - 1,
-                    Math.round(Player.getZ() + Math.random() * 3 - 1.5),
-                ];
-                let end = this.route[this.pointIndex];
-                findAndFollowPath(start, end, (success) => {
-                    if (success) {
-                        this.state = this.STATES.THROWING;
-                    } else {
-                        this.advanceRoutePoint();
-                    }
-                });
-                this.state = this.STATES.SCANNING;
+                this.handlePathfinding();
                 break;
             case this.STATES.SCANNING:
-                this.scanConnectedBlocks(this.route[this.pointIndex]);
-                this.state = this.STATES.WAITING;
+                this.handleScanning();
                 break;
             case this.STATES.THROWING:
-                if (Rotations.isRotating || this.rotationInProgress) return;
-
-                const targetBlock = this.findLowestCostBlock();
-                if (!targetBlock) return;
-
-                this.targetBlock = targetBlock;
-                this.rotationInProgress = true;
-
-                const aimPoint = targetBlock.hitPoint || [targetBlock.x + 0.5, targetBlock.y + 0.7, targetBlock.z + 0.5];
-                Rotations.rotateToVector(aimPoint, 2);
-                Rotations.onEndRotation(() => {
-                    Keybind.rightClick();
-                    this.lastClickedBlock = { x: targetBlock.x, y: targetBlock.y, z: targetBlock.z };
-                    this.connectedBlocks = this.connectedBlocks.filter(
-                        (block) => Math.abs(block.x - targetBlock.x) > 1 || Math.abs(block.y - targetBlock.y) > 1 || Math.abs(block.z - targetBlock.z) > 1
-                    );
-                    this.targetBlock = null;
-                    Client.scheduleTask(17, () => {
-                        this.rotationInProgress = false;
-                    });
-                });
+                this.handleThrowing();
                 break;
         }
+    }
+
+    handlePathfinding() {
+        if (this.pathInProgress) return;
+
+        // some people say its a broken pathfinder, i say its just route randomisation
+        const start = [Math.round(Player.getX() + Math.random() * 3 - 1.5), Math.round(Player.getY()) - 1, Math.round(Player.getZ() + Math.random() * 3 - 1.5)];
+        const end = this.route[this.pointIndex];
+        if (!end) {
+            this.advanceRoutePoint();
+            return;
+        }
+
+        this.pathInProgress = true;
+        findAndFollowPath(start, end, this.onPathFinished.bind(this));
+    }
+
+    onPathFinished(success) {
+        this.pathInProgress = false;
+        if (success) {
+            this.state = this.STATES.SCANNING;
+            return;
+        }
+        this.advanceRoutePoint();
+    }
+
+    handleScanning() {
+        this.scanConnectedBlocks(this.route[this.pointIndex]);
+        this.state = this.STATES.WAITING;
+    }
+
+    handleThrowing() {
+        if (Rotations.isRotating || this.rotationInProgress) return;
+
+        const targetBlock = this.findLowestCostBlock();
+        if (!targetBlock) return;
+
+        this.targetBlock = targetBlock;
+        this.rotationInProgress = true;
+
+        const aimPoint = targetBlock.hitPoint || [targetBlock.x + 0.5, targetBlock.y + 0.7, targetBlock.z + 0.5];
+        Rotations.rotateToVector(aimPoint, 2);
+        Rotations.onEndRotation(() => {
+            Keybind.rightClick();
+            this.lastClickedBlock = { x: targetBlock.x, y: targetBlock.y, z: targetBlock.z };
+            this.connectedBlocks = this.connectedBlocks.filter(
+                (block) =>
+                    Math.abs(block.x - targetBlock.x) > IGNORE_RADIUS ||
+                    Math.abs(block.y - targetBlock.y) > IGNORE_RADIUS ||
+                    Math.abs(block.z - targetBlock.z) > IGNORE_RADIUS
+            );
+            this.targetBlock = null;
+            Client.scheduleTask(17, () => {
+                this.rotationInProgress = false;
+            });
+        });
     }
 
     scanConnectedBlocks(start) {
@@ -134,37 +184,19 @@ class ForagingBot extends ModuleBase {
             return [];
         }
 
-        const key = (x, y, z) => `${x},${y},${z}`;
+        const key = (x, y, z) => x + ',' + y + ',' + z;
         const visited = new Set([key(target.x, target.y, target.z)]);
         const queue = [{ x: target.x, y: target.y, z: target.z }];
         const found = [];
 
-        while (queue.length > 0 && found.length < 500) {
+        while (queue.length > 0 && found.length < MAX_SCAN) {
             const current = queue.shift();
             const block = World.getBlockAt(current.x, current.y, current.z);
             if (!block || block.type?.getID() !== targetId) continue;
 
             found.push({ x: current.x, y: current.y, z: current.z });
 
-            for (let dx = -1; dx <= 1; dx++) {
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dz = -1; dz <= 1; dz++) {
-                        if (dx !== 0 || dy !== 0 || dz !== 0) {
-                            const nx = current.x + dx;
-                            const ny = current.y + dy;
-                            const nz = current.z + dz;
-                            const neighborKey = key(nx, ny, nz);
-                            if (visited.has(neighborKey)) continue;
-
-                            const neighbor = World.getBlockAt(nx, ny, nz);
-                            if (neighbor?.type?.getID() === targetId) {
-                                visited.add(neighborKey);
-                                queue.push({ x: nx, y: ny, z: nz });
-                            }
-                        }
-                    }
-                }
-            }
+            this.addNeighbors(current, queue, visited, key, targetId);
         }
 
         this.connectedBlocks = found;
@@ -174,91 +206,101 @@ class ForagingBot extends ModuleBase {
         return found;
     }
 
+    addNeighbors(current, queue, visited, key, targetId) {
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    if (dx === 0 && dy === 0 && dz === 0) continue;
+                    const nx = current.x + dx;
+                    const ny = current.y + dy;
+                    const nz = current.z + dz;
+                    const neighborKey = key(nx, ny, nz);
+                    if (visited.has(neighborKey)) continue;
+
+                    const neighbor = World.getBlockAt(nx, ny, nz);
+                    if (neighbor?.type?.getID() === targetId) {
+                        visited.add(neighborKey);
+                        queue.push({ x: nx, y: ny, z: nz });
+                    }
+                }
+            }
+        }
+    }
+
     filterValidBlocks(blocks) {
         if (!blocks || blocks.length === 0) return [];
         const ignore = this.lastClickedBlock;
 
         return blocks.filter((block) => {
-            if (ignore && Math.abs(block.x - ignore.x) <= 1 && Math.abs(block.y - ignore.y) <= 1 && Math.abs(block.z - ignore.z) <= 1) return false;
+            if (
+                ignore &&
+                Math.abs(block.x - ignore.x) <= IGNORE_RADIUS &&
+                Math.abs(block.y - ignore.y) <= IGNORE_RADIUS &&
+                Math.abs(block.z - ignore.z) <= IGNORE_RADIUS
+            ) {
+                return false;
+            }
             const worldBlock = World.getBlockAt(block.x, block.y, block.z);
             return worldBlock?.type?.getID() === 80;
         });
     }
 
     advanceRoutePoint() {
-        if (!this.route.length || this.route.length < 2) {
+        if (this.route.length <= 1) {
             Chat.message('Foraging Bot: Route complete. Stopping.');
             this.toggle(false);
             return false;
         }
 
         this.pointIndex = (this.pointIndex + 1) % this.route.length;
-        this.connectedBlocks = [];
-        this.scannedBlocksSnapshot = [];
-        this.targetBlock = null;
-        this.scanOrigin = null;
-        this.lastClickedBlock = null;
-        this.rotationInProgress = false;
-        this.state = this.STATES.PATHFINDING;
+        this.resetState(this.STATES.PATHFINDING, this.pointIndex);
         Chat.message(`Foraging Bot: Moving to next route point (${this.pointIndex + 1}/${this.route.length}).`);
         return false;
     }
 
-    rescanOrAdvance() {
+    getTargetableBlocks() {
         const sourceBlocks = this.scannedBlocksSnapshot?.length ? this.scannedBlocksSnapshot : this.connectedBlocks;
-        this.connectedBlocks = this.filterValidBlocks(sourceBlocks);
-
-        if (this.connectedBlocks.length === 0) {
-            return this.advanceRoutePoint();
+        const validBlocks = this.filterValidBlocks(sourceBlocks);
+        if (validBlocks.length === 0) {
+            this.advanceRoutePoint();
+            return [];
         }
-        return true;
+
+        const blocksWithHits = this.addHitPoints(validBlocks);
+        const visibleBlocks = this.filterVisibleBlocks(blocksWithHits);
+        const targetableBlocks = this.filterInRange(visibleBlocks.length ? visibleBlocks : blocksWithHits);
+
+        if (targetableBlocks.length === 0) {
+            this.advanceRoutePoint();
+            return [];
+        }
+
+        this.connectedBlocks = validBlocks;
+        return targetableBlocks;
+    }
+
+    addHitPoints(list) {
+        return list.map((block) => ({
+            ...block,
+            hitPoint: RayTrace.getPointOnBlock(block, false),
+        }));
+    }
+
+    filterVisibleBlocks(list) {
+        return list.filter((block) => !!block.hitPoint);
+    }
+
+    filterInRange(list) {
+        return list.filter((block) => {
+            const point = block.hitPoint || [block.x + 0.5, block.y + 0.5, block.z + 0.5];
+            const distData = MathUtils.getDistanceToPlayerEyes(point[0], point[1], point[2]);
+            return (distData?.distance ?? Infinity) <= MAX_DISTANCE;
+        });
     }
 
     findLowestCostBlock() {
-        if (!this.connectedBlocks || this.connectedBlocks.length === 0) {
-            if (!this.rescanOrAdvance()) return null;
-        }
-
-        this.connectedBlocks = this.filterValidBlocks(this.connectedBlocks);
-        if (this.connectedBlocks.length === 0) {
-            if (!this.rescanOrAdvance()) return null;
-        }
-
-        const addHitPoints = (list) =>
-            list.map((block) => ({
-                ...block,
-                hitPoint: RayTrace.getPointOnBlock(block, false),
-            }));
-
-        let blocksWithHits = addHitPoints(this.connectedBlocks);
-        let visibleBlocks = blocksWithHits.filter((block) => !!block.hitPoint);
-
-        if (visibleBlocks.length === 0) {
-            if (!this.rescanOrAdvance()) return null;
-            blocksWithHits = addHitPoints(this.connectedBlocks);
-            visibleBlocks = blocksWithHits.filter((block) => !!block.hitPoint);
-            if (visibleBlocks.length === 0) {
-                this.advanceRoutePoint();
-                return null;
-            }
-        }
-
-        const MAX_DISTANCE = 30;
-        const filterInRange = (list) =>
-            list.filter((block) => {
-                const point = block.hitPoint || [block.x + 0.5, block.y + 0.5, block.z + 0.5];
-                const distData = MathUtils.getDistanceToPlayerEyes(point[0], point[1], point[2]);
-                return (distData?.distance ?? Infinity) <= MAX_DISTANCE;
-            });
-
-        let blocksToScore = filterInRange(visibleBlocks);
-        if (blocksToScore.length === 0) {
-            blocksToScore = filterInRange(blocksWithHits);
-        }
-        if (blocksToScore.length === 0) {
-            this.advanceRoutePoint();
-            return null;
-        }
+        const blocksToScore = this.getTargetableBlocks();
+        if (blocksToScore.length === 0) return null;
 
         const scoredBlocks = blocksToScore.map((block) => {
             const point = block.hitPoint || [block.x + 0.5, block.y + 0.5, block.z + 0.5];
@@ -283,35 +325,23 @@ class ForagingBot extends ModuleBase {
 
     onEnable() {
         Chat.message('Foraging Bot: &aEnabled');
-        this.state = this.STATES.PATHFINDING;
-        this.pointIndex = 0;
-        this.scannedBlocksSnapshot = [];
-        this.scanOrigin = null;
-        this.lastClickedBlock = null;
-        this.rotationInProgress = false;
+        this.resetState(this.STATES.PATHFINDING, 0);
     }
 
     onDisable() {
         Chat.message('Foraging Bot: &cDisabled');
         Rotations.stopRotation();
         stopPathing();
-        this.connectedBlocks = [];
-        this.targetBlock = null;
-        this.scannedBlocksSnapshot = [];
-        this.scanOrigin = null;
-        this.lastClickedBlock = null;
-        this.rotationInProgress = false;
+        this.resetState(this.STATES.WAITING, this.pointIndex);
     }
 
     renderConnectedBlocks() {
         if (!this.debug || this.connectedBlocks.length === 0) return;
 
-        const count = this.connectedBlocks.length;
-        for (let i = 0; i < count; i++) {
-            const location = this.connectedBlocks[i];
+        this.connectedBlocks.forEach((location) => {
             const blockVec = new Vec3d(location.x, location.y, location.z);
             RenderUtils.drawWireFrame(blockVec, [205, 133, 63, 255]);
-        }
+        });
     }
 }
 

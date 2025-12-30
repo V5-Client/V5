@@ -1,4 +1,4 @@
-import { Vec3d } from '../../Constants';
+import { Vec3d, BP, SnowBlock } from '../../Constants';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
 import { isStuckRecoveryJumping } from './PathStuckRecovery';
@@ -33,7 +33,7 @@ function getCachedBlock(x, y, z) {
 }
 
 export function isBlockNonCollidable(world, blockVec) {
-    const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+    const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
     const blockState = world.getBlockState(blockPosNMS);
     const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
     return collisionShape.isEmpty();
@@ -44,7 +44,7 @@ function isBlockSolid(x, y, z) {
     if (!block || block.type.getID() === 0) return false;
 
     const world = World.getWorld();
-    const blockPosNMS = new net.minecraft.util.math.BlockPos(x, y, z);
+    const blockPosNMS = new BP(x, y, z);
     const blockState = world.getBlockState(blockPosNMS);
     const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
 
@@ -74,7 +74,7 @@ function isPlayerInFluid() {
 
 function canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
     const world = World.getWorld();
-    const blockPosNMS = new net.minecraft.util.math.BlockPos(blockX, blockY, blockZ);
+    const blockPosNMS = new BP(blockX, blockY, blockZ);
     const blockState = world.getBlockState(blockPosNMS);
 
     try {
@@ -115,7 +115,7 @@ function hasLowCeiling(x, y, z, world) {
         const registryName = block.type.getRegistryName().toLowerCase();
         if (registryName.includes('stair')) continue;
 
-        const blockPosNMS = new net.minecraft.util.math.BlockPos(x, y + offset, z);
+        const blockPosNMS = new BP(x, y + offset, z);
         const blockState = world.getBlockState(blockPosNMS);
         const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
 
@@ -188,7 +188,6 @@ function getSnowLayers(block) {
     if (name !== 'minecraft:snow') return 0;
 
     try {
-        const SnowBlock = net.minecraft.block.SnowBlock;
         return block.getState().get(SnowBlock.LAYERS);
     } catch (e) {
         return 0;

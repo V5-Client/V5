@@ -1,6 +1,4 @@
-import { Vec3d } from '../Constants';
-
-const RenderUtilsPackage = Java.type('com.v5.render.RenderUtils');
+import { Vec3d, RenderUtils as RenderUtilsPackage } from '../Constants';
 
 export default class RenderUtils {
     constructor() {}

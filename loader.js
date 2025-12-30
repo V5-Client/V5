@@ -1,6 +1,8 @@
 // "1.21.05" => 12105
 // "1.21.10" => 12110
-global.mcVersion = (net.minecraft.SharedConstants.getGameVersion()?.getId() || net.minecraft.SharedConstants.getGameVersion()?.id())
+import { SharedConstants } from './utils/Constants';
+
+global.mcVersion = (SharedConstants.getGameVersion()?.getId() || SharedConstants.getGameVersion()?.id())
     .split('.')
     .reduce((acc, val) => acc * 100 + parseInt(val), 0);
 
@@ -11,9 +13,12 @@ global.Version = '1.0.0';
 //    .getWindow()
 //    .setTitle('Client ' + global.Version + ` - ${Player.getName()}`);
 
+// Fix ctjs default shit settings
+com.chattriggers.ctjs.api.Config.setAutoUpdateModules(false);
+com.chattriggers.ctjs.api.Config.setOpenConsoleOnError(true);
+
 /* GUI */
 import './gui/GUI.js';
-
 /* CORE */
 import './utils/Config.js';
 import './utils/backend/IRC.js';
@@ -26,6 +31,7 @@ import './utils/Misc.js';
 import './utils/Webhooks.js';
 import './Failsafes/FailsafeManager.js';
 import './utils/V5Mod.js';
+import './utils/SkyblockEvents.js';
 import './utils/KeybindInitializer.js';
 
 import './modules/loader.js';

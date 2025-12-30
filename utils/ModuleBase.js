@@ -1,5 +1,5 @@
 import { Utils } from './Utils';
-import { KeyBindUtils } from './KeybindInitializer';
+import { KeyBindUtils } from './Constants';
 
 export class ModuleBase {
     /**

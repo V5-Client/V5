@@ -1,52 +1,363 @@
 import { Chat } from './Chat';
-import { Notifications } from './Notifications';
-import { ArrayLists, Vec3d, URL, BufferedInputStream, FileOutputStream } from './Constants';
+import { Vec3d, URL, BufferedInputStream, FileOutputStream, BP, MinecraftText, Formatting } from './Constants';
 
 export const mc = Client.getMinecraft();
 
-class UtilsClass {
-    constructor() {
-        this.configName = 'V5Config';
-        this.areaName = 'None';
-        this.areaTime = 0;
-        this.subAreaName = 'None';
-        this.subAreaTime = 0;
+export const CONFIG_DIR_NAME = 'V5Config';
+export const CACHE_DURATION_MS = 1000;
+export const AREA_CACHE_SHORT_MS = 50;
 
-        register('command', () => {
-            new Thread(() => {
-                function randomDelay() {
-                    const seconds = Math.floor(Math.random() * 3) + 1;
-                    return seconds * 1000;
-                }
-
-                ChatLib.chat('§cYou were spawned into limbo.');
-                ChatLib.command('limbo');
-                Thread.sleep(50);
-                ChatLib.chat('§cAn exception occured in your connection, so you have been routed to limbo!');
-                ChatLib.chat('&b/limbo for more information');
-                Thread.sleep(randomDelay());
-
-                this.fakeBan(`You have been detected using the blacklisted modification "Polar Client"`);
-            }).start();
-        }).setName('polar', true);
+class ConfigFileManager {
+    constructor(dirName) {
+        this.directory = dirName;
+        this.cache = new Map();
     }
 
-    /**
-     * Checks if a specfic block coordinate has collision
-     * @param {*} blockVec the Vec3d / x, y ,z
-     * @returns wether the block has an empty collision shape
-     */
+    read(fileName) {
+        let rawContent = FileLib.read(this.directory, fileName);
+        if (!rawContent || rawContent.trim() === '') {
+            return {};
+        }
+
+        try {
+            return JSON.parse(rawContent);
+        } catch (parseError) {
+            Chat.message('Config read error for ' + fileName + ': ' + parseError.message);
+            return {};
+        }
+    }
+
+    write(fileName, data) {
+        try {
+            let jsonString = JSON.stringify(data, null, 2);
+            FileLib.write(this.directory, fileName, jsonString);
+            this.cache.set(fileName, data);
+            return true;
+        } catch (writeError) {
+            Chat.message('Config write error for ' + fileName + ': ' + writeError.message);
+            return false;
+        }
+    }
+
+    readWithCache(fileName, ttl) {
+        ttl = ttl || 5000;
+        let cached = this.cache.get(fileName);
+
+        if (cached && cached.timestamp && Date.now() - cached.timestamp < ttl) {
+            return cached.data;
+        }
+
+        let data = this.read(fileName);
+        this.cache.set(fileName, { data: data, timestamp: Date.now() });
+        return data;
+    }
+
+    clearCache(fileName) {
+        if (fileName) {
+            this.cache.delete(fileName);
+        } else {
+            this.cache.clear();
+        }
+    }
+}
+
+class LocationDetector {
+    constructor() {
+        this.currentArea = 'Unknown';
+        this.currentSubArea = 'Unknown';
+        this.areaLastChecked = 0;
+        this.subAreaLastChecked = 0;
+    }
+
+    getArea() {
+        let now = Date.now();
+
+        if (now - this.areaLastChecked < AREA_CACHE_SHORT_MS) {
+            return this.currentArea;
+        }
+
+        this.areaLastChecked = now;
+
+        try {
+            let tabLines = TabList.getNames();
+            if (!tabLines) return this.currentArea;
+
+            for (var i = 0; i < tabLines.length; i++) {
+                let lineStr = String(tabLines[i]);
+                let cleanLine = this.stripFormatting(lineStr);
+
+                if (cleanLine.indexOf('Area:') !== -1) {
+                    let parts = cleanLine.split('Area:');
+                    if (parts.length > 1) {
+                        this.currentArea = parts[1].trim();
+                        return this.currentArea;
+                    }
+                }
+            }
+        } catch (err) {
+            return this.currentArea;
+        }
+
+        return this.currentArea;
+    }
+
+    getSubArea() {
+        let now = Date.now();
+
+        if (now - this.subAreaLastChecked < CACHE_DURATION_MS) {
+            return this.currentSubArea;
+        }
+
+        this.subAreaLastChecked = now;
+
+        try {
+            let scoreLines = Scoreboard.getLines();
+            if (!scoreLines) return this.currentSubArea;
+
+            for (var i = 0; i < scoreLines.length; i++) {
+                let lineStr = String(scoreLines[i]);
+
+                if (lineStr.indexOf('⏣') !== -1) {
+                    let cleaned = this.stripFormatting(lineStr);
+                    let segments = cleaned.split('⏣');
+
+                    if (segments.length > 1) {
+                        this.currentSubArea = segments[1].trim();
+                        return this.currentSubArea;
+                    }
+                }
+            }
+        } catch (err) {
+            return this.currentSubArea;
+        }
+
+        return this.currentSubArea;
+    }
+
+    stripFormatting(text) {
+        return text.replace(/§[0-9A-FK-OR]/gi, '');
+    }
+
+    reset() {
+        this.currentArea = 'Unknown';
+        this.currentSubArea = 'Unknown';
+        this.areaLastChecked = 0;
+        this.subAreaLastChecked = 0;
+    }
+}
+
+class CollisionChecker {
+    checkPlayerCollision() {
+        try {
+            let player = Player.getPlayer();
+            if (!player) return false;
+
+            let bbox = player.getBoundingBox();
+            let expanded = bbox.expand(0.01, 0, 0.01);
+
+            let xMin = Math.floor(expanded.minX);
+            let yMin = Math.floor(expanded.minY);
+            let zMin = Math.floor(expanded.minZ);
+            let xMax = Math.floor(expanded.maxX);
+            let yMax = Math.floor(expanded.maxY);
+            let zMax = Math.floor(expanded.maxZ);
+
+            for (var x = xMin; x <= xMax; x++) {
+                for (var y = yMin; y <= yMax; y++) {
+                    for (var z = zMin; z <= zMax; z++) {
+                        let block = World.getBlockAt(x, y, z);
+
+                        if (!block || !block.type || block.type.getID() === 0) {
+                            return false;
+                        }
+
+                        if (this.hasCollision(x, y, z)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    hasCollision(x, y, z) {
+        try {
+            let blockPos = new BP(x, y, z);
+            let blockState = World.getWorld().getBlockState(blockPos);
+            let shape = blockState.getCollisionShape(blockPos);
+            return !shape.isEmpty();
+        } catch (err) {
+            return false;
+        }
+    }
+}
+
+class VectorConverter {
+    convert(input) {
+        if (!input) return null;
+
+        if (input instanceof Vec3d) {
+            return input;
+        }
+
+        if (this.hasXYZ(input)) {
+            return new Vec3d(input.x, input.y, input.z);
+        }
+
+        if (input instanceof Array && input.length >= 3) {
+            return new Vec3d(input[0], input[1], input[2]);
+        }
+
+        if (input instanceof Player || input instanceof PlayerMP || input instanceof Entity) {
+            return new Vec3d(input.getX(), input.getY(), input.getZ());
+        }
+
+        if (input instanceof BlockPos || input instanceof Vec3i) {
+            return new Vec3d(input.x, input.y, input.z);
+        }
+
+        return null;
+    }
+
+    hasXYZ(obj) {
+        return obj && typeof obj.x === 'number' && typeof obj.y === 'number' && typeof obj.z === 'number';
+    }
+}
+
+class FileDownloader {
+    download(urlString, destination) {
+        new Thread(function () {
+            try {
+                if (urlString.startsWith('"') && urlString.endsWith('"')) {
+                    urlString = urlString.substring(1, urlString.length - 1);
+                }
+                let url = new URL(urlString);
+                let inputStream = new BufferedInputStream(url.openStream());
+                let outputStream = new FileOutputStream(destination);
+                let buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+                let bytesRead;
+                while ((bytesRead = inputStream.read(buffer, 0, 1024)) !== -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+                inputStream.close();
+                outputStream.close();
+            } catch (error) {
+                Chat.message('Download failed: ' + error);
+            }
+        }).start();
+    }
+}
+
+class BanSimulator {
+    constructor(configManager) {
+        this.configManager = configManager;
+        this.banDurationMs = 31103998277;
+    }
+
+    trigger(reason) {
+        try {
+            let banRecord = this.configManager.read('bantime.json');
+            let currentTime = Date.now();
+
+            if (!banRecord.start) {
+                banRecord.start = currentTime;
+                this.configManager.write('bantime.json', banRecord);
+            }
+
+            let elapsed = currentTime - banRecord.start;
+            let remaining = Math.max(this.banDurationMs - elapsed, 0);
+            let timeString = this.formatDuration(remaining);
+
+            let networkHandler = Client.getMinecraft().getNetworkHandler();
+            if (!networkHandler) {
+                Chat.message('Network handler unavailable');
+                return;
+            }
+
+            let banId = this.generateBanId();
+
+            let message = MinecraftText.literal('You are temporarily banned for ')
+                .formatted(Formatting.RED)
+                .append(MinecraftText.literal(timeString).formatted(Formatting.WHITE))
+                .append(MinecraftText.literal(' from this server!\\n\\n').formatted(Formatting.RED))
+                .append(MinecraftText.literal('Reason: ').formatted(Formatting.GRAY))
+                .append(MinecraftText.literal(reason + '\\n').formatted(Formatting.WHITE))
+                .append(MinecraftText.literal('Find out more: ').formatted(Formatting.GRAY))
+                .append(MinecraftText.literal('https://www.hypixel.net/appeal\\n\\n').formatted(Formatting.AQUA, Formatting.UNDERLINE))
+                .append(MinecraftText.literal('Ban ID: ').formatted(Formatting.GRAY))
+                .append(MinecraftText.literal('#' + banId + '\\n').formatted(Formatting.WHITE))
+                .append(MinecraftText.literal('Sharing your Ban ID may affect the processing of your appeal!').formatted(Formatting.GRAY));
+
+            networkHandler.getConnection().disconnect(message);
+        } catch (err) {
+            Chat.message('Ban simulation error: ' + err);
+        }
+    }
+
+    formatDuration(milliseconds) {
+        let totalSeconds = Math.floor(milliseconds / 1000);
+        let days = Math.floor(totalSeconds / 86400);
+        let hours = Math.floor((totalSeconds % 86400) / 3600);
+        let minutes = Math.floor((totalSeconds % 3600) / 60);
+        let seconds = totalSeconds % 60;
+
+        return days + 'd ' + hours + 'h ' + minutes + 'm ' + seconds + 's';
+    }
+
+    generateBanId() {
+        let characters = 'ABCDEF0123456789';
+        let id = '793';
+
+        for (var i = 0; i < 5; i++) {
+            let randomIndex = Math.floor(Math.random() * characters.length);
+            id = id + characters.charAt(randomIndex);
+        }
+
+        return id;
+    }
+}
+
+let configManager = new ConfigFileManager(CONFIG_DIR_NAME);
+let locationDetector = new LocationDetector();
+let collisionChecker = new CollisionChecker();
+let vectorConverter = new VectorConverter();
+let fileDownloader = new FileDownloader();
+let banSimulator = new BanSimulator(configManager);
+
+register('command', function () {
+    new Thread(function () {
+        function randomDelay() {
+            let seconds = Math.floor(Math.random() * 3) + 1;
+            return seconds * 1000;
+        }
+
+        ChatLib.chat('§cYou were spawned into limbo.');
+        ChatLib.command('limbo');
+        Thread.sleep(50);
+        ChatLib.chat('§cAn exception occured in your connection, so you have been routed to limbo!');
+        ChatLib.chat('&b/limbo for more information');
+        Thread.sleep(randomDelay());
+
+        banSimulator.trigger('You have been detected using the blacklisted modification "Polar Client"');
+    }).start();
+}).setName('polar', true);
+
+class UtilsClass {
+    constructor() {
+        this.configName = CONFIG_DIR_NAME;
+    }
+
     noCollision(blockVec) {
-        const blockPosNMS = new net.minecraft.util.math.BlockPos(blockVec.x, blockVec.y, blockVec.z);
+        const blockPosNMS = new BlockPos(blockVec.x, blockVec.y, blockVec.z);
         const blockState = World.getWorld().getBlockState(blockPosNMS);
         const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
         return collisionShape.isEmpty();
     }
 
-    /**
-     * Checks the players hitbox to see if its hitting anything
-     * @returns if the player is collided
-     */
     playerIsCollided() {
         const playerBox = Player.getPlayer().getBoundingBox();
         const expandedBox = playerBox.expand(0.01, 0, 0.01);
@@ -140,167 +451,80 @@ class UtilsClass {
      * @returns {Vec3d}
      */
     convertToVector(input) {
-        if (input && typeof input.x === 'number' && typeof input.y === 'number' && typeof input.z === 'number') return new Vec3d(input.x, input.y, input.z);
-        if (input instanceof Player || input instanceof PlayerMP || input instanceof Entity) return new Vec3d(input.getX(), input.getY(), input.getZ());
-        if (input instanceof BlockPos || input instanceof Vec3i) return new Vec3d(input.x, input.y, input.z);
-        if (input instanceof Array && input.length >= 3) return new Vec3d(input[0], input[1], input[2]);
-        if (input instanceof Vec3d) return input;
-
-        return null;
+        return vectorConverter.convert(input);
     }
 
-    /**
-     * Reads and parses a JSON configuration file.
-     * @param {string} Name - The name of the configuration file (e.g., "webhook.json").
-     * @returns {object} The parsed JSON object from the file.
-     */
-    getConfigFile(Name) {
-        let content = FileLib.read(this.configName, Name);
-        if (!content) return {};
-        try {
-            let parse = JSON.parse(content);
-            return parse;
-        } catch (error) {
-            Chat.message('Error parsing config file: ' + error);
-            return {};
-        }
+    getConfigFile(fileName) {
+        return configManager.read(fileName);
     }
 
-    /**
-     * Writes a JavaScript object to a JSON configuration file.
-     * @param {string} Name - The name of the configuration file.
-     * @param {object} Value - The object to write to the file.
-     */
-    writeConfigFile(Name, Value) {
-        let string = JSON.stringify(Value, null, 2);
-        FileLib.write(this.configName, Name, string);
+    writeConfigFile(fileName, data) {
+        return configManager.write(fileName, data);
     }
 
-    /**
-     * Returns the area from the tab list
-     * @returns {string} area
-     */
+    getConfigFileCached(fileName, ttl) {
+        return configManager.readWithCache(fileName, ttl);
+    }
+
+    clearConfigCache(fileName) {
+        configManager.clearCache(fileName);
+    }
+
     area() {
-        if (this.areaTime < Date.now() - 1000) {
-            let areaLine = TabList.getNames().find((name) => {
-                let str = String(name);
-                return str.indexOf('Area:') !== -1;
-            });
-
-            if (areaLine) {
-                let clean = String(areaLine).replace(/§[0-9A-FK-OR]/gi, '');
-                let areaName = clean.split('Area:')[1].trim();
-                this.areaName = areaName;
-                this.areaTime = Date.now();
-            }
-        }
-        return this.areaName;
+        return locationDetector.getArea();
     }
 
-    /**
-     * Returns the subArea from the scoreboard
-     * @returns {string} subArea
-     */
     subArea() {
-        if (this.subAreaTime < Date.now() - 1000) {
-            let lines = Scoreboard.getLines();
-
-            for (let i = 0; i < lines.length; i++) {
-                let str = String(lines[i]);
-
-                if (str.indexOf('⏣') !== -1) {
-                    let clean = str.replace(/§[0-9A-FK-OR]/gi, '');
-                    let subAreaName = clean.split('⏣')[1].trim();
-
-                    this.subAreaName = subAreaName;
-                    this.subAreaTime = Date.now();
-                }
-            }
-        }
-        return this.subAreaName;
+        return locationDetector.getSubArea();
     }
 
-    downloadFile(fileURL, savePath) {
-        try {
-            if (fileURL.startsWith('"') && fileURL.endsWith('"')) {
-                fileURL = fileURL.substring(1, fileURL.length - 1);
-            }
+    resetLocationCache() {
+        locationDetector.reset();
+    }
 
-            let url = new URL(fileURL);
-            let inStream = new BufferedInputStream(url.openStream());
-            let outStream = new FileOutputStream(savePath);
-
-            let buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
-            let bytesRead;
-
-            while ((bytesRead = inStream.read(buffer, 0, 1024)) !== -1) {
-                outStream.write(buffer, 0, bytesRead);
-            }
-
-            inStream.close();
-            outStream.close();
-        } catch (e) {
-            console.error(`Failed to download file from ${fileURL}: ${e}`);
-            Chat.message(`&cFailed to download file: ${e}`);
-        }
+    downloadFile(url, destination) {
+        return fileDownloader.download(url, destination);
     }
 
     fakeBan(reason) {
-        const Text = net.minecraft.text.Text;
-        const Formatting = net.minecraft.util.Formatting;
+        banSimulator.trigger(reason);
+    }
 
-        let banData = this.getConfigFile('bantime.json');
-        let now = Date.now();
-        const totalBanMs = 31103998277;
+    randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
-        if (!banData.start) {
-            banData.start = now;
-            this.writeConfigFile('bantime.json', banData);
-        }
+    randomFloat(min, max) {
+        return Math.random() * (max - min) + min;
+    }
 
-        let elapsed = now - banData.start;
-        let remaining = Math.max(totalBanMs - elapsed, 0);
+    clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
 
-        function formatTime(ms) {
-            let totalSec = Math.floor(ms / 1000);
-            let days = Math.floor(totalSec / 86400);
-            let hours = Math.floor((totalSec % 86400) / 3600);
-            let mins = Math.floor((totalSec % 3600) / 60);
-            let secs = totalSec % 60;
+    lerp(start, end, progress) {
+        return start + (end - start) * progress;
+    }
 
-            return `${days}d ${hours}h ${mins}m ${secs}s`;
-        }
+    isPointInBox(point, boxMin, boxMax) {
+        return point.x >= boxMin.x && point.x <= boxMax.x && point.y >= boxMin.y && point.y <= boxMax.y && point.z >= boxMin.z && point.z <= boxMax.z;
+    }
 
-        let banTimeStr = formatTime(remaining);
+    distance3D(x1, y1, z1, x2, y2, z2) {
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+        let dz = z2 - z1;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
 
-        let handler = Client.getMinecraft().getNetworkHandler();
-        if (!handler) {
-            global.showNotification('fakeBan failed', 'No network handler available', 'ERROR');
-            return;
-        }
-
-        let banMessage = Text.literal('You are temporarily banned for ')
-            .formatted(Formatting.RED)
-            .append(Text.literal(banTimeStr).formatted(Formatting.WHITE))
-            .append(Text.literal(' from this server!\n\n').formatted(Formatting.RED))
-            .append(Text.literal('Reason: ').formatted(Formatting.GRAY))
-            .append(Text.literal(reason + '\n').formatted(Formatting.WHITE))
-            .append(Text.literal('Find out more: ').formatted(Formatting.GRAY))
-            .append(Text.literal('https://www.hypixel.net/appeal\n\n').formatted(Formatting.AQUA, Formatting.UNDERLINE))
-            .append(Text.literal('Ban ID: ').formatted(Formatting.GRAY))
-            .append(Text.literal('#' + this.makeId() + '\n').formatted(Formatting.WHITE))
-            .append(Text.literal('Sharing your Ban ID may affect the processing of your appeal!').formatted(Formatting.GRAY));
-
-        handler.getConnection().disconnect(banMessage);
+    distance2D(x1, z1, x2, z2) {
+        let dx = x2 - x1;
+        let dz = z2 - z1;
+        return Math.sqrt(dx * dx + dz * dz);
     }
 
     makeId() {
-        const chars = 'ABCDEF0123456789';
-        let result = '793';
-        for (let i = 0; i < 5; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
+        return banSimulator.generateBanId();
     }
 }
 

@@ -2,6 +2,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { getSetting } from '../../gui/GuiSave';
 import { File } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
+import { DisconnectS2C } from '../../utils/Packets';
 
 class Failsafes extends ModuleBase {
     constructor() {
@@ -39,7 +40,7 @@ class Failsafes extends ModuleBase {
             ) {
                 ChatLib.command('clip', true);
             }
-        }).setFilteredClass(net.minecraft.network.packet.s2c.common.DisconnectS2CPacket);
+        }).setFilteredClass(DisconnectS2C);
 
         this.addToggle(
             'TP Failsafe',

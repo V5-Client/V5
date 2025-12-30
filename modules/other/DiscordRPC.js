@@ -1,4 +1,4 @@
-const DiscordRPC = Java.type('com.v5.qol.DiscordRPC');
+import { DiscordRPC } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 
 class RPC extends ModuleBase {

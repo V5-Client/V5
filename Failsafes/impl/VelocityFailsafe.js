@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import { Webhook } from '../../utils/Webhooks';
 import FailsafeUtils from '../FailsafeUtils';
 import { registerEventSB } from '../../utils/SkyblockEvents';
+import { EntityVelocityUpdateS2C } from '../../utils/Packets';
 class VelocityFailsafe extends Failsafe {
     constructor() {
         super();
@@ -19,8 +20,7 @@ class VelocityFailsafe extends Failsafe {
             if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
             if (!global.macrostate.isMacroRunning()) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes('Grappling')) return;
-            const playerPos = Player.asPlayerMP().mcValue.getPos();
-            const blockBelow = World.getBlockAt(Math.floor(playerPos.getX()), Math.floor(playerPos.getY()) - 1, Math.floor(playerPos.getZ()));
+            const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
             if (blockBelow.getType().getRegistryName().includes('slime_block')) return;
             const vx = packet.getVelocityX();
             const vy = packet.getVelocityY();
@@ -30,7 +30,7 @@ class VelocityFailsafe extends Failsafe {
                 if (this.ignore) return;
                 this.onTrigger(speed);
             }, this.settings.FailsafeReactionTime - 50 || 600);
-        }).setFilteredClass(net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket);
+        }).setFilteredClass(EntityVelocityUpdateS2C);
 
         registerEventSB('death', () => {
             this.ignore = true;

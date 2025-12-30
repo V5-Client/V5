@@ -1,7 +1,7 @@
 import FailsafeUtils from '../Failsafes/FailsafeUtils';
+import { GradientChat } from './Constants';
 
-const gradientPackage = Java.type('com.v5.gradient.Chat');
-const gradientInstance = new gradientPackage();
+const gradientInstance = new GradientChat();
 
 class ChatClass {
     message(msg) {
@@ -31,9 +31,9 @@ class ChatClass {
     }
 
     _sendGradient(prefix, msg) {
-        //schedule task required to not cause random error cause idk
         if (!msg) return;
-        Client.scheduleTask(0, () => {
+
+        Client.getMinecraft().execute(() => {
             gradientInstance.sendGradientMsg(prefix, `§f${msg}`, 0x05b9f9, 0x0539f9);
         });
     }

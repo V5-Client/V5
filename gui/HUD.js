@@ -1,6 +1,6 @@
 import { ModuleBase } from '../utils/ModuleBase';
-import { Color } from '../utils/Constants';
-import { drawRoundedRectangle, NVG } from './Utils';
+import { Color, NVG } from '../utils/Constants';
+import { drawRoundedRectangle } from './Utils';
 
 class HUD extends ModuleBase {
     constructor() {

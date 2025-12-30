@@ -1,240 +1,183 @@
 import { Chat } from '../Chat';
 import { Utils, mc } from '../Utils';
-import { Vec3d, Direction, BlockHitResult, PlayerInteractBlockC2SPacket } from '../Constants';
+import { Vec3d, Direction, BlockHitResult, MCHand, BP } from '../Constants';
+import { PlayerInteractBlockC2S } from '../Packets';
 
-const LeftClickMouse = mc.getClass().getDeclaredMethod('method_1536');
-LeftClickMouse.setAccessible(true);
+const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1536');
+const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
+LEFT_CLICK_METHOD.setAccessible(true);
+RIGHT_CLICK_METHOD.setAccessible(true);
 
-const RightClickMouse = mc.getClass().getDeclaredMethod('method_1583');
-RightClickMouse.setAccessible(true);
-
-const BP = net.minecraft.util.math.BlockPos;
-
-let justExitedGui = false;
-let clickReenableTimer = 0;
-
-class Keybinding {
-    /**
-     * Performs a left click using ChatTriggers API instead of reflection
-     * @returns {boolean} Success status
-     */
-    leftClick() {
-        if (Client.isInGui() && !Client.isInChat()) return Chat.message('Attempted left click while in GUI. Report this ASAP!');
-        LeftClickMouse.invoke(mc);
+class ControlSystem {
+    constructor() {
+        this.guiExitFlag = false;
+        this.inputLockoutTicks = 0;
+        this.moveCooldown = 0;
+        this.lastActionTime = Date.now();
     }
 
-    /**
-     * Performs a right click using ChatTriggers API instead of reflection
-     * @returns {boolean} Success status
-     */
-    rightClick() {
-        if (Client.isInGui() && !Client.isInChat()) return Chat.message('Attempted right click while in GUI. Report this ASAP!');
-        RightClickMouse.invoke(mc);
-    }
-
-    /**
-     * Right clicks with a specified amount of ticks using proper scheduling
-     * @param {number} ticks - Number of ticks to delay (default: 0)
-     * @returns {boolean} Success status
-     */
-    rightClickDelay(ticks = 0) {
-        ticks === 0 ? this.rightClick() : Client.scheduleTask(ticks, () => this.rightClick());
-    }
-
-    /**
-     * Sends a right click packet
-     * @param {*} ticks
-     */
-    rightClickPacket(ticks = 0, x, y, z) {
-        let blockPos = new BP(x, y, z);
-        let directionUP = Direction.UP;
-        let hitVec = new Vec3d(x + 0.5, y + 0.5, z + 0.5);
-
-        let blockHitResult = new BlockHitResult(hitVec, directionUP, blockPos, false);
-
-        let hand = net.minecraft.util.Hand.MAIN_HAND;
-        let sequence = 0;
-
-        if (ticks === 0) {
-            Client.sendPacket(new PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
-        } else {
-            Client.scheduleTask(ticks, () => {
-                Client.sendPacket(new PlayerInteractBlockC2SPacket(hand, blockHitResult, sequence));
-            });
+    triggerLeftClick() {
+        if (Client.isInGui() && !Client.isInChat()) {
+            return Chat.message('Left click suppressed: User in menu.');
         }
+        LEFT_CLICK_METHOD.invoke(mc);
     }
 
-    /**
-     * @param {string} key - Key identifier
-     * @param {boolean} down - Whether the key should be pressed
-     * @returns {boolean} Success status
-     */
-    setKey(key, down) {
-        let isGuiOpen = Client.isInGui();
-        let isChatOpen = Client.isInChat();
-        let shouldBlockInput = isGuiOpen || isChatOpen;
+    triggerRightClick() {
+        if (Client.isInGui() && !Client.isInChat()) {
+            return Chat.message('Right click suppressed: User in menu.');
+        }
+        RIGHT_CLICK_METHOD.invoke(mc);
+    }
 
-        if (key === 'leftclick') {
+    sendRightClickPacket(delay, x, y, z) {
+        const bp = new BP(x, y, z);
+        const hitResult = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5), Direction.UP, bp, false);
+        const action = () => {
+            Client.sendPacket(new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, 0));
+        };
+
+        if (!delay || delay <= 0) action();
+        else Client.scheduleTask(delay, action);
+    }
+
+    updateKeyState(action, isPressed) {
+        const guiOpen = Client.isInGui();
+        const chatOpen = Client.isInChat();
+
+        if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
-
-            if (shouldBlockInput) {
+            if (guiOpen || chatOpen) {
                 attackKey.setPressed(false);
-
-                if (!justExitedGui) {
-                    justExitedGui = true;
-                    clickReenableTimer = 0;
+                if (!this.guiExitFlag) {
+                    this.guiExitFlag = true;
+                    this.inputLockoutTicks = 0;
                 }
                 return true;
             }
 
-            if (justExitedGui) {
-                if (clickReenableTimer === 0) clickReenableTimer = 2;
-                justExitedGui = false;
+            if (this.guiExitFlag) {
+                this.inputLockoutTicks = 2;
+                this.guiExitFlag = false;
             }
 
-            if (clickReenableTimer > 0) {
+            if (this.inputLockoutTicks > 0) {
                 attackKey.setPressed(false);
-                clickReenableTimer--;
+                this.inputLockoutTicks--;
                 return true;
             }
 
-            attackKey.setPressed(!!down);
+            attackKey.setPressed(!!isPressed);
             return true;
         }
 
-        if (isGuiOpen && !isChatOpen) return false;
+        if (guiOpen && !chatOpen) return false;
 
-        const keyMap = {
-            a: mc.options.leftKey,
-            d: mc.options.rightKey,
-            s: mc.options.backKey,
-            w: mc.options.forwardKey,
-            space: mc.options.jumpKey,
-            shift: mc.options.sneakKey,
-            sprint: mc.options.sprintKey,
+        const options = mc.options;
+        const mapping = {
+            w: options.forwardKey,
+            s: options.backKey,
+            a: options.leftKey,
+            d: options.rightKey,
+            space: options.jumpKey,
+            shift: options.sneakKey,
+            sprint: options.sprintKey,
         };
 
-        const targetKey = keyMap[key];
-        if (targetKey) {
-            targetKey.setPressed(!!down);
+        const keyObj = mapping[action];
+        if (keyObj) {
+            keyObj.setPressed(!!isPressed);
             return true;
         }
         return false;
     }
 
-    /**
-     * @param {string} key - Key identifier
-     * @returns {boolean} Whether the key is pressed
-     */
-    isKeyDown(key) {
-        const keyMap = {
-            a: mc.options.leftKey,
-            d: mc.options.rightKey,
-            s: mc.options.backKey,
-            w: mc.options.forwardKey,
-            space: mc.options.jumpKey,
-            shift: mc.options.sneakKey,
-            leftclick: mc.options.attackKey,
-            sprint: mc.options.sprintKey,
+    checkKeyDown(key) {
+        const options = mc.options;
+        const mapping = {
+            w: options.forwardKey,
+            s: options.backKey,
+            a: options.leftKey,
+            d: options.rightKey,
+            space: options.jumpKey,
+            shift: options.sneakKey,
+            leftclick: options.attackKey,
+            sprint: options.sprintKey,
         };
-        return keyMap[key] ? keyMap[key].isPressed() : false;
+        return mapping[key] ? mapping[key].isPressed() : false;
     }
 
-    setKeysBasedOnYaw(yaw, jump = true) {
-        this.stopMovement();
+    setMovementByYaw(yaw, shouldJump) {
+        this.haltMovement();
         if (Client.isInGui() && !Client.isInChat()) return;
-        if (yaw >= -50.0 && yaw <= 50.0) this.setKey('w', true);
-        if (yaw >= -135.5 && yaw <= -7.0) this.setKey('a', true);
-        if (yaw >= 7.0 && yaw <= 135.5) this.setKey('d', true);
-        if (yaw <= -135.5 || yaw >= 135.5) this.setKey('s', true);
 
-        this.setKey(
-            'space',
-            Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.04 && this.cooldown.hasReached(500) && jump && Utils.playerIsCollided()
-        );
-    }
+        if (yaw > -50 && yaw < 50) this.updateKeyState('w', true);
+        if (yaw > -135.5 && yaw < -7) this.updateKeyState('a', true);
+        if (yaw > 7 && yaw < 135.5) this.updateKeyState('d', true);
+        if (yaw > 135.5 || yaw < -135.5) this.updateKeyState('s', true);
 
-    setKeysBasedOnYawTemp(yaw, jump = true) {
-        this.stopMovement();
-        if (Client.isInGui() && !Client.isInChat()) return;
-        if (yaw >= -50.0 && yaw <= 50.0) this.setKey('w', true);
-        if (yaw >= -135.5 && yaw <= -40.0) this.setKey('a', true);
-        if (yaw >= 40.0 && yaw <= 135.5) this.setKey('d', true);
-        if (yaw <= -135.5 || yaw >= 135.5) this.setKey('s', true);
+        const motionScale = Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ());
+        const timeElapsed = Date.now() - this.lastActionTime;
 
-        this.setKey(
-            'space',
-            Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) < 0.02 && this.cooldown.hasReached(500) && jump && Utils.playerIsCollided()
-        );
-    }
-
-    setKeysForStraightLine(yaw, jump = false) {
-        this.stopMovement();
-        if (Client.isInGui() && !Client.isInChat()) return;
-        if (22.5 > yaw && yaw > -22.5) {
-            // Forwards
-            this.setKey('w', true);
-        } else if (-22.5 > yaw && yaw > -67.5) {
-            // Forwards+Right
-            this.setKey('w', true);
-            this.setKey('a', true);
-        } else if (-67.5 > yaw && yaw > -112.5) {
-            // Right
-            this.setKey('a', true);
-        } else if (-112.5 > yaw && yaw > -157.5) {
-            // Backwards + Right
-            this.setKey('a', true);
-            this.setKey('s', true);
-        } else if ((-157.5 > yaw && yaw > -180) || (180 > yaw && yaw > 157.5)) {
-            // Backwards
-            this.setKey('s', true);
-        } else if (67.5 > yaw && yaw > 22.5) {
-            // Forwards + Left
-            this.setKey('w', true);
-            this.setKey('d', true);
-        } else if (112.5 > yaw && yaw > 67.5) {
-            // Left
-            this.setKey('d', true);
-        } else if (157.5 > yaw && yaw > 112.5) {
-            // Backwards+Left
-            this.setKey('s', true);
-            this.setKey('d', true);
+        if (shouldJump && motionScale < 0.04 && timeElapsed > 500 && Utils.playerIsCollided()) {
+            this.updateKeyState('space', true);
+            this.refreshCooldown();
         }
-        /*this.setKey(
-            'space',
-            Player.asPlayerMP().isInWater() ||
-                (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) <
-                    0.02 &&
-                    this.cooldown.hasReached(500) &&
-                    jump) //&&
-            // Utils.playerIsCollided()
-        ); */
     }
 
-    setKeysForStraightLineCoords(x, y, z, jump = false) {
+    setCardinalMovement(yaw, shouldJump) {
+        this.haltMovement();
+        if (Client.isInGui() && !Client.isInChat()) return;
+
+        const quadrants = [
+            { min: -22.5, max: 22.5, keys: ['w'] },
+            { min: -67.5, max: -22.5, keys: ['w', 'a'] },
+            { min: -112.5, max: -67.5, keys: ['a'] },
+            { min: -157.5, max: -112.5, keys: ['a', 's'] },
+            { min: -180, max: -157.5, keys: ['s'] },
+            { min: 157.5, max: 180, keys: ['s'] },
+            { min: 22.5, max: 67.5, keys: ['w', 'd'] },
+            { min: 67.5, max: 112.5, keys: ['d'] },
+            { min: 112.5, max: 157.5, keys: ['s', 'd'] },
+        ];
+
+        for (var i = 0; i < quadrants.length; i++) {
+            let q = quadrants[i];
+            if (yaw >= q.min && yaw <= q.max) {
+                for (var j = 0; j < q.keys.length; j++) {
+                    this.updateKeyState(q.keys[j], true);
+                }
+                break;
+            }
+        }
+    }
+
+    setMovementToCoords(x, y, z, shouldJump) {
         const dx = x - Player.getX();
         const dz = z - Player.getZ();
-        let yaw = -(Math.atan2(dx, dz) * (180.0 / Math.PI)) - Player.getYaw();
-        if (yaw < -180) yaw += 360;
-        if (yaw > 180) yaw += -360;
-        this.setKeysForStraightLine(yaw, jump);
+        let angle = -(Math.atan2(dx, dz) * (180 / Math.PI)) - Player.getYaw();
+
+        while (angle < -180) angle += 360;
+        while (angle > 180) angle -= 360;
+
+        this.setCardinalMovement(angle, shouldJump);
     }
 
-    setCooldown() {
-        this.cooldown.reset();
+    haltMovement() {
+        const keys = ['w', 'a', 's', 'd', 'space'];
+        for (var i = 0; i < keys.length; i++) {
+            this.updateKeyState(keys[i], false);
+        }
     }
 
-    stopMovement() {
-        this.setKey('a', false);
-        this.setKey('s', false);
-        this.setKey('d', false);
-        this.setKey('w', false);
-        this.setKey('space', false);
+    fullRelease() {
+        this.haltMovement();
+        this.updateKeyState('shift', false);
+        this.updateKeyState('leftclick', false);
     }
 
-    unpressKeys() {
-        this.stopMovement();
-        this.setKey('shift', false);
+    refreshCooldown() {
+        this.lastActionTime = Date.now();
     }
 
     resetLeftClickState() {
@@ -243,4 +186,17 @@ class Keybinding {
     }
 }
 
-export const Keybind = new Keybinding();
+const controls = new ControlSystem();
+
+export const Keybind = {
+    leftClick: () => controls.triggerLeftClick(),
+    rightClick: () => controls.triggerRightClick(),
+    rightClickPacket: (t, x, y, z) => controls.sendRightClickPacket(t, x, y, z),
+    setKey: (k, d) => controls.updateKeyState(k, d),
+    isKeyDown: (k) => controls.checkKeyDown(k),
+    setKeysBasedOnYaw: (y, j) => controls.setMovementByYaw(y, j),
+    setKeysForStraightLine: (y, j) => controls.setCardinalMovement(y, j),
+    setKeysForStraightLineCoords: (x, y, z, j) => controls.setMovementToCoords(x, y, z, j),
+    stopMovement: () => controls.haltMovement(),
+    unpressKeys: () => controls.fullRelease(),
+};

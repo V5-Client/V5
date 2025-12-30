@@ -3,7 +3,8 @@ import { Chat } from '../../utils/Chat';
 import { Utils } from '../../utils/Utils';
 import { Executor } from '../../utils/ThreadExecutor';
 import RenderUtils from '../../utils/render/RendererUtils';
-import { Vec3d, BP, PlayerInteractBlockC2SPacket } from '../../utils/Constants';
+import { Vec3d, BP, BlockHitResult, Direction, MCHand, BlockStone, BlockOre, BlockRedstoneOre } from '../../utils/Constants';
+import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { ModuleBase } from '../../utils/ModuleBase';
 
 class NukerClass extends ModuleBase {
@@ -177,15 +178,12 @@ class NukerClass extends ModuleBase {
                     if (this.minedBlocks.has(posKey)) continue;
                     if (this.distance(pCords, [x, y, z]).distance > 4.5) continue;
 
-                    let blockPos = new BlockPos(x, y, z);
+                    let blockPos = new BP(x, y, z);
                     let blockState = World.getBlockStateAt(blockPos).getBlock();
                     let isValid = false;
 
                     if (this.blockType === 'Crystal Hollows') {
-                        isValid =
-                            blockState instanceof net.minecraft.block.BlockStone ||
-                            blockState instanceof net.minecraft.block.BlockOre ||
-                            blockState instanceof net.minecraft.block.BlockRedstoneOre;
+                        isValid = blockState instanceof BlockStone || blockState instanceof BlockOre || blockState instanceof BlockRedstoneOre;
                     } else if (this.blockType === 'Custom') {
                         let id = World.getBlockAt(x, y, z).type.getID();
                         isValid = this.customBlockList.some((b) => b.id === id);
@@ -251,13 +249,8 @@ class NukerClass extends ModuleBase {
     }
 
     rightClickBlock(xyz) {
-        let hitResult = new net.minecraft.util.hit.BlockHitResult(
-            new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5),
-            net.minecraft.util.math.Direction.UP,
-            new BP(xyz[0], xyz[1], xyz[2]),
-            false
-        );
-        Client.sendPacket(new PlayerInteractBlockC2SPacket(net.minecraft.util.Hand.MAIN_HAND, hitResult, 0));
+        let hitResult = new BlockHitResult(new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5), Direction.UP, new BP(xyz[0], xyz[1], xyz[2]), false);
+        Client.sendPacket(new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, 0));
     }
 
     init() {

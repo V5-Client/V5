@@ -1,10 +1,9 @@
-import { File } from '../utils/Constants';
-import { drawRect, NVG, drawText, THEME } from '../gui/Utils.js';
+import { File, NVG, KeyBindUtils } from '../utils/Constants';
+import { drawRect, drawText, THEME } from '../gui/Utils.js';
 import { ModuleBase } from '../utils/ModuleBase.js';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
 import { Chat } from '../utils/Chat.js';
-import { KeyBindUtils } from '../utils/KeybindInitializer.js';
 
 const AudioSystem = javax.sound.sampled.AudioSystem;
 const FloatControl = javax.sound.sampled.FloatControl;
