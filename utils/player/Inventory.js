@@ -80,6 +80,8 @@ class InterfaceHandler {
             if (Client.currentGui) {
                 Client.currentGui.close();
             }
+
+            Client.getMinecraft().options.attackKey.setPressed(false);
         } catch (err) {}
     }
 }

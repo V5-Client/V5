@@ -731,14 +731,25 @@ class Bot extends ModuleBase {
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'MINING_BOT');
+        if (Client.isInGui()) {
+            Chat.message('&cMiningBot: Cannot start while GUI is open');
+            this.toggle(false);
+            return;
+        }
+
         this.setCost();
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
         this.miningResetPending = false;
         this.miningResetTicks = 0;
+
+        const attackKey = Client.getMinecraft().options.attackKey;
+        attackKey.setPressed(false); // redundant but just to make sure
+
         Keybind.setKey('rightclick', false);
         Keybind.setKey('leftclick', false);
+
         this.normalRender.register();
     }
 
