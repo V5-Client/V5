@@ -181,8 +181,8 @@ class ControlSystem {
     }
 
     resetLeftClickState() {
-        justExitedGui = false;
-        clickReenableTimer = 0;
+        this.guiExitFlag = false;
+        this.inputLockoutTicks = 0;
     }
 }
 
@@ -199,4 +199,5 @@ export const Keybind = {
     setKeysForStraightLineCoords: (x, y, z, j) => controls.setMovementToCoords(x, y, z, j),
     stopMovement: () => controls.haltMovement(),
     unpressKeys: () => controls.fullRelease(),
+    resetLeftClickState: () => controls.resetLeftClickState(),
 };

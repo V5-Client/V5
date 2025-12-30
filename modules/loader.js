@@ -37,3 +37,4 @@ import './other/Failsafes.js';
 import './other/AutoConversation.js';
 import './other/InventoryWalk.js';
 import './other/RatProtection.js';
+import './other/AutoIceFill.js';

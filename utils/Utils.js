@@ -5,7 +5,6 @@ export const mc = Client.getMinecraft();
 
 export const CONFIG_DIR_NAME = 'V5Config';
 export const CACHE_DURATION_MS = 1000;
-export const AREA_CACHE_SHORT_MS = 50;
 
 class ConfigFileManager {
     constructor(dirName) {
@@ -72,7 +71,7 @@ class LocationDetector {
     getArea() {
         let now = Date.now();
 
-        if (now - this.areaLastChecked < AREA_CACHE_SHORT_MS) {
+        if (now - this.areaLastChecked < CACHE_DURATION_MS) {
             return this.currentArea;
         }
 

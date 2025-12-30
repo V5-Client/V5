@@ -83,6 +83,17 @@ class FarmingMacro extends ModuleBase {
                 const selected = v.find((option) => option.enabled)?.name;
                 this.currentHandler = this.HANDLERS[selected];
 
+                this.crop = selected;
+
+                this.createOverlay([
+                    {
+                        title: 'INFO',
+                        data: {
+                            Crop: this.crop || 'None',
+                        },
+                    },
+                ]);
+
                 if (this.currentHandler) {
                     const data = FARMING_DATA.find((d) => d.name === selected);
                     Object.assign(this, data);

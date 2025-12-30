@@ -19,6 +19,8 @@ export class ModuleBase {
         this.description = opts.description || '';
         this.tooltip = opts.tooltip || null;
         this.enabled = false;
+        this.oid = null;
+
         this._registers = [];
         this._conditionalRegisters = [];
         this._conditionalChecker = null;
@@ -89,12 +91,19 @@ export class ModuleBase {
         const newVal = typeof value === 'boolean' ? value : !this.enabled;
         if (this.enabled === newVal) return;
         this.enabled = newVal;
+
         if (newVal) {
+            if (this.oid) {
+                OverlayManager.startTime(this.oid);
+            }
             try {
                 this.onEnable();
             } catch (e) {}
             this._registers.forEach((h) => h.register());
         } else {
+            if (this.oid) {
+                OverlayManager.resetTime(this.oid);
+            }
             this._registers.forEach((h) => h.unregister());
             try {
                 this.onDisable();
@@ -105,26 +114,22 @@ export class ModuleBase {
     bindToggleKey(title = `Toggle ${this.name}`) {
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
-
         const id = (this.name || 'module').toLowerCase().replace(/[^a-z0-9]/g, '_');
-
         this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
-
-        this._wrappedKey.onKeyPress(() => {
-            this.toggle();
-        });
-
+        this._wrappedKey.onKeyPress(() => this.toggle());
         register('gameUnload', () => {
-            const currentCode = this._wrappedKey.keyBinding.boundKey.code;
-            console.log(`KEYYYYYY ${currentCode}`);
-            this._saveKey(title, currentCode);
+            this._saveKey(title, this._wrappedKey.keyBinding.boundKey.code);
         });
-
         return this;
     }
 
     createOverlay(args) {
-        OverlayManager.createID(this.name, args);
+        this.oid = this.name;
+        OverlayManager.createID(this.oid, args);
+
+        if (this.enabled) {
+            OverlayManager.startTime(this.oid);
+        }
     }
 
     /**
@@ -137,6 +142,7 @@ export class ModuleBase {
     addToggle(title, callback, description = null, defaultValue = false) {
         global.Categories.addToggle('Modules', this.name, title, callback, description, defaultValue);
     }
+
     /**
      * Add a slider control to the module's GUI
      * @param {string} title - The title of the slider
@@ -149,6 +155,7 @@ export class ModuleBase {
     addSlider(title, min, max, def, callback, description = null) {
         global.Categories.addSlider('Modules', this.name, title, min, max, def, callback, description);
     }
+
     /**
      * Add a multi-toggle control to the module's GUI
      * @param {string} title - The title of the multi-toggle
@@ -166,11 +173,11 @@ export class ModuleBase {
     // not required
     onEnable() {}
     onDisable() {}
+
     /**
      * @private
      * Saves a specific keybind description and keycode.
      */
-
     _saveKey(description, keycode) {
         let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
         allKeybinds[description] = keycode;
