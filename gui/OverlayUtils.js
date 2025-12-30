@@ -1,7 +1,7 @@
 import { Chat } from '../utils/Chat';
 import { Utils } from '../utils/Utils';
+import { NVG } from '../utils/Constants';
 import {
-    NVG,
     drawRoundedRectangle,
     drawText,
     getTextWidth,
