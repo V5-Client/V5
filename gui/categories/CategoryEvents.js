@@ -1,3 +1,4 @@
+import { OverlayManager } from '../OverlayUtils';
 import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 
@@ -18,7 +19,27 @@ export const handleCategoryClick = (
 ) => {
     if (global.Categories.transitionDirection !== 0) return;
 
+    const leftPanel = global.GuiRectangles.LeftPanel;
+    const pfpSize = 28;
+    const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
+    const editIconSize = 16;
+    const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
+    const editIconY = pfpY - editIconSize - 15;
+
+    const editButtonRect = {
+        x: editIconX - 6,
+        y: editIconY - 6,
+        width: editIconSize + 12,
+        height: editIconSize + 12,
+    };
+
     if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
+        if (isInside(mouseX, mouseY, editButtonRect)) {
+            playClickSound();
+            OverlayManager.openPositionsGUI();
+            return;
+        }
+
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
         const scrollY = global.Categories.optionsScrollY;
@@ -75,7 +96,7 @@ export const handleCategoryClick = (
 
             if (handled) return;
 
-            let thisHeight = 54; // 48 component + 6 spacing
+            let thisHeight = 54;
             if (component instanceof MultiToggle && component.animationProgress > 0) {
                 thisHeight += component.getExpandedHeight() * component.animationProgress;
             }
@@ -83,16 +104,22 @@ export const handleCategoryClick = (
             currentDrawnCompY += thisHeight;
         }
 
-        const leftPanel = global.GuiRectangles.LeftPanel;
         if (isInside(mouseX, mouseY, leftPanel)) {
             let clickedCategory = null;
-            global.Categories.categories.forEach((cat, i) => {
-                const rect = getCategoryRect(i);
-                if (isInside(mouseX, mouseY, rect)) {
-                    clickedCategory = cat.name;
-                    return;
-                }
-            });
+
+            if (isInside(mouseX, mouseY, editButtonRect)) {
+                playClickSound();
+                OverlayManager.openPositionsGUI();
+                return;
+            } else {
+                global.Categories.categories.forEach((cat, i) => {
+                    const rect = getCategoryRect(i);
+                    if (isInside(mouseX, mouseY, rect)) {
+                        clickedCategory = cat.name;
+                    }
+                });
+            }
+
             if (clickedCategory && clickedCategory !== global.Categories.selected) {
                 global.Categories.selected = clickedCategory;
                 invalidateContentHeightCache();
@@ -111,50 +138,72 @@ export const handleCategoryClick = (
             global.Categories.transitionStart = Date.now();
         }
     } else {
-        const wasCategoryClicked = global.Categories.categories.some((cat, i) => {
-            const rect = getCategoryRect(i);
-            if (isInside(mouseX, mouseY, rect)) {
-                if (cat.name !== global.Categories.selected) {
-                    const oldIndex = global.Categories.categories.findIndex((c) => c.name === global.Categories.selected);
-                    const oldRect = getCategoryRect(oldIndex);
+        let clickedCategoryName = null;
+        let clickedIndex = -1;
 
-                    const oldIconX = oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                    const oldIconY = oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-
-                    const newIconX = rect.x + (rect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                    const newIconY = rect.y + (rect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-
-                    global.Categories.catAnimationRect = {
-                        startX: oldIconX,
-                        startY: oldIconY,
-                        endX: newIconX,
-                        endY: newIconY,
-                        width: HIGHLIGHT_SIZE,
-                        height: HIGHLIGHT_SIZE,
-                        radius: 8,
-                    };
-                    global.Categories.catTransitionStart = Date.now();
-
-                    global.Categories.transitionDirection = i > oldIndex ? 1 : -1;
-                    global.Categories.selected = cat.name;
-                    global.Categories.currentPage = 'categories';
-                    global.Categories.selectedItem = null;
-                    global.Categories.selectedSubcategory = null;
-
-                    global.Categories.transitionProgress = 0;
-                    global.Categories.transitionStart = Date.now();
-
-                    invalidateContentHeightCache();
-                    invalidateLayoutCache();
-                    resetCategoryScroll();
-                    playClickSound();
+        if (isInside(mouseX, mouseY, editButtonRect)) {
+            playClickSound();
+            OverlayManager.openPositionsGUI();
+            return;
+        } else {
+            global.Categories.categories.some((cat, i) => {
+                const rect = getCategoryRect(i);
+                if (isInside(mouseX, mouseY, rect)) {
+                    clickedCategoryName = cat.name;
+                    clickedIndex = i;
+                    return true;
                 }
-                return true;
-            }
-            return false;
-        });
+                return false;
+            });
+        }
 
-        if (!wasCategoryClicked && isInside(mouseX, mouseY, global.GuiRectangles.LeftPanel)) {
+        if (clickedCategoryName) {
+            if (clickedCategoryName !== global.Categories.selected) {
+                const oldIndex = global.Categories.categories.findIndex((c) => c.name === global.Categories.selected);
+                let oldRect;
+
+                if (global.Categories.selected === 'Edit') {
+                    oldRect = editButtonRect;
+                } else {
+                    oldRect = getCategoryRect(oldIndex);
+                }
+
+                const newRect = getCategoryRect(clickedIndex);
+
+                const oldIconX = oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+                const oldIconY = oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+                const newIconX = newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+                const newIconY = newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+
+                global.Categories.catAnimationRect = {
+                    startX: oldIconX,
+                    startY: oldIconY,
+                    endX: newIconX,
+                    endY: newIconY,
+                    width: HIGHLIGHT_SIZE,
+                    height: HIGHLIGHT_SIZE,
+                    radius: 8,
+                };
+                global.Categories.catTransitionStart = Date.now();
+
+                global.Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
+                global.Categories.selected = clickedCategoryName;
+                global.Categories.currentPage = 'categories';
+                global.Categories.selectedItem = null;
+                global.Categories.selectedSubcategory = null;
+
+                global.Categories.transitionProgress = 0;
+                global.Categories.transitionStart = Date.now();
+
+                invalidateContentHeightCache();
+                invalidateLayoutCache();
+                resetCategoryScroll();
+                playClickSound();
+            }
+            return;
+        }
+
+        if (isInside(mouseX, mouseY, leftPanel)) {
             playClickSound();
         }
 

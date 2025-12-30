@@ -38,6 +38,8 @@ class CommissionMacro extends ModuleBase {
             autoDisableOnWorldUnload: false,
         });
 
+        this.createOverlay({ Time: 2022, THis: 34, YEs: 'Bruh' });
+
         this.bindToggleKey();
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;

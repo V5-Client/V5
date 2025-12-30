@@ -17,6 +17,10 @@ global.GuiState = {
     animatedRightPanel: {},
 };
 
+global.Overlays = {
+    Gui: new Gui(),
+};
+
 global.GuiRectangles = {
     Background: {
         name: 'Background',
