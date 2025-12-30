@@ -10,8 +10,6 @@ RIGHT_CLICK_METHOD.setAccessible(true);
 
 class ControlSystem {
     constructor() {
-        this.guiExitFlag = false;
-        this.inputLockoutTicks = 0;
         this.moveCooldown = 0;
         this.lastActionTime = Date.now();
     }
@@ -47,23 +45,8 @@ class ControlSystem {
 
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
-            if (guiOpen || chatOpen) {
+            if (guiOpen && !chatOpen) {
                 attackKey.setPressed(false);
-                if (!this.guiExitFlag) {
-                    this.guiExitFlag = true;
-                    this.inputLockoutTicks = 0;
-                }
-                return true;
-            }
-
-            if (this.guiExitFlag) {
-                this.inputLockoutTicks = 2;
-                this.guiExitFlag = false;
-            }
-
-            if (this.inputLockoutTicks > 0) {
-                attackKey.setPressed(false);
-                this.inputLockoutTicks--;
                 return true;
             }
 
@@ -179,11 +162,6 @@ class ControlSystem {
     refreshCooldown() {
         this.lastActionTime = Date.now();
     }
-
-    resetLeftClickState() {
-        this.guiExitFlag = false;
-        this.inputLockoutTicks = 0;
-    }
 }
 
 const controls = new ControlSystem();
@@ -199,5 +177,4 @@ export const Keybind = {
     setKeysForStraightLineCoords: (x, y, z, j) => controls.setMovementToCoords(x, y, z, j),
     stopMovement: () => controls.haltMovement(),
     unpressKeys: () => controls.fullRelease(),
-    resetLeftClickState: () => controls.resetLeftClickState(),
 };

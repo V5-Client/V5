@@ -105,7 +105,7 @@ class Bot extends ModuleBase {
 
     updateMithrilCosts() {
         this.mithrilCosts = {
-            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 5,
+            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 12,
             'minecraft:light_blue_wool': 3,
             'minecraft:prismarine': 5,
             'minecraft:prismarine_bricks': 5,
@@ -731,7 +731,6 @@ class Bot extends ModuleBase {
 
     onEnable() {
         global.macrostate.setMacroRunning(true, 'MINING_BOT');
-        Keybind.resetLeftClickState();
         this.setCost();
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
