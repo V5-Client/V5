@@ -3,6 +3,7 @@ import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
 import { manager } from '../../utils/SkyblockEvents';
+import { MacroState } from '../../utils/MacroState';
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
@@ -27,7 +28,7 @@ class ChatMentionFailsafe extends Failsafe {
 
     registerChatListeners() {
         register('chat', (msg) => {
-            if (!global.macrostate.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning()) return;
             if (this.ignore) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');

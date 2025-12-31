@@ -3,6 +3,7 @@ import { Chat } from '../../utils/Chat';
 import { Guis } from '../../utils/player/Inventory';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ArmorStandEntity } from '../../utils/Constants';
+import { MacroState } from '../../utils/MacroState';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -148,7 +149,7 @@ class FishingMacro extends ModuleBase {
 
     onEnable() {
         Chat.message('fishing macro enabled');
-        global.macrostate.setMacroRunning(true, 'FISHING');
+        MacroState.setMacroRunning(true, 'FISHING');
         this.step = -2;
         this.tickDelay = 0;
         this.thunderSpawn = false;
@@ -157,7 +158,7 @@ class FishingMacro extends ModuleBase {
 
     onDisable() {
         Chat.message('fishing macro un-enabled');
-        global.macrostate.setMacroRunning(false, 'FISHING');
+        MacroState.setMacroRunning(false, 'FISHING');
     }
 }
 

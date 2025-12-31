@@ -4,6 +4,7 @@ import { Webhook } from '../../utils/Webhooks';
 import FailsafeUtils from '../FailsafeUtils';
 import { manager } from '../../utils/SkyblockEvents';
 import { EntityVelocityUpdateS2C } from '../../utils/Packets';
+import { MacroState } from '../../utils/MacroState';
 class VelocityFailsafe extends Failsafe {
     constructor() {
         super();
@@ -18,7 +19,7 @@ class VelocityFailsafe extends Failsafe {
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
             if (!this.settings.isEnabled) return;
             if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
-            if (!global.macrostate.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning()) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes('Grappling')) return;
             const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
             if (blockBelow.getType().getRegistryName().includes('slime_block')) return;

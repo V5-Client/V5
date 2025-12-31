@@ -1,4 +1,4 @@
-global.SESSION_SERVER_HASH = java.util.UUID.randomUUID().toString().replaceAll('-', '');
+const SESSION_SERVER_HASH = java.util.UUID.randomUUID().toString().replaceAll('-', '');
 
 import WebSocket from 'WebSocket';
 import RequestV2 from 'RequestV2';
@@ -148,7 +148,7 @@ function connectWebSocket() {
 
 function login() {
     const username = Player.getName();
-    const serverId = global.SESSION_SERVER_HASH;
+    const serverId = SESSION_SERVER_HASH;
     RequestV2({
         url: `${Links.BASE_API_URL}/api/auth/login`,
         method: 'POST',
@@ -195,7 +195,7 @@ function connectIRC() {
         body: {
             accessToken: Client.getMinecraft().getSession().getAccessToken(),
             selectedProfile: Player.getUUID().toString().replaceAll('-', ''),
-            serverId: global.SESSION_SERVER_HASH,
+            serverId: SESSION_SERVER_HASH,
         },
         resolveWithFullResponse: true,
     })

@@ -3,6 +3,7 @@ import { getSetting } from '../../gui/GuiSave';
 import { File } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
 import { DisconnectS2C } from '../../utils/Packets';
+import { AlertUtils } from '../../Failsafes/AlertUtils';
 
 class Failsafes extends ModuleBase {
     constructor() {
@@ -141,7 +142,7 @@ class Failsafes extends ModuleBase {
 
             const singleEnabledName = enabledNames[0] + '.wav';
 
-            global.failsafeSound = singleEnabledName;
+            AlertUtils.setFailsafeSound(singleEnabledName);
         });
     }
 

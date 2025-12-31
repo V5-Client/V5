@@ -1,12 +1,7 @@
-import './core/GuiState';
-import './core/GuiTooltip';
-import './categories/CategorySystem';
-
-import './GuiSave';
-import './categories/CategoryManager';
-import './NotificationManager';
-
-import './core/GuiRenderer';
+import { GuiState } from './core/GuiState';
+import { Categories } from './categories/CategorySystem';
+import { categoryManager } from './categories/CategoryManager';
+import { showNotification as notify } from './NotificationManager';
 import './core/GuiEvents';
 
 import {
@@ -42,38 +37,38 @@ export const applySettings = _applySettings;
 // THIS ISN'T NEEDED PROBABLY, BUT IT WORKS SO WHATEVER LMFAO
 
 export const showNotification = (title, description, type = 'SUCCESS', duration = 5000) => {
-    global.notificationManager.add(title, description, type, duration);
+    notify(title, description, type, duration);
 };
 
 export const addCategoryItem = (subcategoryName, title, description, tooltip = null) => {
-    global.Categories.addCategoryItem(subcategoryName, title, description, tooltip);
+    Categories.addCategoryItem(subcategoryName, title, description, tooltip);
 };
 
 export const findItem = (categoryName, itemName) => {
-    return global.Categories.findItem(categoryName, itemName);
+    return Categories.findItem(categoryName, itemName);
 };
 
 export const addToggle = (categoryName, itemName, toggleTitle, callback = null, description = null) => {
-    global.Categories.addToggle(categoryName, itemName, toggleTitle, callback, description);
+    Categories.addToggle(categoryName, itemName, toggleTitle, callback, description);
 };
 
 export const addSlider = (categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) => {
-    global.Categories.addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback, description);
+    Categories.addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback, description);
 };
 
 export const addMultiToggle = (categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null) => {
-    global.Categories.addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect, callback, description);
+    Categories.addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect, callback, description);
 };
 
 export const openGui = () => {
     const { loadSettings } = require('./GuiSave');
-    global.GuiState.isOpening = true;
-    global.GuiState.openStartTime = Date.now();
+    GuiState.isOpening = true;
+    GuiState.openStartTime = Date.now();
     loadSettings();
-    global.categoryManager?.invalidateLayoutCache();
-    global.GuiState.myGui.open();
+    categoryManager?.invalidateLayoutCache();
+    GuiState.myGui.open();
 };
 
 export const closeGui = () => {
-    global.GuiState.myGui.close();
+    GuiState.myGui.close();
 };

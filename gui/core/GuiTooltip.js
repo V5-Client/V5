@@ -1,6 +1,6 @@
 import { THEME, drawRoundedRectangleWithBorder, drawText, getTextWidth, FontSizes } from '../Utils';
 
-global.GuiTooltip = {
+export const GuiTooltip = {
     tooltipToDraw: null,
     tooltipHoverTime: 0,
     currentTooltipText: null,
@@ -67,13 +67,13 @@ global.GuiTooltip = {
     },
 };
 
-global.setTooltip = (text) => {
-    global.GuiTooltip.isHoveringTooltipSource = true;
-    if (text !== global.GuiTooltip.currentTooltipText) {
-        global.GuiTooltip.currentTooltipText = text;
-        global.GuiTooltip.tooltipHoverTime = Date.now();
-        global.GuiTooltip.tooltipToDraw = null;
-    } else if (Date.now() - global.GuiTooltip.tooltipHoverTime > 400) {
-        global.GuiTooltip.tooltipToDraw = text;
+export const setTooltip = (text) => {
+    GuiTooltip.isHoveringTooltipSource = true;
+    if (text !== GuiTooltip.currentTooltipText) {
+        GuiTooltip.currentTooltipText = text;
+        GuiTooltip.tooltipHoverTime = Date.now();
+        GuiTooltip.tooltipToDraw = null;
+    } else if (Date.now() - GuiTooltip.tooltipHoverTime > 400) {
+        GuiTooltip.tooltipToDraw = text;
     }
 };

@@ -4,6 +4,7 @@ import { manager } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
 import { PlayerPositionLookS2C } from '../../utils/Packets';
+import { MacroState } from '../../utils/MacroState';
 
 class RotationFailsafe extends Failsafe {
     constructor() {
@@ -15,7 +16,7 @@ class RotationFailsafe extends Failsafe {
 
     registerRotationListeners() {
         register('packetReceived', (packet) => {
-            if (!global.macrostate.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning()) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Rotation');
             if (!this.settings.isEnabled) return;
 

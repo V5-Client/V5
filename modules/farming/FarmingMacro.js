@@ -11,6 +11,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP } from '../../utils/Constants';
 import { attachMixin } from '../../utils/AttachMixin';
 import { spawnBreakParticles } from '../../mixins/SpawnBreakParticlesMixin';
+import { MacroState } from '../../utils/MacroState';
 const FARMING_DATA = [
     {
         name: 'Vertical NetherWart / Potato / Wheat / Carrot',
@@ -835,14 +836,14 @@ class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true, 'FARMING');
+        MacroState.setMacroRunning(true, 'FARMING');
         Mouse.ungrab();
         this.message('&aEnabled');
         this.state = this.STATES.SCANFORCROP;
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false, 'FARMING');
+        MacroState.setMacroRunning(false, 'FARMING');
         Mouse.regrab();
         Rotations.stopRotation();
         Keybind.setKey('leftclick', false);

@@ -6,6 +6,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP, BlockHitResult, Direction, MCHand, BlockStone, BlockOre, BlockRedstoneOre } from '../../utils/Constants';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { MacroState } from '../../utils/MacroState';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -262,13 +263,13 @@ class NukerClass extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true, 'NUKER');
+        MacroState.setMacroRunning(true, 'NUKER');
         Chat.message('Nuker &aEnabled');
         this.init();
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false, 'NUKER');
+        MacroState.setMacroRunning(false, 'NUKER');
         Chat.message('Nuker &cDisabled');
         this.init();
     }

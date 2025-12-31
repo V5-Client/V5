@@ -1,6 +1,6 @@
 import { Utils } from './Utils';
 import { Chat } from './Chat';
-import { URL, DataOutputStream, Toolkit, DataFlavor } from './Constants';
+import { URL, DataOutputStream, Toolkit, DataFlavor, CLIENT_VERSION } from './Constants';
 import { Executor } from './ThreadExecutor';
 
 class DiscordNotifier {
@@ -8,7 +8,7 @@ class DiscordNotifier {
         this.endpoint = null;
         this.mentionId = null;
         this.active = false;
-        this.clientVersion = global.Version;
+        this.clientVersion = CLIENT_VERSION;
 
         this.loadSettings();
         this.initTriggers();

@@ -3,6 +3,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { manager } from '../../utils/SkyblockEvents';
+import { MacroState } from '../../utils/MacroState';
 
 const CHEST_BLOCK_IDS = new Set([54, 146]);
 const CHEST_SEARCH_RADIUS = 3;
@@ -113,7 +114,7 @@ class PowderMacro extends ModuleBase {
         this.setState(State.MINING);
         this.setMiningKeys(true);
 
-        global.macrostate.setMacroRunning(true, 'POWDERMACRO');
+        MacroState.setMacroRunning(true, 'POWDERMACRO');
         Chat.message('Powder Macro Enabled!');
 
         this.startTick();
@@ -125,7 +126,7 @@ class PowderMacro extends ModuleBase {
         Rotations.stopRotation();
         this.resetState();
 
-        global.macrostate.setMacroRunning(false, 'POWDERMACRO');
+        MacroState.setMacroRunning(false, 'POWDERMACRO');
         Chat.message('Powder Macro Disabled!');
     }
 

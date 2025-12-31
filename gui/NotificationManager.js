@@ -154,7 +154,7 @@ class Notification {
     update() {
         if (!this.layoutCalculated) {
             this.calculateLayout();
-            global.notificationManager.updatePositions();
+            notificationManager.updatePositions();
         }
 
         const now = Date.now();
@@ -433,8 +433,10 @@ class NotificationManager {
     }
 }
 
-global.notificationManager = new NotificationManager();
+const notificationManager = new NotificationManager();
 
-global.showNotification = (title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) => {
-    global.notificationManager.add(title, description, type, duration);
+export { notificationManager };
+
+export const showNotification = (title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) => {
+    notificationManager.add(title, description, type, duration);
 };

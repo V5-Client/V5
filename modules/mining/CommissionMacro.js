@@ -3,6 +3,7 @@ import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
 import { manager } from '../../utils/SkyblockEvents';
 import { MiningBot } from './MiningBot';
+import { MacroState } from '../../utils/MacroState';
 import { CombatBot } from '../combat/CombatBot';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { Guis } from '../../utils/player/Inventory';
@@ -198,7 +199,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true, 'COMMISSION');
+        MacroState.setMacroRunning(true, 'COMMISSION');
         Chat.message('&aCommission Macro Enabled.');
 
         this.commissionsCompleted = 0;
@@ -242,7 +243,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false, 'COMMISSION');
+        MacroState.setMacroRunning(false, 'COMMISSION');
         Chat.message('&cCommission Macro Disabled.');
 
         MiningBot.toggle(false);

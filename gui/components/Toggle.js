@@ -1,4 +1,5 @@
 import { playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING, drawText, FontSizes } from '../Utils';
+import { setTooltip } from '../core/GuiTooltip';
 
 export class ToggleButton {
     constructor(title, x, y, width = 10, height = 10, callback = null, defaultValue = false) {
@@ -95,7 +96,7 @@ export class ToggleButton {
         };
 
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            global.setTooltip(this.description);
+            setTooltip(this.description);
         }
     }
 

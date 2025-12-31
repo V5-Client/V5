@@ -1,6 +1,8 @@
 import { OverlayManager } from '../OverlayUtils';
 import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
+import { Categories } from './CategorySystem';
+import { GuiRectangles } from '../core/GuiState';
 
 const ANIMATION_DURATION = 300;
 const ICON_SIZE = 28;
@@ -17,9 +19,9 @@ export const handleCategoryClick = (
     invalidateContentHeightCache,
     resetCategoryScroll
 ) => {
-    if (global.Categories.transitionDirection !== 0) return;
+    if (Categories.transitionDirection !== 0) return;
 
-    const leftPanel = global.GuiRectangles.LeftPanel;
+    const leftPanel = GuiRectangles.LeftPanel;
     const pfpSize = 28;
     const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
     const editIconSize = 16;
@@ -33,7 +35,7 @@ export const handleCategoryClick = (
         height: editIconSize + 12,
     };
 
-    if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
+    if (Categories.currentPage === 'options' && Categories.selectedItem) {
         if (isInside(mouseX, mouseY, editButtonRect)) {
             playClickSound();
             OverlayManager.openPositionsGUI();
@@ -42,7 +44,7 @@ export const handleCategoryClick = (
 
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
-        const scrollY = global.Categories.optionsScrollY;
+        const scrollY = Categories.optionsScrollY;
 
         const backButtonText = 'Back';
         const backButtonWidth = getTextWidth(backButtonText, FontSizes.SMALL);
@@ -54,14 +56,14 @@ export const handleCategoryClick = (
             height: 10,
         };
         if (isInside(mouseX, mouseY, backButtonRect)) {
-            global.Categories.transitionDirection = -1;
-            global.Categories.transitionProgress = 0;
-            global.Categories.transitionStart = Date.now();
+            Categories.transitionDirection = -1;
+            Categories.transitionProgress = 0;
+            Categories.transitionStart = Date.now();
             playClickSound();
             return;
         }
 
-        const components = global.Categories.selectedItem.components;
+        const components = Categories.selectedItem.components;
         let currentCompY = optionY + 78;
         let currentDrawnCompY = currentCompY - scrollY;
 
@@ -112,7 +114,7 @@ export const handleCategoryClick = (
                 OverlayManager.openPositionsGUI();
                 return;
             } else {
-                global.Categories.categories.forEach((cat, i) => {
+                Categories.categories.forEach((cat, i) => {
                     const rect = getCategoryRect(i);
                     if (isInside(mouseX, mouseY, rect)) {
                         clickedCategory = cat.name;
@@ -120,22 +122,22 @@ export const handleCategoryClick = (
                 });
             }
 
-            if (clickedCategory && clickedCategory !== global.Categories.selected) {
-                global.Categories.selected = clickedCategory;
+            if (clickedCategory && clickedCategory !== Categories.selected) {
+                Categories.selected = clickedCategory;
                 invalidateContentHeightCache();
                 resetCategoryScroll();
             }
-            global.Categories.transitionDirection = -1;
-            global.Categories.transitionProgress = 0;
-            global.Categories.transitionStart = Date.now();
+            Categories.transitionDirection = -1;
+            Categories.transitionProgress = 0;
+            Categories.transitionStart = Date.now();
             playClickSound();
             return;
         }
 
-        if (!isInside(mouseX, mouseY, global.GuiRectangles.RightPanel)) {
-            global.Categories.transitionDirection = -1;
-            global.Categories.transitionProgress = 0;
-            global.Categories.transitionStart = Date.now();
+        if (!isInside(mouseX, mouseY, GuiRectangles.RightPanel)) {
+            Categories.transitionDirection = -1;
+            Categories.transitionProgress = 0;
+            Categories.transitionStart = Date.now();
         }
     } else {
         let clickedCategoryName = null;
@@ -146,7 +148,7 @@ export const handleCategoryClick = (
             OverlayManager.openPositionsGUI();
             return;
         } else {
-            global.Categories.categories.some((cat, i) => {
+            Categories.categories.some((cat, i) => {
                 const rect = getCategoryRect(i);
                 if (isInside(mouseX, mouseY, rect)) {
                     clickedCategoryName = cat.name;
@@ -158,11 +160,11 @@ export const handleCategoryClick = (
         }
 
         if (clickedCategoryName) {
-            if (clickedCategoryName !== global.Categories.selected) {
-                const oldIndex = global.Categories.categories.findIndex((c) => c.name === global.Categories.selected);
+            if (clickedCategoryName !== Categories.selected) {
+                const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
                 let oldRect;
 
-                if (global.Categories.selected === 'Edit') {
+                if (Categories.selected === 'Edit') {
                     oldRect = editButtonRect;
                 } else {
                     oldRect = getCategoryRect(oldIndex);
@@ -175,7 +177,7 @@ export const handleCategoryClick = (
                 const newIconX = newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
                 const newIconY = newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
 
-                global.Categories.catAnimationRect = {
+                Categories.catAnimationRect = {
                     startX: oldIconX,
                     startY: oldIconY,
                     endX: newIconX,
@@ -184,16 +186,16 @@ export const handleCategoryClick = (
                     height: HIGHLIGHT_SIZE,
                     radius: 8,
                 };
-                global.Categories.catTransitionStart = Date.now();
+                Categories.catTransitionStart = Date.now();
 
-                global.Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
-                global.Categories.selected = clickedCategoryName;
-                global.Categories.currentPage = 'categories';
-                global.Categories.selectedItem = null;
-                global.Categories.selectedSubcategory = null;
+                Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
+                Categories.selected = clickedCategoryName;
+                Categories.currentPage = 'categories';
+                Categories.selectedItem = null;
+                Categories.selectedSubcategory = null;
 
-                global.Categories.transitionProgress = 0;
-                global.Categories.transitionStart = Date.now();
+                Categories.transitionProgress = 0;
+                Categories.transitionStart = Date.now();
 
                 invalidateContentHeightCache();
                 invalidateLayoutCache();
@@ -207,8 +209,8 @@ export const handleCategoryClick = (
             playClickSound();
         }
 
-        if (global.Categories.selected && global.Categories.currentPage === 'categories') {
-            const cat = global.Categories.categories.find((c) => c.name === global.Categories.selected);
+        if (Categories.selected && Categories.currentPage === 'categories') {
+            const cat = Categories.categories.find((c) => c.name === Categories.selected);
             if (!cat) return;
 
             if (cat.subcategories.length > 0) {
@@ -225,14 +227,14 @@ export const handleCategoryClick = (
                     };
                     if (isInside(mouseX, mouseY, buttonRect)) {
                         const newSubcatName = subcat === 'All' ? null : subcat;
-                        if (global.Categories.selectedSubcategory !== newSubcatName) {
-                            const oldRect = global.Categories.selectedSubcategoryButton || buttonRect;
-                            global.Categories.selectedSubcategory = newSubcatName;
+                        if (Categories.selectedSubcategory !== newSubcatName) {
+                            const oldRect = Categories.selectedSubcategoryButton || buttonRect;
+                            Categories.selectedSubcategory = newSubcatName;
                             invalidateContentHeightCache();
                             invalidateLayoutCache();
-                            global.Categories.subcatTransitionStart = Date.now();
-                            global.Categories.subcatTransitionProgress = 0;
-                            global.Categories.animationRect = {
+                            Categories.subcatTransitionStart = Date.now();
+                            Categories.subcatTransitionProgress = 0;
+                            Categories.animationRect = {
                                 startX: oldRect.x,
                                 startY: oldRect.y,
                                 startWidth: oldRect.width,
@@ -246,7 +248,7 @@ export const handleCategoryClick = (
                                 width: oldRect.width,
                                 height: oldRect.height,
                             };
-                            global.Categories.selectedSubcategoryButton = buttonRect;
+                            Categories.selectedSubcategoryButton = buttonRect;
                             resetCategoryScroll();
                         }
                         playClickSound();
@@ -258,10 +260,10 @@ export const handleCategoryClick = (
 
             for (const layout of cachedItemLayouts) {
                 if (isInside(mouseX, mouseY, layout.rect)) {
-                    global.Categories.transitionDirection = 1;
-                    global.Categories.transitionProgress = 0;
-                    global.Categories.transitionStart = Date.now();
-                    global.Categories.selectedItem = layout.item;
+                    Categories.transitionDirection = 1;
+                    Categories.transitionProgress = 0;
+                    Categories.transitionStart = Date.now();
+                    Categories.selectedItem = layout.item;
                     playClickSound();
                     return;
                 }
@@ -284,13 +286,13 @@ export const handleCategoryScroll = (
 ) => {
     const SCROLL_SPEED = 15;
 
-    if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
+    if (Categories.currentPage === 'options' && Categories.selectedItem) {
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
 
         let scrollHandled = false;
         let componentY = optionY + 78;
-        const components = global.Categories.selectedItem.components;
+        const components = Categories.selectedItem.components;
         if (components) {
             components.forEach((component) => {
                 let compHeight = 54;
@@ -299,7 +301,7 @@ export const handleCategoryScroll = (
                 }
                 const compRect = {
                     x: optionX + 10,
-                    y: componentY - global.Categories.optionsScrollY,
+                    y: componentY - Categories.optionsScrollY,
                     width: panel.width - PADDING * 2 - 20,
                     height: compHeight,
                 };
@@ -323,9 +325,9 @@ export const handleCategoryScroll = (
 
         return;
     }
-    if (global.Categories.currentPage !== 'categories' || global.Categories.transitionDirection !== 0) return;
+    if (Categories.currentPage !== 'categories' || Categories.transitionDirection !== 0) return;
 
-    if (!global.Categories.selected || !isInside(mouseX, mouseY, panel)) {
+    if (!Categories.selected || !isInside(mouseX, mouseY, panel)) {
         return;
     }
 
@@ -340,23 +342,23 @@ export const handleCategoryScroll = (
 };
 
 export const updateCategoryTransitions = () => {
-    if (global.Categories.transitionDirection !== 0) {
-        const elapsed = Date.now() - global.Categories.transitionStart;
+    if (Categories.transitionDirection !== 0) {
+        const elapsed = Date.now() - Categories.transitionStart;
         const rawProgress = Math.min(1, elapsed / ANIMATION_DURATION);
-        global.Categories.transitionProgress = easeInOutQuad(rawProgress);
+        Categories.transitionProgress = easeInOutQuad(rawProgress);
 
         if (rawProgress >= 1) {
-            const newPage = global.Categories.transitionDirection === 1 ? 'options' : 'categories';
-            global.Categories.currentPage = newPage;
+            const newPage = Categories.transitionDirection === 1 ? 'options' : 'categories';
+            Categories.currentPage = newPage;
             if (newPage === 'categories') {
-                global.Categories.selectedItem = null;
-                global.Categories.optionsScrollY = 0;
+                Categories.selectedItem = null;
+                Categories.optionsScrollY = 0;
             }
             if (newPage === 'options') {
-                global.Categories.optionsScrollY = 0;
+                Categories.optionsScrollY = 0;
             }
-            global.Categories.transitionDirection = 0;
-            global.Categories.transitionProgress = 1;
+            Categories.transitionDirection = 0;
+            Categories.transitionProgress = 1;
             return true;
         }
         return true;

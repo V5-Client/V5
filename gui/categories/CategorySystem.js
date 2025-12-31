@@ -2,7 +2,7 @@ import { ToggleButton } from '../components/Toggle';
 import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
 
-global.Categories = {
+export const Categories = {
     categories: [
         {
             name: 'Modules',
@@ -34,7 +34,7 @@ global.Categories = {
     catAnimationDuration: 200,
 
     addCategoryItem(subcategoryName, title, description, tooltip = null) {
-        const category = global.Categories.categories.find((c) => c.name === 'Modules');
+        const category = Categories.categories.find((c) => c.name === 'Modules');
         if (!category) return;
 
         const newItem = {
@@ -67,7 +67,7 @@ global.Categories = {
     },
 
     findItem(categoryName, itemName) {
-        const category = global.Categories.categories.find((c) => c.name === categoryName);
+        const category = Categories.categories.find((c) => c.name === categoryName);
         if (!category) return null;
 
         for (const group of category.items) {
@@ -82,7 +82,7 @@ global.Categories = {
     },
 
     addToggle(categoryName, itemName, toggleTitle, callback = null, description = null, defaultValue = false) {
-        const item = global.Categories.findItem(categoryName, itemName);
+        const item = Categories.findItem(categoryName, itemName);
         if (!item) return;
 
         const toggle = new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback, defaultValue);
@@ -91,7 +91,7 @@ global.Categories = {
     },
 
     addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
-        const item = global.Categories.findItem(categoryName, itemName);
+        const item = Categories.findItem(categoryName, itemName);
         if (!item) return;
 
         const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback);
@@ -100,7 +100,7 @@ global.Categories = {
     },
 
     addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
-        const item = global.Categories.findItem(categoryName, itemName);
+        const item = Categories.findItem(categoryName, itemName);
         if (!item) return;
 
         const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback, defaultValue);

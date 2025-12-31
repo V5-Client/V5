@@ -2,6 +2,7 @@ import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 import { Chat } from '../../utils/Chat';
 import { Webhook } from '../../utils/Webhooks';
+import { MacroState } from '../../utils/MacroState';
 
 class PlayerGreifFailsafe extends Failsafe {
     constructor() {
@@ -19,7 +20,7 @@ class PlayerGreifFailsafe extends Failsafe {
 
     registerGreifListeners() {
         register('step', () => {
-            if (!global.macrostate.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning()) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Player Greif');
             if (!this.settings.isEnabled) return;
             if (!World.isLoaded() || !Player.asPlayerMP()) return;

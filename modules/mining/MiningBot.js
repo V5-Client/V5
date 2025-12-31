@@ -1,8 +1,9 @@
-﻿import { Keybind } from '../../utils/player/Keybinding';
+import { Keybind } from '../../utils/player/Keybinding';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { RayTrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
 import { Utils } from '../../utils/Utils';
+import { MacroState } from '../../utils/MacroState';
 import { MathUtils } from '../../utils/Math';
 import { Chat } from '../../utils/Chat';
 import { manager } from '../../utils/SkyblockEvents';
@@ -730,7 +731,7 @@ class Bot extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true, 'MINING_BOT');
+        MacroState.setMacroRunning(true, 'MINING_BOT');
         if (Client.isInGui()) {
             Chat.message('&cMiningBot: Cannot start while GUI is open');
             this.toggle(false);
@@ -754,7 +755,7 @@ class Bot extends ModuleBase {
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false, 'MINING_BOT');
+        MacroState.setMacroRunning(false, 'MINING_BOT');
         Chat.message('Mining Bot Disabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);

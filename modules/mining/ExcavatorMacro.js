@@ -3,6 +3,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
+import { MacroState } from '../../utils/MacroState';
 class ExcavatorMacro extends ModuleBase {
     constructor() {
         super({
@@ -171,13 +172,13 @@ class ExcavatorMacro extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true);
+        MacroState.setMacroRunning(true);
         this.message('&aEnabled');
         this.state = this.STATES.OPENING;
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false);
+        MacroState.setMacroRunning(false);
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
         this.clickedChisel = false;

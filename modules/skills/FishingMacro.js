@@ -4,6 +4,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Rotations } from '../../utils/player/Rotations';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
+import { MacroState } from '../../utils/MacroState';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -172,14 +173,14 @@ class FishingMacro extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true, 'FISHING');
+        MacroState.setMacroRunning(true, 'FISHING');
         Chat.message('Fishing Macro Enabled');
         this.resetSequence();
         Keybind.setKey('shift', false);
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false, 'FISHING');
+        MacroState.setMacroRunning(false, 'FISHING');
         Chat.message('Fishing Macro disabled');
         Keybind.setKey('shift', false);
     }

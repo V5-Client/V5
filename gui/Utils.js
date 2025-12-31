@@ -217,6 +217,10 @@ export const playClickSound = () => {
 };
 
 const profilePath = new File('config/ChatTriggers/assets/discordProfile.png');
+let discordPfpPath = null;
+
+export const getDiscordPfpPath = () => discordPfpPath;
+
 export const returnDiscord = (authToken) => {
     try {
         if (!profilePath.exists()) {
@@ -248,10 +252,10 @@ export const returnDiscord = (authToken) => {
 
                 let avatarUrl = data.discord.avatar;
                 Utils.downloadFile(avatarUrl, profilePath.getAbsolutePath());
-                global.discordPfpPath = profilePath.getAbsolutePath();
+                discordPfpPath = profilePath.getAbsolutePath();
             }).start();
         } else {
-            global.discordPfpPath = profilePath.getAbsolutePath();
+            discordPfpPath = profilePath.getAbsolutePath();
         }
     } catch (error) {
         Chat.message('An unexpected error occurred while fetching Discord PFP: ' + error);
