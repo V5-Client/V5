@@ -180,7 +180,7 @@ class NukerClass extends ModuleBase {
                     if (this.distance(pCords, [x, y, z]).distance > 4.5) continue;
 
                     let blockPos = new BP(x, y, z);
-                    let blockState = World.getBlockStateAt(blockPos).getBlock();
+                    let blockState = World.getWorld().getBlockState(blockPos).getBlock();
                     let isValid = false;
 
                     if (this.blockType === 'Crystal Hollows') {
