@@ -1,7 +1,5 @@
-import request from 'RequestV2';
-
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
-import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
+import { PathComplete, pathRotations, ResetRotations, setRequestPathRecalculation } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
 import { Vec3d, BP } from '../Constants';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
@@ -10,6 +8,7 @@ import { detectJump } from './PathWalker/PathJumps';
 import { Chat } from '../Chat';
 import { Keybind } from '../player/Keybinding';
 import { SwiftBridge } from './SwiftBridge';
+import { showNotification } from '../../gui/NotificationManager';
 
 let renderPath = null;
 let currentPathRequest = null;
@@ -132,7 +131,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
     if (!started) {
         const error = SwiftBridge.getLastError() || 'Failed to start pathfinding';
-        global.showNotification('Pathfinding Failed', error, 'ERROR', 5000);
+        showNotification('Pathfinding Failed', error, 'ERROR', 5000);
         console.error('Pathfinding failed to start:', error);
         if (onComplete && typeof onComplete === 'function') onComplete(false);
         return;
@@ -160,14 +159,14 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
         if (!body) {
             const error = SwiftBridge.getLastError() || 'Unknown error';
-            global.showNotification('Pathfinding Failed', error, 'ERROR', 5000);
+            showNotification('Pathfinding Failed', error, 'ERROR', 5000);
             console.error('Pathfinding failed:', error);
             if (onComplete && typeof onComplete === 'function') onComplete(false);
             return;
         }
 
         if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
-            global.showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
+            showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
             console.error('Invalid keynodes in response:', body);
             if (onComplete && typeof onComplete === 'function') onComplete(false);
             return;
@@ -204,7 +203,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
         }
 
         if (renderOnly) {
-            global.showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
+            showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
             return;
         }
 
@@ -225,7 +224,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             ResetRotations();
             stopPathing();
 
-            global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+            showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
 
             if (onComplete && typeof onComplete === 'function') {
                 onComplete(true);
@@ -251,7 +250,7 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback, adjustEnd = 
     executePathfinding(start, end, onComplete, renderOnly, adjustEnd);
 }
 
-global.requestPathRecalculation = function () {
+function requestPathRecalculation() {
     Chat.messagePathfinder('§6[Pathfinding] Recalculating path...');
 
     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
@@ -270,13 +269,15 @@ global.requestPathRecalculation = function () {
         Chat.messagePathfinder('§c[Pathfinding] Cannot recalculate - no destination stored');
         stopPathing();
     }
-};
+}
+
+setRequestPathRecalculation(requestPathRecalculation);
 
 register('command', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
     const coords = args.slice(0, 3).map(Number);
     if (coords.some(isNaN)) {
-        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+        return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
     }
     const end = coords.slice(0, 3);
     findAndFollowPath(start, end);
@@ -284,11 +285,11 @@ register('command', (...args) => {
 
 register('command', (...args) => {
     if (args.length < 6) {
-        return global.showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
+        return showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
     }
     const coords = args.slice(0, 6).map(Number);
     if (coords.some(isNaN)) {
-        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+        return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
     }
     const renderOnly = args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
     findAndFollowPath(coords.slice(0, 3), coords.slice(3, 6), renderOnly);
