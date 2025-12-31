@@ -84,11 +84,9 @@ class AlertUtilsClass {
             this._renderAlertScreen();
         });
 
-        this.tracker = register('step', () => {
-            if (this.cancelKeyBind.isPressed()) {
-                Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
-                this.disableReaction();
-            }
+        this.cancelKeyBind.onKeyPress(() => {
+            Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
+            this.disableReaction();
         });
     }
 
