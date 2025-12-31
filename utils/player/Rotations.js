@@ -201,6 +201,8 @@ class RotationsTo {
             return;
         }
 
+        if (distance > this.initialDistance) this.initialDistance = distance;
+
         let deltaTime = (now - this.lastTime) / 1000.0;
         this.lastTime = now;
 
@@ -231,6 +233,7 @@ class RotationsTo {
 
     rotateToAngles(yaw, pitch) {
         this.target = { yaw, pitch };
+        this.targetVector = null;
         this.isRotating = true;
     }
 
