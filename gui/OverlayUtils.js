@@ -60,7 +60,6 @@ class OverlayUtils {
         if (this.stepTrigger) return;
         this.stepTrigger = register('step', () => {
             let activeAnimations = 0;
-
             for (let name in this.animations) {
                 let anim = this.animations[name];
                 let diff = anim.target - anim.progress;
@@ -71,9 +70,7 @@ class OverlayUtils {
                     anim.progress = anim.target;
                 }
             }
-
             const needsToRun = Object.values(this.animations).some((a) => a.target > 0 || a.progress > 0.01);
-
             if (activeAnimations === 0 && !needsToRun) {
                 if (this.stepTrigger) {
                     this.stepTrigger.unregister();
@@ -90,7 +87,6 @@ class OverlayUtils {
         } else {
             this.animations[idName].target = 1;
         }
-
         if (!this.mainRenderTrigger.isRegistered()) {
             this.mainRenderTrigger.register();
         }
@@ -118,23 +114,19 @@ class OverlayUtils {
         const m = Math.floor(s / 60);
         const h = Math.floor(m / 60);
         const d = Math.floor(h / 24);
-
         const secs = s % 60;
         const mins = m % 60;
         const hours = h % 24;
-
         const parts = [];
         if (d > 0) parts.push(`${d}d`);
         if (h > 0) parts.push(`${hours}h`);
         if (m > 0) parts.push(`${mins}m`);
         parts.push(`${secs}s`);
-
         return parts.join(' ');
     }
 
     initTriggers() {
         Overlays.Gui.registerClosed(() => {
-            // Save positions when GUI closes
             if (this.pendingSave) {
                 this.saveIDs();
                 this.pendingSave = false;
@@ -154,7 +146,6 @@ class OverlayUtils {
 
     createID(idName, sections = []) {
         const sectionsArray = this.ensureArray(sections);
-
         let existing = this.ids.find((id) => id.name === idName);
         if (existing) {
             if (JSON.stringify(existing.sections) !== JSON.stringify(sectionsArray)) {
@@ -174,7 +165,6 @@ class OverlayUtils {
             this.ids.push(newId);
             this.saveIDs();
         }
-
         if (!this.animations[idName]) {
             this.animations[idName] = { progress: 0, target: 0 };
         }
@@ -212,12 +202,10 @@ class OverlayUtils {
     drawAccentGlow(x, y, width, height, radius, progress) {
         const accentColor = THEME.DROPDOWN_FOREGROUND;
         const glowIntensity = 0.12;
-
         for (let i = 3; i >= 0; i--) {
             const expand = i * 2;
             const alpha = (glowIntensity - i * 0.025) * progress;
             if (alpha <= 0) continue;
-
             drawRoundedRectangle({
                 x: x - expand,
                 y: y - expand,
@@ -232,14 +220,11 @@ class OverlayUtils {
     drawSectionDivider(x, y, width, progress) {
         const accentColor = THEME.DROPDOWN_FOREGROUND;
         const dividerHeight = 1;
-
         const segments = 20;
         const segmentWidth = width / segments;
-
         for (let i = 0; i < segments; i++) {
             const distFromCenter = Math.abs(i - segments / 2) / (segments / 2);
             const alpha = Math.max(0, (1 - distFromCenter * distFromCenter) * 0.3 * progress);
-
             drawRect({
                 x: x + i * segmentWidth,
                 y: y,
@@ -254,52 +239,40 @@ class OverlayUtils {
         const anim = this.animations[id.name];
         let progress = anim ? anim.progress : 0;
         if (forceGUI) progress = 1.0;
-
         if (!forceGUI && (!anim || (anim.target === 0 && anim.progress <= 0.01))) return;
 
         const sections = this.ensureArray(id.sections);
         const uptimeVal = this.formatUptime(this.startTimes[id.name]);
-
         let maxWidth = getTextWidth(id.name, this.fontSize) + this.boxPadding * 3;
-
-        let calculatedHeight = 0;
-        calculatedHeight += 20 * this.scale;
-        calculatedHeight += 10 * this.scale;
+        let calculatedHeight = 30 * this.scale;
 
         sections.forEach((section, sIdx) => {
             if (!section || typeof section !== 'object') return;
+            if (section.title) calculatedHeight += 16 * this.scale;
             calculatedHeight += 10 * this.scale;
-
             const sectionData = section.data || {};
             const entries = Object.entries(sectionData);
-
             entries.forEach(([k, v]) => {
                 const lineW = getTextWidth(`${k}:`, this.argFontSize) + getTextWidth(String(v), this.argFontSize) + 65 * this.scale;
                 if (lineW > maxWidth) maxWidth = lineW;
             });
-
             if (sIdx === 0) {
                 const lineW = getTextWidth(`Uptime:`, this.argFontSize) + getTextWidth(uptimeVal, this.argFontSize) + 65 * this.scale;
                 if (lineW > maxWidth) maxWidth = lineW;
             }
-
             let lineCount = entries.length + (sIdx === 0 ? 1 : 0);
             calculatedHeight += lineCount * 14 * this.scale;
             calculatedHeight += 2 * this.scale;
         });
-
         calculatedHeight += 6 * this.scale;
 
         id.width = Math.max(220 * this.scale, maxWidth);
         id.height = Math.max(this.minBoxHeight, calculatedHeight);
-
         const currentHeight = id.height * progress;
         const radius = CORNER_RADIUS * this.scale;
-
         const bgColor = colorWithAlpha(THEME.GUI_DRAW_BACKGROUND.getRGB(), 0.95 * progress);
 
         drawShadow(id.x, id.y, id.width, currentHeight, 18 * this.scale, 0.45 * progress);
-
         drawRoundedRectangleWithBorder({
             x: id.x,
             y: id.y,
@@ -315,44 +288,46 @@ class OverlayUtils {
 
         if (progress > 0.1) {
             const contentAlpha = Math.min(1, progress * 3);
-
             NVG.scissor(id.x, id.y, id.width, currentHeight);
-
             const titleY = id.y + 20 * this.scale;
             const titleX = id.x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
-
             drawText(id.name, titleX + 1, titleY + 1, this.fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), 16);
             drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
 
             let contentY = titleY + 10 * this.scale;
             sections.forEach((section, sIdx) => {
                 if (!section || typeof section !== 'object') return;
-
                 this.drawSectionDivider(id.x + 18 * this.scale, contentY, id.width - 36 * this.scale, contentAlpha);
                 contentY += 10 * this.scale;
 
+                if (section.title) {
+                    drawText(
+                        section.title.toUpperCase(),
+                        id.x + 22 * this.scale,
+                        contentY,
+                        this.argFontSize * 0.85,
+                        colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha),
+                        17
+                    );
+                    contentY += 14 * this.scale;
+                }
+
                 const renderLine = (label, val, isUptime = false) => {
                     const labelWidth = getTextWidth(label, this.argFontSize);
-
                     drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
-
                     const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
                     const valueColor = isUptime
                         ? colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha)
                         : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
-
                     drawText(String(val), valueX, contentY, this.argFontSize, valueColor, 17);
-
                     contentY += 14 * this.scale;
                 };
 
                 if (sIdx === 0) renderLine('Uptime:', uptimeVal, true);
-
                 const sectionData = section.data || {};
                 Object.entries(sectionData).forEach(([k, v]) => renderLine(`${k}:`, v, false));
                 contentY += 4 * this.scale;
             });
-
             NVG.resetScissor();
         }
     }
@@ -364,9 +339,7 @@ class OverlayUtils {
         Client.getMinecraft().gameRenderer.renderBlur();
         try {
             NVG.beginFrame(sw, sh);
-            this.ids.forEach((id) => {
-                this.renderID(id, true);
-            });
+            this.ids.forEach((id) => this.renderID(id, true));
         } finally {
             NVG.endFrame();
         }

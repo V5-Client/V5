@@ -10,7 +10,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { OverlayManager } from '../../gui/OverlayUtils';
+
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
@@ -45,7 +45,6 @@ class CommissionMacro extends ModuleBase {
         this.commissionsCompleted = 0;
         this.currentToolType = 'None'; // 'Drill', 'Pickaxe', 'Weapon'
         this.currentToolName = 'None';
-        this.initOverlay();
 
         this.bindToggleKey();
         this.currentState = STATES.IDLE;
@@ -127,21 +126,6 @@ class CommissionMacro extends ModuleBase {
         );
     }
 
-    initOverlay() {
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    State: 'Idle',
-                    Commission: 'None',
-                    Progress: '0%',
-                    Completed: '0',
-                    Tool: 'None',
-                },
-            },
-        ]);
-    }
-
     getToolDisplay() {
         if (this.currentState === STATES.SLAYER && this.currentCommission?.name === 'Goblin Slayer' && this.weapon) {
             return {
@@ -184,15 +168,20 @@ class CommissionMacro extends ModuleBase {
             toolDisplay = toolDisplay.substring(0, maxToolNameLen - 2) + '..';
         }
 
-        OverlayManager.createID(this.overlayName, [
+        this.createOverlay([
             {
                 title: 'Status',
                 data: {
                     State: this.currentState,
                     Commission: currentCommName,
                     Progress: progressStr,
-                    Completed: String(this.commissionsCompleted),
                     [toolInfo.type]: toolDisplay,
+                },
+            },
+            {
+                title: 'Profits',
+                data: {
+                    'Completed Commissions': this.commissionsCompleted,
                 },
             },
         ]);
