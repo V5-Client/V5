@@ -491,11 +491,13 @@ function findClosestBoxIndex(boxPositions, currentIndex, playerEyes) {
     for (let i = startIndex; i < endIndex; i++) {
         const box = boxPositions[i];
         const dx = playerEyes.x - (box.x + 0.5);
+        const dy = playerEyes.y - (box.y + 0.5);
         const dz = playerEyes.z - (box.z + 0.5);
-        const horizontalDistanceSq = dx * dx + dz * dz;
 
-        if (horizontalDistanceSq < closestBoxDistanceSq) {
-            closestBoxDistanceSq = horizontalDistanceSq;
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+
+        if (distanceSq < closestBoxDistanceSq) {
+            closestBoxDistanceSq = distanceSq;
             newCurrentBoxIndex = i;
         }
     }

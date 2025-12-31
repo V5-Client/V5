@@ -117,10 +117,11 @@ function drawKeyNodes(keynodes) {
     }
 }
 
-function executePathfinding(start, end, onComplete, renderOnly = false) {
+function executePathfinding(start, end, onComplete, renderOnly = false, adjustEnd = false) {
+    stopPathing();
+
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = end; // dont adjust. if your end coordinate is wrong, that's your fault.
-    //const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
+    const adjustedEnd = adjustEnd ? [end[0], findStartY(end[0], end[1], end[2]), end[2]] : end;
 
     Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
@@ -234,13 +235,20 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
     });
 }
 
-export function findAndFollowPath(start, end, renderOnlyOrCallback) {
+/**
+ * Find and walk a path from start to end.
+ * @param {number[]} start - [x, y, z] start coords
+ * @param {number[]} end - [x, y, z] end coords
+ * @param {boolean|Function} renderOnlyOrCallback - If true, render only. If function, callback on complete.
+ * @param {boolean} adjustEnd - If true, adjusts end Y to find ground level. ONLY WORKS ON BLOCK IN YOUR RENDER DISTANCE, DO NOT USE FOR LONG DISTANCE PATHS
+ */
+export function findAndFollowPath(start, end, renderOnlyOrCallback, adjustEnd = false) {
     const renderOnly = typeof renderOnlyOrCallback === 'boolean' ? renderOnlyOrCallback : false;
     const onComplete = typeof renderOnlyOrCallback === 'function' ? renderOnlyOrCallback : null;
 
     currentPathCallback = onComplete;
 
-    executePathfinding(start, end, onComplete, renderOnly);
+    executePathfinding(start, end, onComplete, renderOnly, adjustEnd);
 }
 
 global.requestPathRecalculation = function () {

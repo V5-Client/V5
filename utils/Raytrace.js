@@ -288,9 +288,151 @@ class BlockScanner {
     }
 }
 
+class EntityRaytracer {
+    constructor() {
+        this.visibilityChecker = new VisibilityChecker();
+    }
+
+    getPlayerLookDirection() {
+        let player = Player.getPlayer();
+        if (!player) return null;
+
+        let yaw = player.getYaw();
+        let pitch = player.getPitch();
+
+        let yawRad = (-yaw * Math.PI) / 180;
+        let pitchRad = (-pitch * Math.PI) / 180;
+
+        let cosPitch = Math.cos(pitchRad);
+
+        return {
+            x: Math.sin(yawRad) * cosPitch,
+            y: Math.sin(pitchRad),
+            z: Math.cos(yawRad) * cosPitch,
+        };
+    }
+
+    rayIntersectsAABB(ox, oy, oz, dx, dy, dz, minX, minY, minZ, maxX, maxY, maxZ, maxDist) {
+        let tMin = 0;
+        let tMax = maxDist;
+
+        // X axis slab
+        if (Math.abs(dx) < 1e-8) {
+            if (ox < minX || ox > maxX) return false;
+        } else {
+            let t1 = (minX - ox) / dx;
+            let t2 = (maxX - ox) / dx;
+            if (t1 > t2) {
+                let temp = t1;
+                t1 = t2;
+                t2 = temp;
+            }
+            tMin = Math.max(tMin, t1);
+            tMax = Math.min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        // Y axis slab
+        if (Math.abs(dy) < 1e-8) {
+            if (oy < minY || oy > maxY) return false;
+        } else {
+            let t1 = (minY - oy) / dy;
+            let t2 = (maxY - oy) / dy;
+            if (t1 > t2) {
+                let temp = t1;
+                t1 = t2;
+                t2 = temp;
+            }
+            tMin = Math.max(tMin, t1);
+            tMax = Math.min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        // Z axis slab
+        if (Math.abs(dz) < 1e-8) {
+            if (oz < minZ || oz > maxZ) return false;
+        } else {
+            let t1 = (minZ - oz) / dz;
+            let t2 = (maxZ - oz) / dz;
+            if (t1 > t2) {
+                let temp = t1;
+                t1 = t2;
+                t2 = temp;
+            }
+            tMin = Math.max(tMin, t1);
+            tMax = Math.min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+
+        return tMin <= tMax && tMin >= 0;
+    }
+
+    isLookingAtEntity(entity, maxDistance) {
+        maxDistance = maxDistance || 6;
+
+        let eyePos = this.visibilityChecker.getPlayerEyePosition();
+        if (!eyePos) return false;
+
+        let dir = this.getPlayerLookDirection();
+        if (!dir) return false;
+
+        try {
+            let mcEntity = entity.toMC ? entity.toMC() : entity;
+            let box = mcEntity.getBoundingBox();
+
+            if (!box) return false;
+
+            return this.rayIntersectsAABB(
+                eyePos.x,
+                eyePos.y,
+                eyePos.z,
+                dir.x,
+                dir.y,
+                dir.z,
+                box.minX,
+                box.minY,
+                box.minZ,
+                box.maxX,
+                box.maxY,
+                box.maxZ,
+                maxDistance
+            );
+        } catch (e) {
+            return false;
+        }
+    }
+
+    getEntityHitboxCenter(entity) {
+        try {
+            let mcEntity = entity.toMC ? entity.toMC() : entity;
+            let box = mcEntity.getBoundingBox();
+
+            if (box) {
+                return {
+                    x: (box.minX + box.maxX) / 2,
+                    y: (box.minY + box.maxY) / 2,
+                    z: (box.minZ + box.maxZ) / 2,
+                };
+            }
+        } catch (e) {}
+
+        // fallback if it doesn't work (this shouldn't EVER happen)
+        if (typeof entity.getX === 'function') {
+            return {
+                x: entity.getX(),
+                y: entity.getY() + 1.0,
+                z: entity.getZ(),
+            };
+        }
+
+        return null;
+    }
+}
+
 export const visibilityChecker = new VisibilityChecker();
 export const voxelTraverser = new VoxelTraverser();
 export const blockScanner = new BlockScanner();
+export const entityRaytracer = new EntityRaytracer();
 
 export const RayTrace = {
     getVisiblePoint: function (blockX, blockY, blockZ, useNative) {
@@ -317,6 +459,14 @@ export const RayTrace = {
 
     getLookingAt: function (distance) {
         return blockScanner.findLookingAtBlock(distance);
+    },
+
+    isLookingAtEntity: function (entity, maxDistance) {
+        return entityRaytracer.isLookingAtEntity(entity, maxDistance);
+    },
+
+    getEntityHitboxCenter: function (entity) {
+        return entityRaytracer.getEntityHitboxCenter(entity);
     },
 
     clearCache: function () {
