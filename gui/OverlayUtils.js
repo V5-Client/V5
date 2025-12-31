@@ -240,7 +240,7 @@ class OverlayUtils {
         if (!forceGUI && (!anim || (anim.target === 0 && anim.progress <= 0.01))) return;
 
         const sections = this.ensureArray(id.sections);
-        const uptimeVal = this.formatUptime(this.startTimes[id.name]);
+        const uptimeVal = forceGUI ? '0.00s' : this.formatUptime(this.startTimes[id.name]);
         let maxWidth = getTextWidth(id.name, this.fontSize) + this.boxPadding * 3;
         let calculatedHeight = 30 * this.scale;
 
