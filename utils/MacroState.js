@@ -1,4 +1,6 @@
-class MacroState {
+import { Categories } from '../gui/categories/CategorySystem';
+
+class MacroStateClass {
     constructor() {
         this.running = false;
         this.runningMacro = null;
@@ -20,9 +22,9 @@ class MacroState {
     }
 
     checkMacroState() {
-        if (!global.Categories) return false;
+        if (!Categories) return false;
 
-        let modulesCategory = global.Categories.categories.find((c) => c.name === 'Modules');
+        let modulesCategory = Categories.categories.find((c) => c.name === 'Modules');
         if (!modulesCategory) return false;
 
         for (let item of modulesCategory.items) {
@@ -55,6 +57,4 @@ class MacroState {
     }
 }
 
-if (!global.macrostate) {
-    global.macrostate = new MacroState();
-}
+export const MacroState = new MacroStateClass();

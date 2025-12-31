@@ -15,9 +15,13 @@ import {
     scissor,
     resetScissor,
     FontSizes,
+    getDiscordPfpPath,
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
+import { GuiRectangles } from '../core/GuiState';
+import { Categories } from './CategorySystem';
+import { setTooltip } from '../core/GuiTooltip';
 
 const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
 const Module_icon_path = ASSETS_PATH + 'folder.svg';
@@ -34,15 +38,15 @@ const CATEGORY_SELECTED_COLOR = THEME.GUI_MANAGER_CATEGORY_SELECTED;
 
 export const getCategoryRect = (index) => {
     return {
-        x: global.GuiRectangles.LeftPanel.x + PADDING,
-        y: global.GuiRectangles.LeftPanel.y + PADDING + index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
-        width: global.GuiRectangles.LeftPanel.width - PADDING * 2,
+        x: GuiRectangles.LeftPanel.x + PADDING,
+        y: GuiRectangles.LeftPanel.y + PADDING + index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
+        width: GuiRectangles.LeftPanel.width - PADDING * 2,
         height: CATEGORY_HEIGHT,
     };
 };
 
 export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
-    const cat = global.Categories;
+    const cat = Categories;
 
     if (cat.animationRect) {
         const elapsed = Date.now() - cat.subcatTransitionStart;
@@ -112,16 +116,16 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
 };
 
 export const drawOptionsPanel = (panel, mouseX, mouseY) => {
-    const selectedItem = global.Categories.selectedItem;
+    const selectedItem = Categories.selectedItem;
     if (!selectedItem) return;
 
     let optionPanelX = panel.x;
-    if (global.Categories.transitionDirection === 1) optionPanelX += panel.width * (1 - global.Categories.transitionProgress);
-    else if (global.Categories.transitionDirection === -1) optionPanelX += panel.width * global.Categories.transitionProgress;
+    if (Categories.transitionDirection === 1) optionPanelX += panel.width * (1 - Categories.transitionProgress);
+    else if (Categories.transitionDirection === -1) optionPanelX += panel.width * Categories.transitionProgress;
 
     const optionX = optionPanelX + PADDING;
     const optionY = panel.y + PADDING;
-    const scrollY = global.Categories.optionsScrollY;
+    const scrollY = Categories.optionsScrollY;
 
     const backButtonText = 'Back';
     const backButtonX = optionX + 10;
@@ -155,31 +159,31 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 };
 
 export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
-    if (global.Categories.catAnimationRect) {
-        const elapsed = Date.now() - global.Categories.catTransitionStart;
-        const rawProgress = Math.min(1, elapsed / global.Categories.catAnimationDuration);
+    if (Categories.catAnimationRect) {
+        const elapsed = Date.now() - Categories.catTransitionStart;
+        const rawProgress = Math.min(1, elapsed / Categories.catAnimationDuration);
         const p = easeInOutQuad(rawProgress);
-        const rect = global.Categories.catAnimationRect;
+        const rect = Categories.catAnimationRect;
         rect.x = rect.startX + (rect.endX - rect.startX) * p;
         rect.y = rect.startY + (rect.endY - rect.startY) * p;
-        if (rawProgress >= 1) global.Categories.catAnimationRect = null;
+        if (rawProgress >= 1) Categories.catAnimationRect = null;
     }
 
-    if (global.Categories.catAnimationRect) {
-        const rect = global.Categories.catAnimationRect;
+    if (Categories.catAnimationRect) {
+        const rect = Categories.catAnimationRect;
         drawRoundedRectangle({ ...rect, color: CATEGORY_SELECTED_COLOR });
     } else {
-        const selectedCat = global.Categories.categories.find((cat) => cat.name === global.Categories.selected);
+        const selectedCat = Categories.categories.find((cat) => cat.name === Categories.selected);
         if (selectedCat) {
-            const i = global.Categories.categories.indexOf(selectedCat);
+            const i = Categories.categories.indexOf(selectedCat);
             const rect = getCategoryRect(i);
             const moduleRectSize = 28;
             const iconX = rect.x + (rect.width - moduleRectSize) / 2;
             const iconY = rect.y + (rect.height - moduleRectSize) / 2;
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
             drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
-        } else if (global.Categories.selected === 'Edit') {
-            const leftPanel = global.GuiRectangles.LeftPanel;
+        } else if (Categories.selected === 'Edit') {
+            const leftPanel = GuiRectangles.LeftPanel;
             const pfpSize = 28;
             const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
             const editIconSize = 16;
@@ -192,7 +196,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
 };
 
 export const drawLeftPanelIcons = (mouseX, mouseY) => {
-    global.Categories.categories.forEach((cat, i) => {
+    Categories.categories.forEach((cat, i) => {
         const rect = getCategoryRect(i);
         const moduleSize = 17;
         const iconX = rect.x + (rect.width - moduleSize) / 2;
@@ -201,7 +205,7 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
     });
 
-    const leftPanel = global.GuiRectangles.LeftPanel;
+    const leftPanel = GuiRectangles.LeftPanel;
     const pfpSize = 28;
     const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
     const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
@@ -212,8 +216,9 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
 
     drawImage(Edit_icon_path, editIconX, editIconY, editIconSize, editIconSize);
 
-    if (global.discordPfpPath) {
-        drawCircularImage(global.discordPfpPath, pfpX, pfpY, pfpSize);
+    const discordPfpPath = getDiscordPfpPath();
+    if (discordPfpPath) {
+        drawCircularImage(discordPfpPath, pfpX, pfpY, pfpSize);
     }
 };
 
@@ -230,7 +235,7 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     };
     const isHovered = isInside(mouseX, mouseY, itemRect);
     itemRect.color = isHovered ? CATEGORY_BOX_HOVER : CATEGORY_BOX_COLOR;
-    if (isHovered && item.tooltip) global.setTooltip(item.tooltip);
+    if (isHovered && item.tooltip) setTooltip(item.tooltip);
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
     const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
@@ -265,7 +270,7 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             });
             if (group.items.length > 0) yOffset += 48;
         } else {
-            if (global.Categories.selectedSubcategory !== null) return;
+            if (Categories.selectedSubcategory !== null) return;
             const item = group;
             const col = itemIndexInRow % 3;
             if (col === 0 && itemIndexInRow > 0) yOffset += 48 + 6;

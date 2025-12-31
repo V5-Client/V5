@@ -1,7 +1,7 @@
 import request from 'RequestV2';
 
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
-import { PathComplete, pathRotations, ResetRotations } from './PathWalker/PathRotations';
+import { PathComplete, pathRotations, ResetRotations, setRequestPathRecalculation } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
 import { Links, Vec3d, BP } from '../Constants';
 import { Utils } from '../Utils';
@@ -10,6 +10,7 @@ import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { Chat } from '../Chat';
 import { Keybind } from '../player/Keybinding';
+import { showNotification } from '../../gui/NotificationManager';
 
 const localhost = `${Links.PATHFINDER_API_URL}`;
 
@@ -122,7 +123,7 @@ function loadMap(map, area, callback) {
             currentIsland = area;
             loadingMap = false;
             Chat.log(`Successfully loaded map '${map}'.`);
-            global.showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
+            showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
 
             if (typeof callback === 'function') {
                 callback();
@@ -131,7 +132,7 @@ function loadMap(map, area, callback) {
         .catch((err) => {
             loadingMap = false;
             Chat.log(`Error loading map ${map}: ${err}`);
-            global.showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
+            showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
         });
 }
 
@@ -147,7 +148,7 @@ function handleWarp(warpCommand, onComplete) {
     const tpCommand = Server.getName() === 'SinglePlayer' ? getSinglePlayerWarpCommand(warpCommand) : warpCommand.slice(1);
 
     if (!tpCommand) {
-        global.showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
+        showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
         return;
     }
 
@@ -190,14 +191,14 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
             if (currentPathRequest !== requestId) return;
 
             if (!body) {
-                global.showNotification('Pathfinding Failed', 'Empty response from pathfinder.', 'ERROR', 5000);
+                showNotification('Pathfinding Failed', 'Empty response from pathfinder.', 'ERROR', 5000);
                 console.error('Pathfinding response was null or undefined');
                 if (onComplete && typeof onComplete === 'function') onComplete(false);
                 return;
             }
 
             if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
-                global.showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
+                showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
                 console.error('Invalid keynodes in response:', body);
                 if (onComplete && typeof onComplete === 'function') onComplete(false);
                 return;
@@ -232,7 +233,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                 }
 
                 if (renderOnly) {
-                    global.showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
+                    showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
                     return;
                 }
 
@@ -253,7 +254,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
                     ResetRotations();
                     stopPathing();
 
-                    global.showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+                    showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
                     if (onComplete && typeof onComplete === 'function') onComplete(true);
                 });
             };
@@ -267,7 +268,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false) {
         .catch((err) => {
             if (currentPathRequest !== requestId) return;
 
-            global.showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
+            showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
             console.error(`Pathfinding request failed: ${err}`);
             if (onComplete && typeof onComplete === 'function') onComplete(false);
         });
@@ -293,7 +294,7 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback) {
             return;
         } else {
             Chat.log(`No matching map found for area: ${area}`);
-            global.showNotification('Map Error', `Cannot pathfind, no map found for area: ${area}`, 'ERROR', 5000);
+            showNotification('Map Error', `Cannot pathfind, no map found for area: ${area}`, 'ERROR', 5000);
             if (Server.getName() === 'SinglePlayer') {
                 const mapValue = Maps['Dwarven Mines']; // just here to load mines as default (singleplayer testing reasons)
 
@@ -308,7 +309,7 @@ export function findAndFollowPath(start, end, renderOnlyOrCallback) {
     executePathfinding(start, end, onComplete, renderOnly);
 }
 
-global.requestPathRecalculation = function () {
+export function requestPathRecalculation() {
     Chat.messagePathfinder('§6[Pathfinding] Recalculating path...');
 
     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
@@ -326,13 +327,15 @@ global.requestPathRecalculation = function () {
         Chat.messagePathfinder('§c[Pathfinding] Cannot recalculate - no destination stored');
         stopPathing();
     }
-};
+}
+
+setRequestPathRecalculation(requestPathRecalculation);
 
 register('command', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
     const coords = args.slice(0, 3).map(Number);
     if (coords.some(isNaN)) {
-        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+        return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
     }
     const end = coords.slice(0, 3);
     findAndFollowPath(start, end);
@@ -340,11 +343,11 @@ register('command', (...args) => {
 
 register('command', (...args) => {
     if (args.length < 6) {
-        return global.showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
+        return showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
     }
     const coords = args.slice(0, 6).map(Number);
     if (coords.some(isNaN)) {
-        return global.showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+        return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
     }
     const renderOnly = args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
     findAndFollowPath(coords.slice(0, 3), coords.slice(3, 6), renderOnly);

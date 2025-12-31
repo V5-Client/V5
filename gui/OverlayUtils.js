@@ -15,6 +15,7 @@ import {
     BORDER_WIDTH,
     CORNER_RADIUS,
 } from './Utils';
+import { Overlays, GuiState } from './core/GuiState';
 
 const { loadSettings } = require('./GuiSave');
 
@@ -35,7 +36,7 @@ class OverlayUtils {
         this.pendingSave = false;
 
         this.mainRenderTrigger = register('renderOverlay', () => {
-            if (global.Overlays.Gui.isOpen()) return;
+            if (Overlays.Gui.isOpen()) return;
             this.drawAllOverlays();
         }).unregister();
 
@@ -132,7 +133,7 @@ class OverlayUtils {
     }
 
     initTriggers() {
-        global.Overlays.Gui.registerClosed(() => {
+        Overlays.Gui.registerClosed(() => {
             // Save positions when GUI closes
             if (this.pendingSave) {
                 this.saveIDs();
@@ -140,14 +141,14 @@ class OverlayUtils {
             }
             openModuleGui();
         });
-        global.Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
-        global.Overlays.Gui.registerMouseDragged((x, y, b) => b === 0 && this.handleMouseDrag(x, y));
-        global.Overlays.Gui.registerMouseReleased(() => this.handleMouseRelease());
+        Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
+        Overlays.Gui.registerMouseDragged((x, y, b) => b === 0 && this.handleMouseDrag(x, y));
+        Overlays.Gui.registerMouseReleased(() => this.handleMouseRelease());
     }
 
     registerDrawOnce() {
         if (this.drawRegistered) return;
-        global.Overlays.Gui.registerDraw(() => this.drawGUI());
+        Overlays.Gui.registerDraw(() => this.drawGUI());
         this.drawRegistered = true;
     }
 
@@ -418,14 +419,14 @@ class OverlayUtils {
     }
 
     openPositionsGUI() {
-        global.GuiState.myGui.close();
-        global.Overlays.Gui.open();
+        GuiState.myGui.close();
+        Overlays.Gui.open();
     }
 
     closePositionsGUI() {
-        global.GuiState.isOpening = true;
+        GuiState.isOpening = true;
         loadSettings();
-        global.GuiState.myGui.open();
+        GuiState.myGui.open();
     }
 }
 

@@ -3,22 +3,23 @@ import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
 import { Chat } from '../utils/Chat';
 import { Utils } from '../utils/Utils';
+import { Categories } from './categories/CategorySystem';
 
-global.SettingsMap = new Map();
+export const SettingsMap = new Map();
 
 const getModuleItems = (category) => category.items.reduce((acc, group) => acc.concat(group.type === 'separator' ? group.items : [group]), []);
 
 function buildSettingsMapFromComponents() {
-    global.SettingsMap.clear();
-    global.Categories.categories
+    SettingsMap.clear();
+    Categories.categories
         .filter((c) => c.name === 'Modules')
         .forEach((category) => {
             getModuleItems(category).forEach((item) => {
                 item.components.forEach((component) => {
                     const key = `${item.title}.${component.title}`;
-                    if (component instanceof ToggleButton) global.SettingsMap.set(key, component.enabled);
-                    else if (component instanceof Slider) global.SettingsMap.set(key, component.value);
-                    else if (component instanceof MultiToggle) global.SettingsMap.set(key, component.options);
+                    if (component instanceof ToggleButton) SettingsMap.set(key, component.enabled);
+                    else if (component instanceof Slider) SettingsMap.set(key, component.value);
+                    else if (component instanceof MultiToggle) SettingsMap.set(key, component.options);
                 });
             });
         });
@@ -28,7 +29,7 @@ export const saveSettings = () => {
     buildSettingsMapFromComponents();
 
     const settings = {};
-    for (const [key, value] of global.SettingsMap.entries()) {
+    for (const [key, value] of SettingsMap.entries()) {
         const [itemTitle, componentTitle] = key.split('.');
         if (!settings[itemTitle]) {
             settings[itemTitle] = {};
@@ -40,7 +41,7 @@ export const saveSettings = () => {
 };
 
 export const applySettings = () => {
-    global.Categories.categories
+    Categories.categories
         .filter((c) => c.name === 'Modules')
         .forEach((category) => {
             getModuleItems(category).forEach((item) => {
@@ -72,7 +73,7 @@ export const loadSettings = () => {
             return;
         }
 
-        global.Categories.categories
+        Categories.categories
             .filter((c) => c.name === 'Modules')
             .forEach((category) => {
                 getModuleItems(category).forEach((item) => {
@@ -104,11 +105,11 @@ export const loadSettings = () => {
 export const getSetting = (moduleName, componentTitle, optionsToCheck = null) => {
     const key = `${moduleName}.${componentTitle}`;
 
-    if (!global.SettingsMap.has(key)) {
+    if (!SettingsMap.has(key)) {
         return optionsToCheck ? [] : undefined;
     }
 
-    const value = global.SettingsMap.get(key);
+    const value = SettingsMap.get(key);
 
     if (Array.isArray(value) && Array.isArray(optionsToCheck)) {
         return value.filter((opt) => optionsToCheck.includes(opt.name) && opt.enabled).map((opt) => opt.name);
@@ -119,5 +120,5 @@ export const getSetting = (moduleName, componentTitle, optionsToCheck = null) =>
 
 export const updateSettingMap = (moduleName, componentTitle, value) => {
     const key = `${moduleName}.${componentTitle}`;
-    global.SettingsMap.set(key, value);
+    SettingsMap.set(key, value);
 };

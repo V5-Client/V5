@@ -9,6 +9,12 @@ import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
 
+let requestPathRecalculation = null;
+
+export const setRequestPathRecalculation = (callback) => {
+    requestPathRecalculation = callback;
+};
+
 // Lookahead
 const LOOK_AHEAD_DISTANCE = 4;
 const BASE_YAW_AHEAD_DISTANCE = 4;
@@ -618,8 +624,8 @@ export function pathRotations(splineData) {
         rotationActive = false;
         Keybind.setKey('a', false);
         Keybind.setKey('d', false);
-        if (global.requestPathRecalculation) {
-            global.requestPathRecalculation();
+        if (requestPathRecalculation) {
+            requestPathRecalculation();
         }
         return;
     } else if (typeof stuckCheck === 'number') {

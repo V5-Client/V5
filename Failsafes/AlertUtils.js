@@ -5,6 +5,8 @@ import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
 import { Chat } from '../utils/Chat.js';
 
+let failsafeSound = 'Tave Check.wav';
+
 const AudioSystem = javax.sound.sampled.AudioSystem;
 const FloatControl = javax.sound.sampled.FloatControl;
 
@@ -29,6 +31,10 @@ class AlertUtilsClass {
         this.tracker = null;
 
         this._makeFailsafeKeybind();
+
+        register('command', () => {
+            AlertUtils.triggerReaction();
+        }).setName('trigger');
     }
 
     /**
@@ -109,7 +115,8 @@ class AlertUtilsClass {
      */
     playSound() {
         if (!FailsafeUtils.getFailsafeSettings('Play sound on check').playSoundOnCheck) return;
-        if (!this.clip || this.savedSound !== global.failsafeSound) this._loadsoundFile();
+        const currentSound = failsafeSound;
+        if (!this.clip || this.savedSound !== currentSound) this._loadsoundFile();
 
         if (this.clip) {
             this.clip.stop();
@@ -125,12 +132,17 @@ class AlertUtilsClass {
         if (this.clip && this.clip.isRunning()) this.clip.stop();
     }
 
+    setFailsafeSound(fileName) {
+        failsafeSound = fileName;
+    }
+
     /**
      * Loads a sound file using Java methods
      */
     _loadsoundFile() {
-        this.savedSound = global.failsafeSound || 'Tave Check.wav';
-        if (global.failsafeSound.includes('undefined')) this.savedSound = 'Tave Check.wav';
+        const currentSound = failsafeSound;
+        this.savedSound = currentSound || 'Tave Check.wav';
+        if ((currentSound || '').includes('undefined')) this.savedSound = 'Tave Check.wav';
 
         this.soundFile = new File(Client.getMinecraft().runDirectory, `config/ChatTriggers/modules/V5/Failsafes/sounds/${this.savedSound}`);
         if (!this.soundFile.exists()) return;
@@ -213,8 +225,4 @@ class AlertUtilsClass {
     }
 }
 
-if (!global.V5_ALERT_UTILS) {
-    global.V5_ALERT_UTILS = new AlertUtilsClass();
-}
-
-export const AlertUtils = global.V5_ALERT_UTILS;
+export const AlertUtils = new AlertUtilsClass();

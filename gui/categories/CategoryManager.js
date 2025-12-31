@@ -1,11 +1,11 @@
-import './CategorySystem';
+import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
 import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
-import { PADDING } from '../Utils';
+import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING } from '../Utils';
+import { GuiRectangles } from '../core/GuiState';
 
-global.createCategoriesManager = (deps) => {
+export const createCategoriesManager = (deps) => {
     let targetRightPanelScrollY = 0;
     let currentRightPanelScrollY = 0;
 
@@ -30,7 +30,7 @@ global.createCategoriesManager = (deps) => {
     const setOptionsScrollY = (value) => {
         currentOptionsScrollY = value;
         targetOptionsScrollY = value;
-        global.Categories.optionsScrollY = value;
+        Categories.optionsScrollY = value;
     };
     const setTargetOptionsScrollY = (value) => {
         targetOptionsScrollY = value;
@@ -42,17 +42,17 @@ global.createCategoriesManager = (deps) => {
     };
 
     const calculateContentHeight = () => {
-        if (!isContentHeightCacheValid && global.Categories.selected) {
+        if (!isContentHeightCacheValid && Categories.selected) {
             let height = 0;
-            const category = global.Categories.categories.find((c) => c.name === global.Categories.selected);
+            const category = Categories.categories.find((c) => c.name === Categories.selected);
 
             if (category) {
                 if (category.subcategories.length > 0) {
                     height += 28 + PADDING;
                 }
 
-                const itemsToDisplay = global.Categories.selectedSubcategory
-                    ? category.items.filter((group) => group.type === 'separator' && group.title === global.Categories.selectedSubcategory)
+                const itemsToDisplay = Categories.selectedSubcategory
+                    ? category.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
                     : category.items;
 
                 let nonGroupedItemCount = 0;
@@ -90,9 +90,9 @@ global.createCategoriesManager = (deps) => {
     };
 
     const calculateOptionsContentHeight = () => {
-        if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
+        if (Categories.currentPage === 'options' && Categories.selectedItem) {
             let height = 78 + PADDING;
-            const components = global.Categories.selectedItem.components;
+            const components = Categories.selectedItem.components;
             if (components) {
                 components.forEach((component) => {
                     let compHeight = 54;
@@ -112,9 +112,9 @@ global.createCategoriesManager = (deps) => {
         const cacheInvalidated = updateCategoryTransitions();
         if (cacheInvalidated) isLayoutCacheValid = false;
 
-        const transitionActive = global.Categories.transitionDirection !== 0;
-        const shouldDrawItems = global.Categories.currentPage === 'categories' || transitionActive;
-        const shouldDrawOptions = global.Categories.currentPage === 'options' || transitionActive;
+        const transitionActive = Categories.transitionDirection !== 0;
+        const shouldDrawItems = Categories.currentPage === 'categories' || transitionActive;
+        const shouldDrawOptions = Categories.currentPage === 'options' || transitionActive;
 
         calculateContentHeight();
 
@@ -129,7 +129,7 @@ global.createCategoriesManager = (deps) => {
             const maxOptionsScroll = Math.max(0, optionsContentHeight - deps.rectangles.RightPanel.height);
             targetOptionsScrollY = Math.max(0, Math.min(targetOptionsScrollY, maxOptionsScroll));
             currentOptionsScrollY += (targetOptionsScrollY - currentOptionsScrollY) * SCROLL_SMOOTHING_FACTOR;
-            global.Categories.optionsScrollY = currentOptionsScrollY;
+            Categories.optionsScrollY = currentOptionsScrollY;
         }
 
         const rightPanelScrollY = currentRightPanelScrollY;
@@ -138,19 +138,19 @@ global.createCategoriesManager = (deps) => {
         if (shouldDrawItems) {
             if (!isLayoutCacheValid) cachedItemLayouts = [];
 
-            const cat = global.Categories.categories.find((c) => c.name === global.Categories.selected);
+            const cat = Categories.categories.find((c) => c.name === Categories.selected);
             if (cat) {
                 let panelX = panel.x;
-                if (global.Categories.transitionDirection === 1) panelX -= panel.width * global.Categories.transitionProgress;
-                else if (global.Categories.transitionDirection === -1) panelX -= panel.width * (1 - global.Categories.transitionProgress);
+                if (Categories.transitionDirection === 1) panelX -= panel.width * Categories.transitionProgress;
+                else if (Categories.transitionDirection === -1) panelX -= panel.width * (1 - Categories.transitionProgress);
 
                 let yOffset = panel.y + PADDING - rightPanelScrollY;
                 if (cat.subcategories.length > 0) {
                     yOffset = drawSubcategoryButtons(panelX, yOffset, mouseX, mouseY);
                 }
 
-                const itemsToDisplay = global.Categories.selectedSubcategory
-                    ? cat.items.filter((group) => group.type === 'separator' && group.title === global.Categories.selectedSubcategory)
+                const itemsToDisplay = Categories.selectedSubcategory
+                    ? cat.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
                     : cat.items;
 
                 drawCategoryItems(cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid);
@@ -200,8 +200,8 @@ global.createCategoriesManager = (deps) => {
     const handleMouseDrag = (mouseX, mouseY) => {
         if (isLayoutCacheValid) isLayoutCacheValid = false;
 
-        if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
-            const components = global.Categories.selectedItem.components;
+        if (Categories.currentPage === 'options' && Categories.selectedItem) {
+            const components = Categories.selectedItem.components;
             if (!components) return;
             components.forEach((component) => {
                 if (typeof component.handleMouseDrag !== 'function') return;
@@ -211,8 +211,8 @@ global.createCategoriesManager = (deps) => {
     };
 
     const handleMouseRelease = () => {
-        if (global.Categories.currentPage === 'options' && global.Categories.selectedItem) {
-            const components = global.Categories.selectedItem.components;
+        if (Categories.currentPage === 'options' && Categories.selectedItem) {
+            const components = Categories.selectedItem.components;
             if (!components) return;
             components.forEach((component) => {
                 if (typeof component.handleMouseRelease !== 'function') return;
@@ -244,8 +244,8 @@ global.createCategoriesManager = (deps) => {
     };
 };
 
-global.categoryManager = global.createCategoriesManager({
-    rectangles: global.GuiRectangles,
+export const categoryManager = createCategoriesManager({
+    rectangles: GuiRectangles,
     draw: {
         drawRoundedRectangle: drawRoundedRectangle,
         drawRoundedRectangleWithBorder: drawRoundedRectangleWithBorder,

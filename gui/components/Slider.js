@@ -1,4 +1,16 @@
-import { clamp, playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, PADDING, drawText, getTextWidth, FontSizes } from '../Utils';
+import {
+    clamp,
+    playClickSound,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
+    THEME,
+    isInside,
+    PADDING,
+    drawText,
+    getTextWidth,
+    FontSizes,
+} from '../Utils';
+import { setTooltip } from '../core/GuiTooltip';
 
 export class Slider {
     constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null) {
@@ -127,7 +139,7 @@ export class Slider {
         };
 
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            global.setTooltip(this.description);
+            setTooltip(this.description);
         }
     }
 

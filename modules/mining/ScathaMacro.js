@@ -3,6 +3,7 @@ import { Chat } from '../../utils/Chat';
 import { Rotations } from '../../utils/player/RotationsTest';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Time } from '../../utils/Timing';
+import { MacroState } from '../../utils/MacroState';
 import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
@@ -140,14 +141,14 @@ class ScathaMacro extends ModuleBase {
     }
 
     onEnable() {
-        global.macrostate.setMacroRunning(true, 'SCATHA');
+        MacroState.setMacroRunning(true, 'SCATHA');
         this.sendMacroMessage('&aEnabled');
         this.setState(this.STATES.SETUP);
         //Mouse.ungrab();
     }
 
     onDisable() {
-        global.macrostate.setMacroRunning(false, 'SCATHA');
+        MacroState.setMacroRunning(false, 'SCATHA');
         this.sendMacroMessage('&cDisabled');
         this.centeringStart = true;
         this.pickaxeAbility = true;

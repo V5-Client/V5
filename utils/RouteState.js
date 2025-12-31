@@ -44,8 +44,7 @@ class RouteState {
     }
 }
 
-if (!global.RouteState) {
-    global.RouteState = new RouteState();
-}
+const routeState = new RouteState();
 
-export default global.RouteState;
+export { routeState };
+export default routeState;

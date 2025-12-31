@@ -1,6 +1,7 @@
 import { Utils } from './Utils';
 import { KeyBindUtils } from './Constants';
 import { OverlayManager } from '../gui/OverlayUtils';
+import { Categories } from '../gui/categories/CategorySystem';
 
 export class ModuleBase {
     /**
@@ -26,9 +27,9 @@ export class ModuleBase {
         this._conditionalChecker = null;
 
         // add to gui
-        global.Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
+        Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
         if (opts.showEnabledToggle !== false) {
-            global.Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
+            Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
         }
 
         if (opts.autoDisableOnWorldUnload) {
@@ -140,7 +141,7 @@ export class ModuleBase {
      * @param {boolean} [defaultValue=false] - Optional: Default value for the toggle
      */
     addToggle(title, callback, description = null, defaultValue = false) {
-        global.Categories.addToggle('Modules', this.name, title, callback, description, defaultValue);
+        Categories.addToggle('Modules', this.name, title, callback, description, defaultValue);
     }
 
     /**
@@ -153,7 +154,7 @@ export class ModuleBase {
      * @param {string} [description=null] - Description/tooltip for the slider
      */
     addSlider(title, min, max, def, callback, description = null) {
-        global.Categories.addSlider('Modules', this.name, title, min, max, def, callback, description);
+        Categories.addSlider('Modules', this.name, title, min, max, def, callback, description);
     }
 
     /**
@@ -166,7 +167,7 @@ export class ModuleBase {
      * @param {string} [defaultValue=false] - Optional: Default selected option name
      */
     addMultiToggle(title, options, singleSelect, callback, description = null, defaultValue = false) {
-        global.Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
+        Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
     }
 
     // Allow for overriding onEnable and onDisable if you need more control

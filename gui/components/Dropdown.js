@@ -1,4 +1,16 @@
-import { playClickSound, THEME, drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, isInside, easeOutCubic, drawText, getTextWidth, FontSizes } from '../Utils';
+import {
+    playClickSound,
+    THEME,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
+    PADDING,
+    isInside,
+    easeOutCubic,
+    drawText,
+    getTextWidth,
+    FontSizes,
+} from '../Utils';
+import { setTooltip } from '../core/GuiTooltip';
 
 export class MultiToggle {
     constructor(title, x, y, options = [], singleSelect = false, callback = null, defaultValue = false) {
@@ -124,7 +136,7 @@ export class MultiToggle {
         };
 
         if (this.description && isInside(mouseX, mouseY, componentRect)) {
-            global.setTooltip(this.description);
+            setTooltip(this.description);
         }
 
         if (this.animationProgress > 0) {

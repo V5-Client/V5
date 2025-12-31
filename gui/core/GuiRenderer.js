@@ -1,14 +1,16 @@
-import { ANIMATION_DURATION } from './GuiState';
+import { ANIMATION_DURATION, GuiState, GuiRectangles } from './GuiState';
 import { drawRoundedRectangleWithBorder, clamp, scissor, resetScissor, easeOutBack } from '../Utils';
 import { NVG } from '../../utils/Constants';
 import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
+import { GuiTooltip } from './GuiTooltip';
+import { categoryManager } from '../categories/CategoryManager';
 
 export const drawGUI = (mouseX, mouseY) => {
-    const elapsed = Date.now() - global.GuiState.openStartTime;
+    const elapsed = Date.now() - GuiState.openStartTime;
     const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
     const ease = easeOutBack(progress);
 
-    const targetBackground = global.GuiRectangles.Background;
+    const targetBackground = GuiRectangles.Background;
     const centerX = targetBackground.x + targetBackground.width / 2;
     const centerY = targetBackground.y + targetBackground.height / 2;
 
@@ -22,22 +24,22 @@ export const drawGUI = (mouseX, mouseY) => {
         NVG.scale(ease, ease);
         NVG.translate(-centerX, -centerY);
 
-        global.GuiTooltip.reset();
+        GuiTooltip.reset();
 
-        drawRoundedRectangleWithBorder(global.GuiRectangles.Background);
-        drawRoundedRectangleWithBorder(global.GuiRectangles.LeftPanel);
-        drawRoundedRectangleWithBorder(global.GuiRectangles.RightPanel);
+        drawRoundedRectangleWithBorder(GuiRectangles.Background);
+        drawRoundedRectangleWithBorder(GuiRectangles.LeftPanel);
+        drawRoundedRectangleWithBorder(GuiRectangles.RightPanel);
 
         drawLeftPanelBackgrounds(mouseX, mouseY);
         drawLeftPanelIcons(mouseX, mouseY);
 
-        const panel = global.GuiRectangles.RightPanel;
+        const panel = GuiRectangles.RightPanel;
         scissor(panel.x, panel.y, panel.width, panel.height);
-        global.categoryManager?.draw(mouseX, mouseY);
+        categoryManager?.draw(mouseX, mouseY);
         resetScissor();
 
-        global.GuiTooltip.update();
-        global.GuiTooltip.draw(mouseX, mouseY);
+        GuiTooltip.update();
+        GuiTooltip.draw(mouseX, mouseY);
 
         NVG.restore();
     } catch (e) {
