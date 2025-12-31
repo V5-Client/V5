@@ -141,10 +141,6 @@ export class ModuleBase {
     createOverlay(args) {
         this.oid = this.name;
         OverlayManager.createID(this.oid, args);
-
-        if (this.enabled) {
-            OverlayManager.startTime(this.oid);
-        }
     }
 
     /**
