@@ -109,25 +109,19 @@ class OverlayUtils {
 
     formatUptime(startTime) {
         if (!startTime) return '0.00s';
-
         const diff = Date.now() - startTime;
-
         const totalSeconds = Math.floor(diff / 1000);
         const ms = Math.floor((diff % 1000) / 10);
-
         const s = totalSeconds % 60;
         const m = Math.floor(totalSeconds / 60) % 60;
         const h = Math.floor(totalSeconds / 3600) % 24;
         const d = Math.floor(totalSeconds / 86400);
-
         const parts = [];
         if (d > 0) parts.push(`${d}d`);
         if (h > 0) parts.push(`${h}h`);
         if (m > 0) parts.push(`${m}m`);
-
         const msStr = String(ms).padStart(2, '0');
         parts.push(`${s}.${msStr}s`);
-
         return parts.join(' ');
     }
 
@@ -154,9 +148,7 @@ class OverlayUtils {
         const sectionsArray = this.ensureArray(sections);
         let existing = this.ids.find((id) => id.name === idName);
         if (existing) {
-            if (JSON.stringify(existing.sections) !== JSON.stringify(sectionsArray)) {
-                existing.sections = sectionsArray;
-            }
+            existing.sections = sectionsArray;
         } else {
             const textWidth = getTextWidth(idName, this.fontSize);
             const width = Math.max(200 * this.scale, textWidth + this.boxPadding * 2);
@@ -259,7 +251,8 @@ class OverlayUtils {
             const sectionData = section.data || {};
             const entries = Object.entries(sectionData);
             entries.forEach(([k, v]) => {
-                const lineW = getTextWidth(`${k}:`, this.argFontSize) + getTextWidth(String(v), this.argFontSize) + 65 * this.scale;
+                const val = typeof v === 'function' ? v() : v;
+                const lineW = getTextWidth(`${k}:`, this.argFontSize) + getTextWidth(String(val), this.argFontSize) + 65 * this.scale;
                 if (lineW > maxWidth) maxWidth = lineW;
             });
             if (sIdx === 0) {
@@ -319,13 +312,14 @@ class OverlayUtils {
                 }
 
                 const renderLine = (label, val, isUptime = false) => {
+                    const displayVal = typeof val === 'function' ? val() : val;
                     const labelWidth = getTextWidth(label, this.argFontSize);
                     drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
                     const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
                     const valueColor = isUptime
                         ? colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha)
                         : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
-                    drawText(String(val), valueX, contentY, this.argFontSize, valueColor, 17);
+                    drawText(String(displayVal), valueX, contentY, this.argFontSize, valueColor, 17);
                     contentY += 14 * this.scale;
                 };
 
@@ -377,7 +371,14 @@ class OverlayUtils {
         const data = {};
         this.ids.forEach((id) => {
             const sections = this.ensureArray(id.sections);
-            data[id.name] = { x: id.x, y: id.y, sections: sections };
+            const serializableSections = sections.map((s) => {
+                const cleanData = {};
+                Object.entries(s.data || {}).forEach(([k, v]) => {
+                    if (typeof v !== 'function') cleanData[k] = v;
+                });
+                return { title: s.title, data: cleanData };
+            });
+            data[id.name] = { x: id.x, y: id.y, sections: serializableSections };
         });
         Utils.writeConfigFile('overlays.json', data);
     }
