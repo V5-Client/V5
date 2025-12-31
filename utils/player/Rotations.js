@@ -182,7 +182,7 @@ class RotationsTo {
             this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
             this.lastTime = 0;
             this.initialDistance = 0;
-            if (!this.targetVector) return this.stopRotation();
+            this.stopRotation();
             return;
         }
 
