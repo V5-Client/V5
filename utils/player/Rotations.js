@@ -174,6 +174,18 @@ class RotationsTo {
         let currentYaw = Player.getYaw();
         let currentPitch = Player.getPitch();
 
+        let deltaYaw = this.normalizeAngle(finalTarget.yaw - currentYaw);
+        let deltaPitch = finalTarget.pitch - currentPitch;
+        let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
+
+        if (distance <= this.precision) {
+            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+            this.lastTime = 0;
+            this.initialDistance = 0;
+            if (!this.targetVector) return this.stopRotation();
+            return;
+        }
+
         if (RotationModule.INSTANT) {
             this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
             return this.stopRotation();
@@ -184,9 +196,7 @@ class RotationsTo {
             this.lastTime = now;
             this.startTime = now;
             this.curveSeed = Math.random() * Math.PI * 2;
-            let dy = this.normalizeAngle(finalTarget.yaw - currentYaw);
-            let dp = finalTarget.pitch - currentPitch;
-            this.initialDistance = Math.sqrt(dy * dy + dp * dp);
+            this.initialDistance = distance;
             this.motionProfile = this.selectProfile(this.initialDistance);
             return;
         }
@@ -194,16 +204,7 @@ class RotationsTo {
         let deltaTime = (now - this.lastTime) / 1000.0;
         this.lastTime = now;
 
-        let deltaYaw = this.normalizeAngle(finalTarget.yaw - currentYaw);
-        let deltaPitch = finalTarget.pitch - currentPitch;
-        let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
-
-        if (distance <= this.precision) {
-            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
-            return this.stopRotation();
-        }
-
-        let progress = Math.min(1.0, 1 - distance / this.initialDistance);
+        let progress = Math.min(1.0, Math.max(0, 1 - distance / this.initialDistance));
         let timeAlive = (now - this.startTime) / 1000.0;
         let warmup = Math.min(timeAlive * 4, 1.0);
         let distModifier = Math.min(distance / RotationModule.DAMPING_DIST, 1.0);
@@ -229,41 +230,12 @@ class RotationsTo {
     }
 
     rotateToAngles(yaw, pitch) {
-        let yawDiff = Math.abs(this.normalizeAngle(this.target?.yaw ?? 0) - this.normalizeAngle(yaw));
-        let pitchDiff = Math.abs((this.target?.pitch ?? 0) - pitch);
-
-        if (yawDiff > 1.0 || pitchDiff > 1.0 || !this.isRotating) {
-            this.lastTime = 0;
-            this.startTime = Date.now();
-            this.initialDistance = 0;
-            this.resetGCDTracking();
-        }
-
         this.target = { yaw, pitch };
-        this.targetVector = null;
         this.isRotating = true;
     }
 
     rotateToVector(Vector) {
-        let vec = Utils.convertToVector(Vector);
-        if (this.targetVector) {
-            let oldVec = Utils.convertToVector(this.targetVector);
-            let dist = Math.sqrt(Math.pow(vec.x - oldVec.x, 2) + Math.pow(vec.y - oldVec.y, 2) + Math.pow(vec.z - oldVec.z, 2));
-            if (dist > 0.1) {
-                this.lastTime = 0;
-                this.startTime = Date.now();
-                this.initialDistance = 0;
-                this.resetGCDTracking();
-            }
-        } else if (!this.isRotating) {
-            this.lastTime = 0;
-            this.startTime = Date.now();
-            this.initialDistance = 0;
-            this.resetGCDTracking();
-        }
         this.targetVector = Vector;
-        const angles = this.getAnglesFromVector(Vector);
-        if (angles) this.target = angles;
         this.isRotating = true;
     }
 
@@ -279,6 +251,7 @@ class RotationsTo {
         this.targetVector = null;
         this.lastTime = 0;
         this.initialDistance = 0;
+        this.resetGCDTracking();
         while (this.actions.length > 0) {
             try {
                 this.actions.shift().func();
