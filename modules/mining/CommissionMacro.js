@@ -10,7 +10,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { OverlayManager } from '../../gui/OverlayUtils';
+
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
@@ -45,7 +45,6 @@ class CommissionMacro extends ModuleBase {
         this.commissionsCompleted = 0;
         this.currentToolType = 'None'; // 'Drill', 'Pickaxe', 'Weapon'
         this.currentToolName = 'None';
-        this.initOverlay();
 
         this.bindToggleKey();
         this.currentState = STATES.IDLE;
@@ -72,12 +71,45 @@ class CommissionMacro extends ModuleBase {
         this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
 
+        this.num = null;
+        register('tick', () => {
+            this.num = Math.random() * 20 - 1;
+        });
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => this.currentState,
+                    Commission: () => this.currentCommission?.name || 'None',
+                    Progress: () => {
+                        const currentCommName = this.currentCommission?.name || 'None';
+                        const currentCommData = this.commissions.find((c) => c.name === currentCommName);
+                        const currentProgress = currentCommData?.progress || 0;
+                        return currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
+                    },
+                    Tool: () => {
+                        const toolInfo = this.getToolDisplay();
+                        const maxLen = 45;
+                        let name = toolInfo.name;
+                        if (name.length > maxLen) {
+                            name = name.substring(0, maxLen - 2) + '..';
+                        }
+                        return `${name}`;
+                    },
+                },
+            },
+            {
+                title: 'Profits',
+                data: {
+                    'Completed Commissions': () => this.commissionsCompleted,
+                },
+            },
+        ]);
+
         this.on('step', () => {
             const newCommissions = MiningUtils.readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
-            if (this.enabled) {
-                this.updateOverlay();
-            }
         }).setDelay(1);
         this.on('tick', () => this.runLogic());
 
@@ -127,21 +159,6 @@ class CommissionMacro extends ModuleBase {
         );
     }
 
-    initOverlay() {
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    State: 'Idle',
-                    Commission: 'None',
-                    Progress: '0%',
-                    Completed: '0',
-                    Tool: 'None',
-                },
-            },
-        ]);
-    }
-
     getToolDisplay() {
         if (this.currentState === STATES.SLAYER && this.currentCommission?.name === 'Goblin Slayer' && this.weapon) {
             return {
@@ -169,33 +186,6 @@ class CommissionMacro extends ModuleBase {
             type: 'None',
             name: 'None',
         };
-    }
-
-    updateOverlay() {
-        const currentCommName = this.currentCommission?.name || 'None';
-        const currentCommData = this.commissions.find((c) => c.name === currentCommName);
-        const currentProgress = currentCommData?.progress || 0;
-        const progressStr = currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
-
-        const toolInfo = this.getToolDisplay();
-        const maxToolNameLen = 45;
-        let toolDisplay = toolInfo.name;
-        if (toolDisplay.length > maxToolNameLen) {
-            toolDisplay = toolDisplay.substring(0, maxToolNameLen - 2) + '..';
-        }
-
-        OverlayManager.createID(this.overlayName, [
-            {
-                title: 'Status',
-                data: {
-                    State: this.currentState,
-                    Commission: currentCommName,
-                    Progress: progressStr,
-                    Completed: String(this.commissionsCompleted),
-                    [toolInfo.type]: toolDisplay,
-                },
-            },
-        ]);
     }
 
     onEnable() {
@@ -239,7 +229,6 @@ class CommissionMacro extends ModuleBase {
         }
 
         this.resetState();
-        this.updateOverlay();
     }
 
     onDisable() {
@@ -275,7 +264,6 @@ class CommissionMacro extends ModuleBase {
         if (this.currentState !== newState) {
             Chat.message(`&aCommission Macro: &eChanging state to ${newState}`);
             this.currentState = newState;
-            this.updateOverlay();
         }
     }
 
@@ -657,7 +645,6 @@ class CommissionMacro extends ModuleBase {
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
         Guis.setItemSlot(this.drill.slot);
-        this.updateOverlay();
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
@@ -681,8 +668,6 @@ class CommissionMacro extends ModuleBase {
             this.toggle(false);
             return;
         }
-
-        this.updateOverlay();
 
         this.currentMobConfig = MOB_CONFIGS[mobType];
         if (!this.currentMobConfig) {
@@ -785,8 +770,6 @@ class CommissionMacro extends ModuleBase {
                 }
             }
         }
-
-        this.updateOverlay();
     }
 }
 

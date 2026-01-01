@@ -64,16 +64,25 @@ export class ModuleBase {
 
         if (!this._conditionalChecker) {
             this._conditionalChecker = register('step', () => {
+                if (!this.enabled) return;
                 this._conditionalRegisters.forEach((item) => this._checkConditional(item));
-            }).setFps(1);
+            }).setFps(5);
         }
 
-        this._checkConditional(conditionalItem);
+        if (this.enabled) this._checkConditional(conditionalItem);
     }
 
     // check the item and (un)register
     _checkConditional(item) {
-        const conditionValue = item.condition();
+        if (!this.enabled) {
+            if (item.isRegistered) {
+                item.actionRegister.unregister();
+                item.isRegistered = false;
+            }
+            return;
+        }
+
+        const conditionValue = !!item.condition();
 
         if (conditionValue && !item.isRegistered) {
             item.actionRegister.register();
@@ -101,11 +110,16 @@ export class ModuleBase {
                 this.onEnable();
             } catch (e) {}
             this._registers.forEach((h) => h.register());
+            this._conditionalRegisters.forEach((item) => this._checkConditional(item));
         } else {
             if (this.oid) {
                 OverlayManager.resetTime(this.oid);
             }
             this._registers.forEach((h) => h.unregister());
+            this._conditionalRegisters.forEach((item) => {
+                item.actionRegister.unregister();
+                item.isRegistered = false;
+            });
             try {
                 this.onDisable();
             } catch (e) {}
@@ -127,10 +141,6 @@ export class ModuleBase {
     createOverlay(args) {
         this.oid = this.name;
         OverlayManager.createID(this.oid, args);
-
-        if (this.enabled) {
-            OverlayManager.startTime(this.oid);
-        }
     }
 
     /**
