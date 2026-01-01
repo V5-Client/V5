@@ -57,16 +57,14 @@ class InterfaceHandler {
         return ChatLib.removeFormatting(container.getName().toString());
     }
 
-    performClick(slot, shift, type) {
+    performClick(slot, shift, button) {
         const container = Player.getContainer();
         if (!container || slot < 0) return false;
+        const items = container.getItems();
+        if (!items || slot >= items.length) return false;
 
-        try {
-            container.click(slot, shift, type || 'LEFT');
-            return true;
-        } catch (e) {
-            return false;
-        }
+        container.click(slot, shift, button || 'LEFT');
+        return true;
     }
 
     terminateGui() {
