@@ -287,48 +287,52 @@ class OverlayUtils {
 
         if (progress > 0.1) {
             const contentAlpha = Math.min(1, progress * 3);
-            NVG.scissor(id.x, id.y, id.width, currentHeight);
-            const titleY = id.y + 20 * this.scale;
-            const titleX = id.x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
-            drawText(id.name, titleX + 1, titleY + 1, this.fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), 16);
-            drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
 
-            let contentY = titleY + 10 * this.scale;
-            sections.forEach((section, sIdx) => {
-                if (!section || typeof section !== 'object') return;
-                this.drawSectionDivider(id.x + 18 * this.scale, contentY, id.width - 36 * this.scale, contentAlpha);
-                contentY += 10 * this.scale;
+            try {
+                NVG.scissor(id.x, id.y, id.width, currentHeight);
+                const titleY = id.y + 20 * this.scale;
+                const titleX = id.x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
+                drawText(id.name, titleX + 1, titleY + 1, this.fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), 16);
+                drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
 
-                if (section.title) {
-                    drawText(
-                        section.title.toUpperCase(),
-                        id.x + 22 * this.scale,
-                        contentY,
-                        this.argFontSize * 0.85,
-                        colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha),
-                        17
-                    );
-                    contentY += 14 * this.scale;
-                }
+                let contentY = titleY + 10 * this.scale;
+                sections.forEach((section, sIdx) => {
+                    if (!section || typeof section !== 'object') return;
+                    this.drawSectionDivider(id.x + 18 * this.scale, contentY, id.width - 36 * this.scale, contentAlpha);
+                    contentY += 10 * this.scale;
 
-                const renderLine = (label, val, isUptime = false) => {
-                    const displayVal = typeof val === 'function' ? val() : val;
-                    const labelWidth = getTextWidth(label, this.argFontSize);
-                    drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
-                    const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
-                    const valueColor = isUptime
-                        ? colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha)
-                        : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
-                    drawText(String(displayVal), valueX, contentY, this.argFontSize, valueColor, 17);
-                    contentY += 14 * this.scale;
-                };
+                    if (section.title) {
+                        drawText(
+                            section.title.toUpperCase(),
+                            id.x + 22 * this.scale,
+                            contentY,
+                            this.argFontSize * 0.85,
+                            colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha),
+                            17
+                        );
+                        contentY += 14 * this.scale;
+                    }
 
-                if (sIdx === 0) renderLine('Uptime:', uptimeVal, true);
-                const sectionData = section.data || {};
-                Object.entries(sectionData).forEach(([k, v]) => renderLine(`${k}:`, v, false));
-                contentY += 4 * this.scale;
-            });
-            NVG.resetScissor();
+                    const renderLine = (label, val, isUptime = false) => {
+                        const displayVal = typeof val === 'function' ? val() : val;
+                        const labelWidth = getTextWidth(label, this.argFontSize);
+                        drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
+                        const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
+                        const valueColor = isUptime
+                            ? colorWithAlpha(THEME.DROPDOWN_FOREGROUND.getRGB(), contentAlpha)
+                            : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
+                        drawText(String(displayVal), valueX, contentY, this.argFontSize, valueColor, 17);
+                        contentY += 14 * this.scale;
+                    };
+
+                    if (sIdx === 0) renderLine('Uptime:', uptimeVal, true);
+                    const sectionData = section.data || {};
+                    Object.entries(sectionData).forEach(([k, v]) => renderLine(`${k}:`, v, false));
+                    contentY += 4 * this.scale;
+                });
+            } finally {
+                NVG.resetScissor();
+            }
         }
     }
 
@@ -337,9 +341,12 @@ class OverlayUtils {
         const sh = Renderer.screen.getHeight();
         if (sw === 0 || this.ids.length === 0) return;
         Client.getMinecraft().gameRenderer.renderBlur();
+
         try {
             NVG.beginFrame(sw, sh);
             this.ids.forEach((id) => this.renderID(id, true));
+        } catch (e) {
+            console.error('Failed to draw GUI: ' + e);
         } finally {
             NVG.endFrame();
         }
@@ -350,6 +357,7 @@ class OverlayUtils {
         const sh = Renderer.screen.getHeight();
         if (sw === 0) return;
         let anyVisible = false;
+
         try {
             NVG.beginFrame(sw, sh);
             this.ids.forEach((id) => {
@@ -359,9 +367,12 @@ class OverlayUtils {
                     anyVisible = true;
                 }
             });
+        } catch (e) {
+            console.error('Failed to draw Overlays: ' + e);
         } finally {
             NVG.endFrame();
         }
+
         if (!anyVisible && !this.stepTrigger) {
             this.mainRenderTrigger.unregister();
         }
