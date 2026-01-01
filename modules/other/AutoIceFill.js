@@ -1,17 +1,15 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 
-const IceFillSolver = Java.type('com.github.synnerz.devonian.features.dungeons.solvers.IceFillSolver');
-const IcePlatform = Java.type('com.github.synnerz.devonian.features.dungeons.solvers.IcePlatform');
 const MAX_ATTACH_DIST_SQ = 7;
 const MAX_Y_DIFF = 1.1;
 const BASE_BRAKE = 4.5;
 const LOOK_AHEAD_WEIGHT = 0.15;
 
-const platformsField = IceFillSolver.class.getDeclaredField('platforms');
-platformsField.setAccessible(true);
-const solutionField = IcePlatform.class.getDeclaredField('solution');
-solutionField.setAccessible(true);
+let IceFillSolver;
+let IcePlatform;
+let platformsField;
+let solutionField;
 
 class AutoIceFill extends ModuleBase {
     constructor() {
@@ -25,6 +23,19 @@ class AutoIceFill extends ModuleBase {
         this.activePath = null;
         this.activeStart = null;
         this.pathIndex = 0;
+        this.reflectionFailed = false;
+        this.reflectionErrorNotified = false;
+
+        try {
+            IceFillSolver = Java.type('com.github.synnerz.devonian.features.dungeons.solvers.IceFillSolver');
+            IcePlatform = Java.type('com.github.synnerz.devonian.features.dungeons.solvers.IcePlatform');
+            platformsField = IceFillSolver.class.getDeclaredField('platforms');
+            platformsField.setAccessible(true);
+            solutionField = IcePlatform.class.getDeclaredField('solution');
+            solutionField.setAccessible(true);
+        } catch (e) {
+            this.reflectionFailed = true;
+        }
 
         this.on('tick', () => this.onTick());
     }
@@ -34,6 +45,11 @@ class AutoIceFill extends ModuleBase {
     }
 
     onTick() {
+        if (this.reflectionFailed) {
+            ChatLib.chat('&c[Auto Ice Fill] Failed to access Devonian solver. Please install devonian or disable auto ice fill.');
+            return;
+        }
+
         const solutions = this.readSolutions();
         const paths = solutions;
 
