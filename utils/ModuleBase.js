@@ -64,32 +64,18 @@ export class ModuleBase {
 
         if (!this._conditionalChecker) {
             this._conditionalChecker = register('step', () => {
-                if (!this.enabled) return;
-                this._conditionalRegisters.forEach((item) => this._checkConditional(item));
+                this._conditionalRegisters.forEach((item) => {
+                    const conditionValue = !!item.condition();
+
+                    if (conditionValue && !item.isRegistered) {
+                        item.actionRegister.register();
+                        item.isRegistered = true;
+                    } else if (!conditionValue && item.isRegistered) {
+                        item.actionRegister.unregister();
+                        item.isRegistered = false;
+                    }
+                });
             }).setFps(5);
-        }
-
-        if (this.enabled) this._checkConditional(conditionalItem);
-    }
-
-    // check the item and (un)register
-    _checkConditional(item) {
-        if (!this.enabled) {
-            if (item.isRegistered) {
-                item.actionRegister.unregister();
-                item.isRegistered = false;
-            }
-            return;
-        }
-
-        const conditionValue = !!item.condition();
-
-        if (conditionValue && !item.isRegistered) {
-            item.actionRegister.register();
-            item.isRegistered = true;
-        } else if (!conditionValue && item.isRegistered) {
-            item.actionRegister.unregister();
-            item.isRegistered = false;
         }
     }
 
@@ -110,16 +96,11 @@ export class ModuleBase {
                 this.onEnable();
             } catch (e) {}
             this._registers.forEach((h) => h.register());
-            this._conditionalRegisters.forEach((item) => this._checkConditional(item));
         } else {
             if (this.oid) {
                 OverlayManager.resetTime(this.oid);
             }
             this._registers.forEach((h) => h.unregister());
-            this._conditionalRegisters.forEach((item) => {
-                item.actionRegister.unregister();
-                item.isRegistered = false;
-            });
             try {
                 this.onDisable();
             } catch (e) {}
