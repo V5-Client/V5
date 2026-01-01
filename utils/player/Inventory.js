@@ -57,13 +57,19 @@ class InterfaceHandler {
         return ChatLib.removeFormatting(container.getName().toString());
     }
 
-    performClick(slot, shift, button) {
+    performClick(slot, shift = false, button = 'LEFT') {
         const container = Player.getContainer();
-        if (!container || slot < 0) return false;
+        if (!container || slot < 0) {
+            Chat.message('ClickSlot failed due to no container');
+            return false;
+        }
         const items = container.getItems();
-        if (!items || slot >= items.length) return false;
+        if (!items || !slot || slot >= items.length) {
+            Chat.message('ClickSlot failed due to invalid slot');
+            return false;
+        }
 
-        container.click(slot, shift, button || 'LEFT');
+        container.click(slot, shift, button);
         return true;
     }
 
