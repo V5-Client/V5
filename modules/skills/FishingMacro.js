@@ -75,6 +75,7 @@ class FishingMacro extends ModuleBase {
                 break;
             }
             case 1: {
+                this.step = 2;
                 if (this.autoTotem) {
                     const totemExists = World.getAllEntitiesOfType(ArmorStandEntity).find((element) => element.getName() === 'Totem of Corruption');
                     if (totemExists) return;
@@ -91,7 +92,6 @@ class FishingMacro extends ModuleBase {
                 } else {
                     this.tickDelay = this.randomTickDelay();
                 }
-                this.step = 2;
                 break;
             }
             case 2:
