@@ -122,7 +122,6 @@ class NukerUtilsClass {
         let closestFace = Direction.UP;
 
         for (const face of faces) {
-            Chat.messageDebug(face);
             const faceCenter = this.getFaceCenterPosition(blockPos, face);
             const distance = playerEyePos.distanceTo(faceCenter);
 
