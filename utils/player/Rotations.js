@@ -54,6 +54,7 @@ class RotationsTo {
     constructor() {
         this.target = null;
         this.targetVector = null;
+        this.trackedEntity = null;
         this.precision = 0.1;
         this.isRotating = false;
         this.lastTime = 0;
@@ -163,25 +164,68 @@ class RotationsTo {
         return (((angle % 360) + 540) % 360) - 180;
     }
 
+    getEntityAimPoint(entity) {
+        try {
+            let mcEntity = entity.toMC ? entity.toMC() : entity;
+            let box = mcEntity.getBoundingBox();
+
+            if (box) {
+                const height = box.maxY - box.minY;
+                const centerX = (box.minX + box.maxX) / 2;
+                const centerZ = (box.minZ + box.maxZ) / 2;
+
+                const heightMultiplier = height >= 2.5 ? 0.5 : 0.85;
+                const aimY = box.minY + height * heightMultiplier;
+
+                return { x: centerX, y: aimY, z: centerZ };
+            }
+
+            if (typeof mcEntity.getX === 'function') {
+                return {
+                    x: mcEntity.getX(),
+                    y: mcEntity.getY() + 1.5,
+                    z: mcEntity.getZ(),
+                };
+            }
+        } catch (e) {}
+
+        return null;
+    }
+
+    updateTargetFromSource() {
+        let newTarget = null;
+
+        if (this.trackedEntity) {
+            try {
+                const mcEntity = this.trackedEntity.toMC ? this.trackedEntity.toMC() : this.trackedEntity;
+                if (mcEntity.isDead()) {
+                    this.stopRotation();
+                    return false;
+                }
+
+                const aimPoint = this.getEntityAimPoint(this.trackedEntity);
+                if (aimPoint) {
+                    newTarget = this.getAnglesFromVector(aimPoint);
+                }
+            } catch (e) {
+                this.stopRotation();
+                return false;
+            }
+        } else if (this.targetVector) {
+            newTarget = this.getAnglesFromVector(this.targetVector.vector);
+        }
+
+        if (newTarget) {
+            this.target = newTarget;
+        }
+
+        return true;
+    }
+
     updateRotation() {
         if (!this.isRotating) return;
 
-        if (this.targetVector) {
-            const currentTarget = this.getAnglesFromVector(this.targetVector.Vector);
-            if (currentTarget && this.targetVector.shiftTarget) {
-                if (this.target) {
-                    let tDeltaYaw = this.normalizeAngle(currentTarget.yaw - this.target.yaw);
-                    let tDeltaPitch = currentTarget.pitch - this.target.pitch;
-                    let targetShift = Math.sqrt(tDeltaYaw * tDeltaYaw + tDeltaPitch * tDeltaPitch);
-                    if (targetShift > 2.0) {
-                        ChatLib.chat('Target shift: ' + targetShift);
-                        this.lastTime = 0;
-                    }
-                }
-
-                this.target = currentTarget;
-            }
-        }
+        if (!this.updateTargetFromSource()) return;
 
         let finalTarget = this.target;
         if (!finalTarget) return this.stopRotation();
@@ -193,17 +237,27 @@ class RotationsTo {
         let deltaPitch = finalTarget.pitch - currentPitch;
         let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
-        if (distance <= this.precision) {
+        const effectivePrecision = this.trackedEntity ? 0.5 : this.precision;
+
+        if (distance <= effectivePrecision) {
             this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
-            this.lastTime = 0;
-            this.initialDistance = 0;
-            this.stopRotation();
+
+            this.lastTime = Date.now();
+
+            if (!this.trackedEntity && !this.targetVector) {
+                this.lastTime = 0;
+                this.initialDistance = 0;
+                this.stopRotation();
+            }
             return;
         }
 
         if (RotationModule.INSTANT) {
             this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
-            return this.stopRotation();
+            if (!this.trackedEntity && !this.targetVector) {
+                return this.stopRotation();
+            }
+            return;
         }
 
         const now = Date.now();
@@ -216,7 +270,9 @@ class RotationsTo {
             return;
         }
 
-        if (distance > this.initialDistance) this.initialDistance = distance;
+        if (distance > this.initialDistance) {
+            this.initialDistance = distance;
+        }
 
         let deltaTime = (now - this.lastTime) / 1000.0;
         this.lastTime = now;
@@ -252,16 +308,95 @@ class RotationsTo {
         }
     }
 
-    rotateToAngles(yaw, pitch) {
+    rotateToAngles(yaw, pitch, speedMultiplier = 1.0) {
         this.target = { yaw, pitch };
         this.targetVector = null;
+        this.trackedEntity = null;
+        this.speedMultiplier = speedMultiplier;
         this.isRotating = true;
-        this.speedMultiplier = 1.0;
+        this.lastTime = 0;
+        this.initialDistance = 0;
     }
 
-    rotateToVector(Vector, shiftTarget = false) {
-        this.targetVector = { Vector, shiftTarget };
+    rotateToVector(vector, shiftTarget = true, speedMultiplier = 1.0) {
+        const vec = Utils.convertToVector(vector);
+
+        const wasRotatingToVector = this.isRotating && this.targetVector && !this.trackedEntity;
+
+        this.targetVector = { vector: vec, shiftTarget };
+        this.trackedEntity = null;
+        this.speedMultiplier = speedMultiplier;
         this.isRotating = true;
+
+        const initialTarget = this.getAnglesFromVector(vec);
+        if (initialTarget) {
+            let shouldResetTiming = !wasRotatingToVector;
+
+            if (wasRotatingToVector && this.target) {
+                const deltaYaw = Math.abs(this.normalizeAngle(initialTarget.yaw - this.target.yaw));
+                const deltaPitch = Math.abs(initialTarget.pitch - this.target.pitch);
+                const shift = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
+
+                if (shift > 5) {
+                    shouldResetTiming = true;
+                }
+            }
+
+            this.target = initialTarget;
+
+            if (shouldResetTiming) {
+                this.lastTime = 0;
+                this.initialDistance = 0;
+            }
+        }
+    }
+
+    rotateToEntity(entity, speedMultiplier = 1.0) {
+        if (!entity) return;
+
+        try {
+            const mcEntity = entity.toMC ? entity.toMC() : entity;
+            if (mcEntity.isDead()) return;
+        } catch (e) {
+            return;
+        }
+
+        const alreadyTrackingThis = this.isRotating && this.trackedEntity && this.isTrackingEntity(entity);
+
+        this.trackedEntity = entity;
+        this.targetVector = null;
+        this.speedMultiplier = speedMultiplier;
+        this.isRotating = true;
+
+        const aimPoint = this.getEntityAimPoint(entity);
+        if (aimPoint) {
+            this.target = this.getAnglesFromVector(aimPoint);
+        }
+
+        if (!alreadyTrackingThis) {
+            this.lastTime = 0;
+            this.initialDistance = 0;
+        }
+    }
+
+    isTrackingEntity(entity) {
+        if (!this.trackedEntity || !entity) return false;
+
+        try {
+            const currentUUID = this.trackedEntity.getUUID
+                ? this.trackedEntity.getUUID()
+                : this.trackedEntity.toMC
+                ? this.trackedEntity.toMC().getUuid()
+                : null;
+
+            const entityUUID = entity.getUUID ? entity.getUUID() : entity.toMC ? entity.toMC().getUuid() : null;
+
+            if (currentUUID && entityUUID) {
+                return currentUUID.equals(entityUUID);
+            }
+        } catch (e) {}
+
+        return this.trackedEntity === entity;
     }
 
     onEndRotation(callBack, name = null) {
@@ -274,6 +409,7 @@ class RotationsTo {
         this.isRotating = false;
         this.target = null;
         this.targetVector = null;
+        this.trackedEntity = null;
         this.lastTime = 0;
         this.initialDistance = 0;
         this.resetGCDTracking();
@@ -284,8 +420,8 @@ class RotationsTo {
         }
     }
 
-    getAnglesFromVector(Vector) {
-        let vec = Utils.convertToVector(Vector);
+    getAnglesFromVector(vector) {
+        let vec = Utils.convertToVector(vector);
         let p = Player.getPlayer();
         if (!p) return null;
         let dx = vec.x - p.getX();

@@ -184,6 +184,8 @@ class Combat extends ModuleBase {
                 return;
             }
 
+            const previousTarget = this.target;
+
             if (!this.target) {
                 this.target = this.bestTarget();
             }
@@ -199,45 +201,21 @@ class Combat extends ModuleBase {
 
             const distance = this.getDistanceToPlayer(pos);
 
-            if (this.target && !this.isPathing) {
-                this.rotateToTarget();
+            const targetChanged = previousTarget !== this.target;
+
+            if (!this.isPathing) {
+                if (targetChanged || !Rotations.isTrackingEntity(this.target)) {
+                    this.startRotationToTarget();
+                }
             }
 
             this.handleState(pos, distance);
         });
     }
 
-    rotateToTarget() {
+    startRotationToTarget() {
         if (!this.target) return;
-
-        const aimPoint = this.getAimPoint(this.target);
-        if (aimPoint) {
-            Rotations.rotateToVector(new Vec3d(aimPoint.x, aimPoint.y, aimPoint.z), true, this.rotSpeedMultiplier);
-        }
-    }
-
-    getAimPoint(target) {
-        try {
-            let mcEntity = target.toMC ? target.toMC() : target;
-            let box = mcEntity.getBoundingBox();
-
-            if (box) {
-                const height = box.maxY - box.minY;
-                const centerX = (box.minX + box.maxX) / 2;
-                const centerZ = (box.minZ + box.maxZ) / 2;
-
-                const heightMultiplier = height >= 2.5 ? 0.5 : 0.85;
-                const aimY = box.minY + height * heightMultiplier;
-
-                return { x: centerX, y: aimY, z: centerZ };
-            }
-        } catch (e) {}
-
-        const pos = this.getTargetPosition(target);
-        if (pos) {
-            return { x: pos.x, y: pos.y + 1.5, z: pos.z };
-        }
-        return null;
+        Rotations.rotateToEntity(this.target, this.rotSpeedMultiplier);
     }
 
     isAimingAtTarget() {
@@ -310,6 +288,7 @@ class Combat extends ModuleBase {
             this.isPathing = false;
             this.combatState = 'ATTACKING';
             Keybind.stopMovement();
+            this.startRotationToTarget();
             return;
         }
     }
@@ -382,6 +361,8 @@ class Combat extends ModuleBase {
                     const currentPos = this.getTargetPosition(this.target);
                     const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
 
+                    this.startRotationToTarget();
+
                     if (dist <= this.attackRange) {
                         this.combatState = 'ATTACKING';
                     } else {
@@ -421,7 +402,6 @@ class Combat extends ModuleBase {
 
             const targetUUID = target.getUUID ? target.getUUID() : entity.getUuid ? entity.getUuid() : null;
 
-            // Check blacklist
             if (targetUUID && this.blacklistedTargets.has(targetUUID)) return true;
 
             if (!targetUUID) return !this.targets.includes(target);
