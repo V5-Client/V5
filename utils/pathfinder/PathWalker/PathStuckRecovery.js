@@ -13,10 +13,10 @@ let recoveryStartBoxIndex = -1;
 const MIN_MOVEMENT_THRESHOLD = 0.12;
 const MIN_MOVEMENT_THRESHOLD_COLLIDED = 0.05;
 
-const RECOVERY_ATTEMPT_INTERVALS = [6, 12, 20];
+const RECOVERY_ATTEMPT_INTERVALS = [3, 14, 25];
 const MAX_RECOVERY_ATTEMPTS = 3;
 const RECOVERY_LOCK_DURATION = 25;
-const SEVERE_STUCK_THRESHOLD = 35;
+const SEVERE_STUCK_THRESHOLD = 40;
 const MIN_PROGRESS_BOXES = 2;
 
 const JUMP_DURATION = 8;
@@ -144,6 +144,12 @@ function getDistance3D(x1, y1, z1, x2, y2, z2) {
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+function getDistanceHorizontal(x1, z1, x2, z2) {
+    const dx = x1 - x2;
+    const dz = z1 - z2;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
 function getCachedBoxDistance(playerX, playerY, playerZ, box) {
     const key = `${Math.floor(playerX * 10)},${Math.floor(playerY * 10)},${Math.floor(playerZ * 10)},${box.x},${box.y},${box.z},${cacheFrame}`;
 
@@ -214,7 +220,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
         return null;
     }
 
-    const distanceMoved = getDistance3D(playerX, playerY, playerZ, lastPlayerPos.x, lastPlayerPos.y, lastPlayerPos.z);
+    const horizontalDistanceMoved = getDistanceHorizontal(playerX, playerZ, lastPlayerPos.x, lastPlayerPos.z);
 
     const isCollided = Utils.playerIsCollided();
     const movementThreshold = isCollided ? MIN_MOVEMENT_THRESHOLD_COLLIDED : MIN_MOVEMENT_THRESHOLD;
@@ -242,7 +248,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
         return null;
     }
 
-    if (distanceMoved > movementThreshold) {
+    if (horizontalDistanceMoved > movementThreshold) {
         lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
         ticksWithoutMovement = 0;
         recoveryAttempts = 0;

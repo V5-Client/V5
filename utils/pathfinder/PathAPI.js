@@ -1,36 +1,25 @@
-import request from 'RequestV2';
-
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations, setRequestPathRecalculation } from './PathWalker/PathRotations';
 import { PathMovement } from './PathWalker/PathMovement';
-import { Links, Vec3d, BP } from '../Constants';
-import { Utils } from '../Utils';
+import { Vec3d, BP } from '../Constants';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
 import { detectJump } from './PathWalker/PathJumps';
 import { Chat } from '../Chat';
 import { Keybind } from '../player/Keybinding';
+import { SwiftBridge } from './SwiftBridge';
 import { showNotification } from '../../gui/NotificationManager';
-
-const localhost = `${Links.PATHFINDER_API_URL}`;
 
 let renderPath = null;
 let currentPathRequest = null;
 let path = null;
+let searchingTrigger = null;
+let currentPathCallback = null;
 
 export let pathNodes = [];
 export let keyNodes = [];
 export let betweenNodes = [];
 export let spline = [];
-
-const Maps = {
-    'Dwarven Mines': 'mines',
-    Galatea: 'galatea',
-    Hub: 'hub',
-};
-
-let currentIsland = null;
-let loadingMap = false;
 
 export function setPathNodes(nodes) {
     pathNodes = nodes;
@@ -51,6 +40,16 @@ export function setSpline(nodes) {
 export function stopPathing() {
     ResetRotations();
     Keybind.stopMovement();
+
+    SwiftBridge.cancel();
+
+    if (searchingTrigger) {
+        try {
+            searchingTrigger.unregister();
+        } catch (e) {}
+        searchingTrigger = null;
+    }
+
     if (path) {
         try {
             path.unregister();
@@ -70,6 +69,10 @@ export function stopPathing() {
     }
 
     currentPathRequest = null;
+}
+
+export function clearPathCallback() {
+    currentPathCallback = null;
 }
 
 function findStartY(x, initialY, z) {
@@ -113,203 +116,141 @@ function drawKeyNodes(keynodes) {
     }
 }
 
-function loadMap(map, area, callback) {
-    if (loadingMap) return;
-    loadingMap = true;
+function executePathfinding(start, end, onComplete, renderOnly = false, adjustEnd = false) {
+    stopPathing();
 
-    const url = `${localhost}/api/loadmap?map=${map}`;
-    request({ url, timeout: 5000 })
-        .then(() => {
-            currentIsland = area;
-            loadingMap = false;
-            Chat.log(`Successfully loaded map '${map}'.`);
-            showNotification(`Loaded ${map}!`, 'Connection successfully loaded the island you are on', 'SUCCESS', 4000);
-
-            if (typeof callback === 'function') {
-                callback();
-            }
-        })
-        .catch((err) => {
-            loadingMap = false;
-            Chat.log(`Error loading map ${map}: ${err}`);
-            showNotification('Map Load Failed', `Failed to load map ${map}`, 'ERROR', 8000);
-        });
-}
-
-function getSinglePlayerWarpCommand(warpName) {
-    const warps = {
-        '/warp mines': 'tp @s -49 200 -122 -90 0',
-        '/warp forge': 'tp @s 0 149 -68 90 0',
-    };
-    return warps[warpName] || null;
-}
-
-function handleWarp(warpCommand, onComplete) {
-    const tpCommand = Server.getName() === 'SinglePlayer' ? getSinglePlayerWarpCommand(warpCommand) : warpCommand.slice(1);
-
-    if (!tpCommand) {
-        showNotification('Pathfinding Error', `Unknown warp point: ${warpCommand}`, 'ERROR', 4000);
-        return;
-    }
-
-    Chat.message(`§aWarp point found! Running command: §e${tpCommand}`);
-    ChatLib.command(tpCommand);
-    setTimeout(onComplete, 250);
-}
-
-function executePathfinding(start, end, onComplete, renderOnly = false) {
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = end; // dont adjust. if your end coordinate is wrong, that's your fault.
-    //const adjustedEnd = [end[0], findStartY(end[0], end[1], end[2]), end[2]];
-
-    const mapIdentifier = Maps[currentIsland] || 'mines';
-
-    const url = `${localhost}/api/pathfind`;
-    const postData = {
-        start: adjustedStart.join(','),
-        end: adjustedEnd.join(','),
-        use_keynodes: true,
-        use_spline: false,
-        use_warp_points: false,
-        use_etherwarp: false,
-        is_perfect_path: false,
-    };
+    const adjustedEnd = adjustEnd ? [end[0], findStartY(end[0], end[1], end[2]), end[2]] : end;
 
     Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
     const requestId = Date.now();
     currentPathRequest = requestId;
 
-    request({
-        url,
-        method: 'POST',
-        json: true,
-        body: postData,
-        timeout: 15000,
-    })
-        .then((body) => {
-            if (currentPathRequest !== requestId) return;
+    const started = SwiftBridge.startPath(adjustedStart[0], adjustedStart[1], adjustedStart[2], adjustedEnd[0], adjustedEnd[1], adjustedEnd[2]);
 
-            if (!body) {
-                showNotification('Pathfinding Failed', 'Empty response from pathfinder.', 'ERROR', 5000);
-                console.error('Pathfinding response was null or undefined');
-                if (onComplete && typeof onComplete === 'function') onComplete(false);
-                return;
+    if (!started) {
+        const error = SwiftBridge.getLastError() || 'Failed to start pathfinding';
+        showNotification('Pathfinding Failed', error, 'ERROR', 5000);
+        console.error('Pathfinding failed to start:', error);
+        if (onComplete && typeof onComplete === 'function') onComplete(false);
+        return;
+    }
+
+    Chat.messagePathfinder('§eSearching for path...');
+
+    searchingTrigger = register('tick', () => {
+        if (currentPathRequest !== requestId) {
+            if (searchingTrigger) {
+                searchingTrigger.unregister();
+                searchingTrigger = null;
             }
+            return;
+        }
 
-            if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
-                showNotification('Pathfinding Failed', 'No path nodes received to generate a curve.', 'ERROR', 5000);
-                console.error('Invalid keynodes in response:', body);
-                if (onComplete && typeof onComplete === 'function') onComplete(false);
-                return;
-            }
+        if (SwiftBridge.isSearching()) {
+            return;
+        }
 
-            const beginPathing = () => {
-                if (currentPathRequest !== requestId) return;
+        searchingTrigger.unregister();
+        searchingTrigger = null;
 
-                if (body.path && Array.isArray(body.path) && body.path.length) {
-                    setPathNodes(body.path);
-                }
+        const body = SwiftBridge.getResult();
 
-                if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
-                    setKeyNodes(body.keynodes);
-                }
-
-                let generatedSpline = [];
-                if (body.path_between_key_nodes && Array.isArray(body.path_between_key_nodes) && body.path_between_key_nodes.length) {
-                    generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
-                } else if (body.keynodes && body.keynodes.length) {
-                    Chat.log('No path_between_key_nodes, using keynodes for spline');
-                    generatedSpline = generateHybridSpline(body.keynodes, 1);
-                }
-
-                setPathNodes(generatedSpline);
-
-                if (getRenderKeyNodes() || getRenderFloatingSpline()) {
-                    renderPath = register('postRenderWorld', () => {
-                        if (getRenderKeyNodes() && body.keynodes) drawKeyNodes(body.keynodes);
-                        if (getRenderFloatingSpline() && generatedSpline.length) drawFloatingSpline(generatedSpline);
-                    });
-                }
-
-                if (renderOnly) {
-                    showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
-                    return;
-                }
-
-                path = register('tick', () => {
-                    pathRotations(generatedSpline);
-
-                    const jumpPath = body.path_between_key_nodes && body.path_between_key_nodes.length ? body.path_between_key_nodes : body.keynodes;
-                    detectJump(jumpPath);
-
-                    PathMovement();
-
-                    if (!PathComplete()) return;
-
-                    path.unregister();
-                    path = null;
-
-                    PathMovement(false);
-                    ResetRotations();
-                    stopPathing();
-
-                    showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
-                    if (onComplete && typeof onComplete === 'function') onComplete(true);
-                });
-            };
-
-            if (body.warp_point && body.warp_point.command) {
-                handleWarp(body.warp_point.command, beginPathing);
-            } else {
-                beginPathing();
-            }
-        })
-        .catch((err) => {
-            if (currentPathRequest !== requestId) return;
-
-            showNotification('Pathfinding Error', 'Request failed. See console for details.', 'ERROR', 5000);
-            console.error(`Pathfinding request failed: ${err}`);
+        if (!body) {
+            const error = SwiftBridge.getLastError() || 'Unknown error';
+            showNotification('Pathfinding Failed', error, 'ERROR', 5000);
+            console.error('Pathfinding failed:', error);
             if (onComplete && typeof onComplete === 'function') onComplete(false);
+            return;
+        }
+
+        if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
+            showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
+            console.error('Invalid keynodes in response:', body);
+            if (onComplete && typeof onComplete === 'function') onComplete(false);
+            return;
+        }
+
+        Chat.messagePathfinder(`Path length: ${body.path.length} nodes`);
+        Chat.messagePathfinder(`Path found in ${body.time_ms}ms`);
+        Chat.messagePathfinder(`Nodes explored: ${body.nodes_explored}`);
+        Chat.messagePathfinder(`Nanoseconds per node: ${((body.time_ms * 10000) / body.path.length).toFixed(2)}ns`);
+
+        if (body.path && Array.isArray(body.path) && body.path.length) {
+            setPathNodes(body.path);
+        }
+
+        if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
+            setKeyNodes(body.keynodes);
+        }
+
+        let generatedSpline = [];
+        if (body.path_between_key_nodes && Array.isArray(body.path_between_key_nodes) && body.path_between_key_nodes.length) {
+            generatedSpline = generateHybridSpline(body.path_between_key_nodes, 1);
+        } else if (body.keynodes && body.keynodes.length) {
+            Chat.log('No path_between_key_nodes, using keynodes for spline');
+            generatedSpline = generateHybridSpline(body.keynodes, 1);
+        }
+
+        setPathNodes(generatedSpline);
+
+        if (getRenderKeyNodes() || getRenderFloatingSpline()) {
+            renderPath = register('postRenderWorld', () => {
+                if (getRenderKeyNodes() && body.keynodes) drawKeyNodes(body.keynodes);
+                if (getRenderFloatingSpline() && generatedSpline.length) drawFloatingSpline(generatedSpline);
+            });
+        }
+
+        if (renderOnly) {
+            showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
+            return;
+        }
+
+        path = register('tick', () => {
+            pathRotations(generatedSpline);
+
+            const jumpPath = body.path_between_key_nodes && body.path_between_key_nodes.length ? body.path_between_key_nodes : body.keynodes;
+            detectJump(jumpPath);
+
+            PathMovement();
+
+            if (!PathComplete()) return;
+
+            path.unregister();
+            path = null;
+
+            PathMovement(false);
+            ResetRotations();
+            stopPathing();
+
+            showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+
+            if (onComplete && typeof onComplete === 'function') {
+                onComplete(true);
+            }
+            currentPathCallback = null;
         });
+    });
 }
 
-export function findAndFollowPath(start, end, renderOnlyOrCallback) {
+/**
+ * Find and walk a path from start to end.
+ * @param {number[]} start - [x, y, z] start coords
+ * @param {number[]} end - [x, y, z] end coords
+ * @param {boolean|Function} renderOnlyOrCallback - If true, render only. If function, callback on complete.
+ * @param {boolean} adjustEnd - If true, adjusts end Y to find ground level. ONLY WORKS ON BLOCK IN YOUR RENDER DISTANCE, DO NOT USE FOR LONG DISTANCE PATHS
+ */
+export function findAndFollowPath(start, end, renderOnlyOrCallback, adjustEnd = false) {
     const renderOnly = typeof renderOnlyOrCallback === 'boolean' ? renderOnlyOrCallback : false;
     const onComplete = typeof renderOnlyOrCallback === 'function' ? renderOnlyOrCallback : null;
 
-    const area = Utils.area();
+    currentPathCallback = onComplete;
 
-    if (area !== currentIsland) {
-        if (loadingMap) {
-            return;
-        }
-
-        if (Maps[area]) {
-            const mapValue = Maps[area];
-
-            loadMap(mapValue, area, () => {
-                executePathfinding(start, end, onComplete, renderOnly);
-            });
-            return;
-        } else {
-            Chat.log(`No matching map found for area: ${area}`);
-            showNotification('Map Error', `Cannot pathfind, no map found for area: ${area}`, 'ERROR', 5000);
-            if (Server.getName() === 'SinglePlayer') {
-                const mapValue = Maps['Dwarven Mines']; // just here to load mines as default (singleplayer testing reasons)
-
-                loadMap(mapValue, area, () => {
-                    executePathfinding(start, end, onComplete, renderOnly);
-                });
-            }
-            return;
-        }
-    }
-
-    executePathfinding(start, end, onComplete, renderOnly);
+    executePathfinding(start, end, onComplete, renderOnly, adjustEnd);
 }
 
-export function requestPathRecalculation() {
+function requestPathRecalculation() {
     Chat.messagePathfinder('§6[Pathfinding] Recalculating path...');
 
     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
@@ -317,11 +258,12 @@ export function requestPathRecalculation() {
     if (keyNodes && keyNodes.length > 0) {
         const destination = keyNodes[keyNodes.length - 1];
         const end = [destination.x, destination.y, destination.z];
+        const savedCallback = currentPathCallback;
 
         stopPathing();
 
         setTimeout(() => {
-            findAndFollowPath(currentPos, end);
+            findAndFollowPath(currentPos, end, savedCallback);
         }, 100);
     } else {
         Chat.messagePathfinder('§c[Pathfinding] Cannot recalculate - no destination stored');
@@ -355,4 +297,5 @@ register('command', (...args) => {
 
 register('command', () => {
     stopPathing();
+    clearPathCallback();
 }).setName('stop', true);

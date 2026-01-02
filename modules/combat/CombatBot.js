@@ -6,6 +6,7 @@ import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
 import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { Keybind } from '../../utils/player/Keybinding';
+import { RayTrace } from '../../utils/Raytrace';
 
 const COMBAT_PRESETS = {
     Graveyard: {
@@ -18,7 +19,19 @@ const COMBAT_PRESETS = {
         checkVisibility: true,
         boundaryCheck: (x, y, z) => true,
     },
+    Goblins: {
+        names: ['Goblin', 'Weakling', 'Knifethrower', 'Fireslinger'],
+        checkVisibility: true,
+        boundaryCheck: (x, y, z) => y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
+    },
+    'Ice Walkers': {
+        names: ['Ice Walker', 'Glacite Walker'],
+        checkVisibility: true,
+        boundaryCheck: (x, y, z) => y >= 127 && y <= 146 && z <= 180 && z >= 134 && x <= 80,
+    },
 };
+
+const ATTACK_REACH = 3.0;
 
 class Combat extends ModuleBase {
     constructor() {
@@ -31,40 +44,23 @@ class Combat extends ModuleBase {
         });
         this.bindToggleKey();
 
-        this.enabledPresets = new Set(['Graveyard']);
+        this.enabledPresets = new Set();
 
         this.addMultiToggle(
             'Target Presets',
             Object.keys(COMBAT_PRESETS),
             false,
-
             (selected) => {
                 this.enabledPresets.clear();
+                const isEnabled = (name) => selected.some((item) => item.name === name && item.enabled === true);
 
-                if (Array.isArray(selected)) {
-                    selected.forEach((item) => {
-                        const name = typeof item === 'string' ? item : item?.name;
-                        if (name && COMBAT_PRESETS[name]) {
-                            this.enabledPresets.add(name);
-                        }
-                    });
-                } else if (typeof selected === 'string' && COMBAT_PRESETS[selected]) {
-                    this.enabledPresets.add(selected);
-                }
+                Object.keys(COMBAT_PRESETS).forEach((presetName) => {
+                    if (isEnabled(presetName)) {
+                        this.enabledPresets.add(presetName);
+                    }
+                });
             },
-            'Select which mob types to target when running standalone',
-            'Graveyard'
-        );
-
-        this.addSlider(
-            'Attack Range',
-            2,
-            6,
-            3.5,
-            (value) => {
-                this.attackRange = value;
-            },
-            'Distance to start attacking'
+            'Select which mob types to target when running standalone'
         );
 
         this.addSlider(
@@ -107,6 +103,17 @@ class Combat extends ModuleBase {
             true
         );
 
+        this.addSlider(
+            'Rotation Speed Multiplier',
+            1.0,
+            3.0,
+            1.0,
+            (value) => {
+                this.rotSpeedMultiplier = value;
+            },
+            'Multiplies the global rotation speed for combat'
+        );
+
         this.settingsTarget = null;
         this.target = null;
         this.targetNametag = null;
@@ -115,20 +122,24 @@ class Combat extends ModuleBase {
         this.externalTargets = [];
         this.useExternalTargetsOnly = false;
 
+        this.blacklistedTargets = new Map();
+
         this.combatState = 'IDLE';
 
-        this.attackRange = 3.5;
+        this.attackRange = ATTACK_REACH;
         this.pathfindingThreshold = 15;
         this.attackCPS = 10;
         this.sprintToTarget = true;
         this.moveToTarget = true;
+        this.rotSpeedMultiplier = 1.0;
 
         this.lastAttackTime = 0;
         this.isPathing = false;
         this.lastPathTarget = null;
         this.pathTargetMoveThreshold = 3;
+        this.currentPathStartTime = 0;
 
-        this.isTrackingTarget = false;
+        this.targetStickinessRange = 10;
 
         this.on('postRenderWorld', () => {
             if (!this.targets || this.targets.length === 0) return;
@@ -159,26 +170,27 @@ class Combat extends ModuleBase {
             if (!this.enabled) return;
             if (!Client.isInChat() && Client.isInGui()) return;
 
+            const now = Date.now();
+            for (const [uuid, expiry] of this.blacklistedTargets.entries()) {
+                if (now > expiry) {
+                    this.blacklistedTargets.delete(uuid);
+                }
+            }
+
             this.targets = this.getTargets();
 
             if (this.target && this.isTargetInvalid(this.target)) {
-                stopPathing();
-                Keybind.stopMovement();
-                Rotations.stopRotation();
-                this.target = null;
-                this.combatState = 'IDLE';
-                this.isTrackingTarget = false;
+                this.stopCombat();
+                return;
             }
 
             if (!this.target) {
                 this.target = this.bestTarget();
-                this.isTrackingTarget = false;
             }
 
             if (!this.target) {
                 this.combatState = 'IDLE';
                 Rotations.stopRotation();
-                this.isTrackingTarget = false;
                 return;
             }
 
@@ -187,13 +199,64 @@ class Combat extends ModuleBase {
 
             const distance = this.getDistanceToPlayer(pos);
 
-            this.handleState(pos, distance);
-
-            if (this.combatState !== 'PATHING') {
-                Rotations.rotateToVector(new Vec3d(pos.x, pos.y + 1.5, pos.z), this.isTrackingTarget);
-                this.isTrackingTarget = true;
+            if (this.target && !this.isPathing) {
+                this.rotateToTarget();
             }
+
+            this.handleState(pos, distance);
         });
+    }
+
+    rotateToTarget() {
+        if (!this.target) return;
+
+        const aimPoint = this.getAimPoint(this.target);
+        if (aimPoint) {
+            Rotations.rotateToVector(new Vec3d(aimPoint.x, aimPoint.y, aimPoint.z), true, this.rotSpeedMultiplier);
+        }
+    }
+
+    getAimPoint(target) {
+        try {
+            let mcEntity = target.toMC ? target.toMC() : target;
+            let box = mcEntity.getBoundingBox();
+
+            if (box) {
+                const height = box.maxY - box.minY;
+                const centerX = (box.minX + box.maxX) / 2;
+                const centerZ = (box.minZ + box.maxZ) / 2;
+
+                const heightMultiplier = height >= 2.5 ? 0.5 : 0.85;
+                const aimY = box.minY + height * heightMultiplier;
+
+                return { x: centerX, y: aimY, z: centerZ };
+            }
+        } catch (e) {}
+
+        const pos = this.getTargetPosition(target);
+        if (pos) {
+            return { x: pos.x, y: pos.y + 1.5, z: pos.z };
+        }
+        return null;
+    }
+
+    isAimingAtTarget() {
+        if (!this.target) return false;
+
+        try {
+            return RayTrace.isLookingAtEntity(this.target, this.attackRange + 0.5);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    stopCombat() {
+        stopPathing();
+        Keybind.stopMovement();
+        Rotations.stopRotation();
+        this.target = null;
+        this.combatState = 'IDLE';
+        this.isPathing = false;
     }
 
     handleState(pos, distance) {
@@ -236,15 +299,18 @@ class Combat extends ModuleBase {
 
             if (targetMoved > this.pathTargetMoveThreshold) {
                 stopPathing();
+                this.isPathing = false;
                 this.startPathingToTarget(pos);
                 return;
             }
         }
 
-        if (distance <= this.pathfindingThreshold * 0.7) {
+        if (distance <= this.attackRange) {
             stopPathing();
             this.isPathing = false;
-            this.combatState = 'APPROACHING';
+            this.combatState = 'ATTACKING';
+            Keybind.stopMovement();
+            return;
         }
     }
 
@@ -269,13 +335,16 @@ class Combat extends ModuleBase {
     }
 
     handleAttackingState(pos, distance) {
-        if (distance > this.attackRange * 1.5) {
+        if (distance > this.attackRange * 1.3) {
             this.combatState = 'APPROACHING';
             return;
         }
 
         Keybind.stopMovement();
-        this.tryAttack();
+
+        if (this.isAimingAtTarget()) {
+            this.tryAttack();
+        }
     }
 
     startPathingToTarget(pos) {
@@ -285,15 +354,54 @@ class Combat extends ModuleBase {
         this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
         this.isPathing = true;
         this.combatState = 'PATHING';
-        this.isTrackingTarget = false;
+        this.currentPathStartTime = Date.now();
 
         Rotations.stopRotation();
 
-        findAndFollowPath(start, end, (success) => {
-            if (!success) return;
-            this.isPathing = false;
-            this.combatState = 'APPROACHING';
-        });
+        findAndFollowPath(
+            start,
+            end,
+            (success) => {
+                this.isPathing = false;
+
+                const pathDuration = Date.now() - this.currentPathStartTime;
+                if (success && pathDuration < 500 && this.target) {
+                    const currentPos = this.getTargetPosition(this.target);
+                    const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 0;
+
+                    if (dist > this.pathfindingThreshold - 2) {
+                        Chat.message('&cTarget unreachable by pathfinder. Blacklisting for 3s.');
+                        this.blacklistTarget(this.target, 3000);
+                        this.target = null;
+                        this.combatState = 'IDLE';
+                        return;
+                    }
+                }
+
+                if (this.target && !this.isTargetInvalid(this.target)) {
+                    const currentPos = this.getTargetPosition(this.target);
+                    const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
+
+                    if (dist <= this.attackRange) {
+                        this.combatState = 'ATTACKING';
+                    } else {
+                        this.combatState = 'APPROACHING';
+                    }
+                } else {
+                    this.combatState = 'IDLE';
+                }
+            },
+            true
+        );
+    }
+
+    blacklistTarget(target, duration) {
+        try {
+            const uuid = target.getUUID ? target.getUUID() : target.toMC ? target.toMC().getUuid() : null;
+            if (uuid) {
+                this.blacklistedTargets.set(uuid, Date.now() + duration);
+            }
+        } catch (e) {}
     }
 
     tryAttack() {
@@ -312,6 +420,10 @@ class Combat extends ModuleBase {
             if (entity.isDead()) return true;
 
             const targetUUID = target.getUUID ? target.getUUID() : entity.getUuid ? entity.getUuid() : null;
+
+            // Check blacklist
+            if (targetUUID && this.blacklistedTargets.has(targetUUID)) return true;
+
             if (!targetUUID) return !this.targets.includes(target);
 
             const exists = this.targets.some((t) => {
@@ -343,25 +455,30 @@ class Combat extends ModuleBase {
 
         this.enabledPresets.forEach((presetName) => {
             const config = COMBAT_PRESETS[presetName];
-            if (!config || !config.entityClass) return;
+            if (!config) return;
 
-            const entities = World.getAllEntitiesOfType(config.entityClass);
+            if (config.entityClass) {
+                const entities = World.getAllEntitiesOfType(config.entityClass);
 
-            entities.forEach((entity) => {
-                try {
-                    if (entity.isDead()) return;
+                entities.forEach((entity) => {
+                    try {
+                        if (entity.isDead()) return;
 
-                    const x = entity.getX();
-                    const y = entity.getY();
-                    const z = entity.getZ();
+                        const x = entity.getX();
+                        const y = entity.getY();
+                        const z = entity.getZ();
 
-                    if (!config.boundaryCheck(x, y, z)) return;
+                        if (!config.boundaryCheck(x, y, z)) return;
 
-                    if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(entity)) return;
+                        if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(entity)) return;
 
-                    mobs.push(entity);
-                } catch (e) {}
-            });
+                        mobs.push(entity);
+                    } catch (e) {}
+                });
+            } else if (config.names) {
+                const found = this.findMob(config);
+                mobs.push(...found);
+            }
         });
 
         return mobs;
@@ -392,7 +509,6 @@ class Combat extends ModuleBase {
     clearExternalTargets() {
         this.externalTargets = [];
         this.useExternalTargetsOnly = false;
-        this.isTrackingTarget = false;
     }
 
     getTargetPosition(target) {
@@ -417,19 +533,32 @@ class Combat extends ModuleBase {
     }
 
     bestTarget() {
+        if (!this.targets || this.targets.length === 0) return null;
+
+        if (this.target && !this.isTargetInvalid(this.target)) {
+            const pos = this.getTargetPosition(this.target);
+            if (pos) {
+                const distance = this.getDistanceToPlayer(pos);
+                if (distance < this.targetStickinessRange) {
+                    return this.target;
+                }
+            }
+        }
+
         this.costs.clear();
         let lowestCost = Infinity;
         let bestTarget = null;
 
-        if (!this.targets || this.targets.length === 0) return null;
-
         this.targets.forEach((target) => {
+            if (this.isTargetInvalid(target)) return;
+
             const pos = this.getTargetPosition(target);
             if (!pos) return;
 
             const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), pos.x, pos.y, pos.z);
             const angles = MathUtils.angleToPlayer([pos.x, pos.y, pos.z]);
-            const cost = distance * 10 + angles.distance;
+
+            const cost = distance * 10 + angles.distance * 0.5;
 
             this.costs.set(target, cost);
 
@@ -442,16 +571,6 @@ class Combat extends ModuleBase {
         return bestTarget;
     }
 
-    /**
-     * Finds mobs :D
-     *
-     * @param {Object} config - Mob configuration object
-     * @param {string[]} config.names - Array of name substrings to match
-     * @param {boolean} config.checkVisibility - Whether to check if player can see entity
-     * @param {Function} config.boundaryCheck - Function(x,y,z) returning boolean
-     * @param {Set} [whitelist] - Optional set of UUIDs to exclude from results
-     * @returns {Array<PlayerMP>} - Array of found mobs
-     */
     findMob(config, whitelist = null) {
         if (!config || !config.names) {
             console.error('Invalid mob config provided');
@@ -495,8 +614,6 @@ class Combat extends ModuleBase {
             const presets = Array.from(this.enabledPresets).join(', ');
             Chat.message(`&7Targeting: &b${presets || 'None selected'}`);
         }
-
-        this.isTrackingTarget = false;
     }
 
     onDisable() {
@@ -517,7 +634,7 @@ class Combat extends ModuleBase {
         this.isPathing = false;
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
-        this.isTrackingTarget = false;
+        this.blacklistedTargets.clear();
     }
 }
 

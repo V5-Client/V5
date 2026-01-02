@@ -65,6 +65,7 @@ class RotationsTo {
         this.lastAppliedPitch = 0;
         this.gcdInitialized = false;
         this.motionProfile = 'linear';
+        this.speedMultiplier = 1.0;
 
         register('command', (yaw, pitch) => {
             this.rotateToAngles(parseFloat(yaw), parseFloat(pitch));
@@ -89,22 +90,24 @@ class RotationsTo {
         if (RotationModule.LINEAR || RotationModule.INSTANT) return { x: 0, y: 0 };
 
         let curveFactor = 0;
+        const safeProgress = Math.max(0, Math.min(1, progress));
+
         switch (this.motionProfile) {
             case 'precise-log':
-                curveFactor = Math.sin(Math.sqrt(progress) * Math.PI) * 0.8;
+                curveFactor = Math.sin(Math.sqrt(safeProgress) * Math.PI) * 0.8;
                 break;
             case 'hermite-arc':
-                curveFactor = Math.pow(progress, 0.8) * Math.pow(1 - progress, 1.2) * 3.5;
+                curveFactor = Math.pow(safeProgress, 0.8) * Math.pow(1 - safeProgress, 1.2) * 3.5;
                 break;
             case 'bezier-drift':
-                curveFactor = Math.pow(progress, 2) * (1 - progress) * 6;
+                curveFactor = Math.pow(safeProgress, 2) * (1 - safeProgress) * 6;
                 break;
             case 'sinusoidal-wobble':
-                curveFactor = Math.sin(progress * progress * Math.PI) * 1.2;
+                curveFactor = Math.sin(safeProgress * safeProgress * Math.PI) * 1.2;
                 break;
         }
 
-        let strength = this.initialDistance * 0.25 * curveFactor * (1 - progress);
+        let strength = this.initialDistance * 0.25 * curveFactor * (1 - safeProgress);
 
         return {
             x: Math.cos(this.curveSeed) * strength,
@@ -212,29 +215,36 @@ class RotationsTo {
         let distModifier = Math.min(distance / RotationModule.DAMPING_DIST, 1.0);
 
         let speedMult = Math.pow(distModifier, 0.5);
-        let step = (RotationModule.ROTATION_SPEED * speedMult * warmup + 10) * deltaTime;
 
-        let ratio = Math.min(distance, step) / distance;
+        let baseSpeed = RotationModule.ROTATION_SPEED * this.speedMultiplier;
+        let step = (baseSpeed * speedMult * warmup + 10) * deltaTime;
+
+        let ratio = distance > 0 ? Math.min(distance, step) / distance : 0;
 
         let nextYaw = currentYaw + deltaYaw * ratio;
         let nextPitch = currentPitch + deltaPitch * ratio;
 
         if (!RotationModule.LINEAR) {
             const curve = this.getMathEquationOffset(progress);
-            nextYaw += curve.x * ratio;
-            nextPitch += curve.y * ratio;
+            if (!isNaN(curve.x) && !isNaN(curve.y)) {
+                nextYaw += curve.x * ratio;
+                nextPitch += curve.y * ratio;
+            }
         }
 
         nextYaw = this.normalizeAngle(nextYaw);
         nextPitch = Math.max(-90, Math.min(90, nextPitch));
 
-        this.applyRotationWithGCD(nextYaw, nextPitch);
+        if (!isNaN(nextYaw) && !isNaN(nextPitch)) {
+            this.applyRotationWithGCD(nextYaw, nextPitch);
+        }
     }
 
     rotateToAngles(yaw, pitch) {
         this.target = { yaw, pitch };
         this.targetVector = null;
         this.isRotating = true;
+        this.speedMultiplier = 1.0;
     }
 
     rotateToVector(Vector) {

@@ -497,11 +497,13 @@ function findClosestBoxIndex(boxPositions, currentIndex, playerEyes) {
     for (let i = startIndex; i < endIndex; i++) {
         const box = boxPositions[i];
         const dx = playerEyes.x - (box.x + 0.5);
+        const dy = playerEyes.y - (box.y + 0.5);
         const dz = playerEyes.z - (box.z + 0.5);
-        const horizontalDistanceSq = dx * dx + dz * dz;
 
-        if (horizontalDistanceSq < closestBoxDistanceSq) {
-            closestBoxDistanceSq = horizontalDistanceSq;
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+
+        if (distanceSq < closestBoxDistanceSq) {
+            closestBoxDistanceSq = distanceSq;
             newCurrentBoxIndex = i;
         }
     }
@@ -586,8 +588,6 @@ register('step', () => {
     currentPitch = Math.max(MAX_ALLOWED_PITCH_UP, Math.min(MAX_ALLOWED_PITCH_DOWN, currentPitch));
 
     PathRotationsUtility.applyRotationWithGCD(currentYaw, currentPitch);
-
-    // REMOVED: Recording was here at 120hz, now moved to tick handler above
 }).setFps(120);
 
 export function pathRotations(splineData) {
@@ -604,7 +604,7 @@ export function pathRotations(splineData) {
             Keybind.setKey('a', false);
             Keybind.setKey('d', false);
             if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
-                RotationRecorder.setPathRecording(false); // ADD THIS
+                RotationRecorder.setPathRecording(false);
                 RotationRecorder.stopRecording();
                 RotationRecorder.saveRecording();
             }
