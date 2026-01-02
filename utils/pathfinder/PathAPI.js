@@ -78,12 +78,27 @@ export function clearPathCallback() {
 function findStartY(x, initialY, z) {
     let y = initialY + 1;
     const maxDistance = 100;
+    const world = World.getWorld();
 
     for (let i = 0; i < maxDistance; i++) {
         if (y <= 0) return y;
         const blockVec = { x: x, y: y, z: z };
 
-        if (!isBlockWalkable(World.getWorld(), blockVec)) return y;
+        if (!isBlockWalkable(world, blockVec)) {
+             // Found a solid block. Return the exact top Y.
+             const bp = new BP(x, y, z);
+             const state = world.getBlockState(bp);
+             const shape = state.getCollisionShape(world, bp);
+             if (!shape.isEmpty()) {
+                 try {
+                     return y + shape.getBoundingBox().maxY;
+                 } catch(e) {
+                     // Fallback if getBoundingBox fails
+                     return y + 1;
+                 }
+             }
+             return y + 1; // Default to block top if weirdness happens
+        }
 
         y--;
     }
