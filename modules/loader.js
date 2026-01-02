@@ -34,6 +34,7 @@ import './other/BeachBaller.js';
 import './other/DiscordRPC.js';
 import './other/Failsafes.js';
 import './other/AutoConversation.js';
+import "./other/AutoBeg.js";
 import './other/InventoryWalk.js';
 import './other/RatProtection.js';
 import './other/AutoIceFill.js';
