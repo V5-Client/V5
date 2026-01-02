@@ -57,7 +57,6 @@ export const SoundCategory = net.minecraft.sound.SoundCategory;
 export const Identifier = net.minecraft.util.Identifier;
 export const SoundEvent = net.minecraft.sound.SoundEvent;
 
-export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
 export const RenderUtils = Java.type('com.v5.render.RenderUtils');
 export const DiscordRPC = Java.type('com.v5.qol.DiscordRPC');
 export const KeyBindUtils = Java.type('com.v5.keybind.KeyBindUtils');
@@ -74,6 +73,19 @@ export const Links = {
     BASE_API_URL: 'https://backend.rdbt.top',
     PATHFINDER_API_URL: 'http://localhost:3000',
 };
+
+export const NVG = new Proxy( // this is the stupidest fucking thing ever, should just fix startFrame and endFrame in V5Mod (╥﹏╥)
+    {},
+    {
+        get(target, prop) {
+            if (!target._instance) {
+                target._instance = Java.type('com.v5.render.NVGRenderer').INSTANCE;
+            }
+            const value = target._instance[prop];
+            return typeof value === 'function' ? value.bind(target._instance) : value;
+        },
+    }
+);
 
 // export const Links = {
 //     WEBSOCKET_URL: 'ws://127.0.0.1:8787/api/chat',
