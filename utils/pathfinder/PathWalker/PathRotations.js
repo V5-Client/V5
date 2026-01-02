@@ -1,6 +1,3 @@
-import * as RotationRecorder from './RotationRecorder';
-const ENABLE_RECORDING = true;
-
 import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
 import { renderSplineBoxes } from '../PathDebug';
@@ -536,14 +533,6 @@ function calculatePathPosition(currentBox, nextBox, playerEyes) {
     return Math.max(0, Math.min(1, t));
 }
 
-register('tick', () => {
-    if (!rotationActive) return;
-    if (!ENABLE_RECORDING) return;
-    if (!RotationRecorder.isCurrentlyRecording()) return;
-
-    RotationRecorder.recordRotation(currentYaw, currentPitch);
-});
-
 register('step', () => {
     if (!rotationActive) return;
 
@@ -603,11 +592,6 @@ export function pathRotations(splineData) {
             rotationActive = false;
             Keybind.setKey('a', false);
             Keybind.setKey('d', false);
-            if (ENABLE_RECORDING && RotationRecorder.isCurrentlyRecording()) {
-                RotationRecorder.setPathRecording(false);
-                RotationRecorder.stopRecording();
-                RotationRecorder.saveRecording();
-            }
         }
         return;
     }
@@ -688,10 +672,6 @@ export function pathRotations(splineData) {
         rotationActive = true;
 
         PathRotationsUtility.resetGCDTracking();
-        if (ENABLE_RECORDING) {
-            RotationRecorder.setPathRecording(true);
-            RotationRecorder.startRecording();
-        }
     }
 
     rawTargetYaw = newRawYaw;
