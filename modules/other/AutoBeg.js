@@ -6,8 +6,8 @@ class AutoBeg extends ModuleBase {
         super({
             name: 'Auto Beg',
             subcategory: 'Other',
-            description: 'Automatically sends begging messages in chat periodically.',
-            tooltip: 'Automatically sends begging messages in chat periodically.',
+            description: 'Automatically begs for hypixel ranks periodically.',
+            tooltip: 'Automatically begs for hypixel ranks periodically.',
             showEnabledToggle: false, 
         });
         this.bindToggleKey(); 
@@ -16,12 +16,12 @@ class AutoBeg extends ModuleBase {
         this.intervalSeconds = 30;
         this.lastMessageTime = 0;
 
-        this.addSlider('Message Interval (s)', 5, 300, 30, (v) => {
-            this.intervalSeconds = v;
+        this.addSlider('Message Interval (s)', 5, 300, 30, (seconds) => {
+            this.intervalSeconds = seconds;
         });
 
-        this.addMultiToggle('Rank Selector', ['vip', 'vip+', 'mvp', 'mvp+', 'mvp++'], true, (v) => {
-            this.rank = v.find((o) => o.enabled)?.name || 'vip';
+        this.addMultiToggle('Rank Selector', ['vip', 'vip+', 'mvp', 'mvp+', 'mvp++'], true, (options) => {
+            this.rank = options.find((option) => option.enabled)?.name || 'vip';
         });
 
         this.begging_messages = [
