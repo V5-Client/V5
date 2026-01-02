@@ -167,8 +167,20 @@ class RotationsTo {
         if (!this.isRotating) return;
 
         if (this.targetVector) {
-            const currentTarget = this.getAnglesFromVector(this.targetVector);
-            if (currentTarget) this.target = currentTarget;
+            const currentTarget = this.getAnglesFromVector(this.targetVector.Vector);
+            if (currentTarget && this.targetVector.shiftTarget) {
+                if (this.target) {
+                    let tDeltaYaw = this.normalizeAngle(currentTarget.yaw - this.target.yaw);
+                    let tDeltaPitch = currentTarget.pitch - this.target.pitch;
+                    let targetShift = Math.sqrt(tDeltaYaw * tDeltaYaw + tDeltaPitch * tDeltaPitch);
+                    if (targetShift > 2.0) {
+                        ChatLib.chat('Target shift: ' + targetShift);
+                        this.lastTime = 0;
+                    }
+                }
+
+                this.target = currentTarget;
+            }
         }
 
         let finalTarget = this.target;
@@ -247,8 +259,8 @@ class RotationsTo {
         this.speedMultiplier = 1.0;
     }
 
-    rotateToVector(Vector) {
-        this.targetVector = Vector;
+    rotateToVector(Vector, shiftTarget = false) {
+        this.targetVector = { Vector, shiftTarget };
         this.isRotating = true;
     }
 

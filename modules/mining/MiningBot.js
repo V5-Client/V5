@@ -12,7 +12,7 @@ import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
-import { HandSwingC2S, PlayerActionC2S } from '../../utils/Packets';
+import { HandSwingC2S, PlayerActionC2S, PlayerInteractBlockC2S } from '../../utils/Packets';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -255,11 +255,9 @@ class Bot extends ModuleBase {
 
         const hasAbility = this.ability && this.ability !== 'none' && this.ability !== 'None' && this.ability !== '';
 
-        if (hasAbility) {
-            Client.scheduleTask(0, () => {
-                Keybind.rightClick();
-            });
-        }
+        let blockHit = Client.getMinecraft().crosshairTarget;
+
+        if (hasAbility) Client.sendPacket(new PlayerInteractBlockC2S(Hand.MAIN_HAND, blockHit, 0));
 
         // no idea how any of this bullshit works. and yet it does.
         // it fixes the ability usage (for some reason, it didnt use it before)
