@@ -74,18 +74,7 @@ export const Links = {
     PATHFINDER_API_URL: 'http://localhost:3000',
 };
 
-export const NVG = new Proxy( // this is the stupidest fucking thing ever, should just fix startFrame and endFrame in V5Mod (╥﹏╥)
-    {},
-    {
-        get(target, prop) {
-            if (!target._instance) {
-                target._instance = Java.type('com.v5.render.NVGRenderer').INSTANCE;
-            }
-            const value = target._instance[prop];
-            return typeof value === 'function' ? value.bind(target._instance) : value;
-        },
-    }
-);
+export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
 
 // export const Links = {
 //     WEBSOCKET_URL: 'ws://127.0.0.1:8787/api/chat',
