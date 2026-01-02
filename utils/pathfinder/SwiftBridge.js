@@ -2,7 +2,7 @@ const PathManager = Java.type('com.v5.pathfinding.PathManager');
 
 export const SwiftBridge = {
     startPath(startX, startY, startZ, endX, endY, endZ) {
-        return PathManager.findPath(startX, startY, startZ, endX, endY, endZ);
+        return PathManager.findPath(startX, startY + 1, startZ, endX, endY + 1, endZ);
     },
 
     isSearching() {
