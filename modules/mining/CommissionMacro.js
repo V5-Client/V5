@@ -307,7 +307,8 @@ class CommissionMacro extends ModuleBase {
 
         const activeCommissions = this.commissions.filter((c) => c.progress < 1);
         if (activeCommissions.length === 0) {
-            Chat.message('No active commissions detected.');
+            Chat.message('No commissions detected.');
+            Chat.message('Ensure commissions are enabled in /tab');
             this.toggle(false);
             return;
         }
