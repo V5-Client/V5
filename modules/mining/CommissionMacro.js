@@ -280,7 +280,7 @@ class CommissionMacro extends ModuleBase {
         this.setState(STATES.CHOOSING);
     }
 
-   handleChoosing() {
+    handleChoosing() {
         const newCommissions = MiningUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
         if (this.awaitingTabUpdate) return;
@@ -295,7 +295,7 @@ class CommissionMacro extends ModuleBase {
 
         const completedCommission = this.commissions.find((c) => {
             if (c.progress !== 1) return false;
-            const isRealCommission = COMMISSION_DATA.some(d => d.names.includes(c.name));
+            const isRealCommission = COMMISSION_DATA.some((d) => d.names.includes(c.name));
             return isRealCommission;
         });
 
