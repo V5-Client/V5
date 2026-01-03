@@ -29,6 +29,7 @@ const FARMING_DATA = [
 ];
 
 import VerticalCrop from './farms/VerticalFarm';
+import MelonKingDeMP from './farms/MelonKingDeMP';
 
 class FarmingMacro extends ModuleBase {
     constructor() {
@@ -65,7 +66,7 @@ class FarmingMacro extends ModuleBase {
 
         this.HANDLERS = {
             'Vertical NetherWart / Potato / Wheat / Carrot': new VerticalCrop(this),
-            // "MelonKingDe's Melon / Pumpkin": new MelonCrop(this),
+            "MelonKingDe's Melon / Pumpkin": new MelonKingDeMP(this),
         };
 
         this.currentHandler = null;

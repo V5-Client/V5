@@ -4,8 +4,9 @@ import { MathUtils } from '../../../../utils/Math';
 import { Rotations } from '../../../../utils/player/Rotations';
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
+import { Utils } from '../../../../utils/Utils';
 
-export default class VerticalCrop extends FarmHandler {
+export default class MelonKingDeMP extends FarmHandler {
     constructor(parent) {
         super(parent);
 
@@ -77,35 +78,15 @@ export default class VerticalCrop extends FarmHandler {
                 break;
 
             case STATES.DECIDEROTATION:
-                const isCrop = (reg) => (Array.isArray(p.registry) ? p.registry.includes(reg) : reg === p.registry);
-
                 let targetYaw;
 
-                const blockAhead = this.getBlockInFront(1, 1);
-                const aheadRegistry = blockAhead?.name;
+                let target = {
+                    x: p.targetX,
+                    y: p.targetY,
+                    z: p.targetZ,
+                };
 
-                if (isCrop(aheadRegistry)) {
-                    p.message('&7Targetting crop by getting the block ahead!', true);
-                    targetYaw = this.getAngle(blockAhead);
-                } else {
-                    const lookingAt = Player.lookingAt();
-                    const lookReg = lookingAt ? this.getRegistry(lookingAt) : null;
-
-                    if (lookingAt && isCrop(lookReg)) {
-                        p.message('&7Targetting crop by looking at!', true);
-                        targetYaw = this.getAngle(lookingAt);
-                    } else {
-                        p.message('&7Targetting crop by fallback!', true);
-
-                        let target = {
-                            x: p.targetX,
-                            y: p.targetY,
-                            z: p.targetZ,
-                        };
-
-                        targetYaw = this.getAngle(target);
-                    }
-                }
+                targetYaw = this.getAngle(target);
 
                 targetYaw = ((((targetYaw + 180) % 360) + 360) % 360) - 180;
 
@@ -123,41 +104,53 @@ export default class VerticalCrop extends FarmHandler {
                 }
 
                 p.yaw = snappedYaw;
-                Rotations.rotateToAngles(p.yaw, p.pitch, 0.1);
+                Rotations.rotateToAngles(p.yaw, p.pitch);
                 Rotations.onEndRotation(() => (p.state = p.STATES.DECIDEITEM));
                 break;
-            case STATES.DECIDEITEM:
-                let block = this.getBlockInFront(1, 1);
+            case p.STATES.DECIDEITEM:
+                let requiredToolName = null;
+                let block = this.getBlockInFront(2, 1);
                 let registry = block?.name;
 
-                if (!registry) {
-                    let looking = Player.lookingAt();
-                    if (!looking) {
-                        p.message('&cErrored finding block for item decision');
+                let sides = Utils.sidesOfCollision();
+
+                if (!sides.front) return Keybind.setKey('w', true);
+
+                if (sides.front) {
+                    let lookingAt = Player.lookingAt();
+                    if (!registry.includes('stem')) {
+                        ChatLib.chat('got from looking');
+
+                        // i mean this isnt really needed ?
+                        registry = this.getRegistry(lookingAt);
+                    } else ChatLib.chat('got with func');
+
+                    const cropTools = {
+                        'minecraft:melon': 'Melon Dicer',
+                        'minecraft:melon_stem': 'Melon Dicer',
+
+                        'minecraft:carved_pumpkin': 'Pumpkin Dicer',
+                        'minecraft:pumpkin_stem': 'Pumpkin Dicer',
+                    };
+
+                    requiredToolName = cropTools[registry];
+
+                    if (!requiredToolName) {
+                        p.message(`&cMake sure you are looking at a melon or pumpkin!`);
                         p.toggle(false);
                         return;
                     }
-                    registry = this.getRegistry(looking);
                 }
 
-                const cropTools = {
-                    'minecraft:nether_wart': 'Nether Wart Hoe',
-                    'minecraft:potatoes': 'Potato Hoe',
-                    'minecraft:wheat': 'Wheat Hoe',
-                    'minecraft:carrots': 'Carrot Hoe',
-                };
-
-                let requiredToolName = cropTools[registry];
-                if (!requiredToolName) {
-                    p.message(`&cNo tool mapped for block: ${registry}`);
-                    p.toggle(false);
-                    break;
-                }
+                p.checkSidesFirst = true;
 
                 let targetSlot = Guis.findItemInHotbar(requiredToolName);
+
+                ChatLib.chat(`&aFound tool at slot ${targetSlot}`);
+
                 if (targetSlot !== -1) {
                     Guis.setItemSlot(targetSlot);
-                    if (Player.getHeldItemIndex() === targetSlot) p.state = STATES.DECIDEMOVEMENT;
+                    if (Player.getHeldItemIndex() === targetSlot) p.state = p.STATES.DECIDEMOVEMENT;
                 } else {
                     p.message(`&cMissing "${requiredToolName}"!`);
                     p.toggle(false);
@@ -165,46 +158,33 @@ export default class VerticalCrop extends FarmHandler {
                 break;
 
             case STATES.DECIDEMOVEMENT:
-                Keybind.setKey('leftclick', true);
-                let blockData = this.getBlockInFront(1, 0);
-                let distCheck = MathUtils.getDistanceToPlayer(blockData.x, blockData.y, blockData.z);
+                this.decideDirection(false);
+                if (p.movementKey === null) return;
 
-                if (distCheck.distanceFlat > 1) {
-                    Keybind.setKey('w', true);
-                    return;
-                } else {
-                    Keybind.setKey('w', false);
-                }
-
-                this.decideDirection(true);
-                if (p.movementKey !== null) p.state = STATES.IDLECHECKS;
+                p.state = p.STATES.IDLECHECKS;
                 break;
-
-            case STATES.IDLECHECKS:
-                if (this.isAtPoint(p.points.end.x, p.points.end.y, p.points.end.z, 1)) {
-                    p.message('&aReached end of farm! rewarping.');
-                    Keybind.unpressKeys();
-                    Keybind.setKey('leftclick', false);
-                    p.state = STATES.REWARP;
-                    return;
-                }
-
+            case p.STATES.IDLECHECKS:
+                ChatLib.chat(p.movementKey);
+                Keybind.setKey('w', true);
                 Keybind.setKey('leftclick', true);
                 Keybind.setKey(p.movementKey, true);
-                p.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
+                //this.ignoreKeys.forEach((key) => Keybind.setKey(key, false));
 
-                let isOnGround = Player.asPlayerMP().isOnGround();
-                if (!isOnGround) {
+                let sideCollisions = Utils.sidesOfCollision();
+
+                if (!sideCollisions.front) {
+                    this.offWall = true;
                     Keybind.stopMovement();
-                    this.inAir = true;
+                    Keybind.setKey('w', true);
                 }
 
-                if (this.inAir && isOnGround) {
-                    this.inAir = false;
-                    p.state = STATES.DECIDEMOVEMENT;
+                if (this.offWall && sideCollisions.front) {
+                    this.offWall = false;
+                    Keybind.stopMovement();
+                    p.state = p.STATES.DECIDEMOVEMENT;
                 }
                 break;
-            case STATES.REWARP:
+            case p.STATES.REWARP:
                 this.handleRewarp();
                 break;
         }

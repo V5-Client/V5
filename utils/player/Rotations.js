@@ -309,11 +309,22 @@ class RotationsTo {
     }
 
     rotateToAngles(yaw, pitch, speedMultiplier = 1.0) {
+        if (this.isRotating && this.target) {
+            const dYaw = Math.abs(this.normalizeAngle(yaw - this.target.yaw));
+            const dPitch = Math.abs(pitch - this.target.pitch);
+            if (dYaw < 0.1 && dPitch < 0.1) {
+                this.target = { yaw, pitch };
+                this.speedMultiplier = speedMultiplier;
+                return;
+            }
+        }
+
         this.target = { yaw, pitch };
         this.targetVector = null;
         this.trackedEntity = null;
         this.speedMultiplier = speedMultiplier;
         this.isRotating = true;
+
         this.lastTime = 0;
         this.initialDistance = 0;
     }

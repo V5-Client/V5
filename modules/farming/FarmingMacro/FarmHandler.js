@@ -98,6 +98,44 @@ export default class FarmHandler {
         };
     }
 
+    decideDirection(actualAge) {
+        const p = this.parent;
+        const { maxDistLeft, maxDistRight } = this.getSidesDistance();
+
+        if (maxDistRight > maxDistLeft) {
+            p.message(`&7Wall RIGHT moving LEFT!`, true);
+            p.movementKey = 'a';
+            p.ignoreKeys = ['d', 's'];
+        } else if (maxDistLeft > maxDistRight) {
+            p.message(`&7Wall LEFT moving RIGHT!`, true);
+            p.movementKey = 'd';
+            p.ignoreKeys = ['a', 's'];
+        } else {
+            let corners = this.checkForCrop(actualAge, 1);
+            if (corners.left.age > corners.right.age) {
+                p.message(`&7Older crop LEFT, moving LEFT!`, true);
+                p.movementKey = 'a';
+                p.ignoreKeys = ['d', 's'];
+            } else if (corners.right.age > corners.left.age) {
+                p.message(`&7Older crop RIGHT, moving RIGHT!`, true);
+                p.movementKey = 'd';
+                p.ignoreKeys = ['a', 's'];
+            } else {
+                if (!p.saidCommand) p.message(`Macro can't decide, press A or D!`);
+                p.saidCommand = true;
+                if (Client.getMinecraft().options.leftKey.isPressed()) {
+                    p.movementKey = 'a';
+                    p.ignoreKeys = ['d', 's'];
+                    p.saidCommand = false;
+                } else if (Client.getMinecraft().options.rightKey.isPressed()) {
+                    p.movementKey = 'd';
+                    p.ignoreKeys = ['a', 's'];
+                    p.saidCommand = false;
+                }
+            }
+        }
+    }
+
     checkForCrop(checkForAge = true, yOffset = 1) {
         const p = Player.getPlayer();
         let yaw = ((p.getYaw() % 360) + 360) % 360;
