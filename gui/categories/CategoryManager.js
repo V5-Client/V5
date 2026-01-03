@@ -211,6 +211,7 @@ export const createCategoriesManager = (deps) => {
             if (!components) return;
             components.forEach((component) => {
                 if (typeof component.handleMouseDrag !== 'function') return;
+                component.optionPanelWidth = deps.rectangles.RightPanel.width;
                 component.handleMouseDrag(mouseX, mouseY);
             });
         }

@@ -131,7 +131,7 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const backButtonX = optionX + 10;
     const backButtonY = optionY + 12;
     const drawnBackY = backButtonY - scrollY;
-    const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: getTextWidth(backButtonText, 10), height: 10 });
+    const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: getTextWidth(backButtonText, FontSizes.SMALL), height: 10 });
 
     drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? CATEGORY_TITLE_COLOR : BACK_TEXT_COLOR);
     const drawnTitleY = optionY + 36 - scrollY;

@@ -78,6 +78,8 @@ export const handleCategoryClick = (
             component.x = optionX + 10;
             if (component instanceof MultiToggle) {
                 component.y = drawnCompY;
+                component.optionPanelWidth = panel.width;
+                component.optionPanelHeight = panel.height;
                 if (component.handleClick(mouseX, mouseY)) {
                     handled = true;
                 }
@@ -91,6 +93,8 @@ export const handleCategoryClick = (
                 };
                 if (isInside(mouseX, mouseY, clickableArea)) {
                     component.y = drawnCompY;
+                    component.optionPanelWidth = panel.width;
+                    component.optionPanelHeight = panel.height;
                     if (component.handleClick(mouseX, mouseY)) {
                         handled = true;
                     }
@@ -219,7 +223,7 @@ export const handleCategoryClick = (
                 let yOffset = panel.y + PADDING - scrollY;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];
                 for (const subcat of subcategoriesToDraw) {
-                    const buttonTextWidth = getTextWidth(subcat, FontSizes.SMALL) + 20;
+                    const buttonTextWidth = getTextWidth(subcat, FontSizes.MEDIUM) + 20;
                     const buttonRect = {
                         x: currentX,
                         y: yOffset,
@@ -307,6 +311,7 @@ export const handleCategoryScroll = (
                     height: compHeight,
                 };
                 if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
+                    component.optionPanelWidth = panel.width;
                     if (component.handleScroll(mouseX, mouseY, dir)) {
                         scrollHandled = true;
                     }
