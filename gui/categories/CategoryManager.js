@@ -122,7 +122,12 @@ export const createCategoriesManager = (deps) => {
 
         targetRightPanelScrollY = Math.max(0, Math.min(targetRightPanelScrollY, maxScroll));
 
+        const prevScrollY = currentRightPanelScrollY;
         currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * SCROLL_SMOOTHING_FACTOR;
+
+        if (Math.abs(currentRightPanelScrollY - prevScrollY) > 0.1) {
+            isLayoutCacheValid = false;
+        }
 
         if (shouldDrawOptions) {
             const optionsContentHeight = calculateOptionsContentHeight();
@@ -167,6 +172,7 @@ export const createCategoriesManager = (deps) => {
             mouseX,
             mouseY,
             deps.rectangles.RightPanel,
+            currentRightPanelScrollY,
             cachedItemLayouts,
             getCategoryRect,
             () => {

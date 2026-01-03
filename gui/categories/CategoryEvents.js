@@ -13,6 +13,7 @@ export const handleCategoryClick = (
     mouseX,
     mouseY,
     panel,
+    scrollY,
     cachedItemLayouts,
     getCategoryRect,
     invalidateLayoutCache,
@@ -215,7 +216,7 @@ export const handleCategoryClick = (
 
             if (cat.subcategories.length > 0) {
                 let currentX = panel.x + PADDING;
-                let yOffset = panel.y + PADDING;
+                let yOffset = panel.y + PADDING - scrollY;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];
                 for (const subcat of subcategoriesToDraw) {
                     const buttonTextWidth = getTextWidth(subcat, FontSizes.SMALL) + 20;
