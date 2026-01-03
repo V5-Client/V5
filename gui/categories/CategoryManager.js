@@ -2,7 +2,7 @@ import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
 import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING } from '../Utils';
+import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 
 export const createCategoriesManager = (deps) => {
@@ -137,34 +137,66 @@ export const createCategoriesManager = (deps) => {
             Categories.optionsScrollY = currentOptionsScrollY;
         }
 
-        const rightPanelScrollY = currentRightPanelScrollY;
         const panel = deps.rectangles.RightPanel;
+        const rightPanelScrollY = currentRightPanelScrollY;
+        scissor(panel.x, panel.y, panel.width, panel.height);
 
         if (shouldDrawItems) {
             if (!isLayoutCacheValid) cachedItemLayouts = [];
 
-            const cat = Categories.categories.find((c) => c.name === Categories.selected);
-            if (cat) {
-                let panelX = panel.x;
-                if (Categories.transitionDirection === 1) panelX -= panel.width * Categories.transitionProgress;
-                else if (Categories.transitionDirection === -1) panelX -= panel.width * (1 - Categories.transitionProgress);
+            const isCategorySwap = transitionActive && Categories.transitionType === 'category-swap';
+
+            const drawSingleCategory = (catName, currentPanelX, isNewCategory) => {
+                const cat = Categories.categories.find((c) => c.name === catName);
+                if (!cat) return;
 
                 let yOffset = panel.y + PADDING - rightPanelScrollY;
                 if (cat.subcategories.length > 0) {
-                    yOffset = drawSubcategoryButtons(panelX, yOffset, mouseX, mouseY);
+                    yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
                 }
 
                 const itemsToDisplay = Categories.selectedSubcategory
                     ? cat.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
                     : cat.items;
 
-                drawCategoryItems(cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid);
+                drawCategoryItems(
+                    cat,
+                    panel,
+                    currentPanelX,
+                    yOffset,
+                    mouseX,
+                    mouseY,
+                    itemsToDisplay,
+                    cachedItemLayouts,
+                    isLayoutCacheValid || !isNewCategory
+                );
+            };
 
-                if (!isLayoutCacheValid) isLayoutCacheValid = true;
+            if (isCategorySwap && Categories.previousSelected) {
+                const progress = Categories.transitionProgress;
+                const dir = Categories.transitionDirection;
+                
+                let incomingX = panel.x + (dir === 1 ? panel.width * (1 - progress) : -panel.width * (1 - progress));
+                drawSingleCategory(Categories.selected, incomingX, true);
+
+                let outgoingX = panel.x + (dir === 1 ? -panel.width * progress : panel.width * progress);
+                drawSingleCategory(Categories.previousSelected, outgoingX, false);
+            } else {
+                let panelX = panel.x;
+                if (transitionActive && Categories.transitionType === 'page') {
+                    if (Categories.transitionDirection === 1) panelX -= panel.width * Categories.transitionProgress;
+                    else if (Categories.transitionDirection === -1) panelX -= panel.width * (1 - Categories.transitionProgress);
+                }
+
+                drawSingleCategory(Categories.selected, panelX, true);
+
+                if (!isLayoutCacheValid && !transitionActive) isLayoutCacheValid = true;
             }
         }
 
         if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
+
+        resetScissor();
     };
 
     const handleClick = (mouseX, mouseY) => {

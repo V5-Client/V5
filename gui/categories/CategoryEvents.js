@@ -57,6 +57,7 @@ export const handleCategoryClick = (
             height: 10,
         };
         if (isInside(mouseX, mouseY, backButtonRect)) {
+            Categories.transitionType = 'page';
             Categories.transitionDirection = -1;
             Categories.transitionProgress = 0;
             Categories.transitionStart = Date.now();
@@ -112,34 +113,80 @@ export const handleCategoryClick = (
         }
 
         if (isInside(mouseX, mouseY, leftPanel)) {
-            let clickedCategory = null;
+            let clickedCategoryName = null;
+            let clickedIndex = -1;
 
             if (isInside(mouseX, mouseY, editButtonRect)) {
                 playClickSound();
                 OverlayManager.openPositionsGUI();
                 return;
             } else {
-                Categories.categories.forEach((cat, i) => {
+                Categories.categories.some((cat, i) => {
                     const rect = getCategoryRect(i);
                     if (isInside(mouseX, mouseY, rect)) {
-                        clickedCategory = cat.name;
+                        clickedCategoryName = cat.name;
+                        clickedIndex = i;
+                        return true;
                     }
+                    return false;
                 });
             }
 
-            if (clickedCategory && clickedCategory !== Categories.selected) {
-                Categories.selected = clickedCategory;
+            if (clickedCategoryName && clickedCategoryName !== Categories.selected) {
+                const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
+                let oldRect;
+
+                if (Categories.selected === 'Edit') {
+                    oldRect = editButtonRect;
+                } else {
+                    oldRect = oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
+                }
+
+                const newRect = getCategoryRect(clickedIndex);
+
+                const oldIconX = oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+                const oldIconY = oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+                const newIconX = newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+                const newIconY = newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
+
+                Categories.catAnimationRect = {
+                    startX: oldIconX,
+                    startY: oldIconY,
+                    endX: newIconX,
+                    endY: newIconY,
+                    width: HIGHLIGHT_SIZE,
+                    height: HIGHLIGHT_SIZE,
+                    radius: 8,
+                };
+                Categories.catTransitionStart = Date.now();
+
+                Categories.previousSelected = Categories.selected;
+                Categories.selected = clickedCategoryName;
+                Categories.currentPage = 'categories';
+                Categories.selectedItem = null;
+                Categories.selectedSubcategory = null;
+
                 invalidateContentHeightCache();
+                invalidateLayoutCache();
                 resetCategoryScroll();
+
+                Categories.transitionType = 'category-swap';
+                Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
+                Categories.transitionProgress = 0;
+                Categories.transitionStart = Date.now();
+                playClickSound();
+                return;
             }
+
+            Categories.transitionType = 'page';
             Categories.transitionDirection = -1;
             Categories.transitionProgress = 0;
             Categories.transitionStart = Date.now();
-            playClickSound();
             return;
         }
 
         if (!isInside(mouseX, mouseY, GuiRectangles.RightPanel)) {
+            Categories.transitionType = 'page';
             Categories.transitionDirection = -1;
             Categories.transitionProgress = 0;
             Categories.transitionStart = Date.now();
@@ -172,7 +219,7 @@ export const handleCategoryClick = (
                 if (Categories.selected === 'Edit') {
                     oldRect = editButtonRect;
                 } else {
-                    oldRect = getCategoryRect(oldIndex);
+                    oldRect = oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
                 }
 
                 const newRect = getCategoryRect(clickedIndex);
@@ -193,7 +240,9 @@ export const handleCategoryClick = (
                 };
                 Categories.catTransitionStart = Date.now();
 
+                Categories.transitionType = 'category-swap';
                 Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
+                Categories.previousSelected = Categories.selected;
                 Categories.selected = clickedCategoryName;
                 Categories.currentPage = 'categories';
                 Categories.selectedItem = null;
@@ -210,9 +259,6 @@ export const handleCategoryClick = (
             return;
         }
 
-        if (isInside(mouseX, mouseY, leftPanel)) {
-            playClickSound();
-        }
 
         if (Categories.selected && Categories.currentPage === 'categories') {
             const cat = Categories.categories.find((c) => c.name === Categories.selected);
@@ -265,6 +311,7 @@ export const handleCategoryClick = (
 
             for (const layout of cachedItemLayouts) {
                 if (isInside(mouseX, mouseY, layout.rect)) {
+                    Categories.transitionType = 'page';
                     Categories.transitionDirection = 1;
                     Categories.transitionProgress = 0;
                     Categories.transitionStart = Date.now();
@@ -354,17 +401,24 @@ export const updateCategoryTransitions = () => {
         Categories.transitionProgress = easeInOutQuad(rawProgress);
 
         if (rawProgress >= 1) {
-            const newPage = Categories.transitionDirection === 1 ? 'options' : 'categories';
-            Categories.currentPage = newPage;
-            if (newPage === 'categories') {
+            if (Categories.transitionType === 'page') {
+                const newPage = Categories.transitionDirection === 1 ? 'options' : 'categories';
+                Categories.currentPage = newPage;
+            } else {
+                Categories.currentPage = 'categories';
+            }
+
+            if (Categories.currentPage === 'categories') {
                 Categories.selectedItem = null;
                 Categories.optionsScrollY = 0;
             }
-            if (newPage === 'options') {
+            if (Categories.currentPage === 'options') {
                 Categories.optionsScrollY = 0;
             }
             Categories.transitionDirection = 0;
             Categories.transitionProgress = 1;
+            Categories.previousSelected = null;
+            Categories.transitionType = null;
             return true;
         }
         return true;

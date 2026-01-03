@@ -16,6 +16,7 @@ import {
     resetScissor,
     FontSizes,
     getDiscordPfpPath,
+    colorWithAlpha,
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
@@ -45,7 +46,7 @@ export const getCategoryRect = (index) => {
     };
 };
 
-export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
+export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) => {
     const cat = Categories;
 
     if (cat.animationRect) {
@@ -60,7 +61,7 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         if (rawProgress >= 1) cat.animationRect = null;
     }
 
-    const subcategoriesToDraw = ['All', ...cat.categories.find((c) => c.name === cat.selected).subcategories];
+    const subcategoriesToDraw = ['All', ...catObj.subcategories];
 
     const drawSelectedButton = (rect) => {
         drawRoundedRectangle({
@@ -84,19 +85,31 @@ export const drawSubcategoryButtons = (panelX, yOffset, mouseX, mouseY) => {
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
         const isHovered = isInside(mouseX, mouseY, buttonRect);
 
+        const hoverKey = `subcat_${subcat}`;
+        if (!cat.hoverStates[hoverKey]) {
+            cat.hoverStates[hoverKey] = { progress: 0, lastUpdate: Date.now() };
+        }
+        const state = cat.hoverStates[hoverKey];
+        const now = Date.now();
+        const delta = (now - state.lastUpdate) / 150;
+        state.lastUpdate = now;
+
+        if (isHovered) state.progress = Math.min(1, state.progress + delta);
+        else state.progress = Math.max(0, state.progress - delta);
+
         if (isSelected) cat.selectedSubcategoryButton = buttonRect;
 
         if (!cat.animationRect) {
             if (isSelected) {
                 drawSelectedButton(buttonRect);
-            } else if (isHovered) {
+            } else if (state.progress > 0) {
                 drawRoundedRectangle({
                     x: buttonRect.x,
                     y: buttonRect.y,
                     width: buttonRect.width,
                     height: buttonRect.height,
                     radius: 8,
-                    color: UNIVERSAL_GRAY_COLOR,
+                    color: colorWithAlpha(UNIVERSAL_GRAY_COLOR, state.progress),
                 });
             }
         }
@@ -159,6 +172,14 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 };
 
 export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
+    const leftPanel = GuiRectangles.LeftPanel;
+    const pfpSize = 28;
+    const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
+    const editIconSize = 16;
+    const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
+    const editIconY = pfpY - editIconSize - 15;
+    const editButtonRect = { x: editIconX - 6, y: editIconY - 6, width: editIconSize + 12, height: editIconSize + 12, radius: 8 };
+
     if (Categories.catAnimationRect) {
         const elapsed = Date.now() - Categories.catTransitionStart;
         const rawProgress = Math.min(1, elapsed / Categories.catAnimationDuration);
@@ -183,16 +204,49 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
             drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
         } else if (Categories.selected === 'Edit') {
-            const leftPanel = GuiRectangles.LeftPanel;
-            const pfpSize = 28;
-            const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
-            const editIconSize = 16;
-            const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
-            const editIconY = pfpY - editIconSize - 15;
-            const highlightRect = { x: editIconX - 6, y: editIconY - 6, width: editIconSize + 12, height: editIconSize + 12, radius: 8 };
-            drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
+            drawRoundedRectangle({ ...editButtonRect, color: CATEGORY_SELECTED_COLOR });
         }
     }
+
+    const allCategoryItems = [
+        ...Categories.categories.map((c, i) => ({ name: c.name, rect: getCategoryRect(i) })),
+        { name: 'Edit', rect: editButtonRect },
+    ];
+
+    allCategoryItems.forEach((item) => {
+        const isHovered = isInside(mouseX, mouseY, item.rect);
+        const name = item.name;
+
+        if (!Categories.hoverStates[name]) {
+            Categories.hoverStates[name] = { progress: 0, lastUpdate: Date.now() };
+        }
+
+        const state = Categories.hoverStates[name];
+        const now = Date.now();
+        const delta = (now - state.lastUpdate) / 150;
+        state.lastUpdate = now;
+
+        if (isHovered) {
+            state.progress = Math.min(1, state.progress + delta);
+        } else {
+            state.progress = Math.max(0, state.progress - delta);
+        }
+
+        if (state.progress > 0 && Categories.selected !== name) {
+            const rect = item.rect;
+            const moduleRectSize = 28;
+            const iconX = rect.x + (rect.width - moduleRectSize) / 2;
+            const iconY = rect.y + (rect.height - moduleRectSize) / 2;
+            const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
+
+            const finalRect = name === 'Edit' ? item.rect : highlightRect;
+
+            drawRoundedRectangle({
+                ...finalRect,
+                color: colorWithAlpha(UNIVERSAL_GRAY_COLOR, state.progress),
+            });
+        }
+    });
 };
 
 export const drawLeftPanelIcons = (mouseX, mouseY) => {

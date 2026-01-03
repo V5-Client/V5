@@ -26,12 +26,16 @@ export const Categories = {
     subcatTransitionProgress: 1,
     subcatTransitionStart: 0,
     subcatAnimationDuration: 200,
-    animationRect: null,
     optionsScrollY: 0,
+    previousSelected: null,
+    transitionType: null,
+    animationRect: null,
 
     catAnimationRect: null,
     catTransitionStart: 0,
     catAnimationDuration: 200,
+
+    hoverStates: {}, 
 
     addCategoryItem(subcategoryName, title, description, tooltip = null) {
         const category = Categories.categories.find((c) => c.name === 'Modules');
