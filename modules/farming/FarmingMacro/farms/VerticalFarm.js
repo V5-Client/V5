@@ -10,6 +10,7 @@ export default class VerticalCrop extends FarmHandler {
         super(parent);
 
         this.parent = parent;
+        this.inAir = false;
     }
 
     onTick() {
@@ -123,7 +124,7 @@ export default class VerticalCrop extends FarmHandler {
                 }
 
                 p.yaw = snappedYaw;
-                Rotations.rotateToAngles(p.yaw, p.pitch, 0.1);
+                Rotations.rotateToAngles(p.yaw, p.pitch);
                 Rotations.onEndRotation(() => (p.state = p.STATES.DECIDEITEM));
                 break;
             case STATES.DECIDEITEM:
