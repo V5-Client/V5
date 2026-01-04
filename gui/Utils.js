@@ -5,17 +5,17 @@ import { Chat } from '../utils/Chat';
 export const colorWithAlpha = (baseColor, alpha) => {
     let r, g, b, a;
 
-    if (typeof baseColor === 'number') {
-        r = (baseColor >> 16) & 0xff;
-        g = (baseColor >> 8) & 0xff;
-        b = baseColor & 0xff;
-        const originalAlpha = (baseColor >>> 24) & 0xff;
-        a = originalAlpha === 0 && baseColor !== 0 ? 255 : originalAlpha;
-    } else if (baseColor instanceof Color) {
+    if (baseColor instanceof Color) {
         r = baseColor.getRed();
         g = baseColor.getGreen();
         b = baseColor.getBlue();
         a = baseColor.getAlpha();
+    } else if (typeof baseColor === 'number') {
+        r = (baseColor >> 16) & 0xff;
+        g = (baseColor >> 8) & 0xff;
+        b = baseColor & 0xff;
+        const originalAlpha = (baseColor >>> 24) & 0xff;
+        a = (originalAlpha === 0 && baseColor !== 0) ? 255 : originalAlpha;
     } else {
         return new Color(1, 1, 1, 1).getRGB();
     }

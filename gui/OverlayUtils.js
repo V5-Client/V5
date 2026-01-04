@@ -210,7 +210,7 @@ class OverlayUtils {
                 width: width + expand * 2,
                 height: height + expand * 2,
                 radius: radius + expand,
-                color: colorWithAlpha(accentColor.getRGB(), alpha),
+                color: colorWithAlpha(accentColor, alpha),
             });
         }
     }
@@ -220,8 +220,8 @@ class OverlayUtils {
         const dividerHeight = 1;
         const halfWidth = width / 2;
 
-        const centerColor = colorWithAlpha(accentColor.getRGB(), 0.3 * progress);
-        const edgeColor = colorWithAlpha(accentColor.getRGB(), 0);
+        const centerColor = colorWithAlpha(accentColor, 0.3 * progress);
+        const edgeColor = colorWithAlpha(accentColor, 0);
         // left
         NVG.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
         // right
@@ -264,7 +264,7 @@ class OverlayUtils {
         id.height = Math.max(this.minBoxHeight, calculatedHeight);
         const currentHeight = id.height * progress;
         const radius = CORNER_RADIUS * this.scale;
-        const bgColor = colorWithAlpha(THEME.BG_OVERLAY.getRGB(), 0.95 * progress);
+        const bgColor = colorWithAlpha(THEME.BG_OVERLAY, 0.95 * progress);
 
         drawShadow(id.x, id.y, id.width, currentHeight, 18 * this.scale, 0.45 * progress);
         drawRoundedRectangleWithBorder({
@@ -275,7 +275,7 @@ class OverlayUtils {
             radius: radius,
             color: bgColor,
             borderWidth: BORDER_WIDTH * this.scale,
-            borderColor: colorWithAlpha(THEME.ACCENT_GLOW.getRGB(), 0.7 * progress),
+            borderColor: colorWithAlpha(THEME.ACCENT_GLOW, 0.7 * progress),
         });
 
         this.drawAccentGlow(id.x, id.y, id.width, currentHeight, radius, progress * 0.4);
@@ -302,7 +302,7 @@ class OverlayUtils {
                             id.x + 22 * this.scale,
                             contentY,
                             this.argFontSize * 0.85,
-                            colorWithAlpha(THEME.ACCENT.getRGB(), contentAlpha),
+                            colorWithAlpha(THEME.ACCENT, contentAlpha),
                             17
                         );
                         contentY += 14 * this.scale;
@@ -313,7 +313,7 @@ class OverlayUtils {
                         const labelWidth = getTextWidth(label, this.argFontSize);
                         drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
                         const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
-                        const valueColor = isUptime ? colorWithAlpha(THEME.ACCENT.getRGB(), contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
+                        const valueColor = isUptime ? colorWithAlpha(THEME.ACCENT, contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
                         drawText(String(displayVal), valueX, contentY, this.argFontSize, valueColor, 17);
                         contentY += 14 * this.scale;
                     };

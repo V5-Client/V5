@@ -3,7 +3,8 @@ import { THEME } from './Utils';
 import { Color } from '../utils/Constants';
 
 const withAlpha = (color, alpha) => {
-    return new Color(color.getRed() / 255, color.getGreen() / 255, color.getBlue() / 255, alpha);
+    const baseAlpha = color.getAlpha() / 255;
+    return new Color(color.getRed() / 255, color.getGreen() / 255, color.getBlue() / 255, baseAlpha * alpha);
 };
 
 const initThemeSettings = () => {
