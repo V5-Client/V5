@@ -3,6 +3,7 @@ import { Categories } from './categories/CategorySystem';
 import { categoryManager } from './categories/CategoryManager';
 import { showNotification as notify } from './NotificationManager';
 import './core/GuiEvents';
+import './ThemeSettings';
 
 import {
     saveSettings as _saveSettings,

@@ -1,6 +1,7 @@
 import { OverlayManager } from '../OverlayUtils';
 import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
+import { ColorPicker } from '../components/ColorPicker';
 import { Categories } from './CategorySystem';
 import { GuiRectangles } from '../core/GuiState';
 
@@ -8,6 +9,62 @@ const ANIMATION_DURATION = 300;
 const ICON_SIZE = 28;
 const HIGHLIGHT_PADDING = 2;
 const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
+
+export const handleSettingsComponentClick = (mouseX, mouseY, panel, scrollY) => {
+    const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+    if (!settingsCat || !settingsCat.directComponents) return false;
+
+    const components = settingsCat.directComponents;
+    const panelX = panel.x;
+    const panelWidth = panel.width;
+
+    let currentY = panel.y + PADDING - scrollY;
+    let currentSection = null;
+
+    for (let i = 0; i < components.length; i++) {
+        const component = components[i];
+
+        if (component.sectionName && component.sectionName !== currentSection) {
+            currentSection = component.sectionName;
+            if (i > 0) currentY += 16;
+            currentY += 26;
+        }
+
+        if (typeof component.handleClick !== 'function') {
+            currentY += 54;
+            continue;
+        }
+
+        let componentHeight = 48;
+        let expansionHeight = 0;
+        if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
+            expansionHeight = component.getExpandedHeight() * component.animationProgress;
+        }
+        componentHeight += expansionHeight;
+
+        const clickableArea = {
+            x: panelX + PADDING,
+            y: currentY,
+            width: panelWidth - 2 * PADDING,
+            height: componentHeight,
+        };
+
+        if (isInside(mouseX, mouseY, clickableArea)) {
+            component.x = panelX + PADDING + 10;
+            component.y = currentY;
+            component.optionPanelWidth = panelWidth;
+            component.optionPanelHeight = panel.height;
+
+            if (component.handleClick(mouseX, mouseY)) {
+                return true;
+            }
+        }
+
+        currentY += 48 + 6 + expansionHeight;
+    }
+
+    return false;
+};
 
 export const handleCategoryClick = (
     mouseX,
@@ -35,6 +92,14 @@ export const handleCategoryClick = (
         width: editIconSize + 12,
         height: editIconSize + 12,
     };
+
+    if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
+        if (isInside(mouseX, mouseY, panel)) {
+            if (handleSettingsComponentClick(mouseX, mouseY, panel, scrollY)) {
+                return;
+            }
+        }
+    }
 
     if (Categories.currentPage === 'options' && Categories.selectedItem) {
         if (isInside(mouseX, mouseY, editButtonRect)) {
@@ -77,39 +142,43 @@ export const handleCategoryClick = (
             let handled = false;
 
             component.x = optionX + 10;
-            if (component instanceof MultiToggle) {
+
+            let componentHeight = 48;
+            let expansionHeight = 0;
+
+            if (typeof component.getExpandedHeight === 'function') {
+                if (component.animationProgress !== undefined) {
+                    expansionHeight = component.getExpandedHeight() * component.animationProgress;
+                } else {
+                    expansionHeight = component.getExpandedHeight();
+                }
+            }
+            componentHeight += expansionHeight;
+
+            let clickableArea = {
+                x: optionX,
+                y: drawnCompY,
+                width: panel.width - 2 * PADDING,
+                height: componentHeight,
+            };
+
+            if (isInside(mouseX, mouseY, clickableArea)) {
                 component.y = drawnCompY;
                 component.optionPanelWidth = panel.width;
                 component.optionPanelHeight = panel.height;
+
                 if (component.handleClick(mouseX, mouseY)) {
                     handled = true;
-                }
-            } else {
-                let componentHeight = 48;
-                let clickableArea = {
-                    x: optionX,
-                    y: drawnCompY,
-                    width: panel.width - 2 * PADDING - 20,
-                    height: componentHeight,
-                };
-                if (isInside(mouseX, mouseY, clickableArea)) {
-                    component.y = drawnCompY;
-                    component.optionPanelWidth = panel.width;
-                    component.optionPanelHeight = panel.height;
-                    if (component.handleClick(mouseX, mouseY)) {
-                        handled = true;
-                    }
                 }
             }
 
             if (handled) return;
 
-            let thisHeight = 54;
-            if (component instanceof MultiToggle && component.animationProgress > 0) {
-                thisHeight += component.getExpandedHeight() * component.animationProgress;
-            }
-            currentCompY += thisHeight;
-            currentDrawnCompY += thisHeight;
+            let spacingHeight = 54;
+            spacingHeight += expansionHeight;
+
+            currentCompY += spacingHeight;
+            currentDrawnCompY += spacingHeight;
         }
 
         if (isInside(mouseX, mouseY, leftPanel)) {
@@ -259,10 +328,11 @@ export const handleCategoryClick = (
             return;
         }
 
-
         if (Categories.selected && Categories.currentPage === 'categories') {
             const cat = Categories.categories.find((c) => c.name === Categories.selected);
             if (!cat) return;
+
+            if (Categories.selected === 'Settings') return;
 
             if (cat.subcategories.length > 0) {
                 let currentX = panel.x + PADDING;
@@ -338,6 +408,45 @@ export const handleCategoryScroll = (
 ) => {
     const SCROLL_SPEED = 15;
 
+    if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
+        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+        if (settingsCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+            let scrollHandled = false;
+            const components = settingsCat.directComponents;
+            let componentY = panel.y + PADDING;
+
+            components.forEach((component) => {
+                let compHeight = 54;
+                if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
+                    compHeight += component.getExpandedHeight() * component.animationProgress;
+                }
+
+                const compRect = {
+                    x: panel.x + PADDING + 10,
+                    y: componentY - rightPanelScrollY,
+                    width: panel.width - PADDING * 2 - 20,
+                    height: compHeight,
+                };
+
+                if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
+                    component.optionPanelWidth = panel.width;
+                    if (component.handleScroll(mouseX, mouseY, dir)) {
+                        scrollHandled = true;
+                    }
+                }
+                componentY += compHeight;
+            });
+
+            if (!scrollHandled) {
+                const maxScroll = Math.max(0, cachedContentHeight - panel.height + PADDING);
+                const direction = dir > 0 ? -1 : 1;
+                const newScroll = rightPanelScrollY + direction * SCROLL_SPEED;
+                setRightPanelScrollY(Math.max(0, Math.min(newScroll, maxScroll)));
+            }
+            return;
+        }
+    }
+
     if (Categories.currentPage === 'options' && Categories.selectedItem) {
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
@@ -348,9 +457,17 @@ export const handleCategoryScroll = (
         if (components) {
             components.forEach((component) => {
                 let compHeight = 54;
-                if (component instanceof MultiToggle) {
-                    compHeight += component.getExpandedHeight() * component.animationProgress;
+
+                let expansionHeight = 0;
+                if (typeof component.getExpandedHeight === 'function') {
+                    if (component.animationProgress !== undefined) {
+                        expansionHeight = component.getExpandedHeight() * component.animationProgress;
+                    } else {
+                        expansionHeight = component.getExpandedHeight();
+                    }
                 }
+                compHeight += expansionHeight;
+
                 const compRect = {
                     x: optionX + 10,
                     y: componentY - Categories.optionsScrollY,

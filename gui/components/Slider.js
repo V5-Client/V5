@@ -43,8 +43,8 @@ export class Slider {
 
     draw(mouseX, mouseY) {
         const componentHeight = this.containerHeight;
-        const backgroundColor = THEME.SLIDER_BACKGROUND;
-        const textColor = THEME.SLIDER_TEXT;
+        const backgroundColor = THEME.BG_COMPONENT;
+        const textColor = THEME.TEXT;
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
 
         drawRoundedRectangleWithBorder({
@@ -55,7 +55,7 @@ export class Slider {
             radius: 10,
             color: backgroundColor,
             borderWidth: 1,
-            borderColor: THEME.TOGGLE_BORDER,
+            borderColor: THEME.BORDER,
         });
 
         drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, textColor);
@@ -65,8 +65,8 @@ export class Slider {
         const sliderX = this.x + panelWidth - sliderWidth - rightMargin;
         const sliderY = this.y + componentHeight / 2 - 3;
         const sliderHeight = 6;
-        const foregroundColor = THEME.SLIDER_FOREGROUND;
-        const handleColor = THEME.SLIDER_HANDLE;
+        const foregroundColor = THEME.ACCENT;
+        const handleColor = THEME.KNOB;
 
         const progress = (this.value - this.min) / (this.max - this.min);
 
@@ -76,7 +76,7 @@ export class Slider {
             width: sliderWidth,
             height: sliderHeight,
             radius: sliderHeight / 2,
-            color: THEME.SLIDER_BAR_BACKGROUND,
+            color: THEME.BG_INSET,
         });
 
         drawRoundedRectangle({
@@ -124,12 +124,12 @@ export class Slider {
             width: valueBoxWidth,
             height: valueBoxHeight,
             radius: 6,
-            color: this.isTyping ? THEME.SLIDER_FOREGROUND : THEME.SLIDER_VALUE_BG,
+            color: this.isTyping ? THEME.ACCENT : THEME.BG_INSET,
         });
 
         const textCenteredX = valueStringX + valueBoxWidth / 2 - valueStringWidth / 2;
 
-        drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.SLIDER_VALUE_TEXT);
+        drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM);
 
         const componentRect = {
             x: this.x,

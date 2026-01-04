@@ -16,20 +16,13 @@ const TEXT_LINE_HEIGHT = 15;
 const DESC_SCALE = 0.8;
 const DESC_LINE_SPACING = 7;
 
-// Colors
-const BACKGROUND_COLOR = THEME.NOTIFICATION_BACKGROUND;
-const ICON_BACKGROUND_COLOR = THEME.NOTIFICATION_ICON_BACKGROUND;
-const ICON_SYMBOL_COLOR = THEME.NOTIFICATION_ICON_SYMBOL;
-const TEXT_COLOR = THEME.NOTIFICATION_TEXT;
-const DESCRIPTION_COLOR = THEME.NOTIFICATION_DESCRIPTION;
-const CLOSE_BUTTON_COLOR = THEME.NOTIFICATION_CLOSE_BUTTON;
-const PROGRESS_BAR_COLOR = THEME.NOTIFICATION_PROGRESS_BAR;
-
 const NOTIFICATION_TYPES = {
     SUCCESS: {
-        outlineColor: THEME.NOTIFICATION_SUCCESS,
+        get outlineColor() {
+            return THEME.NOTIF_SUCCESS;
+        },
         iconDrawer: (centerX, centerY, alpha) => {
-            const color = (alpha << 24) | ICON_SYMBOL_COLOR;
+            const color = (alpha << 24) | THEME.NOTIF_ICON;
             NVG.save();
             NVG.translate(centerX - 2, centerY + 4);
             NVG.rotate(-45);
@@ -39,9 +32,11 @@ const NOTIFICATION_TYPES = {
         },
     },
     ERROR: {
-        outlineColor: THEME.NOTIFICATION_ERROR,
+        get outlineColor() {
+            return THEME.NOTIF_ERROR;
+        },
         iconDrawer: (centerX, centerY, alpha) => {
-            const color = (alpha << 24) | ICON_SYMBOL_COLOR;
+            const color = (alpha << 24) | THEME.NOTIF_ICON;
             NVG.save();
             NVG.translate(centerX, centerY);
             NVG.rotate(45);
@@ -51,17 +46,21 @@ const NOTIFICATION_TYPES = {
         },
     },
     DANGER: {
-        outlineColor: THEME.NOTIFICATION_DANGER,
+        get outlineColor() {
+            return THEME.NOTIF_DANGER;
+        },
         iconDrawer: (centerX, centerY, alpha) => {
-            const color = (alpha << 24) | ICON_SYMBOL_COLOR;
+            const color = (alpha << 24) | THEME.NOTIF_ICON;
             NVG.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
             NVG.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
         },
     },
     'CHECK-IN': {
-        outlineColor: THEME.NOTIFICATION_CHECK_IN,
+        get outlineColor() {
+            return THEME.NOTIF_CHECK_IN;
+        },
         iconDrawer: (centerX, centerY, alpha) => {
-            const color = (alpha << 24) | ICON_SYMBOL_COLOR;
+            const color = (alpha << 24) | THEME.NOTIF_ICON;
             NVG.save();
             NVG.translate(centerX - 2, centerY + 4);
             NVG.rotate(-45);
@@ -71,17 +70,21 @@ const NOTIFICATION_TYPES = {
         },
     },
     WARNING: {
-        outlineColor: THEME.NOTIFICATION_WARNING,
+        get outlineColor() {
+            return THEME.NOTIF_WARNING;
+        },
         iconDrawer: (centerX, centerY, alpha) => {
-            const color = (alpha << 24) | ICON_SYMBOL_COLOR;
+            const color = (alpha << 24) | THEME.NOTIF_ICON;
             NVG.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
             NVG.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
         },
     },
     INFO: {
-        outlineColor: THEME.NOTIFICATION_INFO,
+        get outlineColor() {
+            return THEME.NOTIF_INFO;
+        },
         iconDrawer: (centerX, centerY, alpha) => {
-            const color = (alpha << 24) | ICON_SYMBOL_COLOR;
+            const color = (alpha << 24) | THEME.NOTIF_ICON;
             NVG.drawRect(centerX - 1.5, centerY - 8, 3, 3, color);
             NVG.drawRect(centerX - 1.5, centerY - 3, 3, 10, color);
         },
@@ -205,7 +208,7 @@ class Notification {
 
         const alpha = this.opacity;
         const typeInfo = NOTIFICATION_TYPES[this.type] || NOTIFICATION_TYPES['SUCCESS'];
-        const bgColor = colorWithAlpha(BACKGROUND_COLOR, alpha);
+        const bgColor = colorWithAlpha(THEME.NOTIF_BG, alpha);
 
         drawRoundedRectangle({
             x: this.x,
@@ -257,8 +260,8 @@ class Notification {
         const titleY = this.y + TEXT_TOP_PADDING;
         const descY = titleY + TEXT_LINE_HEIGHT;
 
-        const textAlpha = colorWithAlpha(TEXT_COLOR, alpha);
-        const descAlpha = colorWithAlpha(DESCRIPTION_COLOR, alpha);
+        const textAlpha = colorWithAlpha(THEME.TEXT, alpha);
+        const descAlpha = colorWithAlpha(THEME.TEXT_MUTED, alpha);
 
         drawText(this.title, textX, titleY, FontSizes.LARGE, textAlpha);
 
@@ -269,7 +272,7 @@ class Notification {
 
         const closeX = this.x + this.closeXOffset;
         const closeY = this.y + this.closeYOffset;
-        const closeColor = (Math.floor(alpha * 255) << 24) | CLOSE_BUTTON_COLOR;
+        const closeColor = (Math.floor(alpha * 255) << 24) | THEME.NOTIF_CLOSE;
         NVG.save();
         NVG.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
         NVG.rotate(45);
@@ -280,7 +283,7 @@ class Notification {
         if (this.state === 'active' && !this.isSticky) {
             const progress = 1 - (Date.now() - this.createdAt) / this.duration;
             const progressBarWidth = NOTIFICATION_WIDTH * progress;
-            const progressColor = colorWithAlpha(PROGRESS_BAR_COLOR, alpha);
+            const progressColor = colorWithAlpha(THEME.NOTIF_PROGRESS, alpha);
 
             if (progressBarWidth > 0.5) {
                 NVG.save();

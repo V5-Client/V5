@@ -1,6 +1,7 @@
 import { ToggleButton } from '../components/Toggle';
 import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
+import { ColorPicker } from '../components/ColorPicker';
 
 export const Categories = {
     categories: [
@@ -13,6 +14,7 @@ export const Categories = {
             name: 'Settings',
             items: [],
             subcategories: [],
+            directComponents: [],
         },
     ],
     selected: 'Modules',
@@ -35,7 +37,7 @@ export const Categories = {
     catTransitionStart: 0,
     catAnimationDuration: 200,
 
-    hoverStates: {}, 
+    hoverStates: {},
 
     addCategoryItem(subcategoryName, title, description, tooltip = null) {
         const category = Categories.categories.find((c) => c.name === 'Modules');
@@ -110,5 +112,59 @@ export const Categories = {
         const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback, defaultValue);
         multiToggle.description = description;
         item.components.push(multiToggle);
+    },
+
+    addColorPicker(categoryName, itemName, pickerTitle, defaultColor, callback = null, description = null) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return;
+
+        const picker = new ColorPicker(pickerTitle, 0, 0, defaultColor, callback);
+        picker.description = description;
+        item.components.push(picker);
+    },
+
+    addSettingsComponent(component, sectionName = null) {
+        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+        if (!settingsCat) return;
+
+        if (!settingsCat.directComponents) {
+            settingsCat.directComponents = [];
+        }
+
+        component.sectionName = sectionName;
+        settingsCat.directComponents.push(component);
+    },
+
+    addSettingsToggle(title, callback = null, description = null, defaultValue = false, sectionName = null) {
+        const toggle = new ToggleButton(title, 0, 0, undefined, undefined, callback, defaultValue);
+        toggle.description = description;
+        Categories.addSettingsComponent(toggle, sectionName);
+        return toggle;
+    },
+
+    addSettingsSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null) {
+        const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback);
+        slider.description = description;
+        Categories.addSettingsComponent(slider, sectionName);
+        return slider;
+    },
+
+    addSettingsMultiToggle(title, options, singleSelect = false, callback = null, description = null, defaultValue = false, sectionName = null) {
+        const multiToggle = new MultiToggle(title, 0, 0, options, singleSelect, callback, defaultValue);
+        multiToggle.description = description;
+        Categories.addSettingsComponent(multiToggle, sectionName);
+        return multiToggle;
+    },
+
+    addSettingsColorPicker(title, defaultColor, callback = null, description = null, sectionName = null) {
+        const picker = new ColorPicker(title, 0, 0, defaultColor, callback);
+        picker.description = description;
+        Categories.addSettingsComponent(picker, sectionName);
+        return picker;
+    },
+
+    getSettingsComponents() {
+        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+        return settingsCat?.directComponents || [];
     },
 };

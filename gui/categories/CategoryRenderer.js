@@ -19,6 +19,7 @@ import {
     colorWithAlpha,
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
+import { ColorPicker } from '../components/ColorPicker';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 import { Categories } from './CategorySystem';
@@ -28,14 +29,6 @@ const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
 const Module_icon_path = ASSETS_PATH + 'folder.svg';
 const Setting_icon_path = ASSETS_PATH + 'settings.svg';
 const Edit_icon_path = ASSETS_PATH + 'edit.svg';
-
-const CATEGORY_TITLE_COLOR = THEME.GUI_MANAGER_CATEGORY_TITLE;
-const CATEGORY_DESC_COLOR = THEME.GUI_MANAGER_CATEGORY_DESCRIPTION;
-const BACK_TEXT_COLOR = THEME.GUI_MANAGER_BACK_TEXT;
-const CATEGORY_BOX_COLOR = THEME.GUI_MANAGER_CATEGORY_BOX;
-const CATEGORY_BOX_HOVER = THEME.GUI_MANAGER_CATEGORY_BOX_HOVER;
-const UNIVERSAL_GRAY_COLOR = THEME.GUI_MANAGER_UNIVERSAL_GRAY;
-const CATEGORY_SELECTED_COLOR = THEME.GUI_MANAGER_CATEGORY_SELECTED;
 
 export const getCategoryRect = (index) => {
     return {
@@ -70,7 +63,7 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
             width: rect.width,
             height: rect.height - 5,
             radius: 8,
-            color: CATEGORY_SELECTED_COLOR,
+            color: THEME.ACCENT_DIM,
         });
     };
 
@@ -109,12 +102,12 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
                     width: buttonRect.width,
                     height: buttonRect.height,
                     radius: 8,
-                    color: colorWithAlpha(UNIVERSAL_GRAY_COLOR, state.progress),
+                    color: colorWithAlpha(THEME.BG_INSET, state.progress),
                 });
             }
         }
 
-        const textColor = isSelected ? CATEGORY_TITLE_COLOR : CATEGORY_DESC_COLOR;
+        const textColor = isSelected ? THEME.TEXT : THEME.TEXT_MUTED;
         drawText(
             subcat,
             currentX + buttonTextWidth / 2 - getTextWidth(subcat, FontSizes.MEDIUM) / 2,
@@ -126,6 +119,68 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
     });
 
     return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+};
+
+export const drawSettingsDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scrollY) => {
+    const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+    if (!settingsCat || !settingsCat.directComponents) return yOffset;
+
+    const components = settingsCat.directComponents;
+    const panelWidth = panel.width;
+
+    let currentY = yOffset - scrollY;
+    let currentSection = null;
+
+    components.forEach((component, index) => {
+        if (component.sectionName && component.sectionName !== currentSection) {
+            currentSection = component.sectionName;
+
+            if (index > 0) currentY += 16;
+
+            const dividerX = panelX + PADDING;
+            const dividerWidth = panelWidth - PADDING * 2 - 20;
+
+            drawRoundedRectangle({
+                x: dividerX,
+                y: currentY + 8,
+                width: dividerWidth,
+                height: 1,
+                radius: 1,
+                color: THEME.BG_INSET,
+            });
+
+            const sectionTextWidth = getTextWidth(currentSection, FontSizes.REGULAR);
+            drawRoundedRectangle({
+                x: dividerX,
+                y: currentY,
+                width: sectionTextWidth + 16,
+                height: 16,
+                radius: 6,
+                color: THEME.BG_WINDOW,
+            });
+
+            drawText(currentSection, dividerX + 8, currentY + 8, FontSizes.REGULAR, THEME.TEXT);
+            currentY += 26;
+        }
+
+        if (typeof component.draw === 'function') {
+            component.x = panelX + PADDING + 10;
+            component.y = currentY;
+            component.optionPanelWidth = panelWidth;
+            component.optionPanelHeight = panel.height;
+            component.draw(mouseX, mouseY);
+
+            let componentHeight = 48 + 6;
+            if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+                if (component.animationProgress !== undefined) {
+                    componentHeight += component.getExpandedHeight() * component.animationProgress;
+                }
+            }
+            currentY += componentHeight;
+        }
+    });
+
+    return currentY + scrollY;
 };
 
 export const drawOptionsPanel = (panel, mouseX, mouseY) => {
@@ -146,14 +201,14 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const drawnBackY = backButtonY - scrollY;
     const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: getTextWidth(backButtonText, FontSizes.SMALL), height: 10 });
 
-    drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? CATEGORY_TITLE_COLOR : BACK_TEXT_COLOR);
+    drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? THEME.TEXT : THEME.TEXT_LINK);
     const drawnTitleY = optionY + 36 - scrollY;
-    drawText(selectedItem.title, backButtonX, drawnTitleY + 7, FontSizes.HEADER, CATEGORY_TITLE_COLOR);
+    drawText(selectedItem.title, backButtonX, drawnTitleY + 7, FontSizes.HEADER, THEME.TEXT);
     const drawnDescY = optionY + 52 - scrollY;
-    drawText(selectedItem.description, backButtonX, drawnDescY + 5, FontSizes.SMALL, CATEGORY_DESC_COLOR);
+    drawText(selectedItem.description, backButtonX, drawnDescY + 5, FontSizes.SMALL, THEME.TEXT_MUTED);
 
     const dividerY = optionY + 66 - scrollY;
-    drawRoundedRectangle({ x: backButtonX, y: dividerY, width: panel.width - PADDING * 2 - 20, height: 1, radius: 1, color: UNIVERSAL_GRAY_COLOR });
+    drawRoundedRectangle({ x: backButtonX, y: dividerY, width: panel.width - PADDING * 2 - 20, height: 1, radius: 1, color: THEME.BG_INSET });
 
     let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
@@ -164,8 +219,11 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
         component.optionPanelHeight = panel.height;
         component.draw(mouseX, mouseY);
         let thisHeight = 48 + 6;
-        if (component instanceof MultiToggle && component.animationProgress > 0) {
-            thisHeight += component.getExpandedHeight() * component.animationProgress;
+
+        if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+            if (component.animationProgress !== undefined) {
+                thisHeight += component.getExpandedHeight() * component.animationProgress;
+            }
         }
         drawnCompY += thisHeight;
     });
@@ -192,7 +250,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
 
     if (Categories.catAnimationRect) {
         const rect = Categories.catAnimationRect;
-        drawRoundedRectangle({ ...rect, color: CATEGORY_SELECTED_COLOR });
+        drawRoundedRectangle({ ...rect, color: THEME.ACCENT_DIM });
     } else {
         const selectedCat = Categories.categories.find((cat) => cat.name === Categories.selected);
         if (selectedCat) {
@@ -202,16 +260,13 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             const iconX = rect.x + (rect.width - moduleRectSize) / 2;
             const iconY = rect.y + (rect.height - moduleRectSize) / 2;
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
-            drawRoundedRectangle({ ...highlightRect, color: CATEGORY_SELECTED_COLOR });
+            drawRoundedRectangle({ ...highlightRect, color: THEME.ACCENT_DIM });
         } else if (Categories.selected === 'Edit') {
-            drawRoundedRectangle({ ...editButtonRect, color: CATEGORY_SELECTED_COLOR });
+            drawRoundedRectangle({ ...editButtonRect, color: THEME.ACCENT_DIM });
         }
     }
 
-    const allCategoryItems = [
-        ...Categories.categories.map((c, i) => ({ name: c.name, rect: getCategoryRect(i) })),
-        { name: 'Edit', rect: editButtonRect },
-    ];
+    const allCategoryItems = [...Categories.categories.map((c, i) => ({ name: c.name, rect: getCategoryRect(i) })), { name: 'Edit', rect: editButtonRect }];
 
     allCategoryItems.forEach((item) => {
         const isHovered = isInside(mouseX, mouseY, item.rect);
@@ -243,7 +298,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
 
             drawRoundedRectangle({
                 ...finalRect,
-                color: colorWithAlpha(UNIVERSAL_GRAY_COLOR, state.progress),
+                color: colorWithAlpha(THEME.BG_INSET, state.progress),
             });
         }
     });
@@ -283,17 +338,17 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
         width: itemWidth,
         height: 48,
         radius: 10,
-        color: CATEGORY_BOX_COLOR,
+        color: THEME.BG_COMPONENT,
         borderWidth: 1,
-        borderColor: THEME.GUI_MANAGER_CATEGORY_BOX_BORDER,
+        borderColor: THEME.BORDER,
     };
     const isHovered = isInside(mouseX, mouseY, itemRect);
-    itemRect.color = isHovered ? CATEGORY_BOX_HOVER : CATEGORY_BOX_COLOR;
+    itemRect.color = isHovered ? THEME.HOVER : THEME.BG_COMPONENT;
     if (isHovered && item.tooltip) setTooltip(item.tooltip);
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
     const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
-    drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, CATEGORY_TITLE_COLOR);
+    drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, THEME.TEXT);
 };
 
 export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid) => {
@@ -307,12 +362,12 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             const separatorY = yOffset;
             const separatorX = panelX + PADDING;
             const separatorWidth = panelWidth;
-            drawRoundedRectangle({ x: separatorX, y: separatorY + 8, width: separatorWidth, height: 1, radius: 1, color: UNIVERSAL_GRAY_COLOR });
+            drawRoundedRectangle({ x: separatorX, y: separatorY + 8, width: separatorWidth, height: 1, radius: 1, color: THEME.BG_INSET });
             const separatorTextWidth = getTextWidth(group.title, FontSizes.REGULAR);
             const separatorTextX = separatorX + 8;
             const separatorBgWidth = separatorTextWidth + 16;
-            drawRoundedRectangle({ x: separatorTextX - 8, y: separatorY, width: separatorBgWidth, height: 16, radius: 6, color: THEME.GUI_DRAW_PANELS });
-            drawText(group.title, separatorTextX, separatorY + 8, FontSizes.REGULAR, CATEGORY_TITLE_COLOR);
+            drawRoundedRectangle({ x: separatorTextX - 8, y: separatorY, width: separatorBgWidth, height: 16, radius: 6, color: THEME.BG_WINDOW });
+            drawText(group.title, separatorTextX, separatorY + 8, FontSizes.REGULAR, THEME.TEXT);
             yOffset += 22;
             let subcategoryItemsInRow = 0;
             group.items.forEach((item) => {

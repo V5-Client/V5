@@ -49,12 +49,12 @@ export class ToggleButton {
             width: panelWidth,
             height: componentHeight,
             radius: 10,
-            color: THEME.TOGGLE_BACKGROUND,
+            color: THEME.BG_COMPONENT,
             borderWidth: 1,
-            borderColor: THEME.TOGGLE_BORDER,
+            borderColor: THEME.BORDER,
         });
 
-        drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, THEME.TOGGLE_TEXT);
+        drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, THEME.TEXT);
 
         const switchWidth = 36;
         const switchHeight = 20;
@@ -63,7 +63,7 @@ export class ToggleButton {
         const switchX = this.x + panelWidth - switchWidth - rightMargin;
         const switchY = this.y + componentHeight / 2 - switchHeight / 2;
 
-        const trackColor = this.interpolateColor(THEME.TOGGLE_SWITCH_OFF, THEME.TOGGLE_SWITCH_ON, this.animationProgress);
+        const trackColor = this.interpolateColor(THEME.SWITCH_OFF, THEME.ACCENT, this.animationProgress);
 
         drawRoundedRectangle({
             x: switchX,
@@ -85,7 +85,7 @@ export class ToggleButton {
             width: knobSize,
             height: knobSize,
             radius: knobSize / 2,
-            color: THEME.TOGGLE_SWITCH_KNOB,
+            color: THEME.KNOB,
         });
 
         const componentRect = {

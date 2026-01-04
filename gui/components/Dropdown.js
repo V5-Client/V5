@@ -89,7 +89,7 @@ export class MultiToggle {
         this.updateToggleAnimations();
 
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
-        const textColor = THEME.TOGGLE_TEXT;
+        const textColor = THEME.TEXT;
         const cornerRadius = 10;
 
         drawRoundedRectangleWithBorder({
@@ -98,9 +98,9 @@ export class MultiToggle {
             width: panelWidth,
             height: this.containerHeight,
             radius: cornerRadius,
-            color: THEME.DROPDOWN_BACKGROUND,
+            color: THEME.BG_COMPONENT,
             borderWidth: 1,
-            borderColor: THEME.TOGGLE_BORDER,
+            borderColor: THEME.BORDER,
         });
 
         drawText(this.title, this.x + 12, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
@@ -116,7 +116,7 @@ export class MultiToggle {
             width: arrowSize,
             height: arrowSize,
             radius: 4,
-            color: THEME.GUI_MANAGER_UNIVERSAL_GRAY,
+            color: THEME.BG_INSET,
         });
 
         const arrow = this.expanded ? '▲' : '▼';
@@ -151,9 +151,9 @@ export class MultiToggle {
                 width: panelWidth,
                 height: animatedHeight,
                 radius: cornerRadius,
-                color: THEME.DROPDOWN_OPTION_BACKGROUND,
+                color: THEME.BG_ELEVATED,
                 borderWidth: 1,
-                borderColor: THEME.TOGGLE_BORDER,
+                borderColor: THEME.BORDER,
             });
 
             let currentY = dropdownY + 8;
@@ -177,7 +177,7 @@ export class MultiToggle {
                         width: panelWidth - 8,
                         height: this.optionHeight,
                         radius: 6,
-                        color: THEME.GUI_MANAGER_UNIVERSAL_GRAY,
+                        color: THEME.BG_INSET,
                     });
                 }
 
@@ -186,7 +186,7 @@ export class MultiToggle {
                 const switchX = this.x + panelWidth - switchWidth - 12;
                 const switchY = optionTop + (this.optionHeight - switchHeight) / 2;
 
-                const trackColor = this.interpolateColor(THEME.TOGGLE_SWITCH_OFF, THEME.TOGGLE_SWITCH_ON, option.animationProgress);
+                const trackColor = this.interpolateColor(THEME.SWITCH_OFF, THEME.ACCENT, option.animationProgress);
 
                 drawRoundedRectangle({
                     x: switchX,
@@ -208,7 +208,7 @@ export class MultiToggle {
                     width: knobSize,
                     height: knobSize,
                     radius: knobSize / 2,
-                    color: THEME.TOGGLE_SWITCH_KNOB,
+                    color: THEME.KNOB,
                 });
 
                 drawText(option.name, optionX, optionTop + this.optionHeight / 2, FontSizes.REGULAR, textColor);

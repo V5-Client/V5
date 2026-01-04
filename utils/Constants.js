@@ -58,6 +58,8 @@ export const Identifier = net.minecraft.util.Identifier;
 export const SoundEvent = net.minecraft.sound.SoundEvent;
 
 export const RenderUtils = Java.type('com.v5.render.RenderUtils');
+export const Gradient = Java.type('com.v5.render.Gradient');
+
 export const DiscordRPC = Java.type('com.v5.qol.DiscordRPC');
 export const KeyBindUtils = Java.type('com.v5.keybind.KeyBindUtils');
 export const XrayPackage = Java.type('com.v5.qol.Xray');

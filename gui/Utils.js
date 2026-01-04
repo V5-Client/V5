@@ -3,18 +3,25 @@ import { Links, File, Color, NVG, SoundCategory, Identifier, SoundEvent } from '
 import { Chat } from '../utils/Chat';
 
 export const colorWithAlpha = (baseColor, alpha) => {
+    let r, g, b, a;
+
     if (typeof baseColor === 'number') {
-        const r = (baseColor >> 16) & 0xff;
-        const g = (baseColor >> 8) & 0xff;
-        const b = baseColor & 0xff;
-        const originalAlpha = (baseColor >> 24) & 0xff;
-        const a = (originalAlpha === 0 ? 255 : originalAlpha) * alpha;
-        return ((a & 0xff) << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+        r = (baseColor >> 16) & 0xff;
+        g = (baseColor >> 8) & 0xff;
+        b = baseColor & 0xff;
+        const originalAlpha = (baseColor >>> 24) & 0xff;
+        a = originalAlpha === 0 && baseColor !== 0 ? 255 : originalAlpha;
+    } else if (baseColor instanceof Color) {
+        r = baseColor.getRed();
+        g = baseColor.getGreen();
+        b = baseColor.getBlue();
+        a = baseColor.getAlpha();
+    } else {
+        return new Color(1, 1, 1, 1).getRGB();
     }
-    if (baseColor instanceof Color) {
-        return new Color(baseColor.getRed() / 255, baseColor.getGreen() / 255, baseColor.getBlue() / 255, (baseColor.getAlpha() / 255) * alpha);
-    }
-    return new Color(1, 1, 1, 1);
+
+    const finalAlpha = Math.floor(a * alpha);
+    return ((finalAlpha & 0xff) << 24) | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 };
 
 export const PADDING = 12;
@@ -32,67 +39,43 @@ export const SUBCATEGORY_BUTTON_HEIGHT = 28;
 export const SUBCATEGORY_BUTTON_SPACING = 8;
 
 export const THEME = {
-    // Dropdown
-    DROPDOWN_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
-    DROPDOWN_FOREGROUND: new Color(0.4, 0.7, 1, 1),
-    DROPDOWN_TEXT: 0xffffffff,
-    DROPDOWN_OPTION_BACKGROUND: new Color(0.13, 0.14, 0.17, 1),
-    DROPDOWN_TOGGLE_DISABLED: new Color(0.25, 0.26, 0.29, 1),
+    // === BACKGROUNDS ===
+    BG_WINDOW: new Color(0.09, 0.1, 0.13, 1),
+    BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85), // This alpha will now be respected
+    BG_COMPONENT: new Color(0.11, 0.12, 0.15, 1),
+    BG_ELEVATED: new Color(0.13, 0.14, 0.17, 1),
+    BG_INSET: new Color(0.15, 0.16, 0.19, 1),
 
-    // GuiDraw
-    GUI_DRAW_BACKGROUND_BORDER: new Color(0.4, 0.7, 1, 0.2),
-    GUI_DRAW_BACKGROUND: new Color(0.06, 0.07, 0.09, 0.85),
-    GUI_DRAW_PANELS: new Color(0.09, 0.1, 0.13, 1),
-    GUI_DRAW_BORDER: new Color(0.4, 0.7, 1, 0.15),
+    HOVER: new Color(0.17, 0.18, 0.22, 1),
+    ACCENT: new Color(0.4, 0.7, 1, 1),
+    ACCENT_GLOW: new Color(0.4, 0.7, 1, 0.2),
+    ACCENT_DIM: new Color(0.4, 0.7, 1, 0.15),
 
-    // GuiManager
-    GUI_MANAGER_CATEGORY_TITLE: 0xffffffff,
-    GUI_MANAGER_CATEGORY_DESCRIPTION: 0xff99a3b0,
-    GUI_MANAGER_BACK_TEXT: 0xff66b3ff,
-    GUI_MANAGER_CATEGORY_BOX: new Color(0.11, 0.12, 0.15, 1),
-    GUI_MANAGER_CATEGORY_BOX_HOVER: new Color(0.17, 0.18, 0.22, 1),
-    GUI_MANAGER_UNIVERSAL_GRAY: new Color(0.15, 0.16, 0.19, 1),
-    GUI_MANAGER_CATEGORY_SELECTED: new Color(0.4, 0.7, 1, 0.15),
-    GUI_MANAGER_CATEGORY_BOX_BORDER: new Color(0.2, 0.21, 0.24, 1),
+    TEXT: 0xffffffff,
+    TEXT_MUTED: 0xff99a3b0,
+    TEXT_LINK: 0xff66b3ff,
+    TEXT_DIM: new Color(0.9, 0.9, 0.9, 1),
 
-    // NotificationManager
-    NOTIFICATION_BACKGROUND: new Color(0.11, 0.12, 0.15, 0.95),
-    NOTIFICATION_ICON_BACKGROUND: new Color(0.15, 0.16, 0.19, 1),
-    NOTIFICATION_ICON_SYMBOL: 0xdddddd,
-    NOTIFICATION_TEXT: 0xffffffff,
-    NOTIFICATION_DESCRIPTION: 0xff99a3b0,
-    NOTIFICATION_CLOSE_BUTTON: 0xffaaaaaa,
-    NOTIFICATION_CLOSE_BUTTON_HOVER: new Color(1, 1, 1, 0.1),
-    NOTIFICATION_PROGRESS_BAR: new Color(0.4, 0.7, 1, 0.5),
-    NOTIFICATION_SUCCESS: new Color(parseInt('10b981', 16)),
-    NOTIFICATION_ERROR: new Color(parseInt('ef4444', 16)),
-    NOTIFICATION_DANGER: new Color(parseInt('ff0f0f', 16)),
-    NOTIFICATION_CHECK_IN: new Color(parseInt('84cc16', 16)),
-    NOTIFICATION_WARNING: new Color(parseInt('f59e0b', 16)),
-    NOTIFICATION_INFO: new Color(parseInt('3b82f6', 16)),
+    BORDER: new Color(0.2, 0.21, 0.24, 1),
+    BORDER_ACCENT: new Color(0.4, 0.7, 1, 0.15),
 
-    // Slider
-    SLIDER_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
-    SLIDER_TEXT: new Color(1, 1, 1, 1),
-    SLIDER_FOREGROUND: new Color(0.4, 0.7, 1, 1),
-    SLIDER_HANDLE: new Color(1, 1, 1, 1),
-    SLIDER_BAR_BACKGROUND: new Color(0.15, 0.16, 0.19, 1),
-    SLIDER_VALUE_BG: new Color(0.15, 0.16, 0.19, 1),
-    SLIDER_VALUE_TEXT: new Color(0.9, 0.9, 0.9, 1),
+    KNOB: new Color(1, 1, 1, 1),
+    SWITCH_OFF: new Color(0.25, 0.26, 0.29, 1),
 
-    // Toggle
-    TOGGLE_BACKGROUND: new Color(0.11, 0.12, 0.15, 1),
-    TOGGLE_ACCENT: new Color(0.4, 0.7, 1, 1),
-    TOGGLE_SWITCH_ON: new Color(0.4, 0.7, 1, 1),
-    TOGGLE_SWITCH_OFF: new Color(0.25, 0.26, 0.29, 1),
-    TOGGLE_SWITCH_KNOB: new Color(1, 1, 1, 1),
-    TOGGLE_TEXT: new Color(1, 1, 1, 1),
-    TOGGLE_BORDER: new Color(0.2, 0.21, 0.24, 1),
-
-    // Tooltip
-    TOOLTIP_BACKGROUND: new Color(0.11, 0.12, 0.15, 0.98),
+    TOOLTIP_BG: new Color(0.11, 0.12, 0.15, 0.98),
     TOOLTIP_TEXT: 0xfff0f0f0,
     TOOLTIP_BORDER: new Color(0.4, 0.7, 1, 0.3),
+
+    NOTIF_BG: new Color(0.11, 0.12, 0.15, 0.95),
+    NOTIF_ICON: 0xdddddd,
+    NOTIF_CLOSE: 0xffaaaaaa,
+    NOTIF_PROGRESS: new Color(0.4, 0.7, 1, 0.5),
+    NOTIF_SUCCESS: new Color(parseInt('10b981', 16)),
+    NOTIF_ERROR: new Color(parseInt('ef4444', 16)),
+    NOTIF_DANGER: new Color(parseInt('ff0f0f', 16)),
+    NOTIF_CHECK_IN: new Color(parseInt('84cc16', 16)),
+    NOTIF_WARNING: new Color(parseInt('f59e0b', 16)),
+    NOTIF_INFO: new Color(parseInt('3b82f6', 16)),
 };
 
 export const drawRect = ({ x, y, width, height, color }) => {

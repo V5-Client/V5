@@ -56,7 +56,7 @@ export const GuiTooltip = {
             width: tooltipWidth,
             height: tooltipHeight,
             radius: 8,
-            color: THEME.TOOLTIP_BACKGROUND,
+            color: THEME.TOOLTIP_BG,
             borderWidth: 1,
             borderColor: THEME.TOOLTIP_BORDER,
         });

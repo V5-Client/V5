@@ -1,6 +1,7 @@
 import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
-import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, getCategoryRect } from './CategoryRenderer';
+import { ColorPicker } from '../components/ColorPicker';
+import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawSettingsDirectComponents, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
@@ -41,12 +42,48 @@ export const createCategoriesManager = (deps) => {
         setOptionsScrollY(0);
     };
 
+    const calculateSettingsDirectComponentsHeight = () => {
+        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+        if (!settingsCat || !settingsCat.directComponents) return 0;
+
+        let height = PADDING;
+        let currentSection = null;
+
+        settingsCat.directComponents.forEach((component, index) => {
+            if (component.sectionName && component.sectionName !== currentSection) {
+                currentSection = component.sectionName;
+                if (index > 0) height += 16;
+                height += 26;
+            }
+
+            let componentHeight = 48 + 6;
+
+            if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+                if (component.animationProgress !== undefined) {
+                    componentHeight += component.getExpandedHeight() * component.animationProgress;
+                }
+            }
+
+            height += componentHeight;
+        });
+
+        height += PADDING;
+        return height;
+    };
+
     const calculateContentHeight = () => {
         if (!isContentHeightCacheValid && Categories.selected) {
             let height = 0;
             const category = Categories.categories.find((c) => c.name === Categories.selected);
 
             if (category) {
+                if (Categories.selected === 'Settings' && category.directComponents && category.directComponents.length > 0) {
+                    height = calculateSettingsDirectComponentsHeight();
+                    cachedContentHeight = height;
+                    isContentHeightCacheValid = true;
+                    return;
+                }
+
                 if (category.subcategories.length > 0) {
                     height += 28 + PADDING;
                 }
@@ -96,7 +133,7 @@ export const createCategoriesManager = (deps) => {
             if (components) {
                 components.forEach((component) => {
                     let compHeight = 54;
-                    if (component instanceof MultiToggle) {
+                    if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                         compHeight += component.getExpandedHeight() * (component.animationProgress || 0);
                     }
                     height += compHeight;
@@ -111,6 +148,29 @@ export const createCategoriesManager = (deps) => {
     const draw = (mouseX, mouseY) => {
         const cacheInvalidated = updateCategoryTransitions();
         if (cacheInvalidated) isLayoutCacheValid = false;
+
+        let activeComponentAnimation = false;
+
+        const checkComponentsForAnim = (components) => {
+            if (!components) return false;
+            return components.some((c) => (c instanceof MultiToggle || c instanceof ColorPicker) && c.animStart !== 0);
+        };
+
+        if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
+            const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+            if (settingsCat && checkComponentsForAnim(settingsCat.directComponents)) {
+                activeComponentAnimation = true;
+            }
+        } else if (Categories.currentPage === 'options' && Categories.selectedItem) {
+            if (checkComponentsForAnim(Categories.selectedItem.components)) {
+                activeComponentAnimation = true;
+            }
+        }
+
+        if (activeComponentAnimation) {
+            isContentHeightCacheValid = false;
+            isLayoutCacheValid = false;
+        }
 
         const transitionActive = Categories.transitionDirection !== 0;
         const shouldDrawItems = Categories.currentPage === 'categories' || transitionActive;
@@ -151,6 +211,12 @@ export const createCategoriesManager = (deps) => {
                 if (!cat) return;
 
                 let yOffset = panel.y + PADDING - rightPanelScrollY;
+
+                if (catName === 'Settings' && cat.directComponents && cat.directComponents.length > 0) {
+                    drawSettingsDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, rightPanelScrollY);
+                    return;
+                }
+
                 if (cat.subcategories.length > 0) {
                     yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
                 }
@@ -159,23 +225,13 @@ export const createCategoriesManager = (deps) => {
                     ? cat.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
                     : cat.items;
 
-                drawCategoryItems(
-                    cat,
-                    panel,
-                    currentPanelX,
-                    yOffset,
-                    mouseX,
-                    mouseY,
-                    itemsToDisplay,
-                    cachedItemLayouts,
-                    isLayoutCacheValid || !isNewCategory
-                );
+                drawCategoryItems(cat, panel, currentPanelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid || !isNewCategory);
             };
 
             if (isCategorySwap && Categories.previousSelected) {
                 const progress = Categories.transitionProgress;
                 const dir = Categories.transitionDirection;
-                
+
                 let incomingX = panel.x + (dir === 1 ? panel.width * (1 - progress) : -panel.width * (1 - progress));
                 drawSingleCategory(Categories.selected, incomingX, true);
 
@@ -238,6 +294,18 @@ export const createCategoriesManager = (deps) => {
     const handleMouseDrag = (mouseX, mouseY) => {
         if (isLayoutCacheValid) isLayoutCacheValid = false;
 
+        if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
+            const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+            if (settingsCat?.directComponents) {
+                settingsCat.directComponents.forEach((component) => {
+                    if (typeof component.handleMouseDrag === 'function') {
+                        component.optionPanelWidth = deps.rectangles.RightPanel.width;
+                        component.handleMouseDrag(mouseX, mouseY);
+                    }
+                });
+            }
+        }
+
         if (Categories.currentPage === 'options' && Categories.selectedItem) {
             const components = Categories.selectedItem.components;
             if (!components) return;
@@ -250,6 +318,17 @@ export const createCategoriesManager = (deps) => {
     };
 
     const handleMouseRelease = () => {
+        if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
+            const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+            if (settingsCat?.directComponents) {
+                settingsCat.directComponents.forEach((component) => {
+                    if (typeof component.handleMouseRelease === 'function') {
+                        component.handleMouseRelease();
+                    }
+                });
+            }
+        }
+
         if (Categories.currentPage === 'options' && Categories.selectedItem) {
             const components = Categories.selectedItem.components;
             if (!components) return;

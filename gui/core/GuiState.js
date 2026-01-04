@@ -1,9 +1,5 @@
 import { PADDING, BORDER_WIDTH, CORNER_RADIUS, THEME } from '../Utils';
 
-const GUI_COLOR = THEME.GUI_DRAW_PANELS;
-const BACKGROUND_BORDER_COLOR = THEME.GUI_DRAW_BACKGROUND_BORDER;
-const BORDER_COLOR = THEME.GUI_DRAW_BORDER;
-
 export const ANIMATION_DURATION = 400;
 
 export const GuiState = {
@@ -48,9 +44,13 @@ GuiRectangles.Background = {
         return Math.round(Renderer.screen.getHeight() * 0.875);
     },
     radius: CORNER_RADIUS,
-    color: THEME.GUI_DRAW_BACKGROUND,
+    get color() {
+        return THEME.BG_OVERLAY;
+    },
     borderWidth: BORDER_WIDTH,
-    borderColor: BACKGROUND_BORDER_COLOR,
+    get borderColor() {
+        return THEME.ACCENT_GLOW;
+    },
     isAnimated: true,
 };
 
@@ -67,9 +67,13 @@ GuiRectangles.LeftPanel = {
         return GuiRectangles.Background.height - PADDING * 2;
     },
     radius: CORNER_RADIUS,
-    color: GUI_COLOR,
+    get color() {
+        return THEME.BG_WINDOW;
+    },
     borderWidth: BORDER_WIDTH,
-    borderColor: BORDER_COLOR,
+    get borderColor() {
+        return THEME.BORDER_ACCENT;
+    },
     isAnimated: true,
 };
 
@@ -88,8 +92,12 @@ GuiRectangles.RightPanel = {
         return GuiRectangles.Background.height - PADDING * 2;
     },
     radius: CORNER_RADIUS,
-    color: GUI_COLOR,
+    get color() {
+        return THEME.BG_WINDOW;
+    },
     borderWidth: BORDER_WIDTH,
-    borderColor: BORDER_COLOR,
+    get borderColor() {
+        return THEME.BORDER_ACCENT;
+    },
     isAnimated: true,
 };
