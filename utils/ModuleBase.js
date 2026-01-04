@@ -161,6 +161,17 @@ export class ModuleBase {
         Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
     }
 
+    /**
+     * Add a color picker to the module's GUI
+     * @param {string} title - The title of the color picker
+     * @param {object} defaultColor - Default color (java.awt.Color)
+     * @param {function} callback - Callback function when color changes
+     * @param {string} [description=null] - Description/tooltip for the color picker
+     */
+    addColorPicker(title, defaultColor, callback, description = null) {
+        Categories.addColorPicker('Modules', this.name, title, defaultColor, callback, description);
+    }
+
     // Allow for overriding onEnable and onDisable if you need more control
     // not required
     onEnable() {}

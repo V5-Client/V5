@@ -22,6 +22,7 @@ import './visuals/MobHider.js';
 import './visuals/Xray.js';
 import './visuals/Visual.js'; // i need - zurv
 import './visuals/GIF.js';
+import './visuals/ESP.js';
 
 /* SKILLS */
 import './skills/AutoExperiments.js';
