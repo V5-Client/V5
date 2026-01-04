@@ -2,9 +2,7 @@ import { MathUtils } from './Math';
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { PlayerActionC2S, PlayerActionC2SAction, HandSwingC2S } from './Packets';
 import { attachMixin } from './AttachMixin';
-import { PlayerActionPacket } from '../Mixins/PlayerAction';
-import { Chat } from './Chat';
-import { PlayerActionPacket } from '../Mixins/PlayerAction';
+import { PlayerActionPacket } from '../mixins/PlayerAction';
 
 class NukerUtilsClass {
     static MAX_REACH_DISTANCE = 5;
