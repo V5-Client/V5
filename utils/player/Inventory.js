@@ -141,8 +141,7 @@ export const Guis = {
             const match = exact ? itemName.toLowerCase() === name.toLowerCase() : itemName.toLowerCase().indexOf(name.toLowerCase()) !== -1;
 
             if (match) {
-                this.clickSlot(i, shift, button);
-                return true;
+                return this.clickSlot(i, shift, button);
             }
         }
         return false;
