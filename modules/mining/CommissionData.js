@@ -20,7 +20,7 @@ export const MOB_CONFIGS = {
     icewalker: {
         names: ['Ice Walker', 'Glacite Walker'],
         checkVisibility: true,
-        boundaryCheck: (x, y, z) => y >= 127 && y <= 146 && z <= 180 && z >= 134 && x <= 80,
+        boundaryCheck: (x, y, z) => y >= 127 && y <= 136 && z <= 180 && z >= 134 && x <= 80,
     },
     treasure: {
         names: ['Treasuer Hunter'], // MISSPELLED ON PURPOSE (Hypixel typo)
