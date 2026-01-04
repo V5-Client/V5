@@ -40,3 +40,4 @@ import './other/InventoryWalk.js';
 import './other/RatProtection.js';
 import './other/AutoIceFill.js';
 import './other/FastPlace.js';
+import './other/AutoSoulcry.js';
