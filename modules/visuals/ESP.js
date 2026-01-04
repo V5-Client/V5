@@ -12,8 +12,6 @@ class ESP extends ModuleBase {
 
         this.rgba = [255, 0, 0, 255];
 
-        this.bindToggleKey();
-
         this.addColorPicker(
             'ESP Color',
             java.awt.Color.RED,
