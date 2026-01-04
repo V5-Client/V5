@@ -234,6 +234,31 @@ class Bot extends ModuleBase {
             return;
         }
 
+        const tabNames = TabList.getNames();
+        let abilityStatus = '';
+
+        for (let i = 0; i < tabNames.length; i++) {
+            let rawLine = tabNames[i].getName().toString();
+
+            let line = rawLine.replace(/§[0-9a-fk-or]/gi, '').trim();
+
+            if (line.includes('Pickaxe Ability')) {
+                if (tabNames[i + 1]) {
+                    abilityStatus = tabNames[i + 1]
+                        .getName()
+                        .toString()
+                        .replace(/§[0-9a-fk-or]/gi, '')
+                        .trim();
+                }
+                break;
+            }
+        }
+
+        if (!abilityStatus.includes('Available')) {
+            this.state = this.STATES.MINING;
+            return;
+        }
+
         const { drill } = MiningUtils.getDrills();
         if (!drill) {
             Chat.message('&cNo drill found in ABILITY state!');
