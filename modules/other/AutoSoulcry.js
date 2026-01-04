@@ -20,7 +20,7 @@ class AutoSoulcry extends ModuleBase {
         this.on('tick', () => {
             let katanaSlot = Guis.findItemInHotbar('Katana');
             if (Player.getInventory().getItems()[katanaSlot].getType().getName() == '§rDiamond Sword') {
-                if (Date.now() - this.cooldown > 1000) {
+                if (Date.now() - this.cooldown > 3500) {
                     if (Player.getHeldItemIndex() != katanaSlot) {
                         this.swapBackSlot = Player.getHeldItemIndex();
                         Guis.setItemSlot(katanaSlot);
