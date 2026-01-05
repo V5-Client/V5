@@ -241,10 +241,9 @@ class RotationsTo {
 
         if (distance <= effectivePrecision) {
             this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
-
             this.lastTime = Date.now();
 
-            if (!this.trackedEntity && !this.targetVector) {
+            if (!this.trackedEntity) {
                 this.lastTime = 0;
                 this.initialDistance = 0;
                 this.stopRotation();
