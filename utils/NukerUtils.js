@@ -5,7 +5,7 @@ import { attachMixin } from './AttachMixin';
 import { PlayerActionPacket } from '../mixins/PlayerAction';
 
 class NukerUtilsClass {
-    static MAX_REACH_DISTANCE = 5;
+    static MAX_REACH_DISTANCE = 6;
     static MIN_NUKE_INTERVAL = 50;
     static SWING_DELAY = 10;
 
