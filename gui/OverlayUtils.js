@@ -111,17 +111,25 @@ class OverlayUtils {
         if (!startTime) return '0.00s';
         const diff = Date.now() - startTime;
         const totalSeconds = Math.floor(diff / 1000);
-        const ms = Math.floor((diff % 1000) / 10);
+
         const s = totalSeconds % 60;
         const m = Math.floor(totalSeconds / 60) % 60;
         const h = Math.floor(totalSeconds / 3600) % 24;
         const d = Math.floor(totalSeconds / 86400);
+
         const parts = [];
         if (d > 0) parts.push(`${d}d`);
         if (h > 0) parts.push(`${h}h`);
         if (m > 0) parts.push(`${m}m`);
-        const msStr = String(ms).padStart(2, '0');
-        parts.push(`${s}.${msStr}s`);
+
+        if (totalSeconds < 60) {
+            const ms = Math.floor((diff % 1000) / 10);
+            const msStr = String(ms).padStart(2, '0');
+            parts.push(`${s}.${msStr}s`);
+        } else {
+            parts.push(`${s}s`);
+        }
+
         return parts.join(' ');
     }
 
