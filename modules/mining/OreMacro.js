@@ -152,7 +152,7 @@ class OreMacro extends ModuleBase {
 
                         let target = this.getPointOnBlock(this.closestPoint.point);
                         if (!target) {
-                            Chat.message('&cNext point has been destroyed!');
+                            Chat.message('&cNext point isnt visible!');
                             this.toggle(false);
                             return;
                         }
@@ -192,7 +192,7 @@ class OreMacro extends ModuleBase {
                         }
 
                         if (!foundNext) {
-                            this.message('No more points found!');
+                            this.message('No more path points found!');
                             this.toggle(false);
                             return;
                         }
@@ -215,8 +215,9 @@ class OreMacro extends ModuleBase {
 
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
+                            if (!this.enabled) return;
+
                             Client.scheduleTask(this.FASTAOTV ? 4 : 7, () => {
-                                if (!this.enabled) return;
                                 Keybind.rightClick();
                                 this.attemptedEtherwarp = true;
                                 this.etherwarpAttempts++;
@@ -224,9 +225,9 @@ class OreMacro extends ModuleBase {
                                 this.lastX = Player.getX();
                                 this.lastY = Player.getY();
                                 this.lastZ = Player.getZ();
+                            });
 
-                                // it works cus miningbot ignores the blocks behind it
-                                // this can and should be better
+                            Client.scheduleTask(this.FASTAOTV ? 5 : 8, () => {
                                 this.prepartionTicks = 0;
                                 this.state = this.STATES.MINING;
                             });
@@ -256,6 +257,7 @@ class OreMacro extends ModuleBase {
 
                     if (this.rotatedToPoint) {
                         if (this.distance < 2) {
+                            Chat.message('Rotated to point, moving to next point...');
                             this.rotatedToPoint = false;
                             this.closestPointIndex++;
                             RouteState.setCurrentIndex(this.closestPointIndex);
@@ -536,7 +538,7 @@ class OreMacro extends ModuleBase {
         const centerY = point.y + 0.5;
         const centerZ = point.z + 0.5;
 
-        const offset = 0.05;
+        const offset = 0.1;
 
         const minX = point.x - offset;
         const maxX = point.x + 1.0 + offset;
