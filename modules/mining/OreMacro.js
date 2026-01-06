@@ -376,11 +376,12 @@ class OreMacro extends ModuleBase {
         );
         this.addMultiToggle(
             'Ore Types',
-            ['Coal', 'Iron', 'Gold', 'Diamond', 'Redstone', 'Lapis', 'Emerald'],
+            ['Coal', 'Quartz', 'Iron', 'Gold', 'Diamond', 'Redstone', 'Lapis', 'Emerald'],
             false,
             (selected) => {
                 const setHas = (name) => selected.some((item) => item.name === name && item.enabled === true);
                 this.COAL = setHas('Coal');
+                this.QUARTZ = setHas('Quartz');
                 this.IRON = setHas('Iron');
                 this.GOLD = setHas('Gold');
                 this.DIAMOND = setHas('Diamond');
