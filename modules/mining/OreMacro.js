@@ -15,31 +15,31 @@ import RouteState from '../../utils/RouteState';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
 
-class GemstoneMacro extends ModuleBase {
+// todo make walk points work
+// rework the command when icba to fix it
+// seperate core logic into a new state rather than etherwarp
+
+class OreMacro extends ModuleBase {
     constructor() {
         super({
-            name: 'Gemstone Macro',
+            name: 'Ore Macro',
             subcategory: 'Mining',
-            description: 'Gemstone Miner for the Crystal Hollows',
-            tooltip: 'Gemstone Miner for the Crystal Hollows',
+            description: 'Walks and Etherwarps to set mine points or uses MiningBot',
+            tooltip: 'Universal pure Ore Miner',
             showEnabledToggle: false,
         });
-        this.bindToggleKey();
-        this.FASTAOTV = false;
-        this.MOBKILLER = false;
-        this.WEAPONSLOT = 0;
-        this.TYPES = null;
-        this.PRESETTICKS = false;
-        this.TICKSWITHOUTMSB = 0;
-        this.TICKSWITHMSB = 0;
 
-        this.AMBER = false;
-        this.AMETHYST = false;
-        this.JADE = false;
-        this.JASPER = false;
-        this.RUBY = false;
-        this.SAPPHIRE = false;
-        this.TOPAZ = false;
+        this.bindToggleKey();
+
+        this.FASTAOTV = false;
+
+        this.COAL = false;
+        this.QUARTZ = false;
+        this.IRON = false;
+        this.REDSTONE = false;
+        this.GOLD = false;
+        this.DIAMOND = false;
+        this.EMERALD = false;
 
         this.STATES = {
             WAITING: 0,
@@ -49,67 +49,38 @@ class GemstoneMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.routesDir = Router.getFilesinDir('GemstoneRoutes');
+        this.routesDir = Router.getFilesinDir('OreRoutes');
         this.route = null;
         this.loadedFile = null;
+
         this.closestPoint = null;
         this.rawPoint = null;
         this.closestPointIndex = null;
+
         this.rotatedToPoint = false;
         this.attemptedEtherwarp = false;
         this.etherwarpAttempts = 0;
         this.etherwarpTicks = 0;
         this.playerPos = null;
+
         this.scanned = false;
         this.miningTargetVec = null;
 
-        register('postRenderWorld', () => {
-            if (!this.rawPoint) return;
-
-            this.raytraceBlockFaces(this.rawPoint);
-        });
-
         register('command', (action, arg1, indexArg) => {
-            let indexNum = undefined;
-            let lookPoint = false;
-            let movement = false;
+            if (!action) return Chat.message('§cAction required: "add", "remove", "clear"');
 
-            if (!action) {
-                Chat.message('§cAction required: "add", "remove", "clear"');
-                return;
+            if (arg1 !== undefined && !isNaN(arg1) && indexArg === undefined) {
+                [indexArg, arg1] = [arg1, undefined];
             }
 
-            if (arg1 !== undefined && !isNaN(parseInt(arg1)) && indexArg === undefined) {
-                indexArg = arg1;
-                arg1 = undefined;
-            }
+            const actionUpper = action.toUpperCase();
+            const movementType = arg1 ? arg1.toUpperCase() : undefined;
 
-            if (arg1 && arg1.toUpperCase() === 'MINEABLE') {
-                lookPoint = true;
-            }
+            const isMineable = movementType === 'MINEABLE';
+            const indexNum = indexArg && !isNaN(indexArg) ? parseInt(indexArg) : undefined;
 
-            if (arg1 !== undefined) {
-                movement = true;
-            }
-
-            if (indexArg !== undefined) {
-                let parsedNum = parseInt(indexArg);
-                if (!isNaN(parsedNum) && parsedNum >= 1) indexNum = parsedNum;
-            }
-
-            let allowedMovements = ['WALK', 'MINEABLE'];
-
-            this.route = Router.Edit(
-                action.toUpperCase(),
-                this.route,
-                'GemstoneRoutes/' + this.loadedFile,
-                indexNum,
-                movement,
-                allowedMovements,
-                arg1,
-                lookPoint
-            );
-        }).setName('gemstone');
+            this.route = Router.Edit(actionUpper, this.route, `OreRoutes/${this.loadedFile}`, indexNum, !!arg1, ['WALK', 'MINEABLE'], arg1, isMineable);
+        }).setName('ore');
 
         this.when(
             () => {
@@ -119,32 +90,37 @@ class GemstoneMacro extends ModuleBase {
             () => {
                 if (!this.route || this.route.length < 1) return;
 
+                let pathCounter = 1;
+                let mineCounter = 1;
+
                 for (let i = 0; i < this.route.length; i++) {
                     const current = this.route[i];
+                    if (!current || typeof current.x !== 'number') continue;
 
-                    if (current && typeof current.x === 'number' && typeof current.y === 'number' && typeof current.z === 'number') {
-                        let boxColor, edgeColor;
+                    let boxColor, edgeColor, label;
+                    const pos = new Vec3d(current.x, current.y, current.z);
 
-                        // Color Logic: Red for WALK, Green for MINEABLE, Purple for everything else
-                        if (current.movements === 'WALK') {
-                            boxColor = [255, 50, 50, 100]; // Balanced Red
-                            edgeColor = [255, 50, 50, 255];
-                        } else if (current.movements === 'MINEABLE') {
-                            boxColor = [0, 255, 0, 100]; // Green
-                            edgeColor = [0, 255, 0, 255];
-                        } else {
-                            boxColor = [145, 70, 255, 100]; // Balanced Purple
-                            edgeColor = [145, 70, 255, 255];
-                        }
-
-                        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), boxColor, edgeColor, 5, current.movements === 'MINEABLE');
+                    if (current.movements === 'MINEABLE') {
+                        boxColor = [0, 255, 0, 80]; // Green
+                        edgeColor = [0, 255, 0, 255];
+                        label = `Mineable #${mineCounter++}`;
+                    } else {
+                        boxColor = current.movements === 'WALK' ? [255, 50, 50, 80] : [145, 70, 255, 80];
+                        edgeColor = current.movements === 'WALK' ? [255, 50, 50, 255] : [145, 70, 255, 255];
+                        label = `#${pathCounter++}`;
                     }
+
+                    if (label) {
+                        RenderUtils.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                    }
+
+                    RenderUtils.drawStyledBox(pos, boxColor, edgeColor, 4, false);
                 }
             }
         );
 
         this.on('tick', () => {
-            MiningBot.setCost(this.getGemstoneCosts());
+            MiningBot.setCost(this.getOreCosts());
 
             switch (this.state) {
                 case this.STATES.ETHERWARPING:
@@ -157,7 +133,7 @@ class GemstoneMacro extends ModuleBase {
                     MiningBot.toggle(false);
                     Keybind.setKey('leftclick', false);
 
-                    let aotv = Guis.findItemInHotbar('Aspect of the Void') || Guis.findItemInHotbar('Aspect of the End');
+                    let aotv = Guis.findItemInHotbar('Aspect of the Void');
 
                     if (aotv === -1) {
                         this.toggle(false);
@@ -180,6 +156,7 @@ class GemstoneMacro extends ModuleBase {
                             this.toggle(false);
                             return;
                         }
+
                         this.closestPoint = target;
                     }
 
@@ -248,6 +225,8 @@ class GemstoneMacro extends ModuleBase {
                                 this.lastY = Player.getY();
                                 this.lastZ = Player.getZ();
 
+                                // it works cus miningbot ignores the blocks behind it
+                                // this can and should be better
                                 this.prepartionTicks = 0;
                                 this.state = this.STATES.MINING;
                             });
@@ -283,7 +262,7 @@ class GemstoneMacro extends ModuleBase {
 
                             let target = this.getPointOnBlock(this.route[this.closestPointIndex]);
                             if (!target) {
-                                // this.message('Next point face is not visible!');
+                                this.message('Next point face is not visible!');
                                 this.toggle(false);
                                 return;
                             }
@@ -361,11 +340,11 @@ class GemstoneMacro extends ModuleBase {
                     } else {
                         if (!this.scanned) {
                             this.scanned = true;
-                            MiningBot.scanForBlock(this.getGemstoneCosts());
+                            MiningBot.scanForBlock(this.getOreCosts());
                         }
 
                         if (MiningBot.foundLocations.length > 0) {
-                            ChatLib.chat('Found ' + MiningBot.foundLocations.length + ' gemstones');
+                            ChatLib.chat('Found ' + MiningBot.foundLocations.length + ' ores');
                             MiningBot.toggle(true);
                             return;
                         }
@@ -373,12 +352,9 @@ class GemstoneMacro extends ModuleBase {
                         if (MiningBot.foundLocations.length === 0) {
                             if (this.prepartionTicks < 20) return;
 
-                            ChatLib.chat('No more gemstones found');
-
                             MiningBot.toggle(false);
                             MiningBot.foundLocations = [];
 
-                            ChatLib.chat('No more gemstones found');
                             this.state = this.STATES.ETHERWARPING;
                             this.scanned = false;
                             return;
@@ -393,26 +369,26 @@ class GemstoneMacro extends ModuleBase {
             true,
             (selected) => {
                 this.loadedFile = Router.getFilefromCallback(selected);
-                this.route = Router.loadRouteFromFile('GemstoneRoutes/', this.loadedFile);
-                RouteState.setRoute(this.route, 'Gemstone Macro');
+                this.route = Router.loadRouteFromFile('OreRoutes/', this.loadedFile);
+                RouteState.setRoute(this.route, 'Ore Macro');
             },
             'The route the macro will use'
         );
         this.addMultiToggle(
-            'Gemstone Types',
-            ['Ruby', 'Amethyst', 'Sapphire', 'Topaz', 'Amber', 'Jade', 'Jasper'],
+            'Ore Types',
+            ['Coal', 'Iron', 'Gold', 'Diamond', 'Redstone', 'Lapis', 'Emerald'],
             false,
             (selected) => {
                 const setHas = (name) => selected.some((item) => item.name === name && item.enabled === true);
-                this.AMBER = setHas('Amber');
-                this.AMETHYST = setHas('Amethyst');
-                this.JADE = setHas('Jade');
-                this.JASPER = setHas('Jasper');
-                this.RUBY = setHas('Ruby');
-                this.SAPPHIRE = setHas('Sapphire');
-                this.TOPAZ = setHas('Topaz');
+                this.COAL = setHas('Coal');
+                this.IRON = setHas('Iron');
+                this.GOLD = setHas('Gold');
+                this.DIAMOND = setHas('Diamond');
+                this.REDSTONE = setHas('Redstone');
+                this.LAPIS = setHas('Lapis');
+                this.EMERALD = setHas('Emerald');
             },
-            'Type of gemstones the macro is able to target'
+            'Type of ores the macro is able to target'
         );
         this.addToggle(
             'Fast AOTV',
@@ -421,26 +397,10 @@ class GemstoneMacro extends ModuleBase {
             },
             'Decreased amount of ticks before it sends the right click packet'
         );
-        this.addToggle(
-            'Mob Killer',
-            (value) => {
-                this.MOBKILLER = value;
-            },
-            'Kills mobs if they are in a certain radius'
-        );
-        this.addSlider(
-            'Weapon Slot',
-            1,
-            9,
-            1,
-            (value) => {
-                this.WEAPONSLOT = value;
-            },
-            'Slot of your melee weapon'
-        );
     }
 
     recalculateEtherWarp(intensity) {
+        // redo this only calculate etherwarp once then do something else
         this.rotatedToPoint = false;
         this.etherwarpAttempts++;
 
@@ -470,15 +430,15 @@ class GemstoneMacro extends ModuleBase {
         }
     }
 
-    getGemstoneCosts() {
+    getOreCosts() {
         return {
-            'minecraft:coal_block': 4,
-            'minecraft:quartz_block': 4,
-            'minecraft:iron_block': 4,
-            'minecraft:redstone_block': 4,
-            'minecraft:gold_block': 4,
-            'minecraft:diamond_block': 4,
-            'minecraft:emerald_block': 4,
+            'minecraft:coal_block': this.COAL ? 1 : 0,
+            'minecraft:quartz_block': this.QUARTZ ? 1 : 0,
+            'minecraft:iron_block': this.IRON ? 1 : 0,
+            'minecraft:redstone_block': this.REDSTONE ? 1 : 0,
+            'minecraft:gold_block': this.GOLD ? 1 : 0,
+            'minecraft:diamond_block': this.DIAMOND ? 1 : 0,
+            'minecraft:emerald_block': this.EMERALD ? 1 : 0,
         };
     }
 
@@ -668,7 +628,7 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'GEMSTONE_MACRO');
+        MacroState.setMacroRunning(false, 'ORE_MACRO');
         RouteState.clearRoute();
         this.scanned = false;
         this.closestPointIndex = null;
@@ -681,4 +641,4 @@ class GemstoneMacro extends ModuleBase {
     }
 }
 
-new GemstoneMacro();
+new OreMacro();

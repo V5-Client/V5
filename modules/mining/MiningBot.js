@@ -285,11 +285,10 @@ class Bot extends ModuleBase {
             Client.sendPacket(packet);
         }
 
-        // no idea how any of this bullshit works. and yet it does.
-        // it fixes the ability usage (for some reason, it didnt use it before)
-
         this.state = this.STATES.MINING;
-        this.scanForBlock(this.COSTTYPE);
+        if (!this.manualScan) {
+            this.scanForBlock(this.COSTTYPE);
+        }
     }
 
     handleMiningState() {
@@ -324,8 +323,28 @@ class Bot extends ModuleBase {
         }
 
         if (needScan) {
-            this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
-            this.currentTarget = this.foundLocations[0];
+            if (this.manualScan) {
+                let currentBlock = this.currentTarget ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z) : null;
+                let currentReg = currentBlock?.type?.getRegistryName() || '';
+
+                if (this.currentTarget === null || currentReg.includes('air') || currentReg.includes('bedrock')) {
+                    this.lowestCostBlockIndex++;
+                    this.nukedBlock = false;
+
+                    if (this.lowestCostBlockIndex >= this.foundLocations.length) {
+                        this.foundLocations = [];
+                        return;
+                    }
+
+                    this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
+                    this.mineTickCount = 0;
+                    this.tickCount = 0;
+                }
+            } else {
+                this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
+                this.currentTarget = this.foundLocations[0];
+                this.lowestCostBlockIndex = 0;
+            }
             this.allowScan = false;
         }
 
@@ -360,6 +379,7 @@ class Bot extends ModuleBase {
             this.tickCount = 0;
             this.lastBlockPos = lowestCostBlock;
             this.lastBlockType = blockName;
+            this.nukedBlock = false;
         }
 
         this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
@@ -383,6 +403,7 @@ class Bot extends ModuleBase {
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
         this.totalTicks = MiningUtils.getMineTime(this.miningspeed, this.speedBoost, this.currentTarget);
 
+        if (!this.currentTarget) return;
         const blockDist = MathUtils.getDistanceToPlayerEyes(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z).distance;
         if (this.COSTTYPE === this.gemstoneCosts) {
             if (blockDist < 1) Keybind.setKey('s', true);
@@ -419,15 +440,21 @@ class Bot extends ModuleBase {
             : !this.currentTarget || blockName.includes('air') || blockName.includes('bedrock') || this.allowScan;
 
         if (shouldRotate) {
-            if (!this.TICKGLIDE) {
-                this.scanForBlock(this.COSTTYPE, this.currentTarget ? { x: this.currentTarget.x, y: this.currentTarget.y, z: this.currentTarget.z } : null);
-                this.currentTarget = this.foundLocations[0];
-            } else {
+            if (this.manualScan) {
+                this.allowScan = true;
                 this.mineTickCount = 0;
                 this.tickCount = 0;
-                this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
+            } else {
+                if (!this.TICKGLIDE) {
+                    this.scanForBlock(this.COSTTYPE, this.currentTarget ? { x: this.currentTarget.x, y: this.currentTarget.y, z: this.currentTarget.z } : null);
+                    this.currentTarget = this.foundLocations[0];
+                } else {
+                    this.mineTickCount = 0;
+                    this.tickCount = 0;
+                    this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
+                }
+                this.allowScan = false;
             }
-            this.allowScan = false;
         }
 
         const targetVector = this.getAimVectorForTarget(this.currentTarget);
@@ -531,7 +558,7 @@ class Bot extends ModuleBase {
         }
     }
 
-    findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq) {
+    findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true) {
         const cx = x + 0.5,
             cy = y + 0.5,
             cz = z + 0.5;
@@ -541,10 +568,11 @@ class Bot extends ModuleBase {
         const vLenSq = vx * vx + vy * vy + vz * vz;
         if (vLenSq === 0) return null;
 
-        const vLen = Math.sqrt(vLenSq);
-        const dotToCenter = (vx * lookVec.x + vy * lookVec.y + vz * lookVec.z) / vLen;
-
-        if (dotToCenter < -0.05) return null;
+        if (checkFov && lookVec) {
+            const vLen = Math.sqrt(vLenSq);
+            const dotToCenter = (vx * lookVec.x + vy * lookVec.y + vz * lookVec.z) / vLen;
+            if (dotToCenter < -0.05) return null;
+        }
 
         const invX = 1 / vx,
             invY = 1 / vy,
@@ -717,7 +745,7 @@ class Bot extends ModuleBase {
         if (distSq > maxReachSq) return null;
 
         const dist = Math.sqrt(distSq);
-        const dot = (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist;
+        const dot = lookVec ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1.0;
 
         return { x: result.x, y: result.y, z: result.z, dist, dot };
     }
@@ -752,6 +780,42 @@ class Bot extends ModuleBase {
                 this.COSTTYPE = null;
             }
         }
+    }
+
+    populateLocations(locations) {
+        this.manualScan = true;
+
+        const eyePos = Player.getPlayer().getEyePos();
+        const maxReachSq = 4.5 * 4.5;
+
+        this.foundLocations = locations
+            .map((loc) => {
+                const hit = this.findVisibleAimPoint(loc.x, loc.y, loc.z, eyePos, null, maxReachSq, false);
+
+                if (!hit) return null;
+
+                return {
+                    x: loc.x,
+                    y: loc.y,
+                    z: loc.z,
+                    aimX: hit.x,
+                    aimY: hit.y,
+                    aimZ: hit.z,
+                    dist: hit.dist,
+                    isVisible: true,
+                };
+            })
+            .filter((loc) => loc !== null);
+
+        if (this.foundLocations.length === 0) {
+            return false;
+        }
+
+        this.currentTarget = this.foundLocations[0];
+        this.lowestCostBlockIndex = 0;
+        this.toggle(true);
+
+        return true;
     }
 
     onEnable() {

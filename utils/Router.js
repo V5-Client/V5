@@ -90,9 +90,10 @@ class Routes {
      * @param {*} takeMovementTypes decides wether the route should take more complex actions, e.g. "WALK", "ETHERWARP"
      * @param {*} allowedMovements movement types allowed for the waypoint
      * @param {*} userMovementInput movement type selected by the user
+     * @param {*} addPoinToLook decides wether the waypoint should be set where the player is looking or where the player is standing
      * @returns returns the updated or unchanged route
      */
-    Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '') {
+    Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '', addPoinToLook = false) {
         let indexToUse = undefined;
         if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
@@ -106,29 +107,41 @@ class Routes {
 
         switch (action) {
             case 'ADD':
-                let point = {
-                    x: Math.floor(Player.getX()),
-                    y: Math.floor(Player.getY() - 1),
-                    z: Math.floor(Player.getZ()),
-                };
+                let point = {};
+
+                if (addPoinToLook) {
+                    let looking = Player.lookingAt();
+                    if (!looking) {
+                        Chat.message('You are not looking at anything');
+                        return route;
+                    }
+                    point.x = Math.floor(looking.x);
+                    point.y = Math.floor(looking.y);
+                    point.z = Math.floor(looking.z);
+                } else {
+                    point.x = Math.floor(Player.getX());
+                    point.y = Math.floor(Player.getY() - 1);
+                    point.z = Math.floor(Player.getZ());
+                }
 
                 let isValidWaypoint = true;
 
                 let allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => m.toUpperCase()) : null);
 
                 if (takeMovementTypes) {
-                    if (!Array.isArray(userMovementInput) || userMovementInput.length === 0) {
+                    let movementToVerify = Array.isArray(userMovementInput) ? userMovementInput[0] : userMovementInput;
+
+                    if (!movementToVerify) {
                         Chat.message('ERROR: Movement type required. Waypoint not added.');
                         return route;
                     }
 
-                    let userMovementUpper = userMovementInput[0].toUpperCase();
+                    let userMovementUpper = movementToVerify.toUpperCase();
 
                     if (allowedMovementsSet.has(userMovementUpper)) {
                         point.movements = userMovementUpper;
                     } else {
-                        isValidWaypoint = false;
-                        Chat.message(`ERROR: Movement type '${userMovementInput[0]}' not supported. Waypoint not added.`);
+                        Chat.message(`ERROR: Movement type '${movementToVerify}' not supported.`);
                         return route;
                     }
                 }

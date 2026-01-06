@@ -76,9 +76,8 @@ export default class RenderUtils {
         );
     }
 
-    // tesselator is retarded
-    static drawString(text, x, y, z, color, renderBlackBox = true, scale = 1, increase = false, centered = true, renderThroughBlocks = true) {
-        RenderUtilsPackage.drawString(text, x, y, z, color, renderBlackBox, scale, increase, centered, renderThroughBlocks);
+    static drawText(text, pos, scale = 1, backgroundBox = false, increase = false, seeThrough = false, translate = true) {
+        RenderUtilsPackage.drawText(text, pos, scale, backgroundBox, increase, seeThrough, translate);
     }
 
     /**

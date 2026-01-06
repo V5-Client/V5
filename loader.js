@@ -23,5 +23,3 @@ import './modules/loader.js';
 
 import { loadSettings } from './gui/GuiSave';
 loadSettings();
-
-// test

@@ -11,6 +11,7 @@ export const ChangeGameModeC2S = net.minecraft.network.packet.c2s.play.ChangeGam
 export const ChatCommandSignedC2S = net.minecraft.network.packet.c2s.play.ChatCommandSignedC2SPacket;
 export const ChatMessageC2S = net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
 export const ClickSlotC2S = net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
+export const ScreenHandlerSlotUpdateS2C = net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
 export const ClientCommandC2S = net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 export const ClientOptionsC2S = net.minecraft.network.packet.c2s.common.ClientOptionsC2SPacket;
 export const ClientStatusC2S = net.minecraft.network.packet.c2s.play.ClientStatusC2SPacket;
