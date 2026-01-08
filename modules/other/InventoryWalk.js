@@ -1,3 +1,4 @@
+import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClickSlotC2S, OpenScreenS2C, CommonPingS2C } from '../../utils/Packets';
 
@@ -30,7 +31,7 @@ class InventoryWalk extends ModuleBase {
                 Client.scheduleTask(0, () => {
                     this.keybinds.forEach((keybind) => {
                         let down = Keyboard.isKeyDown(keybind.getKeyCode());
-                        keybind.setState(down);
+                        if (down) keybind.setState(down);
                     });
                 });
             } else {
