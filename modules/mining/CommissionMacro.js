@@ -134,7 +134,7 @@ class CommissionMacro extends ModuleBase {
         this.addSlider(
             'Player Avoidance Radius',
             0,
-            200,
+            30,
             10,
             (value) => {
                 this.playerAvoidanceRadius = value;
@@ -356,7 +356,7 @@ class CommissionMacro extends ModuleBase {
 
     getOtherPlayers() {
         if (this.playerAvoidanceRadius <= 0) return [];
-        return World.getAllPlayers().filter((p) => p.getName() !== Player.getName());
+        return World.getAllPlayers().filter((p) => p.getName() !== Player.getName() && p.getUUID().version() === 4);
     }
 
     findAvailableCommission(supportedTasks, otherPlayers) {
