@@ -65,9 +65,10 @@ function attemptReconnect() {
         reconnectAttempts++;
         const delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
         //Chat.messageIrc(`Attempting to reconnect in ${delay / 20} seconds...`);
+        if (isConnected) return Chat.messageIrc('Already connected to irc!');
         Client.scheduleTask(delay, () => {
             if (gameUnload) return;
-            if (isConnected) return;
+            if (isConnected) return Chat.messageIrc('Already connected to irc!');
             Chat.messageIrc('Reconnecting...');
             connectIRC();
             start = Date.now();

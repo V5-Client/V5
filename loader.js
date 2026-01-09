@@ -7,6 +7,7 @@ import './gui/GUI.js';
 /* CORE */
 import './utils/Config.js';
 import './utils/backend/IRC.js';
+import './utils/V5Commands.js';
 
 /* Utils */
 import './utils/MacroState.js';
