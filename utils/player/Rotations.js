@@ -16,22 +16,16 @@ class RotationConfig extends ModuleBase {
         this.INSTANT = false;
         this.DAMPING_DIST = 60.0;
 
-        this.addToggle(
-            'Linear Rotations',
+        this.addMultiToggle(
+            'Rotation Mode',
+            ['Linear', 'Non-linear (recommended)', 'Instant'],
+            true,
             (v) => {
-                this.LINEAR = v;
+                this.LINEAR = v === 'Linear';
+                this.INSTANT = v === 'Instant';
             },
-            '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise',
-            true
-        );
-
-        this.addToggle(
-            'Instant Rotations',
-            (v) => {
-                this.INSTANT = v;
-            },
-            'Skips the transition and snaps to the target immediately.',
-            false
+            '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise\n• Instant rotations snap to the target immediately.',
+            'Non-linear (recommended)'
         );
 
         this.addSlider(
