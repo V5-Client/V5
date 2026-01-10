@@ -12,17 +12,19 @@ class RotationConfig extends ModuleBase {
         });
 
         this.ROTATION_SPEED = 400;
-        this.LINEAR = true;
-        this.INSTANT = false;
+        this.rotationMode = 'Non-linear';
         this.DAMPING_DIST = 60.0;
 
         this.addMultiToggle(
             'Rotation Mode',
             ['Linear', 'Non-linear (recommended)', 'Instant'],
             true,
-            (v) => {
-                this.LINEAR = v === 'Linear';
-                this.INSTANT = v === 'Instant';
+            (value) => {
+                if (value.length > 0 && typeof value[0] === 'string') {
+                    this.rotationMode = value[0];
+                } else {
+                    this.rotationMode = value.find((opt) => opt.enabled)?.name || null;
+                }
             },
             '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise\n• Instant rotations snap to the target immediately.',
             'Non-linear (recommended)'
@@ -74,7 +76,7 @@ class RotationsTo {
     }
 
     selectProfile(distance) {
-        if (RotationModule.LINEAR) return 'linear';
+        if (RotationModule.rotationMode === 'Linear') return 'linear';
         if (distance < 15) return 'precise-log';
         if (distance < 45) return 'hermite-arc';
         if (distance < 90) return 'bezier-drift';
@@ -82,7 +84,7 @@ class RotationsTo {
     }
 
     getMathEquationOffset(progress) {
-        if (RotationModule.LINEAR || RotationModule.INSTANT) return { x: 0, y: 0 };
+        if (RotationModule.rotationMode === 'Linear' || RotationModule.rotationMode === 'Instant') return { x: 0, y: 0 };
 
         let curveFactor = 0;
         const safeProgress = Math.max(0, Math.min(1, progress));
@@ -245,7 +247,7 @@ class RotationsTo {
             return;
         }
 
-        if (RotationModule.INSTANT) {
+        if (RotationModule.rotationMode === 'Instant') {
             this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
             if (!this.trackedEntity && !this.targetVector) {
                 return this.stopRotation();
@@ -285,7 +287,7 @@ class RotationsTo {
         let nextYaw = currentYaw + deltaYaw * ratio;
         let nextPitch = currentPitch + deltaPitch * ratio;
 
-        if (!RotationModule.LINEAR) {
+        if (RotationModule.rotationMode !== 'Linear') {
             const curve = this.getMathEquationOffset(progress);
             if (!isNaN(curve.x) && !isNaN(curve.y)) {
                 nextYaw += curve.x * ratio;
