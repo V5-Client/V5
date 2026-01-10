@@ -163,7 +163,8 @@ class Bot extends ModuleBase {
             (value) => {
                 this.TICKGLIDE = value;
             },
-            'Predicts when blocks are broken to begin mining the next block early.'
+            'Predicts when blocks are broken to begin mining the next block early.',
+            true
         );
         this.addToggle(
             'Jasper Drill Exploit',
@@ -379,7 +380,10 @@ class Bot extends ModuleBase {
 
         const fakeLookMode = this.FAKELOOK.find((option) => option.enabled)?.name;
         if (fakeLookMode === 'Off') {
-            if (!Player.toMC().handSwinging && Date.now() - this.lastGUI > 100) Keybind.setKey('leftclick', true);
+            if (!Player.toMC().handSwinging && Date.now() - this.lastGUI > 100) {
+                Keybind.setKey('leftclick', true);
+                this.lastGUI = Date.now(); // stupid fix
+            }
         }
 
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
