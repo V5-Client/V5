@@ -133,6 +133,8 @@ class ControlSystem {
                 break;
             }
         }
+
+        shouldJump && Utils.playerIsCollided() ? this.updateKeyState('space', true) : this.updateKeyState('space', false);
     }
 
     setMovementToCoords(x, y, z, shouldJump) {

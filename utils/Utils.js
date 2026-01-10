@@ -359,7 +359,8 @@ class UtilsClass {
 
     playerIsCollided() {
         const playerBox = Player.getPlayer().getBoundingBox();
-        const expandedBox = playerBox.expand(0.01, 0, 0.01);
+        // Use a small epsilon to avoid "ghost" collisions with adjacent blocks
+        const expandedBox = playerBox.expand(0.01, 0.0, 0.01);
 
         let minX = Math.floor(expandedBox.minX);
         let minY = Math.floor(expandedBox.minY);
@@ -373,10 +374,10 @@ class UtilsClass {
                 for (let z = minZ; z <= maxZ; z++) {
                     let block = World.getBlockAt(x, y, z);
 
-                    if (block?.type?.getID() === 0) return false;
-                    const blockVec = new Vec3d(x, y, z);
+                    if (!block || block.type.getID() === 0) continue;
 
-                    if (this.noCollision(blockVec)) return false;
+                    const blockVec = new Vec3d(x, y, z);
+                    if (this.noCollision(blockVec)) continue;
 
                     return true;
                 }
