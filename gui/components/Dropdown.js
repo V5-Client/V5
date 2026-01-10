@@ -23,6 +23,7 @@ export class MultiToggle {
             animationProgress: 0,
             animationStart: 0,
         }));
+        this.singleSelect = singleSelect;
         if (defaultValue) {
             const defaultIndex = options.indexOf(defaultValue);
             if (defaultIndex !== -1) {
@@ -30,10 +31,13 @@ export class MultiToggle {
                 this.options[defaultIndex].animationProgress = 1;
             }
         }
+        if (this.singleSelect && !this.options.some((option) => option.enabled) && this.options.length > 0) {
+            this.options[0].enabled = true;
+            this.options[0].animationProgress = 1;
+        }
         this.expanded = false;
         this.optionHeight = 32;
         this.containerHeight = 48;
-        this.singleSelect = singleSelect;
         this.callback = callback;
         this.optionPanelWidth = 0;
 
@@ -248,8 +252,15 @@ export class MultiToggle {
                     if (mouseY >= optionTop && mouseY <= optionBottom) {
                         if (this.singleSelect) {
                             const isEnabled = this.options[i].enabled;
+                            if (isEnabled) {
+                                playClickSound();
+                                if (this.callback) {
+                                    this.callback([this.options[i].name]);
+                                }
+                                return true;
+                            }
                             this.options.forEach((opt, index) => {
-                                const newState = !isEnabled && index === i;
+                                const newState = index === i;
                                 if (opt.enabled !== newState) {
                                     opt.enabled = newState;
                                     opt.animationStart = Date.now();
