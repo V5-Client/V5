@@ -629,7 +629,7 @@ class CommissionMacro extends ModuleBase {
     startMining() {
         if (Client.isInGui()) {
             Chat.message('&eWaiting for GUI to close before mining...');
-            this.delay(5);
+            this.setState(STATES.WAITING_GUI_CLOSE);
             return;
         }
 

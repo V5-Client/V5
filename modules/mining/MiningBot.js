@@ -12,7 +12,7 @@ import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
-import { HandSwingC2S, PlayerActionC2S, PlayerInteractItemC2S } from '../../utils/Packets';
+import { PlayerActionC2S, PlayerInteractItemC2S } from '../../utils/Packets';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -58,10 +58,7 @@ class Bot extends ModuleBase {
         this.speedBoost = false;
         this.nukedBlock = false;
 
-        this.miningResetPending = false;
-        this.miningResetTicks = 0;
-
-        this.swingTickCounter = 0;
+        this.lastGUI = Date.now();
 
         this.faceReach = 4.5;
         this.bfsPad = Math.sqrt(3) * 0.5;
@@ -127,7 +124,7 @@ class Bot extends ModuleBase {
         this.normalRender = register('postRenderWorld', () => this.renderNormal()).unregister();
 
         this.on('tick', () => {
-            if (Client.isInChat() || Client.isInGui()) return Keybind.setKey('leftclick', false);
+            if (Client.isInChat() || Client.isInGui()) return (this.lastGUI = Date.now());
 
             switch (this.state) {
                 case this.STATES.ABILITY:
@@ -156,9 +153,6 @@ class Bot extends ModuleBase {
     resetMining() {
         if (this.state !== this.STATES.MINING && this.state !== this.STATES.ABILITY) return;
 
-        Keybind.setKey('leftclick', false);
-        this.miningResetPending = true;
-        this.miningResetTicks = 1;
         this.mineTickCount = 0;
         this.tickCount = 0;
     }
@@ -271,8 +265,6 @@ class Bot extends ModuleBase {
             return;
         }
 
-        Keybind.setKey('leftclick', false);
-
         this.file = Utils.getConfigFile('miningstats.json');
         if (this.file) {
             this.ability = this.file.ability;
@@ -295,16 +287,6 @@ class Bot extends ModuleBase {
         if (this.SCAN_ONLY) {
             this.scanForBlock(this.COSTTYPE);
             return;
-        }
-
-        if (this.miningResetPending) {
-            Keybind.setKey('leftclick', false);
-            if (this.miningResetTicks > 0) {
-                this.miningResetTicks--;
-                return;
-            }
-            this.miningResetPending = false;
-            this.allowScan = true;
         }
 
         const { drill } = MiningUtils.getDrills();
@@ -397,7 +379,7 @@ class Bot extends ModuleBase {
 
         const fakeLookMode = this.FAKELOOK.find((option) => option.enabled)?.name;
         if (fakeLookMode === 'Off') {
-            Keybind.setKey('leftclick', true);
+            if (!Player.toMC().handSwinging && Date.now() - this.lastGUI > 100) Keybind.setKey('leftclick', true);
         }
 
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
@@ -422,19 +404,7 @@ class Bot extends ModuleBase {
                 else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
                 this.nukedBlock = true;
             }
-
-            if (this.currentTarget) {
-                this.swingTickCounter++;
-                if (this.swingTickCounter >= 4) {
-                    Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
-                    Player.getPlayer().swingHand(MCHand.MAIN_HAND);
-                    this.swingTickCounter = 0;
-                }
-            }
-        } else {
-            this.swingTickCounter = 0;
         }
-
         const shouldRotate = this.TICKGLIDE
             ? this.mineTickCount > this.totalTicks || this.tickCount > this.totalTicks * 2 || this.allowScan
             : !this.currentTarget || blockName.includes('air') || blockName.includes('bedrock') || this.allowScan;
@@ -830,14 +800,6 @@ class Bot extends ModuleBase {
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
-        this.miningResetPending = false;
-        this.miningResetTicks = 0;
-
-        const attackKey = Client.getMinecraft().options.attackKey;
-        attackKey.setPressed(false); // redundant but just to make sure
-
-        Keybind.setKey('rightclick', false);
-        Keybind.setKey('leftclick', false);
 
         this.normalRender.register();
     }
@@ -853,10 +815,7 @@ class Bot extends ModuleBase {
         this.lastBlockType = null;
         this.currentTarget = null;
         this.mineTickCount = 0;
-        this.swingTickCounter = 0;
         this.tickCount = 0;
-        this.miningResetPending = false;
-        this.miningResetTicks = 0;
         Rotations.stopRotation();
         Guis.EnableUserInput();
         this.normalRender.unregister();
