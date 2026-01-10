@@ -332,23 +332,24 @@ class Beachballer extends ModuleBase {
     findBeachBall() {
         const stands = World.getAllEntitiesOfType(ArmorStandEntity.class);
 
-        for (const element of stands) {
+        for (let element of stands) {
             const headItem = element.getStackInSlot(5);
             if (!headItem) continue;
 
-            if (this.isBeachBall(headItem)) {
-                return element;
-            }
+            if (this.isBeachBall(headItem)) return element;
         }
-
         return null;
     }
 
     isBeachBall(item) {
         try {
-            const nbtString = item.getNBT().toString();
+            const mcItem = item.toMC();
+            const profileType = net.minecraft.component.DataComponentTypes.PROFILE;
 
-            return nbtString.includes(SMALL_BEACHBALL_BASE64) || nbtString.includes(LARGE_BEACHBALL_BASE64);
+            const profileComponent = mcItem.get(profileType);
+            const data = profileComponent.getGameProfile().toString();
+
+            return data.includes(SMALL_BEACHBALL_BASE64);
         } catch (e) {
             return false;
         }
