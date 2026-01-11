@@ -103,6 +103,11 @@ class Routes {
             return Chat.message("You don't have a route selected");
         }
 
+        if (!Array.isArray(route)) {
+            Chat.message('Invalid route data. Resetting to an empty route.');
+            route = [];
+        }
+
         let routeModified = false;
 
         switch (action) {

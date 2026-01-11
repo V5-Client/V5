@@ -306,7 +306,7 @@ class Combat extends ModuleBase {
             return;
         }
 
-        Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z);
+        Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true);
 
         if (this.sprintToTarget) {
             Keybind.setKey('sprint', true);
