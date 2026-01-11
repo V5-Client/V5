@@ -5,6 +5,7 @@ import { Rotations } from '../../../../utils/player/Rotations';
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
 import { Utils } from '../../../../utils/Utils';
+import { Chat } from '../../../../utils/Chat';
 
 export default class MelonKingDeMP extends FarmHandler {
     constructor(parent) {
@@ -119,11 +120,11 @@ export default class MelonKingDeMP extends FarmHandler {
                 if (sides.front) {
                     let lookingAt = Player.lookingAt();
                     if (!registry.includes('stem')) {
-                        ChatLib.chat('got from looking');
+                        Chat.message('got from looking');
 
                         // i mean this isnt really needed ?
                         registry = this.getRegistry(lookingAt);
-                    } else ChatLib.chat('got with func');
+                    } else Chat.message('got with func');
 
                     const cropTools = {
                         'minecraft:melon': 'Melon Dicer',
@@ -146,7 +147,7 @@ export default class MelonKingDeMP extends FarmHandler {
 
                 let targetSlot = Guis.findItemInHotbar(requiredToolName);
 
-                ChatLib.chat(`&aFound tool at slot ${targetSlot}`);
+                Chat.message(`&aFound tool at slot ${targetSlot}`);
 
                 if (targetSlot !== -1) {
                     Guis.setItemSlot(targetSlot);
@@ -164,7 +165,7 @@ export default class MelonKingDeMP extends FarmHandler {
                 p.state = p.STATES.IDLECHECKS;
                 break;
             case p.STATES.IDLECHECKS:
-                ChatLib.chat(p.movementKey);
+                Chat.message(p.movementKey);
                 Keybind.setKey('w', true);
                 Keybind.setKey('leftclick', true);
                 Keybind.setKey(p.movementKey, true);

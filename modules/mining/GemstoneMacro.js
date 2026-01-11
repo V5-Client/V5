@@ -365,7 +365,7 @@ class GemstoneMacro extends ModuleBase {
                     } else if (ignoredMineables.length > 0) {
                         if (this.prepartionTicks < 20) return;
 
-                        ChatLib.chat('Theres mineables but they are broken');
+                        Chat.message('Theres mineables but they are broken');
 
                         this.state = this.STATES.ETHERWARPING;
                         return;
@@ -376,7 +376,7 @@ class GemstoneMacro extends ModuleBase {
                         }
 
                         if (MiningBot.foundLocations.length > 0) {
-                            ChatLib.chat('Found ' + MiningBot.foundLocations.length + ' gemstones');
+                            Chat.message('Found ' + MiningBot.foundLocations.length + ' gemstones');
                             MiningBot.toggle(true);
                             return;
                         }
@@ -384,12 +384,12 @@ class GemstoneMacro extends ModuleBase {
                         if (MiningBot.foundLocations.length === 0) {
                             if (this.prepartionTicks < 20) return;
 
-                            ChatLib.chat('No more gemstones found');
+                            Chat.message('No more gemstones found');
 
                             MiningBot.toggle(false);
                             MiningBot.foundLocations = [];
 
-                            ChatLib.chat('No more gemstones found');
+                            Chat.message('No more gemstones found');
                             this.state = this.STATES.ETHERWARPING;
                             this.scanned = false;
                             return;

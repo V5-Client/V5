@@ -87,7 +87,7 @@ v5Command('packetinfo', (args) => {
         });
     }
 
-    ChatLib.chat(output);
+    Chat.message(output);
 
     const consoleOutput = output.replace(/§[0-9a-fk-or]/g, '');
     Chat.log(consoleOutput);

@@ -362,7 +362,7 @@ class FarmingMacro extends ModuleBase {
                         if (!registry) {
                             let looking = Player.lookingAt();
                             if (!looking) {
-                                ChatLib.chat('Errored big');
+                                Chat.message('Errored big');
                                 this.toggle(false);
                                 return;
                             }
@@ -396,11 +396,11 @@ class FarmingMacro extends ModuleBase {
                         if (sides.front) {
                             let lookingAt = Player.lookingAt();
                             if (!registry.includes('stem')) {
-                                ChatLib.chat('got from looking');
+                                Chat.message('got from looking');
 
                                 // i mean this isnt really needed ?
                                 registry = this.getRegistry(lookingAt);
-                            } else ChatLib.chat('got with func');
+                            } else Chat.message('got with func');
 
                             const cropTools = {
                                 'minecraft:melon': 'Melon Dicer',
@@ -486,7 +486,7 @@ class FarmingMacro extends ModuleBase {
                     }
 
                     if (this.name === "MelonKingDe's Melon / Pumpkin") {
-                        ChatLib.chat(this.movementKey);
+                        Chat.message(this.movementKey);
                         Keybind.setKey('w', true);
                         Keybind.setKey('leftclick', true);
                         Keybind.setKey(this.movementKey, true);

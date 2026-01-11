@@ -7,6 +7,7 @@ import { Keybind } from '../../../../utils/player/Keybinding';
 import { Utils } from '../../../../utils/Utils';
 import RenderUtils from '../../../../utils/render/RendererUtils';
 import { Vec3d } from '../../../../utils/Constants';
+import { Chat } from '../../../../utils/Chat';
 
 export default class CaneSunflowerRose extends FarmHandler {
     constructor(parent) {
@@ -134,14 +135,14 @@ export default class CaneSunflowerRose extends FarmHandler {
                 let registry = block?.name;
 
                 if (p.registry && p.registry.indexOf(registry) !== -1) {
-                    ChatLib.chat('got with func');
+                    Chat.message('got with func');
 
                     // i mean this isnt really needed ?
                     //registry = this.getRegistry(lookingAt);
                 } else {
                     let lookingAt = Player.lookingAt();
 
-                    ChatLib.chat('got from looking');
+                    Chat.message('got from looking');
 
                     // i mean this isnt really needed ?
                     registry = this.getRegistry(lookingAt);
@@ -166,7 +167,7 @@ export default class CaneSunflowerRose extends FarmHandler {
 
                 let targetSlot = Guis.findItemInHotbar(requiredToolName);
 
-                ChatLib.chat(`&aFound tool at slot ${targetSlot}`);
+                Chat.message(`&aFound tool at slot ${targetSlot}`);
 
                 if (targetSlot !== -1) {
                     Guis.setItemSlot(targetSlot);
@@ -180,8 +181,8 @@ export default class CaneSunflowerRose extends FarmHandler {
             case STATES.DECIDEMOVEMENT:
                 Keybind.setKey('leftclick', true);
 
-                ChatLib.chat(`&aMovement key: ${p.movementKey}`);
-                ChatLib.chat(`&aYaw: ${p.yaw}`);
+                Chat.message(`&aMovement key: ${p.movementKey}`);
+                Chat.message(`&aYaw: ${p.yaw}`);
 
                 // Movement Logic based on snapped Yaw
                 // 45 or -135 -> Press 'D' (Right)

@@ -1,5 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
+import { Chat } from '../../utils/Chat';
 
 const MAX_ATTACH_DIST_SQ = 7;
 const MAX_Y_DIFF = 1.1;
@@ -46,7 +47,7 @@ class AutoIceFill extends ModuleBase {
 
     onTick() {
         if (this.reflectionFailed) {
-            ChatLib.chat('&c[Auto Ice Fill] Failed to access Devonian solver. Please install devonian or disable auto ice fill.');
+            Chat.message('&c[Auto Ice Fill] Failed to access Devonian solver. Please install devonian or disable auto ice fill.');
             return;
         }
 

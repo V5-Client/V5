@@ -473,7 +473,7 @@ class ClippingManager extends ModuleBase {
                 });
 
                 Chat.messageClip('&7Clip Saved: ');
-                ChatLib.chat(linkComponent);
+                Chat.message(linkComponent);
 
                 if (this.compressClips) {
                     Thread.sleep(500);

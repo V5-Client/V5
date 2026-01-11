@@ -218,7 +218,7 @@ class MiningStatsCollector {
 
             let lore = item.getLore();
             for (var i = 0; i < lore.length; i++) {
-                // ChatLib.chat(lore[i])
+                // Chat.message(lore[i])
                 let cleanLine = ChatLib.removeFormatting(String(lore[i]));
                 let match = cleanLine.match(pattern);
                 if (match) {
@@ -419,7 +419,7 @@ class RefuelService {
                 }
 
                 let jotraelineSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
-                //ChatLib.chat("jotraeline slot: " + jotraelineSlot)
+                //Chat.message("jotraeline slot: " + jotraelineSlot)
                 if (jotraelineSlot === -1) {
                     Chat.message('Jotraeline contact missing!');
                     return callback(false);

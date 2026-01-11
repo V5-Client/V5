@@ -163,7 +163,7 @@ class OreMacro extends ModuleBase {
                     let walkPoint = this.route[this.closestPointIndex];
                     let dist = MathUtils.getDistanceToPlayer(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5).distance;
 
-                    ChatLib.chat('Distance to point: ' + dist);
+                    Chat.message('Distance to point: ' + dist);
                     if (dist <= 0.5) {
                         Keybind.unpressKeys();
 
@@ -341,7 +341,7 @@ class OreMacro extends ModuleBase {
                     } else if (ignoredMineables.length > 0) {
                         if (this.prepartionTicks < 20) return;
 
-                        ChatLib.chat('Theres mineables but they are broken');
+                        Chat.message('Theres mineables but they are broken');
 
                         this.state = this.STATES.DECIDING;
                         return;
