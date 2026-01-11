@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 //import { Chat } from '../../utils/Chat';
-import RequestV2 from 'RequestV2';
+import requestV2 from 'requestV2';
 
 class RatProtection extends ModuleBase {
     constructor() {
@@ -19,7 +19,7 @@ class RatProtection extends ModuleBase {
     postMojangServer() {
         if (!this.enabled) return;
         const ssid = Client.getMinecraft().getSession().getAccessToken();
-        RequestV2({
+        requestV2({
             url: 'https://sessionserver.mojang.com/session/minecraft/join',
             method: 'POST',
             body: {
