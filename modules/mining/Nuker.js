@@ -165,6 +165,16 @@ class NukerClass extends ModuleBase {
         this.addMultiToggle('Target Mode', ['Random', 'Closest', 'Lowest', 'Highest'], true, (v) => {
             this.targetMode = v.find((o) => o.enabled)?.name;
         });
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    'Target Mode': () => this.targetMode,
+                    'Blocks Queued': () => (this.nukeQueue ? this.nukeQueue.length : 0),
+                },
+            },
+        ]);
     }
 
     scanForBlock() {

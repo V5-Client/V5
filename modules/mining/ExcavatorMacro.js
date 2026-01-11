@@ -53,6 +53,17 @@ class ExcavatorMacro extends ModuleBase {
         this.inExcavator = false;
         this.tickCount = this.TICKDELAY || 0;
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
+                    Chisel: () => (this.clickedChisel ? 'Yes' : 'No'),
+                    Scrap: () => (this.clickedScrap ? 'Yes' : 'No'),
+                },
+            },
+        ]);
+
         this.on('tick', () => {
             if (Utils.subArea() !== 'Fossil Research Center') {
                 this.toggle(false);

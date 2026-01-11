@@ -77,6 +77,23 @@ class ScathaMacro extends ModuleBase {
         this.addSlider('Menu Click Delay', 500, 1500, 750, (v) => (this.menuClickDelay = v));
         this.addToggle('Pingless Angles', (v) => (this.pinglessAngles = !!v));
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => this.getStateName(this.state),
+                    'Stuck Count': () => this.stuckCounter,
+                },
+            },
+            {
+                title: 'Stats',
+                data: {
+                    Kills: () => this.kills,
+                    'Worm/Scatha': () => (this.scatha ? 'Scatha' : 'Worm'),
+                },
+            },
+        ]);
+
         // Worm spawn message
         this.on('chat', () => {
             this.scathaSpawnTimer.reset();

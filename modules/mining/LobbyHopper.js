@@ -22,6 +22,16 @@ class LobbyHopper extends ModuleBase {
             this.maxDay = v;
         });
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    'Current Day': () => this.getLobbyDay(),
+                    'Max Day': () => this.maxDay,
+                },
+            },
+        ]);
+
         this.on('step', () => {
             if (!this.enabled) return;
             let isInCh = Utils.area() === 'Crystal Hollows';

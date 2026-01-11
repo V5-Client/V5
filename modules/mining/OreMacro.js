@@ -68,6 +68,17 @@ class OreMacro extends ModuleBase {
         this.scanned = false;
         this.miningTargetVec = null;
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
+                    'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length}` : 'No Route'),
+                    'Targets Found': () => MiningBot.foundLocations.length,
+                },
+            },
+        ]);
+
         register('command', (action, arg1, indexArg) => {
             if (!action) return Chat.message('§cAction required: "add", "remove", "clear"');
 
@@ -341,7 +352,6 @@ class OreMacro extends ModuleBase {
                         }
 
                         if (MiningBot.foundLocations.length > 0) {
-                            ChatLib.chat('Found ' + MiningBot.foundLocations.length + ' ores');
                             MiningBot.toggle(true);
                             return;
                         }

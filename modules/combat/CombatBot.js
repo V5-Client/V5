@@ -142,6 +142,18 @@ class Combat extends ModuleBase {
 
         this.targetStickinessRange = 10;
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => this.combatState,
+                    Target: () =>
+                        this.target ? (this.target.getName ? ChatLib.removeFormatting(this.target.getName()) : this.target.name || 'Unknown') : 'None',
+                    'Targets Found': () => (this.targets ? this.targets.length : 0),
+                },
+            },
+        ]);
+
         this.on('postRenderWorld', () => {
             if (!this.targets || this.targets.length === 0) return;
 

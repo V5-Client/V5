@@ -75,6 +75,17 @@ class ForagingBot extends ModuleBase {
 
         this.on('tick', this.tick.bind(this));
         this.on('postRenderWorld', this.renderConnectedBlocks.bind(this));
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
+                    'Route Index': () => `${this.pointIndex + 1}/${this.route.length}`,
+                    'Blocks Found': () => this.connectedBlocks.length,
+                },
+            },
+        ]);
     }
 
     setDebug(value) {

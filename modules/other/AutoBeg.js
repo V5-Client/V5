@@ -211,6 +211,19 @@ class AutoBeg extends ModuleBase {
             `i want {rank_placeholder} to have fun`,
         ];
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    Rank: () => this.rank,
+                    'Next Message': () => {
+                        const timeLeft = Math.max(0, this.intervalSeconds * 1000 - (Date.now() - this.lastMessageTime));
+                        return `${Math.ceil(timeLeft / 1000)}s`;
+                    },
+                },
+            },
+        ]);
+
         this.on('tick', () => {
             if (!World.isLoaded()) return;
 

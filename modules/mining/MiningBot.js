@@ -68,6 +68,20 @@ class Bot extends ModuleBase {
         this.bindToggleKey();
         this.initEventHandlers();
         this.initSettings();
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
+                    Target: () =>
+                        this.currentTarget
+                            ? `${Math.floor(this.currentTarget.x)}, ${Math.floor(this.currentTarget.y)}, ${Math.floor(this.currentTarget.z)}`
+                            : 'None',
+                    Ticks: () => `${this.mineTickCount}/${this.totalTicks}`,
+                },
+            },
+        ]);
     }
 
     initCosts() {

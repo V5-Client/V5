@@ -205,6 +205,14 @@ class OverlayUtils {
         }
     }
 
+    clampToScreen(id) {
+        const sw = Renderer.screen.getWidth();
+        const sh = Renderer.screen.getHeight();
+        if (sw === 0 || sh === 0) return;
+        id.x = Math.max(0, Math.min(id.x, sw - id.width));
+        id.y = Math.max(0, Math.min(id.y, sh - id.height));
+    }
+
     drawAccentGlow(x, y, width, height, radius, progress) {
         const accentColor = THEME.ACCENT;
         const glowIntensity = 0.12;
@@ -270,6 +278,7 @@ class OverlayUtils {
 
         id.width = Math.max(220 * this.scale, maxWidth);
         id.height = Math.max(this.minBoxHeight, calculatedHeight);
+        this.clampToScreen(id);
         const currentHeight = id.height * progress;
         const radius = CORNER_RADIUS * this.scale;
         const bgColor = colorWithAlpha(THEME.BG_OVERLAY, 0.95 * progress);

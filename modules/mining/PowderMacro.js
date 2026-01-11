@@ -45,6 +45,16 @@ class PowderMacro extends ModuleBase {
         this.initSettings();
         this.resetState();
         this.registerSkyblockEvents();
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => this.state,
+                    'Target Chest': () => (this.targetChest ? 'Found' : 'Searching'),
+                },
+            },
+        ]);
     }
 
     initSettings() {

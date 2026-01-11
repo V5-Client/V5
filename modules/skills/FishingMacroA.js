@@ -64,6 +64,16 @@ class FishingMacro extends ModuleBase {
         this.addToggle('Use deployable', (v) => (this.useDeployable = v));
         this.addSlider('Deployable slot', 0, 8, 2, (v) => (this.deployableSlot = v));
         this.addSlider('Deployable cooldown', 0, 300, 180, (v) => (this.deployableCooldown = v));
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    Step: () => this.step,
+                    Delay: () => this.tickDelay,
+                },
+            },
+        ]);
     }
 
     tick() {

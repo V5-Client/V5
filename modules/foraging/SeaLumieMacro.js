@@ -1,7 +1,9 @@
-import RendererMain from '../../utils/render/RendererMain';
+import RendererMain from '../../utils/render/RendererUtils';
 import { Chat } from '../../utils/Chat';
-import { Color } from '../../utils/Constants';
+import { Color, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { Keybind } from '../../utils/player/Keybinding';
+
 class SeaLumie extends ModuleBase {
     constructor() {
         super({
@@ -24,6 +26,16 @@ class SeaLumie extends ModuleBase {
         this.startedScan = false;
         this.tryBreak = false;
         this.hasBroken = false;
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
+                    'Closest Pickle': () => (this.closestPickle ? `Found` : 'None'),
+                },
+            },
+        ]);
 
         this.on('tick', () => {
             switch (this.state) {
@@ -186,9 +198,9 @@ class SeaLumie extends ModuleBase {
 
         this.on('postRenderWorld', () => {
             if (this.closestPickle) {
-                let waypointPos = new Vec3i(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
+                let waypointPos = new Vec3d(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                RendererMain.drawWaypoint(waypointPos, false, new Color(1, 0, 0, 1));
+                RendererMain.drawBox(waypointPos, [255, 0, 0, 255]);
             }
         });
     }

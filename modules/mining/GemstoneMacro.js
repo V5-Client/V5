@@ -63,6 +63,17 @@ class GemstoneMacro extends ModuleBase {
         this.scanned = false;
         this.miningTargetVec = null;
 
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
+                    'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length}` : 'No Route'),
+                    'Etherwarp Attempts': () => this.etherwarpAttempts,
+                },
+            },
+        ]);
+
         register('postRenderWorld', () => {
             if (!this.rawPoint) return;
 
