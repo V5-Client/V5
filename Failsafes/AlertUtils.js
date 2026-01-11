@@ -211,14 +211,26 @@ class AlertUtilsClass {
     _grabWindowOnFailsafe() {
         try {
             const GLFW = org.lwjgl.glfw.GLFW;
-            const windowHandle = Client.getMinecraft().getWindow().getHandle();
+            const windowHandle = Client.getMinecraft().getWindow().getwindowHandle();
 
+            const wasIconified = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_ICONIFIED) === GLFW.GLFW_TRUE;
+            const wasMaximized = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_MAXIMIZED) === GLFW.GLFW_TRUE;
+
+            GLFW.glfwSetWindowAttrib(windowHandle, GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_TRUE);
             GLFW.glfwShowWindow(windowHandle);
-            GLFW.glfwRestoreWindow(windowHandle);
+
+            if (wasIconified) {
+                GLFW.glfwRestoreWindow(windowHandle);
+            }
+
+            if (wasMaximized) {
+                GLFW.glfwMaximizeWindow(windowHandle);
+            }
+
             GLFW.glfwFocusWindow(windowHandle);
             GLFW.glfwRequestWindowAttention(windowHandle);
         } catch (e) {
-            Chat.messageFailsafe('GLFW error occured! report this.' + e);
+            Chat.messageFailsafe('GLFW error occured! report this. ' + e);
         }
     }
 }
