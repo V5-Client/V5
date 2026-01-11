@@ -105,6 +105,15 @@ export const Categories = {
         item.components.push(slider);
     },
 
+    addRangeSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return;
+
+        const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback, true);
+        slider.description = description;
+        item.components.push(slider);
+    },
+
     addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
         const item = Categories.findItem(categoryName, itemName);
         if (!item) return;
@@ -144,6 +153,13 @@ export const Categories = {
 
     addSettingsSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null) {
         const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback);
+        slider.description = description;
+        Categories.addSettingsComponent(slider, sectionName);
+        return slider;
+    },
+
+    addSettingsRangeSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null) {
+        const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback, true);
         slider.description = description;
         Categories.addSettingsComponent(slider, sectionName);
         return slider;

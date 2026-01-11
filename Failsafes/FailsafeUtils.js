@@ -27,7 +27,13 @@ class FailsafeUtils {
                 playSoundOnCheck: true,
             };
 
-        const FailsafeReactionTime = config['Failsafes']['Failsafe Detection Delay (ms)'] ?? 600;
+        const FailsafeReactionTimeInput = config['Failsafes']['Failsafe Detection Delay (ms)'] ?? 600;
+        let FailsafeReactionTime = FailsafeReactionTimeInput;
+
+        if (typeof FailsafeReactionTimeInput === 'object' && FailsafeReactionTimeInput.low !== undefined && FailsafeReactionTimeInput.high !== undefined) {
+            FailsafeReactionTime = Math.floor(Math.random() * (FailsafeReactionTimeInput.high - FailsafeReactionTimeInput.low + 1) + FailsafeReactionTimeInput.low);
+        }
+
         const isEnabled = config['Failsafes'][`${name} Failsafe`] ?? true;
         const playerProximityDistance = config['Failsafes']['Player Proximity Distance'] ?? 3;
         const pingOnCheck = config['Failsafes']['Ping on check'] ?? true;

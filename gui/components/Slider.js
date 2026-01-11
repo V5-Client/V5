@@ -13,22 +13,34 @@ import {
 import { setTooltip } from '../core/GuiTooltip';
 
 export class Slider {
-    constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null) {
+    constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null, isRange = false) {
         this.title = title;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        this.isRange = isRange;
 
         this.min = parseFloat(min);
         this.max = parseFloat(max);
-        this.value = parseFloat(value);
+
+        if (this.isRange) {
+            this.value = typeof value === 'object' ? value : { low: this.min, high: value };
+        } else {
+            this.value = parseFloat(value);
+        }
+
         this.step = this.getStepFromPrecision(String(min));
         this.precision = Math.max(0, String(this.step).indexOf('.') === -1 ? 0 : String(this.step).length - String(this.step).indexOf('.') - 1);
 
         this.dragging = false;
+        this.draggingHandle = null;
         this.isTyping = false;
-        this.inputValue = String(this.value.toFixed(this.precision));
+        this.typingTarget = 'value';
+
+        this.inputValue = this.isRange
+            ? `${this.value.low.toFixed(this.precision)} - ${this.value.high.toFixed(this.precision)}`
+            : String(this.value.toFixed(this.precision));
 
         this.optionPanelWidth = 0;
         this.containerHeight = 48;
@@ -68,8 +80,6 @@ export class Slider {
         const foregroundColor = THEME.ACCENT;
         const handleColor = THEME.KNOB;
 
-        const progress = (this.value - this.min) / (this.max - this.min);
-
         drawRoundedRectangle({
             x: sliderX,
             y: sliderY,
@@ -79,34 +89,75 @@ export class Slider {
             color: THEME.BG_INSET,
         });
 
-        drawRoundedRectangle({
-            x: sliderX,
-            y: sliderY,
-            width: sliderWidth * progress,
-            height: sliderHeight,
-            radius: sliderHeight / 2,
-            color: foregroundColor,
-        });
-
         const handleSize = 14;
-        const handleX = sliderX + (sliderWidth - handleSize / 2) * progress - handleSize / 2;
-        const handleY = sliderY + sliderHeight / 2 - handleSize / 2;
 
-        drawRoundedRectangle({
-            x: handleX,
-            y: handleY,
-            width: handleSize,
-            height: handleSize,
-            radius: handleSize / 2,
-            color: handleColor,
-        });
+        if (this.isRange) {
+            const progressLow = (this.value.low - this.min) / (this.max - this.min);
+            const progressHigh = (this.value.high - this.min) / (this.max - this.min);
 
-        const valueString = this.value.toFixed(this.precision);
+            drawRoundedRectangle({
+                x: sliderX + sliderWidth * progressLow,
+                y: sliderY,
+                width: sliderWidth * (progressHigh - progressLow),
+                height: sliderHeight,
+                radius: sliderHeight / 2,
+                color: foregroundColor,
+            });
+
+            const handleLowX = sliderX + (sliderWidth - handleSize / 2) * progressLow - handleSize / 2;
+            const handleLowY = sliderY + sliderHeight / 2 - handleSize / 2;
+            drawRoundedRectangle({
+                x: handleLowX,
+                y: handleLowY,
+                width: handleSize,
+                height: handleSize,
+                radius: handleSize / 2,
+                color: handleColor,
+            });
+
+            const handleHighX = sliderX + (sliderWidth - handleSize / 2) * progressHigh - handleSize / 2;
+            const handleHighY = sliderY + sliderHeight / 2 - handleSize / 2;
+            drawRoundedRectangle({
+                x: handleHighX,
+                y: handleHighY,
+                width: handleSize,
+                height: handleSize,
+                radius: handleSize / 2,
+                color: handleColor,
+            });
+        } else {
+            const progress = (this.value - this.min) / (this.max - this.min);
+
+            drawRoundedRectangle({
+                x: sliderX,
+                y: sliderY,
+                width: sliderWidth * progress,
+                height: sliderHeight,
+                radius: sliderHeight / 2,
+                color: foregroundColor,
+            });
+
+            const handleX = sliderX + (sliderWidth - handleSize / 2) * progress - handleSize / 2;
+            const handleY = sliderY + sliderHeight / 2 - handleSize / 2;
+
+            drawRoundedRectangle({
+                x: handleX,
+                y: handleY,
+                width: handleSize,
+                height: handleSize,
+                radius: handleSize / 2,
+                color: handleColor,
+            });
+        }
+
+        const valueString = this.isRange
+            ? `${this.value.low.toFixed(this.precision)} - ${this.value.high.toFixed(this.precision)}`
+            : this.value.toFixed(this.precision);
         const displayValue = this.isTyping ? this.inputValue : valueString;
         const valueStringWidth = getTextWidth(displayValue, FontSizes.REGULAR);
         const valuePadding = 8;
         const valueBoxHeight = 20;
-        const valueBoxWidth = valueStringWidth + valuePadding * 2;
+        const valueBoxWidth = Math.max(40, valueStringWidth + valuePadding * 2);
 
         const valueStringX = sliderX - valueBoxWidth - 8;
         const valueStringY = this.y + componentHeight / 2 - valueBoxHeight / 2;
@@ -145,8 +196,12 @@ export class Slider {
 
     handleClick(mouseX, mouseY) {
         if (isInside(mouseX, mouseY, this.valueRect)) {
-            this.isTyping = true;
-            this.inputValue = String(this.value.toFixed(this.precision));
+            if (!this.isRange) {
+                this.isTyping = true;
+                this.inputValue = String(this.value.toFixed(this.precision));
+                return true;
+            }
+            // no typing for range sliders because laziness
             return true;
         }
 
@@ -157,6 +212,18 @@ export class Slider {
 
         if (this.checkSliderClick(mouseX, mouseY)) {
             this.dragging = true;
+            if (this.isRange) {
+                const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
+                const sliderWidth = 140;
+                const rightMargin = 12;
+                const sliderX = this.x + panelWidth - sliderWidth - rightMargin;
+                const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
+                const val = this.min + (this.max - this.min) * progress;
+
+                const distLow = Math.abs(val - this.value.low);
+                const distHigh = Math.abs(val - this.value.high);
+                this.draggingHandle = distLow < distHigh ? 'low' : 'high';
+            }
             this.updateValue(mouseX);
             playClickSound();
             return true;
@@ -186,10 +253,11 @@ export class Slider {
 
     handleMouseRelease() {
         this.dragging = false;
+        this.draggingHandle = null;
     }
 
     handleKeyType(char, keyCode) {
-        if (!this.isTyping) return false;
+        if (!this.isTyping || this.isRange) return false;
 
         const DELETE_KEY = 259;
         const ENTER_KEY = 257;
@@ -262,11 +330,18 @@ export class Slider {
         const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
 
         let rawValue = this.min + (this.max - this.min) * progress;
-
         let steppedValue = Math.round(rawValue / this.step) * this.step;
+        let finalValue = parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
 
-        let finalValue = clamp(steppedValue, this.min, this.max);
-        this.value = parseFloat(finalValue.toFixed(this.precision));
+        if (this.isRange) {
+            if (this.draggingHandle === 'low') {
+                this.value.low = Math.min(finalValue, this.value.high);
+            } else if (this.draggingHandle === 'high') {
+                this.value.high = Math.max(finalValue, this.value.low);
+            }
+        } else {
+            this.value = finalValue;
+        }
 
         if (this.callback) {
             this.callback(this.value);
@@ -284,10 +359,22 @@ export class Slider {
         if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth && mouseY >= sliderY && mouseY <= sliderY + 16) {
             const step = dir > 0 ? this.step : -this.step;
 
-            let newValue = this.value + step;
-            newValue = parseFloat(newValue.toFixed(this.precision));
+            if (this.isRange) {
+                const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
+                const val = this.min + (this.max - this.min) * progress;
+                const distLow = Math.abs(val - this.value.low);
+                const distHigh = Math.abs(val - this.value.high);
 
-            this.value = clamp(newValue, this.min, this.max);
+                if (distLow < distHigh) {
+                    this.value.low = clamp(parseFloat((this.value.low + step).toFixed(this.precision)), this.min, this.value.high);
+                } else {
+                    this.value.high = clamp(parseFloat((this.value.high + step).toFixed(this.precision)), this.value.low, this.max);
+                }
+            } else {
+                let newValue = this.value + step;
+                newValue = parseFloat(newValue.toFixed(this.precision));
+                this.value = clamp(newValue, this.min, this.max);
+            }
 
             if (this.callback) {
                 this.callback(this.value);

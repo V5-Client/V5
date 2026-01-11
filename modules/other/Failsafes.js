@@ -23,7 +23,7 @@ class Failsafes extends ModuleBase {
         this.playerGreif = true;
         this.clipOnBan = true;
         this.playerProximityDistance = 3;
-        this.actionDelay = 500;
+        this.actionDelay = { low: 500, high: 2000 };
         this.pingOnCheck = true;
         this.playSoundOnCheck = true;
 
@@ -91,7 +91,7 @@ class Failsafes extends ModuleBase {
             'Enable player greif failsafe',
             this.playerGreif
         );
-        this.addSlider(
+        this.addRangeSlider(
             'Failsafe Detection Delay (ms)',
             500,
             5000,

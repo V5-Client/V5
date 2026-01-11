@@ -149,6 +149,19 @@ export class ModuleBase {
     }
 
     /**
+     * Add a range slider control to the module's GUI
+     * @param {string} title - The title of the slider
+     * @param {number} min - Minimum value
+     * @param {number} max - Maximum value
+     * @param {object} def - Default values {low, high}
+     * @param {function} callback - Callback function when slider value changes
+     * @param {string} [description=null] - Description/tooltip for the slider
+     */
+    addRangeSlider(title, min, max, def, callback, description = null) {
+        Categories.addRangeSlider('Modules', this.name, title, min, max, def, callback, description);
+    }
+
+    /**
      * Add a multi-toggle control to the module's GUI
      * @param {string} title - The title of the multi-toggle
      * @param {Array} options - Array of option names
