@@ -10,7 +10,6 @@ import { Router } from '../../utils/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import { MacroState } from '../../utils/MacroState';
 import RouteState from '../../utils/RouteState';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
@@ -27,6 +26,7 @@ class OreMacro extends ModuleBase {
             description: 'Walks and Etherwarps to set mine points or uses MiningBot',
             tooltip: 'Universal pure Ore Miner',
             showEnabledToggle: false,
+            isMacro: true,
         });
 
         this.bindToggleKey();
@@ -619,14 +619,12 @@ class OreMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'ORE_MACRO');
         if (this.route) RouteState.setRoute(this.route, 'Ore Macro');
         this.message('&aEnabled');
         this.state = this.STATES.DECIDING;
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'ORE_MACRO');
         RouteState.clearRoute();
         this.scanned = false;
         this.closestPointIndex = null;

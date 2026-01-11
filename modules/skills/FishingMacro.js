@@ -5,7 +5,6 @@ import { OverlayManager } from '../../gui/OverlayUtils';
 import { Rotations } from '../../utils/player/Rotations';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
-import { MacroState } from '../../utils/MacroState';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -16,6 +15,7 @@ class FishingMacro extends ModuleBase {
             tooltip: 'Fishing Macro for stridersurfer',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
+            isMacro: true,
         });
         this.bindToggleKey();
 
@@ -416,7 +416,6 @@ class FishingMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'FISHING');
         Chat.message('Fishing Macro Enabled');
 
         const now = Date.now();
@@ -437,7 +436,6 @@ class FishingMacro extends ModuleBase {
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'FISHING');
         Chat.message('Fishing Macro disabled');
         Keybind.setKey('shift', false);
         this.lastStriderCount = null;

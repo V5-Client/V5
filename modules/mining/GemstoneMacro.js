@@ -10,7 +10,6 @@ import { Router } from '../../utils/Router';
 import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import { MacroState } from '../../utils/MacroState';
 import RouteState from '../../utils/RouteState';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
@@ -23,6 +22,7 @@ class GemstoneMacro extends ModuleBase {
             description: 'Gemstone Miner for the Crystal Hollows',
             tooltip: 'Gemstone Miner for the Crystal Hollows',
             showEnabledToggle: false,
+            isMacro: true,
         });
         this.bindToggleKey();
         this.FASTAOTV = false;
@@ -661,14 +661,12 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'ORE_MACRO');
         if (this.route) RouteState.setRoute(this.route, 'Ore Macro');
         this.message('&aEnabled');
         this.state = this.STATES.ETHERWARPING;
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'GEMSTONE_MACRO');
         RouteState.clearRoute();
         this.scanned = false;
         this.closestPointIndex = null;

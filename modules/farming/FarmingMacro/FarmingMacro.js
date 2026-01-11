@@ -3,7 +3,6 @@ import { MathUtils } from '../../../utils/Math';
 import { ModuleBase } from '../../../utils/ModuleBase';
 import { Rotations } from '../../../utils/player/Rotations';
 import { Mouse } from '../../../utils/Ungrab';
-import { MacroState } from '../../../utils/MacroState';
 import { Utils } from '../../../utils/Utils';
 import { Guis } from '../../../utils/player/Inventory';
 import { Keybind } from '../../../utils/player/Keybinding';
@@ -274,7 +273,6 @@ class FarmingMacro extends ModuleBase {
         this.state = this.STATES.SCANFORCROP;
 
         Mouse.ungrab();
-        MacroState.setMacroRunning(true, 'FARMING_MACRO');
     }
 
     onDisable() {
@@ -289,7 +287,6 @@ class FarmingMacro extends ModuleBase {
         Keybind.unpressKeys();
         Rotations.stopRotation();
         Keybind.setKey('leftclick', false);
-        MacroState.setMacroRunning(false, 'FARMING_MACRO');
     }
 }
 

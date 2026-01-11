@@ -3,7 +3,6 @@ import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
 import { manager } from '../../utils/SkyblockEvents';
 import { MiningBot } from './MiningBot';
-import { MacroState } from '../../utils/MacroState';
 import { CombatBot } from '../combat/CombatBot';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { Guis } from '../../utils/player/Inventory';
@@ -39,6 +38,7 @@ class CommissionMacro extends ModuleBase {
             tooltip: 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
+            isMacro: true,
         });
 
         this.overlayName = 'Commission Macro';
@@ -184,7 +184,6 @@ class CommissionMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'COMMISSION');
         Chat.message('&aCommission Macro Enabled.');
 
         this.commissionsCompleted = 0;
@@ -227,7 +226,6 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'COMMISSION');
         Chat.message('&cCommission Macro Disabled.');
 
         MiningBot.toggle(false);

@@ -6,7 +6,6 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP, BlockHitResult, Direction, MCHand, BlockStone, BlockOre, BlockRedstoneOre } from '../../utils/Constants';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MacroState } from '../../utils/MacroState';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -17,6 +16,7 @@ class NukerClass extends ModuleBase {
             tooltip: 'Automatically nukes nearby blocks',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
+            isMacro: true,
         });
         this.bindToggleKey();
 
@@ -263,13 +263,11 @@ class NukerClass extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'NUKER');
         Chat.message('Nuker &aEnabled');
         this.init();
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'NUKER');
         Chat.message('Nuker &cDisabled');
         this.init();
     }

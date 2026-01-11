@@ -2,6 +2,7 @@ import { Utils } from './Utils';
 import { KeyBindUtils } from './Constants';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
+import { MacroState } from './MacroState';
 
 export class ModuleBase {
     /**
@@ -10,7 +11,7 @@ export class ModuleBase {
      * @param {string} [subcategory] - Subcategory name (required if nameOrOpts is string)
      * @param {string} [description=''] - Module description (required if nameOrOpts is string)
      * @param {string} [tooltip=null] - Tooltip text (required if nameOrOpts is string)
-     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, showEnabledToggle, autoDisableOnWorldUnload
+     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, showEnabledToggle, autoDisableOnWorldUnload, isMacro
      */
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
         const opts = typeof nameOrOpts === 'object' ? nameOrOpts : { name: nameOrOpts, subcategory, description, tooltip };
@@ -21,6 +22,8 @@ export class ModuleBase {
         this.tooltip = opts.tooltip || null;
         this.enabled = false;
         this.oid = null;
+
+        this.isMacro = opts.isMacro === true;
 
         this._registers = [];
         this._conditionalRegisters = [];
@@ -89,22 +92,58 @@ export class ModuleBase {
         this.enabled = newVal;
 
         if (newVal) {
+            if (this.isMacro) {
+                MacroState.onModuleEnabled(this.name);
+            }
+
             if (this.oid) {
                 OverlayManager.startTime(this.oid);
             }
             try {
                 this.onEnable();
-            } catch (e) {}
+            } catch (e) {
+                console.error(`Error in ${this.name}.onEnable():`, e);
+            }
             this._registers.forEach((h) => h.register());
         } else {
+            if (this.isMacro) {
+                MacroState.onModuleDisabled(this.name);
+            }
+
             if (this.oid) {
                 OverlayManager.resetTime(this.oid);
             }
             this._registers.forEach((h) => h.unregister());
             try {
                 this.onDisable();
-            } catch (e) {}
+            } catch (e) {
+                console.error(`Error in ${this.name}.onDisable():`, e);
+            }
         }
+    }
+
+    /**
+     * Check if any macro is currently running
+     * @returns {boolean}
+     */
+    isAnyMacroRunning() {
+        return MacroState.isMacroRunning();
+    }
+
+    /**
+     * Get the name of the currently active macro
+     * @returns {string|null}
+     */
+    getActiveMacroName() {
+        return MacroState.getActiveMacro();
+    }
+
+    /**
+     * Get the start time of the current macro session
+     * @returns {number}
+     */
+    getMacroStartTime() {
+        return MacroState.getStartTime();
     }
 
     bindToggleKey(title = `Toggle ${this.name}`) {

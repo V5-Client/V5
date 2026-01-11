@@ -8,6 +8,7 @@ class AutoHarp extends ModuleBase {
             subcategory: 'Foraging',
             description: 'Auto Harp',
             tooltip: 'Auto Harp',
+            isMacro: true,
         });
         this.delay = 3;
 

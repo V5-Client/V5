@@ -2,7 +2,6 @@ import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Time } from '../../utils/Timing';
 import { Utils } from '../../utils/Utils';
-import { MacroState } from '../../utils/MacroState';
 class LobbyHopper extends ModuleBase {
     constructor() {
         super({
@@ -11,6 +10,7 @@ class LobbyHopper extends ModuleBase {
             description: 'Switches between CH lobbies',
             tooltip: 'Switches between CH lobbies',
             showEnabledToggle: false,
+            isMacro: true,
         });
 
         this.maxDay = 0;
@@ -61,12 +61,10 @@ class LobbyHopper extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'LOBBY_HOPPER');
         this.message('&aStarted');
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'LOBBY_HOPPER');
         this.message('&cStopped');
     }
 }

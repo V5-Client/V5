@@ -25,6 +25,7 @@ class ForagingBot extends ModuleBase {
             description: 'unfinished.',
             tooltip: 'unfinished.',
             showEnabledToggle: false,
+            isMacro: true,
         });
 
         this.connectedBlocks = [];

@@ -2,7 +2,6 @@ import RendererMain from '../../utils/render/RendererMain';
 import { Chat } from '../../utils/Chat';
 import { Color } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MacroState } from '../../utils/MacroState';
 class SeaLumie extends ModuleBase {
     constructor() {
         super({
@@ -10,6 +9,7 @@ class SeaLumie extends ModuleBase {
             subcategory: 'Foraging',
             description: 'Automatically farms sea lumies',
             tooltip: 'Automatically farms sea lumies',
+            isMacro: true,
         });
         this.STATES = {
             WAITING: 0,
@@ -194,12 +194,10 @@ class SeaLumie extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'SEA_LUMIE');
         this.state = this.STATES.SCANNING;
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'SEA_LUMIE');
         this.state = this.STATES.WAITING;
     }
 }

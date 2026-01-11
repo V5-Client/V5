@@ -22,7 +22,7 @@ const States = {
 const TRAIL_MAX_POINTS = 30;
 const PREDICTION_STEPS = 100;
 const GRAVITY = 0.03;
-const DRAG = 0.99; // these are completely arbitrary that came to me in a dream
+const DRAG = 0.99;
 const HEAD_HEIGHT_OFFSET = 1.8;
 
 class Beachballer extends ModuleBase {
@@ -33,10 +33,12 @@ class Beachballer extends ModuleBase {
             description: 'Automatically bounces beach balls',
             tooltip: 'Bounces beach balls and returns to start position at 40 bounces',
             showEnabledToggle: false,
+            isMacro: true,
         });
         this.bindToggleKey();
 
         this.bounceCount = 0;
+        this.totalBallsBounced = 0;
         this.tickCounter = 0;
         this.bounceTimer = 0;
         this.startPos = [0, 0, 0];
@@ -48,6 +50,17 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.lastVelocityY = 0;
         this.ballDescending = false;
+
+        this.createOverlay([
+            {
+                title: 'Status',
+                data: {
+                    State: () => this.getStateName(),
+                    Bounces: () => `${this.bounceCount}/40`,
+                    'Total Completed': () => this.totalBallsBounced,
+                },
+            },
+        ]);
 
         this.on('tick', () => {
             if (Client.isInGui() && !Client.isInChat()) {
@@ -95,6 +108,21 @@ class Beachballer extends ModuleBase {
         }).setCriteria('${text}');
     }
 
+    getStateName() {
+        switch (this.state) {
+            case States.WAITING:
+                return 'Waiting';
+            case States.BOUNCE:
+                return 'Bouncing';
+            case States.RETURN:
+                return 'Returning';
+            case States.PLACE:
+                return 'Placing';
+            default:
+                return 'Unknown';
+        }
+    }
+
     updateTrajectory() {
         if (!this.trackedBall || this.trackedBall.isDead()) {
             this.trailHistory = [];
@@ -118,11 +146,9 @@ class Beachballer extends ModuleBase {
 
         if (this.lastVelocityY > 0 && velocity.y <= 0) {
             Client.scheduleTask(5, () => {
-                // low speed = bad prediction
                 this.ballDescending = true;
             });
         }
-        // bounced
         if (velocity.y > 0.1) {
             this.ballDescending = false;
         }
@@ -145,7 +171,6 @@ class Beachballer extends ModuleBase {
     }
 
     simpleExtrapolation(startPos, velocity) {
-        // Just show ~10 ticks of where ball is heading, no physics
         const path = [];
         let x = startPos.x;
         let y = startPos.y;
@@ -212,7 +237,6 @@ class Beachballer extends ModuleBase {
         const LANDING_COLOR = [50, 255, 50, 255];
         const LINE_THICKNESS = 3;
 
-        // past trail
         if (this.trailHistory.length >= 2) {
             for (let i = 0; i < this.trailHistory.length - 1; i++) {
                 const start = this.trailHistory[i];
@@ -225,7 +249,6 @@ class Beachballer extends ModuleBase {
             }
         }
 
-        // predicted path
         if (this.predictedPath.length >= 2) {
             for (let i = 0; i < this.predictedPath.length - 1; i++) {
                 const start = this.predictedPath[i];
@@ -242,11 +265,9 @@ class Beachballer extends ModuleBase {
             const markerSize = 0.3;
             const lp = this.landingPoint;
 
-            // crosshair type shit
             RenderUtils.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), LANDING_COLOR, 4, true);
             RenderUtils.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), LANDING_COLOR, 4, true);
 
-            // box
             const groundVec = new Vec3d(Math.floor(lp.x), Math.floor(Player.getY()), Math.floor(lp.z));
             RenderUtils.drawWireFrame(groundVec, LANDING_COLOR, 2, true);
         }
@@ -254,6 +275,7 @@ class Beachballer extends ModuleBase {
 
     handleBounceState() {
         if (this.bounceCount > 40) {
+            this.totalBallsBounced++;
             this.setState(States.RETURN);
             this.bounceCount = 0;
             this.trackedBall = null;
@@ -366,9 +388,6 @@ class Beachballer extends ModuleBase {
             this.landingPoint = null;
             this.ballDescending = false;
         }
-
-        const stateNames = ['WAITING', 'BOUNCE', 'RETURN', 'PLACE'];
-        Chat.message(`&eState: &b${stateNames[newState]}`);
     }
 
     onEnable() {
@@ -380,6 +399,7 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.ballDescending = false;
         this.lastVelocityY = 0;
+        this.totalBallsBounced = 0;
         Chat.message('&aBeachBaller enabled');
     }
 

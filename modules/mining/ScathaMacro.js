@@ -3,7 +3,6 @@ import { Chat } from '../../utils/Chat';
 import { Rotations } from '../../utils/player/RotationsTest';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Time } from '../../utils/Timing';
-import { MacroState } from '../../utils/MacroState';
 import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
@@ -16,6 +15,7 @@ class ScathaMacro extends ModuleBase {
             description: 'Automatically mines and kills Scappas for you',
             tooltip: 'Automatically mines and kills Scappas for you',
             showEnabledToggle: false,
+            isMacro: true,
         });
 
         this.bindToggleKey();
@@ -141,14 +141,12 @@ class ScathaMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'SCATHA');
         this.sendMacroMessage('&aEnabled');
         this.setState(this.STATES.SETUP);
         //Mouse.ungrab();
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'SCATHA');
         this.sendMacroMessage('&cDisabled');
         this.centeringStart = true;
         this.pickaxeAbility = true;

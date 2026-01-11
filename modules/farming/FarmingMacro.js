@@ -11,7 +11,6 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP } from '../../utils/Constants';
 import { attachMixin } from '../../utils/AttachMixin';
 import { spawnBreakParticles } from '../../mixins/SpawnBreakParticlesMixin';
-import { MacroState } from '../../utils/MacroState';
 import { v5Command } from '../../utils/V5Commands';
 
 const FARMING_DATA = [
@@ -47,6 +46,7 @@ class FarmingMacro extends ModuleBase {
             tooltip: 'WIP farming macro',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
+            isMacro: true,
         });
 
         this.STATES = {
@@ -838,14 +838,12 @@ class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
-        MacroState.setMacroRunning(true, 'FARMING');
         Mouse.ungrab();
         this.message('&aEnabled');
         this.state = this.STATES.SCANFORCROP;
     }
 
     onDisable() {
-        MacroState.setMacroRunning(false, 'FARMING');
         Mouse.regrab();
         Rotations.stopRotation();
         Keybind.setKey('leftclick', false);

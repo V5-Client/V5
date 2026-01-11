@@ -8,9 +8,10 @@ class AutoBeg extends ModuleBase {
             subcategory: 'Other',
             description: 'Automatically begs for hypixel ranks periodically.',
             tooltip: 'Automatically begs for hypixel ranks periodically.',
-            showEnabledToggle: false, 
+            showEnabledToggle: false,
+            isMacro: true,
         });
-        this.bindToggleKey(); 
+        this.bindToggleKey();
 
         this.rank = 'vip';
         this.intervalSeconds = 30;
@@ -237,11 +238,11 @@ class AutoBeg extends ModuleBase {
 
         const randomMessageTemplate = this.begging_messages[Math.floor(Math.random() * this.begging_messages.length)];
         const formattedMessage = randomMessageTemplate.replace(/{rank_placeholder}/g, this.rank);
-        
+
         ChatLib.say(formattedMessage);
-        
-        // tries to claim gift 
-        ChatLib.command("internalrankgift true");
+
+        // tries to claim gift
+        ChatLib.command('internalrankgift true');
     }
 }
 

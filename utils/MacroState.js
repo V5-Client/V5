@@ -1,11 +1,9 @@
-import { Categories } from '../gui/categories/CategorySystem';
-
 class MacroStateClass {
     constructor() {
         this.running = false;
-        this.runningMacro = null;
         this.activeMacro = null;
-        this.EXCLUDED_MODULES = ['Mob Hider', 'Xray', 'Visual', 'GIF', 'Discord RPC', 'Fast Place', 'Auto Terminals', 'Failsafes', 'AutoConversation'];
+        this.startTime = 0;
+        this.enabledMacros = new Set();
     }
 
     isMacroRunning() {
@@ -16,44 +14,45 @@ class MacroStateClass {
         return this.activeMacro;
     }
 
-    setMacroRunning(value, macro) {
-        this.running = value;
-        this.activeMacro = macro;
+    getStartTime() {
+        return this.startTime;
     }
 
-    checkMacroState() {
-        if (!Categories) return false;
+    getEnabledMacros() {
+        return Array.from(this.enabledMacros);
+    }
 
-        let modulesCategory = Categories.categories.find((c) => c.name === 'Modules');
-        if (!modulesCategory) return false;
+    onModuleEnabled(moduleName) {
+        const wasEmpty = this.enabledMacros.size === 0;
+        this.enabledMacros.add(moduleName);
 
-        for (let item of modulesCategory.items) {
-            if (item.type === 'separator') {
-                for (let subItem of item.items) {
-                    if (this.EXCLUDED_MODULES.includes(subItem.title)) continue;
-
-                    const enabledToggle = subItem.components?.find((c) => c.title === 'Enabled');
-                    if (enabledToggle && enabledToggle.enabled) {
-                        this.runningMacro = subItem.title;
-                        return true;
-                    }
-                }
-            } else {
-                if (this.EXCLUDED_MODULES.includes(item.title)) continue;
-
-                const enabledToggle = item.components?.find((c) => c.title === 'Enabled');
-                if (enabledToggle && enabledToggle.enabled) {
-                    this.runningMacro = item.title;
-                    return true;
-                }
-            }
+        if (wasEmpty) {
+            this.startTime = Date.now();
         }
 
-        return false;
+        this.running = true;
+        this.activeMacro = moduleName;
     }
 
-    getMacroRunning() {
-        return this.runningMacro;
+    onModuleDisabled(moduleName) {
+        this.enabledMacros.delete(moduleName);
+
+        if (this.enabledMacros.size === 0) {
+            this.running = false;
+            this.activeMacro = null;
+        } else {
+            const remaining = Array.from(this.enabledMacros);
+            this.activeMacro = remaining[remaining.length - 1];
+        }
+    }
+
+    // unused, just use 'isMacro: true' in module constructor instead.
+    setMacroRunning(value, macro) {
+        if (value) {
+            this.onModuleEnabled(macro);
+        } else if (macro) {
+            this.onModuleDisabled(macro);
+        }
     }
 }
 

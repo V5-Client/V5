@@ -41,6 +41,7 @@ class Combat extends ModuleBase {
             description: 'Universal settings for combat bot',
             tooltip: 'Combat bot settings',
             showEnabledToggle: false,
+            isMacro: true,
         });
         this.bindToggleKey();
 
