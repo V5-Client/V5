@@ -12,6 +12,8 @@ import { Vec3d, BP } from '../../utils/Constants';
 import { attachMixin } from '../../utils/AttachMixin';
 import { spawnBreakParticles } from '../../mixins/SpawnBreakParticlesMixin';
 import { MacroState } from '../../utils/MacroState';
+import { v5Command } from '../../utils/V5Commands';
+
 const FARMING_DATA = [
     {
         name: 'Vertical NetherWart / Potato / Wheat / Carrot',
@@ -133,7 +135,7 @@ class FarmingMacro extends ModuleBase {
             if (isTarget) cir.cancel();
         });
 
-        register('command', () => {
+        v5Command('setstart', () => {
             if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
 
             this.points.start = {
@@ -145,9 +147,9 @@ class FarmingMacro extends ModuleBase {
             ChatLib.command('sethome');
             Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
             this.message('&aStart point saved!');
-        }).setName('setstart');
+        });
 
-        register('command', () => {
+        v5Command('setend', () => {
             if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
 
             this.points.end = {
@@ -158,7 +160,7 @@ class FarmingMacro extends ModuleBase {
 
             Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
             this.message('&aEnd point saved!');
-        }).setName('setend');
+        });
 
         this.when(
             () => Utils.area() === 'Garden',

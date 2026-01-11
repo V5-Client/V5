@@ -5,6 +5,7 @@ import { Keybind } from './player/Keybinding';
 import { Flowstate } from './Flowstate';
 import { Executor } from './ThreadExecutor';
 import { Blocks, BP } from './Constants';
+import { v5Command } from './V5Commands';
 
 const BLOCK_HARDNESS_DATA = {
     5: { h: 2000, n: 'Titanium' },
@@ -242,11 +243,12 @@ class MiningStatsCollector {
 }
 
 const miningStatsCollector = new MiningStatsCollector();
-register('command', () => {
+
+v5Command('getminingstats', () => {
     Executor.execute(() => {
         miningStatsCollector.beginCollection();
     });
-}).setName('getminingstats');
+});
 
 class ToolFinder {
     static findBest() {
@@ -662,7 +664,7 @@ const timeCalc = new MineTimeCalculations(miningStatsCollector);
 const refueler = new RefuelService();
 const explorer = new ExplorerUpgrade(miningStatsCollector);
 
-register('command', () => {
+v5Command('refueldrill', () => {
     refueler.refuel((success) => {
         if (success) {
             Chat.message('Refueling completed');
@@ -670,7 +672,7 @@ register('command', () => {
             Chat.message('Refueling failed');
         }
     });
-}).setName('refueldrill');
+});
 
 export const MiningUtils = {
     getMiningSpeed: function (area) {
@@ -712,7 +714,7 @@ export const MiningUtils = {
     },
 };
 
-register('command', () => {
+v5Command('maxge', () => {
     MiningUtils.MaxGreatExplorer((success) => {
         if (success) {
             Chat.message('Great Explorer upgrade completed');
@@ -720,4 +722,4 @@ register('command', () => {
             Chat.message('Great Explorer upgrade failed');
         }
     });
-}).setName('maxge');
+});

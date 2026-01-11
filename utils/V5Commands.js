@@ -1,11 +1,33 @@
 import { Chat } from './Chat';
 
+const commands = {};
+
+export const v5Command = (id, callback) => {
+    const lowerId = id.toLowerCase();
+    commands[lowerId] = callback;
+};
+
+export const callCommand = (id, ...args) => {
+    const cleanId = id.startsWith('/') ? id.slice(1).toLowerCase() : id.toLowerCase();
+    const callback = commands[cleanId];
+
+    if (callback) {
+        let finalArgs = args;
+
+        if (args.length === 1 && typeof args[0] === 'string' && args[0].includes(' ')) {
+            finalArgs = args[0].trim().split(/\s+/);
+        }
+
+        callback(...finalArgs);
+    }
+};
+
 Commands.registerCommand('v5', () => {
     const { literal, argument, greedyString, integer, exec, float } = Commands;
 
     exec(() => {
         try {
-            ChatLib.command('gui');
+            callCommand('gui');
         } catch (e) {
             Chat.message('&cGUI failed to open.');
         }
@@ -30,7 +52,7 @@ Commands.registerCommand('v5', () => {
     literal('gui', () => {
         exec(() => {
             try {
-                ChatLib.command('gui');
+                callCommand('gui');
             } catch (e) {
                 Chat.message('&cGUI failed to open.');
             }
@@ -40,17 +62,17 @@ Commands.registerCommand('v5', () => {
     /* ---------- Clipping ---------- */
     literal('clip', () => {
         exec(() => {
-            ChatLib.command('clip');
+            callCommand('clip');
         });
         literal('save', () => {
             exec(() => {
-                ChatLib.command('clip');
+                callCommand('clip');
             });
         });
 
         literal('compress-latest', () => {
             exec(() => {
-                ChatLib.command('clip compress');
+                callCommand('clip', 'compress');
             });
         });
     });
@@ -58,11 +80,11 @@ Commands.registerCommand('v5', () => {
     /* ---------- IRC / Backend ---------- */
     literal('irc', () => {
         exec(() => {
-            ChatLib.command('reconnectIRC');
+            callCommand('reconnectIRC');
         });
         literal('reconnect', () => {
             exec(() => {
-                ChatLib.command('reconnectIRC');
+                callCommand('reconnectIRC');
             });
         });
     });
@@ -72,13 +94,13 @@ Commands.registerCommand('v5', () => {
         literal('set', () => {
             literal('start', () => {
                 exec(() => {
-                    ChatLib.command('setstart');
+                    callCommand('setstart');
                 });
             });
 
             literal('end', () => {
                 exec(() => {
-                    ChatLib.command('setend');
+                    callCommand('setend');
                 });
             });
         });
@@ -88,19 +110,19 @@ Commands.registerCommand('v5', () => {
     literal('mining', () => {
         literal('stats', () => {
             exec(() => {
-                ChatLib.command('getminingstats');
+                callCommand('getminingstats');
             });
         });
 
         literal('refuel', () => {
             exec(() => {
-                ChatLib.command('refueldrill');
+                callCommand('refueldrill');
             });
         });
 
         literal('maxge', () => {
             exec(() => {
-                ChatLib.command('maxge');
+                callCommand('maxge');
             });
         });
 
@@ -128,7 +150,7 @@ Commands.registerCommand('v5', () => {
                 argument('y', integer(), () => {
                     argument('z', integer(), () => {
                         exec(({ x, y, z }) => {
-                            ChatLib.command('path ' + x + ' ' + y + ' ' + z);
+                            callCommand('path', x, y, z);
                         });
                     });
                 });
@@ -144,13 +166,13 @@ Commands.registerCommand('v5', () => {
                                 argument('z2', integer(), () => {
                                     // Normal follow
                                     exec(({ x1, y1, z1, x2, y2, z2 }) => {
-                                        ChatLib.command('rustpath ' + x1 + ' ' + y1 + ' ' + z1 + ' ' + x2 + ' ' + y2 + ' ' + z2);
+                                        callCommand('rustpath', x1, y1, z1, x2, y2, z2);
                                     });
 
                                     // Render-only variant
                                     literal('renderonly', () => {
                                         exec(({ x1, y1, z1, x2, y2, z2 }) => {
-                                            ChatLib.command('rustpath ' + x1 + ' ' + y1 + ' ' + z1 + ' ' + x2 + ' ' + y2 + ' ' + z2 + ' renderonly');
+                                            callCommand('rustpath', x1, y1, z1, x2, y2, z2, 'renderonly');
                                         });
                                     });
                                 });
@@ -163,7 +185,7 @@ Commands.registerCommand('v5', () => {
 
         literal('stop', () => {
             exec(() => {
-                ChatLib.command('stop');
+                callCommand('stopPath');
             });
         });
     });
@@ -171,18 +193,18 @@ Commands.registerCommand('v5', () => {
     /* ---------- Webhooks ---------- */
     literal('webhook', () => {
         exec(() => {
-            ChatLib.command('setwh');
+            callCommand('setwh');
         });
         literal('set-from-clipboard', () => {
             exec(() => {
-                ChatLib.command('setwh');
+                callCommand('setwh');
             });
         });
 
         literal('userid', () => {
             argument('id', greedyString(), () => {
                 exec(({ id }) => {
-                    ChatLib.command('setid ' + id);
+                    callCommand('setid', id);
                 });
             });
         });
@@ -221,12 +243,6 @@ Commands.registerCommand('v5', () => {
                 });
             });
         });
-
-        literal('polar', () => {
-            exec(() => {
-                ChatLib.command('polar');
-            });
-        });
     });
 
     /* ---------- Routes / Walker ---------- */
@@ -234,7 +250,7 @@ Commands.registerCommand('v5', () => {
         literal('walker', () => {
             argument('args', greedyString(), () => {
                 exec(({ args }) => {
-                    ChatLib.command('routewalker ' + args);
+                    callCommand('routewalker', args);
                 });
             });
         });
@@ -246,7 +262,7 @@ Commands.registerCommand('v5', () => {
             argument('yaw', float(), () => {
                 argument('pitch', float(), () => {
                     exec(({ yaw, pitch }) => {
-                        ChatLib.command('rotateTo ' + yaw + ' ' + pitch);
+                        callCommand('rotateTo', yaw, pitch);
                     });
                 });
             });
@@ -255,7 +271,7 @@ Commands.registerCommand('v5', () => {
                 exec(() => {
                     const randomYaw = Math.random() * 360 - 180;
                     const randomPitch = Math.random() * 180 - 90;
-                    ChatLib.command('rotateTo ' + randomYaw + ' ' + randomPitch);
+                    callCommand('rotateTo', randomYaw, randomPitch);
                 });
             });
         });
@@ -271,20 +287,20 @@ Commands.registerCommand('v5', () => {
     literal('debug', () => {
         literal('blockinfo', () => {
             exec(() => {
-                ChatLib.command('blockinfo');
+                callCommand('blockinfo');
             });
         });
 
         literal('istranslucent', () => {
             exec(() => {
-                ChatLib.command('istranslucent');
+                callCommand('istranslucent');
             });
         });
 
         literal('packetinfo', () => {
             argument('className', greedyString(), () => {
                 exec(({ className }) => {
-                    ChatLib.command('packetinfo ' + className);
+                    callCommand('packetinfo', className);
                 });
             });
         });

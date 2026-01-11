@@ -2,6 +2,7 @@ import { Utils } from './Utils';
 import { Chat } from './Chat';
 import { URL, DataOutputStream, Toolkit, DataFlavor, CLIENT_VERSION } from './Constants';
 import { Executor } from './ThreadExecutor';
+import { v5Command } from './V5Commands';
 
 class DiscordNotifier {
     constructor() {
@@ -39,26 +40,22 @@ class DiscordNotifier {
     initTriggers() {
         register('gameLoad', () => this.onStartup());
 
-        register('command', () => {
+        v5Command('setwh', () => {
             try {
                 const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
                 this.updateEndpoint(clipboard);
             } catch (e) {
                 Chat.message('Webhook: &cCould not access system clipboard.');
             }
-        })
-            .setName('setwh', true)
-            .setAliases(['setwebhook']);
+        });
 
-        register('command', (uid) => {
+        v5Command('setid', (uid) => {
             if (!uid) {
                 Chat.message('&cUsage: /setuserid <id>');
                 return;
             }
             this.updateMention(uid);
-        })
-            .setName('setid', true)
-            .setAliases(['setuserid']);
+        });
     }
 
     updateEndpoint(url) {

@@ -1,5 +1,6 @@
 import { Utils } from '../Utils';
 import { ModuleBase } from '../ModuleBase';
+import { v5Command } from '../V5Commands';
 
 class RotationConfig extends ModuleBase {
     constructor() {
@@ -64,13 +65,13 @@ class RotationsTo {
         this.motionProfile = 'linear';
         this.speedMultiplier = 1.0;
 
-        register('command', (yaw, pitch) => {
+        v5Command('rotateTo', (yaw, pitch) => {
             this.rotateToAngles(parseFloat(yaw), parseFloat(pitch));
-        }).setName('rotateTo');
+        });
 
-        register('command', () => {
+        v5Command('stopRotation', () => {
             this.stopRotation();
-        }).setName('stopRotation');
+        });
 
         register('renderWorld', () => this.updateRotation());
     }

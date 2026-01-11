@@ -1,6 +1,7 @@
 import { Chat } from './Chat';
+import { v5Command } from './V5Commands';
 
-register('command', () => {
+v5Command('blockinfo', () => {
     let block = Player.lookingAt();
     if (block instanceof Block) {
         Chat.message('blockid: ' + block.type.getID());
@@ -11,19 +12,19 @@ register('command', () => {
     } else {
         Chat.message(block);
     }
-}).setName('blockinfo');
+});
 
-register('command', function () {
+v5Command('istranslucent', () => {
     const block = Player.lookingAt();
     if (!block) {
         Chat.message('You are not looking at a block');
         return;
     }
     Chat.message(block?.type?.isTranslucent());
-}).setName('istranslucent');
+});
 
 // gemini made it for me :)
-register('command', (args) => {
+v5Command('packetinfo', (args) => {
     if (!args || args.length === 0) return Chat.message('no packet');
 
     const fullClassPath = args;
@@ -90,4 +91,4 @@ register('command', (args) => {
 
     const consoleOutput = output.replace(/§[0-9a-fk-or]/g, '');
     Chat.log(consoleOutput);
-}).setName('packetinfo');
+});

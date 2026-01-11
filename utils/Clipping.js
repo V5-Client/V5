@@ -3,6 +3,7 @@ import { Chat } from './Chat';
 import { Utils } from './Utils';
 import { File, System, ProcessBuilder } from './Constants';
 import { Executor } from './ThreadExecutor';
+import { v5Command } from './V5Commands';
 
 const os = System.getProperty('os.name').toLowerCase();
 const isWindows = os.includes('win');
@@ -76,13 +77,13 @@ class ClippingManager extends ModuleBase {
             'Automatically compresses clips to reduce file size.'
         );
 
-        register('command', (...args) => {
+        v5Command('clip', (...args) => {
             if (args && args[0] && args[0].toLowerCase() === 'compress') {
                 this.compressLatestClip();
             } else {
                 this.saveClip();
             }
-        }).setName('clip');
+        });
 
         register('gameUnload', () => this.stopRecording());
     }

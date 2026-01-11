@@ -6,6 +6,7 @@ import { Links, StandardCharsets, Base64 } from '../Constants';
 import { ChatMessageC2S } from '../Packets';
 import { Chat } from '../Chat';
 import { Utils } from '../Utils';
+import { v5Command } from '../V5Commands';
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -231,10 +232,10 @@ register('packetSent', (packet, event) => {
     cancel(event);
 }).setFilteredClass(ChatMessageC2S);
 
-register('command', () => {
+v5Command('reconnectIRC', () => {
     reconnectAttempts = 0;
     attemptReconnect();
-}).setCommandName('reconnectIRC');
+});
 
 connectIRC();
 import { returnDiscord } from '../../gui/Utils';

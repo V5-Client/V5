@@ -9,6 +9,7 @@ import { Chat } from '../Chat';
 import { Keybind } from '../player/Keybinding';
 import { SwiftBridge } from './SwiftBridge';
 import { showNotification } from '../../gui/NotificationManager';
+import { v5Command } from '../V5Commands';
 
 let renderPath = null;
 let currentPathRequest = null;
@@ -273,7 +274,7 @@ function requestPathRecalculation() {
 
 setRequestPathRecalculation(requestPathRecalculation);
 
-register('command', (...args) => {
+v5Command('path', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
     const coords = args.slice(0, 3).map(Number);
     if (coords.some(isNaN)) {
@@ -281,9 +282,9 @@ register('command', (...args) => {
     }
     const end = coords.slice(0, 3);
     findAndFollowPath(start, end);
-}).setName('path', true);
+});
 
-register('command', (...args) => {
+v5Command('rustpath', (...args) => {
     if (args.length < 6) {
         return showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
     }
@@ -293,9 +294,9 @@ register('command', (...args) => {
     }
     const renderOnly = args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
     findAndFollowPath(coords.slice(0, 3), coords.slice(3, 6), renderOnly);
-}).setName('rustpath', true);
+});
 
-register('command', () => {
+v5Command('stopPath', () => {
     stopPathing();
     clearPathCallback();
-}).setName('stop', true);
+});

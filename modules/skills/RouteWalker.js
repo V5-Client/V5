@@ -10,6 +10,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import RouteState from '../../utils/RouteState';
 import { Guis } from '../../utils/player/Inventory';
 import { Mouse } from '../../utils/Ungrab';
+import { v5Command } from '../../utils/V5Commands';
 
 class RouteWalkerer extends ModuleBase {
     constructor() {
@@ -43,11 +44,11 @@ class RouteWalkerer extends ModuleBase {
 
         this.action = this.ACTIONS.WALK;
 
-        register('command', (action, arg1, indexArg) => {
+        v5Command('routewalker', (action, arg1, indexArg) => {
             let indexNum = undefined;
 
-            if (!action) return this.message('action required! e.g /rw ADD/REMOVE/CLEAR');
-            if (!arg1) return this.message('movement type required! e.g /rw add WALK/ETHERWARP');
+            if (!action) return this.message('action required! e.g /v5 routes routewalker ADD/REMOVE/CLEAR');
+            if (!arg1 && action?.toUpperCase() !== 'CLEAR') return this.message('movement type required! e.g /v5 routes routewalker add WALK/ETHERWARP');
 
             if (indexArg !== undefined) {
                 let parsedNum = parseInt(indexArg);
@@ -56,17 +57,15 @@ class RouteWalkerer extends ModuleBase {
             }
 
             this.route = Router.Edit(
-                action.toUpperCase(),
+                action?.toUpperCase(),
                 this.route,
                 'RoutewalkerRoutes/' + this.loadedFile,
                 indexNum,
                 true,
                 ['WALK', 'ETHERWARP'],
-                [arg1.toUpperCase()]
+                [arg1?.toUpperCase()]
             );
-        })
-            .setName('routewalker')
-            .setAliases('rw');
+        });
 
         this.when(
             () => this.RENDERPOINTS,

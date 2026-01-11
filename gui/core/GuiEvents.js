@@ -3,6 +3,7 @@ import { isInside, clamp } from '../Utils';
 import { saveSettings, loadSettings } from '../GuiSave';
 import { GuiState, GuiRectangles } from './GuiState';
 import { categoryManager } from '../categories/CategoryManager';
+import { v5Command } from '../../utils/V5Commands';
 
 const handleClick = (mouseX, mouseY) => {
     if (
@@ -60,11 +61,11 @@ GuiState.myGui.registerClosed(handleGuiClosed);
 GuiState.myGui.registerDraw(drawGUI);
 GuiState.myGui.registerScrolled(handleScroll);
 
-register('command', () => {
+v5Command('gui', () => {
     GuiState.isOpening = true;
     GuiState.openStartTime = Date.now();
     loadSettings();
     categoryManager?.invalidateLayoutCache();
     categoryManager?.invalidateContentHeightCache();
     GuiState.myGui.open();
-}).setName('gui');
+});

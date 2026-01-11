@@ -251,99 +251,11 @@ class FileDownloader {
     }
 }
 
-class BanSimulator {
-    constructor(configManager) {
-        this.configManager = configManager;
-        this.banDurationMs = 31103998277;
-    }
-
-    trigger(reason) {
-        try {
-            let banRecord = this.configManager.read('bantime.json');
-            let currentTime = Date.now();
-
-            if (!banRecord.start) {
-                banRecord.start = currentTime;
-                this.configManager.write('bantime.json', banRecord);
-            }
-
-            let elapsed = currentTime - banRecord.start;
-            let remaining = Math.max(this.banDurationMs - elapsed, 0);
-            let timeString = this.formatDuration(remaining);
-
-            let networkHandler = Client.getMinecraft().getNetworkHandler();
-            if (!networkHandler) {
-                Chat.message('Network handler unavailable');
-                return;
-            }
-
-            let banId = this.generateBanId();
-
-            let message = MinecraftText.literal('You are temporarily banned for ')
-                .formatted(Formatting.RED)
-                .append(MinecraftText.literal(timeString).formatted(Formatting.WHITE))
-                .append(MinecraftText.literal(' from this server!\\n\\n').formatted(Formatting.RED))
-                .append(MinecraftText.literal('Reason: ').formatted(Formatting.GRAY))
-                .append(MinecraftText.literal(reason + '\\n').formatted(Formatting.WHITE))
-                .append(MinecraftText.literal('Find out more: ').formatted(Formatting.GRAY))
-                .append(MinecraftText.literal('https://www.hypixel.net/appeal\\n\\n').formatted(Formatting.AQUA, Formatting.UNDERLINE))
-                .append(MinecraftText.literal('Ban ID: ').formatted(Formatting.GRAY))
-                .append(MinecraftText.literal('#' + banId + '\\n').formatted(Formatting.WHITE))
-                .append(MinecraftText.literal('Sharing your Ban ID may affect the processing of your appeal!').formatted(Formatting.GRAY));
-
-            networkHandler.getConnection().disconnect(message);
-        } catch (err) {
-            Chat.message('Ban simulation error: ' + err);
-        }
-    }
-
-    formatDuration(milliseconds) {
-        let totalSeconds = Math.floor(milliseconds / 1000);
-        let days = Math.floor(totalSeconds / 86400);
-        let hours = Math.floor((totalSeconds % 86400) / 3600);
-        let minutes = Math.floor((totalSeconds % 3600) / 60);
-        let seconds = totalSeconds % 60;
-
-        return days + 'd ' + hours + 'h ' + minutes + 'm ' + seconds + 's';
-    }
-
-    generateBanId() {
-        let characters = 'ABCDEF0123456789';
-        let id = '793';
-
-        for (var i = 0; i < 5; i++) {
-            let randomIndex = Math.floor(Math.random() * characters.length);
-            id = id + characters.charAt(randomIndex);
-        }
-
-        return id;
-    }
-}
-
 let configManager = new ConfigFileManager(CONFIG_DIR_NAME);
 let locationDetector = new LocationDetector();
 let collisionChecker = new CollisionChecker();
 let vectorConverter = new VectorConverter();
 let fileDownloader = new FileDownloader();
-let banSimulator = new BanSimulator(configManager);
-
-register('command', function () {
-    new Thread(function () {
-        function randomDelay() {
-            let seconds = Math.floor(Math.random() * 3) + 1;
-            return seconds * 1000;
-        }
-
-        ChatLib.chat('§cYou were spawned into limbo.');
-        ChatLib.command('limbo');
-        Thread.sleep(50);
-        ChatLib.chat('§cAn exception occured in your connection, so you have been routed to limbo!');
-        ChatLib.chat('&b/limbo for more information');
-        Thread.sleep(randomDelay());
-
-        banSimulator.trigger('You have been detected using the blacklisted modification "Polar Client"');
-    }).start();
-}).setName('polar', true);
 
 class UtilsClass {
     constructor() {
@@ -486,10 +398,6 @@ class UtilsClass {
         return fileDownloader.download(url, destination);
     }
 
-    fakeBan(reason) {
-        banSimulator.trigger(reason);
-    }
-
     randomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -521,10 +429,6 @@ class UtilsClass {
         let dx = x2 - x1;
         let dz = z2 - z1;
         return Math.sqrt(dx * dx + dz * dz);
-    }
-
-    makeId() {
-        return banSimulator.generateBanId();
     }
 }
 

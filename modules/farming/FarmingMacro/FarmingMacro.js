@@ -12,6 +12,7 @@ import RenderUtils from '../../../utils/render/RendererUtils';
 import { Vec3d } from '../../../utils/Constants';
 import { attachMixin } from '../../../utils/AttachMixin';
 import { spawnBreakParticles } from '../../../mixins/SpawnBreakParticlesMixin';
+import { v5Command } from '../../../utils/V5Commands';
 
 const FARMING_DATA = [
     {
@@ -26,10 +27,17 @@ const FARMING_DATA = [
         speed: 400,
         pitch: -59.2,
     },
+    {
+        name: 'Cane / Sunflower / Rose',
+        registry: ['minecraft:sugar_cane', 'minecraft:sunflower', 'minecraft:rose_bush'],
+        speed: 328,
+        pitch: 0,
+    },
 ];
 
 import VerticalCrop from './farms/VerticalFarm';
 import MelonKingDeMP from './farms/MelonKingDeMP';
+import CaneSunflowerRose from './farms/CaneSunflowerRose';
 
 class FarmingMacro extends ModuleBase {
     constructor() {
@@ -67,6 +75,7 @@ class FarmingMacro extends ModuleBase {
         this.HANDLERS = {
             'Vertical NetherWart / Potato / Wheat / Carrot': new VerticalCrop(this),
             "MelonKingDe's Melon / Pumpkin": new MelonKingDeMP(this),
+            'Cane / Sunflower / Rose': new CaneSunflowerRose(this),
         };
 
         this.currentHandler = null;
@@ -111,7 +120,7 @@ class FarmingMacro extends ModuleBase {
     }
 
     initCommands() {
-        register('command', () => {
+        v5Command('setstart', () => {
             if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
             this.points.start = {
                 x: Math.floor(Player.getX()),
@@ -121,9 +130,9 @@ class FarmingMacro extends ModuleBase {
             ChatLib.command('sethome');
             Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
             this.message('&aStart point saved!');
-        }).setName('setstart');
+        });
 
-        register('command', () => {
+        v5Command('setend', () => {
             if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
             this.points.end = {
                 x: Math.floor(Player.getX()),
@@ -132,7 +141,7 @@ class FarmingMacro extends ModuleBase {
             };
             Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
             this.message('&aEnd point saved!');
-        }).setName('setend');
+        });
     }
 
     initListeners() {
