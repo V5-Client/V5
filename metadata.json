@@ -5,5 +5,5 @@
     "version": "1.0.0 beta",
     "entry": "loader.js",
     "mixinEntry": "mixins/mixins.js",
-    "requires": ["RequestV2", "WebSocket"]
+    "requires": ["requestV2", "WebSocket"]
 }

@@ -1,7 +1,7 @@
 const SESSION_SERVER_HASH = java.util.UUID.randomUUID().toString().replaceAll('-', '');
 
 import WebSocket from 'WebSocket';
-import RequestV2 from 'RequestV2';
+import requestV2 from 'requestV2';
 import { Links, StandardCharsets, Base64 } from '../Constants';
 import { ChatMessageC2S } from '../Packets';
 import { Chat } from '../Chat';
@@ -151,7 +151,7 @@ function connectWebSocket() {
 function login() {
     const username = Player.getName();
     const serverId = SESSION_SERVER_HASH;
-    RequestV2({
+    requestV2({
         url: `${Links.BASE_API_URL}/api/auth/login`,
         method: 'POST',
         body: {
@@ -191,7 +191,7 @@ function connectIRC() {
         return;
     }
 
-    RequestV2({
+    requestV2({
         url: 'https://sessionserver.mojang.com/session/minecraft/join',
         method: 'POST',
         body: {
