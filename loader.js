@@ -6,8 +6,6 @@ import './utils/V5Commands.js';
 
 /* GUI */
 import './gui/GUI.js';
-import { loadSettings } from './gui/GuiSave';
-loadSettings();
 
 /* CORE */
 import './utils/Config.js';
@@ -26,3 +24,6 @@ import './utils/KeybindInitializer.js';
 
 /* Modules */
 import './modules/loader.js';
+
+import { loadSettings } from './gui/GuiSave';
+loadSettings();
