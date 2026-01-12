@@ -1,4 +1,4 @@
-import FailsafeUtils from '../Failsafes/FailsafeUtils';
+import FailsafeUtils from '../failsafes/FailsafeUtils';
 import { GradientChat } from './Constants';
 
 const gradientInstance = new GradientChat();

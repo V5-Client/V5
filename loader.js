@@ -19,7 +19,7 @@ import './utils/pathfinder/PathFinder.js';
 import './utils/Clipping.js';
 import './utils/Misc.js';
 import './utils/Webhooks.js';
-import './Failsafes/FailsafeManager.js';
+import './failsafes/FailsafeManager.js';
 import './utils/V5Mod.js';
 import './utils/SkyblockEvents.js';
 import './utils/KeybindInitializer.js';

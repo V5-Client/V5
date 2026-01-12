@@ -3,7 +3,7 @@ import { getSetting } from '../../gui/GuiSave';
 import { File } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
 import { DisconnectS2C } from '../../utils/Packets';
-import { AlertUtils } from '../../Failsafes/AlertUtils';
+import { AlertUtils } from '../../failsafes/AlertUtils';
 
 class Failsafes extends ModuleBase {
     constructor() {
@@ -135,7 +135,7 @@ class Failsafes extends ModuleBase {
             'Toggle play sound on check',
             this.playSoundOnCheck
         );
-        this.addMultiToggle('Failsafe sound', this.getFilesinDir('Failsafes/sounds'), true, (v) => {
+        this.addMultiToggle('Failsafe sound', this.getFilesinDir('failsafes/sounds'), true, (v) => {
             // someone sort this out properly
             const selectedFiles = getSetting('Failsafes', 'Failsafe sound');
             const enabledNames = selectedFiles.filter((fileObject) => fileObject.enabled).map((fileObject) => fileObject.name);
