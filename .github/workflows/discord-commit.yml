@@ -139,6 +139,7 @@ jobs:
                     --argjson color 3447003 \
                     '{
                       "username": $username,
+                      "avatar_url": $avatar_url,
                       "embeds": [{
                         "title": $title,
                         "description": ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
@@ -174,6 +175,7 @@ jobs:
               run: |
                   payload=$(jq -n \
                     --arg username "V5 Commits" \
+                    --arg avatar_url "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg" \
                     --arg title "New Commit" \
                     --arg description "$COMMIT_MESSAGE" \
                     --arg author "$DISCORD_USER" \
@@ -187,6 +189,7 @@ jobs:
                     --argjson color 3447003 \
                     '{
                       "username": $username,
+                      "avatar_url": $avatar_url,
                       "embeds": [{
                         "title": $title,
                         "description": ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
