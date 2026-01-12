@@ -1,5 +1,5 @@
-import { raytraceBlocks } from '../utils/Dependencies/BloomCore/RaytraceBlocks';
-import { Vector3 } from '../utils/Dependencies/BloomCore/Vector3';
+import { raytraceBlocks } from './dependencies/BloomCore/RaytraceBlocks';
+import { Vector3 } from './dependencies/BloomCore/Vector3';
 
 export const SAMPLE_POINTS_PER_FACE = 9;
 export const MAX_DDA_ITERATIONS = 300;
