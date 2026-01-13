@@ -15,7 +15,7 @@ export const colorWithAlpha = (baseColor, alpha) => {
         g = (baseColor >> 8) & 0xff;
         b = baseColor & 0xff;
         const originalAlpha = (baseColor >>> 24) & 0xff;
-        a = (originalAlpha === 0 && baseColor !== 0) ? 255 : originalAlpha;
+        a = originalAlpha === 0 && baseColor !== 0 ? 255 : originalAlpha;
     } else {
         return new Color(1, 1, 1, 1).getRGB();
     }

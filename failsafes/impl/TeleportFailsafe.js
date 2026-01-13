@@ -56,10 +56,13 @@ class TeleportFailsafe extends Failsafe {
                 return;
             }
 
-            setTimeout(() => {
-                if (this.ignore) return;
-                this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
-            }, this.settings.FailsafeReactionTime - 50 || 600);
+            setTimeout(
+                () => {
+                    if (this.ignore) return;
+                    this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
+                },
+                this.settings.FailsafeReactionTime - 50 || 600
+            );
         }).setFilteredClass(PlayerPositionLookS2C);
 
         register('worldLoad', () => {

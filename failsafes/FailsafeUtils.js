@@ -31,7 +31,9 @@ class FailsafeUtils {
         let FailsafeReactionTime = FailsafeReactionTimeInput;
 
         if (typeof FailsafeReactionTimeInput === 'object' && FailsafeReactionTimeInput.low !== undefined && FailsafeReactionTimeInput.high !== undefined) {
-            FailsafeReactionTime = Math.floor(Math.random() * (FailsafeReactionTimeInput.high - FailsafeReactionTimeInput.low + 1) + FailsafeReactionTimeInput.low);
+            FailsafeReactionTime = Math.floor(
+                Math.random() * (FailsafeReactionTimeInput.high - FailsafeReactionTimeInput.low + 1) + FailsafeReactionTimeInput.low
+            );
         }
 
         const isEnabled = config['Failsafes'][`${name} Failsafe`] ?? true;

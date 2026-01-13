@@ -24,10 +24,13 @@ class SlotChangeFailsafe extends Failsafe {
             const currentSlot = Player.getHeldItemIndex() + 1;
             const newSlot = packet.slot() + 1; // first slot is 0 so +1 to match hotbar index ig
             if (currentSlot === newSlot) return;
-            setTimeout(() => {
-                if (this.ignore) return;
-                this.onTrigger(currentSlot, newSlot);
-            }, this.settings.FailsafeReactionTime - 50 || 600);
+            setTimeout(
+                () => {
+                    if (this.ignore) return;
+                    this.onTrigger(currentSlot, newSlot);
+                },
+                this.settings.FailsafeReactionTime - 50 || 600
+            );
         }).setFilteredClass(UpdateSelectedSlotS2C);
 
         register('worldLoad', () => {

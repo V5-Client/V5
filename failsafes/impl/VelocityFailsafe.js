@@ -27,10 +27,13 @@ class VelocityFailsafe extends Failsafe {
             const vy = packet.getVelocity().y;
             const vz = packet.getVelocity().z;
             const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-            setTimeout(() => {
-                if (this.ignore) return;
-                this.onTrigger(speed);
-            }, this.settings.FailsafeReactionTime - 50 || 600);
+            setTimeout(
+                () => {
+                    if (this.ignore) return;
+                    this.onTrigger(speed);
+                },
+                this.settings.FailsafeReactionTime - 50 || 600
+            );
         }).setFilteredClass(EntityVelocityUpdateS2C);
 
         manager.subscribe('death', () => {
