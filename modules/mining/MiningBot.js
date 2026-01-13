@@ -801,7 +801,7 @@ class Bot extends ModuleBase {
 
         this.currentTarget = this.foundLocations[0];
         this.lowestCostBlockIndex = 0;
-        this.toggle(true);
+        this.toggle(true, this.isParentManaged);
 
         return true;
     }

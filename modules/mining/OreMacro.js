@@ -352,7 +352,7 @@ class OreMacro extends ModuleBase {
                         }
 
                         if (MiningBot.foundLocations.length > 0) {
-                            MiningBot.toggle(true);
+                            MiningBot.toggle(true, true);
                             return;
                         }
 

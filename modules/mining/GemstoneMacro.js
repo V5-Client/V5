@@ -377,7 +377,7 @@ class GemstoneMacro extends ModuleBase {
 
                         if (MiningBot.foundLocations.length > 0) {
                             Chat.message('Found ' + MiningBot.foundLocations.length + ' gemstones');
-                            MiningBot.toggle(true);
+                            MiningBot.toggle(true, true);
                             return;
                         }
 

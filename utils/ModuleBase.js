@@ -1,6 +1,7 @@
 import { Utils } from './Utils';
 import { KeyBindUtils } from './Constants';
 import { OverlayManager } from '../gui/OverlayUtils';
+import { notificationManager } from '../gui/NotificationManager';
 import { Categories } from '../gui/categories/CategorySystem';
 import { MacroState } from './MacroState';
 
@@ -22,6 +23,8 @@ export class ModuleBase {
         this.tooltip = opts.tooltip || null;
         this.enabled = false;
         this.oid = null;
+
+        this.isParentManaged = false;
 
         this.isMacro = opts.isMacro === true;
 
@@ -85,20 +88,28 @@ export class ModuleBase {
     /**
      * Toggle the module on/off
      * @param {boolean} [value] - Optional: force specific state (true/false). If undefined, toggles current state.
+     * @param {boolean} [parentManaged=false] - If true, this enable was triggered by another module. Hides overlay and prevents double-state recording.
      */
-    toggle(value) {
+    toggle(value, parentManaged = false) {
         const newVal = typeof value === 'boolean' ? value : !this.enabled;
-        if (this.enabled === newVal) return;
+
+        if (this.enabled === newVal) {
+            if (newVal) this.isParentManaged = parentManaged;
+            return;
+        }
+
         this.enabled = newVal;
+        this.isParentManaged = parentManaged;
 
         if (newVal) {
-            if (this.isMacro) {
+            if (this.isMacro && !this.isParentManaged) {
                 MacroState.onModuleEnabled(this.name);
             }
 
-            if (this.oid) {
+            if (this.oid && !this.isParentManaged) {
                 OverlayManager.startTime(this.oid);
             }
+
             try {
                 this.onEnable();
             } catch (e) {
@@ -119,6 +130,8 @@ export class ModuleBase {
             } catch (e) {
                 console.error(`Error in ${this.name}.onDisable():`, e);
             }
+
+            this.isParentManaged = false;
         }
     }
 
@@ -151,7 +164,15 @@ export class ModuleBase {
         const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
         const id = (this.name || 'module').toLowerCase().replace(/[^a-z0-9]/g, '_');
         this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
-        this._wrappedKey.onKeyPress(() => this.toggle());
+
+        this._wrappedKey.onKeyPress(() => {
+            if (this.enabled && this.isParentManaged) {
+                notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
+                return;
+            }
+            this.toggle();
+        });
+
         register('gameUnload', () => {
             this._saveKey(title, this._wrappedKey.keyBinding.boundKey.code);
         });

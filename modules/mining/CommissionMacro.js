@@ -422,7 +422,7 @@ class CommissionMacro extends ModuleBase {
 
         CombatBot.setExternalTargets(mobs);
         if (!CombatBot.enabled) {
-            CombatBot.toggle(true);
+            CombatBot.toggle(true, true);
         }
     }
 
@@ -649,7 +649,7 @@ class CommissionMacro extends ModuleBase {
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
 
         MiningBot.setCost(MiningBot.mithrilCosts);
-        MiningBot.toggle(true);
+        MiningBot.toggle(true, true);
     }
 
     startSlayer() {
@@ -677,7 +677,7 @@ class CommissionMacro extends ModuleBase {
 
         CombatBot.clearExternalTargets();
         if (!CombatBot.enabled) {
-            CombatBot.toggle(true);
+            CombatBot.toggle(true, true);
         }
     }
 
