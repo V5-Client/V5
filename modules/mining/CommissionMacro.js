@@ -78,21 +78,8 @@ class CommissionMacro extends ModuleBase {
                 data: {
                     State: () => this.currentState,
                     Commission: () => this.currentCommission?.name || 'None',
-                    Progress: () => {
-                        const currentCommName = this.currentCommission?.name || 'None';
-                        const currentCommData = this.commissions.find((c) => c.name === currentCommName);
-                        const currentProgress = currentCommData?.progress || 0;
-                        return currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
-                    },
-                    Tool: () => {
-                        const toolInfo = this.getToolDisplay();
-                        const maxLen = 45;
-                        let name = toolInfo.name;
-                        if (name.length > maxLen) {
-                            name = name.substring(0, maxLen - 2) + '..';
-                        }
-                        return `${name}`;
-                    },
+                    Progress: () => this.getCommissionProgressDisplay(),
+                    Tool: () => this.getTruncatedToolName(),
                 },
             },
             {
@@ -155,8 +142,25 @@ class CommissionMacro extends ModuleBase {
         );
     }
 
+    getCommissionProgressDisplay() {
+        const currentCommName = this.currentCommission?.name || 'None';
+        const currentCommData = this.commissions.find((c) => c.name === currentCommName);
+        const currentProgress = currentCommData?.progress || 0;
+        return currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
+    }
+
+    getTruncatedToolName() {
+        const toolInfo = this.getToolDisplay();
+        const maxLen = 45;
+        let name = toolInfo.name;
+        if (name.length > maxLen) {
+            name = name.substring(0, maxLen - 2) + '..';
+        }
+        return `${name}`;
+    }
+
     getToolDisplay() {
-        if (this.currentState === STATES.SLAYER && this.currentCommission?.name === 'Goblin Slayer' && this.weapon) {
+        if (this.isGoblinSlayerWithWeapon()) {
             return {
                 type: 'Weapon',
                 name: this.weapon.name,
@@ -181,6 +185,10 @@ class CommissionMacro extends ModuleBase {
             type: 'None',
             name: 'None',
         };
+    }
+
+    isGoblinSlayerWithWeapon() {
+        return this.currentState === STATES.SLAYER && this.currentCommission?.name === 'Goblin Slayer' && this.weapon;
     }
 
     onEnable() {
@@ -301,23 +309,16 @@ class CommissionMacro extends ModuleBase {
         this.updateCommissionsIfChanged(newCommissions);
         if (this.awaitingTabUpdate) return;
 
-        if (this.lastCompletedCommissionName) {
-            const staleCommission = this.commissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress > 0);
-            if (staleCommission) return;
-            this.lastCompletedCommissionName = null;
-        }
+        if (this.shouldWaitForLastCompleted()) return;
 
-        const completedCommission = this.commissions.find((c) => {
-            if (c.progress !== 1) return false;
-            return COMMISSION_DATA.some((d) => d.names.includes(c.name));
-        });
+        const completedCommission = this.findCompletedCommission();
         if (completedCommission) {
             this.currentCommission = completedCommission;
             this.onCommissionComplete();
             return;
         }
 
-        const activeCommissions = this.commissions.filter((c) => c.progress < 1);
+        const activeCommissions = this.getActiveCommissions();
         if (activeCommissions.length === 0) {
             Chat.message('No commissions detected.');
             Chat.message('Ensure commissions are enabled in /tab');
@@ -342,28 +343,51 @@ class CommissionMacro extends ModuleBase {
         }
     }
 
+    shouldWaitForLastCompleted() {
+        if (!this.lastCompletedCommissionName) return false;
+        const staleCommission = this.commissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress > 0);
+        if (staleCommission) return true;
+        this.lastCompletedCommissionName = null;
+        return false;
+    }
+
+    findCompletedCommission() {
+        return this.commissions.find((c) => {
+            if (c.progress !== 1) return false;
+            return COMMISSION_DATA.some((d) => d.names.includes(c.name));
+        });
+    }
+
+    getActiveCommissions() {
+        return this.commissions.filter((c) => c.progress < 1);
+    }
+
     getSupportedTasks(activeCommissions) {
         return activeCommissions
-            .map((tabComm) => {
-                const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
-                return data ? { ...tabComm, ...data } : null;
-            })
-            .filter((task) => {
-                if (!task) return false;
-
-                if (task.type === 'MINING') {
-                    if (task.name.includes('Goblin') && !this.weapon) return false;
-                    return true;
-                }
-
-                if (task.type === 'SLAYER') {
-                    if (task.name === 'Goblin Slayer' && !this.weapon) return false;
-                    return true;
-                }
-
-                return false; // unreachable
-            })
+            .map((tabComm) => this.mergeCommissionData(tabComm))
+            .filter((task) => this.isSupportedTask(task))
             .sort((a, b) => a.cost - b.cost);
+    }
+
+    mergeCommissionData(tabComm) {
+        const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
+        return data ? { ...tabComm, ...data } : null;
+    }
+
+    isSupportedTask(task) {
+        if (!task) return false;
+
+        if (task.type === 'MINING') {
+            if (task.name.includes('Goblin') && !this.weapon) return false;
+            return true;
+        }
+
+        if (task.type === 'SLAYER') {
+            if (task.name === 'Goblin Slayer' && !this.weapon) return false;
+            return true;
+        }
+
+        return false; // unreachable
     }
 
     getOtherPlayers() {
@@ -373,22 +397,23 @@ class CommissionMacro extends ModuleBase {
 
     findAvailableCommission(supportedTasks, otherPlayers) {
         for (const task of supportedTasks) {
-            const safeWaypoints =
-                this.playerAvoidanceRadius <= 0
-                    ? task.waypoints
-                    : task.waypoints.filter((waypoint) => {
-                          return !otherPlayers.some((player) => {
-                              const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
-                              return distance < this.playerAvoidanceRadius;
-                          });
-                      });
-
+            const safeWaypoints = this.getSafeWaypoints(task, otherPlayers);
             if (safeWaypoints.length > 0) {
                 const closestWaypoint = this.getClosestWaypoint(safeWaypoints);
                 return { task, waypoint: closestWaypoint };
             }
         }
         return null;
+    }
+
+    getSafeWaypoints(task, otherPlayers) {
+        if (this.playerAvoidanceRadius <= 0) return task.waypoints;
+        return task.waypoints.filter((waypoint) => {
+            return !otherPlayers.some((player) => {
+                const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
+                return distance < this.playerAvoidanceRadius;
+            });
+        });
     }
 
     getClosestWaypoint(waypoints) {
@@ -502,17 +527,8 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-        let closest = EMISSARY_LOCATIONS[0];
-        let closestDist = this.getDistance(...playerPos, ...closest);
-        for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
-            const current = EMISSARY_LOCATIONS[i];
-            const currentDist = this.getDistance(...playerPos, ...current);
-            if (currentDist < closestDist) {
-                closest = current;
-                closestDist = currentDist;
-            }
-        }
+        const closest = this.getClosestEmissary();
+        const closestDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
 
         if (closestDist < 4) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
@@ -533,6 +549,21 @@ class CommissionMacro extends ModuleBase {
             if (!success) return;
             this.pathfinding = false;
         });
+    }
+
+    getClosestEmissary() {
+        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+        let closest = EMISSARY_LOCATIONS[0];
+        let closestDist = this.getDistance(...playerPos, ...closest);
+        for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
+            const current = EMISSARY_LOCATIONS[i];
+            const currentDist = this.getDistance(...playerPos, ...current);
+            if (currentDist < closestDist) {
+                closest = current;
+                closestDist = currentDist;
+            }
+        }
+        return closest;
     }
 
     claimCompletedCommissions() {
