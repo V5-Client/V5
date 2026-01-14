@@ -50,6 +50,10 @@ class ControlSystem {
                 return true;
             }
 
+            const mouseGrabbed = net.minecraft.client.Mouse.class.getDeclaredField('field_1783');
+            mouseGrabbed.setAccessible(true);
+            mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
+
             attackKey.setPressed(!!isPressed);
             return true;
         }

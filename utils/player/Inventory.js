@@ -85,6 +85,10 @@ class InterfaceHandler {
                 Client.currentGui.close();
             }
 
+            const mouseGrabbed = net.minecraft.client.Mouse.class.getDeclaredField('field_1783');
+            mouseGrabbed.setAccessible(true);
+            mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
+
             Client.getMinecraft().options.attackKey.setPressed(false);
         } catch (err) {}
     }
