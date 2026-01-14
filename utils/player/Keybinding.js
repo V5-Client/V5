@@ -108,7 +108,7 @@ class ControlSystem {
         }
     }
 
-    setCardinalMovement(yaw, shouldJump) {
+    setCardinalMovement(yaw, shouldJump, ignoreBottomSlab) {
         this.haltMovement();
         if (Client.isInGui() && !Client.isInChat()) return;
 
@@ -134,10 +134,10 @@ class ControlSystem {
             }
         }
 
-        shouldJump && Utils.playerIsCollided() ? this.updateKeyState('space', true) : this.updateKeyState('space', false);
+        shouldJump && Utils.playerIsCollided(!!ignoreBottomSlab) ? this.updateKeyState('space', true) : this.updateKeyState('space', false);
     }
 
-    setMovementToCoords(x, y, z, shouldJump) {
+    setMovementToCoords(x, y, z, shouldJump, ignoreBottomSlab) {
         const dx = x - Player.getX();
         const dz = z - Player.getZ();
         let angle = -(Math.atan2(dx, dz) * (180 / Math.PI)) - Player.getYaw();
@@ -145,7 +145,7 @@ class ControlSystem {
         while (angle < -180) angle += 360;
         while (angle > 180) angle -= 360;
 
-        this.setCardinalMovement(angle, shouldJump);
+        this.setCardinalMovement(angle, shouldJump, ignoreBottomSlab);
     }
 
     haltMovement() {
@@ -175,8 +175,8 @@ export const Keybind = {
     setKey: (k, d) => controls.updateKeyState(k, d),
     isKeyDown: (k) => controls.checkKeyDown(k),
     setKeysBasedOnYaw: (y, j) => controls.setMovementByYaw(y, j),
-    setKeysForStraightLine: (y, j) => controls.setCardinalMovement(y, j),
-    setKeysForStraightLineCoords: (x, y, z, j) => controls.setMovementToCoords(x, y, z, j),
+    setKeysForStraightLine: (y, j, ignoreBottomSlab) => controls.setCardinalMovement(y, j, ignoreBottomSlab),
+    setKeysForStraightLineCoords: (x, y, z, j, ignoreBottomSlab) => controls.setMovementToCoords(x, y, z, j, ignoreBottomSlab),
     stopMovement: () => controls.haltMovement(),
     unpressKeys: () => controls.fullRelease(),
 };

@@ -269,7 +269,8 @@ class UtilsClass {
         return collisionShape.isEmpty();
     }
 
-    playerIsCollided() {
+    playerIsCollided(ignoreBottomSlab) {
+        const shouldIgnoreBottomSlab = !!ignoreBottomSlab;
         const playerBox = Player.getPlayer().getBoundingBox();
         // Use a small epsilon to avoid "ghost" collisions with adjacent blocks
         const expandedBox = playerBox.expand(0.01, 0.0, 0.01);
@@ -288,8 +289,19 @@ class UtilsClass {
 
                     if (!block || block.type.getID() === 0) continue;
 
-                    const blockVec = new Vec3d(x, y, z);
-                    if (this.noCollision(blockVec)) continue;
+                    const blockPosNMS = new BP(x, y, z);
+                    const blockState = World.getWorld().getBlockState(blockPosNMS);
+
+                    if (shouldIgnoreBottomSlab) {
+                        const registryName = block.type.getRegistryName().toLowerCase();
+                        if (registryName.includes('slab')) {
+                            const stateString = blockState.toString();
+                            if (stateString.includes('type=bottom')) continue;
+                        }
+                    }
+
+                    const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
+                    if (collisionShape.isEmpty()) continue;
 
                     return true;
                 }

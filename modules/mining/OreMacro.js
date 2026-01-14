@@ -185,7 +185,7 @@ class OreMacro extends ModuleBase {
 
                     // realistic toggle ?
                     //Rotations.rotateToVector(new Vec3d(walkPoint.x + 0.5, walkPoint.y, walkPoint.z + 0.5));
-                    Keybind.setKeysForStraightLineCoords(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5, true);
+                    Keybind.setKeysForStraightLineCoords(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5, true, true);
                     break;
                 case this.STATES.ETHERWARPING:
                 case this.STATES.ETHERWARPING:
