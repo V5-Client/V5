@@ -26,4 +26,4 @@ import './utils/KeybindInitializer.js';
 import './modules/loader.js';
 
 import { loadSettings } from './gui/GuiSave';
-loadSettings();
+loadSettings()
