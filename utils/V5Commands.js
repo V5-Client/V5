@@ -234,17 +234,6 @@ Commands.registerCommand('v5', () => {
         });
     });
 
-    /* ---------- Other / Utilities ---------- */
-    literal('other', () => {
-        literal('bookname', () => {
-            argument('name', greedyString(), () => {
-                exec(({ name }) => {
-                    ChatLib.command('bookname ' + name);
-                });
-            });
-        });
-    });
-
     /* ---------- Routes / Walker ---------- */
     literal('routes', () => {
         literal('walker', () => {
