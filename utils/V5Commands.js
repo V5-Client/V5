@@ -1,4 +1,5 @@
 import { Chat } from './Chat';
+import { File, Desktop } from './Constants';
 
 const commands = {};
 
@@ -45,6 +46,15 @@ Commands.registerCommand('v5', () => {
             Chat.message('&7/v5 routes walker ... &f- Route Walker routes');
             Chat.message('&7/v5 mining (gemstone | ore) ... &f- Mining routes');
             Chat.message('&7/v5 webhook ... &f- Set discord webhook');
+        });
+    });
+
+    literal('config', () => {
+        exec(() => {
+            const path = new File(Client.getMinecraft().runDirectory, 'config/ChatTriggers/modules/V5Config');
+            const file = new File(path);
+
+            if (file.exists()) Desktop.getDesktop().open(file);
         });
     });
 
