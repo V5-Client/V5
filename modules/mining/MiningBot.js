@@ -395,7 +395,6 @@ class Bot extends ModuleBase {
         const fakeLookMode = this.FAKELOOK.find((option) => option.enabled)?.name;
         if (fakeLookMode === 'Off') {
             if (!Player.toMC().handSwinging && Date.now() - this.lastGUI > 100) {
-                Player.toMC().clearActiveItem();
                 Keybind.setKey('leftclick', true);
                 this.lastGUI = Date.now(); // stupid fix
             }
@@ -814,7 +813,6 @@ class Bot extends ModuleBase {
             return;
         }
 
-        Player.toMC().clearActiveItem();
         this.setCost();
         Chat.message('Mining Bot Enabled');
         this.allowScan = true;
@@ -835,6 +833,7 @@ class Bot extends ModuleBase {
         this.mineTickCount = 0;
         this.tickCount = 0;
         Rotations.stopRotation();
+        Guis.EnableUserInput();
         this.normalRender.unregister();
     }
 
