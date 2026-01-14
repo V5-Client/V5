@@ -9,6 +9,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { Mouse } from '../../utils/Ungrab';
 
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
@@ -222,6 +223,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
+        Mouse.ungrab();
         this.resetState();
     }
 
@@ -232,6 +234,7 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         stopPathing();
+        Mouse.regrab();
         Keybind.setKey('rightclick', false);
     }
 
@@ -519,7 +522,6 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        Player.toMC().clearActiveItem();
         this.refreshDrillReference();
         this.setState(STATES.CHOOSING);
     }
@@ -644,7 +646,6 @@ class CommissionMacro extends ModuleBase {
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
         Guis.setItemSlot(this.drill.slot);
-        Player.toMC().clearActiveItem();
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
