@@ -233,7 +233,6 @@ class CommissionMacro extends ModuleBase {
         CombatBot.toggle(false);
         stopPathing();
         Keybind.setKey('rightclick', false);
-        Guis.EnableUserInput();
     }
 
     resetState() {
@@ -520,6 +519,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
+        Player.toMC().clearActiveItem();
         this.refreshDrillReference();
         this.setState(STATES.CHOOSING);
     }
@@ -644,6 +644,7 @@ class CommissionMacro extends ModuleBase {
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
         Guis.setItemSlot(this.drill.slot);
+        Player.toMC().clearActiveItem();
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
