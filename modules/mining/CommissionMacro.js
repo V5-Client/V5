@@ -170,12 +170,11 @@ class CommissionMacro extends ModuleBase {
                     type: 'Drill',
                     name: fullName,
                 };
-            } else {
-                return {
-                    type: 'Pickaxe',
-                    name: fullName,
-                };
             }
+            return {
+                type: 'Pickaxe',
+                name: fullName,
+            };
         }
 
         return {
@@ -269,13 +268,30 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        if (this.currentState === STATES.IDLE) this.handleIdle();
-        else if (this.currentState === STATES.CHOOSING) this.handleChoosing();
-        else if (this.currentState === STATES.WAITING_GUI_CLOSE) this.handleWaitingGuiClose();
-        else if (this.currentState === STATES.SLAYER) this.handleSlayer();
-        else if (this.currentState === STATES.SELLING) this.handleSelling();
-        else if (this.currentState === STATES.CLAIMING) this.handleClaiming();
+        switch (this.currentState) {
+            case STATES.IDLE:
+                this.handleIdle();
+                break;
+            case STATES.CHOOSING:
+                this.handleChoosing();
+                break;
+            case STATES.WAITING_GUI_CLOSE:
+                this.handleWaitingGuiClose();
+                break;
+            case STATES.SLAYER:
+                this.handleSlayer();
+                break;
+            case STATES.SELLING:
+                this.handleSelling();
+                break;
+            case STATES.CLAIMING:
+                this.handleClaiming();
+                break;
+            default:
+                break;
+        }
     }
+
     handleIdle() {
         this.setState(STATES.CHOOSING);
     }
@@ -287,18 +303,14 @@ class CommissionMacro extends ModuleBase {
 
         if (this.lastCompletedCommissionName) {
             const staleCommission = this.commissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress > 0);
-            if (staleCommission) {
-                return;
-            }
+            if (staleCommission) return;
             this.lastCompletedCommissionName = null;
         }
 
         const completedCommission = this.commissions.find((c) => {
             if (c.progress !== 1) return false;
-            const isRealCommission = COMMISSION_DATA.some((d) => d.names.includes(c.name));
-            return isRealCommission;
+            return COMMISSION_DATA.some((d) => d.names.includes(c.name));
         });
-
         if (completedCommission) {
             this.currentCommission = completedCommission;
             this.onCommissionComplete();
@@ -361,24 +373,22 @@ class CommissionMacro extends ModuleBase {
 
     findAvailableCommission(supportedTasks, otherPlayers) {
         for (const task of supportedTasks) {
-            const safeWaypoints = this.getSafeWaypoints(task.waypoints, otherPlayers);
+            const safeWaypoints =
+                this.playerAvoidanceRadius <= 0
+                    ? task.waypoints
+                    : task.waypoints.filter((waypoint) => {
+                          return !otherPlayers.some((player) => {
+                              const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
+                              return distance < this.playerAvoidanceRadius;
+                          });
+                      });
+
             if (safeWaypoints.length > 0) {
                 const closestWaypoint = this.getClosestWaypoint(safeWaypoints);
                 return { task, waypoint: closestWaypoint };
             }
         }
         return null;
-    }
-
-    getSafeWaypoints(waypoints, otherPlayers) {
-        if (this.playerAvoidanceRadius <= 0) return waypoints;
-
-        return waypoints.filter((waypoint) => {
-            return !otherPlayers.some((player) => {
-                const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
-                return distance < this.playerAvoidanceRadius;
-            });
-        });
     }
 
     getClosestWaypoint(waypoints) {
@@ -482,21 +492,47 @@ class CommissionMacro extends ModuleBase {
 
         const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
         if (pigeonSlot !== -1) {
-            this.useRoyalPigeon(pigeonSlot);
+            if (Player.getHeldItemIndex() != pigeonSlot) {
+                Guis.setItemSlot(pigeonSlot);
+                this.delay(3);
+            } else {
+                Keybind.rightClick();
+                this.delay(10);
+            }
             return;
-        } else {
-            this.travelToEmissary();
         }
-    }
 
-    useRoyalPigeon(pigeonSlot) {
-        if (Player.getHeldItemIndex() != pigeonSlot) {
-            Guis.setItemSlot(pigeonSlot);
-            this.delay(3);
-        } else {
-            Keybind.rightClick();
-            this.delay(10);
+        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+        let closest = EMISSARY_LOCATIONS[0];
+        let closestDist = this.getDistance(...playerPos, ...closest);
+        for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
+            const current = EMISSARY_LOCATIONS[i];
+            const currentDist = this.getDistance(...playerPos, ...current);
+            if (currentDist < closestDist) {
+                closest = current;
+                closestDist = currentDist;
+            }
         }
+
+        if (closestDist < 4) {
+            const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
+            if (Rotations.isRotating) return;
+
+            Rotations.rotateToVector(adjustedTarget);
+            Rotations.onEndRotation(() => {
+                Keybind.rightClick();
+                this.delay(10);
+            });
+            return;
+        }
+
+        if (this.pathfinding) return;
+        this.pathfinding = true;
+        this.travelPurpose = 'EMISSARY';
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
+            if (!success) return;
+            this.pathfinding = false;
+        });
     }
 
     claimCompletedCommissions() {
@@ -536,55 +572,6 @@ class CommissionMacro extends ModuleBase {
             this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
             Guis.setItemSlot(this.drill.slot);
         }
-    }
-
-    travelToEmissary() {
-        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-        const closest = this.getClosestEmissary(playerPos);
-        const closestDist = this.getDistance(...playerPos, ...closest);
-
-        if (closestDist < 4) {
-            this.interactWithEmissary(closest);
-        } else {
-            this.pathToEmissary(closest);
-        }
-    }
-
-    getClosestEmissary(playerPos) {
-        let closest = EMISSARY_LOCATIONS[0];
-        let closestDist = this.getDistance(...playerPos, ...closest);
-
-        for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
-            const current = EMISSARY_LOCATIONS[i];
-            const currentDist = this.getDistance(...playerPos, ...current);
-            if (currentDist < closestDist) {
-                closest = current;
-                closestDist = currentDist;
-            }
-        }
-        return closest;
-    }
-
-    interactWithEmissary(target) {
-        const adjustedTarget = [target[0] + 0.5, target[1] + 2.2, target[2] + 0.5];
-        if (Rotations.isRotating) return;
-
-        Rotations.rotateToVector(adjustedTarget);
-        Rotations.onEndRotation(() => {
-            Keybind.rightClick();
-            this.delay(10);
-        });
-    }
-
-    pathToEmissary(closest) {
-        if (this.pathfinding) return;
-
-        this.pathfinding = true;
-        this.travelPurpose = 'EMISSARY';
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
-            if (!success) return;
-            this.pathfinding = false;
-        });
     }
 
     delay(ticks) {
@@ -766,12 +753,10 @@ class CommissionMacro extends ModuleBase {
 
             if (!stillCompleted) {
                 this.awaitingTabUpdate = false;
-            } else {
-                if (this.lastCompletedCommissionName) {
-                    const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
-                    if (!sameNameComm || sameNameComm.progress === 0) {
-                        this.awaitingTabUpdate = false;
-                    }
+            } else if (this.lastCompletedCommissionName) {
+                const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
+                if (!sameNameComm || sameNameComm.progress === 0) {
+                    this.awaitingTabUpdate = false;
                 }
             }
         }
