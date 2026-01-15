@@ -373,6 +373,7 @@ class Beachballer extends ModuleBase {
 
             return data.includes(SMALL_BEACHBALL_BASE64);
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }

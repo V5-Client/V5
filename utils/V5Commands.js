@@ -27,11 +27,7 @@ Commands.registerCommand('v5', () => {
     const { literal, argument, greedyString, integer, exec, float } = Commands;
 
     exec(() => {
-        try {
-            callCommand('gui');
-        } catch (e) {
-            Chat.message('&cGUI failed to open.');
-        }
+        callCommand('gui');
     });
 
     /* ---------- Help ---------- */
@@ -61,11 +57,7 @@ Commands.registerCommand('v5', () => {
     /* ---------- GUI ---------- */
     literal('gui', () => {
         exec(() => {
-            try {
-                callCommand('gui');
-            } catch (e) {
-                Chat.message('&cGUI failed to open.');
-            }
+            callCommand('gui');
         });
     });
 

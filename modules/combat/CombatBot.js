@@ -237,6 +237,7 @@ class Combat extends ModuleBase {
         try {
             return RayTrace.isLookingAtEntity(this.target, this.attackRange + 0.5);
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -395,7 +396,9 @@ class Combat extends ModuleBase {
             if (uuid) {
                 this.blacklistedTargets.set(uuid, Date.now() + duration);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 
     tryAttack() {
@@ -426,6 +429,7 @@ class Combat extends ModuleBase {
 
             return !exists;
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return true;
         }
     }
@@ -466,7 +470,9 @@ class Combat extends ModuleBase {
                         if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(entity)) return;
 
                         mobs.push(entity);
-                    } catch (e) {}
+                    } catch (e) {
+                        console.error('V5 Caught error' + e + e.stack);
+                    }
                 });
             } else if (config.names) {
                 const found = this.findMob(config);
@@ -520,7 +526,9 @@ class Combat extends ModuleBase {
             if (entity && typeof entity.getX === 'function') {
                 return { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
 
         return null;
     }
@@ -592,7 +600,9 @@ class Combat extends ModuleBase {
                 if (config.boundaryCheck && !config.boundaryCheck(x, y, z)) return;
 
                 mobs.push(player);
-            } catch (e) {}
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
         });
 
         return mobs;

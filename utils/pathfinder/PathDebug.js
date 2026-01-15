@@ -188,6 +188,7 @@ export function drawFloatingSpline(
             RenderUtils.drawLine(startRenderVec, endRenderVec, color, thickness, renderThrough);
         }
     } catch (e) {
-        console.error('Error in drawFloatingSpline:', e);
+        console.error('Error in drawFloatingSpline:');
+        console.error('V5 Caught error' + e + e.stack);
     }
 }

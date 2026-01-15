@@ -103,6 +103,7 @@ function canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
 
         return approachDirection === walkableDirection;
     } catch (e) {
+        console.error('V5 Caught error' + e + e.stack);
         return true;
     }
 }
@@ -190,6 +191,7 @@ function getSnowLayers(block) {
     try {
         return block.getState().get(SnowBlock.LAYERS);
     } catch (e) {
+        console.error('V5 Caught error' + e + e.stack);
         return 0;
     }
 }

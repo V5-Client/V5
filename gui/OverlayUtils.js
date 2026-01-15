@@ -356,7 +356,7 @@ class OverlayUtils {
             NVG.beginFrame(sw, sh);
             this.ids.forEach((id) => this.renderID(id, true));
         } catch (e) {
-            console.error('Failed to draw GUI: ' + e);
+            console.error('V5 Caught error' + e + e.stack);
         } finally {
             NVG.endFrame();
         }
@@ -378,7 +378,7 @@ class OverlayUtils {
                 }
             });
         } catch (e) {
-            console.error('Failed to draw Overlays: ' + e);
+            console.error('V5 Caught error' + e + e.stack);
         } finally {
             NVG.endFrame();
         }

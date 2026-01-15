@@ -184,7 +184,9 @@ class RotationsTo {
                     z: mcEntity.getZ(),
                 };
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
 
         return null;
     }
@@ -205,6 +207,7 @@ class RotationsTo {
                     newTarget = this.getAnglesFromVector(aimPoint);
                 }
             } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
                 this.stopRotation();
                 return false;
             }
@@ -365,6 +368,7 @@ class RotationsTo {
             const mcEntity = entity.toMC ? entity.toMC() : entity;
             if (mcEntity.isDead()) return;
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return;
         }
 
@@ -393,15 +397,17 @@ class RotationsTo {
             const currentUUID = this.trackedEntity.getUUID
                 ? this.trackedEntity.getUUID()
                 : this.trackedEntity.toMC
-                  ? this.trackedEntity.toMC().getUuid()
-                  : null;
+                ? this.trackedEntity.toMC().getUuid()
+                : null;
 
             const entityUUID = entity.getUUID ? entity.getUUID() : entity.toMC ? entity.toMC().getUuid() : null;
 
             if (currentUUID && entityUUID) {
                 return currentUUID.equals(entityUUID);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
 
         return this.trackedEntity === entity;
     }
@@ -423,7 +429,9 @@ class RotationsTo {
         while (this.actions.length > 0) {
             try {
                 this.actions.shift().func();
-            } catch (e) {}
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
         }
     }
 

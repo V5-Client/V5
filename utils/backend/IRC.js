@@ -19,7 +19,8 @@ function openBrowser(url) {
     try {
         java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
     } catch (e) {
-        console.error('Failed to open browser: ' + e);
+        console.error('Failed to open browser: ');
+        console.error('V5 Caught error' + e + e.stack);
     }
 }
 
@@ -43,7 +44,8 @@ function saveJwt(token) {
     try {
         Utils.writeConfigFile(getTokenFileName(), { jwt: token });
     } catch (e) {
-        console.error('Failed to save chat token: ' + e);
+        console.error('Failed to save chat token: ');
+        console.error('V5 Caught error' + e + e.stack);
     }
 }
 
@@ -55,7 +57,8 @@ function loadSavedJwt() {
             return authToken;
         }
     } catch (e) {
-        console.error('Failed to load saved chat token: ' + e);
+        console.error('Failed to load saved chat token: ');
+        console.error('V5 Caught error' + e + e.stack);
     }
     return null;
 }
@@ -98,7 +101,8 @@ function handleIncomingMessage(raw) {
             }
         }
     } catch (e) {
-        Chat.messageIrc(`An error occurred parsing message: ${e}`);
+        Chat.messageIrc(`An error occurred parsing message:`);
+        console.error('V5 Caught error' + e + e.stack);
     }
 }
 
@@ -107,7 +111,8 @@ function sendChatMessage(content) {
     try {
         ws.send(content);
     } catch (e) {
-        Chat.messageIrc('Failed to send message: ' + e);
+        Chat.messageIrc('Failed to send message: ');
+        console.error('V5 Caught error' + e + e.stack);
     }
 }
 
@@ -224,7 +229,9 @@ register('packetSent', (packet, event) => {
     let message;
     try {
         message = packet.chatMessage();
-    } catch (e) {}
+    } catch (e) {
+        console.error('V5 Caught error' + e + e.stack);
+    }
     if (!message || !message.startsWith('#')) return;
 
     sendChatMessage(message.substring(1));

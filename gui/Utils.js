@@ -169,6 +169,7 @@ export const fetchURL = (url) => {
         reader.close();
         return response;
     } catch (e) {
+        console.error('V5 Caught error' + e + e.stack);
         return null;
     }
 };
@@ -223,8 +224,9 @@ export const returnDiscord = (authToken) => {
                 try {
                     data = JSON.parse(responseText);
                 } catch (e) {
-                    Chat.message('Failed to parse Discord PFP data. Error: ' + e);
+                    Chat.message('Failed to parse Discord PFP data. Check console for error.');
                     Chat.log('Invalid JSON received: ' + responseText);
+                    console.error('V5 Caught error' + e + e.stack);
                     return;
                 }
 
@@ -240,7 +242,8 @@ export const returnDiscord = (authToken) => {
         } else {
             discordPfpPath = profilePath.getAbsolutePath();
         }
-    } catch (error) {
-        Chat.message('An unexpected error occurred while fetching Discord PFP: ' + error);
+    } catch (e) {
+        Chat.message('An unexpected error occurred while fetching Discord PFP: ' + e);
+        console.error('V5 Caught error' + e + e.stack);
     }
 };

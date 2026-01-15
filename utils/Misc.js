@@ -33,7 +33,7 @@ v5Command('packetinfo', (args) => {
     try {
         loadedClass = Java.type(fullClassPath);
     } catch (e) {
-        return Chat.message('packet not found');
+        return Chat.message('Packet not found');
     }
 
     if (!loadedClass || !loadedClass.class) return Chat.message('class not found');

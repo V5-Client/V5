@@ -113,7 +113,8 @@ export class ModuleBase {
             try {
                 this.onEnable();
             } catch (e) {
-                console.error(`Error in ${this.name}.onEnable():`, e);
+                console.error(`Error in ${this.name}.onEnable():`);
+                console.error('V5 Caught error' + e + e.stack);
             }
             this._registers.forEach((h) => h.register());
         } else {
@@ -128,7 +129,8 @@ export class ModuleBase {
             try {
                 this.onDisable();
             } catch (e) {
-                console.error(`Error in ${this.name}.onDisable():`, e);
+                console.error(`Error in ${this.name}.onDisable():`);
+                console.error('V5 Caught error' + e + e.stack);
             }
 
             this.isParentManaged = false;

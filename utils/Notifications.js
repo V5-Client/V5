@@ -29,8 +29,9 @@ class AlertManager {
             this.trayIcon.setImageAutoSize(true);
             this.trayIcon.setToolTip(this.appName);
             tray.add(this.trayIcon);
-        } catch (err) {
-            Chat.messageDebug('Desktop tray initialization failed: ' + err);
+        } catch (e) {
+            Chat.messageDebug('Desktop tray initialization failed: ' + e);
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 

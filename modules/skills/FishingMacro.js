@@ -291,6 +291,7 @@ class FishingMacro extends ModuleBase {
                 const distance = this.distanceFromEyes(entity, playerEyes);
                 return distance !== null && distance <= 3;
             } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
                 return false;
             }
         });
@@ -342,10 +343,13 @@ class FishingMacro extends ModuleBase {
                 try {
                     const name = typeof entity.getName === 'function' ? entity.getName() : null;
                     if (name && String(name).includes('Stridersurfer')) return acc + 1;
-                } catch (e) {}
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
                 return acc;
             }, 0);
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return null;
         }
     }

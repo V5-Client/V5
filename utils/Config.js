@@ -24,6 +24,7 @@ class ConfigInitializer {
             return false;
         } catch (e) {
             Chat.message(`§cRepairing corrupted data: ${path}`);
+            console.error('V5 Caught error' + e + e.stack);
             FileLib.delete(this.root, path);
             return true;
         }

@@ -129,13 +129,15 @@ class ClippingManager extends ModuleBase {
                     logLines.slice(-3).forEach((l) => Chat.messageClip('&c' + l));
                     try {
                         outputFile.delete();
-                    } catch (e) {}
+                    } catch (e) {
+                        console.error('V5 Caught error' + e + e.stack);
+                    }
                 } else {
                     Chat.messageClip(`&aSuccessfully compressed: &b${outputFile.getName()}`);
                 }
             } catch (e) {
                 Chat.messageClip(`&cCompression failed: ${e}`);
-                console.error(e);
+                console.error('V5 Caught error' + e + e.stack);
             }
         });
     }
@@ -163,7 +165,7 @@ class ClippingManager extends ModuleBase {
                 this.compressClip(inputClip);
             } catch (e) {
                 Chat.messageClip(`&cCompression failed: ${e}`);
-                console.error(e);
+                console.error('V5 Caught error' + e + e.stack);
             }
         });
     }
@@ -195,7 +197,7 @@ class ClippingManager extends ModuleBase {
                 this.extractFFmpeg(archiveFile);
             } catch (e) {
                 Chat.messageClip(`Download failed: ${e}`);
-                console.error(e);
+                console.error('V5 Caught error' + e + e.stack);
             }
         });
     }
@@ -226,7 +228,7 @@ class ClippingManager extends ModuleBase {
             this.startRecording();
         } catch (e) {
             Chat.messageClip(`&cExtraction failed: ${e}`);
-            console.error(e);
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 

@@ -154,6 +154,7 @@ class AlertUtilsClass {
             }
         } catch (e) {
             this.clip = null;
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 
@@ -176,10 +177,13 @@ class AlertUtilsClass {
 
             NVG.restore();
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
         } finally {
             try {
                 NVG.endFrame();
-            } catch (e) {}
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
         }
     }
 
@@ -231,6 +235,7 @@ class AlertUtilsClass {
             GLFW.glfwRequestWindowAttention(windowHandle);
         } catch (e) {
             Chat.messageFailsafe('GLFW error occured! report this. ' + e);
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 }

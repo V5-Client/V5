@@ -146,6 +146,7 @@ class ScathaMacro extends ModuleBase {
         try {
             return Object.keys(this.STATES).find((k) => this.STATES[k] === val) || String(val);
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return String(val);
         }
     }
@@ -816,6 +817,7 @@ class ScathaMacro extends ModuleBase {
                 }
             });
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             Chat.messageDebug('Heat not detected');
         }
         if (heat === undefined || isNaN(heat) || heat === null) {

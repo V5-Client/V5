@@ -405,10 +405,13 @@ class NotificationManager {
                 this.notifications[i].draw(mouseX, mouseY);
             }
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
         } finally {
             try {
                 NVG.endFrame();
-            } catch (e) {}
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
         }
     }
     renderAboveGui() {
@@ -420,10 +423,13 @@ class NotificationManager {
                 this.notifications[i].draw(mouseX, mouseY);
             }
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
         } finally {
             try {
                 NVG.endFrame();
-            } catch (e) {}
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
         }
     }
     handleClick(mouseX, mouseY) {

@@ -113,7 +113,8 @@ class VisibilityChecker {
             if (!hitPos) return false;
 
             return hitPos.getX() === targetX && hitPos.getY() === targetY && hitPos.getZ() === targetZ;
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -130,7 +131,8 @@ class VisibilityChecker {
             let hit = raytraceBlocks([eyePos.x, eyePos.y, eyePos.z], dir, dist + 0.2, this.nonAirFilter, true);
 
             return hit && hit[0] === targetX && hit[1] === targetY && hit[2] === targetZ;
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -282,7 +284,8 @@ class BlockScanner {
             let block = World.getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ());
 
             return block && block.type.getID() !== AIR_BLOCK_ID ? block : null;
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return null;
         }
     }
@@ -398,6 +401,7 @@ class EntityRaytracer {
                 maxDistance
             );
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -414,7 +418,9 @@ class EntityRaytracer {
                     z: (box.minZ + box.maxZ) / 2,
                 };
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
 
         // fallback if it doesn't work (this shouldn't EVER happen)
         if (typeof entity.getX === 'function') {

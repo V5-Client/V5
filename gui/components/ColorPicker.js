@@ -18,7 +18,7 @@ let Gradient;
 try {
     Gradient = Java.type('com.v5.render.Gradient');
 } catch (e) {
-    console.log(e);
+    console.error('V5 Caught error' + e + e.stack);
     Gradient = {
         LeftToRight: 'LeftToRight',
         TopToBottom: 'TopToBottom',

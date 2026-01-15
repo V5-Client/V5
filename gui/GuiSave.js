@@ -121,7 +121,7 @@ export const loadSettings = () => {
         applySettings();
     } catch (e) {
         Chat.message(`Error loading settings: ${e}`);
-        console.error(e);
+        console.error('V5 Caught error' + e + e.stack);
         buildSettingsMapFromComponents();
     }
 };

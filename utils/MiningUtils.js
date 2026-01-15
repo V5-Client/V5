@@ -128,8 +128,8 @@ class MiningStatsCollector {
             Guis.closeInv();
             this.finishCollection();
         } catch (e) {
-            Chat.message('error collecting stats: ' + e);
-            Chat.log('Stats Collector Error: ' + e);
+            Chat.message('Error collecting stats: ' + e);
+            console.error('V5 Caught error' + e + e.stack);
         } finally {
             this.isCollecting = false;
         }
@@ -227,6 +227,7 @@ class MiningStatsCollector {
                 }
             }
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return 0;
         }
         return 0;
@@ -304,6 +305,7 @@ class ToolFinder {
                 }
             }
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
         return false;
@@ -467,7 +469,7 @@ class RefuelService {
 
                 callback(true);
             } catch (e) {
-                Chat.message('refuel error: ' + e.message);
+                console.error('V5 Caught error' + e + e.stack);
                 callback(false);
             }
         }).start();
@@ -601,6 +603,7 @@ class CommissionParser {
 
             return this.extractCommissionData(tabNames, startIdx + 1, endIdx);
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return [];
         }
     }
@@ -655,6 +658,7 @@ class BlockUtils {
             Client.getMinecraft().world.setBlockState(blockPos, Blocks.AIR.getDefaultState());
         } catch (e) {
             Chat.message('error setting ghost block');
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 }

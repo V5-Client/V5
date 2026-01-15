@@ -63,7 +63,8 @@ class Routes {
             let routeData = Utils.getConfigFile(dir + file);
 
             if (routeData) return routeData;
-        } catch (error) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return null;
         }
 
@@ -78,7 +79,9 @@ class Routes {
     saveRouteToFile(dir, file) {
         try {
             Utils.writeConfigFile(dir, file);
-        } catch (error) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 
     /**

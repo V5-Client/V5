@@ -29,7 +29,8 @@ class SkyblockEventManager {
             try {
                 fn();
             } catch (e) {
-                Chat.log(`SkyblockEvent error: ${id}`, e);
+                Chat.log(`SkyblockEvent error: ${id}`);
+                console.error('V5 Caught error' + e + e.stack);
             }
         });
     }

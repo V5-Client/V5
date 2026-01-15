@@ -25,7 +25,9 @@ class V5Mod {
 
                 WelcomeScreen.open();
                 Utils.writeConfigFile(META_FILE, { welcomeShown: true });
-            } catch (e) {}
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
         }
     }
 }

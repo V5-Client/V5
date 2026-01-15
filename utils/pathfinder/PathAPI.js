@@ -54,7 +54,9 @@ export function stopPathing() {
     if (searchingTrigger) {
         try {
             searchingTrigger.unregister();
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
         searchingTrigger = null;
     }
 
@@ -63,6 +65,7 @@ export function stopPathing() {
             path.unregister();
         } catch (e) {
             Chat.log('Path already unregistered');
+            console.error('V5 Caught error' + e + e.stack);
         }
         path = null;
     }
@@ -72,6 +75,7 @@ export function stopPathing() {
             renderPath.unregister();
         } catch (e) {
             Chat.log('RenderPath already unregistered');
+            console.error('V5 Caught error' + e + e.stack);
         }
         renderPath = null;
     }

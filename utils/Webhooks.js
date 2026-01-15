@@ -24,6 +24,7 @@ class DiscordNotifier {
                 this.active = !!this.endpoint;
             }
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             Chat.messageDebug('Failed to initialize webhook settings.');
         }
     }
@@ -34,7 +35,9 @@ class DiscordNotifier {
                 url: this.endpoint,
                 userId: this.mentionId,
             });
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 
     initTriggers() {
@@ -45,6 +48,7 @@ class DiscordNotifier {
                 const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
                 this.updateEndpoint(clipboard);
             } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
                 Chat.message('Webhook: &cCould not access system clipboard.');
             }
         });
@@ -103,8 +107,9 @@ class DiscordNotifier {
                 stream.close();
 
                 connection.getInputStream();
-            } catch (err) {
-                Chat.messageDebug('Webhook transmission failed: ' + err);
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+                Chat.messageDebug('Webhook transmission failed: ' + e);
             }
         });
     }

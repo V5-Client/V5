@@ -46,7 +46,8 @@ class PathRotsUtil {
         try {
             return Client.getMinecraft().options.mouseSensitivity.value;
         } catch (e) {
-            console.error('Failed to get mouse sensitivity:', e);
+            console.error('Failed to get mouse sensitivity:');
+            console.error('V5 Caught error' + e + e.stack);
             return 0.5;
         }
     }
@@ -290,7 +291,8 @@ class PathRotsUtil {
             try {
                 action.func();
             } catch (e) {
-                console.error(`Rotation ${action.name || 'callback'} error:`, e);
+                console.error(`Rotation ${action.name || 'callback'} error:`);
+                console.error('V5 Caught error' + e + e.stack);
             }
         });
     }

@@ -86,7 +86,9 @@ class InterfaceHandler {
             }
 
             Client.getMinecraft().options.attackKey.setPressed(false);
-        } catch (err) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 }
 

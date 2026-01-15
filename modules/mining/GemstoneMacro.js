@@ -176,7 +176,7 @@ class GemstoneMacro extends ModuleBase {
                         return;
                     }
 
-                    Player.setHeldItemIndex(aotv);
+                    Guis.setItemSlot(aotv);
 
                     if (!this.closestPoint) {
                         this.closestPoint = this.getClosestPoint();
@@ -383,8 +383,6 @@ class GemstoneMacro extends ModuleBase {
 
                         if (MiningBot.foundLocations.length === 0) {
                             if (this.prepartionTicks < 20) return;
-
-                            Chat.message('No more gemstones found');
 
                             MiningBot.toggle(false);
                             MiningBot.foundLocations = [];

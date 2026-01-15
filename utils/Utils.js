@@ -20,8 +20,10 @@ class ConfigFileManager {
 
         try {
             return JSON.parse(rawContent);
-        } catch (parseError) {
-            Chat.message('Config read error for ' + fileName + ': ' + parseError.message);
+        } catch (e) {
+            Chat.message('Config read error for ' + fileName + ': ' + e.message);
+            console.error('V5 Caught error' + e + e.stack);
+
             return {};
         }
     }
@@ -32,8 +34,9 @@ class ConfigFileManager {
             FileLib.write(this.directory, fileName, jsonString);
             this.cache.set(fileName, data);
             return true;
-        } catch (writeError) {
-            Chat.message('Config write error for ' + fileName + ': ' + writeError.message);
+        } catch (e) {
+            Chat.message('Config write error for ' + fileName + ': ' + e.message);
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -93,7 +96,8 @@ class LocationDetector {
                     }
                 }
             }
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return this.currentArea;
         }
 
@@ -126,7 +130,8 @@ class LocationDetector {
                     }
                 }
             }
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return this.currentSubArea;
         }
 
@@ -178,7 +183,8 @@ class CollisionChecker {
             }
 
             return false;
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -189,7 +195,8 @@ class CollisionChecker {
             let blockState = World.getWorld().getBlockState(blockPos);
             let shape = blockState.getCollisionShape(blockPos);
             return !shape.isEmpty();
-        } catch (err) {
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return false;
         }
     }
@@ -244,8 +251,9 @@ class FileDownloader {
                 }
                 inputStream.close();
                 outputStream.close();
-            } catch (error) {
-                Chat.message('Download failed: ' + error);
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+                Chat.message('Download failed: ' + e);
             }
         }).start();
     }

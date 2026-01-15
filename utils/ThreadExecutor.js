@@ -23,8 +23,9 @@ class ThreadExecutor {
         this.service.execute(() => {
             try {
                 task();
-            } catch (err) {
-                console.error(`[V5 Thread Error]: ${err}`);
+            } catch (e) {
+                console.error(`[V5 Thread Error]:`);
+                console.error('V5 Caught error' + e + e.stack);
             }
         });
     }

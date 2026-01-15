@@ -28,7 +28,7 @@ class AutoConversation extends ModuleBase {
                     try {
                         value = clickEvent.comp_3506();
                     } catch (e) {
-                        Chat.log(e);
+                        console.error('V5 Caught error' + e + e.stack);
                     }
 
                     if (value) commands.push(value);

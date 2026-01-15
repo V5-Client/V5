@@ -169,8 +169,7 @@ class PowderMacro extends ModuleBase {
                     break;
             }
         } catch (e) {
-            Chat.message(`&cPowder Macro Error: ${e}`);
-            console.error(e);
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 
