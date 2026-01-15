@@ -26,7 +26,7 @@ let currentDestination = null;
 const DESTINATION_HORIZONTAL_TOLERANCE = 3.5;
 const DESTINATION_VERTICAL_TOLERANCE = 4;
 let pathCompletionCheckCount = 0;
-const MAX_COMPLETION_RETRIES = 3;
+const MAX_COMPLETION_RETRIES = 6;
 
 export function setPathNodes(nodes) {
     pathNodes = nodes;

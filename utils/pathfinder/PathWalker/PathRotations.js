@@ -6,6 +6,7 @@ import { setMovementTarget, clearMovementTarget, getShouldLimitRotations } from 
 import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
+import { Vec3d, BP } from '../../Constants';
 
 let requestPathRecalculation = null;
 
@@ -72,6 +73,11 @@ const STRAFE_ELIGIBILITY_MEMORY = 10;
 const MAX_ALLOWED_PITCH_DOWN = 89.9;
 const MAX_ALLOWED_PITCH_UP = -89.9;
 
+const OBSTACLE_CHECK_STEP = 0.4;
+const OBSTACLE_CHECK_HEIGHT_OFFSETS = [0.1, 0.5, 1.0, 1.5, 1.8];
+const MIN_SAFE_LOOKAHEAD = 0.8;
+const OBSTACLE_LOOKAHEAD_STEP = 0.3;
+
 let currentBoxIndex = 1;
 let currentPathPosition = 1.0;
 let isInitialized = false;
@@ -103,6 +109,153 @@ let strafeHoldTicks = 0;
 let recentStrafeEligible = 0;
 
 let rotationActive = false;
+
+const obstacleBlockCache = new Map();
+let obstacleCacheFrame = 0;
+
+register('tick', () => {
+    obstacleCacheFrame++;
+    if (obstacleBlockCache.size > 500) obstacleBlockCache.clear();
+});
+
+function getCachedBlockForObstacle(x, y, z) {
+    const bx = Math.floor(x);
+    const by = Math.floor(y);
+    const bz = Math.floor(z);
+    const key = `${bx},${by},${bz},${obstacleCacheFrame}`;
+    if (!obstacleBlockCache.has(key)) {
+        obstacleBlockCache.set(key, World.getBlockAt(bx, by, bz));
+    }
+    return obstacleBlockCache.get(key);
+}
+
+function isObstacleBlock(x, y, z) {
+    const block = getCachedBlockForObstacle(x, y, z);
+    if (!block || block.type.getID() === 0) return false;
+
+    const blockName = block.type.getRegistryName().toLowerCase();
+
+    if (
+        blockName.includes('fence') ||
+        blockName.includes('wall') ||
+        blockName.includes('gate') ||
+        blockName.includes('iron_bars') ||
+        blockName.includes('glass_pane') ||
+        blockName.includes('chain')
+    ) {
+        return true;
+    }
+
+    if (
+        blockName.includes('torch') ||
+        blockName.includes('sign') ||
+        blockName.includes('button') ||
+        blockName.includes('lever') ||
+        blockName.includes('pressure_plate') ||
+        blockName.includes('tripwire') ||
+        blockName.includes('string') ||
+        blockName.includes('flower') ||
+        blockName.includes('grass') ||
+        blockName.includes('sapling') ||
+        blockName.includes('dead') ||
+        blockName.includes('mushroom') ||
+        blockName.includes('coral_fan') ||
+        blockName.includes('vine') ||
+        blockName.includes('ladder')
+    ) {
+        return false;
+    }
+
+    const world = World.getWorld();
+    if (!world) return false;
+
+    try {
+        const blockPosNMS = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
+        const blockState = world.getBlockState(blockPosNMS);
+        const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
+
+        if (collisionShape.isEmpty()) return false;
+
+        if (blockName.includes('slab')) {
+            const stateString = blockState.toString();
+            if (stateString.includes('type=bottom')) {
+                const localY = y - Math.floor(y);
+                return localY < 0.5;
+            }
+            return true;
+        }
+
+        if (blockName.includes('stair')) {
+            return true;
+        }
+
+        if (blockName.includes('trapdoor')) {
+            const stateString = blockState.toString();
+            if (stateString.includes('open=false')) {
+                if (stateString.includes('half=top')) {
+                    const localY = y - Math.floor(y);
+                    return localY > 0.8;
+                } else {
+                    const localY = y - Math.floor(y);
+                    return localY < 0.2;
+                }
+            }
+            return false;
+        }
+
+        return true;
+    } catch (e) {
+        console.error('Error checking obstacle block: ' + e);
+        return false;
+    }
+}
+
+function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const dz = endZ - startZ;
+    const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+
+    if (horizontalDistance < OBSTACLE_CHECK_STEP) return false;
+
+    const steps = Math.ceil(horizontalDistance / OBSTACLE_CHECK_STEP);
+
+    for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        const checkX = startX + dx * t;
+        const checkY = startY + dy * t;
+        const checkZ = startZ + dz * t;
+
+        for (const heightOffset of OBSTACLE_CHECK_HEIGHT_OFFSETS) {
+            const blockY = checkY + heightOffset;
+            if (isObstacleBlock(checkX, blockY, checkZ)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function findSafeLookahead(boxPositions, pathPosition, maxLookahead, playerEyes, minLookahead = MIN_SAFE_LOOKAHEAD) {
+    for (let lookahead = maxLookahead; lookahead >= minLookahead; lookahead -= OBSTACLE_LOOKAHEAD_STEP) {
+        const targetIndex = Math.min(Math.floor(pathPosition + lookahead), boxPositions.length - 2);
+        if (targetIndex < 0) continue;
+
+        const fraction = Math.max(0, Math.min(1, pathPosition + lookahead - targetIndex));
+        const targetPoint = PathRotationsUtility.interpolateBoxPosition(boxPositions, targetIndex, fraction);
+
+        if (!targetPoint) continue;
+
+        const playerCheckY = playerEyes.y - 1.2;
+
+        if (!hasObstacleBetweenPoints(playerEyes.x, playerCheckY, playerEyes.z, targetPoint.x, targetPoint.y - 0.5, targetPoint.z)) {
+            return lookahead;
+        }
+    }
+
+    return minLookahead;
+}
 
 export function PathComplete() {
     return complete;
@@ -145,6 +298,7 @@ export function ResetRotations() {
     rotationActive = false;
 
     clearMovementTarget();
+    obstacleBlockCache.clear();
 }
 
 function wrapAngle(angle) {
@@ -643,8 +797,11 @@ export function pathRotations(splineData) {
     const yawLookahead = calculateYawLookahead(boxPositions, currentPathPosition, pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
     const pitchLookahead = calculatePitchLookahead(pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
 
-    const targetPathIndex = currentPathPosition + pitchLookahead;
-    const targetYawPathIndex = currentPathPosition + yawLookahead;
+    const safeYawLookahead = findSafeLookahead(boxPositions, currentPathPosition, yawLookahead, playerEyes, MIN_SAFE_LOOKAHEAD);
+    const safePitchLookahead = findSafeLookahead(boxPositions, currentPathPosition, pitchLookahead, playerEyes, MIN_PITCH_LOOKAHEAD * 0.5);
+
+    const targetPathIndex = currentPathPosition + safePitchLookahead;
+    const targetYawPathIndex = currentPathPosition + safeYawLookahead;
 
     const pitchStartIndex = Math.min(Math.floor(targetPathIndex), boxPositions.length - 2);
     const yawStartIndex = Math.min(Math.floor(targetYawPathIndex), boxPositions.length - 2);

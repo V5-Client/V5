@@ -19,7 +19,7 @@ const RECOVERY_LOCK_DURATION = 25;
 const SEVERE_STUCK_THRESHOLD = 40;
 const MIN_PROGRESS_BOXES = 2;
 
-const JUMP_DURATION = 8;
+const JUMP_DURATION = 4;
 
 const PHASE_BACKUP = 'backup';
 const PHASE_JUMP = 'jump';
