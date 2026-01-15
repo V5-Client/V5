@@ -1,4 +1,5 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
+import { getPathfindingDebug } from './pathfinder/PathConfig';
 import { GradientChat } from './Constants';
 
 const gradientInstance = new GradientChat();
@@ -27,7 +28,7 @@ class ChatClass {
     }
 
     messagePathfinder(msg) {
-        this._sendGradient('V5 Pathfinding » ', msg);
+        if (getPathfindingDebug()) this._sendGradient('V5 Pathfinding » ', msg);
     }
 
     _sendGradient(prefix, msg) {

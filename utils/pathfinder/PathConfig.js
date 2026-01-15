@@ -1,5 +1,3 @@
-import { Chat } from '../Chat';
-
 let renderKeyNodes = false;
 let renderFloatingSpline = false;
 let pathfindingDebug = false;

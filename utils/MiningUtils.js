@@ -319,7 +319,7 @@ class SpeedCalculations {
     getBaseSpeed(area) {
         let stats = this.collector.getStoredStats();
         if (!stats || !stats.speed) {
-            Chat.message('§cNo stats saved! Use /getminingstats');
+            console.error('No stats saved!');
             return null;
         }
 

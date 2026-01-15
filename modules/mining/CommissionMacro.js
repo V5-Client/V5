@@ -1,6 +1,7 @@
 import { Chat } from '../../utils/Chat';
 import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
+import { notificationManager } from '../../gui/NotificationManager';
 import { manager } from '../../utils/SkyblockEvents';
 import { MiningBot } from './MiningBot';
 import { CombatBot } from '../combat/CombatBot';
@@ -210,22 +211,14 @@ class CommissionMacro extends ModuleBase {
         const itemName = ChatLib.removeFormatting(this.drill.item.getName());
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
-        if (this.isActualDrill) {
-            Chat.message(`&aUsing drill: &b${itemName}`);
-        } else {
-            Chat.message(`&aUsing pickaxe: &b${itemName}`);
-        }
-
         this.weapon = this.getWeaponFromSlot();
         if (!this.weapon) {
-            Chat.message('&eNo weapon found in Goblin Slayer slot. Goblin commissions will be skipped.');
-        } else {
-            Chat.message(`&aUsing weapon: &b${this.weapon.name}`);
+            notificationManager.add(`No weapon found in slot ${this.goblinWeaponSlot}`, 'Goblin commissions will be skipped.', 'ERROR', '5000');
         }
 
         this.miningSpeed = MiningUtils.getMiningSpeed('Dwarven Mines');
         if (!this.miningSpeed) {
-            Chat.message('&cNo mining speed saved! Run /getminingstats');
+            notificationManager.add('No mining speed saved!', "Run '/v5 mining stats' first.", 'ERROR', '5000');
             this.toggle(false);
             return;
         }
@@ -264,7 +257,6 @@ class CommissionMacro extends ModuleBase {
 
     setState(newState) {
         if (this.currentState !== newState) {
-            Chat.message(`&aCommission Macro: &eChanging state to ${newState}`);
             this.currentState = newState;
         }
     }
@@ -623,8 +615,6 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        Chat.message(`&aArrived at destination for &b${this.currentCommission?.name || 'Unknown'}`);
-
         const type = this.currentCommission?.type;
         if (type === 'MINING') {
             this.setState(STATES.MINING);
@@ -655,7 +645,7 @@ class CommissionMacro extends ModuleBase {
         this.drill = drills.drill;
 
         if (!this.drill) {
-            Chat.message('&cERROR: No drill or pickaxe found!');
+            notificationManager.add('No drill or pickaxe found!', 'What happened?', 'ERROR', '5000');
             this.toggle(false);
             return;
         }
@@ -683,14 +673,12 @@ class CommissionMacro extends ModuleBase {
             mobType = name === 'Glacite Walker Slayer' || name === 'Mines Slayer' ? 'icewalker' : 'treasure';
             Guis.setItemSlot(this.pickaxe.slot);
         } else {
-            Chat.message('&cUnknown slayer commission type!');
             this.toggle(false);
             return;
         }
 
         this.currentMobConfig = MOB_CONFIGS[mobType];
         if (!this.currentMobConfig) {
-            Chat.message(`&cNo mob config found for: ${mobType}`);
             this.toggle(false);
             return;
         }
@@ -702,7 +690,6 @@ class CommissionMacro extends ModuleBase {
     }
 
     onCommissionComplete() {
-        Chat.message('&aCommission complete detected!');
         stopPathing();
         MiningBot.toggle(false);
 
@@ -723,7 +710,6 @@ class CommissionMacro extends ModuleBase {
 
     onDrillEmpty() {
         if (!this.isActualDrill) {
-            Chat.message('&eDrill empty event but using pickaxe. Wtf????');
             return;
         }
 
