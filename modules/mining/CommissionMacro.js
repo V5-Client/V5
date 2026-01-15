@@ -230,7 +230,7 @@ class CommissionMacro extends ModuleBase {
     onDisable() {
         Chat.message('&cCommission Macro Disabled.');
 
-        MiningBot.toggle(false);
+        MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         stopPathing();
@@ -691,7 +691,7 @@ class CommissionMacro extends ModuleBase {
 
     onCommissionComplete() {
         stopPathing();
-        MiningBot.toggle(false);
+        MiningBot.toggle(false, true);
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -703,7 +703,7 @@ class CommissionMacro extends ModuleBase {
 
     onInventoryFull() {
         Chat.message('&eInventory full! Selling items...');
-        MiningBot.toggle(false);
+        MiningBot.toggle(false, true);
         this.savedState = this.currentState;
         this.setState(STATES.SELLING);
     }
@@ -714,7 +714,7 @@ class CommissionMacro extends ModuleBase {
         }
 
         Chat.message('&eDrill empty! Refueling...');
-        MiningBot.toggle(false);
+        MiningBot.toggle(false, true);
         this.setState(STATES.REFUELING);
 
         MiningUtils.doRefueling(true, (success) => {

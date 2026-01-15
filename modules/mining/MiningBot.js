@@ -814,14 +814,14 @@ class Bot extends ModuleBase {
         }
 
         this.setCost();
-        Chat.message('Mining Bot Enabled');
+        if (!this.isParentManaged) Chat.message('&aMining Bot Enabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
         this.normalRender.register();
     }
 
     onDisable() {
-        Chat.message('Mining Bot Disabled');
+        if (!this.isParentManaged) Chat.message('&cMining Bot Disabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);
