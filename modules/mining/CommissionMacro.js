@@ -275,6 +275,9 @@ class CommissionMacro extends ModuleBase {
             case STATES.CHOOSING:
                 this.handleChoosing();
                 break;
+            case STATES.WAITING:
+                this.handleChoosing();
+                break;
             case STATES.WAITING_GUI_CLOSE:
                 this.handleWaitingGuiClose();
                 break;
@@ -331,7 +334,7 @@ class CommissionMacro extends ModuleBase {
         if (chosenCommission) {
             this.startCommission(chosenCommission);
         } else {
-            this.handleNoAvailableSpots(supportedTasks);
+            this.handleNoAvailableSpots();
         }
     }
 
@@ -431,9 +434,8 @@ class CommissionMacro extends ModuleBase {
         );
     }
 
-    handleNoAvailableSpots(supportedTasks) {
-        const commissionNames = supportedTasks.map((t) => t.name).join('&7, &b');
-        Chat.message(`&cAll spots occupied for: &b${commissionNames}&c. Waiting...`);
+    handleNoAvailableSpots() {
+        this.setState(STATES.WAITING);
     }
 
     handleSlayer() {
