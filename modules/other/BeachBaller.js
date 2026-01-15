@@ -343,7 +343,7 @@ class Beachballer extends ModuleBase {
             return;
         }
 
-        Player.setHeldItemIndex(ballSlot);
+        Guis.setItemSlot(ballSlot);
 
         this.tickCounter++;
         if (this.tickCounter % 10 === 0) {

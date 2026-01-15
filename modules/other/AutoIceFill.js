@@ -25,7 +25,6 @@ class AutoIceFill extends ModuleBase {
         this.activeStart = null;
         this.pathIndex = 0;
         this.reflectionFailed = false;
-        this.reflectionErrorNotified = false;
 
         try {
             IceFillSolver = Java.type('com.github.synnerz.devonian.features.dungeons.solvers.IceFillSolver');

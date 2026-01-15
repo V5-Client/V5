@@ -146,7 +146,7 @@ class RouteWalkerer extends ModuleBase {
                     Keybind.setKey('leftclick', this.LEFTCLICK);
                     Keybind.setKey('sprint', true);
 
-                    if (this.LEFTCLICK) Player.setHeldItemIndex(this.LEFTCLICKSLOT - 1);
+                    if (this.LEFTCLICK) Guis.setItemSlot(this.LEFTCLICKSLOT - 1);
 
                     let angle = MathUtils.calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
 
@@ -174,7 +174,7 @@ class RouteWalkerer extends ModuleBase {
                         return;
                     }
 
-                    Player.setHeldItemIndex(aotv);
+                    Guis.setItemSlot(aotv);
 
                     const targetBlockPos = new BlockPos(this.point.x, this.point.y, this.point.z);
 

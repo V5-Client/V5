@@ -54,11 +54,10 @@ class JerryBoxMacro extends ModuleBase {
                                 this.toggle(false);
                                 return;
                             }
-                            if (Player.getHeldItemIndex() !== slot) {
-                                Player.setHeldItemIndex(slot);
-                                this.setState(this.STATES.RIGHT_CLICK);
-                                return;
-                            }
+
+                            Guis.setItemSlot(slot);
+                            this.setState(this.STATES.RIGHT_CLICK);
+                            return;
                         }
                     }
                     // If a GUI is open, handle Jerry Box GUI or close others

@@ -84,7 +84,7 @@ class MiningStatsCollector {
 
         this.isCollecting = true;
         try {
-            Player.setHeldItemIndex(toolData.slot);
+            Guis.setItemSlot(toolData.slot);
             Thread.sleep(500);
 
             ChatLib.command('stats');
@@ -408,7 +408,7 @@ class RefuelService {
                     return callback(false);
                 }
 
-                Player.setHeldItemIndex(abiphoneSlot);
+                Guis.setItemSlot(abiphoneSlot);
                 Thread.sleep(250);
                 Keybind.rightClick();
                 Thread.sleep(1000);
