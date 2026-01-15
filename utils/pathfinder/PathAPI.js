@@ -1,6 +1,6 @@
 import { generateHybridSpline, drawFloatingSpline } from './PathDebug';
 import { PathComplete, pathRotations, ResetRotations, setRequestPathRecalculation } from './PathWalker/PathRotations';
-import { PathMovement } from './PathWalker/PathMovement';
+import { PathMovement, resetMovementState } from './PathWalker/PathMovement';
 import { Vec3d, BP } from '../Constants';
 import { getRenderKeyNodes, getRenderFloatingSpline } from './PathConfig';
 import RenderUtils from '../render/RendererUtils';
@@ -22,6 +22,12 @@ export let keyNodes = [];
 export let betweenNodes = [];
 export let spline = [];
 
+let currentDestination = null;
+const DESTINATION_HORIZONTAL_TOLERANCE = 3.5;
+const DESTINATION_VERTICAL_TOLERANCE = 4;
+let pathCompletionCheckCount = 0;
+const MAX_COMPLETION_RETRIES = 3;
+
 export function setPathNodes(nodes) {
     pathNodes = nodes;
 }
@@ -40,6 +46,7 @@ export function setSpline(nodes) {
 
 export function stopPathing() {
     ResetRotations();
+    resetMovementState();
     Keybind.stopMovement();
 
     SwiftBridge.cancel();
@@ -70,6 +77,8 @@ export function stopPathing() {
     }
 
     currentPathRequest = null;
+    currentDestination = null;
+    pathCompletionCheckCount = 0;
 }
 
 export function clearPathCallback() {
@@ -117,11 +126,35 @@ function drawKeyNodes(keynodes) {
     }
 }
 
+function validateDestinationReached() {
+    if (!currentDestination) {
+        return { reached: true, horizDist: 0, vertDist: 0 };
+    }
+
+    const playerX = Player.getX();
+    const playerY = Player.getY();
+    const playerZ = Player.getZ();
+
+    const horizDist = Math.sqrt(Math.pow(playerX - currentDestination.x, 2) + Math.pow(playerZ - currentDestination.z, 2));
+    const vertDist = Math.abs(playerY - currentDestination.y);
+
+    const reached = horizDist <= DESTINATION_HORIZONTAL_TOLERANCE && vertDist <= DESTINATION_VERTICAL_TOLERANCE;
+
+    return { reached, horizDist, vertDist };
+}
+
 function executePathfinding(start, end, onComplete, renderOnly = false, adjustEnd = false) {
     stopPathing();
+    pathCompletionCheckCount = 0;
 
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
     const adjustedEnd = adjustEnd ? [end[0], findStartY(end[0], end[1], end[2]), end[2]] : end;
+
+    currentDestination = {
+        x: adjustedEnd[0] + 0.5,
+        y: adjustedEnd[1] + 1,
+        z: adjustedEnd[2] + 0.5,
+    };
 
     Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
 
@@ -134,6 +167,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
         const error = SwiftBridge.getLastError() || 'Failed to start pathfinding';
         showNotification('Pathfinding Failed', error, 'ERROR', 5000);
         console.error('Pathfinding failed to start:', error);
+        currentDestination = null;
         if (onComplete && typeof onComplete === 'function') onComplete(false);
         return;
     }
@@ -162,6 +196,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             const error = SwiftBridge.getLastError() || 'Unknown error';
             showNotification('Pathfinding Failed', error, 'ERROR', 5000);
             console.error('Pathfinding failed:', error);
+            currentDestination = null;
             if (onComplete && typeof onComplete === 'function') onComplete(false);
             return;
         }
@@ -169,6 +204,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
         if (!body.keynodes || !Array.isArray(body.keynodes) || body.keynodes.length < 1) {
             showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
             console.error('Invalid keynodes in response:', body);
+            currentDestination = null;
             if (onComplete && typeof onComplete === 'function') onComplete(false);
             return;
         }
@@ -208,6 +244,9 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             return;
         }
 
+        const savedDestination = { ...currentDestination };
+        const savedOnComplete = onComplete;
+
         path = register('tick', () => {
             pathRotations(generatedSpline);
 
@@ -218,19 +257,76 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
             if (!PathComplete()) return;
 
+            const validationResult = validateDestinationReached();
+
+            if (!validationResult.reached) {
+                pathCompletionCheckCount++;
+
+                if (pathCompletionCheckCount >= MAX_COMPLETION_RETRIES) {
+                    Chat.messagePathfinder(`§c[Path] Failed to reach destination after ${MAX_COMPLETION_RETRIES} attempts`);
+
+                    path.unregister();
+                    path = null;
+                    PathMovement(false);
+                    ResetRotations();
+                    resetMovementState();
+
+                    if (renderPath) {
+                        renderPath.unregister();
+                        renderPath = null;
+                    }
+
+                    if (savedOnComplete && typeof savedOnComplete === 'function') {
+                        savedOnComplete(false);
+                    }
+                    currentPathCallback = null;
+                    currentDestination = null;
+                    return;
+                }
+
+                Chat.messagePathfinder(
+                    `§e[Path] Not at destination (H: ${validationResult.horizDist.toFixed(1)}, V: ${validationResult.vertDist.toFixed(
+                        1
+                    )}), recalculating... (${pathCompletionCheckCount}/${MAX_COMPLETION_RETRIES})`
+                );
+
+                path.unregister();
+                path = null;
+                ResetRotations();
+                resetMovementState();
+                PathMovement(false);
+
+                if (renderPath) {
+                    renderPath.unregister();
+                    renderPath = null;
+                }
+
+                setTimeout(() => {
+                    const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
+                    const destEnd = [savedDestination.x - 0.5, savedDestination.y - 1, savedDestination.z - 0.5];
+
+                    const savedRetryCount = pathCompletionCheckCount;
+                    executePathfinding(currentPos, destEnd, savedOnComplete, false, false);
+                    pathCompletionCheckCount = savedRetryCount;
+                }, 200);
+                return;
+            }
+
             path.unregister();
             path = null;
 
             PathMovement(false);
             ResetRotations();
+            resetMovementState();
             stopPathing();
 
             showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
 
-            if (onComplete && typeof onComplete === 'function') {
-                onComplete(true);
+            if (savedOnComplete && typeof savedOnComplete === 'function') {
+                savedOnComplete(true);
             }
             currentPathCallback = null;
+            currentDestination = null;
         });
     });
 }

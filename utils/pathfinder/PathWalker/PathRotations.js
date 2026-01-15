@@ -2,6 +2,7 @@ import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
 import { renderSplineBoxes } from '../PathDebug';
 import { detectStuck, resetStuckDetection } from './PathStuckRecovery';
+import { setMovementTarget, clearMovementTarget, getShouldLimitRotations } from './PathMovement';
 import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
@@ -142,6 +143,8 @@ export function ResetRotations() {
     Keybind.setKey('d', false);
 
     rotationActive = false;
+
+    clearMovementTarget();
 }
 
 function wrapAngle(angle) {
@@ -657,6 +660,9 @@ export function pathRotations(splineData) {
         return;
     }
 
+    const movementTargetIndex = Math.min(currentBoxIndex + 2, boxPositions.length - 1);
+    setMovementTarget(boxPositions[movementTargetIndex]);
+
     const { pitch: newRawPitch, yaw: newRawYaw } = MathUtils.calculateAbsoluteAngles(finalRotationTargetPoint);
 
     if (!isInitialized) {
@@ -674,8 +680,15 @@ export function pathRotations(splineData) {
         PathRotationsUtility.resetGCDTracking();
     }
 
-    rawTargetYaw = newRawYaw;
-    rawTargetPitch = newRawPitch;
+    if (getShouldLimitRotations()) {
+        const yawDelta = getAngleDelta(rawTargetYaw, newRawYaw);
+        if (Math.abs(yawDelta) < 30) {
+            rawTargetYaw = newRawYaw;
+        }
+    } else {
+        rawTargetYaw = newRawYaw;
+        rawTargetPitch = newRawPitch;
+    }
 
     const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(currentBox.x + 0.5, currentBox.y + 0.5, currentBox.z + 0.5);
 

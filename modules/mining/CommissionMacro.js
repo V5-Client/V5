@@ -524,6 +524,26 @@ class CommissionMacro extends ModuleBase {
         const closest = this.getClosestEmissary();
         const closestDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
 
+        const yDiff = closest[1] - Player.getY();
+        if (yDiff > 3 && closestDist < 10) {
+            if (!this.pathfinding) {
+                // console.log('under platform');
+                this.pathfinding = true;
+                this.travelPurpose = 'EMISSARY';
+
+                const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
+                findAndFollowPath(currentPos, closest, (success) => {
+                    this.pathfinding = false;
+                    if (!success) {
+                        Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
+                        // probably should blacklist emissary and go to different emissary
+                        this.setState(STATES.CHOOSING);
+                    }
+                });
+            }
+            return;
+        }
+
         if (closestDist < 4) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
             if (Rotations.isRotating) return;
