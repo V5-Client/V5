@@ -9,6 +9,7 @@ import {
     isInside,
     clamp,
     easeOutCubic,
+    easeInOutQuad,
     getTextWidth,
 } from '../Utils';
 import { Color, NVG } from '../../utils/Constants';
@@ -47,6 +48,7 @@ export class ColorPicker {
 
         this.expanded = false;
         this.height = 48;
+        this.outerPadding = 2;
         this.expandedHeight = 195;
         this.optionPanelWidth = 0;
 
@@ -57,7 +59,7 @@ export class ColorPicker {
         this.animStart = 0;
         this.animFrom = 0;
         this.animTo = 0;
-        this.animDuration = 200;
+        this.animDuration = 220;
         this.animationProgress = 0;
         this.description = null;
     }
@@ -72,13 +74,13 @@ export class ColorPicker {
         if (this.animStart === 0) return;
         const elapsed = Date.now() - this.animStart;
         const t = Math.min(elapsed / this.animDuration, 1);
-        const eased = easeOutCubic(t);
+        const eased = easeInOutQuad(t);
         this.animationProgress = this.animFrom + (this.animTo - this.animFrom) * eased;
         if (t >= 1) this.animStart = 0;
     }
 
     getExpandedHeight() {
-        return this.expandedHeight;
+        return this.expandedHeight + this.outerPadding;
     }
 
     hsvToRgb(h, s, v, a) {

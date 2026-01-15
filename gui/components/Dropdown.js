@@ -6,6 +6,7 @@ import {
     PADDING,
     isInside,
     easeOutCubic,
+    easeInOutQuad,
     drawText,
     getTextWidth,
     FontSizes,
@@ -40,11 +41,13 @@ export class MultiToggle {
         this.containerHeight = 48;
         this.callback = callback;
         this.optionPanelWidth = 0;
+        this.dropdownPadding = 8;
+        this.dropdownOuterPadding = 2;
 
         this.animStart = 0;
         this.animFrom = 0;
         this.animTo = 0;
-        this.animDuration = 200;
+        this.animDuration = 220;
         this.animationProgress = 0;
         this.description = null;
     }
@@ -59,7 +62,7 @@ export class MultiToggle {
         if (this.animStart === 0) return;
         const elapsed = Date.now() - this.animStart;
         const t = Math.min(elapsed / this.animDuration, 1);
-        const eased = easeOutCubic(t);
+        const eased = easeInOutQuad(t);
         this.animationProgress = this.animFrom + (this.animTo - this.animFrom) * eased;
         if (t >= 1) this.animStart = 0;
     }
@@ -84,8 +87,12 @@ export class MultiToggle {
         });
     }
 
+    getExpandedContentHeight() {
+        return this.options.length * (this.optionHeight + 4) + this.dropdownPadding * 2;
+    }
+
     getExpandedHeight() {
-        return this.options.length * (this.optionHeight + 4) + 8;
+        return this.getExpandedContentHeight() + this.dropdownOuterPadding;
     }
 
     draw(mouseX, mouseY) {
@@ -144,7 +151,7 @@ export class MultiToggle {
         }
 
         if (this.animationProgress > 0) {
-            const fullDropdownHeight = this.getExpandedHeight();
+            const fullDropdownHeight = this.getExpandedContentHeight();
             const animatedHeight = fullDropdownHeight * this.animationProgress;
             const dropdownX = this.x;
             const dropdownY = this.y + this.containerHeight + 4;
@@ -160,7 +167,7 @@ export class MultiToggle {
                 borderColor: THEME.BORDER,
             });
 
-            let currentY = dropdownY + 8;
+            let currentY = dropdownY + this.dropdownPadding;
             for (let i = 0; i < this.options.length; i++) {
                 const optionTop = currentY;
                 if (optionTop >= dropdownY + animatedHeight) break;
@@ -242,10 +249,10 @@ export class MultiToggle {
 
         if (this.expanded) {
             const dropdownY = this.y + this.containerHeight + 4;
-            const fullDropdownHeight = this.getExpandedHeight();
+            const fullDropdownHeight = this.getExpandedContentHeight();
 
             if (mouseX >= this.x && mouseX <= this.x + panelWidth && mouseY >= dropdownY && mouseY <= dropdownY + fullDropdownHeight) {
-                let currentY = dropdownY + 8;
+                let currentY = dropdownY + this.dropdownPadding;
                 for (let i = 0; i < this.options.length; i++) {
                     const optionTop = currentY;
                     const optionBottom = optionTop + this.optionHeight;
