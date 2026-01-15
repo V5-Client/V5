@@ -171,6 +171,11 @@ class Bot extends ModuleBase {
         this.tickCount = 0;
     }
 
+    resetTickCounters() {
+        this.mineTickCount = 0;
+        this.tickCount = 0;
+    }
+
     initSettings() {
         this.addToggle(
             'Tick Gliding',
@@ -237,31 +242,178 @@ class Bot extends ModuleBase {
         this.updateMithrilCosts();
     }
 
+    getAbilityStatusFromTab() {
+        const tabNames = TabList.getNames();
+        for (let i = 0; i < tabNames.length; i++) {
+            const rawLine = tabNames[i].getName().toString();
+            const line = rawLine.replace(/§[0-9a-fk-or]/gi, '').trim();
+
+            if (line.includes('Pickaxe Ability') && tabNames[i + 1]) {
+                return tabNames[i + 1]
+                    .getName()
+                    .toString()
+                    .replace(/§[0-9a-fk-or]/gi, '')
+                    .trim();
+            }
+        }
+        return '';
+    }
+
+    getFakeLookMode() {
+        return this.FAKELOOK?.find?.((option) => option.enabled)?.name || 'Off';
+    }
+
+    isAirOrBedrock(blockName = '') {
+        return blockName.includes('air') || blockName.includes('bedrock');
+    }
+
+    ensureDrillEquipped(drill) {
+        if (!drill) return false;
+        if (Player.getHeldItemIndex() !== drill.slot) {
+            Guis.setItemSlot(drill.slot);
+            return false;
+        }
+        return true;
+    }
+
+    loadAbilitySetting() {
+        this.file = Utils.getConfigFile('miningstats.json');
+        if (this.file) this.ability = this.file.ability;
+    }
+
+    hasConfiguredAbility() {
+        return this.ability && this.ability !== 'none' && this.ability !== 'None' && this.ability !== '';
+    }
+
+    shouldScanForNewBlock() {
+        if (!this.currentTarget || this.allowScan) return true;
+
+        const block = World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z);
+        const blockName = block?.type?.getRegistryName() || '';
+
+        return this.isAirOrBedrock(blockName);
+    }
+
+    advanceManualScan() {
+        const currentBlock = this.currentTarget ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z) : null;
+        const currentReg = currentBlock?.type?.getRegistryName() || '';
+
+        if (this.currentTarget === null || this.isAirOrBedrock(currentReg)) {
+            this.lowestCostBlockIndex++;
+            this.nukedBlock = false;
+
+            if (this.lowestCostBlockIndex >= this.foundLocations.length) {
+                this.foundLocations = [];
+                return false;
+            }
+
+            this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
+            this.resetTickCounters();
+        }
+
+        return true;
+    }
+
+    updateBlockTracking(lowestCostBlock, blockName) {
+        const isSameAsLast =
+            this.lastBlockPos &&
+            this.lastBlockPos.x === lowestCostBlock.x &&
+            this.lastBlockPos.y === lowestCostBlock.y &&
+            this.lastBlockPos.z === lowestCostBlock.z;
+
+        if (isSameAsLast && this.lastBlockType && this.lastBlockType !== blockName) {
+            if (!this.isAirOrBedrock(blockName)) {
+                this.lastBlockType = blockName;
+                this.resetMining();
+                return false;
+            }
+        }
+
+        if (!isSameAsLast) {
+            this.resetTickCounters();
+            this.lastBlockPos = lowestCostBlock;
+            this.lastBlockType = blockName;
+            this.nukedBlock = false;
+        }
+
+        return true;
+    }
+
+    incrementMiningCountersIfLookingAtCurrent() {
+        const lookingAt = Player.lookingAt();
+        if (
+            lookingAt &&
+            lookingAt.getX() === this.currentTarget?.x &&
+            lookingAt.getY() === this.currentTarget?.y &&
+            lookingAt.getZ() === this.currentTarget?.z
+        ) {
+            this.mineTickCount++;
+        }
+        this.tickCount++;
+    }
+
+    adjustGemstoneMovement(blockName) {
+        if (this.COSTTYPE !== this.gemstoneCosts || !this.currentTarget) return;
+
+        const { distance: blockDist } = MathUtils.getDistanceToPlayerEyes(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z);
+        if (blockDist < 1) Keybind.setKey('s', true);
+        else if (blockDist > 4.5) Keybind.setKey('w', true);
+        else Keybind.stopMovement();
+    }
+
+    handleFakeLook(blockName, fakeLookMode) {
+        if (fakeLookMode === 'Off') {
+            if (!Player.toMC().handSwinging && Date.now() - this.lastGUI > 100) {
+                Keybind.setKey('leftclick', true);
+                this.lastGUI = Date.now();
+            }
+            return;
+        }
+
+        Keybind.setKey('leftclick', false);
+        if (this.isAirOrBedrock(blockName)) {
+            this.lowestCostBlockIndex++;
+        }
+        if (this.currentTarget && !this.nukedBlock) {
+            const pos = [this.currentTarget.x, this.currentTarget.y, this.currentTarget.z];
+            if (fakeLookMode === 'Instant') NukerUtils.nuke(pos, this.totalTicks);
+            else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
+            this.nukedBlock = true;
+        }
+    }
+
+    shouldRotateToNextBlock(blockName) {
+        return this.TICKGLIDE
+            ? this.mineTickCount > this.totalTicks || this.tickCount > this.totalTicks * 2 || this.allowScan
+            : !this.currentTarget || this.isAirOrBedrock(blockName) || this.allowScan;
+    }
+
+    handleRotationOrScan() {
+        const currentPos = this.currentTarget ? { x: this.currentTarget.x, y: this.currentTarget.y, z: this.currentTarget.z } : null;
+
+        if (this.manualScan) {
+            this.allowScan = true;
+            this.resetTickCounters();
+            return;
+        }
+
+        if (!this.TICKGLIDE) {
+            this.scanForBlock(this.COSTTYPE, currentPos);
+            this.currentTarget = this.foundLocations[0];
+        } else {
+            this.resetTickCounters();
+            this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
+        }
+        this.allowScan = false;
+    }
+
     handleAbilityState() {
         if (this.SCAN_ONLY) {
             this.state = this.STATES.MINING;
             return;
         }
 
-        const tabNames = TabList.getNames();
-        let abilityStatus = '';
-
-        for (let i = 0; i < tabNames.length; i++) {
-            let rawLine = tabNames[i].getName().toString();
-
-            let line = rawLine.replace(/§[0-9a-fk-or]/gi, '').trim();
-
-            if (line.includes('Pickaxe Ability')) {
-                if (tabNames[i + 1]) {
-                    abilityStatus = tabNames[i + 1]
-                        .getName()
-                        .toString()
-                        .replace(/§[0-9a-fk-or]/gi, '')
-                        .trim();
-                }
-                break;
-            }
-        }
+        const abilityStatus = this.getAbilityStatusFromTab();
 
         if (!abilityStatus.includes('Available')) {
             this.state = this.STATES.MINING;
@@ -275,20 +427,12 @@ class Bot extends ModuleBase {
             return;
         }
 
-        if (Player.getHeldItemIndex() !== drill.slot) {
-            Guis.setItemSlot(drill.slot);
-            return;
-        }
+        if (!this.ensureDrillEquipped(drill)) return;
 
-        this.file = Utils.getConfigFile('miningstats.json');
-        if (this.file) {
-            this.ability = this.file.ability;
-        }
+        this.loadAbilitySetting();
 
-        const hasAbility = this.ability && this.ability !== 'none' && this.ability !== 'None' && this.ability !== '';
-
-        if (hasAbility) {
-            let packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Player.yaw, Player.pitch);
+        if (this.hasConfiguredAbility()) {
+            const packet = new PlayerInteractItemC2S(MCHand.MAIN_HAND, 0, Player.yaw, Player.pitch);
             Client.sendPacket(packet);
         }
 
@@ -305,38 +449,11 @@ class Bot extends ModuleBase {
         }
 
         const { drill } = MiningUtils.getDrills();
-        if (Player.getHeldItemIndex() !== drill.slot) {
-            Guis.setItemSlot(drill.slot);
-            return;
-        }
+        if (!this.ensureDrillEquipped(drill)) return;
 
-        let needScan = !this.currentTarget || this.allowScan;
-        if (!needScan) {
-            const block = World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z);
-            const blockName = block?.type?.getRegistryName();
-            if (blockName.includes('air') || blockName.includes('bedrock')) {
-                needScan = true;
-            }
-        }
-
-        if (needScan) {
+        if (this.shouldScanForNewBlock()) {
             if (this.manualScan) {
-                let currentBlock = this.currentTarget ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z) : null;
-                let currentReg = currentBlock?.type?.getRegistryName() || '';
-
-                if (this.currentTarget === null || currentReg.includes('air') || currentReg.includes('bedrock')) {
-                    this.lowestCostBlockIndex++;
-                    this.nukedBlock = false;
-
-                    if (this.lowestCostBlockIndex >= this.foundLocations.length) {
-                        this.foundLocations = [];
-                        return;
-                    }
-
-                    this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
-                    this.mineTickCount = 0;
-                    this.tickCount = 0;
-                }
+                if (!this.advanceManualScan()) return;
             } else {
                 this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
                 this.currentTarget = this.foundLocations[0];
@@ -349,101 +466,27 @@ class Bot extends ModuleBase {
         if (!lowestCostBlock) return;
 
         let block = World.getBlockAt(lowestCostBlock.x, lowestCostBlock.y, lowestCostBlock.z);
-        let blockName = block?.type?.getRegistryName();
+        let blockName = block?.type?.getRegistryName() || '';
 
-        if (
-            this.lastBlockPos &&
-            this.lastBlockPos.x === lowestCostBlock.x &&
-            this.lastBlockPos.y === lowestCostBlock.y &&
-            this.lastBlockPos.z === lowestCostBlock.z &&
-            this.lastBlockType &&
-            this.lastBlockType !== blockName
-        ) {
-            if (!blockName.includes('air') && !blockName.includes('bedrock')) {
-                this.lastBlockType = blockName;
-                this.resetMining();
-                return;
-            }
-        }
-
-        if (
-            !this.lastBlockPos ||
-            this.lastBlockPos.x !== lowestCostBlock.x ||
-            this.lastBlockPos.y !== lowestCostBlock.y ||
-            this.lastBlockPos.z !== lowestCostBlock.z
-        ) {
-            this.mineTickCount = 0;
-            this.tickCount = 0;
-            this.lastBlockPos = lowestCostBlock;
-            this.lastBlockType = blockName;
-            this.nukedBlock = false;
-        }
+        if (!this.updateBlockTracking(lowestCostBlock, blockName)) return;
 
         this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
 
-        let lookingAt = Player.lookingAt();
-        if (
-            lookingAt &&
-            lookingAt.getX() === this.currentTarget?.x &&
-            lookingAt.getY() === this.currentTarget?.y &&
-            lookingAt.getZ() === this.currentTarget?.z
-        ) {
-            this.mineTickCount++;
-        }
-        this.tickCount++;
+        this.incrementMiningCountersIfLookingAtCurrent();
 
-        const fakeLookMode = this.FAKELOOK.find((option) => option.enabled)?.name;
-        if (fakeLookMode === 'Off') {
-            if (!Player.toMC().handSwinging && Date.now() - this.lastGUI > 100) {
-                Keybind.setKey('leftclick', true);
-                this.lastGUI = Date.now(); // stupid fix
-            }
-        }
+        const fakeLookMode = this.getFakeLookMode();
 
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
         this.totalTicks = MiningUtils.getMineTime(this.miningspeed, this.speedBoost, this.currentTarget);
 
         if (!this.currentTarget) return;
-        const blockDist = MathUtils.getDistanceToPlayerEyes(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z).distance;
-        if (this.COSTTYPE === this.gemstoneCosts) {
-            if (blockDist < 1) Keybind.setKey('s', true);
-            else if (blockDist > 4.5) Keybind.setKey('w', true);
-            else Keybind.stopMovement();
-        }
 
-        if (fakeLookMode !== 'Off') {
-            Keybind.setKey('leftclick', false);
-            if (blockName.includes('air') || blockName.includes('bedrock')) {
-                this.lowestCostBlockIndex++;
-            }
-            if (this.currentTarget && !this.nukedBlock) {
-                const pos = [this.currentTarget.x, this.currentTarget.y, this.currentTarget.z];
-                if (fakeLookMode === 'Instant') NukerUtils.nuke(pos, this.totalTicks);
-                else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
-                this.nukedBlock = true;
-            }
-        }
-        const shouldRotate = this.TICKGLIDE
-            ? this.mineTickCount > this.totalTicks || this.tickCount > this.totalTicks * 2 || this.allowScan
-            : !this.currentTarget || blockName.includes('air') || blockName.includes('bedrock') || this.allowScan;
+        //this.adjustGemstoneMovement(blockName);
 
-        if (shouldRotate) {
-            if (this.manualScan) {
-                this.allowScan = true;
-                this.mineTickCount = 0;
-                this.tickCount = 0;
-            } else {
-                if (!this.TICKGLIDE) {
-                    this.scanForBlock(this.COSTTYPE, this.currentTarget ? { x: this.currentTarget.x, y: this.currentTarget.y, z: this.currentTarget.z } : null);
-                    this.currentTarget = this.foundLocations[0];
-                } else {
-                    this.mineTickCount = 0;
-                    this.tickCount = 0;
-                    this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
-                }
-                this.allowScan = false;
-            }
-        }
+        this.handleFakeLook(blockName, fakeLookMode);
+
+        const shouldRotate = this.shouldRotateToNextBlock(blockName);
+        if (shouldRotate) this.handleRotationOrScan();
 
         const targetVector = this.getAimVectorForTarget(this.currentTarget);
         if (this.currentTarget && targetVector) {

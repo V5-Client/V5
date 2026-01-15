@@ -66,7 +66,6 @@ class OreMacro extends ModuleBase {
         this.playerPos = null;
 
         this.scanned = false;
-        this.miningTargetVec = null;
 
         this.createOverlay([
             {
@@ -161,10 +160,18 @@ class OreMacro extends ModuleBase {
                     break;
                 case this.STATES.WALKING:
                     let walkPoint = this.route[this.closestPointIndex];
-                    let dist = MathUtils.getDistanceToPlayer(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5).distance;
+                    let dist = MathUtils.getDistanceToPlayer(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5);
 
-                    Chat.message('Distance to point: ' + dist);
-                    if (dist <= 0.5) {
+                    let nextPoint = this.route[this.closestPointIndex + 1];
+                    Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
+
+                    Chat.message('Distance to point: ' + dist.distance);
+                    if (dist.distance <= 1.5 && dist.distanceFlat == dist.distanceY) {
+                        Keybind.setKey('shift', true);
+                    } else {
+                        Keybind.setKey('shift', false);
+                    }
+                    if (dist.distance <= 0.75) {
                         Keybind.unpressKeys();
 
                         let nextIndex = (this.closestPointIndex + 1) % this.route.length;
@@ -179,15 +186,13 @@ class OreMacro extends ModuleBase {
                         this.closestPointIndex = nextIndex;
 
                         this.state = this.STATES.MINING;
+                        Keybind.setKey('shift', false);
                         this.message('&6Arrived at Walk Point. Checking for ores...');
                         return;
                     }
 
-                    // realistic toggle ?
-                    //Rotations.rotateToVector(new Vec3d(walkPoint.x + 0.5, walkPoint.y, walkPoint.z + 0.5));
                     Keybind.setKeysForStraightLineCoords(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5, true, true);
                     break;
-                case this.STATES.ETHERWARPING:
                 case this.STATES.ETHERWARPING:
                     MiningBot.toggle(false);
                     Keybind.setKey('leftclick', false);
@@ -234,6 +239,8 @@ class OreMacro extends ModuleBase {
 
                         this.closestPointIndex = nextIndex;
 
+                        let nextPoint = this.route[this.closestPointIndex + 1];
+                        Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
                         this.state = this.STATES.MINING;
                         return;
                     }
@@ -245,7 +252,7 @@ class OreMacro extends ModuleBase {
                     }
 
                     if (!this.rotatedToPoint) {
-                        // Player.setHeldItemIndex(aotv);
+                        Guis.setItemSlot(aotv);
                         Keybind.setKey('shift', true);
 
                         if (!Player.getPlayer().isSneaking()) return;
@@ -253,13 +260,21 @@ class OreMacro extends ModuleBase {
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
                             if (!this.enabled) return;
-
                             Client.scheduleTask(this.FASTAOTV ? 2 : 5, () => {
-                                Keybind.rightClick();
-                                this.attemptedEtherwarp = true;
-                                this.lastX = Player.getX();
-                                this.lastY = Player.getY();
-                                this.lastZ = Player.getZ();
+                                try {
+                                    if (!this.enabled) return;
+                                    Keybind.rightClick();
+                                    this.attemptedEtherwarp = true;
+                                    this.lastX = Player.getX();
+                                    this.lastY = Player.getY();
+                                    this.lastZ = Player.getZ();
+                                    Keybind.setKey('shift', false);
+
+                                    let nextPoint = this.route[this.closestPointIndex + 1];
+                                    Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
+                                } catch (e) {
+                                    console.error('V5 Caught error' + e + e.stack);
+                                }
                             });
                         });
                         this.rotatedToPoint = true;
@@ -295,77 +310,35 @@ class OreMacro extends ModuleBase {
 
                     this.prepartionTicks++;
 
-                    let focusedMineables = [];
+                    let mineables = [];
                     let ignoredMineables = [];
 
                     for (let i = 0; i < this.route.length; i++) {
                         let checkIndex = (this.closestPointIndex + i) % this.route.length;
                         let point = this.route[checkIndex];
                         if (point.movements !== 'MINEABLE') continue;
-
                         let block = World.getBlockAt(point.x, point.y, point.z);
                         let reg = block?.type?.getRegistryName();
 
-                        let dist = MathUtils.getDistanceToPlayer(point.x, point.y, point.z).distance;
-
-                        if (dist >= 4.5) continue;
-
-                        const hit = this.raytraceBlockFaces(point);
-
-                        if (hit) {
-                            point.tempHit = hit;
-                            if (!reg.includes('air') && !reg.includes('bedrock')) focusedMineables.push(point);
-                            else ignoredMineables.push(point);
-                        }
+                        if (!reg.includes('air') && !reg.includes('bedrock')) mineables.push(point);
                     }
 
-                    if (focusedMineables.length > 0) {
-                        MiningBot.populateLocations(focusedMineables);
+                    if (mineables.length > 0) {
+                        MiningBot.populateLocations(mineables);
+                    }
 
-                        if (!this.miningTargetVec) {
-                            let p = focusedMineables[0];
-
-                            this.miningTargetVec = {
-                                vec: {
-                                    x: p.tempHit.hitPos.x,
-                                    y: p.tempHit.hitPos.y,
-                                    z: p.tempHit.hitPos.z,
-                                },
-                                rawX: p.x,
-                                rawY: p.y,
-                                rawZ: p.z,
-                            };
-                        }
-
+                    if (MiningBot.foundLocations.length > 0) {
+                        MiningBot.toggle(true, true);
                         return;
-                    } else if (ignoredMineables.length > 0) {
-                        if (this.prepartionTicks < 20) return;
+                    }
 
-                        Chat.message('Theres mineables but they are broken');
+                    if (MiningBot.foundLocations.length === 0) {
+                        MiningBot.toggle(false);
+                        MiningBot.foundLocations = [];
 
                         this.state = this.STATES.DECIDING;
+                        this.scanned = false;
                         return;
-                    } else {
-                        if (!this.scanned) {
-                            this.scanned = true;
-                            MiningBot.scanForBlock(this.getOreCosts());
-                        }
-
-                        if (MiningBot.foundLocations.length > 0) {
-                            MiningBot.toggle(true, true);
-                            return;
-                        }
-
-                        if (MiningBot.foundLocations.length === 0) {
-                            if (this.prepartionTicks < 20) return;
-
-                            MiningBot.toggle(false);
-                            MiningBot.foundLocations = [];
-
-                            this.state = this.STATES.DECIDING;
-                            this.scanned = false;
-                            return;
-                        }
                     }
             }
         });
