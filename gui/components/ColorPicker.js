@@ -49,8 +49,9 @@ export class ColorPicker {
         this.expanded = false;
         this.height = 48;
         this.outerPadding = 2;
-        this.expandedHeight = 195;
+        this.expandedHeight = 193;
         this.optionPanelWidth = 0;
+        this.panelPaddingY = 10;
 
         this.draggingHue = false;
         this.draggingSV = false;
@@ -246,7 +247,7 @@ export class ColorPicker {
                 const pickerPadding = 12;
                 const innerWidth = panelWidth - pickerPadding * 2;
                 const svHeight = 95;
-                const svY = contentY + 10;
+                const svY = contentY + this.panelPaddingY;
                 const svX = this.x + pickerPadding;
 
                 const hueColorInt = java.awt.Color.HSBtoRGB(this.hue, 1, 1) | 0;
@@ -286,7 +287,7 @@ export class ColorPicker {
                 const alphaSliderX = svX + this.alpha * innerWidth;
                 this.drawSliderHandle(alphaSliderX - 3, alphaY - 2, 6, barHeight + 4);
 
-                const infoY = alphaY + barHeight + 10;
+                const infoY = alphaY + barHeight + this.panelPaddingY;
 
                 const hexColor = this.colorToHex(this.color);
                 const hexText = `#${hexColor}`;
@@ -334,7 +335,7 @@ export class ColorPicker {
             const innerWidth = panelWidth - pickerPadding * 2;
             const svHeight = 95;
             const contentY = this.y + collapsedHeight + 4;
-            const svY = contentY + 10;
+            const svY = contentY + this.panelPaddingY;
             const svX = this.x + pickerPadding;
 
             if (mouseX >= svX && mouseX <= svX + innerWidth && mouseY >= svY && mouseY <= svY + svHeight) {
@@ -371,7 +372,7 @@ export class ColorPicker {
         const innerWidth = panelWidth - pickerPadding * 2;
         const svHeight = 95;
         const contentY = this.y + 48 + 4;
-        const svY = contentY + 10;
+        const svY = contentY + this.panelPaddingY;
         const svX = this.x + pickerPadding;
 
         if (this.draggingSV) {

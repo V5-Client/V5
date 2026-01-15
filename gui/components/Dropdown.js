@@ -42,6 +42,7 @@ export class MultiToggle {
         this.callback = callback;
         this.optionPanelWidth = 0;
         this.dropdownPadding = 8;
+        this.optionSpacing = 4;
         this.dropdownOuterPadding = 2;
 
         this.animStart = 0;
@@ -88,7 +89,8 @@ export class MultiToggle {
     }
 
     getExpandedContentHeight() {
-        return this.options.length * (this.optionHeight + 4) + this.dropdownPadding * 2;
+        const gaps = Math.max(0, this.options.length - 1);
+        return this.options.length * this.optionHeight + gaps * this.optionSpacing + this.dropdownPadding * 2;
     }
 
     getExpandedHeight() {
@@ -224,7 +226,10 @@ export class MultiToggle {
 
                 drawText(option.name, optionX, optionTop + this.optionHeight / 2, FontSizes.REGULAR, textColor);
 
-                currentY += this.optionHeight + 4;
+                currentY += this.optionHeight;
+                if (i < this.options.length - 1) {
+                    currentY += this.optionSpacing;
+                }
             }
         }
     }
@@ -284,7 +289,10 @@ export class MultiToggle {
                         }
                         return true;
                     }
-                    currentY += this.optionHeight + 4;
+                    currentY += this.optionHeight;
+                    if (i < this.options.length - 1) {
+                        currentY += this.optionSpacing;
+                    }
                 }
             }
         }
