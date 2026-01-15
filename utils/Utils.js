@@ -291,9 +291,11 @@ class UtilsClass {
 
                     const blockPosNMS = new BP(x, y, z);
                     const blockState = World.getWorld().getBlockState(blockPosNMS);
+                    const registryName = block.type.getRegistryName().toLowerCase();
+
+                    if (registryName.includes('carpet')) continue;
 
                     if (shouldIgnoreBottomSlab) {
-                        const registryName = block.type.getRegistryName().toLowerCase();
                         if (registryName.includes('slab')) {
                             const stateString = blockState.toString();
                             if (stateString.includes('type=bottom')) continue;
