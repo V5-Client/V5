@@ -65,8 +65,6 @@ class OreMacro extends ModuleBase {
         this.etherwarpTicks = 0;
         this.playerPos = null;
 
-        this.scanned = false;
-
         this.createOverlay([
             {
                 title: 'Status',
@@ -240,7 +238,10 @@ class OreMacro extends ModuleBase {
                         this.closestPointIndex = nextIndex;
 
                         let nextPoint = this.route[this.closestPointIndex + 1];
-                        Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
+                        if (nextPoint) {
+                            let nextPointVec = new Vec3d(nextPoint?.x + 0.5, nextPoint?.y, nextPoint?.z + 0.5);
+                            if (nextPointVec) Rotations.rotateToVector(nextPointVec);
+                        }
                         this.state = this.STATES.MINING;
                         return;
                     }
@@ -269,9 +270,6 @@ class OreMacro extends ModuleBase {
                                     this.lastY = Player.getY();
                                     this.lastZ = Player.getZ();
                                     Keybind.setKey('shift', false);
-
-                                    let nextPoint = this.route[this.closestPointIndex + 1];
-                                    Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
                                 } catch (e) {
                                     console.error('V5 Caught error' + e + e.stack);
                                 }
@@ -305,13 +303,11 @@ class OreMacro extends ModuleBase {
 
                     if (Player.getHeldItemIndex() !== drill.slot) {
                         Guis.setItemSlot(drill.slot);
-                        return;
                     }
 
                     this.prepartionTicks++;
 
                     let mineables = [];
-                    let ignoredMineables = [];
 
                     for (let i = 0; i < this.route.length; i++) {
                         let checkIndex = (this.closestPointIndex + i) % this.route.length;
@@ -327,17 +323,9 @@ class OreMacro extends ModuleBase {
                         MiningBot.populateLocations(mineables);
                     }
 
-                    if (MiningBot.foundLocations.length > 0) {
-                        MiningBot.toggle(true, true);
-                        return;
-                    }
-
                     if (MiningBot.foundLocations.length === 0) {
                         MiningBot.toggle(false);
-                        MiningBot.foundLocations = [];
-
                         this.state = this.STATES.DECIDING;
-                        this.scanned = false;
                         return;
                     }
             }
@@ -609,7 +597,6 @@ class OreMacro extends ModuleBase {
 
     onDisable() {
         RouteState.clearRoute();
-        this.scanned = false;
         this.closestPointIndex = null;
         this.closestPoint = null;
         this.rotatedToPoint = null;
