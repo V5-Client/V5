@@ -1,6 +1,7 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
 import { getPathfindingDebug } from './pathfinder/PathConfig';
 import { GradientChat } from './Constants';
+import { Debugging } from './Debugging';
 
 const gradientInstance = new GradientChat();
 
@@ -11,6 +12,8 @@ class ChatClass {
 
     // todo for release: add debug toggle somewhere
     messageDebug(msg) {
+        if (!Debugging.Messages()) return;
+
         this._sendGradient(`V5 Debug » `, msg);
     }
 
