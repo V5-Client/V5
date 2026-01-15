@@ -27,6 +27,7 @@ import './visuals/Xray.js';
 /* SKILLS */
 import './skills/AutoExperiments.js';
 import './skills/FishingMacro.js';
+import './skills/FishingHelper.js';
 import './skills/JerryBoxMacro.js';
 import './skills/RouteWalker.js';
 
