@@ -1,4 +1,4 @@
-import { Vec3d } from '../../Constants';
+import { Vec3d, BP } from '../../Constants';
 import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
@@ -38,6 +38,9 @@ let recoveryMovement = {
     forward: false,
     backward: false,
 };
+
+// Escape rotation for confined spaces
+let escapeYaw = null;
 
 const boxDistanceCache = new Map();
 let cacheFrame = 0;
@@ -123,6 +126,7 @@ function endRecoveryMode() {
     recoveryPhase = null;
     recoveryPhaseTicks = 0;
     recoveryMovement = { forward: false, backward: false };
+    escapeYaw = null;
 }
 
 export function isInRecoveryMode() {
@@ -135,6 +139,14 @@ export function getRecoveryMovement() {
 
 export function isStuckRecoveryJumping() {
     return isRecoveryJumping;
+}
+
+export function getEscapeYaw() {
+    return escapeYaw;
+}
+
+export function isEscapeRotationActive() {
+    return escapeYaw !== null && inRecoveryMode;
 }
 
 function getDistance3D(x1, y1, z1, x2, y2, z2) {
@@ -159,6 +171,65 @@ function getCachedBoxDistance(playerX, playerY, playerZ, box) {
     }
 
     return boxDistanceCache.get(key);
+}
+
+function isBlockSolidForEscape(x, y, z) {
+    const block = World.getBlockAt(Math.floor(x), Math.floor(y), Math.floor(z));
+    if (!block || block.type.getID() === 0) return false;
+
+    const world = World.getWorld();
+    if (!world) return false;
+
+    try {
+        const blockPosNMS = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
+        const blockState = world.getBlockState(blockPosNMS);
+        const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
+        return !collisionShape.isEmpty();
+    } catch (e) {
+        return false;
+    }
+}
+
+function detectConfinedSpace() {
+    const playerX = Math.floor(Player.getX());
+    const playerY = Math.floor(Player.getY());
+    const playerZ = Math.floor(Player.getZ());
+
+    const directions = [
+        { dx: 1, dz: 0, yaw: -90 }, // +X
+        { dx: -1, dz: 0, yaw: 90 }, //-X
+        { dx: 0, dz: 1, yaw: 0 }, // +Z
+        { dx: 0, dz: -1, yaw: 180 }, // -Z
+    ];
+
+    let openDirections = [];
+    let blockedCount = 0;
+
+    for (const dir of directions) {
+        const checkX = playerX + dir.dx;
+        const checkZ = playerZ + dir.dz;
+
+        const feetBlocked = isBlockSolidForEscape(checkX, playerY, checkZ);
+        const bodyBlocked = isBlockSolidForEscape(checkX, playerY + 1, checkZ);
+
+        if (feetBlocked || bodyBlocked) {
+            blockedCount++;
+        } else {
+            openDirections.push(dir);
+        }
+    }
+
+    const ceilingBlocked = isBlockSolidForEscape(playerX, playerY + 2, playerZ);
+
+    if (blockedCount >= 3 && openDirections.length > 0 && ceilingBlocked) {
+        return openDirections[0].yaw;
+    }
+
+    if (blockedCount >= 2 && openDirections.length === 1 && Utils.playerIsCollided()) {
+        return openDirections[0].yaw;
+    }
+
+    return null;
 }
 
 function tryJumpOnly(currentBoxIndex, boxPositions, playerX, playerY, playerZ) {
@@ -238,6 +309,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
                 ticksWithoutMovement = 0;
                 recoveryAttempts = 0;
                 recoveryStartBoxIndex = -1;
+                escapeYaw = null;
                 return null;
             } else {
                 Chat.messagePathfinder(`§c[Recovery] Failed! Only at box ${currentBoxIndex} (started at ${recoveryStartBoxIndex})`);
@@ -253,6 +325,7 @@ export function detectStuck(boxPositions, currentBoxIndex) {
         ticksWithoutMovement = 0;
         recoveryAttempts = 0;
         recoveryStartBoxIndex = -1;
+        escapeYaw = null;
         return null;
     }
 
@@ -272,6 +345,18 @@ export function detectStuck(boxPositions, currentBoxIndex) {
             recoveryLockTicks = RECOVERY_LOCK_DURATION;
             recoveryStartBoxIndex = currentBoxIndex;
             lastPlayerPos = new Vec3d(playerX, playerY, playerZ);
+
+            const confinedYaw = detectConfinedSpace();
+            if (confinedYaw !== null) {
+                escapeYaw = confinedYaw;
+                Chat.messagePathfinder(`§e[Recovery ${recoveryAttempts}/${MAX_RECOVERY_ATTEMPTS}] Trapped in hole, yaw: ${confinedYaw.toFixed(0)}°`);
+
+                startRecoveryMode(0, 2);
+                jumpRecoveryTicks = JUMP_DURATION;
+
+                lastRecoveryStrategy = 'CONFINED_ESCAPE';
+                return currentBoxIndex;
+            }
 
             let result = null;
 
@@ -299,6 +384,7 @@ export function resetStuckDetection() {
     recoveryStartBoxIndex = -1;
     jumpRecoveryTicks = 0;
     isRecoveryJumping = false;
+    escapeYaw = null;
     boxDistanceCache.clear();
 
     endRecoveryMode();
@@ -316,5 +402,6 @@ export function getStuckInfo() {
         inRecoveryMode: inRecoveryMode,
         recoveryPhase: recoveryPhase,
         recoveryPhaseTicks: recoveryPhaseTicks,
+        escapeYaw: escapeYaw,
     };
 }

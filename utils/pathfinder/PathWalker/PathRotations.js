@@ -1,7 +1,7 @@
 import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
 import { renderSplineBoxes } from '../PathDebug';
-import { detectStuck, resetStuckDetection } from './PathStuckRecovery';
+import { detectStuck, resetStuckDetection, isEscapeRotationActive, getEscapeYaw } from './PathStuckRecovery';
 import { setMovementTarget, clearMovementTarget, getShouldLimitRotations } from './PathMovement';
 import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
@@ -515,6 +515,15 @@ function calculateStrafeDirection(boxPositions, currentIndex, pathAnalysis) {
 }
 
 function updateStrafeState(boxPositions, currentIndex, pathAnalysis) {
+    if (isEscapeRotationActive()) {
+        isStrafing = false;
+        strafeDirection = 0;
+        strafeHoldTicks = 0;
+        Keybind.setKey('a', false);
+        Keybind.setKey('d', false);
+        return;
+    }
+
     const isCollided = Utils.playerIsCollided();
     const player = Player.getPlayer();
     if (!player) return;
@@ -845,6 +854,24 @@ export function pathRotations(splineData) {
     } else {
         rawTargetYaw = newRawYaw;
         rawTargetPitch = newRawPitch;
+    }
+
+    if (getShouldLimitRotations()) {
+        const yawDelta = getAngleDelta(rawTargetYaw, newRawYaw);
+        if (Math.abs(yawDelta) < 30) {
+            rawTargetYaw = newRawYaw;
+        }
+    } else {
+        rawTargetYaw = newRawYaw;
+        rawTargetPitch = newRawPitch;
+    }
+
+    if (isEscapeRotationActive()) {
+        const escYaw = getEscapeYaw();
+        if (escYaw !== null) {
+            rawTargetYaw = escYaw;
+            rawTargetPitch = 0;
+        }
     }
 
     const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(currentBox.x + 0.5, currentBox.y + 0.5, currentBox.z + 0.5);
