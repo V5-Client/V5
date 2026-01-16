@@ -2,10 +2,18 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
 
-const MAX_ATTACH_DIST_SQ = 7;
+const MAX_ATTACH_DIST_SQ = 9;
 const MAX_Y_DIFF = 1.1;
-const BASE_BRAKE = 4.5;
-const LOOK_AHEAD_WEIGHT = 0.15;
+const LOOK_AHEAD_WEIGHT = 0.2;
+const ICE_DECAY = 0.91 * 0.98; // horizontal friction applied each tick while on ice
+const SLIP_DISTANCE_COEFF = ICE_DECAY / (1 - ICE_DECAY); // geometric slip distance from current velocity
+const MAX_SLIP_LEAD = 8;
+const LATERAL_CANCEL_GAIN = 1.15;
+const CENTER_CORRECTION_GAIN = 0.5;
+const CENTER_CORRECTION_CLAMP = 0.6;
+const BRAKE_MARGIN = 0.15;
+const PARALLEL_BRAKE_SCALE = 0.3;
+const START_BLOCK_ID = 554;
 
 let IceFillSolver;
 let IcePlatform;
@@ -58,26 +66,32 @@ class AutoIceFill extends ModuleBase {
             if (updated) this.activePath = updated;
         }
 
-        const playerX = Math.floor(Player.getX());
-        const playerZ = Math.floor(Player.getZ());
+        const playerXReal = Player.getX();
+        const playerZReal = Player.getZ();
         const playerY = Player.getY();
+        const playerX = Math.floor(playerXReal);
+        const playerZ = Math.floor(playerZReal);
 
         if (!this.activePath && !this.attachNearestPath(paths, playerX, playerZ, playerY, false)) return;
 
         if (this.activePath) {
             const idx = this.indexOfBlock(this.activePath, playerX, playerZ);
-            if (idx !== -1 && idx < this.activePath.length - 1 && idx + 1 > this.pathIndex) {
-                this.pathIndex = idx + 1;
+            if (idx !== -1) {
+                const desired = Math.min(this.activePath.length - 1, idx + 1);
+                if (desired !== this.pathIndex) this.pathIndex = desired;
             }
         }
 
         let target = this.ensureValidTarget(paths, playerX, playerZ, playerY);
         if (!target) return;
 
-        const playerBlockX = Math.floor(Player.getX());
-        const playerBlockZ = Math.floor(Player.getZ());
+        const playerBlockX = Math.floor(playerXReal);
+        const playerBlockZ = Math.floor(playerZReal);
 
-        if (this.isOnBlock(target, playerBlockX, playerBlockZ, playerY)) {
+        const velX = Player.getMotionX();
+        const velZ = Player.getMotionZ();
+
+        if (this.isOnBlock(target, playerBlockX, playerBlockZ, playerY) && this.shouldAdvanceBlock(target, playerXReal, playerZReal, playerY, velX, velZ)) {
             this.pathIndex += 1;
             target = this.ensureValidTarget(paths, playerX, playerZ, playerY);
             if (!target) return;
@@ -93,9 +107,6 @@ class AutoIceFill extends ModuleBase {
             return;
         }
 
-        const velX = Player.getMotionX();
-        const velZ = Player.getMotionZ();
-
         let leadX = centerX;
         let leadZ = centerZ;
         const nextIdx = this.pathIndex + 1;
@@ -110,18 +121,50 @@ class AutoIceFill extends ModuleBase {
             leadZ += (dirZ / mag) * LOOK_AHEAD_WEIGHT;
         }
 
-        const speed = Math.sqrt(velX * velX + velZ * velZ);
-        let align = 0;
-        if (speed > 0.0001) {
-            const dirX = leadX - Player.getX();
-            const dirZ = leadZ - Player.getZ();
-            const dirMag = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-            align = (velX * (dirX / dirMag) + velZ * (dirZ / dirMag)) / speed; // -1..1
-        }
-        const brakeScale = BASE_BRAKE * (1 - Math.max(0, align) * 0.5);
+        const toLeadX = leadX - Player.getX();
+        const toLeadZ = leadZ - Player.getZ();
+        const distToLead = Math.sqrt(toLeadX * toLeadX + toLeadZ * toLeadZ) || 0.0001;
+        const dirX = toLeadX / distToLead;
+        const dirZ = toLeadZ / distToLead;
 
-        const steerX = leadX - velX * brakeScale;
-        const steerZ = leadZ - velZ * brakeScale;
+        const speed = Math.sqrt(velX * velX + velZ * velZ);
+        const parallelSpeed = speed > 0.0001 ? velX * dirX + velZ * dirZ : 0;
+
+        const slipX = velX * SLIP_DISTANCE_COEFF;
+        const slipZ = velZ * SLIP_DISTANCE_COEFF;
+        const parallelSlip = parallelSpeed * SLIP_DISTANCE_COEFF;
+        const parallelSlipX = dirX * parallelSlip;
+        const parallelSlipZ = dirZ * parallelSlip;
+        const perpSlipX = slipX - parallelSlipX;
+        const perpSlipZ = slipZ - parallelSlipZ;
+
+        const stopDistance = Math.abs(parallelSlip);
+        let brakingRatio = stopDistance > distToLead + BRAKE_MARGIN ? (stopDistance - distToLead - BRAKE_MARGIN) / stopDistance : 0;
+        if (nextIdx < this.activePath.length) {
+            const next = this.activePath[nextIdx];
+            const segX = next.x - target.x;
+            const segZ = next.z - target.z;
+            const segMag = Math.sqrt(segX * segX + segZ * segZ) || 1;
+            const segDirX = segX / segMag;
+            const segDirZ = segZ / segMag;
+            const straightness = segDirX * dirX + segDirZ * dirZ; // -1..1
+            if (straightness > 0.65) brakingRatio *= 0.25;
+            else if (straightness > 0.35) brakingRatio *= 0.55;
+        }
+        brakingRatio *= PARALLEL_BRAKE_SCALE;
+        const parallelCancelX = parallelSlipX * brakingRatio;
+        const parallelCancelZ = parallelSlipZ * brakingRatio;
+
+        const lateralCancelX = perpSlipX * LATERAL_CANCEL_GAIN;
+        const lateralCancelZ = perpSlipZ * LATERAL_CANCEL_GAIN;
+
+        const lateralOffset = (Player.getX() - centerX) * -dirZ + (Player.getZ() - centerZ) * dirX || 0;
+        const clampedOffset = Math.max(-CENTER_CORRECTION_CLAMP, Math.min(CENTER_CORRECTION_CLAMP, lateralOffset));
+        const centerNudgeX = -dirZ * clampedOffset * CENTER_CORRECTION_GAIN;
+        const centerNudgeZ = dirX * clampedOffset * CENTER_CORRECTION_GAIN;
+
+        const steerX = leadX - this.clampOffset(parallelCancelX + lateralCancelX, MAX_SLIP_LEAD) + centerNudgeX;
+        const steerZ = leadZ - this.clampOffset(parallelCancelZ + lateralCancelZ, MAX_SLIP_LEAD) + centerNudgeZ;
         Keybind.setKeysForStraightLineCoords(steerX, target.y, steerZ, false);
     }
 
@@ -237,6 +280,45 @@ class AutoIceFill extends ModuleBase {
         const dx = start.x + 0.5 - px;
         const dz = start.z + 0.5 - pz;
         return dx * dx + dz * dz;
+    }
+
+    clampOffset(v, max) {
+        if (!isFinite(v)) return 0;
+        return Math.max(-max, Math.min(max, v));
+    }
+
+    shouldAdvanceBlock(target, pxReal, pzReal, py, velX, velZ) {
+        const centerX = target.x + 0.5;
+        const centerZ = target.z + 0.5;
+        const dx = centerX - pxReal;
+        const dz = centerZ - pzReal;
+        const distSq = dx * dx + dz * dz;
+
+        // For the first block, demand a tighter center hit to avoid skipping it.
+        if (this.pathIndex === 0) {
+            if (distSq > 0.45 * 0.45) return false;
+            const block = World.getBlockAt(target.x, target.y, target.z);
+            if (!block || block.type.getID() !== START_BLOCK_ID) return false;
+        } else {
+            if (distSq > 0.85 * 0.85) return false;
+        }
+
+        // If we have a next block, ensure we're moving generally toward it or standing still.
+        const nextIdx = this.pathIndex + 1;
+        if (nextIdx < (this.activePath ? this.activePath.length : 0)) {
+            const next = this.activePath[nextIdx];
+            if (next) {
+                const segX = next.x + 0.5 - centerX;
+                const segZ = next.z + 0.5 - centerZ;
+                const segMag = Math.sqrt(segX * segX + segZ * segZ) || 1;
+                const dirX = segX / segMag;
+                const dirZ = segZ / segMag;
+                const forward = velX * dirX + velZ * dirZ;
+                if (forward < -0.05 && distSq > 0.15 * 0.15) return false;
+            }
+        }
+
+        return true;
     }
 }
 
