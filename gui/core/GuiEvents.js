@@ -3,7 +3,12 @@ import { isInside, clamp } from '../Utils';
 import { saveSettings, loadSettings } from '../GuiSave';
 import { GuiState, GuiRectangles } from './GuiState';
 import { categoryManager } from '../categories/CategoryManager';
-import { v5Command } from '../../utils/V5Commands';
+import { v5Command, callCommand } from '../../utils/V5Commands';
+import { KeyBindUtils } from '../../utils/Constants';
+import { Utils } from '../../utils/Utils';
+
+let GUIKey = null;
+let GUIKeyBind = null;
 
 const handleClick = (mouseX, mouseY) => {
     if (
@@ -61,6 +66,27 @@ GuiState.myGui.registerClosed(handleGuiClosed);
 GuiState.myGui.registerDraw(drawGUI);
 GuiState.myGui.registerScrolled(handleScroll);
 
+const handleKeybind = () => {
+    const keyName = 'GUI';
+    const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+    let savedKeycode = existingKeybinds[keyName];
+
+    if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
+
+    GUIKey = Keyboard.getKeyName(savedKeycode);
+    GUIKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
+
+    register('gameUnload', () => {
+        let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        allKeybinds[keyName] = GUIKeyBind.keyBinding.boundKey.code;
+        Utils.writeConfigFile('keybinds.json', allKeybinds);
+    });
+
+    GUIKeyBind.onKeyPress(() => {
+        callCommand('gui');
+    });
+};
+
 v5Command('gui', () => {
     GuiState.isOpening = true;
     GuiState.openStartTime = Date.now();
@@ -69,3 +95,5 @@ v5Command('gui', () => {
     categoryManager?.invalidateContentHeightCache();
     GuiState.myGui.open();
 });
+
+handleKeybind();
