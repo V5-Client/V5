@@ -155,22 +155,26 @@ class OverlayUtils {
     createID(idName, sections = []) {
         const sectionsArray = this.ensureArray(sections);
         let existing = this.ids.find((id) => id.name === idName);
+
         if (existing) {
             existing.sections = sectionsArray;
         } else {
             const textWidth = getTextWidth(idName, this.fontSize);
             const width = Math.max(200 * this.scale, textWidth + this.boxPadding * 2);
+
             const newId = {
                 name: idName,
                 sections: sectionsArray,
                 x: 10,
-                y: 10 + this.ids.length * (80 * this.scale),
+                y: 10,
                 width: width,
                 height: this.minBoxHeight,
             };
+
             this.ids.push(newId);
             this.saveIDs();
         }
+
         if (!this.animations[idName]) {
             this.animations[idName] = { progress: 0, target: 0 };
         }

@@ -1,14 +1,9 @@
 import { ModuleBase } from './ModuleBase';
 import { Chat } from './Chat';
 import { Utils } from './Utils';
-import { File, System, ProcessBuilder } from './Constants';
+import { File, ProcessBuilder, isWindows, isMac, isLinux } from './Constants';
 import { Executor } from './ThreadExecutor';
 import { v5Command } from './V5Commands';
-
-const os = System.getProperty('os.name').toLowerCase();
-const isWindows = os.includes('win');
-const isMac = os.includes('mac');
-const isLinux = os.includes('nux') || os.includes('nix');
 
 const globalAssetsDir = new File('./config/ChatTriggers/assets');
 if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
@@ -42,6 +37,7 @@ class ClippingManager extends ModuleBase {
         });
 
         this.process = null;
+        this.isDownloading = false;
         this.isRecording = false;
         this.fps = 15;
         this.segmentCount = 6;
@@ -171,37 +167,56 @@ class ClippingManager extends ModuleBase {
     }
 
     downloadFFmpeg() {
+        if (this.isDownloading) return;
+        this.isDownloading = true;
+
         Executor.execute(() => {
             try {
-                let url = '';
-                let archiveName = '';
+                let urlStr = isWindows ? URLS.WIN : isLinux ? URLS.LINUX : URLS.MAC;
+                let archiveName = isWindows ? 'ffmpeg.zip' : isLinux ? 'ffmpeg.tar.xz' : 'ffmpeg.7z';
+                const archiveFile = new File(globalAssetsDir, archiveName);
 
-                if (isWindows) {
-                    url = URLS.WIN;
-                    archiveName = 'ffmpeg.zip';
-                } else if (isLinux) {
-                    url = URLS.LINUX;
-                    archiveName = 'ffmpeg.tar.xz';
-                } else if (isMac) {
-                    url = URLS.MAC;
-                    archiveName = 'ffmpeg.7z';
-                } else {
-                    Chat.messageClip('&cUnsupported OS for auto-download!');
-                    return;
+                Chat.messageClip(`&7Starting download: &f${archiveName}`);
+
+                const url = new java.net.URL(urlStr);
+                const connection = url.openConnection();
+                connection.connect();
+
+                const fileLength = connection.getContentLength();
+                const input = new java.io.BufferedInputStream(url.openStream());
+                const output = new java.io.FileOutputStream(archiveFile.getAbsolutePath());
+
+                const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 4096);
+                let total = 0;
+                let count;
+                let lastUpdate = 0;
+
+                while ((count = input.read(data)) !== -1) {
+                    total += count;
+                    output.write(data, 0, count);
+
+                    if (fileLength > 0) {
+                        let percent = Math.floor((total / fileLength) * 100);
+
+                        if (percent >= lastUpdate + 25) {
+                            Chat.messageClip(`&7Downloading: &b${percent}%`);
+                            lastUpdate = percent;
+                        }
+                    }
                 }
 
-                const archiveFile = new File(globalAssetsDir, archiveName);
-                Utils.downloadFile(url, archiveFile.getAbsolutePath());
+                output.flush();
+                output.close();
+                input.close();
 
-                Chat.messageClip('Download complete. Extracting...');
+                Chat.messageClip('&aDownload complete! Extracting...');
                 this.extractFFmpeg(archiveFile);
             } catch (e) {
-                Chat.messageClip(`Download failed: ${e}`);
-                console.error('V5 Caught error' + e + e.stack);
+                Chat.messageClip(`&cDownload failed: ${e}`);
+                this.isDownloading = false;
             }
         });
     }
-
     extractFFmpeg(archiveFile) {
         try {
             let cmd = [];
@@ -209,7 +224,11 @@ class ClippingManager extends ModuleBase {
             const destPath = globalAssetsDir.getAbsolutePath();
 
             if (isWindows) {
-                cmd = ['powershell', '-command', `Expand-Archive -Path '${archivePath}' -DestinationPath '${destPath}' -Force`];
+                cmd = [
+                    'powershell',
+                    '-Command',
+                    `& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::ExtractToDirectory('${archivePath}', '${destPath}'); }`,
+                ];
             } else if (isLinux) {
                 cmd = ['tar', '-xf', archivePath, '-C', destPath];
             } else if (isMac) {
@@ -463,7 +482,7 @@ class ClippingManager extends ModuleBase {
                 let clipDuration = clipsToJoin.length * 5;
 
                 let linkComponent = new TextComponent({
-                    text: `\n&7Saved ${clipDuration}s &7clip: &d&n${clipName}`,
+                    text: `&7Saved ${clipDuration}s &7clip: &d&n${clipName}`,
                     clickEvent: {
                         action: 'open_file',
                         value: folderPath,
@@ -475,7 +494,7 @@ class ClippingManager extends ModuleBase {
                 });
 
                 Chat.messageClip('&7Clip Saved: ');
-                Chat.message(linkComponent);
+                ChatLib.chat(linkComponent);
 
                 if (this.compressClips) {
                     Thread.sleep(500);

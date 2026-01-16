@@ -10,7 +10,6 @@ export const MC_VERSION_NUMBER = (SharedConstants.getGameVersion()?.getId() || S
 
 export const CLIENT_VERSION = '1.0.0';
 
-export const UIRoundedRectangle = Java.type('gg.essential.elementa.components.UIRoundedRectangle');
 export const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat.INSTANCE;
 export const ConcurrentLinkedQueue = java.util.concurrent.ConcurrentLinkedQueue;
 export const AtomicBoolean = java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +34,11 @@ export const Base64 = java.util.Base64;
 export const Color = java.awt.Color;
 export const File = java.io.File;
 export const URL = java.net.URL;
+
+export const OS = System.getProperty('os.name').toLowerCase();
+export const isWindows = OS.includes('win');
+export const isMac = OS.includes('mac');
+export const isLinux = OS.includes('nux') || OS.includes('nix');
 
 export const BP = net.minecraft.util.math.BlockPos;
 export const Vec3d = net.minecraft.util.math.Vec3d;
