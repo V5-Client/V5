@@ -73,10 +73,10 @@ const STRAFE_ELIGIBILITY_MEMORY = 10;
 const MAX_ALLOWED_PITCH_DOWN = 89.9;
 const MAX_ALLOWED_PITCH_UP = -89.9;
 
-const OBSTACLE_CHECK_STEP = 0.4;
-const OBSTACLE_CHECK_HEIGHT_OFFSETS = [0.1, 0.5, 1.0, 1.5, 1.8];
+const OBSTACLE_CHECK_STEP = 0.5;
+const OBSTACLE_CHECK_HEIGHT_OFFSETS = [0.8, 1.2, 1.6];
 const MIN_SAFE_LOOKAHEAD = 0.8;
-const OBSTACLE_LOOKAHEAD_STEP = 0.3;
+const OBSTACLE_LOOKAHEAD_STEP = 0.4;
 
 let currentBoxIndex = 1;
 let currentPathPosition = 1.0;
@@ -147,6 +147,36 @@ function isObstacleBlock(x, y, z) {
     }
 
     if (
+        blockName.includes('slab') ||
+        blockName.includes('stair') ||
+        blockName.includes('snow') ||
+        blockName.includes('carpet') ||
+        blockName.includes('path') ||
+        blockName.includes('dirt_path') ||
+        blockName.includes('grass_path') ||
+        blockName.includes('farmland') ||
+        blockName.includes('soul_sand') ||
+        blockName.includes('honey_block') ||
+        blockName.includes('slime_block') ||
+        blockName.includes('mud') ||
+        blockName.includes('sculk_sensor') ||
+        blockName.includes('daylight') ||
+        blockName.includes('enchanting_table') ||
+        blockName.includes('end_portal_frame') ||
+        blockName.includes('lectern') ||
+        blockName.includes('composter') ||
+        blockName.includes('grindstone') ||
+        blockName.includes('stonecutter') ||
+        blockName.includes('campfire') ||
+        blockName.includes('lantern') ||
+        blockName.includes('candle') ||
+        blockName.includes('amethyst') ||
+        blockName.includes('pointed_dripstone')
+    ) {
+        return false;
+    }
+
+    if (
         blockName.includes('torch') ||
         blockName.includes('sign') ||
         blockName.includes('button') ||
@@ -156,12 +186,23 @@ function isObstacleBlock(x, y, z) {
         blockName.includes('string') ||
         blockName.includes('flower') ||
         blockName.includes('grass') ||
+        blockName.includes('fern') ||
         blockName.includes('sapling') ||
         blockName.includes('dead') ||
         blockName.includes('mushroom') ||
         blockName.includes('coral_fan') ||
         blockName.includes('vine') ||
-        blockName.includes('ladder')
+        blockName.includes('ladder') ||
+        blockName.includes('rail') ||
+        blockName.includes('redstone_wire') ||
+        blockName.includes('repeater') ||
+        blockName.includes('comparator') ||
+        blockName.includes('banner') ||
+        blockName.includes('head') ||
+        blockName.includes('skull') ||
+        blockName.includes('pot') ||
+        blockName.includes('brewing') ||
+        blockName.includes('cauldron')
     ) {
         return false;
     }
@@ -176,30 +217,19 @@ function isObstacleBlock(x, y, z) {
 
         if (collisionShape.isEmpty()) return false;
 
-        if (blockName.includes('slab')) {
-            const stateString = blockState.toString();
-            if (stateString.includes('type=bottom')) {
-                const localY = y - Math.floor(y);
-                return localY < 0.5;
-            }
-            return true;
-        }
-
-        if (blockName.includes('stair')) {
-            return true;
-        }
-
         if (blockName.includes('trapdoor')) {
             const stateString = blockState.toString();
-            if (stateString.includes('open=false')) {
-                if (stateString.includes('half=top')) {
-                    const localY = y - Math.floor(y);
-                    return localY > 0.8;
-                } else {
-                    const localY = y - Math.floor(y);
-                    return localY < 0.2;
-                }
+            if (stateString.includes('open=true')) return false;
+            if (stateString.includes('half=top')) {
+                const localY = y - Math.floor(y);
+                return localY > 0.75;
+            } else {
+                const localY = y - Math.floor(y);
+                return localY < 0.25;
             }
+        }
+
+        if (blockName.includes('bed') || blockName.includes('chest') || blockName.includes('hopper')) {
             return false;
         }
 
@@ -216,7 +246,7 @@ function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
     const dz = endZ - startZ;
     const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
-    if (horizontalDistance < OBSTACLE_CHECK_STEP) return false;
+    if (horizontalDistance < OBSTACLE_CHECK_STEP * 2) return false;
 
     const steps = Math.ceil(horizontalDistance / OBSTACLE_CHECK_STEP);
 
@@ -238,6 +268,8 @@ function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
 }
 
 function findSafeLookahead(boxPositions, pathPosition, maxLookahead, playerEyes, minLookahead = MIN_SAFE_LOOKAHEAD) {
+    if (maxLookahead <= minLookahead) return minLookahead;
+
     for (let lookahead = maxLookahead; lookahead >= minLookahead; lookahead -= OBSTACLE_LOOKAHEAD_STEP) {
         const targetIndex = Math.min(Math.floor(pathPosition + lookahead), boxPositions.length - 2);
         if (targetIndex < 0) continue;
@@ -247,9 +279,9 @@ function findSafeLookahead(boxPositions, pathPosition, maxLookahead, playerEyes,
 
         if (!targetPoint) continue;
 
-        const playerCheckY = playerEyes.y - 1.2;
+        const playerCheckY = playerEyes.y - 1.4;
 
-        if (!hasObstacleBetweenPoints(playerEyes.x, playerCheckY, playerEyes.z, targetPoint.x, targetPoint.y - 0.5, targetPoint.z)) {
+        if (!hasObstacleBetweenPoints(playerEyes.x, playerCheckY, playerEyes.z, targetPoint.x, targetPoint.y, targetPoint.z)) {
             return lookahead;
         }
     }
@@ -806,8 +838,13 @@ export function pathRotations(splineData) {
     const yawLookahead = calculateYawLookahead(boxPositions, currentPathPosition, pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
     const pitchLookahead = calculatePitchLookahead(pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
 
-    const safeYawLookahead = findSafeLookahead(boxPositions, currentPathPosition, yawLookahead, playerEyes, MIN_SAFE_LOOKAHEAD);
-    const safePitchLookahead = findSafeLookahead(boxPositions, currentPathPosition, pitchLookahead, playerEyes, MIN_PITCH_LOOKAHEAD * 0.5);
+    let safeYawLookahead = yawLookahead;
+    let safePitchLookahead = pitchLookahead;
+
+    if (!pathAnalysis.isGradualSlope) {
+        safeYawLookahead = findSafeLookahead(boxPositions, currentPathPosition, yawLookahead, playerEyes, MIN_SAFE_LOOKAHEAD);
+        safePitchLookahead = findSafeLookahead(boxPositions, currentPathPosition, pitchLookahead, playerEyes, MIN_PITCH_LOOKAHEAD * 0.5);
+    }
 
     const targetPathIndex = currentPathPosition + safePitchLookahead;
     const targetYawPathIndex = currentPathPosition + safeYawLookahead;
