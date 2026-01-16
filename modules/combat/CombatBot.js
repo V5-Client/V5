@@ -392,7 +392,7 @@ class Combat extends ModuleBase {
 
     blacklistTarget(target, duration) {
         try {
-            const uuid = target.getUUID ? target.getUUID() : target.toMC ? target.toMC().getUuid() : null;
+            const uuid = target.getUUID ? target.getUUID().toString() : target.toMC ? target.toMC().getUuid().toString() : null;
             if (uuid) {
                 this.blacklistedTargets.set(uuid, Date.now() + duration);
             }
@@ -416,15 +416,15 @@ class Combat extends ModuleBase {
             const entity = target.toMC ? target.toMC() : target;
             if (entity.isDead()) return true;
 
-            const targetUUID = target.getUUID ? target.getUUID() : entity.getUuid ? entity.getUuid() : null;
+            const targetUUID = target.getUUID ? target.getUUID().toString() : entity.getUuid ? entity.getUuid().toString() : null;
 
             if (targetUUID && this.blacklistedTargets.has(targetUUID)) return true;
 
             if (!targetUUID) return !this.targets.includes(target);
 
             const exists = this.targets.some((t) => {
-                const tUUID = t.getUUID ? t.getUUID() : t.toMC ? t.toMC().getUuid() : null;
-                return tUUID && tUUID.equals(targetUUID);
+                const tUUID = t.getUUID ? t.getUUID().toString() : t.toMC ? t.toMC().getUuid().toString() : null;
+                return tUUID && tUUID === targetUUID;
             });
 
             return !exists;
@@ -568,6 +568,15 @@ class Combat extends ModuleBase {
                 bestTarget = target;
             }
         });
+
+        if (bestTarget && this.target) {
+            const bestUUID = bestTarget.getUUID ? bestTarget.getUUID().toString() : bestTarget.toMC ? bestTarget.toMC().getUuid().toString() : null;
+            const currentUUID = this.target.getUUID ? this.target.getUUID().toString() : this.target.toMC ? this.target.toMC().getUuid().toString() : null;
+            
+            if (bestUUID && bestUUID === currentUUID) {
+                return this.target;
+            }
+        }
 
         return bestTarget;
     }

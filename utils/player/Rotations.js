@@ -395,15 +395,15 @@ class RotationsTo {
 
         try {
             const currentUUID = this.trackedEntity.getUUID
-                ? this.trackedEntity.getUUID()
+                ? this.trackedEntity.getUUID().toString()
                 : this.trackedEntity.toMC
-                  ? this.trackedEntity.toMC().getUuid()
+                  ? this.trackedEntity.toMC().getUuid().toString()
                   : null;
 
-            const entityUUID = entity.getUUID ? entity.getUUID() : entity.toMC ? entity.toMC().getUuid() : null;
+            const entityUUID = entity.getUUID ? entity.getUUID().toString() : entity.toMC ? entity.toMC().getUuid().toString() : null;
 
             if (currentUUID && entityUUID) {
-                return currentUUID.equals(entityUUID);
+                return currentUUID === entityUUID;
             }
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
