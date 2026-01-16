@@ -572,7 +572,7 @@ class Combat extends ModuleBase {
         if (bestTarget && this.target) {
             const bestUUID = bestTarget.getUUID ? bestTarget.getUUID().toString() : bestTarget.toMC ? bestTarget.toMC().getUuid().toString() : null;
             const currentUUID = this.target.getUUID ? this.target.getUUID().toString() : this.target.toMC ? this.target.toMC().getUuid().toString() : null;
-            
+
             if (bestUUID && bestUUID === currentUUID) {
                 return this.target;
             }
