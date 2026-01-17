@@ -412,7 +412,9 @@ class RefuelService {
 
                 Guis.setItemSlot(abiphoneSlot);
                 Thread.sleep(250);
-                Keybind.rightClick();
+                Client.scheduleTask(() => {
+                    Keybind.rightClick();
+                });
                 Thread.sleep(1000);
 
                 if (!Guis.guiName() || Guis.guiName().indexOf('Abiphone') === -1) {
