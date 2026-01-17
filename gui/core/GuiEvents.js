@@ -71,10 +71,10 @@ const handleKeybind = () => {
     const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
     let savedKeycode = existingKeybinds[keyName];
 
-    if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
+    if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_NONE;
 
     GUIKey = Keyboard.getKeyName(savedKeycode);
-    GUIKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
+    GUIKeyBind = KeyBindUtils.create('guiKey', keyName, savedKeycode);
 
     register('gameUnload', () => {
         let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
