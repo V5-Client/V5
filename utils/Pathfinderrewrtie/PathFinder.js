@@ -1,4 +1,12 @@
 import { ModuleBase } from '../ModuleBase';
+import { Chat } from '../Chat';
+import { Swift } from './SwiftIntegration';
+import { Vec3d, BP } from '../Constants';
+import RenderUtils from '../render/RendererUtils';
+import { Spline } from './PathSpline';
+import { v5Command } from '../V5Commands';
+import { showNotification } from '../../gui/NotificationManager';
+import { Rotations } from './Pathwalker/PathRotations';
 
 class PathFindingConfig extends ModuleBase {
     constructor() {
@@ -51,15 +59,6 @@ class PathFindingConfig extends ModuleBase {
 
 const PathConfig = new PathFindingConfig();
 export default PathConfig;
-
-import { Chat } from '../Chat';
-import { Swift } from './SwiftIntegration';
-import { Vec3d, BP } from '../Constants';
-import RenderUtils from '../render/RendererUtils';
-import { Spline } from './PathSpline';
-import { v5Command } from '../V5Commands';
-import { showNotification } from '../../gui/NotificationManager';
-import { Rotations } from './Pathwalker/PathRotations';
 
 class Finder {
     constructor() {
