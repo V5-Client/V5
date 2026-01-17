@@ -69,6 +69,7 @@ export const DiscordRPC = Java.type('com.v5.qol.DiscordRPC');
 export const KeyBindUtils = Java.type('com.v5.keybind.KeyBindUtils');
 export const XrayPackage = Java.type('com.v5.qol.Xray');
 export const GradientChat = Java.type('com.v5.gradient.Chat');
+export const PathManager = Java.type('com.v5.pathfinding.PathManager');
 export const ImageIO = Java.type('javax.imageio.ImageIO');
 export const BufferedImage = Java.type('java.awt.image.BufferedImage');
 export const AlphaComposite = Java.type('java.awt.AlphaComposite');
