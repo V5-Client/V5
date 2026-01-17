@@ -75,8 +75,26 @@ const MAX_ALLOWED_PITCH_UP = -89.9;
 
 const OBSTACLE_CHECK_STEP = 0.5;
 const OBSTACLE_CHECK_HEIGHT_OFFSETS = [0.8, 1.2, 1.6];
+const OBSTACLE_LINE_OFFSETS = [0, -0.35, 0.35];
 const MIN_SAFE_LOOKAHEAD = 0.8;
 const OBSTACLE_LOOKAHEAD_STEP = 0.4;
+
+const PILLAR_CHECK_DIRECTIONS = [
+    { x: 1, z: 0 },
+    { x: -1, z: 0 },
+    { x: 0, z: 1 },
+    { x: 0, z: -1 },
+    { x: 0.707, z: 0.707 },
+    { x: -0.707, z: 0.707 },
+    { x: 0.707, z: -0.707 },
+    { x: -0.707, z: -0.707 },
+];
+const PILLAR_CHECK_DISTANCES = [0.7, 1.2, 1.8];
+const PILLAR_CHECK_HEIGHTS = [0.5, 1.0, 1.5];
+const PILLAR_SOLID_THRESHOLD = 4;
+const PILLAR_PROGRESS_THRESHOLD = 0.08;
+const PILLAR_ACTIVATE_TICKS = 4;
+const PILLAR_DEACTIVATE_TICKS = 8;
 
 let currentBoxIndex = 1;
 let currentPathPosition = 1.0;
@@ -110,6 +128,11 @@ let recentStrafeEligible = 0;
 
 let rotationActive = false;
 
+let lastPathPositionForPillar = 0;
+let pillarLowProgressTicks = 0;
+let pillarModeActive = false;
+let pillarModeDeactivateCounter = 0;
+
 const obstacleBlockCache = new Map();
 let obstacleCacheFrame = 0;
 
@@ -129,31 +152,13 @@ function getCachedBlockForObstacle(x, y, z) {
     return obstacleBlockCache.get(key);
 }
 
-function isObstacleBlock(x, y, z) {
-    const block = getCachedBlockForObstacle(x, y, z);
-    if (!block || block.type.getID() === 0) return false;
-
-    const blockName = block.type.getRegistryName().toLowerCase();
-
-    if (
-        blockName.includes('fence') ||
-        blockName.includes('wall') ||
-        blockName.includes('gate') ||
-        blockName.includes('iron_bars') ||
-        blockName.includes('glass_pane') ||
-        blockName.includes('chain')
-    ) {
-        return true;
-    }
-
-    if (
+function isWalkableGroundBlock(blockName) {
+    return (
         blockName.includes('slab') ||
         blockName.includes('stair') ||
         blockName.includes('snow') ||
         blockName.includes('carpet') ||
         blockName.includes('path') ||
-        blockName.includes('dirt_path') ||
-        blockName.includes('grass_path') ||
         blockName.includes('farmland') ||
         blockName.includes('soul_sand') ||
         blockName.includes('honey_block') ||
@@ -172,11 +177,11 @@ function isObstacleBlock(x, y, z) {
         blockName.includes('candle') ||
         blockName.includes('amethyst') ||
         blockName.includes('pointed_dripstone')
-    ) {
-        return false;
-    }
+    );
+}
 
-    if (
+function isNonCollidableBlock(blockName) {
+    return (
         blockName.includes('torch') ||
         blockName.includes('sign') ||
         blockName.includes('button') ||
@@ -188,7 +193,7 @@ function isObstacleBlock(x, y, z) {
         blockName.includes('grass') ||
         blockName.includes('fern') ||
         blockName.includes('sapling') ||
-        blockName.includes('dead') ||
+        blockName.includes('dead_bush') ||
         blockName.includes('mushroom') ||
         blockName.includes('coral_fan') ||
         blockName.includes('vine') ||
@@ -198,12 +203,60 @@ function isObstacleBlock(x, y, z) {
         blockName.includes('repeater') ||
         blockName.includes('comparator') ||
         blockName.includes('banner') ||
-        blockName.includes('head') ||
-        blockName.includes('skull') ||
-        blockName.includes('pot') ||
-        blockName.includes('brewing') ||
-        blockName.includes('cauldron')
+        blockName.includes('item_frame') ||
+        blockName.includes('glow_frame') ||
+        blockName.includes('sugar_cane') ||
+        blockName.includes('kelp') ||
+        blockName.includes('seagrass') ||
+        blockName.includes('lily_pad') ||
+        blockName.includes('nether_wart') ||
+        blockName.includes('wheat') ||
+        blockName.includes('carrot') ||
+        blockName.includes('potato') ||
+        blockName.includes('beetroot') ||
+        blockName.includes('melon_stem') ||
+        blockName.includes('pumpkin_stem') ||
+        blockName.includes('sweet_berry') ||
+        blockName.includes('glow_lichen') ||
+        blockName.includes('spore_blossom') ||
+        blockName.includes('hanging_roots') ||
+        blockName.includes('dripleaf') ||
+        blockName.includes('azalea') ||
+        blockName.includes('moss_carpet') ||
+        blockName.includes('fire') ||
+        blockName.includes('nether_portal') ||
+        blockName.includes('structure_void') ||
+        blockName.includes('barrier') ||
+        blockName.includes('light') ||
+        blockName.includes('air')
+    );
+}
+
+function isBlockingObstacle(x, y, z) {
+    const block = getCachedBlockForObstacle(x, y, z);
+    if (!block || block.type.getID() === 0) return false;
+
+    const blockName = block.type.getRegistryName().toLowerCase();
+
+    if (
+        blockName.includes('fence') ||
+        (blockName.includes('wall') &&
+            !blockName.includes('sign') &&
+            !blockName.includes('banner') &&
+            !blockName.includes('head') &&
+            !blockName.includes('coral')) ||
+        blockName.includes('iron_bars') ||
+        blockName.includes('glass_pane') ||
+        blockName.includes('chain')
     ) {
+        return true;
+    }
+
+    if (isWalkableGroundBlock(blockName)) {
+        return false;
+    }
+
+    if (isNonCollidableBlock(blockName)) {
         return false;
     }
 
@@ -220,33 +273,92 @@ function isObstacleBlock(x, y, z) {
         if (blockName.includes('trapdoor')) {
             const stateString = blockState.toString();
             if (stateString.includes('open=true')) return false;
-            if (stateString.includes('half=top')) {
-                const localY = y - Math.floor(y);
-                return localY > 0.75;
-            } else {
-                const localY = y - Math.floor(y);
-                return localY < 0.25;
-            }
         }
 
-        if (blockName.includes('bed') || blockName.includes('chest') || blockName.includes('hopper')) {
-            return false;
+        if (blockName.includes('door') && !blockName.includes('trapdoor')) {
+            const stateString = blockState.toString();
+            if (stateString.includes('open=true')) return false;
         }
 
         return true;
     } catch (e) {
-        console.error('Error checking obstacle block: ' + e);
         return false;
     }
 }
 
-function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
+function countSurroundingObstacles() {
+    const playerX = Player.getX();
+    const playerY = Player.getY();
+    const playerZ = Player.getZ();
+
+    let solidCount = 0;
+
+    for (const dir of PILLAR_CHECK_DIRECTIONS) {
+        for (const dist of PILLAR_CHECK_DISTANCES) {
+            const checkX = playerX + dir.x * dist;
+            const checkZ = playerZ + dir.z * dist;
+
+            let foundInDirection = false;
+            for (const heightOffset of PILLAR_CHECK_HEIGHTS) {
+                if (isBlockingObstacle(checkX, playerY + heightOffset, checkZ)) {
+                    foundInDirection = true;
+                    break;
+                }
+            }
+
+            if (foundInDirection) {
+                solidCount++;
+                break;
+            }
+        }
+    }
+
+    return solidCount;
+}
+
+function updatePillarProximityState(currentProgress) {
+    const progressDelta = currentProgress - lastPathPositionForPillar;
+    lastPathPositionForPillar = currentProgress;
+
+    const isCollided = Utils.playerIsCollided();
+    const surroundingObstacles = countSurroundingObstacles();
+    const hasManyObstacles = surroundingObstacles >= PILLAR_SOLID_THRESHOLD;
+    const hasLowProgress = progressDelta < PILLAR_PROGRESS_THRESHOLD;
+
+    const shouldBeInPillarMode = (hasLowProgress || isCollided) && hasManyObstacles;
+
+    if (shouldBeInPillarMode) {
+        pillarLowProgressTicks++;
+        pillarModeDeactivateCounter = 0;
+
+        if (!pillarModeActive && pillarLowProgressTicks >= PILLAR_ACTIVATE_TICKS) {
+            pillarModeActive = true;
+            Chat.messagePathfinder(`§7Pillar detected, forcing minimum lookahead (${surroundingObstacles} nearby blocks)`);
+        }
+    } else {
+        pillarLowProgressTicks = 0;
+
+        if (pillarModeActive) {
+            pillarModeDeactivateCounter++;
+
+            if (pillarModeDeactivateCounter >= PILLAR_DEACTIVATE_TICKS) {
+                pillarModeActive = false;
+                pillarModeDeactivateCounter = 0;
+                Chat.messagePathfinder(`§7Pillar cleared, reverting to normal lookahead`);
+            }
+        }
+    }
+
+    return pillarModeActive;
+}
+
+function checkLineForObstacles(startX, startY, startZ, endX, endY, endZ) {
     const dx = endX - startX;
     const dy = endY - startY;
     const dz = endZ - startZ;
     const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
-    if (horizontalDistance < OBSTACLE_CHECK_STEP * 2) return false;
+    if (horizontalDistance < 0.5) return false;
 
     const steps = Math.ceil(horizontalDistance / OBSTACLE_CHECK_STEP);
 
@@ -258,9 +370,31 @@ function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
 
         for (const heightOffset of OBSTACLE_CHECK_HEIGHT_OFFSETS) {
             const blockY = checkY + heightOffset;
-            if (isObstacleBlock(checkX, blockY, checkZ)) {
+            if (isBlockingObstacle(checkX, blockY, checkZ)) {
                 return true;
             }
+        }
+    }
+
+    return false;
+}
+
+function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
+    const dx = endX - startX;
+    const dz = endZ - startZ;
+    const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+
+    if (horizontalDistance < OBSTACLE_CHECK_STEP * 2) return false;
+
+    const perpX = -dz / horizontalDistance;
+    const perpZ = dx / horizontalDistance;
+
+    for (const offset of OBSTACLE_LINE_OFFSETS) {
+        const offsetX = perpX * offset;
+        const offsetZ = perpZ * offset;
+
+        if (checkLineForObstacles(startX + offsetX, startY, startZ + offsetZ, endX + offsetX, endY, endZ + offsetZ)) {
+            return true;
         }
     }
 
@@ -279,7 +413,7 @@ function findSafeLookahead(boxPositions, pathPosition, maxLookahead, playerEyes,
 
         if (!targetPoint) continue;
 
-        const playerCheckY = playerEyes.y - 1.4;
+        const playerCheckY = playerEyes.y - 1.2;
 
         if (!hasObstacleBetweenPoints(playerEyes.x, playerCheckY, playerEyes.z, targetPoint.x, targetPoint.y, targetPoint.z)) {
             return lookahead;
@@ -324,10 +458,13 @@ export function ResetRotations() {
     strafeDirection = 0;
     strafeHoldTicks = 0;
     recentStrafeEligible = 0;
-    Keybind.setKey('a', false);
-    Keybind.setKey('d', false);
 
     rotationActive = false;
+
+    lastPathPositionForPillar = 0;
+    pillarLowProgressTicks = 0;
+    pillarModeActive = false;
+    pillarModeDeactivateCounter = 0;
 
     clearMovementTarget();
     obstacleBlockCache.clear();
@@ -591,7 +728,7 @@ function updateStrafeState(boxPositions, currentIndex, pathAnalysis) {
             strafeDirection = newDirection;
             isStrafing = true;
             strafeHoldTicks = STRAFE_DURATION_AFTER_UNCOLLIDE;
-            Chat.messagePathfinder(`§7[Strafe] Enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(1)}°`);
+            Chat.messagePathfinder(`§7Strafe enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(1)}°`);
         }
     }
 
@@ -835,13 +972,18 @@ export function pathRotations(splineData) {
     const positionFraction = calculatePathPosition(currentBox, nextBox, playerEyes);
     currentPathPosition = currentBoxIndex + positionFraction;
 
+    const inPillarMode = updatePillarProximityState(currentPathPosition);
+
     const yawLookahead = calculateYawLookahead(boxPositions, currentPathPosition, pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
     const pitchLookahead = calculatePitchLookahead(pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
 
-    let safeYawLookahead = yawLookahead;
-    let safePitchLookahead = pitchLookahead;
+    let safeYawLookahead;
+    let safePitchLookahead;
 
-    if (!pathAnalysis.isGradualSlope) {
+    if (inPillarMode) {
+        safeYawLookahead = MIN_SAFE_LOOKAHEAD;
+        safePitchLookahead = MIN_PITCH_LOOKAHEAD * 0.5;
+    } else {
         safeYawLookahead = findSafeLookahead(boxPositions, currentPathPosition, yawLookahead, playerEyes, MIN_SAFE_LOOKAHEAD);
         safePitchLookahead = findSafeLookahead(boxPositions, currentPathPosition, pitchLookahead, playerEyes, MIN_PITCH_LOOKAHEAD * 0.5);
     }
@@ -877,6 +1019,7 @@ export function pathRotations(splineData) {
         rawTargetPitch = newRawPitch;
         lastPlayerY = player.getY();
         lastBoxIndex = currentBoxIndex;
+        lastPathPositionForPillar = currentPathPosition;
         isInitialized = true;
         rotationActive = true;
 
