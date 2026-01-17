@@ -13,6 +13,7 @@ class PathFindingConfig extends ModuleBase {
         this.PATHFINDING_DEBUG = false;
         this.RENDER_KEY_NODES = false;
         this.RENDER_FLOATING_SPLINE = false;
+        this.RENDER_LOOK_POINTS = false;
 
         this.addToggle(
             'Pathfinding Debug',
@@ -37,6 +38,14 @@ class PathFindingConfig extends ModuleBase {
             },
             'Renders the floating spline of the path'
         );
+
+        this.addToggle(
+            'Render Look Points',
+            (value) => {
+                this.RENDER_LOOK_POINTS = value;
+            },
+            'Renders the look points of the path'
+        );
     }
 }
 
@@ -50,6 +59,7 @@ import RenderUtils from '../render/RendererUtils';
 import { Spline } from './PathSpline';
 import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
+import { Rotations } from './Pathwalker/PathRotations';
 
 class Finder {
     constructor() {
@@ -135,6 +145,12 @@ class Finder {
             if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE) {
                 this.DestroyRender();
                 this.PathRendering(result, splinePath);
+            }
+
+            Rotations.DrawLookPoints(PathConfig.RENDER_KEY_NODES);
+
+            if (splinePath) {
+                Rotations.PathRotations(splinePath);
             }
 
             /*if (renderOnly) {

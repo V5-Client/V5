@@ -5,6 +5,11 @@ class PathSpline {
     constructor() {
         this.STRONG_SMOOTHING_RADIUS = 5;
         this.CURVE_DETECTION_RADIUS = 2;
+
+        this.SMOOTH_SAMPLES = 6;
+        this.lastDataHash = null;
+        this.cachedBoxPositions = [];
+        this.render;
     }
 
     GenerateSpline(keyPathNodes, tolerance = 10) {
@@ -69,102 +74,81 @@ class PathSpline {
         return finalPath;
     }
 
-    CreateLookPoints(smoothSplineData, boxInterval = 1) {
-        if (!smoothSplineData || smoothSplineData.length < this.STRONG_SMOOTHING_RADIUS * 2 + 1) return [];
+    CreateLookPoints(smoothSplineData, boxInterval = 1, drawLookPoints = false) {
+        if (!smoothSplineData || smoothSplineData.length < 2) return [];
+
+        const currentHash = smoothSplineData.length + '-' + smoothSplineData[0]?.x + '-' + smoothSplineData[smoothSplineData.length - 1]?.x;
+        if (currentHash === this.lastDataHash) return this.cachedBoxPositions;
+        this.lastDataHash = currentHash;
 
         const smoothedPath = [];
+
+        const weights = [];
+        for (let d = -this.SMOOTH_SAMPLES; d <= this.SMOOTH_SAMPLES; d++) {
+            const w = Math.pow(0.8, Math.abs(d));
+            weights.push(w);
+        }
 
         for (let i = 0; i < smoothSplineData.length; i++) {
             const currentPoint = smoothSplineData[i];
 
-            const lookAheadIndex = Math.min(smoothSplineData.length - 1, i + this.CURVE_DETECTION_RADIUS);
-            const lookBehindIndex = Math.max(0, i - this.CURVE_DETECTION_RADIUS);
+            let sumX = 0,
+                sumZ = 0,
+                weightSum = 0;
 
-            const p_back = smoothSplineData[lookBehindIndex];
-            const p_forward = smoothSplineData[lookAheadIndex];
-
-            const vx1 = currentPoint.x - p_back.x;
-            const vy1 = currentPoint.y - p_back.y;
-            const vz1 = currentPoint.z - p_back.z;
-            const vx2 = p_forward.x - currentPoint.x;
-            const vy2 = p_forward.y - currentPoint.y;
-            const vz2 = p_forward.z - currentPoint.z;
-
-            const dot = vx1 * vx2 + vy1 * vy2 + vz1 * vz2;
-            const mag1 = Math.sqrt(vx1 * vx1 + vy1 * vy1 + vz1 * vz1);
-            const mag2 = Math.sqrt(vx2 * vx2 + vy2 * vy2 + vz2 * vz2);
-
-            const cosAngle = mag1 > 0 && mag2 > 0 ? Math.min(1, Math.max(-1, dot / (mag1 * mag2))) : 1;
-
-            let curveFactor = 1.0 - Math.min(1, Math.max(0, (cosAngle + 1) / 2));
-            curveFactor = Math.pow(curveFactor, 5);
-
-            const strongStart = Math.max(0, i - this.STRONG_SMOOTHING_RADIUS);
-            const strongEnd = Math.min(smoothSplineData.length - 1, i + this.STRONG_SMOOTHING_RADIUS);
-            let strongSumX = 0,
-                strongSumY = 0,
-                strongSumZ = 0,
-                strongCount = 0;
-
-            for (let j = strongStart; j <= strongEnd; j++) {
-                strongSumX += smoothSplineData[j].x;
-                strongSumY += smoothSplineData[j].y;
-                strongSumZ += smoothSplineData[j].z;
-                strongCount++;
+            for (let d = -this.SMOOTH_SAMPLES; d <= this.SMOOTH_SAMPLES; d++) {
+                const idx = i + d;
+                if (idx >= 0 && idx < smoothSplineData.length) {
+                    const p = smoothSplineData[idx];
+                    const w = weights[d + this.SMOOTH_SAMPLES];
+                    sumX += p.x * w;
+                    sumZ += p.z * w;
+                    weightSum += w;
+                }
             }
 
-            const strongAvgX = strongSumX / strongCount;
-            const strongAvgY = strongSumY / strongCount;
-            const strongAvgZ = strongSumZ / strongCount;
-
-            const rawX = currentPoint.x;
-            const rawY = currentPoint.y;
-            const rawZ = currentPoint.z;
-
-            const finalX = (1.0 - curveFactor) * strongAvgX + curveFactor * rawX;
-            const finalY = (1.0 - curveFactor) * strongAvgY + curveFactor * rawY;
-            const finalZ = (1.0 - curveFactor) * strongAvgZ + curveFactor * rawZ;
-
-            smoothedPath.push(new Vec3d(finalX, finalY, finalZ));
+            smoothedPath.push(new Vec3d(sumX / weightSum, currentPoint.y, sumZ / weightSum));
         }
-
-        const pathForBoxes = smoothedPath;
 
         const boxPositions = [];
         let distanceCovered = 0;
         let nextBoxDistance = 0;
 
-        const startVec = pathForBoxes[0];
-        boxPositions.push(new Vec3d(startVec.x, startVec.y, startVec.z));
-        nextBoxDistance += boxInterval;
+        for (let i = 0; i < smoothedPath.length - 1; i++) {
+            const p1 = smoothedPath[i];
+            const p2 = smoothedPath[i + 1];
+            const dx = p2.x - p1.x;
+            const dz = p2.z - p1.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
 
-        for (let i = 0; i < pathForBoxes.length - 1; i++) {
-            const current = pathForBoxes[i];
-            const next = pathForBoxes[i + 1];
+            if (dist < 0.01) continue;
 
-            const segmentDistance = Math.sqrt(Math.pow(next.x - current.x, 2) + Math.pow(next.y - current.y, 2) + Math.pow(next.z - current.z, 2));
-
-            if (distanceCovered + segmentDistance >= nextBoxDistance) {
-                let remainder = nextBoxDistance - distanceCovered;
-
-                while (remainder <= segmentDistance) {
-                    const t = remainder / segmentDistance;
-
-                    const boxX = current.x + t * (next.x - current.x);
-                    const boxY = current.y + t * (next.y - current.y) + 2.12;
-                    const boxZ = current.z + t * (next.z - current.z);
-
-                    boxPositions.push(new Vec3d(boxX, boxY, boxZ));
-
-                    nextBoxDistance += boxInterval;
-                    remainder += boxInterval;
-                }
+            while (distanceCovered + dist >= nextBoxDistance) {
+                const t = (nextBoxDistance - distanceCovered) / dist;
+                boxPositions.push(new Vec3d(p1.x + t * dx, p1.y + 2.12, p1.z + t * dz));
+                nextBoxDistance += boxInterval;
             }
-
-            distanceCovered += segmentDistance;
+            distanceCovered += dist;
         }
 
-        return boxPositions;
+        cachedBoxPositions = boxPositions;
+
+        if (drawLookPoints && !this.render) {
+            this.render = register('postRenderWorld', () => {
+                const px = Player.getX();
+                const pz = Player.getZ();
+
+                for (let i = 0; i < cachedBoxPositions.length; i++) {
+                    const pos = cachedBoxPositions[i];
+
+                    if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
+                        RenderUtils.drawBox(pos, [255, 0, 0, 100], true);
+                    }
+                }
+            });
+        }
+
+        return cachedBoxPositions;
     }
 
     // debugging remove on release
