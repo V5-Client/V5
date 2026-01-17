@@ -373,30 +373,3 @@ function requestPathRecalculation() {
 }
 
 setRequestPathRecalculation(requestPathRecalculation);
-
-v5Command('path', (...args) => {
-    const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-    const coords = args.slice(0, 3).map(Number);
-    if (coords.some(isNaN)) {
-        return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
-    }
-    const end = coords.slice(0, 3);
-    findAndFollowPath(start, end);
-});
-
-v5Command('rustpath', (...args) => {
-    if (args.length < 6) {
-        return showNotification('Invalid Command', 'Usage: /rustpath <x1> <y1> <z1> <x2> <y2> <z2> [renderonly]', 'ERROR', 5000);
-    }
-    const coords = args.slice(0, 6).map(Number);
-    if (coords.some(isNaN)) {
-        return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
-    }
-    const renderOnly = args.length === 7 && args[6]?.toLowerCase() === 'renderonly';
-    findAndFollowPath(coords.slice(0, 3), coords.slice(3, 6), renderOnly);
-});
-
-v5Command('stopPath', () => {
-    stopPathing();
-    clearPathCallback();
-});
