@@ -96,4 +96,6 @@ v5Command('gui', () => {
     GuiState.myGui.open();
 });
 
-handleKeybind();
+Client.getMinecraft().execute(() => {
+    handleKeybind();
+});
