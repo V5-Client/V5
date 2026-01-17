@@ -77,7 +77,6 @@ class PowderMacro extends ModuleBase {
         this.startTime = 0;
         this.savedRotation = null;
         this.targetChest = null;
-        this.tickInterval = null;
     }
 
     registerSkyblockEvents() {
@@ -93,7 +92,7 @@ class PowderMacro extends ModuleBase {
             pitch: Player.getPitch(),
         };
 
-        this.targetChest = this.findNearestChest();
+        this.targetChest = null;
         this.setState(State.CHEST);
     }
 
@@ -102,7 +101,10 @@ class PowderMacro extends ModuleBase {
 
         this.targetChest = null;
         Rotations.stopRotation();
-        this.setMiningKeys(true);
+
+        if (!Keybind.isKeyDown('shift')) Keybind.setKey('shift', true);
+        if (!Keybind.isKeyDown('leftclick')) Keybind.setKey('leftclick', true);
+
         this.setState(State.RETURNING);
     }
 
@@ -116,45 +118,32 @@ class PowderMacro extends ModuleBase {
     }
 
     onEnable() {
+        Keybind.setKey('leftclick', true);
+        Keybind.setKey('shift', true);
+
         this.pivot = {
             yaw: Player.getYaw(),
             pitch: Player.getPitch(),
         };
         this.startTime = Date.now();
-        this.setState(State.MINING);
-        this.setMiningKeys(true);
 
         Chat.message('Powder Macro Enabled!');
 
-        this.startTick();
+        this.setState(State.MINING);
+        this.rotateLoop();
     }
 
     onDisable() {
-        this.stopTick();
-        this.setMiningKeys(false);
+        Keybind.setKey('leftclick', false);
+        Keybind.setKey('shift', false);
         Rotations.stopRotation();
         this.resetState();
 
         Chat.message('Powder Macro Disabled!');
     }
 
-    startTick() {
-        this.stopTick();
-        this.tickInterval = setInterval(() => this.tick(), TICK_INTERVAL_MS);
-    }
-
-    stopTick() {
-        if (this.tickInterval) {
-            clearInterval(this.tickInterval);
-            this.tickInterval = null;
-        }
-    }
-
-    tick() {
-        if (!this.enabled) {
-            this.stopTick();
-            return;
-        }
+    rotateLoop() {
+        if (!this.enabled) return;
 
         try {
             switch (this.state) {
@@ -171,6 +160,8 @@ class PowderMacro extends ModuleBase {
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }
+
+        setTimeout(() => this.rotateLoop(), TICK_INTERVAL_MS);
     }
 
     tickMining() {
@@ -187,19 +178,16 @@ class PowderMacro extends ModuleBase {
     }
 
     tickChest() {
-        this.setMiningKeys(false);
+        Keybind.setKey('leftclick', false);
+        Keybind.setKey('shift', false);
 
         if (!this.validateTargetChest()) {
             this.targetChest = this.findNearestChest();
-
-            if (!this.targetChest) {
-                this.setState(State.RETURNING);
-                this.setMiningKeys(true);
-                return;
-            }
         }
 
-        this.rotateToTarget(this.getBlockCenter(this.targetChest));
+        if (this.targetChest) {
+            this.rotateToTarget(this.getBlockCenter(this.targetChest));
+        }
     }
 
     tickReturning() {
@@ -268,11 +256,6 @@ class PowderMacro extends ModuleBase {
             y: block.getY() + 0.5,
             z: block.getZ() + 0.5,
         };
-    }
-
-    distanceToBlock(block, playerPos) {
-        const center = this.getBlockCenter(block);
-        return Math.hypot(center.x - playerPos.x, center.y - playerPos.y, center.z - playerPos.z);
     }
 
     rotateToTarget(target) {
