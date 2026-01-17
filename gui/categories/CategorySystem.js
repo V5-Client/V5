@@ -3,6 +3,7 @@ import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
+import { TextInput } from '../components/TextInput';
 
 export const Categories = {
     categories: [
@@ -111,6 +112,15 @@ export const Categories = {
         item.components.push(slider);
     },
 
+    addTextInput(categoryName, itemName, title, defaultValue, callback = null, description = null) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return;
+
+        const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
+        input.description = description;
+        item.components.push(input);
+    },
+
     addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
         const item = Categories.findItem(categoryName, itemName);
         if (!item) return;
@@ -127,6 +137,14 @@ export const Categories = {
         const picker = new ColorPicker(pickerTitle, 0, 0, defaultColor, callback);
         picker.description = description;
         item.components.push(picker);
+    },
+
+    addSeparator(categoryName, itemName, title, fullWidth = false) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return;
+
+        const separator = new Separator(title, fullWidth);
+        item.components.push(separator);
     },
 
     addSettingsComponent(component, sectionName = null) {

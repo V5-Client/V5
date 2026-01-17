@@ -47,6 +47,8 @@ class Combat extends ModuleBase {
 
         this.enabledPresets = new Set();
 
+        //this.addSeparator('Target Settings', false);
+
         this.addMultiToggle(
             'Target Presets',
             Object.keys(COMBAT_PRESETS),
@@ -63,6 +65,21 @@ class Combat extends ModuleBase {
             },
             'Select which mob types to target when running standalone'
         );
+
+        this.customTargetNames = [];
+        this.addTextInput(
+            'Custom Target Names',
+            '',
+            (value) => {
+                this.customTargetNames = value
+                    .split(',')
+                    .map((n) => n.trim())
+                    .filter((n) => n.length > 0);
+            },
+            'Enter mob names to target, comma separated. (e.g. "Zombie, Skeleton")'
+        );
+
+        //this.addSeparator('Combat Settings', false);
 
         this.addSlider(
             'Pathfinding Threshold',
@@ -443,7 +460,7 @@ class Combat extends ModuleBase {
     }
 
     detectTargets() {
-        if (this.enabledPresets.size === 0) {
+        if (this.enabledPresets.size === 0 && (!this.customTargetNames || this.customTargetNames.length === 0)) {
             return [];
         }
 
@@ -479,6 +496,16 @@ class Combat extends ModuleBase {
                 mobs.push(...found);
             }
         });
+
+        if (this.customTargetNames && this.customTargetNames.length > 0) {
+            const customConfig = {
+                names: this.customTargetNames,
+                checkVisibility: true,
+                boundaryCheck: (x, y, z) => true,
+            };
+            const customFound = this.findMob(customConfig);
+            mobs.push(...customFound);
+        }
 
         return mobs;
     }

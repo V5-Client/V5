@@ -2,6 +2,7 @@ import { ToggleButton } from './components/Toggle';
 import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
 import { ColorPicker } from './components/ColorPicker';
+import { TextInput } from './components/TextInput';
 import { Chat } from '../utils/Chat';
 import { Utils } from '../utils/Utils';
 import { Categories } from './categories/CategorySystem';
@@ -41,6 +42,8 @@ function storeComponentValue(key, component) {
         SettingsMap.set(key, component.options);
     } else if (component instanceof ColorPicker) {
         SettingsMap.set(key, component.color.getRGB());
+    } else if (component instanceof TextInput) {
+        SettingsMap.set(key, component.value);
     }
 }
 
@@ -155,6 +158,10 @@ function loadComponentValue(component, savedValue) {
         component.sat = hsv[1];
         component.val = hsv[2];
         component.alpha = a / 255;
+    } else if (component instanceof TextInput) {
+        component.value = savedValue;
+        component.text = String(savedValue);
+        component.cursorIndex = component.text.length;
     }
 }
 

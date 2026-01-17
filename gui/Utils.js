@@ -38,10 +38,13 @@ export const SEPARATOR_HEIGHT = 24;
 export const SUBCATEGORY_BUTTON_HEIGHT = 28;
 export const SUBCATEGORY_BUTTON_SPACING = 8;
 
+export const TypingState = {
+    isTyping: false,
+};
+
 export const THEME = {
-    // === BACKGROUNDS ===
     BG_WINDOW: new Color(0.09, 0.1, 0.13, 1),
-    BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85), // This alpha will now be respected
+    BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85),
     BG_COMPONENT: new Color(0.11, 0.12, 0.15, 1),
     BG_ELEVATED: new Color(0.13, 0.14, 0.17, 1),
     BG_INSET: new Color(0.15, 0.16, 0.19, 1),

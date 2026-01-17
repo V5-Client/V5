@@ -201,14 +201,16 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
         if (typeof component.draw !== 'function') return;
-        component.x = optionX + 10;
+        const isSeparator = component instanceof Separator;
+        const xOffset = isSeparator ? 0 : 10;
+        component.x = optionX + xOffset;
         component.y = drawnCompY;
         component.optionPanelWidth = panel.width;
         component.optionPanelHeight = panel.height;
         component.draw(mouseX, mouseY);
-        let thisHeight = 48 + 6;
+        let thisHeight = isSeparator ? 26 : 48 + 6;
 
-        if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+        if (!isSeparator && (component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
             if (component.animationProgress !== undefined) {
                 thisHeight += component.getExpandedHeight() * component.animationProgress;
             }

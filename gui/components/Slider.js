@@ -9,6 +9,7 @@ import {
     drawText,
     getTextWidth,
     FontSizes,
+    TypingState,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
@@ -198,6 +199,7 @@ export class Slider {
         if (isInside(mouseX, mouseY, this.valueRect)) {
             if (!this.isRange) {
                 this.isTyping = true;
+                TypingState.isTyping = true;
                 this.inputValue = String(this.value.toFixed(this.precision));
                 return true;
             }
@@ -261,9 +263,10 @@ export class Slider {
 
         const DELETE_KEY = 259;
         const ENTER_KEY = 257;
+        const ESCAPE_KEY = 1;
 
-        if (keyCode === ENTER_KEY) {
-            this.handleInputFinish(true);
+        if (keyCode === ENTER_KEY || keyCode === ESCAPE_KEY) {
+            this.handleInputFinish();
             return true;
         }
 
@@ -304,8 +307,9 @@ export class Slider {
 
         let typedValue = parseFloat(this.inputValue);
 
-        if (isNaN(typedValue) || !forceSave) {
+        if (isNaN(typedValue)) {
             this.isTyping = false;
+            TypingState.isTyping = false;
             return;
         }
 
@@ -317,6 +321,7 @@ export class Slider {
         }
 
         this.isTyping = false;
+        TypingState.isTyping = false;
         playClickSound();
     }
 

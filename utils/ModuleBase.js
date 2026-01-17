@@ -247,6 +247,26 @@ export class ModuleBase {
         Categories.addColorPicker('Modules', this.name, title, defaultColor, callback, description);
     }
 
+    /**
+     * Add a text input to the module's GUI
+     * @param {string} title - The title of the text input
+     * @param {string} defaultValue - Default text
+     * @param {function} callback - Callback function when text changes
+     * @param {string} [description=null] - Description/tooltip
+     */
+    addTextInput(title, defaultValue, callback, description = null) {
+        Categories.addTextInput('Modules', this.name, title, defaultValue, callback, description);
+    }
+
+    /**
+     * Add a separator to the module's GUI
+     * @param {string} title - The title of the separator
+     * @param {boolean} [fullWidth=false] - Whether the separator spans the full panel width
+     */
+    addSeparator(title, fullWidth = false) {
+        Categories.addSeparator('Modules', this.name, title, fullWidth);
+    }
+
     // Allow for overriding onEnable and onDisable if you need more control
     // not required
     onEnable() {}
