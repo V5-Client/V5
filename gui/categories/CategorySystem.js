@@ -2,6 +2,7 @@ import { ToggleButton } from '../components/Toggle';
 import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
+import { Separator } from '../components/Separator';
 
 export const Categories = {
     categories: [
@@ -58,11 +59,7 @@ export const Categories = {
             let subcategory = category.items.find((item) => item.type === 'separator' && item.title === subcategoryName);
 
             if (!subcategory) {
-                subcategory = {
-                    title: subcategoryName,
-                    type: 'separator',
-                    items: [],
-                };
+                subcategory = new Separator(subcategoryName, true);
                 category.items.push(subcategory);
                 category.subcategories.push(subcategoryName);
             }
@@ -177,6 +174,12 @@ export const Categories = {
         picker.description = description;
         Categories.addSettingsComponent(picker, sectionName);
         return picker;
+    },
+
+    addSettingsSeparator(title) {
+        const separator = new Separator(title);
+        Categories.addSettingsComponent(separator);
+        return separator;
     },
 
     getSettingsComponents() {

@@ -187,5 +187,3 @@ export const Guis = {
 
     guiName: () => handler.getCurrentTitle(),
 };
-
-console.log(searcher.findInList(Player.getInventory(), 'hype'));

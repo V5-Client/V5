@@ -1,7 +1,6 @@
 export function attachMixin(mixin, name, callback) {
     try {
         mixin.attach(callback);
-        print('V5: Mixin attached: ' + name);
     } catch (e) {
         /*Client.getMinecraft().execute(() => {
         const NotificationManager = require('../gui/NotificationManager');

@@ -20,6 +20,7 @@ import {
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
+import { Separator } from '../components/Separator';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 import { Categories } from './CategorySystem';
@@ -137,41 +138,28 @@ export const drawSettingsDirectComponents = (panel, panelX, yOffset, mouseX, mou
 
             if (index > 0) currentY += 16;
 
-            const dividerX = panelX + PADDING;
-            const dividerWidth = panelWidth - PADDING * 2 - 20;
+            const separator = new Separator(currentSection);
+            separator.x = panelX + PADDING;
+            separator.y = currentY;
+            separator.optionPanelWidth = panelWidth;
+            separator.draw(mouseX, mouseY);
 
-            drawRoundedRectangle({
-                x: dividerX,
-                y: currentY + 8,
-                width: dividerWidth,
-                height: 1,
-                radius: 1,
-                color: THEME.BG_INSET,
-            });
-
-            const sectionTextWidth = getTextWidth(currentSection, FontSizes.REGULAR);
-            drawRoundedRectangle({
-                x: dividerX,
-                y: currentY,
-                width: sectionTextWidth + 16,
-                height: 16,
-                radius: 6,
-                color: THEME.BG_WINDOW,
-            });
-
-            drawText(currentSection, dividerX + 8, currentY + 8, FontSizes.REGULAR, THEME.TEXT);
             currentY += 26;
         }
 
         if (typeof component.draw === 'function') {
-            component.x = panelX + PADDING + 10;
+            const xOffset = component instanceof Separator ? 0 : 10;
+            component.x = panelX + PADDING + xOffset;
             component.y = currentY;
             component.optionPanelWidth = panelWidth;
             component.optionPanelHeight = panel.height;
             component.draw(mouseX, mouseY);
 
             let componentHeight = 48 + 6;
-            if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+
+            if (component instanceof Separator) {
+                componentHeight = 26;
+            } else if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                 if (component.animationProgress !== undefined) {
                     componentHeight += component.getExpandedHeight() * component.animationProgress;
                 }
@@ -359,15 +347,13 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
     itemsToDisplay.forEach((group, groupIndex) => {
         if (group.type === 'separator') {
             if (groupIndex > 0) yOffset += 12;
-            const separatorY = yOffset;
-            const separatorX = panelX + PADDING;
-            const separatorWidth = panelWidth;
-            drawRoundedRectangle({ x: separatorX, y: separatorY + 8, width: separatorWidth, height: 1, radius: 1, color: THEME.BG_INSET });
-            const separatorTextWidth = getTextWidth(group.title, FontSizes.REGULAR);
-            const separatorTextX = separatorX + 8;
-            const separatorBgWidth = separatorTextWidth + 16;
-            drawRoundedRectangle({ x: separatorTextX - 8, y: separatorY, width: separatorBgWidth, height: 16, radius: 6, color: THEME.BG_WINDOW });
-            drawText(group.title, separatorTextX, separatorY + 8, FontSizes.REGULAR, THEME.TEXT);
+
+            group.x = panelX + PADDING;
+            group.y = yOffset;
+
+            group.optionPanelWidth = panel.width;
+            group.draw(mouseX, mouseY);
+
             yOffset += 22;
             let subcategoryItemsInRow = 0;
             group.items.forEach((item) => {
