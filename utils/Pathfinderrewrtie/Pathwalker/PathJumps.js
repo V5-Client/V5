@@ -19,16 +19,19 @@ class PathJumps {
         this.MIN_GAP_WIDTH = 1.8;
         this.MAX_GAP_SEARCH = 4;
 
-        register('tick', () => {
-            this.cacheFrame++;
-            if (this.blockCache.size > 1000) this.blockCache.clear();
-        });
-
-        register('postrenderWorld', () => {
+        this.onTick();
+        /*register('postrenderWorld', () => {
             if (this.currentLookaheadVecs.length === 0) return;
             this.currentLookaheadVecs.forEach((data) => {
                 RenderUtils.drawBox(data.vec, [255, 0, 0, 255]);
             });
+        });*/
+    }
+
+    onTick() {
+        register('tick', () => {
+            this.cacheFrame++;
+            if (this.blockCache.size > 1000) this.blockCache.clear();
         });
     }
 

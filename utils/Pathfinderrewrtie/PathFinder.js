@@ -1,4 +1,3 @@
-import { ModuleBase } from '../ModuleBase';
 import { Chat } from '../Chat';
 import { Swift } from './SwiftIntegration';
 import { Vec3d, BP } from '../Constants';
@@ -9,58 +8,8 @@ import { showNotification } from '../../gui/NotificationManager';
 import { Rotations } from './Pathwalker/PathRotations';
 import { Jump } from './Pathwalker/PathJumps';
 import { Movement } from './Pathwalker/PathMovement';
-
-class PathFindingConfig extends ModuleBase {
-    constructor() {
-        super({
-            name: 'Pathfinder',
-            subcategory: 'Core',
-            description: 'Pathfinding Utilities',
-            tooltip: 'Pathfinding Utilities',
-            showEnabledToggle: false,
-        });
-
-        this.PATHFINDING_DEBUG = false;
-        this.RENDER_KEY_NODES = false;
-        this.RENDER_FLOATING_SPLINE = false;
-        this.RENDER_LOOK_POINTS = false;
-
-        this.addToggle(
-            'Pathfinding Debug',
-            (value) => {
-                this.PATHFINDING_DEBUG = value;
-            },
-            'Enables pathfinding debug mode'
-        );
-
-        this.addToggle(
-            'Render Key Nodes',
-            (value) => {
-                this.RENDER_KEY_NODES = value;
-            },
-            'Renders the key nodes of the path'
-        );
-
-        this.addToggle(
-            'Render Floating Spline',
-            (value) => {
-                this.RENDER_FLOATING_SPLINE = value;
-            },
-            'Renders the floating spline of the path'
-        );
-
-        this.addToggle(
-            'Render Look Points',
-            (value) => {
-                this.RENDER_LOOK_POINTS = value;
-            },
-            'Renders the look points of the path'
-        );
-    }
-}
-
-const PathConfig = new PathFindingConfig();
-export default PathConfig;
+import { Executor } from '../ThreadExecutor';
+import PathConfig from './PathConfig';
 
 class Finder {
     constructor() {
@@ -164,9 +113,11 @@ class Finder {
                     return;
                 }
 
-                Rotations.pathRotations(splinePath);
-                Jump.detectJump(splinePath);
-                Movement.beginMovement();
+                Executor.execute(() => {
+                    Rotations.pathRotations(splinePath);
+                    Jump.detectJump(splinePath);
+                    Movement.beginMovement();
+                });
             }
         });
     }
@@ -274,4 +225,5 @@ class Finder {
     }
 }
 
-export const Pathfinder = new Finder();
+const Pathfinder = new Finder();
+export default Pathfinder;
