@@ -142,11 +142,10 @@ class Finder {
             const splinePath = this.CreateSplinePath(result);
 
             if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE) {
-                this.DestroyRender();
                 this.PathRendering(result, splinePath);
             }
 
-            Rotations.DrawLookPoints(PathConfig.RENDER_KEY_NODES);
+            // Rotations.drawPoints = PathConfig.RENDER_KEY_NODES;
 
             if (splinePath) {
                 Rotations.PathRotations(splinePath);
@@ -258,4 +257,4 @@ class Finder {
     }
 }
 
-new Finder();
+export const PathFinder = new Finder();
