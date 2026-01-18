@@ -8,6 +8,17 @@ import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { Keybind } from '../../utils/player/Keybinding';
 import { RayTrace } from '../../utils/Raytrace';
 
+const BLACKHOLE_TEXTURES = new Set([
+    'ewogICJ0aW1lc3RhbXAiIDogMTczNjE4NDg2Nzc3MywKICAicHJvZmlsZUlkIiA6ICJjNmViMzdjNmE4YjM0MDI3OGJjN2FmZGE3ZjMxOWJmMyIsCiAgInByb2ZpbGVOYW1lIiA6ICJFbFJleUNhbGFiYXphbCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS81NWI3MGYwOTRlMDE2Nzk1MDhkZDViY2EzOTY0MGVkOWVjNWM2YzY3OTJmYmQ4ZjU3YzAzYjNhMTJmOWMwYTkyIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=',
+    'ewogICJ0aW1lc3RhbXAiIDogMTczNjE4NDg1MjkxMCwKICAicHJvZmlsZUlkIiA6ICI5OWY1MzhjMDhlN2E0NTg3YmU4MGJjNGVmNzU0ZmQyMSIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb2xvV1MyIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2Q2MWI4N2YxYTEwNDBhOGI5MjJjYTUxYmU5YzBiYzZkNmZjNzFiYTVkNzQ1YzZiZjY1OWNiZDBkOWE5Y2Y0ZmMiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==',
+    'ewogICJ0aW1lc3RhbXAiIDogMTczNjE5OTQ3NjI5MiwKICAicHJvZmlsZUlkIiA6ICI0YWY1YmQ3NTdmZDE0MWEwOTczYmUxNTFkZWRjNmM5ZiIsCiAgInByb2ZpbGVOYW1lIiA6ICJjcmFzaGludG95b3VybW9tIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzhkMzQ1NmUyZDkwZjQxMmM1NzA5MjViNTI4YmI1YTNlNGUxZTZhM2YyNGVmODIwYTZiMWNlNDJhYzhlMDA2MDIiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==',
+    'ewogICJ0aW1lc3RhbXAiIDogMTczNjE5OTcxODMwNSwKICAicHJvZmlsZUlkIiA6ICI4NzczZWRiODZmYWQ0MTczOGFiYWJhNTUxMWM3MDcwZSIsCiAgInByb2ZpbGVOYW1lIiA6ICJjb3NtaWNwb3RhdG9lcyIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS9mNDM4YzZiYzUwMTk4NWNiYTA3OTZkODE3OTcxZTY4Njc5M2JlMDhiZTQyYjUzODVkN2QwYjkzZDg4MTUyMDE5IiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=',
+    'ewogICJ0aW1lc3RhbXAiIDogMTczNjE5OTY5MzM4NCwKICAicHJvZmlsZUlkIiA6ICIzZmM3ZmRmOTM5NjM0YzQxOTExOTliYTNmN2NjM2ZlZCIsCiAgInByb2ZpbGVOYW1lIiA6ICJZZWxlaGEiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTI5MDc4MTM3ZWEwOTcxOTQ0YzM3NzQxODY3MTcyNjE2NmI3NTFiZDgzOTVlNDcxNDYwMTk1MjJjNzU3ODIyOSIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9',
+    'ewogICJ0aW1lc3RhbXAiIDogMTczNjE5OTc0NTg5NCwKICAicHJvZmlsZUlkIiA6ICJmYjZkM2E5Zjk3MWY0ZTdlYmQ0MjE2Yjk0MjE5NDA3NCIsCiAgInByb2ZpbGVOYW1lIiA6ICJtYXJjaXhkZCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS9jYjgzMmZjOTdkMzhjY2NhOGJkMTE4YmZiZGEyZmE1N2M1MjA4ZTFmYmJkNmI4ZWE0MjhmNzBjN2NhMTY1NmY0IiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=',
+]);
+
+const BLACKHOLE_AVOID_RADIUS = 8.5;
+
 const COMBAT_PRESETS = {
     Graveyard: {
         entityClass: ZombieEntity,
@@ -142,6 +153,9 @@ class Combat extends ModuleBase {
 
         this.blacklistedTargets = new Map();
 
+        this.activeBlackholes = [];
+        this.scanTicker = 0;
+
         this.combatState = 'IDLE';
 
         this.attackRange = ATTACK_REACH;
@@ -167,6 +181,7 @@ class Combat extends ModuleBase {
                     Target: () =>
                         this.target ? (this.target.getName ? ChatLib.removeFormatting(this.target.getName()) : this.target.name || 'Unknown') : 'None',
                     'Targets Found': () => (this.targets ? this.targets.length : 0),
+                    'Active Zones': () => this.activeBlackholes.length,
                 },
             },
         ]);
@@ -194,11 +209,23 @@ class Combat extends ModuleBase {
 
                 RenderUtils.drawEntityHitbox(entity, blueColor, blueThickness, false);
             });
+
+            if (this.shouldUseBlackholeLogic() && this.activeBlackholes.length > 0) {
+                this.activeBlackholes.forEach((bh) => {
+                    RenderUtils.drawBox(new Vec3d(bh.x - 0.5, bh.y + 0.5, bh.z - 0.5), [0, 0, 0, 150], false);
+                });
+            }
         });
 
         this.on('tick', () => {
             if (!this.enabled) return;
             if (!Client.isInChat() && Client.isInGui()) return;
+
+            try {
+                this.scanBlackholes();
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
 
             const now = Date.now();
             for (const [uuid, expiry] of this.blacklistedTargets.entries()) {
@@ -221,7 +248,9 @@ class Combat extends ModuleBase {
             }
 
             if (!this.target) {
-                this.combatState = 'IDLE';
+                if (this.combatState !== 'IDLE') {
+                    this.combatState = 'IDLE';
+                }
                 Rotations.stopRotation();
                 return;
             }
@@ -230,10 +259,9 @@ class Combat extends ModuleBase {
             if (!pos) return;
 
             const distance = this.getDistanceToPlayer(pos);
-
             const targetChanged = previousTarget !== this.target;
 
-            if (!this.isPathing) {
+            if (!this.isPathing && this.combatState !== 'APPROACHING') {
                 if (targetChanged || !Rotations.isTrackingEntity(this.target)) {
                     this.startRotationToTarget();
                 }
@@ -241,6 +269,90 @@ class Combat extends ModuleBase {
 
             this.handleState(pos, distance);
         });
+    }
+
+    shouldUseBlackholeLogic() {
+        if (this.enabledPresets.has('Ice Walkers')) return true;
+        if (this.customTargetNames && this.customTargetNames.length > 0) {
+            const lowerNames = this.customTargetNames.map((n) => n.toLowerCase());
+            if (lowerNames.some((n) => n.includes('ice') || n.includes('glacite') || n.includes('walker'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    scanBlackholes() {
+        if (!this.shouldUseBlackholeLogic()) {
+            this.activeBlackholes = [];
+            return;
+        }
+
+        if (this.scanTicker == null) this.scanTicker = 0;
+        this.scanTicker++;
+
+        if (this.scanTicker % 10 !== 0) return;
+
+        const stands = World.getAllEntities().filter((e) => e.getClassName().includes('ArmorStand') || e.getName().includes('Armor Stand'));
+
+        if (!stands || stands.length === 0) return;
+
+        const newBlackholes = [];
+        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+        const SCAN_RADIUS = 30;
+        const SCAN_Y_RANGE = 20;
+
+        for (let stand of stands) {
+            try {
+                let dx = stand.getX() - playerPos[0];
+                let dy = stand.getY() - playerPos[1];
+                let dz = stand.getZ() - playerPos[2];
+
+                if (Math.abs(dx) > SCAN_RADIUS || Math.abs(dz) > SCAN_RADIUS || Math.abs(dy) > SCAN_Y_RANGE) continue;
+
+                let headItem = stand.getStackInSlot(5);
+                if (!headItem) continue;
+
+                let mcItem = headItem.toMC ? headItem.toMC() : headItem;
+                if (!mcItem) continue;
+
+                let profileType = net.minecraft.component.DataComponentTypes.PROFILE;
+                let profileComponent = mcItem.get(profileType);
+                if (!profileComponent) continue;
+
+                let gameProfile = profileComponent.getGameProfile();
+                let data = gameProfile.toString();
+                let base64Match = data.match(/value=([A-Za-z0-9+/=]+)/);
+
+                if (base64Match && base64Match[1] && BLACKHOLE_TEXTURES.has(base64Match[1])) {
+                    newBlackholes.push({
+                        x: stand.getX(),
+                        y: stand.getY(),
+                        z: stand.getZ(),
+                    });
+                }
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
+        }
+
+        this.activeBlackholes = newBlackholes;
+    }
+
+    isPositionSafe(x, y, z) {
+        if (!this.activeBlackholes || this.activeBlackholes.length === 0) return true;
+        if (!this.shouldUseBlackholeLogic()) return true;
+
+        for (const bh of this.activeBlackholes) {
+            const dx = x - bh.x;
+            const dz = z - bh.z;
+            const distSq = dx * dx + dz * dz;
+
+            if (distSq < BLACKHOLE_AVOID_RADIUS * BLACKHOLE_AVOID_RADIUS && Math.abs(y - bh.y) < 10) {
+                return false;
+            }
+        }
+        return true;
     }
 
     startRotationToTarget() {
@@ -354,10 +466,20 @@ class Combat extends ModuleBase {
 
         if (this.isAimingAtTarget()) {
             this.tryAttack();
+        } else {
+            this.startRotationToTarget();
         }
     }
 
     startPathingToTarget(pos) {
+        if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) {
+            Chat.message('&cTarget is inside a Blackhole! Aborting path.');
+            this.blacklistTarget(this.target, 3000);
+            this.target = null;
+            this.combatState = 'IDLE';
+            return;
+        }
+
         const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
         const end = [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)];
 
@@ -437,6 +559,13 @@ class Combat extends ModuleBase {
 
             if (targetUUID && this.blacklistedTargets.has(targetUUID)) return true;
 
+            if (this.shouldUseBlackholeLogic()) {
+                const pos = this.getTargetPosition(target);
+                if (pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) {
+                    return true;
+                }
+            }
+
             if (!targetUUID) return !this.targets.includes(target);
 
             const exists = this.targets.some((t) => {
@@ -467,6 +596,17 @@ class Combat extends ModuleBase {
         const mobs = [];
         const playerMP = Player.asPlayerMP();
 
+        const addMobIfSafe = (entity) => {
+            if (this.shouldUseBlackholeLogic()) {
+                const x = entity.getX();
+                const y = entity.getY();
+                const z = entity.getZ();
+                if (this.isPositionSafe(x, y, z)) mobs.push(entity);
+            } else {
+                mobs.push(entity);
+            }
+        };
+
         this.enabledPresets.forEach((presetName) => {
             const config = COMBAT_PRESETS[presetName];
             if (!config) return;
@@ -486,14 +626,14 @@ class Combat extends ModuleBase {
 
                         if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(entity)) return;
 
-                        mobs.push(entity);
+                        addMobIfSafe(entity);
                     } catch (e) {
                         console.error('V5 Caught error' + e + e.stack);
                     }
                 });
             } else if (config.names) {
                 const found = this.findMob(config);
-                mobs.push(...found);
+                found.forEach(addMobIfSafe);
             }
         });
 
@@ -504,7 +644,7 @@ class Combat extends ModuleBase {
                 boundaryCheck: (x, y, z) => true,
             };
             const customFound = this.findMob(customConfig);
-            mobs.push(...customFound);
+            customFound.forEach(addMobIfSafe);
         }
 
         return mobs;
@@ -583,6 +723,8 @@ class Combat extends ModuleBase {
             const pos = this.getTargetPosition(target);
             if (!pos) return;
 
+            if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
+
             const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), pos.x, pos.y, pos.z);
             const angles = MathUtils.angleToPlayer([pos.x, pos.y, pos.z]);
 
@@ -653,6 +795,8 @@ class Combat extends ModuleBase {
             const presets = Array.from(this.enabledPresets).join(', ');
             Chat.message(`&7Targeting: &b${presets || 'None selected'}`);
         }
+
+        this.activeBlackholes = [];
     }
 
     onDisable() {
@@ -674,6 +818,7 @@ class Combat extends ModuleBase {
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
         this.blacklistedTargets.clear();
+        this.activeBlackholes = [];
     }
 }
 
