@@ -131,15 +131,17 @@ class PathSpline {
             distanceCovered += dist;
         }
 
-        cachedBoxPositions = boxPositions;
+        this.cachedBoxPositions = boxPositions;
 
         if (drawLookPoints && !this.render) {
             this.render = register('postRenderWorld', () => {
                 const px = Player.getX();
                 const pz = Player.getZ();
 
-                for (let i = 0; i < cachedBoxPositions.length; i++) {
-                    const pos = cachedBoxPositions[i];
+                if (!this.cachedBoxPositions) return;
+
+                for (let i = 0; i < this.cachedBoxPositions.length; i++) {
+                    const pos = this.cachedBoxPositions[i];
 
                     if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
                         RenderUtils.drawBox(pos, [255, 0, 0, 100], true);
@@ -148,7 +150,7 @@ class PathSpline {
             });
         }
 
-        return cachedBoxPositions;
+        return this.cachedBoxPositions;
     }
 
     // debugging remove on release
