@@ -10,29 +10,25 @@ class PathRotations {
         this.AIRBORNE_LOOK_AHEAD = 12;
         this.MAX_AIR_HEIGHT = 10;
         this.BASE_YAW_AHEAD_DISTANCE = 4;
-        this.MIN_YAW_AHEAD_DISTANCE = 0.5;
+        this.MIN_YAW_AHEAD_DISTANCE = 1.0;
         this.DYNAMIC_YAW_CURVATURE_RADIUS = 4;
         this.CURVATURE_FULL_REDUCTION_ANGLE = 45;
         this.MIN_PITCH_LOOKAHEAD = 2.5;
-        this.INITIAL_YAW_SMOOTH_SPEED = 0.1;
-        this.YAW_SMOOTH_SPEED = 0.08;
-        this.PITCH_SMOOTH_SPEED = 0.03;
-        this.TARGET_BLEND_NORMAL = 0.4;
-        this.TARGET_BLEND_SKIP = 0.15;
-        this.SKIP_RECOVERY_TICKS = 15;
+        this.INITIAL_YAW_SMOOTH_SPEED = 0.07;
+        this.YAW_SMOOTH_SPEED = 0.07;
+        this.PITCH_SMOOTH_SPEED = 0.025;
+        this.TARGET_BLEND_NORMAL = 0.25;
+        this.TARGET_BLEND_SKIP = 0.12;
+        this.SKIP_RECOVERY_TICKS = 20;
         this.NODE_SKIP_THRESHOLD = 6;
         this.BOX_RESET_SEARCH_RANGE = 20;
         this.BOX_SWITCH_HYSTERESIS = 3;
-        this.YAW_DEAD_ZONE = 0.3;
-        this.PITCH_DEAD_ZONE = 0.15;
-        this.MIN_SMOOTH_SPEED = 0.02;
-        this.MAX_YAW_VELOCITY = 60;
-        this.SHARP_TURN_THRESHOLD = 55;
-        this.CATCH_UP_REACH_DISTANCE = 2.5;
+        this.YAW_DEAD_ZONE = 0.1;
+        this.PITCH_DEAD_ZONE = 0.05;
+        this.MAX_YAW_VELOCITY = 50;
 
         this.resetRotations();
         this.onStep();
-        // this.onRender();
     }
 
     resetRotations() {
@@ -89,18 +85,15 @@ class PathRotations {
         let x = Math.floor(Player.getX());
         let y = Math.floor(Player.getY()) - 1;
         let z = Math.floor(Player.getZ());
-        const maxDistance = 100;
         const world = World.getWorld();
-        for (let distance = 0; distance < maxDistance; distance++) {
+        for (let distance = 0; distance < 40; distance++) {
             if (y <= 0) return distance;
             const blockPosNMS = new BP(x, y, z);
             const blockState = world.getBlockState(blockPosNMS);
-            if (!blockState.getCollisionShape(world, blockPosNMS).isEmpty()) {
-                return distance;
-            }
+            if (!blockState.getCollisionShape(world, blockPosNMS).isEmpty()) return distance;
             y--;
         }
-        return maxDistance;
+        return 40;
     }
 
     getAirborneFactor() {
@@ -112,16 +105,13 @@ class PathRotations {
     getLookAheadTurnSeverity() {
         if (!this.boxPositions || this.boxPositions.length < 3) return 1.0;
         const startIndex = Math.floor(this.currentPathPosition);
-        const lookAheadCount = 10;
+        const lookAheadCount = 8;
         const endIndex = Math.min(this.boxPositions.length - 2, startIndex + lookAheadCount);
         let totalTurnAngle = 0;
         for (let i = startIndex; i < endIndex; i++) {
-            const angle = this.calculateAngleBetweenNodes(this.boxPositions[i], this.boxPositions[i + 1], this.boxPositions[i + 2]);
-            totalTurnAngle += angle;
+            totalTurnAngle += this.calculateAngleBetweenNodes(this.boxPositions[i], this.boxPositions[i + 1], this.boxPositions[i + 2]);
         }
-        const maxThreshold = 90;
-        const severity = Math.max(0, Math.min(1, totalTurnAngle / maxThreshold));
-        return 1.0 + severity * 0.6;
+        return 1.0 + Math.min(1, totalTurnAngle / 100) * 0.4;
     }
 
     handleAll() {
@@ -141,8 +131,7 @@ class PathRotations {
         const start = Math.max(0, this.currentBoxIndex - this.BOX_RESET_SEARCH_RANGE);
         const end = Math.min(this.boxPositions.length, this.currentBoxIndex + this.BOX_RESET_SEARCH_RANGE);
         for (let i = start; i < end; i++) {
-            const box = this.boxPositions[i];
-            const distSq = this.getDistSq(playerEyes, box);
+            const distSq = this.getDistSq(playerEyes, this.boxPositions[i]);
             if (distSq < closestBoxDistSq) {
                 closestBoxDistSq = distSq;
                 newIndex = i;
@@ -191,10 +180,7 @@ class PathRotations {
         if (this.isWaitingForLandingReach && !isAirborne) {
             const playerPos = Player.getPlayer().getEyePos();
             const distToLock = Math.sqrt(this.getDistSq(playerPos, this.lockedAirbornePoint.point));
-
-            const RELEASE_THRESHOLD = 5.0;
-
-            if (distToLock <= RELEASE_THRESHOLD || this.currentPathPosition >= this.lockedAirbornePoint.index) {
+            if (distToLock <= 4.0 || this.currentPathPosition >= this.lockedAirbornePoint.index) {
                 this.isWaitingForLandingReach = false;
                 this.lockedAirbornePoint = null;
             } else {
@@ -206,11 +192,9 @@ class PathRotations {
             }
         }
 
-        let targetYawIdx, targetPitchIdx;
-
         const dynamicYawAhead = this.getYawLookaheadDistance();
-        targetYawIdx = Math.min(this.currentPathPosition + dynamicYawAhead, this.boxPositions.length - 1);
-        targetPitchIdx = Math.min(this.currentPathPosition + this.LOOK_AHEAD_DISTANCE, this.boxPositions.length - 1);
+        const targetYawIdx = Math.min(this.currentPathPosition + dynamicYawAhead, this.boxPositions.length - 1);
+        const targetPitchIdx = Math.min(this.currentPathPosition + this.LOOK_AHEAD_DISTANCE, this.boxPositions.length - 1);
 
         const yawPoint = this.getInterpolatedPoint(targetYawIdx);
         const pitchPoint = this.getInterpolatedPoint(targetPitchIdx);
@@ -225,15 +209,23 @@ class PathRotations {
     applySmoothing(blendSpeed) {
         const yawToRaw = this.getAngleDelta(this.smoothedTargetYaw, this.rawTargetYaw);
         const pitchToRaw = this.rawTargetPitch - this.smoothedTargetPitch;
+
         this.smoothedTargetYaw = this.wrapAngle(this.smoothedTargetYaw + yawToRaw * blendSpeed);
         this.smoothedTargetPitch = this.smoothedTargetPitch + pitchToRaw * blendSpeed;
+
         let yawDelta = this.getAngleDelta(this.currentYaw, this.smoothedTargetYaw);
+        let pitchDelta = this.smoothedTargetPitch - this.currentPitch;
+
+        const easeYaw = Math.abs(yawDelta) < 2 ? Math.abs(yawDelta) / 2 : 1;
+        const easePitch = Math.abs(pitchDelta) < 1 ? Math.abs(pitchDelta) / 1 : 1;
+
         if (Math.abs(yawDelta) < this.YAW_DEAD_ZONE) yawDelta = 0;
         yawDelta = Math.max(-this.MAX_YAW_VELOCITY, Math.min(this.MAX_YAW_VELOCITY, yawDelta));
-        this.currentYaw = this.wrapAngle(this.currentYaw + yawDelta * this.YAW_SMOOTH_SPEED);
-        let pitchDelta = this.smoothedTargetPitch - this.currentPitch;
+
+        this.currentYaw = this.wrapAngle(this.currentYaw + yawDelta * this.YAW_SMOOTH_SPEED * easeYaw);
+
         if (Math.abs(pitchDelta) < this.PITCH_DEAD_ZONE) pitchDelta = 0;
-        this.currentPitch = this.currentPitch + pitchDelta * this.PITCH_SMOOTH_SPEED;
+        this.currentPitch = this.currentPitch + pitchDelta * this.PITCH_SMOOTH_SPEED * easePitch;
     }
 
     getInterpolatedPoint(indexFloat) {
@@ -250,10 +242,10 @@ class PathRotations {
     }
 
     handleSharpTurnDeceleration(curvature) {
-        const airFactor = this.getAirborneFactor();
-        const turnBoostMultiplier = this.getLookAheadTurnSeverity();
-        if (airFactor === 0) {
-            this.YAW_SMOOTH_SPEED = this.INITIAL_YAW_SMOOTH_SPEED * turnBoostMultiplier;
+        const turnBoostMultiplier = Math.min(1.2, this.getLookAheadTurnSeverity());
+        if (this.getAirborneFactor() === 0) {
+            const targetSpeed = this.INITIAL_YAW_SMOOTH_SPEED * turnBoostMultiplier;
+            this.YAW_SMOOTH_SPEED += (targetSpeed - this.YAW_SMOOTH_SPEED) * 0.1;
         }
     }
 
@@ -305,7 +297,6 @@ class PathRotations {
             this.cachedLookPoints = Spline.CreateLookPoints(splineData, 1.5, false);
             this.boxPositions = this.cachedLookPoints;
         }
-
         const player = Player.getPlayer();
         if (!player || !this.boxPositions.length) return;
         if (this.currentBoxIndex >= this.boxPositions.length - 1) {
