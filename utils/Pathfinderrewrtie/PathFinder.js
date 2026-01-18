@@ -102,7 +102,7 @@ class Finder {
             }
 
             if (splinePath) {
-                if (Rotations.complete) {
+                if (Rotations.complete || Rotations.boxPositions?.length < 2) {
                     this.tick.unregister();
                     this.tick = null;
 
