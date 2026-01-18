@@ -76,6 +76,7 @@ class PathJumps {
         const world = World.getWorld();
         const blockPosNMS = new BP(blockX, blockY, blockZ);
         const blockState = world.getBlockState(blockPosNMS);
+
         try {
             const stateString = blockState.toString();
             const facingMatch = stateString.match(/facing=(\w+)/);
@@ -84,11 +85,13 @@ class PathJumps {
             const dx = blockX + 0.5 - playerX;
             const dz = blockZ + 0.5 - playerZ;
             let approach;
+
             if (Math.abs(dx) > Math.abs(dz)) {
                 approach = dx > 0 ? 'west' : 'east';
             } else {
                 approach = dz > 0 ? 'north' : 'south';
             }
+
             const walkable = { north: 'south', south: 'north', east: 'west', west: 'east' }[facingDir];
             return approach === walkable;
         } catch (e) {
@@ -129,11 +132,8 @@ class PathJumps {
 
     getSnowLayers(block) {
         if (!block || block.type.getRegistryName() !== 'minecraft:snow') return 0;
-        try {
-            return block.getState().get(SnowBlock.LAYERS);
-        } catch (e) {
-            return 0;
-        }
+
+        return block.getState().get(SnowBlock.LAYERS) || 0;
     }
 
     getIntersectedBlocks(p1, p2) {
@@ -199,24 +199,27 @@ class PathJumps {
     }
 
     checkFluidJump() {
-        if (this.isPlayerInFluid()) {
-            Keybind.setKey('space', true);
-            if (Date.now() - this.lastFluidMessage > 2000) {
-                Chat.messagePathfinder('Fluid jump detected');
-                this.lastFluidMessage = Date.now();
-            }
-            return true;
+        if (!this.isPlayerInFluid()) return false;
+
+        Keybind.setKey('space', true);
+        if (Date.now() - this.lastFluidMessage > 2000) {
+            Chat.messagePathfinder('Fluid jump detected');
+            this.lastFluidMessage = Date.now();
         }
-        return false;
+
+        return true;
     }
 
     checkSnowJump(lookahead) {
         if (lookahead.length < 1) return false;
         const data = lookahead[0];
+
         if (!data.block || data.block.type.getRegistryName() !== 'minecraft:snow') return false;
         const layers = this.getSnowLayers(data.block);
+
         if (layers === 0) return false;
         const diff = data.vec.y - (8 - layers) * 0.125 - (Player.getY() - 1);
+
         if (diff > 0.75 && layers > 6) {
             Chat.messagePathfinder('Snow jump detected');
             Keybind.setKey('space', true);
@@ -297,23 +300,17 @@ class PathJumps {
     }
 
     detectJump(path) {
-        if (!Player.getPlayer()) {
-            this.reset();
-            return;
-        }
+        if (!Player.getPlayer()) return this.reset();
         if (this.checkFluidJump()) return;
-        if (!Player.getPlayer().isOnGround()) {
-            this.lastLookaheadPositions = [];
-            return;
-        }
+        if (!Player.getPlayer().isOnGround()) return (this.lastLookaheadPositions = []);
+
         const { lookahead, closestIndex } = this.drawPathAndPlayerLookAhead(path);
-        if (closestIndex === -1) {
-            this.reset();
-            return;
-        }
+        if (closestIndex === -1) return this.reset();
+
         if (this.checkSnowJump(lookahead)) return;
         //if (this.checkEdgeJump(path, closestIndex)) return;
         if (this.checkObstacleJump(lookahead)) return;
+
         Keybind.setKey('space', false);
     }
 
