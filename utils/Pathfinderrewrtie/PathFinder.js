@@ -67,6 +67,7 @@ class Finder {
         this.tick = null;
         this.render = null;
         this.saidInfo = false;
+        this.calledFromFile = false;
 
         v5Command('path', (...args) => {
             const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
@@ -77,6 +78,7 @@ class Finder {
             const end = coords.slice(0, 3);
 
             this.resetPath();
+            this.calledFromFile = true;
             this.findPath(start, end);
         });
 
@@ -88,7 +90,7 @@ class Finder {
     findPath(start, end, onComplete, renderOnly = false) {
         const PathStart = this.findStartY(start);
 
-        Chat.messagePathfinder(`Path from &a${PathStart.x}, ${PathStart.y}, ${PathStart.z}&f to &c${end[0]}, ${end[1]}, ${end[2]}`);
+        if (this.calledFromFile) Chat.messagePathfinder(`Path from &a${PathStart.x}, ${PathStart.y}, ${PathStart.z}&f to &c${end[0]}, ${end[1]}, ${end[2]}`);
 
         const fullPath = Swift.SwiftPath(PathStart.x, PathStart.y, PathStart.z, end[0], end[1], end[2]);
 
@@ -101,7 +103,7 @@ class Finder {
             return;
         }
 
-        Chat.messagePathfinder('§eSearching for path...');
+        if (this.calledFromFile) Chat.messagePathfinder('§eSearching for path...');
 
         this.onTick(onComplete, renderOnly);
     }
@@ -129,7 +131,7 @@ class Finder {
                 return;
             }
 
-            if (!this.saidInfo) {
+            if (!this.saidInfo && this.calledFromFile) {
                 Chat.messagePathfinder(`Path length: ${result.path.length} nodes`);
                 Chat.messagePathfinder(`Path found in ${result.time_ms}ms`);
                 Chat.messagePathfinder(`Nodes explored: ${result.nodes_explored}`);
@@ -154,6 +156,7 @@ class Finder {
                     this.tick.unregister();
                     this.tick = null;
 
+                    this.calledFromFile = false;
                     this.resetPath();
 
                     if (onComplete && typeof onComplete === 'function') onComplete(true);
