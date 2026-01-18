@@ -75,7 +75,6 @@ export const COMMISSION_DATA = [
         type: 'MINING',
         cost: 20,
         waypoints: [
-            [39, 197, -14],
             [50, 197, -26],
             [42, 197, -20],
         ],
