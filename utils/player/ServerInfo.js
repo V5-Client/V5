@@ -27,10 +27,7 @@ class NetworkMonitor {
     calculateTpsAverage() {
         if (this.tpsSamples.length === 0) return this.currentTps;
 
-        const trimCount = Math.min(
-            Math.floor(this.tpsSamples.length * this.tpsTrimFraction),
-            Math.floor((this.tpsSamples.length - 1) / 2)
-        );
+        const trimCount = Math.min(Math.floor(this.tpsSamples.length * this.tpsTrimFraction), Math.floor((this.tpsSamples.length - 1) / 2));
 
         if (trimCount === 0) {
             const total = this.tpsSamples.reduce((sum, value) => sum + value, 0);
