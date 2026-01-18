@@ -16,7 +16,16 @@ class FailsafeUtils {
                 playSoundOnCheck: true,
             };
         }
-        const config = JSON.parse(FileLib.read(V5ConfigFile.getAbsolutePath()));
+        const rawConfig = FileLib.read(V5ConfigFile.getAbsolutePath());
+        let config = {};
+
+        try {
+            if (rawConfig && rawConfig.trim().length > 0) {
+                config = JSON.parse(rawConfig);
+            }
+        } catch (err) {
+            console.log('Failed to parse V5Config JSON, using defaults: ' + err);
+        }
 
         if (!config['Failsafes'])
             return {

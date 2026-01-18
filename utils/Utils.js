@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { Vec3d, URL, BufferedInputStream, FileOutputStream, BP, MinecraftText, Formatting } from './Constants';
+import { Vec3d, URL, BufferedInputStream, FileOutputStream, BP, isWindows, isMac, isLinux } from './Constants';
 
 export const mc = Client.getMinecraft();
 
@@ -451,6 +451,27 @@ class UtilsClass {
         let dx = x2 - x1;
         let dz = z2 - z1;
         return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    openBrowser(url) {
+        try {
+            java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+        } catch (e) {
+            console.error('Failed to open browser (1) (ignore this error): ');
+            console.error('V5 Caught error' + e + e.stack);
+            try {
+                if (isWindows) {
+                    java.lang.Runtime.getRuntime().exec('rundll32 url.dll,FileProtocolHandler ' + url);
+                } else if (isMac) {
+                    java.lang.Runtime.getRuntime().exec('open ' + url);
+                } else if (isLinux) {
+                    java.lang.Runtime.getRuntime().exec('xdg-open ' + url);
+                }
+            } catch (e) {
+                console.error('Failed to open browser (2): ');
+                console.error('V5 Caught error' + e + e.stack);
+            }
+        }
     }
 }
 

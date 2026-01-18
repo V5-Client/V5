@@ -1,27 +1,65 @@
 import { System } from '../Constants.js';
-import { ClientStatusC2S, WorldTimeUpdateS2C, StatisticsS2C, GameJoinS2C } from '../Packets';
+import { ClientStatusC2S, CommonPingS2C, StatisticsS2C, GameJoinS2C } from '../Packets';
 
 class NetworkMonitor {
     constructor() {
-        this.lastTpsPacket = 0;
-        this.tpsAlpha = 0.3;
+        this.lastTpsNano = 0;
         this.currentTps = 20;
+        this.tpsSamples = [];
+        this.tpsWindowSize = 40;
+        this.tpsTrimFraction = 0.25;
+        this.tpsEmaAlpha = 0.2;
 
-        this.pingHistory = [];
-        this.maxHistory = 5;
+        this.pingSamples = [];
+        this.maxHistory = 20;
         this.waitingForPing = false;
         this.pingStartNano = 0;
         this.avgPing = 0;
+        this.minPingMs = Infinity;
+        this.jitterCapMs = 10;
+    }
+
+    addSample(list, value, maxSize) {
+        list.push(value);
+        if (list.length > maxSize) list.shift();
+    }
+
+    calculateTpsAverage() {
+        if (this.tpsSamples.length === 0) return this.currentTps;
+
+        const trimCount = Math.min(Math.floor(this.tpsSamples.length * this.tpsTrimFraction), Math.floor((this.tpsSamples.length - 1) / 2));
+
+        if (trimCount === 0) {
+            const total = this.tpsSamples.reduce((sum, value) => sum + value, 0);
+            return total / this.tpsSamples.length;
+        }
+
+        const sorted = [...this.tpsSamples].sort((a, b) => a - b);
+        const trimmed = sorted.slice(trimCount, sorted.length - trimCount);
+        const trimmedTotal = trimmed.reduce((sum, value) => sum + value, 0);
+        return trimmedTotal / trimmed.length;
+    }
+
+    calculateJitterEstimate() {
+        if (this.pingSamples.length === 0 || !isFinite(this.minPingMs)) return 0;
+        const sorted = [...this.pingSamples].sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        const baseline = Math.min(this.minPingMs, sorted[0]);
+        const jitter = Math.max(0, (median - baseline) / 2);
+        return Math.min(jitter, this.jitterCapMs);
     }
 
     recordTpsPacket() {
-        const now = Date.now();
-        if (this.lastTpsPacket > 0) {
-            const delta = now - this.lastTpsPacket;
-            const instant = Math.min(20, 20000 / delta);
-            this.currentTps = instant * this.tpsAlpha + this.currentTps * (1 - this.tpsAlpha);
+        const now = System.nanoTime();
+        if (this.lastTpsNano > 0) {
+            let deltaMs = (now - this.lastTpsNano) / 1_000_000;
+            deltaMs = Math.max(1, deltaMs - this.calculateJitterEstimate());
+            const instant = Math.min(20, 1000 / deltaMs);
+            this.addSample(this.tpsSamples, instant, this.tpsWindowSize);
+            const robustTps = this.calculateTpsAverage();
+            this.currentTps += (robustTps - this.currentTps) * this.tpsEmaAlpha;
         }
-        this.lastTpsPacket = now;
+        this.lastTpsNano = now;
     }
 
     sendPingRequest() {
@@ -37,25 +75,22 @@ class NetworkMonitor {
             const elapsedMs = (System.nanoTime() - this.pingStartNano) / 1_000_000;
             this.waitingForPing = false;
 
-            this.pingHistory.push(elapsedMs);
-            if (this.pingHistory.length > this.maxHistory) {
-                this.pingHistory.shift();
-            }
+            this.addSample(this.pingSamples, elapsedMs, this.maxHistory);
+            this.minPingMs = Math.min(this.minPingMs, elapsedMs);
 
-            let sum = 0;
-            for (var i = 0; i < this.pingHistory.length; i++) {
-                sum += this.pingHistory[i];
-            }
-            this.avgPing = sum / this.pingHistory.length;
+            const totalPing = this.pingSamples.reduce((sum, value) => sum + value, 0);
+            this.avgPing = totalPing / this.pingSamples.length;
         }
     }
 
     reset() {
-        this.lastTpsPacket = 0;
+        this.lastTpsNano = 0;
         this.currentTps = 20;
-        this.pingHistory = [];
+        this.tpsSamples = [];
+        this.pingSamples = [];
         this.avgPing = 0;
         this.waitingForPing = false;
+        this.minPingMs = Infinity;
     }
 }
 
@@ -65,7 +100,7 @@ register('worldLoad', () => monitor.reset());
 
 register('packetReceived', (packet) => {
     monitor.recordTpsPacket();
-}).setFilteredClass(WorldTimeUpdateS2C);
+}).setFilteredClass(CommonPingS2C);
 
 register('packetReceived', (packet) => {
     monitor.resolvePing();
@@ -81,7 +116,7 @@ register('step', () => {
 
 export const ServerInfo = {
     getPing: () => Math.round(monitor.avgPing),
-    getTPS: () => parseFloat(monitor.currentTps.toFixed(1)),
+    getTPS: () => parseFloat(monitor.currentTps.toFixed(2)),
     getServerInfo: function () {
         return {
             ping: this.getPing(),

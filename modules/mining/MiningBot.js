@@ -12,6 +12,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
 import { PlayerActionC2S, PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerInfo } from '../../utils/player/ServerInfo';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -151,24 +152,17 @@ class Bot extends ModuleBase {
         });
 
         manager.subscribe('abilityready', () => {
-            this.resetMining();
+            this.resetTickCounters();
             this.state = this.STATES.ABILITY;
         });
         manager.subscribe('abilityused', () => {
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
-            this.resetMining();
+            this.resetTickCounters();
         });
         manager.subscribe('abilitygone', () => {
             this.speedBoost = false;
-            this.resetMining();
+            this.resetTickCounters();
         });
-    }
-
-    resetMining() {
-        if (this.state !== this.STATES.MINING && this.state !== this.STATES.ABILITY) return;
-
-        this.mineTickCount = 0;
-        this.tickCount = 0;
     }
 
     resetTickCounters() {
@@ -324,7 +318,7 @@ class Bot extends ModuleBase {
         if (isSameAsLast && this.lastBlockType && this.lastBlockType !== blockName) {
             if (!this.isAirOrBedrock(blockName)) {
                 this.lastBlockType = blockName;
-                this.resetMining();
+                this.resetTickCounters();
                 return false;
             }
         }
@@ -394,9 +388,7 @@ class Bot extends ModuleBase {
 
     handleRotationOrScan() {
         if (this.manualScan) {
-            this.nukedBlock = false;
-            this.currentTarget = this.foundLocations.shift();
-            this.lowestCostBlockIndex = 0;
+            this.lowestCostBlockIndex++;
             return;
         }
 
@@ -451,7 +443,7 @@ class Bot extends ModuleBase {
         this.incrementMiningCountersIfLookingAtCurrent(fakeLookMode);
 
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
-        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost);
+        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
 
         if (!this.currentTarget) return;
 
@@ -824,6 +816,10 @@ class Bot extends ModuleBase {
         this.toggle(true, this.isParentManaged);
 
         return true;
+    }
+
+    glideDelay() {
+        return 20 - Math.trunc(ServerInfo.getTPS());
     }
 
     onEnable() {

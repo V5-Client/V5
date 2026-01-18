@@ -399,91 +399,155 @@ class MineTimeCalculations {
 }
 
 class RefuelService {
-    refuel(callback) {
-        let self = this;
+    constructor() {
+        this.STATES = {
+            IDLE: 0,
+            FIND_ABIPHONE: 1,
+            OPEN_ABIPHONE: 2,
+            SELECT_CONTACT: 3,
+            CLICK_CONTACT: 4,
+            WAIT_FOR_ANVIL: 5,
+            WAIT_ANVIL_READY: 6,
+            ADD_FUEL: 7,
+            TAKE_TOOL: 8,
+            CLOSE: 9,
+            FAIL_CLEANUP: 10,
+        };
 
-        new Thread(function () {
-            try {
+        this.reset();
+        register('tick', () => this.tick());
+    }
+
+    reset() {
+        this.state = this.STATES.IDLE;
+        this.waitTicks = 0;
+        this.timeoutTicks = null;
+        this.callback = null;
+        this.contactSlot = -1;
+    }
+
+    setState(nextState, waitTicks = 0, timeoutTicks = null) {
+        this.state = nextState;
+        this.waitTicks = waitTicks;
+        this.timeoutTicks = timeoutTicks;
+    }
+
+    refuel(callback) {
+        if (this.state !== this.STATES.IDLE) {
+            Chat.message('Refuel already running!');
+            if (callback) callback(false);
+            return;
+        }
+
+        if (callback) this.callback = callback;
+        this.setState(this.STATES.FIND_ABIPHONE);
+    }
+
+    tick() {
+        if (this.state === this.STATES.IDLE) return;
+
+        if (this.waitTicks > 0) {
+            this.waitTicks--;
+            return;
+        }
+
+        switch (this.state) {
+            case this.STATES.FIND_ABIPHONE:
                 let abiphoneSlot = Guis.findItemInHotbar('Abiphone');
-                if (abiphoneSlot === -1) {
-                    Chat.message('Abiphone not found!');
-                    return callback(false);
-                }
+                if (abiphoneSlot === -1) return this.fail('Abiphone not found!');
 
                 Guis.setItemSlot(abiphoneSlot);
-                Thread.sleep(250);
+                this.setState(this.STATES.OPEN_ABIPHONE, 5);
+                break;
+
+            case this.STATES.OPEN_ABIPHONE:
                 Client.scheduleTask(() => {
                     Keybind.rightClick();
                 });
-                Thread.sleep(1000);
+                this.setState(this.STATES.SELECT_CONTACT, 0, 50);
+                break;
 
-                if (!Guis.guiName() || Guis.guiName().indexOf('Abiphone') === -1) {
-                    Chat.message('Abiphone failed to open!');
-                    return callback(false);
+            case this.STATES.SELECT_CONTACT:
+                if (Guis.guiName()?.indexOf('Abiphone') !== -1) {
+                    this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                    if (!Player.getContainer()?.getStackInSlot(this.contactSlot)) {
+                        if (this.handleTimeout('No jotraeline contact detected!')) return;
+                    }
+                    if (this.contactSlot === -1) return;
+                    this.setState(this.STATES.CLICK_CONTACT, 5);
+                    break;
+                }
+                break;
+
+            case this.STATES.CLICK_CONTACT:
+                Guis.clickSlot(this.contactSlot, false, 'LEFT');
+                this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
+                break;
+
+            case this.STATES.WAIT_FOR_ANVIL:
+                if (Guis.guiName() === 'Drill Anvil') {
+                    this.setState(this.STATES.WAIT_ANVIL_READY, 20);
+                    break;
                 }
 
-                let jotraelineSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
-                //Chat.message("jotraeline slot: " + jotraelineSlot)
-                if (jotraelineSlot === -1) {
-                    Chat.message('Jotraeline contact missing!');
-                    return callback(false);
-                }
-                Thread.sleep(500);
-                Guis.clickSlot(jotraelineSlot, false, 'LEFT');
-                Thread.sleep(1000);
+                if (this.handleTimeout('Anvil never opened?!')) return;
+                break;
 
-                if (!self.waitForAnvil()) {
-                    Chat.message('drill anvil timeout!');
-                    return callback(false);
-                }
-
-                Thread.sleep(1000);
+            case this.STATES.WAIT_ANVIL_READY:
                 let tool = ToolFinder.findBest();
-                if (!tool) {
-                    Chat.message('no drill found!');
-                    return callback(false);
-                }
+                if (!tool) return this.fail('No drill found!');
 
                 Guis.clickSlot(tool.slot + 81, true);
-                Thread.sleep(500);
+                this.setState(this.STATES.ADD_FUEL, 10);
+                break;
 
-                let container = Player.getContainer();
-                if (!container.getStackInSlot(29)) {
-                    Chat.message('drill not in anvil!');
-                    return callback(false);
+            case this.STATES.ADD_FUEL:
+                if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
+                    Chat.message('No fuel detected!'); // fuel buyer when?
+                    this.setState(this.STATES.FAIL_CLEANUP, 10);
+                    return;
                 }
 
-                let fuelAdded = Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel'], true);
-                if (!fuelAdded) {
-                    Chat.message('no fuel available!');
-                    Guis.clickSlot(29, true);
-                    Thread.sleep(500);
-                    Guis.closeInv();
-                    return callback(false);
-                }
-
-                Thread.sleep(500);
                 Guis.clickSlot(22, false);
-                Thread.sleep(750);
-                Guis.clickSlot(13, true);
-                Thread.sleep(500);
-                Guis.closeInv();
+                this.setState(this.STATES.TAKE_TOOL, 10);
+                break;
 
-                callback(true);
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-                callback(false);
-            }
-        }).start();
+            case this.STATES.TAKE_TOOL:
+                Guis.clickSlot(13, true);
+                this.setState(this.STATES.CLOSE, 10);
+                break;
+
+            case this.STATES.CLOSE:
+                Guis.closeInv();
+                this.finish(true);
+                break;
+
+            case this.STATES.FAIL_CLEANUP:
+                Guis.closeInv();
+                this.finish(false);
+                break;
+        }
     }
 
-    waitForAnvil() {
-        let waited = 0;
-        while (Guis.guiName() !== 'Drill Anvil' && waited < 5000) {
-            Thread.sleep(50);
-            waited = waited + 50;
+    handleTimeout(message) {
+        this.timeoutTicks--;
+        if (this.timeoutTicks <= 0) {
+            this.fail(message);
+            return true;
         }
-        return waited < 5000;
+
+        return false;
+    }
+
+    fail(message) {
+        if (message) Chat.message(message);
+        this.finish(false);
+    }
+
+    finish(success) {
+        const cb = this.callback;
+        this.reset();
+        if (cb) cb(success);
     }
 }
 
