@@ -8,6 +8,8 @@ import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
 import { Rotations } from './Pathwalker/PathRotations';
 import { Jump } from './Pathwalker/PathJumps';
+import { Movement } from './Pathwalker/PathMovement';
+
 class PathFindingConfig extends ModuleBase {
     constructor() {
         super({
@@ -101,10 +103,10 @@ class Finder {
 
         Chat.messagePathfinder('§eSearching for path...');
 
-        this.PathTick();
+        this.onTick(onComplete, renderOnly);
     }
 
-    PathTick() {
+    onTick(onComplete, renderOnly) {
         if (this.tick) return;
 
         this.tick = register('tick', () => {
@@ -114,16 +116,16 @@ class Finder {
 
             if (!result) {
                 showNotification('Pathfinding Failed', 'Failed to get path result', 'ERROR', 5000);
-                //currentDestination = null;
-                //if (onComplete && typeof onComplete === 'function') onComplete(false);
-                this.DestroyTick();
+                if (onComplete && typeof onComplete === 'function') onComplete(false);
+                this.destroyTick();
                 return;
             }
 
             if (!result.keynodes || !Array.isArray(result.keynodes) || result.keynodes.length < 1) {
                 showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
                 console.error('Invalid keynodes in response:', result);
-                this.DestroyTick();
+                if (onComplete && typeof onComplete === 'function') onComplete(false);
+                this.destroyTick();
                 return;
             }
 
@@ -136,30 +138,37 @@ class Finder {
                 this.saidInfo = true;
             }
 
-            if (this.CheckForExistence(result.path)) {
-            }
-
-            const splinePath = this.CreateSplinePath(result);
+            const splinePath = this.createSplinePath(result);
 
             if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE) {
-                this.PathRendering(result, splinePath);
+                this.onRender(result, splinePath);
             }
 
-            // Rotations.drawPoints = PathConfig.RENDER_KEY_NODES;
-
-            if (splinePath) {
-                Rotations.PathRotations(splinePath);
-                Jump.detectJump(splinePath);
-            }
-
-            /*if (renderOnly) {
+            if (renderOnly) {
                 showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
                 return;
-            }*/
+            }
+
+            if (splinePath) {
+                if (Rotations.complete) {
+                    this.tick.unregister();
+                    this.tick = null;
+
+                    this.resetPath();
+
+                    if (onComplete && typeof onComplete === 'function') onComplete(true);
+                    showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+                    return;
+                }
+
+                Rotations.pathRotations(splinePath);
+                Jump.detectJump(splinePath);
+                Movement.beginMovement();
+            }
         });
     }
 
-    PathRendering(cleanPath, splinePath) {
+    onRender(cleanPath, splinePath) {
         if (this.render) return;
 
         this.render = register('postRenderWorld', () => {
@@ -189,11 +198,11 @@ class Finder {
         });
     }
 
-    CreateSplinePath(path) {
+    createSplinePath(path) {
         if (!path) return;
         let generatedSpline = [];
 
-        if (this.CheckForExistence(path.path_between_key_nodes)) {
+        if (this.checkForExistence(path.path_between_key_nodes)) {
             generatedSpline = Spline.GenerateSpline(path.path_between_key_nodes, 1);
 
             return generatedSpline;
@@ -205,7 +214,7 @@ class Finder {
         return generatedSpline;
     }
 
-    CheckForExistence(item) {
+    checkForExistence(item) {
         if (item && Array.isArray(item) && item.length) {
             return true;
         }
@@ -213,21 +222,25 @@ class Finder {
         return false;
     }
 
-    DestroyTick() {
+    destroyTick() {
         if (!this.tick) return;
         this.tick.unregister();
         this.tick = null;
     }
 
-    DestroyRender() {
+    destroyRender() {
         if (!this.render) return;
         this.render.unregister();
         this.render = null;
     }
 
     resetPath() {
-        this.DestroyTick();
-        this.DestroyRender();
+        this.destroyTick();
+        this.destroyRender();
+
+        Rotations.resetRotations();
+        Jump.reset();
+        Movement.stopMovement();
 
         this.saidInfo = false;
         this.tick = null;

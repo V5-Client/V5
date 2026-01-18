@@ -32,7 +32,7 @@ class PathRotations {
 
         this.resetRotations();
         this.onStep();
-        //this.onRender();
+        // this.onRender();
     }
 
     resetRotations() {
@@ -55,6 +55,8 @@ class PathRotations {
         this.currentTargetPoint = null;
         this.lockedAirbornePoint = null;
         this.isWaitingForLandingReach = false;
+
+        PathRotationsUtility.stopRotation();
     }
 
     onStep() {
@@ -190,7 +192,9 @@ class PathRotations {
             const playerPos = Player.getPlayer().getEyePos();
             const distToLock = Math.sqrt(this.getDistSq(playerPos, this.lockedAirbornePoint.point));
 
-            if (distToLock <= this.CATCH_UP_REACH_DISTANCE || this.currentPathPosition >= this.lockedAirbornePoint.index) {
+            const RELEASE_THRESHOLD = 5.0;
+
+            if (distToLock <= RELEASE_THRESHOLD || this.currentPathPosition >= this.lockedAirbornePoint.index) {
                 this.isWaitingForLandingReach = false;
                 this.lockedAirbornePoint = null;
             } else {
@@ -203,18 +207,16 @@ class PathRotations {
         }
 
         let targetYawIdx, targetPitchIdx;
-        if (isAirborne) {
-            targetYawIdx = this.lockedAirbornePoint.index;
-            targetPitchIdx = targetYawIdx;
-        } else {
-            const dynamicYawAhead = this.getYawLookaheadDistance();
-            targetYawIdx = Math.min(this.currentPathPosition + dynamicYawAhead, this.boxPositions.length - 1);
-            targetPitchIdx = Math.min(this.currentPathPosition + this.LOOK_AHEAD_DISTANCE, this.boxPositions.length - 1);
-        }
+
+        const dynamicYawAhead = this.getYawLookaheadDistance();
+        targetYawIdx = Math.min(this.currentPathPosition + dynamicYawAhead, this.boxPositions.length - 1);
+        targetPitchIdx = Math.min(this.currentPathPosition + this.LOOK_AHEAD_DISTANCE, this.boxPositions.length - 1);
 
         const yawPoint = this.getInterpolatedPoint(targetYawIdx);
         const pitchPoint = this.getInterpolatedPoint(targetPitchIdx);
+
         if (!yawPoint || !pitchPoint) return;
+
         this.currentTargetPoint = pitchPoint;
         this.rawTargetYaw = MathUtils.calculateAbsoluteAngles(yawPoint).yaw;
         this.rawTargetPitch = MathUtils.calculateAbsoluteAngles(pitchPoint).pitch;
@@ -298,7 +300,7 @@ class PathRotations {
         return this.wrapAngle(to - from);
     }
 
-    PathRotations(splineData) {
+    pathRotations(splineData) {
         if (!this.cachedLookPoints) {
             this.cachedLookPoints = Spline.CreateLookPoints(splineData, 1.5, false);
             this.boxPositions = this.cachedLookPoints;
