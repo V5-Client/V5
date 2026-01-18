@@ -151,24 +151,17 @@ class Bot extends ModuleBase {
         });
 
         manager.subscribe('abilityready', () => {
-            this.resetMining();
+            this.resetTickCounters();
             this.state = this.STATES.ABILITY;
         });
         manager.subscribe('abilityused', () => {
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
-            this.resetMining();
+            this.resetTickCounters();
         });
         manager.subscribe('abilitygone', () => {
             this.speedBoost = false;
-            this.resetMining();
+            this.resetTickCounters();
         });
-    }
-
-    resetMining() {
-        if (this.state !== this.STATES.MINING && this.state !== this.STATES.ABILITY) return;
-
-        this.mineTickCount = 0;
-        this.tickCount = 0;
     }
 
     resetTickCounters() {
@@ -324,7 +317,7 @@ class Bot extends ModuleBase {
         if (isSameAsLast && this.lastBlockType && this.lastBlockType !== blockName) {
             if (!this.isAirOrBedrock(blockName)) {
                 this.lastBlockType = blockName;
-                this.resetMining();
+                this.resetTickCounters();
                 return false;
             }
         }
@@ -394,9 +387,7 @@ class Bot extends ModuleBase {
 
     handleRotationOrScan() {
         if (this.manualScan) {
-            this.nukedBlock = false;
-            this.currentTarget = this.foundLocations.shift();
-            this.lowestCostBlockIndex = 0;
+            this.lowestCostBlockIndex++;
             return;
         }
 

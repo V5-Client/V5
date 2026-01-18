@@ -50,12 +50,9 @@ export default class FarmHandler {
 
         let dx = 0,
             dz = 0;
-        if (yaw >= 315 || yaw < 45)
-            dx = -1; // SOUTH
-        else if (yaw >= 45 && yaw < 135)
-            dz = -1; // WEST
-        else if (yaw >= 135 && yaw < 225)
-            dx = 1; // NORTH
+        if (yaw >= 315 || yaw < 45) dx = -1; // SOUTH
+        else if (yaw >= 45 && yaw < 135) dz = -1; // WEST
+        else if (yaw >= 135 && yaw < 225) dx = 1; // NORTH
         else if (yaw >= 225 && yaw < 315) dz = 1; // EAST
 
         for (const offset of range) {
