@@ -179,7 +179,7 @@ class PathRotations {
         const isAirborne = airFactor > 0.1;
         const dynamicAirLookahead = this.LOOK_AHEAD_DISTANCE + (this.AIRBORNE_LOOK_AHEAD - this.LOOK_AHEAD_DISTANCE) * airFactor;
 
-        if (isAirborne) {
+        if (isAirborne && !this.isWaitingForLandingReach) {
             const targetIdx = Math.min(this.currentPathPosition + dynamicAirLookahead, this.boxPositions.length - 1);
             this.lockedAirbornePoint = {
                 point: this.getInterpolatedPoint(targetIdx),
