@@ -58,6 +58,8 @@ class Combat extends ModuleBase {
 
         this.enabledPresets = new Set();
 
+        //this.addSeparator('Target Settings', false);
+
         this.addMultiToggle(
             'Target Presets',
             Object.keys(COMBAT_PRESETS),
@@ -87,6 +89,8 @@ class Combat extends ModuleBase {
             },
             'Enter mob names to target, comma separated. (e.g. "Zombie, Skeleton")'
         );
+
+        //this.addSeparator('Combat Settings', false);
 
         this.addSlider(
             'Pathfinding Threshold',
@@ -344,7 +348,6 @@ class Combat extends ModuleBase {
             const dz = z - bh.z;
             const distSq = dx * dx + dz * dz;
 
-            // 10 blocks vertical is why the 10 is there
             if (distSq < BLACKHOLE_AVOID_RADIUS * BLACKHOLE_AVOID_RADIUS && Math.abs(y - bh.y) < 10) {
                 return false;
             }
@@ -446,7 +449,6 @@ class Combat extends ModuleBase {
             return;
         }
 
-        // Keybind handles rotation here, so we don't call Rotations.rotateToEntity
         Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
 
         if (this.sprintToTarget) {
@@ -465,7 +467,6 @@ class Combat extends ModuleBase {
         if (this.isAimingAtTarget()) {
             this.tryAttack();
         } else {
-            // Force rotation if we are attacking but not aiming
             this.startRotationToTarget();
         }
     }
