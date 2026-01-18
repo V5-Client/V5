@@ -32,7 +32,7 @@ class PathRotations {
 
         this.resetRotations();
         this.onStep();
-        this.onRender();
+        //this.onRender();
     }
 
     resetRotations() {
@@ -119,7 +119,7 @@ class PathRotations {
         }
         const maxThreshold = 90;
         const severity = Math.max(0, Math.min(1, totalTurnAngle / maxThreshold));
-        return 1.0 + severity * 1.5;
+        return 1.0 + severity * 0.6;
     }
 
     handleAll() {
