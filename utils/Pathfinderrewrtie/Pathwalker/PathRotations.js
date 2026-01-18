@@ -223,16 +223,36 @@ class PathRotations {
     }
 
     applySmoothing(blendSpeed) {
+        const absoluteYawDelta = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
+        const absolutePitchDelta = this.rawTargetPitch - this.currentPitch;
+
         const yawToRaw = this.getAngleDelta(this.smoothedTargetYaw, this.rawTargetYaw);
         const pitchToRaw = this.rawTargetPitch - this.smoothedTargetPitch;
+
         this.smoothedTargetYaw = this.wrapAngle(this.smoothedTargetYaw + yawToRaw * blendSpeed);
         this.smoothedTargetPitch = this.smoothedTargetPitch + pitchToRaw * blendSpeed;
+
         let yawDelta = this.getAngleDelta(this.currentYaw, this.smoothedTargetYaw);
         if (Math.abs(yawDelta) < this.YAW_DEAD_ZONE) yawDelta = 0;
+
+        const CATCH_UP_THRESHOLD = 2.0; // Degrees before punishment kicks in
+        const PUNISHMENT_FACTOR = 1.5; // How hard to push back (multiplier)
+
+        if (Math.abs(absoluteYawDelta) > CATCH_UP_THRESHOLD) {
+            yawDelta += absoluteYawDelta * this.MIN_SMOOTH_SPEED * PUNISHMENT_FACTOR;
+        }
+
         yawDelta = Math.max(-this.MAX_YAW_VELOCITY, Math.min(this.MAX_YAW_VELOCITY, yawDelta));
+
         this.currentYaw = this.wrapAngle(this.currentYaw + yawDelta * this.YAW_SMOOTH_SPEED);
+
         let pitchDelta = this.smoothedTargetPitch - this.currentPitch;
         if (Math.abs(pitchDelta) < this.PITCH_DEAD_ZONE) pitchDelta = 0;
+
+        if (Math.abs(absolutePitchDelta) > CATCH_UP_THRESHOLD) {
+            pitchDelta += absolutePitchDelta * this.MIN_SMOOTH_SPEED * PUNISHMENT_FACTOR;
+        }
+
         this.currentPitch = this.currentPitch + pitchDelta * this.PITCH_SMOOTH_SPEED;
     }
 
