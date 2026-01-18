@@ -65,7 +65,7 @@ const manifest = {
         'OreRoutes/empty.txt': {},
         'EtherwarpRoutes/empty.txt': {},
         'FarmingMacro/points.txt': {},
-        'do_not_share_this_file': [],
+        do_not_share_this_file: [],
     },
 
     textFiles: {
