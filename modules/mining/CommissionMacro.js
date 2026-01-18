@@ -1,5 +1,4 @@
 import { Chat } from '../../utils/Chat';
-import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
 import { notificationManager } from '../../gui/NotificationManager';
 import { manager } from '../../utils/SkyblockEvents';
@@ -11,7 +10,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
-
+import { Pathfinder } from '../../utils/Pathfinderrewrtie/PathFinder';
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
@@ -233,7 +232,7 @@ class CommissionMacro extends ModuleBase {
         MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
-        stopPathing();
+        Pathfinder.resetPath();
         Mouse.regrab();
         Keybind.setKey('rightclick', false);
     }
@@ -429,7 +428,7 @@ class CommissionMacro extends ModuleBase {
         Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to: &b[${waypoint.join(', ')}]`);
 
         this.setState(STATES.TRAVELING);
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, (success) =>
+        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, (success) =>
             this.onPathComplete(success)
         );
     }
@@ -532,7 +531,7 @@ class CommissionMacro extends ModuleBase {
                 this.travelPurpose = 'EMISSARY';
 
                 const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-                findAndFollowPath(currentPos, closest, (success) => {
+                Pathfinder.findPath(currentPos, closest, (success) => {
                     this.pathfinding = false;
                     if (!success) {
                         Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
@@ -559,7 +558,7 @@ class CommissionMacro extends ModuleBase {
         if (this.pathfinding) return;
         this.pathfinding = true;
         this.travelPurpose = 'EMISSARY';
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
+        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
             if (!success) return;
             this.pathfinding = false;
         });
@@ -712,7 +711,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onCommissionComplete() {
-        stopPathing();
+        Pathfinder.resetPath();
         MiningBot.toggle(false, true);
 
         CombatBot.clearExternalTargets();

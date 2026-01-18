@@ -271,4 +271,4 @@ class Finder {
     }
 }
 
-export const PathFinder = new Finder();
+export const Pathfinder = new Finder();

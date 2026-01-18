@@ -3,7 +3,7 @@ import { PathRotationsUtility } from '../../pathfinder/PathWalker/PathRotationsU
 import { Spline } from '../PathSpline';
 import { BP } from '../../Constants';
 import RenderUtils from '../../render/RendererUtils';
-
+import { Recovery } from './PathRecovery';
 class PathRotations {
     constructor() {
         this.LOOK_AHEAD_DISTANCE = 4;
@@ -305,6 +305,9 @@ class PathRotations {
             this.cachedLookPoints = Spline.CreateLookPoints(splineData, 1.5, false);
             this.boxPositions = this.cachedLookPoints;
         }
+
+        Recovery.setRotationBoxes(this.boxPositions, this.currentBoxIndex);
+
         const player = Player.getPlayer();
         if (!player || !this.boxPositions.length) return;
         if (this.currentBoxIndex >= this.boxPositions.length - 1) {
