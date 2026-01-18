@@ -104,7 +104,8 @@ class PathRotations {
 
     getAirborneFactor() {
         const dist = this.getDistanceToFloor();
-        if (dist < 7) return 0;
+        if (dist < 10 || Client.getMinecraft().options.jumpKey.wasPressed()) return 0;
+
         const h = Math.max(0, Math.min(1, dist / 3));
         return h;
     }
