@@ -15,7 +15,7 @@ class PathRotations {
         this.CURVATURE_FULL_REDUCTION_ANGLE = 45;
         this.MIN_PITCH_LOOKAHEAD = 2.5;
         this.INITIAL_YAW_SMOOTH_SPEED = 0.1;
-        this.YAW_SMOOTH_SPEED = 0.1;
+        this.YAW_SMOOTH_SPEED = 0.08;
         this.PITCH_SMOOTH_SPEED = 0.03;
         this.TARGET_BLEND_NORMAL = 0.4;
         this.TARGET_BLEND_SKIP = 0.15;

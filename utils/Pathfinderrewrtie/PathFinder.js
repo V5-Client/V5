@@ -197,6 +197,7 @@ class Finder {
         Rotations.resetRotations();
         Jump.reset();
         Movement.stopMovement();
+        Recovery.reset();
 
         this.saidInfo = false;
         this.tick = null;
