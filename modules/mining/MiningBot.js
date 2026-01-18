@@ -819,7 +819,7 @@ class Bot extends ModuleBase {
     }
 
     glideDelay() {
-        return Math.trunc(20 - ServerInfo.getTPS())
+        return 20 - (Math.trunc(ServerInfo.getTPS()))
     }
 
     onEnable() {
