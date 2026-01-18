@@ -12,6 +12,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
 import { PlayerActionC2S, PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerInfo } from '../../utils/player/ServerInfo';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -442,7 +443,7 @@ class Bot extends ModuleBase {
         this.incrementMiningCountersIfLookingAtCurrent(fakeLookMode);
 
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
-        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost);
+        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay()
 
         if (!this.currentTarget) return;
 
@@ -815,6 +816,11 @@ class Bot extends ModuleBase {
         this.toggle(true, this.isParentManaged);
 
         return true;
+    }
+
+    glideDelay() {
+        Chat.message(Math.trunc(20 - ServerInfo.getTPS()))
+        return Math.trunc(20 - ServerInfo.getTPS())
     }
 
     onEnable() {
