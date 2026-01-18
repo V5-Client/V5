@@ -4,6 +4,8 @@ import { Utils } from './Utils';
 import { File, ProcessBuilder, isWindows, isMac, isLinux } from './Constants';
 import { Executor } from './ThreadExecutor';
 import { v5Command } from './V5Commands';
+import { attachMixin } from './AttachMixin';
+import { WindowInjection } from '../Mixins/BorderlessFullscreenMixins';
 
 const globalAssetsDir = new File('./config/ChatTriggers/assets');
 if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
@@ -43,6 +45,8 @@ class ClippingManager extends ModuleBase {
         this.segmentCount = 6;
         this.compressClips = false;
 
+        this.initMixin();
+
         this.addSlider(
             'FPS',
             15,
@@ -77,11 +81,42 @@ class ClippingManager extends ModuleBase {
             if (args && args[0] && args[0].toLowerCase() === 'compress') {
                 this.compressLatestClip();
             } else {
+                this.initMixin();
                 this.saveClip();
             }
         });
 
         register('gameUnload', () => this.stopRecording());
+    }
+
+    initMixin() {
+        const GLFW = org.lwjgl.glfw.GLFW;
+
+        attachMixin(WindowInjection, 'WindowInjection', (instance, cir) => {
+            if (!Client.getMinecraft().options.fullscreen) return;
+
+            let handle = instance.getHandle();
+            if (handle === 0) return;
+
+            GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_FALSE);
+
+            let monitor = GLFW.glfwGetWindowMonitor(handle);
+            if (monitor === 0) monitor = GLFW.glfwGetPrimaryMonitor();
+
+            let videoMode = GLFW.glfwGetVideoMode(monitor);
+
+            if (videoMode != null) {
+                let width = videoMode.width();
+                let height = videoMode.height();
+
+                GLFW.glfwSetWindowPos(handle, 0, 0);
+                GLFW.glfwSetWindowSize(handle, width, height);
+            }
+
+            cir.cancel();
+
+            GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_TRUE);
+        });
     }
 
     compressClip(inputClip) {
