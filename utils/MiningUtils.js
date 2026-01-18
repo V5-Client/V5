@@ -423,7 +423,7 @@ class RefuelService {
         this.waitTicks = 0;
         this.timeoutTicks = null;
         this.callback = null;
-        this.contactSlot = -1
+        this.contactSlot = -1;
     }
 
     setState(nextState, waitTicks = 0, timeoutTicks = null) {
@@ -458,8 +458,7 @@ class RefuelService {
 
                 Guis.setItemSlot(abiphoneSlot);
                 this.setState(this.STATES.OPEN_ABIPHONE, 5);
-                break
-
+                break;
 
             case this.STATES.OPEN_ABIPHONE:
                 Client.scheduleTask(() => {
@@ -474,18 +473,16 @@ class RefuelService {
                     if (!Player.getContainer()?.getStackInSlot(this.contactSlot)) {
                         if (this.handleTimeout('No jotraeline contact detected!')) return;
                     }
-                    if (this.contactSlot === -1) return
+                    if (this.contactSlot === -1) return;
                     this.setState(this.STATES.CLICK_CONTACT, 5);
                     break;
                 }
                 break;
 
-
             case this.STATES.CLICK_CONTACT:
                 Guis.clickSlot(this.contactSlot, false, 'LEFT');
                 this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
                 break;
-
 
             case this.STATES.WAIT_FOR_ANVIL:
                 if (Guis.guiName() === 'Drill Anvil') {
