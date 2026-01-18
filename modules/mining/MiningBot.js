@@ -819,7 +819,6 @@ class Bot extends ModuleBase {
     }
 
     glideDelay() {
-        Chat.message(Math.trunc(20 - ServerInfo.getTPS()))
         return Math.trunc(20 - ServerInfo.getTPS())
     }
 
