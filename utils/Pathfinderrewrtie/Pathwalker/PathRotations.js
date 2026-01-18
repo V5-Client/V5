@@ -21,21 +21,18 @@ class PathRotations {
         this.TARGET_BLEND_SKIP = 0.15;
         this.SKIP_RECOVERY_TICKS = 15;
         this.NODE_SKIP_THRESHOLD = 6;
-
         this.BOX_RESET_SEARCH_RANGE = 20;
         this.BOX_SWITCH_HYSTERESIS = 3;
-
         this.YAW_DEAD_ZONE = 0.3;
         this.PITCH_DEAD_ZONE = 0.15;
-
         this.MIN_SMOOTH_SPEED = 0.02;
         this.MAX_YAW_VELOCITY = 60;
-
         this.SHARP_TURN_THRESHOLD = 55;
+        this.CATCH_UP_REACH_DISTANCE = 2.5;
 
         this.resetRotations();
         this.onStep();
-        //this.onRender();
+        this.onRender();
     }
 
     resetRotations() {
@@ -56,6 +53,8 @@ class PathRotations {
         this.boxPositions = null;
         this.YAW_SMOOTH_SPEED = this.INITIAL_YAW_SMOOTH_SPEED;
         this.currentTargetPoint = null;
+        this.lockedAirbornePoint = null;
+        this.isWaitingForLandingReach = false;
     }
 
     onStep() {
@@ -104,10 +103,8 @@ class PathRotations {
 
     getAirborneFactor() {
         const dist = this.getDistanceToFloor();
-        if (dist < 10 || Client.getMinecraft().options.jumpKey.wasPressed()) return 0;
-
-        const h = Math.max(0, Math.min(1, dist / 3));
-        return h;
+        if (dist < 7 || Client.getMinecraft().options.jumpKey.wasPressed()) return 0;
+        return Math.max(0, Math.min(1, dist / this.MAX_AIR_HEIGHT));
     }
 
     getLookAheadTurnSeverity() {
@@ -177,16 +174,44 @@ class PathRotations {
 
     calculateRawTargetAngles() {
         const airFactor = this.getAirborneFactor();
-        const airLookahead = this.LOOK_AHEAD_DISTANCE + (this.AIRBORNE_LOOK_AHEAD - this.LOOK_AHEAD_DISTANCE) * airFactor;
+        const isAirborne = airFactor > 0.1;
+        const dynamicAirLookahead = this.LOOK_AHEAD_DISTANCE + (this.AIRBORNE_LOOK_AHEAD - this.LOOK_AHEAD_DISTANCE) * airFactor;
+
+        if (isAirborne) {
+            const targetIdx = Math.min(this.currentPathPosition + dynamicAirLookahead, this.boxPositions.length - 1);
+            this.lockedAirbornePoint = {
+                point: this.getInterpolatedPoint(targetIdx),
+                index: targetIdx,
+            };
+            this.isWaitingForLandingReach = true;
+        }
+
+        if (this.isWaitingForLandingReach && !isAirborne) {
+            const playerPos = Player.getPlayer().getEyePos();
+            const distToLock = Math.sqrt(this.getDistSq(playerPos, this.lockedAirbornePoint.point));
+
+            if (distToLock <= this.CATCH_UP_REACH_DISTANCE || this.currentPathPosition >= this.lockedAirbornePoint.index) {
+                this.isWaitingForLandingReach = false;
+                this.lockedAirbornePoint = null;
+            } else {
+                this.currentTargetPoint = this.lockedAirbornePoint.point;
+                const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
+                this.rawTargetYaw = angles.yaw;
+                this.rawTargetPitch = angles.pitch;
+                return;
+            }
+        }
+
         let targetYawIdx, targetPitchIdx;
-        if (airFactor > 0.1) {
-            targetYawIdx = Math.min(this.currentPathPosition + airLookahead, this.boxPositions.length - 1);
+        if (isAirborne) {
+            targetYawIdx = this.lockedAirbornePoint.index;
             targetPitchIdx = targetYawIdx;
         } else {
             const dynamicYawAhead = this.getYawLookaheadDistance();
             targetYawIdx = Math.min(this.currentPathPosition + dynamicYawAhead, this.boxPositions.length - 1);
-            targetPitchIdx = Math.min(this.currentPathPosition + airLookahead, this.boxPositions.length - 1);
+            targetPitchIdx = Math.min(this.currentPathPosition + this.LOOK_AHEAD_DISTANCE, this.boxPositions.length - 1);
         }
+
         const yawPoint = this.getInterpolatedPoint(targetYawIdx);
         const pitchPoint = this.getInterpolatedPoint(targetPitchIdx);
         if (!yawPoint || !pitchPoint) return;
@@ -233,8 +258,7 @@ class PathRotations {
     getYawLookaheadDistance() {
         const localCurvature = this.computeLocalCurvature(Math.floor(this.currentPathPosition));
         const normalizedCurvature = Math.max(0, Math.min(1, localCurvature / this.CURVATURE_FULL_REDUCTION_ANGLE));
-        const dynamicYawAhead = this.BASE_YAW_AHEAD_DISTANCE - (this.BASE_YAW_AHEAD_DISTANCE - this.MIN_YAW_AHEAD_DISTANCE) * normalizedCurvature;
-        return dynamicYawAhead;
+        return this.BASE_YAW_AHEAD_DISTANCE - (this.BASE_YAW_AHEAD_DISTANCE - this.MIN_YAW_AHEAD_DISTANCE) * normalizedCurvature;
     }
 
     computeLocalCurvature(centerIndex) {
