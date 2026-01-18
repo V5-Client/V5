@@ -10,6 +10,7 @@ import { Jump } from './Pathwalker/PathJumps';
 import { Movement } from './Pathwalker/PathMovement';
 import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
+import { Recovery } from './Pathwalker/PathRecovery';
 
 class Finder {
     constructor() {
@@ -117,6 +118,7 @@ class Finder {
                     Rotations.pathRotations(splinePath);
                     Jump.detectJump(splinePath);
                     Movement.beginMovement();
+                    Recovery.trackProgress();
                 });
             }
         });
