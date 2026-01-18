@@ -222,7 +222,7 @@ class PathRotations {
 
     PathRotations(splineData) {
         if (!this.cachedLookPoints) {
-            this.cachedLookPoints = Spline.CreateLookPoints(splineData, 1.5, true);
+            this.cachedLookPoints = Spline.CreateLookPoints(splineData, 1.5, false);
             this.boxPositions = this.cachedLookPoints;
         }
 

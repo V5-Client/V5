@@ -7,7 +7,7 @@ import { Spline } from './PathSpline';
 import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
 import { Rotations } from './Pathwalker/PathRotations';
-
+import { Jump } from './Pathwalker/PathJumps';
 class PathFindingConfig extends ModuleBase {
     constructor() {
         super({
@@ -149,6 +149,7 @@ class Finder {
 
             if (splinePath) {
                 Rotations.PathRotations(splinePath);
+                Jump.detectJump(splinePath);
             }
 
             /*if (renderOnly) {
