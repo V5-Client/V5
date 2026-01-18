@@ -459,11 +459,11 @@ class UtilsClass {
                 java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
             } else {
                 if (isWindows) {
-                    java.lang.Runtime.getRuntime().exec("rundll32 url.dll,FileProtocolHandler " + url);
+                    java.lang.Runtime.getRuntime().exec('rundll32 url.dll,FileProtocolHandler ' + url);
                 } else if (isMac) {
-                    java.lang.Runtime.getRuntime().exec("open " + url);
+                    java.lang.Runtime.getRuntime().exec('open ' + url);
                 } else if (isLinux) {
-                    java.lang.Runtime.getRuntime().exec("xdg-open " + url);
+                    java.lang.Runtime.getRuntime().exec('xdg-open ' + url);
                 }
             }
         } catch (e) {
