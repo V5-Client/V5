@@ -144,80 +144,15 @@ class PathJumps {
         let x2 = p2.x,
             y2 = p2.y,
             z2 = p2.z;
-        let dx = Math.abs(x2 - x1),
-            dy = Math.abs(y2 - y1),
-            dz = Math.abs(z2 - z1);
-        let x = Math.floor(x1),
-            y = Math.floor(y1),
-            z = Math.floor(z1);
-        let n = 1,
-            x_inc,
-            y_inc,
-            z_inc,
-            err_1,
-            err_2;
-        if (dx === 0) {
-            x_inc = 0;
-            err_1 = Infinity;
-            err_2 = Infinity;
-        } else if (x2 > x1) {
-            x_inc = 1;
-            n += Math.floor(x2) - x;
-            err_1 = (Math.floor(x1) + 1 - x1) * dy;
-            err_2 = (Math.floor(x1) + 1 - x1) * dz;
-        } else {
-            x_inc = -1;
-            n += x - Math.floor(x2);
-            err_1 = (x1 - Math.floor(x1)) * dy;
-            err_2 = (x1 - Math.floor(x1)) * dz;
+
+        blocks.push({ x: Math.floor(x1), y: Math.floor(y1), z: Math.floor(z1) });
+        blocks.push({ x: Math.floor(x2), y: Math.floor(y2), z: Math.floor(z2) });
+
+        if (Math.floor(x1) !== Math.floor(x2) && Math.floor(z1) !== Math.floor(z2)) {
+            blocks.push({ x: Math.floor(x1), y: Math.floor(y1), z: Math.floor(z2) });
+            blocks.push({ x: Math.floor(x2), y: Math.floor(y1), z: Math.floor(z1) });
         }
-        if (dy === 0) {
-            y_inc = 0;
-            err_1 -= Infinity;
-        } else if (y2 > y1) {
-            y_inc = 1;
-            n += Math.floor(y2) - y;
-            err_1 -= (Math.floor(y1) + 1 - y1) * dx;
-        } else {
-            y_inc = -1;
-            n += y - Math.floor(y2);
-            err_1 -= (y1 - Math.floor(y1)) * dx;
-        }
-        if (dz === 0) {
-            z_inc = 0;
-            err_2 -= Infinity;
-        } else if (z2 > z1) {
-            z_inc = 1;
-            n += Math.floor(z2) - z;
-            err_2 -= (Math.floor(z1) + 1 - z1) * dx;
-        } else {
-            z_inc = -1;
-            n += z - Math.floor(z2);
-            err_2 -= (z1 - Math.floor(z1)) * dx;
-        }
-        for (; n > 0; --n) {
-            blocks.push({ x, y, z });
-            if (err_1 > 0 && err_2 > 0) {
-                if (err_1 > err_2) {
-                    x += x_inc;
-                    err_1 -= dy;
-                    err_2 -= dz;
-                } else {
-                    y += y_inc;
-                    err_1 += dx;
-                }
-            } else if (err_1 > 0) {
-                x += x_inc;
-                err_1 -= dy;
-                err_2 -= dz;
-            } else if (err_2 > 0) {
-                z += z_inc;
-                err_2 -= dx;
-            } else {
-                y += y_inc;
-                err_1 += dx;
-            }
-        }
+
         return blocks;
     }
 
@@ -231,6 +166,7 @@ class PathJumps {
         const pX = Player.getX(),
             pY = Player.getY(),
             pZ = Player.getZ();
+
         path.forEach((node, index) => {
             const dSq = Math.pow(pX - (node.x + 0.5), 2) + Math.pow(pY - (node.y + 0.5), 2) + Math.pow(pZ - (node.z + 0.5), 2);
             if (dSq < minDistanceSq) {
@@ -238,10 +174,12 @@ class PathJumps {
                 closestIndex = index;
             }
         });
+
         if (closestIndex === -1) return { lookahead: [], closestIndex: -1 };
         const lookahead = [];
         const newHighlights = new Set();
         const end = Math.min(closestIndex + this.LOOKAHEAD_NODES, path.length - 1);
+
         for (let i = closestIndex; i < end; i++) {
             const intersected = this.getIntersectedBlocks(path[i], path[i + 1]);
             intersected.forEach((pos) => {
@@ -319,24 +257,37 @@ class PathJumps {
 
     checkObstacleJump(lookahead) {
         if (lookahead.length === 0) return false;
+
         const floorY = Math.floor(Player.getY() - 0.001);
+        const playerX = Player.getX();
+        const playerZ = Player.getZ();
+
+        const currentFeetBlock = this.getCachedBlock(playerX, floorY, playerZ);
+        const standingOnStair =
+            currentFeetBlock && (currentFeetBlock.type.getRegistryName().includes('stair') || currentFeetBlock.type.getRegistryName().includes('slab'));
+
         let needsJump = false,
             canWalk = false,
             headBlocked = false;
+
         for (const data of lookahead) {
-            if (data.block && data.block.type.getRegistryName().includes('snow')) continue;
             const diff = data.vec.y - floorY;
-            if (diff > this.STEP_HEIGHT && diff <= 1.25) {
+
+            const stairClimbLimit = standingOnStair ? 1.05 : this.STEP_HEIGHT;
+
+            if (diff > stairClimbLimit && diff <= 1.5) {
                 needsJump = true;
                 if (!this.hasClearance(data.vec.x, data.vec.y, data.vec.z)) headBlocked = true;
             }
+
             if (
                 data.name.includes('slab') ||
-                (data.name.includes('stair') && this.canWalkUpStairs(Player.getX(), Player.getY(), Player.getZ(), data.vec.x, data.vec.y, data.vec.z))
+                (data.name.includes('stair') && this.canWalkUpStairs(playerX, Player.getY(), playerZ, data.vec.x, data.vec.y, data.vec.z))
             ) {
                 canWalk = true;
             }
         }
+
         if (needsJump && !canWalk && !headBlocked) {
             Chat.messagePathfinder('Obstacle jump detected');
             Keybind.setKey('space', true);
@@ -360,16 +311,10 @@ class PathJumps {
             this.reset();
             return;
         }
-        const curBlock = this.getCachedBlock(Player.getX(), Player.getY(), Player.getZ());
-        if (curBlock && curBlock.type.getRegistryName().includes('snow')) {
-            this.reset();
-            return;
-        }
         if (this.checkSnowJump(lookahead)) return;
-        if (this.checkEdgeJump(path, closestIndex)) return;
+        //if (this.checkEdgeJump(path, closestIndex)) return;
         if (this.checkObstacleJump(lookahead)) return;
         Keybind.setKey('space', false);
-        this.lastLookaheadPositions = lookahead.map((d) => d.vec.y);
     }
 
     reset() {
