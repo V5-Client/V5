@@ -14,6 +14,8 @@ let authToken = null;
 let start = Date.now();
 let currentDevice = null;
 
+const jwtFile = `do_not_share_this_file`
+
 function parseJwtPayload(token) {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -32,7 +34,7 @@ function isJwtValid(token) {
 
 function saveJwt(token) {
     try {
-        Utils.writeConfigFile(getTokenFileName(), { jwt: token });
+        Utils.writeConfigFile(jwtFile, { jwt: token });
     } catch (e) {
         console.error('Failed to save chat token: ');
         console.error('V5 Caught error' + e + e.stack);
@@ -41,7 +43,7 @@ function saveJwt(token) {
 
 function loadSavedJwt() {
     try {
-        const saved = Utils.getConfigFile(getTokenFileName())?.jwt;
+        const saved = Utils.getConfigFile(jwtFile)?.jwt;
         if (isJwtValid(saved)) {
             authToken = saved;
             return authToken;
@@ -130,7 +132,7 @@ function handleIncomingMessage(raw) {
         } else if (data.type === 'system') {
             if (data.code === 'PREFIX_UPDATED') {
                 Chat.messageIrc('Your prefix has been changed');
-                Utils.writeConfigFile(getTokenFileName(), { jwt: 'reset' }); // prefix is stored in jwt
+                Utils.writeConfigFile(jwtFile, { jwt: 'reset' }); // prefix is stored in jwt
             } else if (data.code === 'MUTED') {
                 Chat.messageIrc('You have been muted until ' + new Date(data.mute_expires_at * 1000).toISOString());
             } else {
@@ -190,10 +192,6 @@ function connectWebSocket() {
     ws.connect();
 }
 
-function getTokenFileName() {
-    const uuid = Player.getUUID()?.toString()?.replaceAll('-', '');
-    return `authCache/${uuid}.json`;
-}
 
 function connectIRC() {
     if (loadSavedJwt()) {

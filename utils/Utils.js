@@ -455,9 +455,11 @@ class UtilsClass {
 
     openBrowser(url) {
         try {
-            if (java.awt.Desktop.isDesktopSupported()) {
-                java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
-            } else {
+            java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+        } catch (e) {
+            console.error('Failed to open browser (1) (ignore this error): ');
+            console.error('V5 Caught error' + e + e.stack);
+            try {
                 if (isWindows) {
                     java.lang.Runtime.getRuntime().exec('rundll32 url.dll,FileProtocolHandler ' + url);
                 } else if (isMac) {
@@ -465,10 +467,10 @@ class UtilsClass {
                 } else if (isLinux) {
                     java.lang.Runtime.getRuntime().exec('xdg-open ' + url);
                 }
+            } catch (e) {
+                console.error('Failed to open browser (2): ');
+                console.error('V5 Caught error' + e + e.stack);
             }
-        } catch (e) {
-            console.error('Failed to open browser: ');
-            console.error('V5 Caught error' + e + e.stack);
         }
     }
 }
