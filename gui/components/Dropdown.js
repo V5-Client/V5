@@ -132,7 +132,7 @@ export class MultiToggle {
             color: THEME.BG_INSET,
         });
 
-        const arrow = this.expanded ? '▲' : '▼';
+        const arrow = this.expanded ? '▼' : '▶';
         const arrowFontSize = FontSizes.SMALL;
         const arrowWidth = getTextWidth(arrow, arrowFontSize);
 
