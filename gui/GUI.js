@@ -41,6 +41,16 @@ export const showNotification = (title, description, type = 'SUCCESS', duration 
     notify(title, description, type, duration);
 };
 
+Categories.addSettingsToggle(
+    'Open all subcategories on All',
+    (value) => {
+        Categories.openAllSubcategoriesOnAll = !!value;
+    },
+    'When enabled, selecting All expands every subcategory on the Modules page.',
+    false,
+    'Modules'
+);
+
 export const addCategoryItem = (subcategoryName, title, description, tooltip = null) => {
     Categories.addCategoryItem(subcategoryName, title, description, tooltip);
 };

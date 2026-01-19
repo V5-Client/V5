@@ -1,7 +1,18 @@
 import { OverlayManager } from '../OverlayUtils';
-import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
+import {
+    isInside,
+    playClickSound,
+    easeInOutQuad,
+    PADDING,
+    SUBCATEGORY_BUTTON_HEIGHT,
+    SUBCATEGORY_BUTTON_SPACING,
+    ITEM_SPACING,
+    getTextWidth,
+    FontSizes,
+} from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
+import { Separator } from '../components/Separator';
 import { Categories } from './CategorySystem';
 import { GuiRectangles } from '../core/GuiState';
 
@@ -14,43 +25,170 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
     const directCat = Categories.categories.find((c) => c.name === categoryName);
     if (!directCat || !directCat.directComponents) return false;
 
+    if (!directCat.sectionSeparators) directCat.sectionSeparators = {};
+
     const components = directCat.directComponents;
     const panelX = panel.x;
     const panelWidth = panel.width;
+    const contentX = panelX + PADDING;
+
+    const getSeparatorProgress = (separator) => (typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1);
+
+    const getComponentHeight = (component) => {
+        let componentHeight = 48 + 6;
+        if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
+            componentHeight += component.getExpandedHeight() * component.animationProgress;
+        }
+        return componentHeight;
+    };
 
     let currentY = panel.y + PADDING - scrollY;
     let currentSection = null;
 
-    for (let i = 0; i < components.length; i++) {
+    for (let i = 0; i < components.length; ) {
         const component = components[i];
 
         if (component.sectionName && component.sectionName !== currentSection) {
             currentSection = component.sectionName;
+
             if (i > 0) currentY += 16;
+
+            let separator = directCat.sectionSeparators[currentSection];
+            if (!separator) {
+                separator = new Separator(currentSection);
+                directCat.sectionSeparators[currentSection] = separator;
+            }
+
+            separator.x = contentX;
+            separator.y = currentY;
+            separator.optionPanelWidth = panelWidth;
+            if (typeof separator.updateAnimation === 'function') separator.updateAnimation();
+
+            if (separator.handleClick(mouseX, mouseY)) {
+                return true;
+            }
+
             currentY += 26;
+
+            const sectionStartY = currentY;
+            const sectionProgress = getSeparatorProgress(separator);
+
+            let endIndex = i;
+            while (endIndex < components.length && (!components[endIndex].sectionName || components[endIndex].sectionName === currentSection)) {
+                endIndex++;
+            }
+
+            let sectionHeight = 0;
+            let manualCollapsed = false;
+            for (let j = i; j < endIndex; j++) {
+                const sectionComponent = components[j];
+                if (sectionComponent instanceof Separator) {
+                    if (typeof sectionComponent.updateAnimation === 'function') sectionComponent.updateAnimation();
+                    sectionHeight += 26;
+                    const progress = getSeparatorProgress(sectionComponent);
+                    manualCollapsed = progress <= 0;
+                    continue;
+                }
+                if (manualCollapsed) continue;
+                if (typeof sectionComponent.handleClick === 'function') {
+                    sectionHeight += getComponentHeight(sectionComponent);
+                } else {
+                    sectionHeight += 54;
+                }
+            }
+
+            const animatedSectionHeight = sectionHeight * sectionProgress;
+
+            if (animatedSectionHeight > 0) {
+                let localY = sectionStartY;
+                let localCollapsed = false;
+                for (let j = i; j < endIndex; j++) {
+                    if (localY >= sectionStartY + animatedSectionHeight) break;
+                    const sectionComponent = components[j];
+
+                    if (sectionComponent instanceof Separator) {
+                        sectionComponent.x = contentX;
+                        sectionComponent.y = localY;
+                        sectionComponent.optionPanelWidth = panelWidth;
+                        sectionComponent.optionPanelHeight = panel.height;
+                        if (typeof sectionComponent.updateAnimation === 'function') sectionComponent.updateAnimation();
+
+                        if (sectionComponent.handleClick(mouseX, mouseY)) {
+                            return true;
+                        }
+
+                        localY += 26;
+                        const progress = getSeparatorProgress(sectionComponent);
+                        localCollapsed = progress <= 0;
+                        continue;
+                    }
+
+                    if (localCollapsed) continue;
+
+                    if (typeof sectionComponent.handleClick === 'function') {
+                        const componentHeight = getComponentHeight(sectionComponent);
+                        const clickableArea = {
+                            x: contentX,
+                            y: localY,
+                            width: panelWidth - 2 * PADDING,
+                            height: componentHeight,
+                        };
+
+                        if (isInside(mouseX, mouseY, clickableArea)) {
+                            sectionComponent.x = contentX + 10;
+                            sectionComponent.y = localY;
+                            sectionComponent.optionPanelWidth = panelWidth;
+                            sectionComponent.optionPanelHeight = panel.height;
+
+                            if (sectionComponent.handleClick(mouseX, mouseY)) {
+                                return true;
+                            }
+                        }
+
+                        localY += componentHeight;
+                    } else {
+                        localY += 54;
+                    }
+                }
+            }
+
+            currentY = sectionStartY + animatedSectionHeight;
+            i = endIndex;
+            continue;
+        }
+
+        if (component instanceof Separator) {
+            component.x = contentX;
+            component.y = currentY;
+            component.optionPanelWidth = panelWidth;
+            component.optionPanelHeight = panel.height;
+            if (typeof component.updateAnimation === 'function') component.updateAnimation();
+
+            if (component.handleClick(mouseX, mouseY)) {
+                return true;
+            }
+
+            currentY += 26;
+            i++;
+            continue;
         }
 
         if (typeof component.handleClick !== 'function') {
             currentY += 54;
+            i++;
             continue;
         }
 
-        let componentHeight = 48;
-        let expansionHeight = 0;
-        if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
-            expansionHeight = component.getExpandedHeight() * component.animationProgress;
-        }
-        componentHeight += expansionHeight;
-
+        const componentHeight = getComponentHeight(component);
         const clickableArea = {
-            x: panelX + PADDING,
+            x: contentX,
             y: currentY,
             width: panelWidth - 2 * PADDING,
             height: componentHeight,
         };
 
         if (isInside(mouseX, mouseY, clickableArea)) {
-            component.x = panelX + PADDING + 10;
+            component.x = contentX + 10;
             component.y = currentY;
             component.optionPanelWidth = panelWidth;
             component.optionPanelHeight = panel.height;
@@ -60,7 +198,8 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
             }
         }
 
-        currentY += 48 + 6 + expansionHeight;
+        currentY += componentHeight;
+        i++;
     }
 
     return false;
@@ -97,6 +236,8 @@ export const handleCategoryClick = (
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);
         if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
             if (handleDirectComponentsClick(mouseX, mouseY, panel, scrollY, Categories.selected)) {
+                invalidateContentHeightCache();
+                invalidateLayoutCache();
                 return;
             }
         }
@@ -132,54 +273,129 @@ export const handleCategoryClick = (
         }
 
         const components = Categories.selectedItem.components;
-        let currentCompY = optionY + 78;
-        let currentDrawnCompY = currentCompY - scrollY;
+        const contentWidth = panel.width - PADDING * 2;
 
-        for (let i = 0; i < components.length; i++) {
-            const component = components[i];
-            if (typeof component.handleClick !== 'function') continue;
+        const getSeparatorProgress = (separator) =>
+            typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1;
 
-            const drawnCompY = currentDrawnCompY;
-            let handled = false;
-
-            component.x = optionX + 10;
-
-            let componentHeight = 48;
-            let expansionHeight = 0;
-
+        const getComponentHeight = (component) => {
+            let componentHeight = 48 + 6;
             if (typeof component.getExpandedHeight === 'function') {
                 if (component.animationProgress !== undefined) {
-                    expansionHeight = component.getExpandedHeight() * component.animationProgress;
+                    componentHeight += component.getExpandedHeight() * component.animationProgress;
                 } else {
-                    expansionHeight = component.getExpandedHeight();
+                    componentHeight += component.getExpandedHeight();
                 }
             }
-            componentHeight += expansionHeight;
+            return componentHeight;
+        };
 
-            let clickableArea = {
+        let currentDrawnCompY = optionY + 78 - scrollY;
+
+        for (let i = 0; i < components.length; ) {
+            const component = components[i];
+
+            if (component instanceof Separator) {
+                component.x = optionX;
+                component.y = currentDrawnCompY;
+                component.optionPanelWidth = panel.width;
+                component.optionPanelHeight = panel.height;
+                if (typeof component.updateAnimation === 'function') component.updateAnimation();
+
+                if (component.handleClick(mouseX, mouseY)) {
+                    invalidateContentHeightCache();
+                    invalidateLayoutCache();
+                    return;
+                }
+
+                currentDrawnCompY += 26;
+
+                const sectionStartY = currentDrawnCompY;
+                const sectionProgress = getSeparatorProgress(component);
+
+                let endIndex = i + 1;
+                while (endIndex < components.length && !(components[endIndex] instanceof Separator)) {
+                    endIndex++;
+                }
+
+                let sectionHeight = 0;
+                for (let j = i + 1; j < endIndex; j++) {
+                    const sectionComponent = components[j];
+                    if (typeof sectionComponent.handleClick === 'function') {
+                        sectionHeight += getComponentHeight(sectionComponent);
+                    } else {
+                        sectionHeight += 54;
+                    }
+                }
+
+                const animatedSectionHeight = sectionHeight * sectionProgress;
+
+                if (animatedSectionHeight > 0) {
+                    let localY = sectionStartY;
+                    for (let j = i + 1; j < endIndex; j++) {
+                        if (localY >= sectionStartY + animatedSectionHeight) break;
+                        const sectionComponent = components[j];
+
+                        if (typeof sectionComponent.handleClick !== 'function') {
+                            localY += 54;
+                            continue;
+                        }
+
+                        const componentHeight = getComponentHeight(sectionComponent);
+                        const clickableArea = {
+                            x: optionX,
+                            y: localY,
+                            width: contentWidth,
+                            height: componentHeight,
+                        };
+
+                        if (isInside(mouseX, mouseY, clickableArea)) {
+                            sectionComponent.x = optionX + 10;
+                            sectionComponent.y = localY;
+                            sectionComponent.optionPanelWidth = panel.width;
+                            sectionComponent.optionPanelHeight = panel.height;
+
+                            if (sectionComponent.handleClick(mouseX, mouseY)) {
+                                return;
+                            }
+                        }
+
+                        localY += componentHeight;
+                    }
+                }
+
+                currentDrawnCompY = sectionStartY + animatedSectionHeight;
+                i = endIndex;
+                continue;
+            }
+
+            if (typeof component.handleClick !== 'function') {
+                currentDrawnCompY += 54;
+                i++;
+                continue;
+            }
+
+            const componentHeight = getComponentHeight(component);
+            const clickableArea = {
                 x: optionX,
-                y: drawnCompY,
-                width: panel.width - 2 * PADDING,
+                y: currentDrawnCompY,
+                width: contentWidth,
                 height: componentHeight,
             };
 
             if (isInside(mouseX, mouseY, clickableArea)) {
-                component.y = drawnCompY;
+                component.x = optionX + 10;
+                component.y = currentDrawnCompY;
                 component.optionPanelWidth = panel.width;
                 component.optionPanelHeight = panel.height;
 
                 if (component.handleClick(mouseX, mouseY)) {
-                    handled = true;
+                    return;
                 }
             }
 
-            if (handled) return;
-
-            let spacingHeight = 54;
-            spacingHeight += expansionHeight;
-
-            currentCompY += spacingHeight;
-            currentDrawnCompY += spacingHeight;
+            currentDrawnCompY += componentHeight;
+            i++;
         }
 
         if (isInside(mouseX, mouseY, leftPanel)) {
@@ -335,9 +551,10 @@ export const handleCategoryClick = (
 
             if (Categories.selected === 'Settings' || Categories.selected === 'Theme') return;
 
+            let yOffset = panel.y + PADDING - scrollY;
+
             if (cat.subcategories.length > 0) {
                 let currentX = panel.x + PADDING;
-                let yOffset = panel.y + PADDING - scrollY;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];
                 for (const subcat of subcategoriesToDraw) {
                     const buttonTextWidth = getTextWidth(subcat, FontSizes.MEDIUM) + 20;
@@ -352,6 +569,27 @@ export const handleCategoryClick = (
                         if (Categories.selectedSubcategory !== newSubcatName) {
                             const oldRect = Categories.selectedSubcategoryButton || buttonRect;
                             Categories.selectedSubcategory = newSubcatName;
+                            if (newSubcatName) {
+                                const separator = cat.items.find((group) => group.type === 'separator' && group.title === newSubcatName);
+                                if (separator) {
+                                    if (separator.collapsed) separator.collapsed = false;
+                                    if (typeof separator.startAnimation === 'function') {
+                                        separator.startAnimation(true);
+                                    } else if (typeof separator.setCollapsed === 'function') {
+                                        separator.setCollapsed(false);
+                                    }
+                                }
+                            } else if (Categories.openAllSubcategoriesOnAll) {
+                                cat.items.forEach((group) => {
+                                    if (group.type !== 'separator') return;
+                                    if (group.collapsed) group.collapsed = false;
+                                    if (typeof group.startAnimation === 'function') {
+                                        group.startAnimation(true);
+                                    } else if (typeof group.setCollapsed === 'function') {
+                                        group.setCollapsed(false);
+                                    }
+                                });
+                            }
                             invalidateContentHeightCache();
                             invalidateLayoutCache();
                             Categories.subcatTransitionStart = Date.now();
@@ -378,17 +616,78 @@ export const handleCategoryClick = (
                     }
                     currentX += buttonTextWidth + SUBCATEGORY_BUTTON_SPACING;
                 }
+                yOffset += SUBCATEGORY_BUTTON_HEIGHT + PADDING;
             }
 
-            for (const layout of cachedItemLayouts) {
-                if (isInside(mouseX, mouseY, layout.rect)) {
-                    Categories.transitionType = 'page';
-                    Categories.transitionDirection = 1;
-                    Categories.transitionProgress = 0;
-                    Categories.transitionStart = Date.now();
-                    Categories.selectedItem = layout.item;
-                    playClickSound();
-                    return;
+            const itemsToDisplay = Categories.selectedSubcategory
+                ? cat.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
+                : cat.items;
+
+            const panelWidth = panel.width - PADDING * 2;
+            const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
+            let itemIndexInRow = 0;
+
+            const handleItemClick = (item, itemX, itemY) => {
+                const rect = { x: itemX, y: itemY, width: itemWidth, height: 48 };
+                if (!isInside(mouseX, mouseY, rect)) return false;
+                Categories.transitionType = 'page';
+                Categories.transitionDirection = 1;
+                Categories.transitionProgress = 0;
+                Categories.transitionStart = Date.now();
+                Categories.selectedItem = item;
+                playClickSound();
+                return true;
+            };
+
+            for (let groupIndex = 0; groupIndex < itemsToDisplay.length; groupIndex++) {
+                const group = itemsToDisplay[groupIndex];
+                if (group.type === 'separator') {
+                    if (groupIndex > 0) yOffset += 12;
+
+                    group.x = panel.x + PADDING;
+                    group.y = yOffset;
+                    group.optionPanelWidth = panel.width;
+                    if (typeof group.updateAnimation === 'function') group.updateAnimation();
+
+                    if (group.handleClick(mouseX, mouseY)) {
+                        invalidateContentHeightCache();
+                        invalidateLayoutCache();
+                        return;
+                    }
+
+                    yOffset += 22;
+
+                    const itemsInSubcategory = group.items.length;
+                    if (itemsInSubcategory > 0) {
+                        const numRows = Math.ceil(itemsInSubcategory / 3);
+                        const fullHeight = numRows * (48 + 6) - 6;
+                        const progress = typeof group.animationProgress === 'number' ? group.animationProgress : group.collapsed ? 0 : 1;
+                        const animatedItemsHeight = fullHeight * progress;
+
+                        if (animatedItemsHeight > 0) {
+                            const itemsTop = yOffset;
+                            let rowY = itemsTop;
+                            for (let i = 0; i < group.items.length; i++) {
+                                const item = group.items[i];
+                                const col = i % 3;
+                                if (col === 0 && i > 0) {
+                                    rowY += 48 + 6;
+                                }
+                                if (rowY >= itemsTop + animatedItemsHeight) break;
+                                const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
+                                if (handleItemClick(item, itemX, rowY)) return;
+                            }
+                        }
+
+                        yOffset += animatedItemsHeight;
+                    }
+                } else {
+                    if (Categories.selectedSubcategory !== null) continue;
+                    const col = itemIndexInRow % 3;
+                    if (col === 0 && itemIndexInRow > 0) yOffset += 48 + 6;
+                    const itemX = panel.x + PADDING + col * (itemWidth + ITEM_SPACING);
+                    if (handleItemClick(group, itemX, yOffset)) return;
+                    itemIndexInRow++;
                 }
             }
         }
@@ -415,8 +714,52 @@ export const handleCategoryScroll = (
             let scrollHandled = false;
             const components = directCat.directComponents;
             let componentY = panel.y + PADDING;
+            let currentSection = null;
+            let sectionCollapsed = false;
+            let manualCollapsed = false;
 
             components.forEach((component) => {
+                if (component.sectionName && component.sectionName !== currentSection) {
+                    currentSection = component.sectionName;
+                    manualCollapsed = false;
+
+                    if (directCat.sectionSeparators && directCat.sectionSeparators[currentSection]) {
+                        const separator = directCat.sectionSeparators[currentSection];
+                        const progress = typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1;
+                        sectionCollapsed = progress <= 0;
+                    } else {
+                        sectionCollapsed = false;
+                    }
+
+                    if (componentY !== panel.y + PADDING) componentY += 16;
+                    componentY += 26;
+                }
+
+                if (sectionCollapsed) return;
+
+                if (component instanceof Separator) {
+                    const compRect = {
+                        x: panel.x + PADDING,
+                        y: componentY - rightPanelScrollY,
+                        width: panel.width - PADDING * 2,
+                        height: 26,
+                    };
+
+                    if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
+                        component.optionPanelWidth = panel.width;
+                        if (component.handleScroll(mouseX, mouseY, dir)) {
+                            scrollHandled = true;
+                        }
+                    }
+
+                    componentY += 26;
+                    const progress = typeof component.animationProgress === 'number' ? component.animationProgress : component.collapsed ? 0 : 1;
+                    manualCollapsed = progress <= 0;
+                    return;
+                }
+
+                if (manualCollapsed) return;
+
                 let compHeight = 54;
                 if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
                     compHeight += component.getExpandedHeight() * component.animationProgress;
@@ -454,9 +797,31 @@ export const handleCategoryScroll = (
 
         let scrollHandled = false;
         let componentY = optionY + 78;
+        let manualCollapsed = false;
         const components = Categories.selectedItem.components;
         if (components) {
             components.forEach((component) => {
+                if (component instanceof Separator) {
+                    const compRect = {
+                        x: optionX,
+                        y: componentY - Categories.optionsScrollY,
+                        width: panel.width - PADDING * 2,
+                        height: 26,
+                    };
+                    if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
+                        component.optionPanelWidth = panel.width;
+                        if (component.handleScroll(mouseX, mouseY, dir)) {
+                            scrollHandled = true;
+                        }
+                    }
+                    componentY += 26;
+                    const progress = typeof component.animationProgress === 'number' ? component.animationProgress : component.collapsed ? 0 : 1;
+                    manualCollapsed = progress <= 0;
+                    return;
+                }
+
+                if (manualCollapsed) return;
+
                 let compHeight = 54;
 
                 let expansionHeight = 0;

@@ -58,7 +58,7 @@ class Combat extends ModuleBase {
 
         this.enabledPresets = new Set();
 
-        //this.addSeparator('Target Settings', false);
+        this.addSeparator('Target Settings', false);
 
         this.addMultiToggle(
             'Target Presets',
@@ -90,7 +90,7 @@ class Combat extends ModuleBase {
             'Enter mob names to target, comma separated. (e.g. "Zombie, Skeleton")'
         );
 
-        //this.addSeparator('Combat Settings', false);
+        this.addSeparator('Combat Settings', false);
 
         this.addSlider(
             'Pathfinding Threshold',

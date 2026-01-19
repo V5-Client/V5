@@ -1,6 +1,7 @@
 import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
+import { Separator } from '../components/Separator';
 import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawDirectComponents, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor } from '../Utils';
@@ -46,26 +47,76 @@ export const createCategoriesManager = (deps) => {
         const directCat = Categories.categories.find((c) => c.name === categoryName);
         if (!directCat || !directCat.directComponents) return 0;
 
+        if (!directCat.sectionSeparators) directCat.sectionSeparators = {};
+
+        const components = directCat.directComponents;
         let height = PADDING;
         let currentSection = null;
 
-        directCat.directComponents.forEach((component, index) => {
-            if (component.sectionName && component.sectionName !== currentSection) {
-                currentSection = component.sectionName;
-                if (index > 0) height += 16;
-                height += 26;
-            }
+        const getSeparatorProgress = (separator) =>
+            typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1;
 
+        const getComponentHeight = (component) => {
             let componentHeight = 48 + 6;
-
             if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                 if (component.animationProgress !== undefined) {
                     componentHeight += component.getExpandedHeight() * component.animationProgress;
                 }
             }
+            return componentHeight;
+        };
 
-            height += componentHeight;
-        });
+        for (let i = 0; i < components.length; ) {
+            const component = components[i];
+
+            if (component.sectionName && component.sectionName !== currentSection) {
+                currentSection = component.sectionName;
+                if (i > 0) height += 16;
+                height += 26;
+
+                const separator = directCat.sectionSeparators[currentSection];
+                const sectionProgress = separator ? getSeparatorProgress(separator) : 1;
+
+                let endIndex = i;
+                while (endIndex < components.length && (!components[endIndex].sectionName || components[endIndex].sectionName === currentSection)) {
+                    endIndex++;
+                }
+
+                let sectionHeight = 0;
+                let manualCollapsed = false;
+                for (let j = i; j < endIndex; j++) {
+                    const sectionComponent = components[j];
+                    if (sectionComponent instanceof Separator) {
+                        sectionHeight += 26;
+                        const progress = getSeparatorProgress(sectionComponent);
+                        manualCollapsed = progress <= 0;
+                        continue;
+                    }
+                    if (manualCollapsed) continue;
+                    if (typeof sectionComponent.draw === 'function') {
+                        sectionHeight += getComponentHeight(sectionComponent);
+                    }
+                }
+
+                height += sectionHeight * sectionProgress;
+                i = endIndex;
+                continue;
+            }
+
+            if (component instanceof Separator) {
+                height += 26;
+                i++;
+                continue;
+            }
+
+            if (typeof component.draw !== 'function') {
+                i++;
+                continue;
+            }
+
+            height += getComponentHeight(component);
+            i++;
+        }
 
         height += PADDING;
         return height;
@@ -112,7 +163,9 @@ export const createCategoriesManager = (deps) => {
                         const itemsInSubcategory = group.items.length;
                         if (itemsInSubcategory > 0) {
                             const numRows = Math.ceil(itemsInSubcategory / 3);
-                            height += numRows * (48 + 6);
+                            const fullHeight = numRows * (48 + 6) - 6;
+                            const progress = typeof group.animationProgress === 'number' ? group.animationProgress : group.collapsed ? 0 : 1;
+                            height += fullHeight * progress;
                         }
                     } else {
                         nonGroupedItemCount++;
@@ -131,13 +184,59 @@ export const createCategoriesManager = (deps) => {
             let height = 78 + PADDING;
             const components = Categories.selectedItem.components;
             if (components) {
-                components.forEach((component) => {
-                    let compHeight = 54;
+                const getSeparatorProgress = (separator) =>
+                    typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1;
+
+                const getComponentHeight = (component) => {
+                    let componentHeight = 48 + 6;
                     if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
-                        compHeight += component.getExpandedHeight() * (component.animationProgress || 0);
+                        componentHeight += component.getExpandedHeight() * (component.animationProgress || 0);
                     }
-                    height += compHeight;
-                });
+                    return componentHeight;
+                };
+
+                for (let i = 0; i < components.length; ) {
+                    const component = components[i];
+
+                    if (component instanceof Separator) {
+                        height += 26;
+                        const sectionProgress = getSeparatorProgress(component);
+
+                        let endIndex = i + 1;
+                        while (endIndex < components.length && !(components[endIndex] instanceof Separator)) {
+                            endIndex++;
+                        }
+
+                        let sectionHeight = 0;
+                        for (let j = i + 1; j < endIndex; j++) {
+                            const sectionComponent = components[j];
+                            if (
+                                (sectionComponent instanceof MultiToggle ||
+                                    sectionComponent instanceof ColorPicker ||
+                                    typeof sectionComponent.getExpandedHeight === 'function') &&
+                                sectionComponent.animationProgress !== undefined
+                            ) {
+                                sectionHeight += getComponentHeight(sectionComponent);
+                            } else if (typeof sectionComponent.draw === 'function') {
+                                sectionHeight += getComponentHeight(sectionComponent);
+                            } else {
+                                sectionHeight += 54;
+                            }
+                        }
+
+                        height += sectionHeight * sectionProgress;
+                        i = endIndex;
+                        continue;
+                    }
+
+                    if (typeof component.draw !== 'function') {
+                        i++;
+                        continue;
+                    }
+
+                    height += getComponentHeight(component);
+                    i++;
+                }
             }
             height += PADDING;
             return height;
@@ -153,12 +252,20 @@ export const createCategoriesManager = (deps) => {
 
         const checkComponentsForAnim = (components) => {
             if (!components) return false;
-            return components.some((c) => (c instanceof MultiToggle || c instanceof ColorPicker) && c.animStart !== 0);
+            return components.some((c) => (c instanceof MultiToggle || c instanceof ColorPicker || c instanceof Separator) && c.animStart !== 0);
+        };
+
+        const checkCategoryItemsForAnim = (category) => {
+            if (!category || !category.items) return false;
+            return category.items.some((group) => group instanceof Separator && group.animStart !== 0);
         };
 
         if (Categories.currentPage === 'categories') {
             const directCat = Categories.categories.find((c) => c.name === Categories.selected);
             if (directCat?.directComponents && checkComponentsForAnim(directCat.directComponents)) {
+                activeComponentAnimation = true;
+            }
+            if (!activeComponentAnimation && checkCategoryItemsForAnim(directCat)) {
                 activeComponentAnimation = true;
             }
         } else if (Categories.currentPage === 'options' && Categories.selectedItem) {
@@ -265,11 +372,9 @@ export const createCategoriesManager = (deps) => {
             getCategoryRect,
             () => {
                 isLayoutCacheValid = false;
-                resetCategoryScroll();
             },
             () => {
                 isContentHeightCacheValid = false;
-                resetCategoryScroll();
             },
             resetCategoryScroll
         );

@@ -1,5 +1,6 @@
 import {
     PADDING,
+    BORDER_WIDTH,
     CATEGORY_HEIGHT,
     CATEGORY_PADDING,
     ITEM_SPACING,
@@ -14,6 +15,8 @@ import {
     drawCircularImage,
     scissor,
     resetScissor,
+    pushScissor,
+    popScissor,
     FontSizes,
     getDiscordPfpPath,
     colorWithAlpha,
@@ -127,47 +130,145 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
     const cat = Categories.categories.find((c) => c.name === categoryName);
     if (!cat || !cat.directComponents) return yOffset;
 
+    if (!cat.sectionSeparators) cat.sectionSeparators = {};
+
     const components = cat.directComponents;
     const panelWidth = panel.width;
+    const contentX = panelX + PADDING;
+    const contentWidth = panelWidth - PADDING * 2;
+
+    const getSeparatorProgress = (separator) => (typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1);
+
+    const getComponentHeight = (component) => {
+        let componentHeight = 48 + 6;
+        if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+            if (component.animationProgress !== undefined) {
+                componentHeight += component.getExpandedHeight() * component.animationProgress;
+            }
+        }
+        return componentHeight;
+    };
 
     let currentY = yOffset - scrollY;
     let currentSection = null;
 
-    components.forEach((component, index) => {
+    for (let i = 0; i < components.length; ) {
+        const component = components[i];
+
         if (component.sectionName && component.sectionName !== currentSection) {
             currentSection = component.sectionName;
 
-            if (index > 0) currentY += 16;
+            if (i > 0) currentY += 16;
 
-            const separator = new Separator(currentSection);
-            separator.x = panelX + PADDING;
+            let separator = cat.sectionSeparators[currentSection];
+            if (!separator) {
+                separator = new Separator(currentSection);
+                cat.sectionSeparators[currentSection] = separator;
+            }
+            separator.x = contentX;
             separator.y = currentY;
             separator.optionPanelWidth = panelWidth;
             separator.draw(mouseX, mouseY);
 
             currentY += 26;
+
+            const sectionStartY = currentY;
+            const sectionProgress = getSeparatorProgress(separator);
+
+            let endIndex = i;
+            while (endIndex < components.length && (!components[endIndex].sectionName || components[endIndex].sectionName === currentSection)) {
+                endIndex++;
+            }
+
+            let sectionHeight = 0;
+            let manualCollapsed = false;
+            for (let j = i; j < endIndex; j++) {
+                const sectionComponent = components[j];
+                if (sectionComponent instanceof Separator) {
+                    sectionHeight += 26;
+                    const progress = getSeparatorProgress(sectionComponent);
+                    manualCollapsed = progress <= 0;
+                    continue;
+                }
+                if (manualCollapsed) continue;
+                if (typeof sectionComponent.draw === 'function') {
+                    sectionHeight += getComponentHeight(sectionComponent);
+                }
+            }
+
+            const animatedSectionHeight = sectionHeight * sectionProgress;
+
+            if (animatedSectionHeight > 0) {
+                const scissorPadding = BORDER_WIDTH + 1;
+                const scissorX = contentX - scissorPadding;
+                const scissorY = sectionStartY - scissorPadding;
+                const scissorWidth = contentWidth + scissorPadding * 2;
+                const scissorHeight = animatedSectionHeight + scissorPadding * 2;
+                pushScissor(scissorX, scissorY, scissorWidth, scissorHeight);
+
+                let localY = sectionStartY;
+                let localCollapsed = false;
+                for (let j = i; j < endIndex; j++) {
+                    if (localY >= sectionStartY + animatedSectionHeight) break;
+                    const sectionComponent = components[j];
+
+                    if (sectionComponent instanceof Separator) {
+                        sectionComponent.x = contentX;
+                        sectionComponent.y = localY;
+                        sectionComponent.optionPanelWidth = panelWidth;
+                        sectionComponent.optionPanelHeight = panel.height;
+                        sectionComponent.draw(mouseX, mouseY);
+                        localY += 26;
+                        const progress = getSeparatorProgress(sectionComponent);
+                        localCollapsed = progress <= 0;
+                        continue;
+                    }
+
+                    if (localCollapsed) continue;
+
+                    if (typeof sectionComponent.draw === 'function') {
+                        sectionComponent.x = contentX + 10;
+                        sectionComponent.y = localY;
+                        sectionComponent.optionPanelWidth = panelWidth;
+                        sectionComponent.optionPanelHeight = panel.height;
+                        sectionComponent.draw(mouseX, mouseY);
+                        localY += getComponentHeight(sectionComponent);
+                    }
+                }
+
+                popScissor();
+            }
+
+            currentY = sectionStartY + animatedSectionHeight;
+            i = endIndex;
+            continue;
         }
 
-        if (typeof component.draw === 'function') {
-            const xOffset = component instanceof Separator ? 0 : 10;
-            component.x = panelX + PADDING + xOffset;
+        if (component instanceof Separator) {
+            component.x = contentX;
             component.y = currentY;
             component.optionPanelWidth = panelWidth;
             component.optionPanelHeight = panel.height;
             component.draw(mouseX, mouseY);
-
-            let componentHeight = 48 + 6;
-
-            if (component instanceof Separator) {
-                componentHeight = 26;
-            } else if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
-                if (component.animationProgress !== undefined) {
-                    componentHeight += component.getExpandedHeight() * component.animationProgress;
-                }
+            currentY += 26;
+            const progress = getSeparatorProgress(component);
+            if (progress <= 0) {
+                i++;
+                continue;
             }
-            currentY += componentHeight;
         }
-    });
+
+        if (typeof component.draw === 'function') {
+            component.x = contentX + 10;
+            component.y = currentY;
+            component.optionPanelWidth = panelWidth;
+            component.optionPanelHeight = panel.height;
+            component.draw(mouseX, mouseY);
+            currentY += getComponentHeight(component);
+        }
+
+        i++;
+    }
 
     return currentY + scrollY;
 };
@@ -199,25 +300,96 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const dividerY = optionY + 66 - scrollY;
     drawRoundedRectangle({ x: backButtonX, y: dividerY, width: panel.width - PADDING * 2 - 20, height: 1, radius: 1, color: THEME.BG_INSET });
 
+    const components = selectedItem.components;
+    const contentWidth = panel.width - PADDING * 2;
+
+    const getSeparatorProgress = (separator) => (typeof separator.animationProgress === 'number' ? separator.animationProgress : separator.collapsed ? 0 : 1);
+
+    const getComponentHeight = (component) => {
+        let componentHeight = 48 + 6;
+        if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+            if (component.animationProgress !== undefined) {
+                componentHeight += component.getExpandedHeight() * component.animationProgress;
+            }
+        }
+        return componentHeight;
+    };
+
     let drawnCompY = optionY + 78 - scrollY;
-    selectedItem.components.forEach((component) => {
-        if (typeof component.draw !== 'function') return;
-        const isSeparator = component instanceof Separator;
-        const xOffset = isSeparator ? 0 : 10;
-        component.x = optionX + xOffset;
+
+    for (let i = 0; i < components.length; ) {
+        const component = components[i];
+
+        if (component instanceof Separator) {
+            component.x = optionX;
+            component.y = drawnCompY;
+            component.optionPanelWidth = panel.width;
+            component.optionPanelHeight = panel.height;
+            component.draw(mouseX, mouseY);
+
+            drawnCompY += 26;
+
+            const sectionStartY = drawnCompY;
+            const sectionProgress = getSeparatorProgress(component);
+
+            let endIndex = i + 1;
+            while (endIndex < components.length && !(components[endIndex] instanceof Separator)) {
+                endIndex++;
+            }
+
+            let sectionHeight = 0;
+            for (let j = i + 1; j < endIndex; j++) {
+                const sectionComponent = components[j];
+                if (typeof sectionComponent.draw === 'function') {
+                    sectionHeight += getComponentHeight(sectionComponent);
+                }
+            }
+
+            const animatedSectionHeight = sectionHeight * sectionProgress;
+
+            if (animatedSectionHeight > 0) {
+                const scissorPadding = BORDER_WIDTH + 1;
+                const scissorX = optionX - scissorPadding;
+                const scissorY = sectionStartY - scissorPadding;
+                const scissorWidth = contentWidth + scissorPadding * 2;
+                const scissorHeight = animatedSectionHeight + scissorPadding * 2;
+
+                pushScissor(scissorX, scissorY, scissorWidth, scissorHeight);
+
+                let localY = sectionStartY;
+                for (let j = i + 1; j < endIndex; j++) {
+                    if (localY >= sectionStartY + animatedSectionHeight) break;
+                    const sectionComponent = components[j];
+                    if (typeof sectionComponent.draw !== 'function') continue;
+                    sectionComponent.x = optionX + 10;
+                    sectionComponent.y = localY;
+                    sectionComponent.optionPanelWidth = panel.width;
+                    sectionComponent.optionPanelHeight = panel.height;
+                    sectionComponent.draw(mouseX, mouseY);
+                    localY += getComponentHeight(sectionComponent);
+                }
+
+                popScissor();
+            }
+
+            drawnCompY = sectionStartY + animatedSectionHeight;
+            i = endIndex;
+            continue;
+        }
+
+        if (typeof component.draw !== 'function') {
+            i++;
+            continue;
+        }
+
+        component.x = optionX + 10;
         component.y = drawnCompY;
         component.optionPanelWidth = panel.width;
         component.optionPanelHeight = panel.height;
         component.draw(mouseX, mouseY);
-        let thisHeight = isSeparator ? 26 : 48 + 6;
-
-        if (!isSeparator && (component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
-            if (component.animationProgress !== undefined) {
-                thisHeight += component.getExpandedHeight() * component.animationProgress;
-            }
-        }
-        drawnCompY += thisHeight;
-    });
+        drawnCompY += getComponentHeight(component);
+        i++;
+    }
 };
 
 export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
@@ -360,15 +532,43 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             group.draw(mouseX, mouseY);
 
             yOffset += 22;
-            let subcategoryItemsInRow = 0;
-            group.items.forEach((item) => {
-                const col = subcategoryItemsInRow % 3;
-                if (col === 0 && subcategoryItemsInRow > 0) yOffset += 48 + 6;
-                const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-                drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, true);
-                subcategoryItemsInRow++;
-            });
-            if (group.items.length > 0) yOffset += 48;
+
+            const itemsCount = group.items.length;
+            if (itemsCount > 0) {
+                const rows = Math.ceil(itemsCount / 3);
+                const fullItemsHeight = rows * (48 + 6) - 6;
+                const progress = typeof group.animationProgress === 'number' ? group.animationProgress : group.collapsed ? 0 : 1;
+                const animatedItemsHeight = fullItemsHeight * progress;
+
+                if (animatedItemsHeight > 0) {
+                    const itemsTop = yOffset;
+                    const scissorPadding = BORDER_WIDTH + 1;
+                    const scissorX = panelX + PADDING - scissorPadding;
+                    const scissorWidth = panelWidth + scissorPadding * 2;
+                    const scissorY = itemsTop - scissorPadding;
+                    const scissorHeight = animatedItemsHeight + scissorPadding * 2;
+
+                    pushScissor(scissorX, scissorY, scissorWidth, scissorHeight);
+
+                    let subcategoryItemsInRow = 0;
+                    let rowY = itemsTop;
+                    for (let i = 0; i < group.items.length; i++) {
+                        const item = group.items[i];
+                        const col = subcategoryItemsInRow % 3;
+                        if (col === 0 && subcategoryItemsInRow > 0) {
+                            rowY += 48 + 6;
+                        }
+                        if (rowY >= itemsTop + animatedItemsHeight) break;
+                        const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
+                        drawItemBox(item, itemX, rowY, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, true);
+                        subcategoryItemsInRow++;
+                    }
+
+                    popScissor();
+                }
+
+                yOffset += animatedItemsHeight;
+            }
         } else {
             if (Categories.selectedSubcategory !== null) return;
             const item = group;

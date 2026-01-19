@@ -129,6 +129,14 @@ export const scissor = (x, y, w, h) => {
     NVG.scissor(x, y, w, h);
 };
 
+export const pushScissor = (x, y, w, h) => {
+    NVG.pushScissor(x, y, w, h);
+};
+
+export const popScissor = () => {
+    NVG.popScissor();
+};
+
 export const resetScissor = () => {
     NVG.resetScissor();
 };

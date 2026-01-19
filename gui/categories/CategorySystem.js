@@ -40,6 +40,7 @@ export const Categories = {
     previousSelected: null,
     transitionType: null,
     animationRect: null,
+    openAllSubcategoriesOnAll: false,
 
     catAnimationRect: null,
     catTransitionStart: 0,
