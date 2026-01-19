@@ -34,6 +34,7 @@ class Bot extends ModuleBase {
         this.MOVEMENT = false;
         this.SCAN_ONLY = false;
         this.DEBUG_MODE = false;
+        this.ADDITIONAL_LAG_COMP = 0;
 
         this.STATES = { WAITING: 0, ABILITY: 1, MINING: 2, BUFF: 3, REFUEL: 4 };
         this.TYPES = { MININGBOT: 0, COMMISSION: 1, GEMSTONE: 2, ORE: 3, TUNNEL: 4 };
@@ -178,6 +179,16 @@ class Bot extends ModuleBase {
             },
             'Predicts when blocks are broken to begin mining the next block early.',
             true
+        );
+        this.addSlider(
+            'Additional lag compensation',
+            0,
+            5,
+            1,
+            (value) => {
+                this.ADDITIONAL_LAG_COMP = value;
+            },
+            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)'
         );
         this.addToggle(
             'Jasper Drill Exploit',
@@ -819,7 +830,7 @@ class Bot extends ModuleBase {
     }
 
     glideDelay() {
-        return 20 - Math.trunc(ServerInfo.getTPS());
+        return 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS());
     }
 
     onEnable() {
