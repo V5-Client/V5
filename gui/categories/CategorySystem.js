@@ -209,6 +209,13 @@ export const Categories = {
         return picker;
     },
 
+    addSettingsTextInput(title, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
+        const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
+        input.description = description;
+        Categories.addSettingsComponent(input, sectionName, categoryName);
+        return input;
+    },
+
     addSettingsSeparator(title, categoryName = 'Settings') {
         const separator = new Separator(title);
         Categories.addSettingsComponent(separator, null, categoryName);

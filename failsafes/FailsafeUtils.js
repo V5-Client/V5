@@ -45,7 +45,10 @@ class FailsafeUtils {
             );
         }
 
-        const isEnabled = config['Failsafes'][`${name} Failsafe`] ?? true;
+        const enabledList = config['Failsafes']['Enabled Failsafes'];
+        const isEnabled = Array.isArray(enabledList)
+            ? enabledList.some((entry) => entry.name === name && entry.enabled)
+            : (config['Failsafes'][`${name} Failsafe`] ?? true);
         const playerProximityDistance = config['Failsafes']['Player Proximity Distance'] ?? 3;
         const pingOnCheck = config['Failsafes']['Ping on check'] ?? true;
         const playSoundOnCheck = config['Failsafes']['Play sound on check'] ?? true;

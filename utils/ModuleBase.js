@@ -23,6 +23,7 @@ export class ModuleBase {
         this.tooltip = opts.tooltip || null;
         this.enabled = false;
         this.oid = null;
+        this.hideInModules = opts.hideInModules === true;
 
         this.isParentManaged = false;
 
@@ -33,9 +34,11 @@ export class ModuleBase {
         this._conditionalChecker = null;
 
         // add to gui
-        Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
-        if (opts.showEnabledToggle !== false) {
-            Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
+        if (!this.hideInModules) {
+            Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
+            if (opts.showEnabledToggle !== false) {
+                Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
+            }
         }
 
         if (opts.autoDisableOnWorldUnload) {
@@ -202,6 +205,18 @@ export class ModuleBase {
     }
 
     /**
+     * Add a toggle directly to the Settings page
+     * @param {string} title - The title of the toggle
+     * @param {function} callback - Callback function when toggle state changes
+     * @param {string} [description=null] - Description/tooltip for the toggle
+     * @param {boolean} [defaultValue=false] - Optional: Default value for the toggle
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectToggle(title, callback, description = null, defaultValue = false, sectionName = null) {
+        Categories.addSettingsToggle(title, callback, description, defaultValue, sectionName, 'Settings');
+    }
+
+    /**
      * Add a slider control to the module's GUI
      * @param {string} title - The title of the slider
      * @param {number} min - Minimum value
@@ -212,6 +227,20 @@ export class ModuleBase {
      */
     addSlider(title, min, max, def, callback, description = null) {
         Categories.addSlider('Modules', this.name, title, min, max, def, callback, description);
+    }
+
+    /**
+     * Add a slider directly to the Settings page
+     * @param {string} title - The title of the slider
+     * @param {number} min - Minimum value
+     * @param {number} max - Maximum value
+     * @param {number} def - Default value
+     * @param {function} callback - Callback function when slider value changes
+     * @param {string} [description=null] - Description/tooltip for the slider
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectSlider(title, min, max, def, callback, description = null, sectionName = null) {
+        Categories.addSettingsSlider(title, min, max, def, callback, description, sectionName, 'Settings');
     }
 
     /**
@@ -228,6 +257,20 @@ export class ModuleBase {
     }
 
     /**
+     * Add a range slider directly to the Settings page
+     * @param {string} title - The title of the slider
+     * @param {number} min - Minimum value
+     * @param {number} max - Maximum value
+     * @param {object} def - Default values {low, high}
+     * @param {function} callback - Callback function when slider value changes
+     * @param {string} [description=null] - Description/tooltip for the slider
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectRangeSlider(title, min, max, def, callback, description = null, sectionName = null) {
+        Categories.addSettingsRangeSlider(title, min, max, def, callback, description, sectionName, 'Settings');
+    }
+
+    /**
      * Add a multi-toggle control to the module's GUI
      * @param {string} title - The title of the multi-toggle
      * @param {Array} options - Array of option names
@@ -238,6 +281,20 @@ export class ModuleBase {
      */
     addMultiToggle(title, options, singleSelect, callback, description = null, defaultValue = false) {
         Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
+    }
+
+    /**
+     * Add a multi-toggle directly to the Settings page
+     * @param {string} title - The title of the multi-toggle
+     * @param {Array} options - Array of option names
+     * @param {boolean} [singleSelect=false] - Whether only one option can be selected at a time
+     * @param {function} callback - Callback function when selection changes
+     * @param {string} [description=null] - Description/tooltip for the multi-toggle
+     * @param {string} [defaultValue=false] - Optional: Default selected option name
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectMultiToggle(title, options, singleSelect, callback, description = null, defaultValue = false, sectionName = null) {
+        Categories.addSettingsMultiToggle(title, options, !!singleSelect, callback, description, defaultValue, sectionName, 'Settings');
     }
 
     /**
@@ -252,6 +309,18 @@ export class ModuleBase {
     }
 
     /**
+     * Add a color picker directly to the Settings page
+     * @param {string} title - The title of the color picker
+     * @param {object} defaultColor - Default color (java.awt.Color)
+     * @param {function} callback - Callback function when color changes
+     * @param {string} [description=null] - Description/tooltip for the color picker
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectColorPicker(title, defaultColor, callback, description = null, sectionName = null) {
+        Categories.addSettingsColorPicker(title, defaultColor, callback, description, sectionName, 'Settings');
+    }
+
+    /**
      * Add a text input to the module's GUI
      * @param {string} title - The title of the text input
      * @param {string} defaultValue - Default text
@@ -263,12 +332,32 @@ export class ModuleBase {
     }
 
     /**
+     * Add a text input directly to the Settings page
+     * @param {string} title - The title of the text input
+     * @param {string} defaultValue - Default text
+     * @param {function} callback - Callback function when text changes
+     * @param {string} [description=null] - Description/tooltip
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectTextInput(title, defaultValue, callback, description = null, sectionName = null) {
+        Categories.addSettingsTextInput(title, defaultValue, callback, description, sectionName, 'Settings');
+    }
+
+    /**
      * Add a separator to the module's GUI
      * @param {string} title - The title of the separator
      * @param {boolean} [fullWidth=false] - Whether the separator spans the full panel width
      */
     addSeparator(title, fullWidth = false) {
         Categories.addSeparator('Modules', this.name, title, fullWidth);
+    }
+
+    /**
+     * Add a separator directly to the Settings page
+     * @param {string} title - The title of the separator
+     */
+    addDirectSeparator(title) {
+        Categories.addSettingsSeparator(title, 'Settings');
     }
 
     // Allow for overriding onEnable and onDisable if you need more control

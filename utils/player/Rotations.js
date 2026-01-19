@@ -10,13 +10,14 @@ class RotationConfig extends ModuleBase {
             description: 'Rotations settings for all modules - excludes Pathfinder',
             tooltip: 'Rotations settings for all modules - excludes Pathfinder',
             showEnabledToggle: false,
+            hideInModules: true,
         });
 
         this.ROTATION_SPEED = 400;
         this.rotationMode = 'Non-linear';
         this.DAMPING_DIST = 60.0;
 
-        this.addMultiToggle(
+        this.addDirectMultiToggle(
             'Rotation Mode',
             ['Linear', 'Non-linear (recommended)', 'Instant'],
             true,
@@ -28,10 +29,11 @@ class RotationConfig extends ModuleBase {
                 }
             },
             '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise\n• Instant rotations snap to the target immediately.',
-            'Non-linear (recommended)'
+            'Non-linear (recommended)',
+            'Rotations'
         );
 
-        this.addSlider(
+        this.addDirectSlider(
             'Rotation Speed',
             30,
             60,
@@ -39,7 +41,8 @@ class RotationConfig extends ModuleBase {
             (v) => {
                 this.ROTATION_SPEED = v * 10;
             },
-            'Degrees per second'
+            'Degrees per second',
+            'Rotations'
         );
     }
 }

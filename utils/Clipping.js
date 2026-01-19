@@ -36,6 +36,7 @@ class ClippingManager extends ModuleBase {
             description: 'Background recording and clipping utility. Supposed to be used by failsafes.',
             tooltip: 'Records rolling buffer. Use /clip to save.',
             showEnabledToggle: true,
+            hideInModules: true,
         });
 
         this.process = null;
@@ -47,7 +48,7 @@ class ClippingManager extends ModuleBase {
 
         this.initMixin();
 
-        this.addSlider(
+        this.addDirectSlider(
             'FPS',
             15,
             30,
@@ -55,10 +56,11 @@ class ClippingManager extends ModuleBase {
             (v) => {
                 this.fps = Math.floor(v);
             },
-            'Recording Framerate. Higher values use more CPU.'
+            'Recording Framerate. Higher values use more CPU.',
+            'Clipping'
         );
 
-        this.addSlider(
+        this.addDirectSlider(
             'Segment Count',
             6,
             30,
@@ -66,15 +68,18 @@ class ClippingManager extends ModuleBase {
             (v) => {
                 this.segmentCount = Math.floor(v);
             },
-            'Number of segments to include in clips. Each segment is 5 seconds.'
+            'Number of segments to include in clips. Each segment is 5 seconds.',
+            'Clipping'
         );
 
-        this.addToggle(
+        this.addDirectToggle(
             'Compress Clips',
             (v) => {
                 this.compressClips = v;
             },
-            'Automatically compresses clips to reduce file size.'
+            'Automatically compresses clips to reduce file size.',
+            false,
+            'Clipping'
         );
 
         v5Command('clip', (...args) => {

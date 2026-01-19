@@ -11,30 +11,37 @@ class PathRegistry extends ModuleBase {
             description: 'Pathfinding Utilities',
             tooltip: 'Pathfinding Utilities',
             showEnabledToggle: false,
+            hideInModules: true,
         });
 
-        this.addToggle(
+        this.addDirectToggle(
             'Pathfinding Debug',
             (value) => {
                 setPathfindingDebug(value);
             },
-            'Enables pathfinding debug mode'
+            'Enables pathfinding debug mode',
+            false,
+            'Pathfinding'
         );
 
-        this.addToggle(
+        this.addDirectToggle(
             'Render Key Nodes',
             (value) => {
                 setRenderKeyNodes(value);
             },
-            'Renders the key nodes of the path'
+            'Renders the key nodes of the path',
+            false,
+            'Pathfinding'
         );
 
-        this.addToggle(
+        this.addDirectToggle(
             'Render Floating Spline',
             (value) => {
                 setRenderFloatingSpline(value);
             },
-            'Renders the floating spline of the path'
+            'Renders the floating spline of the path',
+            false,
+            'Pathfinding'
         );
     }
 }
