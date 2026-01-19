@@ -32,22 +32,20 @@ class OverlayUtils {
         this.startTimes = {};
         this.animations = {};
         this.stepTrigger = null;
-        this.drawRegistered = false;
         this.pendingSave = false;
         this.sessionResumeWindowMs = 5 * 60 * 1000; // resume macro within 5 minutes
         this.savedSessions = {};
 
-        this.mainRenderTrigger = register('renderOverlay', () => {
-            if (Overlays.Gui.isOpen()) return;
-            this.drawAllOverlays();
-        }).unregister();
+        NVG.registerV5Render(() => {
+            if (Overlays.Gui.isOpen()) {
+                this.drawGUI();
+            } else {
+                this.drawAllOverlays();
+            }
+        });
 
         this.loadIDs();
         this.initTriggers();
-
-        if (this.ids.length > 0) {
-            this.registerDrawOnce();
-        }
     }
 
     ensureArray(val) {
@@ -99,9 +97,6 @@ class OverlayUtils {
             this.animations[idName] = { progress: 0, target: 1 };
         } else {
             this.animations[idName].target = 1;
-        }
-        if (!this.mainRenderTrigger.isRegistered()) {
-            this.mainRenderTrigger.register();
         }
         this.startAnimationLoop();
     }
@@ -167,12 +162,6 @@ class OverlayUtils {
         Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
         Overlays.Gui.registerMouseDragged((x, y, b) => b === 0 && this.handleMouseDrag(x, y));
         Overlays.Gui.registerMouseReleased(() => this.handleMouseRelease());
-    }
-
-    registerDrawOnce() {
-        if (this.drawRegistered) return;
-        Overlays.Gui.registerDraw(() => this.drawGUI());
-        this.drawRegistered = true;
     }
 
     createID(idName, sections = []) {
@@ -408,10 +397,6 @@ class OverlayUtils {
             console.error('V5 Caught error' + e + e.stack);
         } finally {
             NVG.endFrame();
-        }
-
-        if (!anyVisible && !this.stepTrigger) {
-            this.mainRenderTrigger.unregister();
         }
     }
 

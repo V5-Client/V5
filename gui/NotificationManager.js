@@ -2,7 +2,6 @@ import { THEME, colorWithAlpha, drawRoundedRectangle, drawText, FontSizes } from
 import { NVG } from '../utils/Constants';
 
 // Configuration
-const RENDER_ABOVE_GUI = true; // toggle rendering above guis
 const NOTIFICATION_WIDTH = 250;
 const NOTIFICATION_HEIGHT = 56;
 const NOTIFICATION_PADDING = 10;
@@ -326,26 +325,18 @@ class Notification {
 class NotificationManager {
     constructor() {
         this.notifications = [];
-        this.renderTrigger = null;
-        this.guiRenderTrigger = null;
+        this.registered = false;
         this.clickTrigger = null;
         this.tickTrigger = null;
     }
 
     registerEvents() {
-        if (!this.renderTrigger) {
-            this.renderTrigger = register('renderOverlay', () => {
-                if (!RENDER_ABOVE_GUI || !Client.isInGui()) {
-                    this.render();
-                }
-            });
-        }
+        if (this.registered) return;
+        this.registered = true;
 
-        if (RENDER_ABOVE_GUI && !this.guiRenderTrigger) {
-            this.guiRenderTrigger = register('postGuiRender', (mouseX, mouseY, gui) => {
-                this.renderAboveGui();
-            });
-        }
+        NVG.registerV5Render(() => {
+            this.render();
+        });
 
         if (!this.clickTrigger) {
             this.clickTrigger = register('guiMouseClick', (mouseX, mouseY, button) => {
@@ -357,26 +348,8 @@ class NotificationManager {
         }
     }
 
-    unregisterEvents() {
-        if (this.renderTrigger) {
-            this.renderTrigger.unregister();
-            this.renderTrigger = null;
-        }
-        if (this.guiRenderTrigger) {
-            this.guiRenderTrigger.unregister();
-            this.guiRenderTrigger = null;
-        }
-        if (this.clickTrigger) {
-            this.clickTrigger.unregister();
-            this.clickTrigger = null;
-        }
-        if (this.tickTrigger) {
-            this.tickTrigger.unregister();
-            this.tickTrigger = null;
-        }
-    }
     add(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
-        if (this.notifications.length === 0) this.registerEvents();
+        if (!this.registered) this.registerEvents();
         const notification = new Notification(title, description, type, duration);
         this.notifications.unshift(notification);
         this.updatePositions();
@@ -386,7 +359,6 @@ class NotificationManager {
         const beforeCount = this.notifications.length;
         this.notifications = this.notifications.filter((n) => n.state !== 'removed');
         if (this.notifications.length !== beforeCount) this.updatePositions();
-        if (beforeCount > 0 && this.notifications.length === 0) this.unregisterEvents();
     }
     updatePositions() {
         let yOffset = 0;
@@ -397,28 +369,15 @@ class NotificationManager {
         });
     }
     render() {
+        if (this.notifications.length === 0) return;
+
         try {
+            const window = Client.getMinecraft().getWindow();
+            const scale = window.getScaleFactor();
+            const mouseX = Client.getMouseX() / scale;
+            const mouseY = Client.getMouseY() / scale;
+
             NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-            const mouseX = Client.getMouseX();
-            const mouseY = Client.getMouseY();
-            for (let i = this.notifications.length - 1; i >= 0; i--) {
-                this.notifications[i].draw(mouseX, mouseY);
-            }
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
-        }
-    }
-    renderAboveGui() {
-        try {
-            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-            const mouseX = Client.getMouseX();
-            const mouseY = Client.getMouseY();
             for (let i = this.notifications.length - 1; i >= 0; i--) {
                 this.notifications[i].draw(mouseX, mouseY);
             }
@@ -436,9 +395,6 @@ class NotificationManager {
         for (let i = 0; i < this.notifications.length; i++) {
             if (this.notifications[i].handleClick(mouseX, mouseY)) break;
         }
-    }
-    destroy() {
-        this.unregisterEvents();
     }
 }
 
