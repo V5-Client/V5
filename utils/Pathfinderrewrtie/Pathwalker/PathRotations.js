@@ -4,28 +4,37 @@ import { Spline } from '../PathSpline';
 import { BP, Vec3d } from '../../Constants';
 import RenderUtils from '../../render/RendererUtils';
 
+// current path rotation state is really good
+// todo
+// the dynamic PID scaling and curvature severity is not working well
+// its too strong or too weak and idk what to do
+
 class PathRotations {
     constructor() {
-        this.LOOK_AHEAD_INDEX_OFFSET = 2.5;
+        this.MIN_LOOK_AHEAD = 0.5;
+        this.MAX_LOOK_AHEAD = 3.0;
+        this.CURVATURE_SENSITIVITY = 18.0;
         this.PROXIMITY_THRESHOLD = 4;
-        this.BASE_KP = 0.08;
-        this.KD = 0.45;
-        this.MAX_VELOCITY = 8.0;
-        this.ACCEL_LIMIT = 1.2;
+
+        this.STRAIGHT_KP = 0.04;
+        this.CURVE_KP = 0.14;
+        this.STRAIGHT_KD = 0.28;
+        this.CURVE_KD = 0.6;
+        this.STRAIGHT_SMOOTH = 0.05;
+        this.CURVE_SMOOTH = 0.28;
+
+        this.MAX_VELOCITY = 12.0;
+        this.ACCEL_LIMIT = 1.8;
         this.SETTLE_THRESHOLD = 0.1;
-        this.PITCH_DEADZONE = 2.5;
-        this.YAW_DEADZONE = 1.5;
-        this.SMOOTH_FACTOR = 0.15;
-        this.MAX_LOOK_DISTANCE = 3.0;
+        this.PITCH_DEADZONE = 0.8;
+        this.YAW_DEADZONE = 0.5;
+        this.MAX_LOOK_DISTANCE = 4.5;
 
         this.resetRotations();
         this.onStep();
-        this.onRender();
     }
 
     resetRotations() {
-        this.currentBoxIndex = 0;
-        this.lastBoxIndex = 0;
         this.currentPathPosition = 0.0;
         this.isInitialized = false;
         this.complete = false;
@@ -38,6 +47,7 @@ class PathRotations {
         this.currentPitch = 0;
         this.boxPositions = null;
         this.currentTargetPoint = null;
+        this.smoothedCurveSeverity = 0;
         PathRotationsUtility.stopRotation();
     }
 
@@ -50,11 +60,18 @@ class PathRotations {
         }).setFps(120);
     }
 
-    onRender() {
-        register('postrenderWorld', () => {
-            if (!this.rotationActive || !this.currentTargetPoint) return;
-            RenderUtils.drawBox(new Vec3d(this.currentTargetPoint.x, this.currentTargetPoint.y, this.currentTargetPoint.z), [0, 0, 255, 80], true);
-        });
+    getPathCurvature(idx) {
+        const p1 = this.boxPositions[idx];
+        const p2 = this.boxPositions[idx + 1];
+        const p3 = this.boxPositions[idx + 2];
+        if (!p1 || !p2 || !p3) return 0;
+        const v1 = { x: p2.x - p1.x, z: p2.z - p1.z };
+        const v2 = { x: p3.x - p2.x, z: p3.z - p2.z };
+        const mag1 = Math.sqrt(v1.x * v1.x + v1.z * v1.z);
+        const mag2 = Math.sqrt(v2.x * v2.x + v2.z * v2.z);
+        if (mag1 < 0.05 || mag2 < 0.05) return 0;
+        const dot = (v1.x * v2.x + v1.z * v2.z) / (mag1 * mag2);
+        return Math.acos(Math.max(-1, Math.min(1, dot))) * (180 / Math.PI);
     }
 
     updateLookPoint() {
@@ -64,19 +81,16 @@ class PathRotations {
 
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
-
-        const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 2);
-        const endIdx = Math.min(this.boxPositions.length - 1, startIdx + 8);
+        const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 5);
+        const endIdx = Math.min(this.boxPositions.length - 1, startIdx + 25);
 
         for (let i = startIdx; i < endIdx; i++) {
             const p1 = this.boxPositions[i];
             const p2 = this.boxPositions[i + 1];
             if (!p1 || !p2) continue;
-
             const segmentProgress = this.getClosestPointOnSegment(playerEyes, p1, p2);
             const projectedPoint = this.getInterpolatedPoint(i + segmentProgress);
             const distSq = this.getDistSq(playerEyes, projectedPoint);
-
             if (distSq < minDistanceSq) {
                 minDistanceSq = distSq;
                 bestT = i + segmentProgress;
@@ -87,7 +101,22 @@ class PathRotations {
             this.currentPathPosition = bestT;
         }
 
-        const lookAheadT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.LOOK_AHEAD_INDEX_OFFSET);
+        const currIdx = Math.floor(this.currentPathPosition);
+        let lookAheadCurvature = 0;
+        let weightSum = 0;
+        for (let j = 0; j < 6; j++) {
+            const checkIdx = Math.min(this.boxPositions.length - 3, currIdx + j);
+            const weight = 6 - j;
+            lookAheadCurvature += this.getPathCurvature(checkIdx) * weight;
+            weightSum += weight;
+        }
+        const avgCurvature = lookAheadCurvature / weightSum;
+        const targetSeverity = Math.min(1.0, avgCurvature / this.CURVATURE_SENSITIVITY);
+
+        this.smoothedCurveSeverity += (targetSeverity - this.smoothedCurveSeverity) * 0.12;
+
+        const dynamicLookAhead = this.MAX_LOOK_AHEAD - this.smoothedCurveSeverity * (this.MAX_LOOK_AHEAD - this.MIN_LOOK_AHEAD);
+        const lookAheadT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + dynamicLookAhead);
         let targetPoint = this.getInterpolatedPoint(lookAheadT);
 
         const dx = targetPoint.x - playerEyes.x;
@@ -102,20 +131,20 @@ class PathRotations {
 
         this.currentTargetPoint = targetPoint;
         const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
-
         const targetYaw = this.wrapAngle(angles.yaw);
-        const yawDelta = Math.abs(this.getAngleDelta(this.rawTargetYaw, targetYaw));
+        const currentSmooth = this.STRAIGHT_SMOOTH + this.smoothedCurveSeverity * (this.CURVE_SMOOTH - this.STRAIGHT_SMOOTH);
 
-        if (yawDelta > this.YAW_DEADZONE) {
-            this.rawTargetYaw += this.getAngleDelta(this.rawTargetYaw, targetYaw) * this.SMOOTH_FACTOR;
+        const yawDelta = this.getAngleDelta(this.rawTargetYaw, targetYaw);
+        if (Math.abs(yawDelta) > this.YAW_DEADZONE) {
+            this.rawTargetYaw += yawDelta * currentSmooth;
         }
 
-        const pitchDelta = Math.abs(angles.pitch - this.rawTargetPitch);
-        if (pitchDelta > this.PITCH_DEADZONE) {
-            this.rawTargetPitch += (angles.pitch - this.rawTargetPitch) * this.SMOOTH_FACTOR;
+        const pitchDelta = angles.pitch - this.rawTargetPitch;
+        if (Math.abs(pitchDelta) > this.PITCH_DEADZONE) {
+            this.rawTargetPitch += pitchDelta * currentSmooth;
         }
 
-        if (this.currentPathPosition >= this.boxPositions.length - 1.05) {
+        if (this.currentPathPosition >= this.boxPositions.length - 1.1) {
             this.complete = true;
             this.rotationActive = false;
         }
@@ -126,14 +155,17 @@ class PathRotations {
         const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
 
+        const dynamicKP = this.STRAIGHT_KP + this.smoothedCurveSeverity * (this.CURVE_KP - this.STRAIGHT_KP);
+        const dynamicKD = this.STRAIGHT_KD + this.smoothedCurveSeverity * (this.CURVE_KD - this.STRAIGHT_KD);
+
         if (Math.abs(yawError) < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.02) {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
         } else {
-            let desiredYawAccel = yawError * this.BASE_KP - this.yawVelocity * this.KD;
+            let desiredYawAccel = yawError * dynamicKP - this.yawVelocity * dynamicKD;
             desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
             this.yawVelocity += desiredYawAccel;
-            this.yawVelocity *= 0.92;
+            this.yawVelocity *= 0.94;
             this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
             this.currentYaw += this.yawVelocity;
         }
@@ -142,10 +174,10 @@ class PathRotations {
             this.currentPitch = this.rawTargetPitch;
             this.pitchVelocity = 0;
         } else {
-            let desiredPitchAccel = pitchError * this.BASE_KP - this.pitchVelocity * this.KD;
+            let desiredPitchAccel = pitchError * dynamicKP - this.pitchVelocity * dynamicKD;
             desiredPitchAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredPitchAccel));
             this.pitchVelocity += desiredPitchAccel;
-            this.pitchVelocity *= 0.92;
+            this.pitchVelocity *= 0.94;
             this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
