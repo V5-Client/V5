@@ -28,6 +28,7 @@ import { setTooltip } from '../core/GuiTooltip';
 
 const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
 const Module_icon_path = ASSETS_PATH + 'folder.svg';
+const Theme_icon_path = ASSETS_PATH + 'colorpalette.svg';
 const Setting_icon_path = ASSETS_PATH + 'settings.svg';
 const Edit_icon_path = ASSETS_PATH + 'edit.svg';
 
@@ -122,11 +123,11 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
     return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
 };
 
-export const drawSettingsDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scrollY) => {
-    const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-    if (!settingsCat || !settingsCat.directComponents) return yOffset;
+export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scrollY, categoryName) => {
+    const cat = Categories.categories.find((c) => c.name === categoryName);
+    if (!cat || !cat.directComponents) return yOffset;
 
-    const components = settingsCat.directComponents;
+    const components = cat.directComponents;
     const panelWidth = panel.width;
 
     let currentY = yOffset - scrollY;
@@ -300,7 +301,9 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         const moduleSize = 17;
         const iconX = rect.x + (rect.width - moduleSize) / 2;
         const iconY = rect.y + (rect.height - moduleSize) / 2;
-        const iconPath = cat.name === 'Modules' ? Module_icon_path : Setting_icon_path;
+        let iconPath = Setting_icon_path;
+        if (cat.name === 'Modules') iconPath = Module_icon_path;
+        else if (cat.name === 'Theme') iconPath = Theme_icon_path;
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
     });
 

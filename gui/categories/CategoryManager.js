@@ -1,7 +1,7 @@
 import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
-import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawSettingsDirectComponents, getCategoryRect } from './CategoryRenderer';
+import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawDirectComponents, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
@@ -42,14 +42,14 @@ export const createCategoriesManager = (deps) => {
         setOptionsScrollY(0);
     };
 
-    const calculateSettingsDirectComponentsHeight = () => {
-        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-        if (!settingsCat || !settingsCat.directComponents) return 0;
+    const calculateDirectComponentsHeight = (categoryName) => {
+        const directCat = Categories.categories.find((c) => c.name === categoryName);
+        if (!directCat || !directCat.directComponents) return 0;
 
         let height = PADDING;
         let currentSection = null;
 
-        settingsCat.directComponents.forEach((component, index) => {
+        directCat.directComponents.forEach((component, index) => {
             if (component.sectionName && component.sectionName !== currentSection) {
                 currentSection = component.sectionName;
                 if (index > 0) height += 16;
@@ -77,8 +77,8 @@ export const createCategoriesManager = (deps) => {
             const category = Categories.categories.find((c) => c.name === Categories.selected);
 
             if (category) {
-                if (Categories.selected === 'Settings' && category.directComponents && category.directComponents.length > 0) {
-                    height = calculateSettingsDirectComponentsHeight();
+                if (category.directComponents && category.directComponents.length > 0) {
+                    height = calculateDirectComponentsHeight(Categories.selected);
                     cachedContentHeight = height;
                     isContentHeightCacheValid = true;
                     return;
@@ -156,9 +156,9 @@ export const createCategoriesManager = (deps) => {
             return components.some((c) => (c instanceof MultiToggle || c instanceof ColorPicker) && c.animStart !== 0);
         };
 
-        if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-            const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-            if (settingsCat && checkComponentsForAnim(settingsCat.directComponents)) {
+        if (Categories.currentPage === 'categories') {
+            const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+            if (directCat?.directComponents && checkComponentsForAnim(directCat.directComponents)) {
                 activeComponentAnimation = true;
             }
         } else if (Categories.currentPage === 'options' && Categories.selectedItem) {
@@ -212,8 +212,8 @@ export const createCategoriesManager = (deps) => {
 
                 let yOffset = panel.y + PADDING - rightPanelScrollY;
 
-                if (catName === 'Settings' && cat.directComponents && cat.directComponents.length > 0) {
-                    drawSettingsDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, rightPanelScrollY);
+                if (cat.directComponents && cat.directComponents.length > 0) {
+                    drawDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, rightPanelScrollY, catName);
                     return;
                 }
 
@@ -294,10 +294,10 @@ export const createCategoriesManager = (deps) => {
     const handleMouseDrag = (mouseX, mouseY) => {
         if (isLayoutCacheValid) isLayoutCacheValid = false;
 
-        if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-            const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-            if (settingsCat?.directComponents) {
-                settingsCat.directComponents.forEach((component) => {
+        if (Categories.currentPage === 'categories') {
+            const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+            if (directCat?.directComponents) {
+                directCat.directComponents.forEach((component) => {
                     if (typeof component.handleMouseDrag === 'function') {
                         component.optionPanelWidth = deps.rectangles.RightPanel.width;
                         component.handleMouseDrag(mouseX, mouseY);
@@ -318,10 +318,10 @@ export const createCategoriesManager = (deps) => {
     };
 
     const handleMouseRelease = () => {
-        if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-            const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-            if (settingsCat?.directComponents) {
-                settingsCat.directComponents.forEach((component) => {
+        if (Categories.currentPage === 'categories') {
+            const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+            if (directCat?.directComponents) {
+                directCat.directComponents.forEach((component) => {
                     if (typeof component.handleMouseRelease === 'function') {
                         component.handleMouseRelease();
                     }

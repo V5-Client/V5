@@ -10,11 +10,11 @@ const ICON_SIZE = 28;
 const HIGHLIGHT_PADDING = 2;
 const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
 
-export const handleSettingsComponentClick = (mouseX, mouseY, panel, scrollY) => {
-    const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-    if (!settingsCat || !settingsCat.directComponents) return false;
+export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
+    const directCat = Categories.categories.find((c) => c.name === categoryName);
+    if (!directCat || !directCat.directComponents) return false;
 
-    const components = settingsCat.directComponents;
+    const components = directCat.directComponents;
     const panelX = panel.x;
     const panelWidth = panel.width;
 
@@ -93,9 +93,10 @@ export const handleCategoryClick = (
         height: editIconSize + 12,
     };
 
-    if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-        if (isInside(mouseX, mouseY, panel)) {
-            if (handleSettingsComponentClick(mouseX, mouseY, panel, scrollY)) {
+    if (Categories.currentPage === 'categories') {
+        const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+        if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+            if (handleDirectComponentsClick(mouseX, mouseY, panel, scrollY, Categories.selected)) {
                 return;
             }
         }
@@ -332,7 +333,7 @@ export const handleCategoryClick = (
             const cat = Categories.categories.find((c) => c.name === Categories.selected);
             if (!cat) return;
 
-            if (Categories.selected === 'Settings') return;
+            if (Categories.selected === 'Settings' || Categories.selected === 'Theme') return;
 
             if (cat.subcategories.length > 0) {
                 let currentX = panel.x + PADDING;
@@ -408,11 +409,11 @@ export const handleCategoryScroll = (
 ) => {
     const SCROLL_SPEED = 15;
 
-    if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-        if (settingsCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+    if (Categories.currentPage === 'categories') {
+        const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+        if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
             let scrollHandled = false;
-            const components = settingsCat.directComponents;
+            const components = directCat.directComponents;
             let componentY = panel.y + PADDING;
 
             components.forEach((component) => {
