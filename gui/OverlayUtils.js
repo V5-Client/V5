@@ -44,6 +44,8 @@ class OverlayUtils {
             }
         });
 
+        register('gameUnload', () => this.resetAll());
+
         this.loadIDs();
         this.initTriggers();
     }
@@ -123,6 +125,19 @@ class OverlayUtils {
         delete this.startTimes[idName];
         delete this.savedSessions[idName];
         this.saveIDs();
+    }
+
+    resetAll() {
+        this.ids = [];
+        this.animations = {};
+        this.startTimes = {};
+        this.savedSessions = {};
+        this.draggingId = null;
+        this.pendingSave = false;
+        if (this.stepTrigger) {
+            this.stepTrigger.unregister();
+            this.stepTrigger = null;
+        }
     }
 
     formatUptime(startTime) {
