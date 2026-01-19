@@ -72,6 +72,9 @@ class CommissionMacro extends ModuleBase {
         this.miningSpeed = 0;
         this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
+        this.lastCommissionName = null;
+        this.lastCommissionAt = null;
+        this.sessionStart = Date.now();
 
         this.createOverlay([
             {
@@ -87,6 +90,8 @@ class CommissionMacro extends ModuleBase {
                 title: 'Profits',
                 data: {
                     'Completed Commissions': () => this.commissionsCompleted,
+                    'Last Commission': () => this.getLastCommissionDisplay(),
+                    'Commissions/hr': () => this.getCommissionsPerHourDisplay(),
                 },
             },
         ]);
@@ -148,6 +153,20 @@ class CommissionMacro extends ModuleBase {
         const currentCommData = this.commissions.find((c) => c.name === currentCommName);
         const currentProgress = currentCommData?.progress || 0;
         return currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
+    }
+
+    getLastCommissionDisplay() {
+        return this.lastCommissionName || 'None';
+    }
+
+    getCommissionsPerHourDisplay() {
+        if (!this.sessionStart) return '0.00';
+        const elapsedMs = Date.now() - this.sessionStart;
+        if (elapsedMs <= 0) return '0.00';
+        const hours = elapsedMs / 3600000;
+        const rate = this.commissionsCompleted / hours;
+        if (!Number.isFinite(rate)) return '0.00';
+        return rate.toFixed(2);
     }
 
     getTruncatedToolName() {
@@ -250,6 +269,9 @@ class CommissionMacro extends ModuleBase {
         this.awaitingTabUpdate = false;
         this.pathfinding = false;
         this.lastCompletedCommissionName = null;
+        this.lastCommissionName = null;
+        this.lastCommissionAt = null;
+        this.sessionStart = Date.now();
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -719,6 +741,8 @@ class CommissionMacro extends ModuleBase {
         CombatBot.toggle(false);
 
         this.lastCompletedCommissionName = this.currentCommission?.name || null;
+        this.lastCommissionName = this.currentCommission?.name || null;
+        this.lastCommissionAt = Date.now();
         this.awaitingTabUpdate = true;
         this.setState(STATES.CLAIMING);
     }

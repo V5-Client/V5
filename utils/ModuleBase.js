@@ -107,7 +107,7 @@ export class ModuleBase {
             }
 
             if (this.oid && !this.isParentManaged) {
-                OverlayManager.startTime(this.oid);
+                OverlayManager.startTime(this.oid, this.isMacro);
             }
 
             try {
@@ -123,7 +123,11 @@ export class ModuleBase {
             }
 
             if (this.oid) {
-                OverlayManager.resetTime(this.oid);
+                if (this.isMacro && !this.isParentManaged) {
+                    OverlayManager.pauseTime(this.oid);
+                } else {
+                    OverlayManager.resetTime(this.oid);
+                }
             }
             this._registers.forEach((h) => h.unregister());
             try {

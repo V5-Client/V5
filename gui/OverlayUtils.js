@@ -34,6 +34,8 @@ class OverlayUtils {
         this.stepTrigger = null;
         this.drawRegistered = false;
         this.pendingSave = false;
+        this.sessionResumeWindowMs = 5 * 60 * 1000; // resume macro within 5 minutes
+        this.savedSessions = {};
 
         this.mainRenderTrigger = register('renderOverlay', () => {
             if (Overlays.Gui.isOpen()) return;
@@ -80,8 +82,19 @@ class OverlayUtils {
         }).setFps(60);
     }
 
-    startTime(idName) {
-        this.startTimes[idName] = Date.now();
+    startTime(idName, allowResume = true) {
+        const now = Date.now();
+        const saved = this.savedSessions[idName];
+        const canResume = allowResume && saved && now - saved.pausedAt <= this.sessionResumeWindowMs;
+
+        if (canResume) {
+            this.startTimes[idName] = now - saved.elapsedMs;
+            delete this.savedSessions[idName];
+        } else {
+            if (saved) delete this.savedSessions[idName];
+            this.startTimes[idName] = now;
+        }
+
         if (!this.animations[idName]) {
             this.animations[idName] = { progress: 0, target: 1 };
         } else {
@@ -100,10 +113,20 @@ class OverlayUtils {
         this.startAnimationLoop();
     }
 
+    pauseTime(idName) {
+        const startedAt = this.startTimes[idName];
+        if (startedAt) {
+            const now = Date.now();
+            this.savedSessions[idName] = { pausedAt: now, elapsedMs: now - startedAt };
+        }
+        this.resetTime(idName);
+    }
+
     deleteID(idName) {
         this.ids = this.ids.filter((id) => id.name !== idName);
         delete this.animations[idName];
         delete this.startTimes[idName];
+        delete this.savedSessions[idName];
         this.saveIDs();
     }
 
