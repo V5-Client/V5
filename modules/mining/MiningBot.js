@@ -118,7 +118,7 @@ class Bot extends ModuleBase {
 
     updateMithrilCosts() {
         this.mithrilCosts = {
-            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 12,
+            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 30,
             'minecraft:light_blue_wool': 3,
             'minecraft:prismarine': 5,
             'minecraft:prismarine_bricks': 5,
