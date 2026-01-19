@@ -282,7 +282,7 @@ class PathJumps {
             return;
         }
         if (this.checkSnowJump(lookahead)) return;
-        if (this.checkEdgeJump(path, closestIndex)) return;
+        // if (this.checkEdgeJump(path, closestIndex)) return;
         if (this.checkObstacleJump(lookahead)) return;
         Keybind.setKey('space', false);
         this.lastLookaheadPositions = lookahead.map((d) => d.vec.y);

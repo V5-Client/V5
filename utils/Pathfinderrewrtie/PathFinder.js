@@ -118,7 +118,7 @@ class Finder {
                     Rotations.pathRotations(splinePath);
                     Jump.detectJump(splinePath);
                     Movement.beginMovement();
-                    Recovery.trackProgress();
+                    // Recovery.trackProgress();
                 });
             }
         });
