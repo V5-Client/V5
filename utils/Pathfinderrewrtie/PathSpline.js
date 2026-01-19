@@ -9,10 +9,9 @@ class PathSpline {
         this.OUTWARD_OFFSET_STRENGTH = 1.5;
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
-        this.render = null;
     }
 
-    GenerateSpline(keyPathNodes, tolerance = 10) {
+    generateSpline(keyPathNodes, tolerance = 10) {
         if (!keyPathNodes || keyPathNodes.length < 2) return [];
 
         const rawPoints = keyPathNodes.map((n) => {
@@ -70,7 +69,7 @@ class PathSpline {
         return finalPath;
     }
 
-    CreateLookPoints(smoothSplineData, minInterval = 1, maxInterval = 10, drawLookPoints = true) {
+    createLookPoints(smoothSplineData, minInterval = 1, maxInterval = 10) {
         if (!smoothSplineData || smoothSplineData.length < 2) return [];
 
         const currentHash = smoothSplineData.length + '-' + smoothSplineData[0]?.x + '-' + smoothSplineData[smoothSplineData.length - 1]?.x;
@@ -142,20 +141,20 @@ class PathSpline {
         }
 
         this.cachedBoxPositions = boxPositions;
-
-        if (drawLookPoints && !this.render) {
-            this.render = register('postRenderWorld', () => {
-                const px = Player.getX();
-                const pz = Player.getZ();
-                this.cachedBoxPositions.forEach((pos) => {
-                    if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
-                        RenderUtils.drawBox(pos, [255, 0, 0, 100], true);
-                    }
-                });
-            });
-        }
-
         return this.cachedBoxPositions;
+    }
+
+    drawLookPoints() {
+        if (!this.cachedBoxPositions || this.cachedBoxPositions.length === 0) return;
+
+        const px = Player.getX();
+        const pz = Player.getZ();
+
+        this.cachedBoxPositions.forEach((pos) => {
+            if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
+                RenderUtils.drawBox(pos, [255, 0, 0, 100], true);
+            }
+        });
     }
 
     drawFloatingSpline(smoothSplineData) {
@@ -177,6 +176,11 @@ class PathSpline {
                 renderThrough
             );
         }
+    }
+
+    clearCache() {
+        this.cachedBoxPositions = [];
+        this.lastDataHash = null;
     }
 }
 

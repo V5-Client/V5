@@ -92,7 +92,7 @@ class Finder {
 
             const splinePath = this.createSplinePath(result);
 
-            if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE) {
+            if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS) {
                 this.onRender(result, splinePath);
             }
 
@@ -151,6 +151,10 @@ class Finder {
             if (PathConfig.RENDER_FLOATING_SPLINE) {
                 Spline.drawFloatingSpline(splinePath);
             }
+
+            if (PathConfig.RENDER_LOOK_POINTS) {
+                Spline.drawLookPoints();
+            }
         });
     }
 
@@ -159,13 +163,13 @@ class Finder {
         let generatedSpline = [];
 
         if (this.checkForExistence(path.path_between_key_nodes)) {
-            generatedSpline = Spline.GenerateSpline(path.path_between_key_nodes, 1);
+            generatedSpline = Spline.generateSpline(path.path_between_key_nodes, 1);
 
             return generatedSpline;
         }
 
         Chat.log('No path_between_key_nodes, using keynodes for spline');
-        generatedSpline = Spline.GenerateSpline(path.keynodes, 1);
+        generatedSpline = Spline.generateSpline(path.keynodes, 1);
 
         return generatedSpline;
     }
@@ -195,6 +199,7 @@ class Finder {
         this.destroyRender();
 
         Rotations.resetRotations();
+        Spline.clearCache();
         Jump.reset();
         Movement.stopMovement();
         Recovery.stop();

@@ -190,7 +190,7 @@ class PathRotations {
 
     pathRotations(splineData) {
         if (!this.boxPositions) {
-            this.boxPositions = Spline.CreateLookPoints(splineData, 0.25, 4.5, false);
+            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
             if (!this.boxPositions || !this.boxPositions.length) return;
         }
         const player = Player.getPlayer();
