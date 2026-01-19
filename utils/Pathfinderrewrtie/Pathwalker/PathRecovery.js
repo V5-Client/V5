@@ -45,7 +45,11 @@ class PathRecovery {
             pY = Player.getY(),
             pZ = Player.getZ();
 
-        if (this.isActive) this.processRecoverySequence();
+        if (this.isActive) {
+            this.processRecoverySequence();
+            return 'RECOVERING';
+        }
+
         if (this.jumpDurationTicks > 0) this.executeJumpTick();
 
         if (this.recoveryLockTicks > 0) {
@@ -101,12 +105,12 @@ class PathRecovery {
             case 2:
                 Chat.messagePathfinder(`Recovery 2/3: Backup + Jump`);
                 this.startSequence('BACKUP', 12, 4);
-                // rewindIndex = Math.max(0, this.currentBoxIndex - 3);
+                // rewindIndex = Math.max(0, this.currentBoxIndex - 2);
                 break;
             case 3:
                 Chat.messagePathfinder(`Recovery 3/3: Full Rewind`);
                 this.startSequence('BACKUP', 20, 5);
-                // rewindIndex = Math.max(0, this.currentBoxIndex - 6);
+                // rewindIndex = Math.max(0, this.currentBoxIndex - 5);
                 break;
         }
 
@@ -143,6 +147,7 @@ class PathRecovery {
     }
 
     verifyRecoverySuccess() {
+        if (!this.lastPos) return;
         const pX = Player.getX(),
             pZ = Player.getZ();
         const distFromStuck = this.getDistanceHorizontal(pX, pZ, this.lastPos.x, this.lastPos.z);
@@ -195,6 +200,7 @@ class PathRecovery {
 
     stop() {
         this.isActive = false;
+        this.currentPhase = null;
         this.stuckTicks = 0;
         this.attemptCount = 0;
         this.recoveryLockTicks = 0;

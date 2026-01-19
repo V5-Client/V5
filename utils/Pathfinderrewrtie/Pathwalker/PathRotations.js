@@ -104,15 +104,15 @@ class PathRotations {
         const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
 
         const targetYaw = this.wrapAngle(angles.yaw);
-        const yawDelta = Math.abs(this.getAngleDelta(this.rawTargetYaw, targetYaw));
+        const yawDelta = this.getAngleDelta(this.rawTargetYaw, targetYaw);
 
-        if (yawDelta > this.YAW_DEADZONE) {
-            this.rawTargetYaw += this.getAngleDelta(this.rawTargetYaw, targetYaw) * this.SMOOTH_FACTOR;
+        if (Math.abs(yawDelta) > this.YAW_DEADZONE) {
+            this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * this.SMOOTH_FACTOR);
         }
 
-        const pitchDelta = Math.abs(angles.pitch - this.rawTargetPitch);
-        if (pitchDelta > this.PITCH_DEADZONE) {
-            this.rawTargetPitch += (angles.pitch - this.rawTargetPitch) * this.SMOOTH_FACTOR;
+        const pitchDelta = angles.pitch - this.rawTargetPitch;
+        if (Math.abs(pitchDelta) > this.PITCH_DEADZONE) {
+            this.rawTargetPitch += pitchDelta * this.SMOOTH_FACTOR;
         }
 
         if (this.currentPathPosition >= this.boxPositions.length - 1.05) {
@@ -196,7 +196,7 @@ class PathRotations {
         const player = Player.getPlayer();
         if (!player) return;
         if (!this.isInitialized) {
-            this.currentYaw = player.getYaw();
+            this.currentYaw = this.wrapAngle(player.getYaw());
             this.currentPitch = player.getPitch();
             this.rawTargetYaw = this.currentYaw;
             this.rawTargetPitch = this.currentPitch;

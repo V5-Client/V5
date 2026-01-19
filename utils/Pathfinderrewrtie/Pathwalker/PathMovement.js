@@ -16,6 +16,11 @@ class PathMovement {
 
     stopMovement() {
         Keybind.stopMovement();
+        Keybind.setKey('w', false);
+        Keybind.setKey('s', false);
+        Keybind.setKey('a', false);
+        Keybind.setKey('d', false);
+        Keybind.setKey('space', false);
     }
 }
 

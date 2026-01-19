@@ -62,8 +62,15 @@ class PathSpline {
             if (i === simplifiedPoints.length - 2) finalPath.push(p2);
         }
 
-        if (finalPath.length === 0 || finalPath[0] !== simplifiedPoints[0]) {
-            finalPath.unshift(simplifiedPoints[0]);
+        if (finalPath.length === 0) {
+            finalPath.push(simplifiedPoints[0]);
+        } else {
+            const dX = finalPath[0].x - simplifiedPoints[0].x;
+            const dY = finalPath[0].y - simplifiedPoints[0].y;
+            const dZ = finalPath[0].z - simplifiedPoints[0].z;
+            if (dX * dX + dY * dY + dZ * dZ > 0.01) {
+                finalPath.unshift(simplifiedPoints[0]);
+            }
         }
 
         return finalPath;

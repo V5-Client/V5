@@ -101,8 +101,10 @@ class Finder {
                 return;
             }
 
-            if (splinePath) {
-                if (Rotations.complete || Rotations.boxPositions?.length < 2) {
+            if (splinePath && splinePath.length > 1) {
+                const rotationsReady = Rotations.boxPositions && Rotations.boxPositions.length > 0;
+
+                if (rotationsReady && Rotations.complete) {
                     this.tick.unregister();
                     this.tick = null;
 
@@ -214,7 +216,7 @@ class Finder {
         const maxDistance = 100;
 
         for (let i = 0; i < maxDistance; i++) {
-            if (y <= 0) return y;
+            if (y <= 0) return { x: coords[0], y: coords[1], z: coords[2] };
             const blockVec = { x: coords[0], y: y, z: coords[2] };
 
             if (!this.isBlockWalkable(blockVec)) return blockVec;
@@ -222,7 +224,7 @@ class Finder {
             y--;
         }
 
-        return blockVec;
+        return { x: coords[0], y: coords[1], z: coords[2] };
     }
 
     isBlockWalkable(blockVec) {
