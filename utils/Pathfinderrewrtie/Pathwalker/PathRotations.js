@@ -6,18 +6,15 @@ import RenderUtils from '../../render/RendererUtils';
 
 class PathRotations {
     constructor() {
-        this.LOOK_AHEAD_DISTANCE = 1.8;
-        this.PROGRESS_SMOOTHING = 0.25;
-        this.MIN_SPEED = 0.02;
-        this.MAX_SPEED = 0.35;
-        this.PITCH_STIFFNESS = 0.12;
-        this.MAX_YAW_VELOCITY = 60;
+        this.LOOK_AHEAD_INDEX_OFFSET = 2.0;
+        this.PROXIMITY_THRESHOLD = 4;
+        this.PROGRESS_SMOOTHING = 0.12;
 
-        this.TARGET_BLEND_NORMAL = 0.4;
-        this.TARGET_BLEND_SKIP = 0.15;
-        this.SKIP_RECOVERY_TICKS = 15;
-        this.NODE_SKIP_THRESHOLD = 3;
-
+        this.BASE_KP = 0.15;
+        this.KD = 0.38;
+        this.MAX_VELOCITY = 12.0;
+        this.ACCEL_LIMIT = 2.5;
+        this.SETTLE_THRESHOLD = 0.05;
         this.resetRotations();
         this.onStep();
     }
@@ -29,16 +26,14 @@ class PathRotations {
         this.isInitialized = false;
         this.complete = false;
         this.rotationActive = false;
-        this.ticksSinceNodeSkip = 999;
+        this.yawVelocity = 0;
+        this.pitchVelocity = 0;
         this.rawTargetYaw = 0;
         this.rawTargetPitch = 0;
-        this.smoothedTargetYaw = 0;
-        this.smoothedTargetPitch = 0;
         this.currentYaw = 0;
         this.currentPitch = 0;
         this.boxPositions = null;
         this.currentTargetPoint = null;
-
         PathRotationsUtility.stopRotation();
     }
 
@@ -46,17 +41,14 @@ class PathRotations {
         this.stepRegister = register('step', () => {
             if (!this.rotationActive || !this.boxPositions) return;
 
-            this.updatePathProgress();
-            this.calculateRawTargetAngles();
-
-            const blendSpeed = this.getDynamicBlendSpeed();
-            this.applySmoothing(blendSpeed);
+            this.updateLookPoint();
+            this.applyHumanizedPhysics();
 
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
         }).setFps(120);
     }
 
-    updatePathProgress() {
+    updateLookPoint() {
         const player = Player.getPlayer();
         if (!player) return;
         const playerEyes = player.getEyePos();
@@ -64,13 +56,12 @@ class PathRotations {
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
 
-        const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 1);
-        const endIdx = Math.min(this.boxPositions.length - 1, startIdx + 4);
+        const startIdx = Math.floor(this.currentPathPosition);
+        const endIdx = Math.min(this.boxPositions.length - 1, startIdx + 3);
 
         for (let i = startIdx; i < endIdx; i++) {
             const p1 = this.boxPositions[i];
             const p2 = this.boxPositions[i + 1];
-
             const segmentProgress = this.getClosestPointOnSegment(playerEyes, p1, p2);
             const projectedPoint = this.getInterpolatedPoint(i + segmentProgress);
             const distSq = this.getDistSq(playerEyes, projectedPoint);
@@ -81,24 +72,52 @@ class PathRotations {
             }
         }
 
-        if (bestT > this.currentPathPosition) {
-            const delta = bestT - this.currentPathPosition;
-            this.currentPathPosition += delta * this.PROGRESS_SMOOTHING;
+        if (bestT > this.currentPathPosition && Math.sqrt(minDistanceSq) < this.PROXIMITY_THRESHOLD) {
+            this.currentPathPosition += (bestT - this.currentPathPosition) * this.PROGRESS_SMOOTHING;
         }
 
-        const newIndex = Math.floor(this.currentPathPosition);
-        if (newIndex - this.lastBoxIndex > this.NODE_SKIP_THRESHOLD) {
-            this.ticksSinceNodeSkip = 0;
-        } else {
-            this.ticksSinceNodeSkip++;
-        }
+        const lookAheadT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.LOOK_AHEAD_INDEX_OFFSET);
+        const targetPoint = this.getInterpolatedPoint(lookAheadT);
 
-        this.lastBoxIndex = newIndex;
-        this.currentBoxIndex = newIndex;
+        const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
+        this.rawTargetYaw = angles.yaw;
+        this.rawTargetPitch = angles.pitch;
 
-        if (this.currentPathPosition >= this.boxPositions.length - 1.2) {
+        if (this.currentPathPosition >= this.boxPositions.length - 1.05) {
             this.complete = true;
             this.rotationActive = false;
+        }
+    }
+
+    applyHumanizedPhysics() {
+        this.currentYaw = this.wrapAngle(this.currentYaw);
+        this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw);
+
+        const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
+        const pitchError = this.rawTargetPitch - this.currentPitch;
+
+        const dynamicKP = this.BASE_KP * (1.0 / (1.0 + Math.abs(yawError) * 0.05));
+
+        if (Math.abs(yawError) < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.05) {
+            this.currentYaw = this.rawTargetYaw;
+            this.yawVelocity = 0;
+        } else {
+            let desiredYawAccel = yawError * dynamicKP - this.yawVelocity * this.KD;
+            desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
+            this.yawVelocity += desiredYawAccel;
+            this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
+            this.currentYaw += this.yawVelocity;
+        }
+
+        if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.05) {
+            this.currentPitch = this.rawTargetPitch;
+            this.pitchVelocity = 0;
+        } else {
+            let desiredPitchAccel = pitchError * this.BASE_KP - this.pitchVelocity * this.KD;
+            desiredPitchAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredPitchAccel));
+            this.pitchVelocity += desiredPitchAccel;
+            this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
+            this.currentPitch += this.pitchVelocity;
         }
     }
 
@@ -108,62 +127,17 @@ class PathRotations {
         const dz = p2.z - p1.z;
         const dSq = dx * dx + dy * dy + dz * dz;
         if (dSq === 0) return 0;
-
         const t = ((p.x - p1.x) * dx + (p.y - p1.y) * dy + (p.z - p1.z) * dz) / dSq;
         return Math.max(0, Math.min(1, t));
-    }
-
-    calculateRawTargetAngles() {
-        const targetIdx = Math.min(this.currentPathPosition + this.LOOK_AHEAD_DISTANCE, this.boxPositions.length - 1);
-        const targetPoint = this.getInterpolatedPoint(targetIdx);
-
-        if (!targetPoint) return;
-
-        this.currentTargetPoint = targetPoint;
-        const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
-        this.rawTargetYaw = angles.yaw;
-        this.rawTargetPitch = angles.pitch;
     }
 
     getInterpolatedPoint(indexFloat) {
         const idx = Math.floor(indexFloat);
         const frac = indexFloat - idx;
-
         const p1 = this.boxPositions[idx];
         const p2 = this.boxPositions[Math.min(idx + 1, this.boxPositions.length - 1)];
-
         if (!p2 || frac <= 0) return p1;
-        if (frac >= 1) return p2;
-
         return new Vec3d(p1.x + (p2.x - p1.x) * frac, p1.y + (p2.y - p1.y) * frac, p1.z + (p2.z - p1.z) * frac);
-    }
-
-    applySmoothing(blendSpeed) {
-        const yawToRaw = this.getAngleDelta(this.smoothedTargetYaw, this.rawTargetYaw);
-        this.smoothedTargetYaw = this.wrapAngle(this.smoothedTargetYaw + yawToRaw * blendSpeed);
-        this.smoothedTargetPitch += (this.rawTargetPitch - this.smoothedTargetPitch) * blendSpeed;
-
-        const yawDelta = this.getAngleDelta(this.currentYaw, this.smoothedTargetYaw);
-        const absDelta = Math.abs(yawDelta);
-
-        const tension = Math.min(1.0, absDelta / 25.0);
-        const rubberBandPower = tension * tension * (3 - 2 * tension);
-        const dynamicYawSpeed = this.MIN_SPEED + (this.MAX_SPEED - this.MIN_SPEED) * Math.pow(rubberBandPower, 1.5);
-
-        let step = yawDelta * dynamicYawSpeed;
-        step = Math.max(-this.MAX_YAW_VELOCITY, Math.min(this.MAX_YAW_VELOCITY, step));
-
-        this.currentYaw = this.wrapAngle(this.currentYaw + step);
-
-        const pitchDelta = this.smoothedTargetPitch - this.currentPitch;
-        const pitchTension = Math.min(1.0, Math.abs(pitchDelta) / 15.0);
-        this.currentPitch += pitchDelta * (this.PITCH_STIFFNESS * (0.5 + pitchTension));
-    }
-
-    getDynamicBlendSpeed() {
-        if (this.ticksSinceNodeSkip >= this.SKIP_RECOVERY_TICKS) return this.TARGET_BLEND_NORMAL;
-        const recovery = this.ticksSinceNodeSkip / this.SKIP_RECOVERY_TICKS;
-        return this.TARGET_BLEND_SKIP + (this.TARGET_BLEND_NORMAL - this.TARGET_BLEND_SKIP) * (recovery * recovery);
     }
 
     getDistSq(pos, box) {
@@ -171,40 +145,32 @@ class PathRotations {
     }
 
     wrapAngle(angle) {
-        while (angle > 180) angle -= 360;
-        while (angle < -180) angle += 360;
-        return angle;
+        let wrapped = angle % 360;
+        if (wrapped > 180) wrapped -= 360;
+        if (wrapped < -180) wrapped += 360;
+        return wrapped;
     }
 
     getAngleDelta(from, to) {
-        return this.wrapAngle(to - from);
+        let delta = (to - from) % 360;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        return delta;
     }
 
     pathRotations(splineData) {
         if (!this.boxPositions) {
             this.boxPositions = Spline.CreateLookPoints(splineData, 1.0, 10.0, false);
-            if (!this.boxPositions.length) return;
+            if (!this.boxPositions || !this.boxPositions.length) return;
         }
-
         const player = Player.getPlayer();
         if (!player) return;
-
-        if (this.currentPathPosition >= this.boxPositions.length - 1) {
-            this.complete = true;
-            this.rotationActive = false;
-            return;
-        }
-
         if (!this.isInitialized) {
             this.currentYaw = player.getYaw();
             this.currentPitch = player.getPitch();
+            this.yawVelocity = 0;
+            this.pitchVelocity = 0;
             this.currentPathPosition = 0;
-
-            const firstTarget = this.boxPositions[0];
-            const angles = MathUtils.calculateAbsoluteAngles(firstTarget);
-            this.smoothedTargetYaw = angles.yaw;
-            this.smoothedTargetPitch = angles.pitch;
-
             this.isInitialized = true;
             this.rotationActive = true;
         }
