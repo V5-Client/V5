@@ -6,8 +6,8 @@ import RenderUtils from '../../render/RendererUtils';
 
 class PathRotations {
     constructor() {
-        this.LOOK_AHEAD_INDEX_OFFSET = 2.5; // decrease this to 0.5 or 1 but it will make the path rotations look bad
-        this.PROXIMITY_THRESHOLD = 4;
+        this.LOOK_AHEAD_INDEX_OFFSET = 1.2;
+        this.PROXIMITY_THRESHOLD = 2.0;
         this.BASE_KP = 0.08;
         this.KD = 0.45;
         this.MAX_VELOCITY = 8.0;
@@ -16,11 +16,11 @@ class PathRotations {
         this.PITCH_DEADZONE = 2.5;
         this.YAW_DEADZONE = 1.5;
         this.SMOOTH_FACTOR = 0.15;
-        this.MAX_LOOK_DISTANCE = 0.8;
+        this.MAX_LOOK_DISTANCE = 2.0;
 
         this.resetRotations();
         this.onStep();
-        //this.onRender();
+        // this.onRender();
     }
 
     resetRotations() {
@@ -52,6 +52,8 @@ class PathRotations {
 
     onRender() {
         register('postrenderWorld', () => {
+            // Spline.drawLookPoints();
+
             if (!this.rotationActive || !this.currentTargetPoint) return;
             RenderUtils.drawBox(new Vec3d(this.currentTargetPoint.x, this.currentTargetPoint.y, this.currentTargetPoint.z), [0, 0, 255, 80], true);
         });
@@ -190,7 +192,7 @@ class PathRotations {
 
     pathRotations(splineData) {
         if (!this.boxPositions) {
-            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
+            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 7.25);
             if (!this.boxPositions || !this.boxPositions.length) return;
         }
         const player = Player.getPlayer();
