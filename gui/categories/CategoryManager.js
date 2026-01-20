@@ -5,6 +5,7 @@ import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawDirect
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
+import { SearchBar } from './CategorySearchBar';
 
 export const createCategoriesManager = (deps) => {
     let targetRightPanelScrollY = 0;
@@ -253,13 +254,18 @@ export const createCategoriesManager = (deps) => {
         if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
 
         resetScissor();
+
+        if (Categories.selected === 'Modules') SearchBar.draw(mouseX, mouseY, deps.rectangles.RightPanel, panel.y + 11, Categories.currentPage);
     };
 
     const handleClick = (mouseX, mouseY) => {
+        const panel = deps.rectangles.RightPanel;
+        SearchBar.handleClick(mouseX, mouseY, panel, panel.y + 11);
+
         handleCategoryClick(
             mouseX,
             mouseY,
-            deps.rectangles.RightPanel,
+            panel,
             currentRightPanelScrollY,
             cachedItemLayouts,
             getCategoryRect,
