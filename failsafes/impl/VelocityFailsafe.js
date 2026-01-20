@@ -9,13 +9,12 @@ class VelocityFailsafe extends Failsafe {
     constructor() {
         super();
         this.registerVeloListeners();
-        this.ignore = false;
         this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
     }
 
     registerVeloListeners() {
         register('packetReceived', (packet) => {
-            if (this.ignore) return;
+            if (this.isFalse('velocity')) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
             if (!this.settings.isEnabled) return;
             if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
@@ -29,29 +28,12 @@ class VelocityFailsafe extends Failsafe {
             const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
             setTimeout(
                 () => {
-                    if (this.ignore) return;
+                    if (this.isFalse('velocity')) return;
                     this.onTrigger(speed);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600
             );
         }).setFilteredClass(EntityVelocityUpdateS2C);
-
-        manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
     }
 
     onTrigger(speed) {

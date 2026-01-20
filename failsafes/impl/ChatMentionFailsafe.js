@@ -10,7 +10,6 @@ class ChatMentionFailsafe extends Failsafe {
         super();
         this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');
         this.registerChatListeners();
-        this.ignore = false;
         this.FailsafeReactionTime = 600;
         this.isFailsafeEnabled = true;
         this.blacklistedWords = [
@@ -28,8 +27,7 @@ class ChatMentionFailsafe extends Failsafe {
 
     registerChatListeners() {
         register('chat', (msg) => {
-            if (!MacroState.isMacroRunning()) return;
-            if (this.ignore) return;
+            if (!MacroState.isMacroRunning() || this.isFalse('chat')) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');
             if (!this.settings.isEnabled) return;
@@ -39,23 +37,6 @@ class ChatMentionFailsafe extends Failsafe {
             if (!result.isBlocked) return;
             this.onTrigger(result.blockedWord);
         }).setCriteria(/(.+)/);
-
-        manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
     }
 
     isBad(msg) {

@@ -9,7 +9,6 @@ import { MacroState } from '../../utils/MacroState';
 class TeleportFailsafe extends Failsafe {
     constructor() {
         super();
-        this.ignore = false;
         this.newX = 0;
         this.newY = 0;
         this.newZ = 0;
@@ -19,7 +18,7 @@ class TeleportFailsafe extends Failsafe {
 
     registerTPListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning() || this.isFalse('teleport')) return;
             this.settings = FailsafeUtils.getFailsafeSettings('TP');
             if (!this.settings.isEnabled) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes('aspect of the')) return;
@@ -58,34 +57,12 @@ class TeleportFailsafe extends Failsafe {
 
             setTimeout(
                 () => {
-                    if (this.ignore) return;
+                    if (this.isFalse('teleport')) return;
                     this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600
             );
         }).setFilteredClass(PlayerPositionLookS2C);
-
-        register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
-        });
-
-        manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
-        });
     }
 
     onTrigger(fromX, fromY, fromZ, toX, toY, toZ, distance) {

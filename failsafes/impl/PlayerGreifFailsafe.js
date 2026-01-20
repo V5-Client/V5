@@ -20,7 +20,7 @@ class PlayerGreifFailsafe extends Failsafe {
 
     registerGreifListeners() {
         register('step', () => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning() || this.isFalse('greif')) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Player Greif');
             if (!this.settings.isEnabled) return;
             if (!World.isLoaded() || !Player.asPlayerMP()) return;
@@ -34,7 +34,7 @@ class PlayerGreifFailsafe extends Failsafe {
             if (now - this.lastNearbyTrigger >= this.nearbyCooldownMs) {
                 this.checkPlayerNearby(now);
             }
-        });
+        }).setDelay(1);
     }
 
     checkPlayerInside(now) {
@@ -69,8 +69,6 @@ class PlayerGreifFailsafe extends Failsafe {
     }
 
     checkPlayerNearby(now) {
-        this.settings = FailsafeUtils.getFailsafeSettings('Player Greif');
-        if (!this.settings.isEnabled) return;
         const px = Player.getX();
         const py = Player.getY();
         const pz = Player.getZ();
