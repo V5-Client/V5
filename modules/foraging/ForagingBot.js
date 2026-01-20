@@ -3,7 +3,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
@@ -294,7 +294,7 @@ class ForagingBot extends ModuleBase {
     addHitPoints(list) {
         return list.map((block) => ({
             ...block,
-            hitPoint: RayTrace.getPointOnBlock(block, false),
+            hitPoint: Raytrace.getPointOnBlock(block, false),
         }));
     }
 

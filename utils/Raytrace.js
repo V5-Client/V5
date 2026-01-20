@@ -440,7 +440,7 @@ export const voxelTraverser = new VoxelTraverser();
 export const blockScanner = new BlockScanner();
 export const entityRaytracer = new EntityRaytracer();
 
-export const RayTrace = {
+export const Raytrace = {
     getVisiblePoint: function (blockX, blockY, blockZ, useNative) {
         useNative = useNative !== false;
         return visibilityChecker.checkBlockVisibility(blockX, blockY, blockZ, useNative);

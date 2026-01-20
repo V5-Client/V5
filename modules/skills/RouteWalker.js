@@ -3,7 +3,7 @@ import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { Keybind } from '../../utils/player/Keybinding';
 import { MathUtils } from '../../utils/Math';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
 import { Router } from '../../utils/Router';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -180,7 +180,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) > 0.1) return;
 
-                    let point = RayTrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
+                    let point = Raytrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 
                     if (!this.etherwarpReady) {
                         if (point) {

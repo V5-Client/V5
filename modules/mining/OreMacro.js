@@ -4,7 +4,7 @@ import { Vec3d } from '../../utils/Constants';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { MathUtils } from '../../utils/Math';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
 import { Router } from '../../utils/Router';
 import { MiningBot } from './MiningBot';
@@ -528,7 +528,7 @@ class OreMacro extends ModuleBase {
         for (const face of faces) {
             const [targetX, targetY, targetZ] = face.target;
 
-            const isLineOfSightClear = RayTrace.isLineClear(startX, startY, startZ, targetX, targetY, targetZ);
+            const isLineOfSightClear = Raytrace.isLineClear(startX, startY, startZ, targetX, targetY, targetZ);
             const dx = targetX - startX;
             const dy = targetY - startY;
             const dz = targetZ - startZ;

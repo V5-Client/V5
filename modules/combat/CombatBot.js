@@ -6,7 +6,7 @@ import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
 import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
 import { Keybind } from '../../utils/player/Keybinding';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 
 const BLACKHOLE_TEXTURES = new Set([
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjE4NDg2Nzc3MywKICAicHJvZmlsZUlkIiA6ICJjNmViMzdjNmE4YjM0MDI3OGJjN2FmZGE3ZjMxOWJmMyIsCiAgInByb2ZpbGVOYW1lIiA6ICJFbFJleUNhbGFiYXphbCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS81NWI3MGYwOTRlMDE2Nzk1MDhkZDViY2EzOTY0MGVkOWVjNWM2YzY3OTJmYmQ4ZjU3YzAzYjNhMTJmOWMwYTkyIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=',
@@ -364,7 +364,7 @@ class Combat extends ModuleBase {
         if (!this.target) return false;
 
         try {
-            return RayTrace.isLookingAtEntity(this.target, this.attackRange + 0.5);
+            return Raytrace.isLookingAtEntity(this.target, this.attackRange + 0.5);
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
             return false;

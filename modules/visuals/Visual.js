@@ -1,6 +1,6 @@
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 
 const exclusions = [
     0, 51, 171, 144, 69, 77, 143, 50, 131, 132, 66, 157, 78, 141, 59, 142, 115, 104, 105, 76, 55, 38, 37, 6, 140, 32, 31, 65, 175, 93, 94, 149, 150, 30, 111, 9,
@@ -42,7 +42,7 @@ register('tick', () => {
         Math.abs(currentY - prevY) > MOVEMENT_THRESHOLD ||
         Math.abs(currentZ - prevZ) > MOVEMENT_THRESHOLD
     ) {
-        cachedBlock = RayTrace.getLookingAt(61);
+        cachedBlock = Raytrace.getLookingAt(61);
 
         // precalculate the color based on validity. idk if this is needed but who cares.
         if (cachedBlock && isValidTeleport(cachedBlock)) {

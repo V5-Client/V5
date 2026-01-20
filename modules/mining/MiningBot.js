@@ -1,6 +1,6 @@
 import { Keybind } from '../../utils/player/Keybinding';
 import { MiningUtils } from '../../utils/MiningUtils';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
 import { Utils } from '../../utils/Utils';
 import { MathUtils } from '../../utils/Math';
@@ -641,7 +641,7 @@ class Bot extends ModuleBase {
                 fx = clamp(ffx + jU, x + LO, x + HI);
                 fy = clamp(ffy + jV, y + LO, y + HI);
             }
-            if (RayTrace.isLineClear(eyePos.x, eyePos.y, eyePos.z, tx, ty, tz, x, y, z)) {
+            if (Raytrace.isLineClear(eyePos.x, eyePos.y, eyePos.z, tx, ty, tz, x, y, z)) {
                 return { hit: true, x: fx, y: fy, z: fz };
             }
             return { hit: false };
