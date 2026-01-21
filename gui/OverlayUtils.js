@@ -35,8 +35,10 @@ class OverlayUtils {
         this.pendingSave = false;
         this.sessionResumeWindowMs = 5 * 60 * 1000; // resume macro within 5 minutes
         this.savedSessions = {};
+        this.renderActive = false;
 
         NVG.registerV5Render(() => {
+            if (!Overlays.Gui.isOpen() && !this.renderActive) return;
             if (Overlays.Gui.isOpen()) {
                 this.drawGUI();
             } else {
@@ -58,26 +60,30 @@ class OverlayUtils {
         return [];
     }
 
+    updateRenderActive() {
+        this.renderActive = Object.values(this.animations).some((a) => a.target > 0 || a.progress > 0.01);
+        return this.renderActive;
+    }
+
     startAnimationLoop() {
         if (this.stepTrigger) return;
         this.stepTrigger = register('step', () => {
-            let activeAnimations = 0;
+            let animating = false;
             for (let name in this.animations) {
                 let anim = this.animations[name];
                 let diff = anim.target - anim.progress;
                 if (Math.abs(diff) > 0.001) {
-                    activeAnimations++;
+                    animating = true;
                     anim.progress += diff * 0.12;
                 } else {
                     anim.progress = anim.target;
                 }
             }
-            const needsToRun = Object.values(this.animations).some((a) => a.target > 0 || a.progress > 0.01);
-            if (activeAnimations === 0 && !needsToRun) {
-                if (this.stepTrigger) {
-                    this.stepTrigger.unregister();
-                    this.stepTrigger = null;
-                }
+            const hasVisible = this.updateRenderActive();
+            if (!animating) {
+                this.stepTrigger.unregister();
+                this.stepTrigger = null;
+                if (!hasVisible) this.renderActive = false;
             }
         }).setFps(60);
     }
@@ -100,6 +106,7 @@ class OverlayUtils {
         } else {
             this.animations[idName].target = 1;
         }
+        this.renderActive = true;
         this.startAnimationLoop();
     }
 
@@ -107,6 +114,7 @@ class OverlayUtils {
         if (this.animations[idName]) {
             this.animations[idName].target = 0;
         }
+        this.updateRenderActive();
         this.startAnimationLoop();
     }
 
@@ -124,6 +132,7 @@ class OverlayUtils {
         delete this.animations[idName];
         delete this.startTimes[idName];
         delete this.savedSessions[idName];
+        this.updateRenderActive();
         this.saveIDs();
     }
 
@@ -134,6 +143,7 @@ class OverlayUtils {
         this.savedSessions = {};
         this.draggingId = null;
         this.pendingSave = false;
+        this.renderActive = false;
         if (this.stepTrigger) {
             this.stepTrigger.unregister();
             this.stepTrigger = null;
@@ -236,9 +246,9 @@ class OverlayUtils {
         }
     }
 
-    clampToScreen(id) {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+    clampToScreen(id, swOverride = null, shOverride = null) {
+        const sw = swOverride !== null ? swOverride : Renderer.screen.getWidth();
+        const sh = shOverride !== null ? shOverride : Renderer.screen.getHeight();
         if (sw === 0 || sh === 0) return;
         id.x = Math.max(0, Math.min(id.x, sw - id.width));
         id.y = Math.max(0, Math.min(id.y, sh - id.height));
@@ -247,7 +257,7 @@ class OverlayUtils {
     drawAccentGlow(x, y, width, height, radius, progress) {
         const accentColor = THEME.ACCENT;
         const glowIntensity = 0.12;
-        for (let i = 3; i >= 0; i--) {
+        for (let i = 2; i >= 0; i--) {
             const expand = i * 2;
             const alpha = (glowIntensity - i * 0.025) * progress;
             if (alpha <= 0) continue;
@@ -275,7 +285,7 @@ class OverlayUtils {
         NVG.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
     }
 
-    renderID(id, forceGUI = false) {
+    renderID(id, forceGUI = false, screenSize = null) {
         const anim = this.animations[id.name];
         let progress = anim ? anim.progress : 0;
         if (forceGUI) progress = 1.0;
@@ -285,36 +295,55 @@ class OverlayUtils {
         const uptimeVal = forceGUI ? '0.00s' : this.formatUptime(this.startTimes[id.name]);
         let maxWidth = getTextWidth(id.name, this.fontSize) + this.boxPadding * 3;
         let calculatedHeight = 30 * this.scale;
+        const renderSections = [];
 
         sections.forEach((section, sIdx) => {
             if (!section || typeof section !== 'object') return;
+            const sectionLines = [];
+            const sectionData = section.data || {};
+
             if (section.title) calculatedHeight += 16 * this.scale;
             calculatedHeight += 10 * this.scale;
-            const sectionData = section.data || {};
-            const entries = Object.entries(sectionData);
-            entries.forEach(([k, v]) => {
-                const val = typeof v === 'function' ? v() : v;
-                const lineW = getTextWidth(`${k}:`, this.argFontSize) + getTextWidth(String(val), this.argFontSize) + 65 * this.scale;
-                if (lineW > maxWidth) maxWidth = lineW;
-            });
+
             if (sIdx === 0) {
-                const lineW = getTextWidth(`Uptime:`, this.argFontSize) + getTextWidth(uptimeVal, this.argFontSize) + 65 * this.scale;
-                if (lineW > maxWidth) maxWidth = lineW;
+                const label = 'Uptime:';
+                const labelWidth = getTextWidth(label, this.argFontSize);
+                const valueWidth = getTextWidth(uptimeVal, this.argFontSize);
+                maxWidth = Math.max(maxWidth, labelWidth + valueWidth + 65 * this.scale);
+                sectionLines.push({ label, value: uptimeVal, isUptime: true, labelWidth });
             }
-            let lineCount = entries.length + (sIdx === 0 ? 1 : 0);
+
+            Object.entries(sectionData).forEach(([k, v]) => {
+                const displayVal = typeof v === 'function' ? v() : v;
+                const label = `${k}:`;
+                const labelWidth = getTextWidth(label, this.argFontSize);
+                const valueWidth = getTextWidth(String(displayVal), this.argFontSize);
+                maxWidth = Math.max(maxWidth, labelWidth + valueWidth + 65 * this.scale);
+                sectionLines.push({ label, value: displayVal, isUptime: false, labelWidth });
+            });
+
+            const lineCount = sectionLines.length;
             calculatedHeight += lineCount * 14 * this.scale;
             calculatedHeight += 2 * this.scale;
+
+            renderSections.push({ title: section.title, lines: sectionLines });
         });
         calculatedHeight += 6 * this.scale;
 
-        id.width = Math.max(220 * this.scale, maxWidth);
-        id.height = Math.max(this.minBoxHeight, calculatedHeight);
-        this.clampToScreen(id);
+        const targetWidth = Math.max(220 * this.scale, maxWidth);
+        const targetHeight = Math.max(this.minBoxHeight, calculatedHeight);
+        if (id.width !== targetWidth || id.height !== targetHeight) {
+            id.width = targetWidth;
+            id.height = targetHeight;
+            const sw = screenSize ? screenSize.sw : null;
+            const sh = screenSize ? screenSize.sh : null;
+            this.clampToScreen(id, sw, sh);
+        }
         const currentHeight = id.height * progress;
         const radius = CORNER_RADIUS * this.scale;
         const bgColor = colorWithAlpha(THEME.BG_OVERLAY, 0.95 * progress);
 
-        drawShadow(id.x, id.y, id.width, currentHeight, 18 * this.scale, 0.45 * progress);
+        drawShadow(id.x, id.y, id.width, currentHeight, 12 * this.scale, 0.45 * progress);
         drawRoundedRectangleWithBorder({
             x: id.x,
             y: id.y,
@@ -339,8 +368,7 @@ class OverlayUtils {
                 drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
 
                 let contentY = titleY + 10 * this.scale;
-                sections.forEach((section, sIdx) => {
-                    if (!section || typeof section !== 'object') return;
+                renderSections.forEach((section) => {
                     this.drawSectionDivider(id.x + 18 * this.scale, contentY, id.width - 36 * this.scale, contentAlpha);
                     contentY += 10 * this.scale;
 
@@ -356,19 +384,22 @@ class OverlayUtils {
                         contentY += 14 * this.scale;
                     }
 
-                    const renderLine = (label, val, isUptime = false) => {
-                        const displayVal = typeof val === 'function' ? val() : val;
-                        const labelWidth = getTextWidth(label, this.argFontSize);
-                        drawText(label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
-                        const valueX = id.x + 22 * this.scale + labelWidth + 5 * this.scale;
-                        const valueColor = isUptime ? colorWithAlpha(THEME.ACCENT, contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
-                        drawText(String(displayVal), valueX, contentY, this.argFontSize, valueColor, 17);
+                    section.lines.forEach((line) => {
+                        drawText(
+                            line.label,
+                            id.x + 22 * this.scale,
+                            contentY,
+                            this.argFontSize,
+                            colorWithAlpha(0xff8a94a0, contentAlpha),
+                            17
+                        );
+                        const valueX = id.x + 22 * this.scale + line.labelWidth + 5 * this.scale;
+                        const valueColor = line.isUptime
+                            ? colorWithAlpha(THEME.ACCENT, contentAlpha)
+                            : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
+                        drawText(String(line.value), valueX, contentY, this.argFontSize, valueColor, 17);
                         contentY += 14 * this.scale;
-                    };
-
-                    if (sIdx === 0) renderLine('Uptime:', uptimeVal, true);
-                    const sectionData = section.data || {};
-                    Object.entries(sectionData).forEach(([k, v]) => renderLine(`${k}:`, v, false));
+                    });
                     contentY += 4 * this.scale;
                 });
             } finally {
@@ -385,7 +416,7 @@ class OverlayUtils {
 
         try {
             NVG.beginFrame(sw, sh);
-            this.ids.forEach((id) => this.renderID(id, true));
+            this.ids.forEach((id) => this.renderID(id, true, { sw, sh }));
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         } finally {
@@ -397,17 +428,19 @@ class OverlayUtils {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
         if (sw === 0) return;
-        let anyVisible = false;
+        const visibleIds = this.ids.filter((id) => {
+            const anim = this.animations[id.name];
+            return anim && (anim.target > 0 || anim.progress > 0.01);
+        });
+        if (visibleIds.length === 0) {
+            this.renderActive = false;
+            return;
+        }
+        this.renderActive = true;
 
         try {
             NVG.beginFrame(sw, sh);
-            this.ids.forEach((id) => {
-                const anim = this.animations[id.name];
-                if (anim && (anim.target > 0 || anim.progress > 0.01)) {
-                    this.renderID(id);
-                    anyVisible = true;
-                }
-            });
+            visibleIds.forEach((id) => this.renderID(id, false, { sw, sh }));
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         } finally {
