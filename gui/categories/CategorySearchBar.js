@@ -95,33 +95,46 @@ export const SearchBar = {
     handleClick(mouseX, mouseY, panel, y) {
         if (!panel) return false;
 
-        const currentWidth = this.collapsedWidth + (this.expandedWidth - this.collapsedWidth) * this.animation;
-        const x = panel.x + panel.width - PADDING - currentWidth;
-        const iconX = panel.x + panel.width - PADDING - 22;
+        const barRightEdge = panel.x + panel.width - PADDING;
+        const iconX = barRightEdge - this.collapsedWidth;
 
-        const iconRect = { x: iconX, y: y + 6, width: 16, height: 16 };
-        const barRect = { x, y, width: currentWidth, height: this.height };
+        const iconRect = {
+            x: iconX,
+            y: y,
+            width: this.collapsedWidth,
+            height: this.height,
+        };
 
         if (isInside(mouseX, mouseY, iconRect)) {
             this.isExpanded = !this.isExpanded;
             this.isFocused = this.isExpanded;
             TypingState.isTyping = this.isFocused;
-            if (this.isFocused) this.cursorIndex = this.query.length;
+
+            if (this.isFocused) {
+                this.cursorIndex = this.query.length;
+            }
+
             playClickSound();
             return true;
         }
 
-        if (this.isExpanded && isInside(mouseX, mouseY, barRect)) {
-            if (!this.isFocused) {
-                this.isFocused = true;
-                TypingState.isTyping = true;
-                playClickSound();
+        if (this.isExpanded) {
+            const currentWidth = this.collapsedWidth + (this.expandedWidth - this.collapsedWidth) * this.animation;
+            const barX = barRightEdge - currentWidth;
+            const barRect = { x: barX, y, width: currentWidth, height: this.height };
+
+            if (isInside(mouseX, mouseY, barRect)) {
+                if (!this.isFocused) {
+                    this.isFocused = true;
+                    TypingState.isTyping = true;
+                    playClickSound();
+                }
+                this.cursorIndex = this.getCursorIndexFromMouseX(mouseX);
+                return true;
             }
-            this.cursorIndex = this.getCursorIndexFromMouseX(mouseX);
-            return true;
         }
 
-        if (this.isExpanded || this.isFocused) {
+        if (this.isFocused || this.isExpanded) {
             this.isExpanded = false;
             this.isFocused = false;
             TypingState.isTyping = false;
@@ -135,10 +148,12 @@ export const SearchBar = {
 
         const BACKSPACE = 259;
         const ESCAPE = 256;
+        const ENTER = 257;
         const LEFT_ARROW = 263;
         const RIGHT_ARROW = 262;
+        const SPACE = 32;
 
-        if (keyCode === ESCAPE) {
+        if (keyCode === ESCAPE || keyCode === ENTER) {
             this.isExpanded = false;
             this.isFocused = false;
             TypingState.isTyping = false;
@@ -163,20 +178,29 @@ export const SearchBar = {
             return true;
         }
 
-        const charStr = String(char);
-        if (charStr && charStr.length === 1) {
-            const code = charStr.charCodeAt(0);
-            if (code >= 32 && code <= 126) {
-                const nextQuery = this.query.slice(0, this.cursorIndex) + charStr + this.query.slice(this.cursorIndex);
-                const maxTextWidth = this.expandedWidth - 35;
+        if (keyCode === SPACE) {
+            const nextQuery = this.query.slice(0, this.cursorIndex) + ' ' + this.query.slice(this.cursorIndex);
+            const maxTextWidth = this.expandedWidth - 35;
 
-                if (getTextWidth(nextQuery, FontSizes.LARGE) <= maxTextWidth) {
-                    this.query = nextQuery;
-                    this.cursorIndex++;
-                }
-                return true;
+            if (getTextWidth(nextQuery, FontSizes.LARGE) <= maxTextWidth) {
+                this.query = nextQuery;
+                this.cursorIndex++;
             }
+            return true;
         }
+
+        const charStr = char?.toString();
+        if (charStr && charStr.length === 1) {
+            const nextQuery = this.query.slice(0, this.cursorIndex) + charStr + this.query.slice(this.cursorIndex);
+            const maxTextWidth = this.expandedWidth - 35;
+
+            if (getTextWidth(nextQuery, FontSizes.LARGE) <= maxTextWidth) {
+                this.query = nextQuery;
+                this.cursorIndex++;
+            }
+            return true;
+        }
+
         return false;
     },
 
@@ -190,6 +214,13 @@ export const SearchBar = {
             prevWidth += charWidth;
         }
         return this.query.length;
+    },
+
+    resetSearch() {
+        this.isExpanded = false;
+        this.isFocused = false;
+        this.cursorIndex = 0;
+        this.query = '';
     },
 
     getSearchQuery() {

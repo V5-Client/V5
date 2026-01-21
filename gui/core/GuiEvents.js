@@ -6,6 +6,7 @@ import { categoryManager } from '../categories/CategoryManager';
 import { v5Command, callCommand } from '../../utils/V5Commands';
 import { KeyBindUtils, NVG } from '../../utils/Constants';
 import { Utils } from '../../utils/Utils';
+import { SearchBar } from '../categories/CategorySearchBar';
 
 let GUIKey = null;
 let GUIKeyBind = null;
@@ -49,6 +50,7 @@ const handleMouseRelease = () => {
 };
 
 const handleGuiClosed = () => {
+    SearchBar.resetSearch();
     saveSettings();
     loadSettings();
 };

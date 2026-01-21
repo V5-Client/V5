@@ -46,7 +46,6 @@ export const createCategoriesManager = (deps) => {
 
     const getFilteredItems = (cat, query) => {
         const search = query.trim().toLowerCase();
-        const categoryMatches = cat.name.toLowerCase().includes(search);
 
         if (!search) {
             return cat.items.filter((group) => {
@@ -57,16 +56,19 @@ export const createCategoriesManager = (deps) => {
             });
         }
 
+        const categoryMatches = cat.name.toLowerCase().includes(search);
+
         return cat.items.reduce((acc, group) => {
             if (group.type === 'separator') {
                 const subcategoryMatches = group.title.toLowerCase().includes(search);
 
-                const matchingItems =
-                    categoryMatches || subcategoryMatches
-                        ? group.items
-                        : group.items.filter(
-                              (item) => item.title.toLowerCase().includes(search) || (item.description && item.description.toLowerCase().includes(search))
-                          );
+                const matchingItems = group.items.filter((item) => {
+                    const titleMatch = item.title.toLowerCase().includes(search);
+                    const descMatch = item.description && item.description.toLowerCase().includes(search);
+
+                    const componentMatch = item.components && item.components.some((comp) => comp.title && comp.title.toLowerCase().includes(search));
+                    return categoryMatches || subcategoryMatches || titleMatch || descMatch || componentMatch;
+                });
 
                 if (matchingItems.length > 0) {
                     const groupCopy = Object.assign(Object.create(Object.getPrototypeOf(group)), group);
@@ -74,7 +76,10 @@ export const createCategoriesManager = (deps) => {
                     acc.push(groupCopy);
                 }
             } else {
-                if (categoryMatches || group.title.toLowerCase().includes(search)) {
+                const titleMatch = group.title.toLowerCase().includes(search);
+                const componentMatch = group.components && group.components.some((comp) => comp.title && comp.title.toLowerCase().includes(search));
+
+                if (categoryMatches || titleMatch || componentMatch) {
                     acc.push(group);
                 }
             }
