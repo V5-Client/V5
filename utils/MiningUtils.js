@@ -8,49 +8,56 @@ import { Blocks, BP } from './Constants';
 import { v5Command } from './V5Commands';
 
 const BLOCK_HARDNESS_DATA = {
-    5: { h: 2000, n: 'Titanium' },
-    143: { h: 1500, n: 'Blue Wool Mithril' },
-    495: { h: 800, n: 'Prismarine Mithril' },
-    496: { h: 800, n: 'Prismarine Brick Mithril' },
-    497: { h: 800, n: 'Dark Prismarine Mithril' },
-    461: { h: 500, n: 'Cyan Terracotta Mithril' },
-    147: { h: 500, n: 'Gray Wool Mithril' },
-    524: { h: 6000, n: 'Glacite' },
-    268: { h: 5600, n: 'Tungsten Clay' },
-    318: { h: 5600, n: 'Tungsten Cobble' },
-    464: { h: 5600, n: 'Umber Brown Terracotta' },
-    595: { h: 5600, n: 'Umber Smooth Red Sandstone' },
-    522: { h: 5600, n: 'Umber Terracotta' },
-    479: { h: 5200, n: 'Aquamarine Pane' },
-    480: { h: 5200, n: 'Citrine Pane' },
-    481: { h: 5200, n: 'Peridot Pane' },
-    483: { h: 5200, n: 'Onyx Pane' },
-    470: { h: 4800, n: 'Jasper Pane' },
-    472: { h: 3800, n: 'Topaz Pane' },
-    469: { h: 3000, n: 'Amber Pane' },
-    478: { h: 3000, n: 'Amethyst Pane' },
-    473: { h: 3000, n: 'Jade Pane' },
-    471: { h: 3000, n: 'Sapphire Pane' },
-    482: { h: 2300, n: 'Ruby Pane' },
-    296: { h: 5200, n: 'Aquamarine Block' },
-    297: { h: 5200, n: 'Citrine Block' },
-    298: { h: 5200, n: 'Peridot Block' },
-    300: { h: 5200, n: 'Onyx Block' },
-    287: { h: 4800, n: 'Jasper Block' },
-    289: { h: 3800, n: 'Topaz Block' },
-    286: { h: 3000, n: 'Amber Block' },
-    295: { h: 3000, n: 'Amethyst Block' },
-    290: { h: 3000, n: 'Jade Block' },
-    288: { h: 3000, n: 'Sapphire Block' },
-    299: { h: 2300, n: 'Ruby Block' },
-    523: { h: 600, n: 'Coal Ore' },
-    173: { h: 600, n: 'Gold Block' },
-    174: { h: 600, n: 'Iron Ore' },
-    443: { h: 600, n: 'Redstone Ore' },
-    372: { h: 600, n: 'Emerald Ore' },
-    192: { h: 600, n: 'Diamond Ore' },
-    446: { h: 600, n: 'Quartz Ore' },
+    "minecraft:polished_diorite": { hardness: 2000, name: 'Titanium' },
+    "minecraft:light_blue_wool": { hardness: 1500, name: 'Blue Mithril' },
+    "minecraft:prismarine": { hardness: 800, name: 'Prismarine Mithril' },
+    "minecraft:prismarine_bricks": { hardness: 800, name: 'Prismarine Mithril' },
+    "minecraft:dark_prismarine": { hardness: 800, name: 'Prismarine Mithril' },
+    "minecraft:cyan_terracotta": { hardness: 500, name: 'Gray Mithril' },
+    "minecraft:gray_wool": { hardness: 500, name: 'Gray Mithril' },
+    "minecraft:packed_ice": { hardness: 6000, name: 'Glacite' },
+    "minecraft:clay": { hardness: 5600, name: 'Tungsten Clay' },
+    "minecraft:infested_cobblestone": { hardness: 5600, name: 'Tungsten Cobble' },
+    "minecraft:brown_terracotta": { hardness: 5600, name: 'Umber Brown Terracotta' },
+    "minecraft:smooth_red_sandstone": { hardness: 5600, name: 'Umber Smooth Red Sandstone' },
+    "minecraft:terracotta": { hardness: 5600, name: 'Umber Terracotta' },
+    "minecraft:blue_stained_glass_pane": { hardness: 5200, name: 'Aquamarine Pane' },
+    "minecraft:brown_stained_glass_pane": { hardness: 5200, name: 'Citrine Pane' },
+    "minecraft:lime_stained_glass_pane": { hardness: 5200, name: 'Peridot Pane' },
+    "minecraft:black_stained_glass_pane": { hardness: 5200, name: 'Onyx Pane' },
+    "minecraft:pink_stained_glass_pane": { hardness: 4800, name: 'Jasper Pane' },
+    "minecraft:yellow_stained_glass_pane": { hardness: 3800, name: 'Topaz Pane' },
+    "minecraft:orange_stained_glass_pane": { hardness: 3000, name: 'Amber Pane' },
+    "minecraft:purple_stained_glass_pane": { hardness: 3000, name: 'Amethyst Pane' },
+    "minecraft:green_stained_glass_pane": { hardness: 3000, name: 'Jade Pane' },
+    "minecraft:light_blue_stained_glass_pane": { hardness: 3000, name: 'Sapphire Pane' },
+    "minecraft:red_stained_glass_pane": { hardness: 2300, name: 'Ruby Pane' },
+    "minecraft:blue_stained_glass": { hardness: 5200, name: 'Aquamarine Block' },
+    "minecraft:brown_stained_glass": { hardness: 5200, name: 'Citrine Block' },
+    "minecraft:lime_stained_glass": { hardness: 5200, name: 'Peridot Block' },
+    "minecraft:black_stained_glass": { hardness: 5200, name: 'Onyx Block' },
+    "minecraft:pink_stained_glass": { hardness: 4800, name: 'Jasper Block' },
+    "minecraft:yellow_stained_glass": { hardness: 3800, name: 'Topaz Block' },
+    "minecraft:orange_stained_glass": { hardness: 3000, name: 'Amber Block' },
+    "minecraft:purple_stained_glass": { hardness: 3000, name: 'Amethyst Block' },
+    "minecraft:green_stained_glass": { hardness: 3000, name: 'Jade Block' },
+    "minecraft:light_blue_stained_glass": { hardness: 3000, name: 'Sapphire Block' },
+    "minecraft:red_stained_glass": { hardness: 2300, name: 'Ruby Block' },
+    "minecraft:coal_block": { hardness: 600, name: 'Coal Block' },
+    "minecraft:gold_block": { hardness: 600, name: 'Gold Block' },
+    "minecraft:iron_block": { hardness: 600, name: 'Iron Block' },
+    "minecraft:redstone_block": { hardness: 600, name: 'Redstone Block' },
+    "minecraft:emerald_block": { hardness: 600, name: 'Emerald Block' },
+    "minecraft:diamond_block": { hardness: 600, name: 'Diamond Block' },
+    "minecraft:quartz_block": { hardness: 600, name: 'Quartz Block' },
 };
+
+function lookupBlock(registryName) {
+    if (!registryName) return null;
+    const data = BLOCK_HARDNESS_DATA[registryName];
+    if (!data) return null;
+    return data
+}
 
 const TOOL_PRIORITY_LIST = [
     { match: 'Gauntlet', priority: 5, fuel: true },
@@ -377,9 +384,12 @@ class MineTimeCalculations {
             return this.clamp(100);
         }
 
-        let blockId = block.type.getID();
-        let data = BLOCK_HARDNESS_DATA[blockId];
-        let hardness = data ? data.h : 100;
+        let blockName = block?.type?.getRegistryName();
+        if (!blockName) {
+            return this.clamp(100);
+        }
+        let data = BLOCK_HARDNESS_DATA[blockName];
+        let hardness = data ? data.hardness : 20000;
 
         let effectiveSpeed = speed + (Flowstate.CurrentFlowstate ? Flowstate.CurrentFlowstate() : 0);
 
@@ -753,6 +763,9 @@ export const MiningUtils = {
     },
     getMineTime: function (pos, speed, boost) {
         return timeCalc.calculateTicks(pos, speed, boost);
+    },
+    getBlockInfo: function (registryName) {
+        return lookupBlock(registryName);
     },
     getDrills: function () {
         let bestTool = ToolFinder.findBest();
