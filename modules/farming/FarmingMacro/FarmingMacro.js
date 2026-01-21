@@ -226,16 +226,25 @@ class FarmingMacro extends ModuleBase {
 
         attachMixin(spawnBreakParticles, 'Block', (instance, cir) => {
             if (!this.HIDEPARTICLES) return;
+
             const blockKey = instance.getTranslationKey();
             const targetKeys = [
                 'block.minecraft.melon',
-                'block.minecraft.pumpkin',
+                'block.minecraft.carved_pumpkin',
+                'block.minecraft.sugar_cane',
+                'block.minecraft.nether_wart',
+                'block.minecraft.wheat',
                 'block.minecraft.carrots',
                 'block.minecraft.potatoes',
-                'block.minecraft.wheat',
-                'block.minecraft.nether_wart',
+                'block.minecraft.cocoa',
+                'block.minecraft.cactus',
+                'block.minecraft.brown_mushroom',
+                'block.minecraft.red_mushroom',
             ];
-            if (targetKeys.includes(blockKey)) cir.cancel();
+
+            if (targetKeys.includes(blockKey)) {
+                cir.cancel();
+            }
         });
     }
 
