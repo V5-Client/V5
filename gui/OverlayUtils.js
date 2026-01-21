@@ -385,18 +385,9 @@ class OverlayUtils {
                     }
 
                     section.lines.forEach((line) => {
-                        drawText(
-                            line.label,
-                            id.x + 22 * this.scale,
-                            contentY,
-                            this.argFontSize,
-                            colorWithAlpha(0xff8a94a0, contentAlpha),
-                            17
-                        );
+                        drawText(line.label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
                         const valueX = id.x + 22 * this.scale + line.labelWidth + 5 * this.scale;
-                        const valueColor = line.isUptime
-                            ? colorWithAlpha(THEME.ACCENT, contentAlpha)
-                            : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
+                        const valueColor = line.isUptime ? colorWithAlpha(THEME.ACCENT, contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
                         drawText(String(line.value), valueX, contentY, this.argFontSize, valueColor, 17);
                         contentY += 14 * this.scale;
                     });
