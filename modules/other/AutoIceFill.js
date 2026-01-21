@@ -1,6 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
+import { Utils } from '../../utils/Utils';
 
 const MAX_ATTACH_DIST_SQ = 9;
 const MAX_Y_DIFF = 1.1;
@@ -45,7 +46,13 @@ class AutoIceFill extends ModuleBase {
             this.reflectionFailed = true;
         }
 
-        this.on('tick', () => this.onTick());
+        this.when(
+            () => {
+                return Utils.subArea().startsWith('The Catacombs');
+            },
+            'tick',
+            () => this.onTick()
+        );
     }
 
     onDisable() {
