@@ -120,11 +120,11 @@ export default class MelonKingDeMP extends FarmHandler {
                 if (sides.front) {
                     let lookingAt = Player.lookingAt();
                     if (!registry.includes('stem')) {
-                        Chat.message('got from looking');
+                        // Chat.message('got from looking');
 
                         // i mean this isnt really needed ?
                         registry = this.getRegistry(lookingAt);
-                    } else Chat.message('got with func');
+                    } //else Chat.message('got with func');
 
                     const cropTools = {
                         'minecraft:melon': 'Melon Dicer',
@@ -165,7 +165,14 @@ export default class MelonKingDeMP extends FarmHandler {
                 p.state = p.STATES.IDLECHECKS;
                 break;
             case p.STATES.IDLECHECKS:
-                Chat.message(p.movementKey);
+                if (this.isAtPoint(p.points.end.x, p.points.end.y, p.points.end.z, 1)) {
+                    p.message('&aReached end of farm! rewarping.');
+                    Keybind.unpressKeys();
+                    Keybind.setKey('leftclick', false);
+                    p.state = STATES.REWARP;
+                    return;
+                }
+
                 Keybind.setKey('w', true);
                 Keybind.setKey('leftclick', true);
                 Keybind.setKey(p.movementKey, true);
