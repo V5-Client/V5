@@ -298,7 +298,7 @@ class RotationsTo {
         let nextYaw = currentYaw + deltaYaw * ratio;
         let nextPitch = currentPitch + deltaPitch * ratio;
 
-        if (RotationModule.rotationMode !== 'Linear' && !isExactVector) {
+        if (RotationModule.rotationMode !== 'Linear') {
             const curve = this.getMathEquationOffset(progress);
             if (!isNaN(curve.x) && !isNaN(curve.y)) {
                 nextYaw += curve.x * ratio;
