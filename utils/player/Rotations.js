@@ -240,15 +240,20 @@ class RotationsTo {
         let deltaPitch = finalTarget.pitch - currentPitch;
         let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
-        const effectivePrecision = this.trackedEntity ? 0.5 : this.precision;
+        const isExactVector = this.targetVector !== null;
+        const effectivePrecision = isExactVector ? 0.000001 : this.trackedEntity ? 0.5 : this.precision;
 
         if (distance <= effectivePrecision) {
-            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
-            this.lastTime = Date.now();
+            const player = Player.getPlayer();
+            if (isExactVector && player) {
+                player.setYaw(finalTarget.yaw);
+                player.setPitch(finalTarget.pitch);
+            } else {
+                this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+            }
 
+            this.lastTime = Date.now();
             if (!this.trackedEntity) {
-                this.lastTime = 0;
-                this.initialDistance = 0;
                 this.stopRotation();
             }
             return;
@@ -285,7 +290,6 @@ class RotationsTo {
         let distModifier = Math.min(distance / RotationModule.DAMPING_DIST, 1.0);
 
         let speedMult = Math.pow(distModifier, 0.5);
-
         let baseSpeed = RotationModule.ROTATION_SPEED * this.speedMultiplier;
         let step = (baseSpeed * speedMult * warmup + 10) * deltaTime;
 
@@ -294,7 +298,7 @@ class RotationsTo {
         let nextYaw = currentYaw + deltaYaw * ratio;
         let nextPitch = currentPitch + deltaPitch * ratio;
 
-        if (RotationModule.rotationMode !== 'Linear') {
+        if (RotationModule.rotationMode !== 'Linear' && !isExactVector) {
             const curve = this.getMathEquationOffset(progress);
             if (!isNaN(curve.x) && !isNaN(curve.y)) {
                 nextYaw += curve.x * ratio;
@@ -306,7 +310,15 @@ class RotationsTo {
         nextPitch = Math.max(-90, Math.min(90, nextPitch));
 
         if (!isNaN(nextYaw) && !isNaN(nextPitch)) {
-            this.applyRotationWithGCD(nextYaw, nextPitch);
+            const player = Player.getPlayer();
+            if (isExactVector && player) {
+                player.setYaw(nextYaw);
+                player.setPitch(nextPitch);
+                this.lastAppliedYaw = nextYaw;
+                this.lastAppliedPitch = nextPitch;
+            } else {
+                this.applyRotationWithGCD(nextYaw, nextPitch);
+            }
         }
     }
 
