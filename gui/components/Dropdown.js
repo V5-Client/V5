@@ -266,9 +266,7 @@ export class MultiToggle {
                             const isEnabled = this.options[i].enabled;
                             if (isEnabled) {
                                 playClickSound();
-                                if (this.callback) {
-                                    this.callback([this.options[i].name]);
-                                }
+                                if (this.callback) this.callback(this.options);
                                 return true;
                             }
                             this.options.forEach((opt, index) => {
@@ -283,10 +281,7 @@ export class MultiToggle {
                             this.options[i].animationStart = Date.now();
                         }
                         playClickSound();
-                        if (this.callback) {
-                            const selectedOptions = this.options.filter((option) => option.enabled).map((option) => option.name);
-                            this.callback(selectedOptions);
-                        }
+                        if (this.callback) this.callback(this.options);
                         return true;
                     }
                     currentY += this.optionHeight;
