@@ -92,7 +92,7 @@ export function clearPathCallback() {
 function findStartY(x, initialY, z) {
     let y = initialY + 1;
     const maxDistance = 100;
-    const world = World.getWorld()
+    const world = World.getWorld();
 
     for (let i = 0; i < maxDistance; i++) {
         if (y <= 0) return y;
