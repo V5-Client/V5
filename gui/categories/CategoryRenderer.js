@@ -344,39 +344,32 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, THEME.TEXT);
 };
 
-export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid) => {
-    const panelWidth = panel.width - PADDING * 2;
-    const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
-    let itemIndexInRow = 0;
+export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, items, layouts, valid) => {
+    const iw = (panel.width - PADDING * 2 - ITEM_SPACING * 2) / 3;
+    let rowIdx = 0;
 
-    itemsToDisplay.forEach((group, groupIndex) => {
-        if (group.type === 'separator') {
-            if (groupIndex > 0) yOffset += 12;
+    items.forEach((g, i) => {
+        if (g.type === 'separator') {
+            if (i > 0) yOffset += 12;
 
-            group.x = panelX + PADDING;
-            group.y = yOffset;
-
-            group.optionPanelWidth = panel.width;
-            group.draw(mouseX, mouseY);
+            g.x = panelX + PADDING;
+            g.y = yOffset;
+            g.optionPanelWidth = panel.width;
+            if (typeof g.draw === 'function') g.draw(mouseX, mouseY);
 
             yOffset += 22;
-            let subcategoryItemsInRow = 0;
-            group.items.forEach((item) => {
-                const col = subcategoryItemsInRow % 3;
-                if (col === 0 && subcategoryItemsInRow > 0) yOffset += 48 + 6;
-                const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-                drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, true);
-                subcategoryItemsInRow++;
+            let subIdx = 0;
+
+            g.items.forEach((item) => {
+                if (subIdx % 3 === 0 && subIdx > 0) yOffset += 54;
+                drawItemBox(item, panelX + PADDING + (subIdx % 3) * (iw + ITEM_SPACING), yOffset, iw, mouseX, mouseY, layouts, valid, true);
+                subIdx++;
             });
-            if (group.items.length > 0) yOffset += 48;
+            if (g.items.length > 0) yOffset += 48;
         } else {
-            if (Categories.selectedSubcategory !== null) return;
-            const item = group;
-            const col = itemIndexInRow % 3;
-            if (col === 0 && itemIndexInRow > 0) yOffset += 48 + 6;
-            const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-            drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, false);
-            itemIndexInRow++;
+            if (rowIdx % 3 === 0 && rowIdx > 0) yOffset += 54;
+            drawItemBox(g, panelX + PADDING + (rowIdx % 3) * (iw + ITEM_SPACING), yOffset, iw, mouseX, mouseY, layouts, valid, false);
+            rowIdx++;
         }
     });
 };

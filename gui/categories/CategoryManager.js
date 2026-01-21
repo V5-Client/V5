@@ -18,6 +18,7 @@ export const createCategoriesManager = (deps) => {
     let isLayoutCacheValid = false;
     let cachedContentHeight = 0;
     let isContentHeightCacheValid = false;
+    let lastQuery = '';
 
     const SCROLL_SMOOTHING_FACTOR = 0.2;
 
@@ -41,6 +42,44 @@ export const createCategoriesManager = (deps) => {
     const resetCategoryScroll = () => {
         setRightPanelScrollY(0);
         setOptionsScrollY(0);
+    };
+
+    const getFilteredItems = (cat, query) => {
+        const search = query.trim().toLowerCase();
+        const categoryMatches = cat.name.toLowerCase().includes(search);
+
+        if (!search) {
+            return cat.items.filter((group) => {
+                if (group.type === 'separator') {
+                    return Categories.selectedSubcategory === null || group.title === Categories.selectedSubcategory;
+                }
+                return true;
+            });
+        }
+
+        return cat.items.reduce((acc, group) => {
+            if (group.type === 'separator') {
+                const subcategoryMatches = group.title.toLowerCase().includes(search);
+
+                const matchingItems =
+                    categoryMatches || subcategoryMatches
+                        ? group.items
+                        : group.items.filter(
+                              (item) => item.title.toLowerCase().includes(search) || (item.description && item.description.toLowerCase().includes(search))
+                          );
+
+                if (matchingItems.length > 0) {
+                    const groupCopy = Object.assign(Object.create(Object.getPrototypeOf(group)), group);
+                    groupCopy.items = matchingItems;
+                    acc.push(groupCopy);
+                }
+            } else {
+                if (categoryMatches || group.title.toLowerCase().includes(search)) {
+                    acc.push(group);
+                }
+            }
+            return acc;
+        }, []);
     };
 
     const calculateDirectComponentsHeight = (categoryName) => {
@@ -84,42 +123,31 @@ export const createCategoriesManager = (deps) => {
                     isContentHeightCacheValid = true;
                     return;
                 }
-
-                if (category.subcategories.length > 0) {
+                const query = SearchBar.query.trim().toLowerCase();
+                if (category.subcategories.length > 0 && query.length === 0) {
                     height += 28 + PADDING;
                 }
-
-                const itemsToDisplay = Categories.selectedSubcategory
-                    ? category.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
-                    : category.items;
-
+                const itemsToDisplay = getFilteredItems(category, query);
                 let nonGroupedItemCount = 0;
-
-                const calculateNonGroupedHeight = () => {
+                const processNonGrouped = () => {
                     if (nonGroupedItemCount > 0) {
-                        const numRows = Math.ceil(nonGroupedItemCount / 3);
-                        height += numRows * (48 + 6);
+                        height += Math.ceil(nonGroupedItemCount / 3) * 54;
                         nonGroupedItemCount = 0;
                     }
                 };
-
-                itemsToDisplay.forEach((group, groupIndex) => {
+                itemsToDisplay.forEach((group, index) => {
                     if (group.type === 'separator') {
-                        calculateNonGroupedHeight();
-
-                        if (groupIndex > 0) height += 12;
+                        processNonGrouped();
+                        if (index > 0) height += 12;
                         height += 22;
-
-                        const itemsInSubcategory = group.items.length;
-                        if (itemsInSubcategory > 0) {
-                            const numRows = Math.ceil(itemsInSubcategory / 3);
-                            height += numRows * (48 + 6);
+                        if (group.items.length > 0) {
+                            height += Math.ceil(group.items.length / 3) * 54;
                         }
                     } else {
                         nonGroupedItemCount++;
                     }
                 });
-                calculateNonGroupedHeight();
+                processNonGrouped();
                 height += PADDING;
             }
             cachedContentHeight = height;
@@ -147,6 +175,13 @@ export const createCategoriesManager = (deps) => {
     };
 
     const draw = (mouseX, mouseY) => {
+        const query = SearchBar.query.trim().toLowerCase();
+        if (query !== lastQuery) {
+            isContentHeightCacheValid = false;
+            isLayoutCacheValid = false;
+            lastQuery = query;
+        }
+
         const cacheInvalidated = updateCategoryTransitions();
         if (cacheInvalidated) isLayoutCacheValid = false;
 
@@ -159,13 +194,9 @@ export const createCategoriesManager = (deps) => {
 
         if (Categories.currentPage === 'categories') {
             const directCat = Categories.categories.find((c) => c.name === Categories.selected);
-            if (directCat?.directComponents && checkComponentsForAnim(directCat.directComponents)) {
-                activeComponentAnimation = true;
-            }
+            if (directCat?.directComponents && checkComponentsForAnim(directCat.directComponents)) activeComponentAnimation = true;
         } else if (Categories.currentPage === 'options' && Categories.selectedItem) {
-            if (checkComponentsForAnim(Categories.selectedItem.components)) {
-                activeComponentAnimation = true;
-            }
+            if (checkComponentsForAnim(Categories.selectedItem.components)) activeComponentAnimation = true;
         }
 
         if (activeComponentAnimation) {
@@ -186,9 +217,7 @@ export const createCategoriesManager = (deps) => {
         const prevScrollY = currentRightPanelScrollY;
         currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * SCROLL_SMOOTHING_FACTOR;
 
-        if (Math.abs(currentRightPanelScrollY - prevScrollY) > 0.1) {
-            isLayoutCacheValid = false;
-        }
+        if (Math.abs(currentRightPanelScrollY - prevScrollY) > 0.1) isLayoutCacheValid = false;
 
         if (shouldDrawOptions) {
             const optionsContentHeight = calculateOptionsContentHeight();
@@ -210,22 +239,13 @@ export const createCategoriesManager = (deps) => {
             const drawSingleCategory = (catName, currentPanelX, isNewCategory) => {
                 const cat = Categories.categories.find((c) => c.name === catName);
                 if (!cat) return;
-
-                let yOffset = panel.y + PADDING - rightPanelScrollY;
-
+                let yOffset = panel.y + PADDING - currentRightPanelScrollY;
                 if (cat.directComponents && cat.directComponents.length > 0) {
-                    drawDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, rightPanelScrollY, catName);
+                    drawDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, currentRightPanelScrollY, catName);
                     return;
                 }
-
-                if (cat.subcategories.length > 0) {
-                    yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
-                }
-
-                const itemsToDisplay = Categories.selectedSubcategory
-                    ? cat.items.filter((group) => group.type === 'separator' && group.title === Categories.selectedSubcategory)
-                    : cat.items;
-
+                if (cat.subcategories.length > 0) yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
+                const itemsToDisplay = getFilteredItems(cat, query);
                 drawCategoryItems(cat, panel, currentPanelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid || !isNewCategory);
             };
 
@@ -235,9 +255,11 @@ export const createCategoriesManager = (deps) => {
 
                 let incomingX = panel.x + (dir === 1 ? panel.width * (1 - progress) : -panel.width * (1 - progress));
                 drawSingleCategory(Categories.selected, incomingX, true);
-
+                if (Categories.selected === 'Modules') SearchBar.draw(mouseX, mouseY, { ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
                 let outgoingX = panel.x + (dir === 1 ? -panel.width * progress : panel.width * progress);
                 drawSingleCategory(Categories.previousSelected, outgoingX, false);
+                if (Categories.previousSelected === 'Modules')
+                    SearchBar.draw(mouseX, mouseY, { ...panel, x: outgoingX }, panel.y + 11 - currentRightPanelScrollY);
             } else {
                 let panelX = panel.x;
                 if (transitionActive && Categories.transitionType === 'page') {
@@ -246,22 +268,23 @@ export const createCategoriesManager = (deps) => {
                 }
 
                 drawSingleCategory(Categories.selected, panelX, true);
-
+                if (Categories.selected === 'Modules') SearchBar.draw(mouseX, mouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
                 if (!isLayoutCacheValid && !transitionActive) isLayoutCacheValid = true;
             }
         }
 
         if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
-
         resetScissor();
-
-        if (Categories.selected === 'Modules') SearchBar.draw(mouseX, mouseY, deps.rectangles.RightPanel, panel.y + 11, Categories.currentPage);
     };
 
     const handleClick = (mouseX, mouseY) => {
         const panel = deps.rectangles.RightPanel;
-        SearchBar.handleClick(mouseX, mouseY, panel, panel.y + 11);
-
+        if (SearchBar.handleClick(mouseX, mouseY, panel, panel.y + 11)) {
+            isLayoutCacheValid = false;
+            isContentHeightCacheValid = false;
+            resetCategoryScroll();
+            return;
+        }
         handleCategoryClick(
             mouseX,
             mouseY,
@@ -298,51 +321,23 @@ export const createCategoriesManager = (deps) => {
     };
 
     const handleMouseDrag = (mouseX, mouseY) => {
-        if (isLayoutCacheValid) isLayoutCacheValid = false;
-
-        if (Categories.currentPage === 'categories') {
-            const directCat = Categories.categories.find((c) => c.name === Categories.selected);
-            if (directCat?.directComponents) {
-                directCat.directComponents.forEach((component) => {
-                    if (typeof component.handleMouseDrag === 'function') {
-                        component.optionPanelWidth = deps.rectangles.RightPanel.width;
-                        component.handleMouseDrag(mouseX, mouseY);
-                    }
-                });
+        isLayoutCacheValid = false;
+        const activeCat = Categories.categories.find((c) => c.name === Categories.selected);
+        const components = Categories.currentPage === 'categories' ? activeCat?.directComponents : Categories.selectedItem?.components;
+        components?.forEach((c) => {
+            if (typeof c.handleMouseDrag === 'function') {
+                c.optionPanelWidth = deps.rectangles.RightPanel.width;
+                c.handleMouseDrag(mouseX, mouseY);
             }
-        }
-
-        if (Categories.currentPage === 'options' && Categories.selectedItem) {
-            const components = Categories.selectedItem.components;
-            if (!components) return;
-            components.forEach((component) => {
-                if (typeof component.handleMouseDrag !== 'function') return;
-                component.optionPanelWidth = deps.rectangles.RightPanel.width;
-                component.handleMouseDrag(mouseX, mouseY);
-            });
-        }
+        });
     };
 
     const handleMouseRelease = () => {
-        if (Categories.currentPage === 'categories') {
-            const directCat = Categories.categories.find((c) => c.name === Categories.selected);
-            if (directCat?.directComponents) {
-                directCat.directComponents.forEach((component) => {
-                    if (typeof component.handleMouseRelease === 'function') {
-                        component.handleMouseRelease();
-                    }
-                });
-            }
-        }
-
-        if (Categories.currentPage === 'options' && Categories.selectedItem) {
-            const components = Categories.selectedItem.components;
-            if (!components) return;
-            components.forEach((component) => {
-                if (typeof component.handleMouseRelease !== 'function') return;
-                component.handleMouseRelease();
-            });
-        }
+        const activeCat = Categories.categories.find((c) => c.name === Categories.selected);
+        const components = Categories.currentPage === 'categories' ? activeCat?.directComponents : Categories.selectedItem?.components;
+        components?.forEach((c) => {
+            if (typeof c.handleMouseRelease === 'function') c.handleMouseRelease();
+        });
     };
 
     return {
@@ -357,23 +352,15 @@ export const createCategoriesManager = (deps) => {
         invalidateContentHeightCache: () => {
             isContentHeightCacheValid = false;
         },
-        resetScroll: () => {
-            resetCategoryScroll();
-        },
-
+        resetScroll: resetCategoryScroll,
         getRightPanelScrollY: () => currentRightPanelScrollY,
-        setRightPanelScrollY: (value) => {
-            setRightPanelScrollY(value);
-        },
+        setRightPanelScrollY: (v) => setRightPanelScrollY(v),
     };
 };
 
 export const categoryManager = createCategoriesManager({
     rectangles: GuiRectangles,
-    draw: {
-        drawRoundedRectangle: drawRoundedRectangle,
-        drawRoundedRectangleWithBorder: drawRoundedRectangleWithBorder,
-    },
+    draw: { drawRoundedRectangle, drawRoundedRectangleWithBorder },
     utils: {},
     colors: {},
 });

@@ -61,8 +61,11 @@ export const SearchBar = {
             borderColor: this.isFocused || hovered ? THEME.BORDER_ACCENT : THEME.BORDER,
         });
 
-        const iconX = panel.x + panel.width - PADDING - 22;
-        drawImage(SEARCH_ICON, iconX, y + 6, 16, 16);
+        const barRightEdge = panel.x + panel.width - PADDING;
+        const iconX = barRightEdge - this.collapsedWidth / 2 - 8;
+        const iconY = y + (this.height - 16) / 2;
+
+        drawImage(SEARCH_ICON, iconX, iconY, 16, 16);
 
         if (this.animation > 0.4) {
             this.textX = x + 8;
@@ -75,9 +78,11 @@ export const SearchBar = {
             }
 
             if (this.isFocused && Date.now() % 1000 < 500) {
-                const cursorOffset = getTextWidth(this.query.slice(0, this.cursorIndex), FontSizes.LARGE);
+                const cursorOffset = getTextWidth(this.query.substring(0, this.cursorIndex), FontSizes.LARGE);
+                const finalCursorX = this.textX + cursorOffset;
+
                 drawRect({
-                    x: this.textX + cursorOffset,
+                    x: finalCursorX,
                     y: textY - 6,
                     width: 1,
                     height: 10,
@@ -120,7 +125,6 @@ export const SearchBar = {
             this.isExpanded = false;
             this.isFocused = false;
             TypingState.isTyping = false;
-            return true;
         }
 
         return false;
@@ -186,5 +190,9 @@ export const SearchBar = {
             prevWidth += charWidth;
         }
         return this.query.length;
+    },
+
+    getSearchQuery() {
+        return this.query.toLowerCase().trim();
     },
 };
