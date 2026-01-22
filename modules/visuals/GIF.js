@@ -60,17 +60,15 @@ class GifInstance {
     }
 
     load() {
-        let gifData = null;
-        try {
-            gifData = NVG.loadGif(this.absPath);
-        } catch (e) {
-            this.scheduleRetry();
-            // this is quite literally a bandaid. ideally NVG.loadGif would stop fucking
-            // throwing errors and just load the goddamn gif when the game is ready.
-            // but instead, the game isn't ready, so it throws error.
-            // scheduling retry will make sure the gifs appear.
-            return;
-        }
+        Client.getMinecraft().execute(() => {
+            let gifData = null;
+            try {
+                gifData = NVG.loadGif(this.absPath);
+            } catch (e) {
+                return;
+            }
+        });
+
         if (!gifData) {
             Chat.message(`&c[GIF] Failed to load ${this.name}. This could be due to an invalid gif file.`);
             this.scheduleRetry();
