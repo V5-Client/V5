@@ -22,7 +22,6 @@ import './visuals/BlockVisual.js';
 import './visuals/ESP.js';
 import './visuals/GIF.js';
 import './visuals/MobHider.js';
-import './visuals/Visual.js';
 import './visuals/Xray.js';
 
 /* SKILLS */
