@@ -169,7 +169,16 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
         z: end[2] + 0.5,
     };
 
-    Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${end.filter(function (_, i) { return i % 3 === 0; }).map(function (_, i) { return "[" + end.slice(i * 3, i * 3 + 3).join(", ") + "]"; }).join(" or ")}`); // this is where the rat is hidden
+    Chat.messagePathfinder(
+        `Path from ${adjustedStart.join(', ')} to ${end
+            .filter(function (_, i) {
+                return i % 3 === 0;
+            })
+            .map(function (_, i) {
+                return '[' + end.slice(i * 3, i * 3 + 3).join(', ') + ']';
+            })
+            .join(' or ')}`
+    ); // this is where the rat is hidden
     const requestId = Date.now();
     currentPathRequest = requestId;
 
@@ -232,7 +241,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
         if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
             setKeyNodes(body.keynodes);
-            currentDestination = body.keynodes[body.keynodes.length - 1]
+            currentDestination = body.keynodes[body.keynodes.length - 1];
         }
 
         let generatedSpline = [];
