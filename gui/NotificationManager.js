@@ -328,6 +328,7 @@ class NotificationManager {
         this.registered = false;
         this.clickTrigger = null;
         this.tickTrigger = null;
+        register('gameUnload', () => this.resetAll());
     }
 
     registerEvents() {
@@ -395,6 +396,10 @@ class NotificationManager {
         for (let i = 0; i < this.notifications.length; i++) {
             if (this.notifications[i].handleClick(mouseX, mouseY)) break;
         }
+    }
+
+    resetAll() {
+        this.notifications = [];
     }
 }
 
