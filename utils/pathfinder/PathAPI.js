@@ -171,8 +171,12 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
     Chat.messagePathfinder(
         `Path from ${adjustedStart.join(', ')} to ${end
-            .filter((_, i) => { return i % 3 === 0 })
-            .map((_, i) => { return '[' + end.slice(i * 3, i * 3 + 3).join(', ') + ']' })
+            .filter((_, i) => {
+                return i % 3 === 0;
+            })
+            .map((_, i) => {
+                return '[' + end.slice(i * 3, i * 3 + 3).join(', ') + ']';
+            })
             .join(' or ')}`
     );
     const requestId = Date.now();
@@ -202,9 +206,8 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
         if (SwiftBridge.isSearching()) return;
 
-
-        if (!currentPathRequest) return
-        currentPathRequest = null
+        if (!currentPathRequest) return;
+        currentPathRequest = null;
         searchingTrigger.unregister();
         searchingTrigger = null;
 
@@ -347,7 +350,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             currentPathCallback = null;
             currentDestination = null;
         });
-    }).setFps(1000)
+    }).setFps(1000);
 }
 
 /**
