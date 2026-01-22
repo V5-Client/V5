@@ -17,6 +17,8 @@ class GifInstance {
         this.baseHeight = 0;
         this.frameCount = 0;
         this.delaysMs = [];
+        this.retryDelayMs = 500;
+        this.nextRetryAt = 0;
 
         this.frameIndex = 0;
         this.accMs = 0;
@@ -58,9 +60,20 @@ class GifInstance {
     }
 
     load() {
-        const gifData = NVG.loadGif(this.absPath);
+        let gifData = null;
+        try {
+            gifData = NVG.loadGif(this.absPath);
+        } catch (e) {
+            this.scheduleRetry();
+            // this is quite literally a bandaid. ideally NVG.loadGif would stop fucking
+            // throwing errors and just load the goddamn gif when the game is ready.
+            // but instead, the game isn't ready, so it throws error.
+            // scheduling retry will make sure the gifs appear.
+            return;
+        }
         if (!gifData) {
-            Chat.message(`&c[GIF] Failed to load ${this.name}`);
+            Chat.message(`&c[GIF] Failed to load ${this.name}. This could be due to an invalid gif file.`);
+            this.scheduleRetry();
             return;
         }
 
@@ -71,12 +84,23 @@ class GifInstance {
         this.loaded = true;
     }
 
+    scheduleRetry() {
+        const now = Date.now();
+        this.nextRetryAt = now + this.retryDelayMs;
+        this.retryDelayMs = Math.min(this.retryDelayMs * 1.5, 5000);
+    }
+
     unload() {
         this.loaded = false;
     }
 
     render(isChatOpen) {
-        if (!this.loaded || this.frameCount === 0) return;
+        if (!this.loaded || this.frameCount === 0) {
+            if (!this.loaded && Date.now() >= this.nextRetryAt) {
+                this.load();
+            }
+            return;
+        }
 
         const now = Date.now();
         const dt = now - this.lastTimestamp;
@@ -105,9 +129,11 @@ class GifInstance {
         const cornerColor = 0xccffffff | 0;
         const handleColor = 0xcc5099ff | 0;
 
-        const handleSize = 14 * this.scale;
-        const cornerSize = 6 * this.scale;
-        const lineThick = 2 * this.scale;
+        const minHandlePx = 8;
+        const minLinePx = 1;
+        const handleSize = Math.max(minHandlePx, 14 * this.scale);
+        const cornerSize = Math.max(minHandlePx * 0.5, 6 * this.scale);
+        const lineThick = Math.max(minLinePx, 2 * this.scale);
 
         NVG.drawRect(x - lineThick, y - lineThick, width + lineThick * 2, lineThick, borderColor); // Top
         NVG.drawRect(x - lineThick, y + height, width + lineThick * 2, lineThick, borderColor); // Bottom
@@ -124,7 +150,7 @@ class GifInstance {
 
         NVG.drawRect(hx, hy, handleSize, handleSize, handleColor);
 
-        const innerPadding = 4 * this.scale;
+        const innerPadding = handleSize * (4 / 14);
         const innerSize = handleSize - innerPadding * 2;
         if (innerSize > 0) {
             NVG.drawRect(hx + innerPadding, hy + innerPadding, innerSize, innerSize, cornerColor);
@@ -138,7 +164,8 @@ class GifInstance {
     handleClick(mx, my, isPressed) {
         const drawW = this.baseWidth * this.scale;
         const drawH = this.baseHeight * this.scale;
-        const handleSize = 14 * this.scale;
+        const minHandlePx = 8;
+        const handleSize = Math.max(minHandlePx, 14 * this.scale);
 
         if (isPressed) {
             if (this.isInside(mx, my, this.x + drawW - handleSize, this.y + drawH - handleSize, handleSize, handleSize)) {
@@ -182,7 +209,8 @@ class GifInstance {
             const newDrawW = initialDrawW + (mx - this.initialMouseX);
 
             let newScale = newDrawW / this.baseWidth;
-            newScale = Math.max(0.1, newScale);
+            const minScale = Math.max(0.1, 8 / this.baseWidth);
+            newScale = Math.max(minScale, newScale);
 
             const maxScaleW = screenW / this.baseWidth;
             const maxScaleH = screenH / this.baseHeight;
@@ -214,6 +242,7 @@ class GIFOverlay extends ModuleBase {
 
         this.instances = [];
         this.positionConfig = Utils.getConfigFile('gif_positions.json') || {};
+        this.renderOverEverything = true;
 
         const gifFiles = this.getGifFiles();
         const gifNames = gifFiles.map((f) => f.getName());
@@ -224,11 +253,24 @@ class GIFOverlay extends ModuleBase {
             this.addMultiToggle('No GIFs Found', ['Put .gif files in', 'config/ChatTriggers', 'modules/V5Config/gifs'], false, () => {});
         }
 
-        this.on('renderOverlay', () => this.render());
+        this.addToggle('Render Over Everything', (value) => (this.renderOverEverything = !!value), 'Render GIFs above GUI and overlays', true);
+
+        NVG.registerV5Render(() => {
+            if (!this.renderOverEverything || !this.enabled) return;
+            this.render();
+        });
+
+        this.on('renderOverlay', () => {
+            if (this.renderOverEverything) return;
+            this.render();
+        });
         this.on('clicked', (x, y, button, isPressed) => this.handleClick(x, y, button, isPressed));
         this.on('dragged', (dx, dy, x, y, button) => this.handleDrag(dx, dy, x, y, button));
 
-        register('gameUnload', () => this.savePositions());
+        register('gameUnload', () => {
+            this.savePositions();
+            this.resetAll();
+        });
         register('guiClosed', () => this.savePositions());
     }
 
@@ -322,6 +364,14 @@ class GIFOverlay extends ModuleBase {
         this.positionConfig = merged;
 
         Utils.writeConfigFile('gif_positions.json', merged);
+    }
+
+    resetAll() {
+        this.toggle(false);
+        if (this.instances && this.instances.length > 0) {
+            this.instances.forEach((inst) => inst.unload());
+        }
+        this.instances = [];
     }
 }
 
