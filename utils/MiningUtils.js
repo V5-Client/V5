@@ -65,6 +65,7 @@ const TOOL_PRIORITY_LIST = [
     { match: 'Pickonimbus', priority: 3, fuel: false },
     { match: 'Eon Pickaxe', priority: 2, fuel: false },
     { match: 'Chrono Pickaxe', priority: 2, fuel: false },
+    { match: 'Jungle Pickaxe', priority: 2, fuel: false },
     { match: 'Titanium Pickaxe', priority: 1, fuel: false },
     { match: 'Mithril Pickaxe', priority: 1, fuel: false },
 ];

@@ -241,7 +241,7 @@ class RotationsTo {
         let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
         const isExactVector = this.targetVector !== null;
-        const effectivePrecision = isExactVector ? 0.000001 : this.trackedEntity ? 0.5 : this.precision;
+        const effectivePrecision = isExactVector ? 0.05 : this.trackedEntity ? 0.5 : this.precision;
 
         if (distance <= effectivePrecision) {
             const player = Player.getPlayer();

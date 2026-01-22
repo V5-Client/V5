@@ -11,7 +11,7 @@ import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import RouteState from '../../utils/RouteState';
-import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { PlayerInteractBlockC2S, PlayerInteractItemC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
 
 // todo make walk points work
@@ -161,7 +161,7 @@ class OreMacro extends ModuleBase {
                     let dist = MathUtils.getDistanceToPlayer(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5);
 
                     let nextPoint = this.route[this.closestPointIndex + 1];
-                    Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
+                    //Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
 
                     Chat.message('Distance to point: ' + dist.distance);
                     if (dist.distance <= 1.5 && dist.distanceFlat == dist.distanceY) {
@@ -263,8 +263,9 @@ class OreMacro extends ModuleBase {
                             if (!this.enabled) return;
                             Client.scheduleTask(this.FASTAOTV ? 2 : 5, () => {
                                 try {
-                                    if (!this.enabled) return;
-                                    Keybind.rightClick();
+                                    // yes this is retarded ik
+                                    this.rightClickEtherWarp(this.closestPoint);
+
                                     this.attemptedEtherwarp = true;
                                     this.lastX = Player.getX();
                                     this.lastY = Player.getY();
@@ -585,6 +586,23 @@ class OreMacro extends ModuleBase {
         return closestPointData;
     }
 
+    rightClickEtherWarp(targetVec) {
+        if (!targetVec) return;
+
+        const player = Player.getPlayer();
+        const eyePos = player.getEyePos();
+
+        const dx = targetVec.x - eyePos.x;
+        const dy = targetVec.y - eyePos.y;
+        const dz = targetVec.z - eyePos.z;
+
+        const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+        const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
+
+        const packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, parseFloat(yaw), parseFloat(pitch));
+        Client.sendPacket(packet);
+    }
+
     message(msg) {
         Chat.message('&#815bf5Ore Macro: &f' + msg);
     }
@@ -597,6 +615,7 @@ class OreMacro extends ModuleBase {
 
     onDisable() {
         RouteState.clearRoute();
+        Rotations.stopRotation();
         this.closestPointIndex = null;
         this.closestPoint = null;
         this.rotatedToPoint = null;

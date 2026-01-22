@@ -51,7 +51,7 @@ class BlockVisual extends ModuleBase {
             this.currentBlock = Raytrace.getLookingAt(this.getDistance());
 
             const item = Player.getHeldItem();
-            const isEtherwarping = Player.isSneaking() && item?.getName()?.toLowerCase()?.includes('aspect of the');
+            const isEtherwarping = Player.isSneaking() && item?.getName()?.toLowerCase()?.includes('aspect of the void');
 
             if (isEtherwarping) {
                 const color = this.canEtherwarp(this.currentBlock) ? [0, 255, 0] : [255, 0, 0];

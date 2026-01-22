@@ -347,6 +347,7 @@ class Bot extends ModuleBase {
     incrementMiningCountersIfLookingAtCurrent(fakeLookMode) {
         this.tickCount++;
         if (fakeLookMode !== 'Off') {
+            Player.getPlayer().swingHand(MCHand.MAIN_HAND);
             this.mineTickCount++;
         } else {
             const lookingAt = Player.lookingAt();
