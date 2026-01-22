@@ -78,7 +78,7 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
         const buttonTextWidth = getTextWidth(subcat, FontSizes.MEDIUM) + 20;
         const buttonRect = { x: currentX, y: yOffset, width: buttonTextWidth, height: SUBCATEGORY_BUTTON_HEIGHT };
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
-        const isHovered = isInside(mouseX, mouseY, buttonRect);
+        const isHovered = isInside(mouseX, mouseY, buttonRect) && !cat.isHoverBlocked;
 
         const hoverKey = `subcat_${subcat}`;
         if (!cat.hoverStates[hoverKey]) {

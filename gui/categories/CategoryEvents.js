@@ -234,7 +234,7 @@ export const handleCategoryClick = (
     if (Categories.selected && Categories.currentPage === 'categories' && isInside(mouseX, mouseY, panel)) {
         const cat = Categories.categories.find((c) => c.name === Categories.selected);
         if (cat && Categories.selected !== 'Settings' && Categories.selected !== 'Theme') {
-            if (cat.subcategories.length > 0) {
+            if (cat.subcategories.length > 0 && !SearchBar.isHoverBlocked(mouseX, mouseY)) {
                 let currentX = panel.x + PADDING;
                 let yOffset = panel.y + PADDING - scrollY;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];

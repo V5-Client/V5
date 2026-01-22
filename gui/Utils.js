@@ -95,7 +95,8 @@ export const drawRoundedRectangleWithBorder = (r) => {
     if (r.borderWidth && r.borderWidth > 0 && r.borderColor) {
         const bw = r.borderWidth;
         const bc = (r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor) | 0;
-        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, r.radius, bc);
+        const outerRadius = r.radius + bw;
+        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
     }
     const c = (r.color instanceof Color ? r.color.getRGB() : r.color) | 0;
     NVG.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);

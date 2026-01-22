@@ -249,7 +249,10 @@ export const createCategoriesManager = (deps) => {
                     drawDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, currentRightPanelScrollY, catName);
                     return;
                 }
-                if (cat.subcategories.length > 0) yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
+                if (cat.subcategories.length > 0) {
+                    cat.isHoverBlocked = catName === 'Modules' ? SearchBar.isHoverBlocked(mouseX, mouseY) : false;
+                    yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
+                }
                 const itemsToDisplay = getFilteredItems(cat, query);
                 drawCategoryItems(cat, panel, currentPanelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid || !isNewCategory);
             };
@@ -260,11 +263,16 @@ export const createCategoriesManager = (deps) => {
 
                 let incomingX = panel.x + (dir === 1 ? panel.width * (1 - progress) : -panel.width * (1 - progress));
                 drawSingleCategory(Categories.selected, incomingX, true);
-                if (Categories.selected === 'Modules') SearchBar.draw(mouseX, mouseY, { ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
+                if (Categories.selected === 'Modules') {
+                    SearchBar.draw(mouseX, mouseY, { ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
+                    SearchBar.updateHoverBlock({ ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
+                }
                 let outgoingX = panel.x + (dir === 1 ? -panel.width * progress : panel.width * progress);
                 drawSingleCategory(Categories.previousSelected, outgoingX, false);
-                if (Categories.previousSelected === 'Modules')
+                if (Categories.previousSelected === 'Modules') {
                     SearchBar.draw(mouseX, mouseY, { ...panel, x: outgoingX }, panel.y + 11 - currentRightPanelScrollY);
+                    SearchBar.updateHoverBlock({ ...panel, x: outgoingX }, panel.y + 11 - currentRightPanelScrollY);
+                }
             } else {
                 let panelX = panel.x;
                 if (transitionActive && Categories.transitionType === 'page') {
@@ -273,7 +281,10 @@ export const createCategoriesManager = (deps) => {
                 }
 
                 drawSingleCategory(Categories.selected, panelX, true);
-                if (Categories.selected === 'Modules') SearchBar.draw(mouseX, mouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
+                if (Categories.selected === 'Modules') {
+                    SearchBar.draw(mouseX, mouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
+                    SearchBar.updateHoverBlock({ ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
+                }
                 if (!isLayoutCacheValid && !transitionActive) isLayoutCacheValid = true;
             }
         }
