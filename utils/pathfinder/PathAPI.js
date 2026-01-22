@@ -171,14 +171,10 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
     Chat.messagePathfinder(
         `Path from ${adjustedStart.join(', ')} to ${end
-            .filter(function (_, i) {
-                return i % 3 === 0;
-            })
-            .map(function (_, i) {
-                return '[' + end.slice(i * 3, i * 3 + 3).join(', ') + ']';
-            })
+            .filter((_, i) => { return i % 3 === 0 })
+            .map((_, i) => { return '[' + end.slice(i * 3, i * 3 + 3).join(', ') + ']' })
             .join(' or ')}`
-    ); // this is where the rat is hidden
+    );
     const requestId = Date.now();
     currentPathRequest = requestId;
 
@@ -195,7 +191,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
     Chat.messagePathfinder('§eSearching for path...');
 
-    searchingTrigger = register('tick', () => {
+    searchingTrigger = register('step', () => {
         if (currentPathRequest !== requestId) {
             if (searchingTrigger) {
                 searchingTrigger.unregister();
@@ -204,10 +200,11 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             return;
         }
 
-        if (SwiftBridge.isSearching()) {
-            return;
-        }
+        if (SwiftBridge.isSearching()) return;
 
+
+        if (!currentPathRequest) return
+        currentPathRequest = null
         searchingTrigger.unregister();
         searchingTrigger = null;
 
@@ -350,7 +347,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             currentPathCallback = null;
             currentDestination = null;
         });
-    });
+    }).setFps(1000)
 }
 
 /**
