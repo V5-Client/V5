@@ -18,6 +18,7 @@ import './farming/FarmingMacro/FarmingMacro.js';
 import './farming/PestESP.js';
 
 /* VISUALS */
+import './visuals/BlockVisual.js';
 import './visuals/ESP.js';
 import './visuals/GIF.js';
 import './visuals/MobHider.js';
