@@ -148,13 +148,9 @@ Commands.registerCommand('v5', () => {
     /* ---------- Pathfinding ---------- */
     literal('path', () => {
         literal('goto', () => {
-            argument('x', integer(), () => {
-                argument('y', integer(), () => {
-                    argument('z', integer(), () => {
-                        exec(({ x, y, z }) => {
-                            callCommand('path', x, y, z);
-                        });
-                    });
+            argument('args', greedyString(), () => {
+                exec(({ args }) => {
+                    callCommand('path', args);
                 });
             });
         });

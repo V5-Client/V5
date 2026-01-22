@@ -113,6 +113,10 @@ export function isBlockWalkable(world, blockVec) {
     return collisionShape.isEmpty();
 }
 
+function notifyInvalidDestination(message = 'Path requires valid coordinate triples (x y z).') {
+    showNotification('Invalid Destination', message, 'ERROR', 5000);
+}
+
 function drawKeyNodes(keynodes) {
     if (!keynodes || keynodes.length < 2) return;
     keynodes.forEach((keynode) => {
@@ -149,24 +153,27 @@ function validateDestinationReached() {
 }
 
 function executePathfinding(start, end, onComplete, renderOnly = false, adjustEnd = false) {
+    if (!end.length || end.length % 3 !== 0) {
+        notifyInvalidDestination();
+        return;
+    }
+
     stopPathing();
     pathCompletionCheckCount = 0;
 
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = adjustEnd ? [end[0], findStartY(end[0], end[1], end[2]), end[2]] : end;
 
     currentDestination = {
-        x: adjustedEnd[0] + 0.5,
-        y: adjustedEnd[1] + 1,
-        z: adjustedEnd[2] + 0.5,
+        x: end[0] + 0.5,
+        y: end[1] + 1,
+        z: end[2] + 0.5,
     };
 
-    Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
-
+    Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${end.filter(function (_, i) { return i % 3 === 0; }).map(function (_, i) { return "[" + end.slice(i * 3, i * 3 + 3).join(", ") + "]"; }).join(" or ")}`); // this is where the rat is hidden
     const requestId = Date.now();
     currentPathRequest = requestId;
 
-    const started = SwiftBridge.startPath(adjustedStart[0], adjustedStart[1], adjustedStart[2], adjustedEnd[0], adjustedEnd[1], adjustedEnd[2]);
+    const started = SwiftBridge.startPath(adjustedStart[0], adjustedStart[1], adjustedStart[2], end);
 
     if (!started) {
         const error = SwiftBridge.getLastError() || 'Failed to start pathfinding';
@@ -225,6 +232,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
         if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
             setKeyNodes(body.keynodes);
+            currentDestination = body.keynodes[body.keynodes.length - 1]
         }
 
         let generatedSpline = [];
@@ -339,7 +347,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 /**
  * Find and walk a path from start to end.
  * @param {number[]} start - [x, y, z] start coords
- * @param {number[]} end - [x, y, z] end coords
+ * @param {number[]} end - [x, y, z] end coords. use multiples of 3 for multi-goal paths.
  * @param {boolean|Function} renderOnlyOrCallback - If true, render only. If function, callback on complete.
  * @param {boolean} adjustEnd - If true, adjusts end Y to find ground level. ONLY WORKS ON BLOCK IN YOUR RENDER DISTANCE, DO NOT USE FOR LONG DISTANCE PATHS
  */
@@ -377,12 +385,20 @@ setRequestPathRecalculation(requestPathRecalculation);
 
 v5Command('path', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-    const coords = args.slice(0, 3).map(Number);
+    if (args.length < 3) {
+        return showNotification('Invalid Command', 'Usage: /path <x> <y> <z> [<x2> <y2> <z2> ...]', 'ERROR', 5000);
+    }
+
+    const coords = args.map(Number);
     if (coords.some(isNaN)) {
         return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
     }
-    const end = coords.slice(0, 3);
-    findAndFollowPath(start, end);
+
+    if (coords.length % 3 !== 0) {
+        return showNotification('Invalid Coordinates', 'Destinations must be provided as coordinate triples.', 'ERROR', 5000);
+    }
+
+    findAndFollowPath(start, coords);
 });
 
 v5Command('rustpath', (...args) => {
