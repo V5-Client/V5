@@ -457,22 +457,21 @@ class UtilsClass {
         new Thread(() => {
             try {
                 if (isMac) {
-                    java.lang.Runtime.getRuntime().exec(["open", url]);
+                    java.lang.Runtime.getRuntime().exec(['open', url]);
                     return;
                 }
 
                 try {
-                    if (java.awt.Desktop.isDesktopSupported() &&
-                        java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                    if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
                         java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
                         return;
                     }
-                } catch (e) { }
+                } catch (e) {}
 
                 if (isWindows) {
-                    java.lang.Runtime.getRuntime().exec(["rundll32", "url.dll,FileProtocolHandler", url]);
+                    java.lang.Runtime.getRuntime().exec(['rundll32', 'url.dll,FileProtocolHandler', url]);
                 } else if (isLinux) {
-                    java.lang.Runtime.getRuntime().exec(["xdg-open", url]);
+                    java.lang.Runtime.getRuntime().exec(['xdg-open', url]);
                 }
             } catch (e) {
                 console.error('V5 Caught error in openBrowser: ' + e + e.stack);
