@@ -188,6 +188,37 @@ Commands.registerCommand('v5', () => {
         });
     });
 
+    /* ---------- Nuker ---------- */
+    literal('nuker', () => {
+        literal('nuke', () => {
+            exec(() => {
+                callCommand('nukeit');
+            });
+        });
+        literal('add', () => {
+            exec(() => {
+                callCommand('nukeradd');
+            });
+        });
+        literal('remove', (id) => {
+            argument('id', integer(), () => {
+                exec(({ id }) => {
+                    callCommand('nukerremove', id);
+                });
+            });
+        });
+        literal('list', () => {
+            exec(() => {
+                callCommand('nukerlist');
+            });
+        });
+        literal('clear', () => {
+            exec(() => {
+                callCommand('nukerclear');
+            });
+        });
+    });
+
     /* ---------- Webhooks ---------- */
     literal('webhook', () => {
         exec(() => {

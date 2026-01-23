@@ -4,6 +4,7 @@ import { OverlayManager } from '../gui/OverlayUtils';
 import { notificationManager } from '../gui/NotificationManager';
 import { Categories } from '../gui/categories/CategorySystem';
 import { MacroState } from './MacroState';
+import { Chat } from './Chat';
 
 export class ModuleBase {
     /**
@@ -23,6 +24,7 @@ export class ModuleBase {
         this.tooltip = opts.tooltip || null;
         this.enabled = false;
         this.oid = null;
+        this.hexCode = null;
         this.hideInModules = opts.hideInModules === true;
 
         this.isParentManaged = false;
@@ -142,6 +144,15 @@ export class ModuleBase {
 
             this.isParentManaged = false;
         }
+    }
+
+    setTheme(hexCode) {
+        this.hexCode = `&${hexCode}`;
+    }
+
+    message(message) {
+        if (!this.name || !this.hexCode) return Chat.message('&cModule message error!');
+        Chat.message(`${this.hexCode}${this.name}: &f${message}`);
     }
 
     /**

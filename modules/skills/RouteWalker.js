@@ -23,6 +23,7 @@ class RouteWalkerer extends ModuleBase {
         });
 
         this.bindToggleKey();
+        this.setTheme('#65a6f0');
 
         this.routesDir = Router.getFilesinDir('RoutewalkerRoutes');
 
@@ -170,7 +171,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (aotv === -1) {
                         this.toggle(false);
-                        this.message('&cYou dont have an Etherwarping item!');
+                        this.message('&cYou dont have an etherwarping item!');
                         return;
                     }
 
@@ -277,10 +278,6 @@ class RouteWalkerer extends ModuleBase {
         );
     }
 
-    message(msg) {
-        Chat.message('&#7f75e6Route Walker: &f' + msg);
-    }
-
     CheckPoint(point) {
         if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') return true;
 
@@ -322,12 +319,12 @@ class RouteWalkerer extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled!');
-        // Mouse.ungrab();
+        this.message('&aEnabled');
+        Mouse.ungrab();
     }
 
     onDisable() {
-        this.message('&cDisabled!');
+        this.message('&cDisabled');
         Keybind.unpressKeys();
         Keybind.setKey('leftclick', false);
         Rotations.stopRotation();

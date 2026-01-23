@@ -71,6 +71,8 @@ class Bot extends ModuleBase {
         this.initEventHandlers();
         this.initSettings();
 
+        this.setTheme('#5a7cbb');
+
         this.createOverlay([
             {
                 title: 'Status',
@@ -476,7 +478,7 @@ class Bot extends ModuleBase {
     }
 
     scanForBlock(targetCosts, startPos = null, excludedBlock = null) {
-        if (!targetCosts) return Chat.message('No target specified, is cost type set?');
+        if (!targetCosts) return this.message('No target specified, is cost type set?');
 
         const pX = Player.getX(),
             pY = Player.getY(),
@@ -785,7 +787,7 @@ class Bot extends ModuleBase {
                 if (this[costPropertyName]) {
                     this.COSTTYPE = this[costPropertyName];
                 } else {
-                    Chat.message(`&cError: Could not find cost type for ${Type}!`);
+                    this.message(`&cCould not find cost type for ${Type}!`);
                     this.COSTTYPE = null;
                 }
             } else {
@@ -836,27 +838,27 @@ class Bot extends ModuleBase {
 
     onEnable() {
         if (Client.isInGui()) {
-            Chat.message('&cMiningBot: Cannot start while GUI is open');
+            this.message('&cCannot start while GUI is open!');
             this.toggle(false);
             return;
         }
 
         this.drill = MiningUtils.getDrills().drill;
         if (!this.drill) {
-            Chat.message('&cMiningBot: No drill detected');
+            this.message('&cNo drill detected!');
             this.toggle(false);
             return;
         }
 
         this.setCost();
-        if (!this.isParentManaged) Chat.message('&aMining Bot Enabled');
+        if (!this.isParentManaged) this.message('&aEnabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
         this.normalRender.register();
     }
 
     onDisable() {
-        if (!this.isParentManaged) Chat.message('&cMining Bot Disabled');
+        if (!this.isParentManaged) this.message('&cDisabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);
