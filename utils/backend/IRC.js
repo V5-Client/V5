@@ -15,7 +15,7 @@ let authToken = null;
 let start = Date.now();
 let currentDevice = null;
 
-const jwtFile = `do_not_share_this_file`;
+const jwtFile = `AuthCache/do_not_share_this_file`;
 
 function parseJwtPayload(token) {
     const parts = token.split('.');

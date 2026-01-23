@@ -3,7 +3,7 @@ import { File, NVG } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
 import { Utils } from '../../utils/Utils';
 
-const GIF_SOURCE_DIR = new File('./config/ChatTriggers/modules/V5Config/gifs');
+const GIF_SOURCE_DIR = new File('./config/ChatTriggers/modules/V5Config/Gifs');
 if (!GIF_SOURCE_DIR.exists()) GIF_SOURCE_DIR.mkdirs();
 
 class GifInstance {
@@ -239,7 +239,7 @@ class GIFOverlay extends ModuleBase {
         });
 
         this.instances = [];
-        this.positionConfig = Utils.getConfigFile('gif_positions.json') || {};
+        this.positionConfig = Utils.getConfigFile('Gifs/gif_positions.json') || {};
         this.renderOverEverything = true;
 
         const gifFiles = this.getGifFiles();
@@ -248,7 +248,7 @@ class GIFOverlay extends ModuleBase {
         if (gifNames.length > 0) {
             this.addMultiToggle('Active GIFs', gifNames, false, (toggled) => this.updateInstances(toggled, gifFiles));
         } else {
-            this.addMultiToggle('No GIFs Found', ['Put .gif files in', 'config/ChatTriggers', 'modules/V5Config/gifs'], false, () => {});
+            this.addMultiToggle('No GIFs Found', ['Put .gif files in', 'config/ChatTriggers', 'modules/V5Config/Gifs'], false, () => {});
         }
 
         this.addToggle('Render Over Everything', (value) => (this.renderOverEverything = !!value), 'Render GIFs above GUI and overlays', true);
@@ -361,7 +361,7 @@ class GIFOverlay extends ModuleBase {
         const merged = { ...this.positionConfig, ...data };
         this.positionConfig = merged;
 
-        Utils.writeConfigFile('gif_positions.json', merged);
+        Utils.writeConfigFile('Gifs/gif_positions.json', merged);
     }
 
     resetAll() {

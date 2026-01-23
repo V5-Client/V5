@@ -13,7 +13,7 @@ if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
 const ffmpegName = isWindows ? 'ffmpeg.exe' : 'ffmpeg';
 const ffmpegFile = new File(globalAssetsDir, ffmpegName);
 
-const clipsDir = new File('./config/ChatTriggers/modules/V5Config/clips');
+const clipsDir = new File('./config/ChatTriggers/modules/V5Config/Clips');
 const bufferDir = new File(clipsDir, 'buffer');
 
 if (!clipsDir.exists()) clipsDir.mkdirs();
