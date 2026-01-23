@@ -29,9 +29,7 @@ class UngrabManager {
         });
 
         attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
-            if (this.inputLocked && Client.getMinecraft().world) {
-                cir.cancel();
-            }
+            if (this.inputLocked && Client.getMinecraft().world) cir.cancel();
         });
 
         attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
@@ -43,11 +41,7 @@ class UngrabManager {
         });
 
         attachMixin(UpdateMouse, 'UpdateMouse', (instance, cir) => {
-            if (this.ungrabbed) {
-                if (isLinux) GLFW.glfwSetInputMode(Client.getMinecraft().getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
-                Client.getMinecraft().mouse.unlockCursor();
-                cir.cancel();
-            }
+            if (this.ungrabbed) cir.cancel();
         });
 
         this.mixinsInitialized = true;
@@ -61,6 +55,15 @@ class UngrabManager {
 
         this.ungrabbed = true;
         this.inputLocked = true;
+
+        const mc = Client.getMinecraft();
+        if (mc.mouse) {
+            mc.mouse.unlockCursor();
+
+            if (isLinux) {
+                GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+            }
+        }
     }
 
     /**
@@ -72,7 +75,11 @@ class UngrabManager {
         this.ungrabbed = false;
         this.inputLocked = false;
 
-        if (Player.getPlayer()) Client.getMinecraft().mouse.lockCursor();
+        const mc = Client.getMinecraft();
+        if (mc.currentScreen == null) {
+            mc.mouse.lockCursor();
+            GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        }
     }
 }
 
