@@ -81,8 +81,10 @@ class OverlayUtils {
             }
             const hasVisible = this.updateRenderActive();
             if (!animating) {
-                this.stepTrigger.unregister();
-                this.stepTrigger = null;
+                if (this.stepTrigger) {
+                    this.stepTrigger.unregister();
+                    this.stepTrigger = null;
+                }
                 if (!hasVisible) this.renderActive = false;
             }
         }).setFps(60);
