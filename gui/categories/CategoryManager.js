@@ -1,9 +1,10 @@
 import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
+import { Separator } from '../components/Separator';
 import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawDirectComponents, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor } from '../Utils';
+import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor, isInside, playClickSound } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 import { SearchBar } from './CategorySearchBar';
 
@@ -19,8 +20,14 @@ export const createCategoriesManager = (deps) => {
     let cachedContentHeight = 0;
     let isContentHeightCacheValid = false;
     let lastQuery = '';
+    let pendingSettingsComponent = null;
+    let pendingThemeComponent = null;
+    let pendingModuleComponent = null;
+    let autoScrollRightActive = false;
+    let autoScrollOptionsActive = false;
 
     const SCROLL_SMOOTHING_FACTOR = 0.2;
+    const AUTO_SCROLL_SMOOTHING_FACTOR = 0.06;
 
     const setRightPanelScrollY = (value) => {
         currentRightPanelScrollY = value;
@@ -44,10 +51,51 @@ export const createCategoriesManager = (deps) => {
         setOptionsScrollY(0);
     };
 
-    const getFilteredItems = (cat, query) => {
-        const search = query.trim().toLowerCase();
+    const beginCategorySwap = (targetName) => {
+        Categories.previousSelected = Categories.selected;
+        Categories.selected = targetName;
+        Categories.currentPage = 'categories';
+        Categories.selectedItem = null;
+        Categories.selectedSubcategory = null;
+        Categories.transitionType = 'category-swap';
+        const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.previousSelected);
+        const newIndex = Categories.categories.findIndex((c) => c.name === targetName);
+        Categories.transitionDirection = newIndex >= oldIndex ? 1 : -1;
+        Categories.transitionProgress = 0;
+        Categories.transitionStart = Date.now();
+        playClickSound();
+        isLayoutCacheValid = false;
+        isContentHeightCacheValid = false;
+        resetCategoryScroll();
+    };
 
-        if (!search) {
+    const beginModuleOptionsSwap = (moduleItem) => {
+        Categories.transitionType = 'page';
+        Categories.transitionDirection = 1;
+        Categories.transitionProgress = 0;
+        Categories.transitionStart = Date.now();
+        Categories.selectedItem = moduleItem;
+        playClickSound();
+        isLayoutCacheValid = false;
+        isContentHeightCacheValid = false;
+        resetCategoryScroll();
+    };
+
+    const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const getSearchRegexes = (query) => {
+        const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        return tokens.map((token) => new RegExp(`\\b${escapeRegExp(token)}`));
+    };
+    const matchesSearch = (value, searchRegexes) => {
+        if (!value || searchRegexes.length === 0) return false;
+        const text = value.toLowerCase();
+        return searchRegexes.every((regex) => regex.test(text));
+    };
+
+    const getFilteredItems = (cat, query) => {
+        const searchRegexes = getSearchRegexes(query);
+
+        if (searchRegexes.length === 0) {
             return cat.items.filter((group) => {
                 if (group.type === 'separator') {
                     return Categories.selectedSubcategory === null || group.title === Categories.selectedSubcategory;
@@ -56,18 +104,19 @@ export const createCategoriesManager = (deps) => {
             });
         }
 
-        const categoryMatches = cat.name.toLowerCase().includes(search);
+        const categoryMatches = matchesSearch(cat.name, searchRegexes);
+        const allowComponentMatch = cat.name !== 'Modules';
 
         return cat.items.reduce((acc, group) => {
             if (group.type === 'separator') {
-                const subcategoryMatches = group.title.toLowerCase().includes(search);
+                const subcategoryMatches = matchesSearch(group.title, searchRegexes);
 
                 const matchingItems = group.items.filter((item) => {
-                    const titleMatch = item.title.toLowerCase().includes(search);
-                    const descMatch = item.description && item.description.toLowerCase().includes(search);
+                    const titleMatch = matchesSearch(item.title, searchRegexes);
+                    const descMatch = matchesSearch(item.description, searchRegexes);
 
-                    const componentMatch = item.components && item.components.some((comp) => comp.title && comp.title.toLowerCase().includes(search));
-                    return categoryMatches || subcategoryMatches || titleMatch || descMatch || componentMatch;
+                    const componentMatch = item.components && item.components.some((comp) => matchesSearch(comp.title, searchRegexes));
+                    return categoryMatches || subcategoryMatches || titleMatch || descMatch || (allowComponentMatch && componentMatch);
                 });
 
                 if (matchingItems.length > 0) {
@@ -76,15 +125,88 @@ export const createCategoriesManager = (deps) => {
                     acc.push(groupCopy);
                 }
             } else {
-                const titleMatch = group.title.toLowerCase().includes(search);
-                const componentMatch = group.components && group.components.some((comp) => comp.title && comp.title.toLowerCase().includes(search));
+                const titleMatch = matchesSearch(group.title, searchRegexes);
+                const componentMatch = group.components && group.components.some((comp) => matchesSearch(comp.title, searchRegexes));
 
-                if (categoryMatches || titleMatch || componentMatch) {
+                if (categoryMatches || titleMatch || (allowComponentMatch && componentMatch)) {
                     acc.push(group);
                 }
             }
             return acc;
         }, []);
+    };
+
+    const getDirectComponentMatches = (categoryName, resultTitle, resultType, query) => {
+        const searchRegexes = getSearchRegexes(query);
+        if (searchRegexes.length === 0) return [];
+
+        const directCategory = Categories.categories.find((c) => c.name === categoryName);
+        if (!directCategory || !directCategory.directComponents) return [];
+
+        const matches = directCategory.directComponents.filter((component) => {
+            const titleMatch = matchesSearch(component.title, searchRegexes);
+            const descMatch = matchesSearch(component.description, searchRegexes);
+            const sectionMatch = matchesSearch(component.sectionName, searchRegexes);
+            return titleMatch || descMatch || sectionMatch;
+        });
+
+        if (matches.length === 0) return [];
+
+        const resultGroup = new Separator(resultTitle, true);
+        resultGroup.items = matches.map((component) => ({
+            type: resultType,
+            component,
+            title: component.title,
+            description: component.description,
+            sectionName: component.sectionName || categoryName,
+            tooltip: component.description || null,
+        }));
+
+        return [resultGroup];
+    };
+
+    const getSettingsDirectMatches = (query) => getDirectComponentMatches('Settings', 'Settings Results', 'direct-component', query);
+    const getThemeDirectMatches = (query) => getDirectComponentMatches('Theme', 'Theme Results', 'theme-component', query);
+
+    const getModuleComponentMatches = (cat, query) => {
+        const searchRegexes = getSearchRegexes(query);
+        if (searchRegexes.length === 0 || !cat) return [];
+
+        const matches = [];
+        const pushMatch = (item, component) => {
+            matches.push({
+                type: 'module-component',
+                component,
+                parentItem: item,
+                title: component.title,
+                description: component.description,
+                moduleTitle: item.title,
+                tooltip: component.description || null,
+            });
+        };
+
+        const checkComponent = (item, component) => {
+            if (!component || component instanceof Separator) return;
+            const titleMatch = matchesSearch(component.title, searchRegexes);
+            const descMatch = matchesSearch(component.description, searchRegexes);
+            if (titleMatch || descMatch) pushMatch(item, component);
+        };
+
+        cat.items.forEach((group) => {
+            if (group.type === 'separator') {
+                group.items.forEach((item) => {
+                    item.components?.forEach((component) => checkComponent(item, component));
+                });
+            } else {
+                group.components?.forEach((component) => checkComponent(group, component));
+            }
+        });
+
+        if (matches.length === 0) return [];
+
+        const resultGroup = new Separator('Module Settings', true);
+        resultGroup.items = matches;
+        return [resultGroup];
     };
 
     const calculateDirectComponentsHeight = (categoryName) => {
@@ -101,7 +223,7 @@ export const createCategoriesManager = (deps) => {
                 height += 26;
             }
 
-            let componentHeight = 48 + 6;
+            let componentHeight = component instanceof Separator ? 26 : 48 + 6;
 
             if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                 if (component.animationProgress !== undefined) {
@@ -116,6 +238,63 @@ export const createCategoriesManager = (deps) => {
         return height;
     };
 
+    const getDirectComponentScrollY = (categoryName, component) => {
+        const directCategory = Categories.categories.find((c) => c.name === categoryName);
+        if (!directCategory || !directCategory.directComponents) return 0;
+
+        let currentY = PADDING;
+        let currentSection = null;
+
+        for (let i = 0; i < directCategory.directComponents.length; i++) {
+            const comp = directCategory.directComponents[i];
+            if (comp.sectionName && comp.sectionName !== currentSection) {
+                currentSection = comp.sectionName;
+                if (i > 0) currentY += 16;
+                currentY += 26;
+            }
+
+            let compHeight = comp instanceof Separator ? 26 : 48 + 6;
+            if ((comp instanceof MultiToggle || comp instanceof ColorPicker) && typeof comp.getExpandedHeight === 'function') {
+                if (comp.animationProgress !== undefined) {
+                    compHeight += comp.getExpandedHeight() * comp.animationProgress;
+                }
+            }
+
+            if (comp === component) {
+                return Math.max(0, currentY - 10);
+            }
+
+            currentY += compHeight;
+        }
+
+        return 0;
+    };
+
+    const getModuleComponentScrollY = (item, component) => {
+        if (!item || !item.components) return 0;
+
+        let currentY = 78;
+        for (let i = 0; i < item.components.length; i++) {
+            const comp = item.components[i];
+            const isSeparator = comp instanceof Separator;
+            let compHeight = isSeparator ? 26 : 48 + 6;
+
+            if (!isSeparator && (comp instanceof MultiToggle || comp instanceof ColorPicker) && typeof comp.getExpandedHeight === 'function') {
+                if (comp.animationProgress !== undefined) {
+                    compHeight += comp.getExpandedHeight() * comp.animationProgress;
+                }
+            }
+
+            if (comp === component) {
+                return Math.max(0, currentY - 10);
+            }
+
+            currentY += compHeight;
+        }
+
+        return 0;
+    };
+
     const calculateContentHeight = () => {
         if (!isContentHeightCacheValid && Categories.selected) {
             let height = 0;
@@ -128,12 +307,14 @@ export const createCategoriesManager = (deps) => {
                     isContentHeightCacheValid = true;
                     return;
                 }
-                const query = SearchBar.query.trim().toLowerCase();
+                const rawQuery = SearchBar.query.trim();
+                const query = rawQuery.toLowerCase();
                 if (category.subcategories.length > 0 && query.length === 0) {
                     height += 28 + PADDING;
                 }
                 const itemsToDisplay = getFilteredItems(category, query);
                 let nonGroupedItemCount = 0;
+                let hasAnyResults = itemsToDisplay.length > 0;
                 const processNonGrouped = () => {
                     if (nonGroupedItemCount > 0) {
                         height += Math.ceil(nonGroupedItemCount / 3) * 54;
@@ -153,6 +334,38 @@ export const createCategoriesManager = (deps) => {
                     }
                 });
                 processNonGrouped();
+
+                if (category.name === 'Modules' && query.length > 0) {
+                    const moduleMatches = getModuleComponentMatches(category, query);
+                    const settingsMatches = getSettingsDirectMatches(query);
+                    const themeMatches = getThemeDirectMatches(query);
+
+                    if (moduleMatches.length > 0) {
+                        if (itemsToDisplay.length > 0) height += 12;
+                        height += 22;
+                        height += Math.ceil(moduleMatches[0].items.length / 3) * 54;
+                        hasAnyResults = true;
+                    }
+
+                    if (settingsMatches.length > 0) {
+                        if (itemsToDisplay.length > 0 || moduleMatches.length > 0) height += 12;
+                        height += 22;
+                        height += Math.ceil(settingsMatches[0].items.length / 3) * 54;
+                        hasAnyResults = true;
+                    }
+
+                    if (themeMatches.length > 0) {
+                        if (itemsToDisplay.length > 0 || moduleMatches.length > 0 || settingsMatches.length > 0) height += 12;
+                        height += 22;
+                        height += Math.ceil(themeMatches[0].items.length / 3) * 54;
+                        hasAnyResults = true;
+                    }
+                }
+
+                if (query.length > 0 && !hasAnyResults) {
+                    height += 64;
+                }
+
                 height += PADDING;
             }
             cachedContentHeight = height;
@@ -180,7 +393,34 @@ export const createCategoriesManager = (deps) => {
     };
 
     const draw = (mouseX, mouseY) => {
-        const query = SearchBar.query.trim().toLowerCase();
+        if (pendingSettingsComponent && Categories.selected === 'Settings' && Categories.currentPage === 'categories' && Categories.transitionDirection === 0) {
+            const targetScroll = getDirectComponentScrollY('Settings', pendingSettingsComponent);
+            setTargetRightPanelScrollY(targetScroll);
+            autoScrollRightActive = true;
+            pendingSettingsComponent = null;
+        }
+
+        if (pendingThemeComponent && Categories.selected === 'Theme' && Categories.currentPage === 'categories' && Categories.transitionDirection === 0) {
+            const targetScroll = getDirectComponentScrollY('Theme', pendingThemeComponent);
+            setTargetRightPanelScrollY(targetScroll);
+            autoScrollRightActive = true;
+            pendingThemeComponent = null;
+        }
+
+        if (
+            pendingModuleComponent &&
+            Categories.currentPage === 'options' &&
+            Categories.selectedItem === pendingModuleComponent.item &&
+            Categories.transitionDirection === 0
+        ) {
+            const targetScroll = getModuleComponentScrollY(pendingModuleComponent.item, pendingModuleComponent.component);
+            setTargetOptionsScrollY(targetScroll);
+            autoScrollOptionsActive = true;
+            pendingModuleComponent = null;
+        }
+
+        const rawQuery = SearchBar.query.trim();
+        const query = rawQuery.toLowerCase();
         if (query !== lastQuery) {
             isContentHeightCacheValid = false;
             isLayoutCacheValid = false;
@@ -220,7 +460,9 @@ export const createCategoriesManager = (deps) => {
         targetRightPanelScrollY = Math.max(0, Math.min(targetRightPanelScrollY, maxScroll));
 
         const prevScrollY = currentRightPanelScrollY;
-        currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * SCROLL_SMOOTHING_FACTOR;
+        const rightScrollFactor = autoScrollRightActive ? AUTO_SCROLL_SMOOTHING_FACTOR : SCROLL_SMOOTHING_FACTOR;
+        currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * rightScrollFactor;
+        if (autoScrollRightActive && Math.abs(targetRightPanelScrollY - currentRightPanelScrollY) < 0.5) autoScrollRightActive = false;
 
         if (Math.abs(currentRightPanelScrollY - prevScrollY) > 0.1) isLayoutCacheValid = false;
 
@@ -228,7 +470,9 @@ export const createCategoriesManager = (deps) => {
             const optionsContentHeight = calculateOptionsContentHeight();
             const maxOptionsScroll = Math.max(0, optionsContentHeight - deps.rectangles.RightPanel.height);
             targetOptionsScrollY = Math.max(0, Math.min(targetOptionsScrollY, maxOptionsScroll));
-            currentOptionsScrollY += (targetOptionsScrollY - currentOptionsScrollY) * SCROLL_SMOOTHING_FACTOR;
+            const optionsScrollFactor = autoScrollOptionsActive ? AUTO_SCROLL_SMOOTHING_FACTOR : SCROLL_SMOOTHING_FACTOR;
+            currentOptionsScrollY += (targetOptionsScrollY - currentOptionsScrollY) * optionsScrollFactor;
+            if (autoScrollOptionsActive && Math.abs(targetOptionsScrollY - currentOptionsScrollY) < 0.5) autoScrollOptionsActive = false;
             Categories.optionsScrollY = currentOptionsScrollY;
         }
 
@@ -254,7 +498,26 @@ export const createCategoriesManager = (deps) => {
                     yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
                 }
                 const itemsToDisplay = getFilteredItems(cat, query);
-                drawCategoryItems(cat, panel, currentPanelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid || !isNewCategory);
+                if (catName === 'Modules' && query.length > 0) {
+                    const moduleMatches = getModuleComponentMatches(cat, query);
+                    const settingsMatches = getSettingsDirectMatches(query);
+                    const themeMatches = getThemeDirectMatches(query);
+                    if (moduleMatches.length > 0) itemsToDisplay.push(...moduleMatches);
+                    if (settingsMatches.length > 0) itemsToDisplay.push(...settingsMatches);
+                    if (themeMatches.length > 0) itemsToDisplay.push(...themeMatches);
+                }
+                drawCategoryItems(
+                    cat,
+                    panel,
+                    currentPanelX,
+                    yOffset,
+                    mouseX,
+                    mouseY,
+                    itemsToDisplay,
+                    cachedItemLayouts,
+                    isLayoutCacheValid || !isNewCategory,
+                    rawQuery
+                );
             };
 
             if (isCategorySwap && Categories.previousSelected) {
@@ -301,6 +564,28 @@ export const createCategoriesManager = (deps) => {
             resetCategoryScroll();
             return;
         }
+
+        const directMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'direct-component' && isInside(mouseX, mouseY, layout.rect));
+        if (directMatch) {
+            pendingSettingsComponent = directMatch.item.component;
+            beginCategorySwap('Settings');
+            return;
+        }
+
+        const themeMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'theme-component' && isInside(mouseX, mouseY, layout.rect));
+        if (themeMatch) {
+            pendingThemeComponent = themeMatch.item.component;
+            beginCategorySwap('Theme');
+            return;
+        }
+
+        const moduleMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'module-component' && isInside(mouseX, mouseY, layout.rect));
+        if (moduleMatch) {
+            pendingModuleComponent = { item: moduleMatch.item.parentItem, component: moduleMatch.item.component };
+            beginModuleOptionsSwap(moduleMatch.item.parentItem);
+            return;
+        }
+
         handleCategoryClick(
             mouseX,
             mouseY,
@@ -321,6 +606,8 @@ export const createCategoriesManager = (deps) => {
     };
 
     const handleScroll = (mouseX, mouseY, dir) => {
+        autoScrollRightActive = false;
+        autoScrollOptionsActive = false;
         handleCategoryScroll(
             mouseX,
             mouseY,

@@ -17,13 +17,15 @@ import {
     FontSizes,
     getDiscordPfpPath,
     colorWithAlpha,
+    drawRoundedRectangleWithBorder,
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
+import { drawRoundedRectangle } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 import { Categories } from './CategorySystem';
+import { SearchBar } from './CategorySearchBar';
 import { setTooltip } from '../core/GuiTooltip';
 
 const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
@@ -132,6 +134,32 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
 
     let currentY = yOffset - scrollY;
     let currentSection = null;
+
+    const shouldShowSearchEmptyState = categoryName === 'Settings' || categoryName === 'Theme';
+    if (shouldShowSearchEmptyState && SearchBar.query.trim().length > 0) {
+        const searchState = cat.searchState || { isEmpty: false };
+        if (searchState.isEmpty) {
+            const cardWidth = panelWidth - PADDING * 2 - 20;
+            const cardX = panelX + PADDING + 10;
+            const cardY = currentY + 6;
+            const cardHeight = 64;
+            drawRoundedRectangleWithBorder({
+                x: cardX,
+                y: cardY,
+                width: cardWidth,
+                height: cardHeight,
+                radius: 10,
+                color: THEME.BG_COMPONENT,
+                borderWidth: 1,
+                borderColor: THEME.BORDER,
+            });
+            const title = `No ${categoryName.toLowerCase()} results`;
+            const subtitle = 'Try a different keyword.';
+            drawText(title, cardX + 12, cardY + 24, FontSizes.REGULAR, THEME.TEXT);
+            drawText(subtitle, cardX + 12, cardY + 40, FontSizes.SMALL, THEME.TEXT_MUTED);
+            currentY += cardHeight + 10;
+        }
+    }
 
     components.forEach((component, index) => {
         if (component.sectionName && component.sectionName !== currentSection) {
@@ -325,11 +353,16 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
 };
 
 const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {
+    const isDirectComponent = item && item.type === 'direct-component';
+    const isModuleComponent = item && item.type === 'module-component';
+    const isThemeComponent = item && item.type === 'theme-component';
+    const isStacked = isDirectComponent || isModuleComponent || isThemeComponent;
+    const itemHeight = 48;
     const itemRect = {
         x: itemX,
         y: itemY,
         width: itemWidth,
-        height: 48,
+        height: itemHeight,
         radius: 10,
         color: THEME.BG_COMPONENT,
         borderWidth: 1,
@@ -340,13 +373,52 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     if (isHovered && item.tooltip) setTooltip(item.tooltip);
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
-    const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
-    drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, THEME.TEXT);
+    if (isStacked) {
+        const centerY = itemY + itemHeight / 2;
+        const titleY = centerY - 6;
+        const subtitleY = centerY + 6;
+        drawText(item.title, itemX + 12, titleY, FontSizes.REGULAR, THEME.TEXT);
+        if (isDirectComponent && item.sectionName) {
+            const sectionText = `Settings • ${item.sectionName}`;
+            drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        }
+        if (isModuleComponent && item.moduleTitle) {
+            const moduleText = `Module • ${item.moduleTitle}`;
+            drawText(moduleText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        }
+        if (isThemeComponent && item.sectionName) {
+            const sectionText = `Theme • ${item.sectionName}`;
+            drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        }
+    } else {
+        const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
+        drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, THEME.TEXT);
+    }
 };
 
-export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, items, layouts, valid) => {
+export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, items, layouts, valid, query = '') => {
     const iw = (panel.width - PADDING * 2 - ITEM_SPACING * 2) / 3;
     let rowIdx = 0;
+
+    if (query.length > 0 && items.length === 0) {
+        const emptyHeight = 64;
+        const emptyX = panelX + PADDING;
+        const emptyY = yOffset + 4;
+        const emptyWidth = panel.width - PADDING * 2;
+        drawRoundedRectangleWithBorder({
+            x: emptyX,
+            y: emptyY,
+            width: emptyWidth,
+            height: emptyHeight,
+            radius: 10,
+            color: THEME.BG_COMPONENT,
+            borderWidth: 1,
+            borderColor: THEME.BORDER,
+        });
+        drawText('No results found', emptyX + 12, emptyY + 24, FontSizes.REGULAR, THEME.TEXT);
+        drawText('Try a different search term?', emptyX + 12, emptyY + 40, FontSizes.SMALL, THEME.TEXT_MUTED);
+        return;
+    }
 
     items.forEach((g, i) => {
         if (g.type === 'separator') {
@@ -365,7 +437,9 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
                 drawItemBox(item, panelX + PADDING + (subIdx % 3) * (iw + ITEM_SPACING), yOffset, iw, mouseX, mouseY, layouts, valid, true);
                 subIdx++;
             });
-            if (g.items.length > 0) yOffset += 48;
+            if (g.items.length > 0) {
+                yOffset += 48;
+            }
         } else {
             if (rowIdx % 3 === 0 && rowIdx > 0) yOffset += 54;
             drawItemBox(g, panelX + PADDING + (rowIdx % 3) * (iw + ITEM_SPACING), yOffset, iw, mouseX, mouseY, layouts, valid, false);
