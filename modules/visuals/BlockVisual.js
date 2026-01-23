@@ -48,7 +48,13 @@ class BlockVisual extends ModuleBase {
         );
 
         this.on('tick', () => {
-            this.currentBlock = Raytrace.getLookingAt(this.getDistance());
+            let lookingAt = Player.lookingAt();
+
+            if (!lookingAt || lookingAt?.type?.id === 0) {
+                lookingAt = Raytrace.getLookingAt(this.getDistance());
+            }
+
+            this.currentBlock = lookingAt;
 
             const item = Player.getHeldItem();
             const isEtherwarping = Player.isSneaking() && item?.getName()?.toLowerCase()?.includes('aspect of the void');
