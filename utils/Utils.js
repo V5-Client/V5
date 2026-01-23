@@ -454,24 +454,30 @@ class UtilsClass {
     }
 
     openBrowser(url) {
-        try {
-            java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
-        } catch (e) {
-            console.error('Failed to open browser (1) (ignore this error): ');
-            console.error('V5 Caught error' + e + e.stack);
+        new Thread(() => {
             try {
+                if (isMac) {
+                    java.lang.Runtime.getRuntime().exec(["open", url]);
+                    return;
+                }
+
+                try {
+                    if (java.awt.Desktop.isDesktopSupported() &&
+                        java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                        return;
+                    }
+                } catch (e) { }
+
                 if (isWindows) {
-                    java.lang.Runtime.getRuntime().exec('rundll32 url.dll,FileProtocolHandler ' + url);
-                } else if (isMac) {
-                    java.lang.Runtime.getRuntime().exec('open ' + url);
+                    java.lang.Runtime.getRuntime().exec(["rundll32", "url.dll,FileProtocolHandler", url]);
                 } else if (isLinux) {
-                    java.lang.Runtime.getRuntime().exec('xdg-open ' + url);
+                    java.lang.Runtime.getRuntime().exec(["xdg-open", url]);
                 }
             } catch (e) {
-                console.error('Failed to open browser (2): ');
-                console.error('V5 Caught error' + e + e.stack);
+                console.error('V5 Caught error in openBrowser: ' + e + e.stack);
             }
-        }
+        }).start();
     }
 }
 
