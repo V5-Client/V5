@@ -49,6 +49,7 @@ class BlockVisual extends ModuleBase {
 
         this.on('tick', () => {
             let lookingAt = Player.lookingAt();
+            if (lookingAt instanceof Entity) lookingAt = null;
 
             if (!lookingAt || lookingAt?.type?.id === 0) {
                 lookingAt = Raytrace.getLookingAt(this.getDistance());
