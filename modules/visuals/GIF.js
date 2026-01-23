@@ -17,8 +17,6 @@ class GifInstance {
         this.baseHeight = 0;
         this.frameCount = 0;
         this.delaysMs = [];
-        this.retryDelayMs = 500;
-        this.nextRetryAt = 0;
 
         this.frameIndex = 0;
         this.accMs = 0;
@@ -60,18 +58,10 @@ class GifInstance {
     }
 
     load() {
-        Client.getMinecraft().execute(() => {
-            let gifData = null;
-            try {
-                gifData = NVG.loadGif(this.absPath);
-            } catch (e) {
-                return;
-            }
-        });
+        const gifData = NVG.loadGif(this.absPath);
 
         if (!gifData) {
-            Chat.message(`&c[GIF] Failed to load ${this.name}. This could be due to an invalid gif file.`);
-            this.scheduleRetry();
+            Chat.message(`&c[GIF] Failed to load ${this.name}. This is likely an invalid gif file.`);
             return;
         }
 
@@ -82,23 +72,12 @@ class GifInstance {
         this.loaded = true;
     }
 
-    scheduleRetry() {
-        const now = Date.now();
-        this.nextRetryAt = now + this.retryDelayMs;
-        this.retryDelayMs = Math.min(this.retryDelayMs * 1.5, 5000);
-    }
-
     unload() {
         this.loaded = false;
     }
 
     render(isChatOpen) {
-        if (!this.loaded || this.frameCount === 0) {
-            if (!this.loaded && Date.now() >= this.nextRetryAt) {
-                this.load();
-            }
-            return;
-        }
+        if (!this.loaded || this.frameCount === 0) return;
 
         const now = Date.now();
         const dt = now - this.lastTimestamp;
