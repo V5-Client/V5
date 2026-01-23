@@ -286,8 +286,14 @@ class RotationsTo {
 
         let progress = Math.min(1.0, Math.max(0, 1 - distance / this.initialDistance));
         let timeAlive = (now - this.startTime) / 1000.0;
-        let warmup = Math.min(timeAlive * 4, 1.0);
+        let warmup;
         let distModifier = Math.min(distance / RotationModule.DAMPING_DIST, 1.0);
+
+        if (this.targetVector || this.trackedEntity) {
+            warmup = Math.min(timeAlive * 4, 1.0);
+        } else {
+            warmup = 1.0;
+        }
 
         let speedMult = Math.pow(distModifier, 0.5);
         let baseSpeed = RotationModule.ROTATION_SPEED * this.speedMultiplier;
