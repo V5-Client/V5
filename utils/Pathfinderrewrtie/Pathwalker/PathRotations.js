@@ -3,11 +3,15 @@ import { PathRotationsUtility } from '../../pathfinder/PathWalker/PathRotationsU
 import { Spline } from '../PathSpline';
 import { BP, Vec3d } from '../../Constants';
 import RenderUtils from '../../render/RendererUtils';
+import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
+import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 
 class PathRotations {
     constructor() {
-        this.LOOK_AHEAD_INDEX_OFFSET = 1.2;
-        this.PROXIMITY_THRESHOLD = 2.0;
+        this.MIN_LOOKAHEAD = 1.1;
+        this.MAX_LOOKAHEAD = 3.5;
+        this.PROXIMITY_THRESHOLD = 4.0;
+
         this.BASE_KP = 0.08;
         this.KD = 0.45;
         this.MAX_VELOCITY = 8.0;
@@ -15,8 +19,14 @@ class PathRotations {
         this.SETTLE_THRESHOLD = 0.1;
         this.PITCH_DEADZONE = 2.5;
         this.YAW_DEADZONE = 1.5;
-        this.SMOOTH_FACTOR = 0.15;
-        this.MAX_LOOK_DISTANCE = 2.0;
+
+        this.SMOOTH_FACTOR = 0.12;
+        this.MAX_LOOK_DISTANCE = 0.8;
+        this.LOOKAHEAD_STEP = 0.4;
+        this.VISIBILITY_CACHE_MS = 50;
+
+        this.MAX_DIRECTION_DIVERGENCE = 50.0;
+        this.MAX_UPWARD_PITCH = -45.0;
 
         this.resetRotations();
         this.onStep();
@@ -38,6 +48,11 @@ class PathRotations {
         this.currentPitch = 0;
         this.boxPositions = null;
         this.currentTargetPoint = null;
+        this.smoothedLookahead = this.MAX_LOOKAHEAD;
+
+        this.cachedLookahead = null;
+        this.lastVisibilityCheck = 0;
+
         PathRotationsUtility.stopRotation();
     }
 
@@ -57,6 +72,173 @@ class PathRotations {
             if (!this.rotationActive || !this.currentTargetPoint) return;
             RenderUtils.drawBox(new Vec3d(this.currentTargetPoint.x, this.currentTargetPoint.y, this.currentTargetPoint.z), [0, 0, 255, 80], true);
         });
+    }
+
+    isPointVisible(playerEyes, targetPoint) {
+        const dx = targetPoint.x - playerEyes.x;
+        const dy = targetPoint.y - playerEyes.y;
+        const dz = targetPoint.z - playerEyes.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (dist < 0.2) return true;
+
+        try {
+            const dir = new Vector3(dx / dist, dy / dist, dz / dist);
+
+            const hit = raytraceBlocks(
+                [playerEyes.x, playerEyes.y, playerEyes.z],
+                dir,
+                dist + 0.1,
+                (block) => {
+                    if (!block || !block.type || block.type.getID() === 0) return false;
+                    try {
+                        const world = World.getWorld();
+                        const pos = new BP(Math.floor(block.getX()), Math.floor(block.getY()), Math.floor(block.getZ()));
+                        const state = world.getBlockState(pos);
+                        return !state.getCollisionShape(world, pos).isEmpty();
+                    } catch (e) {
+                        return true;
+                    }
+                },
+                true
+            );
+
+            if (!hit) return true;
+
+            const hitX = hit[0] + 0.5;
+            const hitY = hit[1] + 0.5;
+            const hitZ = hit[2] + 0.5;
+            const hitDist = Math.sqrt(Math.pow(hitX - playerEyes.x, 2) + Math.pow(hitY - playerEyes.y, 2) + Math.pow(hitZ - playerEyes.z, 2));
+
+            return hitDist >= dist - 0.5;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    getAngleBetweenVectors(v1, v2) {
+        const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
+        const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+        if (mag1 < 0.001 || mag2 < 0.001) return 0;
+
+        const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+        const val = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+        return Math.acos(val) * (180 / Math.PI);
+    }
+
+    findVisibleLookahead(playerEyes, idealLookahead) {
+        const now = Date.now();
+
+        if (this.cachedLookahead !== null && now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS) {
+            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.cachedLookahead);
+            return { point: this.getInterpolatedPoint(t), lookahead: this.cachedLookahead };
+        }
+
+        this.lastVisibilityCheck = now;
+
+        const immediateT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 0.5);
+        const immediatePoint = this.getInterpolatedPoint(immediateT);
+        const vecImmediate = {
+            x: immediatePoint.x - playerEyes.x,
+            y: immediatePoint.y - playerEyes.y,
+            z: immediatePoint.z - playerEyes.z,
+        };
+
+        let lookahead = idealLookahead;
+
+        while (lookahead >= this.MIN_LOOKAHEAD) {
+            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + lookahead);
+            const point = this.getInterpolatedPoint(t);
+
+            const dx = point.x - playerEyes.x;
+            const dy = point.y - playerEyes.y;
+            const dz = point.z - playerEyes.z;
+            const horzDist = Math.sqrt(dx * dx + dz * dz);
+
+            if (dy > 1.8 && horzDist < 0.8) {
+                lookahead -= this.LOOKAHEAD_STEP;
+                continue;
+            }
+
+            const pitch = -Math.atan2(dy, horzDist) * (180 / Math.PI);
+            if (pitch < this.MAX_UPWARD_PITCH && horzDist < 1.5) {
+                lookahead -= this.LOOKAHEAD_STEP;
+                continue;
+            }
+
+            const vecTarget = { x: dx, y: dy, z: dz };
+            const divergence = this.getAngleBetweenVectors(vecImmediate, vecTarget);
+            if (divergence > this.MAX_DIRECTION_DIVERGENCE) {
+                lookahead -= this.LOOKAHEAD_STEP;
+                continue;
+            }
+
+            if (this.isPointVisible(playerEyes, point)) {
+                this.cachedLookahead = lookahead;
+                return { point, lookahead };
+            }
+
+            lookahead -= this.LOOKAHEAD_STEP;
+        }
+
+        this.cachedLookahead = this.MIN_LOOKAHEAD;
+        const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.MIN_LOOKAHEAD);
+        return { point: this.getInterpolatedPoint(t), lookahead: this.MIN_LOOKAHEAD };
+    }
+
+    getAdaptiveLookahead(playerEyes) {
+        const idx = Math.floor(this.currentPathPosition);
+        if (idx + 3 >= this.boxPositions.length) return this.smoothedLookahead;
+
+        const pathPoint = this.getInterpolatedPoint(this.currentPathPosition);
+        const deviation = Math.sqrt(Math.pow(playerEyes.x - pathPoint.x, 2) + Math.pow(playerEyes.z - pathPoint.z, 2));
+        const deviationFactor = Math.min(1, Math.max(0, (deviation - 1.6) / 2.0));
+
+        const p0 = this.boxPositions[idx];
+        const p2 = this.boxPositions[Math.min(idx + 2, this.boxPositions.length - 1)];
+
+        const currDx = p2.x - p0.x;
+        const currDy = p2.y - p0.y;
+        const currDz = p2.z - p0.z;
+        const currMag = Math.sqrt(currDx * currDx + currDy * currDy + currDz * currDz);
+
+        let maxAngle = 0;
+
+        for (let lookahead = 4; lookahead <= 8; lookahead += 2) {
+            const futureIdx = Math.min(idx + lookahead, this.boxPositions.length - 3);
+            if (futureIdx <= idx + 2) continue;
+
+            const fA = this.boxPositions[futureIdx];
+            const fB = this.boxPositions[Math.min(futureIdx + 2, this.boxPositions.length - 1)];
+
+            const futureDx = fB.x - fA.x;
+            const futureDy = fB.y - fA.y;
+            const futureDz = fB.z - fA.z;
+            const futureMag = Math.sqrt(futureDx * futureDx + futureDy * futureDy + futureDz * futureDz);
+
+            if (currMag > 0.8 && futureMag > 0.8) {
+                const dot = (currDx * futureDx + currDy * futureDy + currDz * futureDz) / (currMag * futureMag);
+                const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+                maxAngle = Math.max(maxAngle, angle);
+            }
+        }
+
+        const isFalling = Player.getMotionY() < -0.1;
+        if (isFalling) maxAngle *= 0.5;
+
+        const curveFactor = Math.min(1, Math.max(0, (maxAngle - 0.61) / 0.7));
+        const adjustFactor = Math.max(deviationFactor, curveFactor);
+
+        const targetLookahead = this.MAX_LOOKAHEAD - (this.MAX_LOOKAHEAD - this.MIN_LOOKAHEAD) * adjustFactor;
+
+        let lerpFactor = 0.05;
+        if (targetLookahead > this.smoothedLookahead) {
+            lerpFactor = 0.1;
+        }
+
+        this.smoothedLookahead += (targetLookahead - this.smoothedLookahead) * lerpFactor;
+
+        return this.smoothedLookahead;
     }
 
     updateLookPoint() {
@@ -89,8 +271,25 @@ class PathRotations {
             this.currentPathPosition = bestT;
         }
 
-        const lookAheadT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.LOOK_AHEAD_INDEX_OFFSET);
-        let targetPoint = this.getInterpolatedPoint(lookAheadT);
+        const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
+        ChatLib.chat(adaptiveLookahead.toFixed(2));
+        const result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
+        let targetPoint = result.point;
+
+        if (result.lookahead < this.smoothedLookahead) {
+            this.smoothedLookahead = this.smoothedLookahead * 0.9 + result.lookahead * 0.1;
+        }
+
+        const rawDx = targetPoint.x - playerEyes.x;
+        const rawDy = targetPoint.y - playerEyes.y;
+        const rawDz = targetPoint.z - playerEyes.z;
+        const rawHorz = Math.sqrt(rawDx * rawDx + rawDz * rawDz);
+        const rawPitch = -Math.atan2(rawDy, rawHorz) * (180 / Math.PI);
+
+        if (rawPitch < -50 && rawHorz < 1.0) {
+            const newDy = rawHorz * Math.tan(30 * (Math.PI / 180));
+            targetPoint = new Vec3d(targetPoint.x, playerEyes.y + newDy, targetPoint.z);
+        }
 
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
@@ -192,7 +391,7 @@ class PathRotations {
 
     pathRotations(splineData) {
         if (!this.boxPositions) {
-            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 7.25);
+            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
             if (!this.boxPositions || !this.boxPositions.length) return;
         }
         const player = Player.getPlayer();
