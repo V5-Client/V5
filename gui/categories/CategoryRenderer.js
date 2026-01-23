@@ -10,6 +10,7 @@ import {
     isInside,
     drawText,
     getTextWidth,
+    drawCenteredText,
     drawImage,
     drawCircularImage,
     scissor,
@@ -415,8 +416,8 @@ export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, i
             borderWidth: 1,
             borderColor: THEME.BORDER,
         });
-        drawText('No results found', emptyX + 12, emptyY + 24, FontSizes.REGULAR, THEME.TEXT);
-        drawText('Try a different search term?', emptyX + 12, emptyY + 40, FontSizes.SMALL, THEME.TEXT_MUTED);
+        drawCenteredText('No results found', emptyX, emptyWidth, FontSizes.REGULAR, THEME.TEXT, emptyY + 24);
+        drawCenteredText('Try a different search term?', emptyX, emptyWidth, FontSizes.SMALL, THEME.TEXT_MUTED, emptyY + 40);
         return;
     }
 

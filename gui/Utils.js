@@ -116,6 +116,10 @@ export const getTextWidth = (text, size) => {
     return NVG.textWidth(text, size, NVG.getDefaultFont());
 };
 
+export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
+    drawText(text, x + (width - getTextWidth(text, fontSize)) / 2, yOffset, fontSize, color);
+};
+
 export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {
     if (!path) return;
     NVG.drawImage(path, x, y, width, height, radius, alpha);
