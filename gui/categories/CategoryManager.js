@@ -28,6 +28,9 @@ export const createCategoriesManager = (deps) => {
 
     const SCROLL_SMOOTHING_FACTOR = 0.2;
     const AUTO_SCROLL_SMOOTHING_FACTOR = 0.06;
+    const ICON_SIZE = 28;
+    const HIGHLIGHT_PADDING = 2;
+    const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
 
     const setRightPanelScrollY = (value) => {
         currentRightPanelScrollY = value;
@@ -60,6 +63,20 @@ export const createCategoriesManager = (deps) => {
         Categories.transitionType = 'category-swap';
         const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.previousSelected);
         const newIndex = Categories.categories.findIndex((c) => c.name === targetName);
+        if (oldIndex !== -1 && newIndex !== -1) {
+            const oldRect = getCategoryRect(oldIndex);
+            const newRect = getCategoryRect(newIndex);
+            Categories.catAnimationRect = {
+                startX: oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                startY: oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                endX: newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                endY: newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                width: HIGHLIGHT_SIZE,
+                height: HIGHLIGHT_SIZE,
+                radius: 8,
+            };
+            Categories.catTransitionStart = Date.now();
+        }
         Categories.transitionDirection = newIndex >= oldIndex ? 1 : -1;
         Categories.transitionProgress = 0;
         Categories.transitionStart = Date.now();
