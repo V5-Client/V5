@@ -4,7 +4,7 @@ export const SwiftBridge = {
     startPath(startX, startY, startZ, endArray) {
         const goalArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, endArray.length);
         endArray.forEach((int, i) => {
-            goalArray[i] = int;
+            goalArray[i] = i % 3 == 1 ? int + 1 : int;
         });
         return PathManager.findPathMultipleGoals(startX, startY + 1, startZ, goalArray);
     },
