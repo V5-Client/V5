@@ -117,6 +117,20 @@ function notifyInvalidDestination(message = 'Path requires valid coordinate trip
     showNotification('Invalid Destination', message, 'ERROR', 5000);
 }
 
+function normalizeDestination(end) {
+    if (!Array.isArray(end)) return [];
+    if (end.length === 0) return [];
+
+    if (typeof end[0] === 'number') return end;
+
+    const flat = [];
+    end.forEach((triple) => {
+        if (!Array.isArray(triple) || triple.length < 3) return;
+        flat.push(triple[0], triple[1], triple[2]);
+    });
+    return flat;
+}
+
 function drawKeyNodes(keynodes) {
     if (!keynodes || keynodes.length < 2) return;
     keynodes.forEach((keynode) => {
@@ -153,6 +167,7 @@ function validateDestinationReached() {
 }
 
 function executePathfinding(start, end, onComplete, renderOnly = false, adjustEnd = false) {
+    end = normalizeDestination(end);
     if (!end.length || end.length % 3 !== 0) {
         notifyInvalidDestination();
         return;
@@ -356,7 +371,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 /**
  * Find and walk a path from start to end.
  * @param {number[]} start - [x, y, z] start coords
- * @param {number[]} end - [x, y, z] end coords. use multiples of 3 for multi-goal paths.
+ * @param {number[]|number[][]} end - [x, y, z] end coords, flattened triples, or array of [x,y,z] triples.
  * @param {boolean|Function} renderOnlyOrCallback - If true, render only. If function, callback on complete.
  * @param {boolean} adjustEnd - If true, adjusts end Y to find ground level. ONLY WORKS ON BLOCK IN YOUR RENDER DISTANCE, DO NOT USE FOR LONG DISTANCE PATHS
  */

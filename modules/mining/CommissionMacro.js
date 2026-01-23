@@ -15,7 +15,6 @@ import { Mouse } from '../../utils/Ungrab';
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
-// USE MULTIPLE END POINTS FOR EMISSARRY PATHFINDING
 
 const STATES = {
     IDLE: 'Idle',
@@ -70,7 +69,6 @@ class CommissionMacro extends ModuleBase {
         this.weapon = null;
         this.isActualDrill = false;
         this.miningSpeed = 0;
-        this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
@@ -415,10 +413,7 @@ class CommissionMacro extends ModuleBase {
     findAvailableCommission(supportedTasks, otherPlayers) {
         for (const task of supportedTasks) {
             const safeWaypoints = this.getSafeWaypoints(task, otherPlayers);
-            if (safeWaypoints.length > 0) {
-                const closestWaypoint = this.getClosestWaypoint(safeWaypoints);
-                return { task, waypoint: closestWaypoint };
-            }
+            if (safeWaypoints.length > 0) return { task, waypoints: safeWaypoints };
         }
         return null;
     }
@@ -443,15 +438,14 @@ class CommissionMacro extends ModuleBase {
     }
 
     startCommission(chosenCommission) {
-        const { task, waypoint } = chosenCommission;
+        const { task, waypoints } = chosenCommission;
         this.currentCommission = task;
         this.travelPurpose = task.type;
-        this.currentMiningWaypoint = waypoint;
 
-        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to: &b[${waypoint.join(', ')}]`);
+        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to &b${waypoints.length}&a spot(s).`);
 
         this.setState(STATES.TRAVELING);
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, (success) =>
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoints, (success) =>
             this.onPathComplete(success)
         );
     }
@@ -554,7 +548,7 @@ class CommissionMacro extends ModuleBase {
                 this.travelPurpose = 'EMISSARY';
 
                 const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-                findAndFollowPath(currentPos, closest, (success) => {
+                findAndFollowPath(currentPos, EMISSARY_LOCATIONS, (success) => {
                     this.pathfinding = false;
                     if (!success) {
                         Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
@@ -581,7 +575,7 @@ class CommissionMacro extends ModuleBase {
         if (this.pathfinding) return;
         this.pathfinding = true;
         this.travelPurpose = 'EMISSARY';
-        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
+        findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], EMISSARY_LOCATIONS, (success) => {
             if (!success) return;
             this.pathfinding = false;
         });
