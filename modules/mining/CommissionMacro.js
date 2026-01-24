@@ -602,6 +602,10 @@ class CommissionMacro extends ModuleBase {
 
     claimCompletedCommissions() {
         const Commissions = Player.getContainer();
+        if (!Commissions) return;
+
+        let foundCompleted = false;
+
         for (let i = 9; i < 17; i++) {
             const stack = Commissions.getStackInSlot(i);
             if (!stack) continue;
@@ -610,12 +614,70 @@ class CommissionMacro extends ModuleBase {
             if (hasCompleted) {
                 Guis.clickSlot(i, false);
                 this.delay(10);
+                foundCompleted = true;
                 return;
             }
         }
 
-        Guis.closeInv();
-        this.setState(STATES.WAITING_GUI_CLOSE);
+        if (!foundCompleted) {
+            this.updateCommissionsFromGui(Commissions);
+            Guis.closeInv();
+            this.setState(STATES.WAITING_GUI_CLOSE);
+        }
+    }
+
+    updateCommissionsFromGui(container) {
+        const newCommissions = [];
+        for (let i = 9; i < 17; i++) {
+            const stack = container.getStackInSlot(i);
+            if (!stack) continue;
+
+            const name = ChatLib.removeFormatting(stack.getName());
+            if (!name.startsWith('Commission #')) continue;
+
+            const lore = stack.getLore();
+            let realName = null;
+            let progress = 0;
+
+            for (const line of lore) {
+                const clean = ChatLib.removeFormatting(line.toString()).trim();
+                if (COMMISSION_DATA.some((d) => d.names.includes(clean))) {
+                    realName = clean;
+                    break;
+                }
+            }
+
+            if (!realName && lore.length > 4) {
+                const potentialName = ChatLib.removeFormatting(lore[4].toString()).trim();
+                if (potentialName.length > 0 && potentialName !== 'Rewards' && potentialName !== 'Progress') {
+                    realName = potentialName;
+                }
+            }
+
+            if (!realName) continue;
+
+            if (lore.some((l) => l.toString().includes('COMPLETED'))) {
+                progress = 1;
+            } else {
+                for (const line of lore) {
+                    const clean = ChatLib.removeFormatting(line.toString()).trim();
+                    if (clean.endsWith('%')) {
+                        const match = clean.match(/([\d.]+)%$/);
+                        if (match) {
+                            progress = parseFloat(match[1]) / 100;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            newCommissions.push({ name: realName, progress: progress });
+        }
+
+        if (newCommissions.length > 0) {
+            this.commissions = newCommissions;
+            this.awaitingTabUpdate = false;
+        }
     }
 
     handleWaitingGuiClose() {

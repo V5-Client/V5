@@ -109,7 +109,7 @@ export const COMMISSION_DATA = [
     {
         names: ['Treasure Hoarder Puncher'],
         type: 'SLAYER',
-        cost: 50,
+        cost: 25,
         waypoints: [[-117, 204, -56]],
     },
 ];
