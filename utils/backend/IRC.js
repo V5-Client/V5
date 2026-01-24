@@ -33,9 +33,9 @@ function isJwtValid(token) {
     return payload.exp > nowSeconds + 30;
 }
 
-function saveJwt(token) {
+function saveJwt(token, data) {
     try {
-        Utils.writeConfigFile(jwtFile, { jwt: token });
+        Utils.writeConfigFile(jwtFile, { username: data.discord_username, jwt: token });
     } catch (e) {
         console.error('Failed to save chat token: ');
         console.error('V5 Caught error' + e + e.stack);
@@ -62,7 +62,9 @@ function setJwtAndConnect(token) {
         return;
     }
     authToken = token;
-    saveJwt(authToken);
+
+    const payload = parseJwtPayload(token);
+    saveJwt(authToken, payload);
     Chat.messageIrc('&aChat token updated. Connecting...');
     connectWebSocket();
 }

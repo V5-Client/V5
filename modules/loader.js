@@ -23,6 +23,7 @@ import './visuals/ESP.js';
 import './visuals/GIF.js';
 import './visuals/MobHider.js';
 import './visuals/Xray.js';
+import './Visuals/ProfileHider.js';
 
 /* SKILLS */
 import './skills/AutoExperiments.js';
