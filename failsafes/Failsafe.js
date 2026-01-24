@@ -64,7 +64,7 @@ export class Failsafe {
         }
         if (checkType == 'teleport') {
             const heldItem = Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase();
-            const isTPItem = heldItem && heldItem.includes('aspect of the');
+            const isTPItem = heldItem && heldItem.includes('aspect of the') && !heldItem.includes('dragons');
             const { distance, yaw, pitch, currYaw, currPitch, lastRightClickTime, fromX, fromY, fromZ, toX, toY, toZ, lookVector } = data;
 
             if (isTPItem) {
