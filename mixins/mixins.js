@@ -3,7 +3,7 @@
 import { IsCursorLocked, LockCursor, UpdateMouse } from './UngrabMixin';
 import { HandleInputEvents, OnMouseScroll } from './SlotChangeMixin';
 import { PaneFix } from './GlassPanesMixin';
-import { DisablePauseOnLostFocus } from './GameRendererMixin';
+import { PauseFix } from './GameRendererMixin';
 import { emptyKelp, emptyGrass, emptyTallGrass } from './IDoLater';
 import { PlayerActionPacket } from './PlayerAction';
 import { spawnBreakParticles } from './SpawnBreakParticlesMixin';
