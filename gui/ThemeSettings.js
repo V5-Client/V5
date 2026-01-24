@@ -83,6 +83,39 @@ const initThemeSettings = () => {
         'Theme'
     );
 
+    Categories.addSettingsColorPicker(
+        'Overlay Main Color',
+        THEME.OV_WINDOW,
+        (c) => {
+            THEME.OV_WINDOW = c;
+        },
+        'Main  color for the overlay.',
+        'Overlay',
+        'Theme'
+    );
+
+    Categories.addSettingsColorPicker(
+        'Overlay Border Color',
+        THEME.OV_BORDER,
+        (c) => {
+            THEME.OV_BORDER = c;
+        },
+        'Border color for the overlay.',
+        'Overlay',
+        'Theme'
+    );
+
+    Categories.addSettingsColorPicker(
+        'Overlay Accent Color',
+        THEME.OV_ACCENT,
+        (c) => {
+            THEME.OV_ACCENT = c;
+        },
+        'Accent color for the overlay.',
+        'Overlay',
+        'Theme'
+    );
+
     Categories.addSettingsColorPicker('Primary Text', THEME.TEXT, (c) => (THEME.TEXT = c), 'Main text color.', 'Text', 'Theme');
 
     Categories.addSettingsColorPicker('Secondary Text', THEME.TEXT_MUTED, (c) => (THEME.TEXT_MUTED = c), 'Description text color.', 'Text', 'Theme');
