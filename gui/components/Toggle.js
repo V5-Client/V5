@@ -1,4 +1,15 @@
-import { playClickSound, drawRoundedRectangle, drawRoundedRectangleWithBorder, THEME, isInside, easeOutCubic, PADDING, drawText, FontSizes } from '../Utils';
+import {
+    playClickSound,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
+    THEME,
+    isInside,
+    easeOutCubic,
+    PADDING,
+    drawText,
+    FontSizes,
+    createHighlight,
+} from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
 export class ToggleButton {
@@ -13,6 +24,7 @@ export class ToggleButton {
         this.optionPanelHeight = 0;
         this.callback = callback;
         this.description = null;
+        this.highlight = createHighlight();
 
         this.animationProgress = this.enabled ? 1 : 0;
         this.animationStart = 0;
@@ -37,11 +49,28 @@ export class ToggleButton {
         }
     }
 
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
+        });
+    }
+
     draw(mouseX, mouseY) {
         this.updateAnimation();
 
         const componentHeight = 48;
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
+
+        this.drawHighlight(panelWidth, componentHeight);
 
         drawRoundedRectangleWithBorder({
             x: this.x,

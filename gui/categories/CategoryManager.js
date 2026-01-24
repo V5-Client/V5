@@ -25,6 +25,7 @@ export const createCategoriesManager = (deps) => {
     let pendingModuleComponent = null;
     let autoScrollRightActive = false;
     let autoScrollOptionsActive = false;
+    let pendingHighlightComponent = null;
 
     const SCROLL_SMOOTHING_FACTOR = 0.2;
     const AUTO_SCROLL_SMOOTHING_FACTOR = 0.06;
@@ -414,6 +415,7 @@ export const createCategoriesManager = (deps) => {
             const targetScroll = getDirectComponentScrollY('Settings', pendingSettingsComponent);
             setTargetRightPanelScrollY(targetScroll);
             autoScrollRightActive = true;
+            pendingHighlightComponent = pendingSettingsComponent;
             pendingSettingsComponent = null;
         }
 
@@ -421,6 +423,7 @@ export const createCategoriesManager = (deps) => {
             const targetScroll = getDirectComponentScrollY('Theme', pendingThemeComponent);
             setTargetRightPanelScrollY(targetScroll);
             autoScrollRightActive = true;
+            pendingHighlightComponent = pendingThemeComponent;
             pendingThemeComponent = null;
         }
 
@@ -433,6 +436,7 @@ export const createCategoriesManager = (deps) => {
             const targetScroll = getModuleComponentScrollY(pendingModuleComponent.item, pendingModuleComponent.component);
             setTargetOptionsScrollY(targetScroll);
             autoScrollOptionsActive = true;
+            pendingHighlightComponent = pendingModuleComponent.component;
             pendingModuleComponent = null;
         }
 
@@ -479,7 +483,13 @@ export const createCategoriesManager = (deps) => {
         const prevScrollY = currentRightPanelScrollY;
         const rightScrollFactor = autoScrollRightActive ? AUTO_SCROLL_SMOOTHING_FACTOR : SCROLL_SMOOTHING_FACTOR;
         currentRightPanelScrollY += (targetRightPanelScrollY - currentRightPanelScrollY) * rightScrollFactor;
-        if (autoScrollRightActive && Math.abs(targetRightPanelScrollY - currentRightPanelScrollY) < 0.5) autoScrollRightActive = false;
+        if (autoScrollRightActive && Math.abs(targetRightPanelScrollY - currentRightPanelScrollY) < 0.5) {
+            autoScrollRightActive = false;
+            if (pendingHighlightComponent && typeof pendingHighlightComponent.startHighlight === 'function') {
+                pendingHighlightComponent.startHighlight();
+                pendingHighlightComponent = null;
+            }
+        }
 
         if (Math.abs(currentRightPanelScrollY - prevScrollY) > 0.1) isLayoutCacheValid = false;
 
@@ -489,7 +499,13 @@ export const createCategoriesManager = (deps) => {
             targetOptionsScrollY = Math.max(0, Math.min(targetOptionsScrollY, maxOptionsScroll));
             const optionsScrollFactor = autoScrollOptionsActive ? AUTO_SCROLL_SMOOTHING_FACTOR : SCROLL_SMOOTHING_FACTOR;
             currentOptionsScrollY += (targetOptionsScrollY - currentOptionsScrollY) * optionsScrollFactor;
-            if (autoScrollOptionsActive && Math.abs(targetOptionsScrollY - currentOptionsScrollY) < 0.5) autoScrollOptionsActive = false;
+            if (autoScrollOptionsActive && Math.abs(targetOptionsScrollY - currentOptionsScrollY) < 0.5) {
+                autoScrollOptionsActive = false;
+                if (pendingHighlightComponent && typeof pendingHighlightComponent.startHighlight === 'function') {
+                    pendingHighlightComponent.startHighlight();
+                    pendingHighlightComponent = null;
+                }
+            }
             Categories.optionsScrollY = currentOptionsScrollY;
         }
 

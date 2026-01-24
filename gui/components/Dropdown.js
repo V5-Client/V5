@@ -10,6 +10,7 @@ import {
     drawText,
     getTextWidth,
     FontSizes,
+    createHighlight,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
@@ -51,6 +52,7 @@ export class MultiToggle {
         this.animDuration = 220;
         this.animationProgress = 0;
         this.description = null;
+        this.highlight = createHighlight();
     }
 
     startAnimation(expanding) {
@@ -66,6 +68,21 @@ export class MultiToggle {
         const eased = easeInOutQuad(t);
         this.animationProgress = this.animFrom + (this.animTo - this.animFrom) * eased;
         if (t >= 1) this.animStart = 0;
+    }
+
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
+        });
     }
 
     updateToggleAnimations() {
@@ -104,6 +121,8 @@ export class MultiToggle {
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
         const textColor = THEME.TEXT;
         const cornerRadius = 10;
+
+        this.drawHighlight(panelWidth, this.containerHeight);
 
         drawRoundedRectangleWithBorder({
             x: this.x,

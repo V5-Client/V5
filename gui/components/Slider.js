@@ -10,6 +10,7 @@ import {
     getTextWidth,
     FontSizes,
     TypingState,
+    createHighlight,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
@@ -48,9 +49,25 @@ export class Slider {
         this.callback = callback;
         this.description = null;
         this.valueRect = {};
+        this.highlight = createHighlight();
 
         register('guiKey', (char, keyCode) => {
             if (this.isTyping) this.handleKeyType(char, keyCode);
+        });
+    }
+
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
         });
     }
 
@@ -59,6 +76,8 @@ export class Slider {
         const backgroundColor = THEME.BG_COMPONENT;
         const textColor = THEME.TEXT;
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
+
+        this.drawHighlight(panelWidth, componentHeight);
 
         drawRoundedRectangleWithBorder({
             x: this.x,

@@ -86,6 +86,44 @@ export const drawRect = ({ x, y, width, height, color }) => {
     NVG.drawRect(x, y, width, height, c);
 };
 
+export const createHighlight = (options) => {
+    const cfg = options || {};
+    const duration = cfg.duration !== undefined ? cfg.duration : 2200;
+    const pulseMs = cfg.pulseMs !== undefined ? cfg.pulseMs : 220;
+    const baseAlpha = cfg.baseAlpha !== undefined ? cfg.baseAlpha : 0.14;
+    const pulseAlpha = cfg.pulseAlpha !== undefined ? cfg.pulseAlpha : 0.2;
+    const inset = cfg.inset !== undefined ? cfg.inset : 4;
+    const borderWidth = cfg.borderWidth !== undefined ? cfg.borderWidth : 1;
+    const radius = cfg.radius !== undefined ? cfg.radius : 12;
+    let start = 0;
+
+    return {
+        startHighlight: () => {
+            start = Date.now();
+        },
+        draw: ({ x, y, width, height, accentColor, accentFillColor }) => {
+            if (!start) return;
+            const elapsed = Date.now() - start;
+            if (elapsed > duration) {
+                start = 0;
+                return;
+            }
+            const pulse = 0.5 + 0.5 * Math.sin((elapsed / pulseMs) * Math.PI * 2);
+            const alpha = baseAlpha + pulseAlpha * pulse;
+            drawRoundedRectangleWithBorder({
+                x: x - inset,
+                y: y - inset,
+                width: width + inset * 2,
+                height: height + inset * 2,
+                radius,
+                color: colorWithAlpha(accentFillColor, alpha * 0.45),
+                borderWidth,
+                borderColor: colorWithAlpha(accentColor, alpha),
+            });
+        },
+    };
+};
+
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
     NVG.drawRoundedRect(x, y, width, height, radius, c);
