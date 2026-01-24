@@ -86,15 +86,15 @@ export const drawRect = ({ x, y, width, height, color }) => {
     NVG.drawRect(x, y, width, height, c);
 };
 
-export const createHighlight = (options) => {
-    const cfg = options || {};
-    const duration = cfg.duration !== undefined ? cfg.duration : 2200;
-    const pulseMs = cfg.pulseMs !== undefined ? cfg.pulseMs : 220;
-    const baseAlpha = cfg.baseAlpha !== undefined ? cfg.baseAlpha : 0.14;
-    const pulseAlpha = cfg.pulseAlpha !== undefined ? cfg.pulseAlpha : 0.2;
-    const inset = cfg.inset !== undefined ? cfg.inset : 4;
-    const borderWidth = cfg.borderWidth !== undefined ? cfg.borderWidth : 1;
-    const radius = cfg.radius !== undefined ? cfg.radius : 12;
+export const createHighlight = () => {
+    const fadeInMs = 300;
+    const holdMs = 1800;
+    const fadeOutMs = 900;
+    const baseAlpha = 0.14;
+    const pulseAlpha = 0.2;
+    const inset = 4;
+    const borderWidth = 1;
+    const radius = 12;
     let start = 0;
 
     return {
@@ -104,12 +104,20 @@ export const createHighlight = (options) => {
         draw: ({ x, y, width, height, accentColor, accentFillColor }) => {
             if (!start) return;
             const elapsed = Date.now() - start;
+            const duration = fadeInMs + holdMs + fadeOutMs;
             if (elapsed > duration) {
                 start = 0;
                 return;
             }
-            const pulse = 0.5 + 0.5 * Math.sin((elapsed / pulseMs) * Math.PI * 2);
-            const alpha = baseAlpha + pulseAlpha * pulse;
+            let pulse;
+            if (elapsed < fadeInMs) {
+                pulse = elapsed / Math.max(1, fadeInMs);
+            } else if (elapsed < fadeInMs + holdMs) {
+                pulse = 1;
+            } else {
+                pulse = 1 - (elapsed - fadeInMs - holdMs) / Math.max(1, fadeOutMs);
+            }
+            const alpha = (baseAlpha + pulseAlpha) * pulse;
             drawRoundedRectangleWithBorder({
                 x: x - inset,
                 y: y - inset,
