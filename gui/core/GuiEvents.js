@@ -4,8 +4,9 @@ import { saveSettings, loadSettings } from '../GuiSave';
 import { GuiState, GuiRectangles } from './GuiState';
 import { categoryManager } from '../categories/CategoryManager';
 import { v5Command, callCommand } from '../../utils/V5Commands';
-import { KeyBindUtils } from '../../utils/Constants';
+import { KeyBindUtils, NVG } from '../../utils/Constants';
 import { Utils } from '../../utils/Utils';
+import { SearchBar } from '../categories/CategorySearchBar';
 
 let GUIKey = null;
 let GUIKeyBind = null;
@@ -49,6 +50,7 @@ const handleMouseRelease = () => {
 };
 
 const handleGuiClosed = () => {
+    SearchBar.resetSearch();
     saveSettings();
     loadSettings();
 };
@@ -63,8 +65,17 @@ GuiState.myGui.registerMouseDragged((mouseX, mouseY, button, _dt) => {
 
 GuiState.myGui.registerMouseReleased(handleMouseRelease);
 GuiState.myGui.registerClosed(handleGuiClosed);
-GuiState.myGui.registerDraw(drawGUI);
 GuiState.myGui.registerScrolled(handleScroll);
+
+NVG.registerV5Render(() => {
+    if (GuiState.myGui.isOpen()) {
+        const window = Client.getMinecraft().getWindow();
+        const scale = window.getScaleFactor();
+        const mouseX = Client.getMouseX() / scale;
+        const mouseY = Client.getMouseY() / scale;
+        drawGUI(mouseX, mouseY);
+    }
+});
 
 const handleKeybind = () => {
     const keyName = 'GUI';

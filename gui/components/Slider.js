@@ -9,6 +9,8 @@ import {
     drawText,
     getTextWidth,
     FontSizes,
+    TypingState,
+    createHighlight,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
@@ -47,9 +49,25 @@ export class Slider {
         this.callback = callback;
         this.description = null;
         this.valueRect = {};
+        this.highlight = createHighlight();
 
         register('guiKey', (char, keyCode) => {
             if (this.isTyping) this.handleKeyType(char, keyCode);
+        });
+    }
+
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
         });
     }
 
@@ -58,6 +76,8 @@ export class Slider {
         const backgroundColor = THEME.BG_COMPONENT;
         const textColor = THEME.TEXT;
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
+
+        this.drawHighlight(panelWidth, componentHeight);
 
         drawRoundedRectangleWithBorder({
             x: this.x,
@@ -198,6 +218,7 @@ export class Slider {
         if (isInside(mouseX, mouseY, this.valueRect)) {
             if (!this.isRange) {
                 this.isTyping = true;
+                TypingState.isTyping = true;
                 this.inputValue = String(this.value.toFixed(this.precision));
                 return true;
             }
@@ -261,9 +282,10 @@ export class Slider {
 
         const DELETE_KEY = 259;
         const ENTER_KEY = 257;
+        const ESCAPE_KEY = 1;
 
-        if (keyCode === ENTER_KEY) {
-            this.handleInputFinish(true);
+        if (keyCode === ENTER_KEY || keyCode === ESCAPE_KEY) {
+            this.handleInputFinish();
             return true;
         }
 
@@ -304,8 +326,9 @@ export class Slider {
 
         let typedValue = parseFloat(this.inputValue);
 
-        if (isNaN(typedValue) || !forceSave) {
+        if (isNaN(typedValue)) {
             this.isTyping = false;
+            TypingState.isTyping = false;
             return;
         }
 
@@ -317,6 +340,7 @@ export class Slider {
         }
 
         this.isTyping = false;
+        TypingState.isTyping = false;
         playClickSound();
     }
 

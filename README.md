@@ -56,7 +56,7 @@ new ExampleModule();
 
 Notes:
 
--   The `Enabled` toggle is added automatically; hide it with `showEnabledToggle: false` in the constructor options for command/keybind modules.
--   Use `this.on(event, cb)` to create handlers that auto-register on enable and unregister on disable.
--   Use `this.trackRegister(reg)` if you build a handler first with `register(...).unregister()` and then want ModuleBase to manage it.
--   `this.bindToggleKey(title?)` adds a hotkey to toggle the module (works even when disabled).
+- The `Enabled` toggle is added automatically; hide it with `showEnabledToggle: false` in the constructor options for command/keybind modules.
+- Use `this.on(event, cb)` to create handlers that auto-register on enable and unregister on disable.
+- Use `this.trackRegister(reg)` if you build a handler first with `register(...).unregister()` and then want ModuleBase to manage it.
+- `this.bindToggleKey(title?)` adds a hotkey to toggle the module (works even when disabled).

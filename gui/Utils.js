@@ -38,10 +38,13 @@ export const SEPARATOR_HEIGHT = 24;
 export const SUBCATEGORY_BUTTON_HEIGHT = 28;
 export const SUBCATEGORY_BUTTON_SPACING = 8;
 
+export const TypingState = {
+    isTyping: false,
+};
+
 export const THEME = {
-    // === BACKGROUNDS ===
     BG_WINDOW: new Color(0.09, 0.1, 0.13, 1),
-    BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85), // This alpha will now be respected
+    BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85),
     BG_COMPONENT: new Color(0.11, 0.12, 0.15, 1),
     BG_ELEVATED: new Color(0.13, 0.14, 0.17, 1),
     BG_INSET: new Color(0.15, 0.16, 0.19, 1),
@@ -83,6 +86,52 @@ export const drawRect = ({ x, y, width, height, color }) => {
     NVG.drawRect(x, y, width, height, c);
 };
 
+export const createHighlight = () => {
+    const fadeInMs = 300;
+    const holdMs = 1800;
+    const fadeOutMs = 900;
+    const baseAlpha = 0.14;
+    const pulseAlpha = 0.2;
+    const inset = 4;
+    const borderWidth = 1;
+    const radius = 12;
+    let start = 0;
+
+    return {
+        startHighlight: () => {
+            start = Date.now();
+        },
+        draw: ({ x, y, width, height, accentColor, accentFillColor }) => {
+            if (!start) return;
+            const elapsed = Date.now() - start;
+            const duration = fadeInMs + holdMs + fadeOutMs;
+            if (elapsed > duration) {
+                start = 0;
+                return;
+            }
+            let pulse;
+            if (elapsed < fadeInMs) {
+                pulse = elapsed / Math.max(1, fadeInMs);
+            } else if (elapsed < fadeInMs + holdMs) {
+                pulse = 1;
+            } else {
+                pulse = 1 - (elapsed - fadeInMs - holdMs) / Math.max(1, fadeOutMs);
+            }
+            const alpha = (baseAlpha + pulseAlpha) * pulse;
+            drawRoundedRectangleWithBorder({
+                x: x - inset,
+                y: y - inset,
+                width: width + inset * 2,
+                height: height + inset * 2,
+                radius,
+                color: colorWithAlpha(accentFillColor, alpha * 0.45),
+                borderWidth,
+                borderColor: colorWithAlpha(accentColor, alpha),
+            });
+        },
+    };
+};
+
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
     NVG.drawRoundedRect(x, y, width, height, radius, c);
@@ -92,7 +141,8 @@ export const drawRoundedRectangleWithBorder = (r) => {
     if (r.borderWidth && r.borderWidth > 0 && r.borderColor) {
         const bw = r.borderWidth;
         const bc = (r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor) | 0;
-        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, r.radius, bc);
+        const outerRadius = r.radius + bw;
+        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
     }
     const c = (r.color instanceof Color ? r.color.getRGB() : r.color) | 0;
     NVG.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
@@ -110,6 +160,10 @@ export const drawText = (text, x, y, size, color, align = 17) => {
 
 export const getTextWidth = (text, size) => {
     return NVG.textWidth(text, size, NVG.getDefaultFont());
+};
+
+export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
+    drawText(text, x + (width - getTextWidth(text, fontSize)) / 2, yOffset, fontSize, color);
 };
 
 export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {

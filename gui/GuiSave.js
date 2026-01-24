@@ -2,6 +2,7 @@ import { ToggleButton } from './components/Toggle';
 import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
 import { ColorPicker } from './components/ColorPicker';
+import { TextInput } from './components/TextInput';
 import { Chat } from '../utils/Chat';
 import { Utils } from '../utils/Utils';
 import { Categories } from './categories/CategorySystem';
@@ -10,6 +11,13 @@ import { Color } from '../utils/Constants';
 export const SettingsMap = new Map();
 
 const getCategoryItems = (category) => category.items.reduce((acc, group) => acc.concat(group.type === 'separator' ? group.items : [group]), []);
+
+const getDirectComponentParentName = (category, component) => {
+    if (category.name === 'Settings' && component.sectionName) {
+        return component.sectionName;
+    }
+    return category.name;
+};
 
 function buildSettingsMapFromComponents() {
     SettingsMap.clear();
@@ -25,7 +33,8 @@ function buildSettingsMapFromComponents() {
         // SETTINGS PAGE
         if (category.directComponents) {
             category.directComponents.forEach((component) => {
-                const key = `${category.name}.${component.title}`;
+                const parentName = getDirectComponentParentName(category, component);
+                const key = `${parentName}.${component.title}`;
                 storeComponentValue(key, component);
             });
         }
@@ -41,6 +50,8 @@ function storeComponentValue(key, component) {
         SettingsMap.set(key, component.options);
     } else if (component instanceof ColorPicker) {
         SettingsMap.set(key, component.color.getRGB());
+    } else if (component instanceof TextInput) {
+        SettingsMap.set(key, component.value);
     }
 }
 
@@ -69,7 +80,8 @@ export const applySettings = () => {
 
         if (category.directComponents) {
             category.directComponents.forEach((component) => {
-                triggerComponentCallback(category.name, component);
+                const parentName = getDirectComponentParentName(category, component);
+                triggerComponentCallback(parentName, component);
             });
         }
     });
@@ -108,12 +120,13 @@ export const loadSettings = () => {
             });
 
             if (category.directComponents) {
-                const savedCategorySettings = settings[category.name];
-                if (savedCategorySettings) {
-                    category.directComponents.forEach((component) => {
+                category.directComponents.forEach((component) => {
+                    const parentName = getDirectComponentParentName(category, component);
+                    const savedCategorySettings = settings[parentName];
+                    if (savedCategorySettings) {
                         loadComponentValue(component, savedCategorySettings[component.title]);
-                    });
-                }
+                    }
+                });
             }
         });
 
@@ -155,6 +168,10 @@ function loadComponentValue(component, savedValue) {
         component.sat = hsv[1];
         component.val = hsv[2];
         component.alpha = a / 255;
+    } else if (component instanceof TextInput) {
+        component.value = savedValue;
+        component.text = String(savedValue);
+        component.cursorIndex = component.text.length;
     }
 }
 

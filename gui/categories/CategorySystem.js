@@ -3,6 +3,7 @@ import { Slider } from '../components/Slider';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
+import { TextInput } from '../components/TextInput';
 
 export const Categories = {
     categories: [
@@ -13,6 +14,12 @@ export const Categories = {
         },
         {
             name: 'Settings',
+            items: [],
+            subcategories: [],
+            directComponents: [],
+        },
+        {
+            name: 'Theme',
             items: [],
             subcategories: [],
             directComponents: [],
@@ -111,6 +118,15 @@ export const Categories = {
         item.components.push(slider);
     },
 
+    addTextInput(categoryName, itemName, title, defaultValue, callback = null, description = null) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return;
+
+        const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
+        input.description = description;
+        item.components.push(input);
+    },
+
     addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
         const item = Categories.findItem(categoryName, itemName);
         if (!item) return;
@@ -129,8 +145,16 @@ export const Categories = {
         item.components.push(picker);
     },
 
-    addSettingsComponent(component, sectionName = null) {
-        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+    addSeparator(categoryName, itemName, title, fullWidth = false) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return;
+
+        const separator = new Separator(title, fullWidth);
+        item.components.push(separator);
+    },
+
+    addSettingsComponent(component, sectionName = null, categoryName = 'Settings') {
+        const settingsCat = Categories.categories.find((c) => c.name === categoryName);
         if (!settingsCat) return;
 
         if (!settingsCat.directComponents) {
@@ -141,49 +165,65 @@ export const Categories = {
         settingsCat.directComponents.push(component);
     },
 
-    addSettingsToggle(title, callback = null, description = null, defaultValue = false, sectionName = null) {
+    addSettingsToggle(title, callback = null, description = null, defaultValue = false, sectionName = null, categoryName = 'Settings') {
         const toggle = new ToggleButton(title, 0, 0, undefined, undefined, callback, defaultValue);
         toggle.description = description;
-        Categories.addSettingsComponent(toggle, sectionName);
+        Categories.addSettingsComponent(toggle, sectionName, categoryName);
         return toggle;
     },
 
-    addSettingsSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null) {
+    addSettingsSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
         const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback);
         slider.description = description;
-        Categories.addSettingsComponent(slider, sectionName);
+        Categories.addSettingsComponent(slider, sectionName, categoryName);
         return slider;
     },
 
-    addSettingsRangeSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null) {
+    addSettingsRangeSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
         const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback, true);
         slider.description = description;
-        Categories.addSettingsComponent(slider, sectionName);
+        Categories.addSettingsComponent(slider, sectionName, categoryName);
         return slider;
     },
 
-    addSettingsMultiToggle(title, options, singleSelect = false, callback = null, description = null, defaultValue = false, sectionName = null) {
+    addSettingsMultiToggle(
+        title,
+        options,
+        singleSelect = false,
+        callback = null,
+        description = null,
+        defaultValue = false,
+        sectionName = null,
+        categoryName = 'Settings'
+    ) {
         const multiToggle = new MultiToggle(title, 0, 0, options, singleSelect, callback, defaultValue);
         multiToggle.description = description;
-        Categories.addSettingsComponent(multiToggle, sectionName);
+        Categories.addSettingsComponent(multiToggle, sectionName, categoryName);
         return multiToggle;
     },
 
-    addSettingsColorPicker(title, defaultColor, callback = null, description = null, sectionName = null) {
+    addSettingsColorPicker(title, defaultColor, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
         const picker = new ColorPicker(title, 0, 0, defaultColor, callback);
         picker.description = description;
-        Categories.addSettingsComponent(picker, sectionName);
+        Categories.addSettingsComponent(picker, sectionName, categoryName);
         return picker;
     },
 
-    addSettingsSeparator(title) {
+    addSettingsTextInput(title, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
+        const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
+        input.description = description;
+        Categories.addSettingsComponent(input, sectionName, categoryName);
+        return input;
+    },
+
+    addSettingsSeparator(title, categoryName = 'Settings') {
         const separator = new Separator(title);
-        Categories.addSettingsComponent(separator);
+        Categories.addSettingsComponent(separator, null, categoryName);
         return separator;
     },
 
-    getSettingsComponents() {
-        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
+    getSettingsComponents(categoryName = 'Settings') {
+        const settingsCat = Categories.categories.find((c) => c.name === categoryName);
         return settingsCat?.directComponents || [];
     },
 };

@@ -4,6 +4,8 @@ import { Utils } from './Utils';
 import { File, ProcessBuilder, isWindows, isMac, isLinux } from './Constants';
 import { Executor } from './ThreadExecutor';
 import { v5Command } from './V5Commands';
+import { attachMixin } from './AttachMixin';
+import { WindowInjection } from '../Mixins/BorderlessFullscreenMixins';
 
 const globalAssetsDir = new File('./config/ChatTriggers/assets');
 if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
@@ -11,7 +13,7 @@ if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
 const ffmpegName = isWindows ? 'ffmpeg.exe' : 'ffmpeg';
 const ffmpegFile = new File(globalAssetsDir, ffmpegName);
 
-const clipsDir = new File('./config/ChatTriggers/modules/V5Config/clips');
+const clipsDir = new File('./config/ChatTriggers/modules/V5Config/Clips');
 const bufferDir = new File(clipsDir, 'buffer');
 
 if (!clipsDir.exists()) clipsDir.mkdirs();
@@ -34,6 +36,7 @@ class ClippingManager extends ModuleBase {
             description: 'Background recording and clipping utility. Supposed to be used by failsafes.',
             tooltip: 'Records rolling buffer. Use /clip to save.',
             showEnabledToggle: true,
+            hideInModules: true,
         });
 
         this.process = null;
@@ -43,7 +46,9 @@ class ClippingManager extends ModuleBase {
         this.segmentCount = 6;
         this.compressClips = false;
 
-        this.addSlider(
+        this.initMixin();
+
+        this.addDirectSlider(
             'FPS',
             15,
             30,
@@ -51,10 +56,11 @@ class ClippingManager extends ModuleBase {
             (v) => {
                 this.fps = Math.floor(v);
             },
-            'Recording Framerate. Higher values use more CPU.'
+            'Recording Framerate. Higher values use more CPU.',
+            'Clipping'
         );
 
-        this.addSlider(
+        this.addDirectSlider(
             'Segment Count',
             6,
             30,
@@ -62,26 +68,60 @@ class ClippingManager extends ModuleBase {
             (v) => {
                 this.segmentCount = Math.floor(v);
             },
-            'Number of segments to include in clips. Each segment is 5 seconds.'
+            'Number of segments to include in clips. Each segment is 5 seconds.',
+            'Clipping'
         );
 
-        this.addToggle(
+        this.addDirectToggle(
             'Compress Clips',
             (v) => {
                 this.compressClips = v;
             },
-            'Automatically compresses clips to reduce file size.'
+            'Automatically compresses clips to reduce file size.',
+            false,
+            'Clipping'
         );
 
         v5Command('clip', (...args) => {
             if (args && args[0] && args[0].toLowerCase() === 'compress') {
                 this.compressLatestClip();
             } else {
+                this.initMixin();
                 this.saveClip();
             }
         });
 
         register('gameUnload', () => this.stopRecording());
+    }
+
+    initMixin() {
+        const GLFW = org.lwjgl.glfw.GLFW;
+
+        attachMixin(WindowInjection, 'WindowInjection', (instance, cir) => {
+            if (!Client.getMinecraft().options.fullscreen) return;
+
+            let handle = instance.getHandle();
+            if (handle === 0) return;
+
+            GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_FALSE);
+
+            let monitor = GLFW.glfwGetWindowMonitor(handle);
+            if (monitor === 0) monitor = GLFW.glfwGetPrimaryMonitor();
+
+            let videoMode = GLFW.glfwGetVideoMode(monitor);
+
+            if (videoMode != null) {
+                let width = videoMode.width();
+                let height = videoMode.height();
+
+                GLFW.glfwSetWindowPos(handle, 0, 0);
+                GLFW.glfwSetWindowSize(handle, width, height);
+            }
+
+            cir.cancel();
+
+            GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_DECORATED, GLFW.GLFW_TRUE);
+        });
     }
 
     compressClip(inputClip) {

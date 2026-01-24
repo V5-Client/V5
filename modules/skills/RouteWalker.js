@@ -3,7 +3,7 @@ import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { Keybind } from '../../utils/player/Keybinding';
 import { MathUtils } from '../../utils/Math';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
 import { Router } from '../../utils/Router';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -23,6 +23,7 @@ class RouteWalkerer extends ModuleBase {
         });
 
         this.bindToggleKey();
+        this.setTheme('#65a6f0');
 
         this.routesDir = Router.getFilesinDir('RoutewalkerRoutes');
 
@@ -78,11 +79,11 @@ class RouteWalkerer extends ModuleBase {
                     if (!movement) return [255, 255, 255, 255];
                     switch (movement.toUpperCase()) {
                         case 'WALK':
-                            return [0, 128, 255, 255];
+                            return [0, 128, 255, 80];
                         case 'ETHERWARP':
-                            return [170, 0, 255, 255];
+                            return [170, 0, 255, 80];
                         default:
-                            return [255, 255, 255, 255];
+                            return [255, 255, 255, 80];
                     }
                 };
 
@@ -140,7 +141,7 @@ class RouteWalkerer extends ModuleBase {
 
             switch (this.action) {
                 case this.ACTIONS.WALK:
-                    Keybind.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z);
+                    Keybind.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true);
 
                     Keybind.setKey('shift', this.SNEAK);
                     Keybind.setKey('leftclick', this.LEFTCLICK);
@@ -170,7 +171,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (aotv === -1) {
                         this.toggle(false);
-                        this.message('&cYou dont have an Etherwarping item!');
+                        this.message('&cYou dont have an etherwarping item!');
                         return;
                     }
 
@@ -180,7 +181,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) > 0.1) return;
 
-                    let point = RayTrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
+                    let point = Raytrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 
                     if (!this.etherwarpReady) {
                         if (point) {
@@ -277,10 +278,6 @@ class RouteWalkerer extends ModuleBase {
         );
     }
 
-    message(msg) {
-        Chat.message('&#7f75e6Route Walker: &f' + msg);
-    }
-
     CheckPoint(point) {
         if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') return true;
 
@@ -322,12 +319,12 @@ class RouteWalkerer extends ModuleBase {
     }
 
     onEnable() {
-        this.message('&aEnabled!');
+        this.message('&aEnabled');
         Mouse.ungrab();
     }
 
     onDisable() {
-        this.message('&cDisabled!');
+        this.message('&cDisabled');
         Keybind.unpressKeys();
         Keybind.setKey('leftclick', false);
         Rotations.stopRotation();

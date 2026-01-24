@@ -51,45 +51,26 @@ class ConfigInitializer {
 
 const Manager = new ConfigInitializer('V5Config');
 
+const responseMessages = ['???', 'bro wtf', 'what', 'rly', 'hmmmm', 'bro', '?', 'hello??', 'lol', 'nice bro', '...', 'omg', 'pls', 'lmfao', 'idiot', 'really'];
+
 const manifest = {
-    directories: ['GemstoneRoutes', 'RoutewalkerRoutes', 'TunnelMinerRoutes', 'OreRoutes', 'EtherwarpRoutes', 'authCache', 'FarmingMacro'],
+    directories: ['GemstoneRoutes', 'RoutewalkerRoutes', 'TunnelMinerRoutes', 'OreRoutes', 'EtherwarpRoutes', 'AuthCache', 'FarmingMacro', 'Gifs', 'Clips'],
 
     jsonFiles: {
         'config.json': {},
         'keybinds.json': {},
         'webhook.json': {},
         'miningstats.json': {},
-        'GemstoneRoutes/empty.txt': {},
-        'RoutewalkerRoutes/empty.txt': {},
-        'TunnelMinerRoutes/empty.txt': {},
-        'OreRoutes/empty.txt': {},
-        'EtherwarpRoutes/empty.txt': {},
-        'FarmingMacro/points.txt': {},
-        'authCache/do_not_share_this_folder': [],
-    },
-
-    textFiles: {
-        'responseMessages.txt': [
-            '???',
-            'bro wtf',
-            'what',
-            'rly',
-            'hmmmm',
-            'bro',
-            '?',
-            'hello??',
-            'lol',
-            'nice bro',
-            '...',
-            'omg',
-            'pls',
-            'lmfao',
-            'idiot',
-            'really',
-        ],
+        'GemstoneRoutes/empty.json': {},
+        'RoutewalkerRoutes/empty.json': {},
+        'TunnelMinerRoutes/empty.json': {},
+        'OreRoutes/empty.json': {},
+        'EtherwarpRoutes/empty.json': {},
+        'FarmingMacro/points.json': {},
+        'AuthCache/do_not_share_this_file': [], // if this is wrong then revert
+        'responseMessages.json': responseMessages,
     },
 };
 
 manifest.directories.forEach((dir) => Manager.generate(dir, 'dir'));
 Object.entries(manifest.jsonFiles).forEach(([path, data]) => Manager.generate(path, 'file', data));
-Object.entries(manifest.textFiles).forEach(([path, data]) => Manager.generate(path, 'text', data));

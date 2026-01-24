@@ -6,6 +6,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP, BlockHitResult, Direction, MCHand, BlockStone, BlockOre, BlockRedstoneOre } from '../../utils/Constants';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { v5Command } from '../../utils/V5Commands';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -19,6 +20,7 @@ class NukerClass extends ModuleBase {
             isMacro: true,
         });
         this.bindToggleKey();
+        this.setTheme('#e23737');
 
         this.target = null;
         this.lastMineTick = 0;
@@ -35,7 +37,6 @@ class NukerClass extends ModuleBase {
 
         this.customBlockList = [];
 
-        // settings
         this.blockType = 'Custom';
         this.targetMode = 'Random';
         this.nukeBelow = false;
@@ -45,42 +46,53 @@ class NukerClass extends ModuleBase {
         this.onGroundDelay = 1;
         this.offGroundDelay = 1;
 
-        // Commands
-        register('command', (ticks = 1) => {
+        v5Command('nukeit', (ticks = 1) => {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {
                 let pos = [block.getX(), block.getY(), block.getZ()];
-                Chat.messageDebug('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
+                //Chat.messageDebug('Nuking ' + block.type.getRegistryName() + ' at ' + pos);
                 NukerUtils.nuke(pos, ticks);
             }
-        }).setCommandName('nukeit');
+        });
 
-        register('command', () => {
+        v5Command('nukeradd', () => {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {
                 const newBlock = { name: block.type.getName(), id: block.type.getID() };
                 if (!this.customBlockList.some((b) => b.id === newBlock.id)) {
                     this.customBlockList.push(newBlock);
-                    Chat.message('Added ' + block.type.getName() + ' to custom nuker list.');
+                    this.message('Added ' + block.type.getName() + ' to Nuker list.');
                 } else {
-                    Chat.message('Block already in custom nuker list.');
+                    this.message('Block already in Nuker list.');
                 }
             } else {
-                Chat.message('Look at a block to add it');
+                this.message('Look at a block to add it');
             }
-        }).setCommandName('nukeradd');
+        });
 
-        register('command', (id) => {
-            if (id === undefined) return Chat.message('Usage: /nukerremove <id>');
+        v5Command('nukerremove', (id) => {
+            if (id === undefined) return this.message('Usage: /nukerremove <id>');
             let initialLength = this.customBlockList.length;
             this.customBlockList = this.customBlockList.filter((block) => !(block.id === parseInt(id)));
-            if (this.customBlockList.length < initialLength) Chat.message('Removed block(s).');
-        }).setCommandName('nukerremove');
+            if (this.customBlockList.length < initialLength) this.message('Removed block(s).');
+        });
 
-        register('command', () => {
+        v5Command('nukerlist', () => {
+            if (this.customBlockList.length === 0) {
+                return this.message('List is currently empty.');
+            }
+
+            this.message('&7--- Custom Nuker List ---');
+            this.customBlockList.forEach((block, index) => {
+                this.message(`&e${index + 1}. &f${block.name} &7(ID: ${block.id})`);
+            });
+            this.message('&7----------------------');
+        });
+
+        v5Command('nukerclear', () => {
             this.customBlockList = [];
-            Chat.message('Cleared custom nuker list.');
-        }).setCommandName('nukerclear');
+            this.message('Cleared Nuker list.');
+        });
 
         this.on('tick', () => {
             this.tickCounter++;
@@ -96,14 +108,12 @@ class NukerClass extends ModuleBase {
             this.lastMineTick = this.tickCounter;
             this.chestClickedThisTick = false;
 
-            // Cleanup cooldown map
             for (const [pos, tick] of this.minedBlocks) {
                 if (this.tickCounter - tick > this.BLOCK_COOLDOWN) {
                     this.minedBlocks.delete(pos);
                 }
             }
 
-            // Perform Scan directly on tick
             Executor.execute(() => {
                 const target = this.scanForBlock();
 
@@ -113,7 +123,6 @@ class NukerClass extends ModuleBase {
                     this.target = target;
                     this.minedBlocks.set(this.posToString(target), this.tickCounter);
 
-                    // Handle "mining spread" logic
                     if (['Random', 'Lowest', 'Highest'].includes(this.targetMode)) {
                         for (let dx = -1; dx <= 1; dx++) {
                             for (let dy = -1; dy <= 1; dy++) {
@@ -274,12 +283,12 @@ class NukerClass extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('Nuker &aEnabled');
+        this.message('&aEnabled');
         this.init();
     }
 
     onDisable() {
-        Chat.message('Nuker &cDisabled');
+        this.message('&cDisabled');
         this.init();
     }
 }

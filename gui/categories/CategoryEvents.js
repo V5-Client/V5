@@ -1,20 +1,19 @@
 import { OverlayManager } from '../OverlayUtils';
 import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
-import { MultiToggle } from '../components/Dropdown';
-import { ColorPicker } from '../components/ColorPicker';
 import { Categories } from './CategorySystem';
 import { GuiRectangles } from '../core/GuiState';
+import { SearchBar } from './CategorySearchBar';
 
 const ANIMATION_DURATION = 300;
 const ICON_SIZE = 28;
 const HIGHLIGHT_PADDING = 2;
 const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
 
-export const handleSettingsComponentClick = (mouseX, mouseY, panel, scrollY) => {
-    const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-    if (!settingsCat || !settingsCat.directComponents) return false;
+export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
+    const directCat = Categories.categories.find((c) => c.name === categoryName);
+    if (!directCat || !directCat.directComponents) return false;
 
-    const components = settingsCat.directComponents;
+    const components = directCat.directComponents;
     const panelX = panel.x;
     const panelWidth = panel.width;
 
@@ -77,6 +76,8 @@ export const handleCategoryClick = (
     invalidateContentHeightCache,
     resetCategoryScroll
 ) => {
+    const query = SearchBar.query.trim().toLowerCase();
+
     if (Categories.transitionDirection !== 0) return;
 
     const leftPanel = GuiRectangles.LeftPanel;
@@ -93,9 +94,10 @@ export const handleCategoryClick = (
         height: editIconSize + 12,
     };
 
-    if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-        if (isInside(mouseX, mouseY, panel)) {
-            if (handleSettingsComponentClick(mouseX, mouseY, panel, scrollY)) {
+    if (Categories.currentPage === 'categories') {
+        const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+        if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+            if (handleDirectComponentsClick(mouseX, mouseY, panel, scrollY, Categories.selected)) {
                 return;
             }
         }
@@ -110,11 +112,11 @@ export const handleCategoryClick = (
 
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
-        const scrollY = Categories.optionsScrollY;
+        const sY = Categories.optionsScrollY;
 
         const backButtonText = 'Back';
         const backButtonWidth = getTextWidth(backButtonText, FontSizes.SMALL);
-        const drawnBackY = optionY + 12 - scrollY;
+        const drawnBackY = optionY + 12 - sY;
         const backButtonRect = {
             x: optionX + 10,
             y: drawnBackY,
@@ -132,7 +134,7 @@ export const handleCategoryClick = (
 
         const components = Categories.selectedItem.components;
         let currentCompY = optionY + 78;
-        let currentDrawnCompY = currentCompY - scrollY;
+        let currentDrawnCompY = currentCompY - sY;
 
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
@@ -147,11 +149,8 @@ export const handleCategoryClick = (
             let expansionHeight = 0;
 
             if (typeof component.getExpandedHeight === 'function') {
-                if (component.animationProgress !== undefined) {
-                    expansionHeight = component.getExpandedHeight() * component.animationProgress;
-                } else {
-                    expansionHeight = component.getExpandedHeight();
-                }
+                expansionHeight =
+                    component.animationProgress !== undefined ? component.getExpandedHeight() * component.animationProgress : component.getExpandedHeight();
             }
             componentHeight += expansionHeight;
 
@@ -174,96 +173,16 @@ export const handleCategoryClick = (
 
             if (handled) return;
 
-            let spacingHeight = 54;
-            spacingHeight += expansionHeight;
-
+            let spacingHeight = 54 + expansionHeight;
             currentCompY += spacingHeight;
             currentDrawnCompY += spacingHeight;
         }
+    }
 
-        if (isInside(mouseX, mouseY, leftPanel)) {
-            let clickedCategoryName = null;
-            let clickedIndex = -1;
+    let clickedCategoryName = null;
+    let clickedIndex = -1;
 
-            if (isInside(mouseX, mouseY, editButtonRect)) {
-                playClickSound();
-                OverlayManager.openPositionsGUI();
-                return;
-            } else {
-                Categories.categories.some((cat, i) => {
-                    const rect = getCategoryRect(i);
-                    if (isInside(mouseX, mouseY, rect)) {
-                        clickedCategoryName = cat.name;
-                        clickedIndex = i;
-                        return true;
-                    }
-                    return false;
-                });
-            }
-
-            if (clickedCategoryName && clickedCategoryName !== Categories.selected) {
-                const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
-                let oldRect;
-
-                if (Categories.selected === 'Edit') {
-                    oldRect = editButtonRect;
-                } else {
-                    oldRect = oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
-                }
-
-                const newRect = getCategoryRect(clickedIndex);
-
-                const oldIconX = oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                const oldIconY = oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                const newIconX = newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                const newIconY = newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-
-                Categories.catAnimationRect = {
-                    startX: oldIconX,
-                    startY: oldIconY,
-                    endX: newIconX,
-                    endY: newIconY,
-                    width: HIGHLIGHT_SIZE,
-                    height: HIGHLIGHT_SIZE,
-                    radius: 8,
-                };
-                Categories.catTransitionStart = Date.now();
-
-                Categories.previousSelected = Categories.selected;
-                Categories.selected = clickedCategoryName;
-                Categories.currentPage = 'categories';
-                Categories.selectedItem = null;
-                Categories.selectedSubcategory = null;
-
-                invalidateContentHeightCache();
-                invalidateLayoutCache();
-                resetCategoryScroll();
-
-                Categories.transitionType = 'category-swap';
-                Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
-                Categories.transitionProgress = 0;
-                Categories.transitionStart = Date.now();
-                playClickSound();
-                return;
-            }
-
-            Categories.transitionType = 'page';
-            Categories.transitionDirection = -1;
-            Categories.transitionProgress = 0;
-            Categories.transitionStart = Date.now();
-            return;
-        }
-
-        if (!isInside(mouseX, mouseY, GuiRectangles.RightPanel)) {
-            Categories.transitionType = 'page';
-            Categories.transitionDirection = -1;
-            Categories.transitionProgress = 0;
-            Categories.transitionStart = Date.now();
-        }
-    } else {
-        let clickedCategoryName = null;
-        let clickedIndex = -1;
-
+    if (isInside(mouseX, mouseY, leftPanel)) {
         if (isInside(mouseX, mouseY, editButtonRect)) {
             playClickSound();
             OverlayManager.openPositionsGUI();
@@ -280,64 +199,53 @@ export const handleCategoryClick = (
             });
         }
 
-        if (clickedCategoryName) {
-            if (clickedCategoryName !== Categories.selected) {
-                const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
-                let oldRect;
+        if (clickedCategoryName && clickedCategoryName !== Categories.selected) {
+            const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
+            let oldRect = Categories.selected === 'Edit' || oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
+            const newRect = getCategoryRect(clickedIndex);
 
-                if (Categories.selected === 'Edit') {
-                    oldRect = editButtonRect;
-                } else {
-                    oldRect = oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
-                }
-
-                const newRect = getCategoryRect(clickedIndex);
-
-                const oldIconX = oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                const oldIconY = oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                const newIconX = newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-                const newIconY = newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING;
-
-                Categories.catAnimationRect = {
-                    startX: oldIconX,
-                    startY: oldIconY,
-                    endX: newIconX,
-                    endY: newIconY,
-                    width: HIGHLIGHT_SIZE,
-                    height: HIGHLIGHT_SIZE,
-                    radius: 8,
-                };
-                Categories.catTransitionStart = Date.now();
-
-                Categories.transitionType = 'category-swap';
-                Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
-                Categories.previousSelected = Categories.selected;
-                Categories.selected = clickedCategoryName;
-                Categories.currentPage = 'categories';
-                Categories.selectedItem = null;
-                Categories.selectedSubcategory = null;
-
-                Categories.transitionProgress = 0;
-                Categories.transitionStart = Date.now();
-
-                invalidateContentHeightCache();
-                invalidateLayoutCache();
-                resetCategoryScroll();
-                playClickSound();
-            }
+            Categories.catAnimationRect = {
+                startX: oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                startY: oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                endX: newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                endY: newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+                width: HIGHLIGHT_SIZE,
+                height: HIGHLIGHT_SIZE,
+                radius: 8,
+            };
+            Categories.catTransitionStart = Date.now();
+            Categories.previousSelected = Categories.selected;
+            Categories.selected = clickedCategoryName;
+            Categories.currentPage = 'categories';
+            Categories.selectedItem = null;
+            Categories.selectedSubcategory = null;
+            invalidateContentHeightCache();
+            invalidateLayoutCache();
+            resetCategoryScroll();
+            Categories.transitionType = 'category-swap';
+            Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
+            Categories.transitionProgress = 0;
+            Categories.transitionStart = Date.now();
+            playClickSound();
+            return;
+        } else if (clickedCategoryName && clickedCategoryName === Categories.selected && Categories.currentPage === 'options') {
+            Categories.transitionType = 'page';
+            Categories.transitionDirection = -1;
+            Categories.transitionProgress = 0;
+            Categories.transitionStart = Date.now();
+            playClickSound();
             return;
         }
+    }
 
-        if (Categories.selected && Categories.currentPage === 'categories') {
-            const cat = Categories.categories.find((c) => c.name === Categories.selected);
-            if (!cat) return;
-
-            if (Categories.selected === 'Settings') return;
-
-            if (cat.subcategories.length > 0) {
+    if (Categories.selected && Categories.currentPage === 'categories' && isInside(mouseX, mouseY, panel)) {
+        const cat = Categories.categories.find((c) => c.name === Categories.selected);
+        if (cat && Categories.selected !== 'Settings' && Categories.selected !== 'Theme') {
+            if (cat.subcategories.length > 0 && !SearchBar.isHoverBlocked(mouseX, mouseY)) {
                 let currentX = panel.x + PADDING;
                 let yOffset = panel.y + PADDING - scrollY;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];
+
                 for (const subcat of subcategoriesToDraw) {
                     const buttonTextWidth = getTextWidth(subcat, FontSizes.MEDIUM) + 20;
                     const buttonRect = {
@@ -392,6 +300,13 @@ export const handleCategoryClick = (
             }
         }
     }
+
+    if (Categories.currentPage === 'options' && !isInside(mouseX, mouseY, GuiRectangles.RightPanel) && !isInside(mouseX, mouseY, leftPanel)) {
+        Categories.transitionType = 'page';
+        Categories.transitionDirection = -1;
+        Categories.transitionProgress = 0;
+        Categories.transitionStart = Date.now();
+    }
 };
 
 export const handleCategoryScroll = (
@@ -408,11 +323,11 @@ export const handleCategoryScroll = (
 ) => {
     const SCROLL_SPEED = 15;
 
-    if (Categories.selected === 'Settings' && Categories.currentPage === 'categories') {
-        const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-        if (settingsCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+    if (Categories.currentPage === 'categories') {
+        const directCat = Categories.categories.find((c) => c.name === Categories.selected);
+        if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
             let scrollHandled = false;
-            const components = settingsCat.directComponents;
+            const components = directCat.directComponents;
             let componentY = panel.y + PADDING;
 
             components.forEach((component) => {
@@ -420,27 +335,22 @@ export const handleCategoryScroll = (
                 if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
                     compHeight += component.getExpandedHeight() * component.animationProgress;
                 }
-
                 const compRect = {
                     x: panel.x + PADDING + 10,
                     y: componentY - rightPanelScrollY,
                     width: panel.width - PADDING * 2 - 20,
                     height: compHeight,
                 };
-
                 if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
                     component.optionPanelWidth = panel.width;
-                    if (component.handleScroll(mouseX, mouseY, dir)) {
-                        scrollHandled = true;
-                    }
+                    if (component.handleScroll(mouseX, mouseY, dir)) scrollHandled = true;
                 }
                 componentY += compHeight;
             });
 
             if (!scrollHandled) {
                 const maxScroll = Math.max(0, cachedContentHeight - panel.height + PADDING);
-                const direction = dir > 0 ? -1 : 1;
-                const newScroll = rightPanelScrollY + direction * SCROLL_SPEED;
+                const newScroll = rightPanelScrollY + (dir > 0 ? -1 : 1) * SCROLL_SPEED;
                 setRightPanelScrollY(Math.max(0, Math.min(newScroll, maxScroll)));
             }
             return;
@@ -450,24 +360,17 @@ export const handleCategoryScroll = (
     if (Categories.currentPage === 'options' && Categories.selectedItem) {
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
-
         let scrollHandled = false;
         let componentY = optionY + 78;
         const components = Categories.selectedItem.components;
         if (components) {
             components.forEach((component) => {
-                let compHeight = 54;
-
                 let expansionHeight = 0;
                 if (typeof component.getExpandedHeight === 'function') {
-                    if (component.animationProgress !== undefined) {
-                        expansionHeight = component.getExpandedHeight() * component.animationProgress;
-                    } else {
-                        expansionHeight = component.getExpandedHeight();
-                    }
+                    expansionHeight =
+                        component.animationProgress !== undefined ? component.getExpandedHeight() * component.animationProgress : component.getExpandedHeight();
                 }
-                compHeight += expansionHeight;
-
+                let compHeight = 54 + expansionHeight;
                 const compRect = {
                     x: optionX + 10,
                     y: componentY - Categories.optionsScrollY,
@@ -476,38 +379,25 @@ export const handleCategoryScroll = (
                 };
                 if (isInside(mouseX, mouseY, compRect) && typeof component.handleScroll === 'function') {
                     component.optionPanelWidth = panel.width;
-                    if (component.handleScroll(mouseX, mouseY, dir)) {
-                        scrollHandled = true;
-                    }
+                    if (component.handleScroll(mouseX, mouseY, dir)) scrollHandled = true;
                 }
                 componentY += compHeight;
             });
         }
 
         if (!scrollHandled && isInside(mouseX, mouseY, panel)) {
-            const availableHeight = panel.height;
-            const maxScroll = Math.max(0, optionsContentHeight - availableHeight);
-            const direction = dir > 0 ? -1 : 1;
-
-            const newScroll = optionsScrollY + direction * SCROLL_SPEED;
+            const maxScroll = Math.max(0, optionsContentHeight - panel.height);
+            const newScroll = optionsScrollY + (dir > 0 ? -1 : 1) * SCROLL_SPEED;
             setOptionsScrollY(Math.max(0, Math.min(newScroll, maxScroll)));
         }
-
         return;
     }
+
     if (Categories.currentPage !== 'categories' || Categories.transitionDirection !== 0) return;
-
-    if (!Categories.selected || !isInside(mouseX, mouseY, panel)) {
-        return;
-    }
-
-    if (cachedContentHeight <= 0) {
-        return;
-    }
+    if (!Categories.selected || !isInside(mouseX, mouseY, panel) || cachedContentHeight <= 0) return;
 
     const maxScroll = Math.max(0, cachedContentHeight - panel.height + PADDING);
-    const direction = dir > 0 ? -1 : 1;
-    const newScroll = rightPanelScrollY + direction * SCROLL_SPEED;
+    const newScroll = rightPanelScrollY + (dir > 0 ? -1 : 1) * SCROLL_SPEED;
     setRightPanelScrollY(Math.max(0, Math.min(newScroll, maxScroll)));
 };
 
@@ -519,19 +409,15 @@ export const updateCategoryTransitions = () => {
 
         if (rawProgress >= 1) {
             if (Categories.transitionType === 'page') {
-                const newPage = Categories.transitionDirection === 1 ? 'options' : 'categories';
-                Categories.currentPage = newPage;
+                Categories.currentPage = Categories.transitionDirection === 1 ? 'options' : 'categories';
             } else {
                 Categories.currentPage = 'categories';
             }
-
             if (Categories.currentPage === 'categories') {
                 Categories.selectedItem = null;
                 Categories.optionsScrollY = 0;
             }
-            if (Categories.currentPage === 'options') {
-                Categories.optionsScrollY = 0;
-            }
+            if (Categories.currentPage === 'options') Categories.optionsScrollY = 0;
             Categories.transitionDirection = 0;
             Categories.transitionProgress = 1;
             Categories.previousSelected = null;

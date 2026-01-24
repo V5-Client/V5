@@ -10,6 +10,7 @@ import {
     isInside,
     drawText,
     getTextWidth,
+    drawCenteredText,
     drawImage,
     drawCircularImage,
     scissor,
@@ -17,17 +18,20 @@ import {
     FontSizes,
     getDiscordPfpPath,
     colorWithAlpha,
+    drawRoundedRectangleWithBorder,
 } from '../Utils';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder } from '../Utils';
+import { drawRoundedRectangle } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 import { Categories } from './CategorySystem';
+import { SearchBar } from './CategorySearchBar';
 import { setTooltip } from '../core/GuiTooltip';
 
 const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
 const Module_icon_path = ASSETS_PATH + 'folder.svg';
+const Theme_icon_path = ASSETS_PATH + 'colorpalette.svg';
 const Setting_icon_path = ASSETS_PATH + 'settings.svg';
 const Edit_icon_path = ASSETS_PATH + 'edit.svg';
 
@@ -77,7 +81,7 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
         const buttonTextWidth = getTextWidth(subcat, FontSizes.MEDIUM) + 20;
         const buttonRect = { x: currentX, y: yOffset, width: buttonTextWidth, height: SUBCATEGORY_BUTTON_HEIGHT };
         const isSelected = (cat.selectedSubcategory === subcat || (!cat.selectedSubcategory && subcat === 'All')) && !cat.animationRect;
-        const isHovered = isInside(mouseX, mouseY, buttonRect);
+        const isHovered = isInside(mouseX, mouseY, buttonRect) && !cat.isHoverBlocked;
 
         const hoverKey = `subcat_${subcat}`;
         if (!cat.hoverStates[hoverKey]) {
@@ -122,15 +126,41 @@ export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) 
     return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
 };
 
-export const drawSettingsDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scrollY) => {
-    const settingsCat = Categories.categories.find((c) => c.name === 'Settings');
-    if (!settingsCat || !settingsCat.directComponents) return yOffset;
+export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scrollY, categoryName) => {
+    const cat = Categories.categories.find((c) => c.name === categoryName);
+    if (!cat || !cat.directComponents) return yOffset;
 
-    const components = settingsCat.directComponents;
+    const components = cat.directComponents;
     const panelWidth = panel.width;
 
     let currentY = yOffset - scrollY;
     let currentSection = null;
+
+    const shouldShowSearchEmptyState = categoryName === 'Settings' || categoryName === 'Theme';
+    if (shouldShowSearchEmptyState && SearchBar.query.trim().length > 0) {
+        const searchState = cat.searchState || { isEmpty: false };
+        if (searchState.isEmpty) {
+            const cardWidth = panelWidth - PADDING * 2 - 20;
+            const cardX = panelX + PADDING + 10;
+            const cardY = currentY + 6;
+            const cardHeight = 64;
+            drawRoundedRectangleWithBorder({
+                x: cardX,
+                y: cardY,
+                width: cardWidth,
+                height: cardHeight,
+                radius: 10,
+                color: THEME.BG_COMPONENT,
+                borderWidth: 1,
+                borderColor: THEME.BORDER,
+            });
+            const title = `No ${categoryName.toLowerCase()} results`;
+            const subtitle = 'Try a different keyword.';
+            drawText(title, cardX + 12, cardY + 24, FontSizes.REGULAR, THEME.TEXT);
+            drawText(subtitle, cardX + 12, cardY + 40, FontSizes.SMALL, THEME.TEXT_MUTED);
+            currentY += cardHeight + 10;
+        }
+    }
 
     components.forEach((component, index) => {
         if (component.sectionName && component.sectionName !== currentSection) {
@@ -201,14 +231,16 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
         if (typeof component.draw !== 'function') return;
-        component.x = optionX + 10;
+        const isSeparator = component instanceof Separator;
+        const xOffset = isSeparator ? 0 : 10;
+        component.x = optionX + xOffset;
         component.y = drawnCompY;
         component.optionPanelWidth = panel.width;
         component.optionPanelHeight = panel.height;
         component.draw(mouseX, mouseY);
-        let thisHeight = 48 + 6;
+        let thisHeight = isSeparator ? 26 : 48 + 6;
 
-        if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
+        if (!isSeparator && (component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
             if (component.animationProgress !== undefined) {
                 thisHeight += component.getExpandedHeight() * component.animationProgress;
             }
@@ -298,7 +330,9 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         const moduleSize = 17;
         const iconX = rect.x + (rect.width - moduleSize) / 2;
         const iconY = rect.y + (rect.height - moduleSize) / 2;
-        const iconPath = cat.name === 'Modules' ? Module_icon_path : Setting_icon_path;
+        let iconPath = Setting_icon_path;
+        if (cat.name === 'Modules') iconPath = Module_icon_path;
+        else if (cat.name === 'Theme') iconPath = Theme_icon_path;
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
     });
 
@@ -320,11 +354,16 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
 };
 
 const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {
+    const isDirectComponent = item && item.type === 'direct-component';
+    const isModuleComponent = item && item.type === 'module-component';
+    const isThemeComponent = item && item.type === 'theme-component';
+    const isStacked = isDirectComponent || isModuleComponent || isThemeComponent;
+    const itemHeight = 48;
     const itemRect = {
         x: itemX,
         y: itemY,
         width: itemWidth,
-        height: 48,
+        height: itemHeight,
         radius: 10,
         color: THEME.BG_COMPONENT,
         borderWidth: 1,
@@ -335,43 +374,77 @@ const drawItemBox = (item, itemX, itemY, itemWidth, mouseX, mouseY, cachedItemLa
     if (isHovered && item.tooltip) setTooltip(item.tooltip);
     drawRoundedRectangleWithBorder(itemRect);
     if (!isLayoutCacheValid) cachedItemLayouts.push({ rect: itemRect, item });
-    const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
-    drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, THEME.TEXT);
+    if (isStacked) {
+        const centerY = itemY + itemHeight / 2;
+        const titleY = centerY - 6;
+        const subtitleY = centerY + 6;
+        drawText(item.title, itemX + 12, titleY, FontSizes.REGULAR, THEME.TEXT);
+        if (isDirectComponent && item.sectionName) {
+            const sectionText = `Settings • ${item.sectionName}`;
+            drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        }
+        if (isModuleComponent && item.moduleTitle) {
+            const moduleText = `Module • ${item.moduleTitle}`;
+            drawText(moduleText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        }
+        if (isThemeComponent && item.sectionName) {
+            const sectionText = `Theme • ${item.sectionName}`;
+            drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        }
+    } else {
+        const textX = centerText ? itemX + itemWidth / 2 - getTextWidth(item.title, FontSizes.REGULAR) / 2 : itemX + 12;
+        drawText(item.title, textX, itemY + 48 / 2, FontSizes.REGULAR, THEME.TEXT);
+    }
 };
 
-export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, itemsToDisplay, cachedItemLayouts, isLayoutCacheValid) => {
-    const panelWidth = panel.width - PADDING * 2;
-    const itemWidth = (panelWidth - ITEM_SPACING * 2) / 3;
-    let itemIndexInRow = 0;
+export const drawCategoryItems = (cat, panel, panelX, yOffset, mouseX, mouseY, items, layouts, valid, query = '') => {
+    const iw = (panel.width - PADDING * 2 - ITEM_SPACING * 2) / 3;
+    let rowIdx = 0;
 
-    itemsToDisplay.forEach((group, groupIndex) => {
-        if (group.type === 'separator') {
-            if (groupIndex > 0) yOffset += 12;
+    if (query.length > 0 && items.length === 0) {
+        const emptyHeight = 64;
+        const emptyX = panelX + PADDING;
+        const emptyY = yOffset + 4;
+        const emptyWidth = panel.width - PADDING * 2;
+        drawRoundedRectangleWithBorder({
+            x: emptyX,
+            y: emptyY,
+            width: emptyWidth,
+            height: emptyHeight,
+            radius: 10,
+            color: THEME.BG_COMPONENT,
+            borderWidth: 1,
+            borderColor: THEME.BORDER,
+        });
+        drawCenteredText('No results found', emptyX, emptyWidth, FontSizes.REGULAR, THEME.TEXT, emptyY + 24);
+        drawCenteredText('Try a different search term?', emptyX, emptyWidth, FontSizes.SMALL, THEME.TEXT_MUTED, emptyY + 40);
+        return;
+    }
 
-            group.x = panelX + PADDING;
-            group.y = yOffset;
+    items.forEach((g, i) => {
+        if (g.type === 'separator') {
+            if (i > 0) yOffset += 12;
 
-            group.optionPanelWidth = panel.width;
-            group.draw(mouseX, mouseY);
+            g.x = panelX + PADDING;
+            g.y = yOffset;
+            g.optionPanelWidth = panel.width;
+            if (typeof g.draw === 'function') g.draw(mouseX, mouseY);
 
             yOffset += 22;
-            let subcategoryItemsInRow = 0;
-            group.items.forEach((item) => {
-                const col = subcategoryItemsInRow % 3;
-                if (col === 0 && subcategoryItemsInRow > 0) yOffset += 48 + 6;
-                const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-                drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, true);
-                subcategoryItemsInRow++;
+            let subIdx = 0;
+
+            g.items.forEach((item) => {
+                if (subIdx % 3 === 0 && subIdx > 0) yOffset += 54;
+                drawItemBox(item, panelX + PADDING + (subIdx % 3) * (iw + ITEM_SPACING), yOffset, iw, mouseX, mouseY, layouts, valid, true);
+                subIdx++;
             });
-            if (group.items.length > 0) yOffset += 48;
+            if (g.items.length > 0) {
+                yOffset += 48;
+            }
         } else {
-            if (Categories.selectedSubcategory !== null) return;
-            const item = group;
-            const col = itemIndexInRow % 3;
-            if (col === 0 && itemIndexInRow > 0) yOffset += 48 + 6;
-            const itemX = panelX + PADDING + col * (itemWidth + ITEM_SPACING);
-            drawItemBox(item, itemX, yOffset, itemWidth, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, false);
-            itemIndexInRow++;
+            if (rowIdx % 3 === 0 && rowIdx > 0) yOffset += 54;
+            drawItemBox(g, panelX + PADDING + (rowIdx % 3) * (iw + ITEM_SPACING), yOffset, iw, mouseX, mouseY, layouts, valid, false);
+            rowIdx++;
         }
     });
 };

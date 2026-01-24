@@ -61,6 +61,10 @@ export const addMultiToggle = (categoryName, itemName, toggleTitle, options, sin
     Categories.addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect, callback, description);
 };
 
+export const addTextInput = (categoryName, itemName, title, defaultValue, callback = null, description = null) => {
+    Categories.addTextInput(categoryName, itemName, title, defaultValue, callback, description);
+};
+
 export const openGui = () => {
     const { loadSettings } = require('./GuiSave');
     GuiState.isOpening = true;

@@ -148,13 +148,9 @@ Commands.registerCommand('v5', () => {
     /* ---------- Pathfinding ---------- */
     literal('path', () => {
         literal('goto', () => {
-            argument('x', integer(), () => {
-                argument('y', integer(), () => {
-                    argument('z', integer(), () => {
-                        exec(({ x, y, z }) => {
-                            callCommand('path', x, y, z);
-                        });
-                    });
+            argument('args', greedyString(), () => {
+                exec(({ args }) => {
+                    callCommand('path', args);
                 });
             });
         });
@@ -188,6 +184,37 @@ Commands.registerCommand('v5', () => {
         literal('stop', () => {
             exec(() => {
                 callCommand('stopPath');
+            });
+        });
+    });
+
+    /* ---------- Nuker ---------- */
+    literal('nuker', () => {
+        literal('nuke', () => {
+            exec(() => {
+                callCommand('nukeit');
+            });
+        });
+        literal('add', () => {
+            exec(() => {
+                callCommand('nukeradd');
+            });
+        });
+        literal('remove', (id) => {
+            argument('id', integer(), () => {
+                exec(({ id }) => {
+                    callCommand('nukerremove', id);
+                });
+            });
+        });
+        literal('list', () => {
+            exec(() => {
+                callCommand('nukerlist');
+            });
+        });
+        literal('clear', () => {
+            exec(() => {
+                callCommand('nukerclear');
             });
         });
     });

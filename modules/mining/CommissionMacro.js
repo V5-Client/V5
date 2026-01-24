@@ -14,7 +14,6 @@ import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
 // TODO
 // ROTATION CALLBACKS FOR NPC CLICK
 // SLAYER COMMISSIONS
-// USE MULTIPLE END POINTS FOR EMISSARRY PATHFINDING
 
 const STATES = {
     IDLE: 'Idle',
@@ -69,8 +68,10 @@ class CommissionMacro extends ModuleBase {
         this.weapon = null;
         this.isActualDrill = false;
         this.miningSpeed = 0;
-        this.currentMiningWaypoint = null;
         this.lastCompletedCommissionName = null;
+        this.lastCommissionName = null;
+        this.lastCommissionAt = null;
+        this.sessionStart = Date.now();
 
         this.createOverlay([
             {
@@ -86,6 +87,8 @@ class CommissionMacro extends ModuleBase {
                 title: 'Profits',
                 data: {
                     'Completed Commissions': () => this.commissionsCompleted,
+                    'Last Commission': () => this.getLastCommissionDisplay(),
+                    'Commissions/hr': () => this.getCommissionsPerHourDisplay(),
                 },
             },
         ]);
@@ -147,6 +150,20 @@ class CommissionMacro extends ModuleBase {
         const currentCommData = this.commissions.find((c) => c.name === currentCommName);
         const currentProgress = currentCommData?.progress || 0;
         return currentProgress === 1 ? 'DONE' : `${(currentProgress * 100).toFixed(0)}%`;
+    }
+
+    getLastCommissionDisplay() {
+        return this.lastCommissionName || 'None';
+    }
+
+    getCommissionsPerHourDisplay() {
+        if (!this.sessionStart) return '0.00';
+        const elapsedMs = Date.now() - this.sessionStart;
+        if (elapsedMs <= 0) return '0.00';
+        const hours = elapsedMs / 3600000;
+        const rate = this.commissionsCompleted / hours;
+        if (!Number.isFinite(rate)) return '0.00';
+        return rate.toFixed(2);
     }
 
     getTruncatedToolName() {
@@ -233,6 +250,8 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         Pathfinder.resetPath();
+        this.pathfinding = false;
+        this.travelPurpose = null;
         Mouse.regrab();
         Keybind.setKey('rightclick', false);
     }
@@ -249,6 +268,9 @@ class CommissionMacro extends ModuleBase {
         this.awaitingTabUpdate = false;
         this.pathfinding = false;
         this.lastCompletedCommissionName = null;
+        this.lastCommissionName = null;
+        this.lastCommissionAt = null;
+        this.sessionStart = Date.now();
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -301,9 +323,9 @@ class CommissionMacro extends ModuleBase {
     handleChoosing() {
         const newCommissions = MiningUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
-        if (this.awaitingTabUpdate) return;
 
         if (this.shouldWaitForLastCompleted()) return;
+        if (this.awaitingTabUpdate) return;
 
         const completedCommission = this.findCompletedCommission();
         if (completedCommission) {
@@ -392,10 +414,7 @@ class CommissionMacro extends ModuleBase {
     findAvailableCommission(supportedTasks, otherPlayers) {
         for (const task of supportedTasks) {
             const safeWaypoints = this.getSafeWaypoints(task, otherPlayers);
-            if (safeWaypoints.length > 0) {
-                const closestWaypoint = this.getClosestWaypoint(safeWaypoints);
-                return { task, waypoint: closestWaypoint };
-            }
+            if (safeWaypoints.length > 0) return { task, waypoints: safeWaypoints };
         }
         return null;
     }
@@ -420,15 +439,14 @@ class CommissionMacro extends ModuleBase {
     }
 
     startCommission(chosenCommission) {
-        const { task, waypoint } = chosenCommission;
+        const { task, waypoints } = chosenCommission;
         this.currentCommission = task;
         this.travelPurpose = task.type;
-        this.currentMiningWaypoint = waypoint;
 
-        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to: &b[${waypoint.join(', ')}]`);
+        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to &b${waypoints.length}&a spot(s).`);
 
         this.setState(STATES.TRAVELING);
-        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoint, (success) =>
+        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoints, (success) =>
             this.onPathComplete(success)
         );
     }
@@ -440,13 +458,13 @@ class CommissionMacro extends ModuleBase {
     handleSlayer() {
         if (!this.currentMobConfig) {
             CombatBot.clearExternalTargets();
-            CombatBot.toggle(false);
+            CombatBot.toggle(false, true);
             return;
         }
 
         const mobs = CombatBot.findMob(this.currentMobConfig, this.mobWhitelist);
         if (!mobs || mobs.length === 0) {
-            CombatBot.clearExternalTargets();
+            CombatBot.setExternalTargets([]);
             return;
         }
 
@@ -531,7 +549,7 @@ class CommissionMacro extends ModuleBase {
                 this.travelPurpose = 'EMISSARY';
 
                 const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-                Pathfinder.findPath(currentPos, closest, (success) => {
+                Pathfinder.findPath(currentPos, EMISSARY_LOCATIONS, (success) => {
                     this.pathfinding = false;
                     if (!success) {
                         Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
@@ -558,9 +576,12 @@ class CommissionMacro extends ModuleBase {
         if (this.pathfinding) return;
         this.pathfinding = true;
         this.travelPurpose = 'EMISSARY';
-        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], closest, (success) => {
+        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], EMISSARY_LOCATIONS, (success) => {
             if (!success) return;
             this.pathfinding = false;
+            if (!success) {
+                this.setState(STATES.CHOOSING);
+            }
         });
     }
 
@@ -581,6 +602,10 @@ class CommissionMacro extends ModuleBase {
 
     claimCompletedCommissions() {
         const Commissions = Player.getContainer();
+        if (!Commissions) return;
+
+        let foundCompleted = false;
+
         for (let i = 9; i < 17; i++) {
             const stack = Commissions.getStackInSlot(i);
             if (!stack) continue;
@@ -589,12 +614,70 @@ class CommissionMacro extends ModuleBase {
             if (hasCompleted) {
                 Guis.clickSlot(i, false);
                 this.delay(10);
+                foundCompleted = true;
                 return;
             }
         }
 
-        Guis.closeInv();
-        this.setState(STATES.WAITING_GUI_CLOSE);
+        if (!foundCompleted) {
+            this.updateCommissionsFromGui(Commissions);
+            Guis.closeInv();
+            this.setState(STATES.WAITING_GUI_CLOSE);
+        }
+    }
+
+    updateCommissionsFromGui(container) {
+        const newCommissions = [];
+        for (let i = 9; i < 17; i++) {
+            const stack = container.getStackInSlot(i);
+            if (!stack) continue;
+
+            const name = ChatLib.removeFormatting(stack.getName());
+            if (!name.startsWith('Commission #')) continue;
+
+            const lore = stack.getLore();
+            let realName = null;
+            let progress = 0;
+
+            for (const line of lore) {
+                const clean = ChatLib.removeFormatting(line.toString()).trim();
+                if (COMMISSION_DATA.some((d) => d.names.includes(clean))) {
+                    realName = clean;
+                    break;
+                }
+            }
+
+            if (!realName && lore.length > 4) {
+                const potentialName = ChatLib.removeFormatting(lore[4].toString()).trim();
+                if (potentialName.length > 0 && potentialName !== 'Rewards' && potentialName !== 'Progress') {
+                    realName = potentialName;
+                }
+            }
+
+            if (!realName) continue;
+
+            if (lore.some((l) => l.toString().includes('COMPLETED'))) {
+                progress = 1;
+            } else {
+                for (const line of lore) {
+                    const clean = ChatLib.removeFormatting(line.toString()).trim();
+                    if (clean.endsWith('%')) {
+                        const match = clean.match(/([\d.]+)%$/);
+                        if (match) {
+                            progress = parseFloat(match[1]) / 100;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            newCommissions.push({ name: realName, progress: progress });
+        }
+
+        if (newCommissions.length > 0) {
+            this.commissions = newCommissions;
+            this.awaitingTabUpdate = false;
+        }
     }
 
     handleWaitingGuiClose() {
@@ -628,7 +711,10 @@ class CommissionMacro extends ModuleBase {
 
     onPathComplete(success) {
         if (!this.enabled) return;
-        if (!success) return;
+        if (!success) {
+            this.onPathFail();
+            return;
+        }
 
         if (this.travelPurpose === 'EMISSARY') {
             this.travelPurpose = null;
@@ -704,7 +790,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        CombatBot.clearExternalTargets();
+        CombatBot.setExternalTargets([]);
         if (!CombatBot.enabled) {
             CombatBot.toggle(true, true);
         }
@@ -715,9 +801,13 @@ class CommissionMacro extends ModuleBase {
         MiningBot.toggle(false, true);
 
         CombatBot.clearExternalTargets();
-        CombatBot.toggle(false);
+        CombatBot.toggle(false, true);
 
+        this.pathfinding = false;
+        this.travelPurpose = null;
         this.lastCompletedCommissionName = this.currentCommission?.name || null;
+        this.lastCommissionName = this.currentCommission?.name || null;
+        this.lastCommissionAt = Date.now();
         this.awaitingTabUpdate = true;
         this.setState(STATES.CLAIMING);
     }

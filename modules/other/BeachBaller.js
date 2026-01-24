@@ -10,7 +10,8 @@ import { Rotations } from '../../utils/player/Rotations';
 const SMALL_BEACHBALL_BASE64 =
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjQyNzQ4ODAwNCwKICAicHJvZmlsZUlkIiA6ICIzN2JhNjRkYzkxOTg0OGI4YjZhNDdiYTg0ZDgwNDM3MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb3lLb3NhIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJhZGY5ZDcxMzY3Y2Q2ZTUwNWZiNDhjYWFhNWFjZGNkZmYyYTA5ZjY2YzQ4OGRhZjA0ZDA0NWVlMGJmNTI4ZTEiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==';
 
-const LARGE_BEACHBALL_BASE64 = 'I CANT FUCKING FIND IT CUZ IM STUPID :(';
+const LARGE_BEACHBALL_BASE64 =
+    'eyJ0aW1lc3RhbXAiOjE1ODY2NjcxNjgzNzksInByb2ZpbGVJZCI6ImJlY2RkYjI4YTJjODQ5YjRhOWIwOTIyYTU4MDUxNDIwIiwicHJvZmlsZU5hbWUiOiJTdFR2Iiwic2lnbmF0dXJlUmVxdWlyZWQiOnRydWUsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8yOTllYTEyMGJkODNkMGM4MWEzYzQ2MjdmNWJjZTFiMTJmYjAzYmNiNTc3NzljNjNkY2M3N2UzZjRhZThhNzkzIn19fQ==';
 
 const States = {
     WAITING: 0,
@@ -371,7 +372,7 @@ class Beachballer extends ModuleBase {
             const profileComponent = mcItem.get(profileType);
             const data = profileComponent.getGameProfile().toString();
 
-            return data.includes(SMALL_BEACHBALL_BASE64);
+            return data.includes(SMALL_BEACHBALL_BASE64) || data.includes(LARGE_BEACHBALL_BASE64);
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
             return false;

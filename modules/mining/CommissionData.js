@@ -5,7 +5,6 @@ export const EMISSARY_LOCATIONS = [
     [-73, 152, -11],
     [-133, 173, -51],
     [-38, 199, -132],
-    [89, 197, -93],
     [58, 197, -9],
 ];
 
@@ -75,7 +74,6 @@ export const COMMISSION_DATA = [
         type: 'MINING',
         cost: 20,
         waypoints: [
-            [39, 197, -14],
             [50, 197, -26],
             [42, 197, -20],
         ],
@@ -111,7 +109,7 @@ export const COMMISSION_DATA = [
     {
         names: ['Treasure Hoarder Puncher'],
         type: 'SLAYER',
-        cost: 50,
+        cost: 25,
         waypoints: [[-117, 204, -56]],
     },
 ];

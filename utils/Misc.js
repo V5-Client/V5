@@ -1,13 +1,23 @@
 import { Chat } from './Chat';
 import { v5Command } from './V5Commands';
+import { MiningUtils } from './MiningUtils';
 
 v5Command('blockinfo', () => {
     let block = Player.lookingAt();
     if (block instanceof Block) {
+        const registryName = block.type?.getRegistryName?.();
+        const blockInfo = MiningUtils.getBlockInfo(registryName);
+        const displayRegistry = registryName || 'unknown';
+
         Chat.message('blockid: ' + block.type.getID());
-        let Name = block.type.getName();
-        Chat.message('blockname: ' + Name);
-        Chat.message('registry: ' + block.type.getRegistryName());
+        Chat.message('registry: ' + displayRegistry);
+        if (blockInfo) {
+            Chat.message('block name: ' + blockInfo.name);
+            Chat.message('block hardness: ' + blockInfo.hardness);
+        } else {
+            Chat.message('block name: unknown');
+            Chat.message('block hardness: unknown');
+        }
         Chat.message('x: ' + block.x + ' y: ' + block.y + ' z:' + block.z);
     } else {
         Chat.message(block);

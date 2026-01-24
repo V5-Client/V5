@@ -5,7 +5,7 @@ import { Vec3d } from '../../utils/Constants';
 class ESP extends ModuleBase {
     constructor() {
         super({
-            name: ' Player ESP',
+            name: 'Player ESP',
             subcategory: 'Visuals',
             description: 'Shows players through walls',
             tooltip: 'Shows players through walls',
@@ -16,7 +16,7 @@ class ESP extends ModuleBase {
         this.showNames = false;
 
         this.addToggle(
-            'show Names',
+            'Show Names',
             (value) => {
                 this.showNames = value;
             },

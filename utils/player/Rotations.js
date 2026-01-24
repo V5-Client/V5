@@ -10,13 +10,14 @@ class RotationConfig extends ModuleBase {
             description: 'Rotations settings for all modules - excludes Pathfinder',
             tooltip: 'Rotations settings for all modules - excludes Pathfinder',
             showEnabledToggle: false,
+            hideInModules: true,
         });
 
         this.ROTATION_SPEED = 400;
         this.rotationMode = 'Non-linear';
         this.DAMPING_DIST = 60.0;
 
-        this.addMultiToggle(
+        this.addDirectMultiToggle(
             'Rotation Mode',
             ['Linear', 'Non-linear (recommended)', 'Instant'],
             true,
@@ -28,10 +29,11 @@ class RotationConfig extends ModuleBase {
                 }
             },
             '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise\n• Instant rotations snap to the target immediately.',
-            'Non-linear (recommended)'
+            'Non-linear (recommended)',
+            'Rotations'
         );
 
-        this.addSlider(
+        this.addDirectSlider(
             'Rotation Speed',
             30,
             60,
@@ -39,7 +41,8 @@ class RotationConfig extends ModuleBase {
             (v) => {
                 this.ROTATION_SPEED = v * 10;
             },
-            'Degrees per second'
+            'Degrees per second',
+            'Rotations'
         );
     }
 }
@@ -237,15 +240,20 @@ class RotationsTo {
         let deltaPitch = finalTarget.pitch - currentPitch;
         let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
 
-        const effectivePrecision = this.trackedEntity ? 0.5 : this.precision;
+        const isExactVector = this.targetVector !== null;
+        const effectivePrecision = isExactVector ? 0.05 : this.trackedEntity ? 0.5 : this.precision;
 
         if (distance <= effectivePrecision) {
-            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
-            this.lastTime = Date.now();
+            const player = Player.getPlayer();
+            if (isExactVector && player) {
+                player.setYaw(finalTarget.yaw);
+                player.setPitch(finalTarget.pitch);
+            } else {
+                this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+            }
 
+            this.lastTime = Date.now();
             if (!this.trackedEntity) {
-                this.lastTime = 0;
-                this.initialDistance = 0;
                 this.stopRotation();
             }
             return;
@@ -278,11 +286,16 @@ class RotationsTo {
 
         let progress = Math.min(1.0, Math.max(0, 1 - distance / this.initialDistance));
         let timeAlive = (now - this.startTime) / 1000.0;
-        let warmup = Math.min(timeAlive * 4, 1.0);
+        let warmup;
         let distModifier = Math.min(distance / RotationModule.DAMPING_DIST, 1.0);
 
-        let speedMult = Math.pow(distModifier, 0.5);
+        if (this.targetVector || this.trackedEntity) {
+            warmup = Math.min(timeAlive * 4, 1.0);
+        } else {
+            warmup = 1.0;
+        }
 
+        let speedMult = Math.pow(distModifier, 0.5);
         let baseSpeed = RotationModule.ROTATION_SPEED * this.speedMultiplier;
         let step = (baseSpeed * speedMult * warmup + 10) * deltaTime;
 
@@ -303,7 +316,15 @@ class RotationsTo {
         nextPitch = Math.max(-90, Math.min(90, nextPitch));
 
         if (!isNaN(nextYaw) && !isNaN(nextPitch)) {
-            this.applyRotationWithGCD(nextYaw, nextPitch);
+            const player = Player.getPlayer();
+            if (isExactVector && player) {
+                player.setYaw(nextYaw);
+                player.setPitch(nextPitch);
+                this.lastAppliedYaw = nextYaw;
+                this.lastAppliedPitch = nextPitch;
+            } else {
+                this.applyRotationWithGCD(nextYaw, nextPitch);
+            }
         }
     }
 

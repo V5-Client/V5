@@ -11,6 +11,7 @@ import {
     easeOutCubic,
     easeInOutQuad,
     getTextWidth,
+    createHighlight,
 } from '../Utils';
 import { Color, NVG } from '../../utils/Constants';
 import { setTooltip } from '../core/GuiTooltip';
@@ -63,6 +64,7 @@ export class ColorPicker {
         this.animDuration = 220;
         this.animationProgress = 0;
         this.description = null;
+        this.highlight = createHighlight();
     }
 
     startAnimation(expanding) {
@@ -78,6 +80,21 @@ export class ColorPicker {
         const eased = easeInOutQuad(t);
         this.animationProgress = this.animFrom + (this.animTo - this.animFrom) * eased;
         if (t >= 1) this.animStart = 0;
+    }
+
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
+        });
     }
 
     getExpandedHeight() {
@@ -168,6 +185,8 @@ export class ColorPicker {
 
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
         const collapsedHeight = 48;
+
+        this.drawHighlight(panelWidth, collapsedHeight);
 
         drawRoundedRectangleWithBorder({
             x: this.x,

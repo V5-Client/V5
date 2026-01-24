@@ -10,6 +10,7 @@ import {
     drawText,
     getTextWidth,
     FontSizes,
+    createHighlight,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
@@ -51,6 +52,7 @@ export class MultiToggle {
         this.animDuration = 220;
         this.animationProgress = 0;
         this.description = null;
+        this.highlight = createHighlight();
     }
 
     startAnimation(expanding) {
@@ -66,6 +68,21 @@ export class MultiToggle {
         const eased = easeInOutQuad(t);
         this.animationProgress = this.animFrom + (this.animTo - this.animFrom) * eased;
         if (t >= 1) this.animStart = 0;
+    }
+
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
+        });
     }
 
     updateToggleAnimations() {
@@ -105,6 +122,8 @@ export class MultiToggle {
         const textColor = THEME.TEXT;
         const cornerRadius = 10;
 
+        this.drawHighlight(panelWidth, this.containerHeight);
+
         drawRoundedRectangleWithBorder({
             x: this.x,
             y: this.y,
@@ -132,12 +151,12 @@ export class MultiToggle {
             color: THEME.BG_INSET,
         });
 
-        const arrow = this.expanded ? '▲' : '▼';
+        const arrow = this.expanded ? '▼' : '▶';
         const arrowFontSize = FontSizes.SMALL;
         const arrowWidth = getTextWidth(arrow, arrowFontSize);
 
         const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
-        const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 3;
+        const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 2 - 3;
 
         drawText(arrow, centeredArrowX, centeredArrowY, arrowFontSize, textColor);
 
@@ -266,9 +285,7 @@ export class MultiToggle {
                             const isEnabled = this.options[i].enabled;
                             if (isEnabled) {
                                 playClickSound();
-                                if (this.callback) {
-                                    this.callback([this.options[i].name]);
-                                }
+                                if (this.callback) this.callback(this.options);
                                 return true;
                             }
                             this.options.forEach((opt, index) => {
@@ -283,10 +300,7 @@ export class MultiToggle {
                             this.options[i].animationStart = Date.now();
                         }
                         playClickSound();
-                        if (this.callback) {
-                            const selectedOptions = this.options.filter((option) => option.enabled).map((option) => option.name);
-                            this.callback(selectedOptions);
-                        }
+                        if (this.callback) this.callback(this.options);
                         return true;
                     }
                     currentY += this.optionHeight;
