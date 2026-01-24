@@ -26,9 +26,13 @@ class VelocityFailsafe extends Failsafe {
             const vy = packet.getVelocity().y;
             const vz = packet.getVelocity().z;
             const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+            const blockName = blockBelow.getType().getRegistryName();
+            const data = { velocity: speed, blockBelow: blockName };
+
+            if (this.isFalse('velocity', data)) return;
             setTimeout(
                 () => {
-                    if (this.isFalse('velocity')) return;
+                    if (this.isFalse('velocity', data)) return;
                     this.onTrigger(speed);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600

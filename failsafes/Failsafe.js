@@ -44,6 +44,24 @@ export class Failsafe {
                 this.ignore = false; // bandaid because isOnFire is only true while inside the inflicting block?? idk man
             }, 9000);
         }
+
+        if (checkType == 'velocity') {
+            if (this.ignore) return true;
+            if (data.velocity === undefined) return false;
+
+            const velocity = data.velocity;
+            const blockBelow = data.blockBelow;
+            // Chat.message('velocity check; velocity = ' + JSON.stringify(data));
+            if (blockBelow && !blockBelow.includes('air') && (velocity.toFixed(0) == 1 || velocity.toFixed(0) == 0)) {
+                Chat.messageDebug('ignoring fall velocity packet');
+                this.ignore = true;
+                setTimeout(() => {
+                    this.ignore = false;
+                }, 1000);
+            } else {
+                Chat.messageDebug('not ignoring fall velocity packet, data = ' + JSON.stringify(data));
+            }
+        }
         if (checkType == 'teleport') {
             const heldItem = Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase();
             const isAOTE = heldItem && (heldItem.includes('aspect of the end') || heldItem.includes('aspect of the void'));
