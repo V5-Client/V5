@@ -34,6 +34,7 @@ class ProfileHider extends ModuleBase {
 
     getModifiedText(originalTextComponent) {
         if (!originalTextComponent || !this.HIDE_USERNAME || !this.enabled) return originalTextComponent;
+        if (!this.defaultName) this.defaultName = this.getUsername();
 
         const username = Player.getName();
         const customUsername = this.USERNAME?.trim() || this.defaultName || 'Failed to get username';
