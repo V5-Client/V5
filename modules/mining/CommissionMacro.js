@@ -459,13 +459,13 @@ class CommissionMacro extends ModuleBase {
     handleSlayer() {
         if (!this.currentMobConfig) {
             CombatBot.clearExternalTargets();
-            CombatBot.toggle(false);
+            CombatBot.toggle(false, true);
             return;
         }
 
         const mobs = CombatBot.findMob(this.currentMobConfig, this.mobWhitelist);
         if (!mobs || mobs.length === 0) {
-            CombatBot.clearExternalTargets();
+            CombatBot.setExternalTargets([]);
             return;
         }
 
@@ -790,7 +790,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        CombatBot.clearExternalTargets();
+        CombatBot.setExternalTargets([]);
         if (!CombatBot.enabled) {
             CombatBot.toggle(true, true);
         }
@@ -801,7 +801,7 @@ class CommissionMacro extends ModuleBase {
         MiningBot.toggle(false, true);
 
         CombatBot.clearExternalTargets();
-        CombatBot.toggle(false);
+        CombatBot.toggle(false, true);
 
         this.pathfinding = false;
         this.travelPurpose = null;

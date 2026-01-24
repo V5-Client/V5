@@ -148,8 +148,7 @@ class Combat extends ModuleBase {
         this.targetNametag = null;
         this.targets = [];
         this.costs = new Map();
-        this.externalTargets = [];
-        this.useExternalTargetsOnly = false;
+        this.externalTargets = null;
 
         this.blacklistedTargets = new Map();
         this.failedPathCallbacks = new Map();
@@ -690,30 +689,23 @@ class Combat extends ModuleBase {
     }
 
     getTargets() {
-        if (this.useExternalTargetsOnly) {
-            return this.externalTargets || [];
+        if (this.externalTargets !== null) {
+            return this.externalTargets;
         }
 
-        if (this.externalTargets && this.externalTargets.length > 0) {
-            return this.externalTargets;
+        if (this.isParentManaged) {
+            return [];
         }
 
         return this.detectTargets();
     }
 
     setExternalTargets(targets) {
-        this.useExternalTargetsOnly = true;
-
-        if (Array.isArray(targets)) {
-            this.externalTargets = targets;
-        } else {
-            this.externalTargets = [];
-        }
+        this.externalTargets = Array.isArray(targets) ? targets : [];
     }
 
     clearExternalTargets() {
-        this.externalTargets = [];
-        this.useExternalTargetsOnly = false;
+        this.externalTargets = null;
     }
 
     getTargetPosition(target) {
@@ -826,11 +818,9 @@ class Combat extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('&aCombat Bot Enabled');
+        if (!this.isParentManaged) this.message('&aEnabled');
 
-        if (this.useExternalTargetsOnly) {
-            Chat.message('&7Mode: &eExternal targets (controlled by another module)');
-        } else {
+        if (this.externalTargets === null) {
             const presets = Array.from(this.enabledPresets).join(', ');
             Chat.message(`&7Targeting: &b${presets || 'None selected'}`);
         }
@@ -839,7 +829,7 @@ class Combat extends ModuleBase {
     }
 
     onDisable() {
-        Chat.message('&cCombat Bot Disabled');
+        if (!this.isParentManaged) this.message('&cDisabled');
 
         stopPathing();
 
@@ -848,8 +838,7 @@ class Combat extends ModuleBase {
 
         Rotations.stopRotation();
 
-        this.externalTargets = [];
-        this.useExternalTargetsOnly = false;
+        this.externalTargets = null;
         this.targets = [];
         this.target = null;
         this.combatState = 'IDLE';
