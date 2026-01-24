@@ -324,9 +324,9 @@ class CommissionMacro extends ModuleBase {
     handleChoosing() {
         const newCommissions = MiningUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
-        if (this.awaitingTabUpdate) return;
 
         if (this.shouldWaitForLastCompleted()) return;
+        if (this.awaitingTabUpdate) return;
 
         const completedCommission = this.findCompletedCommission();
         if (completedCommission) {
