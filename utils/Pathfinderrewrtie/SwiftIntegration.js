@@ -5,8 +5,25 @@ class SwiftIntegration {
         this.pathManager = PathManager;
     }
 
-    SwiftPath(startX, startY, startZ, endX, endY, endZ) {
-        return this.pathManager.findPath(startX, startY + 1, startZ, endX, endY + 1, endZ);
+    SwiftPath(startX, startY, startZ, endInput) {
+        let flatGoals = [];
+        if (Array.isArray(endInput) && Array.isArray(endInput[0])) {
+            endInput.forEach((coord) => flatGoals.push(...coord));
+        } else {
+            flatGoals = endInput;
+        }
+
+        try {
+            const javaArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, flatGoals.length);
+            for (let i = 0; i < flatGoals.length; i++) {
+                javaArray[i] = i % 3 === 1 ? flatGoals[i] + 1 : flatGoals[i];
+            }
+
+            return this.pathManager.findPathMultipleGoals(startX, startY + 1, startZ, javaArray);
+        } catch (e) {
+            console.error('SwiftPath Error converting array: ' + e);
+            return false;
+        }
     }
 
     isSearching() {

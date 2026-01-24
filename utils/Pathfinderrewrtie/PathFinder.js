@@ -19,13 +19,31 @@ class Finder {
         this.saidInfo = false;
         this.calledFromFile = false;
 
+        this.currentStart = null;
+        this.currentEnd = null;
+
+        this.isRecalculating = false;
+        this.failCount = 0;
+
         v5Command('path', (...args) => {
             const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-            const coords = args.slice(0, 3).map(Number);
+
+            if (args.length < 3) return Chat.messagePathfinder('Usage: /path x y z [x2 y2 z2...]');
+
+            const coords = args.map(Number);
             if (coords.some(isNaN)) {
                 return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
             }
-            const end = coords.slice(0, 3);
+
+            let end;
+            if (coords.length === 3) {
+                end = coords;
+            } else {
+                end = [];
+                for (let i = 0; i < coords.length; i += 3) {
+                    end.push([coords[i], coords[i + 1], coords[i + 2]]);
+                }
+            }
 
             this.resetPath();
             this.calledFromFile = true;
@@ -38,11 +56,18 @@ class Finder {
     }
 
     findPath(start, end, onComplete, renderOnly = false) {
+        this.currentStart = start;
+        this.currentEnd = end;
+        this.calledOnComplete = onComplete;
+
         const PathStart = this.findStartY(start);
 
-        if (this.calledFromFile) Chat.messagePathfinder(`Path from &a${PathStart.x}, ${PathStart.y}, ${PathStart.z}&f to &c${end[0]}, ${end[1]}, ${end[2]}`);
+        if (this.calledFromFile) {
+            let endStr = Array.isArray(end[0]) ? `Multiple Goals (${end.length})` : `${end[0]}, ${end[1]}, ${end[2]}`;
+            Chat.messagePathfinder(`Path from &a${PathStart.x}, ${PathStart.y}, ${PathStart.z}&f to &c${endStr}`);
+        }
 
-        const fullPath = Swift.SwiftPath(PathStart.x, PathStart.y, PathStart.z, end[0], end[1], end[2]);
+        const fullPath = Swift.SwiftPath(PathStart.x, PathStart.y, PathStart.z, end);
 
         if (!fullPath) {
             const error = Swift.getLastError() || 'Failed to start pathfinding';
@@ -73,21 +98,19 @@ class Finder {
                 return;
             }
 
-            if (!result.keynodes || !Array.isArray(result.keynodes) || result.keynodes.length < 1) {
-                showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
-                console.error('Invalid keynodes in response:', result);
-                if (onComplete && typeof onComplete === 'function') onComplete(false);
-                this.destroyTick();
+            if (!result.keynodes || result.keynodes.length < 1) {
+                if (this.checkIfReachedDestination()) {
+                    this.finishSuccess(onComplete);
+                } else {
+                    this.recalculate();
+                }
                 return;
             }
 
             if (!this.saidInfo && this.calledFromFile) {
-                Chat.messagePathfinder(`Path length: ${result.path.length} nodes`);
-                Chat.messagePathfinder(`Path found in ${result.time_ms}ms`);
-                Chat.messagePathfinder(`Nodes explored: ${result.nodes_explored}`);
-                Chat.messagePathfinder(`Nanoseconds per node: ${((result.time_ms * 10000) / result.path.length).toFixed(2)}ns`);
-
+                Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
                 this.saidInfo = true;
+                this.failCount = 0;
             }
 
             const splinePath = this.createSplinePath(result);
@@ -98,6 +121,7 @@ class Finder {
 
             if (renderOnly) {
                 showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
+                this.destroyTick();
                 return;
             }
 
@@ -105,14 +129,11 @@ class Finder {
                 const rotationsReady = Rotations.boxPositions && Rotations.boxPositions.length > 0;
 
                 if (rotationsReady && Rotations.complete) {
-                    this.tick.unregister();
-                    this.tick = null;
-
-                    this.calledFromFile = false;
-                    this.resetPath();
-
-                    if (onComplete && typeof onComplete === 'function') onComplete(true);
-                    showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+                    if (this.checkIfReachedDestination()) {
+                        this.finishSuccess(onComplete);
+                    } else {
+                        Chat.messagePathfinder('§ePath ended but destination not reached. Recalculating.');
+                    }
                     return;
                 }
 
@@ -126,6 +147,38 @@ class Finder {
         });
     }
 
+    checkIfReachedDestination() {
+        if (!this.currentEnd) return true;
+
+        const pX = Player.getX();
+        const pY = Player.getY();
+        const pZ = Player.getZ();
+
+        let goals = [];
+        if (Array.isArray(this.currentEnd[0])) goals = this.currentEnd;
+        else goals = [this.currentEnd];
+
+        for (let goal of goals) {
+            const dx = pX - goal[0];
+            const dy = pY - goal[1];
+            const dz = pZ - goal[2];
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (Math.sqrt(dx * dx + dz * dz) < 2.5 && Math.abs(dy) < 3.0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    finishSuccess(onComplete) {
+        this.destroyTick();
+        this.calledFromFile = false;
+        this.resetPath();
+        if (onComplete && typeof onComplete === 'function') onComplete(true);
+        showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+    }
+
     onRender(cleanPath, splinePath) {
         if (this.render) return;
 
@@ -135,19 +188,6 @@ class Finder {
                 cleanPath.keynodes.forEach((keynode) => {
                     RenderUtils.drawStyledBox(new Vec3d(keynode.x, keynode.y, keynode.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, true);
                 });
-
-                for (let i = 0; i < cleanPath.keynodes.length - 1; i++) {
-                    const current = cleanPath.keynodes[i];
-                    const next = cleanPath.keynodes[i + 1];
-
-                    RenderUtils.drawLine(
-                        new Vec3d(current.x + 0.5, current.y + 1, current.z + 0.5),
-                        new Vec3d(next.x + 0.5, next.y + 1, next.z + 0.5),
-                        [0, 150, 255, 255],
-                        3,
-                        true
-                    );
-                }
             }
 
             if (PathConfig.RENDER_FLOATING_SPLINE) {
@@ -166,22 +206,15 @@ class Finder {
 
         if (this.checkForExistence(path.path_between_key_nodes)) {
             generatedSpline = Spline.generateSpline(path.path_between_key_nodes, 1);
-
             return generatedSpline;
         }
 
-        Chat.log('No path_between_key_nodes, using keynodes for spline');
         generatedSpline = Spline.generateSpline(path.keynodes, 1);
-
         return generatedSpline;
     }
 
     checkForExistence(item) {
-        if (item && Array.isArray(item) && item.length) {
-            return true;
-        }
-
-        return false;
+        return item && Array.isArray(item) && item.length;
     }
 
     destroyTick() {
@@ -213,25 +246,18 @@ class Finder {
 
     findStartY(coords) {
         let y = coords[1] + 1;
-        const maxDistance = 100;
 
-        for (let i = 0; i < maxDistance; i++) {
-            if (y <= 0) return { x: coords[0], y: coords[1], z: coords[2] };
-            const blockVec = { x: coords[0], y: y, z: coords[2] };
-
-            if (!this.isBlockWalkable(blockVec)) return blockVec;
-
+        for (let i = 0; i < 5; i++) {
+            if (this.isBlockWalkable({ x: coords[0], y: y, z: coords[2] })) return { x: coords[0], y: y, z: coords[2] };
             y--;
         }
-
         return { x: coords[0], y: coords[1], z: coords[2] };
     }
 
     isBlockWalkable(blockVec) {
         const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
         const blockState = World.getWorld().getBlockState(blockPosNMS);
-        const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
-        return collisionShape.isEmpty();
+        return blockState.getCollisionShape(World.getWorld(), blockPosNMS).isEmpty();
     }
 }
 
