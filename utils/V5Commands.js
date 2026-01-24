@@ -26,8 +26,10 @@ export const callCommand = (id, ...args) => {
 Commands.registerCommand('v5', () => {
     const { literal, argument, greedyString, integer, exec, float } = Commands;
 
-    exec(() => {
-        callCommand('gui');
+    exec((ctx = {}) => {
+        if (!ctx.args || (typeof ctx.args === 'string' && ctx.args.trim() === '')) {
+            callCommand('gui');
+        }
     });
 
     /* ---------- Help ---------- */
