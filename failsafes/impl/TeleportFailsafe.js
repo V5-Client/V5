@@ -3,8 +3,10 @@ import { Failsafe } from '../Failsafe';
 import { manager } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
-import { PlayerPositionLookS2C } from '../../utils/Packets';
+import { PlayerPositionLookS2C, PlayerInteractItemC2S } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
+
+let lastRightClickTime = 0;
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -14,20 +16,29 @@ class TeleportFailsafe extends Failsafe {
         this.newZ = 0;
         this.settings = FailsafeUtils.getFailsafeSettings('TP');
         this.registerTPListeners();
+        this.registerRightClickListener();
+    }
+
+    registerRightClickListener() {
+        register('packetSent', (packet) => {
+            lastRightClickTime = Date.now();
+        }).setFilteredClass(PlayerInteractItemC2S);
     }
 
     registerTPListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('teleport')) return;
+            if (!MacroState.isMacroRunning()) return;
             this.settings = FailsafeUtils.getFailsafeSettings('TP');
             if (!this.settings.isEnabled) return;
-            if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes('aspect of the')) return;
 
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();
+            const currYaw = Player.getYaw();
+            const currPitch = Player.getPitch();
 
-            const pos = packet.change().position();
+            const change = packet.change();
+            const pos = change.position();
             this.newX = pos.x;
             this.newY = pos.y;
             this.newZ = pos.z;
@@ -35,6 +46,28 @@ class TeleportFailsafe extends Failsafe {
             const dy = Math.abs(this.newY - fromY);
             const dz = Math.abs(this.newZ - fromZ);
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            const data = {
+                distance,
+                yaw: change.yaw(),
+                pitch: change.pitch(),
+                currYaw,
+                currPitch,
+                lastRightClickTime,
+                toX: this.newX,
+                toY: this.newY,
+                toZ: this.newZ,
+                fromX,
+                fromY,
+                fromZ,
+                lookVector: {
+                    x: -Math.sin((currYaw * Math.PI) / 180) * Math.cos((currPitch * Math.PI) / 180),
+                    y: -Math.sin((currPitch * Math.PI) / 180),
+                    z: Math.cos((currYaw * Math.PI) / 180) * Math.cos((currPitch * Math.PI) / 180),
+                },
+            };
+
+            if (this.isFalse('teleport', data)) return;
 
             if (distance < 0.1) return;
 
@@ -57,7 +90,7 @@ class TeleportFailsafe extends Failsafe {
 
             setTimeout(
                 () => {
-                    if (this.isFalse('teleport')) return;
+                    if (this.isFalse('teleport', data)) return;
                     this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600
