@@ -228,6 +228,13 @@ export const handleCategoryClick = (
             Categories.transitionStart = Date.now();
             playClickSound();
             return;
+        } else if (clickedCategoryName && clickedCategoryName === Categories.selected && Categories.currentPage === 'options') {
+            Categories.transitionType = 'page';
+            Categories.transitionDirection = -1;
+            Categories.transitionProgress = 0;
+            Categories.transitionStart = Date.now();
+            playClickSound();
+            return;
         }
     }
 
