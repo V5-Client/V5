@@ -562,7 +562,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        if (closestDist < 4) {
+        if (closestDist < 4 && !this.pathfinding) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
             if (Rotations.isRotating) return;
 
