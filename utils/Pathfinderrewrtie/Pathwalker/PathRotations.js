@@ -187,38 +187,44 @@ class PathRotations {
     }
 
     getAdaptiveLookahead(playerEyes) {
-        const idx = Math.floor(this.currentPathPosition);
-        if (idx + 3 >= this.boxPositions.length) return this.smoothedLookahead;
+        const targetIndex = Math.floor(this.currentPathPosition);
+        if (targetIndex + 3 >= this.boxPositions.length) return this.smoothedLookahead;
 
         const pathPoint = this.getInterpolatedPoint(this.currentPathPosition);
-        const deviation = Math.sqrt(Math.pow(playerEyes.x - pathPoint.x, 2) + Math.pow(playerEyes.z - pathPoint.z, 2));
-        const deviationFactor = Math.min(1, Math.max(0, (deviation - 1.6) / 2.0));
+        const deviationFromPath = Math.sqrt(Math.pow(playerEyes.x - pathPoint.x, 2) + Math.pow(playerEyes.z - pathPoint.z, 2));
+        const deviationFactor = Math.min(1, Math.max(0, (deviationFromPath - 1.6) / 2.0));
 
-        const p0 = this.boxPositions[idx];
-        const p2 = this.boxPositions[Math.min(idx + 2, this.boxPositions.length - 1)];
+        const startIndex = this.boxPositions[targetIndex];
+        const endIndex = this.boxPositions[Math.min(targetIndex + 2, this.boxPositions.length - 1)];
 
-        const currDx = p2.x - p0.x;
-        const currDy = p2.y - p0.y;
-        const currDz = p2.z - p0.z;
-        const currMag = Math.sqrt(currDx * currDx + currDy * currDy + currDz * currDz);
+        const currDx = endIndex.x - startIndex.x;
+        const currDy = endIndex.y - startIndex.y;
+        const currDz = endIndex.z - startIndex.z;
+
+        const startDirection = { x: currDx, y: currDy, z: currDz };
+        const startDirectionMagnitude = Math.sqrt(currDx * currDx + currDy * currDy + currDz * currDz);
 
         let maxAngle = 0;
 
         for (let lookahead = 4; lookahead <= 8; lookahead += 2) {
-            const futureIdx = Math.min(idx + lookahead, this.boxPositions.length - 3);
-            if (futureIdx <= idx + 2) continue;
+            const futureTargetIndex = Math.min(targetIndex + lookahead, this.boxPositions.length - 3);
+            if (futureTargetIndex <= targetIndex + 2) continue;
 
-            const fA = this.boxPositions[futureIdx];
-            const fB = this.boxPositions[Math.min(futureIdx + 2, this.boxPositions.length - 1)];
+            const futureA = this.boxPositions[futureTargetIndex];
+            const futureB = this.boxPositions[Math.min(futureTargetIndex + 2, this.boxPositions.length - 1)];
 
-            const futureDx = fB.x - fA.x;
-            const futureDy = fB.y - fA.y;
-            const futureDz = fB.z - fA.z;
-            const futureMag = Math.sqrt(futureDx * futureDx + futureDy * futureDy + futureDz * futureDz);
+            const futureDx = futureB.x - futureA.x;
+            const futureDy = futureB.y - futureA.y;
+            const futureDz = futureB.z - futureA.z;
 
-            if (currMag > 0.8 && futureMag > 0.8) {
-                const dot = (currDx * futureDx + currDy * futureDy + currDz * futureDz) / (currMag * futureMag);
-                const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+            const futureDirection = { x: futureDx, y: futureDy, z: futureDz };
+            const futureDirectionMagnitude = Math.sqrt(futureDx * futureDx + futureDy * futureDy + futureDz * futureDz);
+
+            if (startDirectionMagnitude > 0.8 && futureDirectionMagnitude > 0.8) {
+                const dotProduct =
+                    (startDirection.x * futureDirection.x + startDirection.y * futureDirection.y + startDirection.z * futureDirection.z) /
+                    (startDirectionMagnitude * futureDirectionMagnitude);
+                const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
                 maxAngle = Math.max(maxAngle, angle);
             }
         }
@@ -229,14 +235,14 @@ class PathRotations {
         const curveFactor = Math.min(1, Math.max(0, (maxAngle - 0.61) / 0.7));
         const adjustFactor = Math.max(deviationFactor, curveFactor);
 
-        const targetLookahead = this.MAX_LOOKAHEAD - (this.MAX_LOOKAHEAD - this.MIN_LOOKAHEAD) * adjustFactor;
+        const targetLookaheadDistance = this.MAX_LOOKAHEAD - (this.MAX_LOOKAHEAD - this.MIN_LOOKAHEAD) * adjustFactor;
 
         let lerpFactor = 0.05;
-        if (targetLookahead > this.smoothedLookahead) {
+        if (targetLookaheadDistance > this.smoothedLookahead) {
             lerpFactor = 0.1;
         }
 
-        this.smoothedLookahead += (targetLookahead - this.smoothedLookahead) * lerpFactor;
+        this.smoothedLookahead += (targetLookaheadDistance - this.smoothedLookahead) * lerpFactor;
 
         return this.smoothedLookahead;
     }
