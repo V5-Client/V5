@@ -152,6 +152,7 @@ class Combat extends ModuleBase {
         this.useExternalTargetsOnly = false;
 
         this.blacklistedTargets = new Map();
+        this.failedPathCallbacks = new Map();
 
         this.activeBlackholes = [];
         this.scanTicker = 0;
@@ -490,11 +491,28 @@ class Combat extends ModuleBase {
 
         Rotations.stopRotation();
 
+        const pathTarget = this.target;
+        const pathTargetUuid = this.getTargetUuid(pathTarget);
+
         findAndFollowPath(
             start,
             end,
             (success) => {
                 this.isPathing = false;
+
+                if (!success) {
+                    if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
+                        this.target = null;
+                        this.combatState = 'IDLE';
+                        return;
+                    }
+                    this.combatState = 'APPROACHING';
+                    return;
+                }
+
+                if (pathTargetUuid) {
+                    this.failedPathCallbacks.delete(pathTargetUuid);
+                }
 
                 const pathDuration = Date.now() - this.currentPathStartTime;
                 if (success && pathDuration < 500 && this.target) {
@@ -529,15 +547,36 @@ class Combat extends ModuleBase {
         );
     }
 
-    blacklistTarget(target, duration) {
+    getTargetUuid(target) {
         try {
-            const uuid = target.getUUID ? target.getUUID().toString() : target.toMC ? target.toMC().getUuid().toString() : null;
-            if (uuid) {
-                this.blacklistedTargets.set(uuid, Date.now() + duration);
-            }
+            return target?.getUUID ? target.getUUID().toString() : target?.toMC ? target.toMC().getUuid().toString() : null;
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
+            return null;
         }
+    }
+
+    blacklistTarget(target, duration) {
+        const uuid = this.getTargetUuid(target);
+        if (!uuid) return;
+        this.blacklistedTargets.set(uuid, Date.now() + duration);
+    }
+
+    recordFailedPathCallback(target) {
+        const uuid = this.getTargetUuid(target);
+        if (!uuid) return false;
+
+        const failures = (this.failedPathCallbacks.get(uuid) || 0) + 1;
+        this.failedPathCallbacks.set(uuid, failures);
+
+        if (failures > 2) {
+            Chat.message('&cTarget path failed too many times. Blacklisting target for 10s.');
+            this.blacklistTarget(target, 10000);
+            this.failedPathCallbacks.delete(uuid);
+            return true;
+        }
+
+        return false;
     }
 
     tryAttack() {
@@ -818,6 +857,7 @@ class Combat extends ModuleBase {
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
         this.blacklistedTargets.clear();
+        this.failedPathCallbacks.clear();
         this.activeBlackholes = [];
     }
 }

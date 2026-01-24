@@ -1,34 +1,40 @@
-import { Utils } from '../utils/Utils';
 import { NVG } from '../utils/Constants';
+import { Utils } from '../utils/Utils';
 import {
-    drawText,
-    getTextWidth,
-    FontSizes,
-    THEME,
-    isInside,
+    BORDER_WIDTH,
+    colorWithAlpha,
+    CORNER_RADIUS,
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
-    colorWithAlpha,
-    drawRect,
     drawShadow,
+    drawText,
+    FontSizes,
+    getTextWidth,
+    isInside,
     PADDING,
-    BORDER_WIDTH,
-    CORNER_RADIUS,
+    THEME,
 } from './Utils';
-import { Overlays, GuiState } from './core/GuiState';
+import { GuiState, Overlays } from './core/GuiState';
 
 const { loadSettings } = require('./GuiSave');
 
 class OverlayUtils {
     constructor() {
         this.ids = [];
-        this.draggingId = null;
+        this.dragging = false;
         this.dragOffset = { x: 0, y: 0 };
-        this.scale = 1.2;
-        this.boxPadding = (PADDING || 25) * this.scale;
-        this.minBoxHeight = 35 * this.scale;
-        this.fontSize = FontSizes.LARGE * this.scale;
-        this.argFontSize = FontSizes.MEDIUM * this.scale;
+
+        this.settings = {
+            x: 10,
+            y: 10,
+            scale: 1.2,
+        };
+
+        this.boxPadding = (PADDING || 12) * this.settings.scale;
+        this.minBoxHeight = 35 * this.settings.scale;
+        this.fontSize = FontSizes.LARGE * this.settings.scale;
+        this.argFontSize = FontSizes.MEDIUM * this.settings.scale;
+
         this.startTimes = {};
         this.animations = {};
         this.stepTrigger = null;
@@ -48,7 +54,7 @@ class OverlayUtils {
 
         register('gameUnload', () => this.resetAll());
 
-        this.loadIDs();
+        this.loadSettings();
         this.initTriggers();
     }
 
@@ -135,7 +141,7 @@ class OverlayUtils {
         delete this.startTimes[idName];
         delete this.savedSessions[idName];
         this.updateRenderActive();
-        this.saveIDs();
+        this.saveSettings();
     }
 
     resetAll() {
@@ -143,7 +149,7 @@ class OverlayUtils {
         this.animations = {};
         this.startTimes = {};
         this.savedSessions = {};
-        this.draggingId = null;
+        this.dragging = false;
         this.pendingSave = false;
         this.renderActive = false;
         if (this.stepTrigger) {
@@ -181,7 +187,7 @@ class OverlayUtils {
     initTriggers() {
         Overlays.Gui.registerClosed(() => {
             if (this.pendingSave) {
-                this.saveIDs();
+                this.saveSettings();
                 this.pendingSave = false;
             }
             openModuleGui();
@@ -189,6 +195,7 @@ class OverlayUtils {
         Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
         Overlays.Gui.registerMouseDragged((x, y, b) => b === 0 && this.handleMouseDrag(x, y));
         Overlays.Gui.registerMouseReleased(() => this.handleMouseRelease());
+        Overlays.Gui.registerScrolled((x, y, dir) => this.handleScroll(x, y, dir));
     }
 
     createID(idName, sections = []) {
@@ -198,20 +205,13 @@ class OverlayUtils {
         if (existing) {
             existing.sections = sectionsArray;
         } else {
-            const textWidth = getTextWidth(idName, this.fontSize);
-            const width = Math.max(200 * this.scale, textWidth + this.boxPadding * 2);
-
             const newId = {
                 name: idName,
                 sections: sectionsArray,
-                x: 10,
-                y: 10,
-                width: width,
-                height: this.minBoxHeight,
+                width: 0,
+                height: 0,
             };
-
             this.ids.push(newId);
-            this.saveIDs();
         }
 
         if (!this.animations[idName]) {
@@ -219,41 +219,101 @@ class OverlayUtils {
         }
     }
 
+    getExampleOverlay() {
+        return {
+            name: 'Example Module',
+            x: this.settings.x,
+            y: this.settings.y,
+            width: 0,
+            height: 0,
+            sections: [
+                {
+                    title: 'General',
+                    data: {
+                        'PLACEHOLDER 1': 'PLACEHOLDER 1',
+                        'PLACEHOLDER 2': 'PLACEHOLDER 2',
+                    },
+                },
+                {
+                    title: 'Statistics',
+                    data: {
+                        'PLACEHOLDER 3': 'PLACEHOLDER 3',
+                        'PLACEHOLDER 4': 'PLACEHOLDER 4',
+                        'PLACEHOLDER 9': 'PLACEHOLDER 9',
+                    },
+                },
+                {
+                    title: 'Settings',
+                    data: {
+                        'PLACEHOLDER 5': 'PLACEHOLDER 5',
+                        'PLACEHOLDER 6': 'PLACEHOLDER 6',
+                        'PLACEHOLDER 10': 'PLACEHOLDER 10',
+                    },
+                },
+                {
+                    title: 'Other',
+                    data: {
+                        'PLACEHOLDER 7': 'PLACEHOLDER 7',
+                        'PLACEHOLDER 8': 'PLACEHOLDER 8',
+                        'PLACEHOLDER 11': 'PLACEHOLDER 11',
+                        'PLACEHOLDER 12': 'PLACEHOLDER 12',
+                        'PLACEHOLDER 13': 'PLACEHOLDER 13',
+                    },
+                },
+            ],
+        };
+    }
+
     handleMouseClick(mouseX, mouseY) {
-        for (let i = this.ids.length - 1; i >= 0; i--) {
-            const id = this.ids[i];
-            if (isInside(mouseX, mouseY, id)) {
-                this.draggingId = id;
-                this.dragOffset.x = mouseX - id.x;
-                this.dragOffset.y = mouseY - id.y;
-                break;
-            }
+        if (this.currentExampleBox && isInside(mouseX, mouseY, this.currentExampleBox)) {
+            this.dragging = true;
+            this.dragOffset.x = mouseX - this.settings.x;
+            this.dragOffset.y = mouseY - this.settings.y;
         }
     }
 
     handleMouseDrag(mouseX, mouseY) {
-        if (!this.draggingId) return;
+        if (!this.dragging) return;
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
-        this.draggingId.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - this.draggingId.width));
-        this.draggingId.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - this.draggingId.height));
+
+        this.settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - (this.currentExampleBox?.width || 50)));
+        this.settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - (this.currentExampleBox?.height || 20)));
         this.pendingSave = true;
     }
 
     handleMouseRelease() {
-        if (this.draggingId) {
-            this.draggingId = null;
-            this.saveIDs();
+        if (this.dragging) {
+            this.dragging = false;
+            this.saveSettings();
             this.pendingSave = false;
         }
     }
 
-    clampToScreen(id, swOverride = null, shOverride = null) {
+    handleScroll(mouseX, mouseY, dir) {
+        if (this.currentExampleBox && isInside(mouseX, mouseY, this.currentExampleBox)) {
+            this.settings.scale = Math.max(0.5, Math.min(3.0, this.settings.scale + (dir > 0 ? 0.1 : -0.1)));
+            this.updateScaleDependents();
+            this.pendingSave = true;
+        }
+    }
+
+    updateScaleDependents() {
+        this.boxPadding = (PADDING || 12) * this.settings.scale;
+        this.minBoxHeight = 35 * this.settings.scale;
+        this.fontSize = FontSizes.LARGE * this.settings.scale;
+        this.argFontSize = FontSizes.MEDIUM * this.settings.scale;
+    }
+
+    clampToScreen(x, y, w, h, swOverride = null, shOverride = null) {
         const sw = swOverride !== null ? swOverride : Renderer.screen.getWidth();
         const sh = shOverride !== null ? shOverride : Renderer.screen.getHeight();
-        if (sw === 0 || sh === 0) return;
-        id.x = Math.max(0, Math.min(id.x, sw - id.width));
-        id.y = Math.max(0, Math.min(id.y, sh - id.height));
+        if (sw === 0 || sh === 0) return { x, y };
+
+        return {
+            x: Math.max(0, Math.min(x, sw - w)),
+            y: Math.max(0, Math.min(y, sh - h)),
+        };
     }
 
     drawAccentGlow(x, y, width, height, radius, progress) {
@@ -290,13 +350,15 @@ class OverlayUtils {
     renderID(id, forceGUI = false, screenSize = null) {
         const anim = this.animations[id.name];
         let progress = anim ? anim.progress : 0;
+
         if (forceGUI) progress = 1.0;
         if (!forceGUI && (!anim || (anim.target === 0 && anim.progress <= 0.01))) return;
 
         const sections = this.ensureArray(id.sections);
         const uptimeVal = forceGUI ? '0.00s' : this.formatUptime(this.startTimes[id.name]);
-        let maxWidth = getTextWidth(id.name, this.fontSize) + this.boxPadding * 3;
-        let calculatedHeight = 30 * this.scale;
+
+        let contentMaxWidth = getTextWidth(id.name, this.fontSize);
+        let calculatedHeight = 30 * this.settings.scale;
         const renderSections = [];
 
         sections.forEach((section, sIdx) => {
@@ -304,14 +366,19 @@ class OverlayUtils {
             const sectionLines = [];
             const sectionData = section.data || {};
 
-            if (section.title) calculatedHeight += 16 * this.scale;
-            calculatedHeight += 10 * this.scale;
+            if (section.title) {
+                const titleWidth = getTextWidth(section.title.toUpperCase(), this.argFontSize * 0.85);
+                contentMaxWidth = Math.max(contentMaxWidth, titleWidth + 10 * this.settings.scale);
+                calculatedHeight += 16 * this.settings.scale;
+            }
+            calculatedHeight += 10 * this.settings.scale;
 
             if (sIdx === 0) {
                 const label = 'Uptime:';
                 const labelWidth = getTextWidth(label, this.argFontSize);
                 const valueWidth = getTextWidth(uptimeVal, this.argFontSize);
-                maxWidth = Math.max(maxWidth, labelWidth + valueWidth + 65 * this.scale);
+                const lineTotalWidth = labelWidth + valueWidth + 25 * this.settings.scale;
+                contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
                 sectionLines.push({ label, value: uptimeVal, isUptime: true, labelWidth });
             }
 
@@ -320,96 +387,116 @@ class OverlayUtils {
                 const label = `${k}:`;
                 const labelWidth = getTextWidth(label, this.argFontSize);
                 const valueWidth = getTextWidth(String(displayVal), this.argFontSize);
-                maxWidth = Math.max(maxWidth, labelWidth + valueWidth + 65 * this.scale);
+                const lineTotalWidth = labelWidth + valueWidth + 25 * this.settings.scale;
+                contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
                 sectionLines.push({ label, value: displayVal, isUptime: false, labelWidth });
             });
 
             const lineCount = sectionLines.length;
-            calculatedHeight += lineCount * 14 * this.scale;
-            calculatedHeight += 2 * this.scale;
+            calculatedHeight += lineCount * 14 * this.settings.scale;
+            calculatedHeight += 2 * this.settings.scale;
 
             renderSections.push({ title: section.title, lines: sectionLines });
         });
-        calculatedHeight += 6 * this.scale;
+        calculatedHeight += 6 * this.settings.scale;
 
-        const targetWidth = Math.max(220 * this.scale, maxWidth);
+        const totalWidth = contentMaxWidth + this.boxPadding * 2;
+
+        const targetWidth = Math.max(100 * this.settings.scale, totalWidth);
         const targetHeight = Math.max(this.minBoxHeight, calculatedHeight);
-        if (id.width !== targetWidth || id.height !== targetHeight) {
-            id.width = targetWidth;
-            id.height = targetHeight;
-            const sw = screenSize ? screenSize.sw : null;
-            const sh = screenSize ? screenSize.sh : null;
-            this.clampToScreen(id, sw, sh);
+
+        id.width = targetWidth;
+        id.height = targetHeight;
+
+        let x = this.settings.x;
+        let y = this.settings.y;
+
+        const sw = screenSize ? screenSize.sw : null;
+        const sh = screenSize ? screenSize.sh : null;
+        if (sw && sh) {
+            const clamped = this.clampToScreen(x, y, id.width, id.height, sw, sh);
+            x = clamped.x;
+            y = clamped.y;
         }
+
         const currentHeight = id.height * progress;
-        const radius = CORNER_RADIUS * this.scale;
+        const radius = CORNER_RADIUS * this.settings.scale;
         const bgColor = colorWithAlpha(THEME.BG_OVERLAY, 0.95 * progress);
 
-        drawShadow(id.x, id.y, id.width, currentHeight, 12 * this.scale, 0.45 * progress);
+        drawShadow(x, y, id.width, currentHeight, 12 * this.settings.scale, 0.45 * progress);
         drawRoundedRectangleWithBorder({
-            x: id.x,
-            y: id.y,
+            x: x,
+            y: y,
             width: id.width,
             height: currentHeight,
             radius: radius,
             color: bgColor,
-            borderWidth: BORDER_WIDTH * this.scale,
+            borderWidth: BORDER_WIDTH * this.settings.scale,
             borderColor: colorWithAlpha(THEME.ACCENT_GLOW, 0.7 * progress),
         });
 
-        this.drawAccentGlow(id.x, id.y, id.width, currentHeight, radius, progress * 0.4);
+        this.drawAccentGlow(x, y, id.width, currentHeight, radius, progress * 0.4);
 
         if (progress > 0.1) {
             const contentAlpha = Math.min(1, progress * 3);
 
             try {
-                NVG.scissor(id.x, id.y, id.width, currentHeight);
-                const titleY = id.y + 20 * this.scale;
-                const titleX = id.x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
+                NVG.scissor(x, y, id.width, currentHeight);
+                const titleY = y + 20 * this.settings.scale;
+                const titleX = x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
+
                 drawText(id.name, titleX + 1, titleY + 1, this.fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), 16);
                 drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
 
-                let contentY = titleY + 10 * this.scale;
+                let contentY = titleY + 10 * this.settings.scale;
+
                 renderSections.forEach((section) => {
-                    this.drawSectionDivider(id.x + 18 * this.scale, contentY, id.width - 36 * this.scale, contentAlpha);
-                    contentY += 10 * this.scale;
+                    this.drawSectionDivider(x + 10 * this.settings.scale, contentY, id.width - 20 * this.settings.scale, contentAlpha);
+                    contentY += 10 * this.settings.scale;
+
+                    const leftAlignX = x + this.boxPadding;
 
                     if (section.title) {
-                        drawText(
-                            section.title.toUpperCase(),
-                            id.x + 22 * this.scale,
-                            contentY,
-                            this.argFontSize * 0.85,
-                            colorWithAlpha(THEME.ACCENT, contentAlpha),
-                            17
-                        );
-                        contentY += 14 * this.scale;
+                        drawText(section.title.toUpperCase(), leftAlignX, contentY, this.argFontSize * 0.85, colorWithAlpha(THEME.ACCENT, contentAlpha), 17);
+                        contentY += 14 * this.settings.scale;
                     }
 
                     section.lines.forEach((line) => {
-                        drawText(line.label, id.x + 22 * this.scale, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
-                        const valueX = id.x + 22 * this.scale + line.labelWidth + 5 * this.scale;
+                        drawText(line.label, leftAlignX, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
+
+                        const valueX = x + id.width - this.boxPadding;
                         const valueColor = line.isUptime ? colorWithAlpha(THEME.ACCENT, contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
-                        drawText(String(line.value), valueX, contentY, this.argFontSize, valueColor, 17);
-                        contentY += 14 * this.scale;
+
+                        drawText(String(line.value), valueX, contentY, this.argFontSize, valueColor, 20);
+
+                        contentY += 14 * this.settings.scale;
                     });
-                    contentY += 4 * this.scale;
+                    contentY += 4 * this.settings.scale;
                 });
             } finally {
                 NVG.resetScissor();
             }
+        }
+
+        if (forceGUI) {
+            this.currentExampleBox = { x, y, width: id.width, height: id.height };
         }
     }
 
     drawGUI() {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
-        if (sw === 0 || this.ids.length === 0) return;
+        if (sw === 0) return;
         Client.getMinecraft().gameRenderer.renderBlur();
 
         try {
             NVG.beginFrame(sw, sh);
-            this.ids.forEach((id) => this.renderID(id, true, { sw, sh }));
+            const example = this.getExampleOverlay();
+            this.renderID(example, true, { sw, sh });
+
+            const text = 'Drag the example module to reposition. Scroll to resize.';
+            const textWidth = getTextWidth(text, FontSizes.MEDIUM);
+            drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, 0xffffffff, 16);
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         } finally {
@@ -421,10 +508,12 @@ class OverlayUtils {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
         if (sw === 0) return;
+
         const visibleIds = this.ids.filter((id) => {
             const anim = this.animations[id.name];
             return anim && (anim.target > 0 || anim.progress > 0.01);
         });
+
         if (visibleIds.length === 0) {
             this.renderActive = false;
             return;
@@ -433,7 +522,9 @@ class OverlayUtils {
 
         try {
             NVG.beginFrame(sw, sh);
-            visibleIds.forEach((id) => this.renderID(id, false, { sw, sh }));
+            visibleIds.forEach((id) => {
+                this.renderID(id, false, { sw, sh });
+            });
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         } finally {
@@ -441,35 +532,20 @@ class OverlayUtils {
         }
     }
 
-    saveIDs() {
-        const data = {};
-        this.ids.forEach((id) => {
-            const sections = this.ensureArray(id.sections);
-            const serializableSections = sections.map((s) => {
-                const cleanData = {};
-                Object.entries(s.data || {}).forEach(([k, v]) => {
-                    if (typeof v !== 'function') cleanData[k] = v;
-                });
-                return { title: s.title, data: cleanData };
-            });
-            data[id.name] = { x: id.x, y: id.y, sections: serializableSections };
-        });
-        Utils.writeConfigFile('overlays.json', data);
+    saveSettings() {
+        Utils.writeConfigFile('overlays.json', this.settings);
     }
 
-    loadIDs() {
-        const data = Utils.getConfigFile('overlays.json') || {};
-        this.ids = Object.keys(data).map((name) => {
-            const entry = data[name] || {};
-            return {
-                name,
-                x: entry.x !== undefined ? entry.x : 10,
-                y: entry.y !== undefined ? entry.y : 10,
-                sections: this.ensureArray(entry.sections),
-                width: 0,
-                height: this.minBoxHeight,
+    loadSettings() {
+        const data = Utils.getConfigFile('overlays.json');
+        if (data && typeof data.x === 'number') {
+            this.settings = {
+                x: data.x,
+                y: data.y,
+                scale: data.scale || 1.2,
             };
-        });
+            this.updateScaleDependents();
+        }
     }
 
     openPositionsGUI() {

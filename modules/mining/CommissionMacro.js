@@ -251,6 +251,8 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         stopPathing();
+        this.pathfinding = false;
+        this.travelPurpose = null;
         Mouse.regrab();
         Keybind.setKey('rightclick', false);
     }
@@ -576,8 +578,10 @@ class CommissionMacro extends ModuleBase {
         this.pathfinding = true;
         this.travelPurpose = 'EMISSARY';
         findAndFollowPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], EMISSARY_LOCATIONS, (success) => {
-            if (!success) return;
             this.pathfinding = false;
+            if (!success) {
+                this.setState(STATES.CHOOSING);
+            }
         });
     }
 
@@ -645,7 +649,10 @@ class CommissionMacro extends ModuleBase {
 
     onPathComplete(success) {
         if (!this.enabled) return;
-        if (!success) return;
+        if (!success) {
+            this.onPathFail();
+            return;
+        }
 
         if (this.travelPurpose === 'EMISSARY') {
             this.travelPurpose = null;
@@ -734,6 +741,8 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
 
+        this.pathfinding = false;
+        this.travelPurpose = null;
         this.lastCompletedCommissionName = this.currentCommission?.name || null;
         this.lastCommissionName = this.currentCommission?.name || null;
         this.lastCommissionAt = Date.now();
