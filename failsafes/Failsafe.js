@@ -64,10 +64,10 @@ export class Failsafe {
         }
         if (checkType == 'teleport') {
             const heldItem = Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase();
-            const isAOTE = heldItem && (heldItem.includes('aspect of the end') || heldItem.includes('aspect of the void'));
+            const isTPItem = heldItem && heldItem.includes('aspect of the');
             const { distance, yaw, pitch, currYaw, currPitch, lastRightClickTime, fromX, fromY, fromZ, toX, toY, toZ, lookVector } = data;
 
-            if (isAOTE) {
+            if (isTPItem) {
                 const recentClick = lastRightClickTime && Date.now() - lastRightClickTime < 1000;
                 if (recentClick) {
                     if (yaw !== undefined && pitch !== undefined) {
