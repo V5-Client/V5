@@ -12,10 +12,6 @@ import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
 
-// TODO
-// ROTATION CALLBACKS FOR NPC CLICK
-// SLAYER COMMISSIONS
-
 const STATES = {
     IDLE: 'Idle',
     CHOOSING: 'Choosing Commission',
@@ -73,6 +69,8 @@ class CommissionMacro extends ModuleBase {
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
         this.sessionStart = Date.now();
+        this.npcRotationPending = false;
+        this.npcRotationToken = 0;
 
         this.createOverlay([
             {
@@ -272,6 +270,8 @@ class CommissionMacro extends ModuleBase {
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
         this.sessionStart = Date.now();
+        this.npcRotationPending = false;
+        this.npcRotationToken = 0;
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -564,13 +564,17 @@ class CommissionMacro extends ModuleBase {
 
         if (closestDist < 4 && !this.pathfinding) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
-            if (Rotations.isRotating) return;
-
-            Rotations.rotateToVector(adjustedTarget);
-            Rotations.onEndRotation(() => {
-                Keybind.rightClick();
-                this.delay(10);
-            });
+            if (!this.npcRotationPending && !Rotations.isRotating) {
+                this.npcRotationPending = true;
+                const token = ++this.npcRotationToken;
+                Rotations.rotateToVector(adjustedTarget);
+                Rotations.onEndRotation(() => {
+                    if (!this.npcRotationPending || this.npcRotationToken !== token) return;
+                    this.npcRotationPending = false;
+                    Keybind.rightClick();
+                    this.delay(10);
+                });
+            }
             return;
         }
 
