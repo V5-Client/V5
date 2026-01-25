@@ -6,4 +6,5 @@ import './ChatHudMixin';
 import './BlockMixin';
 import './PlayerActionC2SPacketMixin';
 import './EntityRendererMixin';
+import './GameRendererMixin';
 //import { emptyKelp, emptyGrass, emptyTallGrass } from './IDoLater';
