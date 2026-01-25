@@ -317,7 +317,7 @@ class OverlayUtils {
     }
 
     drawAccentGlow(x, y, width, height, radius, progress) {
-        const accentColor = THEME.ACCENT;
+        const accentColor = THEME.OV_ACCENT;
         const glowIntensity = 0.12;
         for (let i = 2; i >= 0; i--) {
             const expand = i * 2;
@@ -421,7 +421,7 @@ class OverlayUtils {
 
         const currentHeight = id.height * progress;
         const radius = CORNER_RADIUS * this.settings.scale;
-        const bgColor = colorWithAlpha(THEME.BG_OVERLAY, 0.95 * progress);
+        const bgColor = colorWithAlpha(THEME.OV_WINDOW, 0.95 * progress);
 
         drawShadow(x, y, id.width, currentHeight, 12 * this.settings.scale, 0.45 * progress);
         drawRoundedRectangleWithBorder({
@@ -432,7 +432,7 @@ class OverlayUtils {
             radius: radius,
             color: bgColor,
             borderWidth: BORDER_WIDTH * this.settings.scale,
-            borderColor: colorWithAlpha(THEME.ACCENT_GLOW, 0.7 * progress),
+            borderColor: colorWithAlpha(THEME.OV_BORDER, 0.7 * progress),
         });
 
         this.drawAccentGlow(x, y, id.width, currentHeight, radius, progress * 0.4);

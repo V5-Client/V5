@@ -5,7 +5,7 @@ import './mining/LobbyHopper.js';
 import './mining/Nuker.js';
 import './mining/OreMacro.js';
 import './mining/PinglessMining.js';
-import './mining/PowderMacro.js';
+//import './mining/PowderMacro.js';
 //import './Mining/ScathaMacro.js';
 
 /* FORAGING */
@@ -23,6 +23,8 @@ import './visuals/ESP.js';
 import './visuals/GIF.js';
 import './visuals/MobHider.js';
 import './visuals/Xray.js';
+import './Visuals/ProfileHider.js';
+import './Visuals/StructureESP.js';
 
 /* SKILLS */
 import './skills/AutoExperiments.js';

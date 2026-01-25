@@ -11,9 +11,6 @@ import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
 import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
-// TODO
-// ROTATION CALLBACKS FOR NPC CLICK
-// SLAYER COMMISSIONS
 
 const STATES = {
     IDLE: 'Idle',
@@ -59,6 +56,7 @@ class CommissionMacro extends ModuleBase {
         this.mobWhitelist = new Set();
         this.savedState = null;
         this.awaitingTabUpdate = false;
+        this.ignoreTabUpdatesUntil = 0;
         this.travelPurpose = null;
         this.pathfinding = false;
 
@@ -72,6 +70,8 @@ class CommissionMacro extends ModuleBase {
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
         this.sessionStart = Date.now();
+        this.npcRotationPending = false;
+        this.npcRotationToken = 0;
 
         this.createOverlay([
             {
@@ -266,11 +266,14 @@ class CommissionMacro extends ModuleBase {
         this.travelPurpose = null;
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
+        this.ignoreTabUpdatesUntil = 0;
         this.pathfinding = false;
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
         this.sessionStart = Date.now();
+        this.npcRotationPending = false;
+        this.npcRotationToken = 0;
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -324,11 +327,22 @@ class CommissionMacro extends ModuleBase {
         const newCommissions = MiningUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
+        const now = Date.now();
+
         if (this.shouldWaitForLastCompleted()) return;
         if (this.awaitingTabUpdate) return;
 
         const completedCommission = this.findCompletedCommission();
         if (completedCommission) {
+            if (
+                this.lastCompletedCommissionName &&
+                completedCommission.name === this.lastCompletedCommissionName &&
+                this.ignoreTabUpdatesUntil &&
+                now < this.ignoreTabUpdatesUntil
+            ) {
+                this.awaitingTabUpdate = true;
+                return;
+            }
             this.currentCommission = completedCommission;
             this.onCommissionComplete();
             return;
@@ -362,7 +376,11 @@ class CommissionMacro extends ModuleBase {
     shouldWaitForLastCompleted() {
         if (!this.lastCompletedCommissionName) return false;
         const staleCommission = this.commissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress > 0);
-        if (staleCommission) return true;
+        if (staleCommission && staleCommission.progress === 1) return true;
+        if (staleCommission && staleCommission.progress < 1) {
+            this.lastCompletedCommissionName = null;
+            return false;
+        }
         this.lastCompletedCommissionName = null;
         return false;
     }
@@ -561,15 +579,19 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        if (closestDist < 4) {
+        if (closestDist < 4 && !this.pathfinding) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
-            if (Rotations.isRotating) return;
-
-            Rotations.rotateToVector(adjustedTarget);
-            Rotations.onEndRotation(() => {
-                Keybind.rightClick();
-                this.delay(10);
-            });
+            if (!this.npcRotationPending && !Rotations.isRotating) {
+                this.npcRotationPending = true;
+                const token = ++this.npcRotationToken;
+                Rotations.rotateToVector(adjustedTarget);
+                Rotations.onEndRotation(() => {
+                    if (!this.npcRotationPending || this.npcRotationToken !== token) return;
+                    this.npcRotationPending = false;
+                    Keybind.rightClick();
+                    this.delay(10);
+                });
+            }
             return;
         }
 
@@ -677,6 +699,7 @@ class CommissionMacro extends ModuleBase {
         if (newCommissions.length > 0) {
             this.commissions = newCommissions;
             this.awaitingTabUpdate = false;
+            this.ignoreTabUpdatesUntil = Date.now() + 5000;
         }
     }
 
@@ -871,6 +894,15 @@ class CommissionMacro extends ModuleBase {
     updateCommissionsIfChanged(newCommissions) {
         if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
 
+        const now = Date.now();
+        if (this.ignoreTabUpdatesUntil && now < this.ignoreTabUpdatesUntil && this.lastCompletedCommissionName) {
+            const staleCompleted = newCommissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress === 1);
+            if (staleCompleted) return;
+            this.ignoreTabUpdatesUntil = 0;
+        } else if (this.ignoreTabUpdatesUntil && now >= this.ignoreTabUpdatesUntil) {
+            this.ignoreTabUpdatesUntil = 0;
+        }
+
         this.commissions = newCommissions;
 
         if (this.awaitingTabUpdate) {
@@ -883,7 +915,7 @@ class CommissionMacro extends ModuleBase {
                 this.awaitingTabUpdate = false;
             } else if (this.lastCompletedCommissionName) {
                 const sameNameComm = this.commissions.find((c) => c.name === this.lastCompletedCommissionName);
-                if (!sameNameComm || sameNameComm.progress === 0) {
+                if (!sameNameComm || sameNameComm.progress < 1) {
                     this.awaitingTabUpdate = false;
                 }
             }
