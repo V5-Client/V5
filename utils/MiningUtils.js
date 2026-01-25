@@ -6,6 +6,9 @@ import { Flowstate } from './Flowstate';
 import { Executor } from './ThreadExecutor';
 import { Blocks, BP } from './Constants';
 import { v5Command } from './V5Commands';
+import { findAndFollowPath, stopPathing } from './pathfinder/PathAPI';
+import { Rotations } from './player/Rotations';
+import { DRILL_MECHANIC_LOCATION } from '../modules/mining/CommissionData';
 
 const BLOCK_HARDNESS_DATA = {
     'minecraft:polished_diorite': { hardness: 2000, name: 'Titanium' },
@@ -420,9 +423,12 @@ class RefuelService {
             WAIT_FOR_ANVIL: 5,
             WAIT_ANVIL_READY: 6,
             ADD_FUEL: 7,
-            TAKE_TOOL: 8,
-            CLOSE: 9,
-            FAIL_CLEANUP: 10,
+            CONFIRM_FUEL: 8,
+            TAKE_TOOL: 9,
+            CLOSE: 10,
+            FAIL_CLEANUP: 11,
+            WALK_TO_MECHANIC: 12,
+            ROTATE_TO_MECHANIC: 13,
         };
 
         this.reset();
@@ -435,6 +441,9 @@ class RefuelService {
         this.timeoutTicks = null;
         this.callback = null;
         this.contactSlot = -1;
+        this.npcRotationToken = 0;
+        this.npcRotationPending = false;
+        this.isPathing = false;
     }
 
     setState(nextState, waitTicks = 0, timeoutTicks = null) {
@@ -464,35 +473,15 @@ class RefuelService {
 
         switch (this.state) {
             case this.STATES.FIND_ABIPHONE:
-                let abiphoneSlot = Guis.findItemInHotbar('Abiphone');
-                if (abiphoneSlot === -1) return this.fail('Abiphone not found!');
-
-                Guis.setItemSlot(abiphoneSlot);
-                this.setState(this.STATES.OPEN_ABIPHONE, 5);
-                break;
-
-            case this.STATES.OPEN_ABIPHONE:
-                Client.scheduleTask(() => {
-                    Keybind.rightClick();
-                });
-                this.setState(this.STATES.SELECT_CONTACT, 0, 50);
-                break;
-
-            case this.STATES.SELECT_CONTACT:
-                if (Guis.guiName()?.indexOf('Abiphone') !== -1) {
-                    this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
-                    if (!Player.getContainer()?.getStackInSlot(this.contactSlot)) {
-                        if (this.handleTimeout('No jotraeline contact detected!')) return;
-                    }
-                    if (this.contactSlot === -1) return;
-                    this.setState(this.STATES.CLICK_CONTACT, 5);
+                let abiphoneSlot = Guis.findItemInInventory('Abiphone');
+                if (abiphoneSlot === -1) {
+                    Chat.message('Abiphone not found. Walking to Drill Mechanic...');
+                    this.setState(this.STATES.WALK_TO_MECHANIC);
                     break;
                 }
-                break;
 
-            case this.STATES.CLICK_CONTACT:
-                Guis.clickSlot(this.contactSlot, false, 'LEFT');
-                this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
+                ChatLib.command('call Jotraeline Greatforge');
+                this.setState(this.STATES.WAIT_FOR_ANVIL, 20, 200);
                 break;
 
             case this.STATES.WAIT_FOR_ANVIL:
@@ -509,23 +498,27 @@ class RefuelService {
                 if (!tool) return this.fail('No drill found!');
 
                 Guis.clickSlot(tool.slot + 81, true);
-                this.setState(this.STATES.ADD_FUEL, 10);
+                this.setState(this.STATES.ADD_FUEL, 15);
                 break;
 
             case this.STATES.ADD_FUEL:
                 if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
                     Chat.message('No fuel detected!'); // fuel buyer when?
-                    this.setState(this.STATES.FAIL_CLEANUP, 10);
+                    this.setState(this.STATES.FAIL_CLEANUP, 15);
                     return;
                 }
 
+                this.setState(this.STATES.CONFIRM_FUEL, 15);
+                break;
+
+            case this.STATES.CONFIRM_FUEL:
                 Guis.clickSlot(22, false);
-                this.setState(this.STATES.TAKE_TOOL, 10);
+                this.setState(this.STATES.TAKE_TOOL, 15);
                 break;
 
             case this.STATES.TAKE_TOOL:
                 Guis.clickSlot(13, true);
-                this.setState(this.STATES.CLOSE, 10);
+                this.setState(this.STATES.CLOSE, 15);
                 break;
 
             case this.STATES.CLOSE:
@@ -536,6 +529,51 @@ class RefuelService {
             case this.STATES.FAIL_CLEANUP:
                 Guis.closeInv();
                 this.finish(false);
+                break;
+
+            case this.STATES.WALK_TO_MECHANIC:
+                const dist = Math.hypot(
+                    Player.getX() - DRILL_MECHANIC_LOCATION[0],
+                    Player.getY() - DRILL_MECHANIC_LOCATION[1],
+                    Player.getZ() - DRILL_MECHANIC_LOCATION[2]
+                );
+
+                if (dist < 3.5) {
+                    stopPathing();
+                    this.isPathing = false;
+                    this.setState(this.STATES.ROTATE_TO_MECHANIC);
+                    return;
+                }
+
+                if (!this.isPathing) {
+                    this.isPathing = true;
+                    findAndFollowPath(
+                        [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())],
+                        [DRILL_MECHANIC_LOCATION],
+                        (success) => {
+                            this.isPathing = false;
+                            if (!success) {
+                                this.fail('Failed to path to Drill Mechanic.');
+                            }
+                        }
+                    );
+                }
+                break;
+
+            case this.STATES.ROTATE_TO_MECHANIC:
+                const mechanicHead = [DRILL_MECHANIC_LOCATION[0] + 0.5, DRILL_MECHANIC_LOCATION[1] + 2.2, DRILL_MECHANIC_LOCATION[2] + 0.5];
+
+                if (!this.npcRotationPending && !Rotations.isRotating) {
+                    this.npcRotationPending = true;
+                    const token = ++this.npcRotationToken;
+                    Rotations.rotateToVector(mechanicHead);
+                    Rotations.onEndRotation(() => {
+                        if (!this.npcRotationPending || this.npcRotationToken !== token) return;
+                        this.npcRotationPending = false;
+                        Keybind.rightClick();
+                        this.setState(this.STATES.WAIT_FOR_ANVIL, 10, 200);
+                    });
+                }
                 break;
         }
     }

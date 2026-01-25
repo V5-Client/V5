@@ -8,6 +8,8 @@ export const EMISSARY_LOCATIONS = [
     [58, 197, -9],
 ];
 
+export const DRILL_MECHANIC_LOCATION = [-7, 144, -19];
+
 export const TRASH_ITEMS = ['Mithril', 'Titanium', 'Rune', 'Glacite', 'Goblin', 'Cobblestone', 'Stone'];
 
 export const MOB_CONFIGS = {
