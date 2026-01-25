@@ -8,7 +8,6 @@ import { Blocks, BP } from './Constants';
 import { v5Command } from './V5Commands';
 import { findAndFollowPath, stopPathing } from './pathfinder/PathAPI';
 import { Rotations } from './player/Rotations';
-import { DRILL_MECHANIC_LOCATION } from '../modules/mining/CommissionData';
 
 const BLOCK_HARDNESS_DATA = {
     'minecraft:polished_diorite': { hardness: 2000, name: 'Titanium' },
@@ -412,6 +411,7 @@ class MineTimeCalculations {
     }
 }
 
+const DRILL_MECHANIC_LOCATION = [-7, 144, -19];
 class RefuelService {
     constructor() {
         this.STATES = {
