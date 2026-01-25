@@ -8,49 +8,56 @@ import { Blocks, BP } from './Constants';
 import { v5Command } from './V5Commands';
 
 const BLOCK_HARDNESS_DATA = {
-    5: { h: 2000, n: 'Titanium' },
-    143: { h: 1500, n: 'Blue Wool Mithril' },
-    495: { h: 800, n: 'Prismarine Mithril' },
-    496: { h: 800, n: 'Prismarine Brick Mithril' },
-    497: { h: 800, n: 'Dark Prismarine Mithril' },
-    461: { h: 500, n: 'Cyan Terracotta Mithril' },
-    147: { h: 500, n: 'Gray Wool Mithril' },
-    524: { h: 6000, n: 'Glacite' },
-    268: { h: 5600, n: 'Tungsten Clay' },
-    318: { h: 5600, n: 'Tungsten Cobble' },
-    464: { h: 5600, n: 'Umber Brown Terracotta' },
-    595: { h: 5600, n: 'Umber Smooth Red Sandstone' },
-    522: { h: 5600, n: 'Umber Terracotta' },
-    479: { h: 5200, n: 'Aquamarine Pane' },
-    480: { h: 5200, n: 'Citrine Pane' },
-    481: { h: 5200, n: 'Peridot Pane' },
-    483: { h: 5200, n: 'Onyx Pane' },
-    470: { h: 4800, n: 'Jasper Pane' },
-    472: { h: 3800, n: 'Topaz Pane' },
-    469: { h: 3000, n: 'Amber Pane' },
-    478: { h: 3000, n: 'Amethyst Pane' },
-    473: { h: 3000, n: 'Jade Pane' },
-    471: { h: 3000, n: 'Sapphire Pane' },
-    482: { h: 2300, n: 'Ruby Pane' },
-    296: { h: 5200, n: 'Aquamarine Block' },
-    297: { h: 5200, n: 'Citrine Block' },
-    298: { h: 5200, n: 'Peridot Block' },
-    300: { h: 5200, n: 'Onyx Block' },
-    287: { h: 4800, n: 'Jasper Block' },
-    289: { h: 3800, n: 'Topaz Block' },
-    286: { h: 3000, n: 'Amber Block' },
-    295: { h: 3000, n: 'Amethyst Block' },
-    290: { h: 3000, n: 'Jade Block' },
-    288: { h: 3000, n: 'Sapphire Block' },
-    299: { h: 2300, n: 'Ruby Block' },
-    523: { h: 600, n: 'Coal Ore' },
-    173: { h: 600, n: 'Gold Block' },
-    174: { h: 600, n: 'Iron Ore' },
-    443: { h: 600, n: 'Redstone Ore' },
-    372: { h: 600, n: 'Emerald Ore' },
-    192: { h: 600, n: 'Diamond Ore' },
-    446: { h: 600, n: 'Quartz Ore' },
+    'minecraft:polished_diorite': { hardness: 2000, name: 'Titanium' },
+    'minecraft:light_blue_wool': { hardness: 1500, name: 'Blue Mithril' },
+    'minecraft:prismarine': { hardness: 800, name: 'Prismarine Mithril' },
+    'minecraft:prismarine_bricks': { hardness: 800, name: 'Prismarine Mithril' },
+    'minecraft:dark_prismarine': { hardness: 800, name: 'Prismarine Mithril' },
+    'minecraft:cyan_terracotta': { hardness: 500, name: 'Gray Mithril' },
+    'minecraft:gray_wool': { hardness: 500, name: 'Gray Mithril' },
+    'minecraft:packed_ice': { hardness: 6000, name: 'Glacite' },
+    'minecraft:clay': { hardness: 5600, name: 'Tungsten Clay' },
+    'minecraft:infested_cobblestone': { hardness: 5600, name: 'Tungsten Cobble' },
+    'minecraft:brown_terracotta': { hardness: 5600, name: 'Umber Brown Terracotta' },
+    'minecraft:smooth_red_sandstone': { hardness: 5600, name: 'Umber Smooth Red Sandstone' },
+    'minecraft:terracotta': { hardness: 5600, name: 'Umber Terracotta' },
+    'minecraft:blue_stained_glass_pane': { hardness: 5200, name: 'Aquamarine Pane' },
+    'minecraft:brown_stained_glass_pane': { hardness: 5200, name: 'Citrine Pane' },
+    'minecraft:lime_stained_glass_pane': { hardness: 5200, name: 'Peridot Pane' },
+    'minecraft:black_stained_glass_pane': { hardness: 5200, name: 'Onyx Pane' },
+    'minecraft:pink_stained_glass_pane': { hardness: 4800, name: 'Jasper Pane' },
+    'minecraft:yellow_stained_glass_pane': { hardness: 3800, name: 'Topaz Pane' },
+    'minecraft:orange_stained_glass_pane': { hardness: 3000, name: 'Amber Pane' },
+    'minecraft:purple_stained_glass_pane': { hardness: 3000, name: 'Amethyst Pane' },
+    'minecraft:green_stained_glass_pane': { hardness: 3000, name: 'Jade Pane' },
+    'minecraft:light_blue_stained_glass_pane': { hardness: 3000, name: 'Sapphire Pane' },
+    'minecraft:red_stained_glass_pane': { hardness: 2300, name: 'Ruby Pane' },
+    'minecraft:blue_stained_glass': { hardness: 5200, name: 'Aquamarine Block' },
+    'minecraft:brown_stained_glass': { hardness: 5200, name: 'Citrine Block' },
+    'minecraft:lime_stained_glass': { hardness: 5200, name: 'Peridot Block' },
+    'minecraft:black_stained_glass': { hardness: 5200, name: 'Onyx Block' },
+    'minecraft:pink_stained_glass': { hardness: 4800, name: 'Jasper Block' },
+    'minecraft:yellow_stained_glass': { hardness: 3800, name: 'Topaz Block' },
+    'minecraft:orange_stained_glass': { hardness: 3000, name: 'Amber Block' },
+    'minecraft:purple_stained_glass': { hardness: 3000, name: 'Amethyst Block' },
+    'minecraft:green_stained_glass': { hardness: 3000, name: 'Jade Block' },
+    'minecraft:light_blue_stained_glass': { hardness: 3000, name: 'Sapphire Block' },
+    'minecraft:red_stained_glass': { hardness: 2300, name: 'Ruby Block' },
+    'minecraft:coal_block': { hardness: 600, name: 'Coal Block' },
+    'minecraft:gold_block': { hardness: 600, name: 'Gold Block' },
+    'minecraft:iron_block': { hardness: 600, name: 'Iron Block' },
+    'minecraft:redstone_block': { hardness: 600, name: 'Redstone Block' },
+    'minecraft:emerald_block': { hardness: 600, name: 'Emerald Block' },
+    'minecraft:diamond_block': { hardness: 600, name: 'Diamond Block' },
+    'minecraft:quartz_block': { hardness: 600, name: 'Quartz Block' },
 };
+
+function lookupBlock(registryName) {
+    if (!registryName) return null;
+    const data = BLOCK_HARDNESS_DATA[registryName];
+    if (!data) return null;
+    return data;
+}
 
 const TOOL_PRIORITY_LIST = [
     { match: 'Gauntlet', priority: 5, fuel: true },
@@ -58,6 +65,7 @@ const TOOL_PRIORITY_LIST = [
     { match: 'Pickonimbus', priority: 3, fuel: false },
     { match: 'Eon Pickaxe', priority: 2, fuel: false },
     { match: 'Chrono Pickaxe', priority: 2, fuel: false },
+    { match: 'Jungle Pickaxe', priority: 2, fuel: false },
     { match: 'Titanium Pickaxe', priority: 1, fuel: false },
     { match: 'Mithril Pickaxe', priority: 1, fuel: false },
 ];
@@ -377,9 +385,12 @@ class MineTimeCalculations {
             return this.clamp(100);
         }
 
-        let blockId = block.type.getID();
-        let data = BLOCK_HARDNESS_DATA[blockId];
-        let hardness = data ? data.h : 100;
+        let blockName = block?.type?.getRegistryName();
+        if (!blockName) {
+            return this.clamp(100);
+        }
+        let data = BLOCK_HARDNESS_DATA[blockName];
+        let hardness = data ? data.hardness : 20000;
 
         let effectiveSpeed = speed + (Flowstate.CurrentFlowstate ? Flowstate.CurrentFlowstate() : 0);
 
@@ -399,91 +410,155 @@ class MineTimeCalculations {
 }
 
 class RefuelService {
-    refuel(callback) {
-        let self = this;
+    constructor() {
+        this.STATES = {
+            IDLE: 0,
+            FIND_ABIPHONE: 1,
+            OPEN_ABIPHONE: 2,
+            SELECT_CONTACT: 3,
+            CLICK_CONTACT: 4,
+            WAIT_FOR_ANVIL: 5,
+            WAIT_ANVIL_READY: 6,
+            ADD_FUEL: 7,
+            TAKE_TOOL: 8,
+            CLOSE: 9,
+            FAIL_CLEANUP: 10,
+        };
 
-        new Thread(function () {
-            try {
+        this.reset();
+        register('tick', () => this.tick());
+    }
+
+    reset() {
+        this.state = this.STATES.IDLE;
+        this.waitTicks = 0;
+        this.timeoutTicks = null;
+        this.callback = null;
+        this.contactSlot = -1;
+    }
+
+    setState(nextState, waitTicks = 0, timeoutTicks = null) {
+        this.state = nextState;
+        this.waitTicks = waitTicks;
+        this.timeoutTicks = timeoutTicks;
+    }
+
+    refuel(callback) {
+        if (this.state !== this.STATES.IDLE) {
+            Chat.message('Refuel already running!');
+            if (callback) callback(false);
+            return;
+        }
+
+        if (callback) this.callback = callback;
+        this.setState(this.STATES.FIND_ABIPHONE);
+    }
+
+    tick() {
+        if (this.state === this.STATES.IDLE) return;
+
+        if (this.waitTicks > 0) {
+            this.waitTicks--;
+            return;
+        }
+
+        switch (this.state) {
+            case this.STATES.FIND_ABIPHONE:
                 let abiphoneSlot = Guis.findItemInHotbar('Abiphone');
-                if (abiphoneSlot === -1) {
-                    Chat.message('Abiphone not found!');
-                    return callback(false);
-                }
+                if (abiphoneSlot === -1) return this.fail('Abiphone not found!');
 
                 Guis.setItemSlot(abiphoneSlot);
-                Thread.sleep(250);
+                this.setState(this.STATES.OPEN_ABIPHONE, 5);
+                break;
+
+            case this.STATES.OPEN_ABIPHONE:
                 Client.scheduleTask(() => {
                     Keybind.rightClick();
                 });
-                Thread.sleep(1000);
+                this.setState(this.STATES.SELECT_CONTACT, 0, 50);
+                break;
 
-                if (!Guis.guiName() || Guis.guiName().indexOf('Abiphone') === -1) {
-                    Chat.message('Abiphone failed to open!');
-                    return callback(false);
+            case this.STATES.SELECT_CONTACT:
+                if (Guis.guiName()?.indexOf('Abiphone') !== -1) {
+                    this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                    if (!Player.getContainer()?.getStackInSlot(this.contactSlot)) {
+                        if (this.handleTimeout('No jotraeline contact detected!')) return;
+                    }
+                    if (this.contactSlot === -1) return;
+                    this.setState(this.STATES.CLICK_CONTACT, 5);
+                    break;
+                }
+                break;
+
+            case this.STATES.CLICK_CONTACT:
+                Guis.clickSlot(this.contactSlot, false, 'LEFT');
+                this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
+                break;
+
+            case this.STATES.WAIT_FOR_ANVIL:
+                if (Guis.guiName() === 'Drill Anvil') {
+                    this.setState(this.STATES.WAIT_ANVIL_READY, 20);
+                    break;
                 }
 
-                let jotraelineSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
-                //Chat.message("jotraeline slot: " + jotraelineSlot)
-                if (jotraelineSlot === -1) {
-                    Chat.message('Jotraeline contact missing!');
-                    return callback(false);
-                }
-                Thread.sleep(500);
-                Guis.clickSlot(jotraelineSlot, false, 'LEFT');
-                Thread.sleep(1000);
+                if (this.handleTimeout('Anvil never opened?!')) return;
+                break;
 
-                if (!self.waitForAnvil()) {
-                    Chat.message('drill anvil timeout!');
-                    return callback(false);
-                }
-
-                Thread.sleep(1000);
+            case this.STATES.WAIT_ANVIL_READY:
                 let tool = ToolFinder.findBest();
-                if (!tool) {
-                    Chat.message('no drill found!');
-                    return callback(false);
-                }
+                if (!tool) return this.fail('No drill found!');
 
                 Guis.clickSlot(tool.slot + 81, true);
-                Thread.sleep(500);
+                this.setState(this.STATES.ADD_FUEL, 10);
+                break;
 
-                let container = Player.getContainer();
-                if (!container.getStackInSlot(29)) {
-                    Chat.message('drill not in anvil!');
-                    return callback(false);
+            case this.STATES.ADD_FUEL:
+                if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
+                    Chat.message('No fuel detected!'); // fuel buyer when?
+                    this.setState(this.STATES.FAIL_CLEANUP, 10);
+                    return;
                 }
 
-                let fuelAdded = Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel'], true);
-                if (!fuelAdded) {
-                    Chat.message('no fuel available!');
-                    Guis.clickSlot(29, true);
-                    Thread.sleep(500);
-                    Guis.closeInv();
-                    return callback(false);
-                }
-
-                Thread.sleep(500);
                 Guis.clickSlot(22, false);
-                Thread.sleep(750);
-                Guis.clickSlot(13, true);
-                Thread.sleep(500);
-                Guis.closeInv();
+                this.setState(this.STATES.TAKE_TOOL, 10);
+                break;
 
-                callback(true);
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-                callback(false);
-            }
-        }).start();
+            case this.STATES.TAKE_TOOL:
+                Guis.clickSlot(13, true);
+                this.setState(this.STATES.CLOSE, 10);
+                break;
+
+            case this.STATES.CLOSE:
+                Guis.closeInv();
+                this.finish(true);
+                break;
+
+            case this.STATES.FAIL_CLEANUP:
+                Guis.closeInv();
+                this.finish(false);
+                break;
+        }
     }
 
-    waitForAnvil() {
-        let waited = 0;
-        while (Guis.guiName() !== 'Drill Anvil' && waited < 5000) {
-            Thread.sleep(50);
-            waited = waited + 50;
+    handleTimeout(message) {
+        this.timeoutTicks--;
+        if (this.timeoutTicks <= 0) {
+            this.fail(message);
+            return true;
         }
-        return waited < 5000;
+
+        return false;
+    }
+
+    fail(message) {
+        if (message) Chat.message(message);
+        this.finish(false);
+    }
+
+    finish(success) {
+        const cb = this.callback;
+        this.reset();
+        if (cb) cb(success);
     }
 }
 
@@ -689,6 +764,9 @@ export const MiningUtils = {
     },
     getMineTime: function (pos, speed, boost) {
         return timeCalc.calculateTicks(pos, speed, boost);
+    },
+    getBlockInfo: function (registryName) {
+        return lookupBlock(registryName);
     },
     getDrills: function () {
         let bestTool = ToolFinder.findBest();

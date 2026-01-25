@@ -10,32 +10,32 @@ permissions:
 
 jobs:
     prettier:
-        if: github.actor != 'prettier-bot'
-        runs-on: ubuntu-latest
+        if: github.actor != 'prettier-bot' && github.actor != 'github-actions[bot]'
+        runs-on: blacksmith-2vcpu-ubuntu-2404
         steps:
             - name: Checkout
               uses: actions/checkout@v4
               with:
-                  fetch-depth: 0
+                  fetch-depth: 1
 
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
                   node-version: 20
 
-            - name: Run Prettier (download via npx)
+            - name: Cache Prettier
+              uses: actions/cache@v4
+              with:
+                  path: ~/.npm
+                  key: ${{ runner.os }}-prettier-cache
+
+            - name: Run Prettier
               run: npx --yes prettier@3 --write "**/*.js"
 
-            - name: Commit and push if changed
-              run: |
-                  if git diff --quiet; then
-                    echo "No formatting changes"
-                    exit 0
-                  fi
-
-                  git config user.name "prettier-bot"
-                  git config user.email "prettier-bot@users.noreply.github.com"
-
-                  git add .
-                  git commit -m "chore: auto-format with Prettier"
-                  git push
+            - name: Commit changes
+              uses: stefanzweifel/git-auto-commit-action@v5
+              with:
+                  commit_message: 'chore: auto-format with Prettier'
+                  commit_user_name: 'prettier-bot'
+                  commit_user_email: 'prettier-bot@users.noreply.github.com'
+                  branch: ${{ github.head_ref }}

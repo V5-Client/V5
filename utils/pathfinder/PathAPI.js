@@ -23,6 +23,7 @@ export let betweenNodes = [];
 export let spline = [];
 
 let currentDestination = null;
+let currentDestinationBlock = null;
 const DESTINATION_HORIZONTAL_TOLERANCE = 3.5;
 const DESTINATION_VERTICAL_TOLERANCE = 4;
 let pathCompletionCheckCount = 0;
@@ -82,6 +83,7 @@ export function stopPathing() {
 
     currentPathRequest = null;
     currentDestination = null;
+    currentDestinationBlock = null;
     pathCompletionCheckCount = 0;
 }
 
@@ -92,12 +94,13 @@ export function clearPathCallback() {
 function findStartY(x, initialY, z) {
     let y = initialY + 1;
     const maxDistance = 100;
+    const world = World.getWorld();
 
     for (let i = 0; i < maxDistance; i++) {
         if (y <= 0) return y;
         const blockVec = { x: x, y: y, z: z };
 
-        if (!isBlockWalkable(World.getWorld(), blockVec)) return y;
+        if (!isBlockWalkable(world, blockVec)) return y;
 
         y--;
     }
@@ -110,6 +113,42 @@ export function isBlockWalkable(world, blockVec) {
     const blockState = world.getBlockState(blockPosNMS);
     const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
     return collisionShape.isEmpty();
+}
+
+function notifyInvalidDestination(message = 'Path requires valid coordinate triples (x y z).') {
+    showNotification('Invalid Destination', message, 'ERROR', 5000);
+}
+
+function normalizeDestination(end) {
+    if (!Array.isArray(end)) return [];
+    if (end.length === 0) return [];
+
+    if (typeof end[0] === 'number') return end;
+
+    const flat = [];
+    end.forEach((triple) => {
+        if (!Array.isArray(triple) || triple.length < 3) return;
+        flat.push(triple[0], triple[1], triple[2]);
+    });
+    return flat;
+}
+
+function setCurrentDestinationFromCoords(x, y, z) {
+    currentDestinationBlock = { x, y, z };
+    currentDestination = {
+        x: x + 0.5,
+        y: y + 1,
+        z: z + 0.5,
+    };
+}
+
+function setCurrentDestinationFromBlock(block) {
+    if (!block) {
+        currentDestination = null;
+        currentDestinationBlock = null;
+        return;
+    }
+    setCurrentDestinationFromCoords(block.x, block.y, block.z);
 }
 
 function drawKeyNodes(keynodes) {
@@ -148,37 +187,47 @@ function validateDestinationReached() {
 }
 
 function executePathfinding(start, end, onComplete, renderOnly = false, adjustEnd = false) {
+    end = normalizeDestination(end);
+    if (!end.length || end.length % 3 !== 0) {
+        notifyInvalidDestination();
+        return;
+    }
+
     stopPathing();
     pathCompletionCheckCount = 0;
 
     const adjustedStart = [start[0], findStartY(start[0], start[1], start[2]), start[2]];
-    const adjustedEnd = adjustEnd ? [end[0], findStartY(end[0], end[1], end[2]), end[2]] : end;
 
-    currentDestination = {
-        x: adjustedEnd[0] + 0.5,
-        y: adjustedEnd[1] + 1,
-        z: adjustedEnd[2] + 0.5,
-    };
+    setCurrentDestinationFromCoords(end[0], end[1], end[2]);
 
-    Chat.messagePathfinder(`Path from ${adjustedStart.join(', ')} to ${adjustedEnd.join(', ')}`);
-
+    Chat.messagePathfinder(
+        `Path from ${adjustedStart.join(', ')} to ${end
+            .filter((_, i) => {
+                return i % 3 === 0;
+            })
+            .map((_, i) => {
+                return '[' + end.slice(i * 3, i * 3 + 3).join(', ') + ']';
+            })
+            .join(' or ')}`
+    );
     const requestId = Date.now();
     currentPathRequest = requestId;
 
-    const started = SwiftBridge.startPath(adjustedStart[0], adjustedStart[1], adjustedStart[2], adjustedEnd[0], adjustedEnd[1], adjustedEnd[2]);
+    const started = SwiftBridge.startPath(adjustedStart[0], adjustedStart[1], adjustedStart[2], end);
 
     if (!started) {
         const error = SwiftBridge.getLastError() || 'Failed to start pathfinding';
         showNotification('Pathfinding Failed', error, 'ERROR', 5000);
         console.error('Pathfinding failed to start:', error);
         currentDestination = null;
+        currentDestinationBlock = null;
         if (onComplete && typeof onComplete === 'function') onComplete(false);
         return;
     }
 
     Chat.messagePathfinder('§eSearching for path...');
 
-    searchingTrigger = register('tick', () => {
+    searchingTrigger = register('step', () => {
         if (currentPathRequest !== requestId) {
             if (searchingTrigger) {
                 searchingTrigger.unregister();
@@ -187,10 +236,10 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             return;
         }
 
-        if (SwiftBridge.isSearching()) {
-            return;
-        }
+        if (SwiftBridge.isSearching()) return;
 
+        if (!currentPathRequest) return;
+        currentPathRequest = null;
         searchingTrigger.unregister();
         searchingTrigger = null;
 
@@ -201,6 +250,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             showNotification('Pathfinding Failed', error, 'ERROR', 5000);
             console.error('Pathfinding failed:', error);
             currentDestination = null;
+            currentDestinationBlock = null;
             if (onComplete && typeof onComplete === 'function') onComplete(false);
             return;
         }
@@ -209,6 +259,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             showNotification('Pathfinding Failed', 'No path nodes received.', 'ERROR', 5000);
             console.error('Invalid keynodes in response:', body);
             currentDestination = null;
+            currentDestinationBlock = null;
             if (onComplete && typeof onComplete === 'function') onComplete(false);
             return;
         }
@@ -224,6 +275,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
         if (body.keynodes && Array.isArray(body.keynodes) && body.keynodes.length) {
             setKeyNodes(body.keynodes);
+            setCurrentDestinationFromBlock(body.keynodes[body.keynodes.length - 1]);
         }
 
         let generatedSpline = [];
@@ -248,7 +300,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             return;
         }
 
-        const savedDestination = { ...currentDestination };
+        const savedDestination = currentDestinationBlock ? { ...currentDestinationBlock } : null;
         const savedOnComplete = onComplete;
 
         path = register('tick', () => {
@@ -285,6 +337,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
                     }
                     currentPathCallback = null;
                     currentDestination = null;
+                    currentDestinationBlock = null;
                     return;
                 }
 
@@ -307,7 +360,7 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
 
                 setTimeout(() => {
                     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-                    const destEnd = [savedDestination.x - 0.5, savedDestination.y - 1, savedDestination.z - 0.5];
+                    const destEnd = [savedDestination.x, savedDestination.y, savedDestination.z];
 
                     const savedRetryCount = pathCompletionCheckCount;
                     executePathfinding(currentPos, destEnd, savedOnComplete, false, false);
@@ -331,14 +384,15 @@ function executePathfinding(start, end, onComplete, renderOnly = false, adjustEn
             }
             currentPathCallback = null;
             currentDestination = null;
+            currentDestinationBlock = null;
         });
-    });
+    }).setFps(1000);
 }
 
 /**
  * Find and walk a path from start to end.
  * @param {number[]} start - [x, y, z] start coords
- * @param {number[]} end - [x, y, z] end coords
+ * @param {number[]|number[][]} end - [x, y, z] end coords, flattened triples, or array of [x,y,z] triples.
  * @param {boolean|Function} renderOnlyOrCallback - If true, render only. If function, callback on complete.
  * @param {boolean} adjustEnd - If true, adjusts end Y to find ground level. ONLY WORKS ON BLOCK IN YOUR RENDER DISTANCE, DO NOT USE FOR LONG DISTANCE PATHS
  */
@@ -357,7 +411,7 @@ function requestPathRecalculation() {
     const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
 
     if (keyNodes && keyNodes.length > 0) {
-        const destination = keyNodes[keyNodes.length - 1];
+        const destination = currentDestinationBlock || keyNodes[keyNodes.length - 1];
         const end = [destination.x, destination.y, destination.z];
         const savedCallback = currentPathCallback;
 
@@ -376,12 +430,20 @@ setRequestPathRecalculation(requestPathRecalculation);
 
 v5Command('path', (...args) => {
     const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-    const coords = args.slice(0, 3).map(Number);
+    if (args.length < 3) {
+        return showNotification('Invalid Command', 'Usage: /path <x> <y> <z> [<x2> <y2> <z2> ...]', 'ERROR', 5000);
+    }
+
+    const coords = args.map(Number);
     if (coords.some(isNaN)) {
         return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
     }
-    const end = coords.slice(0, 3);
-    findAndFollowPath(start, end);
+
+    if (coords.length % 3 !== 0) {
+        return showNotification('Invalid Coordinates', 'Destinations must be provided as coordinate triples.', 'ERROR', 5000);
+    }
+
+    findAndFollowPath(start, coords);
 });
 
 v5Command('rustpath', (...args) => {

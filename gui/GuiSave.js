@@ -12,6 +12,13 @@ export const SettingsMap = new Map();
 
 const getCategoryItems = (category) => category.items.reduce((acc, group) => acc.concat(group.type === 'separator' ? group.items : [group]), []);
 
+const getDirectComponentParentName = (category, component) => {
+    if (category.name === 'Settings' && component.sectionName) {
+        return component.sectionName;
+    }
+    return category.name;
+};
+
 function buildSettingsMapFromComponents() {
     SettingsMap.clear();
 
@@ -26,7 +33,8 @@ function buildSettingsMapFromComponents() {
         // SETTINGS PAGE
         if (category.directComponents) {
             category.directComponents.forEach((component) => {
-                const key = `${category.name}.${component.title}`;
+                const parentName = getDirectComponentParentName(category, component);
+                const key = `${parentName}.${component.title}`;
                 storeComponentValue(key, component);
             });
         }
@@ -72,7 +80,8 @@ export const applySettings = () => {
 
         if (category.directComponents) {
             category.directComponents.forEach((component) => {
-                triggerComponentCallback(category.name, component);
+                const parentName = getDirectComponentParentName(category, component);
+                triggerComponentCallback(parentName, component);
             });
         }
     });
@@ -111,12 +120,13 @@ export const loadSettings = () => {
             });
 
             if (category.directComponents) {
-                const savedCategorySettings = settings[category.name];
-                if (savedCategorySettings) {
-                    category.directComponents.forEach((component) => {
+                category.directComponents.forEach((component) => {
+                    const parentName = getDirectComponentParentName(category, component);
+                    const savedCategorySettings = settings[parentName];
+                    if (savedCategorySettings) {
                         loadComponentValue(component, savedCategorySettings[component.title]);
-                    });
-                }
+                    }
+                });
             }
         });
 

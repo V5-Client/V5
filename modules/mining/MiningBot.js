@@ -1,6 +1,6 @@
 import { Keybind } from '../../utils/player/Keybinding';
 import { MiningUtils } from '../../utils/MiningUtils';
-import { RayTrace } from '../../utils/Raytrace';
+import { Raytrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
 import { Utils } from '../../utils/Utils';
 import { MathUtils } from '../../utils/Math';
@@ -12,6 +12,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
 import { PlayerActionC2S, PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerInfo } from '../../utils/player/ServerInfo';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -33,6 +34,7 @@ class Bot extends ModuleBase {
         this.MOVEMENT = false;
         this.SCAN_ONLY = false;
         this.DEBUG_MODE = false;
+        this.ADDITIONAL_LAG_COMP = 0;
 
         this.STATES = { WAITING: 0, ABILITY: 1, MINING: 2, BUFF: 3, REFUEL: 4 };
         this.TYPES = { MININGBOT: 0, COMMISSION: 1, GEMSTONE: 2, ORE: 3, TUNNEL: 4 };
@@ -68,6 +70,8 @@ class Bot extends ModuleBase {
         this.bindToggleKey();
         this.initEventHandlers();
         this.initSettings();
+
+        this.setTheme('#5a7cbb');
 
         this.createOverlay([
             {
@@ -117,7 +121,7 @@ class Bot extends ModuleBase {
 
     updateMithrilCosts() {
         this.mithrilCosts = {
-            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 12,
+            'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 30,
             'minecraft:light_blue_wool': 3,
             'minecraft:prismarine': 5,
             'minecraft:prismarine_bricks': 5,
@@ -177,6 +181,16 @@ class Bot extends ModuleBase {
             },
             'Predicts when blocks are broken to begin mining the next block early.',
             true
+        );
+        this.addSlider(
+            'Additional lag compensation',
+            0,
+            5,
+            1,
+            (value) => {
+                this.ADDITIONAL_LAG_COMP = value;
+            },
+            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)'
         );
         this.addToggle(
             'Jasper Drill Exploit',
@@ -335,6 +349,7 @@ class Bot extends ModuleBase {
     incrementMiningCountersIfLookingAtCurrent(fakeLookMode) {
         this.tickCount++;
         if (fakeLookMode !== 'Off') {
+            Player.getPlayer().swingHand(MCHand.MAIN_HAND);
             this.mineTickCount++;
         } else {
             const lookingAt = Player.lookingAt();
@@ -442,7 +457,7 @@ class Bot extends ModuleBase {
         this.incrementMiningCountersIfLookingAtCurrent(fakeLookMode);
 
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
-        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost);
+        this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
 
         if (!this.currentTarget) return;
 
@@ -463,7 +478,7 @@ class Bot extends ModuleBase {
     }
 
     scanForBlock(targetCosts, startPos = null, excludedBlock = null) {
-        if (!targetCosts) return Chat.message('No target specified, is cost type set?');
+        if (!targetCosts) return this.message('No target specified, is cost type set?');
 
         const pX = Player.getX(),
             pY = Player.getY(),
@@ -629,7 +644,7 @@ class Bot extends ModuleBase {
                 fx = clamp(ffx + jU, x + LO, x + HI);
                 fy = clamp(ffy + jV, y + LO, y + HI);
             }
-            if (RayTrace.isLineClear(eyePos.x, eyePos.y, eyePos.z, tx, ty, tz, x, y, z)) {
+            if (Raytrace.isLineClear(eyePos.x, eyePos.y, eyePos.z, tx, ty, tz, x, y, z)) {
                 return { hit: true, x: fx, y: fy, z: fz };
             }
             return { hit: false };
@@ -772,7 +787,7 @@ class Bot extends ModuleBase {
                 if (this[costPropertyName]) {
                     this.COSTTYPE = this[costPropertyName];
                 } else {
-                    Chat.message(`&cError: Could not find cost type for ${Type}!`);
+                    this.message(`&cCould not find cost type for ${Type}!`);
                     this.COSTTYPE = null;
                 }
             } else {
@@ -817,29 +832,33 @@ class Bot extends ModuleBase {
         return true;
     }
 
+    glideDelay() {
+        return 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS());
+    }
+
     onEnable() {
         if (Client.isInGui()) {
-            Chat.message('&cMiningBot: Cannot start while GUI is open');
+            this.message('&cCannot start while GUI is open!');
             this.toggle(false);
             return;
         }
 
         this.drill = MiningUtils.getDrills().drill;
         if (!this.drill) {
-            Chat.message('&cMiningBot: No drill detected');
+            this.message('&cNo drill detected!');
             this.toggle(false);
             return;
         }
 
         this.setCost();
-        if (!this.isParentManaged) Chat.message('&aMining Bot Enabled');
+        if (!this.isParentManaged) this.message('&aEnabled');
         this.allowScan = true;
         this.state = this.STATES.ABILITY;
         this.normalRender.register();
     }
 
     onDisable() {
-        if (!this.isParentManaged) Chat.message('&cMining Bot Disabled');
+        if (!this.isParentManaged) this.message('&cDisabled');
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);

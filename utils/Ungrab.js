@@ -1,78 +1,48 @@
-import { IsCursorLocked, LockCursor, UpdateMouse } from '../mixins/UngrabMixin';
-import { HandleInputEvents, OnMouseScroll } from '../mixins/SlotChangeMixin';
-import { attachMixin } from './AttachMixin';
+import { Mixin } from './MixinManager';
 import { System, GLFW } from './Constants';
 
 const os = System.getProperty('os.name').toLowerCase();
 const isLinux = os.includes('nux') || os.includes('nix');
+
 class UngrabManager {
     constructor() {
-        this.ungrabbed = false;
-        this.inputLocked = false;
-        this.mixinsInitialized = false;
-
-        this.initMixins();
-    }
-
-    /**
-     * Attaches all necessary mixins with logic that checks the current state.
-     */
-    initMixins() {
-        if (this.mixinsInitialized) return;
-
-        attachMixin(HandleInputEvents, 'HandleInputEvents', (instance) => {
-            if (!this.inputLocked) return;
-
-            instance.options.hotbarKeys.forEach((key) => {
-                if (key.wasPressed()) key.setPressed(false);
-            });
-        });
-
-        attachMixin(OnMouseScroll, 'OnMouseScroll', (instance, cir) => {
-            if (this.inputLocked && Client.getMinecraft().world) {
-                cir.cancel();
-            }
-        });
-
-        attachMixin(LockCursor, 'LockCursor', (instance, cir) => {
-            if (this.ungrabbed) cir.cancel();
-        });
-
-        attachMixin(IsCursorLocked, 'IsCursorLocked', (instance, cir) => {
-            if (this.ungrabbed) cir.setReturnValue(true);
-        });
-
-        attachMixin(UpdateMouse, 'UpdateMouse', (instance, cir) => {
-            if (this.ungrabbed) {
-                if (isLinux) GLFW.glfwSetInputMode(Client.getMinecraft().getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
-                Client.getMinecraft().mouse.unlockCursor();
-                cir.cancel();
-            }
-        });
-
-        this.mixinsInitialized = true;
+        Mixin.set('ungrabbed', false);
+        Mixin.set('inputLocked', false);
     }
 
     /**
      * Prevents the player from controlling the camera and locks inventory interaction.
      */
     ungrab() {
-        if (this.ungrabbed) return;
+        if (Mixin.get('ungrabbed')) return;
 
-        this.ungrabbed = true;
-        this.inputLocked = true;
+        Mixin.set('ungrabbed', true);
+        Mixin.set('inputLocked', true);
+
+        const mc = Client.getMinecraft();
+        if (mc.mouse) {
+            mc.mouse.unlockCursor();
+
+            if (isLinux) {
+                GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+            }
+        }
     }
 
     /**
      * Returns control to the player.
      */
     regrab() {
-        if (!this.ungrabbed) return;
+        if (!Mixin.get('ungrabbed')) return;
 
-        this.ungrabbed = false;
-        this.inputLocked = false;
+        Mixin.set('ungrabbed', false);
+        Mixin.set('inputLocked', false);
 
-        if (Player.getPlayer()) Client.getMinecraft().mouse.lockCursor();
+        const mc = Client.getMinecraft();
+        if (mc.currentScreen == null) {
+            mc.mouse.lockCursor();
+            GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        }
     }
 }
 

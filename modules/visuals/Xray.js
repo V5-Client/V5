@@ -12,6 +12,7 @@ class Xray extends ModuleBase {
         });
 
         this.bindToggleKey();
+        this.setTheme('#94a2bb');
 
         this.firstTransparency = getSetting('Xray', 'Transparency');
 
@@ -35,6 +36,8 @@ class Xray extends ModuleBase {
     }
 
     onEnable() {
+        this.message('&aEnabled');
+
         Client.scheduleTask(0, () => {
             XrayPackage.setEnabled();
             const transparency = getSetting('Xray', 'Transparency');
@@ -44,6 +47,8 @@ class Xray extends ModuleBase {
     }
 
     onDisable() {
+        this.message('&cDisabled');
+
         Client.scheduleTask(0, () => {
             XrayPackage.setDisabled();
         });

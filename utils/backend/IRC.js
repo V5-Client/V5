@@ -5,6 +5,7 @@ import { ChatMessageC2S } from '../Packets';
 import { Chat } from '../Chat';
 import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
+import { returnDiscord } from '../../gui/Utils';
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -14,7 +15,7 @@ let authToken = null;
 let start = Date.now();
 let currentDevice = null;
 
-const jwtFile = `do_not_share_this_file`;
+const jwtFile = `AuthCache/do_not_share_this_file`;
 
 function parseJwtPayload(token) {
     const parts = token.split('.');
@@ -32,9 +33,9 @@ function isJwtValid(token) {
     return payload.exp > nowSeconds + 30;
 }
 
-function saveJwt(token) {
+function saveJwt(token, data) {
     try {
-        Utils.writeConfigFile(jwtFile, { jwt: token });
+        Utils.writeConfigFile(jwtFile, { username: data.discord_username, jwt: token });
     } catch (e) {
         console.error('Failed to save chat token: ');
         console.error('V5 Caught error' + e + e.stack);
@@ -61,18 +62,20 @@ function setJwtAndConnect(token) {
         return;
     }
     authToken = token;
-    saveJwt(authToken);
-    returnDiscord(authToken);
+
+    const payload = parseJwtPayload(token);
+    saveJwt(authToken, payload);
     Chat.messageIrc('&aChat token updated. Connecting...');
     connectWebSocket();
 }
 
 function attemptReconnect() {
     if (gameUnload) return;
+    if (isConnected) return Chat.messageIrc('Already connected to irc!');
     if (reconnectAttempts < 10) {
         reconnectAttempts++;
-        const delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
-        if (isConnected) return Chat.messageIrc('Already connected to irc!');
+        let delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
+        if (reconnectAttempts == 1) delay = 0;
         Client.scheduleTask(delay, () => {
             if (gameUnload) return;
             if (isConnected) return Chat.messageIrc('Already connected to irc!');
@@ -81,7 +84,7 @@ function attemptReconnect() {
             start = Date.now();
         });
     } else {
-        Chat.messageIrc('&cFailed to connect to chat! /ct load or wait, backend might be down.');
+        Chat.messageIrc('&cFailed to connect to chat! /v5 irc reconnect, backend might be down.');
     }
 }
 
@@ -157,7 +160,7 @@ function sendChatMessage(content) {
 
 function connectWebSocket() {
     if (!authToken) return;
-
+    returnDiscord(authToken);
     const wsUrl = `${Links.WEBSOCKET_URL}?token=${authToken}`;
     ws = new WebSocket(wsUrl);
 
@@ -175,18 +178,14 @@ function connectWebSocket() {
         console.error('WebSocket error:', exception);
         Chat.messageIrc('Connection error: ' + exception);
         isConnected = false;
-        if (!gameUnload) attemptReconnect();
+        attemptReconnect();
     };
 
     ws.onClose = (code, reason) => {
         if (code == '1000') return;
-        if (code == '1006') {
-            Chat.messageIrc('Backend restarting.');
-        } else {
-            Chat.messageIrc(`Disconnected from chat server (code ${code}, reason: ${reason})`);
-        }
         isConnected = false;
-        if (!gameUnload) attemptReconnect();
+        Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
+        attemptReconnect();
     };
 
     ws.connect();
@@ -248,5 +247,3 @@ v5Command('reconnectIRC', () => {
 });
 
 connectIRC();
-import { returnDiscord } from '../../gui/Utils';
-returnDiscord(authToken);

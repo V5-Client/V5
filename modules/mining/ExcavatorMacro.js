@@ -16,6 +16,7 @@ class ExcavatorMacro extends ModuleBase {
         });
 
         this.bindToggleKey();
+        this.setTheme('#c4682b');
 
         this.NODELAY = false;
         this.TICKDELAY = 0;
@@ -66,13 +67,13 @@ class ExcavatorMacro extends ModuleBase {
 
         this.on('tick', () => {
             if (Utils.subArea() !== 'Fossil Research Center') {
-                this.toggle(false);
                 this.message('&cNot in the Research Center!');
+                this.toggle(false);
             }
 
             if (this.inExcavator) {
                 if (Guis.guiName() !== 'Fossil Excavator') {
-                    this.message('Excavator closed');
+                    this.message('Excavator closed.');
                     this.toggle(false);
                     return;
                 }
@@ -193,10 +194,6 @@ class ExcavatorMacro extends ModuleBase {
         this.clickedChisel = false;
         this.clickedScrap = false;
         this.inExcavator = false;
-    }
-
-    message(msg) {
-        Chat.message('&#c95b10Excavator Macro: &f' + msg);
     }
 }
 

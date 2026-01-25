@@ -4,24 +4,24 @@ import { Chat } from '../../utils/Chat';
 import { Webhook } from '../../utils/Webhooks';
 import { MacroState } from '../../utils/MacroState';
 
-class PlayerGreifFailsafe extends Failsafe {
+class PlayerGriefFailsafe extends Failsafe {
     constructor() {
         super();
-        this.settings = FailsafeUtils.getFailsafeSettings('Player Greif');
+        this.settings = FailsafeUtils.getFailsafeSettings('Player Grief');
         this.lastInsideTrigger = 0;
         this.lastNearbyTrigger = 0;
         this.lastLookingTrigger = 0;
         this.insideCooldownMs = 5000;
         this.nearbyCooldownMs = 3000;
         this.lookingCooldownMs = 3000;
-        this.registerGreifListeners();
+        this.registerGriefListeners();
         this.whitelistedPlayers = ['']; // TODO: add gui textbox, i have no clue how it works so im not touching it
     }
 
-    registerGreifListeners() {
+    registerGriefListeners() {
         register('step', () => {
-            if (!MacroState.isMacroRunning() || this.isFalse('greif')) return;
-            this.settings = FailsafeUtils.getFailsafeSettings('Player Greif');
+            if (!MacroState.isMacroRunning()) return;
+            this.settings = FailsafeUtils.getFailsafeSettings('Player Grief');
             if (!this.settings.isEnabled) return;
             if (!World.isLoaded() || !Player.asPlayerMP()) return;
 
@@ -69,6 +69,8 @@ class PlayerGreifFailsafe extends Failsafe {
     }
 
     checkPlayerNearby(now) {
+        this.settings = FailsafeUtils.getFailsafeSettings('Player Grief');
+        if (!this.settings.isEnabled) return;
         const px = Player.getX();
         const py = Player.getY();
         const pz = Player.getZ();
@@ -111,4 +113,4 @@ class PlayerGreifFailsafe extends Failsafe {
     }
 }
 
-export default new PlayerGreifFailsafe();
+export default new PlayerGriefFailsafe();

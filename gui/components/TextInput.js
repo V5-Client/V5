@@ -10,6 +10,7 @@ import {
     drawRect,
     playClickSound,
     TypingState,
+    createHighlight,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 import { Toolkit, DataFlavor } from '../../utils/Constants';
@@ -33,6 +34,7 @@ export class TextInput {
         this.optionPanelWidth = 0;
         this.containerHeight = 48;
         this.description = null;
+        this.highlight = createHighlight();
 
         this.inputRect = {};
 
@@ -41,11 +43,28 @@ export class TextInput {
         });
     }
 
+    startHighlight() {
+        this.highlight.startHighlight();
+    }
+
+    drawHighlight(panelWidth, panelHeight) {
+        this.highlight.draw({
+            x: this.x,
+            y: this.y,
+            width: panelWidth,
+            height: panelHeight,
+            accentColor: THEME.ACCENT,
+            accentFillColor: THEME.ACCENT_DIM,
+        });
+    }
+
     draw(mouseX, mouseY) {
         const componentHeight = this.containerHeight;
         const backgroundColor = THEME.BG_COMPONENT;
         const textColor = THEME.TEXT;
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
+
+        this.drawHighlight(panelWidth, componentHeight);
 
         drawRoundedRectangleWithBorder({
             x: this.x,

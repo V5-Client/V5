@@ -1,237 +1,104 @@
 name: Send Commit Message to Discord
 
 on:
-    push:
-        branches:
-            - '**'
+  push:
+    branches:
+      - '**'
 
 jobs:
-    notify-discord:
-        runs-on: ubuntu-latest
+  notify-discord:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 2
+      - name: Prepare Data
+        shell: bash
+        run: |
+          set -euo pipefail
 
-            - name: Get commit info
-              id: commit
-              shell: bash
-              run: |
-                  set -euo pipefail
+          echo "COMMIT_URL=${{ github.event.head_commit.url }}" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
+          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
+          echo "ZIP_EXISTS=false" >> "$GITHUB_ENV"
 
-                  COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
-                  AUTHOR_NAME="$(git log -1 --pretty=%an)"
-                  AUTHOR_LOGIN="${{ github.actor }}"
-                  BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-                  TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-                  COMMIT_URL="${{ github.event.head_commit.url }}"
+          declare -A USERS=(
+            ["EpsilonPhoenix"]="<@899647076370092042>"
+            ["qxionr"]="<@790294721943699477>"
+            ["quiteboring"]="<@1441859003708866601>"
+            ["rdbtCVS"]="<@777346923232886784>"
+            ["IcyHenryT"]="<@1160548899711356958>"
+            ["oblongboot"]="<@768481984242253904>"
+            ["axlecoffee"]="<@790736254714642453>"
+          )
+          ACTOR="${{ github.actor }}"
+          echo "DISCORD_AUTHOR=${USERS[$ACTOR]:-$ACTOR}" >> "$GITHUB_ENV"
 
-                  if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
-                    BASE=""
-                  else
-                    BASE="HEAD~1"
-                  fi
+          BASE="$(git rev-parse HEAD~1 2>/dev/null || echo "4b825dc642cb6eb9a060e54bf8d69288fbee4904")"
+          STATS="$(git diff --shortstat "$BASE" HEAD || echo "0 files changed")"
+          echo "STATS_TEXT=$STATS" >> "$GITHUB_ENV"
 
-                  if [ -z "$BASE" ]; then
-                    STATS="$(git show --shortstat HEAD | tail -n 1 || true)"
-                    FILES="$(git show --pretty="" --name-only HEAD || true)"
-                  else
-                    STATS="$(git diff --shortstat "$BASE" HEAD || true)"
-                    FILES="$(git diff --name-only "$BASE" HEAD || true)"
-                  fi
+          EXT_LIST="$(git diff --name-only "$BASE" HEAD \
+            | sed 's/.*\.//' \
+            | sort \
+            | uniq -c \
+            | sort -nr \
+            | head -n 10 \
+            | awk '{print $2 " (" $1 ")"}' \
+            | paste -sd ", " -)"
+          [[ -z "${EXT_LIST:-}" ]] && EXT_LIST="No specific types"
+          echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
-                  ADDED="$(echo "$STATS" | grep -oE '[0-9]+ insert' | grep -oE '[0-9]+' || echo 0)"
-                  DELETED="$(echo "$STATS" | grep -oE '[0-9]+ delet' | grep -oE '[0-9]+' || echo 0)"
-                  FILES_CHANGED="$(echo "$STATS" | grep -oE '[0-9]+ file' | grep -oE '[0-9]+' || echo 0)"
+      - name: Zip repository
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          zip -r V5.zip . -x ".git/*" ".github/*" ".vscode/*" "README.md" ".gitignore"
+          echo "ZIP_EXISTS=true" >> "$GITHUB_ENV"
 
-                  declare -A LANG_MAP=(
-                    ["js"]="JavaScript" ["ts"]="TypeScript" ["json"]="JSON"
-                    ["yaml"]="YAML" ["yml"]="YAML" ["py"]="Python"
-                    ["java"]="Java" ["kt"]="Kotlin" ["c"]="C"
-                    ["cpp"]="C++" ["cs"]="C#" ["rb"]="Ruby"
-                    ["go"]="Go" ["rs"]="Rust" ["html"]="HTML" ["css"]="CSS"
-                  )
+      - name: Send to Discord
+        env:
+          WEBHOOK: ${{ secrets.PUSH_NOTIFIER }}
+        shell: bash
+        run: |
+          set -euo pipefail
 
-                  FILETYPES="$(echo "$FILES" | awk -F. 'NF>1 {print $NF}' | sort | uniq -c || true)"
-                  FILETYPES_TEXT=""
-                  while read -r count ext; do
-                    [ -z "${ext:-}" ] && continue
-                    lang="${LANG_MAP[$ext]:-$ext}"
-                    FILETYPES_TEXT+="$lang ($count)\n"
-                  done <<< "$FILETYPES"
+          # Read commit message directly (safe even if multiline)
+          COMMIT_MSG="$(git log -1 --pretty=%B)"
+          DESCRIPTION="$(printf '%s' "$COMMIT_MSG" | cut -c 1-2000)"
 
-                  # --- Discord hard limits ---
-                  truncate() { awk -v max="$1" '{s=s $0 "\n"} END{print substr(s,1,max-3) (length(s)>max-3?"...":"")}'; }
+          PAYLOAD="$(jq -cn \
+            --arg msg "$DESCRIPTION" \
+            --arg url "$COMMIT_URL" \
+            --arg author "$DISCORD_AUTHOR" \
+            --arg branch "$BRANCH" \
+            --arg time "$TIMESTAMP" \
+            --arg stats "$STATS_TEXT" \
+            --arg types "$FILE_TYPES" \
+            '{
+              username: "V5 Commits",
+              avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
+              embeds: [{
+                title: "New Commit",
+                description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
+                color: 3447003,
+                timestamp: $time,
+                fields: [
+                  {name: "Author", value: $author, inline: true},
+                  {name: "Branch", value: $branch, inline: true},
+                  {name: "📊 Changes", value: $stats, inline: false},
+                  {name: "📂 File Types", value: $types, inline: false}
+                ]
+              }]
+            }'
+          )"
 
-                  COMMIT_MESSAGE_TRUNC="$(printf "%s" "$COMMIT_MESSAGE" | truncate 3900)"
-                  FILETYPES_TRUNC="$(printf "%s" "$FILETYPES_TEXT" | truncate 900)"
+          CURL_ARGS=(-F "payload_json=$PAYLOAD")
 
-                  {
-                    echo "message<<EOF"
-                    echo "$COMMIT_MESSAGE_TRUNC"
-                    echo "EOF"
-                    echo "author=$AUTHOR_NAME"
-                    echo "login=$AUTHOR_LOGIN"
-                    echo "branch=$BRANCH_NAME"
-                    echo "timestamp=$TIMESTAMP"
-                    echo "added=$ADDED"
-                    echo "deleted=$DELETED"
-                    echo "files_changed=$FILES_CHANGED"
-                    echo "filetypes<<EOF"
-                    echo -e "$FILETYPES_TRUNC"
-                    echo "EOF"
-                    echo "commit_url=$COMMIT_URL"
-                  } >> "$GITHUB_OUTPUT"
+          if [[ "${ZIP_EXISTS:-false}" == "true" ]]; then
+            CURL_ARGS+=(-F "file=@V5.zip;filename=V5.zip")
+          fi
 
-            - name: Map GitHub user -> Discord username
-              id: mapuser
-              shell: bash
-              run: |
-                  set -euo pipefail
-                  declare -A USER_MAP=(
-                    ["EpsilonPhoenix"]="<@899647076370092042>"
-                    ["qxionr"]="<@790294721943699477>"
-                    ["quiteboring"]="<@1441859003708866601>"
-                    ["rdbtCVS"]="<@777346923232886784>"
-                    ["IcyHenryT"]="<@1160548899711356958>"
-                    ["oblongboot"]="<@768481984242253904>"
-                    ["axlecoffee"]="<@790736254714642453>"
-                  )
-
-                  GH_USER="${{ steps.commit.outputs.login }}"
-                  DISCORD_USER="${USER_MAP[$GH_USER]:-$GH_USER}"
-                  echo "discord=$DISCORD_USER" >> "$GITHUB_OUTPUT"
-
-            - name: Zip repository (main only)
-              if: github.ref == 'refs/heads/main'
-              run: |
-                  zip -r V5.zip . \
-                    -x ".git/*" \
-                    -x ".github/*" \
-                    -x ".vscode/*" \
-                    -x "README.md" \
-                    -x ".gitignore" \
-                    -x ".prettierrc.json"
-
-                  ls -lh V5.zip
-
-            - name: Send Discord message (main + zip)
-              if: github.ref == 'refs/heads/main'
-              env:
-                  DISCORD_WEBHOOK_URL: ${{ secrets.PUSH_NOTIFIER }}
-                  COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
-                  DISCORD_USER: ${{ steps.mapuser.outputs.discord }}
-                  BRANCH_NAME: ${{ steps.commit.outputs.branch }}
-                  TIMESTAMP: ${{ steps.commit.outputs.timestamp }}
-                  ADDED: ${{ steps.commit.outputs.added }}
-                  DELETED: ${{ steps.commit.outputs.deleted }}
-                  FILES_CHANGED: ${{ steps.commit.outputs.files_changed }}
-                  FILE_TYPES: ${{ steps.commit.outputs.filetypes }}
-                  COMMIT_URL: ${{ steps.commit.outputs.commit_url }}
-              run: |
-                  set -euo pipefail
-
-                  payload="$(jq -cn \
-                    --arg username "V5 Commits" \
-                    --arg avatar_url "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg" \
-                    --arg title "New Commit" \
-                    --arg description "$COMMIT_MESSAGE" \
-                    --arg author "$DISCORD_USER" \
-                    --arg branch "$BRANCH_NAME" \
-                    --arg timestamp "$TIMESTAMP" \
-                    --arg commit_url "$COMMIT_URL" \
-                    --arg added "$ADDED" \
-                    --arg deleted "$DELETED" \
-                    --arg files_changed "$FILES_CHANGED" \
-                    --arg filetypes "$FILE_TYPES" \
-                    --argjson color 3447003 \
-                    '{
-                      username: $username,
-                      avatar_url: $avatar_url,
-                      embeds: [{
-                        title: $title,
-                        description: ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
-                        color: $color,
-                        fields: [
-                          {name: "Author", value: $author, inline: true},
-                          {name: "Branch", value: $branch, inline: true},
-                          {name: "📂 Files Changed", value: (($files_changed + " files changed") + "\n" + $filetypes), inline: false},
-                          {name: "📊 Code Line Changes", value: ("+" + $added + " added\n-" + $deleted + " deleted"), inline: false}
-                        ],
-                        timestamp: $timestamp
-                      }]
-                    }'
-                  )"
-
-                  resp="$(mktemp)"
-                  code="$(curl -sS --fail-with-body -o "$resp" -w "%{http_code}" \
-                    -X POST "$DISCORD_WEBHOOK_URL" \
-                    --form-string "payload_json=$payload" \
-                    -F "file=@V5.zip;filename=V5.zip" \
-                    || true
-                  )"
-
-                  echo "Discord HTTP: $code"
-                  cat "$resp"
-                  [[ "$code" -ge 200 && "$code" -lt 300 ]]
-
-            - name: Send Discord message (non-main)
-              if: github.ref != 'refs/heads/main'
-              env:
-                  DISCORD_WEBHOOK_URL: ${{ secrets.PUSH_NOTIFIER }}
-                  COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
-                  DISCORD_USER: ${{ steps.mapuser.outputs.discord }}
-                  BRANCH_NAME: ${{ steps.commit.outputs.branch }}
-                  TIMESTAMP: ${{ steps.commit.outputs.timestamp }}
-                  ADDED: ${{ steps.commit.outputs.added }}
-                  DELETED: ${{ steps.commit.outputs.deleted }}
-                  FILES_CHANGED: ${{ steps.commit.outputs.files_changed }}
-                  FILE_TYPES: ${{ steps.commit.outputs.filetypes }}
-                  COMMIT_URL: ${{ steps.commit.outputs.commit_url }}
-              run: |
-                  set -euo pipefail
-
-                  payload="$(jq -n \
-                    --arg username "V5 Commits" \
-                    --arg avatar_url "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg" \
-                    --arg title "New Commit" \
-                    --arg description "$COMMIT_MESSAGE" \
-                    --arg author "$DISCORD_USER" \
-                    --arg branch "$BRANCH_NAME" \
-                    --arg timestamp "$TIMESTAMP" \
-                    --arg commit_url "$COMMIT_URL" \
-                    --arg added "$ADDED" \
-                    --arg deleted "$DELETED" \
-                    --arg files_changed "$FILES_CHANGED" \
-                    --arg filetypes "$FILE_TYPES" \
-                    --argjson color 3447003 \
-                    '{
-                      username: $username,
-                      avatar_url: $avatar_url,
-                      embeds: [{
-                        title: $title,
-                        description: ("📝 Summary\n" + $description + "\n\n[View Commit](" + $commit_url + ")"),
-                        color: $color,
-                        fields: [
-                          {name: "Author", value: $author, inline: true},
-                          {name: "Branch", value: $branch, inline: true},
-                          {name: "📂 Files Changed", value: (($files_changed + " files changed") + "\n" + $filetypes), inline: false},
-                          {name: "📊 Code Line Changes", value: ("+" + $added + " added\n-" + $deleted + " deleted"), inline: false}
-                        ],
-                        timestamp: $timestamp
-                      }]
-                    }'
-                  )"
-
-                  resp="$(mktemp)"
-                  code="$(curl -sS --fail-with-body -o "$resp" -w "%{http_code}" \
-                    -H "Content-Type: application/json" \
-                    -d "$payload" \
-                    "$DISCORD_WEBHOOK_URL" || true)"
-
-                  echo "Discord HTTP: $code"
-                  cat "$resp"
-
-                  [[ "$code" -ge 200 && "$code" -lt 300 ]]
+          curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"

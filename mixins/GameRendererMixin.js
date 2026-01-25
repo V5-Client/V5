@@ -1,13 +1,13 @@
 import { attachMixin } from '../utils/AttachMixin';
 
-const gameRendererMixin = new Mixin('net.minecraft.client.render.GameRenderer');
+const Window = new Mixin('net.minecraft.client.util.Window');
 
-const Render = gameRendererMixin.modifyExpressionValue({
-    method: 'render',
-    at: new At({
-        value: 'FIELD',
-        target: 'Lnet/minecraft/client/option/GameOptions;pauseOnLostFocus:Z',
-    }),
+const FocusChanged = Window.inject({
+    method: 'onWindowFocusChanged',
+    at: new At({ value: 'HEAD' }),
+    cancellable: true,
 });
 
-export const DisablePauseOnLostFocus = attachMixin(Render, 'GameRenderer', () => false);
+export const PauseFix = attachMixin(FocusChanged, 'onWindowFocusChanged', (instance, cir) => {
+    cir.cancel();
+});
