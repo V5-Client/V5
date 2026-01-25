@@ -144,6 +144,67 @@ class PathJumps {
         }
     }
 
+    getHorizontalDistance(x1, z1, x2, z2) {
+        const dx = x1 - x2;
+        const dz = z1 - z2;
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    getYawTo(fromX, fromZ, toX, toZ) {
+        const dx = toX - fromX;
+        const dz = toZ - fromZ;
+        return (Math.atan2(-dx, dz) * 180) / Math.PI;
+    }
+
+    getYawDifference(fromYaw, toYaw) {
+        let delta = (toYaw - fromYaw) % 360;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        return Math.abs(delta);
+    }
+
+    isYawAligned(playerYaw, targetYaw, maxDiff) {
+        return this.getYawDifference(playerYaw, targetYaw) <= maxDiff;
+    }
+
+    findLandingIndex(path, startIndex) {
+        const maxSearch = Math.min(startIndex + this.MAX_GAP_SEARCH, path.length - 1);
+        for (let i = startIndex + 1; i <= maxSearch; i++) {
+            const node = path[i];
+            if (!this.hasGapAt(node.x, node.y, node.z)) return i;
+        }
+        return -1;
+    }
+
+    isSafeLanding(node, baseY) {
+        const landingBlock = this.getCachedBlock(node.x, node.y, node.z);
+        if (!landingBlock) return false;
+        const name = landingBlock.type.getRegistryName().toLowerCase();
+        if (name.includes('slab') || name.includes('stair') || name.includes('snow')) return false;
+        if (!this.isBlockSolid(node.x, node.y, node.z)) return false;
+        if (!this.isBlockSolid(node.x, node.y - 1, node.z)) return false;
+        if (this.isBlockSolid(node.x, baseY + 1, node.z)) return false;
+        if (this.isBlockSolid(node.x, baseY + 2, node.z)) return false;
+        return true;
+    }
+
+    hasClearJumpArc(startNode, endNode, baseY) {
+        const dx = endNode.x - startNode.x;
+        const dz = endNode.z - startNode.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const numChecks = Math.ceil(dist / this.GAP_CHECK_RESOLUTION);
+        if (numChecks <= 0) return false;
+        for (let i = 1; i < numChecks; i++) {
+            const t = i / numChecks;
+            const x = startNode.x + dx * t;
+            const z = startNode.z + dz * t;
+            if (this.isBlockSolid(x, baseY, z)) return false;
+            if (this.isBlockSolid(x, baseY + 1, z)) return false;
+            if (this.isBlockSolid(x, baseY + 2, z)) return false;
+        }
+        return true;
+    }
+
     drawPathAndPlayerLookAhead(path) {
         if (!Player.getPlayer() || !path || path.length === 0) return { lookahead: [], closestIndex: -1 };
 
@@ -209,31 +270,49 @@ class PathJumps {
     }
 
     checkEdgeJump(path, closestIndex) {
-        if (!Player.getPlayer().isOnGround()) return false;
+        const player = Player.getPlayer();
+        if (!player || !player.isOnGround()) return false;
+
         const start = closestIndex + 1;
         const end = Math.min(start + this.EDGE_LOOKAHEAD_NODES, path.length);
+        const playerX = Player.getX();
+        const playerZ = Player.getZ();
+        const playerYaw = player.getYaw();
+        const baseY = Math.floor(Player.getY() - 0.001);
+
         for (let i = start; i < end; i++) {
             const node = path[i];
             const block = this.getCachedBlock(node.x, node.y, node.z);
             if (block) {
-                const name = block.type.getRegistryName();
+                const name = block.type.getRegistryName().toLowerCase();
                 if (name.includes('snow')) return false;
                 if (name.includes('slab') || name.includes('stair')) continue;
             }
+
             let hasGap = this.hasGapAt(node.x, node.y, node.z);
             if (!hasGap && i > start) hasGap = this.hasGapBetweenNodes(path[i - 1], node);
-            if (hasGap) {
-                const gapWidth = this.calculateGapWidth(node, path, i);
-                if (gapWidth >= this.MIN_GAP_WIDTH) {
-                    const dx = node.x + 0.5 - Player.getX(),
-                        dz = node.z + 0.5 - Player.getZ();
-                    if (Math.sqrt(dx * dx + dz * dz) <= this.EDGE_JUMP_DISTANCE) {
-                        Chat.messagePathfinder('Edge jump detected');
-                        Keybind.setKey('space', true);
-                        return true;
-                    }
-                }
-            }
+            if (!hasGap) continue;
+
+            const landingIndex = this.findLandingIndex(path, i);
+            if (landingIndex === -1) continue;
+            const landingNode = path[landingIndex];
+
+            const jumpDistance = this.getHorizontalDistance(node.x + 0.5, node.z + 0.5, landingNode.x + 0.5, landingNode.z + 0.5);
+            if (jumpDistance < this.MIN_GAP_WIDTH || jumpDistance > this.MAX_GAP_SEARCH + 0.5) continue;
+
+            const distanceToEdge = this.getHorizontalDistance(playerX, playerZ, node.x + 0.5, node.z + 0.5);
+            if (distanceToEdge > this.EDGE_JUMP_DISTANCE) continue;
+
+            const targetYaw = this.getYawTo(playerX, playerZ, landingNode.x + 0.5, landingNode.z + 0.5);
+            if (!this.isYawAligned(playerYaw, targetYaw, 35)) continue;
+
+            if (Math.abs(landingNode.y - baseY) > 0.6) continue;
+            if (!this.isSafeLanding(landingNode, baseY)) continue;
+            if (!this.hasClearJumpArc(node, landingNode, baseY)) continue;
+
+            Chat.messagePathfinder('Edge jump detected');
+            Keybind.setKey('space', true);
+            return true;
         }
         return false;
     }
@@ -282,7 +361,7 @@ class PathJumps {
             return;
         }
         if (this.checkSnowJump(lookahead)) return;
-        // if (this.checkEdgeJump(path, closestIndex)) return;
+        if (this.checkEdgeJump(path, closestIndex)) return;
         if (this.checkObstacleJump(lookahead)) return;
         Keybind.setKey('space', false);
         this.lastLookaheadPositions = lookahead.map((d) => d.vec.y);
