@@ -119,22 +119,21 @@ class Bot extends ModuleBase {
         };
 
         this.tunnelCosts = {
-            "minecraft:packed_ice": 4,
-            "minecraft:smooth_red_sandstone": 4,
-            "minecraft:terracotta": 4,
-            "minecraft:brown_terracotta": 4,
-            "minecraft:clay": 4,
-            "minecraft:infested_cobblestone": 4,
-            "minecraft:blue_stained_glass": 4,
-            "minecraft:blue_stained_glass_pane": 4,
-            "minecraft:green_stained_glass": 4,
-            "minecraft:green_stained_glass_pane": 4,
-            "minecraft:black_stained_glass": 4,
-            "minecraft:black_stained_glass_pane": 4,
-            "minecraft:brown_stained_glass": 4,
-            "minecraft:brown_stained_glass_pane": 4,
-
-        }
+            'minecraft:packed_ice': 4,
+            'minecraft:smooth_red_sandstone': 4,
+            'minecraft:terracotta': 4,
+            'minecraft:brown_terracotta': 4,
+            'minecraft:clay': 4,
+            'minecraft:infested_cobblestone': 4,
+            'minecraft:blue_stained_glass': 4,
+            'minecraft:blue_stained_glass_pane': 4,
+            'minecraft:green_stained_glass': 4,
+            'minecraft:green_stained_glass_pane': 4,
+            'minecraft:black_stained_glass': 4,
+            'minecraft:black_stained_glass_pane': 4,
+            'minecraft:brown_stained_glass': 4,
+            'minecraft:brown_stained_glass_pane': 4,
+        };
     }
 
     updateMithrilCosts() {
