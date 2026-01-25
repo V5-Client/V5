@@ -4,7 +4,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { Raytrace } from '../../utils/Raytrace';
-import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
+import Pathfinder from '../../utils/Pathfinderrewrtie/Pathfinder';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
 
@@ -143,7 +143,7 @@ class ForagingBot extends ModuleBase {
         }
 
         this.pathInProgress = true;
-        findAndFollowPath(start, end, this.onPathFinished.bind(this));
+        Pathfinder.findPath(start, end, this.onPathFinished.bind(this));
     }
 
     onPathFinished(success) {
@@ -343,7 +343,7 @@ class ForagingBot extends ModuleBase {
     onDisable() {
         Chat.message('Foraging Bot: &cDisabled');
         Rotations.stopRotation();
-        stopPathing();
+        Pathfinder.resetPath();
         this.resetState(this.STATES.WAITING, this.pointIndex);
     }
 

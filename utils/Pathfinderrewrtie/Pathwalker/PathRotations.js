@@ -1,5 +1,5 @@
 import { MathUtils } from '../../Math';
-import { PathRotationsUtility } from '../../pathfinder/PathWalker/PathRotationsUtility';
+import { PathRotationsUtility } from './PathRotationsUtility';
 import { Spline } from '../PathSpline';
 import { BP, Vec3d } from '../../Constants';
 import RenderUtils from '../../render/RendererUtils';
