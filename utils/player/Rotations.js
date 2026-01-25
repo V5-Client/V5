@@ -426,8 +426,8 @@ class RotationsTo {
             const currentUUID = this.trackedEntity.getUUID
                 ? this.trackedEntity.getUUID().toString()
                 : this.trackedEntity.toMC
-                    ? this.trackedEntity.toMC().getUuid().toString()
-                    : null;
+                  ? this.trackedEntity.toMC().getUuid().toString()
+                  : null;
 
             const entityUUID = entity.getUUID ? entity.getUUID().toString() : entity.toMC ? entity.toMC().getUuid().toString() : null;
 
