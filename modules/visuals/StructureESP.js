@@ -16,14 +16,20 @@ class StructureESP extends ModuleBase {
             description: 'FastUtil Synchronized ESP',
         });
 
-        this.workerThread = java.util.concurrent.Executors.newSingleThreadExecutor();
+        this.workerThread = java.util.concurrent.Executors.newSingleThreadExecutor((r) => {
+            const t = new java.lang.Thread(r);
+            t.setDaemon(true);
+            t.setName('V5-StructureESP-Worker');
+            return t;
+        });
+
         this.lock = new ReentrantLock();
         this.chunks = new Long2ObjectOpenHashMap();
 
         this.on('packetReceived', (packet) => {
             const cx = packet.getChunkX();
             const cz = packet.getChunkZ();
-            console.log(`[ESP] Packet received: ${cx}, ${cz}`);
+            // console.log(`[ESP] Packet received: ${cx}, ${cz}`);
 
             setTimeout(() => {
                 this.searchChunk(cx, cz);
@@ -43,6 +49,12 @@ class StructureESP extends ModuleBase {
             console.log('Warp detected! Resetting module data...');
             this.chunks.clear();
         });
+
+        register('gameUnload', () => {
+            if (this.workerThread) {
+                this.workerThread.shutdownNow();
+            }
+        });
     }
 
     getChunkKey(x, z) {
@@ -59,7 +71,7 @@ class StructureESP extends ModuleBase {
 
                         const chunk = world.getChunk(cx, cz);
                         if (!chunk || chunk.isEmpty()) {
-                            console.log(`[ESP] Chunk ${cx}, ${cz} empty/not loaded`);
+                            // console.log(`[ESP] Chunk ${cx}, ${cz} empty/not loaded`);
                             return;
                         }
 
@@ -96,7 +108,7 @@ class StructureESP extends ModuleBase {
                         try {
                             if (targetBlocks.length > 0) {
                                 this.chunks.put(key, targetBlocks);
-                                console.log(`[ESP] Found ${targetBlocks.length} in ${cx}, ${cz}`);
+                                // console.log(`[ESP] Found ${targetBlocks.length} in ${cx}, ${cz}`);
                             } else {
                                 this.chunks.remove(key);
                             }
@@ -138,7 +150,7 @@ class StructureESP extends ModuleBase {
                                 }
                                 if (!blocks.some((b) => b.x === bx && b.y === by && b.z === bz)) {
                                     blocks.push({ x: bx, y: by, z: bz });
-                                    console.log(`[ESP] Block +: ${bx}, ${by}, ${bz}`);
+                                    // console.log(`[ESP] Block +: ${bx}, ${by}, ${bz}`);
                                 }
                             } else if (blocks) {
                                 const filtered = blocks.filter((b) => !(b.x === bx && b.y === by && b.z === bz));

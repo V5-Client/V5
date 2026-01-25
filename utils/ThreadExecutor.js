@@ -13,6 +13,10 @@ class ThreadExecutor {
 
             return thread;
         });
+
+        register('gameUnload', () => {
+            this.shutdown();
+        });
     }
 
     /**
@@ -20,6 +24,8 @@ class ThreadExecutor {
      * @param {Function} task - The function to run.
      */
     execute(task) {
+        if (this.service.isShutdown()) return;
+
         this.service.execute(() => {
             try {
                 task();
@@ -34,7 +40,7 @@ class ThreadExecutor {
      * Shuts down the executor properly.
      */
     shutdown() {
-        this.service.shutdown();
+        this.service.shutdownNow();
     }
 }
 

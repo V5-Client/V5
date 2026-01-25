@@ -43,7 +43,7 @@ class SeaLumie extends ModuleBase {
                     if (!this.startedScan) {
                         this.startedScan = true;
 
-                        new Thread(() => {
+                        const scanThread = new Thread(() => {
                             let queue = [
                                 {
                                     x: Math.floor(Player.getX()),
@@ -143,7 +143,9 @@ class SeaLumie extends ModuleBase {
                             Chat.message('Failed to find a pickle!');
                             this.startedScan = true; // retry
                             this.state = this.STATES.SCANNING;
-                        }).start();
+                        });
+                        scanThread.setDaemon(true);
+                        scanThread.start();
                     }
                     break;
                 case this.STATES.GOINGTO:
@@ -151,6 +153,7 @@ class SeaLumie extends ModuleBase {
                         this.state = this.STATES.RESURFACING;
                         Chat.message('Ran out of air, resufacing');
                     }
+                    break;
 
                 /* Rotations.rotateTo([
             this.closestPickle.x,

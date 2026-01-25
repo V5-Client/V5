@@ -18,7 +18,7 @@ function onEvent(event) {
     ChatLib.command('ct load', true);
 }
 
-new Thread(() => {
+const watcherThread = new Thread(() => {
     const watchService = FileSystems.getDefault().newWatchService();
     const path = new File('./config/ChatTriggers/modules');
 
@@ -34,9 +34,17 @@ new Thread(() => {
     register('gameUnload', () => (start = false));
 
     while (start) {
-        const key = watchService.take();
-        for (let event of key.pollEvents()) {
-            onEvent(event);
+        try {
+            const key = watchService.take();
+            for (let event of key.pollEvents()) {
+                onEvent(event);
+            }
+            key.reset();
+        } catch (e) {
+            break;
         }
     }
-}).start();
+});
+
+watcherThread.setDaemon(true);
+watcherThread.start();
