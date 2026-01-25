@@ -38,7 +38,7 @@ export class Failsafe {
         });
     }
     isFalse(checkType, data = {}) {
-        if (checkType == 'velocity' && Player.toMC().isOnFire()) {
+        if (checkType == 'velocity' && Player.toMC()?.isOnFire?.()) {
             this.ignore = true;
             setTimeout(() => {
                 this.ignore = false; // bandaid because isOnFire is only true while inside the inflicting block?? idk man
