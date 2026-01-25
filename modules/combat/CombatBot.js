@@ -203,7 +203,6 @@ class Combat extends ModuleBase {
         if (!this.target) this.target = this.bestTarget();
         if (!this.target) {
             this.setState('IDLE');
-            Rotations.stopRotation();
             return;
         }
 
@@ -212,8 +211,8 @@ class Combat extends ModuleBase {
 
         const distance = this.getDistanceToPlayer(pos);
         const targetChanged = previousTarget !== this.target;
-        if (!this.isPathing && this.combatState !== 'APPROACHING' && (targetChanged || !Rotations.isTrackingEntity(this.target))) {
-            this.startRotationToTarget();
+        if (targetChanged && this.combatState !== 'PATHING') {
+            this.setState('IDLE');
         }
 
         this.handleState(pos, distance);
@@ -301,16 +300,56 @@ class Combat extends ModuleBase {
     }
 
     stopCombat() {
-        Pathfinder.resetPath();
-        Keybind.stopMovement();
-        Rotations.stopRotation();
         this.target = null;
-        this.setState('IDLE');
-        this.isPathing = false;
+        this.setState('IDLE', true);
     }
 
-    setState(state) {
-        if (this.combatState !== state) this.combatState = state;
+    setState(state, force = false) {
+        if (!force && this.combatState === state) return;
+        this.onExitState(this.combatState);
+        this.combatState = state;
+        this.onEnterState(state);
+    }
+
+    onExitState(state) {
+        if (state === 'PATHING') {
+            Pathfinder.resetPath();
+            this.isPathing = false;
+        }
+
+        if (state === 'APPROACHING' || state === 'ATTACKING') {
+            Keybind.stopMovement();
+            Keybind.setKey('sprint', false);
+        }
+    }
+
+    onEnterState(state) {
+        if (state === 'IDLE') {
+            Keybind.stopMovement();
+            Keybind.setKey('sprint', false);
+            Rotations.stopRotation();
+            return;
+        }
+
+        if (state === 'PATHING') {
+            Keybind.stopMovement();
+            Keybind.setKey('sprint', false);
+            Rotations.stopRotation();
+            return;
+        }
+
+        if (state === 'APPROACHING') {
+            Pathfinder.resetPath();
+            this.isPathing = false;
+            return;
+        }
+
+        if (state === 'ATTACKING') {
+            Pathfinder.resetPath();
+            this.isPathing = false;
+            Keybind.stopMovement();
+            Keybind.setKey('sprint', false);
+        }
     }
 
     handleState(pos, distance) {
@@ -330,37 +369,30 @@ class Combat extends ModuleBase {
         if (this.lastPathTarget) {
             const targetMoved = this.getDistance3D(pos.x, pos.y, pos.z, this.lastPathTarget.x, this.lastPathTarget.y, this.lastPathTarget.z);
             if (targetMoved > this.pathTargetMoveThreshold) {
-                Pathfinder.resetPath();
-                this.isPathing = false;
                 this.startPathingToTarget(pos);
                 return;
             }
         }
 
         if (distance <= this.attackRange) {
-            Pathfinder.resetPath();
-            this.isPathing = false;
             this.setState('ATTACKING');
-            Keybind.stopMovement();
-            this.startRotationToTarget();
         }
     }
 
     handleApproachingState(pos, distance) {
         if (distance <= this.attackRange) {
-            Keybind.stopMovement();
             this.setState('ATTACKING');
             return;
         }
 
         if (distance > this.pathfindingThreshold) {
-            Keybind.stopMovement();
             this.startPathingToTarget(pos);
             return;
         }
 
         Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
         if (this.sprintToTarget) Keybind.setKey('sprint', true);
+        this.startRotationToTarget();
     }
 
     handleAttackingState(pos, distance) {
@@ -368,8 +400,6 @@ class Combat extends ModuleBase {
             this.setState('APPROACHING');
             return;
         }
-
-        Keybind.stopMovement();
 
         if (this.isAimingAtTarget()) this.tryAttack();
         else this.startRotationToTarget();
@@ -392,15 +422,11 @@ class Combat extends ModuleBase {
         this.setState('PATHING');
         this.currentPathStartTime = Date.now();
 
-        Rotations.stopRotation();
-
         const pathTarget = this.target;
         const pathTargetUuid = this.getTargetUuid(pathTarget);
 
         Pathfinder.resetPath();
         Pathfinder.findPath(start, end, (success) => {
-            this.isPathing = false;
-
             if (!success) {
                 if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
                     this.target = null;
@@ -429,7 +455,6 @@ class Combat extends ModuleBase {
             if (this.target && !this.isTargetInvalid(this.target)) {
                 const currentPos = this.getTargetPosition(this.target);
                 const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
-                this.startRotationToTarget();
                 this.setState(dist <= this.attackRange ? 'ATTACKING' : 'APPROACHING');
             } else {
                 this.setState('IDLE');
@@ -674,16 +699,10 @@ class Combat extends ModuleBase {
     onDisable() {
         if (!this.isParentManaged) this.message('&cDisabled');
 
-        Pathfinder.resetPath();
-        Keybind.stopMovement();
-        Keybind.setKey('sprint', false);
-        Rotations.stopRotation();
-
         this.externalTargets = null;
         this.targets = [];
         this.target = null;
-        this.setState('IDLE');
-        this.isPathing = false;
+        this.setState('IDLE', true);
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
         this.blacklistedTargets.clear();
