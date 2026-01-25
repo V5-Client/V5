@@ -5,7 +5,7 @@ import { OverlayManager } from '../../gui/OverlayUtils';
 import { Rotations } from '../../utils/player/Rotations';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
-import { Mouse } from "../../utils/Ungrab"
+import { Mouse } from '../../utils/Ungrab';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -438,7 +438,7 @@ class FishingMacro extends ModuleBase {
         this.updateOverlayUptime(); // this really should be like a overlay util or smth
         this.resetSequence();
         Keybind.setKey('shift', false);
-        Mouse.ungrab()
+        Mouse.ungrab();
     }
 
     onDisable() {
@@ -446,7 +446,7 @@ class FishingMacro extends ModuleBase {
         Keybind.setKey('shift', false);
         this.lastStriderCount = null;
         this.lastDisableTime = Date.now();
-        Mouse.regrab()
+        Mouse.regrab();
     }
 
     updateOverlayUptime() {
