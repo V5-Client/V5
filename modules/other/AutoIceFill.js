@@ -48,7 +48,7 @@ class AutoIceFill extends ModuleBase {
 
         this.when(
             () => {
-                return Utils.subArea().startsWith('The Catacombs');
+                return this.enabled && Utils.subArea().startsWith('The Catacombs');
             },
             'tick',
             () => this.onTick()

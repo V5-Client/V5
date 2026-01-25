@@ -6,6 +6,10 @@ class AlertManager {
         this.trayIcon = null;
         this.appName = 'V5 Client';
         this.setupTray();
+
+        register('gameUnload', () => {
+            this.cleanup();
+        });
     }
 
     setupTray() {
@@ -32,6 +36,15 @@ class AlertManager {
         } catch (e) {
             Chat.messageDebug('Desktop tray initialization failed: ' + e);
             console.error('V5 Caught error' + e + e.stack);
+        }
+    }
+
+    cleanup() {
+        if (this.trayIcon) {
+            try {
+                SystemTray.getSystemTray().remove(this.trayIcon);
+            } catch (e) {}
+            this.trayIcon = null;
         }
     }
 

@@ -608,7 +608,7 @@ class ExplorerUpgrade {
     upgrade(callback) {
         let self = this;
 
-        new Thread(function () {
+        const t = new Thread(function () {
             let stats = self.collector.getStoredStats();
 
             if (stats?.maxge) {
@@ -672,7 +672,9 @@ class ExplorerUpgrade {
 
             chatWatcher.unregister();
             callback(true);
-        }).start();
+        });
+        t.setDaemon(true);
+        t.start();
     }
 }
 

@@ -236,7 +236,7 @@ class VectorConverter {
 
 class FileDownloader {
     download(urlString, destination) {
-        new Thread(function () {
+        const t = new Thread(function () {
             try {
                 if (urlString.startsWith('"') && urlString.endsWith('"')) {
                     urlString = urlString.substring(1, urlString.length - 1);
@@ -255,7 +255,9 @@ class FileDownloader {
                 console.error('V5 Caught error' + e + e.stack);
                 Chat.message('Download failed: ' + e);
             }
-        }).start();
+        });
+        t.setDaemon(true);
+        t.start();
     }
 }
 
@@ -454,7 +456,7 @@ class UtilsClass {
     }
 
     openBrowser(url) {
-        new Thread(() => {
+        const t = new Thread(() => {
             try {
                 if (isMac) {
                     java.lang.Runtime.getRuntime().exec(['open', url]);
@@ -476,7 +478,9 @@ class UtilsClass {
             } catch (e) {
                 console.error('V5 Caught error in openBrowser: ' + e + e.stack);
             }
-        }).start();
+        });
+        t.setDaemon(true);
+        t.start();
     }
 }
 

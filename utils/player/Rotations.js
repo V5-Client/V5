@@ -347,6 +347,14 @@ class RotationsTo {
 
         this.lastTime = 0;
         this.initialDistance = 0;
+
+        if (RotationModule.rotationMode === 'Instant') {
+            this.applyRotationWithGCD(yaw, pitch);
+            if (!this.trackedEntity && !this.targetVector) {
+                return this.stopRotation();
+            }
+            return;
+        }
     }
 
     rotateToVector(vector, shiftTarget = true, speedMultiplier = 1.0) {
