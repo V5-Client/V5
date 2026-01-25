@@ -3,18 +3,26 @@ import { Failsafe } from '../Failsafe';
 import { manager } from '../../utils/SkyblockEvents';
 import FailsafeUtils from '../FailsafeUtils';
 import { Webhook } from '../../utils/Webhooks';
-import { PlayerPositionLookS2C } from '../../utils/Packets';
+import { PlayerPositionLookS2C, PlayerInteractItemC2S } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
+
+let lastRightClickTime = 0;
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
         super();
-        this.ignore = false;
         this.newX = 0;
         this.newY = 0;
         this.newZ = 0;
         this.settings = FailsafeUtils.getFailsafeSettings('TP');
         this.registerTPListeners();
+        this.registerRightClickListener();
+    }
+
+    registerRightClickListener() {
+        register('packetSent', (packet) => {
+            lastRightClickTime = Date.now();
+        }).setFilteredClass(PlayerInteractItemC2S);
     }
 
     registerTPListeners() {
@@ -22,13 +30,15 @@ class TeleportFailsafe extends Failsafe {
             if (!MacroState.isMacroRunning()) return;
             this.settings = FailsafeUtils.getFailsafeSettings('TP');
             if (!this.settings.isEnabled) return;
-            if (Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase()?.includes('aspect of the')) return;
 
             const fromX = Player.getX();
             const fromY = Player.getY();
             const fromZ = Player.getZ();
+            const currYaw = Player.getYaw();
+            const currPitch = Player.getPitch();
 
-            const pos = packet.change().position();
+            const change = packet.change();
+            const pos = change.position();
             this.newX = pos.x;
             this.newY = pos.y;
             this.newZ = pos.z;
@@ -36,6 +46,28 @@ class TeleportFailsafe extends Failsafe {
             const dy = Math.abs(this.newY - fromY);
             const dz = Math.abs(this.newZ - fromZ);
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            const data = {
+                distance,
+                yaw: change.yaw(),
+                pitch: change.pitch(),
+                currYaw,
+                currPitch,
+                lastRightClickTime,
+                toX: this.newX,
+                toY: this.newY,
+                toZ: this.newZ,
+                fromX,
+                fromY,
+                fromZ,
+                lookVector: {
+                    x: -Math.sin((currYaw * Math.PI) / 180) * Math.cos((currPitch * Math.PI) / 180),
+                    y: -Math.sin((currPitch * Math.PI) / 180),
+                    z: Math.cos((currYaw * Math.PI) / 180) * Math.cos((currPitch * Math.PI) / 180),
+                },
+            };
+
+            if (this.isFalse('teleport', data)) return;
 
             if (distance < 0.1) return;
 
@@ -58,34 +90,12 @@ class TeleportFailsafe extends Failsafe {
 
             setTimeout(
                 () => {
-                    if (this.ignore) return;
+                    if (this.isFalse('teleport', data)) return;
                     this.onTrigger(fromX, fromY, fromZ, this.newX, this.newY, this.newZ, distance);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600
             );
         }).setFilteredClass(PlayerPositionLookS2C);
-
-        register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
-        });
-
-        manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
-        });
     }
 
     onTrigger(fromX, fromY, fromZ, toX, toY, toZ, distance) {

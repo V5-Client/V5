@@ -34,7 +34,7 @@ class PlayerGriefFailsafe extends Failsafe {
             if (now - this.lastNearbyTrigger >= this.nearbyCooldownMs) {
                 this.checkPlayerNearby(now);
             }
-        });
+        }).setDelay(1);
     }
 
     checkPlayerInside(now) {

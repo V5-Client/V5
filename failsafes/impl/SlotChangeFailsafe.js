@@ -12,13 +12,11 @@ class SlotChangeFailsafe extends Failsafe {
         this.isFailsafeEnabled = this.settings?.isEnabled || true;
         this.FailsafeReactionTime = this.settings?.FailsafeReactionTime || 600;
         this.registerSlotChangeListeners();
-        this.ignore = false;
     }
 
     registerSlotChangeListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning()) return;
-            if (this.ignore) return;
+            if (!MacroState.isMacroRunning() || this.isFalse('slot')) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Slot Change');
             if (!this.settings.isEnabled) return;
             const currentSlot = Player.getHeldItemIndex() + 1;
@@ -26,29 +24,12 @@ class SlotChangeFailsafe extends Failsafe {
             if (currentSlot === newSlot) return;
             setTimeout(
                 () => {
-                    if (this.ignore) return;
+                    if (this.isFalse('slot')) return;
                     this.onTrigger(currentSlot, newSlot);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600
             );
         }).setFilteredClass(UpdateSelectedSlotS2C);
-
-        register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
     }
 
     onTrigger(fromSlot, toSlot) {

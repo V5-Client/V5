@@ -9,14 +9,13 @@ import { MacroState } from '../../utils/MacroState';
 class RotationFailsafe extends Failsafe {
     constructor() {
         super();
-        this.ignore = false;
         this.settings = FailsafeUtils.getFailsafeSettings('Rotation');
         this.registerRotationListeners();
     }
 
     registerRotationListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning() || this.isFalse('rotation')) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Rotation');
             if (!this.settings.isEnabled) return;
 
@@ -47,34 +46,12 @@ class RotationFailsafe extends Failsafe {
 
             setTimeout(
                 () => {
-                    if (this.ignore) return;
+                    if (this.isFalse('rotation')) return;
                     this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
                 },
                 this.settings.FailsafeReactionTime - 50 || 600
             );
         }).setFilteredClass(PlayerPositionLookS2C);
-
-        register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
-        });
-        manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
-        });
-
-        manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
-        });
     }
 
     onTrigger(fromYaw, fromPitch, toYaw, toPitch, yawDiff, pitchDiff) {
