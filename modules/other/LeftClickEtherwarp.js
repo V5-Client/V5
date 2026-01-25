@@ -18,7 +18,7 @@ class LeftClickEtherwarp extends ModuleBase {
     }
 
     onTick() {
-        if (Client.isInGui()) return
+        if (Client.isInGui()) return;
         if (Date.now() - this.clickStart > this.waitDuration) {
             Keybind.rightClick();
             Keybind.setKey('shift', false);
@@ -27,7 +27,7 @@ class LeftClickEtherwarp extends ModuleBase {
     }
 
     onClick(button, isPressed) {
-        if (Client.isInGui()) return
+        if (Client.isInGui()) return;
         if (button != 0) return;
         if (isPressed) {
             Keybind.setKey('shift', true);
