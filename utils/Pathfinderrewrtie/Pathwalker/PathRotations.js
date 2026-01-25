@@ -278,7 +278,7 @@ class PathRotations {
         }
 
         const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
-        ChatLib.chat(adaptiveLookahead.toFixed(2));
+        //ChatLib.chat(adaptiveLookahead.toFixed(2));
         const result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
         let targetPoint = result.point;
 

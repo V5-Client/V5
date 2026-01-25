@@ -4,7 +4,7 @@ import { Vec3d, ZombieEntity, EndermanEntity } from '../../utils/Constants';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
-import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
+import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Raytrace } from '../../utils/Raytrace';
 
@@ -301,7 +301,7 @@ class Combat extends ModuleBase {
     }
 
     stopCombat() {
-        stopPathing();
+        Pathfinder.resetPath();
         Keybind.stopMovement();
         Rotations.stopRotation();
         this.target = null;
@@ -330,7 +330,7 @@ class Combat extends ModuleBase {
         if (this.lastPathTarget) {
             const targetMoved = this.getDistance3D(pos.x, pos.y, pos.z, this.lastPathTarget.x, this.lastPathTarget.y, this.lastPathTarget.z);
             if (targetMoved > this.pathTargetMoveThreshold) {
-                stopPathing();
+                Pathfinder.resetPath();
                 this.isPathing = false;
                 this.startPathingToTarget(pos);
                 return;
@@ -338,7 +338,7 @@ class Combat extends ModuleBase {
         }
 
         if (distance <= this.attackRange) {
-            stopPathing();
+            Pathfinder.resetPath();
             this.isPathing = false;
             this.setState('ATTACKING');
             Keybind.stopMovement();
@@ -397,48 +397,44 @@ class Combat extends ModuleBase {
         const pathTarget = this.target;
         const pathTargetUuid = this.getTargetUuid(pathTarget);
 
-        findAndFollowPath(
-            start,
-            end,
-            (success) => {
-                this.isPathing = false;
+        Pathfinder.resetPath();
+        Pathfinder.findPath(start, end, (success) => {
+            this.isPathing = false;
 
-                if (!success) {
-                    if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
-                        this.target = null;
-                        this.setState('IDLE');
-                        return;
-                    }
-                    this.setState('APPROACHING');
+            if (!success) {
+                if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
+                    this.target = null;
+                    this.setState('IDLE');
                     return;
                 }
+                this.setState('APPROACHING');
+                return;
+            }
 
-                if (pathTargetUuid) this.failedPathCallbacks.delete(pathTargetUuid);
+            if (pathTargetUuid) this.failedPathCallbacks.delete(pathTargetUuid);
 
-                const pathDuration = Date.now() - this.currentPathStartTime;
-                if (success && pathDuration < 500 && this.target) {
-                    const currentPos = this.getTargetPosition(this.target);
-                    const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 0;
-                    if (dist > this.pathfindingThreshold - 2) {
-                        Chat.message('&cTarget unreachable by pathfinder. Blacklisting for 3s.');
-                        this.blacklistTarget(this.target, 3000);
-                        this.target = null;
-                        this.setState('IDLE');
-                        return;
-                    }
-                }
-
-                if (this.target && !this.isTargetInvalid(this.target)) {
-                    const currentPos = this.getTargetPosition(this.target);
-                    const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
-                    this.startRotationToTarget();
-                    this.setState(dist <= this.attackRange ? 'ATTACKING' : 'APPROACHING');
-                } else {
+            const pathDuration = Date.now() - this.currentPathStartTime;
+            if (success && pathDuration < 500 && this.target) {
+                const currentPos = this.getTargetPosition(this.target);
+                const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 0;
+                if (dist > this.pathfindingThreshold - 2) {
+                    Chat.message('&cTarget unreachable by pathfinder. Blacklisting for 3s.');
+                    this.blacklistTarget(this.target, 3000);
+                    this.target = null;
                     this.setState('IDLE');
+                    return;
                 }
-            },
-            true
-        );
+            }
+
+            if (this.target && !this.isTargetInvalid(this.target)) {
+                const currentPos = this.getTargetPosition(this.target);
+                const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
+                this.startRotationToTarget();
+                this.setState(dist <= this.attackRange ? 'ATTACKING' : 'APPROACHING');
+            } else {
+                this.setState('IDLE');
+            }
+        });
     }
 
     getTargetUuid(target) {
@@ -678,7 +674,7 @@ class Combat extends ModuleBase {
     onDisable() {
         if (!this.isParentManaged) this.message('&cDisabled');
 
-        stopPathing();
+        Pathfinder.resetPath();
         Keybind.stopMovement();
         Keybind.setKey('sprint', false);
         Rotations.stopRotation();
