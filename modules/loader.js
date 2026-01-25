@@ -46,4 +46,4 @@ import './other/InventoryWalk.js';
 import './other/RatProtection.js';
 import './other/VoidgloomHelper.js';
 import './other/ZeroPingEtherwarp.js';
-import "./other/LeftClickEtherwarp.js"
+import './other/LeftClickEtherwarp.js';
