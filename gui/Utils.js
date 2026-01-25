@@ -266,7 +266,7 @@ export const getDiscordPfpPath = () => discordPfpPath;
 export const returnDiscord = (authToken) => {
     try {
         if (!profilePath.exists()) {
-            new Thread(() => {
+            const t = new Thread(() => {
                 // make sure folder exists
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 
@@ -296,7 +296,9 @@ export const returnDiscord = (authToken) => {
                 let avatarUrl = data.discord.avatar;
                 Utils.downloadFile(avatarUrl, profilePath.getAbsolutePath());
                 discordPfpPath = profilePath.getAbsolutePath();
-            }).start();
+            });
+            t.setDaemon(true);
+            t.start();
         } else {
             discordPfpPath = profilePath.getAbsolutePath();
         }

@@ -11,7 +11,7 @@ import { NukerUtils } from '../../utils/NukerUtils';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
-import { PlayerActionC2S, PlayerInteractItemC2S } from '../../utils/Packets';
+import { PlayerActionC2S } from '../../utils/Packets';
 import { ServerInfo } from '../../utils/player/ServerInfo';
 
 class Bot extends ModuleBase {
@@ -117,6 +117,23 @@ class Bot extends ModuleBase {
             'minecraft:diamond_block': 4,
             'minecraft:emerald_block': 4,
         };
+
+        this.tunnelCosts = {
+            'minecraft:packed_ice': 4,
+            'minecraft:smooth_red_sandstone': 4,
+            'minecraft:terracotta': 4,
+            'minecraft:brown_terracotta': 4,
+            'minecraft:clay': 4,
+            'minecraft:infested_cobblestone': 4,
+            'minecraft:blue_stained_glass': 4,
+            'minecraft:blue_stained_glass_pane': 4,
+            'minecraft:green_stained_glass': 4,
+            'minecraft:green_stained_glass_pane': 4,
+            'minecraft:black_stained_glass': 4,
+            'minecraft:black_stained_glass_pane': 4,
+            'minecraft:brown_stained_glass': 4,
+            'minecraft:brown_stained_glass_pane': 4,
+        };
     }
 
     updateMithrilCosts() {
@@ -218,7 +235,7 @@ class Bot extends ModuleBase {
         );
         this.addMultiToggle(
             'Types',
-            ['Mithril', 'Gemstone', 'Ore'],
+            ['Mithril', 'Gemstone', 'Ore', 'Tunnel'],
             true,
             (value) => {
                 this.TYPE = value;

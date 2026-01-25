@@ -20,6 +20,7 @@ class RouteWalkerer extends ModuleBase {
             description: 'Follows multiple points in a route',
             tooltip: 'Etherwarps and walks to multiple points in a route',
             showEnabledToggle: false,
+            isMacro: true,
         });
 
         this.bindToggleKey();

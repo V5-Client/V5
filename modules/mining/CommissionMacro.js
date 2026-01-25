@@ -57,6 +57,7 @@ class CommissionMacro extends ModuleBase {
         this.savedState = null;
         this.awaitingTabUpdate = false;
         this.ignoreTabUpdatesUntil = 0;
+        this.lastCommissionSyncSource = null;
         this.travelPurpose = null;
 
         this.drill = null;
@@ -265,6 +266,7 @@ class CommissionMacro extends ModuleBase {
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
         this.ignoreTabUpdatesUntil = 0;
+        this.lastCommissionSyncSource = null;
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
@@ -691,7 +693,14 @@ class CommissionMacro extends ModuleBase {
         if (newCommissions.length > 0) {
             this.commissions = newCommissions;
             this.awaitingTabUpdate = false;
+            this.lastCommissionSyncSource = 'GUI';
             this.ignoreTabUpdatesUntil = Date.now() + 5000;
+
+            const currentName = this.currentCommission?.name;
+            const matching = currentName ? this.commissions.find((c) => c.name === currentName) : null;
+            if (!matching || matching.progress === 1) {
+                this.currentCommission = null;
+            }
         }
     }
 
@@ -886,6 +895,10 @@ class CommissionMacro extends ModuleBase {
         if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
 
         const now = Date.now();
+        if (this.ignoreTabUpdatesUntil && now < this.ignoreTabUpdatesUntil && this.lastCommissionSyncSource === 'GUI') {
+            return;
+        }
+
         if (this.ignoreTabUpdatesUntil && now < this.ignoreTabUpdatesUntil && this.lastCompletedCommissionName) {
             const staleCompleted = newCommissions.find((c) => c.name === this.lastCompletedCommissionName && c.progress === 1);
             if (staleCompleted) return;
@@ -895,6 +908,7 @@ class CommissionMacro extends ModuleBase {
         }
 
         this.commissions = newCommissions;
+        this.lastCommissionSyncSource = 'TAB';
 
         if (this.awaitingTabUpdate) {
             const stillCompleted = this.commissions.some((c) => {

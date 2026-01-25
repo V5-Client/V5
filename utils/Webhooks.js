@@ -55,7 +55,7 @@ class DiscordNotifier {
 
         v5Command('setid', (uid) => {
             if (!uid) {
-                Chat.message('&cUsage: /setuserid <id>');
+                Chat.message('&cUsage: /v5 webhook userid <id>');
                 return;
             }
             this.updateMention(uid);
@@ -122,7 +122,7 @@ class DiscordNotifier {
             title: areaName ? '**Client Initialized**' : '**Environment Loaded**',
             color: 0x800000,
             timestamp: new Date().toISOString(),
-            footer: { text: 'V5 Engine ' + this.clientVersion },
+            footer: { text: 'V5 Client ' + this.clientVersion },
         };
 
         if (areaName) {

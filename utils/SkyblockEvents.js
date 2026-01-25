@@ -45,6 +45,7 @@ class SkyblockEventManager {
             'This ability is on cooldown': 'abilitycooldown',
             'You need the Cookie Buff': 'noboostercookie',
             'CHEST LOCKPICKED': 'chestopen',
+            'You were spawned in Limbo': 'limbo',
         };
 
         const INCLUDE_CHECKS = {

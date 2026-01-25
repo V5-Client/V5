@@ -1,8 +1,7 @@
 import { MathUtils } from './Math';
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { PlayerActionC2S, PlayerActionC2SAction, HandSwingC2S } from './Packets';
-import { attachMixin } from './AttachMixin';
-import { PlayerActionPacket } from '../mixins/PlayerAction';
+import { Mixin } from './MixinManager';
 
 class NukerUtilsClass {
     static MAX_REACH_DISTANCE = 6;
@@ -11,7 +10,6 @@ class NukerUtilsClass {
 
     constructor() {
         this.initialize();
-        this.setupMixin();
         this.registerTickHandler();
     }
 
@@ -19,20 +17,16 @@ class NukerUtilsClass {
         this.lastNukeTime = Date.now();
         this.nukeQueue = [];
         this.tickCounter = 0;
+        this.sequence = 0;
         this.delay = 0;
         this.fakelookMode = 'Queue';
-        this.sequence = 0;
         this.currentBreakingBlockPos = null;
-    }
-
-    setupMixin() {
-        attachMixin(PlayerActionPacket, 'PlayerActionMixin', (instance, cir) => {
-            this.sequence = cir.getReturnValue();
-        });
     }
 
     registerTickHandler() {
         register('tick', () => {
+            this.sequence = Mixin.get('playerActionSequence', 0);
+
             if (this.fakelookMode !== 'Queue') return;
 
             if (this.nukeQueue.length > 0) {

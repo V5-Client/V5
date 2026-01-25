@@ -30,17 +30,17 @@ class Failsafes extends ModuleBase {
 
         this.on('packetReceived', (packet) => {
             if (!this.clipOnBan) return;
-            const reason = packet.reason();
-            const fullText = reason.getString();
-            const lowerText = fullText.toLowerCase();
+            const reason = packet?.reason();
+            const fullText = reason?.getString();
+            const lowerText = fullText?.toLowerCase();
             if (
-                lowerText.includes('banned') ||
-                lowerText.includes('cheating') ||
-                lowerText.includes('boosting') ||
-                lowerText.includes('security') ||
-                lowerText.includes('chat')
+                lowerText?.includes('banned') ||
+                lowerText?.includes('cheating') ||
+                lowerText?.includes('boosting') ||
+                lowerText?.includes('security') ||
+                lowerText?.includes('chat')
             ) {
-                ChatLib.command('clip', true);
+                ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(DisconnectS2C);
 

@@ -5,6 +5,7 @@ import { notificationManager } from '../gui/NotificationManager';
 import { Categories } from '../gui/categories/CategorySystem';
 import { MacroState } from './MacroState';
 import { Chat } from './Chat';
+import { manager } from './SkyblockEvents';
 
 export class ModuleBase {
     /**
@@ -45,6 +46,14 @@ export class ModuleBase {
 
         if (opts.autoDisableOnWorldUnload) {
             register('worldUnload', () => this.toggle(false));
+        }
+
+        if (opts.isMacro) {
+            manager.subscribe('limbo', () => {
+                if (!this.enabled) return;
+                this.toggle(false);
+                Chat.message('&cYou were spawned in limbo! Active macro was disabled.');
+            });
         }
     }
 

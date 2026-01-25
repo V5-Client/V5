@@ -9,9 +9,8 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Router } from '../../utils/Router';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d, BP } from '../../utils/Constants';
-import { attachMixin } from '../../utils/AttachMixin';
-import { spawnBreakParticles } from '../../mixins/SpawnBreakParticlesMixin';
 import { v5Command } from '../../utils/V5Commands';
+import { Mixin } from '../../utils/MixinManager';
 
 const FARMING_DATA = [
     {
@@ -96,6 +95,7 @@ class FarmingMacro extends ModuleBase {
             'Hide Crop Particles',
             (v) => {
                 this.HIDEPARTICLES = v;
+                Mixin.set('hideParticles', v);
             },
             'Prevents crop particles from being shown when you break a crop',
             false
@@ -109,31 +109,6 @@ class FarmingMacro extends ModuleBase {
             'Various debug messages to help with debugging',
             false
         );
-
-        attachMixin(spawnBreakParticles, 'Block', (instance, cir) => {
-            if (!this.HIDEPARTICLES) return;
-
-            const blockKey = instance.getTranslationKey();
-
-            const targetKeys = [
-                'block.minecraft.melon',
-                'block.minecraft.pumpkin',
-                'block.minecraft.carrots',
-                'block.minecraft.potatoes',
-                'block.minecraft.wheat',
-                'block.minecraft.nether_wart',
-                'block.minecraft.sugar_cane',
-                'block.minecraft.cactus',
-                'block.minecraft.cocoa',
-                'block.minecraft.melon_stem',
-                'block.minecraft.pumpkin_stem',
-                'block.minecraft.carved_pumpkin',
-            ];
-
-            const isTarget = targetKeys.some((key) => blockKey === key);
-
-            if (isTarget) cir.cancel();
-        });
 
         v5Command('setstart', () => {
             if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');

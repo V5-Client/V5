@@ -28,7 +28,7 @@ class Routes {
             const file = fileArray[i];
 
             let name = file.getName();
-            name = name.replace('.txt', '');
+            name = name.replace('.json', '');
 
             fileNames.push(name);
         }
@@ -47,7 +47,7 @@ class Routes {
 
         if (enabledRouteNames.length === 0) return null;
 
-        let fileName = enabledRouteNames.join(', ') + '.txt';
+        let fileName = enabledRouteNames.join(', ') + '.json';
         return fileName;
     }
 

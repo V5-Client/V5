@@ -39,6 +39,12 @@ class RPC extends ModuleBase {
                 }
             }
         }).setDelay(1);
+
+        register('gameUnload', () => {
+            try {
+                DiscordRPC.turnOff();
+            } catch (e) {}
+        });
     }
 
     onDisable() {

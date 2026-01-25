@@ -14,9 +14,6 @@ v5Command('blockinfo', () => {
         if (blockInfo) {
             Chat.message('block name: ' + blockInfo.name);
             Chat.message('block hardness: ' + blockInfo.hardness);
-        } else {
-            Chat.message('block name: unknown');
-            Chat.message('block hardness: unknown');
         }
         Chat.message('x: ' + block.x + ' y: ' + block.y + ' z:' + block.z);
     } else {
