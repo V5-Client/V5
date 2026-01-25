@@ -243,7 +243,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDisable() {
-        this.message('&Disabled');
+        this.message('&cDisabled');
 
         MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
