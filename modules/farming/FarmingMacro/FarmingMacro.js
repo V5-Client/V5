@@ -9,9 +9,8 @@ import { Keybind } from '../../../utils/player/Keybinding';
 import { Router } from '../../../utils/Router';
 import RenderUtils from '../../../utils/render/RendererUtils';
 import { Vec3d } from '../../../utils/Constants';
-import { attachMixin } from '../../../utils/AttachMixin';
-import { spawnBreakParticles } from '../../../mixins/SpawnBreakParticlesMixin';
 import { v5Command } from '../../../utils/V5Commands';
+import { Mixin } from '../../../utils/MixinManager';
 
 const FARMING_DATA = [
     {
@@ -112,7 +111,7 @@ class FarmingMacro extends ModuleBase {
             'Type of crop to farm'
         );
 
-        this.addToggle('Hide Crop Particles', (v) => (this.HIDEPARTICLES = v));
+        this.addToggle('Hide Crop Particles', (v) => ((this.HIDEPARTICLES = v), Mixin.set('hideParticles', v)));
         this.addToggle('Debug Messages', (v) => (this.DEBUG = v));
 
         this.bindToggleKey();
@@ -223,29 +222,6 @@ class FarmingMacro extends ModuleBase {
                 }
             }
         );
-
-        attachMixin(spawnBreakParticles, 'Block', (instance, cir) => {
-            if (!this.HIDEPARTICLES) return;
-
-            const blockKey = instance.getTranslationKey();
-            const targetKeys = [
-                'block.minecraft.melon',
-                'block.minecraft.carved_pumpkin',
-                'block.minecraft.sugar_cane',
-                'block.minecraft.nether_wart',
-                'block.minecraft.wheat',
-                'block.minecraft.carrots',
-                'block.minecraft.potatoes',
-                'block.minecraft.cocoa',
-                'block.minecraft.cactus',
-                'block.minecraft.brown_mushroom',
-                'block.minecraft.red_mushroom',
-            ];
-
-            if (targetKeys.includes(blockKey)) {
-                cir.cancel();
-            }
-        });
     }
 
     hasRanchersBoots() {

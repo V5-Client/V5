@@ -3,20 +3,48 @@ const internalAt = At;
 
 class MixinStorage {
     constructor() {
-        this._storage = new Map();
+        // This is a workaround because ChatTriggers resets data on load.
+        // Mixins always keep the same instance of a class, on ct load a complete new class is created
+        // meaning when using Mixin.get in a file that is not a mixin it will return null.
+        // By doing this we can persist data between reloads.
+        // its the simplest and fastest way imo
+        const storageKey = 'V5Mixin.storage';
+        let existingStorage = java.lang.System.getProperties().get(storageKey);
+
+        if (existingStorage instanceof java.util.HashMap) {
+            this._storage = existingStorage;
+        } else {
+            this._storage = new java.util.HashMap();
+            java.lang.System.getProperties().put(storageKey, this._storage);
+        }
     }
+
     set(key, value) {
-        this._storage.set(key, value);
+        this._storage.put(key, value);
     }
+
     get(key, defaultValue = null) {
-        return this._storage.has(key) ? this._storage.get(key) : defaultValue;
+        return this._storage.containsKey(key) ? this._storage.get(key) : defaultValue;
     }
+
+    setMethod(name, fn) {
+        if (typeof fn !== 'function') return;
+        this._storage.put(`method_${name}`, fn);
+    }
+
+    getMethod(name) {
+        const fn = this._storage.get(`method_${name}`);
+        return typeof fn === 'function' ? fn : (...args) => {};
+    }
+
     exists(key) {
-        return this._storage.has(key);
+        return this._storage.containsKey(key);
     }
+
     delete(key) {
-        return this._storage.delete(key);
+        return this._storage.remove(key);
     }
+
     clear() {
         this._storage.clear();
     }
@@ -150,6 +178,8 @@ export function Mixin(className) {
 
 Mixin.set = (key, val) => managerInstance.set(key, val);
 Mixin.get = (key, def) => managerInstance.get(key, def);
+Mixin.setMethod = (name, fn) => managerInstance.setMethod(name, fn);
+Mixin.getMethod = (name) => managerInstance.getMethod(name);
 Mixin.exists = (key) => managerInstance.exists(key);
 Mixin.delete = (key) => managerInstance.delete(key);
 Mixin.clear = () => managerInstance.clear();

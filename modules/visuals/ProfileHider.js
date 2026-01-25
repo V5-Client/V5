@@ -1,8 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import { attachMixin } from '../../utils/AttachMixin';
-import { getPlayerName } from '../../Mixins/PlayerListEntryMixin';
-import { addMessage } from '../../Mixins/ChatHudMixin';
+import { Mixin } from '../../utils/MixinManager';
 
 class ProfileHider extends ModuleBase {
     constructor() {
@@ -19,17 +17,7 @@ class ProfileHider extends ModuleBase {
         this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);
         this.addTextInput('Username', ' ', (v) => (this.USERNAME = v), 'The username you want to use');
 
-        this.UsernameMixins();
-    }
-
-    UsernameMixins() {
-        attachMixin(getPlayerName, 'getPlayerName', (instance, originalText) => {
-            return this.getModifiedText(originalText);
-        });
-
-        attachMixin(addMessage, 'addMessage', (instance, originalText) => {
-            return this.getModifiedText(originalText);
-        });
+        Mixin.setMethod('nameProcessor', (text) => this.getModifiedText(text));
     }
 
     getModifiedText(originalTextComponent) {
