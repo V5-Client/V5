@@ -3,7 +3,7 @@ import { Mixin } from '../utils/MixinManager';
 Mixin('net.minecraft.block.HorizontalConnectingBlock')
     .inject({
         method: 'getOutlineShape',
-        at: 'HEAD',
+        at: new At({ value: 'HEAD' }),
         cancellable: true,
     })
     .hook((manager, instance, cir) => {

@@ -4,7 +4,7 @@ import { Mixin } from '../utils/MixinManager';
 Mixin('net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket')
     .modifyReturnValue({
         method: 'getSequence',
-        at: 'RETURN',
+        at: new At({ value: 'RETURN' }),
     })
     .hook((manager, instance, sequence) => {
         const seq = Number(sequence);

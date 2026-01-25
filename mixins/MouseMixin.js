@@ -3,17 +3,17 @@ import { Mixin } from '../utils/MixinManager';
 Mixin('net.minecraft.client.Mouse')
     .inject({
         method: 'isCursorLocked()Z',
-        at: 'HEAD',
+        at: new At({ value: 'HEAD' }),
         cancellable: true,
     })
     .hook((manager, instance, cir) => {
         const isUnlocked = manager.get('ungrabbed', false);
-        if (isUnlocked) cir.setReturnValue(false);
+        if (isUnlocked) cir.setReturnValue(true);
     })
 
     .inject({
         method: 'lockCursor()V',
-        at: 'HEAD',
+        at: new At({ value: 'HEAD' }),
         cancellable: true,
     })
     .hook((manager, instance, cir) => {
@@ -23,7 +23,7 @@ Mixin('net.minecraft.client.Mouse')
 
     .inject({
         method: 'updateMouse(D)V',
-        at: 'HEAD',
+        at: new At({ value: 'HEAD' }),
         cancellable: true,
     })
     .hook((manager, instance, cir) => {
@@ -33,7 +33,7 @@ Mixin('net.minecraft.client.Mouse')
 
     .inject({
         method: 'onMouseScroll(JDD)V',
-        at: 'HEAD',
+        at: new At({ value: 'HEAD' }),
         cancellable: true,
     })
     .hook((manager, instance, cir) => {

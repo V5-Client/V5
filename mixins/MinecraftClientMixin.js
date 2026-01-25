@@ -3,7 +3,7 @@ import { Mixin } from '../utils/MixinManager';
 Mixin('net.minecraft.client.MinecraftClient')
     .inject({
         method: 'handleInputEvents()V',
-        at: 'HEAD',
+        at: new At({ value: 'HEAD' }),
         cancellable: true,
     })
     .hook((manager, instance, cir) => {

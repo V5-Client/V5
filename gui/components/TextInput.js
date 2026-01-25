@@ -148,10 +148,8 @@ export class TextInput {
 
     getCursorIndexFromMouseX(mouseX) {
         if (!this.text || this.text.length === 0) return 0;
-
         const relativeX = Math.max(0, mouseX - this.textX);
         let prevWidth = 0;
-
         for (let i = 0; i < this.text.length; i++) {
             const nextWidth = getTextWidth(this.text.slice(0, i + 1), FontSizes.REGULAR);
             const charWidth = nextWidth - prevWidth;
@@ -160,7 +158,6 @@ export class TextInput {
             }
             prevWidth = nextWidth;
         }
-
         return this.text.length;
     }
 
@@ -174,12 +171,10 @@ export class TextInput {
             this.cursorIndex = this.getCursorIndexFromMouseX(mouseX);
             return true;
         }
-
         if (this.isTyping) {
             this.handleInputFinish();
             return true;
         }
-
         return false;
     }
 
@@ -200,6 +195,7 @@ export class TextInput {
         }
 
         const ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        const shiftDown = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
 
         if (ctrlDown && keyCode === KEY_V) {
             try {
@@ -246,22 +242,26 @@ export class TextInput {
         }
 
         if (char && char.length === 1) {
-            const code = char.charCodeAt(0);
+            let charToAppend = char;
+            //prettier-ignore
+            const SHIFT_MAP = {
+                '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
+                '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+                '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|',
+                ';': ':', "'": '"', ',': '<', '.': '>', '/': '?'
+            };
 
-            if (code >= 33 && code <= 126) {
-                let finalChar = char;
-
-                if (code >= 97 && code <= 122) {
-                    const shiftHeld = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-                    if (shiftHeld) {
-                        finalChar = char.toUpperCase();
-                    }
+            if (shiftDown) {
+                if (SHIFT_MAP[char]) {
+                    charToAppend = SHIFT_MAP[char];
+                } else {
+                    charToAppend = char.toUpperCase();
                 }
-
-                this.text = this.text.slice(0, this.cursorIndex) + finalChar + this.text.slice(this.cursorIndex);
-                this.cursorIndex += 1;
-                return true;
             }
+
+            this.text = this.text.slice(0, this.cursorIndex) + charToAppend + this.text.slice(this.cursorIndex);
+            this.cursorIndex += 1;
+            return true;
         }
 
         return false;
@@ -270,12 +270,8 @@ export class TextInput {
     handleInputFinish() {
         this.isTyping = false;
         TypingState.isTyping = false;
-
         this.value = this.text;
-
-        if (this.callback) {
-            this.callback(this.value);
-        }
+        if (this.callback) this.callback(this.value);
         playClickSound();
     }
 }

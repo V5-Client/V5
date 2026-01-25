@@ -44,6 +44,16 @@ class ClippingManager extends ModuleBase {
         this.segmentCount = 6;
         this.compressClips = false;
 
+        this.addDirectToggle(
+            'Enabled',
+            (v) => {
+                this.toggle(!!v);
+            },
+            'Enables or disables the clipping system.',
+            true,
+            'Clipping'
+        );
+
         this.addDirectSlider(
             'FPS',
             15,

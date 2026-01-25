@@ -25,28 +25,44 @@ class ProfileHider extends ModuleBase {
         if (!this.defaultName) this.defaultName = this.getUsername();
 
         const username = Player.getName();
-        const customUsername = this.USERNAME?.trim() || this.defaultName || 'Failed to get username';
-
+        const rawCustomInput = this.USERNAME?.trim() || this.defaultName || 'Failed to get username';
         const Text = net.minecraft.text.Text;
         const newComponent = Text.empty();
+
+        const getReplacement = () => {
+            if (rawCustomInput.startsWith('#') && rawCustomInput.length > 7) {
+                try {
+                    const hexStr = rawCustomInput.substring(1, 7);
+                    const nameText = rawCustomInput.substring(7);
+                    const colorInt = java.lang.Integer.parseInt(hexStr, 16);
+
+                    return Text.literal(nameText).styled((s) => s.withColor(colorInt));
+                } catch (e) {
+                    return Text.literal(rawCustomInput);
+                }
+            }
+
+            if (rawCustomInput.includes('&') || rawCustomInput.includes('§')) {
+                return Text.literal(rawCustomInput.replace(/&/g, '§'));
+            }
+
+            return this.chroma(rawCustomInput);
+        };
 
         originalTextComponent.visit((style, content) => {
             if (content.includes(username)) {
                 const parts = content.split(username);
-
                 for (let i = 0; i < parts.length; i++) {
                     if (parts[i].length > 0) {
                         newComponent.append(Text.literal(parts[i]).setStyle(style));
                     }
-
                     if (i < parts.length - 1) {
-                        newComponent.append(this.chroma(customUsername));
+                        newComponent.append(getReplacement());
                     }
                 }
             } else {
                 newComponent.append(Text.literal(content).setStyle(style));
             }
-
             return java.util.Optional.empty();
         }, net.minecraft.text.Style.EMPTY);
 

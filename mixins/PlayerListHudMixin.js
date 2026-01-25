@@ -3,7 +3,7 @@ import { Mixin } from '../utils/MixinManager';
 Mixin('net.minecraft.client.gui.hud.PlayerListHud')
     .modifyReturnValue({
         method: 'getPlayerName',
-        at: 'RETURN',
+        at: new At({ value: 'RETURN' }),
     })
     .hook((manager, instance, originalText) => {
         const processor = manager.getMethod('nameProcessor');
