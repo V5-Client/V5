@@ -12,7 +12,7 @@ class StructureESP extends ModuleBase {
     constructor() {
         super({
             name: 'Structure ESP',
-            category: 'Visuals',
+            subcategory: 'Visuals',
             description: 'FastUtil Synchronized ESP',
         });
 
