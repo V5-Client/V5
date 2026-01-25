@@ -32,18 +32,18 @@ class CommissionMacro extends ModuleBase {
             name: 'Commission Macro',
             subcategory: 'Mining',
             description: 'Completes Commissions for you',
-            tooltip: 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            tooltip: 'Completes Commissions for you (Dwarven).',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
             isMacro: true,
         });
+        this.bindToggleKey();
+        this.setTheme('#4cdfd2');
 
-        this.overlayName = 'Commission Macro';
         this.commissionsCompleted = 0;
         this.currentToolType = 'None'; // 'Drill', 'Pickaxe', 'Weapon'
         this.currentToolName = 'None';
 
-        this.bindToggleKey();
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;
         this.goblinWeaponSlot = 1;
@@ -58,7 +58,6 @@ class CommissionMacro extends ModuleBase {
         this.awaitingTabUpdate = false;
         this.ignoreTabUpdatesUntil = 0;
         this.travelPurpose = null;
-        this.pathfinding = false;
 
         this.drill = null;
         this.blueCheese = null;
@@ -209,7 +208,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('&aCommission Macro Enabled.');
+        this.message('&aEnabled');
 
         this.commissionsCompleted = 0;
 
@@ -244,13 +243,12 @@ class CommissionMacro extends ModuleBase {
     }
 
     onDisable() {
-        Chat.message('&cCommission Macro Disabled.');
+        this.message('&Disabled');
 
         MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         Pathfinder.resetPath();
-        this.pathfinding = false;
         this.travelPurpose = null;
         Mouse.regrab();
         Keybind.setKey('rightclick', false);
@@ -267,7 +265,6 @@ class CommissionMacro extends ModuleBase {
         this.pauseTicks = 0;
         this.awaitingTabUpdate = false;
         this.ignoreTabUpdatesUntil = 0;
-        this.pathfinding = false;
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
@@ -561,14 +558,12 @@ class CommissionMacro extends ModuleBase {
 
         const yDiff = closest[1] - Player.getY();
         if (yDiff > 3 && closestDist < 10) {
-            if (!this.pathfinding) {
+            if (!Pathfinder.isPathing()) {
                 // console.log('under platform');
-                this.pathfinding = true;
                 this.travelPurpose = 'EMISSARY';
 
                 const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
                 Pathfinder.findPath(currentPos, EMISSARY_LOCATIONS, (success) => {
-                    this.pathfinding = false;
                     if (!success) {
                         Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
                         // probably should blacklist emissary and go to different emissary
@@ -581,7 +576,7 @@ class CommissionMacro extends ModuleBase {
 
         if (closestDist < 4 && !this.pathfinding) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
-            if (!this.npcRotationPending && !Rotations.isRotating) {
+            if (!this.npcRotationPending && !Rotations.isRotating && !Pathfinder.isPathing()) {
                 this.npcRotationPending = true;
                 const token = ++this.npcRotationToken;
                 Rotations.rotateToVector(adjustedTarget);
@@ -595,12 +590,9 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        if (this.pathfinding) return;
-        this.pathfinding = true;
+        if (Pathfinder.isPathing()) return;
         this.travelPurpose = 'EMISSARY';
         Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], EMISSARY_LOCATIONS, (success) => {
-            if (!success) return;
-            this.pathfinding = false;
             if (!success) {
                 this.setState(STATES.CHOOSING);
             }
@@ -826,7 +818,6 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false, true);
 
-        this.pathfinding = false;
         this.travelPurpose = null;
         this.lastCompletedCommissionName = this.currentCommission?.name || null;
         this.lastCommissionName = this.currentCommission?.name || null;

@@ -244,6 +244,10 @@ class Finder {
         this.render = null;
     }
 
+    isPathing() {
+        return !!this.tick;
+    }
+
     findStartY(coords) {
         let y = coords[1] + 1;
 
