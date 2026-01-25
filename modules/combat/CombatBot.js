@@ -72,7 +72,6 @@ class Combat extends ModuleBase {
         this.attackRange = ATTACK_REACH;
         this.pathfindingThreshold = 15;
         this.attackCPS = 10;
-        this.sprintToTarget = true;
 
         this.lastAttackTime = 0;
         this.isPathing = false;
@@ -127,15 +126,6 @@ class Combat extends ModuleBase {
                 this.attackCPS = value;
             },
             'Attacks per second'
-        );
-
-        this.addToggle(
-            'Sprint',
-            (value) => {
-                this.sprintToTarget = value;
-            },
-            'Sprint when approaching targets',
-            true
         );
 
         const targetName = () =>
@@ -319,21 +309,18 @@ class Combat extends ModuleBase {
 
         if (state === 'APPROACHING' || state === 'ATTACKING') {
             Keybind.stopMovement();
-            Keybind.setKey('sprint', false);
         }
     }
 
     onEnterState(state) {
         if (state === 'IDLE') {
             Keybind.stopMovement();
-            Keybind.setKey('sprint', false);
             Rotations.stopRotation();
             return;
         }
 
         if (state === 'PATHING') {
             Keybind.stopMovement();
-            Keybind.setKey('sprint', false);
             Rotations.stopRotation();
             return;
         }
@@ -348,7 +335,6 @@ class Combat extends ModuleBase {
             Pathfinder.resetPath();
             this.isPathing = false;
             Keybind.stopMovement();
-            Keybind.setKey('sprint', false);
         }
     }
 
@@ -391,7 +377,7 @@ class Combat extends ModuleBase {
         }
 
         Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
-        if (this.sprintToTarget) Keybind.setKey('sprint', true);
+        Keybind.setKey('sprint', true);
         this.startRotationToTarget();
     }
 
