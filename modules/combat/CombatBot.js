@@ -151,12 +151,17 @@ class Combat extends ModuleBase {
         if (!this.targets || this.targets.length === 0) return;
 
         if (this.target) {
-            const entity = this.target.toMC ? this.target.toMC() : this.target;
-            RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+            const targetUuid = this.getTargetUuid(this.target);
+            if (!targetUuid || !this.blacklistedTargets.has(targetUuid)) {
+                const entity = this.target.toMC ? this.target.toMC() : this.target;
+                RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+            }
         }
 
         this.targets.forEach((target) => {
             if (target === this.target) return;
+            const targetUuid = this.getTargetUuid(target);
+            if (targetUuid && this.blacklistedTargets.has(targetUuid)) return;
             const entity = target.toMC ? target.toMC() : target;
             RenderUtils.drawEntityHitbox(entity, [0, 70, 200, 100], 3, false);
         });
