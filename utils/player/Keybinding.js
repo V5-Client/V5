@@ -18,14 +18,18 @@ class ControlSystem {
         if (Client.isInGui() && !Client.isInChat()) {
             return Chat.message('Left click suppressed: User in menu.');
         }
-        LEFT_CLICK_METHOD.invoke(mc);
+        Client.scheduleTask(() => {
+            LEFT_CLICK_METHOD.invoke(mc);
+        })
     }
 
     triggerRightClick() {
         if (Client.isInGui() && !Client.isInChat()) {
-            return Chat.message('Right click suppressed: User in menu.');
+            //return Chat.message('Right click suppressed: User in menu.');
         }
-        RIGHT_CLICK_METHOD.invoke(mc);
+        Client.scheduleTask(() => {
+            RIGHT_CLICK_METHOD.invoke(mc);
+        })
     }
 
     sendRightClickPacket(delay, x, y, z) {
@@ -46,7 +50,7 @@ class ControlSystem {
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
             if (guiOpen && !chatOpen) {
-                attackKey.setPressed(false);
+                Client.scheduleTask(() => { attackKey.setPressed(false) })
                 return true;
             }
 
@@ -54,7 +58,7 @@ class ControlSystem {
             mouseGrabbed.setAccessible(true);
             mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
 
-            attackKey.setPressed(!!isPressed);
+            Client.scheduleTask(() => { attackKey.setPressed(!!isPressed) })
             return true;
         }
 
@@ -73,7 +77,7 @@ class ControlSystem {
 
         const keyObj = mapping[action];
         if (keyObj) {
-            keyObj.setPressed(!!isPressed);
+            Client.scheduleTask(() => { keyObj.setPressed(!!isPressed) })
             return true;
         }
         return false;
