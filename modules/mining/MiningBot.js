@@ -390,11 +390,7 @@ class Bot extends ModuleBase {
 
     handleBreaking(blockName, fakeLookMode) {
         if (fakeLookMode === 'Off') {
-            if (Player.toMC().handSwinging) return;
-            if (Date.now() - this.lastGUI > 100) {
-                Keybind.setKey('leftclick', true);
-                this.lastGUI = Date.now();
-            }
+            Keybind.setKey('leftclick', true);
         } else {
             Keybind.setKey('leftclick', false);
             if (this.isAirOrBedrock(blockName)) {
