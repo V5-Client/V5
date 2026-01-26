@@ -1,228 +1,101 @@
-import { Vec3d, BP } from '../../Constants';
-import { Utils } from '../../Utils';
-import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
-import { Rotations } from './PathRotations';
 import PathConfig from '../PathConfig';
 
 class PathRecovery {
     constructor() {
-        this.MOVING_THRESH = 0.12;
-        this.COLLIDED_THRESH = 0.05;
-        this.RETRY_INTERVALS = [3, 14, 25];
-        this.MAX_ATTEMPTS = 3;
-        this.LOCKOUT_TICKS = 25;
-        this.SEVERE_STUCK_TICKS = 40;
+        this.MOVING_THRESHOLD = 0.12;
+        this.PROGRESS_THRESHOLD = 3.0;
+
+        this.STUCK_TICKS_JUMP = 12;
+        this.STUCK_TICKS_CLOSE_LOOK = 24;
+        this.STUCK_TICKS_BACKUP_RECALC = 36;
 
         this.lastPos = null;
+        this.stuckPos = null;
         this.stuckTicks = 0;
-        this.attemptCount = 0;
-        this.recoveryLockTicks = 0;
-        this.referenceBoxIndex = -1;
-
-        this.isActive = false;
-        this.currentPhase = null;
-        this.phaseTicks = 0;
-        this.jumpDurationTicks = 0;
-        this.activeEscapeYaw = null;
-        this.backupDuration = 0;
-        this.forwardDelay = 0;
-
-        this.boxPositions = [];
-        this.currentBoxIndex = -1;
-    }
-
-    setBoxIndex(boxIndex) {
-        this.currentBoxIndex = boxIndex;
+        this.currentLevel = 0;
     }
 
     trackProgress() {
-        if (!this.boxPositions?.length) {
-            this.boxPositions = Rotations.boxPositions;
-            this.currentBoxIndex = Rotations.currentBoxIndex;
-        }
+        const player = Player.getPlayer();
+        if (!player || !player.isOnGround()) return null;
 
-        const pX = Player.getX(),
-            pY = Player.getY(),
-            pZ = Player.getZ();
-
-        if (this.isActive) {
-            this.processRecoverySequence();
-            return 'RECOVERING';
-        }
-
-        if (this.jumpDurationTicks > 0) this.executeJumpTick();
-
-        if (this.recoveryLockTicks > 0) {
-            if (--this.recoveryLockTicks === 0) {
-                this.verifyRecoverySuccess();
-            }
+        const playerMP = Player.asPlayerMP();
+        if (playerMP && (playerMP.isInLava() || playerMP.isInWater())) {
+            this.resetTracking();
             return null;
         }
 
-        const distMoved = this.lastPos ? this.getDistanceHorizontal(pX, pZ, this.lastPos.x, this.lastPos.z) : 1.0;
-        const threshold = Utils.playerIsCollided() ? this.COLLIDED_THRESH : this.MOVING_THRESH;
+        const pX = Player.getX();
+        const pZ = Player.getZ();
 
-        if (distMoved > threshold) {
-            this.resetTracking(pX, pY, pZ);
+        let distMoved = 1.0;
+        if (this.lastPos) {
+            const dx = pX - this.lastPos.x;
+            const dz = pZ - this.lastPos.z;
+            distMoved = Math.sqrt(dx * dx + dz * dz);
+        }
+
+        if (distMoved > this.MOVING_THRESHOLD) {
+            this.resetTracking();
+            this.lastPos = { x: pX, z: pZ };
             return null;
+        }
+
+        if (this.stuckTicks === 0) {
+            this.stuckPos = { x: pX, z: pZ };
         }
 
         this.stuckTicks++;
-        this.lastPos = new Vec3d(pX, pY, pZ);
+        this.lastPos = { x: pX, z: pZ };
 
-        if (this.stuckTicks >= this.SEVERE_STUCK_TICKS) {
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§4[Stuck] Severe - Requesting Recalculate`);
-            this.stop();
-            return 'RECALCULATE';
-        }
-
-        return this.triggerAttempt();
-    }
-
-    triggerAttempt() {
-        const nextThreshold = this.RETRY_INTERVALS[this.attemptCount];
-        if (this.stuckTicks < nextThreshold || this.attemptCount >= this.MAX_ATTEMPTS) return null;
-
-        this.attemptCount++;
-        this.recoveryLockTicks = this.LOCKOUT_TICKS;
-        this.referenceBoxIndex = this.currentBoxIndex;
-
-        const escapeYaw = this.calculateEscapeYaw();
-        if (escapeYaw !== null) {
-            this.activeEscapeYaw = escapeYaw;
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§e[Recovery] Trapped! Escaping at ${escapeYaw.toFixed(0)}°`);
-            this.startSequence('JUMP', 0, 4);
-            return this.currentBoxIndex;
-        }
-
-        let rewindIndex = this.currentBoxIndex;
-        switch (this.attemptCount) {
-            case 1:
-                if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`Recovery 1/3: Jump Only`);
-                this.startSequence('JUMP', 0, 3);
-                //rewindIndex = Math.max(0, this.currentBoxIndex - 1);
-                break;
-            case 2:
-                if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`Recovery 2/3: Backup + Jump`);
-                this.startSequence('BACKUP', 12, 4);
-                // rewindIndex = Math.max(0, this.currentBoxIndex - 2);
-                break;
-            case 3:
-                if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`Recovery 3/3: Full Rewind`);
-                this.startSequence('BACKUP', 20, 5);
-                // rewindIndex = Math.max(0, this.currentBoxIndex - 5);
-                break;
-        }
-
-        Rotations.currentBoxIndex = rewindIndex;
-        this.currentBoxIndex = rewindIndex;
-        return rewindIndex;
-    }
-
-    processRecoverySequence() {
-        this.phaseTicks++;
-
-        if (this.currentPhase === 'BACKUP' && this.phaseTicks >= this.backupDuration) {
-            this.startSequence('JUMP', 0, this.forwardDelay);
-        } else if (this.currentPhase === 'JUMP' && this.phaseTicks >= 4 + this.forwardDelay) {
-            this.currentPhase = 'FORWARD';
-            this.phaseTicks = 0;
-        } else if (this.currentPhase === 'FORWARD' && this.phaseTicks >= 5) {
-            this.isActive = false;
-        }
-    }
-
-    startSequence(phase, backupTicks, forwardDelay) {
-        this.isActive = true;
-        this.currentPhase = phase;
-        this.phaseTicks = 0;
-        this.backupDuration = backupTicks;
-        this.forwardDelay = forwardDelay;
-        if (phase === 'JUMP') this.jumpDurationTicks = 4;
-    }
-
-    executeJumpTick() {
-        this.jumpDurationTicks--;
-        Keybind.setKey('space', true);
-    }
-
-    verifyRecoverySuccess() {
-        if (!this.lastPos) return;
-        const pX = Player.getX(),
-            pZ = Player.getZ();
-        const distFromStuck = this.getDistanceHorizontal(pX, pZ, this.lastPos.x, this.lastPos.z);
-
-        if (distFromStuck > 1.5) {
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§a[Recovery] Success!`);
-            this.attemptCount = 0;
-            this.stuckTicks = 0;
-        } else {
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§c[Recovery] Failed.`);
-        }
-    }
-
-    calculateEscapeYaw() {
-        const directions = [
-            { dx: 1, dz: 0, yaw: -90 },
-            { dx: -1, dz: 0, yaw: 90 },
-            { dx: 0, dz: 1, yaw: 0 },
-            { dx: 0, dz: -1, yaw: 180 },
-        ];
-        let blockedCount = 0;
-        let validExitYaw = null;
-        const pX = Player.getX(),
-            pY = Player.getY(),
-            pZ = Player.getZ();
-
-        directions.forEach((dir) => {
-            if (this.isBlockSolid(pX + dir.dx, pY, pZ + dir.dz) || this.isBlockSolid(pX + dir.dx, pY + 1, pZ + dir.dz)) {
-                blockedCount++;
-            } else {
-                validExitYaw = dir.yaw;
+        if (this.stuckTicks >= this.STUCK_TICKS_BACKUP_RECALC && this.currentLevel < 3) {
+            if (PathConfig.PATHFINDING_DEBUG) {
+                Chat.messagePathfinder('§6Recovery 3/3: Backup and Recalculate');
             }
-        });
-        return blockedCount >= 3 && validExitYaw !== null && this.isBlockSolid(pX, pY + 2, pZ) ? validExitYaw : null;
+            this.currentLevel = 3;
+            return 'BACKUP_RECALC';
+        }
+
+        if (this.stuckTicks >= this.STUCK_TICKS_CLOSE_LOOK && this.currentLevel < 2) {
+            if (PathConfig.PATHFINDING_DEBUG) {
+                Chat.messagePathfinder('§eRecovery 2/3: Reducing lookahead');
+            }
+            this.currentLevel = 2;
+            return 'CLOSE_LOOK';
+        }
+
+        if (this.stuckTicks >= this.STUCK_TICKS_JUMP && this.currentLevel < 1) {
+            if (PathConfig.PATHFINDING_DEBUG) {
+                Chat.messagePathfinder('§eRecovery 1/3: Jump');
+            }
+            this.currentLevel = 1;
+            return 'JUMP';
+        }
+
+        return null;
     }
 
-    isBlockSolid(x, y, z) {
-        const pos = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
-        const world = World.getWorld();
-        if (!world) return false;
-        return !world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
+    hasMadeProgress() {
+        if (!this.stuckPos) return false;
+
+        const pX = Player.getX();
+        const pZ = Player.getZ();
+        const dx = pX - this.stuckPos.x;
+        const dz = pZ - this.stuckPos.z;
+
+        return Math.sqrt(dx * dx + dz * dz) > this.PROGRESS_THRESHOLD;
     }
 
-    resetTracking(x, y, z) {
-        this.lastPos = new Vec3d(x, y, z);
+    resetTracking() {
         this.stuckTicks = 0;
-        this.attemptCount = 0;
-        this.activeEscapeYaw = null;
+        this.currentLevel = 0;
     }
 
     stop() {
-        this.isActive = false;
-        this.currentPhase = null;
-        this.stuckTicks = 0;
-        this.attemptCount = 0;
-        this.recoveryLockTicks = 0;
-        this.jumpDurationTicks = 0;
-        this.activeEscapeYaw = null;
+        this.resetTracking();
         this.lastPos = null;
-    }
-
-    getActiveControls() {
-        return {
-            isForward: this.isActive && (this.currentPhase === 'JUMP' || this.currentPhase === 'FORWARD'),
-            isBackward: this.isActive && this.currentPhase === 'BACKUP',
-            isJumping: this.jumpDurationTicks > 0,
-            overrideYaw: this.activeEscapeYaw,
-        };
-    }
-
-    getDistanceHorizontal(x1, z1, x2, z2) {
-        const dx = x1 - x2;
-        const dz = z1 - z2;
-        return Math.sqrt(dx * dx + dz * dz);
+        this.stuckPos = null;
     }
 }
 

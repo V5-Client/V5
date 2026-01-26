@@ -3,6 +3,7 @@ import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
 import RenderUtils from '../../render/RendererUtils';
 import PathConfig from '../PathConfig';
+import { Movement } from './PathMovement';
 
 class PathJumps {
     constructor() {
@@ -364,7 +365,9 @@ class PathJumps {
         if (this.checkSnowJump(lookahead)) return;
         if (this.checkEdgeJump(path, closestIndex)) return;
         if (this.checkObstacleJump(lookahead)) return;
-        Keybind.setKey('space', false);
+        if (!Movement.isRecovering()) {
+            Keybind.setKey('space', false);
+        }
         this.lastLookaheadPositions = lookahead.map((d) => d.vec.y);
     }
 

@@ -30,7 +30,9 @@ class PathRotations {
 
         this.resetRotations();
         this.onStep();
-        // this.onRender();
+
+        this.lookaheadOverride = null;
+        this.lookaheadOverrideExpiry = 0;
     }
 
     resetRotations() {
@@ -53,6 +55,9 @@ class PathRotations {
         this.cachedLookahead = null;
         this.lastVisibilityCheck = 0;
 
+        this.lookaheadOverride = null;
+        this.lookaheadOverrideExpiry = 0;
+
         PathRotationsUtility.stopRotation();
     }
 
@@ -64,16 +69,6 @@ class PathRotations {
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
         }).setFps(120);
     }
-
-    onRender() {
-        register('postrenderWorld', () => {
-            // Spline.drawLookPoints();
-
-            if (!this.rotationActive || !this.currentTargetPoint) return;
-            RenderUtils.drawBox(new Vec3d(this.currentTargetPoint.x, this.currentTargetPoint.y, this.currentTargetPoint.z), [0, 0, 255, 80], true);
-        });
-    }
-
     isPointVisible(playerEyes, targetPoint) {
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
@@ -124,6 +119,19 @@ class PathRotations {
         const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
         const val = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
         return Math.acos(val) * (180 / Math.PI);
+    }
+
+    setTemporaryLookahead(distance, durationTicks = 30) {
+        this.lookaheadOverride = distance;
+        this.lookaheadOverrideExpiry = durationTicks;
+
+        this.smoothedLookahead = distance;
+        this.cachedLookahead = null;
+    }
+
+    clearLookaheadOverride() {
+        this.lookaheadOverride = null;
+        this.lookaheadOverrideExpiry = 0;
     }
 
     findVisibleLookahead(playerEyes, idealLookahead) {
@@ -187,6 +195,15 @@ class PathRotations {
     }
 
     getAdaptiveLookahead(playerEyes) {
+        if (this.lookaheadOverride !== null) {
+            if (this.lookaheadOverrideExpiry > 0) {
+                this.lookaheadOverrideExpiry--;
+                return this.lookaheadOverride;
+            } else {
+                this.lookaheadOverride = null;
+            }
+        }
+
         const targetIndex = Math.floor(this.currentPathPosition);
         if (targetIndex + 3 >= this.boxPositions.length) return this.smoothedLookahead;
 

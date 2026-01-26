@@ -8,9 +8,9 @@ import { showNotification } from '../../gui/NotificationManager';
 import { Rotations } from './Pathwalker/PathRotations';
 import { Jump } from './Pathwalker/PathJumps';
 import { Movement } from './Pathwalker/PathMovement';
+import { Recovery } from './Pathwalker/PathRecovery';
 import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
-import { Recovery } from './Pathwalker/PathRecovery';
 
 class Finder {
     constructor() {
@@ -19,15 +19,12 @@ class Finder {
         this.saidInfo = false;
         this.calledFromFile = false;
 
-        this.currentStart = null;
         this.currentEnd = null;
-
-        this.isRecalculating = false;
-        this.failCount = 0;
+        this.currentCallback = null;
+        this.recalculateAttempts = 0;
+        this.MAX_RECALCULATE_ATTEMPTS = 5;
 
         v5Command('path', (...args) => {
-            const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-
             if (args.length < 3) return Chat.messagePathfinder('Usage: /path x y z [x2 y2 z2...]');
 
             const coords = args.map(Number);
@@ -35,11 +32,8 @@ class Finder {
                 return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
             }
 
-            let end;
-            if (coords.length === 3) {
-                end = coords;
-            } else {
-                end = [];
+            let end = coords.length === 3 ? coords : [];
+            if (coords.length > 3) {
                 for (let i = 0; i < coords.length; i += 3) {
                     end.push([coords[i], coords[i + 1], coords[i + 2]]);
                 }
@@ -47,197 +41,235 @@ class Finder {
 
             this.resetPath();
             this.calledFromFile = true;
-            this.findPath(start, end);
+            this.findPath(end);
         });
 
-        v5Command('stopPath', () => {
-            this.resetPath();
-        });
+        v5Command('stopPath', () => this.resetPath());
     }
 
-    findPath(start, end, onComplete, renderOnly = false) {
-        this.currentStart = start;
+    findPath(end, onComplete, renderOnly = false) {
         this.currentEnd = end;
-        this.calledOnComplete = onComplete;
+        this.currentCallback = onComplete;
 
-        const PathStart = this.findStartY(start);
+        const start = this.getPlayerStart();
 
         if (this.calledFromFile) {
-            // don't check for PATHFINDING_DEBUG because this is honestly a useful message
-            let endStr = Array.isArray(end[0]) ? `Multiple Goals (${end.length})` : `${end[0]}, ${end[1]}, ${end[2]}`;
-            Chat.messagePathfinder(`Path from &a${PathStart.x}, ${PathStart.y}, ${PathStart.z}&f to &c${endStr}`);
+            const endStr = Array.isArray(end[0]) ? `Multiple Goals (${end.length})` : `${end[0]}, ${end[1]}, ${end[2]}`;
+            Chat.messagePathfinder(`Path from &a${start.x}, ${start.y}, ${start.z}&f to &c${endStr}`);
         }
 
-        const fullPath = Swift.SwiftPath(PathStart.x, PathStart.y, PathStart.z, end);
-
-        if (!fullPath) {
-            const error = Swift.getLastError() || 'Failed to start pathfinding';
-            showNotification('Pathfinding Failed', error, 'ERROR', 5000);
-            //  console.error('Pathfinding failed to start:', error);
-            //  currentDestination = null;
-            //  if (onComplete && typeof onComplete === 'function') onComplete(false);
+        if (!Swift.SwiftPath(start.x, start.y, start.z, end)) {
+            showNotification('Pathfinding Failed', Swift.getLastError() || 'Failed to start', 'ERROR', 5000);
             return;
         }
 
-        if (this.calledFromFile && PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('§eSearching for path...');
+        if (this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
+            Chat.messagePathfinder('§eSearching for path...');
+        }
 
-        this.onTick(onComplete, renderOnly);
+        this.startTick(renderOnly);
     }
 
-    onTick(onComplete, renderOnly) {
+    startTick(renderOnly) {
         if (this.tick) return;
 
         this.tick = register('tick', () => {
             if (Swift.isSearching()) return;
 
             const result = Swift.getResult();
-
-            if (!result) {
-                showNotification('Pathfinding Failed', 'Failed to get path result', 'ERROR', 5000);
-                if (onComplete && typeof onComplete === 'function') onComplete(false);
-                this.destroyTick();
-                return;
-            }
-
-            if (!result.keynodes || result.keynodes.length < 1) {
+            if (!result || !result.keynodes?.length) {
                 if (this.checkIfReachedDestination()) {
-                    this.finishSuccess(onComplete);
+                    this.finishSuccess();
                 } else {
                     this.recalculate();
                 }
                 return;
             }
 
-            if (!this.saidInfo && this.calledFromFile) {
-                if (PathConfig.PATHFINDING_DEBUG) {
-                    Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
-                }
+            if (!this.saidInfo && this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
+                Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
                 this.saidInfo = true;
-                this.failCount = 0;
             }
 
             const splinePath = this.createSplinePath(result);
 
             if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS) {
-                this.onRender(result, splinePath);
+                this.startRender(result, splinePath);
             }
 
             if (renderOnly) {
-                showNotification('Render Only', 'Path rendered. Use /stop to clear.', 'INFO', 3000);
+                showNotification('Render Only', 'Path rendered.', 'INFO', 3000);
                 this.destroyTick();
                 return;
             }
 
-            if (splinePath && splinePath.length > 1) {
-                const rotationsReady = Rotations.boxPositions && Rotations.boxPositions.length > 0;
+            if (!splinePath?.length) return;
 
-                if (rotationsReady && Rotations.complete) {
-                    if (this.checkIfReachedDestination()) {
-                        this.finishSuccess(onComplete);
-                    } else {
-                        if (PathConfig.PATHFINDING_DEBUG) {
-                            Chat.messagePathfinder('§ePath ended but destination not reached. Recalculating.');
-                        }
+            if (Rotations.boxPositions?.length && Rotations.complete) {
+                this.checkIfReachedDestination() ? this.finishSuccess() : this.recalculate();
+                return;
+            }
+
+            Executor.execute(() => {
+                Rotations.pathRotations(splinePath);
+                Jump.detectJump(splinePath);
+                Movement.beginMovement();
+
+                if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
+                    if (PathConfig.PATHFINDING_DEBUG) {
+                        Chat.messagePathfinder('§aUnstuck!');
                     }
-                    return;
+                    this.recalculateAttempts = 0;
+                    Recovery.stop();
                 }
 
-                Executor.execute(() => {
-                    Rotations.pathRotations(splinePath);
-                    Jump.detectJump(splinePath);
-                    Movement.beginMovement();
-                    // Recovery.trackProgress();
-                });
-            }
+                this.handleRecovery(Recovery.trackProgress());
+            });
         });
+    }
+
+    handleRecovery(action) {
+        if (!action) return;
+
+        switch (action) {
+            case 'JUMP':
+                Movement.forceJump(4);
+                break;
+            case 'CLOSE_LOOK':
+                Rotations.setTemporaryLookahead(Rotations.MIN_LOOKAHEAD, 40);
+                Movement.forceJump(4);
+                break;
+            case 'BACKUP_RECALC':
+                Movement.backup(15, () => this.recalculate());
+                break;
+        }
+    }
+
+    recalculate() {
+        this.recalculateAttempts++;
+
+        if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
+            if (PathConfig.PATHFINDING_DEBUG) {
+                Chat.messagePathfinder('§cMax recalculation attempts, failed!'); // what the fuck do i do here?
+            }
+            this.callCallback(false);
+            this.resetPath();
+            return;
+        }
+
+        if (PathConfig.PATHFINDING_DEBUG) {
+            Chat.messagePathfinder(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})...`);
+        }
+
+        const end = this.currentEnd;
+        const callback = this.currentCallback;
+        const wasFromFile = this.calledFromFile;
+        const attempts = this.recalculateAttempts;
+
+        this.destroyTick();
+        this.destroyRender();
+        Rotations.resetRotations();
+        Spline.clearCache();
+        Jump.reset();
+        Recovery.resetTracking();
+        this.saidInfo = false;
+
+        this.currentEnd = end;
+        this.currentCallback = callback;
+        this.calledFromFile = wasFromFile;
+        this.recalculateAttempts = attempts;
+
+        this.findPath(end, callback, false);
     }
 
     checkIfReachedDestination() {
         if (!this.currentEnd) return true;
 
-        const pX = Player.getX();
-        const pY = Player.getY();
-        const pZ = Player.getZ();
+        const pX = Player.getX(),
+            pY = Player.getY(),
+            pZ = Player.getZ();
+        const goals = Array.isArray(this.currentEnd[0]) ? this.currentEnd : [this.currentEnd];
 
-        let goals = [];
-        if (Array.isArray(this.currentEnd[0])) goals = this.currentEnd;
-        else goals = [this.currentEnd];
-
-        for (let goal of goals) {
-            const dx = pX - goal[0];
-            const dy = pY - goal[1];
-            const dz = pZ - goal[2];
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-            if (Math.sqrt(dx * dx + dz * dz) < 2.5 && Math.abs(dy) < 3.0) {
-                return true;
-            }
+        for (const goal of goals) {
+            const dx = pX - goal[0],
+                dy = pY - goal[1],
+                dz = pZ - goal[2];
+            if (Math.sqrt(dx * dx + dz * dz) < 2.5 && Math.abs(dy) < 3.0) return true;
         }
         return false;
     }
 
-    finishSuccess(onComplete) {
-        this.destroyTick();
-        this.calledFromFile = false;
-        this.resetPath();
-        if (onComplete && typeof onComplete === 'function') onComplete(true);
+    finishSuccess() {
         showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
+        this.callCallback(true);
+        this.resetPath();
     }
 
-    onRender(cleanPath, splinePath) {
-        if (this.render) return;
-
-        this.render = register('postRenderWorld', () => {
-            if (PathConfig.RENDER_KEY_NODES) {
-                if (!cleanPath.keynodes || cleanPath.keynodes.length < 2) return;
-                cleanPath.keynodes.forEach((keynode) => {
-                    RenderUtils.drawStyledBox(new Vec3d(keynode.x, keynode.y, keynode.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, true);
-                });
+    callCallback(success) {
+        if (typeof this.currentCallback === 'function') {
+            try {
+                this.currentCallback(success);
+            } catch (e) {
+                console.error('Path callback error:', e);
             }
+        }
+    }
 
-            if (PathConfig.RENDER_FLOATING_SPLINE) {
-                Spline.drawFloatingSpline(splinePath);
-            }
+    getPlayerStart() {
+        const x = Math.floor(Player.getX());
+        const z = Math.floor(Player.getZ());
+        let y = Math.round(Player.getY());
 
-            if (PathConfig.RENDER_LOOK_POINTS) {
-                Spline.drawLookPoints();
-            }
-        });
+        for (let i = 0; i < 5; i++) {
+            if (this.isBlockWalkable(x, y, z)) return { x, y, z };
+            y--;
+        }
+        return { x, y: Math.round(Player.getY()) - 1, z };
+    }
+
+    isBlockWalkable(x, y, z) {
+        const pos = new BP(x, y, z);
+        const world = World.getWorld();
+        return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
     }
 
     createSplinePath(path) {
-        if (!path) return;
-        let generatedSpline = [];
-
-        if (this.checkForExistence(path.path_between_key_nodes)) {
-            generatedSpline = Spline.generateSpline(path.path_between_key_nodes, 1);
-            return generatedSpline;
-        }
-
-        generatedSpline = Spline.generateSpline(path.keynodes, 1);
-        return generatedSpline;
+        if (!path) return null;
+        const nodes = path.path_between_key_nodes?.length ? path.path_between_key_nodes : path.keynodes;
+        return nodes?.length ? Spline.generateSpline(nodes, 1) : null;
     }
 
-    checkForExistence(item) {
-        return item && Array.isArray(item) && item.length;
+    startRender(result, splinePath) {
+        if (this.render) return;
+
+        this.render = register('postRenderWorld', () => {
+            if (PathConfig.RENDER_KEY_NODES && result.keynodes?.length >= 2) {
+                result.keynodes.forEach((node) => {
+                    RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, true);
+                });
+            }
+            if (PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(splinePath);
+            if (PathConfig.RENDER_LOOK_POINTS) Spline.drawLookPoints();
+        });
     }
 
     destroyTick() {
-        if (!this.tick) return;
-        this.tick.unregister();
-        this.tick = null;
+        if (this.tick) {
+            this.tick.unregister();
+            this.tick = null;
+        }
     }
 
     destroyRender() {
-        if (!this.render) return;
-        this.render.unregister();
-        this.render = null;
+        if (this.render) {
+            this.render.unregister();
+            this.render = null;
+        }
     }
 
     resetPath() {
         this.destroyTick();
         this.destroyRender();
-
         Rotations.resetRotations();
         Spline.clearCache();
         Jump.reset();
@@ -245,28 +277,14 @@ class Finder {
         Recovery.stop();
 
         this.saidInfo = false;
-        this.tick = null;
-        this.render = null;
+        this.calledFromFile = false;
+        this.currentEnd = null;
+        this.currentCallback = null;
+        this.recalculateAttempts = 0;
     }
 
     isPathing() {
         return !!this.tick;
-    }
-
-    findStartY(coords) {
-        let y = coords[1] + 1;
-
-        for (let i = 0; i < 5; i++) {
-            if (this.isBlockWalkable({ x: coords[0], y: y, z: coords[2] })) return { x: coords[0], y: y, z: coords[2] };
-            y--;
-        }
-        return { x: coords[0], y: coords[1], z: coords[2] };
-    }
-
-    isBlockWalkable(blockVec) {
-        const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
-        const blockState = World.getWorld().getBlockState(blockPosNMS);
-        return blockState.getCollisionShape(World.getWorld(), blockPosNMS).isEmpty();
     }
 }
 
