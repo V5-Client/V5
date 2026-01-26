@@ -23,8 +23,8 @@ import './visuals/ESP.js';
 import './visuals/GIF.js';
 import './visuals/MobHider.js';
 import './visuals/Xray.js';
-import './Visuals/ProfileHider.js';
-import './Visuals/StructureESP.js';
+import './visuals/ProfileHider.js';
+import './visuals/StructureESP.js';
 
 /* SKILLS */
 import './skills/AutoExperiments.js';
@@ -47,3 +47,4 @@ import './other/RatProtection.js';
 import './other/VoidgloomHelper.js';
 import './other/ZeroPingEtherwarp.js';
 import './other/LeftClickEtherwarp.js';
+import './other/Rift.js';
