@@ -3,6 +3,7 @@ import { Utils } from '../../Utils';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
 import { Rotations } from './PathRotations';
+import PathConfig from '../PathConfig';
 
 class PathRecovery {
     constructor() {
@@ -71,7 +72,7 @@ class PathRecovery {
         this.lastPos = new Vec3d(pX, pY, pZ);
 
         if (this.stuckTicks >= this.SEVERE_STUCK_TICKS) {
-            Chat.messagePathfinder(`§4[Stuck] Severe - Requesting Recalculate`);
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§4[Stuck] Severe - Requesting Recalculate`);
             this.stop();
             return 'RECALCULATE';
         }
@@ -90,7 +91,7 @@ class PathRecovery {
         const escapeYaw = this.calculateEscapeYaw();
         if (escapeYaw !== null) {
             this.activeEscapeYaw = escapeYaw;
-            Chat.messagePathfinder(`§e[Recovery] Trapped! Escaping at ${escapeYaw.toFixed(0)}°`);
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§e[Recovery] Trapped! Escaping at ${escapeYaw.toFixed(0)}°`);
             this.startSequence('JUMP', 0, 4);
             return this.currentBoxIndex;
         }
@@ -98,17 +99,17 @@ class PathRecovery {
         let rewindIndex = this.currentBoxIndex;
         switch (this.attemptCount) {
             case 1:
-                Chat.messagePathfinder(`Recovery 1/3: Jump Only`);
+                if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`Recovery 1/3: Jump Only`);
                 this.startSequence('JUMP', 0, 3);
                 //rewindIndex = Math.max(0, this.currentBoxIndex - 1);
                 break;
             case 2:
-                Chat.messagePathfinder(`Recovery 2/3: Backup + Jump`);
+                if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`Recovery 2/3: Backup + Jump`);
                 this.startSequence('BACKUP', 12, 4);
                 // rewindIndex = Math.max(0, this.currentBoxIndex - 2);
                 break;
             case 3:
-                Chat.messagePathfinder(`Recovery 3/3: Full Rewind`);
+                if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`Recovery 3/3: Full Rewind`);
                 this.startSequence('BACKUP', 20, 5);
                 // rewindIndex = Math.max(0, this.currentBoxIndex - 5);
                 break;
@@ -153,11 +154,11 @@ class PathRecovery {
         const distFromStuck = this.getDistanceHorizontal(pX, pZ, this.lastPos.x, this.lastPos.z);
 
         if (distFromStuck > 1.5) {
-            Chat.messagePathfinder(`§a[Recovery] Success!`);
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§a[Recovery] Success!`);
             this.attemptCount = 0;
             this.stuckTicks = 0;
         } else {
-            Chat.messagePathfinder(`§c[Recovery] Failed.`);
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder(`§c[Recovery] Failed.`);
         }
     }
 

@@ -63,6 +63,7 @@ class Finder {
         const PathStart = this.findStartY(start);
 
         if (this.calledFromFile) {
+            // don't check for PATHFINDING_DEBUG because this is honestly a useful message
             let endStr = Array.isArray(end[0]) ? `Multiple Goals (${end.length})` : `${end[0]}, ${end[1]}, ${end[2]}`;
             Chat.messagePathfinder(`Path from &a${PathStart.x}, ${PathStart.y}, ${PathStart.z}&f to &c${endStr}`);
         }
@@ -78,7 +79,7 @@ class Finder {
             return;
         }
 
-        if (this.calledFromFile) Chat.messagePathfinder('§eSearching for path...');
+        if (this.calledFromFile && PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('§eSearching for path...');
 
         this.onTick(onComplete, renderOnly);
     }
@@ -108,7 +109,9 @@ class Finder {
             }
 
             if (!this.saidInfo && this.calledFromFile) {
-                Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
+                if (PathConfig.PATHFINDING_DEBUG) {
+                    Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
+                }
                 this.saidInfo = true;
                 this.failCount = 0;
             }
@@ -132,7 +135,9 @@ class Finder {
                     if (this.checkIfReachedDestination()) {
                         this.finishSuccess(onComplete);
                     } else {
-                        Chat.messagePathfinder('§ePath ended but destination not reached. Recalculating.');
+                        if (PathConfig.PATHFINDING_DEBUG) {
+                            Chat.messagePathfinder('§ePath ended but destination not reached. Recalculating.');
+                        }
                     }
                     return;
                 }

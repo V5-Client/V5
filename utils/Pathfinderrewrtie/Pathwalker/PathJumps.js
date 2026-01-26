@@ -2,6 +2,7 @@ import { Vec3d, BP, SnowBlock } from '../../Constants';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
 import RenderUtils from '../../render/RendererUtils';
+import PathConfig from '../PathConfig';
 
 class PathJumps {
     constructor() {
@@ -248,7 +249,7 @@ class PathJumps {
         if (!this.isPlayerInFluid()) return false;
         Keybind.setKey('space', true);
         if (Date.now() - this.lastFluidMessage > 2000) {
-            Chat.messagePathfinder('Fluid jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Fluid jump detected');
             this.lastFluidMessage = Date.now();
         }
         return true;
@@ -262,7 +263,7 @@ class PathJumps {
         if (layers === 0) return false;
         const diff = data.vec.y - (8 - layers) * 0.125 - (Player.getY() - 1);
         if (diff > 0.75 && layers > 6) {
-            Chat.messagePathfinder('Snow jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Snow jump detected');
             Keybind.setKey('space', true);
             return true;
         }
@@ -310,7 +311,7 @@ class PathJumps {
             if (!this.isSafeLanding(landingNode, baseY)) continue;
             if (!this.hasClearJumpArc(node, landingNode, baseY)) continue;
 
-            Chat.messagePathfinder('Edge jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Edge jump detected');
             Keybind.setKey('space', true);
             return true;
         }
@@ -340,7 +341,7 @@ class PathJumps {
             }
         }
         if (needsJump && !canWalkInstead) {
-            Chat.messagePathfinder('Standard jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Standard jump detected');
             Keybind.setKey('space', true);
             return true;
         }
