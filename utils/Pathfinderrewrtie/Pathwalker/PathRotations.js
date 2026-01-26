@@ -70,6 +70,15 @@ class PathRotations {
             this.applyHumanizedPhysics();
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
         }).setFps(120);
+
+        register('tick', () => {
+            if (this.lookaheadOverrideExpiry > 0) {
+                this.lookaheadOverrideExpiry--;
+                if (this.lookaheadOverrideExpiry <= 0) {
+                    this.lookaheadOverride = null;
+                }
+            }
+        });
     }
 
     isPointVisible(playerEyes, targetPoint) {
@@ -207,13 +216,8 @@ class PathRotations {
     }
 
     getAdaptiveLookahead(playerEyes) {
-        if (this.lookaheadOverride !== null) {
-            if (this.lookaheadOverrideExpiry > 0) {
-                this.lookaheadOverrideExpiry--;
-                return this.lookaheadOverride;
-            } else {
-                this.lookaheadOverride = null;
-            }
+        if (this.lookaheadOverride !== null && this.lookaheadOverrideExpiry > 0) {
+            return this.lookaheadOverride;
         }
 
         const targetIndex = Math.floor(this.currentPathPosition);
