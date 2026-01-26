@@ -4,7 +4,7 @@ import { Vec3d, ZombieEntity, EndermanEntity } from '../../utils/Constants';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
-import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Raytrace } from '../../utils/Raytrace';
 

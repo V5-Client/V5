@@ -13,7 +13,7 @@ import './utils/backend/IRC.js';
 
 /* Utils */
 import './utils/MacroState.js';
-import './utils/Pathfinderrewrtie/PathFinder.js';
+import './utils/pathfinder/PathFinder.js';
 import './utils/Clipping.js';
 import './utils/Misc.js';
 import './utils/Webhooks.js';

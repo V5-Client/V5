@@ -1,1063 +1,452 @@
 import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
-import { renderSplineBoxes } from '../PathDebug';
-import { detectStuck, resetStuckDetection, isEscapeRotationActive, getEscapeYaw } from './PathStuckRecovery';
-import { setMovementTarget, clearMovementTarget, getShouldLimitRotations } from './PathMovement';
-import { Utils } from '../../Utils';
-import { Keybind } from '../../player/Keybinding';
-import { Chat } from '../../Chat';
-import { Vec3d, BP } from '../../Constants';
+import { Spline } from '../PathSpline';
+import { BP, Vec3d } from '../../Constants';
+import RenderUtils from '../../render/RendererUtils';
+import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
+import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 
-let requestPathRecalculation = null;
+class PathRotations {
+    constructor() {
+        this.MIN_LOOKAHEAD = 1.1;
+        this.MAX_LOOKAHEAD = 3.5;
+        this.RECOVERY_MIN_LOOKAHEAD = 0.1;
+        this.PROXIMITY_THRESHOLD = 4.0;
 
-export const setRequestPathRecalculation = (callback) => {
-    requestPathRecalculation = callback;
-};
+        this.BASE_KP = 0.08;
+        this.KD = 0.45;
+        this.MAX_VELOCITY = 8.0;
+        this.ACCEL_LIMIT = 1.2;
+        this.SETTLE_THRESHOLD = 0.1;
+        this.PITCH_DEADZONE = 2.5;
+        this.YAW_DEADZONE = 1.5;
 
-// Lookahead
-const LOOK_AHEAD_DISTANCE = 4;
-const BASE_YAW_AHEAD_DISTANCE = 4;
-const YAW_AHEAD_JUMP_MULTIPLIER = 1.3;
+        this.SMOOTH_FACTOR = 0.12;
+        this.MAX_LOOK_DISTANCE = 0.8;
+        this.LOOKAHEAD_STEP = 0.4;
+        this.RECOVERY_LOOKAHEAD_STEP = 0.15;
+        this.VISIBILITY_CACHE_MS = 50;
 
-const YAW_SMOOTH_SPEED = 0.15;
-const PITCH_SMOOTH_SPEED = 0.12;
-const PITCH_AIRBORNE_SMOOTH_SPEED = 0.045;
-const PITCH_WALKING_UPDOWN_SMOOTH_SPEED = 0.008;
+        this.MAX_DIRECTION_DIVERGENCE = 50.0;
+        this.MAX_UPWARD_PITCH = -45.0;
 
-const YAW_DEAD_ZONE = 0.3;
-const PITCH_DEAD_ZONE = 0.15;
-const PITCH_WALKING_UPDOWN_DEAD_ZONE = 1.5;
+        this.resetRotations();
+        this.onStep();
 
-const Y_CHANGE_THRESHOLD = 0.03;
-const Y_CHANGE_SMOOTHING = 0.25;
-const Y_CHANGE_DECAY = 0.92;
-
-// improves fall rotations, it smooths out the node skipping (falls usually make it go from like node 20 to 80 instantly)
-const NODE_SKIP_THRESHOLD = 6;
-const TARGET_BLEND_NORMAL = 0.4;
-const TARGET_BLEND_SKIP = 0.15;
-const SKIP_RECOVERY_TICKS = 15;
-
-const BASE_ADVANCE_DISTANCE = 1.0;
-const MIN_ADVANCE_DISTANCE = 0.3;
-const BOX_RESET_SEARCH_RANGE = 20;
-const BOX_SWITCH_HYSTERESIS = 3;
-
-// difficulty shit.
-const DIFFICULTY_LOOKAHEAD = 8;
-const SHARP_TURN_THRESHOLD_DEG = 55;
-const VERY_SHARP_TURN_THRESHOLD_DEG = 100;
-const LEDGE_Y_THRESHOLD = 0.5;
-const STRAFE_LEDGE_Y_THRESHOLD = 1;
-
-// this shit works. it works.
-const GRADUAL_STEP_MAX_HEIGHT = 0.6;
-
-const STRAFE_SINGLE_STEP_THRESHOLD = 0.75;
-const STRAFE_TOTAL_Y_THRESHOLD = 1.3;
-const STRAFE_TOTAL_Y_MIN_SINGLE = 0.6;
-
-// Dynamic yaw ( ˶ˆᗜˆ˵ )
-const MIN_YAW_AHEAD_DISTANCE = 0.5;
-const DYNAMIC_YAW_CURVATURE_RADIUS = 4;
-const CURVATURE_FULL_REDUCTION_ANGLE = 45;
-
-const MIN_PITCH_LOOKAHEAD = 2.5;
-
-const STRAFE_ENABLE_COLLISION_TICKS = 4;
-const STRAFE_ANGLE_THRESHOLD = 30;
-const STRAFE_DURATION_AFTER_UNCOLLIDE = 12;
-const STRAFE_MIN_DISTANCE_TO_DIFFICULTY = 2.5;
-const STRAFE_ELIGIBILITY_MEMORY = 10;
-
-const MAX_ALLOWED_PITCH_DOWN = 89.9;
-const MAX_ALLOWED_PITCH_UP = -89.9;
-
-const OBSTACLE_CHECK_STEP = 0.5;
-const OBSTACLE_CHECK_HEIGHT_OFFSETS = [0.8, 1.2, 1.6];
-const OBSTACLE_LINE_OFFSETS = [0, -0.35, 0.35];
-const MIN_SAFE_LOOKAHEAD = 0.8;
-const OBSTACLE_LOOKAHEAD_STEP = 0.4;
-
-const PILLAR_CHECK_DIRECTIONS = [
-    { x: 1, z: 0 },
-    { x: -1, z: 0 },
-    { x: 0, z: 1 },
-    { x: 0, z: -1 },
-    { x: 0.707, z: 0.707 },
-    { x: -0.707, z: 0.707 },
-    { x: 0.707, z: -0.707 },
-    { x: -0.707, z: -0.707 },
-];
-const PILLAR_CHECK_DISTANCES = [0.7, 1.2, 1.8];
-const PILLAR_CHECK_HEIGHTS = [0.5, 1.0, 1.5];
-const PILLAR_SOLID_THRESHOLD = 4;
-const PILLAR_PROGRESS_THRESHOLD = 0.08;
-const PILLAR_ACTIVATE_TICKS = 4;
-const PILLAR_DEACTIVATE_TICKS = 8;
-
-let currentBoxIndex = 1;
-let currentPathPosition = 1.0;
-let isInitialized = false;
-let complete = false;
-
-let rawTargetYaw = 0;
-let rawTargetPitch = 0;
-let smoothedTargetYaw = 0;
-let smoothedTargetPitch = 0;
-let currentYaw = 0;
-let currentPitch = 0;
-
-let isAirborne = false;
-let groundedTickCount = 0;
-let airborneTickCount = 0;
-
-let lastPlayerY = 0;
-let smoothedYChangeRate = 0;
-let isWalkingUpDown = false;
-let walkingUpDownTicks = 0;
-
-let lastBoxIndex = 0;
-let ticksSinceNodeSkip = 999;
-
-let collisionTicks = 0;
-let isStrafing = false;
-let strafeDirection = 0;
-let strafeHoldTicks = 0;
-let recentStrafeEligible = 0;
-
-let rotationActive = false;
-
-let lastPathPositionForPillar = 0;
-let pillarLowProgressTicks = 0;
-let pillarModeActive = false;
-let pillarModeDeactivateCounter = 0;
-
-const obstacleBlockCache = new Map();
-let obstacleCacheFrame = 0;
-
-register('tick', () => {
-    obstacleCacheFrame++;
-    if (obstacleBlockCache.size > 500) obstacleBlockCache.clear();
-});
-
-function getCachedBlockForObstacle(x, y, z) {
-    const bx = Math.floor(x);
-    const by = Math.floor(y);
-    const bz = Math.floor(z);
-    const key = `${bx},${by},${bz},${obstacleCacheFrame}`;
-    if (!obstacleBlockCache.has(key)) {
-        obstacleBlockCache.set(key, World.getBlockAt(bx, by, bz));
-    }
-    return obstacleBlockCache.get(key);
-}
-
-function isWalkableGroundBlock(blockName) {
-    return (
-        blockName.includes('slab') ||
-        blockName.includes('stair') ||
-        blockName.includes('snow') ||
-        blockName.includes('carpet') ||
-        blockName.includes('path') ||
-        blockName.includes('farmland') ||
-        blockName.includes('soul_sand') ||
-        blockName.includes('honey_block') ||
-        blockName.includes('slime_block') ||
-        blockName.includes('mud') ||
-        blockName.includes('sculk_sensor') ||
-        blockName.includes('daylight') ||
-        blockName.includes('enchanting_table') ||
-        blockName.includes('end_portal_frame') ||
-        blockName.includes('lectern') ||
-        blockName.includes('composter') ||
-        blockName.includes('grindstone') ||
-        blockName.includes('stonecutter') ||
-        blockName.includes('campfire') ||
-        blockName.includes('lantern') ||
-        blockName.includes('candle') ||
-        blockName.includes('amethyst') ||
-        blockName.includes('pointed_dripstone')
-    );
-}
-
-function isNonCollidableBlock(blockName) {
-    return (
-        blockName.includes('torch') ||
-        blockName.includes('sign') ||
-        blockName.includes('button') ||
-        blockName.includes('lever') ||
-        blockName.includes('pressure_plate') ||
-        blockName.includes('tripwire') ||
-        blockName.includes('string') ||
-        blockName.includes('flower') ||
-        blockName.includes('grass') ||
-        blockName.includes('fern') ||
-        blockName.includes('sapling') ||
-        blockName.includes('dead_bush') ||
-        blockName.includes('mushroom') ||
-        blockName.includes('coral_fan') ||
-        blockName.includes('vine') ||
-        blockName.includes('ladder') ||
-        blockName.includes('rail') ||
-        blockName.includes('redstone_wire') ||
-        blockName.includes('repeater') ||
-        blockName.includes('comparator') ||
-        blockName.includes('banner') ||
-        blockName.includes('item_frame') ||
-        blockName.includes('glow_frame') ||
-        blockName.includes('sugar_cane') ||
-        blockName.includes('kelp') ||
-        blockName.includes('seagrass') ||
-        blockName.includes('lily_pad') ||
-        blockName.includes('nether_wart') ||
-        blockName.includes('wheat') ||
-        blockName.includes('carrot') ||
-        blockName.includes('potato') ||
-        blockName.includes('beetroot') ||
-        blockName.includes('melon_stem') ||
-        blockName.includes('pumpkin_stem') ||
-        blockName.includes('sweet_berry') ||
-        blockName.includes('glow_lichen') ||
-        blockName.includes('spore_blossom') ||
-        blockName.includes('hanging_roots') ||
-        blockName.includes('dripleaf') ||
-        blockName.includes('azalea') ||
-        blockName.includes('moss_carpet') ||
-        blockName.includes('fire') ||
-        blockName.includes('nether_portal') ||
-        blockName.includes('structure_void') ||
-        blockName.includes('barrier') ||
-        blockName.includes('light') ||
-        blockName.includes('air')
-    );
-}
-
-function isBlockingObstacle(x, y, z) {
-    const block = getCachedBlockForObstacle(x, y, z);
-    if (!block || block.type.getID() === 0) return false;
-
-    const blockName = block.type.getRegistryName().toLowerCase();
-
-    if (
-        blockName.includes('fence') ||
-        (blockName.includes('wall') &&
-            !blockName.includes('sign') &&
-            !blockName.includes('banner') &&
-            !blockName.includes('head') &&
-            !blockName.includes('coral')) ||
-        blockName.includes('iron_bars') ||
-        blockName.includes('glass_pane') ||
-        blockName.includes('chain')
-    ) {
-        return true;
+        this.lookaheadOverride = null;
+        this.lookaheadOverrideExpiry = 0;
     }
 
-    if (isWalkableGroundBlock(blockName)) {
-        return false;
+    resetRotations() {
+        this.currentBoxIndex = 0;
+        this.lastBoxIndex = 0;
+        this.currentPathPosition = 0.0;
+        this.isInitialized = false;
+        this.complete = false;
+        this.rotationActive = false;
+        this.yawVelocity = 0;
+        this.pitchVelocity = 0;
+        this.rawTargetYaw = 0;
+        this.rawTargetPitch = 0;
+        this.currentYaw = 0;
+        this.currentPitch = 0;
+        this.boxPositions = null;
+        this.currentTargetPoint = null;
+        this.smoothedLookahead = this.MAX_LOOKAHEAD;
+
+        this.cachedLookahead = null;
+        this.lastVisibilityCheck = 0;
+
+        this.lookaheadOverride = null;
+        this.lookaheadOverrideExpiry = 0;
+
+        PathRotationsUtility.stopRotation();
     }
 
-    if (isNonCollidableBlock(blockName)) {
-        return false;
-    }
+    onStep() {
+        this.stepRegister = register('step', () => {
+            if (!this.rotationActive || !this.boxPositions) return;
+            this.updateLookPoint();
+            this.applyHumanizedPhysics();
+            PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
+        }).setFps(120);
 
-    const world = World.getWorld();
-    if (!world) return false;
-
-    try {
-        const blockPosNMS = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
-        const blockState = world.getBlockState(blockPosNMS);
-        const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
-
-        if (collisionShape.isEmpty()) return false;
-
-        if (blockName.includes('trapdoor')) {
-            const stateString = blockState.toString();
-            if (stateString.includes('open=true')) return false;
-        }
-
-        if (blockName.includes('door') && !blockName.includes('trapdoor')) {
-            const stateString = blockState.toString();
-            if (stateString.includes('open=true')) return false;
-        }
-
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-function countSurroundingObstacles() {
-    const playerX = Player.getX();
-    const playerY = Player.getY();
-    const playerZ = Player.getZ();
-
-    let solidCount = 0;
-
-    for (const dir of PILLAR_CHECK_DIRECTIONS) {
-        for (const dist of PILLAR_CHECK_DISTANCES) {
-            const checkX = playerX + dir.x * dist;
-            const checkZ = playerZ + dir.z * dist;
-
-            let foundInDirection = false;
-            for (const heightOffset of PILLAR_CHECK_HEIGHTS) {
-                if (isBlockingObstacle(checkX, playerY + heightOffset, checkZ)) {
-                    foundInDirection = true;
-                    break;
+        register('tick', () => {
+            if (this.lookaheadOverrideExpiry > 0) {
+                this.lookaheadOverrideExpiry--;
+                if (this.lookaheadOverrideExpiry <= 0) {
+                    this.lookaheadOverride = null;
                 }
             }
-
-            if (foundInDirection) {
-                solidCount++;
-                break;
-            }
-        }
+        });
     }
 
-    return solidCount;
-}
+    isPointVisible(playerEyes, targetPoint) {
+        const dx = targetPoint.x - playerEyes.x;
+        const dy = targetPoint.y - playerEyes.y;
+        const dz = targetPoint.z - playerEyes.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-function updatePillarProximityState(currentProgress) {
-    const progressDelta = currentProgress - lastPathPositionForPillar;
-    lastPathPositionForPillar = currentProgress;
+        if (dist < 0.2) return true;
 
-    const isCollided = Utils.playerIsCollided();
-    const surroundingObstacles = countSurroundingObstacles();
-    const hasManyObstacles = surroundingObstacles >= PILLAR_SOLID_THRESHOLD;
-    const hasLowProgress = progressDelta < PILLAR_PROGRESS_THRESHOLD;
+        try {
+            const dir = new Vector3(dx / dist, dy / dist, dz / dist);
 
-    const shouldBeInPillarMode = (hasLowProgress || isCollided) && hasManyObstacles;
+            const hit = raytraceBlocks(
+                [playerEyes.x, playerEyes.y, playerEyes.z],
+                dir,
+                dist + 0.1,
+                (block) => {
+                    if (!block || !block.type || block.type.getID() === 0) return false;
+                    try {
+                        const world = World.getWorld();
+                        const pos = new BP(Math.floor(block.getX()), Math.floor(block.getY()), Math.floor(block.getZ()));
+                        const state = world.getBlockState(pos);
+                        return !state.getCollisionShape(world, pos).isEmpty();
+                    } catch (e) {
+                        return true;
+                    }
+                },
+                true
+            );
 
-    if (shouldBeInPillarMode) {
-        pillarLowProgressTicks++;
-        pillarModeDeactivateCounter = 0;
+            if (!hit) return true;
 
-        if (!pillarModeActive && pillarLowProgressTicks >= PILLAR_ACTIVATE_TICKS) {
-            pillarModeActive = true;
-            Chat.messagePathfinder(`§7Pillar detected, forcing minimum lookahead (${surroundingObstacles} nearby blocks)`);
-        }
-    } else {
-        pillarLowProgressTicks = 0;
+            const hitX = hit[0] + 0.5;
+            const hitY = hit[1] + 0.5;
+            const hitZ = hit[2] + 0.5;
+            const hitDist = Math.sqrt(Math.pow(hitX - playerEyes.x, 2) + Math.pow(hitY - playerEyes.y, 2) + Math.pow(hitZ - playerEyes.z, 2));
 
-        if (pillarModeActive) {
-            pillarModeDeactivateCounter++;
-
-            if (pillarModeDeactivateCounter >= PILLAR_DEACTIVATE_TICKS) {
-                pillarModeActive = false;
-                pillarModeDeactivateCounter = 0;
-                Chat.messagePathfinder(`§7Pillar cleared, reverting to normal lookahead`);
-            }
-        }
-    }
-
-    return pillarModeActive;
-}
-
-function checkLineForObstacles(startX, startY, startZ, endX, endY, endZ) {
-    const dx = endX - startX;
-    const dy = endY - startY;
-    const dz = endZ - startZ;
-    const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-
-    if (horizontalDistance < 0.5) return false;
-
-    const steps = Math.ceil(horizontalDistance / OBSTACLE_CHECK_STEP);
-
-    for (let i = 1; i < steps; i++) {
-        const t = i / steps;
-        const checkX = startX + dx * t;
-        const checkY = startY + dy * t;
-        const checkZ = startZ + dz * t;
-
-        for (const heightOffset of OBSTACLE_CHECK_HEIGHT_OFFSETS) {
-            const blockY = checkY + heightOffset;
-            if (isBlockingObstacle(checkX, blockY, checkZ)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-function hasObstacleBetweenPoints(startX, startY, startZ, endX, endY, endZ) {
-    const dx = endX - startX;
-    const dz = endZ - startZ;
-    const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
-
-    if (horizontalDistance < OBSTACLE_CHECK_STEP * 2) return false;
-
-    const perpX = -dz / horizontalDistance;
-    const perpZ = dx / horizontalDistance;
-
-    for (const offset of OBSTACLE_LINE_OFFSETS) {
-        const offsetX = perpX * offset;
-        const offsetZ = perpZ * offset;
-
-        if (checkLineForObstacles(startX + offsetX, startY, startZ + offsetZ, endX + offsetX, endY, endZ + offsetZ)) {
+            return hitDist >= dist - 0.5;
+        } catch (e) {
             return true;
         }
     }
 
-    return false;
-}
+    getAngleBetweenVectors(v1, v2) {
+        const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
+        const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+        if (mag1 < 0.001 || mag2 < 0.001) return 0;
 
-function findSafeLookahead(boxPositions, pathPosition, maxLookahead, playerEyes, minLookahead = MIN_SAFE_LOOKAHEAD) {
-    if (maxLookahead <= minLookahead) return minLookahead;
+        const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+        const val = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+        return Math.acos(val) * (180 / Math.PI);
+    }
 
-    for (let lookahead = maxLookahead; lookahead >= minLookahead; lookahead -= OBSTACLE_LOOKAHEAD_STEP) {
-        const targetIndex = Math.min(Math.floor(pathPosition + lookahead), boxPositions.length - 2);
-        if (targetIndex < 0) continue;
+    setTemporaryLookahead(distance, durationTicks = 30) {
+        this.lookaheadOverride = distance;
+        this.lookaheadOverrideExpiry = durationTicks;
+        this.smoothedLookahead = distance;
+        this.cachedLookahead = null;
+    }
 
-        const fraction = Math.max(0, Math.min(1, pathPosition + lookahead - targetIndex));
-        const targetPoint = PathRotationsUtility.interpolateBoxPosition(boxPositions, targetIndex, fraction);
+    clearLookaheadOverride() {
+        this.lookaheadOverride = null;
+        this.lookaheadOverrideExpiry = 0;
+    }
 
-        if (!targetPoint) continue;
+    isInRecoveryMode() {
+        return this.lookaheadOverride !== null && this.lookaheadOverrideExpiry > 0;
+    }
 
-        const playerCheckY = playerEyes.y - 1.2;
+    findVisibleLookahead(playerEyes, idealLookahead) {
+        const now = Date.now();
 
-        if (!hasObstacleBetweenPoints(playerEyes.x, playerCheckY, playerEyes.z, targetPoint.x, targetPoint.y, targetPoint.z)) {
-            return lookahead;
+        if (!this.isInRecoveryMode() && this.cachedLookahead !== null && now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS) {
+            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.cachedLookahead);
+            return { point: this.getInterpolatedPoint(t), lookahead: this.cachedLookahead };
         }
-    }
 
-    return minLookahead;
-}
+        this.lastVisibilityCheck = now;
 
-export function PathComplete() {
-    return complete;
-}
+        const immediateT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 0.5);
+        const immediatePoint = this.getInterpolatedPoint(immediateT);
+        const vecImmediate = {
+            x: immediatePoint.x - playerEyes.x,
+            y: immediatePoint.y - playerEyes.y,
+            z: immediatePoint.z - playerEyes.z,
+        };
 
-export function ResetRotations() {
-    currentBoxIndex = 1;
-    currentPathPosition = 1.0;
-    isInitialized = false;
-    complete = false;
-    resetStuckDetection();
+        const inRecovery = this.isInRecoveryMode();
+        const effectiveMin = inRecovery ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
 
-    isAirborne = false;
-    groundedTickCount = 0;
-    airborneTickCount = 0;
+        let lookahead = inRecovery ? idealLookahead : Math.max(idealLookahead, this.MIN_LOOKAHEAD);
 
-    rawTargetYaw = 0;
-    rawTargetPitch = 0;
-    smoothedTargetYaw = 0;
-    smoothedTargetPitch = 0;
-    currentYaw = 0;
-    currentPitch = 0;
+        while (lookahead >= effectiveMin) {
+            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + lookahead);
+            const point = this.getInterpolatedPoint(t);
 
-    lastPlayerY = 0;
-    smoothedYChangeRate = 0;
-    isWalkingUpDown = false;
-    walkingUpDownTicks = 0;
+            const dx = point.x - playerEyes.x;
+            const dy = point.y - playerEyes.y;
+            const dz = point.z - playerEyes.z;
+            const horzDist = Math.sqrt(dx * dx + dz * dz);
 
-    lastBoxIndex = 0;
-    ticksSinceNodeSkip = 999;
+            if (lookahead >= this.MIN_LOOKAHEAD) {
+                if (dy > 1.8 && horzDist < 0.8) {
+                    lookahead -= this.LOOKAHEAD_STEP;
+                    continue;
+                }
 
-    collisionTicks = 0;
-    isStrafing = false;
-    strafeDirection = 0;
-    strafeHoldTicks = 0;
-    recentStrafeEligible = 0;
+                const pitch = -Math.atan2(dy, horzDist) * (180 / Math.PI);
+                if (pitch < this.MAX_UPWARD_PITCH && horzDist < 1.5) {
+                    lookahead -= this.LOOKAHEAD_STEP;
+                    continue;
+                }
 
-    rotationActive = false;
-
-    lastPathPositionForPillar = 0;
-    pillarLowProgressTicks = 0;
-    pillarModeActive = false;
-    pillarModeDeactivateCounter = 0;
-
-    clearMovementTarget();
-    obstacleBlockCache.clear();
-}
-
-function wrapAngle(angle) {
-    while (angle > 180) angle -= 360;
-    while (angle < -180) angle += 360;
-    return angle;
-}
-
-function getAngleDelta(from, to) {
-    return wrapAngle(to - from);
-}
-
-function computeLocalCurvature(boxPositions, centerIndex, radius = DYNAMIC_YAW_CURVATURE_RADIUS) {
-    if (!boxPositions || boxPositions.length < 3) return 0;
-
-    const lastIndex = boxPositions.length - 1;
-    const start = Math.max(1, centerIndex - radius);
-    const end = Math.min(lastIndex - 1, centerIndex + radius);
-
-    let maxAngleDeg = 0;
-
-    for (let i = start; i <= end; i++) {
-        const prev = boxPositions[i - 1];
-        const curr = boxPositions[i];
-        const next = boxPositions[i + 1];
-
-        const v1x = curr.x - prev.x;
-        const v1z = curr.z - prev.z;
-        const v2x = next.x - curr.x;
-        const v2z = next.z - curr.z;
-
-        const mag1 = Math.sqrt(v1x * v1x + v1z * v1z);
-        const mag2 = Math.sqrt(v2x * v2x + v2z * v2z);
-        if (mag1 < 0.0001 || mag2 < 0.0001) continue;
-
-        let cosAngle = (v1x * v2x + v1z * v2z) / (mag1 * mag2);
-        cosAngle = Math.max(-1, Math.min(1, cosAngle));
-
-        const angleDeg = (Math.acos(cosAngle) * 180) / Math.PI;
-        if (angleDeg > maxAngleDeg) maxAngleDeg = angleDeg;
-    }
-
-    return maxAngleDeg;
-}
-
-function analyzePathAhead(boxPositions, currentIndex) {
-    const result = {
-        maxAngle: 0,
-        totalYChange: 0,
-        maxSingleYChange: 0,
-        hasLedge: false,
-        hasSharpTurn: false,
-        hasVerySharpTurn: false,
-        turnDirection: 0,
-        firstDifficultIndex: -1,
-        shouldAllowStrafe: false,
-        isGradualSlope: false,
-    };
-
-    if (!boxPositions || currentIndex >= boxPositions.length - 2) {
-        return result;
-    }
-
-    const endIndex = Math.min(currentIndex + DIFFICULTY_LOOKAHEAD, boxPositions.length - 1);
-
-    for (let i = currentIndex; i < endIndex && i < boxPositions.length - 1; i++) {
-        const yDiff = Math.abs(boxPositions[i + 1].y - boxPositions[i].y);
-
-        if (yDiff > 0.01) {
-            result.totalYChange += yDiff;
-
-            if (yDiff > result.maxSingleYChange) {
-                result.maxSingleYChange = yDiff;
+                const vecTarget = { x: dx, y: dy, z: dz };
+                const divergence = this.getAngleBetweenVectors(vecImmediate, vecTarget);
+                if (divergence > this.MAX_DIRECTION_DIVERGENCE) {
+                    lookahead -= this.LOOKAHEAD_STEP;
+                    continue;
+                }
             }
+
+            if (this.isPointVisible(playerEyes, point)) {
+                this.cachedLookahead = lookahead;
+                return { point, lookahead };
+            }
+
+            const step = lookahead < this.MIN_LOOKAHEAD ? this.RECOVERY_LOOKAHEAD_STEP : this.LOOKAHEAD_STEP;
+            lookahead -= step;
         }
+
+        this.cachedLookahead = effectiveMin;
+        const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + effectiveMin);
+        return { point: this.getInterpolatedPoint(t), lookahead: effectiveMin };
     }
 
-    // if no big jump, gradual. im so smart
-    result.isGradualSlope = result.maxSingleYChange <= GRADUAL_STEP_MAX_HEIGHT;
+    getAdaptiveLookahead(playerEyes) {
+        if (this.lookaheadOverride !== null && this.lookaheadOverrideExpiry > 0) {
+            return this.lookaheadOverride;
+        }
 
-    if (!result.isGradualSlope && result.maxSingleYChange > LEDGE_Y_THRESHOLD) {
-        result.hasLedge = true;
-    }
+        const targetIndex = Math.floor(this.currentPathPosition);
+        if (targetIndex + 3 >= this.boxPositions.length) return this.smoothedLookahead;
 
-    for (let i = currentIndex; i < endIndex - 1; i++) {
-        const box0 = boxPositions[i];
-        const box1 = boxPositions[i + 1];
-        const box2 = i + 2 < boxPositions.length ? boxPositions[i + 2] : null;
+        const pathPoint = this.getInterpolatedPoint(this.currentPathPosition);
+        const deviationFromPath = Math.sqrt(Math.pow(playerEyes.x - pathPoint.x, 2) + Math.pow(playerEyes.z - pathPoint.z, 2));
+        const deviationFactor = Math.min(1, Math.max(0, (deviationFromPath - 1.6) / 2.0));
 
-        if (!result.isGradualSlope) {
-            const yDiff = Math.abs(box1.y - box0.y);
-            if (yDiff > LEDGE_Y_THRESHOLD && result.firstDifficultIndex === -1) {
-                result.firstDifficultIndex = i;
+        const startIndex = this.boxPositions[targetIndex];
+        const endIndex = this.boxPositions[Math.min(targetIndex + 2, this.boxPositions.length - 1)];
+
+        const currDx = endIndex.x - startIndex.x;
+        const currDy = endIndex.y - startIndex.y;
+        const currDz = endIndex.z - startIndex.z;
+
+        const startDirection = { x: currDx, y: currDy, z: currDz };
+        const startDirectionMagnitude = Math.sqrt(currDx * currDx + currDy * currDy + currDz * currDz);
+
+        let maxAngle = 0;
+
+        for (let lookahead = 4; lookahead <= 8; lookahead += 2) {
+            const futureTargetIndex = Math.min(targetIndex + lookahead, this.boxPositions.length - 3);
+            if (futureTargetIndex <= targetIndex + 2) continue;
+
+            const futureA = this.boxPositions[futureTargetIndex];
+            const futureB = this.boxPositions[Math.min(futureTargetIndex + 2, this.boxPositions.length - 1)];
+
+            const futureDx = futureB.x - futureA.x;
+            const futureDy = futureB.y - futureA.y;
+            const futureDz = futureB.z - futureA.z;
+
+            const futureDirection = { x: futureDx, y: futureDy, z: futureDz };
+            const futureDirectionMagnitude = Math.sqrt(futureDx * futureDx + futureDy * futureDy + futureDz * futureDz);
+
+            if (startDirectionMagnitude > 0.8 && futureDirectionMagnitude > 0.8) {
+                const dotProduct =
+                    (startDirection.x * futureDirection.x + startDirection.y * futureDirection.y + startDirection.z * futureDirection.z) /
+                    (startDirectionMagnitude * futureDirectionMagnitude);
+                const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
+                maxAngle = Math.max(maxAngle, angle);
             }
         }
 
-        // angle change type shit
-        if (box2) {
-            const d1x = box1.x - box0.x;
-            const d1z = box1.z - box0.z;
-            const d2x = box2.x - box1.x;
-            const d2z = box2.z - box1.z;
+        const isFalling = Player.getMotionY() < -0.1;
+        if (isFalling) maxAngle *= 0.5;
 
-            const len1 = Math.sqrt(d1x * d1x + d1z * d1z);
-            const len2 = Math.sqrt(d2x * d2x + d2z * d2z);
+        const curveFactor = Math.min(1, Math.max(0, (maxAngle - 0.61) / 0.7));
+        const adjustFactor = Math.max(deviationFactor, curveFactor);
 
-            if (len1 > 0.01 && len2 > 0.01) {
-                const dot = (d1x * d2x + d1z * d2z) / (len1 * len2);
-                const clampedDot = Math.max(-1, Math.min(1, dot));
-                const angleDeg = Math.acos(clampedDot) * (180 / Math.PI);
+        const targetLookaheadDistance = this.MAX_LOOKAHEAD - (this.MAX_LOOKAHEAD - this.MIN_LOOKAHEAD) * adjustFactor;
 
-                if (angleDeg > result.maxAngle) {
-                    result.maxAngle = angleDeg;
+        let lerpFactor = 0.05;
+        if (targetLookaheadDistance > this.smoothedLookahead) {
+            lerpFactor = 0.1;
+        }
 
-                    const cross = d1x * d2z - d1z * d2x;
-                    result.turnDirection = cross > 0 ? -1 : 1;
-                }
+        this.smoothedLookahead += (targetLookaheadDistance - this.smoothedLookahead) * lerpFactor;
 
-                if (angleDeg > SHARP_TURN_THRESHOLD_DEG) {
-                    result.hasSharpTurn = true;
-                    if (result.firstDifficultIndex === -1) {
-                        result.firstDifficultIndex = i;
-                    }
-                }
+        return this.smoothedLookahead;
+    }
 
-                if (angleDeg > VERY_SHARP_TURN_THRESHOLD_DEG) {
-                    result.hasVerySharpTurn = true;
-                }
+    updateLookPoint() {
+        const player = Player.getPlayer();
+        if (!player) return;
+        const playerEyes = player.getEyePos();
+
+        let bestT = this.currentPathPosition;
+        let minDistanceSq = Infinity;
+
+        const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 2);
+        const endIdx = Math.min(this.boxPositions.length - 1, startIdx + 8);
+
+        for (let i = startIdx; i < endIdx; i++) {
+            const p1 = this.boxPositions[i];
+            const p2 = this.boxPositions[i + 1];
+            if (!p1 || !p2) continue;
+
+            const segmentProgress = this.getClosestPointOnSegment(playerEyes, p1, p2);
+            const projectedPoint = this.getInterpolatedPoint(i + segmentProgress);
+            const distSq = this.getDistSq(playerEyes, projectedPoint);
+
+            if (distSq < minDistanceSq) {
+                minDistanceSq = distSq;
+                bestT = i + segmentProgress;
             }
         }
-    }
 
-    // Strafing!
-    const hasSignificantSingleStep = result.maxSingleYChange >= STRAFE_SINGLE_STEP_THRESHOLD;
-    const hasSignificantTotalY = result.totalYChange >= STRAFE_TOTAL_Y_THRESHOLD && result.maxSingleYChange >= STRAFE_TOTAL_Y_MIN_SINGLE;
-    const hasOriginalCondition = result.maxSingleYChange >= STRAFE_LEDGE_Y_THRESHOLD;
-    const significantYChange = hasOriginalCondition || hasSignificantSingleStep || hasSignificantTotalY;
+        if (Math.sqrt(minDistanceSq) < this.PROXIMITY_THRESHOLD) {
+            this.currentPathPosition = bestT;
+        }
 
-    result.shouldAllowStrafe = result.hasSharpTurn && significantYChange && !result.isGradualSlope;
+        const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
+        //ChatLib.chat(adaptiveLookahead.toFixed(2));
+        const result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
+        let targetPoint = result.point;
 
-    if (result.shouldAllowStrafe && result.firstDifficultIndex !== -1) {
-        const distanceToDifficulty = result.firstDifficultIndex - currentIndex;
-        if (distanceToDifficulty > STRAFE_MIN_DISTANCE_TO_DIFFICULTY * 2) {
-            result.shouldAllowStrafe = false;
+        if (result.lookahead < this.smoothedLookahead) {
+            this.smoothedLookahead = this.smoothedLookahead * 0.9 + result.lookahead * 0.1;
+        }
+
+        const rawDx = targetPoint.x - playerEyes.x;
+        const rawDy = targetPoint.y - playerEyes.y;
+        const rawDz = targetPoint.z - playerEyes.z;
+        const rawHorz = Math.sqrt(rawDx * rawDx + rawDz * rawDz);
+        const rawPitch = -Math.atan2(rawDy, rawHorz) * (180 / Math.PI);
+
+        if (rawPitch < -50 && rawHorz < 1.0) {
+            const newDy = rawHorz * Math.tan(30 * (Math.PI / 180));
+            targetPoint = new Vec3d(targetPoint.x, playerEyes.y + newDy, targetPoint.z);
+        }
+
+        const dx = targetPoint.x - playerEyes.x;
+        const dy = targetPoint.y - playerEyes.y;
+        const dz = targetPoint.z - playerEyes.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (dist > this.MAX_LOOK_DISTANCE) {
+            const scale = this.MAX_LOOK_DISTANCE / dist;
+            targetPoint = new Vec3d(playerEyes.x + dx * scale, playerEyes.y + dy * scale, playerEyes.z + dz * scale);
+        }
+
+        this.currentTargetPoint = targetPoint;
+        const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
+
+        const targetYaw = this.wrapAngle(angles.yaw);
+        const yawDelta = this.getAngleDelta(this.rawTargetYaw, targetYaw);
+
+        if (Math.abs(yawDelta) > this.YAW_DEADZONE) {
+            this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * this.SMOOTH_FACTOR);
+        }
+
+        const pitchDelta = angles.pitch - this.rawTargetPitch;
+        if (Math.abs(pitchDelta) > this.PITCH_DEADZONE) {
+            this.rawTargetPitch += pitchDelta * this.SMOOTH_FACTOR;
+        }
+
+        if (this.currentPathPosition >= this.boxPositions.length - 1.05) {
+            this.complete = true;
+            this.rotationActive = false;
         }
     }
 
-    return result;
-}
+    applyHumanizedPhysics() {
+        this.currentYaw = this.wrapAngle(this.currentYaw);
+        const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
+        const pitchError = this.rawTargetPitch - this.currentPitch;
 
-function calculateYawLookahead(boxPositions, pathPosition, isGradualSlope, hasSharpTurn) {
-    const baseYawAhead = BASE_YAW_AHEAD_DISTANCE * (isAirborne ? YAW_AHEAD_JUMP_MULTIPLIER : 1);
-    const minYawAhead = MIN_YAW_AHEAD_DISTANCE * (isAirborne ? YAW_AHEAD_JUMP_MULTIPLIER : 1);
+        if (Math.abs(yawError) < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.02) {
+            this.currentYaw = this.rawTargetYaw;
+            this.yawVelocity = 0;
+        } else {
+            let desiredYawAccel = yawError * this.BASE_KP - this.yawVelocity * this.KD;
+            desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
+            this.yawVelocity += desiredYawAccel;
+            this.yawVelocity *= 0.92;
+            this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
+            this.currentYaw += this.yawVelocity;
+        }
 
-    if (isGradualSlope && !hasSharpTurn) {
-        return baseYawAhead;
-    }
-
-    if (!boxPositions || boxPositions.length < 3) {
-        return baseYawAhead;
-    }
-
-    const centerIndex = Math.max(1, Math.min(boxPositions.length - 2, Math.floor(pathPosition)));
-    const localCurvature = computeLocalCurvature(boxPositions, centerIndex);
-
-    const normalizedCurvature = Math.max(0, Math.min(1, localCurvature / CURVATURE_FULL_REDUCTION_ANGLE));
-
-    return baseYawAhead - (baseYawAhead - minYawAhead) * normalizedCurvature;
-}
-
-function calculatePitchLookahead(isGradualSlope, hasSharpTurn) {
-    if (isGradualSlope && !hasSharpTurn) {
-        return LOOK_AHEAD_DISTANCE;
-    }
-
-    if (hasSharpTurn) {
-        return MIN_PITCH_LOOKAHEAD;
-    }
-
-    return LOOK_AHEAD_DISTANCE;
-}
-
-function calculateStrafeDirection(boxPositions, currentIndex, pathAnalysis) {
-    if (currentIndex + 1 >= boxPositions.length) return 0;
-
-    const playerX = Player.getX();
-    const playerZ = Player.getZ();
-    const next = boxPositions[currentIndex + 1];
-
-    const toNextX = next.x + 0.5 - playerX;
-    const toNextZ = next.z + 0.5 - playerZ;
-
-    const playerYaw = Player.getYaw();
-    const facingX = -Math.sin((playerYaw * Math.PI) / 180);
-    const facingZ = Math.cos((playerYaw * Math.PI) / 180);
-
-    const cross = facingX * toNextZ - facingZ * toNextX;
-
-    const toNextLen = Math.sqrt(toNextX * toNextX + toNextZ * toNextZ);
-    if (toNextLen < 0.1) return 0;
-
-    const dot = (facingX * toNextX + facingZ * toNextZ) / toNextLen;
-    const angleToTarget = Math.acos(Math.max(-1, Math.min(1, dot))) * (180 / Math.PI);
-
-    if (angleToTarget > STRAFE_ANGLE_THRESHOLD) {
-        return cross > 0 ? -1 : 1;
-    }
-
-    if (pathAnalysis.hasVerySharpTurn && pathAnalysis.turnDirection !== 0) {
-        return pathAnalysis.turnDirection;
-    }
-
-    return 0;
-}
-
-function updateStrafeState(boxPositions, currentIndex, pathAnalysis) {
-    if (isEscapeRotationActive()) {
-        isStrafing = false;
-        strafeDirection = 0;
-        strafeHoldTicks = 0;
-        Keybind.setKey('a', false);
-        Keybind.setKey('d', false);
-        return;
-    }
-
-    const isCollided = Utils.playerIsCollided();
-    const player = Player.getPlayer();
-    if (!player) return;
-
-    if (isCollided) {
-        collisionTicks++;
-    } else {
-        collisionTicks = 0;
-    }
-
-    if (pathAnalysis.shouldAllowStrafe) {
-        recentStrafeEligible = STRAFE_ELIGIBILITY_MEMORY;
-    } else if (recentStrafeEligible > 0) {
-        recentStrafeEligible--;
-    }
-
-    const shouldConsiderStrafe = pathAnalysis.shouldAllowStrafe || recentStrafeEligible > 0;
-
-    let requiredCollisionTicks = STRAFE_ENABLE_COLLISION_TICKS;
-    if (pathAnalysis.firstDifficultIndex !== -1) {
-        const distanceToDifficulty = pathAnalysis.firstDifficultIndex - currentIndex;
-        if (distanceToDifficulty <= 2) {
-            requiredCollisionTicks = 3;
-        } else if (distanceToDifficulty <= 4) {
-            requiredCollisionTicks = 5;
+        if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.02) {
+            this.currentPitch = this.rawTargetPitch;
+            this.pitchVelocity = 0;
+        } else {
+            let desiredPitchAccel = pitchError * this.BASE_KP - this.pitchVelocity * this.KD;
+            desiredPitchAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredPitchAccel));
+            this.pitchVelocity += desiredPitchAccel;
+            this.pitchVelocity *= 0.92;
+            this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
+            this.currentPitch += this.pitchVelocity;
         }
     }
 
-    if (isCollided && collisionTicks >= requiredCollisionTicks && shouldConsiderStrafe) {
-        const newDirection = calculateStrafeDirection(boxPositions, currentIndex, pathAnalysis);
+    getClosestPointOnSegment(p, p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dz = p2.z - p1.z;
+        const dSq = dx * dx + dy * dy + dz * dz;
+        if (dSq === 0) return 0;
+        const t = ((p.x - p1.x) * dx + (p.y - p1.y) * dy + (p.z - p1.z) * dz) / dSq;
+        return Math.max(0, Math.min(1, t));
+    }
 
-        if (newDirection !== 0) {
-            strafeDirection = newDirection;
-            isStrafing = true;
-            strafeHoldTicks = STRAFE_DURATION_AFTER_UNCOLLIDE;
-            Chat.messagePathfinder(`§7Strafe enabled: dir=${strafeDirection > 0 ? 'right' : 'left'}, angle=${pathAnalysis.maxAngle.toFixed(1)}°`);
+    getInterpolatedPoint(indexFloat) {
+        const idx = Math.floor(indexFloat);
+        const frac = indexFloat - idx;
+        const p1 = this.boxPositions[idx];
+        const p2 = this.boxPositions[Math.min(idx + 1, this.boxPositions.length - 1)];
+        if (!p2 || frac <= 0) return p1;
+        return new Vec3d(p1.x + (p2.x - p1.x) * frac, p1.y + (p2.y - p1.y) * frac, p1.z + (p2.z - p1.z) * frac);
+    }
+
+    getDistSq(pos, box) {
+        return (pos.x - box.x) ** 2 + (pos.y - box.y) ** 2 + (pos.z - box.z) ** 2;
+    }
+
+    wrapAngle(angle) {
+        let wrapped = angle % 360;
+        if (wrapped > 180) wrapped -= 360;
+        if (wrapped < -180) wrapped += 360;
+        return wrapped;
+    }
+
+    getAngleDelta(from, to) {
+        let delta = (to - from) % 360;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        return delta;
+    }
+
+    pathRotations(splineData) {
+        if (!this.boxPositions) {
+            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
+            if (!this.boxPositions || !this.boxPositions.length) return;
         }
-    }
-
-    if (!isCollided && isStrafing) {
-        strafeHoldTicks--;
-        if (strafeHoldTicks <= 0) {
-            isStrafing = false;
-            strafeDirection = 0;
+        const player = Player.getPlayer();
+        if (!player) return;
+        if (!this.isInitialized) {
+            this.currentYaw = this.wrapAngle(player.getYaw());
+            this.currentPitch = player.getPitch();
+            this.rawTargetYaw = this.currentYaw;
+            this.rawTargetPitch = this.currentPitch;
+            this.yawVelocity = 0;
+            this.pitchVelocity = 0;
+            this.currentPathPosition = 0;
+            this.isInitialized = true;
+            this.rotationActive = true;
         }
-    }
-
-    if (!shouldConsiderStrafe && !isCollided) {
-        isStrafing = false;
-        strafeDirection = 0;
-        strafeHoldTicks = 0;
-    }
-
-    if (isStrafing && strafeDirection !== 0) {
-        Keybind.setKey('a', strafeDirection === -1);
-        Keybind.setKey('d', strafeDirection === 1);
-    } else {
-        Keybind.setKey('a', false);
-        Keybind.setKey('d', false);
     }
 }
 
-function updateMovementState() {
-    const player = Player.getPlayer();
-    if (!player) return;
-
-    const currentY = player.getY();
-    const onGround = player.isOnGround();
-
-    const yChange = Math.abs(currentY - lastPlayerY);
-
-    if (yChange > 0.001) {
-        smoothedYChangeRate = smoothedYChangeRate * (1 - Y_CHANGE_SMOOTHING) + yChange * Y_CHANGE_SMOOTHING;
-    } else {
-        smoothedYChangeRate *= Y_CHANGE_DECAY;
-    }
-
-    lastPlayerY = currentY;
-
-    const wasWalkingUpDown = isWalkingUpDown;
-    isWalkingUpDown = onGround && smoothedYChangeRate > Y_CHANGE_THRESHOLD;
-
-    if (isWalkingUpDown) {
-        walkingUpDownTicks++;
-    } else if (wasWalkingUpDown) {
-        walkingUpDownTicks = Math.max(0, walkingUpDownTicks - 2);
-        isWalkingUpDown = walkingUpDownTicks > 0;
-    } else {
-        walkingUpDownTicks = 0;
-    }
-
-    if (onGround) {
-        groundedTickCount++;
-        if (groundedTickCount > 2) {
-            isAirborne = false;
-            airborneTickCount = 0;
-        }
-    } else {
-        groundedTickCount = 0;
-        isAirborne = true;
-        airborneTickCount++;
-    }
-}
-
-function updateNodeSkipTracking(newBoxIndex) {
-    const skipAmount = newBoxIndex - lastBoxIndex;
-
-    if (skipAmount > NODE_SKIP_THRESHOLD) {
-        ticksSinceNodeSkip = 0;
-    } else {
-        ticksSinceNodeSkip++;
-    }
-
-    lastBoxIndex = newBoxIndex;
-}
-
-function getTargetBlendSpeed() {
-    if (ticksSinceNodeSkip >= SKIP_RECOVERY_TICKS) {
-        return TARGET_BLEND_NORMAL;
-    }
-
-    const recovery = ticksSinceNodeSkip / SKIP_RECOVERY_TICKS;
-    const easedRecovery = 1 - (1 - recovery) * (1 - recovery);
-    return TARGET_BLEND_SKIP + (TARGET_BLEND_NORMAL - TARGET_BLEND_SKIP) * easedRecovery;
-}
-
-function findClosestBoxIndex(boxPositions, currentIndex, playerEyes) {
-    let closestBoxDistanceSq = Infinity;
-    let newCurrentBoxIndex = currentIndex;
-
-    const startIndex = Math.max(0, currentIndex - BOX_RESET_SEARCH_RANGE);
-    const endIndex = Math.min(boxPositions.length, currentIndex + BOX_RESET_SEARCH_RANGE);
-
-    for (let i = startIndex; i < endIndex; i++) {
-        const box = boxPositions[i];
-        const dx = playerEyes.x - (box.x + 0.5);
-        const dy = playerEyes.y - (box.y + 0.5);
-        const dz = playerEyes.z - (box.z + 0.5);
-
-        const distanceSq = dx * dx + dy * dy + dz * dz;
-
-        if (distanceSq < closestBoxDistanceSq) {
-            closestBoxDistanceSq = distanceSq;
-            newCurrentBoxIndex = i;
-        }
-    }
-
-    return newCurrentBoxIndex;
-}
-
-function updateBoxIndex(newIndex, currentIndex) {
-    if (newIndex >= currentIndex) {
-        return newIndex;
-    } else if (newIndex < currentIndex - BOX_SWITCH_HYSTERESIS) {
-        return newIndex;
-    }
-    return currentIndex;
-}
-
-function calculatePathPosition(currentBox, nextBox, playerEyes) {
-    const vectorX = nextBox.x - currentBox.x;
-    const vectorZ = nextBox.z - currentBox.z;
-    const segmentLengthSq = vectorX * vectorX + vectorZ * vectorZ;
-
-    const pointX = playerEyes.x - (currentBox.x + 0.5);
-    const pointZ = playerEyes.z - (currentBox.z + 0.5);
-
-    let t = 0;
-    if (segmentLengthSq > 0.0001) {
-        t = (pointX * vectorX + pointZ * vectorZ) / segmentLengthSq;
-    }
-
-    return Math.max(0, Math.min(1, t));
-}
-
-register('step', () => {
-    if (!rotationActive) return;
-
-    const player = Player.getPlayer();
-    if (!player) return;
-
-    const targetBlendSpeed = getTargetBlendSpeed();
-
-    const yawToRaw = getAngleDelta(smoothedTargetYaw, rawTargetYaw);
-    const pitchToRaw = rawTargetPitch - smoothedTargetPitch;
-
-    smoothedTargetYaw = wrapAngle(smoothedTargetYaw + yawToRaw * targetBlendSpeed);
-    smoothedTargetPitch = smoothedTargetPitch + pitchToRaw * targetBlendSpeed;
-
-    let yawDelta = getAngleDelta(currentYaw, smoothedTargetYaw);
-    if (Math.abs(yawDelta) < YAW_DEAD_ZONE) {
-        yawDelta = 0;
-    }
-
-    let pitchSpeed;
-    let pitchDeadZone;
-
-    if (isWalkingUpDown) {
-        pitchSpeed = PITCH_WALKING_UPDOWN_SMOOTH_SPEED;
-        pitchDeadZone = PITCH_WALKING_UPDOWN_DEAD_ZONE;
-    } else if (isAirborne) {
-        pitchSpeed = PITCH_AIRBORNE_SMOOTH_SPEED;
-        pitchDeadZone = PITCH_DEAD_ZONE;
-    } else {
-        pitchSpeed = PITCH_SMOOTH_SPEED;
-        pitchDeadZone = PITCH_DEAD_ZONE;
-    }
-
-    let pitchDelta = smoothedTargetPitch - currentPitch;
-    if (Math.abs(pitchDelta) < pitchDeadZone) {
-        pitchDelta = 0;
-    }
-
-    currentYaw = wrapAngle(currentYaw + yawDelta * YAW_SMOOTH_SPEED);
-    currentPitch = currentPitch + pitchDelta * pitchSpeed;
-
-    currentPitch = Math.max(MAX_ALLOWED_PITCH_UP, Math.min(MAX_ALLOWED_PITCH_DOWN, currentPitch));
-
-    PathRotationsUtility.applyRotationWithGCD(currentYaw, currentPitch);
-}).setFps(120);
-
-export function pathRotations(splineData) {
-    const boxPositions = renderSplineBoxes(splineData, 1.5);
-    const player = Player.getPlayer();
-    if (!player) return;
-
-    const playerEyes = player.getEyePos();
-
-    if (boxPositions.length === 0 || currentBoxIndex >= boxPositions.length - 1) {
-        if (!complete) {
-            complete = true;
-            rotationActive = false;
-            Keybind.setKey('a', false);
-            Keybind.setKey('d', false);
-        }
-        return;
-    }
-
-    updateMovementState();
-
-    const pathAnalysis = analyzePathAhead(boxPositions, currentBoxIndex);
-
-    updateStrafeState(boxPositions, currentBoxIndex, pathAnalysis);
-
-    const stuckCheck = detectStuck(boxPositions, currentBoxIndex);
-    if (stuckCheck === 'RECALCULATE') {
-        complete = true;
-        rotationActive = false;
-        Keybind.setKey('a', false);
-        Keybind.setKey('d', false);
-        if (requestPathRecalculation) {
-            requestPathRecalculation();
-        }
-        return;
-    } else if (typeof stuckCheck === 'number') {
-        currentBoxIndex = stuckCheck;
-    }
-
-    const newCurrentBoxIndex = findClosestBoxIndex(boxPositions, currentBoxIndex, playerEyes);
-    currentBoxIndex = updateBoxIndex(newCurrentBoxIndex, currentBoxIndex);
-
-    updateNodeSkipTracking(currentBoxIndex);
-
-    if (currentBoxIndex < 0 || currentBoxIndex >= boxPositions.length) {
-        currentBoxIndex = Math.max(0, Math.min(boxPositions.length - 1, currentBoxIndex));
-        return;
-    }
-
-    const nextBox = boxPositions[currentBoxIndex + 1];
-    const currentBox = boxPositions[currentBoxIndex];
-
-    if (!nextBox) {
-        currentBoxIndex = boxPositions.length - 1;
-        return;
-    }
-
-    const positionFraction = calculatePathPosition(currentBox, nextBox, playerEyes);
-    currentPathPosition = currentBoxIndex + positionFraction;
-
-    const inPillarMode = updatePillarProximityState(currentPathPosition);
-
-    const yawLookahead = calculateYawLookahead(boxPositions, currentPathPosition, pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
-    const pitchLookahead = calculatePitchLookahead(pathAnalysis.isGradualSlope, pathAnalysis.hasSharpTurn);
-
-    let safeYawLookahead;
-    let safePitchLookahead;
-
-    if (inPillarMode) {
-        safeYawLookahead = MIN_SAFE_LOOKAHEAD;
-        safePitchLookahead = MIN_PITCH_LOOKAHEAD * 0.5;
-    } else {
-        safeYawLookahead = findSafeLookahead(boxPositions, currentPathPosition, yawLookahead, playerEyes, MIN_SAFE_LOOKAHEAD);
-        safePitchLookahead = findSafeLookahead(boxPositions, currentPathPosition, pitchLookahead, playerEyes, MIN_PITCH_LOOKAHEAD * 0.5);
-    }
-
-    const targetPathIndex = currentPathPosition + safePitchLookahead;
-    const targetYawPathIndex = currentPathPosition + safeYawLookahead;
-
-    const pitchStartIndex = Math.min(Math.floor(targetPathIndex), boxPositions.length - 2);
-    const yawStartIndex = Math.min(Math.floor(targetYawPathIndex), boxPositions.length - 2);
-
-    const pitchFraction = targetPathIndex - pitchStartIndex;
-    const yawFraction = targetYawPathIndex - yawStartIndex;
-
-    const lookAheadBoxCenter = PathRotationsUtility.interpolateBoxPosition(boxPositions, pitchStartIndex, pitchFraction);
-    const finalRotationTargetPoint = PathRotationsUtility.interpolateBoxPosition(boxPositions, yawStartIndex, yawFraction);
-
-    if (!lookAheadBoxCenter || !finalRotationTargetPoint) {
-        currentBoxIndex = boxPositions.length - 1;
-        return;
-    }
-
-    const movementTargetIndex = Math.min(currentBoxIndex + 2, boxPositions.length - 1);
-    setMovementTarget(boxPositions[movementTargetIndex]);
-
-    const { pitch: newRawPitch, yaw: newRawYaw } = MathUtils.calculateAbsoluteAngles(finalRotationTargetPoint);
-
-    if (!isInitialized) {
-        currentYaw = player.getYaw();
-        currentPitch = player.getPitch();
-        smoothedTargetYaw = newRawYaw;
-        smoothedTargetPitch = newRawPitch;
-        rawTargetYaw = newRawYaw;
-        rawTargetPitch = newRawPitch;
-        lastPlayerY = player.getY();
-        lastBoxIndex = currentBoxIndex;
-        lastPathPositionForPillar = currentPathPosition;
-        isInitialized = true;
-        rotationActive = true;
-
-        PathRotationsUtility.resetGCDTracking();
-    }
-
-    if (getShouldLimitRotations()) {
-        const yawDelta = getAngleDelta(rawTargetYaw, newRawYaw);
-        if (Math.abs(yawDelta) < 30) {
-            rawTargetYaw = newRawYaw;
-        }
-    } else {
-        rawTargetYaw = newRawYaw;
-        rawTargetPitch = newRawPitch;
-    }
-
-    if (getShouldLimitRotations()) {
-        const yawDelta = getAngleDelta(rawTargetYaw, newRawYaw);
-        if (Math.abs(yawDelta) < 30) {
-            rawTargetYaw = newRawYaw;
-        }
-    } else {
-        rawTargetYaw = newRawYaw;
-        rawTargetPitch = newRawPitch;
-    }
-
-    if (isEscapeRotationActive()) {
-        const escYaw = getEscapeYaw();
-        if (escYaw !== null) {
-            rawTargetYaw = escYaw;
-            rawTargetPitch = 0;
-        }
-    }
-
-    const distanceToCurrentPoint = MathUtils.getDistanceToPlayerEyes(currentBox.x + 0.5, currentBox.y + 0.5, currentBox.z + 0.5);
-
-    if (distanceToCurrentPoint < BASE_ADVANCE_DISTANCE / 2 && currentPathPosition > currentBoxIndex + 0.9) {
-        currentBoxIndex = Math.min(currentBoxIndex + 1, boxPositions.length - 1);
-        currentPathPosition = currentBoxIndex;
-    }
-}
+export const Rotations = new PathRotations();

@@ -10,7 +10,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
-import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
 
 const STATES = {
     IDLE: 'Idle',

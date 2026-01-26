@@ -4,7 +4,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { Raytrace } from '../../utils/Raytrace';
-import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
 

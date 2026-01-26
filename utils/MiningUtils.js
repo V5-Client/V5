@@ -6,7 +6,7 @@ import { Flowstate } from './Flowstate';
 import { Executor } from './ThreadExecutor';
 import { Blocks, BP } from './Constants';
 import { v5Command } from './V5Commands';
-import Pathfinder from './Pathfinderrewrtie/PathFinder';
+import Pathfinder from './pathfinder/PathFinder';
 import { Rotations } from './player/Rotations';
 
 const BLOCK_HARDNESS_DATA = {

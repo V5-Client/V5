@@ -1,122 +1,84 @@
 import { Keybind } from '../../player/Keybinding';
-import { isInRecoveryMode, getRecoveryMovement } from './PathStuckRecovery';
 
-let consecutiveAirborneTicks = 0;
-let isFalling = false;
-let shouldLimitRotations = false;
+class PathMovement {
+    constructor() {
+        this.forceJumpTicks = 0;
+        this.backupTicks = 0;
+        this.backupCallback = null;
+        this.isActive = false;
 
-const FALL_DETECTION_TICKS = 3;
-const OVERSHOOT_ANGLE_THRESHOLD = 85;
-const CLOSE_HORIZONTAL_THRESHOLD = 1.5;
-
-let currentTargetBox = null;
-
-export function setMovementTarget(box) {
-    currentTargetBox = box;
-}
-
-export function clearMovementTarget() {
-    currentTargetBox = null;
-}
-
-export function getShouldLimitRotations() {
-    return shouldLimitRotations;
-}
-
-export function resetMovementState() {
-    consecutiveAirborneTicks = 0;
-    isFalling = false;
-    shouldLimitRotations = false;
-    currentTargetBox = null;
-}
-
-function calculateMovementDecision() {
-    const player = Player.getPlayer();
-    if (!player || !currentTargetBox) {
-        return { holdForward: true, limitRotation: false };
+        this.onTick();
     }
 
-    const playerX = Player.getX();
-    const playerZ = Player.getZ();
+    onTick() {
+        register('tick', () => {
+            if (!this.isActive) return;
 
-    const targetX = currentTargetBox.x + 0.5;
-    const targetZ = currentTargetBox.z + 0.5;
+            if (this.forceJumpTicks > 0) {
+                Keybind.setKey('space', true);
+                this.forceJumpTicks--;
+                if (this.forceJumpTicks === 0) {
+                    Keybind.setKey('space', false);
+                }
+            }
 
-    const dx = targetX - playerX;
-    const dz = targetZ - playerZ;
-    const horizDist = Math.sqrt(dx * dx + dz * dz);
+            if (this.backupTicks > 0) {
+                Keybind.setKey('w', false);
+                Keybind.setKey('s', true);
+                Keybind.setKey('sprint', false);
+                this.backupTicks--;
 
-    if (horizDist < CLOSE_HORIZONTAL_THRESHOLD) {
-        return { holdForward: false, limitRotation: true };
+                if (this.backupTicks === 0) {
+                    Keybind.setKey('s', false);
+
+                    if (this.backupCallback) {
+                        const cb = this.backupCallback;
+                        this.backupCallback = null;
+                        cb();
+                    }
+                }
+            }
+        });
     }
 
-    const playerYaw = player.getYaw();
-    const targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+    beginMovement() {
+        const player = Player.getPlayer();
+        if (!player) return;
 
-    let angleDiff = targetYaw - playerYaw;
-    while (angleDiff > 180) angleDiff -= 360;
-    while (angleDiff < -180) angleDiff += 360;
-    angleDiff = Math.abs(angleDiff);
+        this.isActive = true;
 
-    if (angleDiff > OVERSHOOT_ANGLE_THRESHOLD) {
-        return { holdForward: false, limitRotation: true };
+        if (this.backupTicks <= 0) {
+            if (!player.isSprinting()) Keybind.setKey('sprint', true);
+            Keybind.setKey('w', true);
+        }
     }
 
-    return { holdForward: true, limitRotation: false };
-}
-
-export function PathMovement(on = true) {
-    if (isInRecoveryMode()) {
-        const recoveryMovement = getRecoveryMovement();
-        Keybind.setKey('w', recoveryMovement.forward);
-        Keybind.setKey('s', recoveryMovement.backward);
-        consecutiveAirborneTicks = 0;
-        isFalling = false;
-        shouldLimitRotations = false;
-        return;
+    forceJump(ticks = 4) {
+        this.forceJumpTicks = ticks;
     }
 
-    if (!on) {
+    backup(ticks, onComplete) {
+        this.backupTicks = ticks;
+        this.backupCallback = onComplete || null;
+    }
+
+    isRecovering() {
+        return this.forceJumpTicks > 0 || this.backupTicks > 0;
+    }
+
+    stopMovement() {
+        this.isActive = false;
+        this.forceJumpTicks = 0;
+        this.backupTicks = 0;
+        this.backupCallback = null;
+
         Keybind.stopMovement();
-        consecutiveAirborneTicks = 0;
-        isFalling = false;
-        shouldLimitRotations = false;
-        return;
-    }
-
-    const player = Player.getPlayer();
-    if (!player) {
-        Keybind.setKey('w', true);
+        Keybind.setKey('w', false);
         Keybind.setKey('s', false);
-        shouldLimitRotations = false;
-        return;
-    }
-
-    const onGround = player.isOnGround();
-
-    if (onGround) {
-        consecutiveAirborneTicks = 0;
-        isFalling = false;
-        shouldLimitRotations = false;
-        Keybind.setKey('w', true);
-        Keybind.setKey('s', false);
-        return;
-    }
-
-    consecutiveAirborneTicks++;
-
-    const yVelocity = Player.getMotionY();
-    isFalling = yVelocity < -0.1;
-
-    if (consecutiveAirborneTicks >= FALL_DETECTION_TICKS && isFalling) {
-        const decision = calculateMovementDecision();
-        shouldLimitRotations = decision.limitRotation;
-        Keybind.setKey('w', decision.holdForward);
-        Keybind.setKey('s', false);
-    } else {
-        // Still in jump ascent or just started falling
-        shouldLimitRotations = false;
-        Keybind.setKey('w', true);
-        Keybind.setKey('s', false);
+        Keybind.setKey('a', false);
+        Keybind.setKey('d', false);
+        Keybind.setKey('space', false);
     }
 }
+
+export const Movement = new PathMovement();
