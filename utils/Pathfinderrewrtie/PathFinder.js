@@ -25,7 +25,7 @@ class Finder {
         this.MAX_RECALCULATE_ATTEMPTS = 5;
 
         v5Command('path', (...args) => {
-            if (args.length < 3) return Chat.messagePathfinder('Usage: /path x y z [x2 y2 z2...]');
+            if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path goto x y z [x2 y2 z2...]');
 
             const coords = args.map(Number);
             if (coords.some(isNaN)) {
@@ -77,11 +77,16 @@ class Finder {
             if (Swift.isSearching()) return;
 
             const result = Swift.getResult();
+
             if (!result || !result.keynodes?.length) {
                 if (this.checkIfReachedDestination()) {
                     this.finishSuccess();
                 } else {
-                    this.recalculate();
+                    if (PathConfig.PATHFINDING_DEBUG) {
+                        Chat.messagePathfinder('§cNo path found');
+                    }
+                    this.callCallback(false);
+                    this.resetPath();
                 }
                 return;
             }
@@ -150,7 +155,7 @@ class Finder {
 
         if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                Chat.messagePathfinder('§cMax recalculation attempts, failed!'); // what the fuck do i do here?
+                Chat.messagePathfinder('§cMax recalculation attempts, failed!');
             }
             this.callCallback(false);
             this.resetPath();
@@ -158,7 +163,7 @@ class Finder {
         }
 
         if (PathConfig.PATHFINDING_DEBUG) {
-            Chat.messagePathfinder(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})...`);
+            Chat.messagePathfinder(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})`);
         }
 
         const end = this.currentEnd;
@@ -172,18 +177,27 @@ class Finder {
         Spline.clearCache();
         Jump.reset();
         Recovery.resetTracking();
+        Movement.stopMovement();
+
         this.saidInfo = false;
 
-        this.currentEnd = end;
-        this.currentCallback = callback;
-        this.calledFromFile = wasFromFile;
-        this.recalculateAttempts = attempts;
+        setTimeout(() => {
+            if (this.currentEnd === null) return;
 
-        this.findPath(end, callback, false);
+            this.currentEnd = end;
+            this.currentCallback = callback;
+            this.calledFromFile = wasFromFile;
+            this.recalculateAttempts = attempts;
+
+            this.findPath(end, callback, false);
+        }, 250);
     }
 
     checkIfReachedDestination() {
         if (!this.currentEnd) return true;
+
+        const player = Player.getPlayer();
+        if (!player) return false;
 
         const pX = Player.getX(),
             pY = Player.getY(),
@@ -191,10 +205,22 @@ class Finder {
         const goals = Array.isArray(this.currentEnd[0]) ? this.currentEnd : [this.currentEnd];
 
         for (const goal of goals) {
-            const dx = pX - goal[0],
-                dy = pY - goal[1],
-                dz = pZ - goal[2];
-            if (Math.sqrt(dx * dx + dz * dz) < 2.5 && Math.abs(dy) < 3.0) return true;
+            const destX = goal[0];
+            const destY = goal[1];
+            const destZ = goal[2];
+
+            const dx = pX - destX;
+            const dy = pY - destY;
+            const dz = pZ - destZ;
+
+            const hDistSq = dx * dx + dz * dz;
+            if (hDistSq > 2.0 * 2.0) continue;
+
+            if (dy < -0.1 || dy > 2.5) continue;
+
+            if (player.isOnGround()) {
+                return true;
+            }
         }
         return false;
     }
