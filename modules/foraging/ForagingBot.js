@@ -4,7 +4,7 @@ import RenderUtils from '../../utils/render/RendererUtils';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { Raytrace } from '../../utils/Raytrace';
-import Pathfinder from '../../utils/Pathfinderrewrtie/Pathfinder';
+import Pathfinder from '../../utils/Pathfinderrewrtie/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
 
@@ -143,7 +143,7 @@ class ForagingBot extends ModuleBase {
         }
 
         this.pathInProgress = true;
-        Pathfinder.findPath(start, end, this.onPathFinished.bind(this));
+        Pathfinder.findPath(end, this.onPathFinished.bind(this));
     }
 
     onPathFinished(success) {

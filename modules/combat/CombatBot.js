@@ -412,7 +412,7 @@ class Combat extends ModuleBase {
         const pathTargetUuid = this.getTargetUuid(pathTarget);
 
         Pathfinder.resetPath();
-        Pathfinder.findPath(start, end, (success) => {
+        Pathfinder.findPath(end, (success) => {
             if (!success) {
                 if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
                     this.target = null;

@@ -463,9 +463,7 @@ class CommissionMacro extends ModuleBase {
         Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to &b${waypoints.length}&a spot(s).`);
 
         this.setState(STATES.TRAVELING);
-        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], waypoints, (success) =>
-            this.onPathComplete(success)
-        );
+        Pathfinder.findPath(waypoints, (success) => this.onPathComplete(success));
     }
 
     handleNoAvailableSpots() {
@@ -564,8 +562,7 @@ class CommissionMacro extends ModuleBase {
                 // console.log('under platform');
                 this.travelPurpose = 'EMISSARY';
 
-                const currentPos = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-                Pathfinder.findPath(currentPos, EMISSARY_LOCATIONS, (success) => {
+                Pathfinder.findPath(EMISSARY_LOCATIONS, (success) => {
                     if (!success) {
                         Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
                         // probably should blacklist emissary and go to different emissary
@@ -594,7 +591,7 @@ class CommissionMacro extends ModuleBase {
 
         if (Pathfinder.isPathing()) return;
         this.travelPurpose = 'EMISSARY';
-        Pathfinder.findPath([Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())], EMISSARY_LOCATIONS, (success) => {
+        Pathfinder.findPath(EMISSARY_LOCATIONS, (success) => {
             if (!success) {
                 this.setState(STATES.CHOOSING);
             }
