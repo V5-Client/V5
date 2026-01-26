@@ -25,7 +25,7 @@ class ControlSystem {
 
     triggerRightClick() {
         if (Client.isInGui() && !Client.isInChat()) {
-            //return Chat.message('Right click suppressed: User in menu.');
+            return Chat.message('Right click suppressed: User in menu.');
         }
         Client.scheduleTask(() => {
             RIGHT_CLICK_METHOD.invoke(mc);
