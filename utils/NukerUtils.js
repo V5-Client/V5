@@ -27,6 +27,9 @@ class NukerUtilsClass {
         register('tick', () => {
             this.sequence = Mixin.get('playerActionSequence', 0);
 
+            const isNuking = this.nukeQueue.length > 0 || this.tickCounter > 0;
+            Mixin.set('nukerActive', isNuking);
+
             if (this.fakelookMode !== 'Queue') return;
 
             if (this.nukeQueue.length > 0) {

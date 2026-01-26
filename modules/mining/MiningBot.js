@@ -159,8 +159,6 @@ class Bot extends ModuleBase {
         this.normalRender = register('postRenderWorld', () => this.renderNormal()).unregister();
 
         this.on('tick', () => {
-            if (Client.isInChat() || Client.isInGui()) return (this.lastGUI = Date.now());
-
             switch (this.state) {
                 case this.STATES.ABILITY:
                     this.handleAbilityState();

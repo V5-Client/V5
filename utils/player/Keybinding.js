@@ -10,7 +10,7 @@ RIGHT_CLICK_METHOD.setAccessible(true);
 
 class ControlSystem {
     constructor() {
-        this.moveCooldown = 0;
+        this.lastClick = 0;
         this.lastActionTime = Date.now();
     }
 
@@ -49,10 +49,22 @@ class ControlSystem {
 
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
+
             if (guiOpen && !chatOpen) {
+                this.lastClick = 2;
                 Client.scheduleTask(() => {
                     attackKey.setPressed(false);
                 });
+
+                return true;
+            }
+
+            if (this.lastClick > 0) {
+                this.lastClick--;
+                Client.scheduleTask(() => {
+                    attackKey.setPressed(false);
+                });
+
                 return true;
             }
 
@@ -63,6 +75,7 @@ class ControlSystem {
             Client.scheduleTask(() => {
                 attackKey.setPressed(!!isPressed);
             });
+
             return true;
         }
 

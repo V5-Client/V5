@@ -6,6 +6,7 @@ import { Categories } from '../gui/categories/CategorySystem';
 import { MacroState } from './MacroState';
 import { Chat } from './Chat';
 import { manager } from './SkyblockEvents';
+import { Mixin } from './MixinManager';
 
 export class ModuleBase {
     /**
@@ -116,6 +117,10 @@ export class ModuleBase {
         this.isParentManaged = parentManaged;
 
         if (newVal) {
+            if (this.isMacro) {
+                Mixin.set('macroEnabled', true);
+            }
+
             if (this.isMacro && !this.isParentManaged) {
                 MacroState.onModuleEnabled(this.name);
             }
@@ -134,6 +139,7 @@ export class ModuleBase {
         } else {
             if (this.isMacro) {
                 MacroState.onModuleDisabled(this.name);
+                Mixin.set('macroEnabled', false);
             }
 
             if (this.oid) {
