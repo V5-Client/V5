@@ -4,7 +4,7 @@ import { Chat } from '../Chat';
 import { CloseHandledScreenC2S } from '../Packets';
 
 class ItemSearcher {
-    constructor() { }
+    constructor() {}
 
     stripCodes(text) {
         if (!text || typeof text !== 'string') return text;
@@ -166,7 +166,9 @@ export const Guis = {
     setItemSlot: function (slot) {
         if (slot >= 0 && slot <= 8) {
             if (Player.getHeldItemIndex() !== slot) {
-                Client.scheduleTask(() => { Player.setHeldItemIndex(slot) })
+                Client.scheduleTask(() => {
+                    Player.setHeldItemIndex(slot);
+                });
             }
         }
     },

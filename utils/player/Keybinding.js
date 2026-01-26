@@ -20,7 +20,7 @@ class ControlSystem {
         }
         Client.scheduleTask(() => {
             LEFT_CLICK_METHOD.invoke(mc);
-        })
+        });
     }
 
     triggerRightClick() {
@@ -29,7 +29,7 @@ class ControlSystem {
         }
         Client.scheduleTask(() => {
             RIGHT_CLICK_METHOD.invoke(mc);
-        })
+        });
     }
 
     sendRightClickPacket(delay, x, y, z) {
@@ -50,7 +50,9 @@ class ControlSystem {
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
             if (guiOpen && !chatOpen) {
-                Client.scheduleTask(() => { attackKey.setPressed(false) })
+                Client.scheduleTask(() => {
+                    attackKey.setPressed(false);
+                });
                 return true;
             }
 
@@ -58,7 +60,9 @@ class ControlSystem {
             mouseGrabbed.setAccessible(true);
             mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
 
-            Client.scheduleTask(() => { attackKey.setPressed(!!isPressed) })
+            Client.scheduleTask(() => {
+                attackKey.setPressed(!!isPressed);
+            });
             return true;
         }
 
@@ -77,7 +81,9 @@ class ControlSystem {
 
         const keyObj = mapping[action];
         if (keyObj) {
-            Client.scheduleTask(() => { keyObj.setPressed(!!isPressed) })
+            Client.scheduleTask(() => {
+                keyObj.setPressed(!!isPressed);
+            });
             return true;
         }
         return false;
