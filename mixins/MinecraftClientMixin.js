@@ -20,13 +20,16 @@ Mixin('net.minecraft.client.MinecraftClient')
         at: new At({ value: 'HEAD' }),
     })
     .hook((manager, instance, cir) => {
-        if (Mixin.get('macroEnabled', false) && !Mixin.get('nukerActive', false)) {
+        const isNukerActive = Mixin.get('nukerActive', false);
+        const shouldClick = Mixin.get('shouldClick', false);
+        const macroEnabled = Mixin.get('macroEnabled', false);
+
+        if (macroEnabled && (isNukerActive || shouldClick)) {
             const cooldownField = instance.getClass().getDeclaredField('field_1752'); // itemUseCooldown
             cooldownField.setAccessible(true);
             let cooldownValue = cooldownField.getInt(instance);
 
             if (instance.currentScreen != null && instance.player != null && instance.interactionManager != null && magicalTruth) {
-                // itemCooldown is called so you dont 40bps
                 if (cooldownValue > 0) return;
 
                 instance.player.swingHand(Hand.MAIN_HAND);
@@ -41,6 +44,8 @@ Mixin('net.minecraft.client.MinecraftClient')
                     : type === 'BLOCK'
                       ? instance.interactionManager.attackBlock(target.getBlockPos(), target.getSide())
                       : null;
+
+                if (!isNukerActive) Mixin.set('shouldClick', false);
             }
         }
     });
