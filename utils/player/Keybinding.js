@@ -2,6 +2,7 @@ import { Chat } from '../Chat';
 import { Utils, mc } from '../Utils';
 import { Vec3d, Direction, BlockHitResult, MCHand, BP } from '../Constants';
 import { PlayerInteractBlockC2S } from '../Packets';
+import { Mixin } from '../MixinManager';
 
 const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1536');
 const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
@@ -51,6 +52,8 @@ class ControlSystem {
             const attackKey = mc.options.attackKey;
 
             if (guiOpen && !chatOpen) {
+                Mixin.set('shouldClick', true);
+
                 this.lastClick = 2;
                 Client.scheduleTask(() => {
                     attackKey.setPressed(false);
