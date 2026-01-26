@@ -141,8 +141,8 @@ class Finder {
                 Movement.forceJump(4);
                 break;
             case 'CLOSE_LOOK':
-                Rotations.setTemporaryLookahead(Rotations.MIN_LOOKAHEAD, 40);
-                Movement.forceJump(4);
+                Rotations.setTemporaryLookahead(Rotations.RECOVERY_MIN_LOOKAHEAD, 40);
+                //Movement.forceJump(4);
                 break;
             case 'BACKUP_RECALC':
                 Movement.backup(15, () => this.recalculate());

@@ -10,6 +10,7 @@ class PathRotations {
     constructor() {
         this.MIN_LOOKAHEAD = 1.1;
         this.MAX_LOOKAHEAD = 3.5;
+        this.RECOVERY_MIN_LOOKAHEAD = 0.1;
         this.PROXIMITY_THRESHOLD = 4.0;
 
         this.BASE_KP = 0.08;
@@ -23,6 +24,7 @@ class PathRotations {
         this.SMOOTH_FACTOR = 0.12;
         this.MAX_LOOK_DISTANCE = 0.8;
         this.LOOKAHEAD_STEP = 0.4;
+        this.RECOVERY_LOOKAHEAD_STEP = 0.15;
         this.VISIBILITY_CACHE_MS = 50;
 
         this.MAX_DIRECTION_DIVERGENCE = 50.0;
@@ -69,6 +71,7 @@ class PathRotations {
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
         }).setFps(120);
     }
+
     isPointVisible(playerEyes, targetPoint) {
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
@@ -124,7 +127,6 @@ class PathRotations {
     setTemporaryLookahead(distance, durationTicks = 30) {
         this.lookaheadOverride = distance;
         this.lookaheadOverrideExpiry = durationTicks;
-
         this.smoothedLookahead = distance;
         this.cachedLookahead = null;
     }
@@ -134,10 +136,14 @@ class PathRotations {
         this.lookaheadOverrideExpiry = 0;
     }
 
+    isInRecoveryMode() {
+        return this.lookaheadOverride !== null && this.lookaheadOverrideExpiry > 0;
+    }
+
     findVisibleLookahead(playerEyes, idealLookahead) {
         const now = Date.now();
 
-        if (this.cachedLookahead !== null && now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS) {
+        if (!this.isInRecoveryMode() && this.cachedLookahead !== null && now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS) {
             const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.cachedLookahead);
             return { point: this.getInterpolatedPoint(t), lookahead: this.cachedLookahead };
         }
@@ -152,9 +158,12 @@ class PathRotations {
             z: immediatePoint.z - playerEyes.z,
         };
 
-        let lookahead = idealLookahead;
+        const inRecovery = this.isInRecoveryMode();
+        const effectiveMin = inRecovery ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
 
-        while (lookahead >= this.MIN_LOOKAHEAD) {
+        let lookahead = inRecovery ? idealLookahead : Math.max(idealLookahead, this.MIN_LOOKAHEAD);
+
+        while (lookahead >= effectiveMin) {
             const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + lookahead);
             const point = this.getInterpolatedPoint(t);
 
@@ -163,22 +172,24 @@ class PathRotations {
             const dz = point.z - playerEyes.z;
             const horzDist = Math.sqrt(dx * dx + dz * dz);
 
-            if (dy > 1.8 && horzDist < 0.8) {
-                lookahead -= this.LOOKAHEAD_STEP;
-                continue;
-            }
+            if (lookahead >= this.MIN_LOOKAHEAD) {
+                if (dy > 1.8 && horzDist < 0.8) {
+                    lookahead -= this.LOOKAHEAD_STEP;
+                    continue;
+                }
 
-            const pitch = -Math.atan2(dy, horzDist) * (180 / Math.PI);
-            if (pitch < this.MAX_UPWARD_PITCH && horzDist < 1.5) {
-                lookahead -= this.LOOKAHEAD_STEP;
-                continue;
-            }
+                const pitch = -Math.atan2(dy, horzDist) * (180 / Math.PI);
+                if (pitch < this.MAX_UPWARD_PITCH && horzDist < 1.5) {
+                    lookahead -= this.LOOKAHEAD_STEP;
+                    continue;
+                }
 
-            const vecTarget = { x: dx, y: dy, z: dz };
-            const divergence = this.getAngleBetweenVectors(vecImmediate, vecTarget);
-            if (divergence > this.MAX_DIRECTION_DIVERGENCE) {
-                lookahead -= this.LOOKAHEAD_STEP;
-                continue;
+                const vecTarget = { x: dx, y: dy, z: dz };
+                const divergence = this.getAngleBetweenVectors(vecImmediate, vecTarget);
+                if (divergence > this.MAX_DIRECTION_DIVERGENCE) {
+                    lookahead -= this.LOOKAHEAD_STEP;
+                    continue;
+                }
             }
 
             if (this.isPointVisible(playerEyes, point)) {
@@ -186,12 +197,13 @@ class PathRotations {
                 return { point, lookahead };
             }
 
-            lookahead -= this.LOOKAHEAD_STEP;
+            const step = lookahead < this.MIN_LOOKAHEAD ? this.RECOVERY_LOOKAHEAD_STEP : this.LOOKAHEAD_STEP;
+            lookahead -= step;
         }
 
-        this.cachedLookahead = this.MIN_LOOKAHEAD;
-        const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.MIN_LOOKAHEAD);
-        return { point: this.getInterpolatedPoint(t), lookahead: this.MIN_LOOKAHEAD };
+        this.cachedLookahead = effectiveMin;
+        const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + effectiveMin);
+        return { point: this.getInterpolatedPoint(t), lookahead: effectiveMin };
     }
 
     getAdaptiveLookahead(playerEyes) {
