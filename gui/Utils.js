@@ -175,6 +175,11 @@ export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {
     NVG.drawImage(path, x, y, width, height, radius, alpha);
 };
 
+export const drawImageFromURL = (url, x, y, width, height, radius = 0, alpha = 1) => {
+    if (!url) return;
+    NVG.drawImage(url, x, y, width, height, radius, alpha);
+};
+
 export const drawCircularImage = (path, x, y, size, alpha = 1) => {
     if (!path) return;
     NVG.drawImage(path, x, y, size, size, size / 2, alpha);
