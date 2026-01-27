@@ -6,9 +6,9 @@ class PathRecovery {
         this.MOVING_THRESHOLD = 0.12;
         this.PROGRESS_THRESHOLD = 3.0;
 
-        this.STUCK_TICKS_JUMP = 12;
-        this.STUCK_TICKS_CLOSE_LOOK = 24;
-        this.STUCK_TICKS_BACKUP_RECALC = 36;
+        this.STUCK_TICKS_JUMP = 10;
+        this.STUCK_TICKS_CLOSE_LOOK = 22;
+        this.STUCK_TICKS_BACKUP_RECALC = 44;
 
         this.lastPos = null;
         this.stuckPos = null;
@@ -18,7 +18,7 @@ class PathRecovery {
 
     trackProgress() {
         const player = Player.getPlayer();
-        if (!player || !player.isOnGround()) return null;
+        if (!player) return null;
 
         const playerMP = Player.asPlayerMP();
         if (playerMP && (playerMP.isInLava() || playerMP.isInWater())) {
@@ -48,6 +48,7 @@ class PathRecovery {
 
         this.stuckTicks++;
         this.lastPos = { x: pX, z: pZ };
+        if (!player.isOnGround()) return null; // move to the 'if (!player) return null;' if this breaks it. but i'm pretty sure here makes it better!
 
         if (this.stuckTicks >= this.STUCK_TICKS_BACKUP_RECALC && this.currentLevel < 3) {
             if (PathConfig.PATHFINDING_DEBUG) {

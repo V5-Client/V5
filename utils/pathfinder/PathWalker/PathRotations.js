@@ -288,6 +288,8 @@ class PathRotations {
         if (!player) return;
         const playerEyes = player.getEyePos();
 
+        const isFalling = Player.getMotionY() < -0.4;
+
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
 
@@ -299,13 +301,25 @@ class PathRotations {
             const p2 = this.boxPositions[i + 1];
             if (!p1 || !p2) continue;
 
-            const segmentProgress = this.getClosestPointOnSegment(playerEyes, p1, p2);
-            const projectedPoint = this.getInterpolatedPoint(i + segmentProgress);
-            const distSq = this.getDistSq(playerEyes, projectedPoint);
+            const segmentProgress = isFalling ? this.getClosestPointOnSegmentHorizontal(playerEyes, p1, p2) : this.getClosestPointOnSegment(playerEyes, p1, p2);
+            const candidateT = i + segmentProgress;
+
+            if (isFalling && candidateT < this.currentPathPosition) continue;
+
+            const projectedPoint = this.getInterpolatedPoint(candidateT);
+
+            let distSq;
+            if (isFalling) {
+                const dx = playerEyes.x - projectedPoint.x;
+                const dz = playerEyes.z - projectedPoint.z;
+                distSq = dx * dx + dz * dz;
+            } else {
+                distSq = this.getDistSq(playerEyes, projectedPoint);
+            }
 
             if (distSq < minDistanceSq) {
                 minDistanceSq = distSq;
-                bestT = i + segmentProgress;
+                bestT = candidateT;
             }
         }
 
@@ -439,6 +453,15 @@ class PathRotations {
         const dSq = dx * dx + dy * dy + dz * dz;
         if (dSq === 0) return 0;
         const t = ((p.x - p1.x) * dx + (p.y - p1.y) * dy + (p.z - p1.z) * dz) / dSq;
+        return Math.max(0, Math.min(1, t));
+    }
+
+    getClosestPointOnSegmentHorizontal(p, p1, p2) {
+        const dx = p2.x - p1.x;
+        const dz = p2.z - p1.z;
+        const dSq = dx * dx + dz * dz;
+        if (dSq === 0) return 0;
+        const t = ((p.x - p1.x) * dx + (p.z - p1.z) * dz) / dSq;
         return Math.max(0, Math.min(1, t));
     }
 
