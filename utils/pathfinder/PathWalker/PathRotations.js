@@ -12,6 +12,7 @@ class PathRotations {
         this.MAX_LOOKAHEAD = 3.5;
         this.RECOVERY_MIN_LOOKAHEAD = 0.1;
         this.PROXIMITY_THRESHOLD = 4.0;
+        this.COMPLETION_RADIUS = 1.6;
 
         this.BASE_KP = 0.08;
         this.KD = 0.45;
@@ -59,6 +60,8 @@ class PathRotations {
 
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
+
+        this.unseenSince = 0;
 
         PathRotationsUtility.stopRotation();
     }
@@ -312,7 +315,32 @@ class PathRotations {
 
         const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
         //ChatLib.chat(adaptiveLookahead.toFixed(2));
-        const result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
+        let result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
+        const effectiveMin = this.isInRecoveryMode() ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
+        let targetVisible = this.isPointVisible(playerEyes, result.point);
+
+        if (result.lookahead <= effectiveMin + 0.001 && !targetVisible) {
+            if (!this.unseenSince) this.unseenSince = Date.now();
+            if (Date.now() - this.unseenSince >= 300) {
+                let attempts = 0;
+                while (this.currentPathPosition > 0 && attempts < 8) {
+                    this.currentPathPosition = Math.max(0, this.currentPathPosition - 1);
+                    const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + effectiveMin);
+                    const backPoint = this.getInterpolatedPoint(t);
+                    if (this.isPointVisible(playerEyes, backPoint)) {
+                        this.unseenSince = 0;
+                        this.cachedLookahead = null;
+                        result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
+                        targetVisible = this.isPointVisible(playerEyes, result.point);
+                        break;
+                    }
+                    attempts++;
+                }
+            }
+        } else {
+            this.unseenSince = 0;
+        }
+
         let targetPoint = result.point;
 
         if (result.lookahead < this.smoothedLookahead) {
@@ -355,7 +383,20 @@ class PathRotations {
             this.rawTargetPitch += pitchDelta * this.SMOOTH_FACTOR;
         }
 
-        if (this.currentPathPosition >= this.boxPositions.length - 1.05) {
+        const lastIndex = this.boxPositions.length - 1;
+        const lastPoint = this.boxPositions[lastIndex];
+        const endDx = playerEyes.x - lastPoint.x;
+        const endDy = playerEyes.y - lastPoint.y;
+        const endDz = playerEyes.z - lastPoint.z;
+        const endDistSq = endDx * endDx + endDy * endDy + endDz * endDz;
+        if (endDistSq <= this.COMPLETION_RADIUS * this.COMPLETION_RADIUS && this.currentPathPosition >= lastIndex - 2.0) {
+            this.currentPathPosition = lastIndex;
+            this.complete = true;
+            this.rotationActive = false;
+            return;
+        }
+
+        if (this.currentPathPosition >= lastIndex - 0.25) {
             this.complete = true;
             this.rotationActive = false;
         }
