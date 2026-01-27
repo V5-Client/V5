@@ -1,5 +1,5 @@
 import RenderUtils from '../render/RendererUtils';
-import { Vec3d } from '../Constants';
+import { BP, Vec3d } from '../Constants';
 
 class PathSpline {
     constructor() {
@@ -7,6 +7,7 @@ class PathSpline {
         this.CURVE_DETECTION_RADIUS = 2;
         this.SMOOTH_SAMPLES = 6;
         this.OUTWARD_OFFSET_STRENGTH = 1.5;
+        this.MIN_LOOK_POINT_SPACING = 0.6;
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
     }
@@ -136,19 +137,58 @@ class PathSpline {
                 }
 
                 const newPoint = new Vec3d(curr.x + offsetX, targetY, curr.z + offsetZ);
-                boxPositions.push(newPoint);
-                lastInjectedPoint = newPoint;
+                const resolvedPoint = this.adjustLookPoint(newPoint, curr);
+                lastInjectedPoint = this.appendLookPoint(boxPositions, resolvedPoint);
                 lastPlacedRaw = curr;
             }
         }
 
         const endNode = smoothSplineData[smoothSplineData.length - 1];
         if (Math.sqrt(Math.pow(endNode.x - lastPlacedRaw.x, 2) + Math.pow(endNode.z - lastPlacedRaw.z, 2)) > 0.5) {
-            boxPositions.push(new Vec3d(endNode.x, endNode.y + 2.12, endNode.z));
+            const endPoint = new Vec3d(endNode.x, endNode.y + 2.12, endNode.z);
+            this.appendLookPoint(boxPositions, this.adjustLookPoint(endPoint, endNode));
         }
 
         this.cachedBoxPositions = boxPositions;
         return this.cachedBoxPositions;
+    }
+
+    appendLookPoint(boxPositions, point) {
+        const lastPoint = boxPositions[boxPositions.length - 1];
+        if (lastPoint) {
+            const dx = point.x - lastPoint.x;
+            const dz = point.z - lastPoint.z;
+            if (dx * dx + dz * dz < this.MIN_LOOK_POINT_SPACING * this.MIN_LOOK_POINT_SPACING) {
+                boxPositions[boxPositions.length - 1] = point;
+                return point;
+            }
+        }
+        boxPositions.push(point);
+        return point;
+    }
+
+    isPointInsideBlock(point) {
+        try {
+            const world = World.getWorld();
+            if (!world) return false;
+            const pos = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
+            const state = world.getBlockState(pos);
+            return !state.getCollisionShape(world, pos).isEmpty();
+        } catch (e) {
+            return false;
+        }
+    }
+
+    adjustLookPoint(point, rawNode) {
+        if (!this.isPointInsideBlock(point)) return point;
+
+        const unoffset = new Vec3d(rawNode.x, point.y, rawNode.z);
+        if (!this.isPointInsideBlock(unoffset)) return unoffset;
+
+        const lowered = new Vec3d(rawNode.x, point.y - 0.5, rawNode.z);
+        if (!this.isPointInsideBlock(lowered)) return lowered;
+
+        return point;
     }
 
     drawLookPoints() {
