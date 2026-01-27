@@ -161,8 +161,11 @@ class Combat extends ModuleBase {
         if (this.target) {
             const targetUuid = this.getTargetUuid(this.target);
             if (!targetUuid || !this.blacklistedTargets.has(targetUuid)) {
-                const entity = this.target.toMC ? this.target.toMC() : this.target;
-                RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+                const pos = this.getTargetPosition(this.target);
+                if (pos && (!this.shouldUseBlackholeLogic() || this.isPositionSafe(pos.x, pos.y, pos.z))) {
+                    const entity = this.target.toMC ? this.target.toMC() : this.target;
+                    RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+                }
             }
         }
 
@@ -170,6 +173,10 @@ class Combat extends ModuleBase {
             if (target === this.target) return;
             const targetUuid = this.getTargetUuid(target);
             if (targetUuid && this.blacklistedTargets.has(targetUuid)) return;
+
+            const pos = this.getTargetPosition(target);
+            if (this.shouldUseBlackholeLogic() && pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
+
             const entity = target.toMC ? target.toMC() : target;
             RenderUtils.drawEntityHitbox(entity, [0, 70, 200, 100], 3, false);
         });
