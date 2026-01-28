@@ -409,7 +409,9 @@ class CommissionMacro extends ModuleBase {
         const merged = { ...tabComm, ...data };
 
         if (data.useAllMiningWaypoints) {
-            merged.waypoints = COMMISSION_DATA.filter((d) => d.type === 'MINING' && !d.useAllMiningWaypoints).flatMap((d) => d.waypoints);
+            merged.waypoints = COMMISSION_DATA.filter((d) => d.type === 'MINING' && !d.useAllMiningWaypoints)
+                .map((d) => d.waypoints)
+                .reduce((acc, waypoints) => acc.concat(waypoints), []);
         }
 
         return merged;
