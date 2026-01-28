@@ -92,36 +92,36 @@ jobs:
 
                   COMMIT_MSG="$(git log -1 --pretty=%B)"
 
-                  # Split ONLY by character limit (Discord embed.description max is 4096).
-                  # We include extra header/link text in the description, so keep commit chunks <= 3500.
-                  CHUNK_LIMIT=3500
+                  # Embed description max is 4096. First embed adds header/link around the chunk,
+                  # so keep chunks conservative.
+                  export CHUNK_LIMIT=3500
+                  export COMMIT_MSG
 
-                  # Produce fixed-size chunks without turning each newline into a split.
                   mapfile -t MSG_CHUNKS < <(
                     python3 - << 'PY'
-                  import os, sys
+                  import os
 
-                  s = sys.stdin.read()
+                  s = os.environ.get("COMMIT_MSG", "")
                   limit = int(os.environ.get("CHUNK_LIMIT", "3500"))
-                  s = s if s is not None else ""
-                  if s == "":
-                      print("No commit message.")
-                      sys.exit(0)
 
-                  # Preserve content exactly; split only when exceeding limit
+                  # If truly empty, provide a placeholder
+                  if not s:
+                      print("No commit message.")
+                      raise SystemExit(0)
+
+                  # Split only by character count; preserve newlines exactly
                   for i in range(0, len(s), limit):
                       print(s[i:i+limit])
                   PY
-                  <<EOF
-                  $COMMIT_MSG
-                  EOF
                   )
 
                   if [[ "${#MSG_CHUNKS[@]}" -eq 0 ]]; then
                     MSG_CHUNKS=("No commit message.")
                   fi
 
-                  # First message (embed + optional zip)
+                  TOTAL="${#MSG_CHUNKS[@]}"
+
+                  # ---- First message: embed + optional zip ----
                   FIRST_MSG="${MSG_CHUNKS[0]}"
 
                   PAYLOAD="$(jq -cn \
@@ -133,7 +133,7 @@ jobs:
                     --arg stats "$STATS_TEXT" \
                     --arg types "$FILE_TYPES" \
                     --arg idx "1" \
-                    --arg total "${#MSG_CHUNKS[@]}" \
+                    --arg total "$TOTAL" \
                     '{
                       username: "V5 Commits",
                       avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
@@ -160,20 +160,15 @@ jobs:
 
                   curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
 
-                  # Continuations: more embeds (no zip)
-                  for ((i = 1; i < ${#MSG_CHUNKS[@]}; i++)); do
+                  # ---- Continuations: embeds only ----
+                  for ((i = 1; i < TOTAL; i++)); do
                     PART="${MSG_CHUNKS[$i]}"
                     IDX="$((i+1))"
-                    TOTAL="${#MSG_CHUNKS[@]}"
 
                     CONT_PAYLOAD="$(jq -cn \
                       --arg msg "$PART" \
                       --arg url "$COMMIT_URL" \
-                      --arg author "$DISCORD_AUTHOR" \
-                      --arg branch "$BRANCH" \
                       --arg time "$TIMESTAMP" \
-                      --arg stats "$STATS_TEXT" \
-                      --arg types "$FILE_TYPES" \
                       --arg idx "$IDX" \
                       --arg total "$TOTAL" \
                       '{
@@ -181,10 +176,9 @@ jobs:
                         avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
                         embeds: [{
                           title: ("New Commit (continued " + $idx + "/" + $total + ")"),
-                          description: $msg,
+                          description: ($msg + "\n\n[View Commit](" + $url + ")"),
                           color: 3447003,
-                          timestamp: $time,
-                          footer: { text: ("Part " + $idx + " of " + $total) }
+                          timestamp: $time
                         }]
                       }'
                     )"
