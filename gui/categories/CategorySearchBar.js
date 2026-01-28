@@ -15,7 +15,19 @@ import {
 } from '../Utils';
 import { Toolkit, DataFlavor } from '../../utils/Constants';
 
-const SEARCH_ICON = 'config/ChatTriggers/modules/V5/assets/search.svg';
+const ASSETS_PATHS = ['config/ChatTriggers/modules/V5/assets/', 'config/ChatTriggers/assets/V5/assets/'];
+
+const getAssetPath = (filename) => {
+    for (const basePath of ASSETS_PATHS) {
+        const fullPath = basePath + filename;
+        if (new java.io.File(fullPath).exists()) {
+            return fullPath;
+        }
+    }
+    return ASSETS_PATHS[0] + filename;
+};
+
+const SEARCH_ICON = getAssetPath('search.svg');
 
 register('guiKey', (char, keyCode, gui, event) => {
     if (SearchBar.isFocused) {

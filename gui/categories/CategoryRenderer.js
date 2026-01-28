@@ -29,11 +29,22 @@ import { Categories } from './CategorySystem';
 import { SearchBar } from './CategorySearchBar';
 import { setTooltip } from '../core/GuiTooltip';
 
-const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
-const Module_icon_path = ASSETS_PATH + 'folder.svg';
-const Theme_icon_path = ASSETS_PATH + 'colorpalette.svg';
-const Setting_icon_path = ASSETS_PATH + 'settings.svg';
-const Edit_icon_path = ASSETS_PATH + 'edit.svg';
+const ASSETS_PATHS = ['config/ChatTriggers/modules/V5/assets/', 'config/ChatTriggers/assets/V5/assets/'];
+
+const getAssetPath = (filename) => {
+    for (const basePath of ASSETS_PATHS) {
+        const fullPath = basePath + filename;
+        if (new java.io.File(fullPath).exists()) {
+            return fullPath;
+        }
+    }
+    return ASSETS_PATHS[0] + filename;
+};
+
+const Module_icon_path = getAssetPath('folder.svg');
+const Theme_icon_path = getAssetPath('colorpalette.svg');
+const Setting_icon_path = getAssetPath('settings.svg');
+const Edit_icon_path = getAssetPath('edit.svg');
 
 export const getCategoryRect = (index) => {
     return {
