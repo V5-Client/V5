@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClickSlotC2S, OpenScreenS2C, CommonPingS2C } from '../../utils/Packets';
 import { TypingState } from '../../gui/Utils';
@@ -28,7 +27,8 @@ class InventoryWalk extends ModuleBase {
         this.on('tick', () => {
             if (!Client.isInGui()) this.clicked = false;
             if (Client.isInChat() || (Client.isInGui() && TypingState.isTyping)) return;
-            if ((!this.clicked && Date.now() - this.lastPing < 125) || Date.now() > this.time + 325 + (Date.now() - this.lastPing)) {
+            let sincePing = Date.now() - this.lastPing
+            if ((!this.clicked && sincePing < 125) || Date.now() > this.time + 325 + sincePing) {
                 Client.scheduleTask(0, () => {
                     this.keybinds.forEach((keybind) => {
                         let down = Keyboard.isKeyDown(keybind.getKeyCode());
