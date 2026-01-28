@@ -2,9 +2,6 @@ name: Send ZIP to Discord
 
 on:
     workflow_dispatch:
-    push:
-        branches:
-            - main
 
 jobs:
     send-zip:
