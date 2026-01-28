@@ -33,8 +33,7 @@ jobs:
                   echo "COMMIT_URL=https://github.com/${GITHUB_REPOSITORY}/commit/${HEAD_SHA}" >> "$GITHUB_ENV"
                   echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
 
-                  # For push events, this is correct. For workflow_dispatch, github.ref is the workflow ref.
-                  # We'll still include it; it’s mostly informational.
+                  # For push: actual branch. For workflow_dispatch: the branch you clicked "Run workflow" on.
                   echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
 
                   echo "ZIP_EXISTS=false" >> "$GITHUB_ENV"
@@ -93,24 +92,37 @@ jobs:
               run: |
                   set -euo pipefail
 
-                  # Read commit message (safe if multiline)
                   COMMIT_MSG="$(git log -1 --pretty=%B)"
-                  DESCRIPTION="$(printf '%s' "$COMMIT_MSG" | head -c 2000)"
+
+                  # Split into <=1930-char chunks (Discord content limit is 2000; 1930 leaves breathing room)
+                  mapfile -t MSG_CHUNKS < <(printf '%s' "$COMMIT_MSG" | fold -s -w 1930)
+
+                  # Fallback if commit message is empty for any reason
+                  if [[ "${#MSG_CHUNKS[@]}" -eq 0 ]]; then
+                    MSG_CHUNKS=("No commit message.")
+                  fi
+
+                  FIRST_MSG="${MSG_CHUNKS[0]}"
 
                   PAYLOAD="$(jq -cn \
-                    --arg msg "$DESCRIPTION" \
+                    --arg msg "$FIRST_MSG" \
                     --arg url "$COMMIT_URL" \
                     --arg author "$DISCORD_AUTHOR" \
                     --arg branch "$BRANCH" \
                     --arg time "$TIMESTAMP" \
                     --arg stats "$STATS_TEXT" \
                     --arg types "$FILE_TYPES" \
+                    --arg total "${#MSG_CHUNKS[@]}" \
                     '{
                       username: "V5 Commits",
                       avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
                       embeds: [{
                         title: "New Commit",
-                        description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
+                        description: (
+                          "📝 **Summary**\n" + $msg +
+                          "\n\n[View Commit](" + $url + ")" +
+                          (if ($total|tonumber) > 1 then "\n\n*(continued in next messages)*" else "" end)
+                        ),
                         color: 3447003,
                         timestamp: $time,
                         fields: [
@@ -129,4 +141,24 @@ jobs:
                     CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
                   fi
 
+                  # Send first message (embed + optional zip)
                   curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
+
+                  # Send remaining chunks as plain messages
+                  for ((i = 1; i < ${#MSG_CHUNKS[@]}; i++)); do
+                    FOLLOWUP_PAYLOAD="$(jq -cn \
+                      --arg content "${MSG_CHUNKS[$i]}" \
+                      --arg idx "$((i+1))" \
+                      --arg total "${#MSG_CHUNKS[@]}" \
+                      '{
+                        username: "V5 Commits",
+                        avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
+                        content: ("(" + $idx + "/" + $total + ") " + $content)
+                      }'
+                    )"
+
+                    curl -sS --fail-with-body \
+                      -H "Content-Type: application/json" \
+                      -d "$FOLLOWUP_PAYLOAD" \
+                      "$WEBHOOK"
+                  done
