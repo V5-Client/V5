@@ -5,10 +5,10 @@ import RenderUtils from '../render/RendererUtils';
 import { Spline } from './PathSpline';
 import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
-import { Rotations } from './Pathwalker/PathRotations';
-import { Jump } from './Pathwalker/PathJumps';
-import { Movement } from './Pathwalker/PathMovement';
-import { Recovery } from './Pathwalker/PathRecovery';
+import { Rotations } from './PathWalker/PathRotations';
+import { Jump } from './PathWalker/PathJumps';
+import { Movement } from './PathWalker/PathMovement';
+import { Recovery } from './PathWalker/PathRecovery';
 import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
 
