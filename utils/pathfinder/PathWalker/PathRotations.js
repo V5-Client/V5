@@ -335,7 +335,7 @@ class PathRotations {
 
         if (result.lookahead <= effectiveMin + 0.001 && !targetVisible) {
             if (!this.unseenSince) this.unseenSince = Date.now();
-            if (Date.now() - this.unseenSince >= 300) {
+            if (Date.now() - this.unseenSince >= 600) {
                 let attempts = 0;
                 while (this.currentPathPosition > 0 && attempts < 8) {
                     this.currentPathPosition = Math.max(0, this.currentPathPosition - 1);
