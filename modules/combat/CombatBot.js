@@ -4,7 +4,7 @@ import { Vec3d, ZombieEntity, EndermanEntity } from '../../utils/Constants';
 import RenderUtils from '../../utils/render/RendererUtils';
 import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
-import { findAndFollowPath, stopPathing } from '../../utils/pathfinder/PathAPI';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Raytrace } from '../../utils/Raytrace';
 
@@ -72,7 +72,6 @@ class Combat extends ModuleBase {
         this.attackRange = ATTACK_REACH;
         this.pathfindingThreshold = 15;
         this.attackCPS = 10;
-        this.sprintToTarget = true;
 
         this.lastAttackTime = 0;
         this.isPathing = false;
@@ -80,6 +79,14 @@ class Combat extends ModuleBase {
         this.pathTargetMoveThreshold = 3;
         this.currentPathStartTime = 0;
         this.targetStickinessRange = 10;
+        this.recentVisibility = new Map();
+        this.visibilityGraceMs = 1200;
+        this.visibilityGraceDistance = 6;
+        this.mobMemory = [];
+        this.mobMemoryMax = 8;
+        this.mobMemoryExpiryMs = 120000;
+        this.searchTarget = null;
+        this.searchTargetSetTime = 0;
 
         this.addMultiToggle(
             'Target Presets',
@@ -129,15 +136,6 @@ class Combat extends ModuleBase {
             'Attacks per second'
         );
 
-        this.addToggle(
-            'Sprint',
-            (value) => {
-                this.sprintToTarget = value;
-            },
-            'Sprint when approaching targets',
-            true
-        );
-
         const targetName = () =>
             this.target ? (this.target.getName ? ChatLib.removeFormatting(this.target.getName()) : this.target.name || 'Unknown') : 'None';
 
@@ -161,12 +159,24 @@ class Combat extends ModuleBase {
         if (!this.targets || this.targets.length === 0) return;
 
         if (this.target) {
-            const entity = this.target.toMC ? this.target.toMC() : this.target;
-            RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+            const targetUuid = this.getTargetUuid(this.target);
+            if (!targetUuid || !this.blacklistedTargets.has(targetUuid)) {
+                const pos = this.getTargetPosition(this.target);
+                if (pos && (!this.shouldUseBlackholeLogic() || this.isPositionSafe(pos.x, pos.y, pos.z))) {
+                    const entity = this.target.toMC ? this.target.toMC() : this.target;
+                    RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+                }
+            }
         }
 
         this.targets.forEach((target) => {
             if (target === this.target) return;
+            const targetUuid = this.getTargetUuid(target);
+            if (targetUuid && this.blacklistedTargets.has(targetUuid)) return;
+
+            const pos = this.getTargetPosition(target);
+            if (this.shouldUseBlackholeLogic() && pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
+
             const entity = target.toMC ? target.toMC() : target;
             RenderUtils.drawEntityHitbox(entity, [0, 70, 200, 100], 3, false);
         });
@@ -193,6 +203,9 @@ class Combat extends ModuleBase {
             if (now > expiry) this.blacklistedTargets.delete(uuid);
         }
 
+        this.pruneVisibilityHistory(now);
+        this.pruneMobMemory(now);
+
         this.targets = this.getTargets();
         if (this.target && this.isTargetInvalid(this.target)) {
             this.stopCombat();
@@ -202,18 +215,20 @@ class Combat extends ModuleBase {
         const previousTarget = this.target;
         if (!this.target) this.target = this.bestTarget();
         if (!this.target) {
+            if (this.trySearch()) return;
             this.setState('IDLE');
-            Rotations.stopRotation();
             return;
         }
+
+        if (this.searchTarget) this.cancelSearchTarget();
 
         const pos = this.getTargetPosition(this.target);
         if (!pos) return;
 
         const distance = this.getDistanceToPlayer(pos);
         const targetChanged = previousTarget !== this.target;
-        if (!this.isPathing && this.combatState !== 'APPROACHING' && (targetChanged || !Rotations.isTrackingEntity(this.target))) {
-            this.startRotationToTarget();
+        if (targetChanged && this.combatState !== 'PATHING') {
+            this.setState('IDLE');
         }
 
         this.handleState(pos, distance);
@@ -285,6 +300,171 @@ class Combat extends ModuleBase {
         return true;
     }
 
+    recordVisibility(entity) {
+        const uuid = this.getTargetUuid(entity);
+        if (!uuid) return;
+        const pos = this.getTargetPosition(entity);
+        if (!pos) return;
+        this.recentVisibility.set(uuid, { x: pos.x, y: pos.y, z: pos.z, time: Date.now() });
+    }
+
+    pruneVisibilityHistory(now = Date.now()) {
+        for (const [uuid, record] of this.recentVisibility.entries()) {
+            if (now - record.time > this.visibilityGraceMs) this.recentVisibility.delete(uuid);
+        }
+    }
+
+    isVisibleOrRecent(entity, checkVisibility) {
+        if (!checkVisibility) return true;
+        const playerMP = Player.asPlayerMP();
+        if (!playerMP) return true;
+
+        let visible = false;
+        try {
+            visible = playerMP.canSeeEntity(entity);
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+            return true;
+        }
+
+        if (visible) {
+            this.recordVisibility(entity);
+            return true;
+        }
+
+        const uuid = this.getTargetUuid(entity);
+        if (!uuid) return false;
+
+        const record = this.recentVisibility.get(uuid);
+        if (!record) return false;
+        if (Date.now() - record.time > this.visibilityGraceMs) return false;
+
+        const pos = this.getTargetPosition(entity);
+        if (!pos) return false;
+
+        const dist = this.getDistance3D(pos.x, pos.y, pos.z, record.x, record.y, record.z);
+        return dist <= this.visibilityGraceDistance;
+    }
+
+    rememberMobPosition(pos) {
+        if (!pos) return;
+        const now = Date.now();
+        this.pruneMobMemory(now);
+
+        const existing = this.mobMemory.find((m) => this.getDistance3D(m.x, m.y, m.z, pos.x, pos.y, pos.z) < 3);
+        if (existing) {
+            existing.time = now;
+            return;
+        }
+
+        this.mobMemory.push({ x: pos.x, y: pos.y, z: pos.z, time: now });
+        if (this.mobMemory.length > this.mobMemoryMax) this.mobMemory.shift();
+    }
+
+    getForwardVector() {
+        try {
+            const yaw = Player.getYaw();
+            const rad = (yaw * Math.PI) / 180;
+            return { x: -Math.sin(rad), z: Math.cos(rad) };
+        } catch (e) {
+            return { x: 0, z: 1 };
+        }
+    }
+
+    pruneMobMemory(now = Date.now()) {
+        if (!this.mobMemory || this.mobMemory.length === 0) return;
+        this.mobMemory = this.mobMemory.filter((m) => now - m.time <= this.mobMemoryExpiryMs);
+    }
+
+    pickSearchTarget() {
+        if (!this.mobMemory || this.mobMemory.length === 0) return null;
+
+        const forward = this.getForwardVector();
+        const px = Player.getX();
+        const pz = Player.getZ();
+        let best = null;
+        let bestScore = Infinity;
+
+        this.mobMemory.forEach((m) => {
+            const dx = m.x - px;
+            const dz = m.z - pz;
+            const dist = Math.hypot(dx, dz);
+            const dirDot = dist > 0 ? (dx * forward.x + dz * forward.z) / dist : 1;
+            const score = dist - dirDot * 6;
+            if (score < bestScore) {
+                bestScore = score;
+                best = m;
+            }
+        });
+
+        return best ? { x: best.x, y: best.y, z: best.z } : null;
+    }
+
+    clearSearchTarget(pos) {
+        if (pos) {
+            this.mobMemory = this.mobMemory.filter((m) => this.getDistance3D(m.x, m.y, m.z, pos.x, pos.y, pos.z) > 3);
+        }
+        this.searchTarget = null;
+        this.searchTargetSetTime = 0;
+        if (!this.target) this.setState('IDLE');
+    }
+
+    cancelSearchTarget() {
+        this.searchTarget = null;
+        this.searchTargetSetTime = 0;
+    }
+
+    trySearch() {
+        this.pruneMobMemory();
+        if (!this.mobMemory || this.mobMemory.length === 0) return false;
+
+        if (this.searchTarget) {
+            const dist = this.getDistanceToPlayer(this.searchTarget);
+            const timedOut = Date.now() - this.searchTargetSetTime > 15000;
+            if (dist <= 2.5 || timedOut) this.clearSearchTarget(this.searchTarget);
+        }
+
+        if (!this.searchTarget && (!this.mobMemory || this.mobMemory.length === 0)) return false;
+
+        if (!this.searchTarget) {
+            const next = this.pickSearchTarget();
+            if (!next) return false;
+            this.searchTarget = next;
+            this.searchTargetSetTime = Date.now();
+        }
+
+        if (!this.isPathing || this.combatState !== 'PATHING') {
+            this.startPathingToSearch(this.searchTarget);
+        }
+
+        return true;
+    }
+
+    startPathingToSearch(pos) {
+        if (!pos) return;
+        if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) {
+            this.clearSearchTarget(pos);
+            return;
+        }
+
+        const end = [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)];
+
+        this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
+        this.isPathing = true;
+        this.setState('PATHING');
+        this.currentPathStartTime = Date.now();
+
+        Pathfinder.resetPath();
+        Pathfinder.findPath(end, (success) => {
+            if (!success) {
+                this.clearSearchTarget(pos);
+                return;
+            }
+
+            this.clearSearchTarget(pos);
+        });
+    }
+
     startRotationToTarget() {
         if (!this.target) return;
         Rotations.rotateToEntity(this.target);
@@ -301,16 +481,52 @@ class Combat extends ModuleBase {
     }
 
     stopCombat() {
-        stopPathing();
-        Keybind.stopMovement();
-        Rotations.stopRotation();
         this.target = null;
-        this.setState('IDLE');
-        this.isPathing = false;
+        this.setState('IDLE', true);
     }
 
-    setState(state) {
-        if (this.combatState !== state) this.combatState = state;
+    setState(state, force = false) {
+        if (!force && this.combatState === state) return;
+        this.onExitState(this.combatState);
+        this.combatState = state;
+        this.onEnterState(state);
+    }
+
+    onExitState(state) {
+        if (state === 'PATHING') {
+            Pathfinder.resetPath();
+            this.isPathing = false;
+        }
+
+        if (state === 'APPROACHING' || state === 'ATTACKING') {
+            Keybind.stopMovement();
+        }
+    }
+
+    onEnterState(state) {
+        if (state === 'IDLE') {
+            Keybind.stopMovement();
+            Rotations.stopRotation();
+            return;
+        }
+
+        if (state === 'PATHING') {
+            Keybind.stopMovement();
+            Rotations.stopRotation();
+            return;
+        }
+
+        if (state === 'APPROACHING') {
+            Pathfinder.resetPath();
+            this.isPathing = false;
+            return;
+        }
+
+        if (state === 'ATTACKING') {
+            Pathfinder.resetPath();
+            this.isPathing = false;
+            Keybind.stopMovement();
+        }
     }
 
     handleState(pos, distance) {
@@ -330,37 +546,30 @@ class Combat extends ModuleBase {
         if (this.lastPathTarget) {
             const targetMoved = this.getDistance3D(pos.x, pos.y, pos.z, this.lastPathTarget.x, this.lastPathTarget.y, this.lastPathTarget.z);
             if (targetMoved > this.pathTargetMoveThreshold) {
-                stopPathing();
-                this.isPathing = false;
                 this.startPathingToTarget(pos);
                 return;
             }
         }
 
         if (distance <= this.attackRange) {
-            stopPathing();
-            this.isPathing = false;
             this.setState('ATTACKING');
-            Keybind.stopMovement();
-            this.startRotationToTarget();
         }
     }
 
     handleApproachingState(pos, distance) {
         if (distance <= this.attackRange) {
-            Keybind.stopMovement();
             this.setState('ATTACKING');
             return;
         }
 
         if (distance > this.pathfindingThreshold) {
-            Keybind.stopMovement();
             this.startPathingToTarget(pos);
             return;
         }
 
         Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
-        if (this.sprintToTarget) Keybind.setKey('sprint', true);
+        Keybind.setKey('sprint', true);
+        this.startRotationToTarget();
     }
 
     handleAttackingState(pos, distance) {
@@ -368,8 +577,6 @@ class Combat extends ModuleBase {
             this.setState('APPROACHING');
             return;
         }
-
-        Keybind.stopMovement();
 
         if (this.isAimingAtTarget()) this.tryAttack();
         else this.startRotationToTarget();
@@ -392,53 +599,44 @@ class Combat extends ModuleBase {
         this.setState('PATHING');
         this.currentPathStartTime = Date.now();
 
-        Rotations.stopRotation();
-
         const pathTarget = this.target;
         const pathTargetUuid = this.getTargetUuid(pathTarget);
 
-        findAndFollowPath(
-            start,
-            end,
-            (success) => {
-                this.isPathing = false;
-
-                if (!success) {
-                    if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
-                        this.target = null;
-                        this.setState('IDLE');
-                        return;
-                    }
-                    this.setState('APPROACHING');
+        Pathfinder.resetPath();
+        Pathfinder.findPath(end, (success) => {
+            if (!success) {
+                if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
+                    this.target = null;
+                    this.setState('IDLE');
                     return;
                 }
+                this.setState('APPROACHING');
+                return;
+            }
 
-                if (pathTargetUuid) this.failedPathCallbacks.delete(pathTargetUuid);
+            if (pathTargetUuid) this.failedPathCallbacks.delete(pathTargetUuid);
 
-                const pathDuration = Date.now() - this.currentPathStartTime;
-                if (success && pathDuration < 500 && this.target) {
-                    const currentPos = this.getTargetPosition(this.target);
-                    const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 0;
-                    if (dist > this.pathfindingThreshold - 2) {
-                        Chat.message('&cTarget unreachable by pathfinder. Blacklisting for 3s.');
-                        this.blacklistTarget(this.target, 3000);
-                        this.target = null;
-                        this.setState('IDLE');
-                        return;
-                    }
-                }
-
-                if (this.target && !this.isTargetInvalid(this.target)) {
-                    const currentPos = this.getTargetPosition(this.target);
-                    const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
-                    this.startRotationToTarget();
-                    this.setState(dist <= this.attackRange ? 'ATTACKING' : 'APPROACHING');
-                } else {
+            const pathDuration = Date.now() - this.currentPathStartTime;
+            if (success && pathDuration < 500 && this.target) {
+                const currentPos = this.getTargetPosition(this.target);
+                const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 0;
+                if (dist > this.pathfindingThreshold - 2) {
+                    Chat.message('&cTarget unreachable by pathfinder. Blacklisting for 3s.');
+                    this.blacklistTarget(this.target, 3000);
+                    this.target = null;
                     this.setState('IDLE');
+                    return;
                 }
-            },
-            true
-        );
+            }
+
+            if (this.target && !this.isTargetInvalid(this.target)) {
+                const currentPos = this.getTargetPosition(this.target);
+                const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
+                this.setState(dist <= this.attackRange ? 'ATTACKING' : 'APPROACHING');
+            } else {
+                this.setState('IDLE');
+            }
+        });
     }
 
     getTargetUuid(target) {
@@ -487,7 +685,13 @@ class Combat extends ModuleBase {
     isTargetInvalid(target) {
         try {
             const entity = target.toMC ? target.toMC() : target;
-            if (entity.isDead()) return true;
+            if (entity.isDead()) {
+                if (this.target && target === this.target) {
+                    const pos = this.getTargetPosition(target);
+                    if (pos) this.rememberMobPosition(pos);
+                }
+                return true;
+            }
 
             const targetUUID = this.getTargetUuid(target);
             if (targetUUID && this.blacklistedTargets.has(targetUUID)) return true;
@@ -518,7 +722,6 @@ class Combat extends ModuleBase {
         if (this.enabledPresets.size === 0 && (!this.customTargetNames || this.customTargetNames.length === 0)) return [];
 
         const mobs = [];
-        const playerMP = Player.asPlayerMP();
 
         const addMobIfSafe = (entity) => {
             if (!this.shouldUseBlackholeLogic()) return mobs.push(entity);
@@ -540,7 +743,7 @@ class Combat extends ModuleBase {
                         const y = entity.getY();
                         const z = entity.getZ();
                         if (!config.boundaryCheck(x, y, z)) return;
-                        if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(entity)) return;
+                        if (!this.isVisibleOrRecent(entity, config.checkVisibility)) return;
                         addMobIfSafe(entity);
                     } catch (e) {
                         console.error('V5 Caught error' + e + e.stack);
@@ -636,7 +839,6 @@ class Combat extends ModuleBase {
         }
 
         const mobs = [];
-        const playerMP = config.checkVisibility ? Player.asPlayerMP() : null;
 
         World.getAllPlayers().forEach((player) => {
             try {
@@ -648,7 +850,7 @@ class Combat extends ModuleBase {
                 if (whitelist && whitelist.has(uuid)) return;
                 if (!config.names.some((mobName) => name.includes(mobName))) return;
                 if (player.isSpectator() || player.isInvisible() || player.isDead()) return;
-                if (config.checkVisibility && playerMP && !playerMP.canSeeEntity(player)) return;
+                if (!this.isVisibleOrRecent(player, config.checkVisibility)) return;
 
                 const x = player.getX();
                 const y = player.getY();
@@ -678,21 +880,19 @@ class Combat extends ModuleBase {
     onDisable() {
         if (!this.isParentManaged) this.message('&cDisabled');
 
-        stopPathing();
-        Keybind.stopMovement();
-        Keybind.setKey('sprint', false);
-        Rotations.stopRotation();
-
         this.externalTargets = null;
         this.targets = [];
         this.target = null;
-        this.setState('IDLE');
-        this.isPathing = false;
+        this.setState('IDLE', true);
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
         this.blacklistedTargets.clear();
         this.failedPathCallbacks.clear();
         this.activeBlackholes = [];
+        this.recentVisibility.clear();
+        this.mobMemory = [];
+        this.searchTarget = null;
+        this.searchTargetSetTime = 0;
     }
 }
 
