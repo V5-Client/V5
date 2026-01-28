@@ -48,11 +48,10 @@ jobs:
                     ["axlecoffee"]="<@790736254714642453>"
                   )
 
-                  # Use the commit author name (not the runner actor)
+                  # Use commit author name (not runner actor)
                   ACTOR="$(git log -1 --pretty=%an)"
                   echo "DISCORD_AUTHOR=${USERS[$ACTOR]:-$ACTOR}" >> "$GITHUB_ENV"
 
-                  # Diff against parent commit (or empty tree for root commit)
                   BASE_SHA="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "4b825dc642cb6eb9a060e54bf8d69288fbee4904")"
 
                   STATS="$(git diff --shortstat "$BASE_SHA" "$HEAD_SHA" || echo "0 files changed")"
@@ -77,7 +76,6 @@ jobs:
                   echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
             - name: Zip repository
-              # Zip only on push to main (not manual runs)
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               shell: bash
               run: |
@@ -94,14 +92,36 @@ jobs:
 
                   COMMIT_MSG="$(git log -1 --pretty=%B)"
 
-                  # Split into <=1930-char chunks (Discord content limit is 2000; 1930 leaves breathing room)
-                  mapfile -t MSG_CHUNKS < <(printf '%s' "$COMMIT_MSG" | fold -s -w 1930)
+                  # Split ONLY by character limit (Discord embed.description max is 4096).
+                  # We include extra header/link text in the description, so keep commit chunks <= 3500.
+                  CHUNK_LIMIT=3500
 
-                  # Fallback if commit message is empty for any reason
+                  # Produce fixed-size chunks without turning each newline into a split.
+                  mapfile -t MSG_CHUNKS < <(
+                    python3 - << 'PY'
+                  import os, sys
+
+                  s = sys.stdin.read()
+                  limit = int(os.environ.get("CHUNK_LIMIT", "3500"))
+                  s = s if s is not None else ""
+                  if s == "":
+                      print("No commit message.")
+                      sys.exit(0)
+
+                  # Preserve content exactly; split only when exceeding limit
+                  for i in range(0, len(s), limit):
+                      print(s[i:i+limit])
+                  PY
+                  <<EOF
+                  $COMMIT_MSG
+                  EOF
+                  )
+
                   if [[ "${#MSG_CHUNKS[@]}" -eq 0 ]]; then
                     MSG_CHUNKS=("No commit message.")
                   fi
 
+                  # First message (embed + optional zip)
                   FIRST_MSG="${MSG_CHUNKS[0]}"
 
                   PAYLOAD="$(jq -cn \
@@ -112,17 +132,14 @@ jobs:
                     --arg time "$TIMESTAMP" \
                     --arg stats "$STATS_TEXT" \
                     --arg types "$FILE_TYPES" \
+                    --arg idx "1" \
                     --arg total "${#MSG_CHUNKS[@]}" \
                     '{
                       username: "V5 Commits",
                       avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
                       embeds: [{
-                        title: "New Commit",
-                        description: (
-                          "📝 **Summary**\n" + $msg +
-                          "\n\n[View Commit](" + $url + ")" +
-                          (if ($total|tonumber) > 1 then "\n\n*(continued in next messages)*" else "" end)
-                        ),
+                        title: ("New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
+                        description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
                         color: 3447003,
                         timestamp: $time,
                         fields: [
@@ -141,24 +158,39 @@ jobs:
                     CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
                   fi
 
-                  # Send first message (embed + optional zip)
                   curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
 
-                  # Send remaining chunks as plain messages
+                  # Continuations: more embeds (no zip)
                   for ((i = 1; i < ${#MSG_CHUNKS[@]}; i++)); do
-                    FOLLOWUP_PAYLOAD="$(jq -cn \
-                      --arg content "${MSG_CHUNKS[$i]}" \
-                      --arg idx "$((i+1))" \
-                      --arg total "${#MSG_CHUNKS[@]}" \
+                    PART="${MSG_CHUNKS[$i]}"
+                    IDX="$((i+1))"
+                    TOTAL="${#MSG_CHUNKS[@]}"
+
+                    CONT_PAYLOAD="$(jq -cn \
+                      --arg msg "$PART" \
+                      --arg url "$COMMIT_URL" \
+                      --arg author "$DISCORD_AUTHOR" \
+                      --arg branch "$BRANCH" \
+                      --arg time "$TIMESTAMP" \
+                      --arg stats "$STATS_TEXT" \
+                      --arg types "$FILE_TYPES" \
+                      --arg idx "$IDX" \
+                      --arg total "$TOTAL" \
                       '{
                         username: "V5 Commits",
                         avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
-                        content: ("(" + $idx + "/" + $total + ") " + $content)
+                        embeds: [{
+                          title: ("New Commit (continued " + $idx + "/" + $total + ")"),
+                          description: $msg,
+                          color: 3447003,
+                          timestamp: $time,
+                          footer: { text: ("Part " + $idx + " of " + $total) }
+                        }]
                       }'
                     )"
 
                     curl -sS --fail-with-body \
                       -H "Content-Type: application/json" \
-                      -d "$FOLLOWUP_PAYLOAD" \
+                      -d "$CONT_PAYLOAD" \
                       "$WEBHOOK"
                   done
