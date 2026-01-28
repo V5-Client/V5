@@ -417,18 +417,33 @@ class RefuelService {
         this.STATES = {
             IDLE: 0,
             FIND_ABIPHONE: 1,
-            OPEN_ABIPHONE: 2,
-            SELECT_CONTACT: 3,
-            CLICK_CONTACT: 4,
-            WAIT_FOR_ANVIL: 5,
-            WAIT_ANVIL_READY: 6,
-            ADD_FUEL: 7,
-            CONFIRM_FUEL: 8,
-            TAKE_TOOL: 9,
-            CLOSE: 10,
-            FAIL_CLEANUP: 11,
-            WALK_TO_MECHANIC: 12,
-            ROTATE_TO_MECHANIC: 13,
+
+            OPEN_PLAYER_INV_SWAP: 2,
+            WAIT_PLAYER_INV_SWAP: 3,
+            SWAP_ABIPHONE_1: 4,
+            SWAP_ABIPHONE_2: 5,
+            SWAP_ABIPHONE_3: 6,
+            CLOSE_PLAYER_INV_SWAP: 7,
+
+            OPEN_ABIPHONE: 8,
+            SELECT_CONTACT: 9,
+            CLICK_CONTACT: 10,
+            WAIT_FOR_ANVIL: 11,
+            WAIT_ANVIL_READY: 12,
+            ADD_FUEL: 13,
+            CONFIRM_FUEL: 14,
+            TAKE_TOOL: 15,
+            CLOSE: 16,
+            FAIL_CLEANUP: 17,
+            WALK_TO_MECHANIC: 18,
+            ROTATE_TO_MECHANIC: 19,
+
+            OPEN_PLAYER_INV_RESTORE: 20,
+            WAIT_PLAYER_INV_RESTORE: 21,
+            RESTORE_ABIPHONE_1: 22,
+            RESTORE_ABIPHONE_2: 23,
+            RESTORE_ABIPHONE_3: 24,
+            CLOSE_PLAYER_INV_RESTORE: 25,
         };
 
         this.reset();
@@ -444,6 +459,11 @@ class RefuelService {
         this.npcRotationToken = 0;
         this.npcRotationPending = false;
         this.isPathing = false;
+
+        this.originalAbiphoneSlot = -1;
+        this.targetHotbarSlot = -1;
+        this.swapState = 0;
+        this.finalSuccess = false;
     }
 
     setState(nextState, waitTicks = 0, timeoutTicks = null) {
@@ -459,7 +479,7 @@ class RefuelService {
             return;
         }
 
-        if (callback) this.callback = callback;
+        this.callback = callback;
         this.setState(this.STATES.FIND_ABIPHONE);
     }
 
@@ -473,15 +493,131 @@ class RefuelService {
 
         switch (this.state) {
             case this.STATES.FIND_ABIPHONE:
-                let abiphoneSlot = Guis.findItemInInventory('Abiphone');
-                if (abiphoneSlot === -1) {
-                    Chat.message('Abiphone not found. Walking to Drill Mechanic...');
-                    this.setState(this.STATES.WALK_TO_MECHANIC);
-                    break;
+                const playerInv = Player.getInventory();
+
+                let hotbarSlot = -1;
+                for (let i = 0; i < 9; i++) {
+                    const item = playerInv.getStackInSlot(i);
+                    if (item && item.getName().includes('Abiphone')) {
+                        hotbarSlot = i;
+                        break;
+                    }
                 }
 
-                ChatLib.command('call Jotraeline Greatforge');
-                this.setState(this.STATES.WAIT_FOR_ANVIL, 20, 200);
+                if (hotbarSlot !== -1) {
+                    Guis.setItemSlot(hotbarSlot);
+                    this.setState(this.STATES.OPEN_ABIPHONE, 5);
+                    return;
+                }
+
+                let foundSlot = -1;
+                for (let i = 9; i < 36; i++) {
+                    const item = playerInv.getStackInSlot(i);
+                    if (item && item.getName().includes('Abiphone')) {
+                        foundSlot = i;
+                        break;
+                    }
+                }
+
+                if (foundSlot !== -1) {
+                    this.originalAbiphoneSlot = foundSlot;
+
+                    let bestTool = ToolFinder.findBest();
+                    let drillSlot = bestTool ? bestTool.slot : -1;
+
+                    let targetSlot = -1;
+
+                    for (let i = 0; i < 9; i++) {
+                        if (i === drillSlot) continue;
+                        if (!playerInv.getStackInSlot(i)) {
+                            targetSlot = i;
+                            break;
+                        }
+                    }
+
+                    if (targetSlot === -1) {
+                        for (let i = 0; i < 9; i++) {
+                            if (i === drillSlot) continue;
+                            const item = playerInv.getStackInSlot(i);
+                            const name = item ? ChatLib.removeFormatting(item.getName()) : '';
+                            if (!name.includes('Volta') && !name.includes('Oil') && !name.includes('Biofuel') && !name.includes('Egg')) {
+                                targetSlot = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (targetSlot === -1) {
+                        for (let i = 0; i < 9; i++) {
+                            if (i !== drillSlot) {
+                                targetSlot = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    this.targetHotbarSlot = targetSlot;
+                    this.setState(this.STATES.OPEN_PLAYER_INV_SWAP, 0);
+                } else {
+                    Chat.message('Abiphone not found. Walking to Drill Mechanic...');
+                    this.setState(this.STATES.WALK_TO_MECHANIC);
+                }
+                break;
+
+            case this.STATES.OPEN_PLAYER_INV_SWAP:
+                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screen.ingame.InventoryScreen(Client.getMinecraft().player));
+                // someone fix this fucking shit. i forgot how to open inventory so this is bandaid
+                this.setState(this.STATES.WAIT_PLAYER_INV_SWAP, 5);
+                break;
+
+            case this.STATES.WAIT_PLAYER_INV_SWAP:
+                if (Client.isInGui()) {
+                    this.setState(this.STATES.SWAP_ABIPHONE_1, 5);
+                } else {
+                    this.setState(this.STATES.OPEN_PLAYER_INV_SWAP, 5);
+                }
+                break;
+
+            case this.STATES.SWAP_ABIPHONE_1:
+                Guis.clickSlot(this.originalAbiphoneSlot);
+                this.setState(this.STATES.SWAP_ABIPHONE_2, 5);
+                break;
+
+            case this.STATES.SWAP_ABIPHONE_2:
+                Guis.clickSlot(36 + this.targetHotbarSlot);
+                this.setState(this.STATES.SWAP_ABIPHONE_3, 5);
+                break;
+
+            case this.STATES.SWAP_ABIPHONE_3:
+                Guis.clickSlot(this.originalAbiphoneSlot);
+                this.setState(this.STATES.CLOSE_PLAYER_INV_SWAP, 5);
+                break;
+
+            case this.STATES.CLOSE_PLAYER_INV_SWAP:
+                Guis.closeInv();
+                Guis.setItemSlot(this.targetHotbarSlot);
+                this.setState(this.STATES.OPEN_ABIPHONE, 10);
+                break;
+
+            case this.STATES.OPEN_ABIPHONE:
+                Keybind.rightClick();
+                this.setState(this.STATES.SELECT_CONTACT, 0, 50);
+                break;
+
+            case this.STATES.SELECT_CONTACT:
+                if (Guis.guiName()?.indexOf('Abiphone') !== -1) {
+                    this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                    if (!Player.getContainer()?.getStackInSlot(this.contactSlot)) {
+                        if (this.handleTimeout('No jotraeline contact detected!')) return;
+                    }
+                    if (this.contactSlot === -1) return;
+                    this.setState(this.STATES.CLICK_CONTACT, 5);
+                }
+                break;
+
+            case this.STATES.CLICK_CONTACT:
+                Guis.clickSlot(this.contactSlot, false, 'LEFT');
+                this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
                 break;
 
             case this.STATES.WAIT_FOR_ANVIL:
@@ -489,7 +625,6 @@ class RefuelService {
                     this.setState(this.STATES.WAIT_ANVIL_READY, 20);
                     break;
                 }
-
                 if (this.handleTimeout('Anvil never opened?!')) return;
                 break;
 
@@ -498,27 +633,26 @@ class RefuelService {
                 if (!tool) return this.fail('No drill found!');
 
                 Guis.clickSlot(tool.slot + 81, true);
-                this.setState(this.STATES.ADD_FUEL, 15);
+                this.setState(this.STATES.ADD_FUEL, 10);
                 break;
 
             case this.STATES.ADD_FUEL:
                 if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
-                    Chat.message('No fuel detected!'); // fuel buyer when?
-                    this.setState(this.STATES.FAIL_CLEANUP, 15);
+                    Chat.message('No fuel detected!');
+                    this.setState(this.STATES.FAIL_CLEANUP, 10);
                     return;
                 }
-
-                this.setState(this.STATES.CONFIRM_FUEL, 15);
+                this.setState(this.STATES.CONFIRM_FUEL, 10);
                 break;
 
             case this.STATES.CONFIRM_FUEL:
                 Guis.clickSlot(22, false);
-                this.setState(this.STATES.TAKE_TOOL, 15);
+                this.setState(this.STATES.TAKE_TOOL, 10);
                 break;
 
             case this.STATES.TAKE_TOOL:
                 Guis.clickSlot(13, true);
-                this.setState(this.STATES.CLOSE, 15);
+                this.setState(this.STATES.CLOSE, 10);
                 break;
 
             case this.STATES.CLOSE:
@@ -571,6 +705,39 @@ class RefuelService {
                     });
                 }
                 break;
+
+            case this.STATES.OPEN_PLAYER_INV_RESTORE:
+                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screen.ingame.InventoryScreen(Client.getMinecraft().player));
+                this.setState(this.STATES.WAIT_PLAYER_INV_RESTORE, 5);
+                break;
+
+            case this.STATES.WAIT_PLAYER_INV_RESTORE:
+                if (Client.isInGui()) {
+                    this.setState(this.STATES.RESTORE_ABIPHONE_1, 5);
+                } else {
+                    this.setState(this.STATES.OPEN_PLAYER_INV_RESTORE, 5);
+                }
+                break;
+
+            case this.STATES.RESTORE_ABIPHONE_1:
+                Guis.clickSlot(this.originalAbiphoneSlot);
+                this.setState(this.STATES.RESTORE_ABIPHONE_2, 5);
+                break;
+
+            case this.STATES.RESTORE_ABIPHONE_2:
+                Guis.clickSlot(36 + this.targetHotbarSlot);
+                this.setState(this.STATES.RESTORE_ABIPHONE_3, 5);
+                break;
+
+            case this.STATES.RESTORE_ABIPHONE_3:
+                Guis.clickSlot(this.originalAbiphoneSlot);
+                this.setState(this.STATES.CLOSE_PLAYER_INV_RESTORE, 5);
+                break;
+
+            case this.STATES.CLOSE_PLAYER_INV_RESTORE:
+                Guis.closeInv();
+                this.finalCallback(this.finalSuccess);
+                break;
         }
     }
 
@@ -580,7 +747,6 @@ class RefuelService {
             this.fail(message);
             return true;
         }
-
         return false;
     }
 
@@ -590,6 +756,15 @@ class RefuelService {
     }
 
     finish(success) {
+        if (this.originalAbiphoneSlot !== -1) {
+            this.finalSuccess = success;
+            this.setState(this.STATES.OPEN_PLAYER_INV_RESTORE, 10);
+        } else {
+            this.finalCallback(success);
+        }
+    }
+
+    finalCallback(success) {
         const cb = this.callback;
         this.reset();
         if (cb) cb(success);

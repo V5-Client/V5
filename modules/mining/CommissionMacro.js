@@ -860,7 +860,7 @@ class CommissionMacro extends ModuleBase {
 
         MiningUtils.doRefueling(true, (success) => {
             if (!success) {
-                Chat.message('&cRefueling failed! No fuel found.');
+                Chat.message('&cRefueling failed!');
                 this.toggle(false);
                 return;
             }
