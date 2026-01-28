@@ -16,17 +16,22 @@ jobs:
               uses: actions/github-script@v7
               with:
                   script: |
-                      const sha = core.getInput('sha').trim();
-                      if (!sha) throw new Error("sha input is required");
+                      const sha = (context.payload.inputs && context.payload.inputs.sha)
+                        ? String(context.payload.inputs.sha).trim()
+                        : "";
 
-                      // This must match the workflow file name below:
+                      if (!sha) {
+                        core.setFailed("sha input is required");
+                        return;
+                      }
+
                       const workflowFile = "discord-commit.yml";
 
                       await github.rest.actions.createWorkflowDispatch({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
                         workflow_id: workflowFile,
-                        ref: "main", // ensures "latest workflow" is used
+                        ref: "main", // use latest workflow from main
                         inputs: { sha }
                       });
 
