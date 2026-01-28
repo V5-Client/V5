@@ -92,26 +92,29 @@ jobs:
 
                   COMMIT_MSG="$(git log -1 --pretty=%B)"
 
-                  # Embed description max is 4096. First embed adds header/link around the chunk,
-                  # so keep chunks conservative.
+                  # Embed description max is 4096. 
                   export CHUNK_LIMIT=3500
                   export COMMIT_MSG
 
-                  mapfile -t MSG_CHUNKS < <(
+                  # 1. Use -d '' to tell mapfile to split on Null bytes, not newlines
+                  # 2. Update Python to output chunks separated by \0
+                  mapfile -d '' MSG_CHUNKS < <(
                     python3 - << 'PY'
                   import os
+                  import sys
 
                   s = os.environ.get("COMMIT_MSG", "")
                   limit = int(os.environ.get("CHUNK_LIMIT", "3500"))
 
-                  # If truly empty, provide a placeholder
                   if not s:
-                      print("No commit message.")
-                      raise SystemExit(0)
+                      sys.stdout.write("No commit message.\0")
+                      sys.exit(0)
 
-                  # Split only by character count; preserve newlines exactly
+                  # Iterate through string
                   for i in range(0, len(s), limit):
-                      print(s[i:i+limit])
+                      chunk = s[i:i+limit]
+                      # Write the chunk explicitly followed by a Null Byte
+                      sys.stdout.write(chunk + '\0')
                   PY
                   )
 
@@ -151,15 +154,15 @@ jobs:
                       }]
                     }'
                   )"
-
+                        
                   CURL_ARGS=(-F "payload_json=$PAYLOAD;type=application/json")
-
+                        
                   if [[ "${ZIP_EXISTS:-false}" == "true" ]]; then
                     CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
                   fi
-
+                        
                   curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
-
+                        
                   # ---- Continuations: embeds only ----
                   for ((i = 1; i < TOTAL; i++)); do
                     PART="${MSG_CHUNKS[$i]}"
@@ -182,7 +185,7 @@ jobs:
                         }]
                       }'
                     )"
-
+                        
                     curl -sS --fail-with-body \
                       -H "Content-Type: application/json" \
                       -d "$CONT_PAYLOAD" \
