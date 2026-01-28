@@ -8,6 +8,10 @@ on:
                 required: true
                 type: string
 
+permissions:
+    actions: write
+    contents: read
+
 jobs:
     dispatch:
         runs-on: ubuntu-24.04
@@ -25,14 +29,12 @@ jobs:
                         return;
                       }
 
-                      const workflowFile = "discord-commit.yml";
-
                       await github.rest.actions.createWorkflowDispatch({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
-                        workflow_id: workflowFile,
-                        ref: "main", // use latest workflow from main
+                        workflow_id: "discord-commit.yml",
+                        ref: "main",
                         inputs: { sha }
                       });
 
-                      core.info(`Dispatched ${workflowFile} on ref=main with sha=${sha}`);
+                      core.info(`Dispatched discord-commit.yml on main for sha=${sha}`);
