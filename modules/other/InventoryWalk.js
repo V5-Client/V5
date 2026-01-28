@@ -27,7 +27,7 @@ class InventoryWalk extends ModuleBase {
         this.on('tick', () => {
             if (!Client.isInGui()) this.clicked = false;
             if (Client.isInChat() || (Client.isInGui() && TypingState.isTyping)) return;
-            let sincePing = Date.now() - this.lastPing
+            let sincePing = Date.now() - this.lastPing;
             if ((!this.clicked && sincePing < 125) || Date.now() > this.time + 325 + sincePing) {
                 Client.scheduleTask(0, () => {
                     this.keybinds.forEach((keybind) => {
