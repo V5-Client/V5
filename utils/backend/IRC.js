@@ -211,8 +211,8 @@ function connectIRC() {
                 code: res.body.device_code,
                 expiresAt: Date.now() + (res.body.expires_in || 0) * 1000,
             };
-            // THIS LINK DOES NOT SEEM TO BE CLICKABLE, PLS FIX TODO FIX TODO
-            Chat.messageIrc(Chat.formatLink('Login with Discord', res.body.login_url));
+
+            Chat.messageIrc(Chat.formatLink('Login with Discord:', 'open link', res.body.login_url));
             Utils.openBrowser(res.body.login_url);
             pollDeviceCode(res.body.device_code, currentDevice.expiresAt, 0);
         })

@@ -496,7 +496,7 @@ class ClippingManager extends ModuleBase {
                 let folderPath = clipsDir.getAbsolutePath();
                 let clipDuration = clipsToJoin.length * 5;
 
-                Chat.messageClip(Chat.clickAction(`&7Saved ${clipDuration}s &7clip: &d&n${clipName}`, folderPath, `&7Click to open folder`));
+                Chat.messageClip(Chat.clickAction(`&7Saved ${clipDuration}s &7clip:`, 'View clip', folderPath, `&7Click to open folder`));
 
                 if (this.compressClips) {
                     Thread.sleep(500);
