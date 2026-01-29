@@ -18,7 +18,7 @@ function onEvent(event) {
     ChatLib.command('ct load', true);
 }
 
-const watcherThread = new Thread(() => {
+const watcherThread = new java.lang.Thread(() => {
     const watchService = FileSystems.getDefault().newWatchService();
     const path = new File('./config/ChatTriggers/modules');
 

@@ -263,7 +263,7 @@ class VectorConverter {
 
 class FileDownloader {
     download(urlString, destination) {
-        const t = new Thread(function () {
+        const t = new java.lang.Thread(function () {
             try {
                 if (urlString.startsWith('"') && urlString.endsWith('"')) {
                     urlString = urlString.substring(1, urlString.length - 1);
@@ -484,7 +484,7 @@ class UtilsClass {
     }
 
     openBrowser(url) {
-        const t = new Thread(() => {
+        const t = new java.lang.Thread(() => {
             try {
                 if (isMac) {
                     java.lang.Runtime.getRuntime().exec(['open', url]);

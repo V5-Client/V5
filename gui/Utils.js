@@ -271,7 +271,7 @@ export const getDiscordPfpPath = () => discordPfpPath;
 export const returnDiscord = (authToken) => {
     try {
         if (!profilePath.exists()) {
-            const t = new Thread(() => {
+            const t = new java.lang.Thread(() => {
                 // make sure folder exists
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 

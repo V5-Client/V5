@@ -2,8 +2,6 @@ import FailsafeUtils from '../failsafes/FailsafeUtils';
 import { Debugging } from './Debugging';
 import { GradientChat } from './Constants';
 
-const gradientInstance = new GradientChat();
-
 class ChatClass {
     message(msg) {
         this._sendGradient('V5 » ', msg);
@@ -33,11 +31,11 @@ class ChatClass {
         this._sendGradient('V5 Pathfinding » ', msg);
     }
 
-    _sendGradient(prefix, msg) {
-        if (!msg) return;
+    _sendGradient(prefix, ...args) {
+        if (args.length === 0) return;
 
         Client.getMinecraft().execute(() => {
-            gradientInstance.sendGradientMsg(prefix, `§f${msg}`, 0x05b9f9, 0x0539f9);
+            GradientChat.sendGradientMsg(prefix, 0x05b9f9, 0x0539f9, ...args);
         });
     }
 
@@ -79,6 +77,27 @@ class ChatClass {
         }
 
         return new TextComponent(...components);
+    }
+
+    /**
+     * Creates a clickable text component
+     * @param {string} displayText - The text shown in chat
+     * @param {string} actionValue - The path, URL, or command
+     * @param {string} hoverText - The tooltip shown on hover
+     * @param {string} actionType - Defaults to 'open_file', can be 'open_url' or 'run_command'
+     */
+    clickAction(displayText, actionValue, hoverText = '§7Click to open', actionType = 'open_file') {
+        return new TextComponent({
+            text: displayText,
+            clickEvent: {
+                action: actionType,
+                value: actionValue,
+            },
+            hoverEvent: {
+                action: 'show_text',
+                value: hoverText,
+            },
+        });
     }
 }
 

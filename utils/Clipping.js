@@ -496,20 +496,7 @@ class ClippingManager extends ModuleBase {
                 let folderPath = clipsDir.getAbsolutePath();
                 let clipDuration = clipsToJoin.length * 5;
 
-                let linkComponent = new TextComponent({
-                    text: `&7Saved ${clipDuration}s &7clip: &d&n${clipName}`,
-                    clickEvent: {
-                        action: 'open_file',
-                        value: folderPath,
-                    },
-                    hoverEvent: {
-                        action: 'show_text',
-                        value: `&7Click to open folder`,
-                    },
-                });
-
-                Chat.messageClip('&7Clip Saved: ');
-                ChatLib.chat(linkComponent);
+                Chat.messageClip(Chat.clickAction(`&7Saved ${clipDuration}s &7clip: &d&n${clipName}`, folderPath, `&7Click to open folder`));
 
                 if (this.compressClips) {
                     Thread.sleep(500);

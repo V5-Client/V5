@@ -470,7 +470,7 @@ class CommissionMacro extends ModuleBase {
         this.currentCommission = task;
         this.travelPurpose = task.type;
 
-        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to &b${waypoints.length}&a spot(s).`);
+        Chat.message(`Starting &e${task.name}&f Commission.`);
 
         this.setState(STATES.TRAVELING);
         Pathfinder.findPath(waypoints, (success) => this.onPathComplete(success));

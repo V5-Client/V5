@@ -779,7 +779,7 @@ class ExplorerUpgrade {
     upgrade(callback) {
         let self = this;
 
-        const t = new Thread(function () {
+        const t = new java.lang.Thread(function () {
             let stats = self.collector.getStoredStats();
 
             if (stats?.maxge) {
