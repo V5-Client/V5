@@ -6,8 +6,9 @@ class PathSpline {
         this.STRONG_SMOOTH_RADIUS = 5;
         this.CURVE_DETECTION_RADIUS = 2;
         this.SMOOTH_SAMPLES = 6;
-        this.OUTWARD_OFFSET_STRENGTH = 1.5;
-        this.MIN_LOOK_POINT_SPACING = 0.6;
+        this.OUTWARD_OFFSET_STRENGTH = 1.2;
+        this.MIN_LOOK_POINT_SPACING = 0.8;
+        this.MAX_ANGLE_CHANGE = Math.PI / 4;
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
     }
@@ -26,17 +27,15 @@ class PathSpline {
         for (let i = 1; i < rawPoints.length - 1; i++) {
             const p0 = simplifiedPoints[simplifiedPoints.length - 1];
             const p1 = rawPoints[i];
-            const dx = p1.x - p0.x;
-            const dy = p1.y - p0.y;
-            const dz = p1.z - p0.z;
-            if (Math.sqrt(dx * dx + dy * dy + dz * dz) > tolerance) simplifiedPoints.push(p1);
+            const dist = Math.sqrt(Math.pow(p1.x - p0.x, 2) + Math.pow(p1.y - p0.y, 2) + Math.pow(p1.z - p0.z, 2));
+            if (dist > tolerance) simplifiedPoints.push(p1);
         }
         simplifiedPoints.push(rawPoints[rawPoints.length - 1]);
 
         if (simplifiedPoints.length < 2) return rawPoints;
 
         const finalPath = [];
-        const interpolationStep = 0.5;
+        const interpolationStep = 0.4;
 
         for (let i = 0; i < simplifiedPoints.length - 1; i++) {
             const p1 = simplifiedPoints[i];
@@ -47,123 +46,103 @@ class PathSpline {
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             const numSteps = Math.ceil(distance / interpolationStep);
 
-            if (numSteps === 0) continue;
-
-            const stepX = dx / numSteps;
-            const stepY = dy / numSteps;
-            const stepZ = dz / numSteps;
-
             for (let j = 0; j < numSteps; j++) {
                 if (i > 0 && j === 0) continue;
-                const x = p1.x + j * stepX;
-                const y = p1.y + j * stepY;
-                const z = p1.z + j * stepZ;
-                finalPath.push(new Vec3d(x, y, z));
-            }
-            if (i === simplifiedPoints.length - 2) finalPath.push(p2);
-        }
-
-        if (finalPath.length === 0) {
-            finalPath.push(simplifiedPoints[0]);
-        } else {
-            const dX = finalPath[0].x - simplifiedPoints[0].x;
-            const dY = finalPath[0].y - simplifiedPoints[0].y;
-            const dZ = finalPath[0].z - simplifiedPoints[0].z;
-            if (dX * dX + dY * dY + dZ * dZ > 0.01) {
-                finalPath.unshift(simplifiedPoints[0]);
+                finalPath.push(new Vec3d(p1.x + (dx * j) / numSteps, p1.y + (dy * j) / numSteps, p1.z + (dz * j) / numSteps));
             }
         }
-
+        finalPath.push(simplifiedPoints[simplifiedPoints.length - 1]);
         return finalPath;
     }
 
-    createLookPoints(smoothSplineData, minInterval = 1, maxInterval = 10) {
+    createLookPoints(smoothSplineData, minInterval = 1.5, maxInterval = 8) {
         if (!smoothSplineData || smoothSplineData.length < 2) return [];
 
-        const currentHash = smoothSplineData.length + '-' + smoothSplineData[0]?.x + '-' + smoothSplineData[smoothSplineData.length - 1]?.x;
+        const currentHash = `${smoothSplineData.length}-${smoothSplineData[0].x}-${smoothSplineData[smoothSplineData.length - 1].x}`;
         if (currentHash === this.lastDataHash) return this.cachedBoxPositions;
         this.lastDataHash = currentHash;
 
         const boxPositions = [];
-        const startNode = smoothSplineData[0];
-
-        let lastInjectedPoint = new Vec3d(startNode.x, startNode.y + 2.12, startNode.z);
-        boxPositions.push(lastInjectedPoint);
-
         let lastPlacedRaw = smoothSplineData[0];
-        const lookWindow = 3;
+        let lastForwardDir = null;
+
+        const startNode = smoothSplineData[0];
+        boxPositions.push(new Vec3d(startNode.x, startNode.y + 2.12, startNode.z));
 
         for (let i = 1; i < smoothSplineData.length - 1; i++) {
             const curr = smoothSplineData[i];
-            const prev = smoothSplineData[Math.max(0, i - lookWindow)];
-            const next = smoothSplineData[Math.min(smoothSplineData.length - 1, i + lookWindow)];
+            const dist = Math.sqrt(Math.pow(curr.x - lastPlacedRaw.x, 2) + Math.pow(curr.z - lastPlacedRaw.z, 2));
+
+            const prev = smoothSplineData[Math.max(0, i - 4)];
+            const next = smoothSplineData[Math.min(smoothSplineData.length - 1, i + 4)];
 
             const v1 = { x: curr.x - prev.x, z: curr.z - prev.z };
             const v2 = { x: next.x - curr.x, z: next.z - curr.z };
+            const m1 = Math.sqrt(v1.x * v1.x + v1.z * v1.z);
+            const m2 = Math.sqrt(v2.x * v2.x + v2.z * v2.z);
 
-            const mag1 = Math.sqrt(v1.x * v1.x + v1.z * v1.z);
-            const mag2 = Math.sqrt(v2.x * v2.x + v2.z * v2.z);
+            let curvature = 0;
+            let normal = { x: 0, z: 0 };
 
-            let curvatureFactor = 0;
-            let offsetX = 0;
-            let offsetZ = 0;
-
-            if (mag1 > 0.1 && mag2 > 0.1) {
-                const dot = (v1.x * v2.x + v1.z * v2.z) / (mag1 * mag2);
+            if (m1 > 0.05 && m2 > 0.05) {
+                const dot = (v1.x * v2.x + v1.z * v2.z) / (m1 * m2);
                 const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+                curvature = Math.min(angle / (Math.PI / 2.5), 1);
 
-                curvatureFactor = Math.pow(Math.min(angle / (Math.PI / 3), 1), 2);
+                const cross = v1.x * v2.z - v1.z * v2.x;
+                const dir = cross > 0 ? 1 : -1;
 
-                const dirX = v1.x / mag1 + v2.x / mag2;
-                const dirZ = v1.z / mag1 + v2.z / mag2;
-                const dirMag = Math.sqrt(dirX * dirX + dirZ * dirZ);
+                const forward = { x: v1.x / m1 + v2.x / m2, z: v1.z / m1 + v2.z / m2 };
+                const fMag = Math.sqrt(forward.x * forward.x + forward.z * forward.z);
 
-                if (dirMag > 0.01) {
-                    const normalX = -dirZ / dirMag;
-                    const normalZ = dirX / dirMag;
-                    offsetX = normalX * curvatureFactor * this.OUTWARD_OFFSET_STRENGTH;
-                    offsetZ = normalZ * curvatureFactor * this.OUTWARD_OFFSET_STRENGTH;
+                if (fMag > 0.01) {
+                    normal.x = -(forward.z / fMag) * dir;
+                    normal.z = (forward.x / fMag) * dir;
                 }
             }
 
-            const dynamicInterval = maxInterval - curvatureFactor * (maxInterval - minInterval);
-            const distToLast = Math.sqrt(Math.pow(curr.x - lastPlacedRaw.x, 2) + Math.pow(curr.z - lastPlacedRaw.z, 2));
+            const dynamicInterval = maxInterval - curvature * (maxInterval - minInterval);
 
-            if (distToLast >= dynamicInterval) {
-                let targetY = curr.y + 2.12;
+            if (dist >= dynamicInterval) {
+                const currentForward = { x: curr.x - lastPlacedRaw.x, z: curr.z - lastPlacedRaw.z };
+                const cfMag = Math.sqrt(currentForward.x * currentForward.x + currentForward.z * currentForward.z);
 
-                if (Math.abs(targetY - lastInjectedPoint.y) < 0.15) {
-                    targetY = lastInjectedPoint.y;
+                if (lastForwardDir && cfMag > 0.1) {
+                    const dot = (currentForward.x * lastForwardDir.x + currentForward.z * lastForwardDir.z) / cfMag;
+                    if (dot < 0.5) continue;
                 }
 
-                const newPoint = new Vec3d(curr.x + offsetX, targetY, curr.z + offsetZ);
-                const resolvedPoint = this.adjustLookPoint(newPoint, curr);
-                lastInjectedPoint = this.appendLookPoint(boxPositions, resolvedPoint);
+                let offsetX = normal.x * curvature * this.OUTWARD_OFFSET_STRENGTH;
+                let offsetZ = normal.z * curvature * this.OUTWARD_OFFSET_STRENGTH;
+
+                const targetPoint = new Vec3d(curr.x + offsetX, curr.y + 2.12, curr.z + offsetZ);
+                const validated = this.adjustLookPoint(targetPoint, curr);
+
+                this.appendLookPoint(boxPositions, validated);
                 lastPlacedRaw = curr;
+                if (cfMag > 0.1) lastForwardDir = { x: currentForward.x / cfMag, z: currentForward.z / cfMag };
             }
         }
 
-        const endNode = smoothSplineData[smoothSplineData.length - 1];
-        if (Math.sqrt(Math.pow(endNode.x - lastPlacedRaw.x, 2) + Math.pow(endNode.z - lastPlacedRaw.z, 2)) > 0.5) {
-            const endPoint = new Vec3d(endNode.x, endNode.y + 2.12, endNode.z);
-            this.appendLookPoint(boxPositions, this.adjustLookPoint(endPoint, endNode));
-        }
+        const end = smoothSplineData[smoothSplineData.length - 1];
+        this.appendLookPoint(boxPositions, new Vec3d(end.x, end.y + 2.12, end.z));
 
         this.cachedBoxPositions = boxPositions;
-        return this.cachedBoxPositions;
+        return boxPositions;
     }
 
     appendLookPoint(boxPositions, point) {
-        const lastPoint = boxPositions[boxPositions.length - 1];
-        if (lastPoint) {
-            const dx = point.x - lastPoint.x;
-            const dz = point.z - lastPoint.z;
-            if (dx * dx + dz * dz < this.MIN_LOOK_POINT_SPACING * this.MIN_LOOK_POINT_SPACING) {
-                boxPositions[boxPositions.length - 1] = point;
-                return point;
-            }
+        if (boxPositions.length === 0) {
+            boxPositions.push(point);
+            return point;
         }
-        boxPositions.push(point);
+        const last = boxPositions[boxPositions.length - 1];
+        const dSq = Math.pow(point.x - last.x, 2) + Math.pow(point.z - last.z, 2);
+        if (dSq < Math.pow(this.MIN_LOOK_POINT_SPACING, 2)) {
+            boxPositions[boxPositions.length - 1] = point;
+        } else {
+            boxPositions.push(point);
+        }
         return point;
     }
 
@@ -172,8 +151,7 @@ class PathSpline {
             const world = World.getWorld();
             if (!world) return false;
             const pos = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
-            const state = world.getBlockState(pos);
-            return !state.getCollisionShape(world, pos).isEmpty();
+            return !world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
         } catch (e) {
             return false;
         }
@@ -181,22 +159,16 @@ class PathSpline {
 
     adjustLookPoint(point, rawNode) {
         if (!this.isPointInsideBlock(point)) return point;
-
         const unoffset = new Vec3d(rawNode.x, point.y, rawNode.z);
         if (!this.isPointInsideBlock(unoffset)) return unoffset;
-
         const lowered = new Vec3d(rawNode.x, point.y - 0.5, rawNode.z);
-        if (!this.isPointInsideBlock(lowered)) return lowered;
-
-        return point;
+        return this.isPointInsideBlock(lowered) ? unoffset : lowered;
     }
 
     drawLookPoints() {
-        if (!this.cachedBoxPositions || this.cachedBoxPositions.length === 0) return;
-
+        if (!this.cachedBoxPositions) return;
         const px = Player.getX();
         const pz = Player.getZ();
-
         this.cachedBoxPositions.forEach((pos) => {
             if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
                 RenderUtils.drawBox(pos, [255, 0, 0, 100], true);
@@ -205,22 +177,14 @@ class PathSpline {
     }
 
     drawFloatingSpline(smoothSplineData) {
-        let color = [0, 255, 255, 255];
-        let thickness = 3;
-        let verticalOffset = 2.62;
-        let renderThrough = true;
-
         if (!smoothSplineData || smoothSplineData.length < 2) return;
-
         for (let i = 0; i < smoothSplineData.length - 1; i++) {
-            const startVec = smoothSplineData[i];
-            const endVec = smoothSplineData[i + 1];
             RenderUtils.drawLine(
-                new Vec3d(startVec.x + 0.5, startVec.y + verticalOffset, startVec.z + 0.5),
-                new Vec3d(endVec.x + 0.5, endVec.y + verticalOffset, endVec.z + 0.5),
-                color,
-                thickness,
-                renderThrough
+                new Vec3d(smoothSplineData[i].x + 0.5, smoothSplineData[i].y + 2.62, smoothSplineData[i].z + 0.5),
+                new Vec3d(smoothSplineData[i + 1].x + 0.5, smoothSplineData[i + 1].y + 2.62, smoothSplineData[i + 1].z + 0.5),
+                [0, 255, 255, 255],
+                3,
+                true
             );
         }
     }
