@@ -1,5 +1,5 @@
 import './MouseMixin';
-import './MinecraftClientMixin';
+//import './MinecraftClientMixin'; // TODO: make it stop making armor stands visible ?!?
 import './HorizontalConnectingBlockMixin';
 import './PlayerListHudMixin';
 import './ChatHudMixin';
