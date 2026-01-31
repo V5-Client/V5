@@ -248,8 +248,8 @@ class PathRotations {
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
         const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 2);
-        const endIdx = Math.min(this.boxPositions.length - 1, startIdx + 8);
-        for (let i = startIdx; i < endIdx; i++) {
+        const endIdx = Math.min(this.boxPositions.length - 2, startIdx + 8);
+        for (let i = startIdx; i <= endIdx; i++) {
             const p1 = this.boxPositions[i];
             const p2 = this.boxPositions[i + 1];
             if (!p1 || !p2) continue;

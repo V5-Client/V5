@@ -58,7 +58,10 @@ class PathSpline {
     createLookPoints(smoothSplineData, minInterval = 1.5, maxInterval = 8) {
         if (!smoothSplineData || smoothSplineData.length < 2) return [];
 
-        const currentHash = `${smoothSplineData.length}-${smoothSplineData[0].x}-${smoothSplineData[smoothSplineData.length - 1].x}`;
+        const start = smoothSplineData[0];
+        const endPoint = smoothSplineData[smoothSplineData.length - 1];
+        const mid = smoothSplineData[Math.floor(smoothSplineData.length / 2)];
+        const currentHash = `${smoothSplineData.length}-${start.x}-${start.y}-${start.z}-${mid.x}-${mid.y}-${mid.z}-${endPoint.x}-${endPoint.y}-${endPoint.z}`;
         if (currentHash === this.lastDataHash) return this.cachedBoxPositions;
         this.lastDataHash = currentHash;
 
