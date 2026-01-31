@@ -9,6 +9,7 @@ class PathSpline {
         this.OUTWARD_OFFSET_STRENGTH = 1.2;
         this.MIN_LOOK_POINT_SPACING = 0.8;
         this.MAX_ANGLE_CHANGE = Math.PI / 4;
+        this.MAX_GAP_DISTANCE = 12;
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
     }
@@ -69,8 +70,7 @@ class PathSpline {
         let lastPlacedRaw = smoothSplineData[0];
         let lastForwardDir = null;
 
-        const startNode = smoothSplineData[0];
-        boxPositions.push(new Vec3d(startNode.x, startNode.y + 2.12, startNode.z));
+        boxPositions.push(new Vec3d(start.x, start.y + 2.12, start.z));
 
         for (let i = 1; i < smoothSplineData.length - 1; i++) {
             const curr = smoothSplineData[i];
@@ -110,26 +110,22 @@ class PathSpline {
                 const currentForward = { x: curr.x - lastPlacedRaw.x, z: curr.z - lastPlacedRaw.z };
                 const cfMag = Math.sqrt(currentForward.x * currentForward.x + currentForward.z * currentForward.z);
 
-                if (lastForwardDir && cfMag > 0.1) {
+                if (lastForwardDir && cfMag > 0.1 && dist < this.MAX_GAP_DISTANCE) {
                     const dot = (currentForward.x * lastForwardDir.x + currentForward.z * lastForwardDir.z) / cfMag;
                     if (dot < 0.5) continue;
                 }
 
-                let offsetX = normal.x * curvature * this.OUTWARD_OFFSET_STRENGTH;
-                let offsetZ = normal.z * curvature * this.OUTWARD_OFFSET_STRENGTH;
+                const offsetX = normal.x * curvature * this.OUTWARD_OFFSET_STRENGTH;
+                const offsetZ = normal.z * curvature * this.OUTWARD_OFFSET_STRENGTH;
 
                 const targetPoint = new Vec3d(curr.x + offsetX, curr.y + 2.12, curr.z + offsetZ);
-                const validated = this.adjustLookPoint(targetPoint, curr);
-
-                this.appendLookPoint(boxPositions, validated);
+                this.appendLookPoint(boxPositions, this.adjustLookPoint(targetPoint, curr));
                 lastPlacedRaw = curr;
                 if (cfMag > 0.1) lastForwardDir = { x: currentForward.x / cfMag, z: currentForward.z / cfMag };
             }
         }
 
-        const end = smoothSplineData[smoothSplineData.length - 1];
-        this.appendLookPoint(boxPositions, new Vec3d(end.x, end.y + 2.12, end.z));
-
+        this.appendLookPoint(boxPositions, new Vec3d(endPoint.x, endPoint.y + 2.12, endPoint.z));
         this.cachedBoxPositions = boxPositions;
         return boxPositions;
     }
@@ -137,16 +133,14 @@ class PathSpline {
     appendLookPoint(boxPositions, point) {
         if (boxPositions.length === 0) {
             boxPositions.push(point);
-            return point;
+            return;
         }
         const last = boxPositions[boxPositions.length - 1];
-        const dSq = Math.pow(point.x - last.x, 2) + Math.pow(point.z - last.z, 2);
-        if (dSq < Math.pow(this.MIN_LOOK_POINT_SPACING, 2)) {
+        if (Math.pow(point.x - last.x, 2) + Math.pow(point.z - last.z, 2) < Math.pow(this.MIN_LOOK_POINT_SPACING, 2)) {
             boxPositions[boxPositions.length - 1] = point;
         } else {
             boxPositions.push(point);
         }
-        return point;
     }
 
     isPointInsideBlock(point) {
