@@ -11,24 +11,28 @@ class ChatClass {
     messageDebug(msg) {
         if (!Debugging.Messages()) return;
 
-        this._sendGradient(`V5 Debug » `, msg);
+        this._sendGradient(`V5 Debug »`, msg);
     }
 
     messageClip(msg) {
-        this._sendGradient('V5 Clipping » ', msg);
+        this._sendGradient('V5 Clipping »', msg);
     }
 
     messageIrc(msg) {
-        this._sendGradient('IRC » ', msg);
+        this._sendGradient('IRC »', msg);
     }
 
     messageFailsafe(msg) {
-        this._sendGradient('V5 Failsafes » ', msg);
-        this._sendGradient('V5 Failsafes » ', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
+        this._sendGradient('V5 Failsafes »', msg);
+        this._sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
     }
 
     messagePathfinder(msg) {
-        this._sendGradient('V5 Pathfinding » ', msg);
+        this._sendGradient('V5 Pathfinding »', msg);
+    }
+
+    messageScheduler(msg) {
+        this._sendGradient('V5 Scheduler »', msg);
     }
 
     _sendGradient(prefix, ...args) {
