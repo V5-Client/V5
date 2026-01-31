@@ -4,6 +4,26 @@ class MacroStateClass {
         this.activeMacro = null;
         this.startTime = 0;
         this.enabledMacros = new Set();
+
+        this.modules = new Map();
+    }
+
+    registerModule(module) {
+        if (module.name) {
+            this.modules.set(module.name, module);
+        }
+    }
+
+    getModule(name) {
+        return this.modules.get(name);
+    }
+
+    getMacroNames() {
+        const names = [];
+        this.modules.forEach((module, name) => {
+            if (module.isMacro) names.push(name);
+        });
+        return names;
     }
 
     isMacroRunning() {

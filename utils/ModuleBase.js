@@ -33,6 +33,8 @@ export class ModuleBase {
 
         this.isMacro = opts.isMacro === true;
 
+        MacroState.registerModule(this);
+
         this._registers = [];
         this._conditionalRegisters = [];
         this._conditionalChecker = null;
@@ -114,18 +116,16 @@ export class ModuleBase {
         }
 
         this.enabled = newVal;
-        this.isParentManaged = parentManaged;
 
         if (newVal) {
+            this.isParentManaged = parentManaged;
+
             if (this.isMacro) {
                 Mixin.set('macroEnabled', true);
-            }
-
-            if (this.isMacro && !this.isParentManaged) {
                 MacroState.onModuleEnabled(this.name);
             }
 
-            if (this.oid && !this.isParentManaged) {
+            if (this.oid) {
                 OverlayManager.startTime(this.oid, this.isMacro);
             }
 
@@ -143,12 +143,13 @@ export class ModuleBase {
             }
 
             if (this.oid) {
-                if (this.isMacro && !this.isParentManaged) {
+                if (this.isMacro) {
                     OverlayManager.pauseTime(this.oid);
                 } else {
                     OverlayManager.resetTime(this.oid);
                 }
             }
+
             this._registers.forEach((h) => h.unregister());
             try {
                 this.onDisable();
@@ -201,7 +202,7 @@ export class ModuleBase {
         this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
 
         this._wrappedKey.onKeyPress(() => {
-            if (this.enabled && this.isParentManaged) {
+            if (this.enabled && this.isParentManaged && !this.isMacro) {
                 notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
                 return;
             }
@@ -217,6 +218,11 @@ export class ModuleBase {
     createOverlay(args) {
         this.oid = this.name;
         OverlayManager.createID(this.oid, args);
+    }
+
+    createSchedulerOverlay(args) {
+        this.oid = this.name;
+        OverlayManager.createSchedulerID(this.oid, args);
     }
 
     /**

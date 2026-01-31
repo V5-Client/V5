@@ -11,6 +11,7 @@ import { Rotations } from '../../utils/player/Rotations';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { Utils } from '../../utils/Utils';
 
 const STATES = {
     IDLE: 'Idle',
@@ -273,6 +274,7 @@ class CommissionMacro extends ModuleBase {
         this.sessionStart = Date.now();
         this.npcRotationPending = false;
         this.npcRotationToken = 0;
+        this.areaCheckTime = null;
 
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
@@ -323,6 +325,23 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
+        const area = Utils.area();
+        if (area !== 'Dwarven Mines') {
+            const now = Date.now();
+            if (!this.areaCheckTime) {
+                Chat.message('&eNot in Dwarven Mines, warping...');
+                ChatLib.command('warpforge');
+                this.areaCheckTime = now;
+                return;
+            }
+            if (now - this.areaCheckTime > 10000) {
+                ChatLib.command('warpforge');
+                this.areaCheckTime = now;
+            }
+            return;
+        }
+        this.areaCheckTime = null;
+
         const newCommissions = MiningUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
@@ -470,7 +489,7 @@ class CommissionMacro extends ModuleBase {
         this.currentCommission = task;
         this.travelPurpose = task.type;
 
-        Chat.message(`Starting &e${task.name}&f Commission.`);
+        Chat.message(`Starting &e${task.name}&f commission.`);
 
         this.setState(STATES.TRAVELING);
         Pathfinder.findPath(waypoints, (success) => this.onPathComplete(success));
@@ -763,6 +782,8 @@ class CommissionMacro extends ModuleBase {
         } else {
             this.setState(STATES.IDLE);
         }
+
+        this.travelPurpose = null;
     }
 
     onPathFail() {
