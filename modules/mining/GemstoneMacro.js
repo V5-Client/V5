@@ -13,6 +13,7 @@ import { Utils } from '../../utils/Utils';
 import RouteState from '../../utils/RouteState';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
@@ -249,7 +250,7 @@ class GemstoneMacro extends ModuleBase {
 
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
-                            Client.scheduleTask(this.FASTAOTV ? 4 : 7, () => {
+                            ScheduleTask(this.FASTAOTV ? 4 : 7, () => {
                                 if (!this.enabled) return;
                                 Keybind.rightClick();
                                 this.attemptedEtherwarp = true;

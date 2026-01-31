@@ -7,6 +7,7 @@ import { Raytrace } from '../../utils/Raytrace';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const MAX_SCAN = 500;
 const MAX_DISTANCE = 30;
@@ -181,7 +182,7 @@ class ForagingBot extends ModuleBase {
                     Math.abs(block.z - targetBlock.z) > IGNORE_RADIUS
             );
             this.targetBlock = null;
-            Client.scheduleTask(17, () => {
+            ScheduleTask(17, () => {
                 this.rotationInProgress = false;
             });
         });

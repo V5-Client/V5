@@ -6,6 +6,7 @@ import { Rotations } from '../../utils/player/Rotations';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
 import { Mouse } from '../../utils/Ungrab';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -128,7 +129,7 @@ class FishingMacro extends ModuleBase {
                     Rotations.rotateToAngles(95, 54);
                     Rotations.onEndRotation(() => {
                         Keybind.rightClick();
-                        Client.scheduleTask(2, () => {
+                        ScheduleTask(2, () => {
                             Rotations.rotateToAngles(23, 8);
                         });
                     });

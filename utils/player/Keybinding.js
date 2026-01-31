@@ -3,6 +3,7 @@ import { Utils, mc } from '../Utils';
 import { Vec3d, Direction, BlockHitResult, MCHand, BP } from '../Constants';
 import { PlayerInteractBlockC2S } from '../Packets';
 import { Mixin } from '../MixinManager';
+import { ScheduleTask } from '../ScheduleTask';
 
 const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1536');
 const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
@@ -19,7 +20,7 @@ class ControlSystem {
         if (Client.isInGui() && !Client.isInChat()) {
             return Chat.message('Left click suppressed: User in menu.');
         }
-        Client.scheduleTask(() => {
+        ScheduleTask(() => {
             LEFT_CLICK_METHOD.invoke(mc);
         });
     }
@@ -28,7 +29,7 @@ class ControlSystem {
         if (Client.isInGui() && !Client.isInChat()) {
             return Chat.message('Right click suppressed: User in menu.');
         }
-        Client.scheduleTask(() => {
+        ScheduleTask(() => {
             RIGHT_CLICK_METHOD.invoke(mc);
         });
     }
@@ -41,7 +42,7 @@ class ControlSystem {
         };
 
         if (!delay || delay <= 0) action();
-        else Client.scheduleTask(delay, action);
+        else ScheduleTask(delay, action);
     }
 
     updateKeyState(action, isPressed) {
@@ -55,7 +56,7 @@ class ControlSystem {
                 Mixin.set('shouldClick', true);
 
                 this.lastClick = 2;
-                Client.scheduleTask(() => {
+                ScheduleTask(() => {
                     attackKey.setPressed(false);
                 });
 
@@ -64,7 +65,7 @@ class ControlSystem {
 
             if (this.lastClick > 0) {
                 this.lastClick--;
-                Client.scheduleTask(() => {
+                ScheduleTask(() => {
                     attackKey.setPressed(false);
                 });
 
@@ -75,7 +76,7 @@ class ControlSystem {
             mouseGrabbed.setAccessible(true);
             mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
 
-            Client.scheduleTask(() => {
+            ScheduleTask(() => {
                 attackKey.setPressed(!!isPressed);
             });
 
@@ -97,7 +98,7 @@ class ControlSystem {
 
         const keyObj = mapping[action];
         if (keyObj) {
-            Client.scheduleTask(() => {
+            ScheduleTask(() => {
                 keyObj.setPressed(!!isPressed);
             });
             return true;

@@ -6,6 +6,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Rotations } from '../../utils/player/Rotations';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const SMALL_BEACHBALL_BASE64 =
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjQyNzQ4ODAwNCwKICAicHJvZmlsZUlkIiA6ICIzN2JhNjRkYzkxOTg0OGI4YjZhNDdiYTg0ZDgwNDM3MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb3lLb3NhIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJhZGY5ZDcxMzY3Y2Q2ZTUwNWZiNDhjYWFhNWFjZGNkZmYyYTA5ZjY2YzQ4OGRhZjA0ZDA0NWVlMGJmNTI4ZTEiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==';
@@ -146,7 +147,7 @@ class Beachballer extends ModuleBase {
         };
 
         if (this.lastVelocityY > 0 && velocity.y <= 0) {
-            Client.scheduleTask(5, () => {
+            ScheduleTask(5, () => {
                 this.ballDescending = true;
             });
         }

@@ -2,6 +2,7 @@ import { MathUtils } from './Math';
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { PlayerActionC2S, PlayerActionC2SAction, HandSwingC2S } from './Packets';
 import { Mixin } from './MixinManager';
+import { ScheduleTask } from './ScheduleTask';
 
 class NukerUtilsClass {
     static MAX_REACH_DISTANCE = 6;
@@ -85,7 +86,7 @@ class NukerUtilsClass {
 
         if (timeSinceLastNuke > threshold || ticks === 1 || this.delay >= NukerUtilsClass.MIN_NUKE_INTERVAL) {
             if (this.delay > NukerUtilsClass.MIN_NUKE_INTERVAL) {
-                Client.scheduleTask(1, () => MiningBot.ticksMined--);
+                ScheduleTask(1, () => MiningBot.ticksMined--);
             }
             this.delay = 0;
         }

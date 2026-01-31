@@ -1,5 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class AutoConversation extends ModuleBase {
     constructor() {
@@ -46,9 +47,9 @@ class AutoConversation extends ModuleBase {
             if (commands.length === 0) return;
 
             if (commands.length >= 2 && this.autoSelect) {
-                Client.scheduleTask(this.delay, () => ChatLib.say(commands[0]));
+                ScheduleTask(this.delay, () => ChatLib.say(commands[0]));
             } else if (commands.length === 1) {
-                Client.scheduleTask(this.delay, () => ChatLib.say(commands[0]));
+                ScheduleTask(this.delay, () => ChatLib.say(commands[0]));
             }
         });
 

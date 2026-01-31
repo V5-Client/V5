@@ -11,6 +11,7 @@ import RouteState from '../../utils/RouteState';
 import { Guis } from '../../utils/player/Inventory';
 import { Mouse } from '../../utils/Ungrab';
 import { v5Command } from '../../utils/V5Commands';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class RouteWalkerer extends ModuleBase {
     constructor() {
@@ -189,7 +190,7 @@ class RouteWalkerer extends ModuleBase {
                             Rotations.rotateToVector([point[0], point[1], point[2]], 0.5, false);
 
                             Rotations.onEndRotation(() => {
-                                Client.scheduleTask(7, () => {
+                                ScheduleTask(7, () => {
                                     Keybind.rightClick();
                                 });
                             });

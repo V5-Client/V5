@@ -1,6 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClickSlotC2S, OpenScreenS2C, CommonPingS2C } from '../../utils/Packets';
 import { TypingState } from '../../gui/Utils';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class InventoryWalk extends ModuleBase {
     constructor() {
@@ -29,7 +30,7 @@ class InventoryWalk extends ModuleBase {
             if (Client.isInChat() || (Client.isInGui() && TypingState.isTyping)) return;
             let sincePing = Date.now() - this.lastPing;
             if ((!this.clicked && sincePing < 125) || Date.now() > this.time + 325 + sincePing) {
-                Client.scheduleTask(0, () => {
+                ScheduleTask(0, () => {
                     this.keybinds.forEach((keybind) => {
                         let down = Keyboard.isKeyDown(keybind.getKeyCode());
                         if (down) keybind.setState(down);
@@ -52,7 +53,7 @@ class InventoryWalk extends ModuleBase {
 
         this.on('packetReceived', (packet) => {
             this.clicked = false;
-            Client.scheduleTask(0, () => {
+            ScheduleTask(0, () => {
                 this.keybinds.forEach((keybind) => {
                     let down = Keyboard.isKeyDown(keybind.getKeyCode()) && !Client.isInChat();
                     keybind.setState(down);

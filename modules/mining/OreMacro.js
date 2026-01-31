@@ -13,6 +13,7 @@ import { Utils } from '../../utils/Utils';
 import RouteState from '../../utils/RouteState';
 import { PlayerInteractBlockC2S, PlayerInteractItemC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 // todo make walk points work
 // rework the command when icba to fix it
@@ -261,7 +262,7 @@ class OreMacro extends ModuleBase {
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
                             if (!this.enabled) return;
-                            Client.scheduleTask(this.FASTAOTV ? 2 : 5, () => {
+                            ScheduleTask(this.FASTAOTV ? 2 : 5, () => {
                                 try {
                                     // yes this is retarded ik
                                     this.rightClickEtherWarp(this.closestPoint);
