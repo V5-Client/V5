@@ -37,8 +37,12 @@ class StructureESP extends ModuleBase {
         }).setFilteredClass(ChunkDataS2C);
 
         this.on('packetReceived', (packet) => {
-            const pos = packet.getPos();
-            this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
+            try {
+                const pos = packet.getPos();
+                this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
+            } catch (e) {
+                console.log('PROBABLY DUE TO CHATTRIGGERS getPos being stupid as fuck!' + e);
+            }
         }).setFilteredClass(BlockUpdateS2C);
 
         this.on('postRenderWorld', () => {
