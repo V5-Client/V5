@@ -3,6 +3,7 @@ import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
 import PathConfig from '../PathConfig';
 import { Movement } from './PathMovement';
+import { PathExecutor } from '../PathExecutor';
 
 class PathJumps {
     constructor() {
@@ -20,11 +21,7 @@ class PathJumps {
         this.MIN_GAP_WIDTH = 1.8;
         this.MAX_GAP_SEARCH = 4;
 
-        this.onTick();
-    }
-
-    onTick() {
-        register('tick', () => {
+        PathExecutor.onTick(() => {
             this.cacheFrame++;
             if (this.blockCache.size > 1000) this.blockCache.clear();
         });

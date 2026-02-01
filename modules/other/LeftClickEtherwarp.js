@@ -4,10 +4,10 @@ import { Keybind } from '../../utils/player/Keybinding';
 class LeftClickEtherwarp extends ModuleBase {
     constructor() {
         super({
-            name: 'LeftClickEtherwarp',
+            name: 'Leftclick Etherwarp',
             subcategory: 'Other',
-            description: '',
-            tooltip: '',
+            description: 'Allows etherwarping with leftclick',
+            tooltip: 'allows etherwarping with leftclick',
         });
 
         this.clickStart = Infinity;

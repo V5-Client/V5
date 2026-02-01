@@ -8,10 +8,10 @@ let lastPing;
 class ZeroPingEtherwarp extends ModuleBase {
     constructor() {
         super({
-            name: 'ZeroPingEtherwarp',
+            name: 'Zero Ping Etherwarp',
             subcategory: 'Other',
             description: 'Requires Skyblocker Predictive Smooth AOTE enabled. Skyblocker Maximum Added Lag must be higher than your ping else it stutters.',
-            tooltip: '',
+            tooltip: 'requires Skyblocker predictive smooth AOTE enabled',
         });
 
         this.reflectionFailed = false;

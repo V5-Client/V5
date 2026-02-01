@@ -1,4 +1,5 @@
 import { Keybind } from '../../player/Keybinding';
+import { PathExecutor } from '../PathExecutor';
 
 class PathMovement {
     constructor() {
@@ -7,13 +8,7 @@ class PathMovement {
         this.backupCallback = null;
         this.isActive = false;
 
-        this.onTick();
-    }
-
-    onTick() {
-        register('tick', () => {
-            if (!this.isActive) return;
-
+        PathExecutor.onTick(() => {
             if (this.forceJumpTicks > 0) {
                 Keybind.setKey('space', true);
                 this.forceJumpTicks--;

@@ -4,6 +4,7 @@ import { Spline } from '../PathSpline';
 import { BP, Vec3d } from '../../Constants';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
+import { PathExecutor } from '../PathExecutor';
 
 class PathRotations {
     constructor() {
@@ -26,11 +27,27 @@ class PathRotations {
         this.VISIBILITY_CACHE_MS = 50;
         this.MAX_DIRECTION_DIVERGENCE = 50.0;
         this.MAX_UPWARD_PITCH = -45.0;
-        this.resetRotations();
-        this.onStep();
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
         this.currentPathCurvature = 0;
+
+        this.resetRotations();
+
+        PathExecutor.onStep(() => {
+            if (!this.rotationActive || !this.boxPositions) return;
+            this.updateLookPoint();
+            this.applyHumanizedPhysics();
+            PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
+        });
+
+        PathExecutor.onTick(() => {
+            if (this.lookaheadOverrideExpiry > 0) {
+                this.lookaheadOverrideExpiry--;
+                if (this.lookaheadOverrideExpiry <= 0) {
+                    this.lookaheadOverride = null;
+                }
+            }
+        });
     }
 
     resetRotations() {
@@ -56,24 +73,6 @@ class PathRotations {
         this.unseenSince = 0;
         this.currentPathCurvature = 0;
         PathRotationsUtility.stopRotation();
-    }
-
-    onStep() {
-        this.stepRegister = register('step', () => {
-            if (!this.rotationActive || !this.boxPositions) return;
-            this.updateLookPoint();
-            this.applyHumanizedPhysics();
-            PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
-        }).setFps(120);
-
-        register('tick', () => {
-            if (this.lookaheadOverrideExpiry > 0) {
-                this.lookaheadOverrideExpiry--;
-                if (this.lookaheadOverrideExpiry <= 0) {
-                    this.lookaheadOverride = null;
-                }
-            }
-        });
     }
 
     isPointVisible(playerEyes, targetPoint) {

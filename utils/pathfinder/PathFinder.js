@@ -11,6 +11,7 @@ import { Movement } from './PathWalker/PathMovement';
 import { Recovery } from './PathWalker/PathRecovery';
 import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
+import { PathExecutor } from './PathExecutor';
 
 class Finder {
     constructor() {
@@ -44,7 +45,10 @@ class Finder {
             this.findPath(end);
         });
 
-        v5Command('stopPath', () => this.resetPath());
+        v5Command('stopPath', () => {
+            this.resetPath();
+            PathExecutor.destroy();
+        });
     }
 
     findPath(end, onComplete, renderOnly = false) {
@@ -73,6 +77,8 @@ class Finder {
     startTick(renderOnly) {
         if (this.tick) return;
 
+        PathExecutor.execute();
+
         this.tick = register('tick', () => {
             if (Swift.isSearching()) return;
 
@@ -86,6 +92,7 @@ class Finder {
 
                     this.callCallback(false);
                     this.resetPath();
+                    PathExecutor.destroy();
                 }
                 return;
             }
@@ -158,6 +165,7 @@ class Finder {
             }
             this.callCallback(false);
             this.resetPath();
+            PathExecutor.destroy();
             return;
         }
 
@@ -228,6 +236,7 @@ class Finder {
         showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
         this.callCallback(true);
         this.resetPath();
+        PathExecutor.destroy();
     }
 
     callCallback(success) {
