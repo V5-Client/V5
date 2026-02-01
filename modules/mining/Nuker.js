@@ -2,7 +2,7 @@ import { NukerUtils } from '../../utils/NukerUtils';
 import { Chat } from '../../utils/Chat';
 import { Utils } from '../../utils/Utils';
 import { Executor } from '../../utils/ThreadExecutor';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Vec3d, BP, BlockHitResult, Direction, MCHand, BlockStone, BlockOre, BlockRedstoneOre } from '../../utils/Constants';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -140,7 +140,7 @@ class NukerClass extends ModuleBase {
         this.on('postRenderWorld', () => {
             if (this.target) this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
             if (this.chestPos && this.autoChest && this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance <= 8) {
-                RenderUtils.drawBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), [100, 100, 255, 150], false);
+                Render.drawBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), Render.Color(100, 100, 255, 150), false);
             }
         });
 
@@ -266,7 +266,7 @@ class NukerClass extends ModuleBase {
         let r = Math.sin(time) * 127 + 128,
             g = Math.sin(time + 2) * 127 + 128,
             b = Math.sin(time + 4) * 127 + 128;
-        RenderUtils.drawWireFrame(new Vec3d(loc[0], loc[1], loc[2]), [r, g, b, 255], 5, true);
+        Render.drawWireFrame(new Vec3d(loc[0], loc[1], loc[2]), Render.Color(r, g, b, 255), 5, true);
     }
 
     rightClickBlock(xyz) {

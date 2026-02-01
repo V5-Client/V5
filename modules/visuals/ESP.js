@@ -1,4 +1,4 @@
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d } from '../../utils/Constants';
 
@@ -28,7 +28,7 @@ class ESP extends ModuleBase {
             'ESP Color',
             java.awt.Color.RED,
             (color) => {
-                this.rgba = [color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()];
+                this.rgba = Render.Color(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
             },
             'Color of the ESP box'
         );
@@ -42,10 +42,10 @@ class ESP extends ModuleBase {
                 if (player.getUUID().equals(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
 
-                RenderUtils.drawEntityHitbox(player.toMC(), this.rgba, 4, false);
+                Render.drawHitbox(player.toMC(), this.rgba, 4, false);
 
                 let vec = new Vec3d(player.x, player.y + 2.3, player.z);
-                if (this.showNames) RenderUtils.drawText(player.getName(), vec, 1.2, true, false, true);
+                if (this.showNames) Render.drawText(player.getName(), vec, 1.2, true, false, true);
             }
         });
     }

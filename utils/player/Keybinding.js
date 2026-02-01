@@ -47,12 +47,11 @@ class ControlSystem {
 
     updateKeyState(action, isPressed) {
         const guiOpen = Client.isInGui();
-        const chatOpen = Client.isInChat();
 
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
 
-            if (guiOpen && !chatOpen) {
+            if (guiOpen) {
                 Mixin.set('shouldClick', true);
 
                 this.lastClick = 2;
@@ -83,7 +82,7 @@ class ControlSystem {
             return true;
         }
 
-        if (guiOpen && !chatOpen) return false;
+        if (guiOpen) return false;
 
         const options = mc.options;
         const mapping = {

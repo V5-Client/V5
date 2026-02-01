@@ -1,7 +1,6 @@
 import { Vec3d, BP, SnowBlock } from '../../Constants';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
-import RenderUtils from '../../render/RendererUtils';
 import PathConfig from '../PathConfig';
 import { Movement } from './PathMovement';
 
@@ -22,12 +21,6 @@ class PathJumps {
         this.MAX_GAP_SEARCH = 4;
 
         this.onTick();
-        /*register('postrenderWorld', () => {
-            if (this.currentLookaheadVecs.length === 0) return;
-            this.currentLookaheadVecs.forEach((data) => {
-                RenderUtils.drawBox(data.vec, [255, 0, 0, 255]);
-            });
-        });*/
     }
 
     onTick() {

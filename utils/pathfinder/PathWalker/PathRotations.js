@@ -2,7 +2,6 @@ import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from './PathRotationsUtility';
 import { Spline } from '../PathSpline';
 import { BP, Vec3d } from '../../Constants';
-import RenderUtils from '../../render/RendererUtils';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 
@@ -13,7 +12,6 @@ class PathRotations {
         this.RECOVERY_MIN_LOOKAHEAD = 0.1;
         this.PROXIMITY_THRESHOLD = 4.0;
         this.COMPLETION_RADIUS = 1.6;
-
         this.BASE_KP = 0.05;
         this.KD = 0.55;
         this.MAX_VELOCITY = 8.0;
@@ -21,19 +19,15 @@ class PathRotations {
         this.SETTLE_THRESHOLD = 0.15;
         this.PITCH_DEADZONE = 1.8;
         this.YAW_DEADZONE = 1.2;
-
         this.SMOOTH_FACTOR = 0.1;
         this.MAX_LOOK_DISTANCE = 0.8;
         this.LOOKAHEAD_STEP = 0.4;
         this.RECOVERY_LOOKAHEAD_STEP = 0.15;
         this.VISIBILITY_CACHE_MS = 50;
-
         this.MAX_DIRECTION_DIVERGENCE = 50.0;
         this.MAX_UPWARD_PITCH = -45.0;
-
         this.resetRotations();
         this.onStep();
-
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
         this.currentPathCurvature = 0;
@@ -311,19 +305,19 @@ class PathRotations {
         const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
         const targetYaw = this.wrapAngle(angles.yaw);
         const yawDelta = this.getAngleDelta(this.rawTargetYaw, targetYaw);
-
+        const lastIndex = this.boxPositions.length - 1;
+        const remainingPath = lastIndex - this.currentPathPosition;
+        const finishFactor = remainingPath < 3.0 ? Math.max(0.1, remainingPath / 3.0) : 1.0;
         const isStraight = this.currentPathCurvature < 0.15;
-        const dynamicSmooth = isStraight ? this.SMOOTH_FACTOR * 0.5 : this.SMOOTH_FACTOR;
-        const dynamicYawDeadzone = isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE;
-
+        const dynamicSmooth = (isStraight ? this.SMOOTH_FACTOR * 0.5 : this.SMOOTH_FACTOR) / finishFactor;
+        const dynamicYawDeadzone = (isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE) * finishFactor;
         if (Math.abs(yawDelta) > dynamicYawDeadzone) {
-            this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * dynamicSmooth);
+            this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * Math.min(1.0, dynamicSmooth));
         }
         const pitchDelta = angles.pitch - this.rawTargetPitch;
-        if (Math.abs(pitchDelta) > this.PITCH_DEADZONE) {
-            this.rawTargetPitch += pitchDelta * dynamicSmooth;
+        if (Math.abs(pitchDelta) > this.PITCH_DEADZONE * finishFactor) {
+            this.rawTargetPitch += pitchDelta * Math.min(1.0, dynamicSmooth);
         }
-        const lastIndex = this.boxPositions.length - 1;
         const lastPoint = this.boxPositions[lastIndex];
         const endDistSq = Math.pow(playerEyes.x - lastPoint.x, 2) + Math.pow(playerEyes.y - lastPoint.y, 2) + Math.pow(playerEyes.z - lastPoint.z, 2);
         if ((endDistSq <= Math.pow(this.COMPLETION_RADIUS, 2) && this.currentPathPosition >= lastIndex - 2.0) || this.currentPathPosition >= lastIndex - 0.25) {
@@ -338,33 +332,38 @@ class PathRotations {
         const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
         const absYawError = Math.abs(yawError);
-
+        const lastIndex = this.boxPositions.length - 1;
+        const distToEnd = lastIndex - this.currentPathPosition;
+        const finishBoost = distToEnd < 2.0 ? 1.0 + (2.0 - distToEnd) * 1.5 : 1.0;
         const isStraight = this.currentPathCurvature < 0.2;
         const errorMultiplier = Math.min(1.5, Math.max(0.6, absYawError / 10));
-        const dynamicKp = this.BASE_KP * errorMultiplier;
+        const dynamicKp = this.BASE_KP * errorMultiplier * finishBoost;
         const dynamicKd = isStraight ? this.KD * 1.3 : this.KD;
+        const currentMaxVel = this.MAX_VELOCITY * finishBoost;
+        const currentAccel = this.ACCEL_LIMIT * finishBoost;
+        const currentSettle = this.SETTLE_THRESHOLD / finishBoost;
 
-        if (absYawError < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.02) {
+        if (absYawError < currentSettle && Math.abs(this.yawVelocity) < 0.02) {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
         } else {
             let desiredYawAccel = yawError * dynamicKp - this.yawVelocity * dynamicKd;
-            desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
+            desiredYawAccel = Math.max(-currentAccel, Math.min(currentAccel, desiredYawAccel));
             this.yawVelocity += desiredYawAccel;
             this.yawVelocity *= 0.92;
-            this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
+            this.yawVelocity = Math.max(-currentMaxVel, Math.min(currentMaxVel, this.yawVelocity));
             this.currentYaw += this.yawVelocity;
         }
 
-        if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.02) {
+        if (Math.abs(pitchError) < currentSettle && Math.abs(this.pitchVelocity) < 0.02) {
             this.currentPitch = this.rawTargetPitch;
             this.pitchVelocity = 0;
         } else {
             let desiredPitchAccel = pitchError * dynamicKp - this.pitchVelocity * dynamicKd;
-            desiredPitchAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredPitchAccel));
+            desiredPitchAccel = Math.max(-currentAccel, Math.min(currentAccel, desiredPitchAccel));
             this.pitchVelocity += desiredPitchAccel;
             this.pitchVelocity *= 0.92;
-            this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
+            this.pitchVelocity = Math.max(-currentMaxVel, Math.min(currentMaxVel, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
     }

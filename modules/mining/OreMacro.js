@@ -1,4 +1,4 @@
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { Guis } from '../../utils/player/Inventory';
@@ -112,20 +112,20 @@ class OreMacro extends ModuleBase {
                     const pos = new Vec3d(current.x, current.y, current.z);
 
                     if (current.movements === 'MINEABLE') {
-                        boxColor = [0, 255, 0, 80]; // Green
-                        edgeColor = [0, 255, 0, 255];
+                        boxColor = Render.Color(0, 255, 0, 80); // Green
+                        edgeColor = Render.Color(0, 255, 0, 255);
                         label = `Mineable #${mineCounter++}`;
                     } else {
-                        boxColor = current.movements === 'WALK' ? [255, 50, 50, 80] : [145, 70, 255, 80];
-                        edgeColor = current.movements === 'WALK' ? [255, 50, 50, 255] : [145, 70, 255, 255];
+                        boxColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 80) : Render.Color(145, 70, 255, 80);
+                        edgeColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 255) : Render.Color(145, 70, 255, 255);
                         label = `#${pathCounter++}`;
                     }
 
                     if (label) {
-                        RenderUtils.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                        Render.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
                     }
 
-                    RenderUtils.drawStyledBox(pos, boxColor, edgeColor, 4, false);
+                    Render.drawStyledBox(pos, boxColor, edgeColor, 4, false);
                 }
             }
         );

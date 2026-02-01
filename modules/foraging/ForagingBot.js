@@ -1,6 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { Raytrace } from '../../utils/Raytrace';
@@ -353,7 +353,7 @@ class ForagingBot extends ModuleBase {
 
         this.connectedBlocks.forEach((location) => {
             const blockVec = new Vec3d(location.x, location.y, location.z);
-            RenderUtils.drawWireFrame(blockVec, [205, 133, 63, 255]);
+            Render.drawWireFrame(blockVec, Render.Color(205, 133, 63, 255));
         });
     }
 }

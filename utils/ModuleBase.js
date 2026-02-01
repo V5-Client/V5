@@ -9,6 +9,9 @@ import { manager } from './SkyblockEvents';
 import { Mixin } from './MixinManager';
 
 export class ModuleBase {
+    static conditions = [];
+    static conditionChecker = null;
+
     /**
      * Create a new module
      * @param {string|object} nameOrOpts - Module name or options object
@@ -34,8 +37,6 @@ export class ModuleBase {
         this.isMacro = opts.isMacro === true;
 
         this._registers = [];
-        this._conditionalRegisters = [];
-        this._conditionalChecker = null;
 
         // add to gui
         if (!this.hideInModules) {
@@ -56,6 +57,28 @@ export class ModuleBase {
                 Chat.message('&cYou were spawned in limbo! Active macro was disabled.');
             });
         }
+
+        ModuleBase.setupConditionChecker();
+    }
+
+    static setupConditionChecker() {
+        if (ModuleBase.conditionChecker) return;
+
+        ModuleBase.conditionChecker = register('step', () => {
+            for (let i = 0; i < ModuleBase.conditions.length; i++) {
+                const item = ModuleBase.conditions[i];
+
+                const shouldBeActive = !!item.condition();
+
+                if (shouldBeActive && !item.isRegistered) {
+                    item.action.register();
+                    item.isRegistered = true;
+                } else if (!shouldBeActive && item.isRegistered) {
+                    item.action.unregister();
+                    item.isRegistered = false;
+                }
+            }
+        }).setFps(5);
     }
 
     // automatically handle enabling/disabling of registers
@@ -76,28 +99,12 @@ export class ModuleBase {
     when(condition, registerName, callback) {
         const actionRegister = register(registerName, callback).unregister();
 
-        const conditionalItem = {
+        ModuleBase.conditions.push({
+            parent: this,
             condition: condition,
-            actionRegister: actionRegister,
+            action: actionRegister,
             isRegistered: false,
-        };
-        this._conditionalRegisters.push(conditionalItem);
-
-        if (!this._conditionalChecker) {
-            this._conditionalChecker = register('step', () => {
-                this._conditionalRegisters.forEach((item) => {
-                    const conditionValue = !!item.condition();
-
-                    if (conditionValue && !item.isRegistered) {
-                        item.actionRegister.register();
-                        item.isRegistered = true;
-                    } else if (!conditionValue && item.isRegistered) {
-                        item.actionRegister.unregister();
-                        item.isRegistered = false;
-                    }
-                });
-            }).setFps(5);
-        }
+        });
     }
 
     /**

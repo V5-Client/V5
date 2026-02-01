@@ -7,7 +7,7 @@ import { Utils } from '../../../utils/Utils';
 import { Guis } from '../../../utils/player/Inventory';
 import { Keybind } from '../../../utils/player/Keybinding';
 import { Router } from '../../../utils/Router';
-import RenderUtils from '../../../utils/render/RendererUtils';
+import Render from '../../../utils/render/Render';
 import { Vec3d } from '../../../utils/Constants';
 import { v5Command } from '../../../utils/V5Commands';
 import { Mixin } from '../../../utils/MixinManager';
@@ -202,20 +202,20 @@ class FarmingMacro extends ModuleBase {
                 if (!this.points) return;
 
                 if (this.points.end) {
-                    RenderUtils.drawStyledBox(
+                    Render.drawStyledBox(
                         new Vec3d(this.points.end.x, this.points.end.y, this.points.end.z),
-                        [240, 90, 90, 100],
-                        [240, 90, 90, 255],
+                        Render.Color(240, 90, 90, 100),
+                        Render.Color(240, 90, 90, 255),
                         4,
                         false
                     );
                 }
 
                 if (this.points.start) {
-                    RenderUtils.drawStyledBox(
+                    Render.drawStyledBox(
                         new Vec3d(this.points.start.x, this.points.start.y, this.points.start.z),
-                        [100, 220, 150, 100],
-                        [100, 220, 150, 255],
+                        Render.Color(100, 220, 150, 100),
+                        Render.Color(100, 220, 150, 255),
                         4,
                         false
                     );

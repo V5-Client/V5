@@ -1,4 +1,4 @@
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d } from '../../utils/Constants';
 import { Raytrace } from '../../utils/Raytrace';
@@ -12,12 +12,11 @@ class BlockVisual extends ModuleBase {
             tooltip: 'renders a box where youre looking / etherwarping',
         });
 
-        this.RGBA = [255, 0, 0, 255];
+        this.baseColor = Render.Color(255, 0, 0, 255);
+        this.RGBA = Render.Color(255, 0, 0, 255);
         this.EFFECT = 'None';
         this.DRAWLINES = false;
-
         this.currentBlock = null;
-        this.baseColor = [255, 0, 0, 255];
 
         this.addMultiToggle(
             'Effect',
@@ -41,8 +40,8 @@ class BlockVisual extends ModuleBase {
             'Block Color',
             java.awt.Color.RED,
             (color) => {
-                this.baseColor = [color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()];
-                this.RGBA = [...this.baseColor];
+                this.baseColor = Render.Color(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                this.RGBA = this.baseColor;
             },
             'Color of the block box'
         );
@@ -60,11 +59,13 @@ class BlockVisual extends ModuleBase {
             const item = Player.getHeldItem();
             const isEtherwarping = Player.isSneaking() && item?.getName()?.toLowerCase()?.includes('aspect of the void');
 
+            const currentAlpha = this.RGBA ? this.RGBA.a : 255;
+
             if (isEtherwarping) {
-                const color = this.canEtherwarp(this.currentBlock) ? [0, 255, 0] : [255, 0, 0];
-                this.RGBA = [color[0], color[1], color[2], this.RGBA[3]];
+                const canWarp = this.canEtherwarp(this.currentBlock);
+                this.RGBA = Render.Color(canWarp ? 0 : 255, canWarp ? 255 : 0, 0, currentAlpha);
             } else {
-                this.RGBA = [this.baseColor[0], this.baseColor[1], this.baseColor[2], this.RGBA[3]];
+                this.RGBA = Render.Color(this.baseColor.r, this.baseColor.g, this.baseColor.b, currentAlpha);
             }
 
             this.handleEffect(isEtherwarping);
@@ -73,9 +74,9 @@ class BlockVisual extends ModuleBase {
         this.on('postRenderWorld', () => {
             if (!this.currentBlock || !this.RGBA) return;
 
-            this.DRAWLINES
-                ? RenderUtils.drawStyledBox(new Vec3d(this.currentBlock.x, this.currentBlock.y, this.currentBlock.z), this.RGBA, this.RGBA, 4)
-                : RenderUtils.drawBox(new Vec3d(this.currentBlock.x, this.currentBlock.y, this.currentBlock.z), this.RGBA);
+            const pos = new Vec3d(this.currentBlock.x, this.currentBlock.y, this.currentBlock.z);
+
+            this.DRAWLINES ? Render.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : Render.drawBox(pos, this.RGBA);
         });
     }
 
@@ -93,13 +94,14 @@ class BlockVisual extends ModuleBase {
 
     BreathingEffect() {
         const alpha = (Math.sin(Date.now() * 0.004) + 1) / 2;
-        this.RGBA[3] = 20 + Math.floor(alpha * 80);
+        const newA = Math.floor(20 + alpha * 80);
+        this.RGBA = Render.Color(this.RGBA.r, this.RGBA.g, this.RGBA.b, newA);
     }
 
     GradientEffect() {
         const hue = (Date.now() % 5000) / 5000;
         const color = java.awt.Color.getHSBColor(hue, 0.8, 1);
-        this.RGBA = [color.getRed(), color.getGreen(), color.getBlue(), this.RGBA[3]];
+        this.RGBA = Render.Color(color.getRed(), color.getGreen(), color.getBlue(), this.RGBA.a);
     }
 
     getDistance() {

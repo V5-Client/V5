@@ -131,6 +131,11 @@ class ClippingManager extends ModuleBase {
                 let line;
                 let logLines = [];
 
+                while (this.isRecording && (line = reader.readLine()) != null) {
+                    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+                    }
+                }
+
                 while ((line = reader.readLine()) != null) logLines.push(line);
 
                 const exitCode = p.waitFor();
@@ -394,6 +399,8 @@ class ClippingManager extends ModuleBase {
 
                 this.process = null;
             } catch (e) {
+                if (!this.isRecording) return;
+
                 Chat.messageClip(`&cCritical Error: ${e}`);
                 this.isRecording = false;
                 this.process = null;

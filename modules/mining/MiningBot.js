@@ -8,7 +8,7 @@ import { Chat } from '../../utils/Chat';
 import { manager } from '../../utils/SkyblockEvents';
 import { Guis } from '../../utils/player/Inventory';
 import { NukerUtils } from '../../utils/NukerUtils';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d, MCHand } from '../../utils/Constants';
 import { PlayerActionC2S } from '../../utils/Packets';
@@ -891,36 +891,36 @@ class Bot extends ModuleBase {
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
 
         // cyan for normal, purple for fakelook
-        const currentFillColor = isFakelook ? [180, 100, 255, 60] : [85, 255, 255, 60];
-        const currentWireframeColor = isFakelook ? [180, 100, 255, 255] : [85, 255, 255, 255];
-        const aimColor = isFakelook ? [255, 150, 255, 255] : [255, 220, 80, 255];
+        const currentFillColor = isFakelook ? Render.Color(180, 100, 255, 60) : Render.Color(85, 255, 255, 60);
+        const currentWireframeColor = isFakelook ? Render.Color(180, 100, 255, 255) : Render.Color(85, 255, 255, 255);
+        const aimColor = isFakelook ? Render.Color(255, 150, 255, 255) : Render.Color(255, 220, 80, 255);
 
         // orange for normal, redish orange for fakelook
-        const nextFillColor = isFakelook ? [255, 130, 70, 60] : [255, 170, 100, 60];
-        const nextWireframeColor = isFakelook ? [255, 130, 70, 255] : [255, 170, 100, 255];
+        const nextFillColor = isFakelook ? Render.Color(255, 130, 70, 60) : Render.Color(255, 170, 100, 60);
+        const nextWireframeColor = isFakelook ? Render.Color(255, 130, 70, 255) : Render.Color(255, 170, 100, 255);
 
         const current = this.foundLocations[0];
         if (!current) return;
 
-        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), currentFillColor, currentWireframeColor, 6, false);
+        Render.drawStyledBox(new Vec3d(current.x, current.y, current.z), currentFillColor, currentWireframeColor, 6, false);
 
         if (current.aimX !== undefined) {
             const d = 0.08;
-            RenderUtils.drawLine(
+            Render.drawLine(
                 new Vec3d(current.aimX - d, current.aimY, current.aimZ),
                 new Vec3d(current.aimX + d, current.aimY, current.aimZ),
                 aimColor,
                 2,
                 false
             );
-            RenderUtils.drawLine(
+            Render.drawLine(
                 new Vec3d(current.aimX, current.aimY - d, current.aimZ),
                 new Vec3d(current.aimX, current.aimY + d, current.aimZ),
                 aimColor,
                 2,
                 false
             );
-            RenderUtils.drawLine(
+            Render.drawLine(
                 new Vec3d(current.aimX, current.aimY, current.aimZ - d),
                 new Vec3d(current.aimX, current.aimY, current.aimZ + d),
                 aimColor,
@@ -972,12 +972,12 @@ class Bot extends ModuleBase {
                 }
 
                 if (bestNext) {
-                    RenderUtils.drawStyledBox(new Vec3d(bestNext.x, bestNext.y, bestNext.z), nextFillColor, nextWireframeColor, 6, false);
+                    Render.drawStyledBox(new Vec3d(bestNext.x, bestNext.y, bestNext.z), nextFillColor, nextWireframeColor, 6, false);
                 }
             }
         } else if (this.foundLocations.length > 1) {
             const next = this.foundLocations[1];
-            RenderUtils.drawStyledBox(new Vec3d(next.x, next.y, next.z), nextFillColor, nextWireframeColor, 6, false);
+            Render.drawStyledBox(new Vec3d(next.x, next.y, next.z), nextFillColor, nextWireframeColor, 6, false);
         }
     }
 
@@ -992,14 +992,14 @@ class Bot extends ModuleBase {
                     g = i === 0 ? 1 : 1 - t,
                     b = i === 0 ? 1 : 0;
 
-                RenderUtils.drawWireFrame(new Vec3d(loc.x, loc.y, loc.z), [r * 255, g * 255, b * 255, 255]);
+                Render.drawWireFrame(new Vec3d(loc.x, loc.y, loc.z), [r * 255, g * 255, b * 255, 255]);
 
                 if (loc.aimX !== undefined) {
                     const d = 0.1;
-                    const color = [r * 255, g * 255, b * 255, 230];
-                    RenderUtils.drawLine(new Vec3d(loc.aimX - d, loc.aimY, loc.aimZ), new Vec3d(loc.aimX + d, loc.aimY, loc.aimZ), color, 3, false);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX, loc.aimY - d, loc.aimZ), new Vec3d(loc.aimX, loc.aimY + d, loc.aimZ), color, 3, false);
-                    RenderUtils.drawLine(new Vec3d(loc.aimX, loc.aimY, loc.aimZ - d), new Vec3d(loc.aimX, loc.aimY, loc.aimZ + d), color, 3, false);
+                    const color = Render.Color(r * 255, g * 255, b * 255, 230);
+                    Render.drawLine(new Vec3d(loc.aimX - d, loc.aimY, loc.aimZ), new Vec3d(loc.aimX + d, loc.aimY, loc.aimZ), color, 3, false);
+                    Render.drawLine(new Vec3d(loc.aimX, loc.aimY - d, loc.aimZ), new Vec3d(loc.aimX, loc.aimY + d, loc.aimZ), color, 3, false);
+                    Render.drawLine(new Vec3d(loc.aimX, loc.aimY, loc.aimZ - d), new Vec3d(loc.aimX, loc.aimY, loc.aimZ + d), color, 3, false);
                 }
             }
         }

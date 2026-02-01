@@ -1,7 +1,7 @@
 import { Chat } from '../Chat';
 import { Swift } from './SwiftIntegration';
 import { Vec3d, BP } from '../Constants';
-import RenderUtils from '../render/RendererUtils';
+import Render from '../render/Render';
 import { Spline } from './PathSpline';
 import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
@@ -82,9 +82,8 @@ class Finder {
                 if (this.checkIfReachedDestination()) {
                     this.finishSuccess();
                 } else {
-                    if (PathConfig.PATHFINDING_DEBUG) {
-                        Chat.messagePathfinder('§cNo path found');
-                    }
+                    Chat.messagePathfinder('§cNo path found');
+
                     this.callCallback(false);
                     this.resetPath();
                 }
@@ -117,7 +116,7 @@ class Finder {
 
             Executor.execute(() => {
                 Rotations.pathRotations(splinePath);
-                Jump.detectJump(splinePath);
+                Jump.detectJump(result.path_between_key_nodes);
                 Movement.beginMovement();
 
                 if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
@@ -271,7 +270,7 @@ class Finder {
         this.render = register('postRenderWorld', () => {
             if (PathConfig.RENDER_KEY_NODES && result.keynodes?.length >= 2) {
                 result.keynodes.forEach((node) => {
-                    RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, true);
+                    Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
                 });
             }
             if (PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(splinePath);

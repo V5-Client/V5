@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ChunkDataS2C, BlockUpdateS2C } from '../../utils/Packets';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
 import { manager } from '../../utils/SkyblockEvents';
 
@@ -187,7 +187,7 @@ class StructureESP extends ModuleBase {
                 const blockList = entry.getValue();
                 for (let i = 0; i < blockList.length; i++) {
                     const b = blockList[i];
-                    RenderUtils.drawBox(new Vec3d(b.x, b.y, b.z), [0, 255, 200, 100], false);
+                    Render.drawBox(new Vec3d(b.x, b.y, b.z), Render.Color(0, 255, 200, 100), false);
                 }
             }
         } catch (e) {
