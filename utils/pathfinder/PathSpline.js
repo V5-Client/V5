@@ -9,6 +9,7 @@ class PathSpline {
         this.MIN_LOOK_POINT_SPACING = 0.8;
         this.MAX_ANGLE_CHANGE = Math.PI / 4;
         this.MAX_GAP_DISTANCE = 12;
+        this.OUTWARD_OFFSET_STRENGTH = 1.2;
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
     }
@@ -86,12 +87,23 @@ class PathSpline {
             const m2 = Math.sqrt(v2.x * v2.x + v2.z * v2.z);
 
             let curvature = 0;
+            let offsetX = 0;
+            let offsetZ = 0;
 
             if (m1 > 0.05 && m2 > 0.05) {
                 const dot = (v1.x * v2.x + v1.z * v2.z) / (m1 * m2);
                 const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-
                 curvature = Math.min(angle / (Math.PI / 2.5), 1);
+
+                const cross = v1.x * v2.z - v1.z * v2.x;
+                const dir = cross > 0 ? 1 : -1;
+                const forward = { x: v1.x / m1 + v2.x / m2, z: v1.z / m1 + v2.z / m2 };
+                const fMag = Math.sqrt(forward.x * forward.x + forward.z * forward.z);
+
+                if (fMag > 0.01) {
+                    offsetX = -(forward.z / fMag) * dir * curvature * this.OUTWARD_OFFSET_STRENGTH;
+                    offsetZ = (forward.x / fMag) * dir * curvature * this.OUTWARD_OFFSET_STRENGTH;
+                }
             }
 
             const dynamicInterval = maxInterval - curvature * (maxInterval - minInterval);
@@ -105,7 +117,7 @@ class PathSpline {
                     if (dot < 0.4) continue;
                 }
 
-                const targetPoint = new Vec3d(curr.x + 0.5, curr.y + 2.12, curr.z + 0.5);
+                const targetPoint = new Vec3d(curr.x + offsetX, curr.y + 2.12, curr.z + offsetZ);
 
                 this.appendLookPoint(boxPositions, this.adjustLookPoint(targetPoint, curr));
 
@@ -146,9 +158,10 @@ class PathSpline {
 
     adjustLookPoint(point, rawNode) {
         if (!this.isPointInsideBlock(point)) return point;
-
+        const unoffset = new Vec3d(rawNode.x, point.y, rawNode.z);
+        if (!this.isPointInsideBlock(unoffset)) return unoffset;
         const lowered = new Vec3d(rawNode.x, point.y - 0.5, rawNode.z);
-        return this.isPointInsideBlock(lowered) ? point : lowered;
+        return this.isPointInsideBlock(lowered) ? unoffset : lowered;
     }
 
     drawLookPoints() {

@@ -319,7 +319,16 @@ class PathRotations {
         }
         const lastPoint = this.boxPositions[lastIndex];
         const endDistSq = Math.pow(playerEyes.x - lastPoint.x, 2) + Math.pow(playerEyes.y - lastPoint.y, 2) + Math.pow(playerEyes.z - lastPoint.z, 2);
-        if ((endDistSq <= Math.pow(this.COMPLETION_RADIUS, 2) && this.currentPathPosition >= lastIndex - 2.0) || this.currentPathPosition >= lastIndex - 0.25) {
+        const nearEndBy3D = endDistSq <= Math.pow(this.COMPLETION_RADIUS, 2) && this.currentPathPosition >= lastIndex - 2.0;
+        const atEndByPosition = this.currentPathPosition >= lastIndex - 0.25;
+
+        if (isFalling) {
+            if (nearEndBy3D) {
+                this.currentPathPosition = lastIndex;
+                this.complete = true;
+                this.rotationActive = false;
+            }
+        } else if (nearEndBy3D || atEndByPosition) {
             this.currentPathPosition = lastIndex;
             this.complete = true;
             this.rotationActive = false;
