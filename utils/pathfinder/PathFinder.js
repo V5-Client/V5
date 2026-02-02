@@ -23,6 +23,7 @@ class Finder {
         this.currentEnd = null;
         this.currentCallback = null;
         this.recalculateAttempts = 0;
+        this.recalculateRetryQueued = false;
         this.MAX_RECALCULATE_ATTEMPTS = 5;
 
         v5Command('path', (...args) => {
@@ -88,6 +89,12 @@ class Finder {
                 if (this.checkIfReachedDestination()) {
                     this.finishSuccess();
                 } else {
+                    if (this.recalculateAttempts > 0 && !this.recalculateRetryQueued) {
+                        this.recalculateRetryQueued = true;
+                        this.retryRecalculate();
+                        return;
+                    }
+
                     Chat.messagePathfinder('§cNo path found');
 
                     this.callCallback(false);
@@ -158,6 +165,7 @@ class Finder {
 
     recalculate() {
         this.recalculateAttempts++;
+        this.recalculateRetryQueued = false;
 
         if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
             if (PathConfig.PATHFINDING_DEBUG) {
@@ -198,6 +206,34 @@ class Finder {
 
             this.findPath(end, callback, false);
         }, 250);
+    }
+
+    retryRecalculate() {
+        const end = this.currentEnd;
+        const callback = this.currentCallback;
+        const wasFromFile = this.calledFromFile;
+        const attempts = this.recalculateAttempts;
+
+        this.destroyTick();
+        this.destroyRender();
+        Rotations.resetRotations();
+        Spline.clearCache();
+        Jump.reset();
+        Recovery.resetTracking();
+        Movement.stopMovement();
+
+        this.saidInfo = false;
+
+        setTimeout(() => {
+            if (this.currentEnd === null) return;
+
+            this.currentEnd = end;
+            this.currentCallback = callback;
+            this.calledFromFile = wasFromFile;
+            this.recalculateAttempts = attempts;
+
+            this.findPath(end, callback, false);
+        }, 200);
     }
 
     checkIfReachedDestination() {
@@ -315,6 +351,7 @@ class Finder {
         this.currentEnd = null;
         this.currentCallback = null;
         this.recalculateAttempts = 0;
+        this.recalculateRetryQueued = false;
     }
 
     isPathing() {

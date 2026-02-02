@@ -8,6 +8,8 @@ class Executor {
     }
 
     execute() {
+        this.destroy();
+
         this.tickRegister = register('tick', () => {
             this.tickCallbacks.forEach((callback) => callback());
         });
