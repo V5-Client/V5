@@ -129,7 +129,7 @@ class TunnelsMiner extends ModuleBase {
                 const { veinSet, edgeBlocks, veinBlocks } = this.getVeinData(ore, index, vein);
                 const candidates = this.getVeinCandidates(edgeBlocks, veinSet, passableCache);
 
-                if (!candidates.length) return
+                if (!candidates.length) return;
 
                 candidates.forEach((candidate) => {
                     targets.push({
@@ -185,7 +185,7 @@ class TunnelsMiner extends ModuleBase {
     }
 
     findStandPosition(start, veinSet, passableCache) {
-        if (veinSet.has(this.posKey(start.x, start.y, start.z))) return false
+        if (veinSet.has(this.posKey(start.x, start.y, start.z))) return false;
 
         let groundY = null;
         let stepDown = 0;
@@ -201,12 +201,12 @@ class TunnelsMiner extends ModuleBase {
             break;
         }
 
-        if (groundY === null) return false
+        if (groundY === null) return false;
 
         const standPos = { x: start.x, y: groundY + 1, z: start.z };
-        if (veinSet.has(this.posKey(standPos.x, standPos.y, standPos.z))) return false
+        if (veinSet.has(this.posKey(standPos.x, standPos.y, standPos.z))) return false;
 
-        if (!this.hasClearance(standPos, passableCache)) return false
+        if (!this.hasClearance(standPos, passableCache)) return false;
 
         return { valid: true, pos: standPos };
     }

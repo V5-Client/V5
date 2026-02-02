@@ -5,7 +5,7 @@ import './mining/LobbyHopper.js';
 import './mining/Nuker.js';
 import './mining/OreMacro.js';
 import './mining/PinglessMining.js';
-import "./mining/TunnelsMiner.js";
+import './mining/TunnelsMiner.js';
 //import './mining/PowderMacro.js';
 //import './Mining/ScathaMacro.js';
 
