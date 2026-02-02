@@ -340,38 +340,32 @@ class PathRotations {
         const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
         const absYawError = Math.abs(yawError);
-        const lastIndex = this.boxPositions.length - 1;
-        const distToEnd = lastIndex - this.currentPathPosition;
-        const finishBoost = distToEnd < 2.0 ? 1.0 + (2.0 - distToEnd) * 1.5 : 1.0;
         const isStraight = this.currentPathCurvature < 0.2;
         const errorMultiplier = Math.min(1.5, Math.max(0.6, absYawError / 10));
-        const dynamicKp = this.BASE_KP * errorMultiplier * finishBoost;
+        const dynamicKp = this.BASE_KP * errorMultiplier;
         const dynamicKd = isStraight ? this.KD * 1.3 : this.KD;
-        const currentMaxVel = this.MAX_VELOCITY * finishBoost;
-        const currentAccel = this.ACCEL_LIMIT * finishBoost;
-        const currentSettle = this.SETTLE_THRESHOLD / finishBoost;
 
-        if (absYawError < currentSettle && Math.abs(this.yawVelocity) < 0.02) {
+        if (absYawError < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.02) {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
         } else {
             let desiredYawAccel = yawError * dynamicKp - this.yawVelocity * dynamicKd;
-            desiredYawAccel = Math.max(-currentAccel, Math.min(currentAccel, desiredYawAccel));
+            desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
             this.yawVelocity += desiredYawAccel;
             this.yawVelocity *= 0.92;
-            this.yawVelocity = Math.max(-currentMaxVel, Math.min(currentMaxVel, this.yawVelocity));
+            this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
             this.currentYaw += this.yawVelocity;
         }
 
-        if (Math.abs(pitchError) < currentSettle && Math.abs(this.pitchVelocity) < 0.02) {
+        if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.02) {
             this.currentPitch = this.rawTargetPitch;
             this.pitchVelocity = 0;
         } else {
             let desiredPitchAccel = pitchError * dynamicKp - this.pitchVelocity * dynamicKd;
-            desiredPitchAccel = Math.max(-currentAccel, Math.min(currentAccel, desiredPitchAccel));
+            desiredPitchAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredPitchAccel));
             this.pitchVelocity += desiredPitchAccel;
             this.pitchVelocity *= 0.92;
-            this.pitchVelocity = Math.max(-currentMaxVel, Math.min(currentMaxVel, this.pitchVelocity));
+            this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
     }

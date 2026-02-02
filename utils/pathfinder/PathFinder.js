@@ -186,13 +186,7 @@ class Finder {
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
 
-        this.destroyTick();
-        this.destroyRender();
-        Rotations.resetRotations();
-        Spline.clearCache();
-        Jump.reset();
-        Recovery.resetTracking();
-        Movement.stopMovement();
+        this.resetPath(false);
 
         this.saidInfo = false;
 
@@ -214,13 +208,7 @@ class Finder {
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
 
-        this.destroyTick();
-        this.destroyRender();
-        Rotations.resetRotations();
-        Spline.clearCache();
-        Jump.reset();
-        Recovery.resetTracking();
-        Movement.stopMovement();
+        this.resetPath(false);
 
         this.saidInfo = false;
 
@@ -337,21 +325,29 @@ class Finder {
         }
     }
 
-    resetPath() {
+    resetPath(clearFlags = true) {
         this.destroyTick();
         this.destroyRender();
         Rotations.resetRotations();
         Spline.clearCache();
         Jump.reset();
         Movement.stopMovement();
-        Recovery.stop();
+        if (clearFlags) {
+            Recovery.stop();
+        } else {
+            Recovery.resetTracking();
+        }
+        Swift.cancel();
+        Swift.clear();
 
-        this.saidInfo = false;
-        this.calledFromFile = false;
-        this.currentEnd = null;
-        this.currentCallback = null;
-        this.recalculateAttempts = 0;
-        this.recalculateRetryQueued = false;
+        if (clearFlags) {
+            this.saidInfo = false;
+            this.calledFromFile = false;
+            this.currentEnd = null;
+            this.currentCallback = null;
+            this.recalculateAttempts = 0;
+            this.recalculateRetryQueued = false;
+        }
     }
 
     isPathing() {
