@@ -4,7 +4,7 @@ import { GradientChat } from './Constants';
 
 class ChatClass {
     message(msg) {
-        this._sendGradient('V5 » ', msg);
+        this._sendGradient('V5 »', msg);
     }
 
     // todo for release: add debug toggle somewhere

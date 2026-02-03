@@ -232,12 +232,12 @@ export class ColorPicker {
             color: isArrowHovered ? THEME.HOVER : THEME.BG_INSET,
         });
 
-        const arrow = this.expanded ? '▲' : '▼';
+        const arrow = this.expanded ? '▼' : '▶';
         const arrowFontSize = FontSizes.SMALL;
         const arrowWidth = getTextWidth(arrow, arrowFontSize);
 
         const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
-        const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 3;
+        const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 2 - 3;
 
         drawText(arrow, centeredArrowX, centeredArrowY, arrowFontSize, THEME.TEXT);
 

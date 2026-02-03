@@ -377,6 +377,48 @@ export class ModuleBase {
     }
 
     /**
+     * Add a button to the module's GUI
+     * @param {string} title - The title of the button
+     * @param {function} callback - Callback function when button is pressed
+     * @param {string} [description=null] - Description/tooltip
+     */
+    addButton(title, callback, description = null) {
+        Categories.addButton('Modules', this.name, title, callback, description);
+    }
+
+    /**
+     * Add a button directly to the Settings page
+     * @param {string} title - The title of the button
+     * @param {function} callback - Callback function when button is pressed
+     * @param {string} [description=null] - Description/tooltip
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectButton(title, callback, description = null, sectionName = null) {
+        Categories.addSettingsButton(title, callback, description, sectionName, 'Settings');
+    }
+
+    /**
+     * Add a popup to the module's GUI
+     * @param {string} title - The title of the popup
+     * @param {function} callback - Callback function when popup opens/closes
+     * @param {string} [description=null] - Description/tooltip
+     */
+    addPopup(title, callback, description = null) {
+        return Categories.addPopup('Modules', this.name, title, callback, description);
+    }
+
+    /**
+     * Add a popup directly to the Settings page
+     * @param {string} title - The title of the popup
+     * @param {function} callback - Callback function when popup opens/closes
+     * @param {string} [description=null] - Description/tooltip
+     * @param {string} [sectionName=null] - Optional: Section header within Settings
+     */
+    addDirectPopup(title, callback, description = null, sectionName = null) {
+        Categories.addSettingsPopup(title, callback, description, sectionName, 'Settings');
+    }
+
+    /**
      * Add a separator to the module's GUI
      * @param {string} title - The title of the separator
      * @param {boolean} [fullWidth=false] - Whether the separator spans the full panel width

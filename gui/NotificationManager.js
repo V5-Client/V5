@@ -126,7 +126,7 @@ class Notification {
         for (let i = 1; i < words.length; i++) {
             const word = words[i];
             const testLine = currentLine + ' ' + word;
-            if (NVG.textWidth(testLine, FontSizes.TINY, NVG.defaultFont) > maxWidth) {
+            if (NVG.textWidth(testLine, FontSizes.TINY, NVG.getDefaultFont()) > maxWidth) {
                 lines.push(currentLine);
                 currentLine = word;
             } else {

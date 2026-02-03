@@ -3,6 +3,8 @@ import { Slider } from './components/Slider';
 import { MultiToggle } from './components/Dropdown';
 import { ColorPicker } from './components/ColorPicker';
 import { TextInput } from './components/TextInput';
+import { Button } from './components/Button';
+import { Popup } from './components/Popup';
 import { Chat } from '../utils/Chat';
 import { Utils } from '../utils/Utils';
 import { Categories } from './categories/CategorySystem';
@@ -42,6 +44,7 @@ function buildSettingsMapFromComponents() {
 }
 
 function storeComponentValue(key, component) {
+    if (component instanceof Button || component instanceof Popup) return;
     if (component instanceof ToggleButton) {
         SettingsMap.set(key, component.enabled);
     } else if (component instanceof Slider) {
@@ -141,6 +144,7 @@ export const loadSettings = () => {
 
 function loadComponentValue(component, savedValue) {
     if (savedValue === undefined) return;
+    if (component instanceof Button || component instanceof Popup) return;
 
     if (component instanceof ToggleButton) {
         component.enabled = savedValue;

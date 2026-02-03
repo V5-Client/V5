@@ -65,6 +65,14 @@ export const addTextInput = (categoryName, itemName, title, defaultValue, callba
     Categories.addTextInput(categoryName, itemName, title, defaultValue, callback, description);
 };
 
+export const addButton = (categoryName, itemName, title, callback = null, description = null) => {
+    Categories.addButton(categoryName, itemName, title, callback, description);
+};
+
+export const addPopup = (categoryName, itemName, title, callback = null, description = null) => {
+    Categories.addPopup(categoryName, itemName, title, callback, description);
+};
+
 export const openGui = () => {
     const { loadSettings } = require('./GuiSave');
     GuiState.isOpening = true;

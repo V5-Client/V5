@@ -37,6 +37,7 @@ export const drawGUI = (mouseX, mouseY) => {
         scissor(panel.x, panel.y, panel.width, panel.height);
         categoryManager?.draw(mouseX, mouseY);
         resetScissor();
+        categoryManager?.drawPopups?.(mouseX, mouseY);
 
         GuiTooltip.update();
         GuiTooltip.draw(mouseX, mouseY);
