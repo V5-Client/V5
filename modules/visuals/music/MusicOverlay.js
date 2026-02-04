@@ -86,6 +86,7 @@ class Music extends ModuleBase {
         // is this needed ?
         register('worldUnload', () => this.stopWindowsProgram());
         Runtime.getRuntime().addShutdownHook(new java.lang.Thread(() => this.stopWindowsProgram()));
+        this.onDisable(() => this.stopWindowsProgram());
     }
 
     parseTimeToSeconds(timeStr) {
