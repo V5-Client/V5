@@ -13,7 +13,7 @@ import {
     createHighlight,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
-import { Toolkit, DataFlavor } from '../../utils/Constants';
+import { Toolkit, DataFlavor, NVG } from '../../utils/Constants';
 
 export class TextInput {
     constructor(title, x, y, width, height, defaultValue = '', callback = null) {
@@ -28,6 +28,9 @@ export class TextInput {
         this.isTyping = false;
         this.text = String(defaultValue);
         this.cursorIndex = this.text.length;
+
+        this.scrollX = 0;
+
         this.textX = 0;
         this.textWidth = 0;
 
@@ -77,6 +80,7 @@ export class TextInput {
             borderColor: THEME.BORDER,
         });
 
+        const titleWidth = getTextWidth(this.title, FontSizes.REGULAR);
         drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, textColor);
 
         const displayText = this.text;
@@ -84,8 +88,11 @@ export class TextInput {
         const valuePadding = 8;
         const boxHeight = 20;
 
+        const maxBoxWidth = Math.max(50, panelWidth - titleWidth - 40);
         const minBoxWidth = 100;
-        const boxWidth = Math.max(minBoxWidth, textWidth + valuePadding * 2 + 10);
+
+        const desiredWidth = textWidth + valuePadding * 2 + 10;
+        const boxWidth = Math.min(maxBoxWidth, Math.max(minBoxWidth, desiredWidth));
 
         const rightMargin = 12;
         const boxX = this.x + panelWidth - boxWidth - rightMargin;
@@ -107,21 +114,38 @@ export class TextInput {
             color: this.isTyping ? THEME.ACCENT : THEME.BG_INSET,
         });
 
-        const textX = boxX + boxWidth / 2 - textWidth / 2;
-        const textY = boxY + boxHeight / 2;
+        const visibleWidth = boxWidth - valuePadding * 2;
+        const cursorText = displayText.slice(0, this.cursorIndex);
+        const cursorPixelX = getTextWidth(cursorText, FontSizes.REGULAR);
 
-        this.textX = textX;
-        this.textWidth = textWidth;
+        if (this.isTyping) {
+            if (cursorPixelX < this.scrollX) {
+                this.scrollX = cursorPixelX;
+            } else if (cursorPixelX > this.scrollX + visibleWidth) {
+                this.scrollX = cursorPixelX - visibleWidth;
+            }
+        }
 
-        drawText(displayText, textX, textY, FontSizes.REGULAR, THEME.TEXT_DIM);
+        const maxScroll = Math.max(0, textWidth - visibleWidth);
+        if (!this.isTyping || this.cursorIndex < displayText.length) {
+            this.scrollX = Math.max(0, Math.min(this.scrollX, maxScroll));
+        }
+
+        NVG.save();
+        NVG.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
+
+        const textDrawX = boxX + valuePadding - this.scrollX;
+        const textDrawY = boxY + boxHeight / 2;
+
+        this.textX = textDrawX;
+
+        drawText(displayText, textDrawX, textDrawY, FontSizes.REGULAR, THEME.TEXT_DIM);
 
         if (this.isTyping) {
             const time = Date.now();
             if (time % 1000 < 500) {
-                const safeCursorIndex = Math.max(0, Math.min(this.cursorIndex, displayText.length));
-                const cursorOffset = getTextWidth(displayText.slice(0, safeCursorIndex), FontSizes.REGULAR);
-                const cursorX = textX + cursorOffset + 1;
-                const cursorY = textY - 4;
+                const cursorX = textDrawX + cursorPixelX;
+                const cursorY = textDrawY - 4;
                 const cursorHeight = 9;
 
                 drawRect({
@@ -133,6 +157,8 @@ export class TextInput {
                 });
             }
         }
+
+        NVG.restore();
 
         const componentRect = {
             x: this.x,

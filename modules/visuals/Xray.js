@@ -1,6 +1,7 @@
 import { getSetting } from '../../gui/GuiSave';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { XrayPackage } from '../../utils/Constants';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class Xray extends ModuleBase {
     constructor() {
@@ -22,7 +23,7 @@ class Xray extends ModuleBase {
             const transparency = getSetting('Xray', 'Transparency');
             if (transparency !== this.firstTransparency) {
                 XrayPackage.setAlpha(this.percentToAlpha(transparency));
-                Client.scheduleTask(0, () => {
+                ScheduleTask(0, () => {
                     Client.getMinecraft().worldRenderer.reload();
                 });
                 this.firstTransparency = transparency;
@@ -38,7 +39,7 @@ class Xray extends ModuleBase {
     onEnable() {
         this.message('&aEnabled');
 
-        Client.scheduleTask(0, () => {
+        ScheduleTask(0, () => {
             XrayPackage.setEnabled();
             const transparency = getSetting('Xray', 'Transparency');
             XrayPackage.setAlpha(this.percentToAlpha(transparency));
@@ -49,7 +50,7 @@ class Xray extends ModuleBase {
     onDisable() {
         this.message('&cDisabled');
 
-        Client.scheduleTask(0, () => {
+        ScheduleTask(0, () => {
             XrayPackage.setDisabled();
         });
     }

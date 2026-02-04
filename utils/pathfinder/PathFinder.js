@@ -1,16 +1,17 @@
 import { Chat } from '../Chat';
 import { Swift } from './SwiftIntegration';
 import { Vec3d, BP } from '../Constants';
-import RenderUtils from '../render/RendererUtils';
+import Render from '../render/Render';
 import { Spline } from './PathSpline';
 import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
-import { Rotations } from './Pathwalker/PathRotations';
-import { Jump } from './Pathwalker/PathJumps';
-import { Movement } from './Pathwalker/PathMovement';
-import { Recovery } from './Pathwalker/PathRecovery';
+import { Rotations } from './PathWalker/PathRotations';
+import { Jump } from './PathWalker/PathJumps';
+import { Movement } from './PathWalker/PathMovement';
+import { Recovery } from './PathWalker/PathRecovery';
 import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
+import { PathExecutor } from './PathExecutor';
 
 class Finder {
     constructor() {
@@ -22,6 +23,7 @@ class Finder {
         this.currentEnd = null;
         this.currentCallback = null;
         this.recalculateAttempts = 0;
+        this.recalculateRetryQueued = false;
         this.MAX_RECALCULATE_ATTEMPTS = 5;
 
         v5Command('path', (...args) => {
@@ -44,7 +46,10 @@ class Finder {
             this.findPath(end);
         });
 
-        v5Command('stopPath', () => this.resetPath());
+        v5Command('stopPath', () => {
+            this.resetPath();
+            PathExecutor.destroy();
+        });
     }
 
     findPath(end, onComplete, renderOnly = false) {
@@ -73,6 +78,8 @@ class Finder {
     startTick(renderOnly) {
         if (this.tick) return;
 
+        PathExecutor.execute();
+
         this.tick = register('tick', () => {
             if (Swift.isSearching()) return;
 
@@ -82,11 +89,17 @@ class Finder {
                 if (this.checkIfReachedDestination()) {
                     this.finishSuccess();
                 } else {
-                    if (PathConfig.PATHFINDING_DEBUG) {
-                        Chat.messagePathfinder('§cNo path found');
+                    if (this.recalculateAttempts > 0 && !this.recalculateRetryQueued) {
+                        this.recalculateRetryQueued = true;
+                        this.retryRecalculate();
+                        return;
                     }
+
+                    Chat.messagePathfinder('§cNo path found');
+
                     this.callCallback(false);
                     this.resetPath();
+                    PathExecutor.destroy();
                 }
                 return;
             }
@@ -117,7 +130,7 @@ class Finder {
 
             Executor.execute(() => {
                 Rotations.pathRotations(splinePath);
-                Jump.detectJump(splinePath);
+                Jump.detectJump(result.path_between_key_nodes);
                 Movement.beginMovement();
 
                 if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
@@ -152,6 +165,7 @@ class Finder {
 
     recalculate() {
         this.recalculateAttempts++;
+        this.recalculateRetryQueued = false;
 
         if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
             if (PathConfig.PATHFINDING_DEBUG) {
@@ -159,6 +173,7 @@ class Finder {
             }
             this.callCallback(false);
             this.resetPath();
+            PathExecutor.destroy();
             return;
         }
 
@@ -171,13 +186,7 @@ class Finder {
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
 
-        this.destroyTick();
-        this.destroyRender();
-        Rotations.resetRotations();
-        Spline.clearCache();
-        Jump.reset();
-        Recovery.resetTracking();
-        Movement.stopMovement();
+        this.resetPath(false);
 
         this.saidInfo = false;
 
@@ -191,6 +200,28 @@ class Finder {
 
             this.findPath(end, callback, false);
         }, 250);
+    }
+
+    retryRecalculate() {
+        const end = this.currentEnd;
+        const callback = this.currentCallback;
+        const wasFromFile = this.calledFromFile;
+        const attempts = this.recalculateAttempts;
+
+        this.resetPath(false);
+
+        this.saidInfo = false;
+
+        setTimeout(() => {
+            if (this.currentEnd === null) return;
+
+            this.currentEnd = end;
+            this.currentCallback = callback;
+            this.calledFromFile = wasFromFile;
+            this.recalculateAttempts = attempts;
+
+            this.findPath(end, callback, false);
+        }, 200);
     }
 
     checkIfReachedDestination() {
@@ -229,6 +260,7 @@ class Finder {
         showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
         this.callCallback(true);
         this.resetPath();
+        PathExecutor.destroy();
     }
 
     callCallback(success) {
@@ -271,7 +303,7 @@ class Finder {
         this.render = register('postRenderWorld', () => {
             if (PathConfig.RENDER_KEY_NODES && result.keynodes?.length >= 2) {
                 result.keynodes.forEach((node) => {
-                    RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), [0, 100, 200, 120], [0, 100, 200, 255], 4, true);
+                    Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
                 });
             }
             if (PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(splinePath);
@@ -293,20 +325,29 @@ class Finder {
         }
     }
 
-    resetPath() {
+    resetPath(clearFlags = true) {
         this.destroyTick();
         this.destroyRender();
         Rotations.resetRotations();
         Spline.clearCache();
         Jump.reset();
         Movement.stopMovement();
-        Recovery.stop();
+        if (clearFlags) {
+            Recovery.stop();
+        } else {
+            Recovery.resetTracking();
+        }
+        Swift.cancel();
+        Swift.clear();
 
-        this.saidInfo = false;
-        this.calledFromFile = false;
-        this.currentEnd = null;
-        this.currentCallback = null;
-        this.recalculateAttempts = 0;
+        if (clearFlags) {
+            this.saidInfo = false;
+            this.calledFromFile = false;
+            this.currentEnd = null;
+            this.currentCallback = null;
+            this.recalculateAttempts = 0;
+            this.recalculateRetryQueued = false;
+        }
     }
 
     isPathing() {

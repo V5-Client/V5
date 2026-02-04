@@ -83,16 +83,8 @@ export const COMMISSION_DATA = [
         names: ['Titanium Miner', 'Mithril Miner'],
         type: 'MINING',
         cost: 12,
-        waypoints: [
-            // Cliffside Veins
-            [46, 134, 11],
-            [25, 128, 27],
-            [10, 127, 37],
-            // Rampart's Quarry
-            [-88, 146, 29],
-            [-87, 146, -14],
-            [-118, 149, -31],
-        ],
+        useAllMiningWaypoints: true,
+        waypoints: [],
     },
     {
         names: ['Goblin Slayer'],

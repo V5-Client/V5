@@ -41,17 +41,16 @@ class GifInstance {
             this.scale = 1.0;
 
             if (this.loaded) {
-                const sw = Renderer.screen.getWidth();
-                const sh = Renderer.screen.getHeight();
+                const paddingPx = 20;
+                const screenW = Renderer.screen.getWidth();
+                const screenH = Renderer.screen.getHeight();
+                const availableW = Math.max(1, screenW - paddingPx * 2);
+                const availableH = Math.max(1, screenH - paddingPx * 2);
 
-                if (this.baseWidth > sw || this.baseHeight > sh) {
-                    const targetW = sw / 3;
-                    const targetH = sh / 3;
-
-                    const scaleW = targetW / this.baseWidth;
-                    const scaleH = targetH / this.baseHeight;
-
-                    this.scale = Math.min(scaleW, scaleH);
+                if (this.baseWidth * this.scale > availableW || this.baseHeight * this.scale > availableH) {
+                    const scaleW = availableW / this.baseWidth;
+                    const scaleH = availableH / this.baseHeight;
+                    this.scale = Math.min(this.scale, scaleW, scaleH);
                 }
             }
         }

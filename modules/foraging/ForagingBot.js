@@ -1,12 +1,13 @@
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { Raytrace } from '../../utils/Raytrace';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const MAX_SCAN = 500;
 const MAX_DISTANCE = 30;
@@ -181,7 +182,7 @@ class ForagingBot extends ModuleBase {
                     Math.abs(block.z - targetBlock.z) > IGNORE_RADIUS
             );
             this.targetBlock = null;
-            Client.scheduleTask(17, () => {
+            ScheduleTask(17, () => {
                 this.rotationInProgress = false;
             });
         });
@@ -352,7 +353,7 @@ class ForagingBot extends ModuleBase {
 
         this.connectedBlocks.forEach((location) => {
             const blockVec = new Vec3d(location.x, location.y, location.z);
-            RenderUtils.drawWireFrame(blockVec, [205, 133, 63, 255]);
+            Render.drawWireFrame(blockVec, Render.Color(205, 133, 63, 255));
         });
     }
 }

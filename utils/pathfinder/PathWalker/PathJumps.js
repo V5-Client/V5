@@ -1,9 +1,9 @@
 import { Vec3d, BP, SnowBlock } from '../../Constants';
 import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
-import RenderUtils from '../../render/RendererUtils';
 import PathConfig from '../PathConfig';
 import { Movement } from './PathMovement';
+import { PathExecutor } from '../PathExecutor';
 
 class PathJumps {
     constructor() {
@@ -21,17 +21,7 @@ class PathJumps {
         this.MIN_GAP_WIDTH = 1.8;
         this.MAX_GAP_SEARCH = 4;
 
-        this.onTick();
-        /*register('postrenderWorld', () => {
-            if (this.currentLookaheadVecs.length === 0) return;
-            this.currentLookaheadVecs.forEach((data) => {
-                RenderUtils.drawBox(data.vec, [255, 0, 0, 255]);
-            });
-        });*/
-    }
-
-    onTick() {
-        register('tick', () => {
+        PathExecutor.onTick(() => {
             this.cacheFrame++;
             if (this.blockCache.size > 1000) this.blockCache.clear();
         });

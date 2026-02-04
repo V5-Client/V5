@@ -7,6 +7,8 @@ import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
 import { Vec3d, ArmorStandEntity } from '../../utils/Constants';
+import { ScheduleTask } from '../../utils/ScheduleTask';
+
 class ScathaMacro extends ModuleBase {
     constructor() {
         super({
@@ -107,11 +109,11 @@ class ScathaMacro extends ModuleBase {
             Keybind.setKey('w', false);
             Chat.messageDebug('Detected Worm. Killing');
 
-            Client.scheduleTask(15, () => {
+            ScheduleTask(15, () => {
                 if (this.rodSlot !== -1) Guis.setItemSlot(this.rodSlot);
             });
 
-            Client.scheduleTask(30, () => {
+            ScheduleTask(30, () => {
                 this.findTarget();
                 const heat = this.getHeat();
                 if (this.scatha || heat <= 90) {
@@ -123,7 +125,7 @@ class ScathaMacro extends ModuleBase {
                 }
             });
 
-            Client.scheduleTask(30, () => {
+            ScheduleTask(30, () => {
                 this.pause = false;
             });
         }).setCriteria('You hear the sound of something approaching...');
@@ -260,7 +262,7 @@ class ScathaMacro extends ModuleBase {
                 if (this.pickaxeAbility && this.scathaSpawnTimer.hasReached(29000)) {
                     this.pickaxeAbility = false;
                     Keybind.setKey('leftclick', false);
-                    Client.scheduleTask(3, () => Keybind.rightClick());
+                    ScheduleTask(3, () => Keybind.rightClick());
                     return;
                 }
 
@@ -386,7 +388,7 @@ class ScathaMacro extends ModuleBase {
                     }
                     if (this.menuState === 5 && this.menuTimer.hasReached(this.menuClickDelay)) {
                         Guis.closeInv();
-                        Client.scheduleTask(5, () => {
+                        ScheduleTask(5, () => {
                             Rotations.rotateToAngles(90, -75);
                             this.setState(this.STATES.BACKWARDS);
                             this.menuState = 0;
@@ -485,7 +487,7 @@ class ScathaMacro extends ModuleBase {
                 if (this.pickaxeAbility) {
                     this.pickaxeAbility = false;
                     Keybind.setKey('leftclick', false);
-                    Client.scheduleTask(3, () => Keybind.rightClick());
+                    ScheduleTask(3, () => Keybind.rightClick());
                     return;
                 }
                 if (this.canClickChest()) {
@@ -606,12 +608,12 @@ class ScathaMacro extends ModuleBase {
                 if (this.tpSlot !== -1) Guis.setItemSlot(this.tpSlot);
                 Rotations.rotateToAngles(this.getRoundedYaw(), 85);
                 this.centeringTimer.reset();
-                Client.scheduleTask(5, () => Keybind.stopMovement());
-                Client.scheduleTask(9, () => {
+                ScheduleTask(5, () => Keybind.stopMovement());
+                ScheduleTask(9, () => {
                     Keybind.rightClick();
                     Chat.messageDebug('Centering with AOTV.');
                 });
-                Client.scheduleTask(18, () => {
+                ScheduleTask(18, () => {
                     if (this.unstuckState === 0) this.setState(this.STATES.SETUP);
                     else if (this.unstuckState === 1) this.setState(this.STATES.BACKWARDS);
                     Chat.messageDebug('Finished Centering.');
@@ -685,7 +687,7 @@ class ScathaMacro extends ModuleBase {
                             this.setState(this.STATES.MINERAL);
                         }
                         if (this.daeSlot !== -1) Guis.setItemSlot(this.daeSlot);
-                        Client.scheduleTask(5, () => {
+                        ScheduleTask(5, () => {
                             this.pause = false;
                             this.menuTimer.reset();
                         });
@@ -836,15 +838,15 @@ class ScathaMacro extends ModuleBase {
         this.decimalZ = Player.getZ() % 1;
         if (this.decimalZ < 0.3) {
             Keybind.setKey('shift', true);
-            Client.scheduleTask(1, () => Keybind.setKey('a', true));
-            Client.scheduleTask(2, () => Keybind.setKey('a', false));
-            Client.scheduleTask(3, () => Keybind.setKey('shift', false));
+            ScheduleTask(1, () => Keybind.setKey('a', true));
+            ScheduleTask(2, () => Keybind.setKey('a', false));
+            ScheduleTask(3, () => Keybind.setKey('shift', false));
         }
         if (this.decimalZ > 0.7) {
             Keybind.setKey('shift', true);
-            Client.scheduleTask(1, () => Keybind.setKey('d', true));
-            Client.scheduleTask(2, () => Keybind.setKey('d', false));
-            Client.scheduleTask(3, () => Keybind.setKey('shift', false));
+            ScheduleTask(1, () => Keybind.setKey('d', true));
+            ScheduleTask(2, () => Keybind.setKey('d', false));
+            ScheduleTask(3, () => Keybind.setKey('shift', false));
         }
     }
 }

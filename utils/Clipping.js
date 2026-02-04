@@ -131,6 +131,11 @@ class ClippingManager extends ModuleBase {
                 let line;
                 let logLines = [];
 
+                while (this.isRecording && (line = reader.readLine()) != null) {
+                    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+                    }
+                }
+
                 while ((line = reader.readLine()) != null) logLines.push(line);
 
                 const exitCode = p.waitFor();
@@ -394,6 +399,8 @@ class ClippingManager extends ModuleBase {
 
                 this.process = null;
             } catch (e) {
+                if (!this.isRecording) return;
+
                 Chat.messageClip(`&cCritical Error: ${e}`);
                 this.isRecording = false;
                 this.process = null;
@@ -496,20 +503,7 @@ class ClippingManager extends ModuleBase {
                 let folderPath = clipsDir.getAbsolutePath();
                 let clipDuration = clipsToJoin.length * 5;
 
-                let linkComponent = new TextComponent({
-                    text: `&7Saved ${clipDuration}s &7clip: &d&n${clipName}`,
-                    clickEvent: {
-                        action: 'open_file',
-                        value: folderPath,
-                    },
-                    hoverEvent: {
-                        action: 'show_text',
-                        value: `&7Click to open folder`,
-                    },
-                });
-
-                Chat.messageClip('&7Clip Saved: ');
-                ChatLib.chat(linkComponent);
+                Chat.messageClip(Chat.clickAction(`&7Saved ${clipDuration}s &7clip:`, 'View clip', folderPath, `&7Click to open folder`));
 
                 if (this.compressClips) {
                     Thread.sleep(500);

@@ -2,6 +2,7 @@ import { Categories } from './CategorySystem';
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
+import { Popup } from '../components/Popup';
 import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawDirectComponents, getCategoryRect } from './CategoryRenderer';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor, isInside, playClickSound } from '../Utils';
@@ -410,6 +411,18 @@ export const createCategoriesManager = (deps) => {
         return 0;
     };
 
+    const drawPopups = (mouseX, mouseY) => {
+        const activeCat = Categories.categories.find((c) => c.name === Categories.selected);
+        const components = Categories.currentPage === 'categories' ? activeCat?.directComponents : Categories.selectedItem?.components;
+        if (!components) return;
+
+        components.forEach((component) => {
+            if (component instanceof Popup && typeof component.drawOverlay === 'function') {
+                component.drawOverlay(mouseX, mouseY);
+            }
+        });
+    };
+
     const draw = (mouseX, mouseY) => {
         if (pendingSettingsComponent && Categories.selected === 'Settings' && Categories.currentPage === 'categories' && Categories.transitionDirection === 0) {
             const targetScroll = getDirectComponentScrollY('Settings', pendingSettingsComponent);
@@ -591,6 +604,13 @@ export const createCategoriesManager = (deps) => {
 
     const handleClick = (mouseX, mouseY) => {
         const panel = deps.rectangles.RightPanel;
+        const activeCat = Categories.categories.find((c) => c.name === Categories.selected);
+        const components = Categories.currentPage === 'categories' ? activeCat?.directComponents : Categories.selectedItem?.components;
+        const openPopup = components?.find((component) => component instanceof Popup && component.isOpen);
+        if (openPopup && typeof openPopup.handleOverlayClick === 'function' && openPopup.handleOverlayClick(mouseX, mouseY)) {
+            return;
+        }
+
         if (SearchBar.handleClick(mouseX, mouseY, panel, panel.y + 11)) {
             isLayoutCacheValid = false;
             isContentHeightCacheValid = false;
@@ -678,6 +698,7 @@ export const createCategoriesManager = (deps) => {
 
     return {
         draw,
+        drawPopups,
         handleClick,
         handleScroll,
         handleMouseDrag,

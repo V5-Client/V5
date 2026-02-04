@@ -1,42 +1,45 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
+import { Debugging } from './Debugging';
 import { GradientChat } from './Constants';
-
-const gradientInstance = new GradientChat();
 
 class ChatClass {
     message(msg) {
-        this._sendGradient('V5 » ', msg);
+        this._sendGradient('V5 »', msg);
     }
 
     // todo for release: add debug toggle somewhere
     messageDebug(msg) {
         if (!Debugging.Messages()) return;
 
-        this._sendGradient(`V5 Debug » `, msg);
+        this._sendGradient(`V5 Debug »`, msg);
     }
 
     messageClip(msg) {
-        this._sendGradient('V5 Clipping » ', msg);
+        this._sendGradient('V5 Clipping »', msg);
     }
 
     messageIrc(msg) {
-        this._sendGradient('IRC » ', msg);
+        this._sendGradient('IRC »', msg);
     }
 
     messageFailsafe(msg) {
-        this._sendGradient('V5 Failsafes » ', msg);
-        this._sendGradient('V5 Failsafes » ', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
+        this._sendGradient('V5 Failsafes »', msg);
+        this._sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
     }
 
     messagePathfinder(msg) {
-        this._sendGradient('V5 Pathfinding » ', msg);
+        this._sendGradient('V5 Pathfinding »', msg);
     }
 
-    _sendGradient(prefix, msg) {
-        if (!msg) return;
+    messageScheduler(msg) {
+        this._sendGradient('V5 Scheduler »', msg);
+    }
+
+    _sendGradient(prefix, ...args) {
+        if (args.length === 0) return;
 
         Client.getMinecraft().execute(() => {
-            gradientInstance.sendGradientMsg(prefix, `§f${msg}`, 0x05b9f9, 0x0539f9);
+            GradientChat.sendGradientMsg(prefix, 0x05b9f9, 0x0539f9, ...args);
         });
     }
 
@@ -51,33 +54,66 @@ class ChatClass {
      * @returns {TextComponent} The formatted message
      */
     formatLink(...args) {
-        let components = [];
+        if (args.length === 3 && args[2].includes('http')) {
+            const [message, label, url] = args;
 
-        for (let i = 0; i < args.length; i++) {
-            let component = args[i];
-            if (!component.includes('http')) {
-                components.push(component);
-            } else {
-                let textComponent = new TextComponent({
-                    text: `§9§n${component}§r`,
+            return new TextComponent(
+                `${message} `,
+                new TextComponent({
+                    text: `§9§n${label}§r`,
                     clickEvent: {
                         action: 'open_url',
-                        value: component,
+                        value: url,
                     },
                     hoverEvent: {
                         action: 'show_text',
-                        value: '§7Click to open link',
+                        value: `§7Click to open}`,
                     },
-                });
-                components.push(textComponent);
-            }
-
-            if (i < args.length - 1) {
-                components.push(' ');
-            }
+                })
+            );
         }
 
+        let components = [];
+        for (let i = 0; i < args.length; i++) {
+            let component = args[i];
+            if (typeof component === 'string' && !component.includes('http')) {
+                components.push(component);
+            } else {
+                components.push(
+                    new TextComponent({
+                        text: `§9§n${component}§r`,
+                        clickEvent: { action: 'open_url', value: component },
+                        hoverEvent: { action: 'show_text', value: '§7Click to open' },
+                    })
+                );
+            }
+            if (i < args.length - 1) components.push(' ');
+        }
         return new TextComponent(...components);
+    }
+
+    /**
+     * Creates a clickable text component
+     * @param {string} actionText - The text shown in chat
+     * @param {string} actionValue - The path, URL, or command
+     * @param {string} hoverText - The tooltip shown on hover
+     * @param {string} actionType - Defaults to 'open_file', can be 'open_url' or 'run_command'
+     */
+    clickAction(message, actionText, actionValue, hoverText = '§7Click to open', actionType = 'open_file') {
+        return new TextComponent(
+            `${message} `,
+            new TextComponent({
+                text: `§9§n${actionText}§r`,
+                clickEvent: {
+                    action: actionType,
+                    value: actionValue,
+                },
+                hoverEvent: {
+                    action: 'show_text',
+                    value: hoverText,
+                },
+            })
+        );
     }
 }
 

@@ -43,7 +43,7 @@ class SeaLumie extends ModuleBase {
                     if (!this.startedScan) {
                         this.startedScan = true;
 
-                        const scanThread = new Thread(() => {
+                        const scanThread = new java.lang.Thread(() => {
                             let queue = [
                                 {
                                     x: Math.floor(Player.getX()),

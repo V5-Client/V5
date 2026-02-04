@@ -1,4 +1,4 @@
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { Guis } from '../../utils/player/Inventory';
@@ -13,6 +13,7 @@ import { Utils } from '../../utils/Utils';
 import RouteState from '../../utils/RouteState';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
+import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
@@ -126,6 +127,7 @@ class GemstoneMacro extends ModuleBase {
             () => {
                 return true; // Utils.area() === 'Crystal Hollows';
             },
+            false,
             'postRenderWorld',
             () => {
                 if (!this.route || this.route.length < 1) return;
@@ -138,17 +140,17 @@ class GemstoneMacro extends ModuleBase {
 
                         // Color Logic: Red for WALK, Green for MINEABLE, Purple for everything else
                         if (current.movements === 'WALK') {
-                            boxColor = [255, 50, 50, 100]; // Balanced Red
-                            edgeColor = [255, 50, 50, 255];
+                            boxColor = Render.Color(255, 50, 50, 100); // Balanced Red
+                            edgeColor = Render.Color(255, 50, 50, 255);
                         } else if (current.movements === 'MINEABLE') {
-                            boxColor = [0, 255, 0, 100]; // Green
-                            edgeColor = [0, 255, 0, 255];
+                            boxColor = Render.Color(0, 255, 0, 100); // Green
+                            edgeColor = Render.Color(0, 255, 0, 255);
                         } else {
-                            boxColor = [145, 70, 255, 100]; // Balanced Purple
-                            edgeColor = [145, 70, 255, 255];
+                            boxColor = Render.Color(145, 70, 255, 100); // Balanced Purple
+                            edgeColor = Render.Color(145, 70, 255, 255);
                         }
 
-                        RenderUtils.drawStyledBox(new Vec3d(current.x, current.y, current.z), boxColor, edgeColor, 5, current.movements === 'MINEABLE');
+                        Render.drawStyledBox(new Vec3d(current.x, current.y, current.z), boxColor, edgeColor, 5, current.movements === 'MINEABLE');
                     }
                 }
             }
@@ -249,7 +251,7 @@ class GemstoneMacro extends ModuleBase {
 
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
-                            Client.scheduleTask(this.FASTAOTV ? 4 : 7, () => {
+                            ScheduleTask(this.FASTAOTV ? 4 : 7, () => {
                                 if (!this.enabled) return;
                                 Keybind.rightClick();
                                 this.attemptedEtherwarp = true;

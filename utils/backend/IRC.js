@@ -6,6 +6,7 @@ import { Chat } from '../Chat';
 import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
 import { returnDiscord } from '../../gui/Utils';
+import { ScheduleTask } from '../ScheduleTask';
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -76,7 +77,7 @@ function attemptReconnect() {
         reconnectAttempts++;
         let delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
         if (reconnectAttempts == 1) delay = 0;
-        Client.scheduleTask(delay, () => {
+        ScheduleTask(delay, () => {
             if (gameUnload) return;
             if (isConnected) return Chat.messageIrc('Already connected to irc!');
             Chat.messageIrc('Reconnecting...');
@@ -114,13 +115,13 @@ function pollDeviceCode(deviceCode, expiresAtMs, attempt) {
             }
             const nextAttempt = attempt + 1;
             const delayMs = Math.min(5000, 1000 + nextAttempt * 500);
-            Client.scheduleTask(Math.ceil(delayMs / 50), () => pollDeviceCode(deviceCode, expiresAtMs, nextAttempt));
+            ScheduleTask(Math.ceil(delayMs / 50), () => pollDeviceCode(deviceCode, expiresAtMs, nextAttempt));
         })
         .catch((err) => {
             console.error('Device poll failed', err);
             const nextAttempt = attempt + 1;
             const delayMs = Math.min(5000, 1000 + nextAttempt * 500);
-            Client.scheduleTask(Math.ceil(delayMs / 50), () => pollDeviceCode(deviceCode, expiresAtMs, nextAttempt));
+            ScheduleTask(Math.ceil(delayMs / 50), () => pollDeviceCode(deviceCode, expiresAtMs, nextAttempt));
         });
 }
 
@@ -211,8 +212,8 @@ function connectIRC() {
                 code: res.body.device_code,
                 expiresAt: Date.now() + (res.body.expires_in || 0) * 1000,
             };
-            // THIS LINK DOES NOT SEEM TO BE CLICKABLE, PLS FIX TODO FIX TODO
-            Chat.messageIrc(Chat.formatLink('Login with Discord', res.body.login_url));
+
+            Chat.messageIrc(Chat.formatLink('Login with Discord:', 'open link', res.body.login_url));
             Utils.openBrowser(res.body.login_url);
             pollDeviceCode(res.body.device_code, currentDevice.expiresAt, 0);
         })

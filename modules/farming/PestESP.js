@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
 
 class PestESP extends ModuleBase {
@@ -10,7 +10,6 @@ class PestESP extends ModuleBase {
             subcategory: 'Farming',
             description: 'Scans and remembers pest locations even in distant chunks.',
             showEnabledToggle: true,
-            autoDisableOnWorldUnload: true,
         });
 
         this.persistentPests = new Map();
@@ -49,9 +48,9 @@ class PestESP extends ModuleBase {
             'postrenderWorld',
             () => {
                 this.persistentPests.forEach((data) => {
-                    RenderUtils.drawEntityHitbox(data.entity.toMC(), [255, 0, 0, 100], 5, false);
+                    Render.drawHitbox(data.entity.toMC(), Render.Color(255, 0, 0, 100), 5, false);
 
-                    RenderUtils.drawTracer(new Vec3d(data.x, data.y, data.z), [255, 0, 0, 255], 5, false);
+                    Render.drawTracer(new Vec3d(data.x, data.y, data.z), Render.Color(255, 0, 0, 255), 2, false);
                 });
             }
         );

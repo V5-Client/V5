@@ -150,6 +150,33 @@ class LocationDetector {
     }
 }
 
+class CookieDetector {
+    constructor() {
+        this.hasCookie = false;
+        this.lastChecked = 0;
+    }
+
+    check() {
+        if (Date.now() - this.lastChecked < 2000) return this.hasCookie;
+        this.lastChecked = Date.now();
+
+        try {
+            const footer = TabList.getFooter();
+            if (!footer) return this.hasCookie;
+
+            const raw = ChatLib.removeFormatting(footer);
+            if (raw.includes('Cookie Buff') && raw.includes('Not active! Obtain booster cookies')) {
+                this.hasCookie = false;
+            } else if (raw.includes('Cookie Buff')) {
+                this.hasCookie = true;
+            }
+        } catch (e) {
+            console.error('V5 Caught error checking cookie: ' + e);
+        }
+        return this.hasCookie;
+    }
+}
+
 class CollisionChecker {
     checkPlayerCollision() {
         try {
@@ -236,7 +263,7 @@ class VectorConverter {
 
 class FileDownloader {
     download(urlString, destination) {
-        const t = new Thread(function () {
+        const t = new java.lang.Thread(function () {
             try {
                 if (urlString.startsWith('"') && urlString.endsWith('"')) {
                     urlString = urlString.substring(1, urlString.length - 1);
@@ -266,6 +293,7 @@ let locationDetector = new LocationDetector();
 let collisionChecker = new CollisionChecker();
 let vectorConverter = new VectorConverter();
 let fileDownloader = new FileDownloader();
+let cookieDetector = new CookieDetector();
 
 class UtilsClass {
     constructor() {
@@ -456,7 +484,7 @@ class UtilsClass {
     }
 
     openBrowser(url) {
-        const t = new Thread(() => {
+        const t = new java.lang.Thread(() => {
             try {
                 if (isMac) {
                     java.lang.Runtime.getRuntime().exec(['open', url]);
@@ -481,6 +509,10 @@ class UtilsClass {
         });
         t.setDaemon(true);
         t.start();
+    }
+
+    hasCookie() {
+        return cookieDetector.check();
     }
 }
 

@@ -1,7 +1,7 @@
 ﻿import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
 import { Vec3d, ZombieEntity, EndermanEntity } from '../../utils/Constants';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { MathUtils } from '../../utils/Math';
 import { Rotations } from '../../utils/player/Rotations';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -23,7 +23,7 @@ const ATTACK_REACH = 3.0;
 const COMBAT_PRESETS = {
     Graveyard: {
         entityClass: ZombieEntity,
-        checkVisibility: false,
+        checkVisibility: true,
         boundaryCheck: (x, y, z) => y >= 60 && y <= 100 && x <= -72,
     },
     Endermen: {
@@ -164,7 +164,7 @@ class Combat extends ModuleBase {
                 const pos = this.getTargetPosition(this.target);
                 if (pos && (!this.shouldUseBlackholeLogic() || this.isPositionSafe(pos.x, pos.y, pos.z))) {
                     const entity = this.target.toMC ? this.target.toMC() : this.target;
-                    RenderUtils.drawEntityHitbox(entity, [255, 0, 0, 100], 7, false);
+                    Render.drawHitbox(entity, Render.Color(255, 0, 0, 100), 7, false);
                 }
             }
         }
@@ -178,12 +178,12 @@ class Combat extends ModuleBase {
             if (this.shouldUseBlackholeLogic() && pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
 
             const entity = target.toMC ? target.toMC() : target;
-            RenderUtils.drawEntityHitbox(entity, [0, 70, 200, 100], 3, false);
+            Render.drawHitbox(entity, Render.Color(0, 70, 200, 100), 3, false);
         });
 
         if (this.shouldUseBlackholeLogic() && this.activeBlackholes.length > 0) {
             this.activeBlackholes.forEach((bh) => {
-                RenderUtils.drawBox(new Vec3d(bh.x - 0.5, bh.y + 0.5, bh.z - 0.5), [0, 0, 0, 150], false);
+                Render.drawBox(new Vec3d(bh.x - 0.5, bh.y + 0.5, bh.z - 0.5), Render.Color(0, 0, 0, 150), false);
             });
         }
     }

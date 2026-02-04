@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ChunkDataS2C, BlockUpdateS2C } from '../../utils/Packets';
-import RenderUtils from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
 import { manager } from '../../utils/SkyblockEvents';
 
@@ -27,18 +27,25 @@ class StructureESP extends ModuleBase {
         this.chunks = new Long2ObjectOpenHashMap();
 
         this.on('packetReceived', (packet) => {
-            const cx = packet.getChunkX();
-            const cz = packet.getChunkZ();
+            try {
+                const cx = packet.getChunkX();
+                const cz = packet.getChunkZ();
+                setTimeout(() => {
+                    this.searchChunk(cx, cz);
+                }, 50);
+            } catch (e) {
+                console.log('PROBABLY DUE TO CHATTRIGGERS packet handling being stupid as fuck!' + e);
+            }
             // console.log(`[ESP] Packet received: ${cx}, ${cz}`);
-
-            setTimeout(() => {
-                this.searchChunk(cx, cz);
-            }, 50);
         }).setFilteredClass(ChunkDataS2C);
 
         this.on('packetReceived', (packet) => {
-            const pos = packet.getPos();
-            this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
+            try {
+                const pos = packet.getPos();
+                this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
+            } catch (e) {
+                console.log('PROBABLY DUE TO CHATTRIGGERS getPos being stupid as fuck!' + e);
+            }
         }).setFilteredClass(BlockUpdateS2C);
 
         this.on('postRenderWorld', () => {
@@ -180,7 +187,7 @@ class StructureESP extends ModuleBase {
                 const blockList = entry.getValue();
                 for (let i = 0; i < blockList.length; i++) {
                     const b = blockList[i];
-                    RenderUtils.drawBox(new Vec3d(b.x, b.y, b.z), [0, 255, 200, 100], false);
+                    Render.drawBox(new Vec3d(b.x, b.y, b.z), Render.Color(0, 255, 200, 100), false);
                 }
             }
         } catch (e) {

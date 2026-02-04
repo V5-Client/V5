@@ -404,7 +404,17 @@ class CommissionMacro extends ModuleBase {
 
     mergeCommissionData(tabComm) {
         const data = COMMISSION_DATA.find((d) => d.names.includes(tabComm.name));
-        return data ? { ...tabComm, ...data } : null;
+        if (!data) return null;
+
+        const merged = { ...tabComm, ...data };
+
+        if (data.useAllMiningWaypoints) {
+            merged.waypoints = COMMISSION_DATA.filter((d) => d.type === 'MINING' && !d.useAllMiningWaypoints)
+                .map((d) => d.waypoints)
+                .reduce((acc, waypoints) => acc.concat(waypoints), []);
+        }
+
+        return merged;
     }
 
     isSupportedTask(task) {
@@ -460,7 +470,7 @@ class CommissionMacro extends ModuleBase {
         this.currentCommission = task;
         this.travelPurpose = task.type;
 
-        Chat.message(`&aStarting commission: &b${task.name}&a. Pathing to &b${waypoints.length}&a spot(s).`);
+        Chat.message(`Starting &e${task.name}&f Commission.`);
 
         this.setState(STATES.TRAVELING);
         Pathfinder.findPath(waypoints, (success) => this.onPathComplete(success));
@@ -850,7 +860,7 @@ class CommissionMacro extends ModuleBase {
 
         MiningUtils.doRefueling(true, (success) => {
             if (!success) {
-                Chat.message('&cRefueling failed! No fuel found.');
+                Chat.message('&cRefueling failed!');
                 this.toggle(false);
                 return;
             }

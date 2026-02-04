@@ -23,17 +23,29 @@ import {
 import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
+import { Popup } from '../components/Popup';
 import { drawRoundedRectangle } from '../Utils';
 import { GuiRectangles } from '../core/GuiState';
 import { Categories } from './CategorySystem';
 import { SearchBar } from './CategorySearchBar';
 import { setTooltip } from '../core/GuiTooltip';
 
-const ASSETS_PATH = 'config/ChatTriggers/modules/V5/assets/';
-const Module_icon_path = ASSETS_PATH + 'folder.svg';
-const Theme_icon_path = ASSETS_PATH + 'colorpalette.svg';
-const Setting_icon_path = ASSETS_PATH + 'settings.svg';
-const Edit_icon_path = ASSETS_PATH + 'edit.svg';
+const ASSETS_PATHS = ['config/ChatTriggers/modules/V5/assets/', 'config/ChatTriggers/assets/V5/assets/'];
+
+const getAssetPath = (filename) => {
+    for (const basePath of ASSETS_PATHS) {
+        const fullPath = basePath + filename;
+        if (new java.io.File(fullPath).exists()) {
+            return fullPath;
+        }
+    }
+    return ASSETS_PATHS[0] + filename;
+};
+
+const Module_icon_path = getAssetPath('folder.svg');
+const Theme_icon_path = getAssetPath('colorpalette.svg');
+const Setting_icon_path = getAssetPath('settings.svg');
+const Edit_icon_path = getAssetPath('edit.svg');
 
 export const getCategoryRect = (index) => {
     return {
@@ -177,13 +189,18 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
             currentY += 26;
         }
 
-        if (typeof component.draw === 'function') {
+        const isPopup = component instanceof Popup;
+        if (typeof component.draw === 'function' || isPopup) {
             const xOffset = component instanceof Separator ? 0 : 10;
             component.x = panelX + PADDING + xOffset;
             component.y = currentY;
             component.optionPanelWidth = panelWidth;
             component.optionPanelHeight = panel.height;
-            component.draw(mouseX, mouseY);
+            if (isPopup && typeof component.drawButton === 'function') {
+                component.drawButton(mouseX, mouseY);
+            } else {
+                component.draw(mouseX, mouseY);
+            }
 
             let componentHeight = 48 + 6;
 
@@ -230,14 +247,20 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 
     let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
-        if (typeof component.draw !== 'function') return;
+        const isPopup = component instanceof Popup;
+        if (!isPopup && typeof component.draw !== 'function') return;
+
         const isSeparator = component instanceof Separator;
         const xOffset = isSeparator ? 0 : 10;
         component.x = optionX + xOffset;
         component.y = drawnCompY;
         component.optionPanelWidth = panel.width;
         component.optionPanelHeight = panel.height;
-        component.draw(mouseX, mouseY);
+        if (isPopup && typeof component.drawButton === 'function') {
+            component.drawButton(mouseX, mouseY);
+        } else {
+            component.draw(mouseX, mouseY);
+        }
         let thisHeight = isSeparator ? 26 : 48 + 6;
 
         if (!isSeparator && (component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {

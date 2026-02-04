@@ -218,6 +218,12 @@ export const easeOutBack = (x) => {
     return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
 };
 
+export const easeInBack = (x) => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return c3 * x * x * x - c1 * x * x;
+};
+
 export const isInside = (mouseX, mouseY, rect) => mouseX >= rect.x && mouseX <= rect.x + rect.width && mouseY >= rect.y && mouseY <= rect.y + rect.height;
 
 export const fetchURL = (url) => {
@@ -237,30 +243,8 @@ export const fetchURL = (url) => {
     }
 };
 
-const JINGLE_BELLS = [
-    12, 12, 12, 12, 12, 12, 12, 15, 8, 10, 12, 13, 13, 13, 13, 13, 12, 12, 12, 12, 10, 10, 12, 10, 15, 12, 12, 12, 12, 12, 12, 12, 15, 8, 10, 12, 13, 13, 13,
-    13, 13, 12, 12, 12, 15, 15, 13, 10, 8,
-]; // use my script if you want different song
-
-let jingleIndex = 0;
-
 export const playClickSound = () => {
-    const entry = JINGLE_BELLS[jingleIndex];
-
-    const playNote = (note) => {
-        const noteblockNote = note % 25;
-        const pitch = Math.pow(2, (noteblockNote - 12) / 12);
-
-        World.getWorld().playSoundClient(SoundEvent.of(Identifier.of('minecraft', 'block.note_block.pling')), SoundCategory.MASTER, 0.5, pitch);
-    };
-
-    if (Array.isArray(entry)) {
-        entry.forEach(playNote); // chord
-    } else {
-        playNote(entry);
-    }
-
-    jingleIndex = (jingleIndex + 1) % JINGLE_BELLS.length;
+    World.getWorld().playSoundClient(SoundEvent.of(Identifier.of('minecraft', 'entity.experience_orb.pickup')), SoundCategory.MASTER, 0.5, 1.0);
 };
 
 const profilePath = new File('config/ChatTriggers/assets/discordProfile.png');
@@ -271,7 +255,7 @@ export const getDiscordPfpPath = () => discordPfpPath;
 export const returnDiscord = (authToken) => {
     try {
         if (!profilePath.exists()) {
-            const t = new Thread(() => {
+            const t = new java.lang.Thread(() => {
                 // make sure folder exists
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 

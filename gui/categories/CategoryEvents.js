@@ -3,6 +3,7 @@ import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HE
 import { Categories } from './CategorySystem';
 import { GuiRectangles } from '../core/GuiState';
 import { SearchBar } from './CategorySearchBar';
+import { Popup } from '../components/Popup';
 
 const ANIMATION_DURATION = 300;
 const ICON_SIZE = 28;
@@ -27,6 +28,36 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
             currentSection = component.sectionName;
             if (i > 0) currentY += 16;
             currentY += 26;
+        }
+
+        if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
+            let componentHeight = 48;
+            let expansionHeight = 0;
+            if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
+                expansionHeight = component.getExpandedHeight() * component.animationProgress;
+            }
+            componentHeight += expansionHeight;
+
+            const clickableArea = {
+                x: panelX + PADDING,
+                y: currentY,
+                width: panelWidth - 2 * PADDING,
+                height: componentHeight,
+            };
+
+            if (isInside(mouseX, mouseY, clickableArea)) {
+                component.x = panelX + PADDING + 10;
+                component.y = currentY;
+                component.optionPanelWidth = panelWidth;
+                component.optionPanelHeight = panel.height;
+
+                if (component.handleButtonClick(mouseX, mouseY)) {
+                    return true;
+                }
+            }
+
+            currentY += 48 + 6 + expansionHeight;
+            continue;
         }
 
         if (typeof component.handleClick !== 'function') {
@@ -138,6 +169,46 @@ export const handleCategoryClick = (
 
         for (let i = 0; i < components.length; i++) {
             const component = components[i];
+            if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
+                const drawnCompY = currentDrawnCompY;
+                let handled = false;
+
+                component.x = optionX + 10;
+
+                let componentHeight = 48;
+                let expansionHeight = 0;
+
+                if (typeof component.getExpandedHeight === 'function') {
+                    expansionHeight =
+                        component.animationProgress !== undefined ? component.getExpandedHeight() * component.animationProgress : component.getExpandedHeight();
+                }
+                componentHeight += expansionHeight;
+
+                let clickableArea = {
+                    x: optionX,
+                    y: drawnCompY,
+                    width: panel.width - 2 * PADDING,
+                    height: componentHeight,
+                };
+
+                if (isInside(mouseX, mouseY, clickableArea)) {
+                    component.y = drawnCompY;
+                    component.optionPanelWidth = panel.width;
+                    component.optionPanelHeight = panel.height;
+
+                    if (component.handleButtonClick(mouseX, mouseY)) {
+                        handled = true;
+                    }
+                }
+
+                if (handled) return;
+
+                let spacingHeight = 54 + expansionHeight;
+                currentCompY += spacingHeight;
+                currentDrawnCompY += spacingHeight;
+                continue;
+            }
+
             if (typeof component.handleClick !== 'function') continue;
 
             const drawnCompY = currentDrawnCompY;
@@ -326,6 +397,12 @@ export const handleCategoryScroll = (
     if (Categories.currentPage === 'categories') {
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);
         if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+            const openPopup = directCat.directComponents.find((component) => component instanceof Popup && component.isOpen);
+            if (openPopup && typeof openPopup.handleScroll === 'function') {
+                openPopup.optionPanelWidth = panel.width;
+                if (openPopup.handleScroll(mouseX, mouseY, dir)) return;
+            }
+
             let scrollHandled = false;
             const components = directCat.directComponents;
             let componentY = panel.y + PADDING;
@@ -360,9 +437,15 @@ export const handleCategoryScroll = (
     if (Categories.currentPage === 'options' && Categories.selectedItem) {
         const optionX = panel.x + PADDING;
         const optionY = panel.y + PADDING;
+        const components = Categories.selectedItem.components;
+        const openPopup = components?.find((component) => component instanceof Popup && component.isOpen);
+        if (openPopup && typeof openPopup.handleScroll === 'function') {
+            openPopup.optionPanelWidth = panel.width;
+            if (openPopup.handleScroll(mouseX, mouseY, dir)) return;
+        }
+
         let scrollHandled = false;
         let componentY = optionY + 78;
-        const components = Categories.selectedItem.components;
         if (components) {
             components.forEach((component) => {
                 let expansionHeight = 0;

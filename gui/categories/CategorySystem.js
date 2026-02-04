@@ -4,6 +4,8 @@ import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
 import { Separator } from '../components/Separator';
 import { TextInput } from '../components/TextInput';
+import { Button } from '../components/Button';
+import { Popup } from '../components/Popup';
 
 export const Categories = {
     categories: [
@@ -93,64 +95,91 @@ export const Categories = {
 
     addToggle(categoryName, itemName, toggleTitle, callback = null, description = null, defaultValue = false) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const toggle = new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback, defaultValue);
         toggle.description = description;
         item.components.push(toggle);
+        return toggle;
     },
 
     addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback);
         slider.description = description;
         item.components.push(slider);
+        return slider;
     },
 
     addRangeSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback, true);
         slider.description = description;
         item.components.push(slider);
+        return slider;
     },
 
     addTextInput(categoryName, itemName, title, defaultValue, callback = null, description = null) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
         input.description = description;
         item.components.push(input);
+        return input;
+    },
+
+    addButton(categoryName, itemName, title, callback = null, description = null) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return null;
+
+        const button = new Button(title, 0, 0, undefined, callback);
+        button.description = description;
+        item.components.push(button);
+        return button;
+    },
+
+    addPopup(categoryName, itemName, title, callback = null, description = null) {
+        const item = Categories.findItem(categoryName, itemName);
+        if (!item) return null;
+
+        const popup = new Popup(title, 0, 0, undefined, undefined, callback);
+        popup.description = description;
+        item.components.push(popup);
+        return popup;
     },
 
     addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback, defaultValue);
         multiToggle.description = description;
         item.components.push(multiToggle);
+        return multiToggle;
     },
 
     addColorPicker(categoryName, itemName, pickerTitle, defaultColor, callback = null, description = null) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const picker = new ColorPicker(pickerTitle, 0, 0, defaultColor, callback);
         picker.description = description;
         item.components.push(picker);
+        return picker;
     },
 
     addSeparator(categoryName, itemName, title, fullWidth = false) {
         const item = Categories.findItem(categoryName, itemName);
-        if (!item) return;
+        if (!item) return null;
 
         const separator = new Separator(title, fullWidth);
         item.components.push(separator);
+        return separator;
     },
 
     addSettingsComponent(component, sectionName = null, categoryName = 'Settings') {
@@ -214,6 +243,20 @@ export const Categories = {
         input.description = description;
         Categories.addSettingsComponent(input, sectionName, categoryName);
         return input;
+    },
+
+    addSettingsButton(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
+        const button = new Button(title, 0, 0, undefined, callback);
+        button.description = description;
+        Categories.addSettingsComponent(button, sectionName, categoryName);
+        return button;
+    },
+
+    addSettingsPopup(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
+        const popup = new Popup(title, 0, 0, undefined, undefined, callback);
+        popup.description = description;
+        Categories.addSettingsComponent(popup, sectionName, categoryName);
+        return popup;
     },
 
     addSettingsSeparator(title, categoryName = 'Settings') {

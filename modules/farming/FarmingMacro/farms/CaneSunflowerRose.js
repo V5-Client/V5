@@ -5,7 +5,6 @@ import { Rotations } from '../../../../utils/player/Rotations';
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
 import { Utils } from '../../../../utils/Utils';
-import RenderUtils from '../../../../utils/render/RendererUtils';
 import { Vec3d } from '../../../../utils/Constants';
 import { Chat } from '../../../../utils/Chat';
 

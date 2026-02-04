@@ -157,32 +157,6 @@ Commands.registerCommand('v5', () => {
             });
         });
 
-        literal('between', () => {
-            argument('x1', integer(), () => {
-                argument('y1', integer(), () => {
-                    argument('z1', integer(), () => {
-                        argument('x2', integer(), () => {
-                            argument('y2', integer(), () => {
-                                argument('z2', integer(), () => {
-                                    // Normal follow
-                                    exec(({ x1, y1, z1, x2, y2, z2 }) => {
-                                        callCommand('rustpath', x1, y1, z1, x2, y2, z2);
-                                    });
-
-                                    // Render-only variant
-                                    literal('renderonly', () => {
-                                        exec(({ x1, y1, z1, x2, y2, z2 }) => {
-                                            callCommand('rustpath', x1, y1, z1, x2, y2, z2, 'renderonly');
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        });
-
         literal('stop', () => {
             exec(() => {
                 callCommand('stopPath');

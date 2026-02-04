@@ -2,6 +2,7 @@ import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
 import { Chat } from '../Chat';
 import { CloseHandledScreenC2S } from '../Packets';
+import { ScheduleTask } from '../ScheduleTask';
 
 class ItemSearcher {
     constructor() {}
@@ -166,7 +167,7 @@ export const Guis = {
     setItemSlot: function (slot) {
         if (slot >= 0 && slot <= 8) {
             if (Player.getHeldItemIndex() !== slot) {
-                Client.scheduleTask(() => {
+                ScheduleTask(() => {
                     Player.setHeldItemIndex(slot);
                 });
             }
