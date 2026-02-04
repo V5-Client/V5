@@ -7,6 +7,40 @@ const withAlpha = (color, alpha) => {
     return new Color(color.getRed() / 255, color.getGreen() / 255, color.getBlue() / 255, baseAlpha * alpha);
 };
 
+const DEFAULT_THEME = {
+    BG_WINDOW: new Color(0.09, 0.1, 0.13, 1),
+    BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85),
+    BG_COMPONENT: new Color(0.11, 0.12, 0.15, 1),
+    HOVER: new Color(0.17, 0.18, 0.22, 1),
+    ACCENT: new Color(0.4, 0.7, 1, 1),
+    BORDER: new Color(0.2, 0.21, 0.24, 1),
+    OV_WINDOW: new Color(0.04, 0.04, 0.04, 0.75),
+    OV_BORDER: new Color(0.4, 0.7, 1.0, 0.0),
+    OV_ACCENT: new Color(0.4, 0.7, 1.0, 1),
+    TEXT: 0xffffffff,
+    TEXT_MUTED: 0xff99a3b0,
+};
+
+const setPickerColor = (picker, value) => {
+    if (!picker) return;
+
+    let safeValue = value;
+    if (typeof safeValue === 'number') {
+        safeValue = safeValue | 0;
+    }
+
+    const resolved = safeValue instanceof Color ? safeValue : new Color(safeValue);
+    picker.color = resolved;
+
+    const hsv = java.awt.Color.RGBtoHSB(resolved.getRed(), resolved.getGreen(), resolved.getBlue(), null);
+    picker.hue = hsv[0];
+    picker.sat = hsv[1];
+    picker.val = hsv[2];
+    picker.alpha = resolved.getAlpha() / 255;
+
+    if (picker.callback) picker.callback(resolved);
+};
+
 const initThemeSettings = () => {
     let themeCat = Categories.categories.find((c) => c.name === 'Theme');
     if (!themeCat) {
@@ -21,18 +55,25 @@ const initThemeSettings = () => {
         themeCat.directComponents = [];
     }
 
-    Categories.addSettingsColorPicker('Window Background', THEME.BG_WINDOW, (c) => (THEME.BG_WINDOW = c), 'Main window panel background.', 'Window', 'Theme');
+    const themePickers = [];
+    const addThemePicker = (title, currentColor, callback, description, sectionName, defaultColor) => {
+        const picker = Categories.addSettingsColorPicker(title, currentColor, callback, description, sectionName, 'Theme');
+        themePickers.push({ picker, defaultColor });
+        return picker;
+    };
 
-    Categories.addSettingsColorPicker(
+    addThemePicker('Window Background', THEME.BG_WINDOW, (c) => (THEME.BG_WINDOW = c), 'Main window panel background.', 'Window', DEFAULT_THEME.BG_WINDOW);
+
+    addThemePicker(
         'Window Overlay',
         THEME.BG_OVERLAY,
         (c) => (THEME.BG_OVERLAY = c),
         'Dimmed background behind the window.',
         'Window',
-        'Theme'
+        DEFAULT_THEME.BG_OVERLAY
     );
 
-    Categories.addSettingsColorPicker(
+    addThemePicker(
         'Global Accent',
         THEME.ACCENT,
         (c) => {
@@ -45,10 +86,10 @@ const initThemeSettings = () => {
         },
         'Main accent color.',
         'Interface',
-        'Theme'
+        DEFAULT_THEME.ACCENT
     );
 
-    Categories.addSettingsColorPicker(
+    addThemePicker(
         'Component Background',
         THEME.BG_COMPONENT,
         (c) => {
@@ -58,19 +99,12 @@ const initThemeSettings = () => {
         },
         'Background for all modules, toggles, sliders, dropdowns, and color pickers.',
         'Interface',
-        'Theme'
+        DEFAULT_THEME.BG_COMPONENT
     );
 
-    Categories.addSettingsColorPicker(
-        'Component Border',
-        THEME.BORDER,
-        (c) => (THEME.BORDER = c),
-        'Outline color for modules and components.',
-        'Interface',
-        'Theme'
-    );
+    addThemePicker('Component Border', THEME.BORDER, (c) => (THEME.BORDER = c), 'Outline color for modules and components.', 'Interface', DEFAULT_THEME.BORDER);
 
-    Categories.addSettingsColorPicker(
+    addThemePicker(
         'Hover/Surface',
         THEME.HOVER,
         (c) => {
@@ -80,10 +114,10 @@ const initThemeSettings = () => {
         },
         'Color for hovered items. Also ends up affecting secondary surfaces (separators and stuff).',
         'Interface',
-        'Theme'
+        DEFAULT_THEME.HOVER
     );
 
-    Categories.addSettingsColorPicker(
+    addThemePicker(
         'Overlay Main Color',
         THEME.OV_WINDOW,
         (c) => {
@@ -91,10 +125,10 @@ const initThemeSettings = () => {
         },
         'Main  color for the overlay.',
         'Overlay',
-        'Theme'
+        DEFAULT_THEME.OV_WINDOW
     );
 
-    Categories.addSettingsColorPicker(
+    addThemePicker(
         'Overlay Border Color',
         THEME.OV_BORDER,
         (c) => {
@@ -102,10 +136,10 @@ const initThemeSettings = () => {
         },
         'Border color for the overlay.',
         'Overlay',
-        'Theme'
+        DEFAULT_THEME.OV_BORDER
     );
 
-    Categories.addSettingsColorPicker(
+    addThemePicker(
         'Overlay Accent Color',
         THEME.OV_ACCENT,
         (c) => {
@@ -113,12 +147,22 @@ const initThemeSettings = () => {
         },
         'Accent color for the overlay.',
         'Overlay',
-        'Theme'
+        DEFAULT_THEME.OV_ACCENT
     );
 
-    Categories.addSettingsColorPicker('Primary Text', THEME.TEXT, (c) => (THEME.TEXT = c), 'Main text color.', 'Text', 'Theme');
+    addThemePicker('Primary Text', THEME.TEXT, (c) => (THEME.TEXT = c), 'Main text color.', 'Text', DEFAULT_THEME.TEXT);
 
-    Categories.addSettingsColorPicker('Secondary Text', THEME.TEXT_MUTED, (c) => (THEME.TEXT_MUTED = c), 'Description text color.', 'Text', 'Theme');
+    addThemePicker('Secondary Text', THEME.TEXT_MUTED, (c) => (THEME.TEXT_MUTED = c), 'Description text color.', 'Text', DEFAULT_THEME.TEXT_MUTED);
+
+    Categories.addSettingsButton(
+        'Reset Theme Colors',
+        () => {
+            themePickers.forEach(({ picker, defaultColor }) => setPickerColor(picker, defaultColor));
+        },
+        'Reset all theme colors back to defaults.',
+        'Reset',
+        'Theme'
+    );
 };
 
 initThemeSettings();
