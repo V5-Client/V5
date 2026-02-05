@@ -26,7 +26,7 @@ import './visuals/MobHider.js';
 import './visuals/ProfileHider.js';
 import './visuals/StructureESP.js';
 import './visuals/Xray.js';
-import './visuals/music/MusicOverlay.js';
+import './visuals/MusicOverlay.js';
 
 /* SKILLS */
 import './skills/AutoExperiments.js';
