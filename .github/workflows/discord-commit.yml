@@ -7,7 +7,7 @@ on:
     workflow_dispatch:
         inputs:
             sha:
-                description: 'Commit SHA to run against (optional). If set, workflow checks out this commit.'
+                description: 'Commit SHA to run against (optional).'
                 required: false
                 type: string
 
@@ -29,14 +29,13 @@ jobs:
 
                   HEAD_SHA="$(git rev-parse HEAD)"
                   echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
-
                   echo "COMMIT_URL=https://github.com/${GITHUB_REPOSITORY}/commit/${HEAD_SHA}" >> "$GITHUB_ENV"
                   echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
-
-                  # For push: actual branch. For workflow_dispatch: the branch you clicked "Run workflow" on.
                   echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
 
-                  echo "ZIP_EXISTS=false" >> "$GITHUB_ENV"
+                  # Defaults for Zip logic (in case zip step is skipped)
+                  echo "ZIP_READY=false" >> "$GITHUB_ENV"
+                  echo "ZIP_WARNING=" >> "$GITHUB_ENV"
 
                   declare -A USERS=(
                     ["EpsilonPhoenix"]="<@899647076370092042>"
@@ -48,7 +47,6 @@ jobs:
                     ["axlecoffee"]="<@790736254714642453>"
                   )
 
-                  # Use commit author name (not runner actor)
                   ACTOR="$(git log -1 --pretty=%an)"
                   echo "DISCORD_AUTHOR=${USERS[$ACTOR]:-$ACTOR}" >> "$GITHUB_ENV"
 
@@ -81,7 +79,17 @@ jobs:
               run: |
                   set -euo pipefail
                   zip -r V5.zip . -x ".git/*" ".github/*" ".vscode/*" "README.md" ".gitignore"
-                  echo "ZIP_EXISTS=true" >> "$GITHUB_ENV"
+
+                  # Check size (8MB limit = 8388608 bytes)
+                  SIZE=$(stat -c%s V5.zip)
+                  MAX_SIZE=8388608
+
+                  if (( SIZE > MAX_SIZE )); then
+                     echo "ZIP_READY=false" >> "$GITHUB_ENV"
+                     echo "ZIP_WARNING=\n\n⚠️ **Zip artifact too large to send (>8MB).**" >> "$GITHUB_ENV"
+                  else
+                     echo "ZIP_READY=true" >> "$GITHUB_ENV"
+                  fi
 
             - name: Send to Discord
               env:
@@ -91,13 +99,11 @@ jobs:
                   set -euo pipefail
 
                   COMMIT_MSG="$(git log -1 --pretty=%B)"
-
-                  # Embed description max is 4096. 
                   export CHUNK_LIMIT=3500
                   export COMMIT_MSG
 
-                  # 1. Use -d '' to tell mapfile to split on Null bytes, not newlines
-                  # 2. Update Python to output chunks separated by \0
+                  # Split Logic: Split by chars, but backtrack to the nearest newline
+                  # to ensure we don't cut words in half, unless the line is massive.
                   mapfile -d '' MSG_CHUNKS < <(
                     python3 - << 'PY'
                   import os
@@ -110,11 +116,36 @@ jobs:
                       sys.stdout.write("No commit message.\0")
                       sys.exit(0)
 
-                  # Iterate through string
-                  for i in range(0, len(s), limit):
-                      chunk = s[i:i+limit]
-                      # Write the chunk explicitly followed by a Null Byte
-                      sys.stdout.write(chunk + '\0')
+                  start = 0
+                  s_len = len(s)
+
+                  while start < s_len:
+                      # Define the potential hard cutoff point
+                      end = start + limit
+
+                      # If we can fit the rest, just print it
+                      if end >= s_len:
+                          sys.stdout.write(s[start:] + '\0')
+                          break
+
+                      # Get the chunk up to the limit
+                      chunk = s[start:end]
+
+                      # Find the last newline in this chunk
+                      last_newline = chunk.rfind('\n')
+
+                      if last_newline != -1:
+                          # If newline found, split there (include newline in current chunk)
+                          cut_point = last_newline + 1
+                      else:
+                          # If NO newline found (a massive single line), hard split at limit
+                          cut_point = limit
+
+                      # Write the sub-chunk + Null byte
+                      sys.stdout.write(chunk[:cut_point] + '\0')
+                      
+                      # Advance start
+                      start += cut_point
                   PY
                   )
 
@@ -127,6 +158,7 @@ jobs:
                   # ---- First message: embed + optional zip ----
                   FIRST_MSG="${MSG_CHUNKS[0]}"
 
+                  # Pass ZIP_WARNING to jq. It defaults to empty string if zip is okay/missing.
                   PAYLOAD="$(jq -cn \
                     --arg msg "$FIRST_MSG" \
                     --arg url "$COMMIT_URL" \
@@ -137,12 +169,13 @@ jobs:
                     --arg types "$FILE_TYPES" \
                     --arg idx "1" \
                     --arg total "$TOTAL" \
+                    --arg warn "$ZIP_WARNING" \
                     '{
                       username: "V5 Commits",
                       avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
                       embeds: [{
                         title: ("New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
-                        description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
+                        description: ("📝 **Summary**\n" + $msg + $warn + "\n\n[View Commit](" + $url + ")"),
                         color: 3447003,
                         timestamp: $time,
                         fields: [
@@ -154,15 +187,16 @@ jobs:
                       }]
                     }'
                   )"
-                        
+
                   CURL_ARGS=(-F "payload_json=$PAYLOAD;type=application/json")
-                        
-                  if [[ "${ZIP_EXISTS:-false}" == "true" ]]; then
+
+                  # Only attach if size check passed
+                  if [[ "${ZIP_READY}" == "true" ]]; then
                     CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
                   fi
-                        
+
                   curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
-                        
+
                   # ---- Continuations: embeds only ----
                   for ((i = 1; i < TOTAL; i++)); do
                     PART="${MSG_CHUNKS[$i]}"
@@ -185,7 +219,7 @@ jobs:
                         }]
                       }'
                     )"
-                        
+
                     curl -sS --fail-with-body \
                       -H "Content-Type: application/json" \
                       -d "$CONT_PAYLOAD" \

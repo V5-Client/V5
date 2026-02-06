@@ -59,6 +59,7 @@ const manifest = {
     jsonFiles: {
         'config.json': {},
         'keybinds.json': {},
+        'music_overlay.json': {},
         'webhook.json': {},
         'miningstats.json': {},
         'GemstoneRoutes/empty.json': {},

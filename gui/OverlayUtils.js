@@ -22,6 +22,7 @@ class OverlayUtils {
     constructor() {
         this.ids = [];
         this.dragging = false;
+        this.dragTarget = null;
         this.dragOffset = { x: 0, y: 0 };
 
         this.settings = {
@@ -29,11 +30,15 @@ class OverlayUtils {
             y: 10,
             scale: 1.2,
         };
-
-        this.boxPadding = (PADDING || 12) * this.settings.scale;
-        this.minBoxHeight = 35 * this.settings.scale;
-        this.fontSize = FontSizes.LARGE * this.settings.scale;
-        this.argFontSize = FontSizes.MEDIUM * this.settings.scale;
+        this.schedulerSettings = {
+            x: 10,
+            y: 80,
+            scale: 1.0,
+        };
+        this.scaleProps = {
+            default: this.getScaleProps(this.settings.scale),
+            scheduler: this.getScaleProps(this.schedulerSettings.scale),
+        };
 
         this.startTimes = {};
         this.animations = {};
@@ -64,6 +69,23 @@ class OverlayUtils {
             return Object.values(val).filter((item) => item && typeof item === 'object');
         }
         return [];
+    }
+
+    getScaleProps(scale) {
+        return {
+            boxPadding: (PADDING || 12) * scale,
+            minBoxHeight: 35 * scale,
+            fontSize: FontSizes.LARGE * scale,
+            argFontSize: FontSizes.MEDIUM * scale,
+        };
+    }
+
+    updateScaleProps(target) {
+        if (target === 'scheduler') {
+            this.scaleProps.scheduler = this.getScaleProps(this.schedulerSettings.scale);
+        } else {
+            this.scaleProps.default = this.getScaleProps(this.settings.scale);
+        }
     }
 
     updateRenderActive() {
@@ -198,18 +220,22 @@ class OverlayUtils {
         Overlays.Gui.registerScrolled((x, y, dir) => this.handleScroll(x, y, dir));
     }
 
-    createID(idName, sections = []) {
+    createID(idName, sections = [], options = {}) {
         const sectionsArray = this.ensureArray(sections);
         let existing = this.ids.find((id) => id.name === idName);
 
         if (existing) {
             existing.sections = sectionsArray;
+            if (options.isScheduler !== undefined) {
+                existing.isScheduler = options.isScheduler === true;
+            }
         } else {
             const newId = {
                 name: idName,
                 sections: sectionsArray,
                 width: 0,
                 height: 0,
+                isScheduler: options.isScheduler === true,
             };
             this.ids.push(newId);
         }
@@ -217,6 +243,10 @@ class OverlayUtils {
         if (!this.animations[idName]) {
             this.animations[idName] = { progress: 0, target: 0 };
         }
+    }
+
+    createSchedulerID(idName, sections = []) {
+        this.createID(idName, sections, { isScheduler: true });
     }
 
     getExampleOverlay() {
@@ -264,45 +294,78 @@ class OverlayUtils {
         };
     }
 
+    getSchedulerExampleOverlay() {
+        return {
+            name: 'Scheduler',
+            x: this.schedulerSettings.x,
+            y: this.schedulerSettings.y,
+            width: 0,
+            height: 0,
+            isScheduler: true,
+            sections: [
+                {
+                    title: 'Scheduler',
+                    data: {
+                        Status: 'Running',
+                        'Time Left': '5m 0s',
+                        Active: 'Any Macro',
+                    },
+                },
+            ],
+        };
+    }
+
     handleMouseClick(mouseX, mouseY) {
+        if (this.currentSchedulerExampleBox && isInside(mouseX, mouseY, this.currentSchedulerExampleBox)) {
+            this.dragging = true;
+            this.dragTarget = 'scheduler';
+            this.dragOffset.x = mouseX - this.schedulerSettings.x;
+            this.dragOffset.y = mouseY - this.schedulerSettings.y;
+            return;
+        }
         if (this.currentExampleBox && isInside(mouseX, mouseY, this.currentExampleBox)) {
             this.dragging = true;
+            this.dragTarget = 'default';
             this.dragOffset.x = mouseX - this.settings.x;
             this.dragOffset.y = mouseY - this.settings.y;
         }
     }
 
     handleMouseDrag(mouseX, mouseY) {
-        if (!this.dragging) return;
+        if (!this.dragging || !this.dragTarget) return;
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
+        const settings = this.dragTarget === 'scheduler' ? this.schedulerSettings : this.settings;
+        const box = this.dragTarget === 'scheduler' ? this.currentSchedulerExampleBox : this.currentExampleBox;
+        const boxWidth = box?.width || 50;
+        const boxHeight = box?.height || 20;
 
-        this.settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - (this.currentExampleBox?.width || 50)));
-        this.settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - (this.currentExampleBox?.height || 20)));
+        settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - boxWidth));
+        settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - boxHeight));
         this.pendingSave = true;
     }
 
     handleMouseRelease() {
         if (this.dragging) {
             this.dragging = false;
+            this.dragTarget = null;
             this.saveSettings();
             this.pendingSave = false;
         }
     }
 
     handleScroll(mouseX, mouseY, dir) {
+        if (this.currentSchedulerExampleBox && isInside(mouseX, mouseY, this.currentSchedulerExampleBox)) {
+            this.schedulerSettings.scale = Math.max(0.5, Math.min(3.0, this.schedulerSettings.scale + (dir > 0 ? 0.1 : -0.1)));
+            this.updateScaleProps('scheduler');
+            this.pendingSave = true;
+            return;
+        }
         if (this.currentExampleBox && isInside(mouseX, mouseY, this.currentExampleBox)) {
             this.settings.scale = Math.max(0.5, Math.min(3.0, this.settings.scale + (dir > 0 ? 0.1 : -0.1)));
-            this.updateScaleDependents();
+            this.updateScaleProps('default');
             this.pendingSave = true;
         }
-    }
-
-    updateScaleDependents() {
-        this.boxPadding = (PADDING || 12) * this.settings.scale;
-        this.minBoxHeight = 35 * this.settings.scale;
-        this.fontSize = FontSizes.LARGE * this.settings.scale;
-        this.argFontSize = FontSizes.MEDIUM * this.settings.scale;
     }
 
     clampToScreen(x, y, w, h, swOverride = null, shOverride = null) {
@@ -316,8 +379,8 @@ class OverlayUtils {
         };
     }
 
-    drawAccentGlow(x, y, width, height, radius, progress) {
-        const accentColor = THEME.OV_ACCENT;
+    drawAccentGlow(x, y, width, height, radius, progress, accentOverride = null) {
+        const accentColor = accentOverride || THEME.OV_ACCENT;
         const glowIntensity = 0.12;
         for (let i = 2; i >= 0; i--) {
             const expand = i * 2;
@@ -334,8 +397,8 @@ class OverlayUtils {
         }
     }
 
-    drawSectionDivider(x, y, width, progress) {
-        const accentColor = THEME.ACCENT;
+    drawSectionDivider(x, y, width, progress, accentOverride = null) {
+        const accentColor = accentOverride || THEME.ACCENT;
         const dividerHeight = 1;
         const halfWidth = width / 2;
 
@@ -354,11 +417,27 @@ class OverlayUtils {
         if (forceGUI) progress = 1.0;
         if (!forceGUI && (!anim || (anim.target === 0 && anim.progress <= 0.01))) return;
 
+        const isScheduler = id.isScheduler === true;
+        const settings = isScheduler ? this.schedulerSettings : this.settings;
+        const scaleProps = isScheduler ? this.scaleProps.scheduler : this.scaleProps.default;
+        const scale = settings.scale;
+        const { boxPadding, minBoxHeight, fontSize, argFontSize } = scaleProps;
+        const accentColor = THEME.ACCENT;
+        const glowColor = THEME.OV_ACCENT;
+        const borderColor = colorWithAlpha(THEME.OV_BORDER, 0.7 * progress);
+        const showUptime = !isScheduler;
+
+        const headerHeight = 20 * scale;
+        const rowHeight = 14 * scale;
+        const sectionGap = 10 * scale;
+
+        const basePadding = boxPadding;
+
         const sections = this.ensureArray(id.sections);
         const uptimeVal = forceGUI ? '0.00s' : this.formatUptime(this.startTimes[id.name]);
 
-        let contentMaxWidth = getTextWidth(id.name, this.fontSize);
-        let calculatedHeight = 30 * this.settings.scale;
+        let contentMaxWidth = getTextWidth(id.name, fontSize);
+        let calculatedHeight = 30 * scale;
         const renderSections = [];
 
         sections.forEach((section, sIdx) => {
@@ -367,17 +446,17 @@ class OverlayUtils {
             const sectionData = section.data || {};
 
             if (section.title) {
-                const titleWidth = getTextWidth(section.title.toUpperCase(), this.argFontSize * 0.85);
-                contentMaxWidth = Math.max(contentMaxWidth, titleWidth + 10 * this.settings.scale);
-                calculatedHeight += 16 * this.settings.scale;
+                const titleWidth = getTextWidth(section.title.toUpperCase(), argFontSize * 0.85);
+                contentMaxWidth = Math.max(contentMaxWidth, titleWidth + 10 * scale);
+                calculatedHeight += headerHeight - 4 * scale;
             }
-            calculatedHeight += 10 * this.settings.scale;
+            calculatedHeight += sectionGap;
 
-            if (sIdx === 0) {
+            if (sIdx === 0 && showUptime) {
                 const label = 'Uptime:';
-                const labelWidth = getTextWidth(label, this.argFontSize);
-                const valueWidth = getTextWidth(uptimeVal, this.argFontSize);
-                const lineTotalWidth = labelWidth + valueWidth + 25 * this.settings.scale;
+                const labelWidth = getTextWidth(label, argFontSize);
+                const valueWidth = getTextWidth(uptimeVal, argFontSize);
+                const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
                 contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
                 sectionLines.push({ label, value: uptimeVal, isUptime: true, labelWidth });
             }
@@ -385,31 +464,31 @@ class OverlayUtils {
             Object.entries(sectionData).forEach(([k, v]) => {
                 const displayVal = typeof v === 'function' ? v() : v;
                 const label = `${k}:`;
-                const labelWidth = getTextWidth(label, this.argFontSize);
-                const valueWidth = getTextWidth(String(displayVal), this.argFontSize);
-                const lineTotalWidth = labelWidth + valueWidth + 25 * this.settings.scale;
+                const labelWidth = getTextWidth(label, argFontSize);
+                const valueWidth = getTextWidth(String(displayVal), argFontSize);
+                const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
                 contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
                 sectionLines.push({ label, value: displayVal, isUptime: false, labelWidth });
             });
 
             const lineCount = sectionLines.length;
-            calculatedHeight += lineCount * 14 * this.settings.scale;
-            calculatedHeight += 2 * this.settings.scale;
+            calculatedHeight += lineCount * rowHeight;
+            calculatedHeight += 2 * scale;
 
             renderSections.push({ title: section.title, lines: sectionLines });
         });
-        calculatedHeight += 6 * this.settings.scale;
+        calculatedHeight += 6 * scale;
 
-        const totalWidth = contentMaxWidth + this.boxPadding * 2;
+        const totalWidth = contentMaxWidth + basePadding * 2;
 
-        const targetWidth = Math.max(100 * this.settings.scale, totalWidth);
-        const targetHeight = Math.max(this.minBoxHeight, calculatedHeight);
+        const targetWidth = Math.max(100 * scale, totalWidth);
+        const targetHeight = Math.max(minBoxHeight, calculatedHeight);
 
         id.width = targetWidth;
         id.height = targetHeight;
 
-        let x = this.settings.x;
-        let y = this.settings.y;
+        let x = settings.x;
+        let y = settings.y;
 
         const sw = screenSize ? screenSize.sw : null;
         const sh = screenSize ? screenSize.sh : null;
@@ -420,10 +499,10 @@ class OverlayUtils {
         }
 
         const currentHeight = id.height * progress;
-        const radius = CORNER_RADIUS * this.settings.scale;
+        const radius = CORNER_RADIUS * scale;
         const bgColor = colorWithAlpha(THEME.OV_WINDOW, 0.95 * progress);
 
-        drawShadow(x, y, id.width, currentHeight, 12 * this.settings.scale, 0.45 * progress);
+        drawShadow(x, y, id.width, currentHeight, 12 * scale, 0.45 * progress);
         drawRoundedRectangleWithBorder({
             x: x,
             y: y,
@@ -431,47 +510,48 @@ class OverlayUtils {
             height: currentHeight,
             radius: radius,
             color: bgColor,
-            borderWidth: BORDER_WIDTH * this.settings.scale,
-            borderColor: colorWithAlpha(THEME.OV_BORDER, 0.7 * progress),
+            borderWidth: BORDER_WIDTH * scale,
+            borderColor: borderColor,
         });
 
-        this.drawAccentGlow(x, y, id.width, currentHeight, radius, progress * 0.4);
+        this.drawAccentGlow(x, y, id.width, currentHeight, radius, progress * 0.4, glowColor);
 
         if (progress > 0.1) {
             const contentAlpha = Math.min(1, progress * 3);
 
             try {
                 NVG.scissor(x, y, id.width, currentHeight);
-                const titleY = y + 20 * this.settings.scale;
-                const titleX = x + id.width / 2 - getTextWidth(id.name, this.fontSize) / 2;
+                const titleY = y + 20 * scale;
+                const titleX = x + id.width / 2 - getTextWidth(id.name, fontSize) / 2;
+                const titleAlign = 16;
 
-                drawText(id.name, titleX + 1, titleY + 1, this.fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), 16);
-                drawText(id.name, titleX, titleY, this.fontSize, colorWithAlpha(0xffffff, contentAlpha), 16);
+                drawText(id.name, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), titleAlign);
+                drawText(id.name, titleX, titleY, fontSize, colorWithAlpha(0xffffff, contentAlpha), titleAlign);
 
-                let contentY = titleY + 10 * this.settings.scale;
+                let contentY = titleY + 10 * scale;
 
                 renderSections.forEach((section) => {
-                    this.drawSectionDivider(x + 10 * this.settings.scale, contentY, id.width - 20 * this.settings.scale, contentAlpha);
-                    contentY += 10 * this.settings.scale;
+                    this.drawSectionDivider(x + 10 * scale, contentY, id.width - 20 * scale, contentAlpha, accentColor);
+                    contentY += 10 * scale;
 
-                    const leftAlignX = x + this.boxPadding;
+                    const leftAlignX = x + basePadding;
 
                     if (section.title) {
-                        drawText(section.title.toUpperCase(), leftAlignX, contentY, this.argFontSize * 0.85, colorWithAlpha(THEME.ACCENT, contentAlpha), 17);
-                        contentY += 14 * this.settings.scale;
+                        drawText(section.title.toUpperCase(), leftAlignX, contentY, argFontSize * 0.8, colorWithAlpha(accentColor, contentAlpha), 17);
+                        contentY += headerHeight - 6 * scale;
                     }
 
                     section.lines.forEach((line) => {
-                        drawText(line.label, leftAlignX, contentY, this.argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
+                        drawText(line.label, leftAlignX, contentY, argFontSize, colorWithAlpha(0xff8a94a0, contentAlpha), 17);
 
-                        const valueX = x + id.width - this.boxPadding;
-                        const valueColor = line.isUptime ? colorWithAlpha(THEME.ACCENT, contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
+                        const valueX = x + id.width - basePadding;
+                        const valueColor = line.isUptime ? colorWithAlpha(accentColor, contentAlpha) : colorWithAlpha(0xffffff, 0.92 * contentAlpha);
 
-                        drawText(String(line.value), valueX, contentY, this.argFontSize, valueColor, 20);
+                        drawText(String(line.value), valueX, contentY, argFontSize, valueColor, 20);
 
-                        contentY += 14 * this.settings.scale;
+                        contentY += rowHeight;
                     });
-                    contentY += 4 * this.settings.scale;
+                    contentY += 4 * scale;
                 });
             } finally {
                 NVG.resetScissor();
@@ -479,7 +559,11 @@ class OverlayUtils {
         }
 
         if (forceGUI) {
-            this.currentExampleBox = { x, y, width: id.width, height: id.height };
+            if (isScheduler) {
+                this.currentSchedulerExampleBox = { x, y, width: id.width, height: id.height };
+            } else {
+                this.currentExampleBox = { x, y, width: id.width, height: id.height };
+            }
         }
     }
 
@@ -492,9 +576,11 @@ class OverlayUtils {
         try {
             NVG.beginFrame(sw, sh);
             const example = this.getExampleOverlay();
+            const schedulerExample = this.getSchedulerExampleOverlay();
             this.renderID(example, true, { sw, sh });
+            this.renderID(schedulerExample, true, { sw, sh });
 
-            const text = 'Drag the example module to reposition. Scroll to resize.';
+            const text = 'Drag the example module or scheduler panel to reposition. Scroll to resize.';
             const textWidth = getTextWidth(text, FontSizes.MEDIUM);
             drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, 0xffffffff, 16);
         } catch (e) {
@@ -533,18 +619,39 @@ class OverlayUtils {
     }
 
     saveSettings() {
-        Utils.writeConfigFile('overlays.json', this.settings);
+        Utils.writeConfigFile('overlays.json', {
+            default: this.settings,
+            scheduler: this.schedulerSettings,
+        });
     }
 
     loadSettings() {
         const data = Utils.getConfigFile('overlays.json');
-        if (data && typeof data.x === 'number') {
-            this.settings = {
-                x: data.x,
-                y: data.y,
-                scale: data.scale || 1.2,
-            };
-            this.updateScaleDependents();
+        if (data) {
+            if (data.default && typeof data.default.x === 'number') {
+                this.settings = {
+                    x: data.default.x,
+                    y: data.default.y,
+                    scale: data.default.scale || 1.2,
+                };
+            } else if (typeof data.x === 'number') {
+                this.settings = {
+                    x: data.x,
+                    y: data.y,
+                    scale: data.scale || 1.2,
+                };
+            }
+
+            if (data.scheduler && typeof data.scheduler.x === 'number') {
+                this.schedulerSettings = {
+                    x: data.scheduler.x,
+                    y: data.scheduler.y,
+                    scale: data.scheduler.scale || 1.0,
+                };
+            }
+
+            this.updateScaleProps('default');
+            this.updateScaleProps('scheduler');
         }
     }
 
