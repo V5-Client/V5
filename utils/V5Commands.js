@@ -1,5 +1,6 @@
 import { Chat } from './Chat';
 import { File, Desktop } from './Constants';
+import { ServerInfo } from './player/ServerInfo';
 
 const commands = {};
 
@@ -37,6 +38,7 @@ Commands.registerCommand('v5', () => {
         exec(() => {
             Chat.message('&bV5 Command Help:');
             Chat.message('&7/v5 gui &f- Open the main GUI');
+            Chat.message('&7/v5 tps/ping &f- Show server TPS and ping');
             Chat.message('&7/v5 clip save &f- Save latest recording');
             Chat.message('&7/v5 mining (stats | refuel | maxge) &f');
             Chat.message('&7/v5 path ... &f- Pathfinder utilities');
@@ -274,6 +276,42 @@ Commands.registerCommand('v5', () => {
             exec(() => {
                 ChatLib.command('stopRotation');
             });
+        });
+    });
+
+    /* ---------- Server Info ---------- */
+    const getTpsColor = (tps) => {
+        if (tps > 19.8) return '&2';
+        if (tps > 19) return '&a';
+        if (tps > 17.5) return '&6';
+        if (tps > 12) return '&c';
+        return '&4';
+    };
+
+    const getPingColor = (ping) => {
+        if (ping < 50) return '&a';
+        if (ping < 100) return '&2';
+        if (ping < 149) return '&e';
+        if (ping < 249) return '&6';
+        return '&c';
+    };
+
+    const showServerInfo = () => {
+        const { tps, ping } = ServerInfo.getServerInfo();
+        const tpsColor = getTpsColor(tps);
+        const pingColor = getPingColor(ping);
+        Chat.message(`TPS ${tpsColor}${tps}&f | Ping ${pingColor}${ping}ms`);
+    };
+
+    literal('tps', () => {
+        exec(() => {
+            showServerInfo();
+        });
+    });
+
+    literal('ping', () => {
+        exec(() => {
+            showServerInfo();
         });
     });
 
