@@ -197,7 +197,6 @@ class GemstoneMacro extends ModuleBase {
 
                     this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x, this.closestPoint.y, this.closestPoint.z]);
 
-                    // Check if we arrived
                     if (this.dist.distance < 2) {
                         this.message(`Arrived at point ${this.closestPointIndex + 1}.`);
                         this.closestPoint = null;
@@ -211,7 +210,6 @@ class GemstoneMacro extends ModuleBase {
                         return;
                     }
 
-                    // Handle the rotation and teleportation
                     if (!this.rotatedToPoint) {
                         Guis.setItemSlot(aotv);
                         Keybind.setKey('shift', true);
@@ -232,23 +230,19 @@ class GemstoneMacro extends ModuleBase {
                         this.rotatedToPoint = true;
                     }
 
-                    // Logic for handling "What happens after the click"
                     if (this.attemptedEtherwarp) {
                         let hasMoved = Math.abs(Player.getX() - this.lastX) > 0.1 || Math.abs(Player.getY() - this.lastY) > 0.1;
 
                         if (hasMoved) {
-                            // If we moved, but the distance is still > 2, reset rotation to try again
                             if (this.dist.distance >= 2) {
                                 this.rotatedToPoint = false;
                                 this.attemptedEtherwarp = false;
                                 this.etherwarpTicks = 0;
                             } else {
-                                // Arrived (will be caught by the distance check at the top of next tick)
                                 this.attemptedEtherwarp = false;
                                 this.etherwarpTicks = 0;
                             }
                         } else {
-                            // Stuck or teleport failed to register
                             this.etherwarpTicks++;
                             if (this.etherwarpTicks % 20 === 0) {
                                 this.recalculateEtherWarp(this.etherwarpTicks / 20);
@@ -259,27 +253,20 @@ class GemstoneMacro extends ModuleBase {
                 case this.STATES.MINING:
                     MiningBot.FOVPenalty = false;
 
-                    // 1. Trigger the scan once
                     if (!this.scanned) {
                         MiningBot.foundLocations = [];
                         MiningBot.scanForBlock(this.gemstoneCosts);
                         this.scanned = true;
-                        return; // STOP HERE. Wait for the next tick to give the async scan time to work.
+                        return;
                     }
 
-                    // 2. Wait for the scan to finish
                     if (MiningBot.isScanning()) {
-                        return; // Still searching... don't do anything yet.
+                        return;
                     }
 
-                    // 3. NOW check the results
                     if (MiningBot.foundLocations.length > 0) {
                         if (!MiningBot.enabled) MiningBot.toggle(true, true);
-
-                        // We found gems! Keep the bot enabled.
                     } else {
-                        // WE ACTUALLY FINISHED SCANNING AND THE LIST IS EMPTY
-                        // this.message('&eNo gems found at this spot, moving on.');
                         MiningBot.foundLocations = [];
                         MiningBot.toggle(false, true);
                         this.scanned = false;
@@ -448,19 +435,16 @@ class GemstoneMacro extends ModuleBase {
 
         Mouse.ungrab();
 
-        // Reset Logic State
         this.state = this.STATES.DECIDING;
         this.scanned = false;
         this.miningBotEnabled = false;
 
-        // Reset Navigation Variables
         this.closestPoint = null;
         this.rawPoint = null;
         this.closestPointIndex = null;
         this.rotatedToPoint = false;
         this.attemptedEtherwarp = false;
 
-        // Reset Counters/Timers
         this.etherwarpAttempts = 0;
         this.etherwarpTicks = 0;
         this.scanTickTimeout = 0;
@@ -469,7 +453,6 @@ class GemstoneMacro extends ModuleBase {
     }
 
     onDisable() {
-        // Clear Global/External States
         RouteState.clearRoute();
         Rotations.stopRotation();
         MiningBot.toggle(false, true);
@@ -477,19 +460,16 @@ class GemstoneMacro extends ModuleBase {
         Keybind.unpressKeys();
         Mouse.regrab();
 
-        // Reset Local Logic State
         this.state = this.STATES.WAITING;
         this.scanned = false;
         this.miningBotEnabled = false;
 
-        // Reset Navigation Variables
         this.closestPoint = null;
         this.rawPoint = null;
         this.closestPointIndex = null;
         this.rotatedToPoint = false;
         this.attemptedEtherwarp = false;
 
-        // Reset Counters/Timers
         this.etherwarpAttempts = 0;
         this.etherwarpTicks = 0;
         this.scanTickTimeout = 0;
