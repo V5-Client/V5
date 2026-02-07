@@ -12,6 +12,7 @@ import { Recovery } from './PathWalker/PathRecovery';
 import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
 import { PathExecutor } from './PathExecutor';
+import { ScheduleTask } from '../ScheduleTask';
 
 class Finder {
     constructor() {
@@ -190,16 +191,14 @@ class Finder {
 
         this.saidInfo = false;
 
-        setTimeout(() => {
+        ScheduleTask(3, () => {
             if (this.currentEnd === null) return;
-
             this.currentEnd = end;
             this.currentCallback = callback;
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
-
             this.findPath(end, callback, false);
-        }, 250);
+        });
     }
 
     retryRecalculate() {
@@ -212,7 +211,7 @@ class Finder {
 
         this.saidInfo = false;
 
-        setTimeout(() => {
+        ScheduleTask(5, () => {
             if (this.currentEnd === null) return;
 
             this.currentEnd = end;
@@ -221,7 +220,7 @@ class Finder {
             this.recalculateAttempts = attempts;
 
             this.findPath(end, callback, false);
-        }, 200);
+        });
     }
 
     checkIfReachedDestination() {
