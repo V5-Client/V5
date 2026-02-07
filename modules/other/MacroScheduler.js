@@ -154,7 +154,11 @@ class MacroScheduler extends ModuleBase {
     }
 
     handleIdle() {
-        const enabled = MacroState.getEnabledMacros();
+        const enabled = MacroState.getEnabledMacros().filter((name) => {
+            const module = MacroState.getModule(name);
+            return module && !module.isParentManaged;
+        });
+
         if (enabled.length > 0) {
             this.trackedMacros = [...enabled];
             this.beginSession();
@@ -163,7 +167,10 @@ class MacroScheduler extends ModuleBase {
 
     handleRunning() {
         const now = Date.now();
-        const enabled = MacroState.getEnabledMacros();
+        const enabled = MacroState.getEnabledMacros().filter((name) => {
+            const module = MacroState.getModule(name);
+            return module && !module.isParentManaged;
+        });
 
         if (enabled.length === 0) {
             this.state = STATE.IDLE;
@@ -268,7 +275,7 @@ class MacroScheduler extends ModuleBase {
     startTrackedMacros() {
         this.trackedMacros.forEach((name) => {
             const module = MacroState.getModule(name);
-            if (module) module.toggle(true, true);
+            if (module) module.toggle(true, false);
         });
     }
 

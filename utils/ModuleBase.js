@@ -132,7 +132,7 @@ export class ModuleBase {
                 MacroState.onModuleEnabled(this.name);
             }
 
-            if (this.oid) {
+            if (this.oid && !this.isParentManaged) {
                 OverlayManager.startTime(this.oid, this.isMacro);
             }
 
