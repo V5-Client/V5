@@ -209,7 +209,7 @@ export class ModuleBase {
         this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
 
         this._wrappedKey.onKeyPress(() => {
-            if (this.enabled && this.isParentManaged && !this.isMacro) {
+            if (this.enabled && this.isParentManaged) {
                 notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
                 return;
             }
