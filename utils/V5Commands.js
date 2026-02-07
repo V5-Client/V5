@@ -159,6 +159,14 @@ Commands.registerCommand('v5', () => {
             });
         });
 
+        literal('fly', () => {
+            argument('args', greedyString(), () => {
+                exec(({ args }) => {
+                    callCommand('flypath', args);
+                });
+            });
+        });
+
         literal('stop', () => {
             exec(() => {
                 callCommand('stopPath');

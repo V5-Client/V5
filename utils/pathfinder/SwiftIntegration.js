@@ -5,8 +5,9 @@ class SwiftIntegration {
         this.pathManager = PathManager;
     }
 
-    SwiftPath(startX, startY, startZ, endInput) {
+    SwiftPath(startX, startY, startZ, endInput, isFly = false) {
         let flatGoals = [];
+
         if (Array.isArray(endInput) && Array.isArray(endInput[0])) {
             endInput.forEach((coord) => flatGoals.push(...coord));
         } else {
@@ -16,12 +17,19 @@ class SwiftIntegration {
         try {
             const javaArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, flatGoals.length);
             for (let i = 0; i < flatGoals.length; i++) {
-                javaArray[i] = i % 3 === 1 ? flatGoals[i] + 1 : flatGoals[i];
+                javaArray[i] = i % 3 === 1 && !isFly ? Math.floor(flatGoals[i]) + 1 : Math.floor(flatGoals[i]);
             }
 
-            return this.pathManager.findPathMultipleGoals(startX, startY + 1, startZ, javaArray);
+            return this.pathManager.findPathMultipleGoals(
+                Math.floor(startX),
+                isFly ? Math.floor(startY) : Math.floor(startY) + 1,
+                Math.floor(startZ),
+                javaArray,
+                500000,
+                isFly
+            );
         } catch (e) {
-            console.error('SwiftPath Error converting array: ' + e);
+            console.error('SwiftPath Error: ' + e);
             return false;
         }
     }

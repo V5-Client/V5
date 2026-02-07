@@ -11,41 +11,60 @@ import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import RouteState from '../../utils/RouteState';
-import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { PlayerInteractBlockC2S, PlayerInteractItemC2S } from '../../utils/Packets';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ScheduleTask } from '../../utils/ScheduleTask';
+import { Mouse } from '../../utils/Ungrab';
+import { ServerInfo } from '../../utils/player/ServerInfo';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {
         super({
             name: 'Gemstone Macro',
             subcategory: 'Mining',
-            description: 'Gemstone Miner for the Crystal Hollows',
-            tooltip: 'Gemstone Miner for the Crystal Hollows',
+            description: 'Macro for gemstones',
+            tooltip: 'Macro for gemstones',
             showEnabledToggle: false,
             isMacro: true,
+            autoDisableOnWorldUnload: true,
         });
+
+        this.gemstoneCosts = {
+            'minecraft:orange_stained_glass': 4,
+            'minecraft:orange_stained_glass_pane': 4,
+            'minecraft:purple_stained_glass': 4,
+            'minecraft:purple_stained_glass_pane': 4,
+            'minecraft:lime_stained_glass': 4,
+            'minecraft:lime_stained_glass_pane': 4,
+            'minecraft:magenta_stained_glass': 4,
+            'minecraft:magenta_stained_glass_pane': 4,
+            'minecraft:red_stained_glass': 4,
+            'minecraft:red_stained_glass_pane': 4,
+            'minecraft:light_blue_stained_glass': 4,
+            'minecraft:light_blue_stained_glass_pane': 4,
+            'minecraft:yellow_stained_glass': 4,
+            'minecraft:yellow_stained_glass_pane': 4,
+        };
+
         this.bindToggleKey();
+        this.setTheme('#fb42f5');
+
         this.FASTAOTV = false;
         this.MOBKILLER = false;
-        this.WEAPONSLOT = 0;
-        this.TYPES = null;
-        this.PRESETTICKS = false;
-        this.TICKSWITHOUTMSB = 0;
-        this.TICKSWITHMSB = 0;
 
-        this.AMBER = false;
-        this.AMETHYST = false;
-        this.JADE = false;
-        this.JASPER = false;
         this.RUBY = false;
         this.SAPPHIRE = false;
+        this.AMETHYST = false;
         this.TOPAZ = false;
+        this.JADE = false;
+        this.JASPER = false;
+        this.AMBER = false;
 
         this.STATES = {
             WAITING: 0,
-            ETHERWARPING: 1,
-            MINING: 2,
+            DECIDING: 1,
+            ETHERWARPING: 2,
+            MINING: 3,
         };
 
         this.state = this.STATES.WAITING;
@@ -53,104 +72,72 @@ class GemstoneMacro extends ModuleBase {
         this.routesDir = Router.getFilesinDir('GemstoneRoutes');
         this.route = null;
         this.loadedFile = null;
+
         this.closestPoint = null;
         this.rawPoint = null;
         this.closestPointIndex = null;
+
         this.rotatedToPoint = false;
         this.attemptedEtherwarp = false;
         this.etherwarpAttempts = 0;
         this.etherwarpTicks = 0;
         this.playerPos = null;
+
+        this.miningBotEnabled = false;
         this.scanned = false;
-        this.miningTargetVec = null;
+        this.locations = null;
+        this.scanTimeout = 0;
 
         this.createOverlay([
             {
                 title: 'Status',
                 data: {
-                    State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length}` : 'No Route'),
-                    'Etherwarp Attempts': () => this.etherwarpAttempts,
+                    State: () => {
+                        const key = Object.keys(this.STATES).find((k) => this.STATES[k] === this.state) || 'Unknown';
+                        return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+                    },
+                    'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length + 1}` : 'No Route'),
+                    'Targets Found': () => MiningBot.foundLocations.length,
+                    TPS: () => ServerInfo.getTPS().toFixed(1),
                 },
             },
         ]);
 
-        register('postRenderWorld', () => {
-            if (!this.rawPoint) return;
-
-            this.raytraceBlockFaces(this.rawPoint);
-        });
-
-        register('command', (action, arg1, indexArg) => {
-            let indexNum = undefined;
-            let lookPoint = false;
-            let movement = false;
-
-            if (!action) {
-                Chat.message('§cAction required: "add", "remove", "clear"');
-                return;
-            }
-
-            if (arg1 !== undefined && !isNaN(parseInt(arg1)) && indexArg === undefined) {
-                indexArg = arg1;
-                arg1 = undefined;
-            }
-
-            if (arg1 && arg1.toUpperCase() === 'MINEABLE') {
-                lookPoint = true;
-            }
-
-            if (arg1 !== undefined) {
-                movement = true;
-            }
-
-            if (indexArg !== undefined) {
-                let parsedNum = parseInt(indexArg);
-                if (!isNaN(parsedNum) && parsedNum >= 1) indexNum = parsedNum;
-            }
-
-            let allowedMovements = ['WALK', 'MINEABLE'];
-
-            this.route = Router.Edit(
-                action.toUpperCase(),
-                this.route,
-                'GemstoneRoutes/' + this.loadedFile,
-                indexNum,
-                movement,
-                allowedMovements,
-                arg1,
-                lookPoint
-            );
+        register('command', (action, indexArg) => {
+            const actionUpper = action.toUpperCase();
+            const indexNum = indexArg && !isNaN(indexArg) ? parseInt(indexArg) : undefined;
+            this.route = Router.Edit(actionUpper, this.route, `GemstoneRoutes/${this.loadedFile}`, indexNum);
         }).setName('gemstone');
 
         this.when(
-            () => {
-                return true; // Utils.area() === 'Crystal Hollows';
-            },
-            false,
+            () => Utils.area() === 'Crystal Hollows',
             'postRenderWorld',
             () => {
                 if (!this.route || this.route.length < 1) return;
 
+                const amethyst = [125, 18, 255];
+
                 for (let i = 0; i < this.route.length; i++) {
                     const current = this.route[i];
+                    if (!current || typeof current.x !== 'number') continue;
 
-                    if (current && typeof current.x === 'number' && typeof current.y === 'number' && typeof current.z === 'number') {
-                        let boxColor, edgeColor;
+                    const pos = new Vec3d(current.x, current.y, current.z);
 
-                        // Color Logic: Red for WALK, Green for MINEABLE, Purple for everything else
-                        if (current.movements === 'WALK') {
-                            boxColor = Render.Color(255, 50, 50, 100); // Balanced Red
-                            edgeColor = Render.Color(255, 50, 50, 255);
-                        } else if (current.movements === 'MINEABLE') {
-                            boxColor = Render.Color(0, 255, 0, 100); // Green
-                            edgeColor = Render.Color(0, 255, 0, 255);
-                        } else {
-                            boxColor = Render.Color(145, 70, 255, 100); // Balanced Purple
-                            edgeColor = Render.Color(145, 70, 255, 255);
+                    Render.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                    Render.drawStyledBox(pos, Render.Color(...amethyst, 80), Render.Color(...amethyst, 255), 2, false);
+
+                    const nextIndex = (i + 1) % this.route.length;
+
+                    if (this.route.length > 1) {
+                        const next = this.route[nextIndex];
+                        if (next && typeof next.x === 'number') {
+                            Render.drawLine(
+                                new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
+                                new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
+                                Render.Color(...amethyst, 255),
+                                2
+                            );
                         }
-
-                        Render.drawStyledBox(new Vec3d(current.x, current.y, current.z), boxColor, edgeColor, 5, current.movements === 'MINEABLE');
                     }
                 }
             }
@@ -160,241 +147,146 @@ class GemstoneMacro extends ModuleBase {
             MiningBot.setCost(this.getGemstoneCosts());
 
             switch (this.state) {
-                case this.STATES.ETHERWARPING:
-                    if (this.route?.length <= 1) {
-                        this.toggle(false);
+                // put into etherwarping but gemini wanted to dislike me and do this
+                case this.STATES.DECIDING:
+                    if (!this.route || this.route.length <= 1) {
                         this.message('&cRoute needs at least 2 points!');
+                        this.toggle(false);
                         return;
                     }
+                    if (this.closestPointIndex === null) {
+                        let found = this.getClosestPoint();
+                        if (!found) return;
+                        this.closestPointIndex = found.index;
+                    }
+                    this.state = this.STATES.ETHERWARPING;
+                    break;
 
+                case this.STATES.ETHERWARPING:
                     MiningBot.toggle(false);
                     Keybind.setKey('leftclick', false);
-
-                    let aotv = Guis.findItemInHotbar('Aspect of the Void') || Guis.findItemInHotbar('Aspect of the End');
-
-                    if (aotv === -1) {
-                        this.toggle(false);
-                        this.message('&cYou dont have an Etherwarping item!');
-                        return;
-                    }
-
-                    Guis.setItemSlot(aotv);
+                    let aotv = Guis.findItemInHotbar('Aspect of the Void');
 
                     if (!this.closestPoint) {
-                        this.closestPoint = this.getClosestPoint();
-                        if (!this.closestPoint?.point) return;
+                        let currentPoint = this.route[this.closestPointIndex];
+                        let block = World.getBlockAt(currentPoint.x, currentPoint.y, currentPoint.z);
 
-                        this.rawPoint = this.closestPoint.point;
-                        this.closestPointIndex = this.closestPoint.index;
+                        if (block?.type?.getID() === 0 || block?.type?.getID() === 200) {
+                            this.message(`&cPoint is unreachable!`);
+                            this.toggle(false);
+                            return;
+                        }
 
-                        let target = this.getPointOnBlock(this.closestPoint.point);
+                        if (!this.isEtherWarpable(block)) {
+                            this.message(`&cPoint cannot be etherwarped to!`);
+                            this.toggle(false);
+                            return;
+                        }
+
+                        let target = this.getPointOnBlock(currentPoint);
                         if (!target) {
-                            Chat.message('&cNext point has been destroyed!');
+                            this.message('&cNext point is not visible!');
                             this.toggle(false);
                             return;
                         }
                         this.closestPoint = target;
-                    }
-
-                    let pointBlock = World.getBlockAt(this.rawPoint.x, this.rawPoint.y, this.rawPoint.z);
-                    if (pointBlock?.type?.getID() === 0 || pointBlock?.type?.getID() === 188) {
-                        this.message('&cpoint is air or a chest?');
-                        this.toggle(false);
-                        return;
-                    }
-
-                    this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x + 0.5, this.closestPoint.y + 0.5, this.closestPoint.z + 0.5]);
-                    this.distance = this.dist.distance;
-
-                    if (this.distance > 60) {
-                        this.message('Point is too far to etherwarp to!');
-                        this.toggle(false);
-                        return;
-                    }
-
-                    if (this.distance < 2 && !this.rotatedToPoint) {
+                        this.rawPoint = currentPoint;
                         this.rotatedToPoint = false;
+                        this.attemptedEtherwarp = false;
+                    }
 
-                        let searchIndex = this.closestPointIndex;
-                        let foundNext = false;
+                    this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x, this.closestPoint.y, this.closestPoint.z]);
 
-                        for (let i = 0; i < this.route.length; i++) {
-                            searchIndex = (searchIndex + 1) % this.route.length;
-                            if (this.route[searchIndex].movements !== 'MINEABLE') {
-                                this.closestPointIndex = searchIndex;
-                                foundNext = true;
-                                break;
-                            }
-                        }
+                    // Check if we arrived
+                    if (this.dist.distance < 2) {
+                        this.message(`Arrived at point ${this.closestPointIndex + 1}.`);
+                        this.closestPoint = null;
+                        this.rotatedToPoint = false;
+                        this.attemptedEtherwarp = false;
+                        this.etherwarpTicks = 0;
+                        this.closestPointIndex = (this.closestPointIndex + 1) % this.route.length;
+                        MiningBot.equipDrill = false;
 
-                        if (!foundNext) {
-                            this.message('No more points found!');
-                            this.toggle(false);
-                            return;
-                        }
-
-                        let nextPoint = this.getPointOnBlock(this.route[this.closestPointIndex]);
-                        if (!nextPoint) {
-                            this.message('&cNext point isnt visible!');
-                            this.toggle(false);
-                            return;
-                        }
-
-                        this.closestPoint = nextPoint;
-                        this.rawPoint = this.route[this.closestPointIndex];
+                        this.state = this.STATES.MINING;
                         return;
                     }
 
+                    // Handle the rotation and teleportation
                     if (!this.rotatedToPoint) {
+                        Guis.setItemSlot(aotv);
                         Keybind.setKey('shift', true);
                         if (!Player.getPlayer().isSneaking()) return;
 
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {
-                            ScheduleTask(this.FASTAOTV ? 4 : 7, () => {
-                                if (!this.enabled) return;
-                                Keybind.rightClick();
+                            if (!this.enabled) return;
+                            ScheduleTask(this.FASTAOTV ? 2 : 5, () => {
+                                this.rightClickEtherWarp(this.closestPoint);
                                 this.attemptedEtherwarp = true;
-                                this.etherwarpAttempts++;
-
                                 this.lastX = Player.getX();
                                 this.lastY = Player.getY();
                                 this.lastZ = Player.getZ();
-
-                                this.prepartionTicks = 0;
-                                this.state = this.STATES.MINING;
+                                Keybind.setKey('shift', false);
                             });
                         });
                         this.rotatedToPoint = true;
                     }
 
+                    // Logic for handling "What happens after the click"
                     if (this.attemptedEtherwarp) {
-                        let hasMoved =
-                            Math.abs(Player.getX() - this.lastX) > 0.5 ||
-                            Math.abs(Player.getY() - this.lastY) > 0.5 ||
-                            Math.abs(Player.getZ() - this.lastZ) > 0.5;
+                        let hasMoved = Math.abs(Player.getX() - this.lastX) > 0.1 || Math.abs(Player.getY() - this.lastY) > 0.1;
 
                         if (hasMoved) {
-                            this.rotatedToPoint = false;
-                            this.attemptedEtherwarp = false;
-                            this.etherwarpAttempts = 0;
-                            this.etherwarpTicks = 0;
-                            return;
-                        }
-
-                        this.etherwarpTicks++;
-                        if (this.etherwarpTicks === 20) this.recalculateEtherWarp(1);
-                        if (this.etherwarpTicks === 40) this.recalculateEtherWarp(2);
-                        if (this.etherwarpTicks === 60) this.recalculateEtherWarp(3);
-                    }
-
-                    if (this.rotatedToPoint) {
-                        if (this.distance < 2) {
-                            this.rotatedToPoint = false;
-                            this.closestPointIndex++;
-                            RouteState.setCurrentIndex(this.closestPointIndex);
-
-                            let target = this.getPointOnBlock(this.route[this.closestPointIndex]);
-                            if (!target) {
-                                // this.message('Next point face is not visible!');
-                                this.toggle(false);
-                                return;
+                            // If we moved, but the distance is still > 2, reset rotation to try again
+                            if (this.dist.distance >= 2) {
+                                this.rotatedToPoint = false;
+                                this.attemptedEtherwarp = false;
+                                this.etherwarpTicks = 0;
+                            } else {
+                                // Arrived (will be caught by the distance check at the top of next tick)
+                                this.attemptedEtherwarp = false;
+                                this.etherwarpTicks = 0;
                             }
-
-                            this.closestPoint = target;
-                            this.rawPoint = this.route[this.closestPointIndex];
+                        } else {
+                            // Stuck or teleport failed to register
+                            this.etherwarpTicks++;
+                            if (this.etherwarpTicks % 20 === 0) {
+                                this.recalculateEtherWarp(this.etherwarpTicks / 20);
+                            }
                         }
                     }
                     break;
                 case this.STATES.MINING:
-                    const { drill } = MiningUtils.getDrills();
-                    if (!drill) {
-                        Chat.message('&cNo drill found in ABILITY state!');
-                        this.toggle(false);
-                        return;
+                    MiningBot.FOVPenalty = false;
+
+                    // 1. Trigger the scan once
+                    if (!this.scanned) {
+                        MiningBot.foundLocations = [];
+                        MiningBot.scanForBlock(this.gemstoneCosts);
+                        this.scanned = true;
+                        return; // STOP HERE. Wait for the next tick to give the async scan time to work.
                     }
 
-                    if (Player.getHeldItemIndex() !== drill.slot) {
-                        Guis.setItemSlot(drill.slot);
-                        return;
+                    // 2. Wait for the scan to finish
+                    if (MiningBot.isScanning()) {
+                        return; // Still searching... don't do anything yet.
                     }
 
-                    this.prepartionTicks++;
+                    // 3. NOW check the results
+                    if (MiningBot.foundLocations.length > 0) {
+                        if (!MiningBot.enabled) MiningBot.toggle(true, true);
 
-                    let focusedMineables = [];
-                    let ignoredMineables = [];
-
-                    for (let i = 0; i < this.route.length; i++) {
-                        let checkIndex = (this.closestPointIndex + i) % this.route.length;
-                        let point = this.route[checkIndex];
-                        if (point.movements !== 'MINEABLE') continue;
-
-                        let block = World.getBlockAt(point.x, point.y, point.z);
-                        let reg = block?.type?.getRegistryName();
-
-                        let dist = MathUtils.getDistanceToPlayer(point.x, point.y, point.z).distance;
-
-                        if (dist >= 4.5) continue;
-
-                        const hit = this.raytraceBlockFaces(point);
-
-                        if (hit) {
-                            point.tempHit = hit;
-                            if (!reg.includes('air') && !reg.includes('bedrock')) focusedMineables.push(point);
-                            else ignoredMineables.push(point);
-                        }
-                    }
-
-                    if (focusedMineables.length > 0) {
-                        MiningBot.populateLocations(focusedMineables);
-
-                        if (!this.miningTargetVec) {
-                            let p = focusedMineables[0];
-
-                            this.miningTargetVec = {
-                                vec: {
-                                    x: p.tempHit.hitPos.x,
-                                    y: p.tempHit.hitPos.y,
-                                    z: p.tempHit.hitPos.z,
-                                },
-                                rawX: p.x,
-                                rawY: p.y,
-                                rawZ: p.z,
-                            };
-                        }
-
-                        return;
-                    } else if (ignoredMineables.length > 0) {
-                        if (this.prepartionTicks < 20) return;
-
-                        Chat.message('Theres mineables but they are broken');
-
-                        this.state = this.STATES.ETHERWARPING;
-                        return;
+                        // We found gems! Keep the bot enabled.
                     } else {
-                        if (!this.scanned) {
-                            this.scanned = true;
-                            MiningBot.scanForBlock(this.getGemstoneCosts());
-                        }
-
-                        if (MiningBot.foundLocations.length > 0) {
-                            Chat.message('Found ' + MiningBot.foundLocations.length + ' gemstones');
-                            MiningBot.toggle(true, true);
-                            return;
-                        }
-
-                        if (MiningBot.foundLocations.length === 0) {
-                            if (this.prepartionTicks < 20) return;
-
-                            MiningBot.toggle(false);
-                            MiningBot.foundLocations = [];
-
-                            Chat.message('No more gemstones found');
-                            this.state = this.STATES.ETHERWARPING;
-                            this.scanned = false;
-                            return;
-                        }
+                        // WE ACTUALLY FINISHED SCANNING AND THE LIST IS EMPTY
+                        // this.message('&eNo gems found at this spot, moving on.');
+                        MiningBot.foundLocations = [];
+                        MiningBot.toggle(false, true);
+                        this.scanned = false;
+                        this.state = this.STATES.DECIDING;
                     }
+
+                    break;
             }
         });
 
@@ -409,168 +301,92 @@ class GemstoneMacro extends ModuleBase {
             },
             'The route the macro will use'
         );
+
         this.addMultiToggle(
             'Gemstone Types',
-            ['Ruby', 'Amethyst', 'Sapphire', 'Topaz', 'Amber', 'Jade', 'Jasper'],
+            ['Ruby', 'Sapphire', 'Amethyst', 'Topaz', 'Jade', 'Jasper', 'Amber'],
             false,
             (selected) => {
                 const setHas = (name) => selected.some((item) => item.name === name && item.enabled === true);
-                this.AMBER = setHas('Amber');
-                this.AMETHYST = setHas('Amethyst');
-                this.JADE = setHas('Jade');
-                this.JASPER = setHas('Jasper');
                 this.RUBY = setHas('Ruby');
                 this.SAPPHIRE = setHas('Sapphire');
+                this.AMETHYST = setHas('Amethyst');
                 this.TOPAZ = setHas('Topaz');
+                this.JADE = setHas('Jade');
+                this.JASPER = setHas('Jasper');
+                this.AMBER = setHas('Amber');
             },
-            'Type of gemstones the macro is able to target'
+            'The types of gemstones to mine'
         );
-        this.addToggle(
-            'Fast AOTV',
-            (value) => {
-                this.FASTAOTV = value;
-            },
-            'Decreased amount of ticks before it sends the right click packet'
-        );
-        this.addToggle(
-            'Mob Killer',
-            (value) => {
-                this.MOBKILLER = value;
-            },
-            'Kills mobs if they are in a certain radius'
-        );
-        this.addSlider(
-            'Weapon Slot',
-            1,
-            9,
-            1,
-            (value) => {
-                this.WEAPONSLOT = value;
-            },
-            'Slot of your melee weapon'
-        );
-    }
 
-    recalculateEtherWarp(intensity) {
-        this.rotatedToPoint = false;
-        this.etherwarpAttempts++;
-
-        let newTarget = this.getPointOnBlock(this.rawPoint);
-        let multiplier = intensity === 1 ? 0.05 : intensity === 2 ? 0.2 : 0.5;
-
-        if (newTarget) {
-            this.closestPoint = {
-                x: newTarget.x + (Math.random() - 0.5) * multiplier,
-                y: newTarget.y + (Math.random() - 0.5) * multiplier,
-                z: newTarget.z + (Math.random() - 0.5) * multiplier,
-            };
-        }
-
-        if (intensity === 1) {
-            this.message('&cEtherwarp failed. Retrying with a tiny vector recalculation.');
-        }
-
-        if (intensity === 2) {
-            this.message('&cEtherwarp failed. Retrying with a larger vector recalculation.');
-        }
-
-        if (intensity === 3) {
-            this.toggle(false);
-            this.message('&cEtherwarp failed after 3 attempts! Stopped macro.');
-            return;
-        }
+        this.addToggle('Fast AOTV', (value) => {
+            this.FASTAOTV = value;
+        });
     }
 
     getGemstoneCosts() {
         return {
-            'minecraft:coal_block': 4,
-            'minecraft:quartz_block': 4,
-            'minecraft:iron_block': 4,
-            'minecraft:redstone_block': 4,
-            'minecraft:gold_block': 4,
-            'minecraft:diamond_block': 4,
-            'minecraft:emerald_block': 4,
+            'minecraft:orange_stained_glass': this.AMBER ? 1 : null,
+            'minecraft:orange_stained_glass_pane': this.AMBER ? 1 : null,
+            'minecraft:purple_stained_glass': this.AMETHYST ? 1 : null,
+            'minecraft:purple_stained_glass_pane': this.AMETHYST ? 1 : null,
+            'minecraft:lime_stained_glass': this.JADE ? 1 : null,
+            'minecraft:lime_stained_glass_pane': this.JADE ? 1 : null,
+            'minecraft:magenta_stained_glass': this.JASPER ? 1 : null,
+            'minecraft:magenta_stained_glass_pane': this.JASPER ? 1 : null,
+            'minecraft:red_stained_glass': this.RUBY ? 1 : null,
+            'minecraft:red_stained_glass_pane': this.RUBY ? 1 : null,
+            'minecraft:light_blue_stained_glass': this.SAPPHIRE ? 1 : null,
+            'minecraft:light_blue_stained_glass_pane': this.SAPPHIRE ? 1 : null,
+            'minecraft:yellow_stained_glass': this.TOPAZ ? 1 : null,
+            'minecraft:yellow_stained_glass_pane': this.TOPAZ ? 1 : null,
         };
+    }
+
+    isEtherWarpable(block) {
+        if (!block) return false;
+        const above1 = World.getBlockAt(block.x, block.y + 1, block.z);
+        const above2 = World.getBlockAt(block.x, block.y + 2, block.z);
+        return above1.getType().getID() === 0 && above2.getType().getID() === 0;
+    }
+
+    recalculateEtherWarp(intensity) {
+        this.rotatedToPoint = false;
+        let newTarget = this.getPointOnBlock(this.rawPoint);
+        let mult = intensity === 1 ? 0.05 : intensity === 2 ? 0.2 : 0.5;
+        if (newTarget) {
+            this.closestPoint = {
+                x: newTarget.x + (Math.random() - 0.5) * mult,
+                y: newTarget.y + (Math.random() - 0.5) * mult,
+                z: newTarget.z + (Math.random() - 0.5) * mult,
+            };
+        }
+        if (intensity >= 3) {
+            this.toggle(false);
+            this.message('&cEtherwarp failed after 3 attempts!');
+        }
     }
 
     getPointOnBlock(point) {
         const randomOffset = (min, max) => Math.random() * (max - min) + min;
-
         const closestHit = this.raytraceBlockFaces(point);
-
         if (!closestHit) return null;
-
         const faceName = closestHit.face;
-
-        let fixedX, fixedY, fixedZ;
-        let randMinX, randMaxX;
-        let randMinY, randMaxY;
-        let randMinZ, randMaxZ;
-
-        const rangeMin = 0.25;
-        const rangeMax = 0.85;
-
+        const rMin = 0.25,
+            rMax = 0.85;
         switch (faceName) {
-            case 'EAST': // +X face
-                fixedX = point.x + 1.0;
-                randMinY = point.y + rangeMin;
-                randMaxY = point.y + rangeMax;
-                randMinZ = point.z + rangeMin;
-                randMaxZ = point.z + rangeMax;
-                fixedY = randomOffset(randMinY, randMaxY);
-                fixedZ = randomOffset(randMinZ, randMaxZ);
-                return new Vec3d(fixedX, fixedY, fixedZ);
-
-            case 'WEST': // -X face
-                fixedX = point.x;
-                randMinY = point.y + rangeMin;
-                randMaxY = point.y + rangeMax;
-                randMinZ = point.z + rangeMin;
-                randMaxZ = point.z + rangeMax;
-                fixedY = randomOffset(randMinY, randMaxY);
-                fixedZ = randomOffset(randMinZ, randMaxZ);
-                return new Vec3d(fixedX, fixedY, fixedZ);
-
-            case 'UP': // +Y face
-                fixedY = point.y + 1.0;
-                randMinX = point.x + rangeMin;
-                randMaxX = point.x + rangeMax;
-                randMinZ = point.z + rangeMin;
-                randMaxZ = point.z + rangeMax;
-                fixedX = randomOffset(randMinX, randMaxX);
-                fixedZ = randomOffset(randMinZ, randMaxZ);
-                return new Vec3d(fixedX, fixedY, fixedZ);
-
-            case 'DOWN': // -Y face
-                fixedY = point.y;
-                randMinX = point.x + rangeMin;
-                randMaxX = point.x + rangeMax;
-                randMinZ = point.z + rangeMin;
-                randMaxZ = point.z + rangeMax;
-                fixedX = randomOffset(randMinX, randMaxX);
-                fixedZ = randomOffset(randMinZ, randMaxZ);
-                return new Vec3d(fixedX, fixedY, fixedZ);
-
-            case 'SOUTH': // +Z face
-                fixedZ = point.z + 1.0;
-                randMinX = point.x + rangeMin;
-                randMaxX = point.x + rangeMax;
-                randMinY = point.y + rangeMin;
-                randMaxY = point.y + rangeMax;
-                fixedX = randomOffset(randMinX, randMaxX);
-                fixedY = randomOffset(randMinY, randMaxY);
-                return new Vec3d(fixedX, fixedY, fixedZ);
-
-            case 'NORTH': // -Z face
-                fixedZ = point.z;
-                randMinX = point.x + rangeMin;
-                randMaxX = point.x + rangeMax;
-                randMinY = point.y + rangeMin;
-                randMaxY = point.y + rangeMax;
-                fixedX = randomOffset(randMinX, randMaxX);
-                fixedY = randomOffset(randMinY, randMaxY);
-                return new Vec3d(fixedX, fixedY, fixedZ);
-
+            case 'EAST':
+                return new Vec3d(point.x + 1.0, randomOffset(point.y + rMin, point.y + rMax), randomOffset(point.z + rMin, point.z + rMax));
+            case 'WEST':
+                return new Vec3d(point.x, randomOffset(point.y + rMin, point.y + rMax), randomOffset(point.z + rMin, point.z + rMax));
+            case 'UP':
+                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), point.y + 1.0, randomOffset(point.z + rMin, point.z + rMax));
+            case 'DOWN':
+                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), point.y, randomOffset(point.z + rMin, point.z + rMax));
+            case 'SOUTH':
+                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), randomOffset(point.y + rMin, point.y + rMax), point.z + 1.0);
+            case 'NORTH':
+                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), randomOffset(point.y + rMin, point.y + rMax), point.z);
             default:
                 return null;
         }
@@ -578,115 +394,107 @@ class GemstoneMacro extends ModuleBase {
 
     raytraceBlockFaces(point) {
         const player = Player.getPlayer();
-        const startX = player.getEyePos().x;
-        const startY = player.getEyePos().y;
-        const startZ = player.getEyePos().z;
-
-        const centerX = point.x + 0.5;
-        const centerY = point.y + 0.5;
-        const centerZ = point.z + 0.5;
-
-        const offset = 0.05;
-
-        const minX = point.x - offset;
-        const maxX = point.x + 1.0 + offset;
-        const minY = point.y - offset;
-        const maxY = point.y + 1.0 + offset;
-        const minZ = point.z - offset;
-        const maxZ = point.z + 1.0 + offset;
-
+        const start = player.getEyePos();
         const faces = [
-            { name: 'EAST', target: [maxX, centerY, centerZ] }, // +X
-            { name: 'WEST', target: [minX, centerY, centerZ] }, // -X
-            { name: 'UP', target: [centerX, maxY, centerZ] }, // +Y
-            { name: 'DOWN', target: [centerX, minY, centerZ] }, // -Y
-            { name: 'SOUTH', target: [centerX, centerY, maxZ] }, // +Z
-            { name: 'NORTH', target: [centerX, centerY, minZ] }, // -Z
+            { name: 'EAST', target: [point.x + 1.1, point.y + 0.5, point.z + 0.5] },
+            { name: 'WEST', target: [point.x - 0.1, point.y + 0.5, point.z + 0.5] },
+            { name: 'UP', target: [point.x + 0.5, point.y + 1.1, point.z + 0.5] },
+            { name: 'DOWN', target: [point.x + 0.5, point.y - 0.1, point.z + 0.5] },
+            { name: 'SOUTH', target: [point.x + 0.5, point.y + 0.5, point.z + 1.1] },
+            { name: 'NORTH', target: [point.x + 0.5, point.y + 0.5, point.z - 0.1] },
         ];
-
-        let closestHit = null;
-        let shortestDistance = Infinity;
-
+        let closest = null,
+            shortest = Infinity;
         for (const face of faces) {
-            const [targetX, targetY, targetZ] = face.target;
-
-            const isLineOfSightClear = Raytrace.isLineClear(startX, startY, startZ, targetX, targetY, targetZ);
-            const dx = targetX - startX;
-            const dy = targetY - startY;
-            const dz = targetZ - startZ;
-            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-            let lineColor;
-            if (isLineOfSightClear) {
-                lineColor = [0, 255, 0, 255];
-            } else {
-                lineColor = [255, 0, 0, 255];
-            }
-
-            if (isLineOfSightClear && distance < shortestDistance) {
-                shortestDistance = distance;
-                closestHit = {
-                    distance: distance,
-                    face: face.name,
-                    hitPos: { x: targetX, y: targetY, z: targetZ },
-                };
-            }
-        }
-
-        return closestHit;
-    }
-
-    getClosestPoint() {
-        if (!this.route || this.route.length === 0) {
-            return null;
-        }
-
-        let closestPointData = null;
-        let shortestDistance = Infinity;
-
-        for (let i = 0; i < this.route.length; i++) {
-            const point = this.route[i];
-
-            if (point.movements === 'MINEABLE') continue;
-            if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') {
-                let distData = MathUtils.getDistanceToPlayer(point.x, point.y, point.z);
-                let currentDistance = distData.distance;
-
-                if (currentDistance < shortestDistance) {
-                    shortestDistance = currentDistance;
-
-                    closestPointData = {
-                        point: point,
-                        distance: currentDistance,
-                        index: i,
-                    };
+            const [tx, ty, tz] = face.target;
+            if (Raytrace.isLineClear(start.x, start.y, start.z, tx, ty, tz)) {
+                let d = Math.sqrt((tx - start.x) ** 2 + (ty - start.y) ** 2 + (tz - start.z) ** 2);
+                if (d < shortest) {
+                    shortest = d;
+                    closest = { face: face.name, hitPos: { x: tx, y: ty, z: tz } };
                 }
             }
         }
-
-        return closestPointData;
+        return closest;
     }
 
-    message(msg) {
-        Chat.message('&#815bf5Ore Macro: &f' + msg);
+    getClosestPoint() {
+        if (!this.route || this.route.length === 0) return null;
+        let closest = null,
+            shortest = Infinity;
+        for (let i = 0; i < this.route.length; i++) {
+            let d = MathUtils.getDistanceToPlayer(this.route[i].x, this.route[i].y, this.route[i].z).distance;
+            if (d < shortest) {
+                shortest = d;
+                closest = { index: i };
+            }
+        }
+        return closest;
+    }
+
+    rightClickEtherWarp(targetVec) {
+        const player = Player.getPlayer();
+        const eye = player.getEyePos();
+        const dx = targetVec.x - eye.x,
+            dy = targetVec.y - eye.y,
+            dz = targetVec.z - eye.z;
+        const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
+        const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
+        Client.sendPacket(new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, parseFloat(yaw), parseFloat(pitch)));
     }
 
     onEnable() {
-        if (this.route) RouteState.setRoute(this.route, 'Ore Macro');
+        if (this.route) RouteState.setRoute(this.route, 'Gemstone Macro');
+
+        Mouse.ungrab();
+
+        // Reset Logic State
+        this.state = this.STATES.DECIDING;
+        this.scanned = false;
+        this.miningBotEnabled = false;
+
+        // Reset Navigation Variables
+        this.closestPoint = null;
+        this.rawPoint = null;
+        this.closestPointIndex = null;
+        this.rotatedToPoint = false;
+        this.attemptedEtherwarp = false;
+
+        // Reset Counters/Timers
+        this.etherwarpAttempts = 0;
+        this.etherwarpTicks = 0;
+        this.scanTickTimeout = 0;
+
         this.message('&aEnabled');
-        this.state = this.STATES.ETHERWARPING;
     }
 
     onDisable() {
+        // Clear Global/External States
         RouteState.clearRoute();
-        this.scanned = false;
-        this.closestPointIndex = null;
-        this.closestPoint = null;
-        this.rotatedToPoint = null;
-        this.message('&cDisabled');
-        this.state = this.STATES.WAITING;
+        Rotations.stopRotation();
+        MiningBot.toggle(false, true);
+        MiningBot.foundLocations = [];
         Keybind.unpressKeys();
-        MiningBot.toggle(false);
+        Mouse.regrab();
+
+        // Reset Local Logic State
+        this.state = this.STATES.WAITING;
+        this.scanned = false;
+        this.miningBotEnabled = false;
+
+        // Reset Navigation Variables
+        this.closestPoint = null;
+        this.rawPoint = null;
+        this.closestPointIndex = null;
+        this.rotatedToPoint = false;
+        this.attemptedEtherwarp = false;
+
+        // Reset Counters/Timers
+        this.etherwarpAttempts = 0;
+        this.etherwarpTicks = 0;
+        this.scanTickTimeout = 0;
+
+        this.message('&cDisabled');
     }
 }
 

@@ -13,6 +13,8 @@ import { Executor } from '../ThreadExecutor';
 import PathConfig from './PathConfig';
 import { PathExecutor } from './PathExecutor';
 import { ScheduleTask } from '../ScheduleTask';
+import { FlyRotations } from './PathFlyer/PathRotations';
+import { FlyMovement } from './PathFlyer/PathMovement';
 
 class Finder {
     constructor() {
@@ -47,15 +49,36 @@ class Finder {
             this.findPath(end);
         });
 
+        v5Command('flypath', (...args) => {
+            if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path fly <x> <y> <z>');
+
+            const coords = args.map(Number);
+            if (coords.slice(0, 3).some(isNaN)) {
+                return showNotification('Invalid Coordinates', 'Coords must be valid numbers.', 'ERROR', 5000);
+            }
+
+            let end = coords.length === 3 ? coords : [];
+            if (coords.length > 3) {
+                for (let i = 0; i < coords.length; i += 3) {
+                    end.push([coords[i], coords[i + 1], coords[i + 2]]);
+                }
+            }
+
+            this.resetPath();
+            this.calledFromFile = true;
+            this.findPath(end, null, false, true);
+        });
+
         v5Command('stopPath', () => {
             this.resetPath();
             PathExecutor.destroy();
         });
     }
 
-    findPath(end, onComplete, renderOnly = false) {
+    findPath(end, onComplete, renderOnly = false, isFly = false) {
         this.currentEnd = end;
         this.currentCallback = onComplete;
+        this.isFly = isFly;
 
         const start = this.getPlayerStart();
 
@@ -64,7 +87,7 @@ class Finder {
             Chat.messagePathfinder(`Path from &a${start.x}, ${start.y}, ${start.z}&f to &c${endStr}`);
         }
 
-        if (!Swift.SwiftPath(start.x, start.y, start.z, end)) {
+        if (!Swift.SwiftPath(start.x, start.y, start.z, end, isFly)) {
             showNotification('Pathfinding Failed', Swift.getLastError() || 'Failed to start', 'ERROR', 5000);
             return;
         }
@@ -110,40 +133,69 @@ class Finder {
                 this.saidInfo = true;
             }
 
-            const splinePath = this.createSplinePath(result);
+            if (!this.isFly) {
+                const splinePath = this.createSplinePath(result);
 
-            if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS) {
-                this.startRender(result, splinePath);
-            }
-
-            if (renderOnly) {
-                showNotification('Render Only', 'Path rendered.', 'INFO', 3000);
-                this.destroyTick();
-                return;
-            }
-
-            if (!splinePath?.length) return;
-
-            if (Rotations.boxPositions?.length && Rotations.complete) {
-                this.checkIfReachedDestination() ? this.finishSuccess() : this.recalculate();
-                return;
-            }
-
-            Executor.execute(() => {
-                Rotations.pathRotations(splinePath);
-                Jump.detectJump(result.path_between_key_nodes);
-                Movement.beginMovement();
-
-                if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
-                    if (PathConfig.PATHFINDING_DEBUG) {
-                        Chat.messagePathfinder('§aUnstuck!');
-                    }
-                    this.recalculateAttempts = 0;
-                    Recovery.stop();
+                if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS) {
+                    this.startRender(result, splinePath);
                 }
 
-                this.handleRecovery(Recovery.trackProgress());
-            });
+                if (renderOnly) {
+                    showNotification('Render Only', 'Path rendered.', 'INFO', 3000);
+                    this.destroyTick();
+                    return;
+                }
+
+                if (!splinePath?.length) return;
+
+                if (Rotations.boxPositions?.length && Rotations.complete) {
+                    this.checkIfReachedDestination() ? this.finishSuccess() : this.recalculate();
+                    return;
+                }
+
+                Executor.execute(() => {
+                    Rotations.pathRotations(splinePath);
+                    Jump.detectJump(result.path_between_key_nodes);
+                    Movement.beginMovement();
+
+                    if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
+                        if (PathConfig.PATHFINDING_DEBUG) {
+                            Chat.messagePathfinder('§aUnstuck!');
+                        }
+                        this.recalculateAttempts = 0;
+                        Recovery.stop();
+                    }
+
+                    this.handleRecovery(Recovery.trackProgress());
+                });
+            } else if (this.isFly) {
+                const flyPoints = Spline.createFlyLookPoints(result.path);
+                const movementPath = Spline.generateMovementFromLookPoints(flyPoints);
+
+                Executor.execute(() => {
+                    FlyRotations.beginFlyRotations(flyPoints);
+                    FlyMovement.beginMovement(movementPath);
+                });
+
+                // temp
+                if (this.render) return;
+
+                this.render = register('postRenderWorld', () => {
+                    result.keynodes.forEach((node) => {
+                        Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
+                    });
+
+                    flyPoints.forEach((p) => Render.drawBox(p, Render.Color(255, 0, 0, 150), true));
+
+                    result.path.forEach((node) => {
+                        Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
+                    });
+
+                    result.path_between_key_nodes.forEach((node) => {
+                        Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
+                    });
+                });
+            }
         });
     }
 
@@ -248,7 +300,7 @@ class Finder {
 
             if (dy < -0.1 || dy > 2.5) continue;
 
-            if (player.isOnGround()) {
+            if (this.isFly || player.isOnGround()) {
                 return true;
             }
         }

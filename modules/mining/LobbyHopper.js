@@ -2,6 +2,7 @@ import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Time } from '../../utils/Timing';
 import { Utils } from '../../utils/Utils';
+
 class LobbyHopper extends ModuleBase {
     constructor() {
         super({
@@ -9,9 +10,11 @@ class LobbyHopper extends ModuleBase {
             subcategory: 'Mining',
             description: 'Switches between CH lobbies',
             tooltip: 'Switches between CH lobbies',
-            showEnabledToggle: false,
+            showEnabledToggle: true,
             isMacro: true,
         });
+
+        this.setTheme('#e0dd04');
 
         this.maxDay = 0;
         this.said = false;
@@ -21,16 +24,6 @@ class LobbyHopper extends ModuleBase {
         this.addSlider('Max Lobby Day', 0, 18, 5, (v) => {
             this.maxDay = v;
         });
-
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    'Current Day': () => this.getLobbyDay(),
-                    'Max Day': () => this.maxDay,
-                },
-            },
-        ]);
 
         this.on('step', () => {
             if (!this.enabled) return;
@@ -44,7 +37,7 @@ class LobbyHopper extends ModuleBase {
 
                 this.reset();
             } else {
-                if (this.getLobbyDay() > this.maxDay) {
+                if (Utils.getDay() > this.maxDay) {
                     this.message('Crystal Hollows day is too high! Warping to new lobby.');
                     ChatLib.command('is');
 
@@ -62,20 +55,12 @@ class LobbyHopper extends ModuleBase {
         this.cooldown.reset();
     }
 
-    message(msg) {
-        Chat.message('&dLobby Hopper: &f' + msg);
-    }
-
-    getLobbyDay() {
-        return Math.floor(World.getTime() / 24000);
-    }
-
     onEnable() {
-        this.message('&aStarted');
+        this.message('&aEnabled');
     }
 
     onDisable() {
-        this.message('&cStopped');
+        this.message('&cDisabled');
     }
 }
 

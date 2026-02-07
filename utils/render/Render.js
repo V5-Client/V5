@@ -9,7 +9,7 @@ class RenderObject {
 
     // Basic 1x1x1 wireframe
     drawWireFrame(pos, color, thickness = 5, depth = false) {
-        RenderUtils.drawWireFrame(pos, color, thickness, depth);
+        RenderUtils.drawWireFrameBox(pos, color, thickness, depth);
     }
 
     // Filled box + Wireframe outline

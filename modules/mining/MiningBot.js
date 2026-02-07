@@ -59,6 +59,8 @@ class Bot extends ModuleBase {
         this.allowScan = false;
         this.speedBoost = false;
         this.nukedBlock = false;
+        this.scanning = false;
+        this.FOVPenalty = true;
 
         this.lastGUI = Date.now();
 
@@ -446,7 +448,7 @@ class Bot extends ModuleBase {
             if (this.manualScan) {
                 if (!this.advanceManualScan()) return;
             } else {
-                this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
+                this.scanForBlock(this.COSTTYPE, null);
                 this.currentTarget = this.foundLocations[0];
                 this.lowestCostBlockIndex = 0;
             }
@@ -491,6 +493,8 @@ class Bot extends ModuleBase {
     scanForBlock(targetCosts, startPos = null, excludedBlock = null) {
         if (!targetCosts) return this.message('No target specified, is cost type set?');
 
+        this.scanning = true;
+
         const pX = Player.getX(),
             pY = Player.getY(),
             pZ = Player.getZ();
@@ -527,9 +531,9 @@ class Bot extends ModuleBase {
             const block = World.getBlockAt(x, y, z);
             if (!block || !block.type) continue;
             const blockName = block.type.getRegistryName();
-            if (!blockName || !(blockName in targetCosts)) {
+            if (!blockName || !(blockName in targetCosts) || targetCosts[blockName] === null) {
             } else {
-                const aimData = this.findVisibleAimPoint(x, y, z, eyePos, lookVec, mineReachSq);
+                const aimData = this.findVisibleAimPoint(x, y, z, eyePos, lookVec, mineReachSq, this.FOVPenalty);
 
                 if (aimData) {
                     const cost = this.calculateBlockCost(targetCosts[blockName], aimData.dist, aimData.dot);
@@ -581,6 +585,12 @@ class Bot extends ModuleBase {
             this.foundLocations = [];
             this.lowestCostBlockIndex = 0;
         }
+
+        this.scanning = false;
+    }
+
+    isScanning() {
+        return this.scanning;
     }
 
     findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true) {
@@ -864,6 +874,7 @@ class Bot extends ModuleBase {
         this.setCost();
         if (!this.isParentManaged) this.message('&aEnabled');
         this.allowScan = true;
+        this.FOVPenalty = true;
         this.state = this.STATES.ABILITY;
         this.normalRender.register();
     }
@@ -992,7 +1003,7 @@ class Bot extends ModuleBase {
                     g = i === 0 ? 1 : 1 - t,
                     b = i === 0 ? 1 : 0;
 
-                Render.drawWireFrame(new Vec3d(loc.x, loc.y, loc.z), [r * 255, g * 255, b * 255, 255]);
+                Render.drawWireFrame(new Vec3d(loc.x, loc.y, loc.z), Render.Color(r * 255, g * 255, b * 255, 255));
 
                 if (loc.aimX !== undefined) {
                     const d = 0.1;

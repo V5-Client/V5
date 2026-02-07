@@ -12,6 +12,8 @@ class PathSpline {
         this.OUTWARD_OFFSET_STRENGTH = 1.2;
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
+        this.cachedFlyLookPoints = [];
+        this.lastFlyHash = null;
     }
 
     generateSpline(keyPathNodes, tolerance = 10) {
@@ -131,6 +133,106 @@ class PathSpline {
         return boxPositions;
     }
 
+    generateMovementFromLookPoints(lookPoints, stepSize = 0.3) {
+        if (!lookPoints || lookPoints.length < 2) return [];
+
+        const VERTICAL_OFFSET = 0.5;
+        const movePath = [];
+
+        for (let i = 0; i < lookPoints.length - 1; i++) {
+            const start = lookPoints[i];
+            const end = lookPoints[i + 1];
+
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const dz = end.z - start.z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            const steps = Math.ceil(dist / stepSize);
+            for (let j = 0; j < steps; j++) {
+                movePath.push({
+                    x: start.x + (dx * j) / steps,
+                    y: start.y + (dy * j) / steps + VERTICAL_OFFSET,
+                    z: start.z + (dz * j) / steps,
+                });
+            }
+        }
+
+        const lastPoint = lookPoints[lookPoints.length - 1];
+        movePath.push({ x: lastPoint.x, y: lastPoint.y + VERTICAL_OFFSET, z: lastPoint.z });
+        return movePath;
+    }
+
+    // this is bad implementation it needs the raytrace to be more accurate and some other stuff
+    createFlyLookPoints(nodes) {
+        if (!nodes || nodes.length < 2) return [];
+
+        const currentHash = `${nodes.length}-${nodes[0].x}-${nodes[nodes.length - 1].x}`;
+        if (currentHash === this.lastFlyHash) return this.cachedFlyLookPoints;
+
+        const lookPoints = [];
+        const PLAYER_HEIGHT_OFFSET = 2.12;
+
+        lookPoints.push(new Vec3d(nodes[0].x, nodes[0].y + PLAYER_HEIGHT_OFFSET, nodes[0].z));
+
+        let currentIndex = 0;
+        while (currentIndex < nodes.length - 1) {
+            let furthestVisible = currentIndex + 1;
+
+            for (let j = nodes.length - 1; j > currentIndex; j--) {
+                if (this.canSee(nodes[currentIndex], nodes[j])) {
+                    furthestVisible = j;
+                    break;
+                }
+            }
+
+            const targetNode = nodes[furthestVisible];
+            const nextPoint = new Vec3d(targetNode.x, targetNode.y + PLAYER_HEIGHT_OFFSET, targetNode.z);
+
+            this.appendLookPoint(lookPoints, nextPoint);
+
+            currentIndex = furthestVisible;
+            if (currentIndex >= nodes.length - 1) break;
+        }
+
+        this.lastFlyHash = currentHash;
+        this.cachedFlyLookPoints = lookPoints;
+        return lookPoints;
+    }
+
+    canSee(pos1, pos2) {
+        const OFFSET = 2.12;
+        const x1 = pos1.x,
+            y1 = pos1.y + OFFSET,
+            z1 = pos1.z;
+        const x2 = pos2.x,
+            y2 = pos2.y + OFFSET,
+            z2 = pos2.z;
+
+        const dx = x2 - x1,
+            dy = y2 - y1,
+            dz = z2 - z1;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        // Stricter step size for flying near blocks
+        const stepSize = 0.4;
+        const steps = Math.ceil(dist / stepSize);
+
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps;
+            const checkPoint = {
+                x: x1 + dx * t,
+                y: y1 + dy * t,
+                z: z1 + dz * t,
+            };
+
+            if (this.isPointInsideBlock(checkPoint)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     appendLookPoint(boxPositions, point) {
         if (boxPositions.length === 0) {
             boxPositions.push(point);
@@ -190,7 +292,9 @@ class PathSpline {
 
     clearCache() {
         this.cachedBoxPositions = [];
+        this.cachedFlyLookPoints = [];
         this.lastDataHash = null;
+        this.lastFlyHash = null;
     }
 }
 

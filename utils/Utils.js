@@ -138,6 +138,11 @@ class LocationDetector {
         return this.currentSubArea;
     }
 
+    getLobbyDay() {
+        // would expect it to be world.getTime() but ig not
+        return Math.floor(Client.getMinecraft().world.getTimeOfDay() / 24000);
+    }
+
     stripFormatting(text) {
         return text.replace(/§[0-9A-FK-OR]/gi, '');
     }
@@ -440,6 +445,10 @@ class UtilsClass {
 
     subArea() {
         return locationDetector.getSubArea();
+    }
+
+    getDay() {
+        return locationDetector.getLobbyDay();
     }
 
     resetLocationCache() {
