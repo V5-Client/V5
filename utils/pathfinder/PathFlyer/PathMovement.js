@@ -16,6 +16,7 @@ class PathMovement {
             if (!player) return;
             if (!player.getAbilities().flying) {
                 player.getAbilities().flying = true;
+                player.sendAbilitiesUpdate();
             }
             this.updateMovement();
         });
