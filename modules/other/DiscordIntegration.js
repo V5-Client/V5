@@ -3,6 +3,7 @@ import { Utils } from '../../utils/Utils';
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { Webhook } from '../../utils/Webhooks';
+import { OverlayManager } from '../../gui/OverlayUtils';
 
 class DiscordIntegration extends ModuleBase {
     constructor() {
@@ -56,32 +57,30 @@ class DiscordIntegration extends ModuleBase {
 
     onStep() {
         const currentMacro = this.getActiveMacro();
-        const isMacroActive = !!currentMacro && this.MACRO_EMBEDS;
+        if (!currentMacro || !this.MACRO_EMBEDS) return (this.lastSendTime = 0);
 
-        if (isMacroActive) {
-            const now = Date.now();
-            if (this.lastSendTime === 0) return (this.lastSendTime = now);
+        const startTime = OverlayManager.startTimes[currentMacro];
+        if (!startTime) return;
 
-            if (now - this.lastSendTime >= this.FIVE_MINUTES) {
-                this.sendIntervalEmbed();
-                this.lastSendTime = now;
-            }
-        } else {
-            this.lastSendTime = 0;
+        const now = Date.now();
+        const elapsedMs = now - startTime;
+
+        const currentInterval = Math.floor(elapsedMs / this.FIVE_MINUTES);
+        const lastInterval = Math.floor(this.lastSendTime / this.FIVE_MINUTES);
+
+        if (currentInterval > lastInterval && this.lastSendTime !== 0) {
+            this.sendIntervalEmbed(currentMacro, startTime);
         }
+
+        this.lastSendTime = elapsedMs;
     }
 
     sendIntervalEmbed() {
         const currentMacro = this.getActiveMacro();
         if (!currentMacro) return;
 
-        const startTime = MacroState.getStartTime();
-        const diff = Date.now() - startTime;
-
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        const duration = `${h}h ${m}m ${s}s`;
+        const startTime = OverlayManager.startTimes[currentMacro];
+        const duration = OverlayManager.formatUptime(startTime);
 
         Webhook.sendScreenshot(`Update of ${currentMacro}`, duration);
     }
