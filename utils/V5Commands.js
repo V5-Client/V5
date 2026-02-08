@@ -24,7 +24,9 @@ export const callCommand = (id, ...args) => {
     }
 };
 
-Commands.registerCommand('v5', () => {
+const { buildCommand, registerCommand, redirect } = Commands;
+
+const v5Logic = () => {
     const { literal, argument, greedyString, integer, exec, float } = Commands;
 
     exec((ctx = {}) => {
@@ -345,4 +347,9 @@ Commands.registerCommand('v5', () => {
             });
         });
     });
-});
+};
+
+const v5Node = buildCommand('v5', v5Logic);
+v5Node.register();
+
+registerCommand('V5', () => redirect(v5Node));
