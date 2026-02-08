@@ -68,7 +68,6 @@ class PathRotations {
         this.smoothedLookahead = this.MAX_LOOKAHEAD;
         this.cachedLookahead = null;
         this.lastVisibilityCheck = 0;
-        this.lastVisibilityPathPosition = 0;
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
         this.unseenSince = 0;
@@ -139,55 +138,11 @@ class PathRotations {
 
     findVisibleLookahead(playerEyes, idealLookahead) {
         const now = Date.now();
-        const pathDeltaSinceLastCheck = this.currentPathPosition - this.lastVisibilityPathPosition;
-        if (
-            !this.isInRecoveryMode() &&
-            this.cachedLookahead !== null &&
-            now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS &&
-            pathDeltaSinceLastCheck >= -0.001 &&
-            pathDeltaSinceLastCheck <= 0.75
-        ) {
-            const cachedLookahead = this.cachedLookahead;
-            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + cachedLookahead);
-            const point = this.getInterpolatedPoint(t);
-
-            if (!point) {
-                this.cachedLookahead = null;
-            } else if (cachedLookahead >= this.MIN_LOOKAHEAD) {
-                const immediateT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 0.5);
-                const immediatePoint = this.getInterpolatedPoint(immediateT);
-                const vecImmediate = {
-                    x: immediatePoint.x - playerEyes.x,
-                    y: immediatePoint.y - playerEyes.y,
-                    z: immediatePoint.z - playerEyes.z,
-                };
-                const dx = point.x - playerEyes.x;
-                const dy = point.y - playerEyes.y;
-                const dz = point.z - playerEyes.z;
-                const horzDist = Math.sqrt(dx * dx + dz * dz);
-
-                if (dy > 1.8 && horzDist < 0.8) {
-                    this.cachedLookahead = null;
-                } else {
-                    const pitch = -Math.atan2(dy, horzDist) * (180 / Math.PI);
-                    if (pitch < this.MAX_UPWARD_PITCH && horzDist < 1.5) {
-                        this.cachedLookahead = null;
-                    } else {
-                        const vecTarget = { x: dx, y: dy, z: dz };
-                        const divergence = this.getAngleBetweenVectors(vecImmediate, vecTarget);
-                        if (divergence > this.MAX_DIRECTION_DIVERGENCE) {
-                            this.cachedLookahead = null;
-                        }
-                    }
-                }
-            }
-
-            if (this.cachedLookahead !== null) {
-                return { point, lookahead: this.cachedLookahead };
-            }
+        if (!this.isInRecoveryMode() && this.cachedLookahead !== null && now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS) {
+            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.cachedLookahead);
+            return { point: this.getInterpolatedPoint(t), lookahead: this.cachedLookahead };
         }
         this.lastVisibilityCheck = now;
-        this.lastVisibilityPathPosition = this.currentPathPosition;
         const immediateT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 0.5);
         const immediatePoint = this.getInterpolatedPoint(immediateT);
         const vecImmediate = {
