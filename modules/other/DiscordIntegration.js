@@ -4,6 +4,7 @@ import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { Webhook } from '../../utils/Webhooks';
 import { OverlayManager } from '../../gui/OverlayUtils';
+import { TimeUtils } from '../../utils/TimeUtils';
 
 class DiscordIntegration extends ModuleBase {
     constructor() {
@@ -17,6 +18,7 @@ class DiscordIntegration extends ModuleBase {
 
         this.sectionName = 'Discord Integration';
         this.lastSendTime = 0;
+        this.lastActiveMacro = null;
 
         const settings = Webhook.getData() || {};
         this.URL = settings.url || '';
@@ -57,7 +59,21 @@ class DiscordIntegration extends ModuleBase {
 
     onStep() {
         const currentMacro = this.getActiveMacro();
+        if ((!currentMacro || !this.MACRO_EMBEDS) && this.lastActiveMacro) {
+            if (this.MACRO_EMBEDS) this.sendDisableEmbed(this.lastActiveMacro);
+            this.lastActiveMacro = null;
+            this.lastSendTime = 0;
+            return;
+        }
+
         if (!currentMacro || !this.MACRO_EMBEDS) return (this.lastSendTime = 0);
+        if (this.lastActiveMacro && this.lastActiveMacro !== currentMacro) {
+            const stillEnabled = MacroState.getEnabledMacros().includes(this.lastActiveMacro);
+            if (!stillEnabled) this.sendDisableEmbed(this.lastActiveMacro);
+            this.lastSendTime = 0;
+        }
+
+        this.lastActiveMacro = currentMacro;
 
         const startTime = OverlayManager.startTimes[currentMacro];
         if (!startTime) return;
@@ -75,14 +91,27 @@ class DiscordIntegration extends ModuleBase {
         this.lastSendTime = elapsedMs;
     }
 
-    sendIntervalEmbed() {
-        const currentMacro = this.getActiveMacro();
-        if (!currentMacro) return;
+    getMacroDuration(macroName) {
+        const saved = OverlayManager.savedSessions && OverlayManager.savedSessions[macroName];
+        if (saved && typeof saved.elapsedMs === 'number') {
+            return TimeUtils.formatDurationMs(saved.elapsedMs);
+        }
 
-        const startTime = OverlayManager.startTimes[currentMacro];
+        const startTime = OverlayManager.startTimes && OverlayManager.startTimes[macroName];
+        if (startTime) return OverlayManager.formatUptime(startTime);
+
+        return '';
+    }
+
+    sendDisableEmbed(macroName) {
+        const duration = this.getMacroDuration(macroName);
+        Webhook.sendScreenshot(`Disabled ${macroName}`, duration);
+    }
+
+    sendIntervalEmbed(macroName, startTime) {
+        if (!macroName || !startTime) return;
         const duration = OverlayManager.formatUptime(startTime);
-
-        Webhook.sendScreenshot(`Update of ${currentMacro}`, duration);
+        Webhook.sendScreenshot(`Update of ${macroName}`, duration);
     }
 
     getActiveMacro() {
