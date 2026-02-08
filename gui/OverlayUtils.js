@@ -619,14 +619,14 @@ class OverlayUtils {
     }
 
     saveSettings() {
-        Utils.writeConfigFile('overlays.json', {
+        Utils.writeConfigFile('OverlayPositions/overlays.json', {
             default: this.settings,
             scheduler: this.schedulerSettings,
         });
     }
 
     loadSettings() {
-        const data = Utils.getConfigFile('overlays.json');
+        const data = Utils.getConfigFile('OverlayPositions/overlays.json');
         if (data) {
             if (data.default && typeof data.default.x === 'number') {
                 this.settings = {

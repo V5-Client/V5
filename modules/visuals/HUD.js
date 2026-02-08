@@ -22,7 +22,7 @@ class HUD extends ModuleBase {
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.');
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud');
 
-        this.positionConfig = Utils.getConfigFile('hud_positions.json') || {};
+        this.positionConfig = Utils.getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
         this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
 
@@ -93,7 +93,7 @@ class HUD extends ModuleBase {
             stats: this.getSaveData(this.stats),
             inventory: this.getSaveData(this.inventory),
         };
-        Utils.writeConfigFile('hud_positions.json', this.positionConfig);
+        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
     }
 
     clamp(v, min, max) {

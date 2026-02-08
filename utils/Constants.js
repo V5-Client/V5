@@ -18,6 +18,7 @@ export const BufferedInputStream = java.io.BufferedInputStream;
 export const DataFlavor = java.awt.datatransfer.DataFlavor;
 export const InputStreamReader = java.io.InputStreamReader;
 export const FileOutputStream = java.io.FileOutputStream;
+export const FileInputStream = java.io.FileInputStream;
 export const DataOutputStream = java.io.DataOutputStream;
 export const MessageType = java.awt.TrayIcon.MessageType;
 export const ProcessBuilder = java.lang.ProcessBuilder;
@@ -61,6 +62,10 @@ export const Formatting = net.minecraft.util.Formatting;
 export const SoundCategory = net.minecraft.sound.SoundCategory;
 export const Identifier = net.minecraft.util.Identifier;
 export const SoundEvent = net.minecraft.sound.SoundEvent;
+export const NativeImage = net.minecraft.client.texture.NativeImage;
+export const Transferable = java.awt.datatransfer.Transferable;
+export const Consumer = java.util.function.Consumer;
+export const ScreenshotRecorder = net.minecraft.client.util.ScreenshotRecorder;
 
 export const Gradient = Java.type('com.v5.render.Gradient');
 

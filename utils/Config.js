@@ -54,12 +54,23 @@ const Manager = new ConfigInitializer('V5Config');
 const responseMessages = ['???', 'bro wtf', 'what', 'rly', 'hmmmm', 'bro', '?', 'hello??', 'lol', 'nice bro', '...', 'omg', 'pls', 'lmfao', 'idiot', 'really'];
 
 const manifest = {
-    directories: ['GemstoneRoutes', 'RoutewalkerRoutes', 'TunnelMinerRoutes', 'OreRoutes', 'EtherwarpRoutes', 'AuthCache', 'FarmingMacro', 'Gifs', 'Clips'],
+    directories: [
+        'GemstoneRoutes',
+        'RoutewalkerRoutes',
+        'TunnelMinerRoutes',
+        'OreRoutes',
+        'EtherwarpRoutes',
+        'AuthCache',
+        'FarmingMacro',
+        'Gifs',
+        'Clips',
+        'OverlayPositions',
+    ],
 
     jsonFiles: {
         'config.json': {},
         'keybinds.json': {},
-        'music_overlay.json': {},
+        'OverlayPositions/music_overlay.json': {},
         'webhook.json': {},
         'miningstats.json': {},
         'GemstoneRoutes/empty.json': {},
@@ -68,7 +79,7 @@ const manifest = {
         'OreRoutes/empty.json': {},
         'EtherwarpRoutes/empty.json': {},
         'FarmingMacro/points.json': {},
-        'AuthCache/do_not_share_this_file': [], // if this is wrong then revert
+        'AuthCache/do_not_share_this_file': [],
         'responseMessages.json': responseMessages,
     },
 };

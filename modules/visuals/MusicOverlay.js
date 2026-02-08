@@ -31,7 +31,7 @@ class Music extends ModuleBase {
         this.lastFrameTime = Date.now();
         this.ticksSinceSync = 0;
 
-        this.positionConfig = Utils.getConfigFile('music_overlay.json') || {};
+        this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
         const savedX = typeof this.positionConfig.x === 'number' ? this.positionConfig.x : 100;
         const savedY = typeof this.positionConfig.y === 'number' ? this.positionConfig.y : 100;
 
@@ -138,7 +138,7 @@ class Music extends ModuleBase {
             x: this.x,
             y: this.y,
         };
-        Utils.writeConfigFile('music_overlay.json', this.positionConfig);
+        Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.positionConfig);
     }
 
     renderOverlay() {
