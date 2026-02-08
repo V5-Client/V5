@@ -83,8 +83,6 @@ class DiscordIntegration extends ModuleBase {
         const s = Math.floor((diff % 60000) / 1000);
         const duration = `${h}h ${m}m ${s}s`;
 
-        Chat.message(`&a[Discord] Sending update for ${currentMacro}...`);
-
         Webhook.sendScreenshot(`Update of ${currentMacro}`, duration);
     }
 
