@@ -50,3 +50,4 @@ import './other/LeftClickEtherwarp.js';
 import './other/RatProtection.js';
 import './other/VoidgloomHelper.js';
 import './other/ZeroPingEtherwarp.js';
+import './other/ChatBypass.js'; // maybe move into ChatPatch? idk
