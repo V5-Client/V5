@@ -1,6 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Time } from '../../utils/Timing';
+import { Time } from '../../utils/TimeUtils';
 import { Utils } from '../../utils/Utils';
 
 class LobbyHopper extends ModuleBase {

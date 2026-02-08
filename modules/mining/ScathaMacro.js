@@ -2,7 +2,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
 import { Rotations } from '../../utils/player/RotationsTest';
 import { Keybind } from '../../utils/player/Keybinding';
-import { Time } from '../../utils/Timing';
+import { Time } from '../../utils/TimeUtils';
 import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';

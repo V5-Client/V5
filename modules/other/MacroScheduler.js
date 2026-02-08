@@ -3,6 +3,7 @@ import { Utils } from '../../utils/Utils';
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { OverlayManager } from '../../gui/OverlayUtils';
+import { TimeUtils } from '../../utils/TimeUtils';
 
 const STATE = {
     IDLE: 'Idle',
@@ -308,10 +309,7 @@ class MacroScheduler extends ModuleBase {
         if (this.state === STATE.IDLE) return 'Waiting';
 
         const remaining = Math.max(0, this.timerEnd - Date.now());
-        const totalSeconds = Math.ceil(remaining / 1000);
-        const m = Math.floor(totalSeconds / 60);
-        const s = totalSeconds % 60;
-        const timeStr = m > 0 ? `${m}m ${s}s` : `${s}s`;
+        const timeStr = TimeUtils.formatDurationMs(remaining);
 
         if (this.state === STATE.RETURNING) {
             return `Returning (${timeStr})`;
