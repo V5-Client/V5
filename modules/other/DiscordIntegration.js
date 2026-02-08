@@ -21,8 +21,8 @@ class DiscordIntegration extends ModuleBase {
         this.lastActiveMacro = null;
 
         const settings = Webhook.getData() || {};
-        this.URL = settings.url || '';
-        this.ID = settings.id || '';
+        this.URL = String(settings.url ?? '');
+        this.ID = String(settings.userId ?? '').trim();
 
         this.MACRO_EMBEDS = true;
         this.FIVE_MINUTES = 5 * 60 * 1000;
@@ -122,9 +122,12 @@ class DiscordIntegration extends ModuleBase {
     }
 
     handleWebhookUrlChange(url) {
-        const trimmed = url.trim();
-        if (trimmed === this.URL || (trimmed !== '' && !trimmed.startsWith('https://discord.com/api/webhooks/')))
-            return Chat.message('&cInvalid Discord webhook format.');
+        const trimmed = (url ?? '').trim();
+        if (trimmed === this.URL) return;
+
+        const canonical = trimmed.split(/[?#]/)[0];
+        const valid = canonical === '' || /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[^\s/]+\/?$/.test(canonical);
+        if (!valid) return Chat.message('&cInvalid Discord webhook format.');
 
         this.URL = trimmed;
         Webhook.setWebhook(trimmed);
@@ -132,8 +135,8 @@ class DiscordIntegration extends ModuleBase {
     }
 
     handleIDChange(id) {
-        const trimmed = id.trim();
-        if (trimmed === this.ID) return;
+        const trimmed = String(id ?? '').trim();
+        if (trimmed === String(this.ID ?? '').trim()) return;
         this.ID = trimmed;
         Webhook.setUserId(trimmed);
         Chat.message('&aDiscord webhook ID updated.');

@@ -36,7 +36,7 @@ class DiscordNotifier {
                 this.mentionId = cfg.userId || null;
                 this.active = !!this.endpoint;
 
-                if (this.active) return { url: this.endpoint, id: this.mentionId };
+                if (this.active) return { url: this.endpoint, userId: this.mentionId };
             }
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
