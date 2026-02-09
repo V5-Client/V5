@@ -188,14 +188,14 @@ jobs:
                     }'
                   )"
 
-                  CURL_ARGS=(-F "payload_json=$PAYLOAD;type=application/json")
+                    CURL_ARGS=(--form-string "payload_json=$PAYLOAD")
 
-                  # Only attach if size check passed
-                  if [[ "${ZIP_READY}" == "true" ]]; then
-                    CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
-                  fi
+                    if [[ "${ZIP_READY}" == "true" ]]; then
+                        CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
+                    fi
 
-                  curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
+                    curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
+
 
                   # ---- Continuations: embeds only ----
                   for ((i = 1; i < TOTAL; i++)); do
