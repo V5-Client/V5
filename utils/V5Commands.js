@@ -169,7 +169,7 @@ const v5Logic = () => {
                 });
             });
         });
-        
+
         literal('stop', () => {
             exec(() => {
                 callCommand('stopPath');
