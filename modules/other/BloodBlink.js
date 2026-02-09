@@ -52,7 +52,6 @@ class BloodBlink extends ModuleBase {
 
         this.on('chat', (event) => {
             const msg = event.message.getUnformattedText();
-            console.log(msg);
             if (msg == 'Starting in 1 second.') this.blinkReady = true;
             if (
                 msg ==
