@@ -75,7 +75,7 @@ class MacroScheduler extends ModuleBase {
 
         this.loadState();
         register('gameUnload', () => this.saveState());
-        this.on('tick', () => this.tick());
+        this.on('step', () => this.tick()).setDelay(1);
     }
 
     loadState() {
