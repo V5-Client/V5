@@ -29,11 +29,9 @@ class NukerClass extends ModuleBase {
         this.minedBlocks = new Map();
         this.clickQueue = new Set();
         this.chestClickedThisTick = false;
-        this.startTime = Date.now();
 
         this.BLOCK_COOLDOWN = 20;
         this.REQUIRED_ITEMS = ['Drill', 'Gauntlet', 'Pick'];
-        this.lastNukeTime = Date.now();
 
         this.customBlockList = [];
 
@@ -120,6 +118,7 @@ class NukerClass extends ModuleBase {
                 if (target) {
                     const posArr = [target.getX(), target.getY(), target.getZ()];
                     NukerUtils.nukeQueueAdd(posArr, delay);
+                    console.log(Date.now());
                     this.target = target;
                     this.minedBlocks.set(this.posToString(target), this.tickCounter);
 
