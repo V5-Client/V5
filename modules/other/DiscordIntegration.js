@@ -50,15 +50,16 @@ class DiscordIntegration extends ModuleBase {
 
         this.when(
             () => this.MACRO_EMBEDS,
-            'step',
+            'tick',
             () => {
-                this.onStep();
+                this.onTick();
             }
         );
     }
 
-    onStep() {
+    onTick() {
         const currentMacro = this.getActiveMacro();
+
         if ((!currentMacro || !this.MACRO_EMBEDS) && this.lastActiveMacro) {
             if (this.MACRO_EMBEDS) this.sendDisableEmbed(this.lastActiveMacro);
             this.lastActiveMacro = null;
