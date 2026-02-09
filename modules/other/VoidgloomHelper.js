@@ -62,7 +62,7 @@ class VoidgloomHelper extends ModuleBase {
         );
 
         this.on('tick', () => this.handleTick());
-        this.on('step', () => this.detectBossSpawn());
+        this.on('step', () => this.detectBossSpawn()).setDelay(1);
     }
 
     detectBossSpawn() {
