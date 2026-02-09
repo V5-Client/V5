@@ -138,15 +138,16 @@ class RotationsTo {
     applyRotationWithGCD(yaw, pitch) {
         const player = Player.getPlayer();
         if (!player) return;
+        const safe = this.sanitizeRotation(yaw, pitch);
         if (!this.gcdInitialized) {
             this.lastAppliedYaw = player.getYaw();
             this.lastAppliedPitch = player.getPitch();
             this.gcdInitialized = true;
         }
-        const gcdYaw = this.applyGCD(yaw, this.lastAppliedYaw);
+        const gcdYaw = this.applyGCD(safe.yaw, this.lastAppliedYaw);
         this.lastAppliedYaw = gcdYaw;
         player.setYaw(gcdYaw);
-        const gcdPitch = this.applyGCD(pitch, this.lastAppliedPitch, -90, 90);
+        const gcdPitch = this.applyGCD(safe.pitch, this.lastAppliedPitch, -90, 90);
         this.lastAppliedPitch = gcdPitch;
         player.setPitch(gcdPitch);
     }
@@ -162,6 +163,17 @@ class RotationsTo {
 
     normalizeAngle(angle) {
         return (((angle % 360) + 540) % 360) - 180;
+    }
+
+    clampPitch(pitch) {
+        return Math.max(-90, Math.min(90, pitch));
+    }
+
+    sanitizeRotation(yaw, pitch) {
+        return {
+            yaw: this.normalizeAngle(yaw),
+            pitch: this.clampPitch(pitch),
+        };
     }
 
     getEntityAimPoint(entity) {
@@ -246,8 +258,9 @@ class RotationsTo {
         if (distance <= effectivePrecision) {
             const player = Player.getPlayer();
             if (isExactVector && player) {
-                player.setYaw(finalTarget.yaw);
-                player.setPitch(finalTarget.pitch);
+                const safe = this.sanitizeRotation(finalTarget.yaw, finalTarget.pitch);
+                player.setYaw(safe.yaw);
+                player.setPitch(safe.pitch);
             } else {
                 this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
             }
@@ -318,10 +331,11 @@ class RotationsTo {
         if (!isNaN(nextYaw) && !isNaN(nextPitch)) {
             const player = Player.getPlayer();
             if (isExactVector && player) {
-                player.setYaw(nextYaw);
-                player.setPitch(nextPitch);
-                this.lastAppliedYaw = nextYaw;
-                this.lastAppliedPitch = nextPitch;
+                const safe = this.sanitizeRotation(nextYaw, nextPitch);
+                player.setYaw(safe.yaw);
+                player.setPitch(safe.pitch);
+                this.lastAppliedYaw = safe.yaw;
+                this.lastAppliedPitch = safe.pitch;
             } else {
                 this.applyRotationWithGCD(nextYaw, nextPitch);
             }

@@ -139,7 +139,6 @@ class LocationDetector {
     }
 
     getLobbyDay() {
-        // would expect it to be world.getTime() but ig not
         return Math.floor(Client.getMinecraft().world.getTimeOfDay() / 24000);
     }
 

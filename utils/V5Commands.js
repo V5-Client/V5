@@ -48,6 +48,7 @@ const v5Logic = () => {
             Chat.message('&7/v5 routes walker ... &f- Route Walker routes');
             Chat.message('&7/v5 mining (gemstone | ore) ... &f- Mining routes');
             Chat.message('&7/v5 webhook ... &f- Set discord webhook');
+            Chat.message('&7/v5 dr|dungeonroutes ... &f- Dungeon room waypoints');
         });
     });
 
@@ -168,7 +169,7 @@ const v5Logic = () => {
                 });
             });
         });
-
+        
         literal('stop', () => {
             exec(() => {
                 callCommand('stopPath');
@@ -258,6 +259,29 @@ const v5Logic = () => {
                 exec(({ args }) => {
                     callCommand('routewalker', args);
                 });
+            });
+        });
+    });
+
+    /* ---------- Dungeon Routes ---------- */
+    literal('dr', () => {
+        exec(() => {
+            callCommand('dr');
+        });
+        argument('args', greedyString(), () => {
+            exec(({ args }) => {
+                callCommand('dr', args);
+            });
+        });
+    });
+
+    literal('dungeonroutes', () => {
+        exec(() => {
+            callCommand('dungeonroutes');
+        });
+        argument('args', greedyString(), () => {
+            exec(({ args }) => {
+                callCommand('dungeonroutes', args);
             });
         });
     });

@@ -46,8 +46,10 @@ import './other/DiscordRPC.js';
 import './other/Failsafes.js';
 //import './other/FastPlace.js';
 import './other/InventoryWalk.js';
-import './other/LeftClickEtherwarp.js';
 import './other/RatProtection.js';
 import './other/VoidgloomHelper.js';
-import './other/ZeroPingEtherwarp.js';
 import './other/ChatBypass.js'; // maybe move into ChatPatch? idk
+import './other/ZeroPingEtherwarp.js';
+import './other/LeftClickEtherwarp.js';
+import './other/BloodBlink.js';
+import './other/DungeonRoutes.js';
