@@ -118,7 +118,6 @@ class NukerClass extends ModuleBase {
                 if (target) {
                     const posArr = [target.getX(), target.getY(), target.getZ()];
                     NukerUtils.nukeQueueAdd(posArr, delay);
-                    console.log(Date.now());
                     this.target = target;
                     this.minedBlocks.set(this.posToString(target), this.tickCounter);
 
