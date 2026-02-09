@@ -19,21 +19,25 @@ class LeftClickEtherwarp extends ModuleBase {
 
     onTick() {
         if (Client.isInGui()) return;
-        if (!Player.getHeldItem() || Player.getHeldItem()?.getName()?.indexOf('Aspect of the ') === -1) return;
         if (Date.now() - this.clickStart > this.waitDuration) {
-            Keybind.rightClick();
-            Keybind.setKey('shift', false);
-            this.clickStart = Infinity;
+            let held = Player.getHeldItem()?.getName()?.indexOf('Aspect of the ');
+            if (held > 0 && typeof held != undefined) {
+                Keybind.rightClick();
+                Keybind.setKey('shift', false);
+                this.clickStart = Infinity;
+            }
         }
     }
 
     onClick(button, isPressed) {
         if (Client.isInGui()) return;
-        if (!Player.getHeldItem() || Player.getHeldItem()?.getName()?.indexOf('Aspect of the ') === -1) return;
         if (button != 0) return;
         if (isPressed) {
-            Keybind.setKey('shift', true);
-            this.clickStart = Date.now();
+            let held = Player.getHeldItem()?.getName()?.indexOf('Aspect of the ');
+            if (held > 0 && typeof held != undefined) {
+                Keybind.setKey('shift', true);
+                this.clickStart = Date.now();
+            }
         }
     }
 }
