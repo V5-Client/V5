@@ -32,8 +32,11 @@ class ChatBypass extends ModuleBase {
         };
 
         this.blockDetected = false;
+        this.ignoreDashes = false;
+        this.lastMessage = '';
 
         this.on('messageSent', (message, event) => {
+            this.lastMessage = message;
             this.ignoreDashes = true;
             setTimeout(() => {
                 this.ignoreDashes = false;
@@ -43,18 +46,28 @@ class ChatBypass extends ModuleBase {
         this.on('chat', (message, event) => {
             let blockedText = ChatLib.removeFormatting(message);
             blockedText = blockedText.trim();
-            if (blockedText === '-----------------------------------------' && this.ignoreDashes) return cancel(event);
-            const match = blockedText.match(/We blocked your comment "(.+)" because/);
 
+            if (blockedText === '-----------------------------------------' && this.ignoreDashes) return cancel(event);
+
+            const match = blockedText.match(/We blocked your comment "(.+)" because/);
             if (match && !this.blockDetected) {
                 const blockedMessage = match[1];
                 this.blockDetected = true;
+
                 const bypassedMessage = this.bypassChat(blockedMessage);
-                ChatLib.say(bypassedMessage);
+
+                if (this.lastMessage.startsWith('/')) {
+                    const parts = this.lastMessage.split(' ');
+                    const command = parts[0].substring(1);
+                    ChatLib.command(`${command} ${bypassedMessage}`);
+                } else {
+                    ChatLib.say(bypassedMessage);
+                }
 
                 setTimeout(() => {
                     this.blockDetected = false;
                 }, 1000);
+
                 cancel(event);
             }
         }).setCriteria('${message}');
@@ -62,11 +75,9 @@ class ChatBypass extends ModuleBase {
 
     bypassChat(message) {
         let bypassedMessage = '';
-
         for (let char of message) {
             bypassedMessage += this.bypassDict[char] || char;
         }
-
         return bypassedMessage;
     }
 }
