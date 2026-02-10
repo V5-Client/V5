@@ -10,10 +10,25 @@ class PathSpline {
         this.MAX_ANGLE_CHANGE = Math.PI / 4;
         this.MAX_GAP_DISTANCE = 12;
         this.OUTWARD_OFFSET_STRENGTH = 1.2;
+
+        this.FLY_PLAYER_EYE_OFFSET = 2.12;
+        this.FLY_SPACING = 5.25;
+        this.FLY_RAYTRACE_STEP = 0.35;
+        this.FLY_BLOCK_NUDGE = 0.85;
+
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
         this.cachedFlyLookPoints = [];
         this.lastFlyHash = null;
+    }
+
+    createFlyPaths(nodes) {
+        const lookPoints = this.createFlyLookPoints(nodes, this.FLY_SPACING);
+
+        const movementEyes = this.resamplePolylineByDistance(lookPoints, this.FLY_SPACING);
+        const movementPath = movementEyes.map((p) => ({ x: p.x, y: p.y - this.FLY_PLAYER_EYE_OFFSET, z: p.z }));
+
+        return { lookPoints, movementPath };
     }
 
     generateSpline(keyPathNodes, tolerance = 10) {
@@ -136,7 +151,7 @@ class PathSpline {
     generateMovementFromLookPoints(lookPoints, stepSize = 0.3) {
         if (!lookPoints || lookPoints.length < 2) return [];
 
-        const VERTICAL_OFFSET = 0.5;
+        const VERTICAL_OFFSET = -2.12;
         const movePath = [];
 
         for (let i = 0; i < lookPoints.length - 1; i++) {
@@ -163,41 +178,150 @@ class PathSpline {
         return movePath;
     }
 
-    // this is bad implementation it needs the raytrace to be more accurate and some other stuff
-    createFlyLookPoints(nodes) {
+    createFlyLookPoints(nodes, pointSpacing = this.FLY_SPACING) {
         if (!nodes || nodes.length < 2) return [];
 
-        const currentHash = `${nodes.length}-${nodes[0].x}-${nodes[nodes.length - 1].x}`;
+        const first = nodes[0];
+        const mid = nodes[Math.floor(nodes.length / 2)];
+        const last = nodes[nodes.length - 1];
+        const currentHash = `${pointSpacing}-${nodes.length}-${first.x ?? first[0]}-${first.y ?? first[1]}-${first.z ?? first[2]}-${mid.x ?? mid[0]}-${mid.y ?? mid[1]}-${mid.z ?? mid[2]}-${last.x ?? last[0]}-${last.y ?? last[1]}-${last.z ?? last[2]}`;
         if (currentHash === this.lastFlyHash) return this.cachedFlyLookPoints;
 
-        const lookPoints = [];
-        const PLAYER_HEIGHT_OFFSET = 2.12;
+        const raw = [];
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            const x = n.x !== undefined ? n.x : n[0];
+            const y = n.y !== undefined ? n.y : n[1];
+            const z = n.z !== undefined ? n.z : n[2];
+            const p = new Vec3d(x, y + this.FLY_PLAYER_EYE_OFFSET, z);
+            const prev = raw.length ? raw[raw.length - 1] : null;
+            if (!prev || p.x !== prev.x || p.y !== prev.y || p.z !== prev.z) raw.push(p);
+        }
+        if (raw.length < 2) return [];
 
-        lookPoints.push(new Vec3d(nodes[0].x, nodes[0].y + PLAYER_HEIGHT_OFFSET, nodes[0].z));
+        const rounded = this.roundPolylineCorners(raw, pointSpacing);
+        const lookPoints = this.resamplePolylineByDistance(rounded, pointSpacing);
 
-        let currentIndex = 0;
-        while (currentIndex < nodes.length - 1) {
-            let furthestVisible = currentIndex + 1;
-
-            for (let j = nodes.length - 1; j > currentIndex; j--) {
-                if (this.canSee(nodes[currentIndex], nodes[j])) {
-                    furthestVisible = j;
-                    break;
-                }
+        for (let i = 0; i < lookPoints.length; i++) {
+            if (this.isPointInsideBlock(lookPoints[i])) {
+                lookPoints[i] = this.nudgePointOutOfBlock(lookPoints[i]);
             }
-
-            const targetNode = nodes[furthestVisible];
-            const nextPoint = new Vec3d(targetNode.x, targetNode.y + PLAYER_HEIGHT_OFFSET, targetNode.z);
-
-            this.appendLookPoint(lookPoints, nextPoint);
-
-            currentIndex = furthestVisible;
-            if (currentIndex >= nodes.length - 1) break;
         }
 
         this.lastFlyHash = currentHash;
         this.cachedFlyLookPoints = lookPoints;
         return lookPoints;
+    }
+
+    roundPolylineCorners(points, spacing) {
+        if (!points || points.length < 3) return points || [];
+
+        const baseRadius = Math.max(0.15, Math.min(1.6, spacing * 0.55));
+
+        const out = [points[0]];
+        for (let i = 1; i < points.length - 1; i++) {
+            const a = points[i - 1];
+            const b = points[i];
+            const c = points[i + 1];
+
+            const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+            const bc = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
+
+            const abMag = Math.sqrt(ab.x * ab.x + ab.y * ab.y + ab.z * ab.z);
+            const bcMag = Math.sqrt(bc.x * bc.x + bc.y * bc.y + bc.z * bc.z);
+            if (abMag < 1e-6 || bcMag < 1e-6) continue;
+
+            const u1 = { x: ab.x / abMag, y: ab.y / abMag, z: ab.z / abMag };
+            const u2 = { x: bc.x / bcMag, y: bc.y / bcMag, z: bc.z / bcMag };
+
+            const dot = u1.x * u2.x + u1.y * u2.y + u1.z * u2.z;
+            if (dot > 0.985) {
+                out.push(b);
+                continue;
+            }
+
+            const r = Math.min(baseRadius, abMag * 0.45, bcMag * 0.45);
+            if (r < 0.12) {
+                out.push(b);
+                continue;
+            }
+
+            const pIn = new Vec3d(b.x - u1.x * r, b.y - u1.y * r, b.z - u1.z * r);
+            const pOut = new Vec3d(b.x + u2.x * r, b.y + u2.y * r, b.z + u2.z * r);
+
+            if (this.isSegmentClear(pIn, pOut)) {
+                out.push(pIn);
+                out.push(pOut);
+            } else {
+                out.push(b);
+            }
+        }
+        out.push(points[points.length - 1]);
+
+        const deduped = [out[0]];
+        for (let i = 1; i < out.length; i++) {
+            const prev = deduped[deduped.length - 1];
+            const p = out[i];
+            if (prev.x !== p.x || prev.y !== p.y || prev.z !== p.z) deduped.push(p);
+        }
+        return deduped;
+    }
+
+    isSegmentClear(a, b) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dz = b.z - a.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < 1e-6) return true;
+
+        const steps = Math.ceil(dist / this.FLY_RAYTRACE_STEP);
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps;
+            const p = { x: a.x + dx * t, y: a.y + dy * t, z: a.z + dz * t };
+            if (this.isPointInsideBlock(p)) return false;
+        }
+        return true;
+    }
+
+    resamplePolylineByDistance(points, step) {
+        if (!points || points.length < 2) return points || [];
+        if (step <= 0) return points;
+
+        const out = [points[0]];
+        let carry = 0;
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const a = points[i];
+            const b = points[i + 1];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dz = b.z - a.z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < 1e-9) continue;
+
+            let tDist = step - carry;
+            while (tDist <= dist + 1e-9) {
+                const t = tDist / dist;
+                out.push(new Vec3d(a.x + dx * t, a.y + dy * t, a.z + dz * t));
+                tDist += step;
+            }
+
+            carry = dist - (tDist - step);
+            carry = ((carry % step) + step) % step;
+        }
+
+        const last = points[points.length - 1];
+        const prev = out[out.length - 1];
+        if (prev.x !== last.x || prev.y !== last.y || prev.z !== last.z) out.push(last);
+        return out;
+    }
+
+    nudgePointOutOfBlock(point) {
+        const up = new Vec3d(point.x, point.y + this.FLY_BLOCK_NUDGE, point.z);
+        if (!this.isPointInsideBlock(up)) return up;
+        const down = new Vec3d(point.x, point.y - this.FLY_BLOCK_NUDGE, point.z);
+        if (!this.isPointInsideBlock(down)) return down;
+        return point;
     }
 
     canSee(pos1, pos2) {

@@ -29,6 +29,12 @@ class Finder {
         this.recalculateRetryQueued = false;
         this.MAX_RECALCULATE_ATTEMPTS = 5;
 
+        this.flyStarted = false;
+        this.flyStartDelayTicks = 0;
+        this.flyLookPoints = null;
+        this.flyMovementPath = null;
+        this.flySplinePath = null;
+
         v5Command('path', (...args) => {
             if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path goto x y z [x2 y2 z2...]');
 
@@ -169,31 +175,56 @@ class Finder {
                     this.handleRecovery(Recovery.trackProgress());
                 });
             } else if (this.isFly) {
-                const flyPoints = Spline.createFlyLookPoints(result.path);
-                const movementPath = Spline.generateMovementFromLookPoints(flyPoints);
+                if (!this.flyStarted) {
+                    const { lookPoints, movementPath } = Spline.createFlyPaths(result.path);
+                    this.flyLookPoints = lookPoints;
+                    this.flyMovementPath = movementPath;
+                    this.flySplinePath = this.createSplinePath(result);
 
-                Executor.execute(() => {
-                    FlyRotations.beginFlyRotations(flyPoints);
-                    FlyMovement.beginMovement(movementPath);
-                });
+                    FlyRotations.beginFlyRotations(this.flyLookPoints);
+                    FlyMovement.beginMovement(this.flyMovementPath);
 
-                // temp
+                    this.flyStarted = true;
+                    this.flyStartDelayTicks = 2;
+                }
+
+                if (this.flyStartDelayTicks > 0) {
+                    this.flyStartDelayTicks--;
+                }
+
+                if (this.flyStarted && this.flyStartDelayTicks === 0) {
+                    if (this.checkIfReachedDestination()) {
+                        this.finishSuccess();
+                        return;
+                    }
+
+                    if (FlyMovement.isActive === false) {
+                        this.callCallback(false);
+                        this.resetPath();
+                        PathExecutor.destroy();
+                        return;
+                    }
+                }
+
                 if (this.render) return;
 
+                const shouldRenderFly = PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS;
+                if (!shouldRenderFly) return;
+
                 this.render = register('postRenderWorld', () => {
-                    result.keynodes.forEach((node) => {
-                        Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
-                    });
+                    if (PathConfig.RENDER_KEY_NODES && result.keynodes?.length >= 2) {
+                        result.keynodes.forEach((node) => {
+                            Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
+                        });
+                    }
 
-                    flyPoints.forEach((p) => Render.drawBox(p, Render.Color(255, 0, 0, 150), true));
+                    if (PathConfig.RENDER_FLOATING_SPLINE) {
+                        Spline.drawFloatingSpline(this.flySplinePath);
+                    }
 
-                    result.path.forEach((node) => {
-                        Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
-                    });
-
-                    result.path_between_key_nodes.forEach((node) => {
-                        Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
-                    });
+                    if (PathConfig.RENDER_LOOK_POINTS) {
+                        this.flyLookPoints?.forEach((p) => Render.drawBox(p, Render.Color(255, 0, 0, 150), true));
+                    }
                 });
             }
         });
@@ -298,7 +329,11 @@ class Finder {
             const hDistSq = dx * dx + dz * dz;
             if (hDistSq > 2.0 * 2.0) continue;
 
-            if (dy < -0.1 || dy > 2.5) continue;
+            if (this.isFly) {
+                if (Math.abs(dy) > 4.5) continue;
+            } else {
+                if (dy < -0.1 || dy > 2.5) continue;
+            }
 
             if (this.isFly || player.isOnGround()) {
                 return true;
@@ -380,9 +415,11 @@ class Finder {
         this.destroyTick();
         this.destroyRender();
         Rotations.resetRotations();
+        FlyRotations.resetRotations();
         Spline.clearCache();
         Jump.reset();
         Movement.stopMovement();
+        FlyMovement.stopMovement();
         if (clearFlags) {
             Recovery.stop();
         } else {
@@ -391,6 +428,12 @@ class Finder {
         Swift.cancel();
         Swift.clear();
 
+        this.flyStarted = false;
+        this.flyStartDelayTicks = 0;
+        this.flyLookPoints = null;
+        this.flyMovementPath = null;
+        this.flySplinePath = null;
+
         if (clearFlags) {
             this.saidInfo = false;
             this.calledFromFile = false;
@@ -398,6 +441,7 @@ class Finder {
             this.currentCallback = null;
             this.recalculateAttempts = 0;
             this.recalculateRetryQueued = false;
+            this.isFly = false;
         }
     }
 
