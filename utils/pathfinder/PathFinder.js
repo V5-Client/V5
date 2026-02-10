@@ -193,12 +193,21 @@ class Finder {
                 }
 
                 if (this.flyStarted && this.flyStartDelayTicks === 0) {
+                    if (FlyRotations.complete && FlyMovement.isActive) {
+                        FlyMovement.requestDeceleration();
+                    }
+
                     if (this.checkIfReachedDestination()) {
                         this.finishSuccess();
                         return;
                     }
 
                     if (FlyMovement.isActive === false) {
+                        if (FlyMovement.complete && FlyRotations.complete) {
+                            this.finishSuccess();
+                            return;
+                        }
+
                         this.callCallback(false);
                         this.resetPath();
                         PathExecutor.destroy();

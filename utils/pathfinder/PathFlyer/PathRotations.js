@@ -2,6 +2,8 @@ import { MathUtils } from '../../Math';
 import { PathRotationsUtility } from '../PathWalker/PathRotationsUtility';
 import { PathExecutor } from '../PathExecutor';
 import { BP, Vec3d } from '../../Constants';
+import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
+import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 
 class PathRotations {
     constructor() {
@@ -23,10 +25,11 @@ class PathRotations {
         this.ARRIVAL_THRESHOLD_XZ = 4.5;
         this.ARRIVAL_THRESHOLD_Y = 5.5;
 
+        this.FINAL_COMPLETE_XZ = 1.45;
+        this.FINAL_COMPLETE_Y = 2.35;
+
         this.SMOOTH_FACTOR_STRAIGHT = 0.1;
         this.SMOOTH_FACTOR_TURN = 0.18;
-
-        this.RAYTRACE_STEP = 0.35;
 
         this.resetRotations();
 
@@ -57,17 +60,6 @@ class PathRotations {
         PathRotationsUtility.stopRotation();
     }
 
-    isPointInsideBlock(point) {
-        try {
-            const world = World.getWorld();
-            if (!world) return false;
-            const pos = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
-            return !world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
-        } catch (e) {
-            return false;
-        }
-    }
-
     isPointVisible(playerEyes, targetPoint) {
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
@@ -75,17 +67,35 @@ class PathRotations {
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (dist < 0.2) return true;
 
-        const steps = Math.ceil(dist / this.RAYTRACE_STEP);
-        for (let i = 1; i <= steps; i++) {
-            const t = i / steps;
-            const checkPoint = {
-                x: playerEyes.x + dx * t,
-                y: playerEyes.y + dy * t,
-                z: playerEyes.z + dz * t,
-            };
-            if (this.isPointInsideBlock(checkPoint)) return false;
+        try {
+            const dir = new Vector3(dx / dist, dy / dist, dz / dist);
+            const hit = raytraceBlocks(
+                [playerEyes.x, playerEyes.y, playerEyes.z],
+                dir,
+                dist + 0.1,
+                (block) => {
+                    if (!block || !block.type || block.type.getID() === 0) return false;
+                    try {
+                        const world = World.getWorld();
+                        const pos = new BP(Math.floor(block.getX()), Math.floor(block.getY()), Math.floor(block.getZ()));
+                        const state = world.getBlockState(pos);
+                        return !state.getCollisionShape(world, pos).isEmpty();
+                    } catch (e) {
+                        return true;
+                    }
+                },
+                true
+            );
+
+            if (!hit) return true;
+            const hitX = hit[0] + 0.5;
+            const hitY = hit[1] + 0.5;
+            const hitZ = hit[2] + 0.5;
+            const hitDist = Math.sqrt((hitX - playerEyes.x) ** 2 + (hitY - playerEyes.y) ** 2 + (hitZ - playerEyes.z) ** 2);
+            return hitDist >= dist - 0.35;
+        } catch (e) {
+            return true;
         }
-        return true;
     }
 
     getClosestPointOnSegment(p, p1, p2) {
@@ -116,6 +126,14 @@ class PathRotations {
         const distSqXZ = dx * dx + dz * dz;
         const yDiff = Math.abs(a.y - b.y);
         return distSqXZ <= this.ARRIVAL_THRESHOLD_XZ * this.ARRIVAL_THRESHOLD_XZ && yDiff <= this.ARRIVAL_THRESHOLD_Y;
+    }
+
+    isWithinFinalThreshold(a, b) {
+        const dx = a.x - b.x;
+        const dz = a.z - b.z;
+        const distSqXZ = dx * dx + dz * dz;
+        const yDiff = Math.abs(a.y - b.y);
+        return distSqXZ <= this.FINAL_COMPLETE_XZ * this.FINAL_COMPLETE_XZ && yDiff <= this.FINAL_COMPLETE_Y;
     }
 
     getAngleBetweenVectorsDeg(v1, v2) {
@@ -212,8 +230,24 @@ class PathRotations {
             this.currentPathPosition = bestT;
         }
 
+        const lastIndex = this.lookPoints.length - 1;
+        const lastPoint = this.lookPoints[lastIndex];
+
         const idealLookahead = this.getAdaptiveLookaheadPoints();
-        const targetPoint = this.findVisibleLookTarget(playerEyes, idealLookahead);
+        let targetPoint = this.findVisibleLookTarget(playerEyes, idealLookahead);
+
+        const atEndByPosition = this.currentPathPosition >= lastIndex - 0.15;
+        const nearEndByThreshold = this.isWithinArrivalThreshold(playerEyes, lastPoint) && this.currentPathPosition >= lastIndex - 1.0;
+        if (atEndByPosition || nearEndByThreshold) {
+            this.currentPathPosition = lastIndex;
+            targetPoint = lastPoint;
+
+            if (this.isWithinFinalThreshold(playerEyes, lastPoint)) {
+                this.complete = true;
+                this.rotationActive = false;
+            }
+        }
+
         this.currentTargetPoint = targetPoint;
 
         const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
@@ -231,18 +265,6 @@ class PathRotations {
         const pitchDelta = desiredPitch - this.rawTargetPitch;
         if (Math.abs(pitchDelta) > this.PITCH_DEADZONE) {
             this.rawTargetPitch += pitchDelta * Math.min(1.0, blend);
-        }
-
-        const lastIndex = this.lookPoints.length - 1;
-        const lastPoint = this.lookPoints[lastIndex];
-
-        const atEndByPosition = this.currentPathPosition >= lastIndex - 0.15;
-        const nearEndByThreshold = this.isWithinArrivalThreshold(playerEyes, lastPoint) && this.currentPathPosition >= lastIndex - 1.0;
-
-        if (atEndByPosition || nearEndByThreshold) {
-            this.currentPathPosition = lastIndex;
-            this.complete = true;
-            this.rotationActive = false;
         }
     }
 
@@ -308,6 +330,10 @@ class PathRotations {
         this.yawVelocity = 0;
         this.pitchVelocity = 0;
         this.rotationActive = true;
+    }
+
+    stopRotations() {
+        this.resetRotations();
     }
 }
 

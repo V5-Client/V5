@@ -20,6 +20,11 @@ class PathMovement {
         this.MOTION_STOP_THRESHOLD_Y = 0.02;
         this.MAX_DECEL_TICKS = 60;
 
+        this.MOVE_TARGET_LOOKAHEAD = 2;
+        this.STRAFE_ON_DEG = 24;
+        this.STRAFE_OFF_DEG = 12;
+        this.strafeDir = 0;
+
         PathExecutor.onTick(() => {
             if (!this.isActive || !this.path || this.path.length === 0) return;
             const player = Player.getPlayer();
@@ -43,6 +48,71 @@ class PathMovement {
 
         this.state = 'MOVING';
         this.decelTicks = 0;
+        this.strafeDir = 0;
+    }
+
+    wrapAngle(angle) {
+        let wrapped = angle % 360;
+        if (wrapped > 180) wrapped -= 360;
+        if (wrapped < -180) wrapped += 360;
+        return wrapped;
+    }
+
+    getYawToTarget(dx, dz) {
+        return -(Math.atan2(dx, dz) * (180 / Math.PI));
+    }
+
+    updateStrafeDir(yawDeltaDeg) {
+        if (this.strafeDir === 0) {
+            if (yawDeltaDeg > this.STRAFE_ON_DEG) this.strafeDir = 1;
+            else if (yawDeltaDeg < -this.STRAFE_ON_DEG) this.strafeDir = -1;
+            return;
+        }
+
+        if (this.strafeDir === 1) {
+            if (yawDeltaDeg < this.STRAFE_OFF_DEG) this.strafeDir = 0;
+            else if (yawDeltaDeg < -this.STRAFE_ON_DEG) this.strafeDir = -1;
+            return;
+        }
+
+        if (this.strafeDir === -1) {
+            if (yawDeltaDeg > -this.STRAFE_OFF_DEG) this.strafeDir = 0;
+            else if (yawDeltaDeg > this.STRAFE_ON_DEG) this.strafeDir = 1;
+        }
+    }
+
+    setMovementKeysToward(target) {
+        const pX = Player.getX();
+        const pZ = Player.getZ();
+        const dx = target.x - pX;
+        const dz = target.z - pZ;
+        const distSqXZ = dx * dx + dz * dz;
+
+        Keybind.setKey('w', false);
+        Keybind.setKey('a', false);
+        Keybind.setKey('s', false);
+        Keybind.setKey('d', false);
+
+        if (distSqXZ < 0.09) {
+            this.strafeDir = 0;
+            return;
+        }
+
+        const desiredYaw = this.getYawToTarget(dx, dz);
+        const yawDelta = this.wrapAngle(desiredYaw - Player.getYaw());
+        this.updateStrafeDir(yawDelta);
+
+        Keybind.setKey('w', true);
+        Keybind.setKey('a', this.strafeDir === -1);
+        Keybind.setKey('d', this.strafeDir === 1);
+    }
+
+    requestDeceleration() {
+        if (!this.isActive) return;
+        if (this.state === 'DECELERATING') return;
+        this.state = 'DECELERATING';
+        this.decelTicks = 0;
+        this.releaseMovementKeys();
     }
 
     getDistanceSq(a, b) {
@@ -85,9 +155,7 @@ class PathMovement {
         }
 
         if (this.willArriveAtDestinationAfterStopping(finalTarget)) {
-            this.state = 'DECELERATING';
-            this.decelTicks = 0;
-            this.releaseMovementKeys();
+            this.requestDeceleration();
             return;
         }
 
@@ -129,7 +197,8 @@ class PathMovement {
 
         this.currentIndex = Math.min(closestIndex + 1, this.path.length - 1);
 
-        const target = this.path[this.currentIndex];
+        const moveIndex = Math.min(this.path.length - 1, this.currentIndex + this.MOVE_TARGET_LOOKAHEAD);
+        const target = this.path[moveIndex];
         const diffY = pY - target.y;
 
         const predicted = predictStoppingPosition(12);
@@ -148,7 +217,7 @@ class PathMovement {
             this.isDescending = false;
         }
 
-        Keybind.setKeysForStraightLineCoords(target.x, target.y, target.z, false);
+        this.setMovementKeysToward(target);
         Keybind.setKey('sprint', true);
         Keybind.setKey('space', this.isLifting);
         Keybind.setKey('shift', this.isDescending);
@@ -156,6 +225,7 @@ class PathMovement {
 
     releaseMovementKeys() {
         ['w', 'a', 's', 'd', 'space', 'shift', 'sprint'].forEach((key) => Keybind.setKey(key, false));
+        this.strafeDir = 0;
     }
 
     finishMovement() {
