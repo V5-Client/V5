@@ -5,9 +5,8 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
 import { CommonPingS2C, WorldTimeUpdateS2C } from '../../utils/Packets';
 
-const DungeonScanner = Java.type('com.github.synnerz.devonian.api.dungeon.DungeonScanner');
-const roomsField = DungeonScanner.class.getDeclaredField('rooms');
-roomsField.setAccessible(true);
+let DungeonScanner;
+let roomsField;
 
 const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
 RIGHT_CLICK_METHOD.setAccessible(true);
@@ -15,11 +14,21 @@ RIGHT_CLICK_METHOD.setAccessible(true);
 class BloodBlink extends ModuleBase {
     constructor() {
         super({
-            name: 'BloodBlink',
+            name: 'Blood Blink',
             subcategory: 'Other',
-            description: '',
-            tooltip: '.',
+            description: 'Blinks to the Blood Room at the start of a dungeon (requires Devonian).',
+            tooltip: 'Requires Devonian dungeon scanner. If Devonian is not installed, this module will not run.',
         });
+
+        this.reflectionFailed = false;
+
+        try {
+            DungeonScanner = Java.type('com.github.synnerz.devonian.api.dungeon.DungeonScanner');
+            roomsField = DungeonScanner.class.getDeclaredField('rooms');
+            roomsField.setAccessible(true);
+        } catch (e) {
+            this.reflectionFailed = true;
+        }
 
         this.blinkDelay = -1;
         this.outbounds = 0;
@@ -66,6 +75,7 @@ class BloodBlink extends ModuleBase {
     }
 
     getBloodCenter() {
+        if (this.reflectionFailed || !DungeonScanner || !roomsField) return null;
         const rooms = roomsField.get(DungeonScanner.INSTANCE);
         if (!rooms) return null;
         for (const room of rooms) {
@@ -119,6 +129,11 @@ class BloodBlink extends ModuleBase {
     }
 
     blink() {
+        if (this.reflectionFailed) {
+            Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
+            return;
+        }
+
         const bloodCenter = this.getBloodCenter();
         const playerX = Player.getX();
         const playerY = Player.getY();
@@ -197,6 +212,10 @@ class BloodBlink extends ModuleBase {
     }
 
     setupBlink() {
+        if (this.reflectionFailed) {
+            Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
+            return;
+        }
         if (Player.getY() >= 74) return (this.blinkDelay = 0); // standing on door method
         Client.scheduleTask(0, () => {
             Player.setHeldItemIndex(2);
