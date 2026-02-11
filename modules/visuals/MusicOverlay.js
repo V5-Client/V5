@@ -190,7 +190,6 @@ class Music extends ModuleBase {
             progress = totalSec > 0 ? Math.min(this.interpolatedSeconds / totalSec, 1) : 0;
         }
 
-        // Layout Constants
         const s = this.SCALE || 1.0;
         const padding = 12 * s;
         const imageSize = 55 * s;
@@ -198,7 +197,6 @@ class Music extends ModuleBase {
         const timerFontSize = FontSizes.MEDIUM * 0.85 * s;
         const barHeight = 4 * s;
 
-        // Dynamic width calculation
         const nameWidth = getTextWidth(songName, titleFontSize);
         const minWidth = 200 * s;
         this.dynamicWidth = Math.max(minWidth, nameWidth + imageSize + padding * 4);
@@ -206,6 +204,8 @@ class Music extends ModuleBase {
 
         const titleColor = isSkeleton ? 0xaaaaaaff : 0xffffffff;
         const timeColor = isSkeleton ? 0x888888ff : 0xccffffff;
+        const bg = colorWithAlpha(THEME.OV_WINDOW, 0.92);
+        const border = colorWithAlpha(THEME.OV_ACCENT, 0.35);
 
         try {
             NVG.beginFrame(sw, sh);
@@ -215,10 +215,10 @@ class Music extends ModuleBase {
                 y: this.y,
                 width: this.dynamicWidth,
                 height: this.baseHeight,
-                radius: CORNER_RADIUS * s,
-                color: colorWithAlpha(THEME.OV_WINDOW, 0.95),
+                radius: CORNER_RADIUS * 0.6 * s,
+                color: bg,
                 borderWidth: BORDER_WIDTH * s,
-                borderColor: colorWithAlpha(THEME.OV_BORDER, 0.7),
+                borderColor: border,
             });
 
             const imgX = this.x + this.dynamicWidth - imageSize - padding;
@@ -232,7 +232,7 @@ class Music extends ModuleBase {
                     y: imgY,
                     width: imageSize,
                     height: imageSize,
-                    radius: CORNER_RADIUS * s,
+                    radius: CORNER_RADIUS * 0.5 * s,
                     color: colorWithAlpha(0x000000, 0.3),
                     borderWidth: 0,
                     borderColor: 0,
