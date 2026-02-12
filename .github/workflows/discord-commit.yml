@@ -88,17 +88,15 @@ jobs:
                      echo "ZIP_READY=true" >> "$GITHUB_ENV"
                   fi
 
-            - name: Update Cloudflare KV
+            - name: Upload to Cloudflare R2
               uses: cloudflare/wrangler-action@v3
               with:
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  wranglerVersion: '4'
+                  wranglerVersion: '3'
                   command: >
-                      kv key put "V5.zip"
-                      --path V5.zip
-                      --namespace-id ${{ secrets.KV_NAMESPACE_ID }}
-                      --remote
+                      r2 object put v5-builds/V5.zip
+                      --file V5.zip
 
             - name: Send to Discord
               env:
