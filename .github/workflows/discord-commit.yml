@@ -13,7 +13,7 @@ on:
 
 jobs:
     notify-discord:
-        runs-on: blacksmith-2vcpu-ubuntu-2404
+        runs-on: ubuntu-latest
 
         steps:
             - name: Checkout repo
@@ -91,15 +91,14 @@ jobs:
             - name: Update Cloudflare KV
               uses: cloudflare/wrangler-action@v3
               with:
-                apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                wranglerVersion: '4'
-                command: >
-                  kv key put "V5.zip"
-                  --path V5.zip
-                  --namespace-id ${{ secrets.KV_NAMESPACE_ID }}
-                  --remote
-
+                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  wranglerVersion: '4'
+                  command: >
+                      kv key put "V5.zip"
+                      --path V5.zip
+                      --namespace-id ${{ secrets.KV_NAMESPACE_ID }}
+                      --remote
 
             - name: Send to Discord
               env:
@@ -185,7 +184,7 @@ jobs:
                       avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
                       embeds: [{
                         title: ("New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
-                        description: ("📝 **Summary**\n" + $msg + $warn + "\n\n**Updated on Cloudflare**\n[View Commit](" + $url + ")"),
+                        description: ("📝 **Summary**\n" + $msg + $warn + "\n\n[View Commit](" + $url + ")"),
                         color: 3447003,
                         timestamp: $time,
                         fields: [
