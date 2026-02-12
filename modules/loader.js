@@ -41,7 +41,7 @@ import './other/AutoBeg.js';
 import './other/AutoConversation.js';
 import './other/AutoIceFill.js';
 import './other/BeachBaller.js';
-import './other/BloodBlink.js';
+//import './other/BloodBlink.js'; Need cancel interact to work which requires a mixin that i cant figure out :sob:
 import './other/ChatBypass.js'; // maybe move into ChatPatch? idk
 import './other/ChatPatch.js';
 import './other/DiscordRPC.js';

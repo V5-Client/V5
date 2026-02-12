@@ -4,6 +4,7 @@ import { mc, Utils } from '../../utils/Utils';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Chat } from '../../utils/Chat';
 import { CommonPingS2C, WorldTimeUpdateS2C } from '../../utils/Packets';
+import { Guis } from '../../utils/player/Inventory';
 
 let DungeonScanner;
 let roomsField;
@@ -35,7 +36,12 @@ class BloodBlink extends ModuleBase {
         this.blinkReady = false;
         this.dungeonStarted = true;
 
+        this.pearlSlot = 1;
+        this.aotvSlot = 1;
+
         this.on('tick', () => {
+            this.pearlSlot = Guis.findItemInHotbar('Ender Pearl');
+            this.aotvSlot = Guis.findItemInHotbar('Aspect of the Void') || Guis.findItemInHotbar('Aspect of the End');
             if (this.blinkDelay >= 0 && --this.blinkDelay <= 0) {
                 this.blinkDelay = -1;
                 Keybind.setKey('space', false);
@@ -182,7 +188,7 @@ class BloodBlink extends ModuleBase {
             });
 
             Client.scheduleTask(2, () => {
-                Player.setHeldItemIndex(5);
+                Player.setHeldItemIndex(this.pearlSlot);
             });
             Client.scheduleTask(3, () => {
                 this.rightClick();
@@ -218,7 +224,7 @@ class BloodBlink extends ModuleBase {
         }
         if (Player.getY() >= 74) return (this.blinkDelay = 0); // standing on door method
         Client.scheduleTask(0, () => {
-            Player.setHeldItemIndex(2);
+            Player.setHeldItemIndex(this.aotvSlot);
         });
         Client.scheduleTask(1, () => {
             Rotations.rotateToAngles(0, -90);
@@ -228,7 +234,7 @@ class BloodBlink extends ModuleBase {
             this.rightClick();
         });
         Client.scheduleTask(3, () => {
-            Player.setHeldItemIndex(5);
+            Player.setHeldItemIndex(this.pearlSlot);
         });
         Client.scheduleTask(6, () => {
             this.rightClick();
@@ -249,7 +255,7 @@ class BloodBlink extends ModuleBase {
             this.rightClick();
         });
         Client.scheduleTask(19, () => {
-            Player.setHeldItemIndex(2);
+            Player.setHeldItemIndex(this.aotvSlot);
         });
         this.blinkDelay = 21;
     }
