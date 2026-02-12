@@ -97,7 +97,7 @@ jobs:
                 npm install wrangler@latest
                 npx wrangler kv key put "V5.zip" \
                   --path V5.zip \
-                  --namespace-id ${{ secrets.KV_NAMESPACE_ID }
+                  --namespace-id ${{ secrets.KV_NAMESPACE_ID }}
 
 
             - name: Send to Discord
