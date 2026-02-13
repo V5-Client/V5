@@ -1,6 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Time } from '../../utils/TimeUtils';
+import { Timer } from '../../utils/TimeUtils';
 import { Utils } from '../../utils/Utils';
 
 class LobbyHopper extends ModuleBase {
@@ -18,7 +18,7 @@ class LobbyHopper extends ModuleBase {
 
         this.maxDay = 0;
         this.said = false;
-        this.cooldown = new Time();
+        this.cooldown = new Timer();
         this.bindToggleKey();
 
         this.addSlider('Max Lobby Day', 0, 18, 5, (v) => {
@@ -29,7 +29,7 @@ class LobbyHopper extends ModuleBase {
             if (!this.enabled) return;
             let isInCh = Utils.area() === 'Crystal Hollows';
 
-            if (this.said && !this.cooldown.hasReached(3000)) return;
+            if (this.said && !this.cooldown.hasPassed(3000)) return;
 
             if (!isInCh) {
                 this.message('Not in Crystal Hollows, Warping.');

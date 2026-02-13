@@ -2,7 +2,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
 import { Rotations } from '../../utils/player/RotationsTest';
 import { Keybind } from '../../utils/player/Keybinding';
-import { Time } from '../../utils/TimeUtils';
+import { Timer } from '../../utils/TimeUtils';
 import { Guis } from '../../utils/player/Inventory';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
@@ -39,11 +39,11 @@ class ScathaMacro extends ModuleBase {
         this.setState(this.STATES.SETUP);
 
         // Timers
-        this.stuckTimer = new Time();
-        this.chestTimer = new Time();
-        this.menuTimer = new Time();
-        this.scathaSpawnTimer = new Time();
-        this.centeringTimer = new Time();
+        this.stuckTimer = new Timer();
+        this.chestTimer = new Timer();
+        this.menuTimer = new Timer();
+        this.scathaSpawnTimer = new Timer();
+        this.centeringTimer = new Timer();
 
         // Flags and counters
         this.centeringStart = true;
@@ -259,7 +259,7 @@ class ScathaMacro extends ModuleBase {
                 Keybind.setKey('s', false);
                 this.ShuffleToBlockCenter();
 
-                if (this.pickaxeAbility && this.scathaSpawnTimer.hasReached(29000)) {
+                if (this.pickaxeAbility && this.scathaSpawnTimer.hasPassed(29000)) {
                     this.pickaxeAbility = false;
                     Keybind.setKey('leftclick', false);
                     ScheduleTask(3, () => Keybind.rightClick());
@@ -301,7 +301,7 @@ class ScathaMacro extends ModuleBase {
                     this.toggle(false);
                 }
 
-                if (this.stuckTimer.hasReached(2000)) {
+                if (this.stuckTimer.hasPassed(2000)) {
                     this.stuckCounter++;
                     Keybind.stopMovement();
                     Keybind.setKey('leftclick', false);
@@ -334,7 +334,7 @@ class ScathaMacro extends ModuleBase {
                 this.tunnel = true;
 
                 if (this.gettingMenu) {
-                    if (this.menuState === 0 && this.menuTimer.hasReached(this.menuClickDelay)) {
+                    if (this.menuState === 0 && this.menuTimer.hasPassed(this.menuClickDelay)) {
                         ChatLib.command('hotm');
                         this.menuTimer.reset();
                         this.menuState++;
@@ -343,7 +343,7 @@ class ScathaMacro extends ModuleBase {
                     if (
                         this.menuState === 1 &&
                         Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasReached(this.menuClickDelay)
+                        this.menuTimer.hasPassed(this.menuClickDelay)
                     ) {
                         const mole = Player.getContainer()?.getStackInSlot(13);
                         if (mole && mole?.type?.getID() === 689) {
@@ -356,7 +356,7 @@ class ScathaMacro extends ModuleBase {
                     if (
                         this.menuState === 2 &&
                         Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasReached(this.menuClickDelay)
+                        this.menuTimer.hasPassed(this.menuClickDelay)
                     ) {
                         const efficientMiner = Player.getContainer()?.getStackInSlot(22);
                         if (efficientMiner && efficientMiner?.type?.getID() === 689) {
@@ -372,7 +372,7 @@ class ScathaMacro extends ModuleBase {
                         this.menuState++;
                         return;
                     }
-                    if (this.menuState === 4 && Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasReached(this.menuClickDelay)) {
+                    if (this.menuState === 4 && Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
                         for (let i = 0; i < Player.getContainer().getSize(); i++) {
                             const item = Player.getContainer().getStackInSlot(i);
                             if (!item) continue;
@@ -386,7 +386,7 @@ class ScathaMacro extends ModuleBase {
                             }
                         }
                     }
-                    if (this.menuState === 5 && this.menuTimer.hasReached(this.menuClickDelay)) {
+                    if (this.menuState === 5 && this.menuTimer.hasPassed(this.menuClickDelay)) {
                         Guis.closeInv();
                         ScheduleTask(5, () => {
                             Rotations.rotateToAngles(90, -75);
@@ -402,21 +402,21 @@ class ScathaMacro extends ModuleBase {
 
             case this.STATES.BACKWARDS: {
                 if (this.pause) return;
-                if (!this.scathaSpawnTimer.hasReached(27000)) {
+                if (!this.scathaSpawnTimer.hasPassed(27000)) {
                     Keybind.stopMovement();
                     this.stuckTimer.reset();
                     Rotations.rotateToAngles(90, -75);
                     return;
                 }
-                if (!this.scathaSpawnTimer.hasReached(28000)) {
+                if (!this.scathaSpawnTimer.hasPassed(28000)) {
                     if (this.drillSlot !== -1) Guis.setItemSlot(this.drillSlot);
                     Keybind.stopMovement();
                     this.stuckTimer.reset();
                     return;
                 }
 
-                if (Player.getX() >= 823.69 && this.stuckTimer.hasReached(1000)) {
-                    if (this.menuState === 0 && this.menuTimer.hasReached(this.menuClickDelay)) {
+                if (Player.getX() >= 823.69 && this.stuckTimer.hasPassed(1000)) {
+                    if (this.menuState === 0 && this.menuTimer.hasPassed(this.menuClickDelay)) {
                         ChatLib.command('hotm');
                         this.menuTimer.reset();
                         this.menuState++;
@@ -425,7 +425,7 @@ class ScathaMacro extends ModuleBase {
                     if (
                         this.menuState === 1 &&
                         Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasReached(this.menuClickDelay)
+                        this.menuTimer.hasPassed(this.menuClickDelay)
                     ) {
                         const mole = Player.getContainer()?.getStackInSlot(13);
                         if (mole && (mole?.type?.getID() === '845' || mole?.type?.getID() === '846')) {
@@ -438,7 +438,7 @@ class ScathaMacro extends ModuleBase {
                     if (
                         this.menuState === 2 &&
                         Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasReached(this.menuClickDelay)
+                        this.menuTimer.hasPassed(this.menuClickDelay)
                     ) {
                         const efficientMiner = Player.getContainer()?.getStackInSlot(22);
                         if (efficientMiner && (efficientMiner?.type?.getID() === '845' || efficientMiner?.type?.getID() === '846')) {
@@ -454,7 +454,7 @@ class ScathaMacro extends ModuleBase {
                         this.menuState++;
                         return;
                     }
-                    if (this.menuState === 4 && Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasReached(this.menuClickDelay)) {
+                    if (this.menuState === 4 && Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
                         for (let i = 0; i < Player.getContainer().getSize(); i++) {
                             const item = Player.getContainer().getStackInSlot(i);
                             if (!item) continue;
@@ -468,7 +468,7 @@ class ScathaMacro extends ModuleBase {
                             }
                         }
                     }
-                    if (this.menuState === 5 && this.menuTimer.hasReached(this.menuClickDelay)) {
+                    if (this.menuState === 5 && this.menuTimer.hasPassed(this.menuClickDelay)) {
                         Guis.closeInv();
                         this.menuTimer.reset();
                         this.setState(this.STATES.TUNNEL);
@@ -526,7 +526,7 @@ class ScathaMacro extends ModuleBase {
                     this.toggle(false);
                 }
 
-                if (this.stuckTimer.hasReached(2000) && Player.getX() <= 823.69) {
+                if (this.stuckTimer.hasPassed(2000) && Player.getX() <= 823.69) {
                     this.stuckCounter++;
                     Keybind.stopMovement();
                     Keybind.setKey('leftclick', false);
@@ -623,7 +623,7 @@ class ScathaMacro extends ModuleBase {
             }
             case this.STATES.WAITING: {
                 // Failsafe in case scheduled transition is missed
-                if (this.centeringTimer.hasReached(2000)) {
+                if (this.centeringTimer.hasPassed(2000)) {
                     if (this.unstuckState === 1) this.setState(this.STATES.BACKWARDS);
                     else this.setState(this.STATES.SETUP);
                 }
@@ -638,12 +638,12 @@ class ScathaMacro extends ModuleBase {
 
                 if (!this.normalKilling) {
                     if (this.scatha) {
-                        if (!Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasReached(this.menuClickDelay) && !this.sorrow) {
+                        if (!Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay) && !this.sorrow) {
                             ChatLib.command('wardrobe');
                             this.menuTimer.reset();
                             return;
                         }
-                        if (Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasReached(this.menuClickDelay) && !this.sorrow) {
+                        if (Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay) && !this.sorrow) {
                             for (let i = 0; i < Player.getContainer().getSize(); i++) {
                                 const item = Player.getContainer().getStackInSlot(i);
                                 if (!item) continue;
@@ -657,7 +657,7 @@ class ScathaMacro extends ModuleBase {
                                 }
                             }
                         }
-                        if (this.sorrow && this.menuTimer.hasReached(this.menuClickDelay)) Guis.closeInv();
+                        if (this.sorrow && this.menuTimer.hasPassed(this.menuClickDelay)) Guis.closeInv();
                         if (!this.sorrow) return;
                     }
                 }
@@ -709,7 +709,7 @@ class ScathaMacro extends ModuleBase {
                 if (this.normalKilling) {
                     if (forwardDist < -threshold) Keybind.setKey('s', true);
                 } else {
-                    if (this.menuTimer.hasReached(this.menuClickDelay)) {
+                    if (this.menuTimer.hasPassed(this.menuClickDelay)) {
                         Keybind.setKey('w', false);
                         Keybind.setKey('s', false);
                         if (forwardDist > backthreshold) Keybind.setKey('w', true);
@@ -725,19 +725,19 @@ class ScathaMacro extends ModuleBase {
                     this.setState(this.STATES.BACKWARDS);
                     return;
                 }
-                if (this.close && this.menuTimer.hasReached(this.menuClickDelay)) {
+                if (this.close && this.menuTimer.hasPassed(this.menuClickDelay)) {
                     Guis.closeInv();
                     this.setState(this.STATES.BACKWARDS);
                     this.close = false;
                     this.scatha = false;
                     return;
                 }
-                if (!Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasReached(this.menuClickDelay)) {
+                if (!Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
                     ChatLib.command('wardrobe');
                     this.menuTimer.reset();
                     return;
                 }
-                if (Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasReached(this.menuClickDelay)) {
+                if (Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
                     for (let i = 0; i < Player.getContainer().getSize(); i++) {
                         const item = Player.getContainer().getStackInSlot(i);
                         if (!item) continue;
@@ -761,7 +761,7 @@ class ScathaMacro extends ModuleBase {
     }
 
     canClickChest() {
-        if (!this.chestTimer.hasReached(130)) return false;
+        if (!this.chestTimer.hasPassed(130)) return false;
         const object = Player.lookingAt();
         if (object instanceof Block) {
             const id = object.type.getID();
