@@ -17,7 +17,6 @@ const STATES = {
     IDLE: 'Idle',
     CHOOSING: 'Choosing Commission',
     TRAVELING: 'Traveling to Location',
-    WAITING: 'Waiting for Spot',
     WAITING_GUI_CLOSE: 'Closing GUI',
     MINING: 'Mining',
     SLAYER: 'Killing Mobs',
@@ -98,6 +97,7 @@ class CommissionMacro extends ModuleBase {
             const newCommissions = MiningUtils.readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
         }).setDelay(1);
+
         this.on('tick', () => this.runLogic());
 
         this.on('chat', (event) => {
@@ -117,7 +117,15 @@ class CommissionMacro extends ModuleBase {
         });
 
         manager.subscribe('death', () => {
-            if (this.enabled) this.onDeath();
+            if (this.enabled) this.delayedReset(10);
+        });
+
+        manager.subscribe('warp', () => {
+            if (this.enabled) this.delayedReset(67);
+        });
+
+        this.on('worldUnload', () => {
+            this.delayedReset(67);
         });
 
         this.addSlider(
@@ -243,14 +251,9 @@ class CommissionMacro extends ModuleBase {
 
     onDisable() {
         this.message('&cDisabled');
+        this.resetState();
 
-        MiningBot.toggle(false, true);
-        CombatBot.clearExternalTargets();
-        CombatBot.toggle(false);
-        Pathfinder.resetPath();
-        this.travelPurpose = null;
         Mouse.regrab();
-        Keybind.setKey('rightclick', false);
     }
 
     resetState() {
@@ -273,8 +276,16 @@ class CommissionMacro extends ModuleBase {
         this.npcRotationToken = 0;
         this.areaCheckTime = null;
 
+        MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
+        Pathfinder.resetPath(true);
+        Keybind.setKey('rightclick', false);
+    }
+
+    delayedReset(delay) {
+        this.resetState();
+        this.delay(delay);
     }
 
     setState(newState) {
@@ -295,9 +306,6 @@ class CommissionMacro extends ModuleBase {
                 this.handleIdle();
                 break;
             case STATES.CHOOSING:
-                this.handleChoosing();
-                break;
-            case STATES.WAITING:
                 this.handleChoosing();
                 break;
             case STATES.WAITING_GUI_CLOSE:
@@ -323,8 +331,8 @@ class CommissionMacro extends ModuleBase {
 
     handleChoosing() {
         const area = Utils.area();
+        const now = Date.now();
         if (area !== 'Dwarven Mines') {
-            const now = Date.now();
             if (!this.areaCheckTime) {
                 Chat.message('&eNot in Dwarven Mines, warping...');
                 ChatLib.command('warpforge');
@@ -341,8 +349,6 @@ class CommissionMacro extends ModuleBase {
 
         const newCommissions = MiningUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
-
-        const now = Date.now();
 
         if (this.shouldWaitForLastCompleted()) return;
         if (this.awaitingTabUpdate) return;
@@ -493,7 +499,10 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleNoAvailableSpots() {
-        this.setState(STATES.WAITING);
+        Chat.message('No available spots! Finding new lobby');
+        ChatLib.command('hub');
+        this.resetState();
+        this.delay(80);
     }
 
     handleSlayer() {
@@ -895,11 +904,6 @@ class CommissionMacro extends ModuleBase {
 
             this.setState(STATES.IDLE);
         });
-    }
-
-    onDeath() {
-        Chat.message('&cYou died.');
-        this.resetState();
     }
 
     getWeaponFromSlot() {
