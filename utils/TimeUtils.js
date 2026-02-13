@@ -1,4 +1,4 @@
-export class Time {
+export class Timer {
     constructor() {
         this.epoch = Date.now();
         this.pausedAt = 0;
@@ -6,24 +6,18 @@ export class Time {
         this.delayTarget = 0;
     }
 
-    hasReached(duration) {
-        if (this.waiting) {
-            const now = Date.now();
-            const elapsed = now - this.epoch;
-            const effectiveElapsed = this.pausedAt > 0 ? elapsed - (now - this.pausedAt) : elapsed;
-            return effectiveElapsed >= duration;
-        }
-        return Date.now() - this.epoch >= duration;
-    }
-
-    setHasReached() {
-        this.epoch = 0;
-    }
-
-    reset() {
+    setDelay(delay) {
+        this.delayTarget = delay;
+        this.waiting = true;
         this.epoch = Date.now();
-        this.pausedAt = 0;
-        this.waiting = false;
+    }
+
+    setDelayRandom(min, max) {
+        this.setDelay(Math.floor(Math.random() * (max - min + 1)) + min);
+    }
+
+    hasReachedDelay() {
+        return this.hasPassed(this.delayTarget);
     }
 
     getTime() {
@@ -32,6 +26,10 @@ export class Time {
 
     setTime(newTime) {
         this.epoch = newTime;
+    }
+
+    hasPassed(duration) {
+        return Date.now() - this.epoch >= duration;
     }
 
     getTimePassed() {
@@ -56,13 +54,10 @@ export class Time {
         }
     }
 
-    setRandomReached(min, max) {
-        this.delayTarget = Math.floor(Math.random() * (max - min + 1)) + min;
-        this.waiting = true;
-    }
-
-    reachedRandom() {
-        return this.hasReached(this.delayTarget);
+    reset() {
+        this.epoch = Date.now();
+        this.pausedAt = 0;
+        this.waiting = false;
     }
 }
 
