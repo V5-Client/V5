@@ -2,14 +2,15 @@ export class Timer {
     constructor() {
         this.epoch = Date.now();
         this.pausedAt = 0;
-        this.waiting = false;
         this.delayTarget = 0;
+        this.running = false;
     }
 
     setDelay(delay) {
-        this.delayTarget = delay;
-        this.waiting = true;
         this.epoch = Date.now();
+        this.pausedAt = 0;
+        this.delayTarget = delay;
+        this.running = true;
     }
 
     setDelayRandom(min, max) {
@@ -17,7 +18,8 @@ export class Timer {
     }
 
     hasReachedDelay() {
-        return this.hasPassed(this.delayTarget);
+        if (this.running) return this.hasPassed(this.delayTarget);
+        else return false;
     }
 
     getTime() {
@@ -57,7 +59,7 @@ export class Timer {
     reset() {
         this.epoch = Date.now();
         this.pausedAt = 0;
-        this.waiting = false;
+        this.running = false;
     }
 }
 
