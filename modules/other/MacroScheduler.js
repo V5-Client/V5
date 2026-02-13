@@ -3,7 +3,7 @@ import { Utils } from '../../utils/Utils';
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { TimeUtils } from '../../utils/TimeUtils';
+import { TimeUtils, Timer } from '../../utils/TimeUtils';
 
 const STATE = {
     IDLE: 'Idle',
@@ -34,6 +34,8 @@ class MacroScheduler extends ModuleBase {
         this.breakDurationMs = 0;
         this.returnStep = 0;
         this.overlayShown = false;
+
+        this.worldUnloadTimer = new Timer();
 
         const sectionName = 'Scheduler';
         this.addDirectToggle('Enable Scheduler', (v) => this.toggle(!!v), 'Toggles the scheduler.', true, sectionName);
@@ -189,6 +191,18 @@ class MacroScheduler extends ModuleBase {
 
         if (now >= this.timerEnd) {
             this.endSession();
+        }
+
+        if (!World.isLoaded()) {
+            if (!this.worldUnloadTimer.running) this.worldUnloadTimer.setDelayRandom(7000, 13000);
+        } else {
+            this.worldUnloadTimer.reset();
+        }
+
+        if (this.worldUnloadTimer.hasReachedDelay()) {
+            this.worldUnloadTimer.reset();
+            Chat.messageScheduler('&eConnecting to Hypixel...');
+            Client.connect('mc.hypixel.net');
         }
     }
 
