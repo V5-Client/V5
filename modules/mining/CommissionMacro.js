@@ -117,10 +117,7 @@ class CommissionMacro extends ModuleBase {
         });
 
         manager.subscribe('death', () => {
-            if (this.enabled) {
-                Chat.message('&cYou died! Stopping macro...');
-                this.toggle(false);
-            }
+            if (this.enabled) this.onDeath();
         });
 
         this.addSlider(
@@ -898,6 +895,11 @@ class CommissionMacro extends ModuleBase {
 
             this.setState(STATES.IDLE);
         });
+    }
+
+    onDeath() {
+        Chat.message('&cYou died.');
+        this.resetState();
     }
 
     getWeaponFromSlot() {
