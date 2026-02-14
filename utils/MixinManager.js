@@ -1,4 +1,4 @@
-const internalMixin = Mixin;
+const internalMixin = CTMixin;
 const internalAt = At;
 
 class MixinStorage {
