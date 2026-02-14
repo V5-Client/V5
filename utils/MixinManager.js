@@ -68,15 +68,27 @@ class MixinEngine {
     }
 
     _processConfig(config) {
-        const { at, slice, ...others } = config;
+        const { at, slice, constant, ...others } = config;
         const result = { ...others };
 
         if (at) {
-            result.at = at.atObj || at instanceof internalAt ? at : new internalAt(at);
+            if (Array.isArray(at)) {
+                result.at = at.map((a) => (a.atObj ? a : new internalAt(a)));
+            } else {
+                result.at = at.atObj ? at : new internalAt(at);
+            }
         }
 
         if (slice) {
-            result.slice = slice.sliceObj || slice instanceof Slice ? slice : new Slice(slice);
+            if (Array.isArray(slice)) {
+                result.slice = slice.map((s) => (s.sliceObj ? s : new internalSlice(s)));
+            } else {
+                result.slice = slice.sliceObj ? slice : new internalSlice(slice);
+            }
+        }
+
+        if (constant) {
+            result.constant = constant.constantObj ? constant : new internalConstant(constant);
         }
 
         return result;
