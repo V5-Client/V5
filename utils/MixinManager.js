@@ -1,5 +1,6 @@
 const internalMixin = CTMixin;
-const internalAt = At;
+const internalAt = CTAt;
+const internalSlice = CTSlice;
 
 class MixinStorage {
     constructor() {
@@ -71,7 +72,7 @@ class MixinEngine {
         const { at, slice, ...others } = config;
         const result = { ...others };
         if (at) result.at = at instanceof internalAt ? at : new internalAt(at);
-        if (slice) result.slice = slice instanceof Slice ? slice : new Slice(slice);
+        if (slice) result.slice = slice instanceof internalSlice ? slice : new internalSlice(slice);
         return result;
     }
 
@@ -115,7 +116,7 @@ class MixinEngine {
 
     // Intercepts and changes the value a method is about to return
     modifyReturnValue(config) {
-        this.lastInjection = this.lastInjection = this.realMixin.modifyReturnValue(this._processConfig(config));
+        this.lastInjection = this.realMixin.modifyReturnValue(this._processConfig(config));
         return this;
     }
 
