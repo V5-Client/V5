@@ -374,7 +374,7 @@ class FishingMacro extends ModuleBase {
     }
 
     formatNumber(value) {
-        if (!isFinite(value)) return '0';
+        if (!Number.isFinite(value)) return '0';
         const rounded = Math.round(value);
         return String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }

@@ -41,7 +41,7 @@ class NetworkMonitor {
     }
 
     calculateJitterEstimate() {
-        if (this.pingSamples.length === 0 || !isFinite(this.minPingMs)) return 0;
+        if (this.pingSamples.length === 0 || !Number.isFinite(this.minPingMs)) return 0;
         const sorted = [...this.pingSamples].sort((a, b) => a - b);
         const median = sorted[Math.floor(sorted.length / 2)];
         const baseline = Math.min(this.minPingMs, sorted[0]);

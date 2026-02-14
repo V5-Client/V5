@@ -290,7 +290,7 @@ class AutoIceFill extends ModuleBase {
     }
 
     clampOffset(v, max) {
-        if (!isFinite(v)) return 0;
+        if (!Number.isFinite(v)) return 0;
         return Math.max(-max, Math.min(max, v));
     }
 

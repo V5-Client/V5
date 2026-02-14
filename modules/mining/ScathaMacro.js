@@ -321,7 +321,7 @@ class ScathaMacro extends ModuleBase {
                 const blocks = isSolid(block) || isSolid(blockaheadName);
 
                 if (this.pinglessAngles) Rotations.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 12.0);
-                else Rotations.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 35.0);
+                else Rotations.rotateToAngles(90, pane ? 70.0 : 35.0);
                 break;
             }
 
@@ -638,7 +638,7 @@ class ScathaMacro extends ModuleBase {
 
                 if (!this.normalKilling) {
                     if (this.scatha) {
-                        if (!Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay) && !this.sorrow) {
+                        if (Player.getContainer()?.getName() != '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay) && !this.sorrow) {
                             ChatLib.command('wardrobe');
                             this.menuTimer.reset();
                             return;
@@ -732,7 +732,7 @@ class ScathaMacro extends ModuleBase {
                     this.scatha = false;
                     return;
                 }
-                if (!Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
+                if (Player.getContainer()?.getName() != '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
                     ChatLib.command('wardrobe');
                     this.menuTimer.reset();
                     return;
