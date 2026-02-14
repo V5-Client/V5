@@ -1,5 +1,7 @@
 const internalMixin = CTMixin;
 const internalAt = CTAt;
+const internalSlice = CTSlice;
+const internalConstant = CTConstant;
 
 class MixinStorage {
     constructor() {
