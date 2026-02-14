@@ -1,5 +1,5 @@
-const internalMixin = Mixin;
-const internalAt = At;
+const internalMixin = CTMixin;
+const internalAt = CTAt;
 
 class MixinStorage {
     constructor() {
