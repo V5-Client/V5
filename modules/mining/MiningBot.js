@@ -622,12 +622,7 @@ class Bot extends ModuleBase {
         const tminY = ty1 < ty2 ? ty1 : ty2;
         const tminZ = tz1 < tz2 ? tz1 : tz2;
 
-        let tEntry;
-        if (tminX > tminY) {
-            tEntry = tminX > tminZ ? tminX : tminZ;
-        } else {
-            tEntry = tminY > tminZ ? tminY : tminZ;
-        }
+        const tEntry = Math.max(tminX, tminY, tminZ);
 
         let faceAxis = 'x';
         if (tEntry === tminY) faceAxis = 'y';
