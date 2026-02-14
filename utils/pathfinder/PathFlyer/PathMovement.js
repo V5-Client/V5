@@ -199,21 +199,20 @@ class PathMovement {
 
         const moveIndex = Math.min(this.path.length - 1, this.currentIndex + this.MOVE_TARGET_LOOKAHEAD);
         const target = this.path[moveIndex];
-        const diffY = pY - target.y;
+        const diffY = target.y - pY;
 
-        const predicted = predictStoppingPosition(12);
-        const predictedDiffY = predicted.y - target.y;
+        const predicted = predictStoppingPosition(15);
+        const predictedDiffY = target.y - predicted.y;
 
-        if (predictedDiffY < -0.25 && diffY < -0.15) {
+        if (predictedDiffY > 1.0 || diffY > 0.8) {
             this.isLifting = true;
-            this.isDescending = false;
-        } else if (predictedDiffY > 0.1 || diffY > 0.15) {
+        } else if (diffY < 0.2) {
             this.isLifting = false;
         }
 
-        if (predictedDiffY > 0.75 && !this.isLifting) {
+        if (predictedDiffY < -1.2 && !this.isLifting) {
             this.isDescending = true;
-        } else if (predictedDiffY < 0.25 || diffY < 0.3) {
+        } else if (diffY > -0.3) {
             this.isDescending = false;
         }
 
