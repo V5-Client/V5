@@ -16,8 +16,8 @@ class SwiftIntegration {
 
         try {
             const javaArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, flatGoals.length);
-            for (const [i, goal] of flatGoals.entries()) {
-                const flooredGoal = Math.floor(goal);
+            for (let i = 0; i < flatGoals.length; i++) {
+                const flooredGoal = Math.floor(flatGoals[i]);
                 javaArray[i] = i % 3 === 1 && !isFly ? flooredGoal + 1 : flooredGoal;
             }
 
