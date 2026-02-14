@@ -44,10 +44,10 @@ class FishingMacro extends ModuleBase {
         this.on('chat', (event) => {
             let msg = event.message.getString();
             // holy jewish pls fix
-            if (msg.includes('Thunder' || msg.includes('thunder'))) {
+            if (msg.includes('Thunder') || msg.includes('thunder')) {
                 this.thunderSpawn = true;
             }
-            if (msg.includes('fire eel' || msg.includes('Fire Eel'))) {
+            if (msg.includes('fire eel') || msg.includes('Fire Eel')) {
                 this.eelSpawn = true;
             }
         });

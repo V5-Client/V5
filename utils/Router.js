@@ -180,7 +180,7 @@ class Routes {
                     let arrayIndex = indexToUse - 1;
 
                     if (arrayIndex >= 0 && arrayIndex < route.length) {
-                        route.splice(arrayIndex, 1)[0];
+                        route.splice(arrayIndex, 1);
                         routeModified = true;
                         Chat.message(`Removed waypoint ${indexToUse}`);
                     } else {

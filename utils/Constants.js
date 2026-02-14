@@ -2,12 +2,6 @@ export const SharedConstants = net.minecraft.SharedConstants;
 export const MinecraftClient = net.minecraft.client.MinecraftClient;
 export const MCHand = net.minecraft.util.Hand;
 
-// "1.21.05" => 12105
-// "1.21.10" => 12110
-export const MC_VERSION_NUMBER = (SharedConstants.getGameVersion()?.getId() || SharedConstants.getGameVersion()?.id())
-    .split('.')
-    .reduce((acc, val) => acc * 100 + Number.parseInt(val), 0);
-
 export const CLIENT_VERSION = '1.0.0';
 
 export const UMatrixStack = Java.type('gg.essential.universal.UMatrixStack').Compat.INSTANCE;

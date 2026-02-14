@@ -39,7 +39,7 @@ class Finder {
             if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path goto x y z [x2 y2 z2...]');
 
             const coords = args.map(Number);
-            if (coords.some(isNaN)) {
+            if (coords.some(Number.isNaN)) {
                 return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
             }
 
@@ -59,7 +59,7 @@ class Finder {
             if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path fly <x> <y> <z>');
 
             const coords = args.map(Number);
-            if (coords.slice(0, 3).some(isNaN)) {
+            if (coords.slice(0, 3).some(Number.isNaN)) {
                 return showNotification('Invalid Coordinates', 'Coords must be valid numbers.', 'ERROR', 5000);
             }
 

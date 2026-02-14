@@ -237,24 +237,16 @@ class VectorConverter {
     convert(input) {
         if (!input) return null;
 
-        if (input instanceof Vec3d) {
-            return input;
-        }
-
         if (this.hasXYZ(input)) {
             return new Vec3d(input.x, input.y, input.z);
         }
 
-        if (input instanceof Array && input.length >= 3) {
+        if (Array.isArray(input) && input.length >= 3) {
             return new Vec3d(input[0], input[1], input[2]);
         }
 
-        if (input instanceof Player || input instanceof PlayerMP || input instanceof Entity) {
+        if (this.hasPositionMethods(input)) {
             return new Vec3d(input.getX(), input.getY(), input.getZ());
-        }
-
-        if (input instanceof BlockPos || input instanceof Vec3i) {
-            return new Vec3d(input.x, input.y, input.z);
         }
 
         return null;
@@ -262,6 +254,10 @@ class VectorConverter {
 
     hasXYZ(obj) {
         return obj && typeof obj.x === 'number' && typeof obj.y === 'number' && typeof obj.z === 'number';
+    }
+
+    hasPositionMethods(obj) {
+        return obj && typeof obj.getX === 'function' && typeof obj.getY === 'function' && typeof obj.getZ === 'function';
     }
 }
 

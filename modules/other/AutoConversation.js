@@ -13,7 +13,7 @@ class AutoConversation extends ModuleBase {
 
         this.on('chat', (event) => {
             if (!this.enabled) return;
-            const unformatted = ChatLib.removeFormatting(new String(event.message)).trim();
+            const unformatted = ChatLib.removeFormatting(String(event.message)).trim();
             if (!unformatted.startsWith('[NPC]') && !unformatted.startsWith('Select an option:')) return;
             const getAllClickEvents = (comp) => {
                 let commands = [];
