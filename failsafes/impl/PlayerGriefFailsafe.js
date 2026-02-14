@@ -87,7 +87,7 @@ class PlayerGriefFailsafe extends Failsafe {
             const dx = lx - px;
             const dy = ly - py;
             const dz = lz - pz;
-            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const distance = Math.hypot(dx, dy, dz);
 
             const maxDistance = this.settings.playerProximityDistance || 3;
             if (distance <= maxDistance && distance > 1) {

@@ -88,8 +88,7 @@ class RouteWalkerer extends ModuleBase {
                     }
                 };
 
-                for (let i = 0; i < route.length; i++) {
-                    const point = route[i];
+                for (const [i, point] of route.entries()) {
                     if (!this.CheckPoint(point)) continue;
 
                     Render.drawStyledBox(new Vec3d(point.x, point.y, point.z), getColor(point.movements), getColor(point.movements), 5, false);

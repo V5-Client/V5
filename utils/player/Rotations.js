@@ -250,10 +250,12 @@ class RotationsTo {
 
         let deltaYaw = this.normalizeAngle(finalTarget.yaw - currentYaw);
         let deltaPitch = finalTarget.pitch - currentPitch;
-        let distance = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
+        let distance = Math.hypot(deltaYaw, deltaPitch);
 
         const isExactVector = this.targetVector !== null;
-        const effectivePrecision = isExactVector ? 0.05 : this.trackedEntity ? 0.5 : this.precision;
+        let effectivePrecision = this.precision;
+        if (isExactVector) effectivePrecision = 0.05;
+        else if (this.trackedEntity) effectivePrecision = 0.5;
 
         if (distance <= effectivePrecision) {
             const player = Player.getPlayer();
@@ -388,7 +390,7 @@ class RotationsTo {
             if (wasRotatingToVector && this.target) {
                 const deltaYaw = Math.abs(this.normalizeAngle(initialTarget.yaw - this.target.yaw));
                 const deltaPitch = Math.abs(initialTarget.pitch - this.target.pitch);
-                const shift = Math.sqrt(deltaYaw * deltaYaw + deltaPitch * deltaPitch);
+                const shift = Math.hypot(deltaYaw, deltaPitch);
 
                 if (shift > 5) {
                     shouldResetTiming = true;
@@ -443,7 +445,9 @@ class RotationsTo {
                   ? this.trackedEntity.toMC().getUuid().toString()
                   : null;
 
-            const entityUUID = entity.getUUID ? entity.getUUID().toString() : entity.toMC ? entity.toMC().getUuid().toString() : null;
+            let entityUUID = null;
+            if (entity.getUUID) entityUUID = entity.getUUID().toString();
+            else if (entity.toMC) entityUUID = entity.toMC().getUuid().toString();
 
             if (currentUUID && entityUUID) {
                 return currentUUID === entityUUID;
@@ -486,7 +490,7 @@ class RotationsTo {
         let dy = vec.y - p.getEyePos().y;
         let dz = vec.z - p.getZ();
         let yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
-        let pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
+        let pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
         return { yaw, pitch };
     }
 }

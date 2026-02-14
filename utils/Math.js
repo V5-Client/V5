@@ -18,7 +18,7 @@ class Point3D {
     }
 
     dist(other) {
-        return Math.sqrt(this.distSq(other));
+        return Math.hypot(this.x - other.x, this.y - other.y, this.z - other.z);
     }
 
     horizontalDistSq(other) {
@@ -28,7 +28,7 @@ class Point3D {
     }
 
     horizontalDist(other) {
-        return Math.sqrt(this.horizontalDistSq(other));
+        return Math.hypot(this.x - other.x, this.z - other.z);
     }
 }
 
@@ -87,7 +87,7 @@ class AngleCalculator {
         const dy = targetVec.y - eyes.y;
         const dz = targetVec.z - eyes.z;
 
-        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        const horizontalDist = Math.hypot(dx, dz);
 
         let pitch = -Math.atan2(dy, horizontalDist) * RAD_TO_DEG;
         let yaw = Math.atan2(dz, dx) * RAD_TO_DEG - 90;
@@ -106,7 +106,7 @@ class AngleCalculator {
         const dy = targetVec.y - eyes.y;
         const dz = targetVec.z - eyes.z;
 
-        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        const horizontalDist = Math.hypot(dx, dz);
 
         let pitch = -Math.atan2(dy, horizontalDist) * RAD_TO_DEG;
         let yaw = Math.atan2(dz, dx) * RAD_TO_DEG - 90;
@@ -198,7 +198,7 @@ export const MathUtils = {
         const dx = x1 - x2;
         const dy = y1 - y2;
         const dz = z1 - z2;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return Math.hypot(dx, dy, dz);
     },
 
     toFixed: function (val) {
@@ -208,7 +208,7 @@ export const MathUtils = {
     angleToPlayer: function (point) {
         const target = new Point3D(point[0], point[1], point[2]);
         const rel = angleCalc.calculateRelativeAngles(target);
-        const dist = Math.sqrt(rel.yaw * rel.yaw + rel.pitch * rel.pitch);
+        const dist = Math.hypot(rel.yaw, rel.pitch);
         return {
             distance: dist,
             yaw: rel.yaw,

@@ -123,18 +123,18 @@ class AutoIceFill extends ModuleBase {
             const nz = next.z + 0.5;
             const dirX = nx - centerX;
             const dirZ = nz - centerZ;
-            const mag = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            const mag = Math.hypot(dirX, dirZ) || 1;
             leadX += (dirX / mag) * LOOK_AHEAD_WEIGHT;
             leadZ += (dirZ / mag) * LOOK_AHEAD_WEIGHT;
         }
 
         const toLeadX = leadX - Player.getX();
         const toLeadZ = leadZ - Player.getZ();
-        const distToLead = Math.sqrt(toLeadX * toLeadX + toLeadZ * toLeadZ) || 0.0001;
+        const distToLead = Math.hypot(toLeadX, toLeadZ) || 0.0001;
         const dirX = toLeadX / distToLead;
         const dirZ = toLeadZ / distToLead;
 
-        const speed = Math.sqrt(velX * velX + velZ * velZ);
+        const speed = Math.hypot(velX, velZ);
         const parallelSpeed = speed > 0.0001 ? velX * dirX + velZ * dirZ : 0;
 
         const slipX = velX * SLIP_DISTANCE_COEFF;
@@ -151,7 +151,7 @@ class AutoIceFill extends ModuleBase {
             const next = this.activePath[nextIdx];
             const segX = next.x - target.x;
             const segZ = next.z - target.z;
-            const segMag = Math.sqrt(segX * segX + segZ * segZ) || 1;
+            const segMag = Math.hypot(segX, segZ) || 1;
             const segDirX = segX / segMag;
             const segDirZ = segZ / segMag;
             const straightness = segDirX * dirX + segDirZ * dirZ; // -1..1
@@ -209,8 +209,7 @@ class AutoIceFill extends ModuleBase {
 
     indexOfBlock(path, px, pz) {
         if (!path) return -1;
-        for (let i = 0; i < path.length; i++) {
-            const p = path[i];
+        for (const [i, p] of path.entries()) {
             if (p && p.x === px && p.z === pz) return i;
         }
         return -1;
@@ -317,7 +316,7 @@ class AutoIceFill extends ModuleBase {
             if (next) {
                 const segX = next.x + 0.5 - centerX;
                 const segZ = next.z + 0.5 - centerZ;
-                const segMag = Math.sqrt(segX * segX + segZ * segZ) || 1;
+                const segMag = Math.hypot(segX, segZ) || 1;
                 const dirX = segX / segMag;
                 const dirZ = segZ / segMag;
                 const forward = velX * dirX + velZ * dirZ;

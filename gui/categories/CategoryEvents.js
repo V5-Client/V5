@@ -21,9 +21,7 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
     let currentY = panel.y + PADDING - scrollY;
     let currentSection = null;
 
-    for (let i = 0; i < components.length; i++) {
-        const component = components[i];
-
+    for (const [i, component] of components.entries()) {
         if (component.sectionName && component.sectionName !== currentSection) {
             currentSection = component.sectionName;
             if (i > 0) currentY += 16;
@@ -167,8 +165,7 @@ export const handleCategoryClick = (
         let currentCompY = optionY + 78;
         let currentDrawnCompY = currentCompY - sY;
 
-        for (let i = 0; i < components.length; i++) {
-            const component = components[i];
+        for (const component of components) {
             if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
                 const drawnCompY = currentDrawnCompY;
                 let handled = false;

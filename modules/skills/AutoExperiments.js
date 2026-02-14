@@ -177,7 +177,10 @@ class AutoExperiments extends ModuleBase {
      * @param {items} items
      */
     handleUltrasequencer(items) {
-        const maxDepth = this.getMaxXpEnabled ? 20 : (this.maxEnchanting ? 9 : 7) - this.serumCountValue;
+        let maxDepth;
+        if (this.getMaxXpEnabled) maxDepth = 20;
+        else if (this.maxEnchanting) maxDepth = 9 - this.serumCountValue;
+        else maxDepth = 7 - this.serumCountValue;
         const control = this.getControlState(items);
         if (!control) return;
 
@@ -201,7 +204,10 @@ class AutoExperiments extends ModuleBase {
      * @param {items} items
      */
     handleChronomatron(items) {
-        const maxDepth = this.getMaxXpEnabled ? 20 : (this.maxEnchanting ? 12 : 9) - this.serumCountValue;
+        let maxDepth;
+        if (this.getMaxXpEnabled) maxDepth = 20;
+        else if (this.maxEnchanting) maxDepth = 12 - this.serumCountValue;
+        else maxDepth = 9 - this.serumCountValue;
         const control = this.getControlState(items);
         if (!control) return;
 

@@ -45,7 +45,7 @@ class PathSpline {
         for (let i = 1; i < rawPoints.length - 1; i++) {
             const p0 = simplifiedPoints[simplifiedPoints.length - 1];
             const p1 = rawPoints[i];
-            const dist = Math.sqrt(Math.pow(p1.x - p0.x, 2) + Math.pow(p1.y - p0.y, 2) + Math.pow(p1.z - p0.z, 2));
+            const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
             if (dist > tolerance) simplifiedPoints.push(p1);
         }
         simplifiedPoints.push(rawPoints[rawPoints.length - 1]);
@@ -61,7 +61,7 @@ class PathSpline {
             const dx = p2.x - p1.x;
             const dy = p2.y - p1.y;
             const dz = p2.z - p1.z;
-            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const distance = Math.hypot(dx, dy, dz);
             const numSteps = Math.ceil(distance / interpolationStep);
 
             for (let j = 0; j < numSteps; j++) {
@@ -92,7 +92,7 @@ class PathSpline {
 
         for (let i = 1; i < smoothSplineData.length - 1; i++) {
             const curr = smoothSplineData[i];
-            const dist = Math.sqrt(Math.pow(curr.x - lastPlacedRaw.x, 2) + Math.pow(curr.z - lastPlacedRaw.z, 2));
+            const dist = Math.hypot(curr.x - lastPlacedRaw.x, curr.z - lastPlacedRaw.z);
 
             const lookWindow = 4;
             const prev = smoothSplineData[Math.max(0, i - lookWindow)];
@@ -100,8 +100,8 @@ class PathSpline {
 
             const v1 = { x: curr.x - prev.x, z: curr.z - prev.z };
             const v2 = { x: next.x - curr.x, z: next.z - curr.z };
-            const m1 = Math.sqrt(v1.x * v1.x + v1.z * v1.z);
-            const m2 = Math.sqrt(v2.x * v2.x + v2.z * v2.z);
+            const m1 = Math.hypot(v1.x, v1.z);
+            const m2 = Math.hypot(v2.x, v2.z);
 
             let curvature = 0;
             let offsetX = 0;
@@ -115,7 +115,7 @@ class PathSpline {
                 const cross = v1.x * v2.z - v1.z * v2.x;
                 const dir = cross > 0 ? 1 : -1;
                 const forward = { x: v1.x / m1 + v2.x / m2, z: v1.z / m1 + v2.z / m2 };
-                const fMag = Math.sqrt(forward.x * forward.x + forward.z * forward.z);
+                const fMag = Math.hypot(forward.x, forward.z);
 
                 if (fMag > 0.01) {
                     offsetX = -(forward.z / fMag) * dir * curvature * this.OUTWARD_OFFSET_STRENGTH;
@@ -127,7 +127,7 @@ class PathSpline {
 
             if (dist >= dynamicInterval) {
                 const currentForward = { x: curr.x - lastPlacedRaw.x, z: curr.z - lastPlacedRaw.z };
-                const cfMag = Math.sqrt(currentForward.x * currentForward.x + currentForward.z * currentForward.z);
+                const cfMag = Math.hypot(currentForward.x, currentForward.z);
 
                 if (lastForwardDir && cfMag > 0.1 && dist < this.MAX_GAP_DISTANCE) {
                     const dot = (currentForward.x * lastForwardDir.x + currentForward.z * lastForwardDir.z) / cfMag;
@@ -161,7 +161,7 @@ class PathSpline {
             const dx = end.x - start.x;
             const dy = end.y - start.y;
             const dz = end.z - start.z;
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const dist = Math.hypot(dx, dy, dz);
 
             const steps = Math.ceil(dist / stepSize);
             for (let j = 0; j < steps; j++) {
@@ -188,8 +188,7 @@ class PathSpline {
         if (currentHash === this.lastFlyHash) return this.cachedFlyLookPoints;
 
         const raw = [];
-        for (let i = 0; i < nodes.length; i++) {
-            const n = nodes[i];
+        for (const n of nodes) {
             const x = n.x !== undefined ? n.x : n[0];
             const y = n.y !== undefined ? n.y : n[1];
             const z = n.z !== undefined ? n.z : n[2];
@@ -202,9 +201,9 @@ class PathSpline {
         const rounded = this.roundPolylineCorners(raw, pointSpacing);
         const lookPoints = this.resamplePolylineByDistance(rounded, pointSpacing);
 
-        for (let i = 0; i < lookPoints.length; i++) {
-            if (this.isPointInsideBlock(lookPoints[i])) {
-                lookPoints[i] = this.nudgePointOutOfBlock(lookPoints[i]);
+        for (const [i, lookPoint] of lookPoints.entries()) {
+            if (this.isPointInsideBlock(lookPoint)) {
+                lookPoints[i] = this.nudgePointOutOfBlock(lookPoint);
             }
         }
 
@@ -227,8 +226,8 @@ class PathSpline {
             const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
             const bc = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
 
-            const abMag = Math.sqrt(ab.x * ab.x + ab.y * ab.y + ab.z * ab.z);
-            const bcMag = Math.sqrt(bc.x * bc.x + bc.y * bc.y + bc.z * bc.z);
+            const abMag = Math.hypot(ab.x, ab.y, ab.z);
+            const bcMag = Math.hypot(bc.x, bc.y, bc.z);
             if (abMag < 1e-6 || bcMag < 1e-6) continue;
 
             const u1 = { x: ab.x / abMag, y: ab.y / abMag, z: ab.z / abMag };
@@ -271,7 +270,7 @@ class PathSpline {
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dz = b.z - a.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const dist = Math.hypot(dx, dy, dz);
         if (dist < 1e-6) return true;
 
         const steps = Math.ceil(dist / this.FLY_RAYTRACE_STEP);
@@ -296,7 +295,7 @@ class PathSpline {
             const dx = b.x - a.x;
             const dy = b.y - a.y;
             const dz = b.z - a.z;
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const dist = Math.hypot(dx, dy, dz);
             if (dist < 1e-9) continue;
 
             let tDist = step - carry;
@@ -336,7 +335,7 @@ class PathSpline {
         const dx = x2 - x1,
             dy = y2 - y1,
             dz = z2 - z1;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const dist = Math.hypot(dx, dy, dz);
 
         // Stricter step size for flying near blocks
         const stepSize = 0.4;

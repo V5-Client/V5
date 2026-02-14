@@ -24,7 +24,7 @@ class VelocityFailsafe extends Failsafe {
             const vx = packet.getVelocity().x;
             const vy = packet.getVelocity().y;
             const vz = packet.getVelocity().z;
-            const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+            const speed = Math.hypot(vx, vy, vz);
             const blockName = blockBelow.getType().getRegistryName();
             const data = { velocity: speed, blockBelow: blockName };
 
@@ -56,6 +56,12 @@ class VelocityFailsafe extends Failsafe {
             severity = 'very high';
         }
 
+        let color;
+        if (severity === 'very high') color = 16711680;
+        else if (severity === 'high') color = 16744448;
+        else if (severity === 'medium') color = 16776960;
+        else color = 65280;
+
         Chat.messageFailsafe(`Velocity failsafe triggered! (${severity} severity)`);
         Chat.messageFailsafe(`Velocity: ${speed.toFixed(0)}`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
@@ -64,7 +70,7 @@ class VelocityFailsafe extends Failsafe {
                 {
                     title: `**Velocity Failsafe Triggered! [${severity}]**`,
                     description: `Velocity change detected: ${speed.toFixed(0)}`,
-                    color: severity === 'very high' ? 16711680 : severity === 'high' ? 16744448 : severity === 'medium' ? 16776960 : 65280,
+                    color,
                     footer: { text: `V5 Failsafes` },
                     timestamp: new Date().toISOString(),
                 },

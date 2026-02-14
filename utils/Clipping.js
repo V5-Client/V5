@@ -191,8 +191,18 @@ class ClippingManager extends ModuleBase {
 
         Executor.execute(() => {
             try {
-                let urlStr = isWindows ? URLS.WIN : isLinux ? URLS.LINUX : URLS.MAC;
-                let archiveName = isWindows ? 'ffmpeg.zip' : isLinux ? 'ffmpeg.tar.xz' : 'ffmpeg.7z';
+                let urlStr;
+                let archiveName;
+                if (isWindows) {
+                    urlStr = URLS.WIN;
+                    archiveName = 'ffmpeg.zip';
+                } else if (isLinux) {
+                    urlStr = URLS.LINUX;
+                    archiveName = 'ffmpeg.tar.xz';
+                } else {
+                    urlStr = URLS.MAC;
+                    archiveName = 'ffmpeg.7z';
+                }
                 const archiveFile = new File(globalAssetsDir, archiveName);
 
                 Chat.messageClip(`&7Starting download: &f${archiveName}`);
@@ -341,7 +351,12 @@ class ClippingManager extends ModuleBase {
         const outputPath = new File(bufferDir, 'segment_%03d.mp4').getAbsolutePath();
         const gopSize = Math.floor(this.fps * 5);
 
-        let args = [ffmpegFile.getAbsolutePath(), '-y', '-f', isWindows ? 'gdigrab' : isMac ? 'avfoundation' : 'x11grab', '-framerate', String(this.fps)];
+        let captureFormat;
+        if (isWindows) captureFormat = 'gdigrab';
+        else if (isMac) captureFormat = 'avfoundation';
+        else captureFormat = 'x11grab';
+
+        let args = [ffmpegFile.getAbsolutePath(), '-y', '-f', captureFormat, '-framerate', String(this.fps)];
 
         if (isWindows) {
             args.push('-i', `title=${windowTitle}`);
@@ -424,9 +439,9 @@ class ClippingManager extends ModuleBase {
 
         if (!files) return;
 
-        for (let i = 0; i < files.length; i++) {
+        for (const file of files) {
             try {
-                files[i].delete();
+                file.delete();
             } catch (e) {}
         }
     }

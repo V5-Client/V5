@@ -44,7 +44,7 @@ class TeleportFailsafe extends Failsafe {
             const dx = Math.abs(this.newX - fromX);
             const dy = Math.abs(this.newY - fromY);
             const dz = Math.abs(this.newZ - fromZ);
-            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const distance = Math.hypot(dx, dy, dz);
 
             const data = {
                 distance,
@@ -114,6 +114,12 @@ class TeleportFailsafe extends Failsafe {
             severity = 'very high';
         }
 
+        let color;
+        if (severity === 'very high') color = 16711680;
+        else if (severity === 'high') color = 16744448;
+        else if (severity === 'medium') color = 16776960;
+        else color = 65280;
+
         Chat.messageFailsafe(`You have been teleported! (${severity} severity)`);
         Chat.messageFailsafe(
             `from ${fromX.toFixed(2)} ${fromY.toFixed(2)} ${fromZ.toFixed(2)} to ${toX.toFixed(2)} ${toY.toFixed(2)} ${toZ.toFixed(2)} (${distance.toFixed(
@@ -127,7 +133,7 @@ class TeleportFailsafe extends Failsafe {
                     description: `Teleported from (${fromX.toFixed(2)}, ${fromY.toFixed(2)}, ${fromZ.toFixed(2)}) to (${toX.toFixed(2)}, ${toY.toFixed(
                         2
                     )}, ${toZ.toFixed(2)})\nDistance: ${distance.toFixed(1)} blocks`,
-                    color: severity === 'very high' ? 16711680 : severity === 'high' ? 16744448 : severity === 'medium' ? 16776960 : 65280,
+                    color,
                     footer: { text: `V5 Failsafes` },
                     timestamp: new Date().toISOString(),
                 },

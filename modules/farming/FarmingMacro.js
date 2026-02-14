@@ -306,7 +306,10 @@ class FarmingMacro extends ModuleBase {
 
                     targetYaw = ((((targetYaw + 180) % 360) + 360) % 360) - 180;
 
-                    let allowedYaws = this.farmAxis === 'X' ? [0, -180] : this.farmAxis === 'Z' ? [90, -90] : [0, 90, -90, -180];
+                    let allowedYaws;
+                    if (this.farmAxis === 'X') allowedYaws = [0, -180];
+                    else if (this.farmAxis === 'Z') allowedYaws = [90, -90];
+                    else allowedYaws = [0, 90, -90, -180];
                     let snappedYaw = targetYaw;
                     let minDifference = 361;
 

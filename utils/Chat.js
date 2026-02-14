@@ -74,8 +74,7 @@ class ChatClass {
         }
 
         let components = [];
-        for (let i = 0; i < args.length; i++) {
-            let component = args[i];
+        for (const [i, component] of args.entries()) {
             if (typeof component === 'string' && !component.includes('http')) {
                 components.push(component);
             } else {

@@ -190,8 +190,8 @@ class VoidgloomHelper extends ModuleBase {
 
     findDeployableSlot() {
         const targets = ['Power Orb', 'Flare'];
-        for (let i = 0; i < targets.length; i++) {
-            const slot = Guis.findItemInHotbar(targets[i]);
+        for (const target of targets) {
+            const slot = Guis.findItemInHotbar(target);
             if (slot !== -1) return slot;
         }
         return -1;

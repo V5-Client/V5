@@ -311,7 +311,7 @@ class FishingMacro extends ModuleBase {
         const dx = entity.getX() - eyes.x;
         const dy = entity.getY() - 1 - eyes.y;
         const dz = entity.getZ() - eyes.z;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return Math.hypot(dx, dy, dz);
     }
 
     resumeFishingAfterStrider() {

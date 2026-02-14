@@ -88,7 +88,12 @@ class PathJumps {
             const facingDir = facingMatch[1].toLowerCase();
             const dx = blockX + 0.5 - playerX;
             const dz = blockZ + 0.5 - playerZ;
-            let approach = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 'west' : 'east') : dz > 0 ? 'north' : 'south';
+            let approach;
+            if (Math.abs(dx) > Math.abs(dz)) {
+                approach = dx > 0 ? 'west' : 'east';
+            } else {
+                approach = dz > 0 ? 'north' : 'south';
+            }
             const walkable = { north: 'south', south: 'north', east: 'west', west: 'east' }[facingDir];
             return approach === walkable;
         } catch (e) {
@@ -107,7 +112,7 @@ class PathJumps {
             if (!this.hasGapAt(node.x, node.y, node.z)) {
                 const dx = node.x - startNode.x;
                 const dz = node.z - startNode.z;
-                return Math.sqrt(dx * dx + dz * dz);
+                return Math.hypot(dx, dz);
             }
         }
         return this.MAX_GAP_SEARCH + 1;
@@ -117,7 +122,7 @@ class PathJumps {
         const dx = node2.x - node1.x,
             dy = node2.y - node1.y,
             dz = node2.z - node1.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
+        const dist = Math.hypot(dx, dz);
         const numChecks = Math.ceil(dist / this.GAP_CHECK_RESOLUTION);
         if (numChecks === 0) return false;
         for (let i = 0; i <= numChecks; i++) {
@@ -139,7 +144,7 @@ class PathJumps {
     getHorizontalDistance(x1, z1, x2, z2) {
         const dx = x1 - x2;
         const dz = z1 - z2;
-        return Math.sqrt(dx * dx + dz * dz);
+        return Math.hypot(dx, dz);
     }
 
     getYawTo(fromX, fromZ, toX, toZ) {
@@ -183,7 +188,7 @@ class PathJumps {
     hasClearJumpArc(startNode, endNode, baseY) {
         const dx = endNode.x - startNode.x;
         const dz = endNode.z - startNode.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
+        const dist = Math.hypot(dx, dz);
         const numChecks = Math.ceil(dist / this.GAP_CHECK_RESOLUTION);
         if (numChecks <= 0) return false;
         for (let i = 1; i < numChecks; i++) {

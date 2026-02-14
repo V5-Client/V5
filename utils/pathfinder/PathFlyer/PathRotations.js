@@ -64,7 +64,7 @@ class PathRotations {
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
         const dz = targetPoint.z - playerEyes.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const dist = Math.hypot(dx, dy, dz);
         if (dist < 0.2) return true;
 
         try {
@@ -91,7 +91,7 @@ class PathRotations {
             const hitX = hit[0] + 0.5;
             const hitY = hit[1] + 0.5;
             const hitZ = hit[2] + 0.5;
-            const hitDist = Math.sqrt((hitX - playerEyes.x) ** 2 + (hitY - playerEyes.y) ** 2 + (hitZ - playerEyes.z) ** 2);
+            const hitDist = Math.hypot(hitX - playerEyes.x, hitY - playerEyes.y, hitZ - playerEyes.z);
             return hitDist >= dist - 0.35;
         } catch (e) {
             return true;
@@ -137,8 +137,8 @@ class PathRotations {
     }
 
     getAngleBetweenVectorsDeg(v1, v2) {
-        const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
-        const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+        const mag1 = Math.hypot(v1.x, v1.y, v1.z);
+        const mag2 = Math.hypot(v2.x, v2.y, v2.z);
         if (mag1 < 1e-6 || mag2 < 1e-6) return 0;
         const dot = (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) / (mag1 * mag2);
         const clamped = Math.max(-1, Math.min(1, dot));

@@ -151,8 +151,7 @@ class TunnelsMiner extends ModuleBase {
 
     getEdgeBlocks(vein, veinSet) {
         const edges = [];
-        for (let i = 0; i < vein.length; i++) {
-            const [x, y, z] = vein[i];
+        for (const [x, y, z] of vein) {
             for (const [dx, dy, dz] of this.edgeOffsets) {
                 const key = this.posKey(x + dx, y + dy, z + dz);
                 if (!veinSet.has(key)) {

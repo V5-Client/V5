@@ -280,7 +280,7 @@ class PathRotsUtil {
         let dz = vec.z - playerPos.z;
 
         let targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
-        let dist = Math.sqrt(dx * dx + dz * dz);
+        let dist = Math.hypot(dx, dz);
         let targetPitch = Math.atan2(-dy, dist) * (180 / Math.PI);
 
         this.rotateToAngles(targetYaw, targetPitch, instant, durationMs);

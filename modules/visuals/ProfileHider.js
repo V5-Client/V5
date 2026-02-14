@@ -52,9 +52,9 @@ class ProfileHider extends ModuleBase {
         originalTextComponent.visit((style, content) => {
             if (content.includes(username)) {
                 const parts = content.split(username);
-                for (let i = 0; i < parts.length; i++) {
-                    if (parts[i].length > 0) {
-                        newComponent.append(Text.literal(parts[i]).setStyle(style));
+                for (const [i, part] of parts.entries()) {
+                    if (part.length > 0) {
+                        newComponent.append(Text.literal(part).setStyle(style));
                     }
                     if (i < parts.length - 1) {
                         newComponent.append(getReplacement());
@@ -75,11 +75,11 @@ class ProfileHider extends ModuleBase {
         const speed = 2000;
         const offset = 100;
 
-        for (let i = 0; i < text.length; i++) {
+        for (const [i, char] of Array.from(text).entries()) {
             const hue = (Date.now() % speed) / speed + (i * offset) / (speed * 2);
-            const hexColor = java.awt.Color.getHSBColor(hue % 1, 0.8, 1.0).getRGB() & 0xffffff;
+            const hexColor = java.awt.Color.getHSBColor(hue % 1, 0.8, 1).getRGB() & 0xffffff;
 
-            mutableText.append(Text.literal(text[i]).styled((s) => s.withColor(hexColor).withBold(true)));
+            mutableText.append(Text.literal(char).styled((s) => s.withColor(hexColor).withBold(true)));
         }
         return mutableText;
     }

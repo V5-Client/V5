@@ -311,7 +311,7 @@ class UtilsClass {
         const shouldIgnoreBottomSlab = !!ignoreBottomSlab;
         const playerBox = Player.getPlayer().getBoundingBox();
         // Use a small epsilon to avoid "ghost" collisions with adjacent blocks
-        const expandedBox = playerBox.expand(0.01, 0.0, 0.01);
+        const expandedBox = playerBox.expand(0.01, 0, 0.01);
 
         let minX = Math.floor(expandedBox.minX);
         let minY = Math.floor(expandedBox.minY);
@@ -478,13 +478,13 @@ class UtilsClass {
         let dx = x2 - x1;
         let dy = y2 - y1;
         let dz = z2 - z1;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return Math.hypot(dx, dy, dz);
     }
 
     distance2D(x1, z1, x2, z2) {
         let dx = x2 - x1;
         let dz = z2 - z1;
-        return Math.sqrt(dx * dx + dz * dz);
+        return Math.hypot(dx, dz);
     }
 
     openBrowser(url) {

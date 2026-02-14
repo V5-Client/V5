@@ -65,9 +65,7 @@ class SeaLumie extends ModuleBase {
                                 let currentBlock = queue.shift();
                                 count++;
 
-                                let distance = Math.sqrt(
-                                    Math.pow(currentBlock.x - playerX, 2) + Math.pow(currentBlock.y - playerY, 2) + Math.pow(currentBlock.z - playerZ, 2)
-                                );
+                                let distance = Math.hypot(currentBlock.x - playerX, currentBlock.y - playerY, currentBlock.z - playerZ);
                                 if (distance > radius) continue;
 
                                 let key = `${currentBlock.x},${currentBlock.y},${currentBlock.z}`;

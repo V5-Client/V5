@@ -33,7 +33,7 @@ class PathRecovery {
         if (this.lastPos) {
             const dx = pX - this.lastPos.x;
             const dz = pZ - this.lastPos.z;
-            distMoved = Math.sqrt(dx * dx + dz * dz);
+            distMoved = Math.hypot(dx, dz);
         }
 
         if (distMoved > this.MOVING_THRESHOLD) {
@@ -85,7 +85,7 @@ class PathRecovery {
         const dx = pX - this.stuckPos.x;
         const dz = pZ - this.stuckPos.z;
 
-        return Math.sqrt(dx * dx + dz * dz) > this.PROGRESS_THRESHOLD;
+        return Math.hypot(dx, dz) > this.PROGRESS_THRESHOLD;
     }
 
     resetTracking() {

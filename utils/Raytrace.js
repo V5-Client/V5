@@ -26,8 +26,7 @@ class VisibilityChecker {
             { axis: 2, value: 0.95, otherAxes: [0, 1] },
         ];
 
-        for (var i = 0; i < faceConfigs.length; i++) {
-            let config = faceConfigs[i];
+        for (const config of faceConfigs) {
             let step = 0.8 / (SAMPLE_POINTS_PER_FACE - 1);
 
             for (var j = 0; j < SAMPLE_POINTS_PER_FACE; j++) {
@@ -80,8 +79,7 @@ class VisibilityChecker {
             return null;
         }
 
-        for (var i = 0; i < this.faceOffsets.length; i++) {
-            let offset = this.faceOffsets[i];
+        for (const offset of this.faceOffsets) {
             let testPoint = [blockX + offset[0], blockY + offset[1], blockZ + offset[2]];
 
             let visible = useMinecraftRaycast
@@ -104,9 +102,9 @@ class VisibilityChecker {
             let px = point[0] - eyePos.x;
             let py = point[1] - eyePos.y;
             let pz = point[2] - eyePos.z;
-            let distance = Math.sqrt(px * px + py * py + pz * pz);
+            let distance = Math.hypot(px, py, pz);
 
-            let result = player.raycast(distance + 0.1, 0.0, false);
+            let result = player.raycast(distance + 0.1, 0, false);
             if (!result) return false;
 
             let hitPos = result.getBlockPos();
@@ -124,7 +122,7 @@ class VisibilityChecker {
             let dx = point[0] - eyePos.x;
             let dy = point[1] - eyePos.y;
             let dz = point[2] - eyePos.z;
-            let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            let dist = Math.hypot(dx, dy, dz);
 
             let dir = new Vector3(dx / dist, dy / dist, dz / dist);
 
@@ -259,7 +257,7 @@ class BlockScanner {
         let dx = point2[0] - point1[0];
         let dy = point2[1] - point1[1];
         let dz = point2[2] - point1[2];
-        let distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        let distance = Math.hypot(dx, dy, dz);
 
         if (distance === 0) return [];
 
@@ -275,7 +273,7 @@ class BlockScanner {
             let player = Player.getPlayer();
             if (!player) return null;
 
-            let result = player.raycast(maxDistance, 0.0, false);
+            let result = player.raycast(maxDistance, 0, false);
             if (!result) return null;
 
             let blockPos = result.getBlockPos();
@@ -426,7 +424,7 @@ class EntityRaytracer {
         if (typeof entity.getX === 'function') {
             return {
                 x: entity.getX(),
-                y: entity.getY() + 1.0,
+                y: entity.getY() + 1,
                 z: entity.getZ(),
             };
         }

@@ -375,7 +375,10 @@ class OreMacro extends ModuleBase {
         this.etherwarpAttempts++;
 
         let newTarget = this.getPointOnBlock(this.rawPoint);
-        let multiplier = intensity === 1 ? 0.05 : intensity === 2 ? 0.2 : 0.5;
+        let multiplier;
+        if (intensity === 1) multiplier = 0.05;
+        else if (intensity === 2) multiplier = 0.2;
+        else multiplier = 0.5;
 
         if (newTarget) {
             this.closestPoint = {
@@ -431,7 +434,7 @@ class OreMacro extends ModuleBase {
 
         switch (faceName) {
             case 'EAST': // +X face
-                fixedX = point.x + 1.0;
+                fixedX = point.x + 1;
                 randMinY = point.y + rangeMin;
                 randMaxY = point.y + rangeMax;
                 randMinZ = point.z + rangeMin;
@@ -451,7 +454,7 @@ class OreMacro extends ModuleBase {
                 return new Vec3d(fixedX, fixedY, fixedZ);
 
             case 'UP': // +Y face
-                fixedY = point.y + 1.0;
+                fixedY = point.y + 1;
                 randMinX = point.x + rangeMin;
                 randMaxX = point.x + rangeMax;
                 randMinZ = point.z + rangeMin;
@@ -471,7 +474,7 @@ class OreMacro extends ModuleBase {
                 return new Vec3d(fixedX, fixedY, fixedZ);
 
             case 'SOUTH': // +Z face
-                fixedZ = point.z + 1.0;
+                fixedZ = point.z + 1;
                 randMinX = point.x + rangeMin;
                 randMaxX = point.x + rangeMax;
                 randMinY = point.y + rangeMin;
@@ -508,11 +511,11 @@ class OreMacro extends ModuleBase {
         const offset = 0.1;
 
         const minX = point.x - offset;
-        const maxX = point.x + 1.0 + offset;
+        const maxX = point.x + 1 + offset;
         const minY = point.y - offset;
-        const maxY = point.y + 1.0 + offset;
+        const maxY = point.y + 1 + offset;
         const minZ = point.z - offset;
-        const maxZ = point.z + 1.0 + offset;
+        const maxZ = point.z + 1 + offset;
 
         const faces = [
             { name: 'EAST', target: [maxX, centerY, centerZ] }, // +X
@@ -533,7 +536,7 @@ class OreMacro extends ModuleBase {
             const dx = targetX - startX;
             const dy = targetY - startY;
             const dz = targetZ - startZ;
-            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const distance = Math.hypot(dx, dy, dz);
 
             let lineColor;
             if (isLineOfSightClear) {
@@ -597,7 +600,7 @@ class OreMacro extends ModuleBase {
         const dz = targetVec.z - eyePos.z;
 
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
-        const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
+        const pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
 
         const packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch));
         Client.sendPacket(packet);

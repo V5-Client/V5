@@ -152,9 +152,7 @@ class Failsafes extends ModuleBase {
 
         if (!fileArray) return [];
 
-        for (let i = 0; i < fileArray.length; i++) {
-            const file = fileArray[i];
-
+        for (const file of fileArray) {
             let name = file.getName();
 
             if (name.endsWith('.wav')) {

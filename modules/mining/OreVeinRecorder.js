@@ -302,8 +302,7 @@ class OreVeinRecorder extends ModuleBase {
                 .filter((vein) => Array.isArray(vein) && vein.length > 0)
                 .map((vein) => {
                     let best = Infinity;
-                    for (let i = 0; i < vein.length; i++) {
-                        const pos = vein[i];
+                    for (const pos of vein) {
                         const dx = pos.x + 0.5 - px;
                         const dy = pos.y + 0.5 - py;
                         const dz = pos.z + 0.5 - pz;

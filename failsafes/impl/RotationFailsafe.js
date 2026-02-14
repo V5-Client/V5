@@ -36,7 +36,7 @@ class RotationFailsafe extends Failsafe {
             const dx = Math.abs(newX - fromX);
             const dy = Math.abs(newY - fromY);
             const dz = Math.abs(newZ - fromZ);
-            const posDistance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            const posDistance = Math.hypot(dx, dy, dz);
 
             const yawDiff = Math.abs(newYaw - currYaw);
             const pitchDiff = Math.abs(newPitch - currPitch);
@@ -72,6 +72,12 @@ class RotationFailsafe extends Failsafe {
             severity = 'very high';
         }
 
+        let color;
+        if (severity === 'very high') color = 16711680;
+        else if (severity === 'high') color = 16744448;
+        else if (severity === 'medium') color = 16776960;
+        else color = 65280;
+
         Chat.messageFailsafe(`You were rotated by the server! (${severity} severity)`);
         Chat.messageFailsafe(
             `yaw ${fromYaw.toFixed(2)} -> ${toYaw.toFixed(2)}, pitch ${fromPitch.toFixed(2)} -> ${toPitch.toFixed(2)} (${totalRotation.toFixed(1)}° total)`
@@ -83,7 +89,7 @@ class RotationFailsafe extends Failsafe {
                     description: `Rotation changed: yaw ${fromYaw.toFixed(2)} -> ${toYaw.toFixed(2)}, pitch ${fromPitch.toFixed(2)} -> ${toPitch.toFixed(
                         2
                     )}\nTotal rotation: ${totalRotation.toFixed(1)}°`,
-                    color: severity === 'very high' ? 16711680 : severity === 'high' ? 16744448 : severity === 'medium' ? 16776960 : 65280,
+                    color,
                     footer: { text: `V5 Failsafes` },
                     timestamp: new Date().toISOString(),
                 },

@@ -36,9 +36,7 @@ class ESP extends ModuleBase {
         this.on('postRenderWorld', () => {
             let players = World.getAllPlayers();
 
-            for (let i = 0; i < players.length; i++) {
-                let player = players[i];
-
+            for (const player of players) {
                 if (player.getUUID().equals(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
 

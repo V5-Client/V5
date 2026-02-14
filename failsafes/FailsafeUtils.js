@@ -1,9 +1,7 @@
 import { V5ConfigFile } from '../utils/Constants.js';
 
 class FailsafeUtils {
-    constructor() {
-        this.failsafeIntensity = 0;
-    }
+    failsafeIntensity = 0;
 
     getFailsafeSettings(name) {
         if (!V5ConfigFile.exists()) {

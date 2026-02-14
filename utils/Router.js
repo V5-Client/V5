@@ -22,11 +22,9 @@ class Routes {
         const fileArray = configPath.listFiles();
         const fileNames = [];
 
-        if (!fileArray) return;
+        if (!fileArray) return [];
 
-        for (let i = 0; i < fileArray.length; i++) {
-            const file = fileArray[i];
-
+        for (const file of fileArray) {
             let name = file.getName();
             name = name.replaceAll('.json', '');
 

@@ -100,7 +100,7 @@ class ScathaMacro extends ModuleBase {
         this.on('chat', () => {
             this.scathaSpawnTimer.reset();
             this.menuTimer.reset();
-            Rotations.rotateToAngles(90, 10.0);
+            Rotations.rotateToAngles(90, 10);
             this.sorrow = false;
             this.pause = true;
             this.setState(this.STATES.KILLING);
@@ -320,8 +320,15 @@ class ScathaMacro extends ModuleBase {
                 const isSolid = (n) => n && !['minecraft:air', 'minecraft:water', 'minecraft:lava'].includes(n);
                 const blocks = isSolid(block) || isSolid(blockaheadName);
 
-                if (this.pinglessAngles) Rotations.rotateToAngles(90, pane ? 70.0 : blocks ? 35.0 : 12.0);
-                else Rotations.rotateToAngles(90, pane ? 70.0 : 35.0);
+                if (this.pinglessAngles) {
+                    let targetPitch = 12;
+                    if (blocks) targetPitch = 35;
+                    if (pane) targetPitch = 70;
+                    Rotations.rotateToAngles(90, targetPitch);
+                } else {
+                    const targetPitch = pane ? 70 : 35;
+                    Rotations.rotateToAngles(90, targetPitch);
+                }
                 break;
             }
 
@@ -541,7 +548,7 @@ class ScathaMacro extends ModuleBase {
 
                 if (blocks || panes) {
                     Keybind.stopMovement();
-                    Rotations.rotateToAngles(-90, paneHere ? 70.0 : 35.0);
+                    Rotations.rotateToAngles(-90, paneHere ? 70 : 35);
                     Rotations.onEndRotation(() => {
                         let foundBlockAhead = false;
                         for (let offsetX = 1; offsetX <= 7; offsetX++) {

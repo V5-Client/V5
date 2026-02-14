@@ -265,10 +265,10 @@ export const SearchBar = {
         const maxTextWidth = this.expandedWidth - 35;
         let accepted = '';
 
-        for (let i = 0; i < text.length; i++) {
-            const candidate = this.query.slice(0, this.cursorIndex) + accepted + text[i] + this.query.slice(this.cursorIndex);
+        for (const char of text) {
+            const candidate = this.query.slice(0, this.cursorIndex) + accepted + char + this.query.slice(this.cursorIndex);
             if (getTextWidth(candidate, FontSizes.REGULAR) > maxTextWidth) break;
-            accepted += text[i];
+            accepted += char;
         }
 
         if (accepted.length === 0) return false;

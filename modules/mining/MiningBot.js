@@ -64,7 +64,7 @@ class Bot extends ModuleBase {
         this.lastGUI = Date.now();
 
         this.faceReach = 4.5;
-        this.bfsPad = Math.sqrt(3) * 0.5;
+        this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
         this.rotationSpeed = 75;
 
         this.initCosts();
@@ -267,8 +267,8 @@ class Bot extends ModuleBase {
 
     getAbilityStatusFromTab() {
         const tabNames = TabList.getNames();
-        for (let i = 0; i < tabNames.length; i++) {
-            const rawLine = tabNames[i].getName().toString();
+        for (const [i, tabName] of tabNames.entries()) {
+            const rawLine = tabName.getName().toString();
             const line = rawLine.replace(/§[0-9a-fk-or]/gi, '').trim();
 
             if (line.includes('Pickaxe Ability') && tabNames[i + 1]) {
@@ -603,7 +603,7 @@ class Bot extends ModuleBase {
         if (vLenSq === 0) return null;
 
         if (checkFov && lookVec) {
-            const vLen = Math.sqrt(vLenSq);
+            const vLen = Math.hypot(vx, vy, vz);
             const dotToCenter = (vx * lookVec.x + vy * lookVec.y + vz * lookVec.z) / vLen;
             if (dotToCenter < -0.05) return null;
         }
@@ -622,13 +622,25 @@ class Bot extends ModuleBase {
         const tminY = ty1 < ty2 ? ty1 : ty2;
         const tminZ = tz1 < tz2 ? tz1 : tz2;
 
-        const tEntry = tminX > tminY ? (tminX > tminZ ? tminX : tminZ) : tminY > tminZ ? tminY : tminZ;
+        let tEntry;
+        if (tminX > tminY) {
+            tEntry = tminX > tminZ ? tminX : tminZ;
+        } else {
+            tEntry = tminY > tminZ ? tminY : tminZ;
+        }
 
         let faceAxis = 'x';
         if (tEntry === tminY) faceAxis = 'y';
         else if (tEntry === tminZ) faceAxis = 'z';
 
-        const s = faceAxis === 'x' ? (vx > 0 ? -1 : 1) : faceAxis === 'y' ? (vy > 0 ? -1 : 1) : vz > 0 ? -1 : 1;
+        let s;
+        if (faceAxis === 'x') {
+            s = vx > 0 ? -1 : 1;
+        } else if (faceAxis === 'y') {
+            s = vy > 0 ? -1 : 1;
+        } else {
+            s = vz > 0 ? -1 : 1;
+        }
 
         const INSET = 0.48,
             FACE_INSET = 0.48,
@@ -636,7 +648,11 @@ class Bot extends ModuleBase {
             MID_CAP = 0.3;
         const LO = 0.02,
             HI = 0.98;
-        const clamp = (v, l, h) => (v < l ? l : v > h ? h : v);
+        const clamp = (v, l, h) => {
+            if (v < l) return l;
+            if (v > h) return h;
+            return v;
+        };
 
         const checkLine = (axis, ttx, tty, ttz, ffx, ffy, ffz) => {
             const jU = 0,
@@ -733,7 +749,14 @@ class Bot extends ModuleBase {
             for (let axis of orthos) {
                 if (result) break;
 
-                const sOrtho = axis === 'x' ? (eyePos.x >= cx ? 1 : -1) : axis === 'y' ? (eyePos.y >= cy ? 1 : -1) : eyePos.z >= cz ? 1 : -1;
+                let sOrtho;
+                if (axis === 'x') {
+                    sOrtho = eyePos.x >= cx ? 1 : -1;
+                } else if (axis === 'y') {
+                    sOrtho = eyePos.y >= cy ? 1 : -1;
+                } else {
+                    sOrtho = eyePos.z >= cz ? 1 : -1;
+                }
 
                 for (let idx of ORTH_ORDER) {
                     if (result) break;
@@ -778,8 +801,8 @@ class Bot extends ModuleBase {
 
         if (distSq > maxReachSq) return null;
 
-        const dist = Math.sqrt(distSq);
-        const dot = lookVec ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1.0;
+        const dist = Math.hypot(dX, dY, dZ);
+        const dot = lookVec ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1;
 
         return { x: result.x, y: result.y, z: result.z, dist, dot };
     }
@@ -931,7 +954,7 @@ class Bot extends ModuleBase {
             const simLookX = current.aimX - eyePos.x;
             const simLookY = current.aimY - eyePos.y;
             const simLookZ = current.aimZ - eyePos.z;
-            const simLookLen = Math.sqrt(simLookX * simLookX + simLookY * simLookY + simLookZ * simLookZ);
+            const simLookLen = Math.hypot(simLookX, simLookY, simLookZ);
 
             if (simLookLen > 0) {
                 const normLookX = simLookX / simLookLen;
@@ -939,14 +962,13 @@ class Bot extends ModuleBase {
                 const normLookZ = simLookZ / simLookLen;
 
                 let bestCost = Infinity;
-                for (let i = 1; i < this.foundLocations.length; i++) {
-                    const loc = this.foundLocations[i];
+                for (const loc of this.foundLocations.slice(1)) {
                     if (loc.aimX === undefined) continue;
 
                     const dx = loc.aimX - eyePos.x;
                     const dy = loc.aimY - eyePos.y;
                     const dz = loc.aimZ - eyePos.z;
-                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    const dist = Math.hypot(dx, dy, dz);
                     if (dist === 0) continue;
 
                     const dot = (dx * normLookX + dy * normLookY + dz * normLookZ) / dist;

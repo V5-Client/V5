@@ -246,7 +246,7 @@ class NukerClass extends ModuleBase {
         const dx = from[0] - to[0],
             dy = from[1] - to[1],
             dz = from[2] - to[2];
-        return { distance: Math.sqrt(dx * dx + dy * dy + dz * dz) };
+        return { distance: Math.hypot(dx, dy, dz) };
     }
 
     onGround() {

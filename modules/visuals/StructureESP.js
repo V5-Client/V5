@@ -86,8 +86,7 @@ class StructureESP extends ModuleBase {
                         const sections = chunk.getSectionArray();
                         const minY = world.getBottomY();
 
-                        for (let sectionY = 0; sectionY < sections.length; sectionY++) {
-                            const section = sections[sectionY];
+                        for (const [sectionY, section] of sections.entries()) {
                             if (!section || section.isEmpty()) continue;
 
                             for (let y = 0; y < 16; y++) {
@@ -185,8 +184,7 @@ class StructureESP extends ModuleBase {
             while (iterator.hasNext()) {
                 const entry = iterator.next();
                 const blockList = entry.getValue();
-                for (let i = 0; i < blockList.length; i++) {
-                    const b = blockList[i];
+                for (const b of blockList) {
                     Render.drawBox(new Vec3d(b.x, b.y, b.z), Render.Color(0, 255, 200, 100), false);
                 }
             }

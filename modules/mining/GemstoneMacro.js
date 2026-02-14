@@ -338,7 +338,10 @@ class GemstoneMacro extends ModuleBase {
     recalculateEtherWarp(intensity) {
         this.rotatedToPoint = false;
         let newTarget = this.getPointOnBlock(this.rawPoint);
-        let mult = intensity === 1 ? 0.05 : intensity === 2 ? 0.2 : 0.5;
+        let mult;
+        if (intensity === 1) mult = 0.05;
+        else if (intensity === 2) mult = 0.2;
+        else mult = 0.5;
         if (newTarget) {
             this.closestPoint = {
                 x: newTarget.x + (Math.random() - 0.5) * mult,
@@ -361,15 +364,15 @@ class GemstoneMacro extends ModuleBase {
             rMax = 0.85;
         switch (faceName) {
             case 'EAST':
-                return new Vec3d(point.x + 1.0, randomOffset(point.y + rMin, point.y + rMax), randomOffset(point.z + rMin, point.z + rMax));
+                return new Vec3d(point.x + 1, randomOffset(point.y + rMin, point.y + rMax), randomOffset(point.z + rMin, point.z + rMax));
             case 'WEST':
                 return new Vec3d(point.x, randomOffset(point.y + rMin, point.y + rMax), randomOffset(point.z + rMin, point.z + rMax));
             case 'UP':
-                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), point.y + 1.0, randomOffset(point.z + rMin, point.z + rMax));
+                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), point.y + 1, randomOffset(point.z + rMin, point.z + rMax));
             case 'DOWN':
                 return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), point.y, randomOffset(point.z + rMin, point.z + rMax));
             case 'SOUTH':
-                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), randomOffset(point.y + rMin, point.y + rMax), point.z + 1.0);
+                return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), randomOffset(point.y + rMin, point.y + rMax), point.z + 1);
             case 'NORTH':
                 return new Vec3d(randomOffset(point.x + rMin, point.x + rMax), randomOffset(point.y + rMin, point.y + rMax), point.z);
             default:
@@ -393,7 +396,7 @@ class GemstoneMacro extends ModuleBase {
         for (const face of faces) {
             const [tx, ty, tz] = face.target;
             if (Raytrace.isLineClear(start.x, start.y, start.z, tx, ty, tz)) {
-                let d = Math.sqrt((tx - start.x) ** 2 + (ty - start.y) ** 2 + (tz - start.z) ** 2);
+                let d = Math.hypot(tx - start.x, ty - start.y, tz - start.z);
                 if (d < shortest) {
                     shortest = d;
                     closest = { face: face.name, hitPos: { x: tx, y: ty, z: tz } };
@@ -424,7 +427,7 @@ class GemstoneMacro extends ModuleBase {
             dy = targetVec.y - eye.y,
             dz = targetVec.z - eye.z;
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
-        const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
+        const pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
         Client.sendPacket(new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch)));
     }
 

@@ -16,8 +16,9 @@ class SwiftIntegration {
 
         try {
             const javaArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, flatGoals.length);
-            for (let i = 0; i < flatGoals.length; i++) {
-                javaArray[i] = i % 3 === 1 && !isFly ? Math.floor(flatGoals[i]) + 1 : Math.floor(flatGoals[i]);
+            for (const [i, goal] of flatGoals.entries()) {
+                const flooredGoal = Math.floor(goal);
+                javaArray[i] = i % 3 === 1 && !isFly ? flooredGoal + 1 : flooredGoal;
             }
 
             return this.pathManager.findPathMultipleGoals(
