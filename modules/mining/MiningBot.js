@@ -896,54 +896,39 @@ class Bot extends ModuleBase {
 
     renderNormal() {
         if (this.DEBUG_MODE) return;
-        if (this.foundLocations.length === 0) return;
 
-        const fakeLookMode = this.FAKELOOK?.find?.((option) => option.enabled)?.name;
-        const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
-
-        // cyan for normal, purple for fakelook
-        const currentFillColor = isFakelook ? Render.Color(180, 100, 255, 60) : Render.Color(85, 255, 255, 60);
-        const currentWireframeColor = isFakelook ? Render.Color(180, 100, 255, 255) : Render.Color(85, 255, 255, 255);
-        const aimColor = isFakelook ? Render.Color(255, 150, 255, 255) : Render.Color(255, 220, 80, 255);
-
-        // orange for normal, redish orange for fakelook
-        const nextFillColor = isFakelook ? Render.Color(255, 130, 70, 60) : Render.Color(255, 170, 100, 60);
-        const nextWireframeColor = isFakelook ? Render.Color(255, 130, 70, 255) : Render.Color(255, 170, 100, 255);
-
-        const current = this.foundLocations[0];
-        if (!current) return;
-
-        Render.drawStyledBox(new Vec3d(current.x, current.y, current.z), currentFillColor, currentWireframeColor, 6, false);
-
-        if (current.aimX !== undefined) {
-            const d = 0.08;
-            Render.drawLine(
-                new Vec3d(current.aimX - d, current.aimY, current.aimZ),
-                new Vec3d(current.aimX + d, current.aimY, current.aimZ),
-                aimColor,
-                2,
-                false
-            );
-            Render.drawLine(
-                new Vec3d(current.aimX, current.aimY - d, current.aimZ),
-                new Vec3d(current.aimX, current.aimY + d, current.aimZ),
-                aimColor,
-                2,
-                false
-            );
-            Render.drawLine(
-                new Vec3d(current.aimX, current.aimY, current.aimZ - d),
-                new Vec3d(current.aimX, current.aimY, current.aimZ + d),
-                aimColor,
-                2,
-                false
-            );
+        if (this.foundLocations.length === 0) {
+            this.lastRenderPos = null;
+            this.lastAimPos = null;
+            this.lastNextPos = null;
+            return;
         }
 
-        // If you just used the next lowest cost block, it rarely will ACTUALLY be the next best block because look direction. This fixes that by pretending to be at the current aim point.
+        const lerp = (s, e) => s + (e - s) * 0.1;
+
+        const current = this.foundLocations[0];
+
+        if (!this.lastRenderPos) {
+            this.lastRenderPos = { x: current.x, y: current.y, z: current.z };
+        } else {
+            this.lastRenderPos.x = lerp(this.lastRenderPos.x, current.x);
+            this.lastRenderPos.y = lerp(this.lastRenderPos.y, current.y);
+            this.lastRenderPos.z = lerp(this.lastRenderPos.z, current.z);
+        }
+
+        if (current.aimX !== undefined) {
+            if (!this.lastAimPos) {
+                this.lastAimPos = { x: current.aimX, y: current.aimY, z: current.aimZ };
+            } else {
+                this.lastAimPos.x = lerp(this.lastAimPos.x, current.aimX);
+                this.lastAimPos.y = lerp(this.lastAimPos.y, current.aimY);
+                this.lastAimPos.z = lerp(this.lastAimPos.z, current.aimZ);
+            }
+        }
+
+        let nextTarget = null;
         if (this.foundLocations.length > 1 && current.aimX !== undefined) {
             const eyePos = Player.getPlayer().getEyePos();
-
             const simLookX = current.aimX - eyePos.x;
             const simLookY = current.aimY - eyePos.y;
             const simLookZ = current.aimZ - eyePos.z;
@@ -954,9 +939,7 @@ class Bot extends ModuleBase {
                 const normLookY = simLookY / simLookLen;
                 const normLookZ = simLookZ / simLookLen;
 
-                let bestNext = null;
                 let bestCost = Infinity;
-
                 for (let i = 1; i < this.foundLocations.length; i++) {
                     const loc = this.foundLocations[i];
                     if (loc.aimX === undefined) continue;
@@ -965,30 +948,57 @@ class Bot extends ModuleBase {
                     const dy = loc.aimY - eyePos.y;
                     const dz = loc.aimZ - eyePos.z;
                     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
                     if (dist === 0) continue;
 
                     const dot = (dx * normLookX + dy * normLookY + dz * normLookZ) / dist;
-
                     const block = World.getBlockAt(loc.x, loc.y, loc.z);
                     const blockName = block?.type?.getRegistryName();
                     const baseCost = this.COSTTYPE?.[blockName] ?? 5;
-
                     const cost = this.calculateBlockCost(baseCost, dist, dot);
 
                     if (cost < bestCost) {
                         bestCost = cost;
-                        bestNext = loc;
+                        nextTarget = loc;
                     }
-                }
-
-                if (bestNext) {
-                    Render.drawStyledBox(new Vec3d(bestNext.x, bestNext.y, bestNext.z), nextFillColor, nextWireframeColor, 6, false);
                 }
             }
         } else if (this.foundLocations.length > 1) {
-            const next = this.foundLocations[1];
-            Render.drawStyledBox(new Vec3d(next.x, next.y, next.z), nextFillColor, nextWireframeColor, 6, false);
+            nextTarget = this.foundLocations[1];
+        }
+
+        if (nextTarget) {
+            if (!this.lastNextPos) {
+                this.lastNextPos = { x: nextTarget.x, y: nextTarget.y, z: nextTarget.z };
+            } else {
+                this.lastNextPos.x = lerp(this.lastNextPos.x, nextTarget.x);
+                this.lastNextPos.y = lerp(this.lastNextPos.y, nextTarget.y);
+                this.lastNextPos.z = lerp(this.lastNextPos.z, nextTarget.z);
+            }
+        } else {
+            this.lastNextPos = null;
+        }
+
+        const fakeLookMode = this.FAKELOOK?.find?.((option) => option.enabled)?.name;
+        const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
+
+        const currentFill = isFakelook ? Render.Color(180, 100, 255, 60) : Render.Color(85, 255, 255, 60);
+        const currentWire = isFakelook ? Render.Color(180, 100, 255, 255) : Render.Color(85, 255, 255, 255);
+        const aimColor = isFakelook ? Render.Color(255, 150, 255, 255) : Render.Color(255, 220, 80, 255);
+        const nextFill = isFakelook ? Render.Color(255, 130, 70, 60) : Render.Color(255, 170, 100, 60);
+        const nextWire = isFakelook ? Render.Color(255, 130, 70, 255) : Render.Color(255, 170, 100, 255);
+
+        Render.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), currentFill, currentWire, 6, false);
+
+        if (this.lastAimPos) {
+            const d = 0.08;
+            const { x, y, z } = this.lastAimPos;
+            Render.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), aimColor, 2, false);
+            Render.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), aimColor, 2, false);
+            Render.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), aimColor, 2, false);
+        }
+
+        if (this.lastNextPos) {
+            Render.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), nextFill, nextWire, 6, false);
         }
     }
 
