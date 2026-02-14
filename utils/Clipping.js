@@ -103,7 +103,7 @@ class ClippingManager extends ModuleBase {
             try {
                 if (!inputClip.exists()) return Chat.messageClip('&cClip file not found!');
 
-                const outputName = inputClip.getName().replace('.mp4', '_compressed.mp4');
+                const outputName = inputClip.getName().replaceAll('.mp4', '_compressed.mp4');
                 const outputFile = new File(clipsDir, outputName);
 
                 Chat.messageClip(`&eCompressing &f${inputClip.getName()}&e...`);

@@ -28,7 +28,7 @@ class Routes {
             const file = fileArray[i];
 
             let name = file.getName();
-            name = name.replace('.json', '');
+            name = name.replaceAll('.json', '');
 
             fileNames.push(name);
         }

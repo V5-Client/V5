@@ -158,7 +158,7 @@ class Failsafes extends ModuleBase {
             let name = file.getName();
 
             if (name.endsWith('.wav')) {
-                name = name.replace('.wav', '');
+                name = name.replaceAll('.wav', '');
 
                 fileNames.push(name);
             }

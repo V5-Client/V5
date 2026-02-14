@@ -920,7 +920,7 @@ class CommissionParser {
             if (progressText.indexOf('DONE') !== -1) {
                 progress = 1;
             } else if (progressText.indexOf('%') !== -1) {
-                progress = Number.parseFloat(progressText.replace(/ /g, '').replace('%', '')) / 100;
+                progress = Number.parseFloat(progressText.replace(/ /g, '').replaceAll('%', '')) / 100;
             } else {
                 continue;
             }
