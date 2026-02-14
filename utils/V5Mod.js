@@ -1,20 +1,6 @@
-import { Chat } from './Chat';
 import { Utils } from './Utils';
 
-const Fabric = net.fabricmc.loader.api.FabricLoader;
-
 class V5Mod {
-    static check() {
-        if (!Fabric.getInstance().isModLoaded('v5')) {
-            Chat.message('&cV5 Mod is not installed!');
-            // close minecraft, reload minecraft and install the mod
-            // unload ct for now
-            if (typeof UnloadCT !== 'undefined') UnloadCT(true);
-        } else {
-            this.handleWelcome();
-        }
-    }
-
     static handleWelcome() {
         const META_FILE = 'v5_metadata.json';
         const config = Utils.getConfigFile(META_FILE);
@@ -32,4 +18,4 @@ class V5Mod {
     }
 }
 
-V5Mod.check();
+V5Mod.handleWelcome();
