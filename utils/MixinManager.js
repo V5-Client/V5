@@ -1,7 +1,5 @@
-const internalMixin = CTMixin;
-const internalAt = CTAt;
-const internalSlice = CTSlice;
-const internalConstant = CTConstant;
+const internalMixin = Mixin;
+const internalAt = At;
 
 class MixinStorage {
     constructor() {
@@ -70,29 +68,10 @@ class MixinEngine {
     }
 
     _processConfig(config) {
-        const { at, slice, constant, ...others } = config;
+        const { at, slice, ...others } = config;
         const result = { ...others };
-
-        if (at) {
-            if (Array.isArray(at)) {
-                result.at = at.map((a) => (a.atObj ? a : new internalAt(a)));
-            } else {
-                result.at = at.atObj ? at : new internalAt(at);
-            }
-        }
-
-        if (slice) {
-            if (Array.isArray(slice)) {
-                result.slice = slice.map((s) => (s.sliceObj ? s : new internalSlice(s)));
-            } else {
-                result.slice = slice.sliceObj ? slice : new internalSlice(slice);
-            }
-        }
-
-        if (constant) {
-            result.constant = constant.constantObj ? constant : new internalConstant(constant);
-        }
-
+        if (at) result.at = at instanceof internalAt ? at : new internalAt(at);
+        if (slice) result.slice = slice instanceof Slice ? slice : new Slice(slice);
         return result;
     }
 
@@ -129,14 +108,14 @@ class MixinEngine {
     // Replaces a constant value (like a string or number) with a different one
     modifyConstant(config) {
         const { constant, ...others } = config;
-        const constObj = constant.constantObj || constant instanceof Constant ? constant : new Constant(constant);
+        const constObj = constant instanceof Constant ? constant : new Constant(constant);
         this.lastInjection = this.realMixin.modifyConstant({ ...this._processConfig(others), constant: constObj });
         return this;
     }
 
     // Intercepts and changes the value a method is about to return
     modifyReturnValue(config) {
-        this.lastInjection = this.realMixin.modifyReturnValue(this._processConfig(config));
+        this.lastInjection = this.lastInjection = this.realMixin.modifyReturnValue(this._processConfig(config));
         return this;
     }
 
