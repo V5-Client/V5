@@ -244,6 +244,6 @@ export const MathUtils = {
     getNumbersFromString: function (str) {
         if (!str) return 0;
         const match = str.match(/\d+/g);
-        return match ? parseInt(match.join('')) : 0;
+        return match ? Number.parseInt(match.join('')) : 0;
     },
 };

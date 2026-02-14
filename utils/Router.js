@@ -98,7 +98,7 @@ class Routes {
      */
     Edit(action, route, file, indexNum, takeMovementTypes = false, allowedMovements = [], userMovementInput = '', addPoinToLook = false) {
         let indexToUse = undefined;
-        if (typeof indexNum === 'number' && !isNaN(indexNum) && indexNum >= 1) {
+        if (typeof indexNum === 'number' && !Number.isNaN(indexNum) && indexNum >= 1) {
             indexToUse = indexNum;
         }
 

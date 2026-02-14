@@ -243,7 +243,7 @@ export const SearchBar = {
 
         const charStr = char?.toString();
         if (charStr && charStr.length === 1) {
-            const code = charStr.charCodeAt(0);
+            const code = charStr.codePointAt(0);
             if (code >= 33 && code <= 126) {
                 let finalChar = charStr;
                 if (code >= 97 && code <= 122) {

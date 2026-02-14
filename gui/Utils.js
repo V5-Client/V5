@@ -77,12 +77,12 @@ export const THEME = {
     NOTIF_ICON: 0xdddddd,
     NOTIF_CLOSE: 0xffaaaaaa,
     NOTIF_PROGRESS: new Color(0.4, 0.7, 1, 0.5),
-    NOTIF_SUCCESS: new Color(parseInt('10b981', 16)),
-    NOTIF_ERROR: new Color(parseInt('ef4444', 16)),
-    NOTIF_DANGER: new Color(parseInt('ff0f0f', 16)),
-    NOTIF_CHECK_IN: new Color(parseInt('84cc16', 16)),
-    NOTIF_WARNING: new Color(parseInt('f59e0b', 16)),
-    NOTIF_INFO: new Color(parseInt('3b82f6', 16)),
+    NOTIF_SUCCESS: new Color(Number.parseInt('10b981', 16)),
+    NOTIF_ERROR: new Color(Number.parseInt('ef4444', 16)),
+    NOTIF_DANGER: new Color(Number.parseInt('ff0f0f', 16)),
+    NOTIF_CHECK_IN: new Color(Number.parseInt('84cc16', 16)),
+    NOTIF_WARNING: new Color(Number.parseInt('f59e0b', 16)),
+    NOTIF_INFO: new Color(Number.parseInt('3b82f6', 16)),
 };
 
 export const drawRect = ({ x, y, width, height, color }) => {

@@ -105,7 +105,7 @@ class GemstoneMacro extends ModuleBase {
 
         register('command', (action, indexArg) => {
             const actionUpper = action.toUpperCase();
-            const indexNum = indexArg && !isNaN(indexArg) ? parseInt(indexArg) : undefined;
+            const indexNum = indexArg && !Number.isNaN(indexArg) ? Number.parseInt(indexArg) : undefined;
             this.route = Router.Edit(actionUpper, this.route, `GemstoneRoutes/${this.loadedFile}`, indexNum);
         }).setName('gemstone');
 
@@ -427,7 +427,7 @@ class GemstoneMacro extends ModuleBase {
             dz = targetVec.z - eye.z;
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
-        Client.sendPacket(new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, parseFloat(yaw), parseFloat(pitch)));
+        Client.sendPacket(new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch)));
     }
 
     onEnable() {

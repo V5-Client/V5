@@ -133,7 +133,7 @@ class MiningStatsCollector {
             this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+(\.\d+)?)/);
 
             let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/);
-            this.collectedData.maxge = parseInt(explorerLevel) >= 96;
+            this.collectedData.maxge = Number.parseInt(explorerLevel) >= 96;
 
             Guis.closeInv();
             this.finishCollection();
@@ -233,7 +233,7 @@ class MiningStatsCollector {
                 let match = cleanLine.match(pattern);
                 if (match) {
                     let value = match[1].replace(/,/g, '');
-                    return value.indexOf('.') !== -1 ? parseFloat(value) : parseInt(value);
+                    return value.indexOf('.') !== -1 ? Number.parseFloat(value) : Number.parseInt(value);
                 }
             }
         } catch (e) {
@@ -869,7 +869,7 @@ class ScoreboardDebuffReader {
                 let match = clean.match(pattern);
 
                 if (match) {
-                    return parseFloat(match[1]);
+                    return Number.parseFloat(match[1]);
                 }
             }
         }
@@ -920,7 +920,7 @@ class CommissionParser {
             if (progressText.indexOf('DONE') !== -1) {
                 progress = 1;
             } else if (progressText.indexOf('%') !== -1) {
-                progress = parseFloat(progressText.replace(/ /g, '').replace('%', '')) / 100;
+                progress = Number.parseFloat(progressText.replace(/ /g, '').replace('%', '')) / 100;
             } else {
                 continue;
             }

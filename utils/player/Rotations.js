@@ -69,7 +69,7 @@ class RotationsTo {
         this.speedMultiplier = 1.0;
 
         v5Command('rotateTo', (yaw, pitch) => {
-            this.rotateToAngles(parseFloat(yaw), parseFloat(pitch));
+            this.rotateToAngles(Number.parseFloat(yaw), Number.parseFloat(pitch));
         });
 
         v5Command('stopRotation', () => {
@@ -319,7 +319,7 @@ class RotationsTo {
 
         if (RotationModule.rotationMode !== 'Linear') {
             const curve = this.getMathEquationOffset(progress);
-            if (!isNaN(curve.x) && !isNaN(curve.y)) {
+            if (!Number.isNaN(curve.x) && !Number.isNaN(curve.y)) {
                 nextYaw += curve.x * ratio;
                 nextPitch += curve.y * ratio;
             }
@@ -328,7 +328,7 @@ class RotationsTo {
         nextYaw = this.normalizeAngle(nextYaw);
         nextPitch = Math.max(-90, Math.min(90, nextPitch));
 
-        if (!isNaN(nextYaw) && !isNaN(nextPitch)) {
+        if (!Number.isNaN(nextYaw) && !Number.isNaN(nextPitch)) {
             const player = Player.getPlayer();
             if (isExactVector && player) {
                 const safe = this.sanitizeRotation(nextYaw, nextPitch);

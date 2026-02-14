@@ -712,7 +712,7 @@ class CommissionMacro extends ModuleBase {
                     if (clean.endsWith('%')) {
                         const match = clean.match(/([\d.]+)%$/);
                         if (match) {
-                            progress = parseFloat(match[1]) / 100;
+                            progress = Number.parseFloat(match[1]) / 100;
                             break;
                         }
                     }

@@ -96,7 +96,7 @@ class Notification {
         this.description = description;
         this.type = NOTIFICATION_TYPES[type] ? type : 'SUCCESS';
         this.duration = duration;
-        this.isSticky = duration === 'sticky';
+        this.isSticky = duration == 'sticky';
         this.createdAt = Date.now();
         this.state = 'entering';
         this.animationStart = Date.now();

@@ -408,7 +408,7 @@ class AutoExperiments extends ModuleBase {
         const loreLines = this.getLoreLines(item);
         for (const line of loreLines) {
             const match = line.match(/Starting\s+cost:\s*(\d+)\s*XP\s*Levels?/i);
-            if (match) return parseInt(match[1], 10);
+            if (match) return Number.parseInt(match[1], 10);
         }
         return 0;
     }
@@ -462,7 +462,7 @@ class AutoExperiments extends ModuleBase {
         const loreLines = this.getLoreLines(item);
         for (const line of loreLines) {
             const match = line.match(/(\d+)\s*XP\s*Levels?/i);
-            if (match) return parseInt(match[1], 10);
+            if (match) return Number.parseInt(match[1], 10);
         }
         return 0;
     }
@@ -473,7 +473,7 @@ class AutoExperiments extends ModuleBase {
     extractXpLevel(item) {
         for (const line of this.getLoreLines(item)) {
             const match = line.match(/Your\s+Exp\s+Level:\s*(\d+)/i);
-            if (match) return parseInt(match[1], 10);
+            if (match) return Number.parseInt(match[1], 10);
         }
         return 0;
     }
@@ -487,7 +487,7 @@ class AutoExperiments extends ModuleBase {
         const name = ChatLib.removeFormatting(item.getName());
         if (!name) return null;
         const match = name.match(/Round:\s*(\d+)/i);
-        return match ? parseInt(match[1], 10) : null;
+        return match ? Number.parseInt(match[1], 10) : null;
     }
 
     /**

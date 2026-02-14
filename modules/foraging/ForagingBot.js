@@ -135,8 +135,6 @@ class ForagingBot extends ModuleBase {
     handlePathfinding() {
         if (this.pathInProgress) return;
 
-        // some people say its a broken pathfinder, i say its just route randomisation
-        const start = [Math.round(Player.getX() + Math.random() * 3 - 1.5), Math.round(Player.getY()) - 1, Math.round(Player.getZ() + Math.random() * 3 - 1.5)];
         const end = this.route[this.pointIndex];
         if (!end) {
             this.advanceRoutePoint();
@@ -268,7 +266,7 @@ class ForagingBot extends ModuleBase {
         this.pointIndex = (this.pointIndex + 1) % this.route.length;
         this.resetState(this.STATES.PATHFINDING, this.pointIndex);
         Chat.message(`Foraging Bot: Moving to next route point (${this.pointIndex + 1}/${this.route.length}).`);
-        return false;
+        return true;
     }
 
     getTargetableBlocks() {

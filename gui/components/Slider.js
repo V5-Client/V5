@@ -23,13 +23,13 @@ export class Slider {
         this.height = height;
         this.isRange = isRange;
 
-        this.min = parseFloat(min);
-        this.max = parseFloat(max);
+        this.min = Number.parseFloat(min);
+        this.max = Number.parseFloat(max);
 
         if (this.isRange) {
             this.value = typeof value === 'object' ? value : { low: this.min, high: value };
         } else {
-            this.value = parseFloat(value);
+            this.value = Number.parseFloat(value);
         }
 
         this.step = this.getStepFromPrecision(String(min));
@@ -305,8 +305,8 @@ export class Slider {
                 if (parts.length === 2 && parts[1].length > this.precision) return true;
             }
 
-            const tentativeValue = parseFloat(nextInputValue);
-            if (!isNaN(tentativeValue)) {
+            const tentativeValue = Number.parseFloat(nextInputValue);
+            if (!Number.isNaN(tentativeValue)) {
                 if (tentativeValue > this.max) return true;
 
                 if (tentativeValue < this.min) {
@@ -324,16 +324,16 @@ export class Slider {
     handleInputFinish(forceSave = false) {
         if (!this.isTyping) return;
 
-        let typedValue = parseFloat(this.inputValue);
+        let typedValue = Number.parseFloat(this.inputValue);
 
-        if (isNaN(typedValue)) {
+        if (Number.isNaN(typedValue)) {
             this.isTyping = false;
             TypingState.isTyping = false;
             return;
         }
 
         let finalValue = clamp(typedValue, this.min, this.max);
-        this.value = parseFloat(finalValue.toFixed(this.precision));
+        this.value = Number.parseFloat(finalValue.toFixed(this.precision));
 
         if (this.callback) {
             this.callback(this.value);
@@ -355,7 +355,7 @@ export class Slider {
 
         let rawValue = this.min + (this.max - this.min) * progress;
         let steppedValue = Math.round(rawValue / this.step) * this.step;
-        let finalValue = parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
+        let finalValue = Number.parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
 
         if (this.isRange) {
             if (this.draggingHandle === 'low') {
@@ -390,13 +390,13 @@ export class Slider {
                 const distHigh = Math.abs(val - this.value.high);
 
                 if (distLow < distHigh) {
-                    this.value.low = clamp(parseFloat((this.value.low + step).toFixed(this.precision)), this.min, this.value.high);
+                    this.value.low = clamp(Number.parseFloat((this.value.low + step).toFixed(this.precision)), this.min, this.value.high);
                 } else {
-                    this.value.high = clamp(parseFloat((this.value.high + step).toFixed(this.precision)), this.value.low, this.max);
+                    this.value.high = clamp(Number.parseFloat((this.value.high + step).toFixed(this.precision)), this.value.low, this.max);
                 }
             } else {
                 let newValue = this.value + step;
-                newValue = parseFloat(newValue.toFixed(this.precision));
+                newValue = Number.parseFloat(newValue.toFixed(this.precision));
                 this.value = clamp(newValue, this.min, this.max);
             }
 

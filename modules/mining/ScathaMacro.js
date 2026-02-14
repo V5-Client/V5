@@ -822,7 +822,7 @@ class ScathaMacro extends ModuleBase {
             console.error('V5 Caught error' + e + e.stack);
             Chat.messageDebug('Heat not detected');
         }
-        if (heat === undefined || isNaN(heat) || heat === null) {
+        if (heat === undefined || Number.isNaN(heat) || heat === null) {
             Chat.messageDebug('Heat not detected');
             return 0;
         }

@@ -116,7 +116,7 @@ register('step', () => {
 
 export const ServerInfo = {
     getPing: () => Math.round(monitor.avgPing),
-    getTPS: () => parseFloat(monitor.currentTps.toFixed(2)),
+    getTPS: () => Number.parseFloat(monitor.currentTps.toFixed(2)),
     getServerInfo: function () {
         return {
             ping: this.getPing(),

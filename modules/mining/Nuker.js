@@ -71,7 +71,7 @@ class NukerClass extends ModuleBase {
         v5Command('nukerremove', (id) => {
             if (id === undefined) return this.message('Usage: /nukerremove <id>');
             let initialLength = this.customBlockList.length;
-            this.customBlockList = this.customBlockList.filter((block) => !(block.id === parseInt(id)));
+            this.customBlockList = this.customBlockList.filter((block) => !(block.id === Number.parseInt(id)));
             if (this.customBlockList.length < initialLength) this.message('Removed block(s).');
         });
 

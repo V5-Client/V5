@@ -75,7 +75,7 @@ class Music extends ModuleBase {
     parseTimeToSeconds(timeStr) {
         if (!timeStr || !timeStr.includes(':')) return 0;
         const parts = timeStr.split(':');
-        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        return Number.parseInt(parts[0], 10) * 60 + Number.parseInt(parts[1], 10);
     }
 
     formatSecondsToTime(seconds) {

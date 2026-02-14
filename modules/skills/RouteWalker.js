@@ -53,9 +53,9 @@ class RouteWalkerer extends ModuleBase {
             if (!arg1 && action?.toUpperCase() !== 'CLEAR') return this.message('movement type required! e.g /v5 routes routewalker add WALK/ETHERWARP');
 
             if (indexArg !== undefined) {
-                let parsedNum = parseInt(indexArg);
+                let parsedNum = Number.parseInt(indexArg);
 
-                if (!isNaN(parsedNum) && parsedNum >= 1) indexNum = parsedNum;
+                if (!Number.isNaN(parsedNum) && parsedNum >= 1) indexNum = parsedNum;
             }
 
             this.route = Router.Edit(

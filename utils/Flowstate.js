@@ -10,6 +10,7 @@ class FlowstateUtilsClass {
         let blockx = 0;
         let blocky = 0;
         let blockz = 0;
+        let currentBlock = null;
 
         register('playerInteract', (action, object) => {
             if (action.toString() === 'AttackBlock') {

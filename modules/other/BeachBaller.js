@@ -100,7 +100,7 @@ class Beachballer extends ModuleBase {
             const match = clean.match(/Bounces: (\d{1,3})/);
 
             if (match) {
-                this.bounceCount = parseInt(match[1]);
+                this.bounceCount = Number.parseInt(match[1]);
                 this.bounceTimer = Date.now();
             }
 

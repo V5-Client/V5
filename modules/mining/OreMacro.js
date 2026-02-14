@@ -80,7 +80,7 @@ class OreMacro extends ModuleBase {
         register('command', (action, arg1, indexArg) => {
             if (!action) return Chat.message('§cAction required: "add", "remove", "clear"');
 
-            if (arg1 !== undefined && !isNaN(arg1) && indexArg === undefined) {
+            if (arg1 !== undefined && !Number.isNaN(arg1) && indexArg === undefined) {
                 [indexArg, arg1] = [arg1, undefined];
             }
 
@@ -88,7 +88,7 @@ class OreMacro extends ModuleBase {
             const movementType = arg1 ? arg1.toUpperCase() : undefined;
 
             const isMineable = movementType === 'MINEABLE';
-            const indexNum = indexArg && !isNaN(indexArg) ? parseInt(indexArg) : undefined;
+            const indexNum = indexArg && !Number.isNaN(indexArg) ? Number.parseInt(indexArg) : undefined;
 
             this.route = Router.Edit(actionUpper, this.route, `OreRoutes/${this.loadedFile}`, indexNum, !!arg1, ['WALK', 'MINEABLE'], arg1, isMineable);
         }).setName('ore');
@@ -600,7 +600,7 @@ class OreMacro extends ModuleBase {
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)) * (180 / Math.PI);
 
-        const packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, parseFloat(yaw), parseFloat(pitch));
+        const packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch));
         Client.sendPacket(packet);
     }
 

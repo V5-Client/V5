@@ -242,7 +242,7 @@ class FarmingMacro extends ModuleBase {
 
         let match = lore.match(/Current Speed Cap:\s*(\d+)/i);
 
-        if (match) return parseInt(match[1]);
+        if (match) return Number.parseInt(match[1]);
 
         return null;
     }
