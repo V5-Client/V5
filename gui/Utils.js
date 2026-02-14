@@ -86,7 +86,7 @@ export const THEME = {
 };
 
 export const drawRect = ({ x, y, width, height, color }) => {
-    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    const c = Math.trunc(color instanceof Color ? color.getRGB() : color);
     NVG.drawRect(x, y, width, height, c);
 };
 
@@ -137,28 +137,28 @@ export const createHighlight = () => {
 };
 
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
-    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    const c = Math.trunc(color instanceof Color ? color.getRGB() : color);
     NVG.drawRoundedRect(x, y, width, height, radius, c);
 };
 
 export const drawRoundedRectangleWithBorder = (r) => {
     if (r.borderWidth && r.borderWidth > 0 && r.borderColor) {
         const bw = r.borderWidth;
-        const bc = (r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor) | 0;
+        const bc = Math.trunc(r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor);
         const outerRadius = r.radius + bw;
         NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
     }
-    const c = (r.color instanceof Color ? r.color.getRGB() : r.color) | 0;
+    const c = Math.trunc(r.color instanceof Color ? r.color.getRGB() : r.color);
     NVG.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
 };
 
 export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) => {
-    const shadowColor = new Color(0, 0, 0, intensity).getRGB() | 0;
+    const shadowColor = Math.trunc(new Color(0, 0, 0, intensity).getRGB());
     NVG.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
 };
 
 export const drawText = (text, x, y, size, color, align = 17) => {
-    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    const c = Math.trunc(color instanceof Color ? color.getRGB() : color);
     NVG.text(text, x, y, size, c, NVG.getDefaultFont(), align);
 };
 

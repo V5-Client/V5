@@ -35,7 +35,7 @@ export class ColorPicker {
 
         let safeDefault = defaultColor;
         if (typeof safeDefault === 'number') {
-            safeDefault = safeDefault | 0;
+            safeDefault = Math.trunc(safeDefault);
         }
 
         this.color = safeDefault instanceof Color ? safeDefault : new Color(safeDefault);
@@ -268,12 +268,12 @@ export class ColorPicker {
                 const svY = contentY + this.panelPaddingY;
                 const svX = this.x + pickerPadding;
 
-                const hueColorInt = java.awt.Color.HSBtoRGB(this.hue, 1, 1) | 0;
-                const whiteColorInt = new Color(1, 1, 1, 1).getRGB() | 0;
+                const hueColorInt = Math.trunc(java.awt.Color.HSBtoRGB(this.hue, 1, 1));
+                const whiteColorInt = Math.trunc(new Color(1, 1, 1, 1).getRGB());
                 NVG.drawGradientRect(svX, svY, innerWidth, svHeight, whiteColorInt, hueColorInt, Gradient.LeftToRight, 6);
 
-                const transparentInt = new Color(0, 0, 0, 0).getRGB() | 0;
-                const blackInt = new Color(0, 0, 0, 1).getRGB() | 0;
+                const transparentInt = Math.trunc(new Color(0, 0, 0, 0).getRGB());
+                const blackInt = Math.trunc(new Color(0, 0, 0, 1).getRGB());
                 NVG.drawGradientRect(svX, svY, innerWidth, svHeight, transparentInt, blackInt, Gradient.TopToBottom, 6);
 
                 NVG.drawHollowRect(svX - 1, svY - 1, innerWidth + 2, svHeight + 2, 1, THEME.BORDER.getRGB(), 7);
@@ -296,8 +296,8 @@ export class ColorPicker {
 
                 this.drawCheckerboard(svX, alphaY, innerWidth, barHeight, 5, 4);
 
-                const cTransInt = new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 0).getRGB() | 0;
-                const cSolidInt = new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 1).getRGB() | 0;
+                const cTransInt = Math.trunc(new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 0).getRGB());
+                const cSolidInt = Math.trunc(new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 1).getRGB());
                 NVG.drawGradientRect(svX, alphaY, innerWidth, barHeight, cTransInt, cSolidInt, Gradient.LeftToRight, 5);
 
                 NVG.drawHollowRect(svX - 1, alphaY - 1, innerWidth + 2, barHeight + 2, 1, THEME.BORDER.getRGB(), 5);

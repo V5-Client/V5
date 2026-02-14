@@ -121,9 +121,9 @@ class HUD extends ModuleBase {
     }
 
     drawMoveUI(x, y, width, height, scale) {
-        const borderColor = 0x80ffffff | 0;
-        const cornerColor = 0xccffffff | 0;
-        const handleColor = 0xcc5099ff | 0;
+        const borderColor = Math.trunc(0x80ffffff);
+        const cornerColor = Math.trunc(0xccffffff);
+        const handleColor = Math.trunc(0xcc5099ff);
 
         const minLinePx = 1;
         const handleSize = this.getHandleSizePx(scale);
