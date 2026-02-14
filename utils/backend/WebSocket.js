@@ -54,7 +54,7 @@ function sendChatMessage(content) {
 function connectWebSocket() {
     const token = SecureLoader.INSTANCE.getJwtToken();
 
-    if (!token) return Chat.messageIrc('&cSecureLoader has not authenticated. Chat is unavailable.');    
+    if (!token) return Chat.messageIrc('&cSecureLoader has not authenticated. Chat is unavailable.');
     returnDiscord(token);
     const wsUrl = `${Links.WEBSOCKET_URL}?token=${token}`;
     ws = new WebSocket(wsUrl);
