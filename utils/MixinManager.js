@@ -70,8 +70,15 @@ class MixinEngine {
     _processConfig(config) {
         const { at, slice, ...others } = config;
         const result = { ...others };
-        if (at) result.at = at instanceof internalAt ? at : new internalAt(at);
-        if (slice) result.slice = slice instanceof Slice ? slice : new Slice(slice);
+
+        if (at) {
+            result.at = at.atObj || at instanceof internalAt ? at : new internalAt(at);
+        }
+
+        if (slice) {
+            result.slice = slice.sliceObj || slice instanceof Slice ? slice : new Slice(slice);
+        }
+
         return result;
     }
 
@@ -108,14 +115,14 @@ class MixinEngine {
     // Replaces a constant value (like a string or number) with a different one
     modifyConstant(config) {
         const { constant, ...others } = config;
-        const constObj = constant instanceof Constant ? constant : new Constant(constant);
+        const constObj = constant.constantObj || constant instanceof Constant ? constant : new Constant(constant);
         this.lastInjection = this.realMixin.modifyConstant({ ...this._processConfig(others), constant: constObj });
         return this;
     }
 
     // Intercepts and changes the value a method is about to return
     modifyReturnValue(config) {
-        this.lastInjection = this.lastInjection = this.realMixin.modifyReturnValue(this._processConfig(config));
+        this.lastInjection = this.realMixin.modifyReturnValue(this._processConfig(config));
         return this;
     }
 
