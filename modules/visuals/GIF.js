@@ -1,6 +1,6 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { File, NVG } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
+import { File, NVG } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 
 const GIF_SOURCE_DIR = new File('./config/ChatTriggers/modules/V5Config/Gifs');

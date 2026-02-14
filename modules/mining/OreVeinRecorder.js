@@ -4,10 +4,10 @@
 // Vibecoded slop, made for development purposes only.
 // Vibecoded slop, made for development purposes only.
 
-import { ModuleBase } from '../../utils/ModuleBase';
-import RenderUtils from '../../utils/render/RendererUtils';
 import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import RenderUtils from '../../utils/render/RendererUtils';
 import { Utils } from '../../utils/Utils';
 
 const ORE_TYPES = {

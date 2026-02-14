@@ -1,16 +1,16 @@
-import { GuiState } from './core/GuiState';
-import { Categories } from './categories/CategorySystem';
 import { categoryManager } from './categories/CategoryManager';
-import { showNotification as notify } from './NotificationManager';
+import { Categories } from './categories/CategorySystem';
 import './core/GuiEvents';
+import { GuiState } from './core/GuiState';
+import { showNotification as notify } from './NotificationManager';
 import './ThemeSettings';
 
 import {
-    saveSettings as _saveSettings,
-    loadSettings as _loadSettings,
-    getSetting as _getSetting,
-    updateSettingMap as _updateSettingMap,
     applySettings as _applySettings,
+    getSetting as _getSetting,
+    loadSettings as _loadSettings,
+    saveSettings as _saveSettings,
+    updateSettingMap as _updateSettingMap,
 } from './GuiSave';
 
 import { NVG } from '../utils/Constants';

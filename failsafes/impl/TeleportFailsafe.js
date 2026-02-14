@@ -1,10 +1,9 @@
 import { Chat } from '../../utils/Chat';
-import { Failsafe } from '../Failsafe';
-import { manager } from '../../utils/SkyblockEvents';
-import FailsafeUtils from '../FailsafeUtils';
-import { Webhook } from '../../utils/Webhooks';
-import { PlayerPositionLookS2C, PlayerInteractItemC2S } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
+import { PlayerInteractItemC2S, PlayerPositionLookS2C } from '../../utils/Packets';
+import { Webhook } from '../../utils/Webhooks';
+import { Failsafe } from '../Failsafe';
+import FailsafeUtils from '../FailsafeUtils';
 
 let lastRightClickTime = 0;
 

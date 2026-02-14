@@ -1,4 +1,3 @@
-import { Vec3d } from './Constants';
 import { Utils } from './Utils';
 
 const RAD_TO_DEG = 180 / Math.PI;

@@ -1,6 +1,6 @@
+import { Color } from '../utils/Constants';
 import { Categories } from './categories/CategorySystem';
 import { THEME } from './Utils';
-import { Color } from '../utils/Constants';
 
 const withAlpha = (color, alpha) => {
     const baseAlpha = color.getAlpha() / 255;

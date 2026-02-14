@@ -1,19 +1,19 @@
+import { DataFlavor, Toolkit } from '../../utils/Constants';
 import {
-    drawRoundedRectangleWithBorder,
-    drawRoundedRectangle,
     colorWithAlpha,
-    PADDING,
+    drawImage,
+    drawRect,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
     drawText,
     FontSizes,
-    THEME,
-    drawImage,
     getTextWidth,
-    drawRect,
     isInside,
-    TypingState,
+    PADDING,
     playClickSound,
+    THEME,
+    TypingState,
 } from '../Utils';
-import { Toolkit, DataFlavor } from '../../utils/Constants';
 
 const ASSETS_PATHS = ['config/ChatTriggers/modules/V5/assets/', 'config/ChatTriggers/assets/V5/assets/'];
 

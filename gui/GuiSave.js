@@ -1,14 +1,14 @@
-import { ToggleButton } from './components/Toggle';
-import { Slider } from './components/Slider';
-import { MultiToggle } from './components/Dropdown';
-import { ColorPicker } from './components/ColorPicker';
-import { TextInput } from './components/TextInput';
-import { Button } from './components/Button';
-import { Popup } from './components/Popup';
 import { Chat } from '../utils/Chat';
+import { Color } from '../utils/Constants';
 import { Utils } from '../utils/Utils';
 import { Categories } from './categories/CategorySystem';
-import { Color } from '../utils/Constants';
+import { Button } from './components/Button';
+import { ColorPicker } from './components/ColorPicker';
+import { MultiToggle } from './components/Dropdown';
+import { Popup } from './components/Popup';
+import { Slider } from './components/Slider';
+import { TextInput } from './components/TextInput';
+import { ToggleButton } from './components/Toggle';
 
 export const SettingsMap = new Map();
 

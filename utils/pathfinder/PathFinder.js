@@ -1,20 +1,20 @@
-import { Chat } from '../Chat';
-import { Swift } from './SwiftIntegration';
-import { Vec3d, BP } from '../Constants';
-import Render from '../render/Render';
-import { Spline } from './PathSpline';
-import { v5Command } from '../V5Commands';
 import { showNotification } from '../../gui/NotificationManager';
-import { Rotations } from './PathWalker/PathRotations';
+import { Chat } from '../Chat';
+import { BP, Vec3d } from '../Constants';
+import Render from '../render/Render';
+import { ScheduleTask } from '../ScheduleTask';
+import { Executor } from '../ThreadExecutor';
+import { v5Command } from '../V5Commands';
+import PathConfig from './PathConfig';
+import { PathExecutor } from './PathExecutor';
+import { FlyMovement } from './PathFlyer/PathMovement';
+import { FlyRotations } from './PathFlyer/PathRotations';
+import { Spline } from './PathSpline';
 import { Jump } from './PathWalker/PathJumps';
 import { Movement } from './PathWalker/PathMovement';
 import { Recovery } from './PathWalker/PathRecovery';
-import { Executor } from '../ThreadExecutor';
-import PathConfig from './PathConfig';
-import { PathExecutor } from './PathExecutor';
-import { ScheduleTask } from '../ScheduleTask';
-import { FlyRotations } from './PathFlyer/PathRotations';
-import { FlyMovement } from './PathFlyer/PathMovement';
+import { Rotations } from './PathWalker/PathRotations';
+import { Swift } from './SwiftIntegration';
 
 class Finder {
     constructor() {

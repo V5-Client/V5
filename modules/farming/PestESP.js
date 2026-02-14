@@ -1,7 +1,7 @@
+import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import Render from '../../utils/render/Render';
-import { Vec3d } from '../../utils/Constants';
 
 class PestESP extends ModuleBase {
     constructor() {

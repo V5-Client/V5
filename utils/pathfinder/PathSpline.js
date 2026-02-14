@@ -1,5 +1,5 @@
-import Render from '../render/Render';
 import { BP, Vec3d } from '../Constants';
+import Render from '../render/Render';
 
 class PathSpline {
     constructor() {

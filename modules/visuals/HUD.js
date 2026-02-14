@@ -1,8 +1,8 @@
-import { ModuleBase } from '../../utils/ModuleBase';
+import { BORDER_WIDTH, CORNER_RADIUS, FontSizes, THEME, colorWithAlpha, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../../gui/Utils';
 import { NVG } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import { ServerInfo } from '../../utils/player/ServerInfo';
-import { BORDER_WIDTH, CORNER_RADIUS, FontSizes, THEME, colorWithAlpha, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../../gui/Utils';
 
 class HUD extends ModuleBase {
     constructor() {

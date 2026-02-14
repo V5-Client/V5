@@ -1,21 +1,19 @@
-import Render from '../../utils/render/Render';
-import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
-import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { MathUtils } from '../../utils/Math';
-import { Raytrace } from '../../utils/Raytrace';
-import { Rotations } from '../../utils/player/Rotations';
-import { Router } from '../../utils/Router';
-import { MiningBot } from './MiningBot';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { PlayerInteractItemC2S } from '../../utils/Packets';
+import { Raytrace } from '../../utils/Raytrace';
 import RouteState from '../../utils/RouteState';
-import { PlayerInteractBlockC2S, PlayerInteractItemC2S } from '../../utils/Packets';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { Router } from '../../utils/Router';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
+import { Utils } from '../../utils/Utils';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
+import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
+import Render from '../../utils/render/Render';
+import { MiningBot } from './MiningBot';
 
 class GemstoneMacro extends ModuleBase {
     constructor() {

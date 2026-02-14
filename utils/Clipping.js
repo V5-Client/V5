@@ -1,7 +1,6 @@
-import { ModuleBase } from './ModuleBase';
 import { Chat } from './Chat';
-import { Utils } from './Utils';
-import { File, ProcessBuilder, isWindows, isMac, isLinux } from './Constants';
+import { File, ProcessBuilder, isLinux, isMac, isWindows } from './Constants';
+import { ModuleBase } from './ModuleBase';
 import { Executor } from './ThreadExecutor';
 import { v5Command } from './V5Commands';
 

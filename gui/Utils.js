@@ -1,6 +1,6 @@
-import { Utils } from '../utils/Utils';
-import { Links, File, Color, NVG, SoundCategory, Identifier, SoundEvent } from '../utils/Constants';
 import { Chat } from '../utils/Chat';
+import { Color, File, Identifier, Links, NVG, SoundCategory, SoundEvent } from '../utils/Constants';
+import { Utils } from '../utils/Utils';
 
 export const colorWithAlpha = (baseColor, alpha) => {
     let r, g, b, a;

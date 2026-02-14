@@ -1,7 +1,7 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { ChunkDataS2C, BlockUpdateS2C } from '../../utils/Packets';
-import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';
+import Render from '../../utils/render/Render';
 import { manager } from '../../utils/SkyblockEvents';
 
 const Long2ObjectOpenHashMap = Java.type('it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap');

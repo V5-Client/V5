@@ -1,6 +1,6 @@
-import { Keybind } from '../../utils/player/Keybinding';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { ArmorStandEntity } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Keybind } from '../../utils/player/Keybinding';
 
 class HuntingHelper extends ModuleBase {
     constructor() {

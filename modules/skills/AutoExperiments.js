@@ -1,6 +1,6 @@
+import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Chat } from '../../utils/Chat';
 import { Keybind } from '../../utils/player/Keybinding';
 
 /**

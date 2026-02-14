@@ -1,10 +1,9 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { Webhook } from '../../utils/Webhooks';
-import { OverlayManager } from '../../gui/OverlayUtils';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { TimeUtils } from '../../utils/TimeUtils';
+import { Webhook } from '../../utils/Webhooks';
 
 class DiscordIntegration extends ModuleBase {
     constructor() {

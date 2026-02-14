@@ -1,8 +1,8 @@
+import { Chat } from '../../utils/Chat';
+import { MacroState } from '../../utils/MacroState';
+import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
-import { Chat } from '../../utils/Chat';
-import { Webhook } from '../../utils/Webhooks';
-import { MacroState } from '../../utils/MacroState';
 
 class PlayerGriefFailsafe extends Failsafe {
     constructor() {

@@ -1,18 +1,18 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { ProcessBuilder, Scanner, InputStreamReader, Runtime, isWindows, NVG } from '../../utils/Constants';
-import { Utils } from '../../utils/Utils';
 import requestV2 from 'requestV2';
 import {
-    drawImageFromURL,
-    THEME,
+    BORDER_WIDTH,
     colorWithAlpha,
+    CORNER_RADIUS,
+    drawImageFromURL,
     drawRoundedRectangleWithBorder,
     drawText,
     FontSizes,
     getTextWidth,
-    CORNER_RADIUS,
-    BORDER_WIDTH,
+    THEME,
 } from '../../gui/Utils';
+import { InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Utils } from '../../utils/Utils';
 
 class Music extends ModuleBase {
     constructor() {

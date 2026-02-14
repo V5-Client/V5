@@ -1,6 +1,6 @@
 import { Chat } from './Chat';
-import { v5Command } from './V5Commands';
 import { MiningUtils } from './MiningUtils';
+import { v5Command } from './V5Commands';
 
 v5Command('blockinfo', () => {
     let block = Player.lookingAt();

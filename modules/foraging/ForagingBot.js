@@ -1,12 +1,12 @@
 import { Chat } from '../../utils/Chat';
-import { ModuleBase } from '../../utils/ModuleBase';
-import Render from '../../utils/render/Render';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
-import { Raytrace } from '../../utils/Raytrace';
+import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Rotations } from '../../utils/player/Rotations';
 import { Keybind } from '../../utils/player/Keybinding';
+import { Rotations } from '../../utils/player/Rotations';
+import { Raytrace } from '../../utils/Raytrace';
+import Render from '../../utils/render/Render';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const MAX_SCAN = 500;

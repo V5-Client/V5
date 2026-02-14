@@ -1,10 +1,10 @@
-import { MathUtils } from '../../Math';
-import { PathRotationsUtility } from './PathRotationsUtility';
-import { Spline } from '../PathSpline';
 import { BP, Vec3d } from '../../Constants';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
+import { MathUtils } from '../../Math';
 import { PathExecutor } from '../PathExecutor';
+import { Spline } from '../PathSpline';
+import { PathRotationsUtility } from './PathRotationsUtility';
 
 class PathRotations {
     constructor() {

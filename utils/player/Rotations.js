@@ -1,5 +1,5 @@
-import { Utils } from '../Utils';
 import { ModuleBase } from '../ModuleBase';
+import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
 
 class RotationConfig extends ModuleBase {

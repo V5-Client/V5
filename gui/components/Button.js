@@ -1,16 +1,16 @@
 import {
-    playClickSound,
+    FontSizes,
+    PADDING,
+    THEME,
+    clamp,
+    colorWithAlpha,
+    createHighlight,
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
-    THEME,
-    isInside,
-    PADDING,
     drawText,
     getTextWidth,
-    FontSizes,
-    createHighlight,
-    colorWithAlpha,
-    clamp,
+    isInside,
+    playClickSound,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 

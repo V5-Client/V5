@@ -1,6 +1,6 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { ClickSlotC2S, OpenScreenS2C, CommonPingS2C } from '../../utils/Packets';
 import { TypingState } from '../../gui/Utils';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { ClickSlotC2S, CommonPingS2C, OpenScreenS2C } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class InventoryWalk extends ModuleBase {

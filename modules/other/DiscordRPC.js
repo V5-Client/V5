@@ -1,6 +1,6 @@
 import { DiscordRPC } from '../../utils/Constants';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { MacroState } from '../../utils/MacroState';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 
 class RPC extends ModuleBase {

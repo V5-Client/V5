@@ -1,19 +1,18 @@
-import Render from '../../utils/render/Render';
 import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
+import { MathUtils } from '../../utils/Math';
+import { MiningUtils } from '../../utils/MiningUtils';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { PlayerInteractItemC2S } from '../../utils/Packets';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import { MathUtils } from '../../utils/Math';
-import { Raytrace } from '../../utils/Raytrace';
 import { Rotations } from '../../utils/player/Rotations';
+import { Raytrace } from '../../utils/Raytrace';
+import Render from '../../utils/render/Render';
 import { Router } from '../../utils/Router';
-import { MiningBot } from './MiningBot';
-import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
 import RouteState from '../../utils/RouteState';
-import { PlayerInteractBlockC2S, PlayerInteractItemC2S } from '../../utils/Packets';
-import { MiningUtils } from '../../utils/MiningUtils';
 import { ScheduleTask } from '../../utils/ScheduleTask';
+import { MiningBot } from './MiningBot';
 
 // todo make walk points work
 // rework the command when icba to fix it

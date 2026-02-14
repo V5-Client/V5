@@ -1,9 +1,9 @@
-import { OverlayManager } from '../OverlayUtils';
-import { isInside, playClickSound, easeInOutQuad, PADDING, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING, getTextWidth, FontSizes } from '../Utils';
-import { Categories } from './CategorySystem';
-import { GuiRectangles } from '../core/GuiState';
-import { SearchBar } from './CategorySearchBar';
 import { Popup } from '../components/Popup';
+import { GuiRectangles } from '../core/GuiState';
+import { OverlayManager } from '../OverlayUtils';
+import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
+import { SearchBar } from './CategorySearchBar';
+import { Categories } from './CategorySystem';
 
 const ANIMATION_DURATION = 300;
 const ICON_SIZE = 28;

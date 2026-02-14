@@ -1,8 +1,8 @@
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MiningBot } from './MiningBot';
-import { Veins } from './GlaciteData';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { Veins } from './GlaciteData';
+import { MiningBot } from './MiningBot';
 
 // TODO:
 // Optimise shitcode

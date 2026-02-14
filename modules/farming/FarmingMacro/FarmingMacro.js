@@ -1,16 +1,13 @@
 import { Chat } from '../../../utils/Chat';
-import { MathUtils } from '../../../utils/Math';
+import { Vec3d } from '../../../utils/Constants';
+import { Mixin } from '../../../utils/MixinManager';
 import { ModuleBase } from '../../../utils/ModuleBase';
+import { Keybind } from '../../../utils/player/Keybinding';
 import { Rotations } from '../../../utils/player/Rotations';
+import Render from '../../../utils/render/Render';
 import { Mouse } from '../../../utils/Ungrab';
 import { Utils } from '../../../utils/Utils';
-import { Guis } from '../../../utils/player/Inventory';
-import { Keybind } from '../../../utils/player/Keybinding';
-import { Router } from '../../../utils/Router';
-import Render from '../../../utils/render/Render';
-import { Vec3d } from '../../../utils/Constants';
 import { v5Command } from '../../../utils/V5Commands';
-import { Mixin } from '../../../utils/MixinManager';
 
 const FARMING_DATA = [
     {
@@ -33,9 +30,9 @@ const FARMING_DATA = [
     },
 ];
 
-import VerticalCrop from './farms/VerticalFarm';
-import MelonKingDeMP from './farms/MelonKingDeMP';
 import CaneSunflowerRose from './farms/CaneSunflowerRose';
+import MelonKingDeMP from './farms/MelonKingDeMP';
+import VerticalCrop from './farms/VerticalFarm';
 
 class FarmingMacro extends ModuleBase {
     constructor() {

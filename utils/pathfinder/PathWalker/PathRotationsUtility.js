@@ -1,6 +1,6 @@
-import { Utils } from '../../Utils';
-import { MathUtils } from '../../Math';
 import { Vec3d } from '../../Constants';
+import { MathUtils } from '../../Math';
+import { Utils } from '../../Utils';
 
 class PathRotsUtil {
     constructor() {

@@ -1,9 +1,9 @@
-import { Vec3d, BP, SnowBlock } from '../../Constants';
-import { Keybind } from '../../player/Keybinding';
 import { Chat } from '../../Chat';
+import { BP, SnowBlock, Vec3d } from '../../Constants';
+import { Keybind } from '../../player/Keybinding';
 import PathConfig from '../PathConfig';
-import { Movement } from './PathMovement';
 import { PathExecutor } from '../PathExecutor';
+import { Movement } from './PathMovement';
 
 class PathJumps {
     constructor() {

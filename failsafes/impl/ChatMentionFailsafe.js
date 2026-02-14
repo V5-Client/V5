@@ -1,9 +1,8 @@
 import { Chat } from '../../utils/Chat';
+import { MacroState } from '../../utils/MacroState';
+import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
-import { Webhook } from '../../utils/Webhooks';
-import { manager } from '../../utils/SkyblockEvents';
-import { MacroState } from '../../utils/MacroState';
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {

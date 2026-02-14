@@ -1,7 +1,7 @@
-import Render from '../../utils/render/Render';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { Raytrace } from '../../utils/Raytrace';
+import Render from '../../utils/render/Render';
 
 class BlockVisual extends ModuleBase {
     constructor() {

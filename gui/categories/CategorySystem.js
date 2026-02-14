@@ -1,11 +1,11 @@
-import { ToggleButton } from '../components/Toggle';
-import { Slider } from '../components/Slider';
-import { MultiToggle } from '../components/Dropdown';
-import { ColorPicker } from '../components/ColorPicker';
-import { Separator } from '../components/Separator';
-import { TextInput } from '../components/TextInput';
 import { Button } from '../components/Button';
+import { ColorPicker } from '../components/ColorPicker';
+import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
+import { Separator } from '../components/Separator';
+import { Slider } from '../components/Slider';
+import { TextInput } from '../components/TextInput';
+import { ToggleButton } from '../components/Toggle';
 
 export const Categories = {
     categories: [

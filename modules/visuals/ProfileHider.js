@@ -1,6 +1,6 @@
+import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import { Mixin } from '../../utils/MixinManager';
 
 class ProfileHider extends ModuleBase {
     constructor() {

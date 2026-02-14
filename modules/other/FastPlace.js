@@ -1,5 +1,5 @@
-import { ModuleBase } from '../../utils/ModuleBase';
 import { MinecraftClient } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 // this will flag like most anticheats
 class FastPlace extends ModuleBase {

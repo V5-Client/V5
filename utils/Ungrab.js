@@ -1,5 +1,5 @@
+import { GLFW, System } from './Constants';
 import { Mixin } from './MixinManager';
-import { System, GLFW } from './Constants';
 
 const os = System.getProperty('os.name').toLowerCase();
 const isLinux = os.includes('nux') || os.includes('nix');

@@ -1,10 +1,9 @@
 import { Chat } from '../../utils/Chat';
-import { Failsafe } from '../Failsafe';
-import { Webhook } from '../../utils/Webhooks';
-import FailsafeUtils from '../FailsafeUtils';
-import { manager } from '../../utils/SkyblockEvents';
-import { EntityVelocityUpdateS2C } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
+import { EntityVelocityUpdateS2C } from '../../utils/Packets';
+import { Webhook } from '../../utils/Webhooks';
+import { Failsafe } from '../Failsafe';
+import FailsafeUtils from '../FailsafeUtils';
 class VelocityFailsafe extends Failsafe {
     constructor() {
         super();

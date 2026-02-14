@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { Vec3d, URL, BufferedInputStream, FileOutputStream, BP, isWindows, isMac, isLinux } from './Constants';
+import { BP, BufferedInputStream, FileOutputStream, isLinux, isMac, isWindows, URL, Vec3d } from './Constants';
 
 export const mc = Client.getMinecraft();
 

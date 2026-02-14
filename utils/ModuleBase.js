@@ -1,12 +1,12 @@
-import { Utils } from './Utils';
-import { KeyBindUtils } from './Constants';
-import { OverlayManager } from '../gui/OverlayUtils';
 import { notificationManager } from '../gui/NotificationManager';
+import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
-import { MacroState } from './MacroState';
 import { Chat } from './Chat';
-import { manager } from './SkyblockEvents';
+import { KeyBindUtils } from './Constants';
+import { MacroState } from './MacroState';
 import { Mixin } from './MixinManager';
+import { manager } from './SkyblockEvents';
+import { Utils } from './Utils';
 
 export class ModuleBase {
     static conditions = [];

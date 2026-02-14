@@ -1,6 +1,6 @@
+import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
-import { Chat } from '../../utils/Chat';
 import { Utils } from '../../utils/Utils';
 
 const MAX_ATTACH_DIST_SQ = 9;

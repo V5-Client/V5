@@ -1,12 +1,12 @@
 import { Chat } from './Chat';
-import { Utils } from './Utils';
-import { Guis } from './player/Inventory';
-import { Keybind } from './player/Keybinding';
+import { Blocks, BP } from './Constants';
 import { Flowstate } from './Flowstate';
 import { Executor } from './ThreadExecutor';
-import { Blocks, BP } from './Constants';
+import { Utils } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
+import { Guis } from './player/Inventory';
+import { Keybind } from './player/Keybinding';
 import { Rotations } from './player/Rotations';
 
 const BLOCK_HARDNESS_DATA = {

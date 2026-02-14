@@ -1,8 +1,7 @@
-import RendererMain from '../../utils/render/RendererUtils';
 import { Chat } from '../../utils/Chat';
-import { Color, Vec3d } from '../../utils/Constants';
+import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Keybind } from '../../utils/player/Keybinding';
+import RendererMain from '../../utils/render/RendererUtils';
 
 class SeaLumie extends ModuleBase {
     constructor() {

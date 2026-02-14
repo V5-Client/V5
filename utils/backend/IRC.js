@@ -1,11 +1,10 @@
 import WebSocket from 'WebSocket';
-import { Links, StandardCharsets, Base64 } from '../Constants';
-import { ChatMessageC2S } from '../Packets';
-import { Chat } from '../Chat';
-import { Utils } from '../Utils';
-import { v5Command } from '../V5Commands';
 import { returnDiscord } from '../../gui/Utils';
+import { Chat } from '../Chat';
+import { Links } from '../Constants';
+import { ChatMessageC2S } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
+import { v5Command } from '../V5Commands';
 
 let SecureLoader = null;
 

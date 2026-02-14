@@ -1,5 +1,5 @@
-import { Toolkit, System, MessageType, SystemTray, TrayIcon } from './Constants';
 import { Chat } from './Chat';
+import { MessageType, System, SystemTray, Toolkit, TrayIcon } from './Constants';
 
 class AlertManager {
     constructor() {

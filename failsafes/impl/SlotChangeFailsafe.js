@@ -1,10 +1,9 @@
 import { Chat } from '../../utils/Chat';
+import { MacroState } from '../../utils/MacroState';
+import { UpdateSelectedSlotS2C } from '../../utils/Packets';
+import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
-import { Webhook } from '../../utils/Webhooks';
-import { manager } from '../../utils/SkyblockEvents';
-import { UpdateSelectedSlotS2C } from '../../utils/Packets';
-import { MacroState } from '../../utils/MacroState';
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
         super();

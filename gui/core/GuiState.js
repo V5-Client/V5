@@ -1,4 +1,4 @@
-import { PADDING, BORDER_WIDTH, CORNER_RADIUS, THEME } from '../Utils';
+import { BORDER_WIDTH, CORNER_RADIUS, PADDING, THEME } from '../Utils';
 
 export const ANIMATION_DURATION = 400;
 

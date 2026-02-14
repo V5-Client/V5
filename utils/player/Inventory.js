@@ -1,8 +1,8 @@
-import { Keybind } from './Keybinding';
-import { Rotations } from './Rotations';
 import { Chat } from '../Chat';
 import { CloseHandledScreenC2S } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
+import { Keybind } from './Keybinding';
+import { Rotations } from './Rotations';
 
 class ItemSearcher {
     constructor() {}

@@ -1,5 +1,5 @@
-import { THEME, colorWithAlpha, drawRoundedRectangle, drawText, FontSizes } from './Utils';
 import { NVG } from '../utils/Constants';
+import { colorWithAlpha, drawRoundedRectangle, drawText, FontSizes, THEME } from './Utils';
 
 // Configuration
 const NOTIFICATION_WIDTH = 250;

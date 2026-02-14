@@ -1,18 +1,17 @@
-import { Keybind } from '../../utils/player/Keybinding';
-import { MiningUtils } from '../../utils/MiningUtils';
-import { Raytrace } from '../../utils/Raytrace';
-import { Rotations } from '../../utils/player/Rotations';
-import { Utils } from '../../utils/Utils';
+import { MCHand, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
-import { Chat } from '../../utils/Chat';
-import { manager } from '../../utils/SkyblockEvents';
-import { Guis } from '../../utils/player/Inventory';
-import { NukerUtils } from '../../utils/NukerUtils';
-import Render from '../../utils/render/Render';
+import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Vec3d, MCHand } from '../../utils/Constants';
+import { NukerUtils } from '../../utils/NukerUtils';
 import { PlayerActionC2S } from '../../utils/Packets';
+import { Raytrace } from '../../utils/Raytrace';
+import { manager } from '../../utils/SkyblockEvents';
+import { Utils } from '../../utils/Utils';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
+import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
+import Render from '../../utils/render/Render';
 
 class Bot extends ModuleBase {
     constructor() {

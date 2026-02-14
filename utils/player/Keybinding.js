@@ -1,9 +1,9 @@
 import { Chat } from '../Chat';
-import { Utils, mc } from '../Utils';
-import { Vec3d, Direction, BlockHitResult, MCHand, BP } from '../Constants';
-import { PlayerInteractBlockC2S } from '../Packets';
+import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../Constants';
 import { Mixin } from '../MixinManager';
+import { PlayerInteractBlockC2S } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
+import { Utils, mc } from '../Utils';
 
 const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1536');
 const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');

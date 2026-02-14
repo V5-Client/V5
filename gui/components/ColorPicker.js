@@ -1,20 +1,19 @@
-import {
-    playClickSound,
-    drawRoundedRectangleWithBorder,
-    drawRoundedRectangle,
-    drawText,
-    FontSizes,
-    PADDING,
-    THEME,
-    isInside,
-    clamp,
-    easeOutCubic,
-    easeInOutQuad,
-    getTextWidth,
-    createHighlight,
-} from '../Utils';
 import { Color, NVG } from '../../utils/Constants';
 import { setTooltip } from '../core/GuiTooltip';
+import {
+    clamp,
+    createHighlight,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
+    drawText,
+    easeInOutQuad,
+    FontSizes,
+    getTextWidth,
+    isInside,
+    PADDING,
+    playClickSound,
+    THEME,
+} from '../Utils';
 
 let Gradient;
 try {

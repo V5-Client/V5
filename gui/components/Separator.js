@@ -1,4 +1,4 @@
-import { PADDING, THEME, drawRoundedRectangle, drawText, getTextWidth, FontSizes } from '../Utils';
+import { FontSizes, PADDING, THEME, drawRoundedRectangle, drawText, getTextWidth } from '../Utils';
 
 export class Separator {
     constructor(title, fullWidth = false) {

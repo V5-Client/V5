@@ -1,11 +1,10 @@
 import FarmHandler from '../FarmHandler';
 
-import { MathUtils } from '../../../../utils/Math';
-import { Rotations } from '../../../../utils/player/Rotations';
+import { Chat } from '../../../../utils/Chat';
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
+import { Rotations } from '../../../../utils/player/Rotations';
 import { Utils } from '../../../../utils/Utils';
-import { Chat } from '../../../../utils/Chat';
 
 export default class MelonKingDeMP extends FarmHandler {
     constructor(parent) {

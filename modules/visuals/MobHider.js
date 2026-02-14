@@ -1,5 +1,5 @@
-import { ModuleBase } from '../../utils/ModuleBase';
 import { Class709 } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class MobHider extends ModuleBase {
     constructor() {

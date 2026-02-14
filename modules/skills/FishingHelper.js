@@ -1,9 +1,9 @@
-import { Keybind } from '../../utils/player/Keybinding';
-import { Guis } from '../../utils/player/Inventory';
-import { ModuleBase } from '../../utils/ModuleBase';
-import { ArmorStandEntity } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
+import { ArmorStandEntity } from '../../utils/Constants';
 import { MacroState } from '../../utils/MacroState';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
 
 class FishingMacro extends ModuleBase {
     constructor() {

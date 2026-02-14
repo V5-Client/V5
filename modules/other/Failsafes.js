@@ -1,9 +1,9 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { getSetting } from '../../gui/GuiSave';
-import { File } from '../../utils/Constants';
-import { Chat } from '../../utils/Chat';
-import { DisconnectS2C } from '../../utils/Packets';
 import { AlertUtils } from '../../failsafes/AlertUtils';
+import { getSetting } from '../../gui/GuiSave';
+import { Chat } from '../../utils/Chat';
+import { File } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { DisconnectS2C } from '../../utils/Packets';
 
 class Failsafes extends ModuleBase {
     constructor() {

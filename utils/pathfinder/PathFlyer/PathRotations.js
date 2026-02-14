@@ -1,9 +1,9 @@
-import { MathUtils } from '../../Math';
-import { PathRotationsUtility } from '../PathWalker/PathRotationsUtility';
-import { PathExecutor } from '../PathExecutor';
 import { BP, Vec3d } from '../../Constants';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
+import { MathUtils } from '../../Math';
+import { PathExecutor } from '../PathExecutor';
+import { PathRotationsUtility } from '../PathWalker/PathRotationsUtility';
 
 class PathRotations {
     constructor() {

@@ -1,11 +1,11 @@
-import Render from '../../utils/render/Render';
 import { Chat } from '../../utils/Chat';
-import { Vec3d, ArmorStandEntity } from '../../utils/Constants';
-import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
+import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
+import Render from '../../utils/render/Render';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const SMALL_BEACHBALL_BASE64 =

@@ -1,6 +1,6 @@
-import Render from '../../utils/render/Render';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { Vec3d } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import Render from '../../utils/render/Render';
 
 class ESP extends ModuleBase {
     constructor() {

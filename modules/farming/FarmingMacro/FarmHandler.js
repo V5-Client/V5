@@ -1,5 +1,5 @@
-import { MathUtils } from '../../../utils/Math';
 import { BP } from '../../../utils/Constants';
+import { MathUtils } from '../../../utils/Math';
 
 export default class FarmHandler {
     constructor(parent) {

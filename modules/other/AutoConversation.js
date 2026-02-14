@@ -1,5 +1,4 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Chat } from '../../utils/Chat';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class AutoConversation extends ModuleBase {

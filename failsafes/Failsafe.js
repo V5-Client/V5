@@ -1,5 +1,4 @@
 import { Chat } from '../utils/Chat';
-import { Vec3d } from '../utils/Constants';
 import { manager } from '../utils/SkyblockEvents';
 export class Failsafe {
     constructor() {

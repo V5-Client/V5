@@ -1,12 +1,12 @@
-import { Keybind } from '../../utils/player/Keybinding';
-import { Guis } from '../../utils/player/Inventory';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { Rotations } from '../../utils/player/Rotations';
-import { ArmorStandEntity } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
-import { Mouse } from '../../utils/Ungrab';
+import { ArmorStandEntity } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
+import { Guis } from '../../utils/player/Inventory';
+import { Keybind } from '../../utils/player/Keybinding';
+import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
+import { Mouse } from '../../utils/Ungrab';
 
 class FishingMacro extends ModuleBase {
     constructor() {

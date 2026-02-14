@@ -1,14 +1,14 @@
 import {
-    playClickSound,
+    createHighlight,
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
-    THEME,
-    isInside,
-    easeOutCubic,
-    PADDING,
     drawText,
+    easeOutCubic,
     FontSizes,
-    createHighlight,
+    isInside,
+    PADDING,
+    playClickSound,
+    THEME,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 

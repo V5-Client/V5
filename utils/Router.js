@@ -1,6 +1,6 @@
-import { Utils } from './Utils';
 import { Chat } from './Chat';
 import { File } from './Constants';
+import { Utils } from './Utils';
 
 class Routes {
     constructor() {}

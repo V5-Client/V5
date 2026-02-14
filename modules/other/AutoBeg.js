@@ -1,5 +1,5 @@
-import { ModuleBase } from '../../utils/ModuleBase';
 import { Chat } from '../../utils/Chat';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class AutoBeg extends ModuleBase {
     constructor() {

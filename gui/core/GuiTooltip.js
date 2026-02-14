@@ -1,4 +1,4 @@
-import { THEME, drawRoundedRectangleWithBorder, drawText, getTextWidth, FontSizes } from '../Utils';
+import { FontSizes, THEME, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../Utils';
 
 export const GuiTooltip = {
     tooltipToDraw: null,

@@ -1,10 +1,10 @@
-import './MouseMixin';
-import './MinecraftClientMixin';
-import './HorizontalConnectingBlockMixin';
-import './PlayerListHudMixin';
-import './ChatHudMixin';
 import './BlockMixin';
-import './PlayerActionC2SPacketMixin';
+import './ChatHudMixin';
 import './EntityRendererMixin';
 import './GameRendererMixin';
+import './HorizontalConnectingBlockMixin';
+import './MinecraftClientMixin';
+import './MouseMixin';
+import './PlayerActionC2SPacketMixin';
+import './PlayerListHudMixin';
 //import './CameraMixin';

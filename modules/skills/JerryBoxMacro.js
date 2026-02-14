@@ -1,7 +1,7 @@
 import { Chat } from '../../utils/Chat';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { Mouse } from '../../utils/Ungrab';
 class JerryBoxMacro extends ModuleBase {
     constructor() {

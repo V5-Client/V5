@@ -1,9 +1,8 @@
-import { File, NVG, KeyBindUtils } from '../utils/Constants';
-import { drawRect, drawText, THEME } from '../gui/Utils.js';
-import { ModuleBase } from '../utils/ModuleBase.js';
+import { drawRect, drawText } from '../gui/Utils.js';
+import { Chat } from '../utils/Chat.js';
+import { File, KeyBindUtils, NVG } from '../utils/Constants';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
-import { Chat } from '../utils/Chat.js';
 
 let failsafeSound = 'Tave Check.wav';
 
@@ -59,8 +58,8 @@ class AlertUtilsClass {
         const fontSize = 20;
         const lineSpacing = 8;
         const yOffset = 100;
-        const redColor = 0xffff0000; // change this
-        const highlightColor = 0xffffffff; // this too
+        const redColor = Math.trunc(0xffff0000); // change this
+        const highlightColor = Math.trunc(0xffffffff); // this too
 
         this.render = register('renderOverlay', () => {
             const scale = fontSize / 10;
@@ -172,7 +171,7 @@ class AlertUtilsClass {
                 y: 0,
                 width: Renderer.screen.getWidth(),
                 height: Renderer.screen.getHeight(),
-                color: (120 << 24) | (255 << 16) | (0 << 8) | 0, // change this too pls
+                color: Math.trunc((120 << 24) | (255 << 16) | (0 << 8)), // change this too pls
             });
 
             NVG.restore();

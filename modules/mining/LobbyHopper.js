@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Timer } from '../../utils/TimeUtils';
 import { Utils } from '../../utils/Utils';

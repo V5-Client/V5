@@ -1,5 +1,5 @@
 import { System } from '../Constants.js';
-import { ClientStatusC2S, CommonPingS2C, StatisticsS2C, GameJoinS2C } from '../Packets';
+import { ClientStatusC2S, CommonPingS2C, GameJoinS2C, StatisticsS2C } from '../Packets';
 
 class NetworkMonitor {
     constructor() {

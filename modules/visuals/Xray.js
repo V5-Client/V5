@@ -1,6 +1,6 @@
 import { getSetting } from '../../gui/GuiSave';
-import { ModuleBase } from '../../utils/ModuleBase';
 import { XrayPackage } from '../../utils/Constants';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 class Xray extends ModuleBase {

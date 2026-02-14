@@ -1,9 +1,9 @@
-import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { OverlayManager } from '../../gui/OverlayUtils';
+import { ModuleBase } from '../../utils/ModuleBase';
 import { TimeUtils, Timer } from '../../utils/TimeUtils';
+import { Utils } from '../../utils/Utils';
 
 const STATE = {
     IDLE: 'Idle',

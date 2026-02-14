@@ -1,8 +1,8 @@
+import { Chat } from '../../utils/Chat';
+import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import { Chat } from '../../utils/Chat';
-import { ArmorStandEntity } from '../../utils/Constants';
 
 const ACTION = {
     IDLE: 'idle',

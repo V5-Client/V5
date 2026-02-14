@@ -1,7 +1,7 @@
-import { MathUtils } from './Math';
 import { BP, Direction, MCHand, Vec3d } from './Constants';
-import { PlayerActionC2S, PlayerActionC2SAction, HandSwingC2S } from './Packets';
+import { MathUtils } from './Math';
 import { Mixin } from './MixinManager';
+import { HandSwingC2S, PlayerActionC2S, PlayerActionC2SAction } from './Packets';
 import { ScheduleTask } from './ScheduleTask';
 
 class NukerUtilsClass {

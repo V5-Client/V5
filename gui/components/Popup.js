@@ -1,23 +1,23 @@
+import { NVG } from '../../utils/Constants';
 import {
+    clamp,
+    colorWithAlpha,
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
+    drawShadow,
     drawText,
+    easeInBack,
+    easeOutBack,
+    FontSizes,
     getTextWidth,
     isInside,
-    THEME,
-    FontSizes,
     playClickSound,
-    drawShadow,
-    colorWithAlpha,
-    easeOutBack,
-    easeInBack,
-    clamp,
+    THEME,
 } from '../Utils';
 import { Button } from './Button';
-import { Separator } from './Separator';
-import { MultiToggle } from './Dropdown';
 import { ColorPicker } from './ColorPicker';
-import { NVG } from '../../utils/Constants';
+import { MultiToggle } from './Dropdown';
+import { Separator } from './Separator';
 
 const CLOSE_TEXT = '×';
 const ANIMATION_DURATION = 350;

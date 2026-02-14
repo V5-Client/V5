@@ -1,5 +1,5 @@
-import { ModuleBase } from '../../utils/ModuleBase';
 import requestV2 from 'requestV2';
+import { ModuleBase } from '../../utils/ModuleBase';
 
 class RatProtection extends ModuleBase {
     constructor() {

@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { File, Desktop } from './Constants';
+import { Desktop, File } from './Constants';
 import { ServerInfo } from './player/ServerInfo';
 
 const commands = {};

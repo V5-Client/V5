@@ -1,13 +1,13 @@
-import { Categories } from './CategorySystem';
-import { MultiToggle } from '../components/Dropdown';
+import { drawRoundedRectangle, drawRoundedRectangleWithBorder, isInside, PADDING, playClickSound, resetScissor, scissor } from '../Utils';
 import { ColorPicker } from '../components/ColorPicker';
-import { Separator } from '../components/Separator';
+import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
-import { drawSubcategoryButtons, drawOptionsPanel, drawCategoryItems, drawDirectComponents, getCategoryRect } from './CategoryRenderer';
-import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder, PADDING, scissor, resetScissor, isInside, playClickSound } from '../Utils';
+import { Separator } from '../components/Separator';
 import { GuiRectangles } from '../core/GuiState';
+import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
+import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, drawSubcategoryButtons, getCategoryRect } from './CategoryRenderer';
 import { SearchBar } from './CategorySearchBar';
+import { Categories } from './CategorySystem';
 
 export const createCategoriesManager = (deps) => {
     let targetRightPanelScrollY = 0;

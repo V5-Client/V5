@@ -2,8 +2,8 @@
 
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { HandSwingC2S, PlayerActionC2S } from '../../utils/Packets';
 import { Utils } from '../../utils/Utils';
-import { PlayerActionC2S, HandSwingC2S } from '../../utils/Packets';
 
 class Pingless extends ModuleBase {
     constructor() {

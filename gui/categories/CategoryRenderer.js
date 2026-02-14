@@ -1,34 +1,32 @@
 import {
-    PADDING,
     CATEGORY_HEIGHT,
     CATEGORY_PADDING,
+    FontSizes,
     ITEM_SPACING,
+    PADDING,
     SUBCATEGORY_BUTTON_HEIGHT,
     SUBCATEGORY_BUTTON_SPACING,
     THEME,
-    easeInOutQuad,
-    isInside,
-    drawText,
-    getTextWidth,
-    drawCenteredText,
-    drawImage,
-    drawCircularImage,
-    scissor,
-    resetScissor,
-    FontSizes,
-    getDiscordPfpPath,
     colorWithAlpha,
+    drawCenteredText,
+    drawCircularImage,
+    drawImage,
+    drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
+    drawText,
+    easeInOutQuad,
+    getDiscordPfpPath,
+    getTextWidth,
+    isInside,
 } from '../Utils';
-import { MultiToggle } from '../components/Dropdown';
 import { ColorPicker } from '../components/ColorPicker';
-import { Separator } from '../components/Separator';
+import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
-import { drawRoundedRectangle } from '../Utils';
+import { Separator } from '../components/Separator';
 import { GuiRectangles } from '../core/GuiState';
-import { Categories } from './CategorySystem';
-import { SearchBar } from './CategorySearchBar';
 import { setTooltip } from '../core/GuiTooltip';
+import { SearchBar } from './CategorySearchBar';
+import { Categories } from './CategorySystem';
 
 const ASSETS_PATHS = ['config/ChatTriggers/modules/V5/assets/', 'config/ChatTriggers/assets/V5/assets/'];
 

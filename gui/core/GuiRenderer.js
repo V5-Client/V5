@@ -1,9 +1,9 @@
-import { ANIMATION_DURATION, GuiState, GuiRectangles } from './GuiState';
-import { drawRoundedRectangleWithBorder, clamp, scissor, resetScissor, easeOutBack } from '../Utils';
 import { NVG } from '../../utils/Constants';
-import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
-import { GuiTooltip } from './GuiTooltip';
 import { categoryManager } from '../categories/CategoryManager';
+import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
+import { clamp, drawRoundedRectangleWithBorder, easeOutBack, resetScissor, scissor } from '../Utils';
+import { ANIMATION_DURATION, GuiRectangles, GuiState } from './GuiState';
+import { GuiTooltip } from './GuiTooltip';
 
 export const drawGUI = (mouseX, mouseY) => {
     const elapsed = Date.now() - GuiState.openStartTime;

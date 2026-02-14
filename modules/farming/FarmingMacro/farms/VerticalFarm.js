@@ -1,9 +1,9 @@
 import FarmHandler from '../FarmHandler';
 
 import { MathUtils } from '../../../../utils/Math';
-import { Rotations } from '../../../../utils/player/Rotations';
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
+import { Rotations } from '../../../../utils/player/Rotations';
 
 export default class VerticalCrop extends FarmHandler {
     constructor(parent) {

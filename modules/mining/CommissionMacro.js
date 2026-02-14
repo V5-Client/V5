@@ -1,17 +1,17 @@
-import { Chat } from '../../utils/Chat';
-import { COMMISSION_DATA, EMISSARY_LOCATIONS, TRASH_ITEMS, MOB_CONFIGS } from './CommissionData';
 import { notificationManager } from '../../gui/NotificationManager';
-import { manager } from '../../utils/SkyblockEvents';
-import { MiningBot } from './MiningBot';
-import { CombatBot } from '../combat/CombatBot';
+import { Chat } from '../../utils/Chat';
 import { MiningUtils } from '../../utils/MiningUtils';
+import { ModuleBase } from '../../utils/ModuleBase';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
-import { ModuleBase } from '../../utils/ModuleBase';
+import { manager } from '../../utils/SkyblockEvents';
 import { Mouse } from '../../utils/Ungrab';
-import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Utils } from '../../utils/Utils';
+import { CombatBot } from '../combat/CombatBot';
+import { COMMISSION_DATA, EMISSARY_LOCATIONS, MOB_CONFIGS, TRASH_ITEMS } from './CommissionData';
+import { MiningBot } from './MiningBot';
 
 const STATES = {
     IDLE: 'Idle',

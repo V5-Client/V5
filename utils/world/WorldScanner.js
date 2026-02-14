@@ -1,4 +1,4 @@
-import { ChunkDataS2C, BlockUpdateS2C } from '../../utils/Packets';
+import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';
 import { manager } from '../../utils/SkyblockEvents';
 
 const Long2ObjectOpenHashMap = Java.type('it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap');

@@ -1,12 +1,11 @@
-import { NukerUtils } from '../../utils/NukerUtils';
-import { Chat } from '../../utils/Chat';
-import { Utils } from '../../utils/Utils';
-import { Executor } from '../../utils/ThreadExecutor';
-import Render from '../../utils/render/Render';
-import { Vec3d, BP, BlockHitResult, Direction, MCHand, BlockStone, BlockOre, BlockRedstoneOre } from '../../utils/Constants';
-import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { BP, BlockHitResult, BlockOre, BlockRedstoneOre, BlockStone, Direction, MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { NukerUtils } from '../../utils/NukerUtils';
+import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { Executor } from '../../utils/ThreadExecutor';
+import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
+import Render from '../../utils/render/Render';
 
 class NukerClass extends ModuleBase {
     constructor() {

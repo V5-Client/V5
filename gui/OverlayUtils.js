@@ -1,6 +1,6 @@
 import { NVG } from '../utils/Constants';
-import { Utils } from '../utils/Utils';
 import { TimeUtils } from '../utils/TimeUtils';
+import { Utils } from '../utils/Utils';
 import {
     BORDER_WIDTH,
     colorWithAlpha,

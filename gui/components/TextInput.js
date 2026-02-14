@@ -1,19 +1,19 @@
+import { DataFlavor, NVG, Toolkit } from '../../utils/Constants';
 import {
-    drawRoundedRectangle,
-    drawRoundedRectangleWithBorder,
-    THEME,
-    isInside,
-    PADDING,
-    drawText,
-    getTextWidth,
     FontSizes,
-    drawRect,
-    playClickSound,
+    PADDING,
+    THEME,
     TypingState,
     createHighlight,
+    drawRect,
+    drawRoundedRectangle,
+    drawRoundedRectangleWithBorder,
+    drawText,
+    getTextWidth,
+    isInside,
+    playClickSound,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
-import { Toolkit, DataFlavor, NVG } from '../../utils/Constants';
 
 export class TextInput {
     constructor(title, x, y, width, height, defaultValue = '', callback = null) {
