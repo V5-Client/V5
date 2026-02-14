@@ -9,7 +9,7 @@ import './gui/GUI.js';
 
 /* CORE */
 import './utils/Config.js';
-import './utils/backend/IRC.js';
+import './utils/backend/WebSocket.js';
 
 /* Utils */
 import './failsafes/FailsafeManager.js';
