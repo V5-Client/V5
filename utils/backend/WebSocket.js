@@ -52,7 +52,16 @@ function sendChatMessage(content) {
 }
 
 function connectWebSocket() {
-    const token = SecureLoader.INSTANCE.getJwtToken();
+    if (ws) {
+        try {
+            ws.onClose = null;
+            ws.onError = null;
+            ws.close();
+        } catch (e) {}
+        ws = null;
+    }
+
+    const token = SecureLoader && SecureLoader.INSTANCE ? SecureLoader.INSTANCE.getJwtToken() : null;
 
     if (!token) return Chat.messageIrc('&cSecureLoader has not authenticated. Chat is unavailable.');
     returnDiscord(token);
@@ -71,7 +80,7 @@ function connectWebSocket() {
 
     ws.onError = (exception) => {
         console.error('WebSocket error:', exception);
-        Chat.messageIrc('Connection error: ' + exception);
+        if (isConnected) Chat.messageIrc('Connection error: ' + exception);
         isConnected = false;
         attemptReconnect();
     };
@@ -88,14 +97,13 @@ function connectWebSocket() {
 
 function attemptReconnect() {
     if (gameUnload) return;
-    if (isConnected) return Chat.messageIrc('Already connected to irc!');
     if (reconnectAttempts < 10) {
         reconnectAttempts++;
         let delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
-        if (reconnectAttempts == 1) delay = 0;
+        if (reconnectAttempts == 1) delay = 2000;
         ScheduleTask(delay, () => {
             if (gameUnload) return;
-            if (isConnected) return Chat.messageIrc('Already connected to irc!');
+            if (isConnected) return;
             Chat.messageIrc('Reconnecting...');
             connectWebSocket();
             start = Date.now();
@@ -107,7 +115,10 @@ function attemptReconnect() {
 
 register('gameUnload', () => {
     gameUnload = true;
-    ws?.close();
+    if (ws) {
+        ws.onClose = null;
+        ws.close();
+    }
 });
 
 register('packetSent', (packet, event) => {
@@ -126,6 +137,7 @@ register('packetSent', (packet, event) => {
 
 v5Command('reconnectIRC', () => {
     reconnectAttempts = 0;
+    isConnected = false;
     attemptReconnect();
 });
 
