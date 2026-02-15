@@ -1,5 +1,5 @@
-const internalMixin = Mixin;
-const internalAt = At;
+const internalMixin = global.Mixin;
+const internalAt = global.At;
 
 class MixinStorage {
     constructor() {
