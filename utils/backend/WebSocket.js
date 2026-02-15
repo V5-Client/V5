@@ -23,7 +23,6 @@ let gameUnload = false;
 let isConnected = false;
 let ws = null;
 let start = Date.now();
-let suppressReconnect = false;
 
 function handleIncomingMessage(raw) {
     try {
@@ -52,23 +51,14 @@ function sendChatMessage(content) {
     }
 }
 
-function closeWebSocket(manual = false) {
-    if (!ws) return;
-
-    try {
-        suppressReconnect = manual;
-        ws.close();
-    } catch (e) {
-        console.error('V5 Caught error' + e + e.stack);
-    } finally {
-        ws = null;
-        isConnected = false;
-    }
-}
-
 function connectWebSocket() {
-    closeWebSocket(true);
-    suppressReconnect = false;
+    if (ws) {
+        try {
+            ws.close();
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
+    }
 
     const token = SecureLoader && SecureLoader.INSTANCE ? SecureLoader.INSTANCE.getJwtToken() : null;
 
@@ -89,16 +79,14 @@ function connectWebSocket() {
 
     ws.onError = (exception) => {
         console.error('WebSocket error:', exception);
-        if (isConnected) Chat.messageIrc('Connection error: ' + exception);
+        Chat.messageIrc('Connection error: ' + exception);
         isConnected = false;
-        if (suppressReconnect || gameUnload) return;
         attemptReconnect();
     };
 
     ws.onClose = (code, reason) => {
         if (code == '1000') return;
         isConnected = false;
-        if (suppressReconnect || gameUnload) return;
         Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
         attemptReconnect();
     };
@@ -108,13 +96,14 @@ function connectWebSocket() {
 
 function attemptReconnect() {
     if (gameUnload) return;
+    if (isConnected) return Chat.messageIrc('Already connected to irc!');
     if (reconnectAttempts < 10) {
         reconnectAttempts++;
         let delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
-        if (reconnectAttempts == 1) delay = 2000;
+        if (reconnectAttempts == 1) delay = 0;
         ScheduleTask(delay, () => {
             if (gameUnload) return;
-            if (isConnected) return;
+            if (isConnected) return Chat.messageIrc('Already connected to irc!');
             Chat.messageIrc('Reconnecting...');
             connectWebSocket();
             start = Date.now();
@@ -126,7 +115,7 @@ function attemptReconnect() {
 
 register('gameUnload', () => {
     gameUnload = true;
-    closeWebSocket(true);
+    ws?.close();
 });
 
 register('packetSent', (packet, event) => {
@@ -145,7 +134,6 @@ register('packetSent', (packet, event) => {
 
 v5Command('reconnectIRC', () => {
     reconnectAttempts = 0;
-    isConnected = false;
     attemptReconnect();
 });
 
