@@ -22,9 +22,9 @@ class Pingless extends ModuleBase {
         this.on('packetSent', (packet) => {
             if (Utils.area() !== 'Crystal Hollows') return;
 
-            let action = packet.getAction().toString();
+            let action = packet?.getAction()?.toString();
             if (action === 'START_DESTROY_BLOCK') {
-                this.pos = packet.getPos();
+                this.pos = packet?.getPos();
 
                 x = this.pos.x;
                 y = this.pos.y;

@@ -27,25 +27,17 @@ class StructureESP extends ModuleBase {
         this.chunks = new Long2ObjectOpenHashMap();
 
         this.on('packetReceived', (packet) => {
-            try {
-                const cx = packet.getChunkX();
-                const cz = packet.getChunkZ();
-                setTimeout(() => {
-                    this.searchChunk(cx, cz);
-                }, 50);
-            } catch (e) {
-                console.log('PROBABLY DUE TO CHATTRIGGERS packet handling being stupid as fuck!' + e);
-            }
+            const cx = packet?.getChunkX();
+            const cz = packet?.getChunkZ();
+            setTimeout(() => {
+                this.searchChunk(cx, cz);
+            }, 50);
             // console.log(`[ESP] Packet received: ${cx}, ${cz}`);
         }).setFilteredClass(ChunkDataS2C);
 
         this.on('packetReceived', (packet) => {
-            try {
-                const pos = packet.getPos();
-                this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
-            } catch (e) {
-                console.log('PROBABLY DUE TO CHATTRIGGERS getPos being stupid as fuck!' + e);
-            }
+            const pos = packet?.getPos();
+            this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
         }).setFilteredClass(BlockUpdateS2C);
 
         this.on('postRenderWorld', () => {

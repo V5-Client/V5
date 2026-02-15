@@ -25,15 +25,15 @@ class Scanner {
 
     init() {
         this.onChunkData = register('packetReceived', (packet) => {
-            const cx = packet.getChunkX();
-            const cz = packet.getChunkZ();
+            const cx = packet?.getChunkX();
+            const cz = packet?.getChunkZ();
             setTimeout(() => this.searchChunk(cx, cz), 50);
         })
             .setFilteredClass(ChunkDataS2C)
             .unregister();
 
         this.onBlockUpdate = register('packetReceived', (packet) => {
-            const pos = packet.getPos();
+            const pos = packet?.getPos();
             this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
         })
             .setFilteredClass(BlockUpdateS2C)

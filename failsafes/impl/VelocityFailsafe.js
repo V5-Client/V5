@@ -16,14 +16,14 @@ class VelocityFailsafe extends Failsafe {
             if (this.isFalse('velocity')) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
             if (!this.settings.isEnabled) return;
-            if (packet.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
+            if (packet?.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
             if (!MacroState.isMacroRunning()) return;
             if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes('Grappling')) return;
             const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
             if (blockBelow.getType().getRegistryName().includes('slime_block')) return;
-            const vx = packet.getVelocity().x;
-            const vy = packet.getVelocity().y;
-            const vz = packet.getVelocity().z;
+            const vx = packet?.getVelocity().x;
+            const vy = packet?.getVelocity().y;
+            const vz = packet?.getVelocity().z;
             const speed = Math.hypot(vx, vy, vz);
             const blockName = blockBelow.getType().getRegistryName();
             const data = { velocity: speed, blockBelow: blockName };
