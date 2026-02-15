@@ -23,6 +23,7 @@ let gameUnload = false;
 let isConnected = false;
 let ws = null;
 let start = Date.now();
+let suppressReconnect = false;
 
 function handleIncomingMessage(raw) {
     try {
@@ -51,15 +52,23 @@ function sendChatMessage(content) {
     }
 }
 
-function connectWebSocket() {
-    if (ws) {
-        try {
-            ws.onClose = () => {};
-            ws.onError = () => {};
-            ws.close();
-        } catch (e) {}
+function closeWebSocket(manual = false) {
+    if (!ws) return;
+
+    try {
+        suppressReconnect = manual;
+        ws.close();
+    } catch (e) {
+        console.error('V5 Caught error' + e + e.stack);
+    } finally {
         ws = null;
+        isConnected = false;
     }
+}
+
+function connectWebSocket() {
+    closeWebSocket(true);
+    suppressReconnect = false;
 
     const token = SecureLoader && SecureLoader.INSTANCE ? SecureLoader.INSTANCE.getJwtToken() : null;
 
@@ -82,12 +91,14 @@ function connectWebSocket() {
         console.error('WebSocket error:', exception);
         if (isConnected) Chat.messageIrc('Connection error: ' + exception);
         isConnected = false;
+        if (suppressReconnect || gameUnload) return;
         attemptReconnect();
     };
 
     ws.onClose = (code, reason) => {
         if (code == '1000') return;
         isConnected = false;
+        if (suppressReconnect || gameUnload) return;
         Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
         attemptReconnect();
     };
@@ -115,10 +126,7 @@ function attemptReconnect() {
 
 register('gameUnload', () => {
     gameUnload = true;
-    if (ws) {
-        ws.onClose = null;
-        ws.close();
-    }
+    closeWebSocket(true);
 });
 
 register('packetSent', (packet, event) => {
