@@ -14,11 +14,9 @@ class HUD extends ModuleBase {
             showEnabledToggle: true,
         });
 
-        this.EDIT_MODE = false;
         this.STATS_HUD = false;
         this.INVENTORY_HUD = false;
 
-        this.addToggle('Edit Mode', (v) => (this.EDIT_MODE = !!v), 'When enabled, the overlays become draggable');
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.');
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud');
 
@@ -27,8 +25,6 @@ class HUD extends ModuleBase {
         this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
 
         this.on('renderOverlay', () => this.renderOverlay());
-        this.on('clicked', (x, y, button, isPressed) => this.handleClick(x, y, button, isPressed));
-        this.on('dragged', (dx, dy, x, y, button) => this.handleDrag(dx, dy, x, y, button));
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
@@ -36,20 +32,6 @@ class HUD extends ModuleBase {
 
     onDisable() {
         this.savePositions();
-    }
-
-    isChatOpen() {
-        const gui = Client.currentGui.get();
-        if (!gui) return false;
-        return gui.class.simpleName == 'class_408';
-    }
-
-    canEdit() {
-        return this.EDIT_MODE && this.isChatOpen();
-    }
-
-    getMouseScaleFactor() {
-        return Client.getMinecraft().getWindow().getScaleFactor();
     }
 
     loadOverlayState(key, defaults) {
@@ -67,16 +49,6 @@ class HUD extends ModuleBase {
 
             width: 0,
             height: 0,
-
-            dragging: false,
-            scaling: false,
-            dragOffsetX: 0,
-            dragOffsetY: 0,
-
-            scaleStartMouseX: 0,
-            scaleStartScale: 1,
-            scaleStartBaseW: 1,
-            scaleStartBaseH: 1,
         };
     }
 
@@ -88,7 +60,29 @@ class HUD extends ModuleBase {
         };
     }
 
+    applyOverlayState(overlay, saved = {}) {
+        if (typeof saved.x === 'number') overlay.x = saved.x;
+        if (typeof saved.y === 'number') overlay.y = saved.y;
+        if (typeof saved.scale === 'number') overlay.scale = this.clamp(saved.scale, 0.5, 3.0);
+    }
+
+    syncFromOverlayEditor() {
+        const latest = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        if (!latest || typeof latest !== 'object') return;
+
+        if (latest.stats && typeof latest.stats === 'object') {
+            this.applyOverlayState(this.stats, latest.stats);
+        }
+
+        if (latest.inventory && typeof latest.inventory === 'object') {
+            this.applyOverlayState(this.inventory, latest.inventory);
+        }
+
+        this.positionConfig = latest;
+    }
+
     savePositions() {
+        this.syncFromOverlayEditor();
         this.positionConfig = {
             stats: this.getSaveData(this.stats),
             inventory: this.getSaveData(this.inventory),
@@ -115,58 +109,6 @@ class HUD extends ModuleBase {
         overlay.y = this.clamp(overlay.y, 0, maxY);
     }
 
-    getHandleSizePx(scale) {
-        const minHandlePx = 8;
-        return Math.max(minHandlePx, 14 * scale);
-    }
-
-    drawMoveUI(x, y, width, height, scale) {
-        const borderColor = Math.trunc(0x80ffffff);
-        const cornerColor = Math.trunc(0xccffffff);
-        const handleColor = Math.trunc(0xcc5099ff);
-
-        const minLinePx = 1;
-        const handleSize = this.getHandleSizePx(scale);
-        const cornerSize = Math.max(4, 6 * scale);
-        const lineThick = Math.max(minLinePx, 2 * scale);
-
-        NVG.drawRect(x - lineThick, y - lineThick, width + lineThick * 2, lineThick, borderColor); // Top
-        NVG.drawRect(x - lineThick, y + height, width + lineThick * 2, lineThick, borderColor); // Bottom
-        NVG.drawRect(x - lineThick, y, lineThick, height, borderColor); // Left
-        NVG.drawRect(x + width, y, lineThick, height, borderColor); // Right
-
-        NVG.drawRect(x - lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x + width - cornerSize + lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x + width - cornerSize + lineThick, y + height, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x - lineThick, y + height, cornerSize, lineThick, cornerColor);
-
-        const hx = x + width - handleSize;
-        const hy = y + height - handleSize;
-        NVG.drawRect(hx, hy, handleSize, handleSize, handleColor);
-
-        const innerPadding = handleSize * (4 / 14);
-        const innerSize = handleSize - innerPadding * 2;
-        if (innerSize > 0) {
-            NVG.drawRect(hx + innerPadding, hy + innerPadding, innerSize, innerSize, cornerColor);
-        }
-    }
-
-    getTpsColor(tps) {
-        if (tps > 19.8) return 0x00aa00;
-        if (tps > 19) return 0x55ff55;
-        if (tps > 17.5) return 0xffaa00;
-        if (tps > 12) return 0xff5555;
-        return 0xaa0000;
-    }
-
-    getPingColor(ping) {
-        if (ping < 50) return 0x55ff55;
-        if (ping < 100) return 0x00aa00;
-        if (ping < 149) return 0xffff55;
-        if (ping < 249) return 0xffaa00;
-        return 0xff5555;
-    }
-
     getStatsLines() {
         const fps = Client.getFPS();
         const ping = ServerInfo.getPing();
@@ -174,8 +116,8 @@ class HUD extends ModuleBase {
 
         return [
             { label: 'FPS', value: String(fps), color: 0xffffffff },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | this.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | this.getTpsColor(tps)) >>> 0 },
+            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
+            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
         ];
     }
 
@@ -356,108 +298,10 @@ class HUD extends ModuleBase {
         });
     }
 
-    handleClick(x, y, button, isPressed) {
-        if (!this.canEdit() || button !== 0) return;
-
-        const mouseScale = this.getMouseScaleFactor();
-        const mx = x / mouseScale;
-        const my = y / mouseScale;
-
-        this.recalcAllBounds();
-
-        if (!isPressed) {
-            const wasActive = this.stats.dragging || this.stats.scaling || this.inventory.dragging || this.inventory.scaling;
-
-            this.stats.dragging = false;
-            this.stats.scaling = false;
-            this.inventory.dragging = false;
-            this.inventory.scaling = false;
-
-            if (wasActive) this.savePositions();
-            return;
-        }
-
-        const overlays = [this.inventory, this.stats];
-        const isVisible = (o) => (o.key === 'stats' ? this.STATS_HUD : this.INVENTORY_HUD);
-
-        for (let i = overlays.length - 1; i >= 0; i--) {
-            const o = overlays[i];
-            if (!isVisible(o)) continue;
-
-            const handleSize = this.getHandleSizePx(o.scale);
-
-            if (this.isInside(mx, my, o.x + o.width - handleSize, o.y + o.height - handleSize, handleSize, handleSize)) {
-                o.scaling = true;
-                o.dragging = false;
-                o.scaleStartMouseX = mx;
-                o.scaleStartScale = o.scale;
-                o.scaleStartBaseW = Math.max(1, o.width / Math.max(0.001, o.scale));
-                o.scaleStartBaseH = Math.max(1, o.height / Math.max(0.001, o.scale));
-                break;
-            }
-
-            if (this.isInside(mx, my, o.x, o.y, o.width, o.height)) {
-                o.dragging = true;
-                o.scaling = false;
-                o.dragOffsetX = mx - o.x;
-                o.dragOffsetY = my - o.y;
-                break;
-            }
-        }
-    }
-
-    handleDrag(dx, dy, x, y, button) {
-        if (!this.canEdit() || button !== 0) return;
-
-        const mouseScale = this.getMouseScaleFactor();
-        const mx = x / mouseScale;
-        const my = y / mouseScale;
-
-        this.recalcAllBounds();
-
-        const overlays = [this.inventory, this.stats];
-
-        for (let i = overlays.length - 1; i >= 0; i--) {
-            const o = overlays[i];
-            if (!o.dragging && !o.scaling) continue;
-
-            if (o.dragging) {
-                const sw = Renderer.screen.getWidth();
-                const sh = Renderer.screen.getHeight();
-
-                const newX = mx - o.dragOffsetX;
-                const newY = my - o.dragOffsetY;
-
-                const maxX = Math.max(0, sw - o.width);
-                const maxY = Math.max(0, sh - o.height);
-
-                o.x = this.clamp(newX, 0, maxX);
-                o.y = this.clamp(newY, 0, maxY);
-                break;
-            }
-
-            if (o.scaling) {
-                const sw = Renderer.screen.getWidth();
-                const sh = Renderer.screen.getHeight();
-
-                const baseW = Math.max(1, o.scaleStartBaseW);
-                const baseH = Math.max(1, o.scaleStartBaseH);
-
-                const availableW = Math.max(1, sw - o.x);
-                const availableH = Math.max(1, sh - o.y);
-                const maxScale = Math.min(availableW / baseW, availableH / baseH, 3.0);
-
-                const deltaX = mx - o.scaleStartMouseX;
-                const newScale = o.scaleStartScale + deltaX / baseW;
-
-                o.scale = this.clamp(newScale, 0.5, maxScale);
-                break;
-            }
-        }
-    }
-
     renderOverlay() {
         if (!this.STATS_HUD && !this.INVENTORY_HUD) return;
+
+        this.syncFromOverlayEditor();
 
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
@@ -496,22 +340,6 @@ class HUD extends ModuleBase {
                 NVG.endFrame();
             } catch (e) {
                 console.error('V5 Caught error' + e + e.stack);
-            }
-        }
-
-        if (this.canEdit()) {
-            try {
-                NVG.beginFrame(sw, sh);
-                if (this.INVENTORY_HUD) this.drawMoveUI(this.inventory.x, this.inventory.y, this.inventory.width, this.inventory.height, this.inventory.scale);
-                if (this.STATS_HUD) this.drawMoveUI(this.stats.x, this.stats.y, this.stats.width, this.stats.height, this.stats.scale);
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            } finally {
-                try {
-                    NVG.endFrame();
-                } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
-                }
             }
         }
     }

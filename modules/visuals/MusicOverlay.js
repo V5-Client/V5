@@ -34,17 +34,13 @@ class Music extends ModuleBase {
         this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
         const savedX = typeof this.positionConfig.x === 'number' ? this.positionConfig.x : 100;
         const savedY = typeof this.positionConfig.y === 'number' ? this.positionConfig.y : 100;
+        const savedScale = typeof this.positionConfig.scale === 'number' ? this.positionConfig.scale : 1.0;
 
         this.x = savedX;
         this.y = savedY;
+        this.scale = Math.max(0.5, Math.min(3.0, savedScale));
         this.dynamicWidth = 200;
         this.baseHeight = 90;
-
-        this.isDragging = false;
-        this.dragOffset = { x: 0, y: 0 };
-
-        this.addToggle('Draggable', (v) => (this.DRAGGABLE = v), 'Allows dragging of the overlay', false);
-        this.addSlider('Scale', 0.5, 1.2, 1.0, (v) => (this.SCALE = v), 'Adjust the size of the overlay');
 
         this.on('step', () => {
             this.ticksSinceSync += 5;
@@ -58,9 +54,6 @@ class Music extends ModuleBase {
                 this.renderOverlay();
             }
         });
-
-        this.on('clicked', (x, y, button, isPressed) => this.handleClick(x, y, button, isPressed));
-        this.on('dragged', (dx, dy, x, y, button) => this.handleDrag(dx, dy, x, y, button));
 
         register('worldUnload', () => this.stopWindowsProgram());
         register('gameUnload', () => this.savePosition());
@@ -85,63 +78,30 @@ class Music extends ModuleBase {
         return mins + ':' + (secs < 10 ? '0' + secs : secs);
     }
 
-    isChatOpen() {
-        const gui = Client.currentGui.get();
-        if (!gui) return false;
-        return gui.class.simpleName == 'class_408';
-    }
-
-    isInside(mx, my, x, y, w, h) {
-        return mx >= x && mx <= x + w && my >= y && my <= y + h;
-    }
-
-    handleClick(x, y, button, isPressed) {
-        if (!this.DRAGGABLE || !this.isChatOpen() || button !== 0) return;
-
-        const scale = Client.getMinecraft().getWindow().getScaleFactor();
-        const mx = x / scale;
-        const my = y / scale;
-
-        if (isPressed) {
-            if (this.isInside(mx, my, this.x, this.y, this.dynamicWidth, this.baseHeight)) {
-                this.isDragging = true;
-                this.dragOffset.x = mx - this.x;
-                this.dragOffset.y = my - this.y;
-            }
-        } else {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.savePosition();
-            }
-        }
-    }
-
-    handleDrag(dx, dy, x, y, button) {
-        if (!this.DRAGGABLE || !this.isChatOpen() || button !== 0 || !this.isDragging) return;
-
-        const scale = Client.getMinecraft().getWindow().getScaleFactor();
-        const mx = x / scale;
-        const my = y / scale;
-
-        const screenW = Renderer.screen.getWidth();
-        const screenH = Renderer.screen.getHeight();
-
-        const newX = mx - this.dragOffset.x;
-        const newY = my - this.dragOffset.y;
-
-        this.x = Math.max(0, Math.min(newX, screenW - this.dynamicWidth));
-        this.y = Math.max(0, Math.min(newY, screenH - this.baseHeight));
-    }
-
     savePosition() {
+        this.syncFromOverlayEditor();
         this.positionConfig = {
             x: this.x,
             y: this.y,
+            scale: this.scale,
         };
         Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.positionConfig);
     }
 
+    syncFromOverlayEditor() {
+        const latest = Utils.getConfigFile('OverlayPositions/music_overlay.json');
+        if (!latest || typeof latest !== 'object') return;
+
+        if (typeof latest.x === 'number') this.x = latest.x;
+        if (typeof latest.y === 'number') this.y = latest.y;
+        if (typeof latest.scale === 'number') this.scale = Math.max(0.5, Math.min(3.0, latest.scale));
+
+        this.positionConfig = latest;
+    }
+
     renderOverlay() {
+        this.syncFromOverlayEditor();
+
         const now = Date.now();
         const deltaTime = (now - this.lastFrameTime) / 1000;
         this.lastFrameTime = now;
@@ -190,7 +150,7 @@ class Music extends ModuleBase {
             progress = totalSec > 0 ? Math.min(this.interpolatedSeconds / totalSec, 1) : 0;
         }
 
-        const s = this.SCALE || 1.0;
+        const s = this.scale || 1.0;
         const padding = 12 * s;
         const imageSize = 55 * s;
         const titleFontSize = FontSizes.MEDIUM * 1.3 * s;
@@ -202,6 +162,9 @@ class Music extends ModuleBase {
         this.dynamicWidth = Math.max(minWidth, nameWidth + imageSize + padding * 4);
         this.baseHeight = 90 * s;
 
+        const overflowRight = Math.max(0, this.x + this.dynamicWidth - sw);
+        const overlayX = Math.max(0, this.x - overflowRight);
+
         const titleColor = isSkeleton ? 0xaaaaaaff : 0xffffffff;
         const timeColor = isSkeleton ? 0x888888ff : 0xccffffff;
         const bg = colorWithAlpha(THEME.OV_WINDOW, 0.92);
@@ -211,7 +174,7 @@ class Music extends ModuleBase {
             NVG.beginFrame(sw, sh);
 
             drawRoundedRectangleWithBorder({
-                x: this.x,
+                x: overlayX,
                 y: this.y,
                 width: this.dynamicWidth,
                 height: this.baseHeight,
@@ -221,7 +184,7 @@ class Music extends ModuleBase {
                 borderColor: border,
             });
 
-            const imgX = this.x + this.dynamicWidth - imageSize - padding;
+            const imgX = overlayX + this.dynamicWidth - imageSize - padding;
             const imgY = this.y + padding;
 
             if (imageURL.length > 5) {
@@ -244,21 +207,21 @@ class Music extends ModuleBase {
                 drawText(qText, imgX + imageSize / 2 - qWidth / 2, imgY + imageSize / 2 - qSize / 2.5, qSize, 0xaaaaaaff, 16);
             }
 
-            drawText(songName, this.x + padding, this.y + padding + titleFontSize, titleFontSize, titleColor, 16);
+            drawText(songName, overlayX + padding, this.y + padding + titleFontSize, titleFontSize, titleColor, 16);
 
             const curTimeWidth = getTextWidth(interpolatedTimeText, timerFontSize);
             const maxTimeWidth = getTextWidth(timeMax, timerFontSize);
             const textToBarGap = 4 * s;
 
-            const barStartX = this.x + padding + curTimeWidth + textToBarGap;
-            const barEndX = this.x + this.dynamicWidth - padding - maxTimeWidth - textToBarGap;
+            const barStartX = overlayX + padding + curTimeWidth + textToBarGap;
+            const barEndX = overlayX + this.dynamicWidth - padding - maxTimeWidth - textToBarGap;
             const barWidth = barEndX - barStartX;
 
             const barY = this.y + this.baseHeight - padding - barHeight * 0.8;
             const timerY = barY + barHeight / 2 - timerFontSize / 2.5;
 
-            drawText(interpolatedTimeText, this.x + padding, timerY + timerFontSize / 2.5, timerFontSize, timeColor, 16);
-            drawText(timeMax, this.x + this.dynamicWidth - padding - maxTimeWidth, timerY + timerFontSize / 2.5, timerFontSize, timeColor, 16);
+            drawText(interpolatedTimeText, overlayX + padding, timerY + timerFontSize / 2.5, timerFontSize, timeColor, 16);
+            drawText(timeMax, overlayX + this.dynamicWidth - padding - maxTimeWidth, timerY + timerFontSize / 2.5, timerFontSize, timeColor, 16);
 
             drawRoundedRectangleWithBorder({
                 x: barStartX,

@@ -117,6 +117,20 @@ register('step', () => {
 export const ServerInfo = {
     getPing: () => Math.round(monitor.avgPing),
     getTPS: () => Number.parseFloat(monitor.currentTps.toFixed(2)),
+    getTpsColor: (tps) => {
+        if (tps > 19.8) return 0x00aa00;
+        if (tps > 19) return 0x55ff55;
+        if (tps > 17.5) return 0xffaa00;
+        if (tps > 12) return 0xff5555;
+        return 0xaa0000;
+    },
+    getPingColor: (ping) => {
+        if (ping < 50) return 0x55ff55;
+        if (ping < 100) return 0x00aa00;
+        if (ping < 149) return 0xffff55;
+        if (ping < 249) return 0xffaa00;
+        return 0xff5555;
+    },
     getServerInfo: function () {
         return {
             ping: this.getPing(),

@@ -7,7 +7,6 @@ import {
     CORNER_RADIUS,
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
-    drawShadow,
     drawText,
     FontSizes,
     getTextWidth,
@@ -16,6 +15,7 @@ import {
     THEME,
 } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
+import { ServerInfo } from '../utils/player/ServerInfo';
 
 const { loadSettings } = require('./GuiSave');
 
@@ -40,6 +40,18 @@ class OverlayUtils {
             default: this.getScaleProps(this.settings.scale),
             scheduler: this.getScaleProps(this.schedulerSettings.scale),
         };
+        this.hudSettings = {
+            stats: { x: 10, y: 10, scale: 1.0 },
+            inventory: { x: 50, y: 100, scale: 1.0 },
+        };
+        this.musicSettings = {
+            x: 100,
+            y: 100,
+            scale: 1.0,
+        };
+
+        this.editorOrder = ['default', 'scheduler', 'hudInventory', 'hudStats', 'music'];
+        this.editorBoxes = {};
 
         this.startTimes = {};
         this.animations = {};
@@ -295,18 +307,22 @@ class OverlayUtils {
     }
 
     handleMouseClick(mouseX, mouseY) {
-        if (this.currentSchedulerExampleBox && isInside(mouseX, mouseY, this.currentSchedulerExampleBox)) {
+        for (let i = this.editorOrder.length - 1; i >= 0; i--) {
+            const target = this.editorOrder[i];
+            const box = this.editorBoxes[target];
+            if (!box || !isInside(mouseX, mouseY, box)) continue;
+
+            const settings = this.getTargetSettings(target);
+            if (!settings) continue;
+
             this.dragging = true;
-            this.dragTarget = 'scheduler';
-            this.dragOffset.x = mouseX - this.schedulerSettings.x;
-            this.dragOffset.y = mouseY - this.schedulerSettings.y;
+            this.dragTarget = target;
+            this.dragOffset.x = mouseX - settings.x;
+            this.dragOffset.y = mouseY - settings.y;
+
+            this.editorOrder = this.editorOrder.filter((t) => t !== target);
+            this.editorOrder.push(target);
             return;
-        }
-        if (this.currentExampleBox && isInside(mouseX, mouseY, this.currentExampleBox)) {
-            this.dragging = true;
-            this.dragTarget = 'default';
-            this.dragOffset.x = mouseX - this.settings.x;
-            this.dragOffset.y = mouseY - this.settings.y;
         }
     }
 
@@ -314,14 +330,17 @@ class OverlayUtils {
         if (!this.dragging || !this.dragTarget) return;
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
-        const settings = this.dragTarget === 'scheduler' ? this.schedulerSettings : this.settings;
-        const box = this.dragTarget === 'scheduler' ? this.currentSchedulerExampleBox : this.currentExampleBox;
+        const settings = this.getTargetSettings(this.dragTarget);
+        if (!settings) return;
+
+        const box = this.editorBoxes[this.dragTarget];
         const boxWidth = box?.width || 50;
         const boxHeight = box?.height || 20;
 
         settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - boxWidth));
         settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - boxHeight));
         this.pendingSave = true;
+        this.saveSettings();
     }
 
     handleMouseRelease() {
@@ -334,17 +353,57 @@ class OverlayUtils {
     }
 
     handleScroll(mouseX, mouseY, dir) {
-        if (this.currentSchedulerExampleBox && isInside(mouseX, mouseY, this.currentSchedulerExampleBox)) {
-            this.schedulerSettings.scale = Math.max(0.5, Math.min(3.0, this.schedulerSettings.scale + (dir > 0 ? 0.1 : -0.1)));
-            this.updateScaleProps('scheduler');
-            this.pendingSave = true;
-            return;
+        for (let i = this.editorOrder.length - 1; i >= 0; i--) {
+            const target = this.editorOrder[i];
+            const box = this.editorBoxes[target];
+            if (!box || !isInside(mouseX, mouseY, box)) continue;
+
+            if (target === 'scheduler') {
+                this.schedulerSettings.scale = Math.max(0.5, Math.min(3.0, this.schedulerSettings.scale + (dir > 0 ? 0.1 : -0.1)));
+                this.updateScaleProps('scheduler');
+                this.pendingSave = true;
+                this.saveSettings();
+                return;
+            }
+
+            if (target === 'default') {
+                this.settings.scale = Math.max(0.5, Math.min(3.0, this.settings.scale + (dir > 0 ? 0.1 : -0.1)));
+                this.updateScaleProps('default');
+                this.pendingSave = true;
+                this.saveSettings();
+                return;
+            }
+
+            if (target === 'hudStats') {
+                this.hudSettings.stats.scale = Math.max(0.5, Math.min(3.0, this.hudSettings.stats.scale + (dir > 0 ? 0.1 : -0.1)));
+                this.pendingSave = true;
+                this.saveSettings();
+                return;
+            }
+
+            if (target === 'hudInventory') {
+                this.hudSettings.inventory.scale = Math.max(0.5, Math.min(3.0, this.hudSettings.inventory.scale + (dir > 0 ? 0.1 : -0.1)));
+                this.pendingSave = true;
+                this.saveSettings();
+                return;
+            }
+
+            if (target === 'music') {
+                this.musicSettings.scale = Math.max(0.5, Math.min(3.0, (this.musicSettings.scale || 1.0) + (dir > 0 ? 0.1 : -0.1)));
+                this.pendingSave = true;
+                this.saveSettings();
+                return;
+            }
         }
-        if (this.currentExampleBox && isInside(mouseX, mouseY, this.currentExampleBox)) {
-            this.settings.scale = Math.max(0.5, Math.min(3.0, this.settings.scale + (dir > 0 ? 0.1 : -0.1)));
-            this.updateScaleProps('default');
-            this.pendingSave = true;
-        }
+    }
+
+    getTargetSettings(target) {
+        if (target === 'default') return this.settings;
+        if (target === 'scheduler') return this.schedulerSettings;
+        if (target === 'hudStats') return this.hudSettings.stats;
+        if (target === 'hudInventory') return this.hudSettings.inventory;
+        if (target === 'music') return this.musicSettings;
+        return null;
     }
 
     clampToScreen(x, y, w, h, swOverride = null, shOverride = null) {
@@ -402,8 +461,7 @@ class OverlayUtils {
         const scale = settings.scale;
         const { boxPadding, minBoxHeight, fontSize, argFontSize } = scaleProps;
         const accentColor = THEME.ACCENT;
-        const glowColor = THEME.OV_ACCENT;
-        const borderColor = colorWithAlpha(THEME.OV_BORDER, 0.7 * progress);
+        const borderColor = colorWithAlpha(THEME.OV_ACCENT, 0.35 * progress);
         const showUptime = !isScheduler;
 
         const headerHeight = 20 * scale;
@@ -481,7 +539,6 @@ class OverlayUtils {
         const radius = CORNER_RADIUS * scale;
         const bgColor = colorWithAlpha(THEME.OV_WINDOW, 0.95 * progress);
 
-        drawShadow(x, y, id.width, currentHeight, 12 * scale, 0.45 * progress);
         drawRoundedRectangleWithBorder({
             x: x,
             y: y,
@@ -492,8 +549,6 @@ class OverlayUtils {
             borderWidth: BORDER_WIDTH * scale,
             borderColor: borderColor,
         });
-
-        this.drawAccentGlow(x, y, id.width, currentHeight, radius, progress * 0.4, glowColor);
 
         if (progress > 0.1) {
             const contentAlpha = Math.min(1, progress * 3);
@@ -551,15 +606,41 @@ class OverlayUtils {
         const sh = Renderer.screen.getHeight();
         if (sw === 0) return;
         Client.getMinecraft().gameRenderer.renderBlur();
+        this.editorBoxes = {};
 
         try {
             NVG.beginFrame(sw, sh);
-            const example = this.getExampleOverlay();
-            const schedulerExample = this.getSchedulerExampleOverlay();
-            this.renderID(example, true, { sw, sh });
-            this.renderID(schedulerExample, true, { sw, sh });
+            this.editorOrder.forEach((target) => {
+                if (target === 'default') {
+                    const example = this.getExampleOverlay();
+                    this.renderID(example, true, { sw, sh });
+                    this.editorBoxes.default = this.currentExampleBox;
+                    return;
+                }
 
-            const text = 'Drag the example module or scheduler panel to reposition. Scroll to resize.';
+                if (target === 'scheduler') {
+                    const schedulerExample = this.getSchedulerExampleOverlay();
+                    this.renderID(schedulerExample, true, { sw, sh });
+                    this.editorBoxes.scheduler = this.currentSchedulerExampleBox;
+                    return;
+                }
+
+                if (target === 'hudStats') {
+                    this.editorBoxes.hudStats = this.drawHudStatsPreview(sw, sh);
+                    return;
+                }
+
+                if (target === 'hudInventory') {
+                    this.editorBoxes.hudInventory = this.drawHudInventoryPreview(sw, sh);
+                    return;
+                }
+
+                if (target === 'music') {
+                    this.editorBoxes.music = this.drawMusicPreview(sw, sh);
+                }
+            });
+
+            const text = 'Drag overlays to reposition. Scroll over module/scheduler/HUD previews to resize.';
             const textWidth = getTextWidth(text, FontSizes.MEDIUM);
             drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, 0xffffffff, 16);
         } catch (e) {
@@ -602,6 +683,8 @@ class OverlayUtils {
             default: this.settings,
             scheduler: this.schedulerSettings,
         });
+        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
+        Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
     }
 
     loadSettings() {
@@ -632,6 +715,242 @@ class OverlayUtils {
             this.updateScaleProps('default');
             this.updateScaleProps('scheduler');
         }
+
+        const hudData = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        if (hudData && typeof hudData === 'object') {
+            if (hudData.stats && typeof hudData.stats.x === 'number') {
+                this.hudSettings.stats = {
+                    x: hudData.stats.x,
+                    y: hudData.stats.y,
+                    scale: typeof hudData.stats.scale === 'number' ? hudData.stats.scale : 1.0,
+                };
+            }
+
+            if (hudData.inventory && typeof hudData.inventory.x === 'number') {
+                this.hudSettings.inventory = {
+                    x: hudData.inventory.x,
+                    y: hudData.inventory.y,
+                    scale: typeof hudData.inventory.scale === 'number' ? hudData.inventory.scale : 1.0,
+                };
+            }
+        }
+
+        const musicData = Utils.getConfigFile('OverlayPositions/music_overlay.json');
+        if (musicData && typeof musicData === 'object' && typeof musicData.x === 'number' && typeof musicData.y === 'number') {
+            this.musicSettings = {
+                x: musicData.x,
+                y: musicData.y,
+                scale: typeof musicData.scale === 'number' ? musicData.scale : 1.0,
+            };
+        }
+    }
+
+    drawHudStatsPreview(sw, sh) {
+        const s = this.hudSettings.stats.scale;
+        const pad = 6 * s;
+        const fontSize = FontSizes.MEDIUM * 1.25 * s;
+        const lines = this.getHudStatsLines();
+        const separator = ' | ';
+        const separatorWidth = getTextWidth(separator, fontSize);
+        const gap = 3 * s;
+        let totalWidth = 0;
+
+        lines.forEach((l, index) => {
+            totalWidth += getTextWidth(`${l.label}:`, fontSize) + gap + getTextWidth(String(l.value), fontSize);
+            if (index < lines.length - 1) totalWidth += separatorWidth;
+        });
+
+        const width = pad * 2 + totalWidth;
+        const height = pad * 2 + fontSize;
+
+        const clamped = this.clampToScreen(this.hudSettings.stats.x, this.hudSettings.stats.y, width, height, sw, sh);
+        this.hudSettings.stats.x = clamped.x;
+        this.hudSettings.stats.y = clamped.y;
+
+        const bg = colorWithAlpha(THEME.OV_WINDOW, 0.92);
+        const border = colorWithAlpha(THEME.OV_ACCENT, 0.35);
+        drawRoundedRectangleWithBorder({
+            x: clamped.x,
+            y: clamped.y,
+            width,
+            height,
+            radius: CORNER_RADIUS * 0.6 * s,
+            color: bg,
+            borderWidth: BORDER_WIDTH * s,
+            borderColor: border,
+        });
+
+        const labelColor = colorWithAlpha(0xffffff, 0.7);
+        const separatorColor = colorWithAlpha(0xffffff, 0.4);
+        const centerY = clamped.y + height / 2;
+        let x = clamped.x + pad;
+
+        lines.forEach((l, index) => {
+            drawText(`${l.label}:`, x, centerY, fontSize, labelColor, 17);
+            x += getTextWidth(`${l.label}:`, fontSize) + gap;
+
+            drawText(String(l.value), x, centerY, fontSize, l.color, 17);
+            x += getTextWidth(String(l.value), fontSize);
+
+            if (index < lines.length - 1) {
+                drawText(separator, x, centerY, fontSize, separatorColor, 17);
+                x += separatorWidth;
+            }
+        });
+
+        return { x: clamped.x, y: clamped.y, width, height };
+    }
+
+    drawHudInventoryPreview(sw, sh) {
+        const s = this.hudSettings.inventory.scale;
+        const cols = 9;
+        const mainRows = 3;
+        const pad = 6 * s;
+        const slot = 18 * s;
+        const gap = 4 * s;
+        const width = pad * 2 + cols * slot;
+        const height = pad * 2 + mainRows * slot + gap + slot;
+
+        const clamped = this.clampToScreen(this.hudSettings.inventory.x, this.hudSettings.inventory.y, width, height, sw, sh);
+        this.hudSettings.inventory.x = clamped.x;
+        this.hudSettings.inventory.y = clamped.y;
+
+        const bg = colorWithAlpha(THEME.OV_WINDOW, 0.9);
+        const border = colorWithAlpha(THEME.OV_ACCENT, 0.25);
+        drawRoundedRectangleWithBorder({
+            x: clamped.x,
+            y: clamped.y,
+            width,
+            height,
+            radius: CORNER_RADIUS * 0.55 * s,
+            color: bg,
+            borderWidth: BORDER_WIDTH * s,
+            borderColor: border,
+        });
+
+        const separatorThickness = Math.max(1, 1 * s);
+        const gridStartX = clamped.x + pad;
+        const mainStartY = clamped.y + pad;
+        const rowWidth = cols * slot;
+        const mainHotbarSeparatorY = mainStartY + mainRows * slot + gap / 2 - separatorThickness / 2;
+        const halfWidth = rowWidth / 2;
+        const centerColor = colorWithAlpha(THEME.ACCENT, 0.3);
+        const edgeColor = colorWithAlpha(THEME.ACCENT, 0);
+
+        NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
+        NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
+
+        const inv = Player.getInventory();
+        if (inv) {
+            const items = inv.getItems();
+            if (items) {
+                const iconPad = 1 * s;
+                const hotbar = items.slice(0, 9);
+                const main = items.slice(9, 36);
+                const mainStartX = clamped.x + pad;
+                const hotbarStartY = mainStartY + mainRows * slot + gap;
+
+                main.forEach((item, i) => {
+                    if (!item) return;
+                    const row = Math.floor(i / cols);
+                    if (row >= mainRows) return;
+                    const col = i % cols;
+                    item.draw(mainStartX + col * slot + iconPad, mainStartY + row * slot + iconPad, s);
+                });
+
+                hotbar.forEach((item, i) => {
+                    if (!item) return;
+                    item.draw(mainStartX + i * slot + iconPad, hotbarStartY + iconPad, s);
+                });
+            }
+        }
+
+        return { x: clamped.x, y: clamped.y, width, height };
+    }
+
+    drawMusicPreview(sw, sh) {
+        const s = this.musicSettings.scale || 1.0;
+        const songName = 'Searching for Media...';
+        const timeCur = '--:--';
+        const timeMax = '--:--';
+        const padding = 12 * s;
+        const imageSize = 55 * s;
+        const titleFontSize = FontSizes.MEDIUM * 1.3 * s;
+        const timerFontSize = FontSizes.MEDIUM * 0.85 * s;
+        const barHeight = 4 * s;
+        const nameWidth = getTextWidth(songName, titleFontSize);
+        const width = Math.max(200 * s, nameWidth + imageSize + padding * 4);
+        const height = 90 * s;
+        const clamped = this.clampToScreen(this.musicSettings.x, this.musicSettings.y, width, height, sw, sh);
+        this.musicSettings.x = clamped.x;
+        this.musicSettings.y = clamped.y;
+
+        const bg = colorWithAlpha(THEME.OV_WINDOW, 0.92);
+        const border = colorWithAlpha(THEME.OV_ACCENT, 0.35);
+
+        drawRoundedRectangleWithBorder({
+            x: clamped.x,
+            y: clamped.y,
+            width,
+            height,
+            radius: CORNER_RADIUS * 0.6 * s,
+            color: bg,
+            borderWidth: BORDER_WIDTH * s,
+            borderColor: border,
+        });
+
+        const imgX = clamped.x + width - imageSize - padding;
+        const imgY = clamped.y + padding;
+        drawRoundedRectangleWithBorder({
+            x: imgX,
+            y: imgY,
+            width: imageSize,
+            height: imageSize,
+            radius: CORNER_RADIUS * 0.5 * s,
+            color: colorWithAlpha(0x000000, 0.3),
+            borderWidth: 0,
+            borderColor: 0,
+        });
+
+        const qWidth = getTextWidth('...', titleFontSize);
+        drawText('...', imgX + imageSize / 2 - qWidth / 2, imgY + imageSize / 2 - titleFontSize / 2.5, titleFontSize, 0xaaaaaaff, 16);
+        drawText(songName, clamped.x + padding, clamped.y + padding + titleFontSize, titleFontSize, 0xaaaaaaff, 16);
+
+        const curTimeWidth = getTextWidth(timeCur, timerFontSize);
+        const maxTimeWidth = getTextWidth(timeMax, timerFontSize);
+        const textToBarGap = 4 * s;
+        const barStartX = clamped.x + padding + curTimeWidth + textToBarGap;
+        const barEndX = clamped.x + width - padding - maxTimeWidth - textToBarGap;
+        const barWidth = barEndX - barStartX;
+        const barY = clamped.y + height - padding - barHeight * 0.8;
+        const timerY = barY + barHeight / 2 - timerFontSize / 2.5;
+
+        drawText(timeCur, clamped.x + padding, timerY + timerFontSize / 2.5, timerFontSize, 0x888888ff, 16);
+        drawText(timeMax, clamped.x + width - padding - maxTimeWidth, timerY + timerFontSize / 2.5, timerFontSize, 0x888888ff, 16);
+
+        drawRoundedRectangleWithBorder({
+            x: barStartX,
+            y: barY,
+            width: barWidth,
+            height: barHeight,
+            radius: barHeight / 2,
+            color: colorWithAlpha(0xffffff, 0.15),
+            borderWidth: 0,
+            borderColor: 0,
+        });
+
+        return { x: clamped.x, y: clamped.y, width, height };
+    }
+
+    getHudStatsLines() {
+        const fps = Client.getFPS();
+        const ping = ServerInfo.getPing();
+        const tps = ServerInfo.getTPS();
+        return [
+            { label: 'FPS', value: String(fps), color: 0xffffffff },
+            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
+            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
+        ];
     }
 
     openPositionsGUI() {
