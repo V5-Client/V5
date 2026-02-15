@@ -41,13 +41,10 @@ class CommissionMacro extends ModuleBase {
         this.setTheme('#4cdfd2');
 
         this.commissionsCompleted = 0;
-        this.currentToolType = 'None'; // 'Drill', 'Pickaxe', 'Weapon'
-        this.currentToolName = 'None';
 
         this.currentState = STATES.IDLE;
         this.playerAvoidanceRadius = 10;
         this.goblinWeaponSlot = 1;
-        this.swapPickaxeStep = 0;
         this.pauseTicks = 0;
 
         this.commissions = [];
