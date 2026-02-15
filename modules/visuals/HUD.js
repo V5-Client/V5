@@ -292,6 +292,25 @@ class HUD extends ModuleBase {
             borderWidth: BORDER_WIDTH * s,
             borderColor: border,
         });
+
+        const cols = 9;
+        const mainRows = 3;
+        const pad = 6 * s;
+        const slot = 18 * s;
+        const gap = 4 * s;
+        const separatorThickness = Math.max(1, 1 * s);
+
+        const gridStartX = o.x + pad;
+        const mainStartY = o.y + pad;
+        const rowWidth = cols * slot;
+
+        const mainHotbarSeparatorY = mainStartY + mainRows * slot + gap / 2 - separatorThickness / 2;
+        const halfWidth = rowWidth / 2;
+        const centerColor = colorWithAlpha(THEME.ACCENT, 0.3);
+        const edgeColor = colorWithAlpha(THEME.ACCENT, 0);
+
+        NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
+        NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
     }
 
     drawInventoryHudItems() {
