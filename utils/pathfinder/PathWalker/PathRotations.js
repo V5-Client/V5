@@ -71,6 +71,7 @@ class PathRotations {
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
         this.unseenSince = 0;
+        this.unseenStartPathPosition = 0;
         this.currentPathCurvature = 0;
         PathRotationsUtility.stopRotation();
     }
@@ -264,14 +265,19 @@ class PathRotations {
         const effectiveMin = this.isInRecoveryMode() ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
         let targetVisible = this.isPointVisible(playerEyes, result.point);
         if (result.lookahead <= effectiveMin + 0.001 && !targetVisible) {
-            if (!this.unseenSince) this.unseenSince = Date.now();
+            if (!this.unseenSince) {
+                this.unseenSince = Date.now();
+                this.unseenStartPathPosition = this.currentPathPosition;
+            }
             if (Date.now() - this.unseenSince >= 600) {
                 let attempts = 0;
-                while (this.currentPathPosition > 0 && attempts < 8) {
-                    this.currentPathPosition = Math.max(0, this.currentPathPosition - 1);
+                const minRollbackPosition = Math.max(0, this.unseenStartPathPosition - 8);
+                while (this.currentPathPosition > minRollbackPosition && attempts < 8) {
+                    this.currentPathPosition = Math.max(minRollbackPosition, this.currentPathPosition - 1);
                     const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + effectiveMin);
                     if (this.isPointVisible(playerEyes, this.getInterpolatedPoint(t))) {
                         this.unseenSince = 0;
+                        this.unseenStartPathPosition = this.currentPathPosition;
                         this.cachedLookahead = null;
                         result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
                         targetVisible = this.isPointVisible(playerEyes, result.point);
@@ -280,7 +286,10 @@ class PathRotations {
                     attempts++;
                 }
             }
-        } else this.unseenSince = 0;
+        } else {
+            this.unseenSince = 0;
+            this.unseenStartPathPosition = this.currentPathPosition;
+        }
         let targetPoint = result.point;
         if (result.lookahead < this.smoothedLookahead) this.smoothedLookahead = this.smoothedLookahead * 0.9 + result.lookahead * 0.1;
         const rawDx = targetPoint.x - playerEyes.x;
