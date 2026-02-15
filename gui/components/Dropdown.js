@@ -26,7 +26,15 @@ export class MultiToggle {
             animationStart: 0,
         }));
         this.singleSelect = singleSelect;
-        if (defaultValue) {
+        if (Array.isArray(defaultValue)) {
+            const defaultSet = new Set(defaultValue);
+            this.options.forEach((option) => {
+                if (defaultSet.has(option.name)) {
+                    option.enabled = true;
+                    option.animationProgress = 1;
+                }
+            });
+        } else if (defaultValue) {
             const defaultIndex = options.indexOf(defaultValue);
             if (defaultIndex !== -1) {
                 this.options[defaultIndex].enabled = true;

@@ -1,0 +1,228 @@
+{
+  "warps": [
+    {
+      "warp": "elizabeth",
+      "area": "Hub",
+      "defaultUnlock": true,
+      "x": 3,
+      "y": 71,
+      "z": -101
+    },
+    {
+      "warp": "crimson",
+      "area": "Crimson Isle",
+      "defaultUnlock": false,
+      "x": -361,
+      "y": 80,
+      "z": -430
+    },
+    {
+      "warp": "mines",
+      "area": "Dwarven Mines",
+      "defaultUnlock": false,
+      "x": -49,
+      "y": 200,
+      "z": -121
+    },
+    {
+      "warp": "forge",
+      "area": "Dwarven Mines",
+      "defaultUnlock": false,
+      "x": 0,
+      "y": 149,
+      "z": -68
+    },
+    {
+      "warp": "barn",
+      "area": "The Farming Islands",
+      "defaultUnlock": false,
+      "x": 113,
+      "y": 71,
+      "z": -207
+    },
+    {
+      "warp": "desert",
+      "area": "The Farming Islands",
+      "defaultUnlock": false,
+      "x": 160,
+      "y": 77,
+      "z": -370
+    },
+    {
+      "warp": "trapper",
+      "area": "The Farming Islands",
+      "defaultUnlock": false,
+      "x": 281,
+      "y": 104,
+      "z": -547
+    },
+    {
+      "warp": "park",
+      "area": "The Park",
+      "defaultUnlock": true,
+      "x": -266,
+      "y": 79,
+      "z": -18
+    },
+    {
+      "warp": "spider",
+      "area": "Spider's Den",
+      "defaultUnlock": false,
+      "x": -203,
+      "y": 83,
+      "z": -233
+    },
+    {
+      "warp": "end",
+      "area": "The End",
+      "defaultUnlock": false,
+      "x": -503,
+      "y": 101,
+      "z": -275
+    },
+    {
+      "warp": "castle",
+      "area": "Hub",
+      "defaultUnlock": false,
+      "x": -250,
+      "y": 130,
+      "z": 45
+    },
+    {
+      "warp": "crypts",
+      "area": "Hub",
+      "defaultUnlock": false,
+      "x": -162,
+      "y": 61,
+      "z": -100
+    },
+    {
+      "warp": "museum",
+      "area": "Hub",
+      "defaultUnlock": false,
+      "x": -76,
+      "y": 76,
+      "z": 80
+    },
+    {
+      "warp": "nest",
+      "area": "The End",
+      "defaultUnlock": false,
+      "x": -189,
+      "y": 176,
+      "z": -310
+    },
+    {
+      "warp": "drag",
+      "area": "The End",
+      "defaultUnlock": false,
+      "x": -607,
+      "y": 22,
+      "z": -276
+    },
+    {
+      "warp": "sepulture",
+      "area": "The End",
+      "defaultUnlock": false,
+      "x": -570,
+      "y": 7,
+      "z": -318
+    },
+    {
+      "warp": "hub",
+      "area": "Hub",
+      "defaultUnlock": true,
+      "x": -3,
+      "y": 70,
+      "z": -70
+    },
+    {
+      "warp": "kuudra",
+      "area": "Crimson Isle",
+      "defaultUnlock": false,
+      "x": -373,
+      "y": 114,
+      "z": -1034
+    },
+    {
+      "warp": "da",
+      "area": "Hub",
+      "defaultUnlock": false,
+      "x": 91,
+      "y": 75,
+      "z": 173
+    },
+    {
+      "warp": "wizard",
+      "area": "Hub",
+      "defaultUnlock": false,
+      "x": 42,
+      "y": 122,
+      "z": 69
+    },
+    {
+      "warp": "nucleus",
+      "area": "Crystal Hollows",
+      "defaultUnlock": false,
+      "x": 513,
+      "y": 106,
+      "z": 526
+    },
+    {
+      "warp": "arachne",
+      "area": "Spider's Den",
+      "defaultUnlock": false,
+      "x": -282,
+      "y": 47,
+      "z": -198
+    },
+    {
+      "warp": "smoldering_tomb",
+      "area": "Crimson Isle",
+      "defaultUnlock": false,
+      "x": -283,
+      "y": 108,
+      "z": -1031
+    },
+    {
+      "warp": "stonks",
+      "area": "Hub",
+      "defaultUnlock": true,
+      "x": -53,
+      "y": 72,
+      "z": -53
+    },
+    {
+      "warp": "bayou",
+      "area": "Backwater",
+      "defaultUnlock": true,
+      "x": -13,
+      "y": 74,
+      "z": 10
+    },
+    {
+      "warp": "galatea",
+      "area": "Galatea",
+      "defaultUnlock": true,
+      "x": -548,
+      "y": 109,
+      "z": -22
+    },
+    {
+      "warp": "murkwater",
+      "area": "Galatea",
+      "defaultUnlock": false,
+      "x": -645,
+      "y": 90,
+      "z": 2
+    },
+    {
+      "warp": "taylor",
+      "area": "Hub",
+      "defaultUnlock": true,
+      "x": 22,
+      "y": 71,
+      "z": -43
+    }
+  ]
+}

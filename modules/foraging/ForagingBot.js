@@ -142,7 +142,7 @@ class ForagingBot extends ModuleBase {
         }
 
         this.pathInProgress = true;
-        Pathfinder.findPath(end, this.onPathFinished.bind(this));
+        Pathfinder.findPath([end], this.onPathFinished.bind(this));
     }
 
     onPathFinished(success) {

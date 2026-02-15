@@ -120,7 +120,7 @@ class CommissionMacro extends ModuleBase {
             if (this.enabled) this.delayedReset(10);
         });
 
-        manager.subscribe('warp', () => {
+        manager.subscribe('serverchange', () => {
             if (this.enabled) this.delayedReset(67);
         });
 

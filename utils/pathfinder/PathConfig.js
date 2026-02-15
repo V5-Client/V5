@@ -11,6 +11,9 @@ class PathFindingConfig extends ModuleBase {
             hideInModules: true,
         });
 
+        this.WARP_POINTS_DATA = this.loadWarpPoints();
+        this.WARP_POINT_STATES = {};
+
         this.PATHFINDING_DEBUG = false;
         this.RENDER_KEY_NODES = false;
         this.RENDER_FLOATING_SPLINE = false;
@@ -55,6 +58,62 @@ class PathFindingConfig extends ModuleBase {
             false,
             'Pathfinding'
         );
+
+        this.registerWarpPointSettings();
+    }
+
+    loadWarpPoints() {
+        const raw = FileLib.read('V5', 'utils/pathfinder/WarpPoints.json');
+        return JSON.parse(raw).warps.map((warp) => ({
+            warp: warp.warp,
+            area: warp.area,
+            defaultUnlock: !!warp.defaultUnlock,
+            x: Number(warp.x),
+            y: Number(warp.y),
+            z: Number(warp.z),
+        }));
+    }
+
+    registerWarpPointSettings() {
+        this.WARP_POINTS_DATA.forEach((warpPoint) => {
+            this.WARP_POINT_STATES[warpPoint.warp] = warpPoint.defaultUnlock;
+        });
+
+        const warpNames = this.WARP_POINTS_DATA.map((warpPoint) => warpPoint.warp);
+        const defaultWarps = this.WARP_POINTS_DATA.filter((warpPoint) => warpPoint.defaultUnlock).map((warpPoint) => warpPoint.warp);
+
+        this.addDirectMultiToggle(
+            'Warp Points',
+            warpNames,
+            false,
+            (value) => {
+                this.toggleWarpPoint(value);
+            },
+            'Select which warps can be used as pathfinding start points',
+            defaultWarps,
+            'Pathfinding'
+        );
+    }
+
+    toggleWarpPoint(value) {
+        const enabledWarps = new Set();
+
+        value.forEach((entry) => {
+            if (entry.enabled) {
+                enabledWarps.add(entry.name);
+            }
+        });
+
+        this.WARP_POINTS_DATA.forEach((warpPoint) => {
+            this.WARP_POINT_STATES[warpPoint.warp] = enabledWarps.has(warpPoint.warp);
+        });
+    }
+
+    getAreaWarpPoints(area) {
+        return this.WARP_POINTS_DATA.filter((warpPoint) => {
+            if (!this.WARP_POINT_STATES[warpPoint.warp]) return false;
+            return warpPoint.area === area;
+        });
     }
 }
 

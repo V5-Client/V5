@@ -4,6 +4,8 @@ import { BP, Vec3d } from '../Constants';
 import Render from '../render/Render';
 import { ScheduleTask } from '../ScheduleTask';
 import { Executor } from '../ThreadExecutor';
+import { MathUtils } from '../Math';
+import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
 import PathConfig from './PathConfig';
 import { PathExecutor } from './PathExecutor';
@@ -28,6 +30,16 @@ class Finder {
         this.recalculateAttempts = 0;
         this.recalculateRetryQueued = false;
         this.MAX_RECALCULATE_ATTEMPTS = 5;
+
+        this.currentStarts = null;
+        this.startCandidates = [];
+        this.selectedStartCandidate = null;
+        this.warpCommandIssued = false;
+        this.warpRetryCount = 0;
+        this.warpLastAttemptAt = 0;
+        this.hasReachedWarpPoint = false;
+        this.WARP_RETRY_TIMEOUT_MS = 7000;
+        this.MAX_WARP_RETRIES = 3;
 
         this.flyStarted = false;
         this.flyStartDelayTicks = 0;
@@ -81,19 +93,34 @@ class Finder {
         });
     }
 
-    findPath(end, onComplete, renderOnly = false, isFly = false) {
+    findPath(end, onComplete, renderOnly = false, isFly = false, startPoints = null) {
         this.currentEnd = end;
+        this.currentStarts = startPoints;
         this.currentCallback = onComplete;
         this.isFly = isFly;
 
-        const start = this.getPlayerStart();
-
-        if (this.calledFromFile) {
-            const endStr = Array.isArray(end[0]) ? `Multiple Goals (${end.length})` : `${end[0]}, ${end[1]}, ${end[2]}`;
-            Chat.messagePathfinder(`Path from &a${start.x}, ${start.y}, ${start.z}&f to &c${endStr}`);
+        const { points: starts, metadata: startMetadata } = this.createStartPoints(startPoints);
+        if (!starts?.length) {
+            showNotification('Pathfinding Failed', 'No valid start points were provided.', 'ERROR', 5000);
+            return;
         }
 
-        if (!Swift.SwiftPath(start.x, start.y, start.z, end, isFly)) {
+        this.startCandidates = startMetadata;
+        this.selectedStartCandidate = null;
+        this.warpCommandIssued = false;
+        this.warpRetryCount = 0;
+        this.warpLastAttemptAt = 0;
+        this.recalculateAttempts = 0;
+        this.hasReachedWarpPoint = false;
+
+        const start = starts[0];
+
+        if (this.calledFromFile) {
+            const endStr = end.length > 1 ? `Multiple Goals (${end.length})` : `${end[0][0]}, ${end[0][1]}, ${end[0][2]}`;
+            Chat.messagePathfinder(`Path from &a${start[0]}, ${start[1]}, ${start[2]}&f to &c${endStr}`);
+        }
+
+        if (!Swift.SwiftPath(starts, end, isFly)) {
             showNotification('Pathfinding Failed', Swift.getLastError() || 'Failed to start', 'ERROR', 5000);
             return;
         }
@@ -125,7 +152,8 @@ class Finder {
                         return;
                     }
 
-                    Chat.messagePathfinder('§cNo path found');
+                    const reason = Swift.getLastError();
+                    Chat.messagePathfinder('§cNo path found' + (reason ? ': ' + reason : ''));
 
                     this.callCallback(false);
                     this.resetPath();
@@ -138,6 +166,8 @@ class Finder {
                 Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
                 this.saidInfo = true;
             }
+
+            if (!this.handleStartPointWarp(result)) return;
 
             if (!this.isFly) {
                 const splinePath = this.createSplinePath(result);
@@ -275,6 +305,7 @@ class Finder {
         }
 
         const end = this.currentEnd;
+        const starts = this.currentStarts;
         const callback = this.currentCallback;
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
@@ -286,15 +317,17 @@ class Finder {
         ScheduleTask(3, () => {
             if (this.currentEnd === null) return;
             this.currentEnd = end;
+            this.currentStarts = starts;
             this.currentCallback = callback;
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
-            this.findPath(end, callback, false);
+            this.findPath(end, callback, false, this.isFly, starts);
         });
     }
 
     retryRecalculate() {
         const end = this.currentEnd;
+        const starts = this.currentStarts;
         const callback = this.currentCallback;
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
@@ -307,11 +340,12 @@ class Finder {
             if (this.currentEnd === null) return;
 
             this.currentEnd = end;
+            this.currentStarts = starts;
             this.currentCallback = callback;
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
 
-            this.findPath(end, callback, false);
+            this.findPath(end, callback, false, this.isFly, starts);
         });
     }
 
@@ -324,7 +358,7 @@ class Finder {
         const pX = Player.getX(),
             pY = Player.getY(),
             pZ = Player.getZ();
-        const goals = Array.isArray(this.currentEnd[0]) ? this.currentEnd : [this.currentEnd];
+        const goals = this.currentEnd;
 
         for (const goal of goals) {
             const destX = goal[0];
@@ -386,6 +420,138 @@ class Finder {
         return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
     }
 
+    createStartPoints(startPoints) {
+        if (startPoints) {
+            return {
+                points: startPoints,
+                metadata: startPoints.map((point) => ({
+                    type: 'custom',
+                    point: [point[0], point[1], point[2]],
+                })),
+            };
+        }
+
+        const points = [];
+        const metadata = [];
+
+        const start = this.getPlayerStart();
+        const playerPoint = [start.x, start.y, start.z];
+
+        points.push(playerPoint);
+        metadata.push({
+            type: 'player',
+            point: [playerPoint[0], playerPoint[1], playerPoint[2]],
+        });
+
+        PathConfig.getAreaWarpPoints(Utils.area()).forEach((warpPoint) => {
+            const point = [warpPoint.x, warpPoint.y, warpPoint.z];
+            points.push(point);
+            metadata.push({
+                type: 'warp',
+                warp: warpPoint.warp,
+                area: warpPoint.area,
+                point: [point[0], point[1], point[2]],
+            });
+        });
+
+        return { points, metadata };
+    }
+
+    handleStartPointWarp(result) {
+        if (!this.selectedStartCandidate) {
+            this.selectedStartCandidate = this.resolvePathStartCandidate(result);
+        }
+
+        if (this.selectedStartCandidate.type !== 'warp') {
+            return true;
+        }
+
+        if (this.isPlayerAtWarpPoint(this.selectedStartCandidate.point)) {
+            return true;
+        } else {
+            this.issueWarpCommand();
+            return false;
+        }
+    }
+
+    issueWarpCommand() {
+        const warpName = this.selectedStartCandidate?.warp;
+        if (!warpName) return;
+
+        if (!this.warpCommandIssued) {
+            this.warpCommandIssued = true;
+            this.warpLastAttemptAt = Date.now();
+            ChatLib.command(`warp ${warpName}`);
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.warpLastAttemptAt < this.WARP_RETRY_TIMEOUT_MS) {
+            return;
+        }
+
+        if (this.warpRetryCount >= this.MAX_WARP_RETRIES) {
+            this.failWarpPathfinding();
+            return;
+        }
+
+        this.warpRetryCount++;
+        this.warpCommandIssued = true;
+        this.warpLastAttemptAt = now;
+        ChatLib.command(`warp ${warpName}`);
+        return;
+    }
+
+    failWarpPathfinding() {
+        const warpName = this.selectedStartCandidate?.warp || 'unknown';
+        Chat.messagePathfinder(`§cFailed to warp to ${warpName} after ${this.MAX_WARP_RETRIES} retries.`);
+        showNotification('Pathfinding Failed', `Warp ${warpName} failed after ${this.MAX_WARP_RETRIES} retries.`, 'ERROR', 5000);
+        this.callCallback(false);
+        this.resetPath();
+        PathExecutor.destroy();
+    }
+
+    isPlayerAtWarpPoint(point) {
+        if (this.hasReachedWarpPoint) return true;
+
+        const dist = MathUtils.getDistanceToPlayer(point[0], point[1], point[2]);
+        if (dist.distance <= 5) {
+            this.hasReachedWarpPoint = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    // The pathfinder doesnt explicity state what start point was used.
+    // Check all start points with the first node to find the closest to see which one was used.
+    resolvePathStartCandidate(result) {
+        const firstNode = result?.path?.[0];
+        if (!firstNode) return this.startCandidates[0];
+
+        let bestCandidate = this.startCandidates[0];
+        let bestDistance = Number.MAX_VALUE;
+
+        this.startCandidates.forEach((candidate) => {
+            if (!candidate?.point || candidate.point.length < 3) return;
+            const distance = this.getStartNodeDistanceSq(firstNode, candidate.point);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestCandidate = candidate;
+            }
+        });
+
+        return bestCandidate;
+    }
+
+    getStartNodeDistanceSq(node, point) {
+        const compareY = this.isFly ? point[1] : point[1] + 1;
+        const dx = node.x - point[0];
+        const dy = node.y - compareY;
+        const dz = node.z - point[2];
+        return dx * dx + dy * dy + dz * dz;
+    }
+
     createSplinePath(path) {
         if (!path) return null;
         const nodes = path.path_between_key_nodes?.length ? path.path_between_key_nodes : path.keynodes;
@@ -442,15 +608,22 @@ class Finder {
         this.flyLookPoints = null;
         this.flyMovementPath = null;
         this.flySplinePath = null;
+        this.startCandidates = [];
+        this.selectedStartCandidate = null;
+        this.warpCommandIssued = false;
+        this.warpRetryCount = 0;
+        this.warpLastAttemptAt = 0;
 
         if (clearFlags) {
             this.saidInfo = false;
             this.calledFromFile = false;
             this.currentEnd = null;
+            this.currentStarts = null;
             this.currentCallback = null;
             this.recalculateAttempts = 0;
             this.recalculateRetryQueued = false;
             this.isFly = false;
+            this.hasReachedWarpPoint = false;
         }
     }
 

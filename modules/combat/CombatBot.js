@@ -447,8 +447,11 @@ class Combat extends ModuleBase {
             return;
         }
 
-        const end = [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)];
-
+        const end = [
+            [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)],
+            [Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z)],
+            [Math.floor(pos.x), Math.floor(pos.y + 1), Math.floor(pos.z)],
+        ];
         this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
         this.isPathing = true;
         this.setState('PATHING');
@@ -591,8 +594,11 @@ class Combat extends ModuleBase {
             return;
         }
 
-        const start = [Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ())];
-        const end = [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)];
+        const end = [
+            [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)],
+            [Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z)],
+            [Math.floor(pos.x), Math.floor(pos.y + 1), Math.floor(pos.z)],
+        ];
 
         this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
         this.isPathing = true;

@@ -5,30 +5,45 @@ class SwiftIntegration {
         this.pathManager = PathManager;
     }
 
-    SwiftPath(startX, startY, startZ, endInput, isFly = false) {
-        let flatGoals = [];
+    // I dont know what codex wrote but it works
+    // This needs to be fixed but anytime i change anything it breaks more
+    // Good luck for whoever tries next
+    SwiftPath(startPoints, endPoints, isFly = false) {
+        const fly = isFly === true;
+        const startsValid = Array.isArray(startPoints) && startPoints.length > 0 && Array.isArray(startPoints[0]);
+        const endsValid = Array.isArray(endPoints) && endPoints.length > 0 && Array.isArray(endPoints[0]);
 
-        if (Array.isArray(endInput) && Array.isArray(endInput[0])) {
-            endInput.forEach((coord) => flatGoals.push(...coord));
-        } else {
-            flatGoals = endInput;
-        }
+        if (!startsValid || !endsValid) return false;
+        if (!startPoints.length || !endPoints.length) return false;
 
         try {
-            const javaArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, flatGoals.length);
-            for (let i = 0; i < flatGoals.length; i++) {
-                const flooredGoal = Math.floor(flatGoals[i]);
-                javaArray[i] = i % 3 === 1 && !isFly ? flooredGoal + 1 : flooredGoal;
+            const intArrayClass = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 0).getClass();
+            const startArray = java.lang.reflect.Array.newInstance(intArrayClass, startPoints.length);
+            const endArray = java.lang.reflect.Array.newInstance(intArrayClass, endPoints.length);
+
+            for (let i = 0; i < startPoints.length; i++) {
+                const point = startPoints[i];
+                const pointArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 3);
+                pointArray[0] = Math.floor(point[0]);
+                pointArray[1] = fly ? Math.floor(point[1]) : Math.floor(point[1]) + 1;
+                pointArray[2] = Math.floor(point[2]);
+                startArray[i] = pointArray;
             }
 
-            return this.pathManager.findPathMultipleGoals(
-                Math.floor(startX),
-                isFly ? Math.floor(startY) : Math.floor(startY) + 1,
-                Math.floor(startZ),
-                javaArray,
-                500000,
-                isFly
-            );
+            for (let i = 0; i < endPoints.length; i++) {
+                const point = endPoints[i];
+                const pointArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 3);
+                pointArray[0] = Math.floor(point[0]);
+                pointArray[1] = fly ? Math.floor(point[1]) : Math.floor(point[1]) + 1;
+                pointArray[2] = Math.floor(point[2]);
+                endArray[i] = pointArray;
+            }
+
+            if (fly) {
+                return this.pathManager.findFlyPath(startArray, endArray);
+            }
+
+            return this.pathManager.findPath(startArray, endArray);
         } catch (e) {
             console.error('SwiftPath Error: ' + e);
             return false;
