@@ -54,8 +54,8 @@ function sendChatMessage(content) {
 function connectWebSocket() {
     if (ws) {
         try {
-            ws.onClose = null;
-            ws.onError = null;
+            ws.onClose = () => {};
+            ws.onError = () => {};
             ws.close();
         } catch (e) {}
         ws = null;
