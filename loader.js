@@ -12,16 +12,16 @@ import './utils/Config.js';
 import './utils/backend/WebSocket.js';
 
 /* Utils */
-import './failsafes/FailsafeManager.js';
-import './modules/other/DiscordIntegration.js';
-import './modules/other/MacroScheduler.js';
-import './utils/Clipping.js';
-import './utils/KeybindInitializer.js';
 import './utils/MacroState.js';
-import './utils/Misc.js';
-import './utils/SkyblockEvents.js';
-import './utils/V5Mod.js';
+import './modules/other/MacroScheduler.js';
+import './modules/other/DiscordIntegration.js';
 import './utils/pathfinder/PathFinder.js';
+import './utils/Clipping.js';
+import './utils/Misc.js';
+import './failsafes/FailsafeManager.js';
+import './utils/V5Mod.js';
+import './utils/SkyblockEvents.js';
+import './utils/KeybindInitializer.js';
 
 /* Modules */
 import './modules/loader.js';
