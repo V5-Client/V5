@@ -21,7 +21,9 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
     let currentY = panel.y + PADDING - scrollY;
     let currentSection = null;
 
-    for (const [i, component] of components.entries()) {
+    for (let i = 0; i < components.length; i++) {
+        const component = components[i];
+
         if (component.sectionName && component.sectionName !== currentSection) {
             currentSection = component.sectionName;
             if (i > 0) currentY += 16;
