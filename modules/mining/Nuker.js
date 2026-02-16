@@ -141,7 +141,6 @@ class NukerClass extends ModuleBase {
             }
         });
 
-        // THIS DOES NOT WORK DUE TO CTJS 1.21.10 NOT HAVING THE CORRECT REGISTER ENABLED.
         this.on('renderBlockEntity', (entity) => {
             if (Client.isInGui() && !Client.isInChat()) return;
             if (!this.isHoldingRequiredItem()) return;

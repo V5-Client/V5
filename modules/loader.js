@@ -34,6 +34,7 @@ import './skills/AutoExperiments.js';
 import './skills/FishingHelper.js';
 import './skills/FishingMacro.js';
 import './skills/JerryBoxMacro.js';
+import './skills/MinionCollector.js';
 import './skills/RouteWalker.js';
 
 /* OTHER */
