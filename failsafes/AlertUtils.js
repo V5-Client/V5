@@ -214,7 +214,7 @@ class AlertUtilsClass {
     _grabWindowOnFailsafe() {
         try {
             const GLFW = org.lwjgl.glfw.GLFW;
-            const windowHandle = Client.getMinecraft().getWindow().getwindowHandle();
+            const windowHandle = Client.getMinecraft().getWindow().getHandle();
 
             const wasIconified = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_ICONIFIED) === GLFW.GLFW_TRUE;
             const wasMaximized = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_MAXIMIZED) === GLFW.GLFW_TRUE;
