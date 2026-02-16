@@ -69,6 +69,16 @@ jobs:
                   EXT_LIST="${EXT_LIST:0:1024}"
                   echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
+            - name: Upload to Cloudflare R2
+              uses: cloudflare/wrangler-action@v3
+              with:
+                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  wranglerVersion: '3'
+                  command: >
+                      r2 object put v5-builds/V5.zip
+                      --file V5.zip
+
             - name: Send to Discord
               env:
                   WEBHOOK: ${{ secrets.PUSH_NOTIFIER }}
