@@ -133,14 +133,7 @@ class Failsafes extends ModuleBase {
 
     getFilesinDir(folder) {
         const mcDir = new File(Client.getMinecraft().runDirectory);
-        const primaryPath = new File(mcDir, 'config/ChatTriggers/modules/V5/' + folder);
-        const loaderPath = new File(mcDir, 'config/ChatTriggers/assets/V5/' + folder);
-
-        let targetPath = primaryPath;
-
-        if (!targetPath.exists() || !targetPath.isDirectory()) {
-            targetPath = loaderPath;
-        }
+        const targetPath = new File(mcDir, 'config/ChatTriggers/assets/' + folder);
 
         if (!targetPath.exists() || !targetPath.isDirectory()) {
             Chat.message(`&cError: Directory not found.`);

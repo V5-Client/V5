@@ -63,8 +63,9 @@ class PathFindingConfig extends ModuleBase {
     }
 
     loadWarpPoints() {
-        const warppointsloc = new java.io.File('config/ChatTriggers/assets/WarpPoints.json');
-        const raw = FileLib.read(warppointsloc);
+        const mcDir = new java.io.File(Client.getMinecraft().runDirectory);
+        const warppointsloc = new java.io.File(mcDir, 'config/ChatTriggers/assets/WarpPoints.json');
+        const raw = FileLib.read(warppointsloc.getPath());
         return JSON.parse(raw).warps.map((warp) => ({
             warp: warp.warp,
             area: warp.area,
