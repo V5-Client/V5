@@ -63,7 +63,7 @@ class PathFindingConfig extends ModuleBase {
     }
 
     loadWarpPoints() {
-        const warppointsloc = new java.io.File("config/ChatTriggers/assets/WarpPoints.json")
+        const warppointsloc = new java.io.File('config/ChatTriggers/assets/WarpPoints.json');
         const raw = FileLib.read(warppointsloc);
         return JSON.parse(raw).warps.map((warp) => ({
             warp: warp.warp,
