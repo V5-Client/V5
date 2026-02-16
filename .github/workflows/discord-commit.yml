@@ -33,10 +33,6 @@ jobs:
                   echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
                   echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
 
-                  # Defaults for Zip logic (in case zip step is skipped)
-                  echo "ZIP_READY=false" >> "$GITHUB_ENV"
-                  echo "ZIP_WARNING=" >> "$GITHUB_ENV"
-
                   declare -A USERS=(
                     ["EpsilonPhoenix"]="<@899647076370092042>"
                     ["qxionr"]="<@790294721943699477>"
@@ -73,31 +69,6 @@ jobs:
                   EXT_LIST="${EXT_LIST:0:1024}"
                   echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
-            - name: Zip repository
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-              shell: bash
-              run: |
-                  set -euo pipefail
-                  zip -r V5.zip . -x ".git/*" ".github/*" ".vscode/*" "README.md" ".gitignore"
-                  SIZE=$(stat -c%s V5.zip)
-                  MAX_SIZE=8388608
-                  if (( SIZE > MAX_SIZE )); then
-                     echo "ZIP_READY=false" >> "$GITHUB_ENV"
-                     echo "ZIP_WARNING=\n\n⚠️ **Zip artifact too large to send (>8MB).**" >> "$GITHUB_ENV"
-                  else
-                     echo "ZIP_READY=true" >> "$GITHUB_ENV"
-                  fi
-
-            - name: Upload to Cloudflare R2
-              uses: cloudflare/wrangler-action@v3
-              with:
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  wranglerVersion: '3'
-                  command: >
-                      r2 object put v5-builds/V5.zip
-                      --file V5.zip
-
             - name: Send to Discord
               env:
                   WEBHOOK: ${{ secrets.PUSH_NOTIFIER }}
@@ -109,8 +80,6 @@ jobs:
                   export CHUNK_LIMIT=3500
                   export COMMIT_MSG
 
-                  # Split Logic: Split by chars, but backtrack to the nearest newline
-                  # to ensure we don't cut words in half, unless the line is massive.
                   mapfile -d '' MSG_CHUNKS < <(
                     python3 - << 'PY'
                   import os
@@ -127,31 +96,20 @@ jobs:
                   s_len = len(s)
 
                   while start < s_len:
-                      # Define the potential hard cutoff point
                       end = start + limit
-
-                      # If we can fit the rest, just print it
                       if end >= s_len:
                           sys.stdout.write(s[start:] + '\0')
                           break
 
-                      # Get the chunk up to the limit
                       chunk = s[start:end]
-
-                      # Find the last newline in this chunk
                       last_newline = chunk.rfind('\n')
 
                       if last_newline != -1:
-                          # If newline found, split there (include newline in current chunk)
                           cut_point = last_newline + 1
                       else:
-                          # If NO newline found (a massive single line), hard split at limit
                           cut_point = limit
 
-                      # Write the sub-chunk + Null byte
                       sys.stdout.write(chunk[:cut_point] + '\0')
-                      
-                      # Advance start
                       start += cut_point
                   PY
                   )
@@ -162,10 +120,8 @@ jobs:
 
                   TOTAL="${#MSG_CHUNKS[@]}"
 
-                  # ---- First message: embed + optional zip ----
                   FIRST_MSG="${MSG_CHUNKS[0]}"
 
-                  # Pass ZIP_WARNING to jq. It defaults to empty string if zip is okay/missing.
                   PAYLOAD="$(jq -cn \
                     --arg msg "$FIRST_MSG" \
                     --arg url "$COMMIT_URL" \
@@ -176,13 +132,12 @@ jobs:
                     --arg types "$FILE_TYPES" \
                     --arg idx "1" \
                     --arg total "$TOTAL" \
-                    --arg warn "$ZIP_WARNING" \
                     '{
                       username: "V5 Commits",
                       avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
                       embeds: [{
                         title: ("New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
-                        description: ("📝 **Summary**\n" + $msg + $warn + "\n\n[View Commit](" + $url + ")"),
+                        description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
                         color: 3447003,
                         timestamp: $time,
                         fields: [
@@ -195,16 +150,11 @@ jobs:
                     }'
                   )"
 
-                    CURL_ARGS=(--form-string "payload_json=$PAYLOAD")
+                  curl -sS --fail-with-body \
+                    -H "Content-Type: application/json" \
+                    -d "$PAYLOAD" \
+                    "$WEBHOOK"
 
-                    if [[ "${ZIP_READY}" == "true" ]]; then
-                        CURL_ARGS+=(-F "files[0]=@V5.zip;filename=V5.zip")
-                    fi
-
-                    curl -sS --fail-with-body "${CURL_ARGS[@]}" "$WEBHOOK"
-
-
-                  # ---- Continuations: embeds only ----
                   for ((i = 1; i < TOTAL; i++)); do
                     PART="${MSG_CHUNKS[$i]}"
                     IDX="$((i+1))"
