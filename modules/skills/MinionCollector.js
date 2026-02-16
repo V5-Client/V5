@@ -10,7 +10,8 @@ class MinionCollector extends ModuleBase {
         super({
             name: 'Minion Collector',
             subcategory: 'Skills',
-            description: 'Auto Collects Minions via Queue (Single Interaction)',
+            description: 'Auto Collects Minions using Aura - Caution!',
+            tooltip: 'Auto Collects Minions using Aura - Caution!',
             showEnabledToggle: true,
         });
 
