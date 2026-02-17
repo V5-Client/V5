@@ -28,7 +28,7 @@ import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
 import { Categories } from './CategorySystem';
 
-const ASSETS_PATHS = ['config/ChatTriggers/assets/'];
+const ASSETS_PATHS = ['config/ChatTriggers/assets/assets/'];
 
 const getAssetPath = (filename) => {
     for (const basePath of ASSETS_PATHS) {
