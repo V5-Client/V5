@@ -15,7 +15,7 @@ import {
     TypingState,
 } from '../Utils';
 
-const ASSETS_PATHS = ['config/ChatTriggers/assets/assets/'];
+const ASSETS_PATHS = ['config/ChatTriggers/assets/'];
 
 const getAssetPath = (filename) => {
     for (const basePath of ASSETS_PATHS) {
