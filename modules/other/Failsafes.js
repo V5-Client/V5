@@ -114,7 +114,7 @@ class Failsafes extends ModuleBase {
         );
         this.addDirectMultiToggle(
             'Failsafe sound',
-            this.getFilesinDir('failsafes/sounds'),
+            this.getFilesinDir(),
             true,
             (v) => {
                 // someone sort this out properly
@@ -131,9 +131,9 @@ class Failsafes extends ModuleBase {
         );
     }
 
-    getFilesinDir(folder) {
+    getFilesinDir() {
         const mcDir = new File(Client.getMinecraft().runDirectory);
-        const targetPath = new File(mcDir, 'config/ChatTriggers/assets/' + folder);
+        const targetPath = new File(mcDir, 'config/ChatTriggers/assets/');
 
         if (!targetPath.exists() || !targetPath.isDirectory()) {
             Chat.message(`&cError: Directory not found.`);
