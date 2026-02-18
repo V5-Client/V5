@@ -19,6 +19,19 @@ const BLACKHOLE_TEXTURES = new Set([
 
 const BLACKHOLE_AVOID_RADIUS = 8.5;
 const ATTACK_REACH = 3.0;
+const BLACKHOLE_SCAN_INTERVAL = 10;
+const BLACKHOLE_SCAN_RADIUS = 30;
+const BLACKHOLE_SCAN_Y_RANGE = 20;
+
+const SEARCH_TARGET_TIMEOUT_MS = 15000;
+const TARGET_BLACKLIST_MS = 10000;
+
+const COMBAT_STATE = {
+    IDLE: 'IDLE',
+    PATHING: 'PATHING',
+    APPROACHING: 'APPROACHING',
+    ATTACKING: 'ATTACKING',
+};
 
 const COMBAT_PRESETS = {
     Graveyard: {
@@ -68,7 +81,7 @@ class Combat extends ModuleBase {
         this.activeBlackholes = [];
         this.scanTicker = 0;
 
-        this.combatState = 'IDLE';
+        this.combatState = COMBAT_STATE.IDLE;
         this.attackRange = ATTACK_REACH;
         this.pathfindingThreshold = 15;
         this.attackCPS = 10;
@@ -137,15 +150,12 @@ class Combat extends ModuleBase {
             'Attacks per second'
         );
 
-        const targetName = () =>
-            this.target ? (this.target.getName ? ChatLib.removeFormatting(this.target.getName()) : this.target.name || 'Unknown') : 'None';
-
         this.createOverlay([
             {
                 title: 'Status',
                 data: {
                     State: () => this.combatState,
-                    Target: targetName,
+                    Target: () => this.getTargetDisplayName(this.target),
                     'Targets Found': () => (this.targets ? this.targets.length : 0),
                     'Known Blackholes': () => this.activeBlackholes.length,
                 },
@@ -200,9 +210,7 @@ class Combat extends ModuleBase {
         }
 
         const now = Date.now();
-        for (const [uuid, expiry] of this.blacklistedTargets.entries()) {
-            if (now > expiry) this.blacklistedTargets.delete(uuid);
-        }
+        this.expireBlacklistedTargets(now);
 
         this.pruneVisibilityHistory(now);
         this.pruneMobMemory(now);
@@ -217,7 +225,7 @@ class Combat extends ModuleBase {
         if (!this.target) this.target = this.bestTarget();
         if (!this.target) {
             if (this.trySearch()) return;
-            this.setState('IDLE');
+            this.setState(COMBAT_STATE.IDLE);
             return;
         }
 
@@ -228,20 +236,31 @@ class Combat extends ModuleBase {
 
         const distance = this.getDistanceToPlayer(pos);
         const targetChanged = previousTarget !== this.target;
-        if (targetChanged && this.combatState !== 'PATHING') {
-            this.setState('IDLE');
+        if (targetChanged && this.combatState !== COMBAT_STATE.PATHING) {
+            this.setState(COMBAT_STATE.IDLE);
         }
 
         this.handleState(pos, distance);
     }
 
+    getTargetDisplayName(target) {
+        if (!target) return 'None';
+        if (target.getName) return ChatLib.removeFormatting(target.getName());
+        return target.name || 'Unknown';
+    }
+
+    expireBlacklistedTargets(now = Date.now()) {
+        for (const [uuid, expiry] of this.blacklistedTargets.entries()) {
+            if (now > expiry) this.blacklistedTargets.delete(uuid);
+        }
+    }
+
     shouldUseBlackholeLogic() {
         if (this.enabledPresets.has('Ice Walkers')) return true;
-        if (this.customTargetNames && this.customTargetNames.length > 0) {
-            const lowerNames = this.customTargetNames.map((n) => n.toLowerCase());
-            return lowerNames.some((n) => n.includes('ice') || n.includes('glacite') || n.includes('walker'));
-        }
-        return false;
+        return !!this.customTargetNames?.some((name) => {
+            const n = name.toLowerCase();
+            return n.includes('ice') || n.includes('glacite') || n.includes('walker');
+        });
     }
 
     scanBlackholes() {
@@ -251,7 +270,7 @@ class Combat extends ModuleBase {
         }
 
         this.scanTicker = (this.scanTicker || 0) + 1;
-        if (this.scanTicker % 10 !== 0) return;
+        if (this.scanTicker % BLACKHOLE_SCAN_INTERVAL !== 0) return;
 
         const stands = World.getAllEntities().filter((e) => e.getClassName().includes('ArmorStand') || e.getName().includes('Armor Stand'));
         if (!stands || stands.length === 0) {
@@ -260,16 +279,16 @@ class Combat extends ModuleBase {
         }
 
         const newBlackholes = [];
-        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-        const SCAN_RADIUS = 30;
-        const SCAN_Y_RANGE = 20;
+        const playerX = Player.getX();
+        const playerY = Player.getY();
+        const playerZ = Player.getZ();
 
         for (const stand of stands) {
             try {
-                const dx = stand.getX() - playerPos[0];
-                const dy = stand.getY() - playerPos[1];
-                const dz = stand.getZ() - playerPos[2];
-                if (Math.abs(dx) > SCAN_RADIUS || Math.abs(dz) > SCAN_RADIUS || Math.abs(dy) > SCAN_Y_RANGE) continue;
+                const dx = stand.getX() - playerX;
+                const dy = stand.getY() - playerY;
+                const dz = stand.getZ() - playerZ;
+                if (Math.abs(dx) > BLACKHOLE_SCAN_RADIUS || Math.abs(dz) > BLACKHOLE_SCAN_RADIUS || Math.abs(dy) > BLACKHOLE_SCAN_Y_RANGE) continue;
 
                 const headItem = stand.getStackInSlot(5);
                 if (!headItem) continue;
@@ -408,9 +427,8 @@ class Combat extends ModuleBase {
         if (pos) {
             this.mobMemory = this.mobMemory.filter((m) => this.getDistance3D(m.x, m.y, m.z, pos.x, pos.y, pos.z) > 3);
         }
-        this.searchTarget = null;
-        this.searchTargetSetTime = 0;
-        if (!this.target) this.setState('IDLE');
+        this.cancelSearchTarget();
+        if (!this.target) this.setState(COMBAT_STATE.IDLE);
     }
 
     cancelSearchTarget() {
@@ -424,7 +442,7 @@ class Combat extends ModuleBase {
 
         if (this.searchTarget) {
             const dist = this.getDistanceToPlayer(this.searchTarget);
-            const timedOut = Date.now() - this.searchTargetSetTime > 15000;
+            const timedOut = Date.now() - this.searchTargetSetTime > SEARCH_TARGET_TIMEOUT_MS;
             if (dist <= 2.5 || timedOut) this.clearSearchTarget(this.searchTarget);
         }
 
@@ -437,7 +455,7 @@ class Combat extends ModuleBase {
             this.searchTargetSetTime = Date.now();
         }
 
-        if (!this.isPathing || this.combatState !== 'PATHING') {
+        if (!this.isPathing || this.combatState !== COMBAT_STATE.PATHING) {
             this.startPathingToSearch(this.searchTarget);
         }
 
@@ -451,14 +469,10 @@ class Combat extends ModuleBase {
             return;
         }
 
-        const end = [
-            [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)],
-            [Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z)],
-            [Math.floor(pos.x), Math.floor(pos.y + 1), Math.floor(pos.z)],
-        ];
+        const end = this.buildPathEndpoints(pos);
         this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
         this.isPathing = true;
-        this.setState('PATHING');
+        this.setState(COMBAT_STATE.PATHING);
         this.currentPathStartTime = Date.now();
         const pathToken = ++this.pathRequestToken;
 
@@ -492,7 +506,7 @@ class Combat extends ModuleBase {
 
     stopCombat() {
         this.target = null;
-        this.setState('IDLE', true);
+        this.setState(COMBAT_STATE.IDLE, true);
     }
 
     setState(state, force = false) {
@@ -503,53 +517,54 @@ class Combat extends ModuleBase {
     }
 
     onExitState(state) {
-        if (state === 'PATHING') {
-            Pathfinder.resetPath();
-            this.isPathing = false;
-        }
-
-        if (state === 'APPROACHING' || state === 'ATTACKING') {
-            Keybind.stopMovement();
+        switch (state) {
+            case COMBAT_STATE.PATHING:
+                Pathfinder.resetPath();
+                this.isPathing = false;
+                break;
+            case COMBAT_STATE.APPROACHING:
+            case COMBAT_STATE.ATTACKING:
+                Keybind.stopMovement();
+                break;
         }
     }
 
     onEnterState(state) {
-        if (state === 'IDLE') {
-            Keybind.stopMovement();
-            Rotations.stopRotation();
-            return;
-        }
-
-        if (state === 'PATHING') {
-            Keybind.stopMovement();
-            Rotations.stopRotation();
-            return;
-        }
-
-        if (state === 'APPROACHING') {
-            Pathfinder.resetPath();
-            this.isPathing = false;
-            return;
-        }
-
-        if (state === 'ATTACKING') {
-            Pathfinder.resetPath();
-            this.isPathing = false;
-            Keybind.stopMovement();
+        switch (state) {
+            case COMBAT_STATE.IDLE:
+            case COMBAT_STATE.PATHING:
+                Keybind.stopMovement();
+                Rotations.stopRotation();
+                break;
+            case COMBAT_STATE.APPROACHING:
+                Pathfinder.resetPath();
+                this.isPathing = false;
+                break;
+            case COMBAT_STATE.ATTACKING:
+                Pathfinder.resetPath();
+                this.isPathing = false;
+                Keybind.stopMovement();
+                break;
         }
     }
 
     handleState(pos, distance) {
-        if (this.combatState === 'IDLE') return this.handleIdleState(pos, distance);
-        if (this.combatState === 'PATHING') return this.handlePathingState(pos, distance);
-        if (this.combatState === 'APPROACHING') return this.handleApproachingState(pos, distance);
-        if (this.combatState === 'ATTACKING') return this.handleAttackingState(pos, distance);
+        switch (this.combatState) {
+            case COMBAT_STATE.IDLE:
+                return this.handleIdleState(pos, distance);
+            case COMBAT_STATE.PATHING:
+                return this.handlePathingState(pos, distance);
+            case COMBAT_STATE.APPROACHING:
+                return this.handleApproachingState(pos, distance);
+            case COMBAT_STATE.ATTACKING:
+                return this.handleAttackingState(pos, distance);
+        }
     }
 
     handleIdleState(pos, distance) {
         if (distance > this.pathfindingThreshold) return this.startPathingToTarget(pos);
-        if (distance > this.attackRange) return this.setState('APPROACHING');
-        this.setState('ATTACKING');
+        if (distance > this.attackRange) return this.setState(COMBAT_STATE.APPROACHING);
+        this.setState(COMBAT_STATE.ATTACKING);
     }
 
     handlePathingState(pos, distance) {
@@ -562,13 +577,13 @@ class Combat extends ModuleBase {
         }
 
         if (distance <= this.attackRange) {
-            this.setState('ATTACKING');
+            this.setState(COMBAT_STATE.ATTACKING);
         }
     }
 
     handleApproachingState(pos, distance) {
         if (distance <= this.attackRange) {
-            this.setState('ATTACKING');
+            this.setState(COMBAT_STATE.ATTACKING);
             return;
         }
 
@@ -584,7 +599,7 @@ class Combat extends ModuleBase {
 
     handleAttackingState(pos, distance) {
         if (distance > this.attackRange * 1.3) {
-            this.setState('APPROACHING');
+            this.setState(COMBAT_STATE.APPROACHING);
             return;
         }
 
@@ -595,21 +610,17 @@ class Combat extends ModuleBase {
     startPathingToTarget(pos) {
         if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) {
             Chat.message('&cTarget is inside a Blackhole! Aborting path.');
-            this.blacklistTarget(this.target, 3000);
+            this.blacklistTarget(this.target, TARGET_BLACKLIST_MS);
             this.target = null;
-            this.setState('IDLE');
+            this.setState(COMBAT_STATE.IDLE);
             return;
         }
 
-        const end = [
-            [Math.floor(pos.x), Math.floor(pos.y - 1), Math.floor(pos.z)],
-            [Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z)],
-            [Math.floor(pos.x), Math.floor(pos.y + 1), Math.floor(pos.z)],
-        ];
+        const end = this.buildPathEndpoints(pos);
 
         this.lastPathTarget = { x: pos.x, y: pos.y, z: pos.z };
         this.isPathing = true;
-        this.setState('PATHING');
+        this.setState(COMBAT_STATE.PATHING);
         this.currentPathStartTime = Date.now();
         const pathToken = ++this.pathRequestToken;
 
@@ -623,36 +634,34 @@ class Combat extends ModuleBase {
             if (!success) {
                 if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
                     this.target = null;
-                    this.setState('IDLE');
+                    this.setState(COMBAT_STATE.IDLE);
                     return;
                 }
-                this.setState('APPROACHING');
+                this.setState(COMBAT_STATE.APPROACHING);
                 return;
             }
 
             if (pathTargetUuid) this.failedPathCallbacks.delete(pathTargetUuid);
 
-            const pathDuration = Date.now() - this.currentPathStartTime;
-            if (success && pathDuration < 500 && this.target) {
-                const currentPos = this.getTargetPosition(this.target);
-                const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 0;
-                if (dist > this.pathfindingThreshold - 2) {
-                    Chat.message('&cTarget unreachable by pathfinder. Blacklisting for 3s.');
-                    this.blacklistTarget(this.target, 3000);
-                    this.target = null;
-                    this.setState('IDLE');
-                    return;
-                }
-            }
-
             if (this.target && !this.isTargetInvalid(this.target)) {
                 const currentPos = this.getTargetPosition(this.target);
                 const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
-                this.setState(dist <= this.attackRange ? 'ATTACKING' : 'APPROACHING');
+                this.setState(dist <= this.attackRange ? COMBAT_STATE.ATTACKING : COMBAT_STATE.APPROACHING);
             } else {
-                this.setState('IDLE');
+                this.setState(COMBAT_STATE.IDLE);
             }
         });
+    }
+
+    buildPathEndpoints(pos) {
+        const x = Math.floor(pos.x);
+        const y = Math.floor(pos.y);
+        const z = Math.floor(pos.z);
+        return [
+            [x, y - 1, z],
+            [x, y, z],
+            [x, y + 1, z],
+        ];
     }
 
     getTargetUuid(target) {
@@ -682,7 +691,7 @@ class Combat extends ModuleBase {
 
         if (failures > 2) {
             Chat.message('&cTarget path failed too many times. Blacklisting target for 10s.');
-            this.blacklistTarget(target, 10000);
+            this.blacklistTarget(target, TARGET_BLACKLIST_MS);
             this.failedPathCallbacks.delete(uuid);
             return true;
         }
@@ -899,7 +908,7 @@ class Combat extends ModuleBase {
         this.externalTargets = null;
         this.targets = [];
         this.target = null;
-        this.setState('IDLE', true);
+        this.setState(COMBAT_STATE.IDLE, true);
         this.lastPathTarget = null;
         this.lastAttackTime = 0;
         this.blacklistedTargets.clear();
