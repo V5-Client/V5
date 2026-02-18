@@ -82,7 +82,7 @@ const handleKeybind = () => {
     const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
     let savedKeycode = existingKeybinds[keyName];
 
-    if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_NONE;
+    if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1) savedKeycode = Keyboard.KEY_NONE;
 
     GUIKey = Keyboard.getKeyName(savedKeycode);
     GUIKeyBind = KeyBindUtils.create('guiKey', keyName, savedKeycode);
@@ -94,7 +94,12 @@ const handleKeybind = () => {
     });
 
     GUIKeyBind.onKeyPress(() => {
-        callCommand('gui');
+        GuiState.isOpening = true;
+        GuiState.openStartTime = Date.now();
+        loadSettings();
+        categoryManager?.invalidateLayoutCache();
+        categoryManager?.invalidateContentHeightCache();
+        GuiState.myGui.open();
     });
 };
 
