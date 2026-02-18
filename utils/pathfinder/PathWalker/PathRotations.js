@@ -12,7 +12,7 @@ class PathRotations {
         this.MAX_LOOKAHEAD = 3.5;
         this.RECOVERY_MIN_LOOKAHEAD = 0.1;
         this.PROXIMITY_THRESHOLD = 4.0;
-        this.COMPLETION_RADIUS = 1.6;
+        this.COMPLETION_RADIUS = 1.9;
         this.BASE_KP = 0.05;
         this.KD = 0.55;
         this.MAX_VELOCITY = 8.0;

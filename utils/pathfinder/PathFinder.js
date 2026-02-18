@@ -368,12 +368,12 @@ class Finder {
             const dz = pZ - destZ;
 
             const hDistSq = dx * dx + dz * dz;
-            if (hDistSq > 2.0 * 2.0) continue;
+            if (hDistSq > 2.5 * 2.5) continue;
 
             if (this.isFly) {
                 if (Math.abs(dy) > 4.5) continue;
             } else {
-                if (dy < -0.1 || dy > 2.5) continue;
+                if (dy < -0.1 || dy > 5.5) continue;
             }
 
             if (this.isFly || player.isOnGround()) {
