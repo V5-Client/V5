@@ -5,6 +5,44 @@ import { Utils } from './Utils';
 class Routes {
     constructor() {}
 
+    _toDisplayFileName(filePath) {
+        if (!filePath || typeof filePath !== 'string') return 'unknown';
+        const lastSlashIndex = filePath.lastIndexOf('/');
+        return lastSlashIndex === -1 ? filePath : filePath.substring(lastSlashIndex + 1);
+    }
+
+    _normalizeRoute(rawRoute) {
+        if (!rawRoute) return [];
+
+        const routeArray = Array.isArray(rawRoute) ? rawRoute : Array.isArray(rawRoute.points) ? rawRoute.points : null;
+        if (!routeArray) return [];
+
+        const normalized = [];
+        for (const point of routeArray) {
+            if (!point || typeof point.x !== 'number' || typeof point.y !== 'number' || typeof point.z !== 'number') continue;
+
+            const normalizedPoint = {
+                x: Math.floor(point.x),
+                y: Math.floor(point.y),
+                z: Math.floor(point.z),
+            };
+
+            if (typeof point.movements === 'string' && point.movements.length > 0) {
+                normalizedPoint.movements = point.movements.toUpperCase();
+            }
+
+            normalized.push(normalizedPoint);
+        }
+
+        return normalized;
+    }
+
+    _canSaveRoute(fileName) {
+        if (!fileName || typeof fileName !== 'string') return false;
+        if (fileName.includes('/null') || fileName.includes('/undefined')) return false;
+        return true;
+    }
+
     /**
      * Checks a file path and returns all files in that directory.
      * @param {*} folder The directory in V5Config
@@ -25,12 +63,16 @@ class Routes {
         if (!fileArray) return [];
 
         for (const file of fileArray) {
+            if (!file || !file.isFile()) continue;
+
             let name = file.getName();
-            name = name.replaceAll('.json', '');
+            if (!name.endsWith('.json')) continue;
+            name = name.substring(0, name.length - 5);
 
             fileNames.push(name);
         }
 
+        fileNames.sort((a, b) => a.localeCompare(b));
         return fileNames;
     }
 
@@ -40,12 +82,14 @@ class Routes {
      * @returns the enabled file in a directory
      */
     getFilefromCallback(callback) {
+        if (!Array.isArray(callback)) return null;
+
         let enabledObjects = callback.filter((item) => item.enabled === true);
         let enabledRouteNames = enabledObjects.map((item) => item.name);
 
         if (enabledRouteNames.length === 0) return null;
 
-        let fileName = enabledRouteNames.join(', ') + '.json';
+        let fileName = enabledRouteNames[0] + '.json';
         return fileName;
     }
 
@@ -56,17 +100,16 @@ class Routes {
      * @returns the data in the file or null if no file
      */
     loadRouteFromFile(dir, file) {
-        if (!file) return;
+        if (!file) return [];
+
         try {
             let routeData = Utils.getConfigFile(dir + file);
 
-            if (routeData) return routeData;
+            return this._normalizeRoute(routeData);
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
-            return null;
+            return [];
         }
-
-        return null;
     }
 
     /**
@@ -75,10 +118,16 @@ class Routes {
      * @param {*} file the files name
      */
     saveRouteToFile(fileName, routeData) {
+        if (!this._canSaveRoute(fileName)) {
+            Chat.message('&cNo route file selected. Select a route before editing.');
+            return false;
+        }
+
         try {
-            Utils.writeConfigFile(fileName, routeData);
+            return Utils.writeConfigFile(fileName, this._normalizeRoute(routeData));
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
+            return false;
         }
     }
 
@@ -100,18 +149,20 @@ class Routes {
             indexToUse = indexNum;
         }
 
-        if (!route) {
-            return Chat.message("You don't have a route selected");
+        if (!this._canSaveRoute(file)) {
+            Chat.message('&cNo route file selected. Select one in the settings first.');
+            return this._normalizeRoute(route);
         }
 
-        if (!Array.isArray(route)) {
+        let normalizedRoute = this._normalizeRoute(route);
+        if (route !== null && route !== undefined && !Array.isArray(route)) {
             Chat.message('Invalid route data. Resetting to an empty route.');
-            route = [];
         }
 
         let routeModified = false;
+        const actionUpper = typeof action === 'string' ? action.toUpperCase() : '';
 
-        switch (action) {
+        switch (actionUpper) {
             case 'ADD':
                 let point = {};
 
@@ -119,7 +170,7 @@ class Routes {
                     let looking = Player.lookingAt();
                     if (!looking) {
                         Chat.message('You are not looking at anything');
-                        return route;
+                        return normalizedRoute;
                     }
                     point.x = Math.floor(looking.x);
                     point.y = Math.floor(looking.y);
@@ -130,16 +181,14 @@ class Routes {
                     point.z = Math.floor(Player.getZ());
                 }
 
-                let isValidWaypoint = true;
-
-                let allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => m.toUpperCase()) : null);
+                const allowedMovementsSet = new Set(Array.isArray(allowedMovements) ? allowedMovements.map((m) => String(m).toUpperCase()) : []);
 
                 if (takeMovementTypes) {
                     let movementToVerify = Array.isArray(userMovementInput) ? userMovementInput[0] : userMovementInput;
 
                     if (!movementToVerify) {
                         Chat.message('ERROR: Movement type required. Waypoint not added.');
-                        return route;
+                        return normalizedRoute;
                     }
 
                     let userMovementUpper = movementToVerify.toUpperCase();
@@ -148,28 +197,26 @@ class Routes {
                         point.movements = userMovementUpper;
                     } else {
                         Chat.message(`ERROR: Movement type '${movementToVerify}' not supported.`);
-                        return route;
+                        return normalizedRoute;
                     }
                 }
 
-                if (isValidWaypoint) {
-                    if (indexToUse !== undefined) {
-                        let arrayIndex = indexToUse - 1;
+                if (indexToUse !== undefined) {
+                    let arrayIndex = indexToUse - 1;
 
-                        if (arrayIndex >= 0 && arrayIndex <= route.length) {
-                            route.splice(arrayIndex, 0, point);
-                            routeModified = true;
-                            Chat.message(`Added waypoint ${indexToUse}`);
-                        } else {
-                            route.push(point);
-                            routeModified = true;
-                            Chat.message(`Invalid waypoint position, adding to the end.`);
-                        }
-                    } else {
-                        route.push(point);
+                    if (arrayIndex >= 0 && arrayIndex <= normalizedRoute.length) {
+                        normalizedRoute.splice(arrayIndex, 0, point);
                         routeModified = true;
-                        Chat.message(`Added waypoint to the end of the route.`);
+                        Chat.message(`Added waypoint ${indexToUse}`);
+                    } else {
+                        normalizedRoute.push(point);
+                        routeModified = true;
+                        Chat.message(`Invalid waypoint position, adding to the end.`);
                     }
+                } else {
+                    normalizedRoute.push(point);
+                    routeModified = true;
+                    Chat.message(`Added waypoint to the end of the route.`);
                 }
                 break;
 
@@ -177,13 +224,13 @@ class Routes {
                 if (indexToUse !== undefined) {
                     let arrayIndex = indexToUse - 1;
 
-                    if (arrayIndex >= 0 && arrayIndex < route.length) {
-                        route.splice(arrayIndex, 1);
+                    if (arrayIndex >= 0 && arrayIndex < normalizedRoute.length) {
+                        normalizedRoute.splice(arrayIndex, 1);
                         routeModified = true;
                         Chat.message(`Removed waypoint ${indexToUse}`);
                     } else {
-                        if (route.length > 0) {
-                            route.pop();
+                        if (normalizedRoute.length > 0) {
+                            normalizedRoute.pop();
                             routeModified = true;
                             Chat.message(`Invalid waypoint position, removing the last waypoint.`);
                         } else {
@@ -191,8 +238,8 @@ class Routes {
                         }
                     }
                 } else {
-                    if (route.length > 0) {
-                        route.pop();
+                    if (normalizedRoute.length > 0) {
+                        normalizedRoute.pop();
                         routeModified = true;
                         Chat.message(`Removed the last waypoint.`);
                     } else {
@@ -202,12 +249,10 @@ class Routes {
                 break;
 
             case 'CLEAR':
-                if (route.length > 0) {
-                    route.length = 0;
+                if (normalizedRoute.length > 0) {
+                    normalizedRoute.length = 0;
                     routeModified = true;
-                    const lastSlashIndex = file.lastIndexOf('/');
-                    let filename = file;
-                    if (lastSlashIndex !== -1) filename = file.substring(lastSlashIndex + 1);
+                    const filename = this._toDisplayFileName(file);
 
                     Chat.message(`Cleared all waypoints from the route ${filename}`);
                 } else {
@@ -217,12 +262,12 @@ class Routes {
 
             default:
                 Chat.message('You did not state an action!');
-                return route;
+                return normalizedRoute;
         }
 
-        if (routeModified) this.saveRouteToFile(file, route);
+        if (routeModified) this.saveRouteToFile(file, normalizedRoute);
 
-        return route;
+        return normalizedRoute;
     }
 }
 

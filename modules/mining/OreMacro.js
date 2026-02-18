@@ -79,15 +79,18 @@ class OreMacro extends ModuleBase {
         register('command', (action, arg1, indexArg) => {
             if (!action) return Chat.message('§cAction required: "add", "remove", "clear"');
 
-            if (arg1 !== undefined && !Number.isNaN(arg1) && indexArg === undefined) {
-                [indexArg, arg1] = [arg1, undefined];
+            const parsedArg1Index = Number.parseInt(arg1, 10);
+            if (arg1 !== undefined && !Number.isNaN(parsedArg1Index) && indexArg === undefined) {
+                indexArg = parsedArg1Index;
+                arg1 = undefined;
             }
 
             const actionUpper = action.toUpperCase();
             const movementType = arg1 ? arg1.toUpperCase() : undefined;
 
             const isMineable = movementType === 'MINEABLE';
-            const indexNum = indexArg && !Number.isNaN(indexArg) ? Number.parseInt(indexArg) : undefined;
+            const parsedIndex = Number.parseInt(indexArg, 10);
+            const indexNum = Number.isNaN(parsedIndex) ? undefined : parsedIndex;
 
             this.route = Router.Edit(actionUpper, this.route, `OreRoutes/${this.loadedFile}`, indexNum, !!arg1, ['WALK', 'MINEABLE'], arg1, isMineable);
         }).setName('ore');
@@ -197,6 +200,9 @@ class OreMacro extends ModuleBase {
 
                     let aotv = Guis.findItemInHotbar('Aspect of the Void');
                     if (aotv === -1) {
+                        this.message('&cAspect of the Void not found in hotbar!');
+                        this.toggle(false);
+                        return;
                     }
 
                     if (!this.closestPoint) {
