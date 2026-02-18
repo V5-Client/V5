@@ -1,6 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { ClickSlotC2S } from '../../utils/Packets';
 
 class AutoHarp extends ModuleBase {
     constructor() {
@@ -12,74 +11,50 @@ class AutoHarp extends ModuleBase {
         });
 
         this.DELAY = 3;
-        this.addSlider('Delay', 0, 10, 3, (value) => (this.DELAY = value));
 
-        this.notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => ({
-            slot: slot,
-            clicked: false,
-            delay: 0,
-        }));
-
-        this.when(
-            () => this.enabled && Guis.guiName()?.includes('Harp'),
-            'tick',
-            () => {
-                const container = Player.getContainer();
-                if (!container) return;
-
-                this.notes.forEach((note) => {
-                    if (note.delay > 0) note.delay--;
-
-                    const item = container.getStackInSlot(note.slot)?.type?.getRegistryName();
-
-                    if (!item || item.includes('terracotta')) {
-                        note.clicked = false;
-                        note.delay = 0;
-                        return;
-                    }
-
-                    if (item.includes('quartz')) {
-                        if (note.clicked || note.delay > 0) return;
-
-                        const aboveItem = container.getStackInSlot(note.slot - 9)?.type?.getRegistryName();
-
-                        aboveItem?.includes('wool') ? (note.delay = this.DELAY) : (note.clicked = true);
-
-                        this.sendClickPacket(note.slot);
-                    }
-                });
+        class Note {
+            constructor(slot) {
+                this.slot = slot;
+                this.clicked = false;
+                this.DELAY = 0;
             }
-        );
-    }
-    sendClickPacket(slot) {
-        const player = Client.getMinecraft().player;
-        if (!player) return;
+        }
 
-        const handler = player.currentScreenHandler;
-        if (!handler) return;
+        const notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => new Note(slot));
 
-        const syncId = handler.syncId;
-        const revision = handler.getRevision();
-        const clickSlot = slot;
-        const button = 0;
+        this.on('tick', () => {
+            const invName = Guis.guiName();
+            if (!invName?.includes('Harp')) return;
 
-        const actionType = net.minecraft.screen.slot.SlotActionType.PICKUP;
+            const container = Player.getContainer();
+            if (!container) return;
 
-        const Int2ObjectOpenHashMap = Java.type('it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap');
-        const Int2ObjectMap = Java.type('it.unimi.dsi.fastutil.ints.Int2ObjectMap');
-        const ItemStackHash = net.minecraft.screen.sync.ItemStackHash;
+            notes.forEach((note) => {
+                if (note.DELAY > 0) note.DELAY--;
 
-        let modifiedStacks = new Int2ObjectOpenHashMap();
-        let itemStack = handler.getSlot(slot).getStack();
-        let hashedStack = new ItemStackHash(itemStack);
+                const item = container.getStackInSlot(note.slot)?.type?.getRegistryName();
 
-        modifiedStacks.put(clickSlot, hashedStack);
+                if (!item || item.includes('terracotta')) {
+                    note.clicked = false;
+                    note.DELAY = 0;
+                }
 
-        const castedMap = Int2ObjectMap.class.cast(modifiedStacks);
-        const cursorStack = new ItemStackHash(handler.getCursorStack());
+                if (item?.includes('quartz')) {
+                    if (note.clicked || note.DELAY !== 0) return;
 
-        const packet = new ClickSlotC2S(syncId, revision, clickSlot, button, actionType, castedMap, cursorStack);
-        Client.sendPacket(packet);
+                    const belowItem = container.getStackInSlot(note.slot - 9)?.type?.getRegistryName();
+                    if (belowItem?.includes('wool')) {
+                        note.DELAY = this.DELAY;
+                    } else {
+                        note.clicked = true;
+                    }
+
+                    Guis.clickSlot(note.slot, false, 'MIDDLE');
+                }
+            });
+        });
+
+        this.addSlider('Delay', 0, 10, 3, (v) => (this.DELAY = v));
     }
 }
 new AutoHarp();
