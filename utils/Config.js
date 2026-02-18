@@ -1,6 +1,35 @@
 import { Chat } from './Chat';
 import { File } from './Constants';
 
+const SOURCE_SOUNDS_DIR = new File('./config/ChatTriggers/modules/V5/failsafes/sounds');
+const DEST_SOUNDS_DIR = new File('./config/ChatTriggers/assets/failsafes/sounds');
+
+function organizeFailsafeSounds() {
+    if (!SOURCE_SOUNDS_DIR.exists()) return;
+    if (!DEST_SOUNDS_DIR.exists()) DEST_SOUNDS_DIR.mkdirs();
+
+    const soundFiles = SOURCE_SOUNDS_DIR.listFiles();
+    if (!soundFiles) return;
+
+    const Files = Java.type('java.nio.file.Files');
+    const StandardCopyOption = Java.type('java.nio.file.StandardCopyOption');
+
+    for (const file of soundFiles) {
+        if (file.isDirectory() || !file.getName().endsWith('.wav')) continue;
+
+        const target = new File(DEST_SOUNDS_DIR, file.getName());
+        if (target.exists() && file.length() === target.length()) continue;
+
+        try {
+            Files.copy(file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (e) {
+            console.error('V5 Asset Fixer Error: ' + e);
+        }
+    }
+}
+
+organizeFailsafeSounds();
+
 class ConfigInitializer {
     constructor(baseName) {
         this.root = baseName;
