@@ -1,6 +1,9 @@
 com.chattriggers.ctjs.api.Config.setAutoUpdateModules(false);
 com.chattriggers.ctjs.api.Config.setOpenConsoleOnError(true);
 
+/* KEYBINDS */
+import './utils/KeybindInitializer.js';
+
 /* COMMANDS */
 import './utils/V5Commands.js';
 
@@ -21,7 +24,6 @@ import './utils/Misc.js';
 import './failsafes/FailsafeManager.js';
 import './utils/V5Mod.js';
 import './utils/SkyblockEvents.js';
-import './utils/KeybindInitializer.js';
 
 /* Modules */
 import './modules/loader.js';
