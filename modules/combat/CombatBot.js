@@ -87,6 +87,7 @@ class Combat extends ModuleBase {
         this.mobMemoryExpiryMs = 120000;
         this.searchTarget = null;
         this.searchTargetSetTime = 0;
+        this.pathRequestToken = 0;
 
         this.addMultiToggle(
             'Target Presets',
@@ -146,7 +147,7 @@ class Combat extends ModuleBase {
                     State: () => this.combatState,
                     Target: targetName,
                     'Targets Found': () => (this.targets ? this.targets.length : 0),
-                    'Active Zones': () => this.activeBlackholes.length,
+                    'Known Blackholes': () => this.activeBlackholes.length,
                 },
             },
         ]);
@@ -253,7 +254,10 @@ class Combat extends ModuleBase {
         if (this.scanTicker % 10 !== 0) return;
 
         const stands = World.getAllEntities().filter((e) => e.getClassName().includes('ArmorStand') || e.getName().includes('Armor Stand'));
-        if (!stands || stands.length === 0) return;
+        if (!stands || stands.length === 0) {
+            this.activeBlackholes = [];
+            return;
+        }
 
         const newBlackholes = [];
         const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
@@ -456,9 +460,12 @@ class Combat extends ModuleBase {
         this.isPathing = true;
         this.setState('PATHING');
         this.currentPathStartTime = Date.now();
+        const pathToken = ++this.pathRequestToken;
 
         Pathfinder.resetPath();
         Pathfinder.findPath(end, (success) => {
+            if (pathToken !== this.pathRequestToken) return;
+
             if (!success) {
                 this.clearSearchTarget(pos);
                 return;
@@ -604,12 +611,15 @@ class Combat extends ModuleBase {
         this.isPathing = true;
         this.setState('PATHING');
         this.currentPathStartTime = Date.now();
+        const pathToken = ++this.pathRequestToken;
 
         const pathTarget = this.target;
         const pathTargetUuid = this.getTargetUuid(pathTarget);
 
         Pathfinder.resetPath();
         Pathfinder.findPath(end, (success) => {
+            if (pathToken !== this.pathRequestToken) return;
+
             if (!success) {
                 if (pathTarget && this.recordFailedPathCallback(pathTarget)) {
                     this.target = null;
@@ -899,6 +909,7 @@ class Combat extends ModuleBase {
         this.mobMemory = [];
         this.searchTarget = null;
         this.searchTargetSetTime = 0;
+        this.pathRequestToken = 0;
     }
 }
 

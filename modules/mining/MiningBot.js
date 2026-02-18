@@ -517,6 +517,15 @@ class Bot extends ModuleBase {
         const idxOf = (x, y, z) => x - minBx + dimX * (y - minBy + dimY * (z - minBz));
         const isVisited = (idx) => visited[idx] === 1;
         const setVisited = (idx) => (visited[idx] = 1);
+
+        if (!this.isWithinVisitedBounds(start.x, start.y, start.z, minBx, minBy, minBz, dimX, dimY, dimZ)) {
+            this.scanning = false;
+            this.currentTarget = null;
+            this.foundLocations = [];
+            this.lowestCostBlockIndex = 0;
+            return;
+        }
+
         setVisited(idxOf(start.x, start.y, start.z));
 
         const bfsReachSq = reach * reach;
@@ -560,6 +569,9 @@ class Bot extends ModuleBase {
                 const nx = x + dirs[i][0],
                     ny = y + dirs[i][1],
                     nz = z + dirs[i][2];
+
+                if (!this.isWithinVisitedBounds(nx, ny, nz, minBx, minBy, minBz, dimX, dimY, dimZ)) continue;
+
                 const vIdx = idxOf(nx, ny, nz);
                 if (!isVisited(vIdx)) {
                     const ddx = nx + 0.5 - eyePos.x;
@@ -814,11 +826,15 @@ class Bot extends ModuleBase {
         return [ax, ay, az];
     }
 
+    isWithinVisitedBounds(x, y, z, minBx, minBy, minBz, dimX, dimY, dimZ) {
+        return x >= minBx && x < minBx + dimX && y >= minBy && y < minBy + dimY && z >= minBz && z < minBz + dimZ;
+    }
+
     setCost(cost) {
         if (cost) {
             this.COSTTYPE = cost;
         } else {
-            const Type = this.TYPE.find((option) => option.enabled)?.name;
+            const Type = Array.isArray(this.TYPE) ? this.TYPE.find((option) => option.enabled)?.name : null;
             if (Type) {
                 const costPropertyName = Type.toLowerCase() + 'Costs';
 

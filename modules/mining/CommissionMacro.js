@@ -539,7 +539,10 @@ class CommissionMacro extends ModuleBase {
 
     sellNextTrashItem() {
         const container = Player.getContainer();
+        if (!container) return false;
+
         const items = container.getItems();
+        if (!items || items.length <= 54) return false;
 
         for (let i = 54; i < items.length; i++) {
             const item = items[i];
@@ -605,7 +608,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        if (closestDist < 4 && !this.pathfinding) {
+        if (closestDist < 4 && !Pathfinder.isPathing()) {
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
             if (!this.npcRotationPending && !Rotations.isRotating && !Pathfinder.isPathing()) {
                 this.npcRotationPending = true;
