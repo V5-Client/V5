@@ -141,7 +141,7 @@ class AlertUtilsClass {
         this.savedSound = currentSound || 'Tave Check.wav';
         if ((currentSound || '').includes('undefined')) this.savedSound = 'Tave Check.wav';
 
-        this.soundFile = new File(Client.getMinecraft().runDirectory, `config/ChatTriggers/modules/V5/failsafes/sounds/${this.savedSound}`);
+        this.soundFile = new File(Client.getMinecraft().runDirectory, `config/ChatTriggers/assets/failsafes/sounds/${this.savedSound}`);
         if (!this.soundFile.exists()) return;
 
         try {

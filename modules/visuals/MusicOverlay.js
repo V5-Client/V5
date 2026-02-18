@@ -20,7 +20,7 @@ class Music extends ModuleBase {
 
         this.musicProcess = null;
         this.mcDir = new java.io.File(Client.getMinecraft().runDirectory);
-        this.assetsDir = new java.io.File(this.mcDir, 'config/ChatTriggers/assets');
+        this.assetsDir = new java.io.File(this.mcDir, 'config/ChatTriggers/assets/assets/');
         this.windowsExePath = 'WindowsMusicHelper.exe';
         this.exePath = new java.io.File(this.assetsDir, this.windowsExePath);
 
