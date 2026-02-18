@@ -49,8 +49,8 @@ class RouteWalkerer extends ModuleBase {
         v5Command('routewalker', (action, arg1, indexArg) => {
             let indexNum = undefined;
 
-            if (!action) return this.message('action required! e.g /v5 routes routewalker ADD/REMOVE/CLEAR');
-            if (!arg1 && action?.toUpperCase() !== 'CLEAR') return this.message('movement type required! e.g /v5 routes routewalker add WALK/ETHERWARP');
+            if (!action) return this.message('action required! e.g /v5 routes walker ADD/REMOVE/CLEAR');
+            if (!arg1 && action?.toUpperCase() !== 'CLEAR') return this.message('movement type required! e.g /v5 routes walker add WALK/ETHERWARP');
 
             if (indexArg !== undefined) {
                 let parsedNum = Number.parseInt(indexArg);

@@ -2,25 +2,49 @@ import { Chat } from './Chat';
 import { Desktop, File } from './Constants';
 import { ServerInfo } from './player/ServerInfo';
 
-const commands = {};
+const commandRegistry = new Map();
+
+const normalizeCommandId = (id) => {
+    if (!id) return '';
+    const raw = String(id).trim();
+    return (raw.startsWith('/') ? raw.slice(1) : raw).toLowerCase();
+};
+
+const normalizeArgs = (args) => {
+    if (args.length === 1 && typeof args[0] === 'string') {
+        const text = args[0].trim();
+        return text ? text.split(/\s+/) : [];
+    }
+
+    return args.flatMap((arg) => {
+        if (typeof arg !== 'string') return [arg];
+
+        const text = arg.trim();
+        if (!text) return [];
+
+        return text.includes(' ') ? text.split(/\s+/) : [text];
+    });
+};
 
 export const v5Command = (id, callback) => {
-    const lowerId = id.toLowerCase();
-    commands[lowerId] = callback;
+    if (typeof callback !== 'function') return;
+    const cleanId = normalizeCommandId(id);
+    if (!cleanId) return;
+    commandRegistry.set(cleanId, callback);
 };
 
 export const callCommand = (id, ...args) => {
-    const cleanId = id.startsWith('/') ? id.slice(1).toLowerCase() : id.toLowerCase();
-    const callback = commands[cleanId];
+    const cleanId = normalizeCommandId(id);
+    const callback = commandRegistry.get(cleanId);
+    if (!callback) return false;
 
-    if (callback) {
-        let finalArgs = args;
-
-        if (args.length === 1 && typeof args[0] === 'string' && args[0].includes(' ')) {
-            finalArgs = args[0].trim().split(/\s+/);
-        }
-
-        callback(...finalArgs);
+    try {
+        callback(...normalizeArgs(args));
+        return true;
+    } catch (e) {
+        Chat.message(`&cInternal command failed: &f${cleanId}`);
+        console.error('V5 command execution failed:', cleanId, e);
+        return false;
     }
 };
 
@@ -29,346 +53,198 @@ const { buildCommand, registerCommand, redirect } = Commands;
 const v5Logic = () => {
     const { literal, argument, greedyString, integer, exec, float } = Commands;
 
+    const usage = (text) => Chat.message(`&cUsage: &7${text}`);
+    const run = (id, ...args) => callCommand(id, ...args);
+    const runOrForward = (internalId, fallbackCommand, ...args) => {
+        if (run(internalId, ...args)) return;
+        const joined = [fallbackCommand, ...normalizeArgs(args)].join(' ').trim();
+        if (joined) ChatLib.command(joined);
+    };
+
+    const showHelp = () => {
+        Chat.message('&bV5 Command Help:');
+        Chat.message('&7/v5 gui &f- Open the main GUI');
+        Chat.message('&7/v5 tps | /v5 ping &f- Show server TPS and ping');
+        Chat.message('&7/v5 clip save &f- Save latest recording');
+        Chat.message('&7/v5 mining <stats|refuel|maxge|gemstone|ore> ...');
+        Chat.message('&7/v5 path <goto|fly|stop> ... &f- Pathfinder utilities');
+        Chat.message('&7/v5 farming set <start|end> &f- Configure Garden warps');
+        Chat.message('&7/v5 routes <walker|routewalker> ... &f- Route Walker routes');
+        Chat.message('&7/v5 webhook <set-from-clipboard|userid> ...');
+        Chat.message('&7/v5 dr ... or /v5 dungeonroutes ...');
+        Chat.message('&7/v5 debug <blockinfo|istranslucent|packetinfo> ...');
+    };
+
+    const toMinecraftHexColor = (hexValue) => {
+        const hex = Number(hexValue).toString(16).padStart(6, '0');
+        return `§x§${hex[0]}§${hex[1]}§${hex[2]}§${hex[3]}§${hex[4]}§${hex[5]}`;
+    };
+
+    const showServerInfo = () => {
+        const { tps, ping } = ServerInfo.getServerInfo();
+        const tpsColor = toMinecraftHexColor(ServerInfo.getTpsColor(tps));
+        const pingColor = toMinecraftHexColor(ServerInfo.getPingColor(ping));
+        Chat.message(`TPS ${tpsColor}${tps}&f | Ping ${pingColor}${ping}ms`);
+    };
+
     exec((ctx = {}) => {
         if (!ctx.args || (typeof ctx.args === 'string' && ctx.args.trim() === '')) {
-            callCommand('gui');
+            run('gui');
         }
     });
 
-    /* ---------- Help ---------- */
-    literal('help', () => {
-        exec(() => {
-            Chat.message('&bV5 Command Help:');
-            Chat.message('&7/v5 gui &f- Open the main GUI');
-            Chat.message('&7/v5 tps/ping &f- Show server TPS and ping');
-            Chat.message('&7/v5 clip save &f- Save latest recording');
-            Chat.message('&7/v5 mining (stats | refuel | maxge) &f');
-            Chat.message('&7/v5 path ... &f- Pathfinder utilities');
-            Chat.message('&7/v5 farming set <start|end> &f- Configure Garden warps');
-            Chat.message('&7/v5 routes walker ... &f- Route Walker routes');
-            Chat.message('&7/v5 mining (gemstone | ore) ... &f- Mining routes');
-            Chat.message('&7/v5 webhook ... &f- Set discord webhook');
-            Chat.message('&7/v5 dr|dungeonroutes ... &f- Dungeon room waypoints');
-        });
-    });
+    literal('help', () => exec(showHelp));
 
     literal('config', () => {
         exec(() => {
             const path = new File(Client.getMinecraft().runDirectory, 'config/ChatTriggers/modules/V5Config');
             const file = new File(path);
-
             if (file.exists()) Desktop.getDesktop().open(file);
         });
     });
 
-    /* ---------- GUI ---------- */
-    literal('gui', () => {
-        exec(() => {
-            callCommand('gui');
-        });
-    });
+    literal('gui', () => exec(() => run('gui')));
 
-    /* ---------- Clipping ---------- */
     literal('clip', () => {
-        exec(() => {
-            callCommand('clip');
-        });
-        literal('save', () => {
-            exec(() => {
-                callCommand('clip');
-            });
-        });
-
-        literal('compress-latest', () => {
-            exec(() => {
-                callCommand('clip', 'compress');
-            });
-        });
+        exec(() => run('clip'));
+        literal('save', () => exec(() => run('clip')));
+        literal('compress-latest', () => exec(() => run('clip', 'compress')));
     });
 
-    /* ---------- IRC / Backend ---------- */
     literal('irc', () => {
-        exec(() => {
-            callCommand('reconnectIRC');
-        });
-        literal('reconnect', () => {
-            exec(() => {
-                callCommand('reconnectIRC');
-            });
-        });
+        exec(() => run('reconnectIRC'));
+        literal('reconnect', () => exec(() => run('reconnectIRC')));
     });
 
-    /* ---------- Farming ---------- */
     literal('farming', () => {
+        exec(() => usage('/v5 farming set <start|end>'));
         literal('set', () => {
-            literal('start', () => {
-                exec(() => {
-                    callCommand('setstart');
-                });
-            });
-
-            literal('end', () => {
-                exec(() => {
-                    callCommand('setend');
-                });
-            });
+            exec(() => usage('/v5 farming set <start|end>'));
+            literal('start', () => exec(() => run('setstart')));
+            literal('end', () => exec(() => run('setend')));
         });
     });
 
-    /* ---------- Mining Utilities ---------- */
     literal('mining', () => {
-        literal('stats', () => {
-            exec(() => {
-                callCommand('getminingstats');
-            });
-        });
+        exec(() => usage('/v5 mining <stats|refuel|maxge|gemstone|ore> [args]'));
 
-        literal('refuel', () => {
-            exec(() => {
-                callCommand('refueldrill');
-            });
-        });
-
-        literal('maxge', () => {
-            exec(() => {
-                callCommand('maxge');
-            });
-        });
+        literal('stats', () => exec(() => run('getminingstats')));
+        literal('refuel', () => exec(() => run('refueldrill')));
+        literal('maxge', () => exec(() => run('maxge')));
 
         literal('gemstone', () => {
-            argument('args', greedyString(), () => {
-                exec(({ args }) => {
-                    ChatLib.command('gemstone ' + args);
-                });
-            });
+            exec(() => usage('/v5 mining gemstone <args>'));
+            argument('args', greedyString(), () => exec(({ args }) => ChatLib.command('gemstone ' + args)));
         });
 
         literal('ore', () => {
-            argument('args', greedyString(), () => {
-                exec(({ args }) => {
-                    ChatLib.command('ore ' + args);
-                });
-            });
+            exec(() => usage('/v5 mining ore <args>'));
+            argument('args', greedyString(), () => exec(({ args }) => ChatLib.command('ore ' + args)));
         });
     });
 
-    /* ---------- Pathfinding ---------- */
     literal('path', () => {
+        exec(() => usage('/v5 path <goto|fly|stop> ...'));
+
         literal('goto', () => {
-            argument('args', greedyString(), () => {
-                exec(({ args }) => {
-                    callCommand('path', args);
-                });
-            });
+            exec(() => usage('/v5 path goto <x> <y> <z> [x2 y2 z2 ...]'));
+            argument('args', greedyString(), () => exec(({ args }) => run('path', args)));
         });
 
         literal('fly', () => {
-            argument('args', greedyString(), () => {
-                exec(({ args }) => {
-                    callCommand('flypath', args);
-                });
-            });
+            exec(() => usage('/v5 path fly <x> <y> <z> [x2 y2 z2 ...]'));
+            argument('args', greedyString(), () => exec(({ args }) => run('flypath', args)));
         });
 
-        literal('stop', () => {
-            exec(() => {
-                callCommand('stopPath');
-            });
-        });
+        literal('stop', () => exec(() => run('stopPath')));
     });
 
-    /* ---------- Nuker ---------- */
     literal('nuker', () => {
-        literal('nuke', () => {
-            exec(() => {
-                callCommand('nukeit');
-            });
+        exec(() => usage('/v5 nuker <nuke|add|remove|list|clear>'));
+        literal('nuke', () => exec(() => run('nukeit')));
+        literal('add', () => exec(() => run('nukeradd')));
+        literal('remove', () => {
+            exec(() => usage('/v5 nuker remove <id>'));
+            argument('id', integer(), () => exec(({ id }) => run('nukerremove', id)));
         });
-        literal('add', () => {
-            exec(() => {
-                callCommand('nukeradd');
-            });
-        });
-        literal('remove', (id) => {
-            argument('id', integer(), () => {
-                exec(({ id }) => {
-                    callCommand('nukerremove', id);
-                });
-            });
-        });
-        literal('list', () => {
-            exec(() => {
-                callCommand('nukerlist');
-            });
-        });
-        literal('clear', () => {
-            exec(() => {
-                callCommand('nukerclear');
-            });
-        });
+        literal('list', () => exec(() => run('nukerlist')));
+        literal('clear', () => exec(() => run('nukerclear')));
     });
 
-    /* ---------- Webhooks ---------- */
     literal('webhook', () => {
-        exec(() => {
-            callCommand('setwh');
-        });
-        literal('set-from-clipboard', () => {
-            exec(() => {
-                callCommand('setwh');
-            });
-        });
-
+        exec(() => run('setwh'));
+        literal('set-from-clipboard', () => exec(() => run('setwh')));
         literal('userid', () => {
-            argument('id', greedyString(), () => {
-                exec(({ id }) => {
-                    callCommand('setid', id);
-                });
-            });
+            exec(() => usage('/v5 webhook userid <id>'));
+            argument('id', greedyString(), () => exec(({ id }) => run('setid', id)));
         });
     });
 
     literal('visuals', () => {
+        exec(() => usage('/v5 visuals gif <list|pick|toggle>'));
         literal('gif', () => {
-            literal('list', () => {
-                exec(() => {
-                    ChatLib.command('gif list');
-                });
-            });
-
+            exec(() => usage('/v5 visuals gif <list|pick|toggle>'));
+            literal('list', () => exec(() => ChatLib.command('gif list')));
             literal('pick', () => {
-                argument('index', integer(), () => {
-                    exec(({ index }) => {
-                        ChatLib.command('gif pick ' + index);
-                    });
-                });
+                exec(() => usage('/v5 visuals gif pick <index>'));
+                argument('index', integer(), () => exec(({ index }) => ChatLib.command('gif pick ' + index)));
             });
-
-            literal('toggle', () => {
-                exec(() => {
-                    ChatLib.command('gif toggle');
-                });
-            });
+            literal('toggle', () => exec(() => ChatLib.command('gif toggle')));
         });
     });
 
-    /* ---------- Routes / Walker ---------- */
     literal('routes', () => {
-        literal('walker', () => {
-            argument('args', greedyString(), () => {
-                exec(({ args }) => {
-                    callCommand('routewalker', args);
-                });
-            });
-        });
+        exec(() => usage('/v5 routes <walker|routewalker> <action> [movement] [index]'));
+        const registerWalkerCommand = () => {
+            exec(() => usage('/v5 routes walker <action> [movement] [index]'));
+            argument('args', greedyString(), () => exec(({ args }) => run('routewalker', args)));
+        };
+
+        literal('walker', registerWalkerCommand);
+        literal('routewalker', registerWalkerCommand);
     });
 
-    /* ---------- Dungeon Routes ---------- */
-    literal('dr', () => {
-        exec(() => {
-            callCommand('dr');
-        });
-        argument('args', greedyString(), () => {
-            exec(({ args }) => {
-                callCommand('dr', args);
-            });
-        });
-    });
+    // rdbt hasn't pushed dungeonroutes yet, commenting out rn.
+    // literal('dr', () => {
+    //     exec(() => runOrForward('dr', 'dr'));
+    //     argument('args', greedyString(), () => exec(({ args }) => runOrForward('dr', 'dr', args)));
+    // });
 
-    literal('dungeonroutes', () => {
-        exec(() => {
-            callCommand('dungeonroutes');
-        });
-        argument('args', greedyString(), () => {
-            exec(({ args }) => {
-                callCommand('dungeonroutes', args);
-            });
-        });
-    });
+    // literal('dungeonroutes', () => {
+    //     exec(() => runOrForward('dungeonroutes', 'dungeonroutes'));
+    //     argument('args', greedyString(), () => exec(({ args }) => runOrForward('dungeonroutes', 'dungeonroutes', args)));
+    // });
 
-    /* ---------- Rotations ---------- */
     literal('rotations', () => {
+        exec(() => usage('/v5 rotations <rotateTo|stop> ...'));
         literal('rotateTo', () => {
+            exec(() => usage('/v5 rotations rotateTo <yaw> <pitch> | random'));
             argument('yaw', float(), () => {
-                argument('pitch', float(), () => {
-                    exec(({ yaw, pitch }) => {
-                        callCommand('rotateTo', yaw, pitch);
-                    });
-                });
+                argument('pitch', float(), () => exec(({ yaw, pitch }) => run('rotateTo', yaw, pitch)));
             });
 
             literal('random', () => {
                 exec(() => {
                     const randomYaw = Math.random() * 360 - 180;
                     const randomPitch = Math.random() * 180 - 90;
-                    callCommand('rotateTo', randomYaw, randomPitch);
+                    run('rotateTo', randomYaw, randomPitch);
                 });
             });
         });
 
-        literal('stop', () => {
-            exec(() => {
-                ChatLib.command('stopRotation');
-            });
-        });
+        literal('stop', () => exec(() => runOrForward('stopRotation', 'stopRotation')));
     });
 
-    /* ---------- Server Info ---------- */
-    const getTpsColor = (tps) => {
-        if (tps > 19.8) return '&2';
-        if (tps > 19) return '&a';
-        if (tps > 17.5) return '&6';
-        if (tps > 12) return '&c';
-        return '&4';
-    };
+    literal('tps', () => exec(showServerInfo));
+    literal('ping', () => exec(showServerInfo));
 
-    const getPingColor = (ping) => {
-        if (ping < 50) return '&a';
-        if (ping < 100) return '&2';
-        if (ping < 149) return '&e';
-        if (ping < 249) return '&6';
-        return '&c';
-    };
-
-    const showServerInfo = () => {
-        const { tps, ping } = ServerInfo.getServerInfo();
-        const tpsColor = getTpsColor(tps);
-        const pingColor = getPingColor(ping);
-        Chat.message(`TPS ${tpsColor}${tps}&f | Ping ${pingColor}${ping}ms`);
-    };
-
-    literal('tps', () => {
-        exec(() => {
-            showServerInfo();
-        });
-    });
-
-    literal('ping', () => {
-        exec(() => {
-            showServerInfo();
-        });
-    });
-
-    /* ---------- Debug / Misc ---------- */
     literal('debug', () => {
-        literal('blockinfo', () => {
-            exec(() => {
-                callCommand('blockinfo');
-            });
-        });
-
-        literal('istranslucent', () => {
-            exec(() => {
-                callCommand('istranslucent');
-            });
-        });
-
+        exec(() => usage('/v5 debug <blockinfo|istranslucent|packetinfo>'));
+        literal('blockinfo', () => exec(() => run('blockinfo')));
+        literal('istranslucent', () => exec(() => run('istranslucent')));
         literal('packetinfo', () => {
-            argument('className', greedyString(), () => {
-                exec(({ className }) => {
-                    callCommand('packetinfo', className);
-                });
-            });
+            exec(() => usage('/v5 debug packetinfo <packetClass>'));
+            argument('className', greedyString(), () => exec(({ className }) => run('packetinfo', className)));
         });
     });
 };
