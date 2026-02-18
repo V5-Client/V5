@@ -1,8 +1,7 @@
 import { Chat } from './Chat';
-import { CLIENT_VERSION, Consumer, DataFlavor, DataOutputStream, ScreenshotRecorder, Toolkit, URL } from './Constants';
+import { CLIENT_VERSION, Consumer, DataOutputStream, ScreenshotRecorder, URL } from './Constants';
 import { Executor } from './ThreadExecutor';
 import { Utils } from './Utils';
-import { v5Command } from './V5Commands';
 
 class DiscordNotifier {
     constructor() {
@@ -45,24 +44,6 @@ class DiscordNotifier {
 
     initTriggers() {
         register('gameLoad', () => this.onStartup());
-
-        v5Command('setwh', () => {
-            try {
-                const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
-                this.updateEndpoint(clipboard);
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-                Chat.message('Webhook: &cCould not access system clipboard.');
-            }
-        });
-
-        v5Command('setid', (uid) => {
-            if (!uid) {
-                Chat.message('&cUsage: /v5 webhook userid <id>');
-                return;
-            }
-            this.updateMention(uid);
-        });
     }
 
     updateEndpoint(url) {

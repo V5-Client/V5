@@ -70,7 +70,6 @@ const v5Logic = () => {
         Chat.message('&7/v5 path <goto|fly|stop> ... &f- Pathfinder utilities');
         Chat.message('&7/v5 farming set <start|end> &f- Configure Garden warps');
         Chat.message('&7/v5 routes <walker|routewalker> ... &f- Route Walker routes');
-        Chat.message('&7/v5 webhook <set-from-clipboard|userid> ...');
         Chat.message('&7/v5 dr ... or /v5 dungeonroutes ...');
         Chat.message('&7/v5 debug <blockinfo|istranslucent|packetinfo> ...');
     };
@@ -169,15 +168,6 @@ const v5Logic = () => {
         });
         literal('list', () => exec(() => run('nukerlist')));
         literal('clear', () => exec(() => run('nukerclear')));
-    });
-
-    literal('webhook', () => {
-        exec(() => run('setwh'));
-        literal('set-from-clipboard', () => exec(() => run('setwh')));
-        literal('userid', () => {
-            exec(() => usage('/v5 webhook userid <id>'));
-            argument('id', greedyString(), () => exec(({ id }) => run('setid', id)));
-        });
     });
 
     literal('visuals', () => {
