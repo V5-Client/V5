@@ -74,9 +74,9 @@ class Routes {
      * @param {*} dir the directory of the file
      * @param {*} file the files name
      */
-    saveRouteToFile(dir, file) {
+    saveRouteToFile(fileName, routeData) {
         try {
-            Utils.writeConfigFile(dir, file);
+            Utils.writeConfigFile(fileName, routeData);
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }

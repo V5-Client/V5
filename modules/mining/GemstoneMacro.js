@@ -102,8 +102,14 @@ class GemstoneMacro extends ModuleBase {
         ]);
 
         register('command', (action, indexArg) => {
+            if (!action) {
+                this.message('&cAction required: "add", "remove", or "clear"');
+                return;
+            }
+
             const actionUpper = action.toUpperCase();
-            const indexNum = indexArg && !Number.isNaN(indexArg) ? Number.parseInt(indexArg) : undefined;
+            const parsedIndex = Number.parseInt(indexArg, 10);
+            const indexNum = Number.isNaN(parsedIndex) ? undefined : parsedIndex;
             this.route = Router.Edit(actionUpper, this.route, `GemstoneRoutes/${this.loadedFile}`, indexNum);
         }).setName('gemstone');
 
@@ -164,6 +170,12 @@ class GemstoneMacro extends ModuleBase {
                     MiningBot.toggle(false);
                     Keybind.setKey('leftclick', false);
                     let aotv = Guis.findItemInHotbar('Aspect of the Void');
+
+                    if (aotv === -1) {
+                        this.message('&cAspect of the Void not found in hotbar!');
+                        this.toggle(false);
+                        return;
+                    }
 
                     if (!this.closestPoint) {
                         let currentPoint = this.route[this.closestPointIndex];
