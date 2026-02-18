@@ -16,14 +16,30 @@ const normalizeArgs = (args) => {
         return text ? text.split(/\s+/) : [];
     }
 
-    return args.flatMap((arg) => {
-        if (typeof arg !== 'string') return [arg];
+    const normalized = [];
+
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
+        if (typeof arg !== 'string') {
+            normalized.push(arg);
+            continue;
+        }
 
         const text = arg.trim();
-        if (!text) return [];
+        if (!text) continue;
 
-        return text.includes(' ') ? text.split(/\s+/) : [text];
-    });
+        if (text.includes(' ')) {
+            const parts = text.split(/\s+/);
+            for (let j = 0; j < parts.length; j++) {
+                normalized.push(parts[j]);
+            }
+        } else {
+            normalized.push(text);
+        }
+    }
+
+    return normalized;
 };
 
 export const v5Command = (id, callback) => {
