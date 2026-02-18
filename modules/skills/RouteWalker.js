@@ -49,8 +49,9 @@ class RouteWalkerer extends ModuleBase {
         v5Command('routewalker', (action, arg1, indexArg) => {
             let indexNum = undefined;
 
-            if (!action) return this.message('action required! e.g /v5 routes walker ADD/REMOVE/CLEAR');
-            if (!arg1 && action?.toUpperCase() !== 'CLEAR') return this.message('movement type required! e.g /v5 routes walker add WALK/ETHERWARP');
+            const actionUpper = action?.toUpperCase();
+            if (!actionUpper) return this.message('action required! e.g /v5 routes walker ADD/REMOVE/CLEAR');
+            if (actionUpper === 'ADD' && !arg1) return this.message('movement type required! e.g /v5 routes walker add WALK/ETHERWARP');
 
             if (indexArg !== undefined) {
                 let parsedNum = Number.parseInt(indexArg);
@@ -59,7 +60,7 @@ class RouteWalkerer extends ModuleBase {
             }
 
             this.route = Router.Edit(
-                action?.toUpperCase(),
+                actionUpper,
                 this.route,
                 'RoutewalkerRoutes/' + this.loadedFile,
                 indexNum,
@@ -91,7 +92,8 @@ class RouteWalkerer extends ModuleBase {
                 for (const [i, point] of route.entries()) {
                     if (!this.CheckPoint(point)) continue;
 
-                    Render.drawStyledBox(new Vec3d(point.x, point.y, point.z), getColor(point.movements), getColor(point.movements), 5, false);
+                    const pointColor = getColor(point.movements);
+                    Render.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 5, false);
 
                     if (i < route.length - 1) {
                         const nextPoint = route[i + 1];
@@ -166,7 +168,8 @@ class RouteWalkerer extends ModuleBase {
                     Keybind.stopMovement();
                     Keybind.setKey('shift', true);
 
-                    let aotv = Guis.findItemInHotbar('Aspect of the Void') || Guis.findItemInHotbar('Aspect of the End'); // can aote etherwarp?
+                    let aotv = Guis.findItemInHotbar('Aspect of the Void');
+                    if (aotv === -1) aotv = Guis.findItemInHotbar('Aspect of the End'); // can aote etherwarp?
 
                     if (aotv === -1) {
                         this.toggle(false);

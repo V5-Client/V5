@@ -323,7 +323,7 @@ class OreMacro extends ModuleBase {
                         let block = World.getBlockAt(point.x, point.y, point.z);
                         let reg = block?.type?.getRegistryName();
 
-                        if (!reg.includes('air') && !reg.includes('bedrock')) mineables.push(point);
+                        if (typeof reg === 'string' && !reg.includes('air') && !reg.includes('bedrock')) mineables.push(point);
                     }
 
                     if (mineables.length > 0) {
@@ -543,13 +543,6 @@ class OreMacro extends ModuleBase {
             const dy = targetY - startY;
             const dz = targetZ - startZ;
             const distance = Math.hypot(dx, dy, dz);
-
-            let lineColor;
-            if (isLineOfSightClear) {
-                lineColor = [0, 255, 0, 255];
-            } else {
-                lineColor = [255, 0, 0, 255];
-            }
 
             if (isLineOfSightClear && distance < shortestDistance) {
                 shortestDistance = distance;
