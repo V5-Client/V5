@@ -88,12 +88,12 @@ jobs:
             -not -path "./.github/*" \
             -print0 |
           while IFS= read -r -d '' file; do
-            terser "$file" \
-              --compress defaults=false \
-              --mangle false \
-              --ecma 5 \
-              --format beautify=false,comments=false,semicolons=true \
-              --output "$file"
+          terser "$file" \
+            --compress defaults=false \
+            --mangle \
+            --ecma 5 \
+            --format beautify=false,comments=false,semicolons=true \
+            --output "$file"
           done
 
           echo "Rhino-safe minification complete."
