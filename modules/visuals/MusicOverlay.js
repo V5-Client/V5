@@ -188,7 +188,7 @@ class Music extends ModuleBase {
             const imgY = this.y + padding;
 
             if (imageURL.length > 5) {
-                drawImageFromURL(imageURL, imgX, imgY, imageSize, imageSize);
+                drawImageFromURL(imageURL, imgX, imgY, imageSize, imageSize, 6);
             } else {
                 drawRoundedRectangleWithBorder({
                     x: imgX,
