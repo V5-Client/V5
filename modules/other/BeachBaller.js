@@ -234,9 +234,9 @@ class Beachballer extends ModuleBase {
     }
 
     renderTrajectory() {
-        const TRAIL_COLOR = Render.Color(0, 255, 255, 200);
-        const PREDICTION_COLOR = Render.Color(255, 165, 0, 200);
-        const LANDING_COLOR = Render.Color(50, 255, 50, 255);
+        const TRAIL_COLOR = [0, 255, 255, 200];
+        const PREDICTION_COLOR = [255, 165, 0, 200];
+        const LANDING_COLOR = [50, 255, 50, 255];
         const LINE_THICKNESS = 3;
 
         if (this.trailHistory.length >= 2) {
@@ -245,7 +245,7 @@ class Beachballer extends ModuleBase {
                 const end = this.trailHistory[i + 1];
 
                 const alpha = Math.floor(80 + (120 * i) / this.trailHistory.length);
-                const fadedColor = [TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha];
+                const fadedColor = Render.Color(TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha);
 
                 Render.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
@@ -257,7 +257,7 @@ class Beachballer extends ModuleBase {
                 const end = this.predictedPath[i + 1];
 
                 const alpha = Math.floor(200 * (1 - i / this.predictedPath.length));
-                const fadedColor = [PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha];
+                const fadedColor = Render.Color(PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha);
 
                 Render.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
@@ -333,6 +333,7 @@ class Beachballer extends ModuleBase {
             this.trackedBall = this.findBeachBall();
 
             if (this.trackedBall) {
+                Chat.message('Found ball!');
                 this.setState(States.BOUNCE);
                 return;
             }
@@ -354,13 +355,23 @@ class Beachballer extends ModuleBase {
     }
 
     findBeachBall() {
+        const radius = 10;
         const stands = World.getAllEntitiesOfType(ArmorStandEntity.class);
 
         for (let element of stands) {
+            const ex = element.getX();
+            const ey = element.getY();
+            const ez = element.getZ();
+
+            const distance = MathUtils.getDistanceToPlayer(ex, ey, ez).distance;
+            if (distance > radius) continue;
+
             const headItem = element.getStackInSlot(5);
             if (!headItem) continue;
 
-            if (this.isBeachBall(headItem)) return element;
+            if (this.isBeachBall(headItem)) {
+                return element;
+            }
         }
         return null;
     }
