@@ -71,7 +71,33 @@ jobs:
                   EXT_LIST="${EXT_LIST:0:1024}"
                   echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
-            - name: Zip repository (V5 only)
+            - name: Minify V5
+              if: ${{ endsWith(github.repository, '/V5') }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  echo "Installing terser…"
+                  npm install -g terser
+
+                  echo "Minifying JavaScript files…"
+                  # Minify all .js files except node_modules, .git, etc.
+                  find . \
+                    -type f -name "*.js" \
+                    -not -path "./.git/*" \
+                    -not -path "./node_modules/*" \
+                    -not -path "./.github/*" \
+                    -print0 |
+                  while IFS= read -r -d '' file; do
+                    terser "$file" \
+                      --compress \
+                      --mangle \
+                      --output "$file"
+                  done
+
+                  echo "Minification complete."
+
+            - name: Zip V5
               if: ${{ endsWith(github.repository, '/V5') }}
               shell: bash
               run: |
