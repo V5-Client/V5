@@ -61,8 +61,6 @@ class Bot extends ModuleBase {
         this.scanning = false;
         this.FOVPenalty = true;
 
-        this.lastGUI = Date.now();
-
         this.faceReach = 4.5;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
         this.rotationSpeed = 75;
@@ -850,7 +848,7 @@ class Bot extends ModuleBase {
         }
     }
 
-    populateLocations(locations) {
+    populateLocations(locations, parentManaged) {
         this.manualScan = true;
 
         const eyePos = Player.getPlayer().getEyePos();
@@ -881,7 +879,7 @@ class Bot extends ModuleBase {
 
         this.currentTarget = this.foundLocations[0];
         this.lowestCostBlockIndex = 0;
-        this.toggle(true, this.isParentManaged);
+        this.toggle(true, parentManaged);
 
         return true;
     }

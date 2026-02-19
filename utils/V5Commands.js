@@ -154,7 +154,7 @@ const v5Logic = () => {
 
         literal('ore', () => {
             exec(() => usage('/v5 mining ore <args>'));
-            argument('args', greedyString(), () => exec(({ args }) => ChatLib.command('ore ' + args)));
+            argument('args', greedyString(), () => exec(({ args }) => callCommand('ore', args)));
         });
     });
 

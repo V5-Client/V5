@@ -13,6 +13,8 @@ import { Router } from '../../utils/Router';
 import RouteState from '../../utils/RouteState';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { MiningBot } from './MiningBot';
+import { v5Command } from '../../utils/V5Commands';
+import { Utils } from '../../utils/Utils';
 
 // todo make walk points work
 // rework the command when icba to fix it
@@ -55,9 +57,11 @@ class OreMacro extends ModuleBase {
         this.route = null;
         this.loadedFile = null;
 
-        this.closestPoint = null;
-        this.rawPoint = null;
-        this.closestPointIndex = null;
+        this.pointData = {
+            point: null,
+            raw: null,
+            index: null,
+        };
 
         this.rotatedToPoint = false;
         this.attemptedEtherwarp = false;
@@ -65,39 +69,60 @@ class OreMacro extends ModuleBase {
         this.etherwarpTicks = 0;
         this.playerPos = null;
 
+        this.supportedIslands = ['Dwarven Mines', 'The Rift', 'The End', 'The Crimson Isles', "Spider's Den"];
+
         this.createOverlay([
             {
                 title: 'Status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    'Route Progress': () => (this.route ? `${this.closestPointIndex || 0}/${this.route.length}` : 'No Route'),
+                    'Route Progress': () => {
+                        if (!this.route || this.pointData.index === null) return 'No Route';
+
+                        const navPoints = this.route.filter((p) => p.movements !== 'MINEABLE');
+                        const totalPathPoints = navPoints.length;
+
+                        const currentNavIndex = this.route.slice(0, this.pointData.index + 1).filter((p) => p.movements !== 'MINEABLE').length;
+
+                        return `${currentNavIndex}/${totalPathPoints}`;
+                    },
                     'Targets Found': () => MiningBot.foundLocations.length,
                 },
             },
         ]);
 
-        register('command', (action, arg1, indexArg) => {
+        v5Command('ore', (action, arg1, indexArg) => {
             if (!action) return Chat.message('§cAction required: "add", "remove", "clear"');
 
-            const parsedArg1Index = Number.parseInt(arg1, 10);
-            if (arg1 !== undefined && !Number.isNaN(parsedArg1Index) && indexArg === undefined) {
-                indexArg = parsedArg1Index;
-                arg1 = undefined;
+            const parsedArg1 = Number.parseInt(arg1, 10);
+            let movementTypeStr = arg1;
+            let finalIndex = Number.parseInt(indexArg, 10);
+
+            if (arg1 !== undefined && !Number.isNaN(parsedArg1) && indexArg === undefined) {
+                finalIndex = parsedArg1;
+                movementTypeStr = undefined;
             }
 
             const actionUpper = action.toUpperCase();
-            const movementType = arg1 ? arg1.toUpperCase() : undefined;
-
+            const movementType = movementTypeStr ? movementTypeStr.toUpperCase() : undefined;
             const isMineable = movementType === 'MINEABLE';
-            const parsedIndex = Number.parseInt(indexArg, 10);
-            const indexNum = Number.isNaN(parsedIndex) ? undefined : parsedIndex;
+            const indexNum = Number.isNaN(finalIndex) ? undefined : finalIndex;
 
-            this.route = Router.Edit(actionUpper, this.route, `OreRoutes/${this.loadedFile}`, indexNum, !!arg1, ['WALK', 'MINEABLE'], arg1, isMineable);
-        }).setName('ore');
+            this.route = Router.Edit(
+                actionUpper,
+                this.route,
+                `OreRoutes/${this.loadedFile}`,
+                indexNum,
+                !!movementType,
+                ['WALK', 'MINEABLE'],
+                movementType,
+                isMineable
+            );
+        });
 
         this.when(
             () => {
-                return true; // Utils.area() === 'Crystal Hollows';
+                return this.supportedIslands.includes(Utils.area());
             },
             'postRenderWorld',
             () => {
@@ -114,7 +139,7 @@ class OreMacro extends ModuleBase {
                     const pos = new Vec3d(current.x, current.y, current.z);
 
                     if (current.movements === 'MINEABLE') {
-                        boxColor = Render.Color(0, 255, 0, 80); // Green
+                        boxColor = Render.Color(0, 255, 0, 80);
                         edgeColor = Render.Color(0, 255, 0, 255);
                         label = `Mineable #${mineCounter++}`;
                     } else {
@@ -139,52 +164,36 @@ class OreMacro extends ModuleBase {
                 case this.STATES.DECIDING:
                     if (!this.route || this.route.length <= 1) {
                         this.message('&cRoute needs at least 2 points!');
-                        this.toggle(false);
-                        return;
+                        return this.toggle(false);
                     }
 
-                    if (this.closestPointIndex === null) {
-                        let found = this.getClosestPoint();
-                        if (!found) return;
-                        this.closestPointIndex = found.index;
-                    }
+                    if (this.pointData.index === null) this.pointData.index = this.getClosestPoint().index;
 
-                    let currentPoint = this.route[this.closestPointIndex];
+                    let currentPoint = this.route[this.pointData.index];
 
-                    if (currentPoint.movements === 'WALK') {
-                        this.state = this.STATES.WALKING;
-                        this.message('&6Movement: Walking to point ' + this.closestPointIndex);
-                    } else {
-                        this.state = this.STATES.ETHERWARPING;
-                        this.message('&bMovement: Etherwarping to point ' + this.closestPointIndex);
-                    }
+                    currentPoint.movements === 'WALK' ? (this.state = this.STATES.WALKING) : (this.state = this.STATES.ETHERWARPING);
                     break;
                 case this.STATES.WALKING:
-                    let walkPoint = this.route[this.closestPointIndex];
+                    let walkPoint = this.route[this.pointData.index];
                     let dist = MathUtils.getDistanceToPlayer(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5);
 
-                    let nextPoint = this.route[this.closestPointIndex + 1];
-                    //Rotations.rotateToVector(new Vec3d(nextPoint.x + 0.5, nextPoint.y, nextPoint.z + 0.5));
-
                     Chat.message('Distance to point: ' + dist.distance);
-                    if (dist.distance <= 1.5 && dist.distanceFlat == dist.distanceY) {
-                        Keybind.setKey('shift', true);
-                    } else {
-                        Keybind.setKey('shift', false);
-                    }
+                    Keybind.setKey('shift', dist.distance <= 1.5 && dist.distanceFlat == dist.distanceY);
+
                     if (dist.distance <= 0.75) {
                         Keybind.unpressKeys();
 
-                        let nextIndex = (this.closestPointIndex + 1) % this.route.length;
+                        let nextIndex = (this.pointData.index + 1) % this.route.length;
 
                         for (let i = 0; i < this.route.length; i++) {
                             if (this.route[nextIndex].movements !== 'MINEABLE') {
                                 break;
                             }
+
                             nextIndex = (nextIndex + 1) % this.route.length;
                         }
 
-                        this.closestPointIndex = nextIndex;
+                        this.pointData.index = nextIndex;
 
                         this.state = this.STATES.MINING;
                         Keybind.setKey('shift', false);
@@ -195,44 +204,43 @@ class OreMacro extends ModuleBase {
                     Keybind.setKeysForStraightLineCoords(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5, true, true);
                     break;
                 case this.STATES.ETHERWARPING:
-                    MiningBot.toggle(false);
+                    MiningBot.toggle(false, true);
                     Keybind.setKey('leftclick', false);
 
                     let aotv = Guis.findItemInHotbar('Aspect of the Void');
                     if (aotv === -1) {
                         this.message('&cAspect of the Void not found in hotbar!');
-                        this.toggle(false);
-                        return;
+                        return this.toggle(false);
                     }
 
-                    if (!this.closestPoint) {
-                        let currentPoint = this.route[this.closestPointIndex];
+                    if (!this.pointData.closest) {
+                        let currentPoint = this.route[this.pointData.index];
                         let target = this.getPointOnBlock(currentPoint);
 
                         if (!target) {
-                            this.message('&cPoint ' + this.closestPointIndex + ' face is not visible!');
-                            this.toggle(false);
-                            return;
+                            this.message('&cPoint ' + this.pointData.index + ' face is not visible!');
+                            return this.toggle(false);
                         }
 
-                        this.closestPoint = target;
-                        this.rawPoint = currentPoint;
+                        this.pointData.closest = target;
+                        this.pointData.raw = currentPoint;
                         this.rotatedToPoint = false;
                         this.attemptedEtherwarp = false;
                     }
 
-                    this.dist = MathUtils.distanceToPlayerFeet([this.closestPoint.x, this.closestPoint.y, this.closestPoint.z]);
+                    this.dist = MathUtils.getDistanceToPlayer(this.pointData.raw.x + 0.5, this.pointData.raw.y + 1, this.pointData.raw.z + 0.5);
                     this.distance = this.dist.distance;
 
-                    if (this.distance < 2) {
-                        this.message('&aArrived at point ' + this.closestPointIndex);
+                    if (this.distance <= 0.75) {
+                        ChatLib.chat(this.distance);
+                        this.message('&aArrived at point ' + this.pointData.index);
 
-                        this.closestPoint = null;
+                        this.pointData.closest = null;
                         this.rotatedToPoint = false;
                         this.attemptedEtherwarp = false;
                         this.etherwarpTicks = 0;
 
-                        let nextIndex = (this.closestPointIndex + 1) % this.route.length;
+                        let nextIndex = (this.pointData.index + 1) % this.route.length;
 
                         for (let i = 0; i < this.route.length; i++) {
                             if (this.route[nextIndex].movements !== 'MINEABLE') {
@@ -241,9 +249,9 @@ class OreMacro extends ModuleBase {
                             nextIndex = (nextIndex + 1) % this.route.length;
                         }
 
-                        this.closestPointIndex = nextIndex;
+                        this.pointData.index = nextIndex;
 
-                        let nextPoint = this.route[this.closestPointIndex + 1];
+                        let nextPoint = this.route[this.pointData.index + 1];
                         if (nextPoint) {
                             let nextPointVec = new Vec3d(nextPoint?.x + 0.5, nextPoint?.y, nextPoint?.z + 0.5);
                             if (nextPointVec) Rotations.rotateToVector(nextPointVec);
@@ -264,13 +272,12 @@ class OreMacro extends ModuleBase {
 
                         if (!Player.getPlayer().isSneaking()) return;
 
-                        Rotations.rotateToVector(this.closestPoint, 1);
+                        Rotations.rotateToVector(this.pointData.closest, 1);
                         Rotations.onEndRotation(() => {
                             if (!this.enabled) return;
                             ScheduleTask(this.FASTAOTV ? 2 : 5, () => {
                                 try {
-                                    // yes this is retarded ik
-                                    this.rightClickEtherWarp(this.closestPoint);
+                                    this.rightClickEtherWarp(this.pointData.closest);
 
                                     this.attemptedEtherwarp = true;
                                     this.lastX = Player.getX();
@@ -286,38 +293,39 @@ class OreMacro extends ModuleBase {
                     }
 
                     if (this.attemptedEtherwarp) {
-                        let hasMoved = Math.abs(Player.getX() - this.lastX) > 0.5 || Math.abs(Player.getY() - this.lastY) > 0.5;
+                        const hasMoved = Math.abs(Player.getX() - this.lastX) > 0.1 || Math.abs(Player.getZ() - this.lastZ) > 0.1;
 
                         if (hasMoved) {
-                            this.attemptedEtherwarp = false;
-                            this.etherwarpTicks = 0;
+                            ChatLib.chat(this.distance);
+                            if (this.distance <= 0.75) {
+                                Keybind.stopMovement();
+                                this.attemptedEtherwarp = false;
+                                this.etherwarpTicks = 0;
+                                return;
+                            }
+
+                            Keybind.setKeysForStraightLineCoords(
+                                this.pointData.closest.x + 0.5,
+                                this.pointData.closest.y + 1,
+                                this.pointData.closest.z + 0.5,
+                                true,
+                                true
+                            );
                         } else {
                             this.etherwarpTicks++;
                             if (this.etherwarpTicks % 20 === 0) {
-                                let attemptNum = this.etherwarpTicks / 20;
-                                this.recalculateEtherWarp(attemptNum);
+                                this.recalculateEtherWarp(this.etherwarpTicks / 20);
                             }
                         }
                     }
                     break;
                 case this.STATES.MINING:
-                    const { drill } = MiningUtils.getDrills();
-                    if (!drill) {
-                        Chat.message('&cNo drill found in ABILITY state!');
-                        this.toggle(false);
-                        return;
-                    }
-
-                    if (Player.getHeldItemIndex() !== drill.slot) {
-                        Guis.setItemSlot(drill.slot);
-                    }
-
-                    this.prepartionTicks++;
+                    Keybind.stopMovement();
 
                     let mineables = [];
 
                     for (let i = 0; i < this.route.length; i++) {
-                        let checkIndex = (this.closestPointIndex + i) % this.route.length;
+                        let checkIndex = (this.pointData.index + i) % this.route.length;
                         let point = this.route[checkIndex];
                         if (point.movements !== 'MINEABLE') continue;
                         let block = World.getBlockAt(point.x, point.y, point.z);
@@ -326,14 +334,15 @@ class OreMacro extends ModuleBase {
                         if (typeof reg === 'string' && !reg.includes('air') && !reg.includes('bedrock')) mineables.push(point);
                     }
 
+                    MiningBot.FOVPenalty = false;
+
                     if (mineables.length > 0) {
-                        MiningBot.populateLocations(mineables);
+                        MiningBot.populateLocations(mineables, true);
                     }
 
                     if (MiningBot.foundLocations.length === 0) {
-                        MiningBot.toggle(false);
-                        this.state = this.STATES.DECIDING;
-                        return;
+                        MiningBot.toggle(false, true);
+                        return (this.state = this.STATES.DECIDING);
                     }
             }
         });
@@ -349,6 +358,7 @@ class OreMacro extends ModuleBase {
             },
             'The route the macro will use'
         );
+
         this.addMultiToggle(
             'Ore Types',
             ['Coal', 'Quartz', 'Iron', 'Gold', 'Diamond', 'Redstone', 'Lapis', 'Emerald'],
@@ -366,6 +376,7 @@ class OreMacro extends ModuleBase {
             },
             'Type of ores the macro is able to target'
         );
+
         this.addToggle(
             'Fast AOTV',
             (value) => {
@@ -380,14 +391,14 @@ class OreMacro extends ModuleBase {
         this.rotatedToPoint = false;
         this.etherwarpAttempts++;
 
-        let newTarget = this.getPointOnBlock(this.rawPoint);
+        let newTarget = this.getPointOnBlock(this.pointData.raw);
         let multiplier;
         if (intensity === 1) multiplier = 0.05;
         else if (intensity === 2) multiplier = 0.2;
         else multiplier = 0.5;
 
         if (newTarget) {
-            this.closestPoint = {
+            this.pointData.closest = {
                 x: newTarget.x + (Math.random() - 0.5) * multiplier,
                 y: newTarget.y + (Math.random() - 0.5) * multiplier,
                 z: newTarget.z + (Math.random() - 0.5) * multiplier,
@@ -618,13 +629,18 @@ class OreMacro extends ModuleBase {
     onDisable() {
         RouteState.clearRoute();
         Rotations.stopRotation();
-        this.closestPointIndex = null;
-        this.closestPoint = null;
+
+        this.pointData = {
+            point: null,
+            raw: null,
+            index: null,
+        };
+
         this.rotatedToPoint = null;
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
         Keybind.unpressKeys();
-        MiningBot.toggle(false);
+        MiningBot.toggle(false, true);
     }
 }
 
