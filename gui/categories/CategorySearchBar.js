@@ -44,7 +44,7 @@ export const SearchBar = {
     isFocused: false,
     cursorIndex: 0,
     collapsedWidth: 30,
-    expandedWidth: 220,
+    expandedWidth: 560,
     height: 28,
     lerpSpeed: 0.15,
     textX: 0,
