@@ -60,6 +60,7 @@ class OverlayUtils {
         this.sessionResumeWindowMs = 5 * 60 * 1000; // resume macro within 5 minutes
         this.savedSessions = {};
         this.renderActive = false;
+        this.drawingGUI = false;
 
         NVG.registerV5Render(() => {
             if (!Overlays.Gui.isOpen() && !this.renderActive) return;
@@ -607,6 +608,7 @@ class OverlayUtils {
         if (sw === 0) return;
         Client.getMinecraft().gameRenderer.renderBlur();
         this.editorBoxes = {};
+        this.drawingGUI = true;
 
         try {
             NVG.beginFrame(sw, sh);
@@ -962,6 +964,7 @@ class OverlayUtils {
         GuiState.isOpening = true;
         loadSettings();
         GuiState.myGui.open();
+        this.drawingGUI = false;
     }
 }
 

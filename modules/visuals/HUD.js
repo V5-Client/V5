@@ -3,6 +3,7 @@ import { NVG } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import { ServerInfo } from '../../utils/player/ServerInfo';
+import { OverlayManager } from '../../gui/OverlayUtils';
 
 class HUD extends ModuleBase {
     constructor() {
@@ -300,6 +301,7 @@ class HUD extends ModuleBase {
 
     renderOverlay() {
         if (!this.STATS_HUD && !this.INVENTORY_HUD) return;
+        if (OverlayManager.drawingGUI) return;
 
         this.syncFromOverlayEditor();
 

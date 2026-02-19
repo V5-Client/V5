@@ -13,6 +13,7 @@ import {
 import { InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
+import { OverlayManager } from '../../gui/OverlayUtils';
 
 class Music extends ModuleBase {
     constructor() {
@@ -100,6 +101,8 @@ class Music extends ModuleBase {
     }
 
     renderOverlay() {
+        if (OverlayManager.drawingGUI) return;
+
         this.syncFromOverlayEditor();
 
         const now = Date.now();
