@@ -43,6 +43,8 @@ class MacroStateClass {
     }
 
     onModuleEnabled(moduleName) {
+        if (!moduleName) return;
+
         const wasEmpty = this.enabledMacros.size === 0;
         this.enabledMacros.add(moduleName);
 
@@ -55,6 +57,8 @@ class MacroStateClass {
     }
 
     onModuleDisabled(moduleName) {
+        if (!moduleName) return;
+
         this.enabledMacros.delete(moduleName);
 
         if (this.enabledMacros.size === 0) {

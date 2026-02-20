@@ -3,6 +3,8 @@ import { manager } from '../utils/SkyblockEvents';
 export class Failsafe {
     registered = false;
     ignore = false;
+    _ignoreUntil = 0;
+    _ignoreTimer = null;
 
     constructor() {
         this._registerListeners();
@@ -14,12 +16,29 @@ export class Failsafe {
     onTrigger() {}
     reset() {
         this.ignore = false;
+        this._ignoreUntil = 0;
+        if (this._ignoreTimer) {
+            clearTimeout(this._ignoreTimer);
+            this._ignoreTimer = null;
+        }
     }
 
     _setIgnore(durationMs) {
+        const now = Date.now();
+        const end = now + durationMs;
+
+        if (end <= this._ignoreUntil && this.ignore) return;
+
+        this._ignoreUntil = end;
         this.ignore = true;
-        setTimeout(() => {
-            this.ignore = false;
+
+        if (this._ignoreTimer) clearTimeout(this._ignoreTimer);
+
+        this._ignoreTimer = setTimeout(() => {
+            if (Date.now() >= this._ignoreUntil) {
+                this.ignore = false;
+                this._ignoreTimer = null;
+            }
         }, durationMs);
     }
 
@@ -36,8 +55,9 @@ export class Failsafe {
 
         const velocity = data.velocity;
         const blockBelow = data.blockBelow;
+        const roundedVelocity = Math.round(velocity);
         // Chat.message('velocity check; velocity = ' + JSON.stringify(data));
-        if (blockBelow && !blockBelow.includes('air') && (velocity.toFixed(0) == 1 || velocity.toFixed(0) == 0)) {
+        if (blockBelow && !blockBelow.includes('air') && (roundedVelocity === 1 || roundedVelocity === 0)) {
             Chat.messageDebug('ignoring fall velocity packet');
             this._setIgnore(1000);
         } else {
@@ -93,26 +113,25 @@ export class Failsafe {
         if (this.registered) return;
         this.registered = true;
         register('worldLoad', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
+            this._setIgnore(1000);
         });
         manager.subscribe('serverchange', () => {
-            this.ignore = true;
-            setTimeout(() => (this.ignore = false), 1000);
+            this._setIgnore(1000);
         });
         manager.subscribe('death', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
+            this._setIgnore(1000);
         });
         manager.subscribe('warp', () => {
-            this.ignore = true;
-            setTimeout(() => {
-                this.ignore = false;
-            }, 1000);
+            this._setIgnore(1000);
         });
     }
+
+    _getReactionDelay(settings) {
+        const raw = Number(settings?.FailsafeReactionTime);
+        if (!isFinite(raw)) return 600;
+        return Math.max(0, Math.floor(raw - 50));
+    }
+
     isFalse(checkType, data = {}) {
         this._handleVelocityOnFireIgnore(checkType);
 

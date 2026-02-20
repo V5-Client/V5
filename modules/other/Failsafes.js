@@ -60,7 +60,7 @@ class Failsafes extends ModuleBase {
                 this.playerGrief = enabled.includes('Player Grief');
             },
             'Select which failsafes are enabled',
-            false,
+            ['TP', 'Rotation', 'Velocity', 'Slot Change', 'Chat Mention', 'Player Grief'],
             sectionName
         );
         this.addDirectRangeSlider(
@@ -116,10 +116,11 @@ class Failsafes extends ModuleBase {
             'Failsafe sound',
             this.getFilesinDir(),
             true,
-            (v) => {
-                // someone sort this out properly
+            () => {
                 const selectedFiles = getSetting('Failsafes', 'Failsafe sound');
+                if (!Array.isArray(selectedFiles)) return;
                 const enabledNames = selectedFiles.filter((fileObject) => fileObject.enabled).map((fileObject) => fileObject.name);
+                if (enabledNames.length === 0) return;
 
                 const singleEnabledName = enabledNames[0] + '.wav';
 
@@ -142,6 +143,7 @@ class Failsafes extends ModuleBase {
 
         const fileArray = targetPath.listFiles();
         const fileNames = [];
+        const seen = new Set();
 
         if (!fileArray) return [];
 
@@ -150,12 +152,14 @@ class Failsafes extends ModuleBase {
 
             if (name.endsWith('.wav')) {
                 name = name.replaceAll('.wav', '');
-
-                fileNames.push(name);
+                if (!seen.has(name)) {
+                    seen.add(name);
+                    fileNames.push(name);
+                }
             }
         }
 
-        return fileNames;
+        return fileNames.sort((a, b) => a.localeCompare(b));
     }
 }
 

@@ -26,8 +26,29 @@ export class MultiToggle {
             animationStart: 0,
         }));
         this.singleSelect = singleSelect;
+
+        const normalizeDefaultNames = (value) => {
+            if (!Array.isArray(value)) return null;
+
+            const names = [];
+            for (const entry of value) {
+                if (typeof entry === 'string') {
+                    names.push(entry);
+                    continue;
+                }
+
+                if (entry && typeof entry.name === 'string' && entry.enabled !== false) {
+                    names.push(entry.name);
+                }
+            }
+
+            return names;
+        };
+
+        const defaultNames = normalizeDefaultNames(defaultValue);
+
         if (Array.isArray(defaultValue)) {
-            const defaultSet = new Set(defaultValue);
+            const defaultSet = new Set(defaultNames || []);
             this.options.forEach((option) => {
                 if (defaultSet.has(option.name)) {
                     option.enabled = true;
@@ -41,6 +62,21 @@ export class MultiToggle {
                 this.options[defaultIndex].animationProgress = 1;
             }
         }
+
+        if (this.singleSelect) {
+            let firstEnabledIndex = -1;
+            this.options.forEach((option, index) => {
+                if (!option.enabled) return;
+                if (firstEnabledIndex === -1) {
+                    firstEnabledIndex = index;
+                    return;
+                }
+
+                option.enabled = false;
+                option.animationProgress = 0;
+            });
+        }
+
         if (this.singleSelect && !this.options.some((option) => option.enabled) && this.options.length > 0) {
             this.options[0].enabled = true;
             this.options[0].animationProgress = 1;

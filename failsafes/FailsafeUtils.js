@@ -1,19 +1,35 @@
 import { V5ConfigFile } from '../utils/Constants.js';
 
+const DEFAULT_FAILSAFE_SETTINGS = {
+    isEnabled: true,
+    FailsafeReactionTime: 600,
+    playerProximityDistance: 3,
+    pingOnCheck: true,
+    playSoundOnCheck: true,
+};
+
 class FailsafeUtils {
     failsafeIntensity = 0;
 
-    getFailsafeSettings(name) {
+    constructor() {
+        this._cache = {
+            expiresAt: 0,
+            lastModified: -1,
+            config: {},
+        };
+    }
+
+    _getConfig() {
         if (!V5ConfigFile.exists()) {
-            console.log('V5Config not found, this shouldnt happen!'); // having this import from failsafemodule causes it to double load so kinda have to do this i think
-            return {
-                isEnabled: true,
-                FailsafeReactionTime: 600,
-                playerProximityDistance: 3,
-                pingOnCheck: true,
-                playSoundOnCheck: true,
-            };
+            return {};
         }
+
+        const now = Date.now();
+        const lastModified = V5ConfigFile.lastModified();
+        if (now < this._cache.expiresAt && this._cache.lastModified === lastModified) {
+            return this._cache.config;
+        }
+
         const rawConfig = FileLib.read(V5ConfigFile.getAbsolutePath());
         let config = {};
 
@@ -25,31 +41,42 @@ class FailsafeUtils {
             console.log('Failed to parse V5Config JSON, using defaults: ' + err);
         }
 
-        if (!config['Failsafes'])
-            return {
-                isEnabled: true,
-                FailsafeReactionTime: 600,
-                playerProximityDistance: 3,
-                pingOnCheck: true,
-                playSoundOnCheck: true,
-            };
+        this._cache.expiresAt = now + 250;
+        this._cache.lastModified = lastModified;
+        this._cache.config = config;
+        return config;
+    }
 
-        const FailsafeReactionTimeInput = config['Failsafes']['Failsafe Detection Delay (ms)'] ?? 600;
-        let FailsafeReactionTime = FailsafeReactionTimeInput;
-
-        if (typeof FailsafeReactionTimeInput === 'object' && FailsafeReactionTimeInput.low !== undefined && FailsafeReactionTimeInput.high !== undefined) {
-            FailsafeReactionTime = Math.floor(
-                Math.random() * (FailsafeReactionTimeInput.high - FailsafeReactionTimeInput.low + 1) + FailsafeReactionTimeInput.low
-            );
+    getFailsafeSettings(name) {
+        if (!V5ConfigFile.exists()) {
+            console.log('V5Config not found, this shouldnt happen!'); // having this import from failsafemodule causes it to double load so kinda have to do this i think
+            return DEFAULT_FAILSAFE_SETTINGS;
         }
 
-        const enabledList = config['Failsafes']['Enabled Failsafes'];
+        const config = this._getConfig();
+
+        if (!config['Failsafes']) return DEFAULT_FAILSAFE_SETTINGS;
+
+        const failsafesConfig = config['Failsafes'];
+
+        const FailsafeReactionTimeInput = failsafesConfig['Failsafe Detection Delay (ms)'] ?? DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
+        let FailsafeReactionTime = DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
+
+        if (typeof FailsafeReactionTimeInput === 'object' && FailsafeReactionTimeInput.low !== undefined && FailsafeReactionTimeInput.high !== undefined) {
+            const low = Math.min(FailsafeReactionTimeInput.low, FailsafeReactionTimeInput.high);
+            const high = Math.max(FailsafeReactionTimeInput.low, FailsafeReactionTimeInput.high);
+            FailsafeReactionTime = Math.floor(Math.random() * (high - low + 1) + low);
+        } else if (typeof FailsafeReactionTimeInput === 'number' && isFinite(FailsafeReactionTimeInput)) {
+            FailsafeReactionTime = FailsafeReactionTimeInput;
+        }
+
+        const enabledList = failsafesConfig['Enabled Failsafes'];
         const isEnabled = Array.isArray(enabledList)
             ? enabledList.some((entry) => entry.name === name && entry.enabled)
-            : (config['Failsafes'][`${name} Failsafe`] ?? true);
-        const playerProximityDistance = config['Failsafes']['Player Proximity Distance'] ?? 3;
-        const pingOnCheck = config['Failsafes']['Ping on check'] ?? true;
-        const playSoundOnCheck = config['Failsafes']['Play sound on check'] ?? true;
+            : (failsafesConfig[`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
+        const playerProximityDistance = failsafesConfig['Player Proximity Distance'] ?? DEFAULT_FAILSAFE_SETTINGS.playerProximityDistance;
+        const pingOnCheck = failsafesConfig['Ping on check'] ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+        const playSoundOnCheck = failsafesConfig['Play sound on check'] ?? DEFAULT_FAILSAFE_SETTINGS.playSoundOnCheck;
 
         return {
             isEnabled: isEnabled,

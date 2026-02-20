@@ -43,13 +43,10 @@ class RotationFailsafe extends Failsafe {
 
             if (posDistance >= 0.001) return;
 
-            setTimeout(
-                () => {
-                    if (this.isFalse('rotation')) return;
-                    this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
-                },
-                this.settings.FailsafeReactionTime - 50 || 600
-            );
+            setTimeout(() => {
+                if (this.isFalse('rotation')) return;
+                this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
+            }, this._getReactionDelay(this.settings));
         }).setFilteredClass(PlayerPositionLookS2C);
     }
 

@@ -40,6 +40,8 @@ class AlertUtilsClass {
      * Combines all internal methods to create a failsafe alert
      */
     triggerReaction() {
+        if (this.isAlerting) return;
+
         Chat.messageFailsafe('Suspicious activity detected, reaction occuring!');
         Chat.messageFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
@@ -81,11 +83,6 @@ class AlertUtilsClass {
             drawText(line2End, currentX2, y2, fontSize, redColor);
 
             this._renderAlertScreen();
-        });
-
-        this.cancelKeyBind.onKeyPress(() => {
-            Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
-            this.disableReaction();
         });
     }
 
@@ -137,6 +134,25 @@ class AlertUtilsClass {
      * Loads a sound file using Java methods
      */
     _loadsoundFile() {
+        if (this.clip) {
+            try {
+                this.clip.stop();
+                this.clip.close();
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
+            this.clip = null;
+        }
+
+        if (this.audioStream) {
+            try {
+                this.audioStream.close();
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
+            this.audioStream = null;
+        }
+
         const currentSound = failsafeSound;
         this.savedSound = currentSound || 'Tave Check.wav';
         if ((currentSound || '').includes('undefined')) this.savedSound = 'Tave Check.wav';
@@ -198,6 +214,12 @@ class AlertUtilsClass {
 
         this.cancelKey = Keyboard.getKeyName(savedKeycode);
         this.cancelKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
+
+        this.cancelKeyBind.onKeyPress(() => {
+            if (!this.isAlerting) return;
+            Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
+            this.disableReaction();
+        });
 
         register('gameUnload', () => {
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};

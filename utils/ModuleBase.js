@@ -146,7 +146,7 @@ export class ModuleBase {
         } else {
             if (this.isMacro) {
                 MacroState.onModuleDisabled(this.name);
-                Mixin.set('macroEnabled', false);
+                Mixin.set('macroEnabled', MacroState.isMacroRunning());
             }
 
             if (this.oid) {

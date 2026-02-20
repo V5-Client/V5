@@ -29,13 +29,10 @@ class VelocityFailsafe extends Failsafe {
             const data = { velocity: speed, blockBelow: blockName };
 
             if (this.isFalse('velocity', data)) return;
-            setTimeout(
-                () => {
-                    if (this.isFalse('velocity', data)) return;
-                    this.onTrigger(speed);
-                },
-                this.settings.FailsafeReactionTime - 50 || 600
-            );
+            setTimeout(() => {
+                if (this.isFalse('velocity', data)) return;
+                this.onTrigger(speed);
+            }, this._getReactionDelay(this.settings));
         }).setFilteredClass(EntityVelocityUpdateS2C);
     }
 
