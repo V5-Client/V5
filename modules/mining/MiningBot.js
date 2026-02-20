@@ -60,6 +60,8 @@ class Bot extends ModuleBase {
         this.nukedBlock = false;
         this.scanning = false;
         this.FOVPenalty = true;
+        this.abilityFromChat = false;
+        this.lastUse = 0;
 
         this.faceReach = 4.5;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
@@ -170,14 +172,18 @@ class Bot extends ModuleBase {
 
         manager.subscribe('abilityready', () => {
             this.resetTickCounters();
+            this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
         });
+
         manager.subscribe('abilityused', () => {
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
             this.resetTickCounters();
         });
+
         manager.subscribe('abilitygone', () => {
             this.speedBoost = false;
+            this.lastUse = Date.now();
             this.resetTickCounters();
         });
     }
@@ -424,11 +430,16 @@ class Bot extends ModuleBase {
         if (this.SCAN_ONLY) return (this.state = this.STATES.MINING);
 
         const abilityStatus = this.getAbilityStatusFromTab();
-        if (!abilityStatus.includes('Available')) return (this.state = this.STATES.MINING);
+        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + 200 * 1000 < Date.now()) {
+            if (this.ensureDrillEquipped(this.drill)) return;
 
-        if (this.ensureDrillEquipped(this.drill)) return;
+            Keybind.rightClick();
 
-        Keybind.rightClick();
+            this.lastUse = Date.now();
+            this.abilityFromChat = false;
+            this.state = this.STATES.MINING;
+            return;
+        }
 
         this.state = this.STATES.MINING;
     }
@@ -440,6 +451,8 @@ class Bot extends ModuleBase {
         }
 
         this.ensureDrillEquipped(this.drill);
+
+        if (this.lastUse + 200 * 1000 < Date.now()) return (this.state = this.STATES.ABILITY);
 
         if (this.shouldScanForNewBlock()) {
             if (this.manualScan) {

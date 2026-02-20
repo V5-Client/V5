@@ -53,7 +53,7 @@ class SkyblockEventManager {
             'Warping...': 'warp',
             'is empty! Refuel it': 'emptydrill',
             'too little fuel to keep mining': 'emptydrill',
-            'available!': 'abilityready',
+            'is now available!': 'abilityready',
             'you used your': 'abilityused',
             'expired!': 'abilitygone',
             "can't use this while": 'incombat',
