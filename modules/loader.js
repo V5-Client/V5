@@ -48,7 +48,6 @@ import './other/ChatPatch.js';
 import './other/DiscordRPC.js';
 //import './other/DungeonRoutes.js'; // IS NOT A FILE, RDBT HASN'T PUSHED YET
 import './other/Failsafes.js';
-//import './other/FastPlace.js';
 import './other/InventoryWalk.js';
 import './other/LeftClickEtherwarp.js';
 import './other/RatProtection.js';
