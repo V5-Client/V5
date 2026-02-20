@@ -12,6 +12,7 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
 import Render from '../../utils/render/Render';
+import { Mouse } from '../../utils/Ungrab';
 
 class Bot extends ModuleBase {
     constructor() {
@@ -916,7 +917,10 @@ class Bot extends ModuleBase {
         }
 
         this.setCost();
-        if (!this.isParentManaged) this.message('&aEnabled');
+        if (!this.isParentManaged) {
+            this.message('&aEnabled');
+            Mouse.ungrab();
+        }
         this.allowScan = true;
         this.FOVPenalty = true;
         this.state = this.STATES.ABILITY;
@@ -924,7 +928,11 @@ class Bot extends ModuleBase {
     }
 
     onDisable() {
-        if (!this.isParentManaged) this.message('&cDisabled');
+        if (!this.isParentManaged) {
+            this.message('&cDisabled');
+            Mouse.regrab();
+        }
+
         this.state = this.STATES.WAITING;
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);
