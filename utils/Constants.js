@@ -50,7 +50,7 @@ export const ArmorStandEntity = net.minecraft.entity.decoration.ArmorStandEntity
 export const ZombieEntity = net.minecraft.entity.mob.ZombieEntity;
 export const EndermanEntity = net.minecraft.entity.mob.EndermanEntity;
 export const BatEntity = net.minecraft.entity.passive.BatEntity;
-export const Class709 = net.minecraft.class_709; // pls rename to the correct name idk what it is
+export const PortalParticle = net.minecraft.client.particle.PortalParticle; // pls rename to the correct name idk what it is
 
 export const MinecraftText = net.minecraft.text.Text;
 export const Formatting = net.minecraft.util.Formatting;

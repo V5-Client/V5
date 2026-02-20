@@ -1,4 +1,4 @@
-import { Class709 } from '../../utils/Constants';
+import { PortalParticle } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 
 class MobHider extends ModuleBase {
@@ -30,7 +30,7 @@ class MobHider extends ModuleBase {
 
         this.on('spawnParticle', (particle, event) => {
             if (particle == null) return;
-            if (this.enabledMobNames.includes('Thysts') && particle instanceof Class709) {
+            if (this.enabledMobNames.includes('Thysts') && particle instanceof PortalParticle) {
                 cancel(event);
             }
         });
