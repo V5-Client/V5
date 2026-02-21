@@ -35,15 +35,26 @@ class ESP extends ModuleBase {
 
         this.on('postRenderWorld', () => {
             let players = World.getAllPlayers();
+            const self = Player.getPlayer();
 
             for (const player of players) {
                 if (player.getUUID().equals(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
 
-                Render.drawHitbox(player.toMC(), this.rgba, 4, false);
+                const entity = player.toMC();
+                Render.drawHitbox(entity, this.rgba, 4, false);
+
+                if (!this.showNames) continue;
+
+                const canSee = self.canSee(entity);
+                const maxDefaultNametagDistance = canSee ? 64 : 32;
+                const maxDefaultNametagDistanceSq = maxDefaultNametagDistance * maxDefaultNametagDistance;
+                const distanceSq = self.squaredDistanceTo(entity);
+
+                if (distanceSq <= maxDefaultNametagDistanceSq) continue;
 
                 let vec = new Vec3d(player.x, player.y + 2.3, player.z);
-                if (this.showNames) Render.drawText(player.getName(), vec, 1.2, true, false, true);
+                Render.drawText(player.getName(), vec, 1.2, true, false, true);
             }
         });
     }
