@@ -7,10 +7,6 @@ class PathMovement {
         this.path = [];
         this.currentIndex = 0;
         this.isActive = false;
-        this.isLifting = false;
-        this.isDescending = false;
-        this.complete = false;
-
         this.state = 'NONE';
         this.decelTicks = 0;
 
@@ -19,18 +15,15 @@ class PathMovement {
         this.MOTION_STOP_THRESHOLD_XZ = 0.05;
         this.MOTION_STOP_THRESHOLD_Y = 0.02;
         this.MAX_DECEL_TICKS = 60;
-
         this.MOVE_TARGET_LOOKAHEAD = 6;
-        this.STRAFE_ON_DEG = 35;
-        this.STRAFE_OFF_DEG = 15;
         this.LATERAL_DEADZONE = 0.65;
-
-        this.strafeDir = 0;
 
         PathExecutor.onTick(() => {
             if (!this.isActive || !this.path || this.path.length === 0) return;
+
             const player = Player.getPlayer();
             if (!player) return;
+
             if (!player.getAbilities().flying) {
                 player.getAbilities().flying = true;
                 player.sendAbilitiesUpdate();
@@ -44,13 +37,8 @@ class PathMovement {
         this.path = smoothPath;
         this.currentIndex = 0;
         this.isActive = true;
-        this.isLifting = false;
-        this.isDescending = false;
-        this.complete = false;
-
         this.state = 'MOVING';
         this.decelTicks = 0;
-        this.strafeDir = 0;
     }
 
     wrapAngle(angle) {
@@ -62,27 +50,6 @@ class PathMovement {
 
     getYawToTarget(dx, dz) {
         return -(Math.atan2(dx, dz) * (180 / Math.PI));
-    }
-
-    updateStrafeDir(yawDeltaDeg, distSqXZ) {
-        if (distSqXZ < this.LATERAL_DEADZONE * this.LATERAL_DEADZONE) {
-            this.strafeDir = 0;
-            return;
-        }
-
-        if (this.strafeDir === 0) {
-            if (yawDeltaDeg > this.STRAFE_ON_DEG) this.strafeDir = 1;
-            else if (yawDeltaDeg < -this.STRAFE_ON_DEG) this.strafeDir = -1;
-            return;
-        }
-
-        if (this.strafeDir === 1) {
-            if (yawDeltaDeg < this.STRAFE_OFF_DEG) this.strafeDir = 0;
-            else if (yawDeltaDeg < -this.STRAFE_ON_DEG) this.strafeDir = -1;
-        } else if (this.strafeDir === -1) {
-            if (yawDeltaDeg > -this.STRAFE_OFF_DEG) this.strafeDir = 0;
-            else if (yawDeltaDeg > this.STRAFE_ON_DEG) this.strafeDir = 1;
-        }
     }
 
     setMovementKeysToward(target) {
@@ -112,17 +79,16 @@ class PathMovement {
 
         if (distSqXZ > Math.pow(this.LATERAL_DEADZONE * 1.5, 2)) {
             if (absYawDelta > 25 && absYawDelta < 155) {
-                const side = yawDelta > 0 ? 1 : -1;
+                const sideKey = yawDelta > 0 ? 'd' : 'a';
                 if (absYawDelta > 45) {
-                    Keybind.setKey(side === 1 ? 'd' : 'a', true);
+                    Keybind.setKey(sideKey, true);
                 }
             }
         }
     }
 
     requestDeceleration() {
-        if (!this.isActive) return;
-        if (this.state === 'DECELERATING') return;
+        if (!this.isActive || this.state === 'DECELERATING') return;
         this.state = 'DECELERATING';
         this.decelTicks = 0;
         this.releaseMovementKeys();
@@ -137,31 +103,31 @@ class PathMovement {
 
     willArriveAtDestinationAfterStopping(targetPos) {
         const predicted = predictStoppingPosition(this.PREDICT_TICKS);
-        return this.getDistanceSq(predicted, targetPos) <= this.STOPPING_DISTANCE_THRESHOLD * this.STOPPING_DISTANCE_THRESHOLD;
+        return this.getDistanceSq(predicted, targetPos) <= Math.pow(this.STOPPING_DISTANCE_THRESHOLD, 2);
     }
 
     shouldFinishDeceleration(finalTarget) {
         const { x: vx, y: vy, z: vz } = getCurrentMotion();
         const slowEnough =
             Math.abs(vx) <= this.MOTION_STOP_THRESHOLD_XZ && Math.abs(vz) <= this.MOTION_STOP_THRESHOLD_XZ && Math.abs(vy) <= this.MOTION_STOP_THRESHOLD_Y;
+
         if (!slowEnough) return false;
 
         const here = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-        return this.getDistanceSq(here, finalTarget) <= (this.STOPPING_DISTANCE_THRESHOLD * 1.5) ** 2;
+        return this.getDistanceSq(here, finalTarget) <= Math.pow(this.STOPPING_DISTANCE_THRESHOLD * 1.5, 2);
     }
 
     updateMovement() {
         const pX = Player.getX();
         const pY = Player.getY();
         const pZ = Player.getZ();
-
         const finalTarget = this.path[this.path.length - 1];
 
         if (this.state === 'DECELERATING') {
             this.decelTicks++;
             this.releaseMovementKeys();
             if (this.shouldFinishDeceleration(finalTarget) || this.decelTicks >= this.MAX_DECEL_TICKS) {
-                this.finishMovement();
+                this.stopMovement();
             }
             return;
         }
@@ -184,7 +150,6 @@ class PathMovement {
                 closestIndex = i;
             }
         }
-
         this.currentIndex = closestIndex;
 
         const motion = getCurrentMotion();
@@ -198,39 +163,21 @@ class PathMovement {
         const predicted = predictStoppingPosition(10);
         const predictedDiffY = target.y - predicted.y;
 
-        if (predictedDiffY > 0.8 || diffY > 0.6) {
-            this.isLifting = true;
-            this.isDescending = false;
-        } else if (predictedDiffY < -0.8 || diffY < -0.6) {
-            this.isDescending = true;
-            this.isLifting = false;
-        } else {
-            this.isLifting = false;
-            this.isDescending = false;
-        }
+        const isLifting = predictedDiffY > 0.8 || diffY > 0.6;
+        const isDescending = !isLifting && (predictedDiffY < -0.8 || diffY < -0.6);
 
         this.setMovementKeysToward(target);
         Keybind.setKey('sprint', true);
-        Keybind.setKey('space', this.isLifting);
-        Keybind.setKey('shift', this.isDescending);
+        Keybind.setKey('space', isLifting);
+        Keybind.setKey('shift', isDescending);
     }
 
     releaseMovementKeys() {
         ['w', 'a', 's', 'd', 'space', 'shift', 'sprint'].forEach((key) => Keybind.setKey(key, false));
-        this.strafeDir = 0;
-    }
-
-    finishMovement() {
-        this.complete = true;
-        this.isActive = false;
-        this.state = 'NONE';
-        this.releaseMovementKeys();
-        this.path = [];
     }
 
     stopMovement() {
         this.isActive = false;
-        this.complete = false;
         this.state = 'NONE';
         this.releaseMovementKeys();
         this.path = [];
