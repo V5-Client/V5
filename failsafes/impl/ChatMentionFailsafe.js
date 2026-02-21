@@ -19,10 +19,12 @@ class ChatMentionFailsafe extends Failsafe {
         register('packetReceived', (packet, event) => {
             if (!MacroState.isMacroRunning() || this.isFalse('chat') || packet.overlay()) return;
 
+            this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');
+            if (!this.settings.isEnabled) return;
+            this.FailsafeReactionTime = this.settings.FailsafeReactionTime || 600;
+
             const content = packet.content().getString();
             if (!content.includes(':')) return;
-
-            Chat.message('DEBUG - message from packet recieved = ' + content);
 
             const result = this.isBad(content);
             if (!result.isBlocked) return;
