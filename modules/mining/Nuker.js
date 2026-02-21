@@ -162,7 +162,7 @@ class NukerClass extends ModuleBase {
             }
         });
 
-        this.addToggle('Auto Chest (broken)', (v) => (this.autoChest = v), 'Auto-opens chests');
+        this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
         this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
         this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
