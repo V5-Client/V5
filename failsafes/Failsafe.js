@@ -101,6 +101,9 @@ export class Failsafe {
         const recentClick = data.lastRightClickTime && Date.now() - data.lastRightClickTime < 1000;
         if (!recentClick) return false;
 
+        const recentCommand = data.lastCommandTime && Date.now() - data.lastCommandTime < 1000;
+        if (!recentCommand) return false;
+
         if (this._hasSmallRotationDiff(data) || this._isAlongLookVector(data)) {
             this._setIgnore(500);
             return true;

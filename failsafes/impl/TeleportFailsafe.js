@@ -1,11 +1,12 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { PlayerInteractItemC2S, PlayerPositionLookS2C } from '../../utils/Packets';
+import { PlayerInteractItemC2S, PlayerPositionLookS2C, CommandExecutionC2S } from '../../utils/Packets';
 import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
 let lastRightClickTime = 0;
+let lastCommandTime = 0;
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -22,6 +23,14 @@ class TeleportFailsafe extends Failsafe {
         register('packetSent', (packet) => {
             lastRightClickTime = Date.now();
         }).setFilteredClass(PlayerInteractItemC2S);
+
+        register('packetSent', (packet) => {
+            let command = packet.command().toLowerCase();
+
+            if (command.startsWith('warp')) {
+                lastCommandTime = Date.now();
+            }
+        }).setFilteredClass(CommandExecutionC2S);
     }
 
     registerTPListeners() {
@@ -53,6 +62,7 @@ class TeleportFailsafe extends Failsafe {
                 currYaw,
                 currPitch,
                 lastRightClickTime,
+                lastCommandTime,
                 toX: this.newX,
                 toY: this.newY,
                 toZ: this.newZ,
