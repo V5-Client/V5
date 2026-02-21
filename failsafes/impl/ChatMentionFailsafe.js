@@ -3,6 +3,7 @@ import { MacroState } from '../../utils/MacroState';
 import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
+import { GameMessageS2C } from '../../utils/Packets';
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
@@ -11,31 +12,23 @@ class ChatMentionFailsafe extends Failsafe {
         this.registerChatListeners();
         this.FailsafeReactionTime = 600;
         this.isFailsafeEnabled = true;
-        this.blacklistedWords = [
-            'macro',
-            'report',
-            'wdr',
-            'cheating',
-            'cheater',
-            'exploiting',
-            'automating',
-            'cheat',
-            //  `${Player.getName()}`, // add later when i can stop false positives
-        ];
+        this.blacklistedWords = ['macro', 'report', 'wdr', 'cheating', 'cheater', 'exploiting', 'automating', 'cheat', `${Player.getName()}`];
     }
 
     registerChatListeners() {
-        register('chat', (msg) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('chat')) return;
+        register('packetReceived', (packet, event) => {
+            if (!MacroState.isMacroRunning() || this.isFalse('chat') || packet.overlay()) return;
 
-            this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');
-            if (!this.settings.isEnabled) return;
-            this.FailsafeReactionTime = this.settings.FailsafeReactionTime || 600;
+            const content = packet.content().getString();
+            if (!content.includes(':')) return;
 
-            const result = this.isBad(msg);
+            Chat.message('DEBUG - message from packet recieved = ' + content);
+
+            const result = this.isBad(content);
             if (!result.isBlocked) return;
+
             this.onTrigger(result.blockedWord);
-        }).setCriteria(/(.+)/);
+        }).setFilteredClass(GameMessageS2C);
     }
 
     isBad(msg) {
