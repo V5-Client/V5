@@ -8,15 +8,11 @@ import { v5Command } from '../V5Commands';
 import { handleIRCMessage } from './IRC';
 import { handleRemoteMessage } from './RemoteControl';
 
-let SecureLoader = null;
+let V5Auth = null;
 
 try {
-    SecureLoader = Java.type('com.chattriggers.ctjs.internal.launch.SecureLoader');
-} catch (e) {
-    Chat.message(
-        "SecureLoader not found, IRC won't work, this is epsilon's fault. Will add 'dev' mode to loader soon to allow developing while still having loader irc."
-    );
-}
+    const V5Auth = Java.type('com.v5.api.V5Auth');
+} catch (e) {}
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -60,7 +56,7 @@ function connectWebSocket() {
         }
     }
 
-    const token = SecureLoader && SecureLoader.INSTANCE ? SecureLoader.INSTANCE.getJwtToken() : null;
+    const token = V5Auth ? V5Auth.INSTANCE.getJwtToken() : null;
 
     if (!token) return Chat.messageIrc('&cSecureLoader has not authenticated. Chat is unavailable.');
     returnDiscord(token);
