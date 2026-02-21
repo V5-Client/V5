@@ -26,10 +26,7 @@ class TeleportFailsafe extends Failsafe {
 
         register('packetSent', (packet) => {
             let command = packet.command().toLowerCase();
-
-            if (command.startsWith('warp')) {
-                lastCommandTime = Date.now();
-            }
+            if (command.startsWith('warp')) lastCommandTime = Date.now();
         }).setFilteredClass(CommandExecutionC2S);
     }
 
