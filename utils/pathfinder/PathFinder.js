@@ -69,15 +69,13 @@ class Finder {
             if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path fly <x> <y> <z>');
 
             const coords = args.map(Number);
-            if (coords.slice(0, 3).some(Number.isNaN)) {
-                return showNotification('Invalid Coordinates', 'Coords must be valid numbers.', 'ERROR', 5000);
+            if (coords.some(Number.isNaN)) {
+                return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
             }
 
-            let end = coords.length === 3 ? coords : [];
-            if (coords.length > 3) {
-                for (let i = 0; i < coords.length; i += 3) {
-                    end.push([coords[i], coords[i + 1], coords[i + 2]]);
-                }
+            let end = [];
+            for (let i = 0; i < coords.length; i += 3) {
+                end.push([coords[i], coords[i + 1], coords[i + 2]]);
             }
 
             this.resetPath();

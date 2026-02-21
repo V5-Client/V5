@@ -16,6 +16,10 @@ class PathSpline {
         this.FLY_RAYTRACE_STEP = 0.35;
         this.FLY_BLOCK_NUDGE = 0.85;
 
+        this.MIN_ADAPTIVE_TOLERANCE = 0.005;
+        this.MAX_ADAPTIVE_SPACING = 15.0;
+        this.Y_ADAPTIVE_SENSITIVITY = 1.5;
+
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
         this.cachedFlyLookPoints = [];
@@ -23,12 +27,30 @@ class PathSpline {
     }
 
     createFlyPaths(nodes) {
-        const lookPoints = this.createFlyLookPoints(nodes, this.FLY_SPACING);
-
-        const movementEyes = this.resamplePolylineByDistance(lookPoints, this.FLY_SPACING);
-        const movementPath = movementEyes.map((p) => ({ x: p.x, y: p.y - this.FLY_PLAYER_EYE_OFFSET, z: p.z }));
+        const lookPoints = this.createFlyLookPoints(nodes);
+        const movementPath = this.generateMovementPath(nodes);
 
         return { lookPoints, movementPath };
+    }
+
+    generateMovementPath(nodes, pointSpacing = this.FLY_SPACING) {
+        if (!nodes || nodes.length < 2) return [];
+
+        const raw = [];
+        for (const n of nodes) {
+            const x = n.x !== undefined ? n.x : n[0];
+            const y = n.y !== undefined ? n.y : n[1];
+            const z = n.z !== undefined ? n.z : n[2];
+            const p = new Vec3d(x, y, z);
+            const prev = raw.length ? raw[raw.length - 1] : null;
+            if (!prev || p.x !== prev.x || p.y !== prev.y || p.z !== prev.z) raw.push(p);
+        }
+        if (raw.length < 2) return [];
+
+        const rounded = this.roundPolylineCorners(raw, pointSpacing);
+        const resampled = this.resamplePolylineByDistance(rounded, 0.5);
+
+        return resampled.map((p) => ({ x: p.x, y: p.y, z: p.z }));
     }
 
     generateSpline(keyPathNodes, tolerance = 10) {
@@ -92,7 +114,7 @@ class PathSpline {
 
         for (let i = 1; i < smoothSplineData.length - 1; i++) {
             const curr = smoothSplineData[i];
-            const dist = Math.hypot(curr.x - lastPlacedRaw.x, curr.z - lastPlacedRaw.z);
+            const dist = Math.hypot(curr.x - lastPlacedRaw.x, curr.y - lastPlacedRaw.y, curr.z - lastPlacedRaw.z);
 
             const lookWindow = 4;
             const prev = smoothSplineData[Math.max(0, i - lookWindow)];
@@ -135,9 +157,7 @@ class PathSpline {
                 }
 
                 const targetPoint = new Vec3d(curr.x + offsetX, curr.y + 2.12, curr.z + offsetZ);
-
                 this.appendLookPoint(boxPositions, this.adjustLookPoint(targetPoint, curr));
-
                 lastPlacedRaw = curr;
                 if (cfMag > 0.1) lastForwardDir = { x: currentForward.x / cfMag, z: currentForward.z / cfMag };
             }
@@ -148,62 +168,61 @@ class PathSpline {
         return boxPositions;
     }
 
-    generateMovementFromLookPoints(lookPoints, stepSize = 0.3) {
-        if (!lookPoints || lookPoints.length < 2) return [];
-
-        const VERTICAL_OFFSET = -2.12;
-        const movePath = [];
-
-        for (let i = 0; i < lookPoints.length - 1; i++) {
-            const start = lookPoints[i];
-            const end = lookPoints[i + 1];
-
-            const dx = end.x - start.x;
-            const dy = end.y - start.y;
-            const dz = end.z - start.z;
-            const dist = Math.hypot(dx, dy, dz);
-
-            const steps = Math.ceil(dist / stepSize);
-            for (let j = 0; j < steps; j++) {
-                movePath.push({
-                    x: start.x + (dx * j) / steps,
-                    y: start.y + (dy * j) / steps + VERTICAL_OFFSET,
-                    z: start.z + (dz * j) / steps,
-                });
-            }
-        }
-
-        const lastPoint = lookPoints[lookPoints.length - 1];
-        movePath.push({ x: lastPoint.x, y: lastPoint.y + VERTICAL_OFFSET, z: lastPoint.z });
-        return movePath;
-    }
-
-    createFlyLookPoints(nodes, pointSpacing = this.FLY_SPACING) {
+    createFlyLookPoints(nodes) {
         if (!nodes || nodes.length < 2) return [];
 
         const first = nodes[0];
         const mid = nodes[Math.floor(nodes.length / 2)];
         const last = nodes[nodes.length - 1];
-        const currentHash = `${pointSpacing}-${nodes.length}-${first.x ?? first[0]}-${first.y ?? first[1]}-${first.z ?? first[2]}-${mid.x ?? mid[0]}-${mid.y ?? mid[1]}-${mid.z ?? mid[2]}-${last.x ?? last[0]}-${last.y ?? last[1]}-${last.z ?? last[2]}`;
+        const currentHash = `adaptive-${nodes.length}-${first.x ?? first[0]}-${first.y ?? first[1]}-${first.z ?? first[2]}-${mid.x ?? mid[0]}-${mid.y ?? mid[1]}-${mid.z ?? mid[2]}-${last.x ?? last[0]}-${last.y ?? last[1]}-${last.z ?? last[2]}`;
         if (currentHash === this.lastFlyHash) return this.cachedFlyLookPoints;
 
         const raw = [];
         for (const n of nodes) {
-            const x = n.x !== undefined ? n.x : n[0];
-            const y = n.y !== undefined ? n.y : n[1];
-            const z = n.z !== undefined ? n.z : n[2];
-            const p = new Vec3d(x, y + this.FLY_PLAYER_EYE_OFFSET, z);
-            const prev = raw.length ? raw[raw.length - 1] : null;
-            if (!prev || p.x !== prev.x || p.y !== prev.y || p.z !== prev.z) raw.push(p);
+            const p = new Vec3d(n.x ?? n[0], (n.y ?? n[1]) + this.FLY_PLAYER_EYE_OFFSET, n.z ?? n[2]);
+            if (raw.length === 0 || Math.hypot(p.x - raw[raw.length - 1].x, p.y - raw[raw.length - 1].y, p.z - raw[raw.length - 1].z) > 0.1) raw.push(p);
         }
-        if (raw.length < 2) return [];
 
-        const rounded = this.roundPolylineCorners(raw, pointSpacing);
-        const lookPoints = this.resamplePolylineByDistance(rounded, pointSpacing);
+        const yaw = (Player.getYaw() + 90) * (Math.PI / 180);
+        const pitch = -Player.getPitch() * (Math.PI / 180);
+        const lookV = { x: Math.cos(yaw) * Math.cos(pitch), y: Math.sin(pitch), z: Math.sin(yaw) * Math.cos(pitch) };
+        const initialLook = new Vec3d(raw[0].x + lookV.x * 2, raw[0].y + lookV.y * 2, raw[0].z + lookV.z * 2);
 
-        for (const [i, lookPoint] of lookPoints.entries()) {
-            if (this.isPointInsideBlock(lookPoint)) {
-                lookPoints[i] = this.nudgePointOutOfBlock(lookPoint);
+        const adaptivePoints = [initialLook, raw[0]];
+        const roundedRaw = this.roundPolylineCorners(raw, this.FLY_SPACING);
+
+        for (let i = 1; i < roundedRaw.length - 1; i++) {
+            const prev = adaptivePoints[adaptivePoints.length - 1];
+            const curr = roundedRaw[i];
+            const next = roundedRaw[i + 1];
+
+            const dist = Math.hypot(curr.x - prev.x, curr.y - prev.y, curr.z - prev.z);
+            const yDiff = Math.abs(curr.y - prev.y);
+
+            const ab = { x: curr.x - prev.x, y: curr.y - prev.y, z: curr.z - prev.z };
+            const bc = { x: next.x - curr.x, y: next.y - curr.y, z: next.z - curr.z };
+            const m1 = Math.hypot(ab.x, ab.y, ab.z);
+            const m2 = Math.hypot(bc.x, bc.y, bc.z);
+
+            let dot = 1.0;
+            if (m1 > 1e-6 && m2 > 1e-6) {
+                dot = (ab.x * bc.x + ab.y * bc.y + ab.z * bc.z) / (m1 * m2);
+            }
+
+            const curvature = 1.0 - dot;
+            const dynamicStep = Math.max(this.MIN_LOOK_POINT_SPACING, this.MAX_ADAPTIVE_SPACING * (1.0 - curvature * 10 - yDiff * this.Y_ADAPTIVE_SENSITIVITY));
+
+            if (dist >= dynamicStep || curvature > this.MIN_ADAPTIVE_TOLERANCE) {
+                adaptivePoints.push(this.adjustLookPoint(curr, curr));
+            }
+        }
+
+        adaptivePoints.push(roundedRaw[roundedRaw.length - 1]);
+        const lookPoints = this.refineLookPath(adaptivePoints);
+
+        for (let i = 0; i < lookPoints.length; i++) {
+            if (this.isPointInsideBlock(lookPoints[i])) {
+                lookPoints[i] = this.nudgePointOutOfBlock(lookPoints[i]);
             }
         }
 
@@ -212,10 +231,17 @@ class PathSpline {
         return lookPoints;
     }
 
+    refineLookPath(points) {
+        const final = [points[0]];
+        for (let i = 1; i < points.length; i++) {
+            const d = Math.hypot(points[i].x - final[final.length - 1].x, points[i].y - final[final.length - 1].y, points[i].z - final[final.length - 1].z);
+            if (d > 0.2) final.push(points[i]);
+        }
+        return final;
+    }
+
     roundPolylineCorners(points, spacing) {
         if (!points || points.length < 3) return points || [];
-
-        const baseRadius = Math.max(0.15, Math.min(1.6, spacing * 0.55));
 
         const out = [points[0]];
         for (let i = 1; i < points.length - 1; i++) {
@@ -225,25 +251,28 @@ class PathSpline {
 
             const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
             const bc = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
-
             const abMag = Math.hypot(ab.x, ab.y, ab.z);
             const bcMag = Math.hypot(bc.x, bc.y, bc.z);
             if (abMag < 1e-6 || bcMag < 1e-6) continue;
 
             const u1 = { x: ab.x / abMag, y: ab.y / abMag, z: ab.z / abMag };
             const u2 = { x: bc.x / bcMag, y: bc.y / bcMag, z: bc.z / bcMag };
-
             const dot = u1.x * u2.x + u1.y * u2.y + u1.z * u2.z;
+            const isTight = this.checkTightSpace(b);
+
+            if (dot < -0.3) {
+                const ejectionDist = isTight ? 5.5 : 3.8;
+                const lookAhead = new Vec3d(b.x + u1.x * ejectionDist, b.y + u1.y * ejectionDist, b.z + u1.z * ejectionDist);
+                out.push(this.adjustLookPoint(lookAhead, b));
+            }
+
             if (dot > 0.985) {
                 out.push(b);
                 continue;
             }
 
+            const baseRadius = isTight ? 0.9 : Math.max(0.15, Math.min(1.6, spacing * 0.55));
             const r = Math.min(baseRadius, abMag * 0.45, bcMag * 0.45);
-            if (r < 0.12) {
-                out.push(b);
-                continue;
-            }
 
             const pIn = new Vec3d(b.x - u1.x * r, b.y - u1.y * r, b.z - u1.z * r);
             const pOut = new Vec3d(b.x + u2.x * r, b.y + u2.y * r, b.z + u2.z * r);
@@ -260,41 +289,49 @@ class PathSpline {
         const deduped = [out[0]];
         for (let i = 1; i < out.length; i++) {
             const prev = deduped[deduped.length - 1];
-            const p = out[i];
-            if (prev.x !== p.x || prev.y !== p.y || prev.z !== p.z) deduped.push(p);
+            if (out[i].x !== prev.x || out[i].y !== prev.y || out[i].z !== prev.z) {
+                deduped.push(out[i]);
+            }
         }
         return deduped;
     }
 
+    checkTightSpace(p) {
+        const checkDist = 1.2;
+        let blocked = 0;
+        if (this.isPointInsideBlock({ x: p.x + checkDist, y: p.y, z: p.z })) blocked++;
+        if (this.isPointInsideBlock({ x: p.x - checkDist, y: p.y, z: p.z })) blocked++;
+        if (this.isPointInsideBlock({ x: p.x, y: p.y, z: p.z + checkDist })) blocked++;
+        if (this.isPointInsideBlock({ x: p.x, y: p.y, z: p.z - checkDist })) blocked++;
+        return blocked >= 2;
+    }
+
     isSegmentClear(a, b) {
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dz = b.z - a.z;
+        const dx = b.x - a.x,
+            dy = b.y - a.y,
+            dz = b.z - a.z;
         const dist = Math.hypot(dx, dy, dz);
         if (dist < 1e-6) return true;
 
         const steps = Math.ceil(dist / this.FLY_RAYTRACE_STEP);
         for (let i = 1; i <= steps; i++) {
             const t = i / steps;
-            const p = { x: a.x + dx * t, y: a.y + dy * t, z: a.z + dz * t };
-            if (this.isPointInsideBlock(p)) return false;
+            if (this.isPointInsideBlock({ x: a.x + dx * t, y: a.y + dy * t, z: a.z + dz * t })) return false;
         }
         return true;
     }
 
     resamplePolylineByDistance(points, step) {
         if (!points || points.length < 2) return points || [];
-        if (step <= 0) return points;
-
         const out = [points[0]];
         let carry = 0;
 
         for (let i = 0; i < points.length - 1; i++) {
-            const a = points[i];
-            const b = points[i + 1];
-            const dx = b.x - a.x;
-            const dy = b.y - a.y;
-            const dz = b.z - a.z;
+            const a = points[i],
+                b = points[i + 1];
+            const dx = b.x - a.x,
+                dy = b.y - a.y,
+                dz = b.z - a.z;
             const dist = Math.hypot(dx, dy, dz);
             if (dist < 1e-9) continue;
 
@@ -304,13 +341,11 @@ class PathSpline {
                 out.push(new Vec3d(a.x + dx * t, a.y + dy * t, a.z + dz * t));
                 tDist += step;
             }
-
-            carry = dist - (tDist - step);
-            carry = ((carry % step) + step) % step;
+            carry = (((dist - (tDist - step)) % step) + step) % step;
         }
 
-        const last = points[points.length - 1];
-        const prev = out[out.length - 1];
+        const last = points[points.length - 1],
+            prev = out[out.length - 1];
         if (prev.x !== last.x || prev.y !== last.y || prev.z !== last.z) out.push(last);
         return out;
     }
@@ -319,55 +354,7 @@ class PathSpline {
         const up = new Vec3d(point.x, point.y + this.FLY_BLOCK_NUDGE, point.z);
         if (!this.isPointInsideBlock(up)) return up;
         const down = new Vec3d(point.x, point.y - this.FLY_BLOCK_NUDGE, point.z);
-        if (!this.isPointInsideBlock(down)) return down;
-        return point;
-    }
-
-    canSee(pos1, pos2) {
-        const OFFSET = 2.12;
-        const x1 = pos1.x,
-            y1 = pos1.y + OFFSET,
-            z1 = pos1.z;
-        const x2 = pos2.x,
-            y2 = pos2.y + OFFSET,
-            z2 = pos2.z;
-
-        const dx = x2 - x1,
-            dy = y2 - y1,
-            dz = z2 - z1;
-        const dist = Math.hypot(dx, dy, dz);
-
-        // Stricter step size for flying near blocks
-        const stepSize = 0.4;
-        const steps = Math.ceil(dist / stepSize);
-
-        for (let i = 1; i <= steps; i++) {
-            const t = i / steps;
-            const checkPoint = {
-                x: x1 + dx * t,
-                y: y1 + dy * t,
-                z: z1 + dz * t,
-            };
-
-            if (this.isPointInsideBlock(checkPoint)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    appendLookPoint(boxPositions, point) {
-        if (boxPositions.length === 0) {
-            boxPositions.push(point);
-            return;
-        }
-        const last = boxPositions[boxPositions.length - 1];
-
-        if (Math.pow(point.x - last.x, 2) + Math.pow(point.z - last.z, 2) < Math.pow(this.MIN_LOOK_POINT_SPACING, 2)) {
-            boxPositions[boxPositions.length - 1] = point;
-        } else {
-            boxPositions.push(point);
-        }
+        return !this.isPointInsideBlock(down) ? down : point;
     }
 
     isPointInsideBlock(point) {
@@ -389,11 +376,24 @@ class PathSpline {
         return this.isPointInsideBlock(lowered) ? unoffset : lowered;
     }
 
+    appendLookPoint(boxPositions, point) {
+        if (boxPositions.length === 0) {
+            boxPositions.push(point);
+            return;
+        }
+        const last = boxPositions[boxPositions.length - 1];
+        if (Math.pow(point.x - last.x, 2) + Math.pow(point.z - last.z, 2) < Math.pow(this.MIN_LOOK_POINT_SPACING, 2)) {
+            boxPositions[boxPositions.length - 1] = point;
+        } else {
+            boxPositions.push(point);
+        }
+    }
+
     drawLookPoints() {
-        if (!this.cachedBoxPositions) return;
-        const px = Player.getX();
-        const pz = Player.getZ();
-        this.cachedBoxPositions.forEach((pos) => {
+        if (!this.cachedFlyLookPoints) return;
+        const px = Player.getX(),
+            pz = Player.getZ();
+        this.cachedFlyLookPoints.forEach((pos) => {
             if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
                 Render.drawBox(pos, Render.Color(255, 0, 0, 100), true);
             }

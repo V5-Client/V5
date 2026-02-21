@@ -20,9 +20,11 @@ class PathMovement {
         this.MOTION_STOP_THRESHOLD_Y = 0.02;
         this.MAX_DECEL_TICKS = 60;
 
-        this.MOVE_TARGET_LOOKAHEAD = 2;
-        this.STRAFE_ON_DEG = 24;
-        this.STRAFE_OFF_DEG = 12;
+        this.MOVE_TARGET_LOOKAHEAD = 6;
+        this.STRAFE_ON_DEG = 35;
+        this.STRAFE_OFF_DEG = 15;
+        this.LATERAL_DEADZONE = 0.65;
+
         this.strafeDir = 0;
 
         PathExecutor.onTick(() => {
@@ -62,7 +64,12 @@ class PathMovement {
         return -(Math.atan2(dx, dz) * (180 / Math.PI));
     }
 
-    updateStrafeDir(yawDeltaDeg) {
+    updateStrafeDir(yawDeltaDeg, distSqXZ) {
+        if (distSqXZ < this.LATERAL_DEADZONE * this.LATERAL_DEADZONE) {
+            this.strafeDir = 0;
+            return;
+        }
+
         if (this.strafeDir === 0) {
             if (yawDeltaDeg > this.STRAFE_ON_DEG) this.strafeDir = 1;
             else if (yawDeltaDeg < -this.STRAFE_ON_DEG) this.strafeDir = -1;
@@ -72,10 +79,7 @@ class PathMovement {
         if (this.strafeDir === 1) {
             if (yawDeltaDeg < this.STRAFE_OFF_DEG) this.strafeDir = 0;
             else if (yawDeltaDeg < -this.STRAFE_ON_DEG) this.strafeDir = -1;
-            return;
-        }
-
-        if (this.strafeDir === -1) {
+        } else if (this.strafeDir === -1) {
             if (yawDeltaDeg > -this.STRAFE_OFF_DEG) this.strafeDir = 0;
             else if (yawDeltaDeg > this.STRAFE_ON_DEG) this.strafeDir = 1;
         }
@@ -88,23 +92,32 @@ class PathMovement {
         const dz = target.z - pZ;
         const distSqXZ = dx * dx + dz * dz;
 
-        Keybind.setKey('w', false);
-        Keybind.setKey('a', false);
-        Keybind.setKey('s', false);
-        Keybind.setKey('d', false);
+        ['w', 'a', 's', 'd'].forEach((k) => Keybind.setKey(k, false));
 
-        if (distSqXZ < 0.09) {
-            this.strafeDir = 0;
+        if (distSqXZ < 0.15) {
+            Keybind.setKey('w', true);
             return;
         }
 
         const desiredYaw = this.getYawToTarget(dx, dz);
-        const yawDelta = this.wrapAngle(desiredYaw - Player.getYaw());
-        this.updateStrafeDir(yawDelta);
+        const playerYaw = Player.getYaw();
+        const yawDelta = this.wrapAngle(desiredYaw - playerYaw);
+        const absYawDelta = Math.abs(yawDelta);
 
-        Keybind.setKey('w', true);
-        Keybind.setKey('a', this.strafeDir === -1);
-        Keybind.setKey('d', this.strafeDir === 1);
+        if (absYawDelta < 75) {
+            Keybind.setKey('w', true);
+        } else if (absYawDelta > 145) {
+            Keybind.setKey('s', true);
+        }
+
+        if (distSqXZ > Math.pow(this.LATERAL_DEADZONE * 1.5, 2)) {
+            if (absYawDelta > 25 && absYawDelta < 155) {
+                const side = yawDelta > 0 ? 1 : -1;
+                if (absYawDelta > 45) {
+                    Keybind.setKey(side === 1 ? 'd' : 'a', true);
+                }
+            }
+        }
     }
 
     requestDeceleration() {
@@ -134,7 +147,7 @@ class PathMovement {
         if (!slowEnough) return false;
 
         const here = { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
-        return this.getDistanceSq(here, finalTarget) <= (this.STOPPING_DISTANCE_THRESHOLD * 1.25) ** 2;
+        return this.getDistanceSq(here, finalTarget) <= (this.STOPPING_DISTANCE_THRESHOLD * 1.5) ** 2;
     }
 
     updateMovement() {
@@ -147,7 +160,6 @@ class PathMovement {
         if (this.state === 'DECELERATING') {
             this.decelTicks++;
             this.releaseMovementKeys();
-
             if (this.shouldFinishDeceleration(finalTarget) || this.decelTicks >= this.MAX_DECEL_TICKS) {
                 this.finishMovement();
             }
@@ -161,58 +173,39 @@ class PathMovement {
 
         let closestIndex = this.currentIndex;
         let closestDistSq = Infinity;
-        const searchStart = Math.max(0, this.currentIndex - 15);
-        const searchEnd = Math.min(this.path.length - 1, this.currentIndex + 40);
+        const searchStart = Math.max(0, this.currentIndex - 10);
+        const searchEnd = Math.min(this.path.length - 1, this.currentIndex + 30);
+
         for (let i = searchStart; i <= searchEnd; i++) {
             const pt = this.path[i];
-            const dx = pt.x - pX;
-            const dy = pt.y - pY;
-            const dz = pt.z - pZ;
-            const d = dx * dx + dy * dy + dz * dz;
+            const d = Math.pow(pt.x - pX, 2) + Math.pow(pt.y - pY, 2) + Math.pow(pt.z - pZ, 2);
             if (d < closestDistSq) {
                 closestDistSq = d;
                 closestIndex = i;
             }
         }
 
-        if (closestDistSq > 25) {
-            let bestD = closestDistSq;
-            let bestI = closestIndex;
-            const broadStart = Math.max(0, this.currentIndex - 80);
-            for (let i = broadStart; i < this.path.length; i++) {
-                const pt = this.path[i];
-                const dx = pt.x - pX;
-                const dy = pt.y - pY;
-                const dz = pt.z - pZ;
-                const d = dx * dx + dy * dy + dz * dz;
-                if (d < bestD) {
-                    bestD = d;
-                    bestI = i;
-                    if (bestD < 1.0) break;
-                }
-            }
-            closestDistSq = bestD;
-            closestIndex = bestI;
-        }
+        this.currentIndex = closestIndex;
 
-        this.currentIndex = Math.min(closestIndex + 1, this.path.length - 1);
+        const motion = getCurrentMotion();
+        const speedXZ = Math.hypot(motion.x, motion.z);
+        const dynamicLookahead = Math.floor(this.MOVE_TARGET_LOOKAHEAD + speedXZ * 8);
 
-        const moveIndex = Math.min(this.path.length - 1, this.currentIndex + this.MOVE_TARGET_LOOKAHEAD);
+        const moveIndex = Math.min(this.path.length - 1, this.currentIndex + dynamicLookahead);
         const target = this.path[moveIndex];
-        const diffY = target.y - pY;
 
-        const predicted = predictStoppingPosition(15);
+        const diffY = target.y - pY;
+        const predicted = predictStoppingPosition(10);
         const predictedDiffY = target.y - predicted.y;
 
-        if (predictedDiffY > 1.0 || diffY > 0.8) {
+        if (predictedDiffY > 0.8 || diffY > 0.6) {
             this.isLifting = true;
-        } else if (diffY < 0.2) {
-            this.isLifting = false;
-        }
-
-        if (predictedDiffY < -1.2 && !this.isLifting) {
+            this.isDescending = false;
+        } else if (predictedDiffY < -0.8 || diffY < -0.6) {
             this.isDescending = true;
-        } else if (diffY > -0.3) {
+            this.isLifting = false;
+        } else {
+            this.isLifting = false;
             this.isDescending = false;
         }
 
@@ -230,25 +223,17 @@ class PathMovement {
     finishMovement() {
         this.complete = true;
         this.isActive = false;
-        this.isLifting = false;
-        this.isDescending = false;
         this.state = 'NONE';
-        this.decelTicks = 0;
-        this.currentIndex = 0;
-        this.path = [];
         this.releaseMovementKeys();
+        this.path = [];
     }
 
     stopMovement() {
         this.isActive = false;
-        this.isLifting = false;
-        this.isDescending = false;
         this.complete = false;
         this.state = 'NONE';
-        this.decelTicks = 0;
-        this.currentIndex = 0;
-        this.path = [];
         this.releaseMovementKeys();
+        this.path = [];
     }
 }
 

@@ -7,29 +7,24 @@ import { PathRotationsUtility } from '../PathWalker/PathRotationsUtility';
 
 class PathRotations {
     constructor() {
-        this.BASE_KP = 0.075;
-        this.KD = 0.6;
-        this.MAX_VELOCITY = 12.0;
-        this.ACCEL_LIMIT = 2.2;
-        this.SETTLE_THRESHOLD = 0.12;
-
-        this.YAW_DEADZONE = 0.9;
-        this.PITCH_DEADZONE = 1.2;
-
+        this.BASE_KP = 0.045;
+        this.KD = 1.1;
+        this.MAX_VELOCITY = 4.5;
+        this.ACCEL_LIMIT = 0.8;
+        this.SETTLE_THRESHOLD = 0.08;
+        this.YAW_DEADZONE = 0.4;
+        this.PITCH_DEADZONE = 0.6;
         this.PROXIMITY_THRESHOLD = 7.0;
-        this.MIN_LOOKAHEAD = 2.0;
-        this.MAX_LOOKAHEAD = 8.0;
-        this.LOOKAHEAD_STEP = 1.0;
+        this.MIN_LOOKAHEAD = 2.5;
+        this.MAX_LOOKAHEAD = 6.0;
+        this.LOOKAHEAD_STEP = 0.5;
         this.VISIBILITY_CACHE_MS = 50;
-
         this.ARRIVAL_THRESHOLD_XZ = 4.5;
         this.ARRIVAL_THRESHOLD_Y = 5.5;
-
         this.FINAL_COMPLETE_XZ = 1.45;
         this.FINAL_COMPLETE_Y = 2.35;
-
-        this.SMOOTH_FACTOR_STRAIGHT = 0.1;
-        this.SMOOTH_FACTOR_TURN = 0.18;
+        this.SMOOTH_FACTOR_STRAIGHT = 0.04;
+        this.SMOOTH_FACTOR_TURN = 0.07;
 
         this.resetRotations();
 
@@ -46,11 +41,9 @@ class PathRotations {
         this.currentPathPosition = 0.0;
         this.rotationActive = false;
         this.complete = false;
-
         this.currentTargetPoint = null;
         this.cachedVisible = { t: null, point: null, time: 0 };
         this.currentPathCurvatureDeg = 0;
-
         this.yawVelocity = 0;
         this.pitchVelocity = 0;
         this.currentYaw = 0;
@@ -66,7 +59,6 @@ class PathRotations {
         const dz = targetPoint.z - playerEyes.z;
         const dist = Math.hypot(dx, dy, dz);
         if (dist < 0.2) return true;
-
         try {
             const dir = new Vector3(dx / dist, dy / dist, dz / dist);
             const hit = raytraceBlocks(
@@ -86,7 +78,6 @@ class PathRotations {
                 },
                 true
             );
-
             if (!hit) return true;
             const hitX = hit[0] + 0.5;
             const hitY = hit[1] + 0.5;
@@ -148,11 +139,9 @@ class PathRotations {
     getAdaptiveLookaheadPoints() {
         const idx = Math.floor(this.currentPathPosition);
         if (idx + 2 >= this.lookPoints.length) return this.MIN_LOOKAHEAD;
-
         const a0 = this.lookPoints[idx];
         const a1 = this.lookPoints[Math.min(idx + 1, this.lookPoints.length - 1)];
         const baseDir = { x: a1.x - a0.x, y: a1.y - a0.y, z: a1.z - a0.z };
-
         let maxAngle = 0;
         for (let k = 2; k <= 6; k++) {
             const i0 = Math.min(idx + k, this.lookPoints.length - 2);
@@ -161,9 +150,7 @@ class PathRotations {
             const futureDir = { x: b1.x - b0.x, y: b1.y - b0.y, z: b1.z - b0.z };
             maxAngle = Math.max(maxAngle, this.getAngleBetweenVectorsDeg(baseDir, futureDir));
         }
-
         this.currentPathCurvatureDeg = maxAngle;
-
         if (maxAngle < 10) return 7.5;
         if (maxAngle < 22) return 5.5;
         return 3.0;
@@ -173,13 +160,10 @@ class PathRotations {
         const now = Date.now();
         if (this.cachedVisible.point && now - this.cachedVisible.time < this.VISIBILITY_CACHE_MS) {
             const cachedT = this.cachedVisible.t;
-            if (cachedT !== null) {
-                if (cachedT >= this.currentPathPosition - 0.25) {
-                    return this.cachedVisible.point;
-                }
+            if (cachedT !== null && cachedT >= this.currentPathPosition - 0.25) {
+                return this.cachedVisible.point;
             }
         }
-
         const lastIndex = this.lookPoints.length - 1;
         let lookahead = Math.min(this.MAX_LOOKAHEAD, Math.max(this.MIN_LOOKAHEAD, idealLookaheadPoints));
         while (lookahead >= this.MIN_LOOKAHEAD - 1e-6) {
@@ -191,7 +175,6 @@ class PathRotations {
             }
             lookahead -= this.LOOKAHEAD_STEP;
         }
-
         const t = Math.min(lastIndex, this.currentPathPosition + this.MIN_LOOKAHEAD);
         const point = this.getInterpolatedPoint(t);
         this.cachedVisible = { t, point, time: now };
@@ -201,47 +184,35 @@ class PathRotations {
     updateLookPoint() {
         const player = Player.getPlayer();
         if (!player) return;
-
         const playerEyes = player.getEyePos();
+        const motion = { x: Player.getMotionX(), z: Player.getMotionZ() };
+        const speed = Math.hypot(motion.x, motion.z);
 
-        let bestT = this.currentPathPosition;
+        let closestIndex = Math.floor(this.currentPathPosition);
         let minDistSq = Infinity;
-        const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 2);
-        const endIdx = Math.min(this.lookPoints.length - 2, startIdx + 10);
-
-        for (let i = startIdx; i <= endIdx; i++) {
+        const searchRange = 15;
+        for (let i = Math.max(0, closestIndex - 5); i <= Math.min(this.lookPoints.length - 2, closestIndex + searchRange); i++) {
             const p1 = this.lookPoints[i];
             const p2 = this.lookPoints[i + 1];
-            if (!p1 || !p2) continue;
             const segT = this.getClosestPointOnSegment(playerEyes, p1, p2);
-            const candT = i + segT;
-
-            if (candT < this.currentPathPosition - 0.75) continue;
-
-            const projected = this.getInterpolatedPoint(candT);
+            const projected = this.getInterpolatedPoint(i + segT);
             const dSq = this.getDistSq(playerEyes, projected);
             if (dSq < minDistSq) {
                 minDistSq = dSq;
-                bestT = candT;
+                this.currentPathPosition = i + segT;
             }
         }
 
-        if (minDistSq < this.PROXIMITY_THRESHOLD * this.PROXIMITY_THRESHOLD) {
-            this.currentPathPosition = bestT;
-        }
+        const lateralError = Math.sqrt(minDistSq);
+        const baseLookahead = this.getAdaptiveLookaheadPoints();
+        const interceptLookahead = baseLookahead + lateralError * 1.5 + speed * 10;
 
         const lastIndex = this.lookPoints.length - 1;
+        let targetPoint = this.findVisibleLookTarget(playerEyes, interceptLookahead);
+
         const lastPoint = this.lookPoints[lastIndex];
-
-        const idealLookahead = this.getAdaptiveLookaheadPoints();
-        let targetPoint = this.findVisibleLookTarget(playerEyes, idealLookahead);
-
-        const atEndByPosition = this.currentPathPosition >= lastIndex - 0.15;
-        const nearEndByThreshold = this.isWithinArrivalThreshold(playerEyes, lastPoint) && this.currentPathPosition >= lastIndex - 1.0;
-        if (atEndByPosition || nearEndByThreshold) {
-            this.currentPathPosition = lastIndex;
+        if (this.currentPathPosition >= lastIndex - 0.5 || this.isWithinArrivalThreshold(playerEyes, lastPoint)) {
             targetPoint = lastPoint;
-
             if (this.isWithinFinalThreshold(playerEyes, lastPoint)) {
                 this.complete = true;
                 this.rotationActive = false;
@@ -249,41 +220,59 @@ class PathRotations {
         }
 
         this.currentTargetPoint = targetPoint;
-
         const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
+
         const desiredYaw = this.wrapAngle(angles.yaw);
-        const desiredPitch = angles.pitch;
-
-        const isStraight = this.currentPathCurvatureDeg < 12;
-        const blend = isStraight ? this.SMOOTH_FACTOR_STRAIGHT : this.SMOOTH_FACTOR_TURN;
-
         const yawDelta = this.getAngleDelta(this.rawTargetYaw, desiredYaw);
-        if (Math.abs(yawDelta) > this.YAW_DEADZONE) {
-            this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * Math.min(1.0, blend));
-        }
 
-        const pitchDelta = desiredPitch - this.rawTargetPitch;
-        if (Math.abs(pitchDelta) > this.PITCH_DEADZONE) {
-            this.rawTargetPitch += pitchDelta * Math.min(1.0, blend);
-        }
+        const isTurning = this.currentPathCurvatureDeg > 15;
+        const alpha = isTurning ? 0.12 : 0.04;
+
+        this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * alpha);
+        this.rawTargetPitch = this.rawTargetPitch + (angles.pitch - this.rawTargetPitch) * alpha;
     }
 
     applyHumanizedPhysics() {
         this.currentYaw = this.wrapAngle(this.currentYaw);
         const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
-
+        const world = World.getWorld();
+        const px = Player.getX(),
+            py = Player.getY(),
+            pz = Player.getZ();
+        const bp = new BP(Math.floor(px), Math.floor(py + 1), Math.floor(pz));
+        let isNarrow = false;
+        try {
+            const side1 = !world
+                .getBlockState(bp.add(1, 0, 0))
+                .getCollisionShape(world, bp.add(1, 0, 0))
+                .isEmpty();
+            const side2 = !world
+                .getBlockState(bp.add(-1, 0, 0))
+                .getCollisionShape(world, bp.add(-1, 0, 0))
+                .isEmpty();
+            const side3 = !world
+                .getBlockState(bp.add(0, 0, 1))
+                .getCollisionShape(world, bp.add(0, 0, 1))
+                .isEmpty();
+            const side4 = !world
+                .getBlockState(bp.add(0, 0, -1))
+                .getCollisionShape(world, bp.add(0, 0, -1))
+                .isEmpty();
+            isNarrow = (side1 && side2) || (side3 && side4);
+        } catch (e) {}
+        const dynamicKD = isNarrow ? this.KD * 1.6 : this.KD;
+        const dynamicAccel = isNarrow ? this.ACCEL_LIMIT * 0.65 : this.ACCEL_LIMIT;
         if (Math.abs(yawError) < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.04) {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
         } else {
-            let desiredYawAccel = yawError * this.BASE_KP - this.yawVelocity * this.KD;
-            desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
+            let desiredYawAccel = yawError * this.BASE_KP - this.yawVelocity * dynamicKD;
+            desiredYawAccel = Math.max(-dynamicAccel, Math.min(dynamicAccel, desiredYawAccel));
             this.yawVelocity = (this.yawVelocity + desiredYawAccel) * 0.9;
             this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
             this.currentYaw += this.yawVelocity;
         }
-
         if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.04) {
             this.currentPitch = this.rawTargetPitch;
             this.pitchVelocity = 0;
@@ -294,7 +283,6 @@ class PathRotations {
             this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
-
         if (this.currentPitch > 90) this.currentPitch = 90;
         if (this.currentPitch < -90) this.currentPitch = -90;
     }
@@ -317,12 +305,10 @@ class PathRotations {
         if (!preGeneratedLookPoints || !preGeneratedLookPoints.length) return;
         const player = Player.getPlayer();
         if (!player) return;
-
         this.lookPoints = preGeneratedLookPoints;
         this.currentPathPosition = 0.0;
         this.complete = false;
         this.cachedVisible = { t: null, point: null, time: 0 };
-
         this.currentYaw = this.wrapAngle(player.getYaw());
         this.currentPitch = player.getPitch();
         this.rawTargetYaw = this.currentYaw;
