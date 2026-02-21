@@ -427,6 +427,7 @@ class PathRotations {
         if (!this.boxPositions) {
             this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
             if (!this.boxPositions || !this.boxPositions.length) return;
+            Spline.cachedFlyLookPoints = this.boxPositions;
         }
         const player = Player.getPlayer();
         if (player && !this.isInitialized) {
