@@ -434,6 +434,12 @@ class Bot extends ModuleBase {
         if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + 200 * 1000 < Date.now()) {
             if (this.ensureDrillEquipped(this.drill)) return;
 
+            const fakeLookMode = this.FAKELOOK?.find?.((option) => option.enabled)?.name;
+
+            if (Player.getPlayer().handSwinging && fakeLookMode === 'Off') {
+                return Keybind.setKey('leftclick', false);
+            }
+
             Keybind.rightClick();
 
             this.lastUse = Date.now();

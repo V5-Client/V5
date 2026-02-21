@@ -6,21 +6,20 @@ class FlowstateUtilsClass {
         this.countdown = 0;
         this.multiplier = 1;
         this.flowstateBlocksBroken = 0;
+        this.isMax = false;
 
-        let blockx = 0;
-        let blocky = 0;
-        let blockz = 0;
-        let currentBlock = null;
+        this.block = { x: 0, y: 0, z: 0 };
+        this.currentBlock = null;
 
         register('playerInteract', (action, object) => {
             if (action.toString() === 'AttackBlock') {
                 if (!object.type.name.toLowerCase().includes('bedrock')) {
-                    blockx = object.getX();
-                    blocky = object.getY();
-                    blockz = object.getZ();
-                    currentBlock = object;
+                    this.block.x = object.getX();
+                    this.block.y = object.getY();
+                    this.block.z = object.getZ();
+                    this.currentBlock = object;
                 } else {
-                    blockx = blocky = blockz = 0;
+                    this.block.x = this.block.y = this.block.z = 0;
                 }
             }
         });
@@ -32,29 +31,33 @@ class FlowstateUtilsClass {
                 .getLore()
                 .map((l) => ChatLib.removeFormatting(l))
                 .join(' ');
+
             let match = lore.match(/flowstate\s*(i{1,3})/i);
             const roman = { I: 1, II: 2, III: 3 };
             let bonus = match ? roman[match[1].toUpperCase()] || 0 : 0;
 
             if (
                 match &&
-                packet?.getPos()?.getX() == blockx &&
-                packet?.getPos()?.getY() == blocky &&
-                packet?.getPos()?.getZ() == blockz &&
+                packet?.getPos()?.getX() == this.block.x &&
+                packet?.getPos()?.getY() == this.block.y &&
+                packet?.getPos()?.getZ() == this.block.z &&
                 (packet?.getState()?.getBlock()?.toString()?.includes('bedrock') || packet?.getState()?.getBlock()?.toString()?.includes('air'))
             ) {
-                this.countdown = 10;
                 this.flowstateBlocksBroken += bonus;
+                this.countdown = 10;
+
+                if (this.isMax) return;
+
                 if (this.flowstateBlocksBroken > 100 * this.multiplier) {
                     if (this.multiplier === 6) {
                         this.isMax = true;
-                        Chat.message('Reached max Flowstate! (600)');
-                        this.multiplier++;
-                        return;
+                        return Chat.message('Reached max Flowstate!');
                     }
+
+                    this.multiplier++;
+
                     let rounded = Math.floor(this.flowstateBlocksBroken / 100) * 100;
                     Chat.message(`Current Flowstate: ${rounded}`);
-                    this.multiplier++;
                 }
             }
         }).setFilteredClass(BlockUpdateS2C);
