@@ -196,6 +196,15 @@ class Bot extends ModuleBase {
 
     initSettings() {
         this.addToggle(
+            'Movement',
+            (value) => {
+                this.MOVEMENT = value;
+                if (!value) Keybind.stopMovement();
+            },
+            'Moves around vein while mining.',
+            true
+        );
+        this.addToggle(
             'Tick Gliding',
             (value) => {
                 this.TICKGLIDE = value;
@@ -454,6 +463,7 @@ class Bot extends ModuleBase {
     handleMiningState() {
         if (this.SCAN_ONLY) {
             this.scanForBlock(this.COSTTYPE);
+            if (this.MOVEMENT) Keybind.stopMovement();
             return;
         }
 
@@ -463,7 +473,10 @@ class Bot extends ModuleBase {
 
         if (this.shouldScanForNewBlock()) {
             if (this.manualScan) {
-                if (!this.advanceManualScan()) return;
+                if (!this.advanceManualScan()) {
+                    if (this.MOVEMENT) Keybind.stopMovement();
+                    return;
+                }
             } else {
                 this.scanForBlock(this.COSTTYPE, null);
                 this.currentTarget = this.foundLocations[0];
@@ -473,7 +486,10 @@ class Bot extends ModuleBase {
         }
 
         let lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
-        if (!lowestCostBlock) return;
+        if (!lowestCostBlock) {
+            if (this.MOVEMENT) Keybind.stopMovement();
+            return;
+        }
 
         let block = World.getBlockAt(lowestCostBlock.x, lowestCostBlock.y, lowestCostBlock.z);
         let blockName = block?.type?.getRegistryName() || '';
@@ -481,6 +497,7 @@ class Bot extends ModuleBase {
         if (!this.updateBlockTracking(lowestCostBlock, blockName)) return;
 
         this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
+        this.handleVeinMovement();
 
         const fakeLookMode = this.getFakeLookMode();
 
@@ -836,6 +853,52 @@ class Bot extends ModuleBase {
         return baseCost + distance * 2 + -dotProduct * 50;
     }
 
+    handleVeinMovement() {
+        if (!this.MOVEMENT || !this.currentTarget) {
+            Keybind.stopMovement();
+            Keybind.setKey('space', false);
+            Keybind.setKey('shift', false);
+            return;
+        }
+
+        const targetPoint = {
+            x: this.currentTarget.aimX ?? this.currentTarget.x + 0.5,
+            y: this.currentTarget.aimY ?? this.currentTarget.y + 0.5,
+            z: this.currentTarget.aimZ ?? this.currentTarget.z + 0.5,
+        };
+
+        const values = MathUtils.getDistanceToPlayerEyes(targetPoint);
+        const yaw = MathUtils.calculateAngles(targetPoint).yaw;
+
+        const now = Date.now();
+        if (!this._movementHumanizer || now - this._movementHumanizer.lastRefresh > 120) {
+            this._movementHumanizer = {
+                lastRefresh: now,
+                strafeThreshold: 10 + (Math.random() * 4 - 2),
+                stopYawThreshold: 4 + (Math.random() * 2 - 1),
+                moveInMin: 2.35 + (Math.random() * 0.15 - 0.075),
+                moveInMax: 3.2 + (Math.random() * 0.2 - 0.1),
+            };
+        }
+
+        const cfg = this._movementHumanizer;
+
+        Keybind.setKey('shift', true);
+        Keybind.setKey('space', false);
+
+        Keybind.setKey('d', yaw > cfg.strafeThreshold);
+        Keybind.setKey('a', yaw < -cfg.strafeThreshold);
+
+        Keybind.setKey('w', values.distance > cfg.moveInMax && Math.abs(values.differenceY) <= 2.0);
+        Keybind.setKey('s', values.distance < cfg.moveInMin);
+
+        if ((yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold) || (values.distance >= 2.5 && values.distance <= 3.25)) {
+            Keybind.stopMovement();
+            Keybind.setKey('shift', true);
+            Keybind.setKey('space', false);
+        }
+    }
+
     getAimVectorForTarget(target) {
         if (!target) return null;
         const ax = target.aimX !== undefined ? target.aimX : target.x + 0.5;
@@ -940,6 +1003,9 @@ class Bot extends ModuleBase {
         }
 
         this.state = this.STATES.WAITING;
+        Keybind.stopMovement();
+        Keybind.setKey('space', false);
+        Keybind.setKey('shift', false);
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);
         this.foundLocations = [];
