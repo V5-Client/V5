@@ -5,7 +5,7 @@ import SlotChangeFailsafe from './impl/SlotChangeFailsafe.js';
 import TeleportFailsafe from './impl/TeleportFailsafe.js';
 import VelocityFailsafe from './impl/VelocityFailsafe.js';
 
-// idk what the point of the manager is, but i'll leave it here for now
+// just keep it here to import all the failsafes to loader :)
 class FailsafeManager {
     constructor() {
         this.failsafes = [ChatMentionFailsafe, PlayerGriefFailsafe, RotationFailsafe, SlotChangeFailsafe, TeleportFailsafe, VelocityFailsafe];

@@ -9,9 +9,9 @@ const DEFAULT_FAILSAFE_SETTINGS = {
 };
 
 class FailsafeUtils {
-    failsafeIntensity = 0;
-
     constructor() {
+        this.failsafeIntensity = 0;
+
         this._cache = {
             expiresAt: 0,
             lastModified: -1,
@@ -49,12 +49,13 @@ class FailsafeUtils {
         const reactionInput = failsafesConfig['Failsafe Detection Delay (ms)'] ?? DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
         let reactionTime = DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
 
-        if (typeof reactionInput === 'object' && reactionInput.low !== undefined && reactionInput.high !== undefined) {
-            const low = Math.min(reactionInput.low, reactionInput.high);
-            const high = Math.max(reactionInput.low, reactionInput.high);
-            reactionTime = Math.floor(Math.random() * (high - low + 1) + low);
-        } else if (typeof reactionInput === 'number' && isFinite(reactionInput)) {
-            reactionTime = reactionInput;
+        if (typeof reactionInput === 'object' && reactionInput.low !== undefined) {
+            const { low, high } = reactionInput;
+            const min = Math.min(low, high);
+            const max = Math.max(low, high);
+            reactionTime = Math.floor(Math.random() * (max - min + 1) + min);
+        } else {
+            reactionTime = Number.isFinite(reactionInput) ? reactionInput : reactionTime;
         }
 
         const enabledList = failsafesConfig['Enabled Failsafes'];
