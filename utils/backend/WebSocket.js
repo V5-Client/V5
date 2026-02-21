@@ -8,11 +8,7 @@ import { v5Command } from '../V5Commands';
 import { handleIRCMessage } from './IRC';
 import { handleRemoteMessage } from './RemoteControl';
 
-let V5Auth = null;
-
-try {
-    const V5Auth = Java.type('com.v5.api.V5Auth');
-} catch (e) {}
+const V5Auth = Java.type('com.v5.api.V5Auth') || null;
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -58,7 +54,7 @@ function connectWebSocket() {
 
     const token = V5Auth ? V5Auth.INSTANCE.getJwtToken() : null;
 
-    if (!token) return Chat.messageIrc('&cSecureLoader has not authenticated. Chat is unavailable.');
+    if (!token) return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
     returnDiscord(token);
     const wsUrl = `${Links.WEBSOCKET_URL}?token=${token}`;
     ws = new WebSocket(wsUrl);
