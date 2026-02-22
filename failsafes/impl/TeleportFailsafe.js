@@ -17,10 +17,12 @@ class TeleportFailsafe extends Failsafe {
 
     registerRightClickListener() {
         register('packetSent', () => {
+            if (!MacroState.isMacroRunning()) return;
             lastRightClickTime = Date.now();
         }).setFilteredClass(PlayerInteractItemC2S);
 
         register('packetSent', (packet) => {
+            if (!MacroState.isMacroRunning()) return;
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
                 Chat.messageFailsafe(`DEBUG - warp command used, preventing!`, false);
