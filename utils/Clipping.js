@@ -553,4 +553,3 @@ class ClippingManager extends ModuleBase {
 }
 
 export const Clipping = new ClippingManager();
-
