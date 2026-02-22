@@ -293,6 +293,8 @@ class CommissionMacro extends ModuleBase {
 
     runLogic() {
         if (!this.enabled) return;
+        this.cancelNpcRotationIfPathing();
+
         if (this.pauseTicks > 0) {
             this.pauseTicks--;
             return;
@@ -571,6 +573,8 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleClaiming() {
+        this.cancelNpcRotationIfPathing();
+
         if (Guis.guiName() === 'Commissions') {
             this.claimCompletedCommissions();
             return;
@@ -615,6 +619,7 @@ class CommissionMacro extends ModuleBase {
                 const token = ++this.npcRotationToken;
                 Rotations.rotateToVector(adjustedTarget);
                 Rotations.onEndRotation(() => {
+                    if (Pathfinder.isPathing()) return;
                     if (!this.npcRotationPending || this.npcRotationToken !== token) return;
                     this.npcRotationPending = false;
                     Keybind.rightClick();
@@ -714,6 +719,17 @@ class CommissionMacro extends ModuleBase {
 
     delay(ticks) {
         this.pauseTicks = Math.max(0, Math.floor(Number(ticks) || 0));
+    }
+
+    cancelNpcRotationIfPathing() {
+        if (!Pathfinder.isPathing()) return;
+        if (!this.npcRotationPending) return;
+
+        this.npcRotationPending = false;
+        this.npcRotationToken++;
+        if (Rotations.isRotating) {
+            Rotations.stopRotation();
+        }
     }
 
     getDistance(x1, y1, z1, x2, y2, z2) {
