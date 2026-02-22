@@ -67,6 +67,8 @@ class Bot extends ModuleBase {
         this.faceReach = 4.5;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
         this.rotationSpeed = 75;
+        this.movementReevalCooldownUntil = 0;
+        this.movementReevalCooldownMs = 180;
 
         this.initCosts();
         this.bindToggleKey();
@@ -429,6 +431,12 @@ class Bot extends ModuleBase {
     handleRotationOrScan() {
         if (this.manualScan) {
             this.lowestCostBlockIndex++;
+            if (this.lowestCostBlockIndex >= this.foundLocations.length) {
+                this.foundLocations = [];
+                this.currentTarget = null;
+                return;
+            }
+            this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
             return;
         }
 
@@ -497,7 +505,22 @@ class Bot extends ModuleBase {
         if (!this.updateBlockTracking(lowestCostBlock, blockName)) return;
 
         this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
-        this.handleVeinMovement();
+        if (this.MOVEMENT && !this.refreshCurrentTargetAimPoint()) {
+            this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, Date.now() + this.movementReevalCooldownMs);
+            Keybind.stopMovement();
+            Keybind.setKey('space', false);
+            Keybind.setKey('shift', false);
+            this.resetTickCounters();
+            this.handleRotationOrScan();
+            return;
+        }
+        if (this.MOVEMENT && Date.now() < this.movementReevalCooldownUntil) {
+            Keybind.stopMovement();
+            Keybind.setKey('space', false);
+            Keybind.setKey('shift', false);
+        } else {
+            this.handleVeinMovement();
+        }
 
         const fakeLookMode = this.getFakeLookMode();
 
@@ -897,6 +920,29 @@ class Bot extends ModuleBase {
             Keybind.setKey('shift', true);
             Keybind.setKey('space', false);
         }
+    }
+
+    refreshCurrentTargetAimPoint() {
+        if (!this.currentTarget) return false;
+
+        const eyePos = Player.getPlayer().getEyePos();
+        const lookVec = Player.asPlayerMP().getLookVector();
+        const hit = this.findVisibleAimPoint(
+            this.currentTarget.x,
+            this.currentTarget.y,
+            this.currentTarget.z,
+            eyePos,
+            lookVec,
+            this.faceReach * this.faceReach,
+            false
+        );
+
+        if (!hit) return false;
+
+        this.currentTarget.aimX = hit.x;
+        this.currentTarget.aimY = hit.y;
+        this.currentTarget.aimZ = hit.z;
+        return true;
     }
 
     getAimVectorForTarget(target) {
