@@ -17,6 +17,7 @@ import './utils/backend/WebSocket.js';
 /* Utils */
 import './utils/MacroState.js';
 import './modules/other/MacroScheduler.js';
+import './modules/other/MacroControllers.js';
 import './modules/other/DiscordIntegration.js';
 import './utils/pathfinder/PathFinder.js';
 import './utils/Clipping.js';

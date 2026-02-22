@@ -7,4 +7,5 @@ import './MinecraftClientMixin';
 import './MouseMixin';
 import './PlayerActionC2SPacketMixin';
 import './PlayerListHudMixin';
+import './WorldRendererMixin';
 //import './CameraMixin';
