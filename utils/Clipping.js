@@ -128,20 +128,20 @@ class ClippingManager extends ModuleBase {
 
                 const reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
                 let line;
-                let logLines = [];
+                const logTail = [];
 
-                while (this.isRecording && (line = reader.readLine()) != null) {
-                    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
-                    }
+                while ((line = reader.readLine()) != null) {
+                    if (logTail.length >= 20) logTail.shift();
+                    logTail.push(line);
                 }
 
-                while ((line = reader.readLine()) != null) logLines.push(line);
+                reader.close();
 
                 const exitCode = p.waitFor();
 
                 if (exitCode !== 0) {
                     Chat.messageClip(`&cCompression failed with code ${exitCode}.`);
-                    logLines.slice(-3).forEach((l) => Chat.messageClip('&c' + l));
+                    logTail.slice(-3).forEach((l) => Chat.messageClip('&c' + l));
                     try {
                         outputFile.delete();
                     } catch (e) {
@@ -190,6 +190,8 @@ class ClippingManager extends ModuleBase {
         this.isDownloading = true;
 
         Executor.execute(() => {
+            let input = null;
+            let output = null;
             try {
                 let urlStr;
                 let archiveName;
@@ -212,8 +214,8 @@ class ClippingManager extends ModuleBase {
                 connection.connect();
 
                 const fileLength = connection.getContentLength();
-                const input = new java.io.BufferedInputStream(url.openStream());
-                const output = new java.io.FileOutputStream(archiveFile.getAbsolutePath());
+                input = new java.io.BufferedInputStream(connection.getInputStream());
+                output = new java.io.FileOutputStream(archiveFile.getAbsolutePath());
 
                 const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 4096);
                 let total = 0;
@@ -236,12 +238,28 @@ class ClippingManager extends ModuleBase {
 
                 output.flush();
                 output.close();
+                output = null;
                 input.close();
+                input = null;
 
                 Chat.messageClip('&aDownload complete! Extracting...');
                 this.extractFFmpeg(archiveFile);
             } catch (e) {
                 Chat.messageClip(`&cDownload failed: ${e}`);
+                console.error('V5 Caught error' + e + e.stack);
+            } finally {
+                try {
+                    if (output) output.close();
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
+
+                try {
+                    if (input) input.close();
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
+
                 this.isDownloading = false;
             }
         });
@@ -266,8 +284,27 @@ class ClippingManager extends ModuleBase {
 
             const pb = new ProcessBuilder(...cmd);
             pb.directory(globalAssetsDir);
+            pb.redirectErrorStream(true);
             const p = pb.start();
-            p.waitFor();
+
+            const reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+            let line;
+            const logTail = [];
+
+            while ((line = reader.readLine()) != null) {
+                if (logTail.length >= 20) logTail.shift();
+                logTail.push(line);
+            }
+
+            reader.close();
+
+            const exitCode = p.waitFor();
+
+            if (exitCode !== 0) {
+                Chat.messageClip(`&cExtraction failed with code ${exitCode}.`);
+                logTail.slice(-3).forEach((l) => Chat.messageClip('&c' + l));
+                return;
+            }
 
             this.organizeBinaries();
             archiveFile.delete();
@@ -450,6 +487,9 @@ class ClippingManager extends ModuleBase {
         Chat.messageClip('&7Saving clip...');
 
         Executor.execute(() => {
+            let writer = null;
+            let reader = null;
+            let listFile = null;
             try {
                 const files = bufferDir.listFiles();
 
@@ -462,26 +502,40 @@ class ClippingManager extends ModuleBase {
                 const segments = Array.from(files).filter((f) => f.getName().endsWith('.mp4'));
                 segments.sort((a, b) => a.lastModified() - b.lastModified());
 
+                if (segments.length === 0) {
+                    Chat.messageClip('&cNo valid .mp4 segments found in buffer.');
+                    return;
+                }
+
                 const currentSegment = segments[segments.length - 1];
                 let lastModified = currentSegment.lastModified();
                 Chat.messageClip('&7Waiting for current segment to finish...');
 
+                const maxWaitMs = 10000;
+                const waitStart = Date.now();
+
                 while (true) {
                     Thread.sleep(300);
+
+                    if (!currentSegment.exists()) break;
+
                     const currentModified = currentSegment.lastModified();
                     if (currentModified === lastModified) {
                         Thread.sleep(500);
                         // segment finished
                         break;
                     }
+
+                    if (Date.now() - waitStart >= maxWaitMs) break;
+
                     lastModified = currentModified;
                 }
 
                 // take UP to segmentCount recent segments. so the clips COULD be 5s or 15s or something, max of segmentCount*5s.
                 const clipsToJoin = segments.slice(Math.max(0, segments.length - this.segmentCount));
 
-                const listFile = new File(bufferDir, 'mylist.txt');
-                const writer = new java.io.FileWriter(listFile);
+                listFile = new File(bufferDir, 'mylist.txt');
+                writer = new java.io.FileWriter(listFile);
 
                 for (let f of clipsToJoin) {
                     const path = f.getAbsolutePath().replace(/\\/g, '/');
@@ -489,6 +543,7 @@ class ClippingManager extends ModuleBase {
                 }
 
                 writer.close();
+                writer = null;
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const outFile = new File(clipsDir, `Clip_${timestamp}.mp4`);
@@ -508,12 +563,19 @@ class ClippingManager extends ModuleBase {
                 pb.redirectErrorStream(true);
                 const p = pb.start();
 
-                const reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+                reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
                 while (reader.readLine() != null) {}
 
-                p.waitFor();
+                reader.close();
+                reader = null;
 
-                let clipName = outFile.getName();
+                const exitCode = p.waitFor();
+
+                if (exitCode !== 0 || !outFile.exists()) {
+                    Chat.messageClip(`&cFailed to save clip (ffmpeg exit code: ${exitCode}).`);
+                    return;
+                }
+
                 let folderPath = clipsDir.getAbsolutePath();
                 let clipDuration = clipsToJoin.length * 5;
 
@@ -526,6 +588,24 @@ class ClippingManager extends ModuleBase {
             } catch (e) {
                 Chat.messageClip(`&cFailed to save clip: &f${e}`);
                 console.error(e);
+            } finally {
+                try {
+                    if (reader) reader.close();
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
+
+                try {
+                    if (writer) writer.close();
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
+
+                try {
+                    if (listFile && listFile.exists()) listFile.delete();
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
             }
         });
     }

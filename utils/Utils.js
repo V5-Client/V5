@@ -202,9 +202,7 @@ class CollisionChecker {
                     for (var z = zMin; z <= zMax; z++) {
                         let block = World.getBlockAt(x, y, z);
 
-                        if (!block || !block.type || block.type.getID() === 0) {
-                            return false;
-                        }
+                        if (!block || !block.type || block.type.getID() === 0) continue;
 
                         if (this.hasCollision(x, y, z)) {
                             return true;
@@ -517,6 +515,10 @@ class UtilsClass {
 
     hasCookie() {
         return cookieDetector.check();
+    }
+
+    checkPlayerCollision() {
+        return collisionChecker.checkPlayerCollision();
     }
 }
 

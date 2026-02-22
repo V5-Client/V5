@@ -67,7 +67,7 @@ class ChatClass {
                     },
                     hoverEvent: {
                         action: 'show_text',
-                        value: `§7Click to open}`,
+                        value: `§7Click to open`,
                     },
                 })
             );

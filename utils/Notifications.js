@@ -43,7 +43,10 @@ class AlertManager {
         if (this.trayIcon) {
             try {
                 SystemTray.getSystemTray().remove(this.trayIcon);
-            } catch (e) {}
+            } catch (e) {
+                Chat.messageDebug('Tray cleanup failed: ' + e);
+                console.error('V5 Caught error' + e + e.stack);
+            }
             this.trayIcon = null;
         }
     }
@@ -78,7 +81,10 @@ class AlertManager {
         try {
             const pb = new java.lang.ProcessBuilder(args.map(String));
             pb.start();
-        } catch (e) {}
+        } catch (e) {
+            Chat.messageDebug('Notification command failed: ' + e);
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 }
 
