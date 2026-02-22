@@ -90,14 +90,14 @@ Mixin('net.minecraft.client.MinecraftClient')
             const savedPerspective = Mixin.get('savedPerspective');
             const savedFps = Mixin.get('savedFps');
 
-            if (savedDistance != null) {
+            if (savedDistance != null && renderLimiter === 'Limit Chunks') {
                 if (currentDist !== savedDistance) {
                     options.getViewDistance().setValue(new int(savedDistance));
                 }
                 Mixin.set('savedDistance', null);
             }
 
-            if (savedPerspective != null) {
+            if (savedPerspective != null && forcePerspective) {
                 if (currentPers !== savedPerspective) {
                     options.setPerspective(savedPerspective);
                 }
