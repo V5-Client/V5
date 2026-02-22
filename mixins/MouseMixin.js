@@ -38,5 +38,5 @@ Mixin('net.minecraft.client.Mouse')
     })
     .hook((manager, instance, cir) => {
         const isUnlocked = manager.get('inputLocked', false);
-        if (isUnlocked && Client.getMinecraft().currentScreen == null) cir.cancel();
+        if (isUnlocked && Client?.getMinecraft()?.currentScreen == null) cir.cancel();
     });
