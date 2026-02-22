@@ -42,7 +42,7 @@ export class Failsafe {
         }, durationMs);
     }
 
-    _handleVelocityOnFireIgnore(checkType) {
+    _handleVelocityOnDamageIgnore(checkType) {
         if (checkType !== 'velocity') return;
 
         const player = Player.getPlayer();
@@ -110,7 +110,7 @@ export class Failsafe {
         if (!usedItem && !recentCommand) return false;
 
         if (recentCommand) {
-            this._setIgnore(1000);
+            this._setIgnore(750);
             return true;
         }
 
@@ -148,7 +148,7 @@ export class Failsafe {
     }
 
     isFalse(checkType, data = {}) {
-        this._handleVelocityOnFireIgnore(checkType);
+        this._handleVelocityOnDamageIgnore(checkType);
 
         if (checkType == 'velocity') {
             return this._handleVelocityCheck(data);
