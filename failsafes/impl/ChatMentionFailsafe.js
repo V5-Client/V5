@@ -16,7 +16,7 @@ class ChatMentionFailsafe extends Failsafe {
 
     registerChatListeners() {
         register('packetReceived', (packet, event) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('chat') || packet.overlay()) return;
+            if (packet.overlay()) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');
             if (!this.settings.isEnabled) return;
@@ -25,10 +25,9 @@ class ChatMentionFailsafe extends Failsafe {
             const content = packet.content().getString();
             if (!content.includes(':')) return;
 
-            const sender = content.split(':')[0];
-            if (sender.includes(Player.getName())) return;
+            const messageBody = content.split(':').slice(1).join(':').trim();
 
-            const result = this.isBad(content);
+            const result = this.isBad(messageBody);
             if (!result.isBlocked) return;
 
             this.onTrigger(result.blockedWord);
@@ -50,7 +49,7 @@ class ChatMentionFailsafe extends Failsafe {
     }
 
     onTrigger(word) {
-        const isHigh = ['wdr', 'report', 'cheating', 'cheater', `${Player.getName()}`].includes(word.toLowerCase());
+        const isHigh = ['wdr', 'report', 'cheating', 'cheater', `${Player.getName().toLowerCase()}`].includes(word.toLowerCase());
 
         const pressure = isHigh ? 30 : 10;
         const severity = isHigh ? 'high' : 'medium';
