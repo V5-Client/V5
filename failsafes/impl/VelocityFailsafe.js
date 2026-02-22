@@ -13,18 +13,18 @@ class VelocityFailsafe extends Failsafe {
 
     registerVeloListeners() {
         register('packetReceived', (packet) => {
-            if (this.isFalse('velocity')) return;
+            if (!MacroState.isMacroRunning() || this.isFalse('velocity') || this._bypassTrigger()) return;
+            if (packet?.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
+
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
             if (!this.settings.isEnabled) return;
-            if (packet?.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
-            if (!MacroState.isMacroRunning()) return;
-            if (Player.getHeldItem()?.getName()?.removeFormatting()?.includes('Grappling')) return;
-            const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
-            if (blockBelow.getType().getRegistryName().includes('slime_block')) return;
+
             const vx = packet?.getVelocity().x;
             const vy = packet?.getVelocity().y;
             const vz = packet?.getVelocity().z;
             const speed = Math.hypot(vx, vy, vz);
+
+            const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ()));
             const blockName = blockBelow.getType().getRegistryName();
             const data = { velocity: speed, blockBelow: blockName };
 
@@ -36,44 +36,29 @@ class VelocityFailsafe extends Failsafe {
         }).setFilteredClass(EntityVelocityUpdateS2C);
     }
 
+    _bypassTrigger() {
+        const heldItem = Player.getHeldItem()?.getName()?.removeFormatting();
+        if (heldItem?.includes('Grappling')) return true;
+
+        const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ()));
+        if (blockBelow.getType().getRegistryName().includes('slime_block')) return true;
+
+        return false;
+    }
+
     onTrigger(speed) {
-        let pressure;
-        let severity;
-        if (speed < 0.5) {
-            pressure = 10;
-            severity = 'low';
-        } else if (speed < 1) {
-            pressure = 20;
-            severity = 'medium';
-        } else if (speed < 2) {
-            pressure = 50;
-            severity = 'high';
-        } else {
-            pressure = 100;
-            severity = 'very high';
-        }
+        const tiers = [
+            { threshold: 0.5, pressure: 10, severity: 'low', color: 65280 },
+            { threshold: 1, pressure: 20, severity: 'medium', color: 16776960 },
+            { threshold: 2, pressure: 50, severity: 'high', color: 16744448 },
+            { threshold: Infinity, pressure: 100, severity: 'very high', color: 16711680 },
+        ];
 
-        let color;
-        if (severity === 'very high') color = 16711680;
-        else if (severity === 'high') color = 16744448;
-        else if (severity === 'medium') color = 16776960;
-        else color = 65280;
+        const { pressure, severity, color } = tiers.find((t) => speed < t.threshold) || tiers[tiers.length - 1];
 
-        Chat.messageFailsafe(`Velocity failsafe triggered! (${severity} severity)`);
-        Chat.messageFailsafe(`Velocity: ${speed.toFixed(0)}`);
+        Chat.messageFailsafe(`&c&lVelocity failsafe triggered! Velocity: ${speed.toFixed(0)}`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
-        Webhook.sendEmbed(
-            [
-                {
-                    title: `**Velocity Failsafe Triggered! [${severity}]**`,
-                    description: `Velocity change detected: ${speed.toFixed(0)}`,
-                    color,
-                    footer: { text: `V5 Failsafes` },
-                    timestamp: new Date().toISOString(),
-                },
-            ],
-            this.settings.pingOnCheck ?? true
-        );
+        FailsafeUtils.sendFailsafeEmbed('Velocity', severity, `Velocity change detected: ${speed.toFixed(0)}`, color);
     }
 }
 

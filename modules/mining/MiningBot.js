@@ -443,7 +443,7 @@ class Bot extends ModuleBase {
         if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + 200 * 1000 < Date.now()) {
             if (this.ensureDrillEquipped(this.drill)) return;
 
-            const fakeLookMode = this.FAKELOOK?.find?.((option) => option.enabled)?.name;
+            const fakeLookMode = this.getFakeLookMode();
 
             if (Player.getPlayer().handSwinging && fakeLookMode === 'Off') {
                 return Keybind.setKey('leftclick', false);
@@ -1101,7 +1101,7 @@ class Bot extends ModuleBase {
             this.lastNextPos = null;
         }
 
-        const fakeLookMode = this.FAKELOOK?.find?.((option) => option.enabled)?.name;
+        const fakeLookMode = this.getFakeLookMode();
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
 
         const currentFill = isFakelook ? Render.Color(180, 100, 255, 60) : Render.Color(85, 255, 255, 60);

@@ -59,7 +59,7 @@ class DiscordNotifier {
         this.persistSettings();
     }
 
-    takeScreenshot(title = null, duration = null) {
+    takeScreenshot(title = null, description = null, color, footer, ping = false) {
         const mc = Client.getMinecraft();
         const buffer = mc.getFramebuffer();
         const gameDir = mc.runDirectory;
@@ -82,7 +82,7 @@ class DiscordNotifier {
 
                             const finalTitle = title || 'Screenshot captured from ' + Utils.area();
 
-                            notifier.uploadScreenshot(latestFile, finalTitle, duration);
+                            this.uploadScreenshot(latestFile, finalTitle, description, color, footer, ping);
                         });
                     },
                 })
@@ -152,7 +152,7 @@ class DiscordNotifier {
         this.sendLoadEmbeds = value;
     }
 
-    uploadScreenshot(file, title = 'Screenshot Captured', duration = '') {
+    uploadScreenshot(file, title = 'Screenshot Captured', description, color = 0x3498db, footer = 'V5 Client', ping = false) {
         if (!this.endpoint || !this.active) return;
 
         Executor.execute(() => {
@@ -174,17 +174,17 @@ class DiscordNotifier {
                 const embedPayload = {
                     username: Player.getName(),
                     avatar_url: 'https://minotar.net/cube/' + Player.getUUID().toString().replace(/-/g, '') + '/100.png',
-                    content: this.mentionId ? '<@' + this.mentionId + '>' : '',
+                    content: ping ? (this.mentionId ? '<@' + this.mentionId + '>' : '') : '',
                     embeds: [
                         {
                             title: title,
-                            description: duration ? `**Runtime:** ${duration}` : '',
-                            color: 0x3498db,
+                            description: description,
+                            color: color,
                             image: {
                                 url: 'attachment://' + filename,
                             },
                             timestamp: new Date().toISOString(),
-                            footer: { text: 'V5 Client ' + this.clientVersion },
+                            footer: { text: footer + ' ' + this.clientVersion },
                         },
                     ],
                 };
@@ -226,5 +226,5 @@ export const Webhook = {
     sendEmbed: (e, p) => notifier.publish(e, p),
     getData: () => notifier.loadSettings(),
     sendLoadEmbeds: (v) => notifier.setLoadEmbeds(v),
-    sendScreenshot: (t, d) => notifier.takeScreenshot(t, d),
+    sendScreenshot: (t, d, c, f, p) => notifier.takeScreenshot(t, d, c, f, p),
 };

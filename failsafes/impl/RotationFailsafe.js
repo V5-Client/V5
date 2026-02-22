@@ -1,7 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { PlayerPositionLookS2C } from '../../utils/Packets';
-import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
@@ -53,47 +52,29 @@ class RotationFailsafe extends Failsafe {
     onTrigger(fromYaw, fromPitch, toYaw, toPitch, yawDiff, pitchDiff) {
         const totalRotation = yawDiff + pitchDiff;
 
-        let pressure;
-        let severity;
-        if (totalRotation < 5) {
-            pressure = 10;
-            severity = 'low';
-        } else if (totalRotation < 20) {
-            pressure = 20;
-            severity = 'medium';
-        } else if (totalRotation < 40) {
-            pressure = 50;
-            severity = 'high';
-        } else {
-            pressure = 100;
-            severity = 'very high';
-        }
+        const tiers = [
+            { limit: 5, pressure: 10, severity: 'low', color: 65280 },
+            { limit: 20, pressure: 20, severity: 'medium', color: 16776960 },
+            { limit: 40, pressure: 50, severity: 'high', color: 16744448 },
+            { limit: Infinity, pressure: 100, severity: 'very high', color: 16711680 },
+        ];
 
-        let color;
-        if (severity === 'very high') color = 16711680;
-        else if (severity === 'high') color = 16744448;
-        else if (severity === 'medium') color = 16776960;
-        else color = 65280;
+        const { pressure, severity, color } = tiers.find((t) => totalRotation < t.limit);
 
-        Chat.messageFailsafe(`You were rotated by the server! (${severity} severity)`);
-        Chat.messageFailsafe(
-            `yaw ${fromYaw.toFixed(2)} -> ${toYaw.toFixed(2)}, pitch ${fromPitch.toFixed(2)} -> ${toPitch.toFixed(2)} (${totalRotation.toFixed(1)}° total)`
-        );
-        Webhook.sendEmbed(
-            [
-                {
-                    title: `**Rotation Failsafe Triggered! [${severity}]**`,
-                    description: `Rotation changed: yaw ${fromYaw.toFixed(2)} -> ${toYaw.toFixed(2)}, pitch ${fromPitch.toFixed(2)} -> ${toPitch.toFixed(
-                        2
-                    )}\nTotal rotation: ${totalRotation.toFixed(1)}°`,
-                    color,
-                    footer: { text: `V5 Failsafes` },
-                    timestamp: new Date().toISOString(),
-                },
-            ],
-            this.settings.pingOnCheck ?? true
-        );
+        Chat.messageFailsafe(`&c&lYou were rotated by the server!`, false);
+        Chat.messageFailsafe(`&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`, false);
+        Chat.messageFailsafe(`&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`, false);
+        Chat.messageFailsafe(`&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`, true);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
+
+        FailsafeUtils.sendFailsafeEmbed(
+            'Rotation',
+            severity,
+            `**From:** Yaw ${fromYaw.toFixed(2)} | Pitch ${fromPitch.toFixed(2)}
+            **To:** Yaw ${toYaw.toFixed(2)} | Pitch ${toPitch.toFixed(2)}
+            **Total Rotation:** ${totalRotation.toFixed(2)}°`,
+            color
+        );
     }
 }
 

@@ -1,9 +1,9 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { UpdateSelectedSlotS2C } from '../../utils/Packets';
-import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
+
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
         super();
@@ -14,10 +14,13 @@ class SlotChangeFailsafe extends Failsafe {
     registerSlotChangeListeners() {
         register('packetReceived', (packet) => {
             if (!MacroState.isMacroRunning() || this.isFalse('slot')) return;
+
             this.settings = FailsafeUtils.getFailsafeSettings('Slot Change');
             if (!this.settings.isEnabled) return;
+
             const currentSlot = Player.getHeldItemIndex() + 1;
-            const newSlot = packet.slot() + 1; // first slot is 0 so +1 to match hotbar index ig
+            const newSlot = packet.slot() + 1;
+
             if (currentSlot === newSlot) return;
             setTimeout(() => {
                 if (this.isFalse('slot')) return;
@@ -27,20 +30,9 @@ class SlotChangeFailsafe extends Failsafe {
     }
 
     onTrigger(fromSlot, toSlot) {
-        Chat.messageFailsafe(`The server has changed your held slot from slot ${fromSlot} to slot ${toSlot}! (high severity)`);
+        Chat.messageFailsafe(`&c&lHeld slot has changed from ${fromSlot} to slot ${toSlot}!`);
         FailsafeUtils.incrementFailsafeIntensity(50);
-        Webhook.sendEmbed(
-            [
-                {
-                    title: `**Slot Change Failsafe Triggered! [high severity]**`,
-                    description: `Slot changed from ${fromSlot} to ${toSlot}`,
-                    color: 16744448,
-                    footer: { text: `V5 Failsafes` },
-                    timestamp: new Date().toISOString(),
-                },
-            ],
-            this.settings.pingOnCheck ?? true
-        );
+        FailsafeUtils.sendFailsafeEmbed('Slot Change', 'high', `Slot changed from ${fromSlot} to ${toSlot}!`, 16744448);
     }
 }
 

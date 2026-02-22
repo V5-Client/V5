@@ -1,6 +1,5 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 import { GameMessageS2C } from '../../utils/Packets';
@@ -48,31 +47,14 @@ class ChatMentionFailsafe extends Failsafe {
     }
 
     onTrigger(word) {
-        const highSeverityWords = ['wdr', 'report', 'cheating', 'cheater'];
-        let pressure;
-        let severity;
-        if (highSeverityWords.includes(word.toLowerCase())) {
-            pressure = 30;
-            severity = 'high';
-        } else {
-            pressure = 10;
-            severity = 'medium';
-        }
+        const isHigh = ['wdr', 'report', 'cheating', 'cheater'].includes(word.toLowerCase());
 
-        Chat.messageFailsafe(`Detected blacklisted word! (${word}) (${severity} severity)`);
+        const pressure = isHigh ? 30 : 10;
+        const severity = isHigh ? 'high' : 'medium';
+
+        Chat.messageFailsafe(`&c&lDetected blacklisted word - "${word}"!`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
-        Webhook.sendEmbed(
-            [
-                {
-                    title: `**Chat Mention Failsafe Triggered! [${severity}]**`,
-                    description: `Someone mentioned: "${word}"`,
-                    color: severity === 'high' ? 16744448 : 16776960,
-                    footer: { text: `V5 Failsafes` },
-                    timestamp: new Date().toISOString(),
-                },
-            ],
-            this.settings.pingOnCheck ?? false
-        );
+        FailsafeUtils.sendFailsafeEmbed('Chat Mention', severity, `Someone mentioned: "${word}"`, severity === 'high' ? 16744448 : 16776960);
     }
 }
 

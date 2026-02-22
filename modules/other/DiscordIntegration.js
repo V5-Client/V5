@@ -111,7 +111,7 @@ class DiscordIntegration extends ModuleBase {
     sendIntervalEmbed(macroName, startTime) {
         if (!macroName || !startTime) return;
         const duration = OverlayManager.formatUptime(startTime);
-        Webhook.sendScreenshot(`Update of ${macroName}`, duration);
+        Webhook.sendScreenshot(`Update of ${macroName}`, duration ? `**Runtime:** ${duration}` : '');
     }
 
     getActiveMacro() {

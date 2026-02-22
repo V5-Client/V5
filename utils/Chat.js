@@ -22,9 +22,9 @@ class ChatClass {
         this._sendGradient('IRC »', msg);
     }
 
-    messageFailsafe(msg) {
+    messageFailsafe(msg, sendIntensity = true) {
         this._sendGradient('V5 Failsafes »', msg);
-        this._sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
+        if (sendIntensity) this._sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
     }
 
     messagePathfinder(msg) {

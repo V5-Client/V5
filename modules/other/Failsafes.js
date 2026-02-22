@@ -94,8 +94,10 @@ class Failsafes extends ModuleBase {
             this.clipOnBan,
             sectionName
         );
-        this.addDirectToggle(
+        this.addDirectMultiToggle(
             'Discord ping on Check',
+            ['None', 'Embed Only', 'Ping', 'Screenshot Only', 'Ping & Screenshot'],
+            true,
             (value) => {
                 this.pingOnCheck = value;
             },

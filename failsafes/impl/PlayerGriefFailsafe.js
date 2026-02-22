@@ -1,6 +1,5 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
@@ -20,50 +19,36 @@ class PlayerGriefFailsafe extends Failsafe {
 
     registerGriefListeners() {
         register('step', () => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning() || !World.isLoaded() || !Player.asPlayerMP()) return;
+
             this.settings = FailsafeUtils.getFailsafeSettings('Player Grief');
             if (!this.settings.isEnabled) return;
-            if (!World.isLoaded() || !Player.asPlayerMP()) return;
 
             const now = Date.now();
-
-            if (now - this.lastInsideTrigger >= this.insideCooldownMs) {
-                this.checkPlayerInside(now);
-            }
-
-            if (now - this.lastNearbyTrigger >= this.nearbyCooldownMs) {
-                this.checkPlayerNearby(now);
-            }
+            if (now - this.lastInsideTrigger >= this.insideCooldownMs) this.checkPlayerInside(now);
+            if (now - this.lastNearbyTrigger >= this.nearbyCooldownMs) this.checkPlayerNearby(now);
         }).setDelay(1);
     }
 
     checkPlayerInside(now) {
         const look = Player.lookingAt();
-        if (!(look instanceof PlayerMP)) return;
-        if (look.getUUID()?.version() === 2) return;
+
+        if (!(look instanceof PlayerMP) || look.getUUID()?.version() === 2) return;
         if (this.whitelistedPlayers.includes(look.getName())) return;
+
         const px = Player.getX();
         const py = Player.getY();
         const pz = Player.getZ();
+
         const lx = look.getX();
         const ly = look.getY();
         const lz = look.getZ();
 
         if (Math.trunc(lx) === Math.trunc(px) && Math.trunc(ly) === Math.trunc(py) && Math.trunc(lz) === Math.trunc(pz)) {
-            Chat.messageFailsafe(`&c&lWARNING: ${look.getName()} is standing inside you! (very high severity)`);
+            Chat.messageFailsafe(`&c&l${look.getName()} is standing inside you!`);
             FailsafeUtils.incrementFailsafeIntensity(120);
-            Webhook.sendEmbed(
-                [
-                    {
-                        title: `**Player Inside Detected! [very high severity]**`,
-                        description: `${look.getName()} is standing inside you!`,
-                        color: 16711680,
-                        footer: { text: `V5 Failsafes` },
-                        timestamp: new Date().toISOString(),
-                    },
-                ],
-                this.settings.pingOnCheck ?? true
-            );
+            FailsafeUtils.sendFailsafeEmbed('Player Grief', 'very high', `${look.getName()} is standing inside you!`, 16711680);
+
             this.lastInsideTrigger = now;
         }
     }
@@ -71,15 +56,15 @@ class PlayerGriefFailsafe extends Failsafe {
     checkPlayerNearby(now) {
         this.settings = FailsafeUtils.getFailsafeSettings('Player Grief');
         if (!this.settings.isEnabled) return;
+
         const px = Player.getX();
         const py = Player.getY();
         const pz = Player.getZ();
-        const allPlayers = World.getAllPlayers();
 
-        allPlayers.forEach((player) => {
-            if (player.getName() === Player.getName()) return;
-            if (player.getUUID()?.version() === 2) return;
+        World.getAllPlayers().forEach((player) => {
+            if (player.getName() === Player.getName() || player.getUUID()?.version() === 2) return;
             if (this.whitelistedPlayers.includes(player.getName())) return;
+
             const lx = player.getX();
             const ly = player.getY();
             const lz = player.getZ();
@@ -87,26 +72,16 @@ class PlayerGriefFailsafe extends Failsafe {
             const dx = lx - px;
             const dy = ly - py;
             const dz = lz - pz;
+
             const distance = Math.hypot(dx, dy, dz);
 
             const maxDistance = this.settings.playerProximityDistance || 3;
+
             if (distance <= maxDistance && distance > 1) {
-                const pressure = 20;
-                const severity = 'medium';
-                Chat.messageFailsafe(`${player.getName()} is ${distance.toFixed(1)} blocks away from you! (${severity} severity)`);
-                FailsafeUtils.incrementFailsafeIntensity(pressure);
-                Webhook.sendEmbed(
-                    [
-                        {
-                            title: `**Player Nearby! [${severity}]**`,
-                            description: `${player.getName()} is ${distance.toFixed(1)} blocks away!`,
-                            color: 16776960,
-                            footer: { text: `V5 Failsafes` },
-                            timestamp: new Date().toISOString(),
-                        },
-                    ],
-                    this.settings.pingOnCheck ?? true
-                );
+                Chat.messageFailsafe(`&c&l${player.getName()} is ${distance.toFixed(1)} blocks away from you!`);
+                FailsafeUtils.incrementFailsafeIntensity(20);
+                FailsafeUtils.sendFailsafeEmbed('Player Grief', 'medium', `${player.getName()} is ${distance.toFixed(1)} blocks away!`, 16776960);
+
                 this.lastNearbyTrigger = now;
             }
         });
