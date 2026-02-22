@@ -880,6 +880,10 @@ class ScoreboardDebuffReader {
 
 class CommissionParser {
     static parse() {
+        return this.parseTab();
+    }
+
+    static parseTab() {
         try {
             let tabNames = TabList.getNames();
             let startIdx = this.findIndex(tabNames, 'Commissions:');
@@ -890,6 +894,27 @@ class CommissionParser {
             if (endIdx === -1) endIdx = tabNames.length;
 
             return this.extractCommissionData(tabNames, startIdx + 1, endIdx);
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+            return [];
+        }
+    }
+
+    static parseGui(container, isKnownCommission) {
+        try {
+            if (!container) return [];
+
+            let commissions = [];
+            for (let i = 9; i < 17; i++) {
+                const stack = container.getStackInSlot(i);
+                if (!stack) continue;
+
+                const parsed = this.parseGuiCommissionStack(stack, isKnownCommission);
+                if (!parsed) continue;
+                commissions.push(parsed);
+            }
+
+            return commissions;
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
             return [];
@@ -929,6 +954,54 @@ class CommissionParser {
         }
 
         return commissions;
+    }
+
+    static parseGuiCommissionStack(stack, isKnownCommission) {
+        const name = ChatLib.removeFormatting(stack.getName());
+        if (!name.startsWith('Commission #')) return null;
+
+        const lore = stack.getLore();
+        if (!lore || lore.length === 0) return null;
+
+        let realName = null;
+
+        for (let i = 0; i < lore.length; i++) {
+            const clean = ChatLib.removeFormatting(String(lore[i])).trim();
+            if (!clean) continue;
+
+            if (typeof isKnownCommission === 'function') {
+                if (isKnownCommission(clean)) {
+                    realName = clean;
+                    break;
+                }
+            }
+        }
+
+        if (!realName && lore.length > 4) {
+            const potentialName = ChatLib.removeFormatting(String(lore[4])).trim();
+            if (potentialName.length > 0 && potentialName !== 'Rewards' && potentialName !== 'Progress') {
+                realName = potentialName;
+            }
+        }
+
+        if (!realName) return null;
+
+        let progress = 0;
+
+        if (lore.some((line) => String(line).indexOf('COMPLETED') !== -1)) {
+            progress = 1;
+        } else {
+            for (let i = 0; i < lore.length; i++) {
+                const clean = ChatLib.removeFormatting(String(lore[i])).trim();
+                if (!clean.endsWith('%')) continue;
+                const match = clean.match(/([\d.]+)%$/);
+                if (!match) continue;
+                progress = Number.parseFloat(match[1]) / 100;
+                break;
+            }
+        }
+
+        return { name: realName, progress: progress };
     }
 }
 
@@ -1005,7 +1078,10 @@ export const MiningUtils = {
         BlockUtils.setToAir(pos);
     },
     readCommissions: function () {
-        return CommissionParser.parse();
+        return CommissionParser.parseTab();
+    },
+    readCommissionsFromGui: function (container, isKnownCommission) {
+        return CommissionParser.parseGui(container, isKnownCommission);
     },
 };
 
