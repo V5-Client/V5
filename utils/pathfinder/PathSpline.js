@@ -26,6 +26,25 @@ class PathSpline {
         this.lastFlyHash = null;
     }
 
+    buildPathHash(points, prefix = 'path', sampleCount = 6) {
+        if (!points || points.length === 0) return `${prefix}-empty`;
+
+        const first = points[0];
+        const last = points[points.length - 1];
+        const components = [prefix, points.length, first.x, first.y, first.z, last.x, last.y, last.z];
+
+        if (points.length > 2) {
+            const maxSampleCount = Math.min(sampleCount, points.length - 2);
+            for (let i = 1; i <= maxSampleCount; i++) {
+                const idx = Math.floor((i * (points.length - 1)) / (maxSampleCount + 1));
+                const p = points[idx];
+                components.push(idx, p.x, p.y, p.z);
+            }
+        }
+
+        return components.join('|');
+    }
+
     createFlyPaths(nodes) {
         const lookPoints = this.createFlyLookPoints(nodes);
         const movementPath = this.generateMovementPath(nodes);
@@ -98,13 +117,12 @@ class PathSpline {
     createLookPoints(smoothSplineData, minInterval = 1.2, maxInterval = 8) {
         if (!smoothSplineData || smoothSplineData.length < 2) return [];
 
-        const start = smoothSplineData[0];
-        const endPoint = smoothSplineData[smoothSplineData.length - 1];
-        const mid = smoothSplineData[Math.floor(smoothSplineData.length / 2)];
-
-        const currentHash = `${smoothSplineData.length}-${start.x}-${start.y}-${start.z}-${mid.x}-${mid.y}-${mid.z}-${endPoint.x}-${endPoint.y}-${endPoint.z}`;
+        const currentHash = this.buildPathHash(smoothSplineData, 'look');
         if (currentHash === this.lastDataHash) return this.cachedBoxPositions;
         this.lastDataHash = currentHash;
+
+        const start = smoothSplineData[0];
+        const endPoint = smoothSplineData[smoothSplineData.length - 1];
 
         const boxPositions = [];
         let lastPlacedRaw = smoothSplineData[0];
@@ -171,15 +189,13 @@ class PathSpline {
     createFlyLookPoints(nodes) {
         if (!nodes || nodes.length < 2) return [];
 
-        const first = nodes[0];
-        const mid = nodes[Math.floor(nodes.length / 2)];
-        const last = nodes[nodes.length - 1];
-        const currentHash = `adaptive-${nodes.length}-${first.x ?? first[0]}-${first.y ?? first[1]}-${first.z ?? first[2]}-${mid.x ?? mid[0]}-${mid.y ?? mid[1]}-${mid.z ?? mid[2]}-${last.x ?? last[0]}-${last.y ?? last[1]}-${last.z ?? last[2]}`;
+        const normalizedNodes = nodes.map((n) => ({ x: n.x ?? n[0], y: n.y ?? n[1], z: n.z ?? n[2] }));
+        const currentHash = this.buildPathHash(normalizedNodes, 'fly');
         if (currentHash === this.lastFlyHash) return this.cachedFlyLookPoints;
 
         const raw = [];
-        for (const n of nodes) {
-            const p = new Vec3d(n.x ?? n[0], (n.y ?? n[1]) + this.FLY_PLAYER_EYE_OFFSET, n.z ?? n[2]);
+        for (const n of normalizedNodes) {
+            const p = new Vec3d(n.x, n.y + this.FLY_PLAYER_EYE_OFFSET, n.z);
             if (raw.length === 0 || Math.hypot(p.x - raw[raw.length - 1].x, p.y - raw[raw.length - 1].y, p.z - raw[raw.length - 1].z) > 0.1) raw.push(p);
         }
 

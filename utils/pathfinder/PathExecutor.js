@@ -11,11 +11,17 @@ class Executor {
         this.destroy();
 
         this.tickRegister = register('tick', () => {
-            this.tickCallbacks.forEach((callback) => callback());
+            for (let i = 0; i < this.tickCallbacks.length; i++) {
+                const callback = this.tickCallbacks[i];
+                if (typeof callback === 'function') callback();
+            }
         });
 
         this.stepRegister = register('step', () => {
-            this.stepCallbacks.forEach((callback) => callback());
+            for (let i = 0; i < this.stepCallbacks.length; i++) {
+                const callback = this.stepCallbacks[i];
+                if (typeof callback === 'function') callback();
+            }
         }).setFps(120);
     }
 
@@ -27,11 +33,11 @@ class Executor {
     }
 
     onTick(callback) {
-        this.tickCallbacks.push(callback.bind(this));
+        this.tickCallbacks.push(callback);
     }
 
     onStep(callback) {
-        this.stepCallbacks.push(callback.bind(this));
+        this.stepCallbacks.push(callback);
     }
 }
 

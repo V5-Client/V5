@@ -5,6 +5,36 @@ class SwiftIntegration {
         this.pathManager = PathManager;
     }
 
+    toIntPoint(point, isFly) {
+        if (!Array.isArray(point) || point.length < 3) return null;
+
+        const x = Math.floor(Number(point[0]));
+        const yBase = Math.floor(Number(point[1]));
+        const z = Math.floor(Number(point[2]));
+
+        if (Number.isNaN(x) || Number.isNaN(yBase) || Number.isNaN(z)) return null;
+
+        return [x, isFly ? yBase : yBase + 1, z];
+    }
+
+    toJavaPointArray(points, isFly) {
+        const intArrayClass = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 0).getClass();
+        const javaArray = java.lang.reflect.Array.newInstance(intArrayClass, points.length);
+
+        for (let i = 0; i < points.length; i++) {
+            const parsed = this.toIntPoint(points[i], isFly);
+            if (!parsed) return null;
+
+            const pointArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 3);
+            pointArray[0] = parsed[0];
+            pointArray[1] = parsed[1];
+            pointArray[2] = parsed[2];
+            javaArray[i] = pointArray;
+        }
+
+        return javaArray;
+    }
+
     // I dont know what codex wrote but it works
     // This needs to be fixed but anytime i change anything it breaks more
     // Good luck for whoever tries next
@@ -17,27 +47,9 @@ class SwiftIntegration {
         if (!startPoints.length || !endPoints.length) return false;
 
         try {
-            const intArrayClass = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 0).getClass();
-            const startArray = java.lang.reflect.Array.newInstance(intArrayClass, startPoints.length);
-            const endArray = java.lang.reflect.Array.newInstance(intArrayClass, endPoints.length);
-
-            for (let i = 0; i < startPoints.length; i++) {
-                const point = startPoints[i];
-                const pointArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 3);
-                pointArray[0] = Math.floor(point[0]);
-                pointArray[1] = fly ? Math.floor(point[1]) : Math.floor(point[1]) + 1;
-                pointArray[2] = Math.floor(point[2]);
-                startArray[i] = pointArray;
-            }
-
-            for (let i = 0; i < endPoints.length; i++) {
-                const point = endPoints[i];
-                const pointArray = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 3);
-                pointArray[0] = Math.floor(point[0]);
-                pointArray[1] = fly ? Math.floor(point[1]) : Math.floor(point[1]) + 1;
-                pointArray[2] = Math.floor(point[2]);
-                endArray[i] = pointArray;
-            }
+            const startArray = this.toJavaPointArray(startPoints, fly);
+            const endArray = this.toJavaPointArray(endPoints, fly);
+            if (!startArray || !endArray) return false;
 
             if (fly) {
                 return this.pathManager.findFlyPath(startArray, endArray);

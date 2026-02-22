@@ -48,17 +48,8 @@ class Finder {
         this.flySplinePath = null;
 
         v5Command('path', (...args) => {
-            if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path goto x y z [x2 y2 z2...]');
-
-            const coords = args.map(Number);
-            if (coords.some(Number.isNaN)) {
-                return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
-            }
-
-            let end = [];
-            for (let i = 0; i < coords.length; i += 3) {
-                end.push([coords[i], coords[i + 1], coords[i + 2]]);
-            }
+            const end = this.parseGoalCoordinates(args, 'Usage: /v5 path goto x y z [x2 y2 z2...]');
+            if (!end) return;
 
             this.resetPath();
             this.calledFromFile = true;
@@ -66,17 +57,8 @@ class Finder {
         });
 
         v5Command('flypath', (...args) => {
-            if (args.length < 3) return Chat.messagePathfinder('Usage: /v5 path fly <x> <y> <z>');
-
-            const coords = args.map(Number);
-            if (coords.some(Number.isNaN)) {
-                return showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
-            }
-
-            let end = [];
-            for (let i = 0; i < coords.length; i += 3) {
-                end.push([coords[i], coords[i + 1], coords[i + 2]]);
-            }
+            const end = this.parseGoalCoordinates(args, 'Usage: /v5 path fly <x> <y> <z> [x2 y2 z2...]');
+            if (!end) return;
 
             this.resetPath();
             this.calledFromFile = true;
@@ -87,6 +69,26 @@ class Finder {
             this.resetPath();
             PathExecutor.destroy();
         });
+    }
+
+    parseGoalCoordinates(args, usageText) {
+        if (args.length < 3 || args.length % 3 !== 0) {
+            Chat.messagePathfinder(usageText);
+            return null;
+        }
+
+        const coords = args.map(Number);
+        if (coords.some(Number.isNaN)) {
+            showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
+            return null;
+        }
+
+        const goals = [];
+        for (let i = 0; i < coords.length; i += 3) {
+            goals.push([coords[i], coords[i + 1], coords[i + 2]]);
+        }
+
+        return goals;
     }
 
     findPath(end, onComplete, renderOnly = false, isFly = false, startPoints = null) {

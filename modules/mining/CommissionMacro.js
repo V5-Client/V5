@@ -925,8 +925,23 @@ class CommissionMacro extends ModuleBase {
         }, mobs[0]);
     }
 
+    commissionsEqual(a, b) {
+        if (a === b) return true;
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        if (a.length !== b.length) return false;
+
+        for (let i = 0; i < a.length; i++) {
+            const left = a[i];
+            const right = b[i];
+            if (!left || !right) return false;
+            if (left.name !== right.name || left.progress !== right.progress) return false;
+        }
+
+        return true;
+    }
+
     updateCommissionsIfChanged(newCommissions) {
-        if (JSON.stringify(this.commissions) === JSON.stringify(newCommissions)) return;
+        if (this.commissionsEqual(this.commissions, newCommissions)) return;
 
         const now = Date.now();
         if (this.ignoreTabUpdatesUntil && now < this.ignoreTabUpdatesUntil && this.lastCommissionSyncSource === 'GUI') {

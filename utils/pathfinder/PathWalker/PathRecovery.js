@@ -5,6 +5,8 @@ class PathRecovery {
     constructor() {
         this.MOVING_THRESHOLD = 0.12;
         this.PROGRESS_THRESHOLD = 3.0;
+        this.MOVING_THRESHOLD_SQ = this.MOVING_THRESHOLD * this.MOVING_THRESHOLD;
+        this.PROGRESS_THRESHOLD_SQ = this.PROGRESS_THRESHOLD * this.PROGRESS_THRESHOLD;
 
         this.STUCK_TICKS_JUMP = 10;
         this.STUCK_TICKS_CLOSE_LOOK = 22;
@@ -29,14 +31,14 @@ class PathRecovery {
         const pX = Player.getX();
         const pZ = Player.getZ();
 
-        let distMoved = 1.0;
+        let distMovedSq = 1.0;
         if (this.lastPos) {
             const dx = pX - this.lastPos.x;
             const dz = pZ - this.lastPos.z;
-            distMoved = Math.hypot(dx, dz);
+            distMovedSq = dx * dx + dz * dz;
         }
 
-        if (distMoved > this.MOVING_THRESHOLD) {
+        if (distMovedSq > this.MOVING_THRESHOLD_SQ) {
             this.resetTracking();
             this.lastPos = { x: pX, z: pZ };
             return null;
@@ -85,12 +87,13 @@ class PathRecovery {
         const dx = pX - this.stuckPos.x;
         const dz = pZ - this.stuckPos.z;
 
-        return Math.hypot(dx, dz) > this.PROGRESS_THRESHOLD;
+        return dx * dx + dz * dz > this.PROGRESS_THRESHOLD_SQ;
     }
 
     resetTracking() {
         this.stuckTicks = 0;
         this.currentLevel = 0;
+        this.stuckPos = null;
     }
 
     stop() {

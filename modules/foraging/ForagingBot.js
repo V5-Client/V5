@@ -195,19 +195,20 @@ class ForagingBot extends ModuleBase {
             return [];
         }
 
-        const key = (x, y, z) => x + ',' + y + ',' + z;
-        const visited = new Set([key(target.x, target.y, target.z)]);
+        const toKey = (x, y, z) => `${x},${y},${z}`;
+        const visited = new Set([toKey(target.x, target.y, target.z)]);
         const queue = [{ x: target.x, y: target.y, z: target.z }];
+        let queueIndex = 0;
         const found = [];
 
-        while (queue.length > 0 && found.length < MAX_SCAN) {
-            const current = queue.shift();
+        while (queueIndex < queue.length && found.length < MAX_SCAN) {
+            const current = queue[queueIndex++];
             const block = World.getBlockAt(current.x, current.y, current.z);
             if (!block || block.type?.getID() !== targetId) continue;
 
             found.push({ x: current.x, y: current.y, z: current.z });
 
-            this.addNeighbors(current, queue, visited, key, targetId);
+            this.addNeighbors(current, queue, visited, toKey, targetId);
         }
 
         this.connectedBlocks = found;

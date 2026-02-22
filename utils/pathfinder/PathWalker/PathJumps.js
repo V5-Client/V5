@@ -28,10 +28,13 @@ class PathJumps {
     }
 
     getCachedBlock(x, y, z) {
-        const key = `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)},${this.cacheFrame}`;
+        const bx = Math.floor(x);
+        const by = Math.floor(y);
+        const bz = Math.floor(z);
+        const key = `${bx},${by},${bz},${this.cacheFrame}`;
 
         if (!this.blockCache.has(key)) {
-            this.blockCache.set(key, World.getBlockAt(Math.floor(x), Math.round(y), Math.floor(z)));
+            this.blockCache.set(key, World.getBlockAt(bx, by, bz));
         }
 
         return this.blockCache.get(key);
