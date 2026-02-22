@@ -23,8 +23,10 @@ class FailsafeUtils {
     _getConfig() {
         const now = Date.now();
         const lastModified = V5ConfigFile.exists() ? V5ConfigFile.lastModified() : -1;
+        const cacheValid = now < this._cache.expiresAt && this._cache.lastModified === lastModified;
+        const hasCachedConfig = this._cache.config && Object.keys(this._cache.config).length > 0;
 
-        if ((now < this._cache.expiresAt && this._cache.lastModified === lastModified) || MacroState.isMacroRunning()) {
+        if (cacheValid || (MacroState.isMacroRunning() && hasCachedConfig)) {
             return this._cache.config;
         }
 
@@ -65,9 +67,15 @@ class FailsafeUtils {
             : (failsafesConfig[`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
 
         const pingConfig = failsafesConfig['Discord ping on Check'];
-        const pingOnCheckValue = Array.isArray(pingConfig)
-            ? pingConfig.find((option) => option.enabled)?.name
-            : (pingConfig ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck);
+        let pingOnCheckValue = DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+
+        if (Array.isArray(pingConfig)) {
+            pingOnCheckValue = pingConfig.find((option) => option.enabled)?.name ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+        } else if (typeof pingConfig === 'boolean') {
+            pingOnCheckValue = pingConfig ? 'Ping' : 'None';
+        } else {
+            pingOnCheckValue = pingConfig ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+        }
 
         return {
             isEnabled: isEnabled,

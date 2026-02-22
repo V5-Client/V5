@@ -25,7 +25,7 @@ class Failsafes extends ModuleBase {
         this.clipOnBan = true;
         this.playerProximityDistance = 3;
         this.actionDelay = { low: 500, high: 2000 };
-        this.pingOnCheck = true;
+        this.pingOnCheck = 'Ping';
         this.playSoundOnCheck = true;
 
         this.on('packetReceived', (packet) => {
