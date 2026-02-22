@@ -18,14 +18,6 @@ class Controller extends ModuleBase {
 
         let sectionName = 'Macro Controllers';
 
-        this.wasRunning = false;
-        this.revertTrigger = null;
-
-        this.AUTO_PERSPECTIVE = false;
-        this.LIMIT_FPS = false;
-
-        // this.currentDistance = Client.getMinecraft().options.viewDistance;
-
         this.addDirectToggle(
             'Auto-Perspective',
             (v) => this.handlePerspective(v),

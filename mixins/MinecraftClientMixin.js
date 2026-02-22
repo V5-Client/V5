@@ -106,7 +106,8 @@ Mixin('net.minecraft.client.MinecraftClient')
 
             if (savedFps != null) {
                 if (currentFps !== savedFps) {
-                    options.getMaxFps().setValue(new int(savedFps));
+                    let restoreValue = savedFps > 240 ? 260 : savedFps;
+                    options.getMaxFps().setValue(new int(restoreValue));
                 }
                 Mixin.set('savedFps', null);
             }
