@@ -238,32 +238,55 @@ class PathRotations {
         const player = Player.getPlayer();
         if (!player) return;
         const playerEyes = player.getEyePos();
-        const isFalling = Player.getMotionY() < -0.4;
+
+        const motionY = Player.getMotionY();
+        const isFalling = motionY < -0.4;
+        const isJumpingHigh = motionY > 0.1 || player.getY() - this.getInterpolatedPoint(this.currentPathPosition).y > 2.0;
+
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
+
+        const searchWindow = isJumpingHigh ? 12 : 8;
         const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 2);
-        const endIdx = Math.min(this.boxPositions.length - 2, startIdx + 8);
+        const endIdx = Math.min(this.boxPositions.length - 2, startIdx + searchWindow);
+
         for (let i = startIdx; i <= endIdx; i++) {
             const p1 = this.boxPositions[i];
             const p2 = this.boxPositions[i + 1];
             if (!p1 || !p2) continue;
-            const segmentProgress = isFalling ? this.getClosestPointOnSegmentHorizontal(playerEyes, p1, p2) : this.getClosestPointOnSegment(playerEyes, p1, p2);
+
+            const segmentProgress =
+                isFalling || isJumpingHigh ? this.getClosestPointOnSegmentHorizontal(playerEyes, p1, p2) : this.getClosestPointOnSegment(playerEyes, p1, p2);
+
             const candidateT = i + segmentProgress;
-            if (isFalling && candidateT < this.currentPathPosition) continue;
+
+            if ((isFalling || isJumpingHigh) && candidateT < this.currentPathPosition) continue;
+
             const projectedPoint = this.getInterpolatedPoint(candidateT);
-            let distSq = isFalling
-                ? Math.pow(playerEyes.x - projectedPoint.x, 2) + Math.pow(playerEyes.z - projectedPoint.z, 2)
-                : this.getDistSq(playerEyes, projectedPoint);
+
+            let distSq;
+            if (isFalling || isJumpingHigh) {
+                distSq = Math.pow(playerEyes.x - projectedPoint.x, 2) + Math.pow(playerEyes.z - projectedPoint.z, 2);
+            } else {
+                distSq = this.getDistSq(playerEyes, projectedPoint);
+            }
+
             if (distSq < minDistanceSq) {
                 minDistanceSq = distSq;
                 bestT = candidateT;
             }
         }
-        if (minDistanceSq < this.PROXIMITY_THRESHOLD * this.PROXIMITY_THRESHOLD) this.currentPathPosition = bestT;
+
+        const effectiveThreshold = isJumpingHigh ? this.PROXIMITY_THRESHOLD * 2 : this.PROXIMITY_THRESHOLD;
+        if (minDistanceSq < effectiveThreshold * effectiveThreshold) {
+            this.currentPathPosition = bestT;
+        }
+
         const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
         let result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
         const effectiveMin = this.isInRecoveryMode() ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
         let targetVisible = this.isPointVisible(playerEyes, result.point);
+
         if (result.lookahead <= effectiveMin + 0.001 && !targetVisible) {
             if (!this.unseenSince) {
                 this.unseenSince = Date.now();
@@ -290,42 +313,52 @@ class PathRotations {
             this.unseenSince = 0;
             this.unseenStartPathPosition = this.currentPathPosition;
         }
+
         let targetPoint = result.point;
         if (result.lookahead < this.smoothedLookahead) this.smoothedLookahead = this.smoothedLookahead * 0.9 + result.lookahead * 0.1;
+
         const rawDx = targetPoint.x - playerEyes.x;
         const rawDy = targetPoint.y - playerEyes.y;
         const rawDz = targetPoint.z - playerEyes.z;
         const rawHorz = Math.hypot(rawDx, rawDz);
         const rawPitch = -Math.atan2(rawDy, rawHorz) * (180 / Math.PI);
+
         if (rawPitch < -50 && rawHorz < 1.0) {
             const newDy = rawHorz * Math.tan(30 * (Math.PI / 180));
             targetPoint = new Vec3d(targetPoint.x, playerEyes.y + newDy, targetPoint.z);
         }
+
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
         const dz = targetPoint.z - playerEyes.z;
         const dist = Math.hypot(dx, dy, dz);
+
         if (dist > this.MAX_LOOK_DISTANCE) {
             const scale = this.MAX_LOOK_DISTANCE / dist;
             targetPoint = new Vec3d(playerEyes.x + dx * scale, playerEyes.y + dy * scale, playerEyes.z + dz * scale);
         }
+
         this.currentTargetPoint = targetPoint;
         const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
         const targetYaw = this.wrapAngle(angles.yaw);
         const yawDelta = this.getAngleDelta(this.rawTargetYaw, targetYaw);
+
         const lastIndex = this.boxPositions.length - 1;
         const remainingPath = lastIndex - this.currentPathPosition;
         const finishFactor = remainingPath < 3.0 ? Math.max(0.1, remainingPath / 3.0) : 1.0;
         const isStraight = this.currentPathCurvature < 0.15;
         const dynamicSmooth = (isStraight ? this.SMOOTH_FACTOR * 0.5 : this.SMOOTH_FACTOR) / finishFactor;
         const dynamicYawDeadzone = (isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE) * finishFactor;
+
         if (Math.abs(yawDelta) > dynamicYawDeadzone) {
             this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * Math.min(1.0, dynamicSmooth));
         }
+
         const pitchDelta = angles.pitch - this.rawTargetPitch;
         if (Math.abs(pitchDelta) > this.PITCH_DEADZONE * finishFactor) {
             this.rawTargetPitch += pitchDelta * Math.min(1.0, dynamicSmooth);
         }
+
         const lastPoint = this.boxPositions[lastIndex];
         const endDistSq = Math.pow(playerEyes.x - lastPoint.x, 2) + Math.pow(playerEyes.y - lastPoint.y, 2) + Math.pow(playerEyes.z - lastPoint.z, 2);
         const nearEndBy3D = endDistSq <= Math.pow(this.COMPLETION_RADIUS, 2) && this.currentPathPosition >= lastIndex - 2.0;
