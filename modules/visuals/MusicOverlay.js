@@ -30,6 +30,7 @@ class Music extends ModuleBase {
         this.interpolatedSeconds = 0;
         this.lastFrameTime = Date.now();
         this.ticksSinceSync = 0;
+        this.lastRestartAttempt = 0;
 
         this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
         const savedX = typeof this.positionConfig.x === 'number' ? this.positionConfig.x : 100;
@@ -265,7 +266,12 @@ class Music extends ModuleBase {
                 this.data = res;
             })
             .catch((e) => {
-                // would only really happen if it wasn't running. TODO: restart program
+                // would only really happen if it wasn't running.
+                const now = Date.now();
+                if (now - this.lastRestartAttempt < 2000) return;
+                this.lastRestartAttempt = now;
+                this.stopWindowsProgram();
+                this.runWindowsProgram();
             });
     }
 

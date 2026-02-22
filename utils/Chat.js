@@ -7,7 +7,6 @@ class ChatClass {
         this._sendGradient('V5 »', msg);
     }
 
-    // todo for release: add debug toggle somewhere
     messageDebug(msg) {
         if (!Debugging.Messages()) return;
 
