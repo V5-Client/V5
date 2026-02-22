@@ -101,13 +101,13 @@ export class Failsafe {
     }
 
     _handleTeleportCheck(data) {
-        if (!this._isTeleportItemHeld()) return false;
+        const now = Date.now();
 
-        const recentClick = data.lastRightClickTime && Date.now() - data.lastRightClickTime < 1000;
-        if (!recentClick) return false;
+        const recentClick = data.lastRightClickTime && now - data.lastRightClickTime < 1000;
+        const usedItem = recentClick && this._isTeleportItemHeld();
 
-        const recentCommand = data.lastCommandTime && Date.now() - data.lastCommandTime < 1000;
-        if (!recentCommand) return false;
+        const recentCommand = data.lastCommandTime && now - data.lastCommandTime < 1000;
+        if (!usedItem && !recentCommand) return false;
 
         if (this._hasSmallRotationDiff(data) || this._isAlongLookVector(data)) {
             this._setIgnore(500);
