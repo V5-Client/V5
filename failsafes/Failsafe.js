@@ -105,13 +105,20 @@ export class Failsafe {
 
         const recentClick = data.lastRightClickTime && now - data.lastRightClickTime < 1000;
         const usedItem = recentClick && this._isTeleportItemHeld();
-
         const recentCommand = data.lastCommandTime && now - data.lastCommandTime < 1000;
+
         if (!usedItem && !recentCommand) return false;
 
-        if (this._hasSmallRotationDiff(data) || this._isAlongLookVector(data)) {
-            this._setIgnore(500);
+        if (recentCommand) {
+            this._setIgnore(1000);
             return true;
+        }
+
+        if (usedItem) {
+            if (this._hasSmallRotationDiff(data) || this._isAlongLookVector(data)) {
+                this._setIgnore(500);
+                return true;
+            }
         }
 
         return false;
