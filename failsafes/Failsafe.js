@@ -43,9 +43,13 @@ export class Failsafe {
     }
 
     _handleVelocityOnFireIgnore(checkType) {
-        if (checkType === 'velocity' && Player.toMC()?.isOnFire?.()) {
-            // bandaid because isOnFire is only true while inside the inflicting block?? idk man
-            this._setIgnore(9000);
+        if (checkType !== 'velocity') return;
+
+        const player = Player.getPlayer();
+        if (!player) return;
+
+        if (player.hurtTime > 0 || player.fallDistance > 3) {
+            this._setIgnore(1000);
         }
     }
 
