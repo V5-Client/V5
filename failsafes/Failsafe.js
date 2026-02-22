@@ -49,6 +49,7 @@ export class Failsafe {
         if (!player) return;
 
         if (player.hurtTime > 0 || player.fallDistance > 3) {
+            Chat.messageFailsafe('DEBUG - took damage ignoring velocty change', false);
             this._setIgnore(1000);
         }
     }
