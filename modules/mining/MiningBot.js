@@ -989,6 +989,7 @@ class Bot extends ModuleBase {
         if (!this.isParentManaged) {
             this.message('&aEnabled');
             Mouse.ungrab();
+            this.manualScan = false;
         }
         this.allowScan = true;
         this.FOVPenalty = true;
@@ -1012,6 +1013,11 @@ class Bot extends ModuleBase {
         this.lastBlockPos = null;
         this.lastBlockType = null;
         this.currentTarget = null;
+        this.lowestCostBlockIndex = 0;
+        this.manualScan = false;
+        this.allowScan = false;
+        this.scanning = false;
+        this.nukedBlock = false;
         this.mineTickCount = 0;
         this.tickCount = 0;
         Rotations.stopRotation();
@@ -1030,7 +1036,8 @@ class Bot extends ModuleBase {
 
         const lerp = (s, e) => s + (e - s) * 0.1;
 
-        const current = this.foundLocations[0];
+        const current = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex] || this.foundLocations[0];
+        if (!current) return;
 
         if (!this.lastRenderPos) {
             this.lastRenderPos = { x: current.x, y: current.y, z: current.z };
@@ -1050,8 +1057,12 @@ class Bot extends ModuleBase {
             }
         }
 
+        const candidateLocations = this.foundLocations.filter((loc) => {
+            return !(loc.x === current.x && loc.y === current.y && loc.z === current.z);
+        });
+
         let nextTarget = null;
-        if (this.foundLocations.length > 1 && current.aimX !== undefined) {
+        if (candidateLocations.length > 0 && current.aimX !== undefined) {
             const eyePos = Player.getPlayer().getEyePos();
             const simLookX = current.aimX - eyePos.x;
             const simLookY = current.aimY - eyePos.y;
@@ -1064,7 +1075,7 @@ class Bot extends ModuleBase {
                 const normLookZ = simLookZ / simLookLen;
 
                 let bestCost = Infinity;
-                for (const loc of this.foundLocations.slice(1)) {
+                for (const loc of candidateLocations) {
                     if (loc.aimX === undefined) continue;
 
                     const dx = loc.aimX - eyePos.x;
@@ -1085,8 +1096,8 @@ class Bot extends ModuleBase {
                     }
                 }
             }
-        } else if (this.foundLocations.length > 1) {
-            nextTarget = this.foundLocations[1];
+        } else if (candidateLocations.length > 0) {
+            nextTarget = candidateLocations[0];
         }
 
         if (nextTarget) {

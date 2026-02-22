@@ -41,6 +41,7 @@ class OreMacro extends ModuleBase {
         this.REDSTONE = false;
         this.GOLD = false;
         this.DIAMOND = false;
+        this.LAPIS = false;
         this.EMERALD = false;
 
         this.STATES = {
@@ -61,7 +62,14 @@ class OreMacro extends ModuleBase {
             point: null,
             raw: null,
             index: null,
+            closest: null,
         };
+
+        this.routeMeta = {
+            navIndices: [],
+            mineablePoints: [],
+        };
+        this.oreCosts = this.getOreCosts();
 
         this.rotatedToPoint = false;
         this.attemptedEtherwarp = false;
@@ -78,11 +86,12 @@ class OreMacro extends ModuleBase {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
                     'Route Progress': () => {
                         if (!this.route || this.pointData.index === null) return 'No Route';
+                        const totalPathPoints = this.routeMeta.navIndices.length;
+                        if (totalPathPoints === 0) return '0/0';
 
-                        const navPoints = this.route.filter((p) => p.movements !== 'MINEABLE');
-                        const totalPathPoints = navPoints.length;
-
-                        const currentNavIndex = this.route.slice(0, this.pointData.index + 1).filter((p) => p.movements !== 'MINEABLE').length;
+                        const currentNavIndex = this.routeMeta.navIndices.reduce((count, routeIndex) => {
+                            return routeIndex <= this.pointData.index ? count + 1 : count;
+                        }, 0);
 
                         return `${currentNavIndex}/${totalPathPoints}`;
                     },
@@ -118,6 +127,7 @@ class OreMacro extends ModuleBase {
                 movementType,
                 isMineable
             );
+            this.updateRouteMeta();
         });
 
         this.when(
@@ -158,7 +168,7 @@ class OreMacro extends ModuleBase {
         );
 
         this.on('tick', () => {
-            MiningBot.setCost(this.getOreCosts());
+            MiningBot.setCost(this.oreCosts);
 
             switch (this.state) {
                 case this.STATES.DECIDING:
@@ -167,7 +177,14 @@ class OreMacro extends ModuleBase {
                         return this.toggle(false);
                     }
 
-                    if (this.pointData.index === null) this.pointData.index = this.getClosestPoint().index;
+                    if (this.pointData.index === null) {
+                        const closest = this.getClosestPoint();
+                        if (!closest) {
+                            this.message('&cRoute needs at least 1 non-mineable point!');
+                            return this.toggle(false);
+                        }
+                        this.pointData.index = closest.index;
+                    }
 
                     let currentPoint = this.route[this.pointData.index];
 
@@ -177,20 +194,15 @@ class OreMacro extends ModuleBase {
                     let walkPoint = this.route[this.pointData.index];
                     let dist = MathUtils.getDistanceToPlayer(walkPoint.x + 0.5, walkPoint.y + 1, walkPoint.z + 0.5);
 
-                    Chat.message('Distance to point: ' + dist.distance);
                     Keybind.setKey('shift', dist.distance <= 1.5 && dist.distanceFlat == dist.distanceY);
 
                     if (dist.distance <= 0.75) {
                         Keybind.unpressKeys();
 
-                        let nextIndex = (this.pointData.index + 1) % this.route.length;
-
-                        for (let i = 0; i < this.route.length; i++) {
-                            if (this.route[nextIndex].movements !== 'MINEABLE') {
-                                break;
-                            }
-
-                            nextIndex = (nextIndex + 1) % this.route.length;
+                        const nextIndex = this.getNextNavPointIndex(this.pointData.index);
+                        if (nextIndex === null) {
+                            this.message('&cRoute has no non-mineable points!');
+                            return this.toggle(false);
                         }
 
                         this.pointData.index = nextIndex;
@@ -240,18 +252,15 @@ class OreMacro extends ModuleBase {
                         this.attemptedEtherwarp = false;
                         this.etherwarpTicks = 0;
 
-                        let nextIndex = (this.pointData.index + 1) % this.route.length;
-
-                        for (let i = 0; i < this.route.length; i++) {
-                            if (this.route[nextIndex].movements !== 'MINEABLE') {
-                                break;
-                            }
-                            nextIndex = (nextIndex + 1) % this.route.length;
+                        const nextIndex = this.getNextNavPointIndex(this.pointData.index);
+                        if (nextIndex === null) {
+                            this.message('&cRoute has no non-mineable points!');
+                            return this.toggle(false);
                         }
 
                         this.pointData.index = nextIndex;
 
-                        let nextPoint = this.route[this.pointData.index + 1];
+                        let nextPoint = this.route[(this.pointData.index + 1) % this.route.length];
                         if (nextPoint) {
                             let nextPointVec = new Vec3d(nextPoint?.x + 0.5, nextPoint?.y, nextPoint?.z + 0.5);
                             if (nextPointVec) Rotations.rotateToVector(nextPointVec);
@@ -322,17 +331,11 @@ class OreMacro extends ModuleBase {
                 case this.STATES.MINING:
                     Keybind.stopMovement();
 
-                    let mineables = [];
-
-                    for (let i = 0; i < this.route.length; i++) {
-                        let checkIndex = (this.pointData.index + i) % this.route.length;
-                        let point = this.route[checkIndex];
-                        if (point.movements !== 'MINEABLE') continue;
+                    let mineables = this.routeMeta.mineablePoints.filter((point) => {
                         let block = World.getBlockAt(point.x, point.y, point.z);
                         let reg = block?.type?.getRegistryName();
-
-                        if (typeof reg === 'string' && !reg.includes('air') && !reg.includes('bedrock')) mineables.push(point);
-                    }
+                        return typeof reg === 'string' && !reg.includes('air') && !reg.includes('bedrock');
+                    });
 
                     MiningBot.FOVPenalty = false;
 
@@ -354,6 +357,7 @@ class OreMacro extends ModuleBase {
             (selected) => {
                 this.loadedFile = Router.getFilefromCallback(selected);
                 this.route = Router.loadRouteFromFile('OreRoutes/', this.loadedFile);
+                this.updateRouteMeta();
                 RouteState.setRoute(this.route, 'Ore Macro');
             },
             'The route the macro will use'
@@ -373,6 +377,7 @@ class OreMacro extends ModuleBase {
                 this.REDSTONE = setHas('Redstone');
                 this.LAPIS = setHas('Lapis');
                 this.EMERALD = setHas('Emerald');
+                this.oreCosts = this.getOreCosts();
             },
             'Type of ores the macro is able to target'
         );
@@ -428,8 +433,35 @@ class OreMacro extends ModuleBase {
             'minecraft:redstone_block': this.REDSTONE ? 1 : 0,
             'minecraft:gold_block': this.GOLD ? 1 : 0,
             'minecraft:diamond_block': this.DIAMOND ? 1 : 0,
+            'minecraft:lapis_block': this.LAPIS ? 1 : 0,
             'minecraft:emerald_block': this.EMERALD ? 1 : 0,
         };
+    }
+
+    updateRouteMeta() {
+        const route = Array.isArray(this.route) ? this.route : [];
+        this.routeMeta.navIndices = [];
+        this.routeMeta.mineablePoints = [];
+
+        for (let i = 0; i < route.length; i++) {
+            const point = route[i];
+            if (!point) continue;
+            if (point.movements === 'MINEABLE') this.routeMeta.mineablePoints.push(point);
+            else this.routeMeta.navIndices.push(i);
+        }
+    }
+
+    getNextNavPointIndex(currentIndex) {
+        if (!this.route || this.route.length === 0) return null;
+        if (this.routeMeta.navIndices.length === 0) return null;
+
+        let nextIndex = (currentIndex + 1) % this.route.length;
+        for (let i = 0; i < this.route.length; i++) {
+            if (this.route[nextIndex]?.movements !== 'MINEABLE') return nextIndex;
+            nextIndex = (nextIndex + 1) % this.route.length;
+        }
+
+        return null;
     }
 
     getPointOnBlock(point) {
@@ -621,6 +653,7 @@ class OreMacro extends ModuleBase {
     }
 
     onEnable() {
+        this.updateRouteMeta();
         if (this.route) RouteState.setRoute(this.route, 'Ore Macro');
         this.message('&aEnabled');
         this.state = this.STATES.DECIDING;
@@ -634,9 +667,10 @@ class OreMacro extends ModuleBase {
             point: null,
             raw: null,
             index: null,
+            closest: null,
         };
 
-        this.rotatedToPoint = null;
+        this.rotatedToPoint = false;
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
         Keybind.unpressKeys();

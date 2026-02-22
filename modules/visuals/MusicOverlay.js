@@ -20,9 +20,9 @@ class Music extends ModuleBase {
         super({ name: 'Music Overlay', subcategory: 'Visuals' });
 
         this.musicProcess = null;
-        this.assetsDir = globalAssetsDir;
+        this.assetsDir = globalAssetsDir.getAbsoluteFile();
         this.windowsExePath = 'WindowsMusicHelper.exe';
-        this.exePath = new File(this.assetsDir, this.windowsExePath);
+        this.exePath = this.resolveExePath();
 
         this.data = null;
         this.lastSongTitle = '';
@@ -72,6 +72,10 @@ class Music extends ModuleBase {
         return Number.parseInt(parts[0], 10) * 60 + Number.parseInt(parts[1], 10);
     }
 
+    resolveExePath() {
+        return new File(this.assetsDir, this.windowsExePath).getAbsoluteFile();
+    }
+
     formatSecondsToTime(seconds) {
         const s = Math.max(0, Math.floor(seconds));
         const mins = Math.floor(s / 60);
@@ -86,11 +90,16 @@ class Music extends ModuleBase {
             y: this.y,
             scale: this.scale,
         };
+        if (OverlayManager && OverlayManager.musicSettings) {
+            OverlayManager.musicSettings.x = this.x;
+            OverlayManager.musicSettings.y = this.y;
+            OverlayManager.musicSettings.scale = this.scale;
+        }
         Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.positionConfig);
     }
 
     syncFromOverlayEditor() {
-        const latest = Utils.getConfigFile('OverlayPositions/music_overlay.json');
+        const latest = OverlayManager?.musicSettings;
         if (!latest || typeof latest !== 'object') return;
 
         if (typeof latest.x === 'number') this.x = latest.x;
@@ -277,7 +286,8 @@ class Music extends ModuleBase {
 
     getSongData() {
         if (isWindows) {
-            this.exePath = new File(this.assetsDir, this.windowsExePath);
+            this.assetsDir = globalAssetsDir.getAbsoluteFile();
+            this.exePath = this.resolveExePath();
             if (!this.checkWindowsProgram()) this.runWindowsProgram();
             this.fetchWindowsData();
         }
@@ -288,21 +298,29 @@ class Music extends ModuleBase {
     }
 
     runWindowsProgram() {
-        const file = this.exePath;
-        if (!file.exists()) return;
+        if (!this.exePath.exists() || this.checkWindowsProgram()) return;
+
+        try {
+            const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
+            pb.directory(this.assetsDir);
+            this.musicProcess = pb.start();
+        } catch (e) {
+            console.error(`[Music] Start error: ${e}`);
+            return;
+        }
 
         new Thread(() => {
+            let sc = null;
             try {
-                const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
-                pb.directory(this.assetsDir);
-                this.musicProcess = pb.start();
-                const sc = new Scanner(new InputStreamReader(this.musicProcess.getInputStream()));
+                sc = new Scanner(new InputStreamReader(this.musicProcess.getInputStream()));
                 while (this.musicProcess !== null && this.musicProcess.isAlive()) {
                     if (sc.hasNextLine()) sc.nextLine();
-                    Thread.sleep(500);
+                    else Thread.sleep(100);
                 }
             } catch (e) {
-                console.error(`[Music] Start error: ${e}`);
+            } finally {
+                if (sc) sc.close();
+                if (this.musicProcess !== null && !this.musicProcess.isAlive()) this.musicProcess = null;
             }
         }).start();
     }
