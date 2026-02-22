@@ -1020,6 +1020,7 @@ class Bot extends ModuleBase {
         this.nukedBlock = false;
         this.mineTickCount = 0;
         this.tickCount = 0;
+        this.lastRenderFrameTime = null;
         Rotations.stopRotation();
         this.normalRender.unregister();
     }
@@ -1031,10 +1032,18 @@ class Bot extends ModuleBase {
             this.lastRenderPos = null;
             this.lastAimPos = null;
             this.lastNextPos = null;
+            this.lastRenderFrameTime = null;
             return;
         }
 
-        const lerp = (s, e) => s + (e - s) * 0.1;
+        const now = Date.now();
+        const dtSeconds = this.lastRenderFrameTime ? Math.min((now - this.lastRenderFrameTime) / 1000, 0.2) : 1 / 120;
+        this.lastRenderFrameTime = now;
+
+        const baseAlphaAt120 = 0.1;
+        const smoothingHz = -Math.log(1 - baseAlphaAt120) / (1 / 120);
+        const alpha = 1 - Math.exp(-smoothingHz * dtSeconds);
+        const lerp = (s, e) => s + (e - s) * alpha;
 
         const current = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex] || this.foundLocations[0];
         if (!current) return;
