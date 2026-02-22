@@ -58,7 +58,8 @@ export const getCategoryRect = (index) => {
 export const drawSubcategoryButtons = (catObj, panelX, yOffset, mouseX, mouseY) => {
     const cat = Categories;
 
-    if (SearchBar.isFocused) return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
+    const isFullWidthSearch = SearchBar.query.trim().length > 0;
+    if (isFullWidthSearch) return yOffset + SUBCATEGORY_BUTTON_HEIGHT + PADDING;
 
     if (cat.animationRect) {
         const elapsed = Date.now() - cat.subcatTransitionStart;

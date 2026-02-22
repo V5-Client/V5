@@ -40,17 +40,42 @@ register('guiKey', (char, keyCode, gui, event) => {
 export const SearchBar = {
     isExpanded: false,
     animation: 0,
+    animatedWidth: 30,
     query: '',
     isFocused: false,
     cursorIndex: 0,
     collapsedWidth: 30,
-    expandedWidth: 560,
+    expandedWidth: 220,
+    typingExpandedWidth: 560,
     height: 28,
     lerpSpeed: 0.15,
     textX: 0,
+    lastPanelWidth: 0,
     hoverBlockRect: null,
     hoverProgress: 0,
     hoverLastUpdate: Date.now(),
+
+    getPanelAvailableWidth(panel) {
+        if (!panel) return this.typingExpandedWidth;
+        this.lastPanelWidth = panel.width;
+        return Math.max(this.collapsedWidth, panel.width - PADDING * 2);
+    },
+
+    getIdleExpandedWidth(panel) {
+        const available = this.getPanelAvailableWidth(panel);
+        return Math.min(Math.max(this.collapsedWidth, this.expandedWidth), available);
+    },
+
+    getTypingExpandedWidth(panel) {
+        const available = this.getPanelAvailableWidth(panel);
+        return Math.min(Math.max(this.getIdleExpandedWidth(panel), this.typingExpandedWidth), available);
+    },
+
+    getTargetWidth(panel) {
+        if (!this.isExpanded) return this.collapsedWidth;
+        const hasText = this.query.trim().length > 0;
+        return hasText ? this.getTypingExpandedWidth(panel) : this.getIdleExpandedWidth(panel);
+    },
 
     draw(mouseX, mouseY, panel, y) {
         if (!panel) return;
@@ -59,10 +84,11 @@ export const SearchBar = {
             this.isExpanded = false;
         }
 
-        const target = this.isExpanded ? 1 : 0;
-        this.animation += (target - this.animation) * this.lerpSpeed;
-
-        const currentWidth = this.collapsedWidth + (this.expandedWidth - this.collapsedWidth) * this.animation;
+        const targetWidth = this.getTargetWidth(panel);
+        this.animatedWidth += (targetWidth - this.animatedWidth) * this.lerpSpeed;
+        const currentWidth = this.animatedWidth;
+        const span = Math.max(1, this.getTypingExpandedWidth(panel) - this.collapsedWidth);
+        this.animation = Math.max(0, Math.min(1, (currentWidth - this.collapsedWidth) / span));
         const x = panel.x + panel.width - PADDING - currentWidth;
 
         const barRect = { x, y, width: currentWidth, height: this.height };
@@ -160,7 +186,7 @@ export const SearchBar = {
         }
 
         if (this.isExpanded) {
-            const currentWidth = this.collapsedWidth + (this.expandedWidth - this.collapsedWidth) * this.animation;
+            const currentWidth = this.animatedWidth;
             const barX = barRightEdge - currentWidth;
             const barRect = { x: barX, y, width: currentWidth, height: this.height };
 
@@ -262,7 +288,7 @@ export const SearchBar = {
 
     insertText(text) {
         if (!text) return false;
-        const maxTextWidth = this.expandedWidth - 35;
+        const maxTextWidth = this.getTypingExpandedWidth({ width: this.lastPanelWidth || this.typingExpandedWidth }) - 35;
         let accepted = '';
 
         for (const char of text) {
@@ -279,7 +305,7 @@ export const SearchBar = {
 
     updateHoverBlock(panel, y) {
         if (!panel) return;
-        const currentWidth = this.collapsedWidth + (this.expandedWidth - this.collapsedWidth) * this.animation;
+        const currentWidth = this.animatedWidth;
         const x = panel.x + panel.width - PADDING - currentWidth;
         this.hoverBlockRect = { x, y, width: currentWidth, height: this.height };
     },
@@ -304,6 +330,7 @@ export const SearchBar = {
     resetSearch() {
         this.isExpanded = false;
         this.isFocused = false;
+        this.animatedWidth = this.collapsedWidth;
         this.cursorIndex = 0;
         this.query = '';
     },
