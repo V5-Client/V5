@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { BP, BufferedInputStream, FileOutputStream, isLinux, isMac, isWindows, URL, Vec3d } from './Constants';
+import { BP, isLinux, isMac, isWindows, Vec3d } from './Constants';
 
 export const mc = Client.getMinecraft();
 
@@ -259,38 +259,10 @@ class VectorConverter {
     }
 }
 
-class FileDownloader {
-    download(urlString, destination) {
-        const t = new java.lang.Thread(function () {
-            try {
-                if (urlString.startsWith('"') && urlString.endsWith('"')) {
-                    urlString = urlString.substring(1, urlString.length - 1);
-                }
-                let url = new URL(urlString);
-                let inputStream = new BufferedInputStream(url.openStream());
-                let outputStream = new FileOutputStream(destination);
-                let buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
-                let bytesRead;
-                while ((bytesRead = inputStream.read(buffer, 0, 1024)) !== -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
-                inputStream.close();
-                outputStream.close();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-                Chat.message('Download failed: ' + e);
-            }
-        });
-        t.setDaemon(true);
-        t.start();
-    }
-}
-
 let configManager = new ConfigFileManager(CONFIG_DIR_NAME);
 let locationDetector = new LocationDetector();
 let collisionChecker = new CollisionChecker();
 let vectorConverter = new VectorConverter();
-let fileDownloader = new FileDownloader();
 let cookieDetector = new CookieDetector();
 
 class UtilsClass {
@@ -446,10 +418,6 @@ class UtilsClass {
 
     resetLocationCache() {
         locationDetector.reset();
-    }
-
-    downloadFile(url, destination) {
-        return fileDownloader.download(url, destination);
     }
 
     randomInt(min, max) {

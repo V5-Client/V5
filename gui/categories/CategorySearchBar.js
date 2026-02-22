@@ -1,4 +1,4 @@
-import { DataFlavor, Toolkit } from '../../utils/Constants';
+import { DataFlavor, Toolkit, globalAssetsDir } from '../../utils/Constants';
 import {
     colorWithAlpha,
     drawImage,
@@ -15,7 +15,7 @@ import {
     TypingState,
 } from '../Utils';
 
-const ASSETS_PATHS = ['config/ChatTriggers/assets/'];
+const ASSETS_PATHS = [globalAssetsDir.getPath() + '/'];
 
 const getAssetPath = (filename) => {
     for (const basePath of ASSETS_PATHS) {

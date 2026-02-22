@@ -1,4 +1,5 @@
 import { ModuleBase } from '../ModuleBase';
+import { File, globalAssetsDir } from '../Constants';
 
 class PathFindingConfig extends ModuleBase {
     constructor() {
@@ -63,8 +64,7 @@ class PathFindingConfig extends ModuleBase {
     }
 
     loadWarpPoints() {
-        const mcDir = new java.io.File(Client.getMinecraft().runDirectory);
-        const warppointsloc = new java.io.File(mcDir, 'config/ChatTriggers/assets/WarpPoints.json');
+        const warppointsloc = new File(globalAssetsDir, 'WarpPoints.json');
         const raw = FileLib.read(warppointsloc.getPath());
         return JSON.parse(raw).warps.map((warp) => ({
             warp: warp.warp,

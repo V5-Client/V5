@@ -1,5 +1,6 @@
 import { Chat } from '../utils/Chat';
-import { Color, File, Identifier, Links, NVG, SoundCategory, SoundEvent } from '../utils/Constants';
+import { Color, File, Identifier, Links, NVG, SoundCategory, SoundEvent, globalAssetsDir } from '../utils/Constants';
+import { downloadFile } from '../utils/FileUtils';
 import { Utils } from '../utils/Utils';
 
 export const colorWithAlpha = (baseColor, alpha) => {
@@ -247,7 +248,7 @@ export const playClickSound = () => {
     World.getWorld().playSoundClient(SoundEvent.of(Identifier.of('minecraft', 'entity.experience_orb.pickup')), SoundCategory.MASTER, 0.5, 1.0);
 };
 
-const profilePath = new File('config/ChatTriggers/assets/discordProfile.png');
+const profilePath = new File(globalAssetsDir, 'discordProfile.png');
 let discordPfpPath = null;
 
 export const getDiscordPfpPath = () => discordPfpPath;
@@ -283,7 +284,12 @@ export const returnDiscord = (authToken) => {
                 }
 
                 let avatarUrl = data.discord.avatar;
-                Utils.downloadFile(avatarUrl, profilePath.getAbsolutePath());
+                downloadFile(avatarUrl, profilePath.getAbsolutePath(), {
+                    onError: (e) => {
+                        Chat.message('Download failed: ' + e);
+                        console.error('V5 Caught error' + e + e.stack);
+                    },
+                });
                 discordPfpPath = profilePath.getAbsolutePath();
             });
             t.setDaemon(true);

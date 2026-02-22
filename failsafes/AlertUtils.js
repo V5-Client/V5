@@ -1,6 +1,6 @@
 import { drawRect, drawText } from '../gui/Utils.js';
 import { Chat } from '../utils/Chat.js';
-import { File, KeyBindUtils, NVG } from '../utils/Constants';
+import { File, KeyBindUtils, NVG, globalAssetsDir } from '../utils/Constants';
 import { Utils } from '../utils/Utils.js';
 import FailsafeUtils from './FailsafeUtils';
 
@@ -157,7 +157,7 @@ class AlertUtilsClass {
         this.savedSound = currentSound || 'Tave Check.wav';
         if ((currentSound || '').includes('undefined')) this.savedSound = 'Tave Check.wav';
 
-        this.soundFile = new File(Client.getMinecraft().runDirectory, `config/ChatTriggers/assets/failsafes/sounds/${this.savedSound}`);
+        this.soundFile = new File(globalAssetsDir, `failsafes/sounds/${this.savedSound}`);
         if (!this.soundFile.exists()) return;
 
         try {

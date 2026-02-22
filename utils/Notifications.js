@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { MessageType, System, SystemTray, Toolkit, TrayIcon } from './Constants';
+import { File, MessageType, System, SystemTray, Toolkit, TrayIcon, globalAssetsDir } from './Constants';
 
 class AlertManager {
     constructor() {
@@ -26,7 +26,7 @@ class AlertManager {
                 }
             }
 
-            const iconPath = './config/ChatTriggers/assets/icon.png';
+            const iconPath = new File(globalAssetsDir, 'icon.png').getPath();
             const img = Toolkit.getDefaultToolkit().createImage(iconPath);
 
             this.trayIcon = new TrayIcon(img, this.appName);

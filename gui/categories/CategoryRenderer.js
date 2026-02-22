@@ -27,8 +27,9 @@ import { GuiRectangles } from '../core/GuiState';
 import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
 import { Categories } from './CategorySystem';
+import { globalAssetsDir } from '../../utils/Constants';
 
-const ASSETS_PATHS = ['config/ChatTriggers/assets/'];
+const ASSETS_PATHS = [globalAssetsDir.getPath() + '/'];
 
 const getAssetPath = (filename) => {
     for (const basePath of ASSETS_PATHS) {

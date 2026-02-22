@@ -1,8 +1,8 @@
 import { Chat } from './Chat';
-import { File } from './Constants';
+import { File, globalAssetsDir } from './Constants';
 
 const SOURCE_SOUNDS_DIR = new File('./config/ChatTriggers/modules/V5/failsafes/sounds');
-const DEST_SOUNDS_DIR = new File('./config/ChatTriggers/assets/failsafes/sounds');
+const DEST_SOUNDS_DIR = new File(globalAssetsDir, 'failsafes/sounds');
 
 function organizeFailsafeSounds() {
     if (!SOURCE_SOUNDS_DIR.exists()) return;

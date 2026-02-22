@@ -1,7 +1,7 @@
 import { AlertUtils } from '../../failsafes/AlertUtils';
 import { getSetting } from '../../gui/GuiSave';
 import { Chat } from '../../utils/Chat';
-import { File } from '../../utils/Constants';
+import { File, globalAssetsDir } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { DisconnectS2C } from '../../utils/Packets';
 
@@ -135,8 +135,7 @@ class Failsafes extends ModuleBase {
     }
 
     getFilesinDir() {
-        const mcDir = new File(Client.getMinecraft().runDirectory);
-        const targetPath = new File(mcDir, 'config/ChatTriggers/assets/failsafes/sounds/');
+        const targetPath = new File(globalAssetsDir, 'failsafes/sounds');
 
         if (!targetPath.exists() || !targetPath.isDirectory()) {
             Chat.message(`&cError: Directory not found.`);

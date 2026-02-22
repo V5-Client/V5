@@ -10,7 +10,7 @@ import {
     getTextWidth,
     THEME,
 } from '../../gui/Utils';
-import { InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner } from '../../utils/Constants';
+import { File, InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
@@ -20,10 +20,9 @@ class Music extends ModuleBase {
         super({ name: 'Music Overlay', subcategory: 'Visuals' });
 
         this.musicProcess = null;
-        this.mcDir = new java.io.File(Client.getMinecraft().runDirectory);
-        this.assetsDir = new java.io.File(this.mcDir, 'config/ChatTriggers/assets/');
+        this.assetsDir = globalAssetsDir;
         this.windowsExePath = 'WindowsMusicHelper.exe';
-        this.exePath = new java.io.File(this.assetsDir, this.windowsExePath);
+        this.exePath = new File(this.assetsDir, this.windowsExePath);
 
         this.data = null;
         this.lastSongTitle = '';
@@ -272,7 +271,7 @@ class Music extends ModuleBase {
 
     getSongData() {
         if (isWindows) {
-            this.exePath = new java.io.File(this.assetsDir, this.windowsExePath);
+            this.exePath = new File(this.assetsDir, this.windowsExePath);
             if (!this.checkWindowsProgram()) this.runWindowsProgram();
             this.fetchWindowsData();
         }
@@ -283,13 +282,13 @@ class Music extends ModuleBase {
     }
 
     runWindowsProgram() {
-        const file = new java.io.File(this.exePath);
+        const file = this.exePath;
         if (!file.exists()) return;
 
         new Thread(() => {
             try {
                 const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
-                pb.directory(new java.io.File(this.assetsDir));
+                pb.directory(this.assetsDir);
                 this.musicProcess = pb.start();
                 const sc = new Scanner(new InputStreamReader(this.musicProcess.getInputStream()));
                 while (this.musicProcess !== null && this.musicProcess.isAlive()) {

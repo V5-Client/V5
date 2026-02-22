@@ -1,11 +1,9 @@
 import { Chat } from './Chat';
-import { File, ProcessBuilder, isLinux, isMac, isWindows } from './Constants';
+import { File, ProcessBuilder, isLinux, isMac, isWindows, FFMPEG_URLS, globalAssetsDir } from './Constants';
+import { deleteRecursive, ensureDirectory, findFileRecursive, streamDownloadToFile } from './FileUtils';
 import { ModuleBase } from './ModuleBase';
 import { Executor } from './ThreadExecutor';
 import { v5Command } from './V5Commands';
-
-const globalAssetsDir = new File('./config/ChatTriggers/assets');
-if (!globalAssetsDir.exists()) globalAssetsDir.mkdirs();
 
 const ffmpegName = isWindows ? 'ffmpeg.exe' : 'ffmpeg';
 const ffmpegFile = new File(globalAssetsDir, ffmpegName);
@@ -13,14 +11,8 @@ const ffmpegFile = new File(globalAssetsDir, ffmpegName);
 const clipsDir = new File('./config/ChatTriggers/modules/V5Config/Clips');
 const bufferDir = new File(clipsDir, 'buffer');
 
-if (!clipsDir.exists()) clipsDir.mkdirs();
-if (!bufferDir.exists()) bufferDir.mkdirs();
-
-const URLS = {
-    WIN: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip',
-    LINUX: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz',
-    MAC: 'https://evermeet.cx/ffmpeg/ffmpeg-8.0.1.7z', // hardcoded version because the site doesn't have a static latest link
-};
+ensureDirectory(clipsDir);
+ensureDirectory(bufferDir);
 
 // todo
 // fix resize issue
@@ -190,57 +182,30 @@ class ClippingManager extends ModuleBase {
         this.isDownloading = true;
 
         Executor.execute(() => {
-            let input = null;
-            let output = null;
             try {
                 let urlStr;
                 let archiveName;
                 if (isWindows) {
-                    urlStr = URLS.WIN;
+                    urlStr = FFMPEG_URLS.WIN_ZIP;
                     archiveName = 'ffmpeg.zip';
                 } else if (isLinux) {
-                    urlStr = URLS.LINUX;
+                    urlStr = FFMPEG_URLS.LINUX_TAR_XZ;
                     archiveName = 'ffmpeg.tar.xz';
                 } else {
-                    urlStr = URLS.MAC;
+                    urlStr = FFMPEG_URLS.MAC_BINARY;
                     archiveName = 'ffmpeg.7z';
                 }
                 const archiveFile = new File(globalAssetsDir, archiveName);
 
                 Chat.messageClip(`&7Starting download: &f${archiveName}`);
 
-                const url = new java.net.URL(urlStr);
-                const connection = url.openConnection();
-                connection.connect();
-
-                const fileLength = connection.getContentLength();
-                input = new java.io.BufferedInputStream(connection.getInputStream());
-                output = new java.io.FileOutputStream(archiveFile.getAbsolutePath());
-
-                const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 4096);
-                let total = 0;
-                let count;
-                let lastUpdate = 0;
-
-                while ((count = input.read(data)) !== -1) {
-                    total += count;
-                    output.write(data, 0, count);
-
-                    if (fileLength > 0) {
-                        let percent = Math.floor((total / fileLength) * 100);
-
-                        if (percent >= lastUpdate + 25) {
-                            Chat.messageClip(`&7Downloading: &b${percent}%`);
-                            lastUpdate = percent;
-                        }
+                let lastUpdate = -25;
+                streamDownloadToFile(urlStr, archiveFile, (percent) => {
+                    if (percent >= lastUpdate + 25) {
+                        Chat.messageClip(`&7Downloading: &b${percent}%`);
+                        lastUpdate = percent;
                     }
-                }
-
-                output.flush();
-                output.close();
-                output = null;
-                input.close();
-                input = null;
+                });
 
                 Chat.messageClip('&aDownload complete! Extracting...');
                 this.extractFFmpeg(archiveFile);
@@ -248,18 +213,6 @@ class ClippingManager extends ModuleBase {
                 Chat.messageClip(`&cDownload failed: ${e}`);
                 console.error('V5 Caught error' + e + e.stack);
             } finally {
-                try {
-                    if (output) output.close();
-                } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
-                }
-
-                try {
-                    if (input) input.close();
-                } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
-                }
-
                 this.isDownloading = false;
             }
         });
@@ -318,21 +271,7 @@ class ClippingManager extends ModuleBase {
     }
 
     organizeBinaries() {
-        const findFile = (dir, name) => {
-            const files = dir.listFiles();
-            if (!files) return null;
-            for (let f of files) {
-                if (f.isDirectory()) {
-                    const found = findFile(f, name);
-                    if (found) return found;
-                } else if (f.getName() === name) {
-                    return f;
-                }
-            }
-            return null;
-        };
-
-        const foundBin = findFile(globalAssetsDir, ffmpegName);
+        const foundBin = findFileRecursive(globalAssetsDir, ffmpegName);
         if (foundBin && !foundBin.getParentFile().equals(globalAssetsDir)) {
             const dest = new File(globalAssetsDir, ffmpegName);
             if (dest.exists()) dest.delete();
@@ -343,19 +282,13 @@ class ClippingManager extends ModuleBase {
 
         cleanupDirs.forEach((name) => {
             const f = new File(globalAssetsDir, name);
-            if (f.exists()) this.deleteRecursive(f);
+            if (f.exists()) deleteRecursive(f);
         });
 
         if (!isWindows) {
             const pb = new ProcessBuilder('chmod', '+x', ffmpegFile.getAbsolutePath());
             pb.start().waitFor();
         }
-    }
-
-    deleteRecursive(file) {
-        if (file.isDirectory()) file.listFiles().forEach((f) => this.deleteRecursive(f));
-
-        file.delete();
     }
 
     getWindowTitle() {
@@ -620,3 +553,4 @@ class ClippingManager extends ModuleBase {
 }
 
 export const Clipping = new ClippingManager();
+
