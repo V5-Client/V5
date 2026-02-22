@@ -24,7 +24,7 @@ class VelocityFailsafe extends Failsafe {
             const vz = packet?.getVelocity().z;
             const speed = Math.hypot(vx, vy, vz);
 
-            const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ()));
+            const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
             const blockName = blockBelow.getType().getRegistryName();
             const data = { velocity: speed, blockBelow: blockName };
 
@@ -40,7 +40,7 @@ class VelocityFailsafe extends Failsafe {
         const heldItem = Player.getHeldItem()?.getName()?.removeFormatting();
         if (heldItem?.includes('Grappling')) return true;
 
-        const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.round(Player.getY()) - 1, Math.floor(Player.getZ()));
+        const blockBelow = World.getBlockAt(Math.floor(Player.getX()), Math.floor(Player.getY()) - 1, Math.floor(Player.getZ()));
         if (blockBelow.getType().getRegistryName().includes('slime_block')) return true;
 
         return false;
