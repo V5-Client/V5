@@ -112,6 +112,8 @@ class RouteWalkerer extends ModuleBase {
                 const firstPoint = route[0];
                 const lastPoint = route[route.length - 1];
 
+                if (route.length < 1 || !this.CheckPoint(firstPoint) || !this.CheckPoint(lastPoint)) return;
+
                 Render.drawLine(
                     new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
                     new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
