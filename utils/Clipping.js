@@ -14,9 +14,6 @@ const bufferDir = new File(clipsDir, 'buffer');
 ensureDirectory(clipsDir);
 ensureDirectory(bufferDir);
 
-// todo
-// fix resize issue
-
 class ClippingManager extends ModuleBase {
     constructor() {
         super({
@@ -34,6 +31,12 @@ class ClippingManager extends ModuleBase {
         this.fps = 15;
         this.segmentCount = 6;
         this.compressClips = false;
+
+        this.lastW = 0;
+        this.lastH = 0;
+        this.pixelArray = null;
+        this.pixelBuffer = null;
+        this.frameCounter = 0;
 
         this.addDirectToggle(
             'Enabled',
@@ -88,6 +91,57 @@ class ClippingManager extends ModuleBase {
         });
 
         register('gameUnload', () => this.stopRecording());
+
+        register('renderOverlay', () => {
+            if (!this.isRecording || !this.process) return;
+
+            const window = Client.getMinecraft().getWindow();
+            const w = window.getFramebufferWidth();
+            const h = window.getFramebufferHeight();
+
+            if (this.lastW && (this.lastW !== w || this.lastH !== h)) {
+                this.stopRecording();
+                this.startRecording();
+                return;
+            }
+            this.lastW = w;
+            this.lastH = h;
+
+            if (!this.frameCounter) this.frameCounter = 0;
+            const frameInterval = Math.max(1, Math.floor(Client.getMinecraft().options.getMaxFps().getValue() / this.fps));
+            if (this.frameCounter++ % frameInterval !== 0) return;
+
+            try {
+                const size = w * h * 4;
+
+                if (!this.pixelBuffer || this.pixelBuffer.capacity() !== size) {
+                    this.pixelBuffer = java.nio.ByteBuffer.allocateDirect(size);
+                    this.pixelArray = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, size);
+                }
+
+                this.pixelBuffer.clear();
+
+                org.lwjgl.opengl.GL11.glReadPixels(0, 0, w, h, org.lwjgl.opengl.GL11.GL_RGBA, org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE, this.pixelBuffer);
+
+                const currentBuffer = this.pixelBuffer.duplicate();
+                const currentArray = this.pixelArray;
+
+                Executor.execute(() => {
+                    try {
+                        currentBuffer.rewind();
+                        currentBuffer.get(currentArray);
+
+                        const os = this.process.getOutputStream();
+                        os.write(currentArray);
+                        os.flush();
+                    } catch (e) {
+                        this.isRecording = false;
+                    }
+                });
+            } catch (e) {
+                console.error('Clipping capture failed: ' + e);
+            }
+        });
     }
 
     compressClip(inputClip) {
@@ -308,50 +362,55 @@ class ClippingManager extends ModuleBase {
 
         if (this.isRecording || !this.enabled) return;
 
-        const windowTitle = this.getWindowTitle();
-
-        try {
-            Client.getMinecraft().getWindow().setTitle(windowTitle);
-        } catch (e) {
-            console.error('Failed to set window title: ' + e);
-        }
-
         this.clearBuffer();
 
+        const window = Client.getMinecraft().getWindow();
+        const width = window.getFramebufferWidth();
+        const height = window.getFramebufferHeight();
         const outputPath = new File(bufferDir, 'segment_%03d.mp4').getAbsolutePath();
         const gopSize = Math.floor(this.fps * 5);
 
-        let captureFormat;
-        if (isWindows) captureFormat = 'gdigrab';
-        else if (isMac) captureFormat = 'avfoundation';
-        else captureFormat = 'x11grab';
-
-        let args = [ffmpegFile.getAbsolutePath(), '-y', '-f', captureFormat, '-framerate', String(this.fps)];
-
-        if (isWindows) {
-            args.push('-i', `title=${windowTitle}`);
-        } else if (isMac) {
-            args.push('-i', '1');
-        } else {
-            args.push('-i', ':0.0');
-        }
-
-        // prettier-ignore
-        args.push(
-            '-c:v', 'libx264',
-            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', // apparently x264 needs even dimensions? thats what gemini said :p
-            '-pix_fmt', 'yuv420p',
-            '-preset', 'ultrafast',
-            '-crf', '25',
-            '-g', String(gopSize),
-            '-sc_threshold', '0',
-            '-force_key_frames', `expr:gte(t,n_forced*5)`,
-            '-f', 'segment',
-            '-segment_time', '5',
-            '-segment_wrap', '30',
-            '-reset_timestamps', '1',
-            outputPath
-        ); // i genuinely don't know how 99% of these work, i just copied from gemini tbh, but it works
+        let args = [
+            ffmpegFile.getAbsolutePath(),
+            '-y',
+            '-f',
+            'rawvideo',
+            '-vcodec',
+            'rawvideo',
+            '-s',
+            `${width}x${height}`,
+            '-pix_fmt',
+            'rgba',
+            '-r',
+            String(this.fps),
+            '-i',
+            '-',
+            '-c:v',
+            'libx264',
+            '-vf',
+            'vflip,scale=trunc(iw/2)*2:trunc(ih/2)*2',
+            '-pix_fmt',
+            'yuv420p',
+            '-preset',
+            'ultrafast',
+            '-crf',
+            '25',
+            '-g',
+            String(gopSize),
+            '-sc_threshold',
+            '0',
+            '-force_key_frames',
+            `expr:gte(t,n_forced*5)`,
+            '-f',
+            'segment',
+            '-segment_time',
+            '5',
+            '-segment_wrap',
+            '30',
+            '-reset_timestamps',
+            '1',
+            outputPath,
+        ];
 
         Executor.execute(() => {
             try {
@@ -368,9 +427,6 @@ class ClippingManager extends ModuleBase {
                 while ((line = reader.readLine()) != null) {
                     if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
                         console.warn('[FFmpeg Error] ' + line);
-                        if (this.isRecording) {
-                            Chat.messageClip(`&cFFmpeg Error: ${line}`);
-                        }
                     }
                 }
 
@@ -384,7 +440,6 @@ class ClippingManager extends ModuleBase {
                 this.process = null;
             } catch (e) {
                 if (!this.isRecording) return;
-
                 Chat.messageClip(`&cCritical Error: ${e}`);
                 this.isRecording = false;
                 this.process = null;
