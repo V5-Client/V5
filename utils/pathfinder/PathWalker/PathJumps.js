@@ -1,5 +1,6 @@
 import { Chat } from '../../Chat';
 import { BP, SnowBlock, Vec3d } from '../../Constants';
+import { MathUtils } from '../../Math';
 import { Keybind } from '../../player/Keybinding';
 import PathConfig from '../PathConfig';
 import { PathExecutor } from '../PathExecutor';
@@ -157,10 +158,7 @@ class PathJumps {
     }
 
     getYawDifference(fromYaw, toYaw) {
-        let delta = (toYaw - fromYaw) % 360;
-        if (delta > 180) delta -= 360;
-        if (delta < -180) delta += 360;
-        return Math.abs(delta);
+        return Math.abs(MathUtils.getAngleDifference(fromYaw, toYaw));
     }
 
     isYawAligned(playerYaw, targetYaw, maxDiff) {

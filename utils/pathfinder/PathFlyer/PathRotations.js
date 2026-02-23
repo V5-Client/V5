@@ -222,19 +222,19 @@ class PathRotations {
         this.currentTargetPoint = targetPoint;
         const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
 
-        const desiredYaw = this.wrapAngle(angles.yaw);
-        const yawDelta = this.getAngleDelta(this.rawTargetYaw, desiredYaw);
+        const desiredYaw = MathUtils.wrapTo180(angles.yaw);
+        const yawDelta = MathUtils.getAngleDifference(this.rawTargetYaw, desiredYaw);
 
         const isTurning = this.currentPathCurvatureDeg > 15;
         const alpha = isTurning ? 0.12 : 0.04;
 
-        this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * alpha);
+        this.rawTargetYaw = MathUtils.wrapTo180(this.rawTargetYaw + yawDelta * alpha);
         this.rawTargetPitch = this.rawTargetPitch + (angles.pitch - this.rawTargetPitch) * alpha;
     }
 
     applyHumanizedPhysics() {
-        this.currentYaw = this.wrapAngle(this.currentYaw);
-        const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
+        this.currentYaw = MathUtils.wrapTo180(this.currentYaw);
+        const yawError = MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
         const world = World.getWorld();
         const px = Player.getX(),
@@ -287,20 +287,6 @@ class PathRotations {
         if (this.currentPitch < -90) this.currentPitch = -90;
     }
 
-    wrapAngle(angle) {
-        let wrapped = angle % 360;
-        if (wrapped > 180) wrapped -= 360;
-        if (wrapped < -180) wrapped += 360;
-        return wrapped;
-    }
-
-    getAngleDelta(from, to) {
-        let delta = (to - from) % 360;
-        if (delta > 180) delta -= 360;
-        if (delta < -180) delta += 360;
-        return delta;
-    }
-
     beginFlyRotations(preGeneratedLookPoints) {
         if (!preGeneratedLookPoints || !preGeneratedLookPoints.length) return;
         const player = Player.getPlayer();
@@ -309,7 +295,7 @@ class PathRotations {
         this.currentPathPosition = 0.0;
         this.complete = false;
         this.cachedVisible = { t: null, point: null, time: 0 };
-        this.currentYaw = this.wrapAngle(player.getYaw());
+        this.currentYaw = MathUtils.wrapTo180(player.getYaw());
         this.currentPitch = player.getPitch();
         this.rawTargetYaw = this.currentYaw;
         this.rawTargetPitch = this.currentPitch;

@@ -1,4 +1,5 @@
 import { Chat } from '../../utils/Chat';
+import { MathUtils } from '../../utils/Math';
 import { MacroState } from '../../utils/MacroState';
 import { PlayerPositionLookS2C } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
@@ -37,7 +38,7 @@ class RotationFailsafe extends Failsafe {
             const dz = Math.abs(newZ - fromZ);
             const posDistance = Math.hypot(dx, dy, dz);
 
-            const yawDiff = Math.abs(newYaw - currYaw);
+            const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, newYaw));
             const pitchDiff = Math.abs(newPitch - currPitch);
 
             if (posDistance >= 0.001) return;

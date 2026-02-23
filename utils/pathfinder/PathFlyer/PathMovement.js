@@ -1,4 +1,5 @@
 import { Keybind } from '../../player/Keybinding';
+import { MathUtils } from '../../Math';
 import { PathExecutor } from '../PathExecutor';
 import { getCurrentMotion, predictStoppingPosition } from './PathPrediction';
 
@@ -41,13 +42,6 @@ class PathMovement {
         this.decelTicks = 0;
     }
 
-    wrapAngle(angle) {
-        let wrapped = angle % 360;
-        if (wrapped > 180) wrapped -= 360;
-        if (wrapped < -180) wrapped += 360;
-        return wrapped;
-    }
-
     getYawToTarget(dx, dz) {
         return -(Math.atan2(dx, dz) * (180 / Math.PI));
     }
@@ -68,7 +62,7 @@ class PathMovement {
 
         const desiredYaw = this.getYawToTarget(dx, dz);
         const playerYaw = Player.getYaw();
-        const yawDelta = this.wrapAngle(desiredYaw - playerYaw);
+        const yawDelta = MathUtils.wrapTo180(desiredYaw - playerYaw);
         const absYawDelta = Math.abs(yawDelta);
 
         if (absYawDelta < 75) {

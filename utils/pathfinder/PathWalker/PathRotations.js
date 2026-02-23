@@ -340,8 +340,8 @@ class PathRotations {
 
         this.currentTargetPoint = targetPoint;
         const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
-        const targetYaw = this.wrapAngle(angles.yaw);
-        const yawDelta = this.getAngleDelta(this.rawTargetYaw, targetYaw);
+        const targetYaw = MathUtils.wrapTo180(angles.yaw);
+        const yawDelta = MathUtils.getAngleDifference(this.rawTargetYaw, targetYaw);
 
         const lastIndex = this.boxPositions.length - 1;
         const remainingPath = lastIndex - this.currentPathPosition;
@@ -351,7 +351,7 @@ class PathRotations {
         const dynamicYawDeadzone = (isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE) * finishFactor;
 
         if (Math.abs(yawDelta) > dynamicYawDeadzone) {
-            this.rawTargetYaw = this.wrapAngle(this.rawTargetYaw + yawDelta * Math.min(1.0, dynamicSmooth));
+            this.rawTargetYaw = MathUtils.wrapTo180(this.rawTargetYaw + yawDelta * Math.min(1.0, dynamicSmooth));
         }
 
         const pitchDelta = angles.pitch - this.rawTargetPitch;
@@ -378,8 +378,8 @@ class PathRotations {
     }
 
     applyHumanizedPhysics() {
-        this.currentYaw = this.wrapAngle(this.currentYaw);
-        const yawError = this.getAngleDelta(this.currentYaw, this.rawTargetYaw);
+        this.currentYaw = MathUtils.wrapTo180(this.currentYaw);
+        const yawError = MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
         const absYawError = Math.abs(yawError);
         const isStraight = this.currentPathCurvature < 0.2;
@@ -442,20 +442,6 @@ class PathRotations {
         return (pos.x - box.x) ** 2 + (pos.y - box.y) ** 2 + (pos.z - box.z) ** 2;
     }
 
-    wrapAngle(angle) {
-        let wrapped = angle % 360;
-        if (wrapped > 180) wrapped -= 360;
-        if (wrapped < -180) wrapped += 360;
-        return wrapped;
-    }
-
-    getAngleDelta(from, to) {
-        let delta = (to - from) % 360;
-        if (delta > 180) delta -= 360;
-        if (delta < -180) delta += 360;
-        return delta;
-    }
-
     pathRotations(splineData) {
         if (!this.boxPositions) {
             this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
@@ -464,7 +450,7 @@ class PathRotations {
         }
         const player = Player.getPlayer();
         if (player && !this.isInitialized) {
-            this.currentYaw = this.wrapAngle(player.getYaw());
+            this.currentYaw = MathUtils.wrapTo180(player.getYaw());
             this.currentPitch = player.getPitch();
             this.rawTargetYaw = this.currentYaw;
             this.rawTargetPitch = this.currentPitch;
