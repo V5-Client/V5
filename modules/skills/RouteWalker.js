@@ -89,40 +89,36 @@ class RouteWalkerer extends ModuleBase {
                     }
                 };
 
-                for (const [i, point] of route.entries()) {
-                    if (!this.CheckPoint(point)) continue;
+                route.forEach((point, i) => {
+                    if (!this.CheckPoint(point)) return;
 
                     const pointColor = getColor(point.movements);
-                    Render.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 5, false);
+
+                    Render.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
 
                     if (i < route.length - 1) {
                         const nextPoint = route[i + 1];
-                        if (this.CheckPoint(nextPoint)) {
-                            Render.drawLine(
-                                new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
-                                new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
-                                getColor(nextPoint.movements),
-                                3,
-                                false
-                            );
-                        }
-                    }
-                }
-
-                if (route.length > 1) {
-                    const firstPoint = route[0];
-                    const lastPoint = route[route.length - 1];
-
-                    if (this.CheckPoint(firstPoint) && this.CheckPoint(lastPoint)) {
+                        if (!this.CheckPoint(nextPoint)) return;
                         Render.drawLine(
-                            new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
-                            new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
-                            getColor(firstPoint.movements),
+                            new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
+                            new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
+                            getColor(nextPoint.movements),
                             3,
                             false
                         );
                     }
-                }
+                });
+
+                const firstPoint = route[0];
+                const lastPoint = route[route.length - 1];
+
+                Render.drawLine(
+                    new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
+                    new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
+                    getColor(firstPoint.movements),
+                    3,
+                    false
+                );
             }
         );
 
