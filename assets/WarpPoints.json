@@ -132,9 +132,9 @@
             "warp": "hub",
             "area": "Hub",
             "defaultUnlock": true,
-            "x": -3,
-            "y": 70,
-            "z": -70
+            "x": 0,
+            "y": 77,
+            "z": -1
         },
         {
             "warp": "kuudra",
