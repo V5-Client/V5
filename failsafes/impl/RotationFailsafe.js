@@ -41,6 +41,11 @@ class RotationFailsafe extends Failsafe {
             const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, newYaw));
             const pitchDiff = Math.abs(newPitch - currPitch);
 
+            if (yawDiff === 0 && pitchDiff === 0) {
+                Chat.messageDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
+                return;
+            }
+
             if (posDistance >= 0.001) return;
 
             setTimeout(() => {
