@@ -14,7 +14,7 @@ import { FlyRotations } from './PathFlyer/PathRotations';
 import { Spline } from './PathSpline';
 import { Jump } from './PathWalker/PathJumps';
 import { Movement } from './PathWalker/PathMovement';
-import { Recovery } from './PathWalker/PathRecovery';
+import { NonChangeRecovery, Recovery } from './PathWalker/PathRecovery';
 import { Rotations } from './PathWalker/PathRotations';
 import { Swift } from './SwiftIntegration';
 
@@ -198,6 +198,11 @@ class Finder {
                         }
                         this.recalculateAttempts = 0;
                         Recovery.stop();
+                    }
+
+                    if (NonChangeRecovery.trackProgress(Rotations.currentPathPosition)) {
+                        this.recalculate();
+                        return;
                     }
 
                     this.handleRecovery(Recovery.trackProgress());
@@ -595,8 +600,10 @@ class Finder {
         FlyMovement.stopMovement();
         if (clearFlags) {
             Recovery.stop();
+            NonChangeRecovery.stop();
         } else {
             Recovery.resetTracking();
+            NonChangeRecovery.resetTracking();
         }
         Swift.cancel();
         Swift.clear();

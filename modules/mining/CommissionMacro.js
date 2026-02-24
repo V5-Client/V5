@@ -613,6 +613,8 @@ class CommissionMacro extends ModuleBase {
         }
 
         if (closestDist < 4 && !Pathfinder.isPathing()) {
+            if (!this.ensureDrillEquippedForEmissaryClaim()) return;
+
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
             if (!this.npcRotationPending && !Rotations.isRotating && !Pathfinder.isPathing()) {
                 this.npcRotationPending = true;
@@ -636,6 +638,24 @@ class CommissionMacro extends ModuleBase {
                 this.setState(STATES.CHOOSING);
             }
         });
+    }
+
+    ensureDrillEquippedForEmissaryClaim() {
+        if (!this.drill) {
+            const drills = MiningUtils.getDrills();
+            this.drill = drills.drill;
+            this.pickaxe = this.drill;
+        }
+
+        if (!this.drill) return true;
+
+        if (Player.getHeldItemIndex() !== this.drill.slot) {
+            Guis.setItemSlot(this.drill.slot);
+            this.delay(3);
+            return false;
+        }
+
+        return true;
     }
 
     getClosestEmissary() {

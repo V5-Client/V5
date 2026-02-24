@@ -103,4 +103,65 @@ class PathRecovery {
     }
 }
 
+
+class PathNonChangeRecovery {
+    constructor() {
+        this.PATH_PROGRESS_DELTA = 0.45;
+        this.NON_CHANGE_TICKS_RECALC = 35;
+
+        this.bestPathPosition = null;
+        this.nonChangeTicks = 0;
+    }
+
+    trackProgress(pathPosition) {
+        const player = Player.getPlayer();
+        if (!player) return false;
+
+        const playerMP = Player.asPlayerMP();
+        if (playerMP && (playerMP.isInLava() || playerMP.isInWater())) {
+            this.resetTracking();
+            return false;
+        }
+
+        if (typeof pathPosition !== 'number') {
+            this.resetTracking();
+            return false;
+        }
+
+        if (this.bestPathPosition === null) {
+            this.bestPathPosition = pathPosition;
+            this.nonChangeTicks = 0;
+            return false;
+        }
+
+        if (pathPosition > this.bestPathPosition + this.PATH_PROGRESS_DELTA) {
+            this.bestPathPosition = pathPosition;
+            this.nonChangeTicks = 0;
+            return false;
+        }
+
+        this.nonChangeTicks++;
+
+        if (this.nonChangeTicks >= this.NON_CHANGE_TICKS_RECALC) {
+            if (PathConfig.PATHFINDING_DEBUG) {
+                Chat.messagePathfinder('§6Recovery (nonchange): Recalculating');
+            }
+            this.resetTracking();
+            return true;
+        }
+
+        return false;
+    }
+
+    resetTracking() {
+        this.bestPathPosition = null;
+        this.nonChangeTicks = 0;
+    }
+
+    stop() {
+        this.resetTracking();
+    }
+}
+
 export const Recovery = new PathRecovery();
+export const NonChangeRecovery = new PathNonChangeRecovery();
