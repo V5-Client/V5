@@ -83,11 +83,12 @@ class MacroScheduler extends ModuleBase {
     loadState() {
         const data = Utils.getConfigFile(this.configPath);
         if (data) {
-            this.state = data.state || STATE.IDLE;
-            this.trackedMacros = data.trackedMacros || [];
-            this.timerEnd = data.timerEnd || 0;
-            this.breakDurationMs = data.breakDurationMs || 0;
-            this.returnStep = data.returnStep || 0;
+            const validState = Object.values(STATE).includes(data.state) ? data.state : STATE.IDLE;
+            this.state = validState;
+            this.trackedMacros = Array.isArray(data.trackedMacros) ? data.trackedMacros : [];
+            this.timerEnd = Number.isFinite(data.timerEnd) ? data.timerEnd : 0;
+            this.breakDurationMs = Number.isFinite(data.breakDurationMs) ? data.breakDurationMs : 0;
+            this.returnStep = Number.isFinite(data.returnStep) ? data.returnStep : 0;
         }
     }
 
@@ -191,6 +192,7 @@ class MacroScheduler extends ModuleBase {
 
         if (now >= this.timerEnd) {
             this.endSession();
+            return;
         }
 
         if (!World.isLoaded()) {
@@ -290,7 +292,7 @@ class MacroScheduler extends ModuleBase {
     startTrackedMacros() {
         this.trackedMacros.forEach((name) => {
             const module = MacroState.getModule(name);
-            if (module) module.toggle(true, false);
+            if (module && !module.enabled) module.toggle(true, false);
         });
     }
 
