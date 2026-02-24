@@ -8,8 +8,8 @@ import { PathRotationsUtility } from './PathRotationsUtility';
 
 class PathRotations {
     constructor() {
-        this.MIN_LOOKAHEAD = 1.1;
-        this.MAX_LOOKAHEAD = 3.5;
+        this.MIN_LOOKAHEAD = 1.0;
+        this.MAX_LOOKAHEAD = 2.0;
         this.RECOVERY_MIN_LOOKAHEAD = 0.1;
         this.PROXIMITY_THRESHOLD = 4.0;
         this.COMPLETION_RADIUS = 1.9;
