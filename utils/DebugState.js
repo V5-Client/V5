@@ -5,4 +5,3 @@ export const setDebugMessagesEnabled = (value) => {
 };
 
 export const isDebugMessagesEnabled = () => debugMessagesEnabled;
-
