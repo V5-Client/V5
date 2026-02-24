@@ -13,7 +13,7 @@ class SlotChangeFailsafe extends Failsafe {
 
     registerSlotChangeListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('slot')) return;
+            if (!MacroState.isMacroRunning() || this.disabled) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('Slot Change');
             if (!this.settings.isEnabled) return;
@@ -23,7 +23,7 @@ class SlotChangeFailsafe extends Failsafe {
 
             if (currentSlot === newSlot) return;
             setTimeout(() => {
-                if (this.isFalse('slot')) return;
+                if (this.disabled) return;
                 this.onTrigger(currentSlot, newSlot);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(UpdateSelectedSlotS2C);

@@ -1,7 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { EntityVelocityUpdateS2C } from '../../utils/Packets';
-import { Webhook } from '../../utils/Webhooks';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 class VelocityFailsafe extends Failsafe {
@@ -13,7 +12,9 @@ class VelocityFailsafe extends Failsafe {
 
     registerVeloListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('velocity') || this._bypassTrigger()) return;
+            if (!MacroState.isMacroRunning() || this.disabled || this._bypassTrigger()) return;
+            this._handleVelocityOnDamageDisabled();
+            if (this.disabled) return;
             if (packet?.getEntityId() !== Player.asPlayerMP()?.mcValue?.getId()) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
@@ -28,12 +29,39 @@ class VelocityFailsafe extends Failsafe {
             const blockName = blockBelow.getType().getRegistryName();
             const data = { velocity: speed, blockBelow: blockName };
 
-            if (this.isFalse('velocity', data)) return;
+            if (this._shouldDisableVelocity(data)) return;
             setTimeout(() => {
-                if (this.isFalse('velocity', data)) return;
+                if (this.disabled || this._shouldDisableVelocity(data)) return;
                 this.onTrigger(speed);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(EntityVelocityUpdateS2C);
+    }
+
+    _handleVelocityOnDamageDisabled() {
+        const player = Player.getPlayer();
+        if (!player) return;
+
+        if (player.hurtTime > 0) {
+            this._setDisabled(1000);
+        }
+    }
+
+    _shouldDisableVelocity(data) {
+        if (this.disabled) return true;
+        if (data.velocity === undefined) return false;
+
+        const velocity = data.velocity;
+        const blockBelow = data.blockBelow;
+        const roundedVelocity = Math.round(velocity);
+
+        if (blockBelow && !blockBelow.includes('air') && (roundedVelocity === 1 || roundedVelocity === 0)) {
+            Chat.messageDebug('disabling fall velocity packet');
+            this._setDisabled(1000);
+        } else {
+            Chat.messageDebug('not disabling fall velocity packet, data = ' + JSON.stringify(data));
+        }
+
+        return this.disabled;
     }
 
     _bypassTrigger() {

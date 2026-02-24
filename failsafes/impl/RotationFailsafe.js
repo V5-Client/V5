@@ -14,7 +14,7 @@ class RotationFailsafe extends Failsafe {
 
     registerRotationListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('rotation')) return;
+            if (!MacroState.isMacroRunning() || this.disabled) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Rotation');
             if (!this.settings.isEnabled) return;
 
@@ -49,7 +49,7 @@ class RotationFailsafe extends Failsafe {
             if (posDistance >= 0.001) return;
 
             setTimeout(() => {
-                if (this.isFalse('rotation')) return;
+                if (this.disabled) return;
                 this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(PlayerPositionLookS2C);

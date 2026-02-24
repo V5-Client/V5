@@ -11,12 +11,14 @@ class ChatMentionFailsafe extends Failsafe {
         this.registerChatListeners();
         this.FailsafeReactionTime = 600;
         this.isFailsafeEnabled = true;
-        this.blacklistedWords = ['macro', 'report', 'wdr', 'cheating', 'cheater', 'exploiting', 'automating', 'cheat', `${Player.getName()}`];
+        this.mediumBlacklist = ['idk what words to put here they are all high or completely useless'].map((word) => word.toLowerCase());
+        this.highBlacklist = ['wdr', 'report', 'macro', 'cheat', 'exploit', 'hack', 'bot', `${Player.getName()}`].map((word) => word.toLowerCase());
     }
 
     registerChatListeners() {
         register('packetReceived', (packet, event) => {
-            if (!MacroState.isMacroRunning() || this.isFalse('chat') || packet.overlay()) return;
+            if (!MacroState.isMacroRunning() || this.disabled) return;
+            if (packet.overlay()) return; // action bar
 
             this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');
             if (!this.settings.isEnabled) return;
@@ -27,36 +29,37 @@ class ChatMentionFailsafe extends Failsafe {
 
             const messageBody = content.split(':').slice(1).join(':').trim();
 
-            const result = this.isBad(messageBody);
+            const result = this.scanMessage(messageBody, content.trim());
             if (!result.isBlocked) return;
 
-            this.onTrigger(result.blockedWord);
+            this.onTrigger(result);
         }).setFilteredClass(GameMessageS2C);
     }
 
-    isBad(msg) {
-        let found = null;
+    scanMessage(msg, fullMessage = msg) {
         const lower = msg.toLowerCase();
-        const isBlocked = this.blacklistedWords.some((word) => {
-            if (lower.includes(word.toLowerCase())) {
-                found = word;
-                return true;
-            }
-            return false;
-        });
+        const highMatch = this.highBlacklist.find((word) => lower.includes(word));
+        const mediumMatch = this.mediumBlacklist.find((word) => lower.includes(word));
+        const isBlocked = !!highMatch || !!mediumMatch;
+        const isHigh = !!highMatch;
+        const blockedWord = highMatch || mediumMatch;
 
-        return { isBlocked: isBlocked, blockedWord: found };
+        return { isBlocked: isBlocked, blockedWord: blockedWord, isHigh: isHigh, fullMessage: fullMessage };
     }
 
-    onTrigger(word) {
-        const isHigh = ['wdr', 'report', 'cheating', 'cheater', `${Player.getName().toLowerCase()}`].includes(word.toLowerCase());
+    onTrigger(result) {
+        const pressure = result.isHigh ? 30 : 10;
+        const severity = result.isHigh ? 'high' : 'medium';
+        const embedColour = result.isHigh ? 16744448 : 16776960;
 
-        const pressure = isHigh ? 30 : 10;
-        const severity = isHigh ? 'high' : 'medium';
-
-        Chat.messageFailsafe(`&c&lDetected blacklisted word - "${word}"!`);
+        Chat.messageFailsafe(`&c&lDetected blacklisted word - "${result.blockedWord}"!`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
-        FailsafeUtils.sendFailsafeEmbed('Chat Mention', severity, `Someone mentioned: "${word}"`, severity === 'high' ? 16744448 : 16776960);
+        FailsafeUtils.sendFailsafeEmbed(
+            'Chat Mention',
+            severity,
+            `Someone mentioned: "${result.blockedWord}"\nFull message: "${result.fullMessage}"`,
+            embedColour
+        );
     }
 }
 

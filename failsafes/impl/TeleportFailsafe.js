@@ -6,9 +6,12 @@ import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
 let lastRightClickTime = 0;
+let lastCommandTime = 0;
 let pendingWarpIgnore = false;
+let pendingWarpIgnoreTimer = null;
 
 const WARP_IGNORE_RADIUS = 3;
+const WARP_IGNORE_TIMEOUT_MS = 3000;
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -28,8 +31,14 @@ class TeleportFailsafe extends Failsafe {
             if (!MacroState.isMacroRunning()) return;
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
+                lastCommandTime = Date.now();
                 Chat.messageDebug(`warp command used, awaiting warp-point teleport ignore`, false);
                 pendingWarpIgnore = true;
+                if (pendingWarpIgnoreTimer) clearTimeout(pendingWarpIgnoreTimer);
+                pendingWarpIgnoreTimer = setTimeout(() => {
+                    pendingWarpIgnore = false;
+                    pendingWarpIgnoreTimer = null;
+                }, WARP_IGNORE_TIMEOUT_MS);
             }
         }).setFilteredClass(CommandExecutionC2S);
     }
@@ -47,12 +56,67 @@ class TeleportFailsafe extends Failsafe {
         if (!isWarpPointTeleport) return false;
 
         pendingWarpIgnore = false;
+        if (pendingWarpIgnoreTimer) {
+            clearTimeout(pendingWarpIgnoreTimer);
+            pendingWarpIgnoreTimer = null;
+        }
         return true;
+    }
+
+    _isTeleportItemHeld() {
+        const heldItem = Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase();
+        return Boolean(heldItem?.includes('aspect of the') && !heldItem?.includes('dragons'));
+    }
+
+    _hasSmallRotationDiff(data) {
+        const { yaw, pitch, currYaw, currPitch } = data;
+        if (yaw === undefined || pitch === undefined) return false;
+
+        const yawDiff = Math.abs(yaw - currYaw);
+        const pitchDiff = Math.abs(pitch - currPitch);
+        return yawDiff < 30 && pitchDiff < 30;
+    }
+
+    _isAlongLookVector(data) {
+        const { fromX, fromY, fromZ, toX, toY, toZ, lookVector } = data;
+        if (!lookVector || fromX === undefined) return false;
+
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const dz = toZ - fromZ;
+        const dist = Math.hypot(dx, dy, dz);
+        if (dist <= 0.1) return false;
+
+        const dot = (dx * lookVector.x + dy * lookVector.y + dz * lookVector.z) / dist;
+        return dot > 0.85;
+    }
+
+    _shouldDisableTeleport(data) {
+        if (this.disabled) return true;
+
+        const now = Date.now();
+        const recentClick = data.lastRightClickTime && now - data.lastRightClickTime < 1000;
+        const usedItem = recentClick && this._isTeleportItemHeld();
+        const recentCommand = data.lastCommandTime && now - data.lastCommandTime < 1000;
+
+        if (!usedItem && !recentCommand) return false;
+
+        if (recentCommand) {
+            this._setDisabled(750);
+            return true;
+        }
+
+        if (usedItem && (this._hasSmallRotationDiff(data) || this._isAlongLookVector(data))) {
+            this._setDisabled(500);
+            return true;
+        }
+
+        return false;
     }
 
     registerTPListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isMacroRunning() || this.disabled) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('TP');
             if (!this.settings.isEnabled) return;
@@ -77,6 +141,7 @@ class TeleportFailsafe extends Failsafe {
                 currYaw: Player.getYaw(),
                 currPitch: Player.getPitch(),
                 lastRightClickTime,
+                lastCommandTime,
                 toX: newX,
                 toY: newY,
                 toZ: newZ,
@@ -90,7 +155,7 @@ class TeleportFailsafe extends Failsafe {
                 },
             };
 
-            if (this.isFalse('teleport', data)) return;
+            if (this._shouldDisableTeleport(data)) return;
             if (distance < 0.1) return;
             if (this.shouldIgnoreWarpTeleport(newX, newY, newZ)) return;
 
@@ -100,7 +165,7 @@ class TeleportFailsafe extends Failsafe {
             }
 
             setTimeout(() => {
-                if (this.isFalse('teleport', data)) return;
+                if (this.disabled || this._shouldDisableTeleport(data)) return;
                 this.onTrigger(fromX, fromY, fromZ, newX, newY, newZ, distance);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(PlayerPositionLookS2C);
