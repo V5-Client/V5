@@ -92,7 +92,7 @@ class FailsafeUtils {
         const pingOnCheckValue = this.getFailsafeSettings(type).pingOnCheck;
 
         if (pingOnCheckValue === 'Ping' || pingOnCheckValue === 'Embed Only') {
-            Webhook.sendEmbed(
+            Webhook.sendFailsafeEmbed(
                 [
                     {
                         title: `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
@@ -106,7 +106,7 @@ class FailsafeUtils {
             );
         } else if (pingOnCheckValue === 'Ping & Screenshot' || pingOnCheckValue === 'Screenshot Only') {
             Client.scheduleTask(5, () =>
-                Webhook.sendScreenshot(
+                Webhook.sendFailsafeScreenshot(
                     `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
                     description,
                     color,

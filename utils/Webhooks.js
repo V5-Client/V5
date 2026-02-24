@@ -10,6 +10,7 @@ class DiscordNotifier {
         this.active = false;
         this.clientVersion = CLIENT_VERSION;
         this.sendLoadEmbeds = true;
+        this.sendFailsafeEmbeds = true;
 
         this.loadSettings();
         this.initTriggers();
@@ -152,6 +153,20 @@ class DiscordNotifier {
         this.sendLoadEmbeds = value;
     }
 
+    setFailsafeEmbeds(value) {
+        this.sendFailsafeEmbeds = !!value;
+    }
+
+    publishFailsafe(embeds, shouldMention = true) {
+        if (!this.sendFailsafeEmbeds) return;
+        this.publish(embeds, shouldMention);
+    }
+
+    takeFailsafeScreenshot(title = null, description = null, color, footer, ping = false) {
+        if (!this.sendFailsafeEmbeds) return;
+        this.takeScreenshot(title, description, color, footer, ping);
+    }
+
     uploadScreenshot(file, title = 'Screenshot Captured', description, color = 0x3498db, footer = 'V5 Client', ping = false) {
         if (!this.endpoint || !this.active) return;
 
@@ -224,7 +239,10 @@ export const Webhook = {
     setWebhook: (url) => notifier.updateEndpoint(url),
     setUserId: (id) => notifier.updateMention(id),
     sendEmbed: (e, p) => notifier.publish(e, p),
+    sendFailsafeEmbed: (e, p) => notifier.publishFailsafe(e, p),
     getData: () => notifier.loadSettings(),
     sendLoadEmbeds: (v) => notifier.setLoadEmbeds(v),
+    sendFailsafeEmbeds: (v) => notifier.setFailsafeEmbeds(v),
     sendScreenshot: (t, d, c, f, p) => notifier.takeScreenshot(t, d, c, f, p),
+    sendFailsafeScreenshot: (t, d, c, f, p) => notifier.takeFailsafeScreenshot(t, d, c, f, p),
 };

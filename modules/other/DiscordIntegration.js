@@ -24,6 +24,7 @@ class DiscordIntegration extends ModuleBase {
         this.ID = String(settings.userId ?? '').trim();
 
         this.MACRO_EMBEDS = true;
+        this.FAILSAFE_EMBEDS = true;
         this.FIVE_MINUTES = 5 * 60 * 1000;
 
         this.addDirectTextInput('Webhook URL', this.URL, (v) => this.handleWebhookUrlChange(v), 'Enter your webhook URL here.', this.sectionName);
@@ -43,6 +44,17 @@ class DiscordIntegration extends ModuleBase {
                 this.MACRO_EMBEDS = !!v;
             },
             'Sends an embed every 5 minutes with a screenshot while active',
+            true,
+            this.sectionName
+        );
+
+        this.addDirectToggle(
+            'Failsafe Embeds',
+            (v) => {
+                this.FAILSAFE_EMBEDS = !!v;
+                Webhook.sendFailsafeEmbeds(this.FAILSAFE_EMBEDS);
+            },
+            'Sends failsafe embeds and screenshots to your webhook',
             true,
             this.sectionName
         );
