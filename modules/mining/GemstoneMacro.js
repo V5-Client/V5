@@ -101,18 +101,6 @@ class GemstoneMacro extends ModuleBase {
             },
         ]);
 
-        register('command', (action, indexArg) => {
-            if (!action) {
-                this.message('&cAction required: "add", "remove", or "clear"');
-                return;
-            }
-
-            const actionUpper = action.toUpperCase();
-            const parsedIndex = Number.parseInt(indexArg, 10);
-            const indexNum = Number.isNaN(parsedIndex) ? undefined : parsedIndex;
-            this.route = Router.Edit(actionUpper, this.route, `GemstoneRoutes/${this.loadedFile}`, indexNum);
-        }).setName('gemstone');
-
         this.when(
             () => Utils.area() === 'Crystal Hollows',
             'postRenderWorld',

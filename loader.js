@@ -28,6 +28,7 @@ import './utils/SkyblockEvents.js';
 
 /* Modules */
 import './modules/loader.js';
+import './utils/Debugging.js';
 
 import { loadSettings } from './gui/GuiSave';
 loadSettings();

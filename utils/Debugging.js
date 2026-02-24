@@ -1,31 +1,22 @@
-let _instance = null;
+import { ModuleBase } from './ModuleBase';
+import { isDebugMessagesEnabled, setDebugMessagesEnabled } from './DebugState';
 
-class Debug {
-    getInstance() {
-        if (!_instance) {
-            const { ModuleBase } = require('./ModuleBase');
+class DebuggingModule extends ModuleBase {
+    constructor() {
+        super({
+            name: 'Debugging',
+            subcategory: 'Core',
+            description: 'Debugging tools',
+            showEnabledToggle: false,
+        });
 
-            _instance = new (class DebuggingModule extends ModuleBase {
-                constructor() {
-                    super({
-                        name: 'Debugging',
-                        subcategory: 'Core',
-                        description: 'Debugging tools',
-                        showEnabledToggle: false,
-                    });
-
-                    this.DEBUG_MESSAGES = false;
-                    this.addToggle('Debug Messages', (v) => (this.DEBUG_MESSAGES = v), 'Sends debug messages in chat', true);
-                }
-            })();
-        }
-
-        return _instance;
+        setDebugMessagesEnabled(false);
+        this.addToggle('Debug Messages', (v) => setDebugMessagesEnabled(v), 'Sends debug messages in chat', true);
     }
 
     Messages() {
-        return this.getInstance().DEBUG_MESSAGES;
+        return isDebugMessagesEnabled();
     }
 }
 
-export const Debugging = new Debug();
+export const Debugging = new DebuggingModule();

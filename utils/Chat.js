@@ -1,6 +1,6 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
 import { GradientChat } from './Constants';
-import { Debugging } from './Debugging';
+import { isDebugMessagesEnabled } from './DebugState';
 
 class ChatClass {
     message(msg) {
@@ -8,7 +8,7 @@ class ChatClass {
     }
 
     messageDebug(msg) {
-        if (!Debugging.Messages()) return;
+        if (!isDebugMessagesEnabled()) return;
 
         this._sendGradient(`V5 Debug »`, msg);
     }
