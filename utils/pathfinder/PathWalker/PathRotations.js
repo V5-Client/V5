@@ -234,20 +234,28 @@ class PathRotations {
         return this.smoothedLookahead;
     }
 
+    isPathDropping() {
+        if (!this.boxPositions || this.currentPathPosition >= this.boxPositions.length - 2) return false;
+        const current = this.getInterpolatedPoint(this.currentPathPosition);
+        const lookAhead = this.getInterpolatedPoint(Math.min(this.boxPositions.length - 1, this.currentPathPosition + 2));
+        return current.y - lookAhead.y > 0.8;
+    }
+
     updateLookPoint() {
         const player = Player.getPlayer();
         if (!player) return;
         const playerEyes = player.getEyePos();
 
         const motionY = Player.getMotionY();
-        const isFalling = motionY < -0.4;
+        const isFalling = motionY < -0.4 || this.isPathDropping();
         const isJumpingHigh = motionY > 0.1 || player.getY() - this.getInterpolatedPoint(this.currentPathPosition).y > 2.0;
 
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
 
-        const searchWindow = isJumpingHigh ? 12 : 8;
-        const startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 2);
+        const searchWindow = isFalling ? 4 : isJumpingHigh ? 12 : 8;
+        const startIdx = isFalling ? Math.floor(this.currentPathPosition) : Math.max(0, Math.floor(this.currentPathPosition) - 2);
+
         const endIdx = Math.min(this.boxPositions.length - 2, startIdx + searchWindow);
 
         for (let i = startIdx; i <= endIdx; i++) {
@@ -260,16 +268,12 @@ class PathRotations {
 
             const candidateT = i + segmentProgress;
 
-            if ((isFalling || isJumpingHigh) && candidateT < this.currentPathPosition) continue;
+            if (isFalling && candidateT < this.currentPathPosition) continue;
 
             const projectedPoint = this.getInterpolatedPoint(candidateT);
-
-            let distSq;
-            if (isFalling || isJumpingHigh) {
-                distSq = Math.pow(playerEyes.x - projectedPoint.x, 2) + Math.pow(playerEyes.z - projectedPoint.z, 2);
-            } else {
-                distSq = this.getDistSq(playerEyes, projectedPoint);
-            }
+            let distSq = isFalling
+                ? Math.pow(playerEyes.x - projectedPoint.x, 2) + Math.pow(playerEyes.z - projectedPoint.z, 2)
+                : this.getDistSq(playerEyes, projectedPoint);
 
             if (distSq < minDistanceSq) {
                 minDistanceSq = distSq;
@@ -277,9 +281,10 @@ class PathRotations {
             }
         }
 
-        const effectiveThreshold = isJumpingHigh ? this.PROXIMITY_THRESHOLD * 2 : this.PROXIMITY_THRESHOLD;
+        const effectiveThreshold = isFalling ? 5.0 : isJumpingHigh ? this.PROXIMITY_THRESHOLD * 2 : this.PROXIMITY_THRESHOLD;
         if (minDistanceSq < effectiveThreshold * effectiveThreshold) {
-            this.currentPathPosition = bestT;
+            const maxJump = isFalling ? 0.5 : 2.0;
+            this.currentPathPosition = Math.min(this.currentPathPosition + maxJump, bestT);
         }
 
         const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
@@ -328,6 +333,11 @@ class PathRotations {
             targetPoint = new Vec3d(targetPoint.x, playerEyes.y + newDy, targetPoint.z);
         }
 
+        if (isFalling && rawHorz < 0.5) {
+            const boostT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 2.5);
+            targetPoint = this.getInterpolatedPoint(boostT);
+        }
+
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
         const dz = targetPoint.z - playerEyes.z;
@@ -364,13 +374,7 @@ class PathRotations {
         const nearEndBy3D = endDistSq <= Math.pow(this.COMPLETION_RADIUS, 2) && this.currentPathPosition >= lastIndex - 2.0;
         const atEndByPosition = this.currentPathPosition >= lastIndex - 0.25;
 
-        if (isFalling) {
-            if (nearEndBy3D) {
-                this.currentPathPosition = lastIndex;
-                this.complete = true;
-                this.rotationActive = false;
-            }
-        } else if (nearEndBy3D || atEndByPosition) {
+        if (nearEndBy3D || atEndByPosition) {
             this.currentPathPosition = lastIndex;
             this.complete = true;
             this.rotationActive = false;
