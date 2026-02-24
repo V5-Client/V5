@@ -905,8 +905,9 @@ class Bot extends ModuleBase {
         }
 
         const cfg = this._movementHumanizer;
+        const shouldSneak = this.canSneakWhileSeeingTarget(targetPoint);
 
-        Keybind.setKey('shift', true);
+        Keybind.setKey('shift', shouldSneak);
         Keybind.setKey('space', false);
 
         Keybind.setKey('d', yaw > cfg.strafeThreshold);
@@ -917,9 +918,34 @@ class Bot extends ModuleBase {
 
         if ((yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold) || (values.distance >= 2.5 && values.distance <= 3.25)) {
             Keybind.stopMovement();
-            Keybind.setKey('shift', true);
+            Keybind.setKey('shift', shouldSneak);
             Keybind.setKey('space', false);
         }
+    }
+
+    canSneakWhileSeeingTarget(targetPoint) {
+        if (!this.currentTarget || !targetPoint) return false;
+
+        const eyePos = Player.getPlayer().getEyePos();
+        const sneakEyeY = eyePos.y - 0.08;
+        const dX = targetPoint.x - eyePos.x;
+        const dY = targetPoint.y - sneakEyeY;
+        const dZ = targetPoint.z - eyePos.z;
+        const distSq = dX * dX + dY * dY + dZ * dZ;
+
+        if (distSq > this.faceReach * this.faceReach) return false;
+
+        return Raytrace.isLineClear(
+            eyePos.x,
+            sneakEyeY,
+            eyePos.z,
+            targetPoint.x,
+            targetPoint.y,
+            targetPoint.z,
+            this.currentTarget.x,
+            this.currentTarget.y,
+            this.currentTarget.z
+        );
     }
 
     refreshCurrentTargetAimPoint() {
