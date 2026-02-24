@@ -398,7 +398,7 @@ export const createCategoriesManager = (deps) => {
             const components = Categories.selectedItem.components;
             if (components) {
                 components.forEach((component) => {
-                    let compHeight = 54;
+                    let compHeight = component instanceof Separator ? 26 : 54;
                     if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                         compHeight += component.getExpandedHeight() * (component.animationProgress || 0);
                     }

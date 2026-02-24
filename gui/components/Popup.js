@@ -379,7 +379,7 @@ export class Popup {
             }
 
             if (typeof component.handleClick !== 'function') {
-                currentY += 54;
+                currentY += component instanceof Separator ? 26 : 54;
                 continue;
             }
 
@@ -446,7 +446,7 @@ export class Popup {
             }
 
             if (typeof component.handleMouseDrag !== 'function') {
-                currentY += 54;
+                currentY += component instanceof Separator ? 26 : 54;
                 return;
             }
 

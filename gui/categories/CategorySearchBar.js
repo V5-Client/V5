@@ -330,6 +330,7 @@ export const SearchBar = {
     resetSearch() {
         this.isExpanded = false;
         this.isFocused = false;
+        TypingState.isTyping = false;
         this.animatedWidth = this.collapsedWidth;
         this.cursorIndex = 0;
         this.query = '';

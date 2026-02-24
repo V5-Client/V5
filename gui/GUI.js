@@ -79,6 +79,7 @@ export const openGui = () => {
     GuiState.openStartTime = Date.now();
     loadSettings();
     categoryManager?.invalidateLayoutCache();
+    categoryManager?.invalidateContentHeightCache();
     GuiState.myGui.open();
 };
 

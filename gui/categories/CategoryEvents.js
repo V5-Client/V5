@@ -1,4 +1,5 @@
 import { Popup } from '../components/Popup';
+import { Separator } from '../components/Separator';
 import { GuiRectangles } from '../core/GuiState';
 import { OverlayManager } from '../OverlayUtils';
 import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
@@ -61,7 +62,7 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
         }
 
         if (typeof component.handleClick !== 'function') {
-            currentY += 54;
+            currentY += component instanceof Separator ? 26 : 54;
             continue;
         }
 
@@ -164,8 +165,7 @@ export const handleCategoryClick = (
         }
 
         const components = Categories.selectedItem.components;
-        let currentCompY = optionY + 78;
-        let currentDrawnCompY = currentCompY - sY;
+        let currentDrawnCompY = optionY + 78 - sY;
 
         for (const component of components) {
             if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
@@ -202,13 +202,19 @@ export const handleCategoryClick = (
 
                 if (handled) return;
 
-                let spacingHeight = 54 + expansionHeight;
-                currentCompY += spacingHeight;
-                currentDrawnCompY += spacingHeight;
+                currentDrawnCompY += 54 + expansionHeight;
                 continue;
             }
 
-            if (typeof component.handleClick !== 'function') continue;
+            if (typeof component.handleClick !== 'function') {
+                let expansionHeight = 0;
+                if (typeof component.getExpandedHeight === 'function') {
+                    expansionHeight =
+                        component.animationProgress !== undefined ? component.getExpandedHeight() * component.animationProgress : component.getExpandedHeight();
+                }
+                currentDrawnCompY += (component instanceof Separator ? 26 : 54) + expansionHeight;
+                continue;
+            }
 
             const drawnCompY = currentDrawnCompY;
             let handled = false;
@@ -243,9 +249,7 @@ export const handleCategoryClick = (
 
             if (handled) return;
 
-            let spacingHeight = 54 + expansionHeight;
-            currentCompY += spacingHeight;
-            currentDrawnCompY += spacingHeight;
+            currentDrawnCompY += 54 + expansionHeight;
         }
     }
 
@@ -405,9 +409,16 @@ export const handleCategoryScroll = (
             let scrollHandled = false;
             const components = directCat.directComponents;
             let componentY = panel.y + PADDING;
+            let currentSection = null;
 
-            components.forEach((component) => {
-                let compHeight = 54;
+            components.forEach((component, index) => {
+                if (component.sectionName && component.sectionName !== currentSection) {
+                    currentSection = component.sectionName;
+                    if (index > 0) componentY += 16;
+                    componentY += 26;
+                }
+
+                let compHeight = component instanceof Separator ? 26 : 54;
                 if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
                     compHeight += component.getExpandedHeight() * component.animationProgress;
                 }
@@ -452,7 +463,7 @@ export const handleCategoryScroll = (
                     expansionHeight =
                         component.animationProgress !== undefined ? component.getExpandedHeight() * component.animationProgress : component.getExpandedHeight();
                 }
-                let compHeight = 54 + expansionHeight;
+                let compHeight = (component instanceof Separator ? 26 : 54) + expansionHeight;
                 const compRect = {
                     x: optionX + 10,
                     y: componentY - Categories.optionsScrollY,

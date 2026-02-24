@@ -124,7 +124,7 @@ export class Slider {
                 color: foregroundColor,
             });
 
-            const handleLowX = sliderX + (sliderWidth - handleSize / 2) * progressLow - handleSize / 2;
+            const handleLowX = sliderX + sliderWidth * progressLow - handleSize / 2;
             const handleLowY = sliderY + sliderHeight / 2 - handleSize / 2;
             drawRoundedRectangle({
                 x: handleLowX,
@@ -135,7 +135,7 @@ export class Slider {
                 color: handleColor,
             });
 
-            const handleHighX = sliderX + (sliderWidth - handleSize / 2) * progressHigh - handleSize / 2;
+            const handleHighX = sliderX + sliderWidth * progressHigh - handleSize / 2;
             const handleHighY = sliderY + sliderHeight / 2 - handleSize / 2;
             drawRoundedRectangle({
                 x: handleHighX,
@@ -157,7 +157,7 @@ export class Slider {
                 color: foregroundColor,
             });
 
-            const handleX = sliderX + (sliderWidth - handleSize / 2) * progress - handleSize / 2;
+            const handleX = sliderX + sliderWidth * progress - handleSize / 2;
             const handleY = sliderY + sliderHeight / 2 - handleSize / 2;
 
             drawRoundedRectangle({
@@ -282,7 +282,7 @@ export class Slider {
 
         const DELETE_KEY = 259;
         const ENTER_KEY = 257;
-        const ESCAPE_KEY = 1;
+        const ESCAPE_KEY = 256;
 
         if (keyCode === ENTER_KEY || keyCode === ESCAPE_KEY) {
             this.handleInputFinish();
