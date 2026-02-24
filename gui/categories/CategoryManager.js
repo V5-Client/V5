@@ -611,8 +611,7 @@ export const createCategoriesManager = (deps) => {
             return;
         }
 
-        const shouldHandleSearch =
-            Categories.transitionDirection === 0 && (Categories.selected === 'Modules' || SearchBar.isFocused || SearchBar.isExpanded);
+        const shouldHandleSearch = Categories.transitionDirection === 0 && (Categories.selected === 'Modules' || SearchBar.isFocused || SearchBar.isExpanded);
         const searchY = panel.y + 11 - currentRightPanelScrollY;
         if (shouldHandleSearch && SearchBar.handleClick(mouseX, mouseY, panel, searchY)) {
             isLayoutCacheValid = false;
