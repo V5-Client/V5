@@ -284,12 +284,12 @@ class MacroScheduler extends ModuleBase {
 
     endSession() {
         this.breakDurationMs = this.randomDuration(this.breakTimeMin, this.breakTimeMax);
-        const breakMinutes = Math.round(this.breakDurationMs / 60000);
+        const breakTime = TimeUtils.formatDurationMs(this.breakDurationMs);
+        const cleanBreakTime = breakTime.includes(' ') ? breakTime.replace(/ (?=[^ ]+$)/, ' and ') : breakTime;
 
         this.stopTrackedMacros();
 
-        const reason = `Scheduler: Resting for ~${breakMinutes} minutes`;
-        Chat.messageScheduler(`&eSession ended. Resting for ~${breakMinutes} minutes.`);
+        const reason = `Scheduler: Resting for ${cleanBreakTime}`;
         this.disconnect(reason);
 
         this.state = STATE.RESTING;
