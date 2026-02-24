@@ -1,11 +1,14 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { PlayerInteractItemC2S, PlayerPositionLookS2C, CommandExecutionC2S } from '../../utils/Packets';
+import PathConfig from '../../utils/pathfinder/PathConfig';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
 let lastRightClickTime = 0;
-let lastCommandTime = 0;
+let pendingWarpIgnore = false;
+
+const WARP_IGNORE_RADIUS = 3;
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -25,10 +28,26 @@ class TeleportFailsafe extends Failsafe {
             if (!MacroState.isMacroRunning()) return;
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
-                Chat.messageDebug(`warp command used, preventing!`, false);
-                lastCommandTime = Date.now();
+                Chat.messageDebug(`warp command used, awaiting warp-point teleport ignore`, false);
+                pendingWarpIgnore = true;
             }
         }).setFilteredClass(CommandExecutionC2S);
+    }
+
+    shouldIgnoreWarpTeleport(x, y, z) {
+        if (!pendingWarpIgnore) return false;
+
+        const isWarpPointTeleport = PathConfig.WARP_POINTS_DATA.some((warpPoint) => {
+            const dx = x - warpPoint.x;
+            const dy = y - warpPoint.y;
+            const dz = z - warpPoint.z;
+            return Math.hypot(dx, dy, dz) <= WARP_IGNORE_RADIUS;
+        });
+
+        if (!isWarpPointTeleport) return false;
+
+        pendingWarpIgnore = false;
+        return true;
     }
 
     registerTPListeners() {
@@ -58,7 +77,6 @@ class TeleportFailsafe extends Failsafe {
                 currYaw: Player.getYaw(),
                 currPitch: Player.getPitch(),
                 lastRightClickTime,
-                lastCommandTime,
                 toX: newX,
                 toY: newY,
                 toZ: newZ,
@@ -74,6 +92,7 @@ class TeleportFailsafe extends Failsafe {
 
             if (this.isFalse('teleport', data)) return;
             if (distance < 0.1) return;
+            if (this.shouldIgnoreWarpTeleport(newX, newY, newZ)) return;
 
             if (newX === 0 && newY === 0 && newZ === 0) {
                 this.handleNullPacket(newX, newY, newZ);
