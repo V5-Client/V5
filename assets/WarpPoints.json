@@ -4,9 +4,9 @@
             "warp": "elizabeth",
             "area": "Hub",
             "defaultUnlock": true,
-            "x": 3,
-            "y": 71,
-            "z": -101
+            "x": 4,
+            "y": 79,
+            "z": 16
         },
         {
             "warp": "crimson",
@@ -100,9 +100,9 @@
             "warp": "museum",
             "area": "Hub",
             "defaultUnlock": false,
-            "x": -76,
-            "y": 76,
-            "z": 80
+            "x": 29,
+            "y": 72,
+            "z": 1
         },
         {
             "warp": "nest",
@@ -188,9 +188,9 @@
             "warp": "stonks",
             "area": "Hub",
             "defaultUnlock": true,
-            "x": -53,
-            "y": 72,
-            "z": -53
+            "x": 37,
+            "y": 70,
+            "z": -82
         },
         {
             "warp": "bayou",
@@ -220,9 +220,9 @@
             "warp": "taylor",
             "area": "Hub",
             "defaultUnlock": true,
-            "x": 22,
-            "y": 71,
-            "z": -43
+            "x": 30,
+            "y": 72,
+            "z": -41
         }
     ]
 }

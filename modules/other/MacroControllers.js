@@ -1,9 +1,4 @@
-import { OverlayManager } from '../../gui/OverlayUtils';
-import { Chat } from '../../utils/Chat';
-import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { TimeUtils, Timer } from '../../utils/TimeUtils';
-import { Utils } from '../../utils/Utils';
 import { Mixin } from '../../utils/MixinManager';
 
 class Controller extends ModuleBase {
