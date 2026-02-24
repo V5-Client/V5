@@ -33,11 +33,6 @@ class RotationFailsafe extends Failsafe {
             const newYaw = change.yaw();
             const newPitch = change.pitch();
 
-            if (newYaw === 0 && newPitch === 0) {
-                Chat.messageDebug('null rotation packet ignored (yaw=0, pitch=0)', false);
-                return;
-            }
-
             const dx = Math.abs(newX - fromX);
             const dy = Math.abs(newY - fromY);
             const dz = Math.abs(newZ - fromZ);
