@@ -41,8 +41,10 @@ export class TextInput {
 
         this.inputRect = {};
 
-        register('guiKey', (char, keyCode) => {
-            if (this.isTyping) this.handleKeyType(char, keyCode);
+        register('guiKey', (char, keyCode, gui, event) => {
+            if (this.isTyping && this.handleKeyType(char, keyCode)) {
+                cancel(event);
+            }
         });
     }
 

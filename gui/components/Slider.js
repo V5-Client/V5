@@ -25,14 +25,32 @@ export class Slider {
 
         this.min = Number.parseFloat(min);
         this.max = Number.parseFloat(max);
-
-        if (this.isRange) {
-            this.value = typeof value === 'object' ? value : { low: this.min, high: value };
-        } else {
-            this.value = Number.parseFloat(value);
+        if (Number.isNaN(this.min)) this.min = 0;
+        if (Number.isNaN(this.max)) this.max = this.min;
+        if (this.max < this.min) {
+            const temp = this.min;
+            this.min = this.max;
+            this.max = temp;
         }
 
-        this.step = this.getStepFromPrecision(String(min));
+        if (this.isRange) {
+            const rawRange = value && typeof value === 'object' ? value : { low: this.min, high: value };
+            const parsedLow = Number.parseFloat(rawRange.low);
+            const parsedHigh = Number.parseFloat(rawRange.high);
+            const safeLow = Number.isNaN(parsedLow) ? this.min : parsedLow;
+            const safeHigh = Number.isNaN(parsedHigh) ? this.max : parsedHigh;
+            const clampedLow = clamp(safeLow, this.min, this.max);
+            const clampedHigh = clamp(safeHigh, this.min, this.max);
+            this.value = {
+                low: Math.min(clampedLow, clampedHigh),
+                high: Math.max(clampedLow, clampedHigh),
+            };
+        } else {
+            const parsedValue = Number.parseFloat(value);
+            this.value = Number.isNaN(parsedValue) ? this.min : clamp(parsedValue, this.min, this.max);
+        }
+
+        this.step = this.getStepFromPrecision([this.min, this.max, value]);
         this.precision = Math.max(0, String(this.step).indexOf('.') === -1 ? 0 : String(this.step).length - String(this.step).indexOf('.') - 1);
 
         this.dragging = false;
@@ -412,16 +430,41 @@ export class Slider {
         return false;
     }
 
-    getStepFromPrecision(numStr) {
-        if (typeof numStr !== 'string') {
-            numStr = String(numStr);
-        }
-        const decimalIndex = numStr.indexOf('.');
+    getStepFromPrecision(values) {
+        const collectNumbers = (input, out) => {
+            if (Array.isArray(input)) {
+                input.forEach((entry) => collectNumbers(entry, out));
+                return;
+            }
+            if (input && typeof input === 'object') {
+                if (Object.prototype.hasOwnProperty.call(input, 'low')) collectNumbers(input.low, out);
+                if (Object.prototype.hasOwnProperty.call(input, 'high')) collectNumbers(input.high, out);
+                return;
+            }
+            const parsed = Number.parseFloat(input);
+            if (!Number.isNaN(parsed)) out.push(parsed);
+        };
 
-        if (decimalIndex === -1) return 1;
+        const numbers = [];
+        collectNumbers(values, numbers);
+        if (numbers.length === 0) return 1;
 
-        const precision = numStr.length - 1 - decimalIndex;
+        let maxPrecision = 0;
+        numbers.forEach((num) => {
+            const fixed = num.toString();
+            if (fixed.includes('e') || fixed.includes('E')) {
+                const normalized = num.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
+                const decimalIndex = normalized.indexOf('.');
+                if (decimalIndex !== -1) maxPrecision = Math.max(maxPrecision, normalized.length - decimalIndex - 1);
+                return;
+            }
+            const decimalIndex = fixed.indexOf('.');
+            if (decimalIndex !== -1) {
+                maxPrecision = Math.max(maxPrecision, fixed.length - decimalIndex - 1);
+            }
+        });
 
-        return Math.pow(10, -precision);
+        if (maxPrecision <= 0) return 1;
+        return Math.pow(10, -maxPrecision);
     }
 }

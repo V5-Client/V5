@@ -57,6 +57,9 @@ export const createCategoriesManager = (deps) => {
     };
 
     const beginCategorySwap = (targetName) => {
+        if (targetName !== 'Modules') {
+            SearchBar.resetSearch();
+        }
         Categories.previousSelected = Categories.selected;
         Categories.selected = targetName;
         Categories.currentPage = 'categories';
@@ -328,7 +331,7 @@ export const createCategoriesManager = (deps) => {
                 }
                 const rawQuery = SearchBar.query.trim();
                 const query = rawQuery.toLowerCase();
-                if (category.subcategories.length > 0 && query.length === 0) {
+                if (category.subcategories.length > 0 && (query.length === 0 || category.name === 'Modules')) {
                     height += 28 + PADDING;
                 }
                 const itemsToDisplay = getFilteredItems(category, query);
@@ -611,7 +614,10 @@ export const createCategoriesManager = (deps) => {
             return;
         }
 
-        const shouldHandleSearch = Categories.transitionDirection === 0 && (Categories.selected === 'Modules' || SearchBar.isFocused || SearchBar.isExpanded);
+        const shouldHandleSearch =
+            Categories.currentPage === 'categories' &&
+            Categories.transitionDirection === 0 &&
+            (Categories.selected === 'Modules' || SearchBar.isFocused || SearchBar.isExpanded);
         const searchY = panel.y + 11 - currentRightPanelScrollY;
         if (shouldHandleSearch && SearchBar.handleClick(mouseX, mouseY, panel, searchY)) {
             isLayoutCacheValid = false;

@@ -124,6 +124,7 @@ export class Popup {
         if (nextState) {
             this.animationState = 'opening';
             this.animationStart = Date.now();
+            this.contentScrollY = 0;
         } else {
             this.animationState = 'closing';
             this.animationStart = Date.now();

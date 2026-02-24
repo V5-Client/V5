@@ -272,6 +272,9 @@ export const handleCategoryClick = (
         }
 
         if (clickedCategoryName && clickedCategoryName !== Categories.selected) {
+            if (clickedCategoryName !== 'Modules') {
+                SearchBar.resetSearch();
+            }
             const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
             let oldRect = Categories.selected === 'Edit' || oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
             const newRect = getCategoryRect(clickedIndex);
@@ -313,7 +316,7 @@ export const handleCategoryClick = (
     if (Categories.selected && Categories.currentPage === 'categories' && isInside(mouseX, mouseY, panel)) {
         const cat = Categories.categories.find((c) => c.name === Categories.selected);
         if (cat && Categories.selected !== 'Settings' && Categories.selected !== 'Theme') {
-            if (cat.subcategories.length > 0 && !SearchBar.isHoverBlocked(mouseX, mouseY)) {
+            if (cat.subcategories.length > 0 && SearchBar.query.trim().length === 0 && !SearchBar.isHoverBlocked(mouseX, mouseY)) {
                 let currentX = panel.x + PADDING;
                 let yOffset = panel.y + PADDING - scrollY;
                 const subcategoriesToDraw = ['All', ...cat.subcategories];

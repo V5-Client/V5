@@ -1,4 +1,4 @@
-import { DataFlavor, Toolkit, globalAssetsDir } from '../../utils/Constants';
+import { DataFlavor, NVG, Toolkit, globalAssetsDir } from '../../utils/Constants';
 import {
     colorWithAlpha,
     drawImage,
@@ -133,10 +133,14 @@ export const SearchBar = {
 
         drawImage(SEARCH_ICON, iconX, iconY, 16, 16);
 
-        if (this.animation > 0.4) {
-            const fontSize = FontSizes.REGULAR;
-            this.textX = x + 10;
-            const textY = y + this.height / 2;
+        const fontSize = FontSizes.REGULAR;
+        this.textX = x + 10;
+        const textY = y + this.height / 2;
+        const visibleTextWidth = Math.max(0, currentWidth - 35);
+
+        if (visibleTextWidth > 0) {
+            NVG.save();
+            NVG.scissor(this.textX, y, visibleTextWidth, this.height);
 
             if (this.query === '') {
                 drawText('Search...', this.textX, textY, fontSize, THEME.TEXT_MUTED);
@@ -156,6 +160,8 @@ export const SearchBar = {
                     color: THEME.TEXT_DIM,
                 });
             }
+
+            NVG.restore();
         }
     },
 

@@ -5,7 +5,7 @@ class DebuggingModule extends ModuleBase {
     constructor() {
         super({
             name: 'Debugging',
-            subcategory: 'Core',
+            subcategory: 'Other',
             description: 'Debugging tools',
             showEnabledToggle: false,
         });
