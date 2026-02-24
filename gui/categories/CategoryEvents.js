@@ -32,7 +32,7 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
         }
 
         if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
-            let componentHeight = 48;
+            let componentHeight = 54;
             let expansionHeight = 0;
             if (typeof component.getExpandedHeight === 'function' && component.animationProgress !== undefined) {
                 expansionHeight = component.getExpandedHeight() * component.animationProgress;
@@ -57,7 +57,7 @@ export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, cate
                 }
             }
 
-            currentY += 48 + 6 + expansionHeight;
+            currentY += componentHeight;
             continue;
         }
 
@@ -108,8 +108,6 @@ export const handleCategoryClick = (
     invalidateContentHeightCache,
     resetCategoryScroll
 ) => {
-    const query = SearchBar.query.trim().toLowerCase();
-
     if (Categories.transitionDirection !== 0) return;
 
     const leftPanel = GuiRectangles.LeftPanel;
@@ -174,7 +172,7 @@ export const handleCategoryClick = (
 
                 component.x = optionX + 10;
 
-                let componentHeight = 48;
+                let componentHeight = 54;
                 let expansionHeight = 0;
 
                 if (typeof component.getExpandedHeight === 'function') {
@@ -202,7 +200,7 @@ export const handleCategoryClick = (
 
                 if (handled) return;
 
-                currentDrawnCompY += 54 + expansionHeight;
+                currentDrawnCompY += componentHeight;
                 continue;
             }
 

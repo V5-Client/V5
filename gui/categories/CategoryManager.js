@@ -611,7 +611,10 @@ export const createCategoriesManager = (deps) => {
             return;
         }
 
-        if (SearchBar.handleClick(mouseX, mouseY, panel, panel.y + 11)) {
+        const shouldHandleSearch =
+            Categories.transitionDirection === 0 && (Categories.selected === 'Modules' || SearchBar.isFocused || SearchBar.isExpanded);
+        const searchY = panel.y + 11 - currentRightPanelScrollY;
+        if (shouldHandleSearch && SearchBar.handleClick(mouseX, mouseY, panel, searchY)) {
             isLayoutCacheValid = false;
             isContentHeightCacheValid = false;
             resetCategoryScroll();
@@ -667,9 +670,9 @@ export const createCategoriesManager = (deps) => {
             dir,
             deps.rectangles.RightPanel,
             cachedContentHeight,
-            targetRightPanelScrollY,
+            currentRightPanelScrollY,
             setTargetRightPanelScrollY,
-            targetOptionsScrollY,
+            currentOptionsScrollY,
             setTargetOptionsScrollY,
             calculateOptionsContentHeight()
         );

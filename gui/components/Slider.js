@@ -38,7 +38,6 @@ export class Slider {
         this.dragging = false;
         this.draggingHandle = null;
         this.isTyping = false;
-        this.typingTarget = 'value';
 
         this.inputValue = this.isRange
             ? `${this.value.low.toFixed(this.precision)} - ${this.value.high.toFixed(this.precision)}`
@@ -54,6 +53,10 @@ export class Slider {
         register('guiKey', (char, keyCode) => {
             if (this.isTyping) this.handleKeyType(char, keyCode);
         });
+    }
+
+    getRangeSpan() {
+        return this.max - this.min || 1;
     }
 
     startHighlight() {
@@ -112,8 +115,9 @@ export class Slider {
         const handleSize = 14;
 
         if (this.isRange) {
-            const progressLow = (this.value.low - this.min) / (this.max - this.min);
-            const progressHigh = (this.value.high - this.min) / (this.max - this.min);
+            const span = this.getRangeSpan();
+            const progressLow = (this.value.low - this.min) / span;
+            const progressHigh = (this.value.high - this.min) / span;
 
             drawRoundedRectangle({
                 x: sliderX + sliderWidth * progressLow,
@@ -146,7 +150,7 @@ export class Slider {
                 color: handleColor,
             });
         } else {
-            const progress = (this.value - this.min) / (this.max - this.min);
+            const progress = (this.value - this.min) / this.getRangeSpan();
 
             drawRoundedRectangle({
                 x: sliderX,
@@ -239,7 +243,7 @@ export class Slider {
                 const rightMargin = 12;
                 const sliderX = this.x + panelWidth - sliderWidth - rightMargin;
                 const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
-                const val = this.min + (this.max - this.min) * progress;
+                const val = this.min + this.getRangeSpan() * progress;
 
                 const distLow = Math.abs(val - this.value.low);
                 const distHigh = Math.abs(val - this.value.high);
@@ -321,7 +325,7 @@ export class Slider {
         return true;
     }
 
-    handleInputFinish(forceSave = false) {
+    handleInputFinish() {
         if (!this.isTyping) return;
 
         let typedValue = Number.parseFloat(this.inputValue);
@@ -353,7 +357,7 @@ export class Slider {
 
         const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
 
-        let rawValue = this.min + (this.max - this.min) * progress;
+        let rawValue = this.min + this.getRangeSpan() * progress;
         let steppedValue = Math.round(rawValue / this.step) * this.step;
         let finalValue = Number.parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
 
@@ -385,7 +389,7 @@ export class Slider {
 
             if (this.isRange) {
                 const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
-                const val = this.min + (this.max - this.min) * progress;
+                const val = this.min + this.getRangeSpan() * progress;
                 const distLow = Math.abs(val - this.value.low);
                 const distHigh = Math.abs(val - this.value.high);
 

@@ -49,8 +49,6 @@ export class Popup {
         this.windowRect = {};
         this.closeRect = {};
 
-        this.closeHoverProgress = 0;
-
         this.button = new Button(title, x, y, openText, () => this.toggleOpen(undefined, false));
     }
 
@@ -92,6 +90,9 @@ export class Popup {
         if (this.statusText) height += 20; // Significantly reduced from 40 to 20
         this.components.forEach((component) => {
             let compHeight = component instanceof Separator ? 26 : 48 + 6;
+            if (component instanceof Button && component.title === component.buttonText) {
+                compHeight = 36 + 10;
+            }
             if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                 if (component.animationProgress !== undefined) {
                     compHeight += component.getExpandedHeight() * component.animationProgress;
@@ -131,10 +132,6 @@ export class Popup {
         this.button.setButtonText(nextState ? this.closeText : this.openText);
         if (this.callback) this.callback(nextState);
         if (playSound) playClickSound();
-    }
-
-    updateCloseHoverPress(isHovered) {
-        this.closeHoverProgress = isHovered ? 1 : 0;
     }
 
     drawButton(mouseX, mouseY) {
