@@ -85,10 +85,10 @@ class MacroScheduler extends ModuleBase {
         if (data) {
             const validState = Object.values(STATE).includes(data.state) ? data.state : STATE.IDLE;
             this.state = validState;
-            this.trackedMacros = Array.isArray(data.trackedMacros) ? data.trackedMacros : [];
+            this.trackedMacros = Array.isArray(data.trackedMacros) ? data.trackedMacros.filter((v) => typeof v === 'string') : [];
             this.timerEnd = Number.isFinite(data.timerEnd) ? data.timerEnd : 0;
             this.breakDurationMs = Number.isFinite(data.breakDurationMs) ? data.breakDurationMs : 0;
-            this.returnStep = Number.isFinite(data.returnStep) ? data.returnStep : 0;
+            this.returnStep = Number.isFinite(data.returnStep) ? Math.max(0, Math.min(3, data.returnStep)) : 0;
         }
     }
 
@@ -104,6 +104,12 @@ class MacroScheduler extends ModuleBase {
 
     onEnable() {
         const now = Date.now();
+        if (this.state !== STATE.IDLE && this.getSchedulableMacros().length === 0) {
+            this.state = STATE.IDLE;
+            this.timerEnd = 0;
+            this.returnStep = 0;
+        }
+
         if (this.state === STATE.RUNNING && now >= this.timerEnd) {
             this.endSession();
         } else if (this.state === STATE.RESTING && now >= this.timerEnd) {
@@ -158,10 +164,7 @@ class MacroScheduler extends ModuleBase {
     }
 
     handleIdle() {
-        const enabled = MacroState.getEnabledMacros().filter((name) => {
-            const module = MacroState.getModule(name);
-            return module && !module.isParentManaged;
-        });
+        const enabled = this.getSchedulableMacros();
 
         if (enabled.length > 0) {
             this.trackedMacros = [...enabled];
@@ -171,14 +174,12 @@ class MacroScheduler extends ModuleBase {
 
     handleRunning() {
         const now = Date.now();
-        const enabled = MacroState.getEnabledMacros().filter((name) => {
-            const module = MacroState.getModule(name);
-            return module && !module.isParentManaged;
-        });
+        const enabled = this.getSchedulableMacros();
 
         if (enabled.length === 0) {
             this.state = STATE.IDLE;
             this.timerEnd = 0;
+            this.trackedMacros = [];
             this.saveState();
             this.updateOverlay();
             return;
@@ -210,6 +211,13 @@ class MacroScheduler extends ModuleBase {
 
     handleResting() {
         if (Date.now() >= this.timerEnd) {
+            if (this.trackedMacros.length === 0) {
+                this.state = STATE.IDLE;
+                this.timerEnd = 0;
+                this.saveState();
+                this.updateOverlay();
+                return;
+            }
             this.beginReturn();
         }
     }
@@ -227,14 +235,22 @@ class MacroScheduler extends ModuleBase {
             Chat.messageScheduler('&eConnecting to Hypixel...');
             Client.connect('mc.hypixel.net');
             this.returnStep = 1;
+            this.timerEnd = now + 12000;
             this.saveState();
             return;
         }
 
         if (this.returnStep === 1) {
-            if (!World.isLoaded()) return;
+            if (!World.isLoaded()) {
+                if (now < this.timerEnd) return;
+                Chat.messageScheduler('&eRetrying connection...');
+                Client.connect('mc.hypixel.net');
+                this.timerEnd = now + 12000;
+                this.saveState();
+                return;
+            }
             this.returnStep = 2;
-            this.timerEnd = Date.now() + 5000;
+            this.timerEnd = now + 5000;
             this.saveState();
             return;
         }
@@ -292,14 +308,21 @@ class MacroScheduler extends ModuleBase {
     startTrackedMacros() {
         this.trackedMacros.forEach((name) => {
             const module = MacroState.getModule(name);
-            if (module && !module.enabled) module.toggle(true, false);
+            if (module && module.isMacro && !module.enabled) module.toggle(true, false);
         });
     }
 
     stopTrackedMacros() {
         this.trackedMacros.forEach((name) => {
             const module = MacroState.getModule(name);
-            if (module) module.toggle(false, true);
+            if (module && module.isMacro) module.toggle(false, true);
+        });
+    }
+
+    getSchedulableMacros() {
+        return MacroState.getEnabledMacros().filter((name) => {
+            const module = MacroState.getModule(name);
+            return module && module.isMacro && !module.isParentManaged;
         });
     }
 

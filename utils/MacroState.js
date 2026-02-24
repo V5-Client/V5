@@ -44,6 +44,8 @@ class MacroStateClass {
 
     onModuleEnabled(moduleName) {
         if (!moduleName) return;
+        const module = this.getModule(moduleName);
+        if (!module || !module.isMacro) return;
 
         const wasEmpty = this.enabledMacros.size === 0;
         this.enabledMacros.add(moduleName);
@@ -58,12 +60,14 @@ class MacroStateClass {
 
     onModuleDisabled(moduleName) {
         if (!moduleName) return;
+        if (!this.enabledMacros.has(moduleName)) return;
 
         this.enabledMacros.delete(moduleName);
 
         if (this.enabledMacros.size === 0) {
             this.running = false;
             this.activeMacro = null;
+            this.startTime = 0;
         } else {
             const remaining = Array.from(this.enabledMacros);
             this.activeMacro = remaining[remaining.length - 1];
