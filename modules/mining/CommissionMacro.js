@@ -43,9 +43,12 @@ class CommissionMacro extends ModuleBase {
         this.commissionsCompleted = 0;
 
         this.currentState = STATES.IDLE;
-        this.playerAvoidanceRadius = 10;
+        this.avoidanceRadius = 10;
         this.goblinWeaponSlot = 1;
         this.pauseTicks = 0;
+        this.pathingAvoidanceBreachAt = null;
+        this.lastAvoidanceRepathAt = 0;
+        this.currentPathWaypoint = null;
 
         this.commissions = [];
         this.currentCommission = null;
@@ -126,14 +129,14 @@ class CommissionMacro extends ModuleBase {
         });
 
         this.addSlider(
-            'Player Avoidance Radius',
+            'Avoidance Radius',
             0,
             30,
             10,
             (value) => {
-                this.playerAvoidanceRadius = value;
+                this.avoidanceRadius = value;
             },
-            'How close another player can be to a mining spot before it is considered occupied.'
+            'How close players/Star Sentries can be to a mining spot before it is considered occupied.'
         );
 
         this.addSlider(
@@ -272,6 +275,9 @@ class CommissionMacro extends ModuleBase {
         this.npcRotationPending = false;
         this.npcRotationToken = 0;
         this.areaCheckTime = null;
+        this.pathingAvoidanceBreachAt = null;
+        this.lastAvoidanceRepathAt = 0;
+        this.currentPathWaypoint = null;
 
         MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
@@ -294,6 +300,7 @@ class CommissionMacro extends ModuleBase {
     runLogic() {
         if (!this.enabled) return;
         this.cancelNpcRotationIfPathing();
+        this.handlePathingAvoidance();
 
         if (this.pauseTicks > 0) {
             this.pauseTicks--;
@@ -383,8 +390,8 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        const otherPlayers = this.getOtherPlayers();
-        const chosenCommission = this.findAvailableCommission(supportedTasks, otherPlayers);
+        const avoidEntities = this.getAvoidanceEntities();
+        const chosenCommission = this.findAvailableCommission(supportedTasks, avoidEntities);
 
         if (chosenCommission) {
             this.startCommission(chosenCommission);
@@ -454,25 +461,31 @@ class CommissionMacro extends ModuleBase {
         return false; // unreachable
     }
 
-    getOtherPlayers() {
-        if (this.playerAvoidanceRadius <= 0) return [];
-        return World.getAllPlayers().filter((p) => p.getName() !== Player.getName() && p.getUUID().version() === 4);
+    getAvoidanceEntities() {
+        if (this.avoidanceRadius <= 0) return [];
+        return World.getAllPlayers().filter((entity) => {
+            if (entity.getUUID().equals(Player.getUUID())) return false;
+
+            const isPlayer = entity.getUUID().version() === 4;
+            const isCrystalSentry = entity.getName().includes('Crystal Sentry');
+            return isPlayer || isCrystalSentry;
+        });
     }
 
-    findAvailableCommission(supportedTasks, otherPlayers) {
+    findAvailableCommission(supportedTasks, avoidEntities) {
         for (const task of supportedTasks) {
-            const safeWaypoints = this.getSafeWaypoints(task, otherPlayers);
+            const safeWaypoints = this.getSafeWaypoints(task, avoidEntities);
             if (safeWaypoints.length > 0) return { task, waypoints: safeWaypoints };
         }
         return null;
     }
 
-    getSafeWaypoints(task, otherPlayers) {
-        if (this.playerAvoidanceRadius <= 0) return task.waypoints;
+    getSafeWaypoints(task, avoidEntities) {
+        if (this.avoidanceRadius <= 0) return task.waypoints;
         return task.waypoints.filter((waypoint) => {
-            return !otherPlayers.some((player) => {
-                const distance = this.getDistance(player.getX(), player.getY(), player.getZ(), ...waypoint);
-                return distance < this.playerAvoidanceRadius;
+            return !avoidEntities.some((entity) => {
+                const distance = this.getDistance(entity.getX(), entity.getY(), entity.getZ(), ...waypoint);
+                return distance < this.avoidanceRadius;
             });
         });
     }
@@ -490,11 +503,14 @@ class CommissionMacro extends ModuleBase {
         const { task, waypoints } = chosenCommission;
         this.currentCommission = task;
         this.travelPurpose = task.type;
+        this.pathingAvoidanceBreachAt = null;
 
         Chat.message(`Starting &e${task.name}&f commission.`);
 
+        const initialWaypoint = this.getClosestWaypoint(waypoints);
+        this.currentPathWaypoint = initialWaypoint;
         this.setState(STATES.TRAVELING);
-        Pathfinder.findPath(waypoints, (success) => this.onPathComplete(success));
+        Pathfinder.findPath([initialWaypoint], (success) => this.onPathComplete(success));
     }
 
     handleNoAvailableSpots() {
@@ -752,6 +768,55 @@ class CommissionMacro extends ModuleBase {
         }
     }
 
+    isTravelMiningPathing() {
+        return this.currentState === STATES.TRAVELING && this.currentCommission?.type === 'MINING' && Pathfinder.isPathing();
+    }
+
+    handlePathingAvoidance() {
+        if (!this.isTravelMiningPathing() || this.avoidanceRadius <= 0 || !this.currentPathWaypoint) {
+            this.pathingAvoidanceBreachAt = null;
+            return;
+        }
+
+        const avoidEntities = this.getAvoidanceEntities();
+        const isBreached = avoidEntities.some((entity) => {
+            const distance = this.getDistance(entity.getX(), entity.getY(), entity.getZ(), ...this.currentPathWaypoint);
+            return distance < this.avoidanceRadius;
+        });
+
+        if (!isBreached) {
+            this.pathingAvoidanceBreachAt = null;
+            return;
+        }
+
+        const now = Date.now();
+        if (!this.pathingAvoidanceBreachAt) {
+            this.pathingAvoidanceBreachAt = now;
+            return;
+        }
+
+        if (now - this.pathingAvoidanceBreachAt < 5000) return;
+        if (now - this.lastAvoidanceRepathAt < 2000) return;
+
+        const safeWaypoints = this.getSafeWaypoints(this.currentCommission, avoidEntities).filter(
+            (waypoint) => !this.isSameWaypoint(waypoint, this.currentPathWaypoint)
+        );
+        if (safeWaypoints.length === 0) return;
+
+        const nextWaypoint = this.getClosestWaypoint(safeWaypoints);
+        this.currentPathWaypoint = nextWaypoint;
+        this.pathingAvoidanceBreachAt = null;
+        this.lastAvoidanceRepathAt = now;
+
+        Chat.message('&eAvoidance radius breached for 5s, repathing to a different vein...');
+        Pathfinder.resetPath();
+        Pathfinder.findPath([nextWaypoint], (success) => this.onPathComplete(success));
+    }
+
+    isSameWaypoint(a, b) {
+        return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+    }
+
     getDistance(x1, y1, z1, x2, y2, z2) {
         return Math.hypot(x1 - x2, y1 - y2, z1 - z2);
     }
@@ -762,6 +827,9 @@ class CommissionMacro extends ModuleBase {
             this.onPathFail();
             return;
         }
+
+        this.pathingAvoidanceBreachAt = null;
+        this.currentPathWaypoint = null;
 
         if (this.travelPurpose === 'EMISSARY') {
             this.travelPurpose = null;
@@ -786,6 +854,8 @@ class CommissionMacro extends ModuleBase {
     onPathFail() {
         if (!this.enabled) return;
         Chat.message(`&cFailed to find a path for &b${this.currentCommission?.name || 'Unknown'}. Retrying...`);
+        this.pathingAvoidanceBreachAt = null;
+        this.currentPathWaypoint = null;
         this.currentCommission = null;
         this.setState(STATES.IDLE);
     }
