@@ -103,7 +103,6 @@ class PathRecovery {
     }
 }
 
-
 class PathNonChangeRecovery {
     constructor() {
         this.PATH_PROGRESS_DELTA = 0.45;
