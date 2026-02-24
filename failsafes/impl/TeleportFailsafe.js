@@ -25,7 +25,7 @@ class TeleportFailsafe extends Failsafe {
             if (!MacroState.isMacroRunning()) return;
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
-                Chat.messageFailsafe(`DEBUG - warp command used, preventing!`, false);
+                Chat.messageDebug(`warp command used, preventing!`, false);
                 lastCommandTime = Date.now();
             }
         }).setFilteredClass(CommandExecutionC2S);
