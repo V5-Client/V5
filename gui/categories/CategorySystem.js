@@ -26,6 +26,13 @@ export const Categories = {
             subcategories: [],
             directComponents: [],
         },
+        {
+            name: 'Discord',
+            items: [],
+            subcategories: [],
+            directComponents: [],
+            hiddenInSidebar: true,
+        },
     ],
     selected: 'Modules',
     selectedItem: null,
@@ -48,6 +55,11 @@ export const Categories = {
     catAnimationDuration: 200,
 
     hoverStates: {},
+    guiScrollSpeed: 15,
+
+    getVisibleCategories() {
+        return Categories.categories.filter((category) => !category.hiddenInSidebar);
+    },
 
     addCategoryItem(subcategoryName, title, description, tooltip = null) {
         const category = Categories.categories.find((c) => c.name === 'Modules');

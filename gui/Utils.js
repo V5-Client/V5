@@ -142,6 +142,11 @@ export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => 
     NVG.drawRoundedRect(x, y, width, height, radius, c);
 };
 
+export const drawRoundedRectangleVaried = ({ x, y, width, height, tl, tr, br, bl, color }) => {
+    const c = (color instanceof Color ? color.getRGB() : color) | 0;
+    NVG.drawRoundedRectVaried(x, y, width, height, c, tl, tr, br, bl);
+};
+
 export const drawRoundedRectangleWithBorder = (r) => {
     if (r.borderWidth && r.borderWidth > 0 && r.borderColor) {
         const bw = r.borderWidth;

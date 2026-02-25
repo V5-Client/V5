@@ -1,4 +1,5 @@
 import { DiscordRPC } from '../../utils/Constants';
+import { Categories } from '../../gui/categories/CategorySystem';
 import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
@@ -10,10 +11,21 @@ class RPC extends ModuleBase {
             subcategory: 'Other',
             description: "Show you're playing V5!",
             tooltip: "Shows you're playing V5 in Discord RPC.",
+            hideInModules: true,
+            showEnabledToggle: false,
         });
 
         this.lastState = 'IDLE';
         this.lastUpdate = 0;
+
+        Categories.addSettingsToggle(
+            'Discord RPC',
+            (v) => this.toggle(!!v),
+            "Shows you're playing V5 in Discord RPC.",
+            false,
+            'Discord RPC',
+            'Discord'
+        );
 
         this.on('step', () => {
             DiscordRPC.stayOn();

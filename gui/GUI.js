@@ -3,6 +3,7 @@ import { Categories } from './categories/CategorySystem';
 import './core/GuiEvents';
 import { GuiState } from './core/GuiState';
 import { showNotification as notify } from './NotificationManager';
+import './ProfileSettings';
 import './ThemeSettings';
 
 import {

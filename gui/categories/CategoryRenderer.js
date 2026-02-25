@@ -12,12 +12,16 @@ import {
     drawCircularImage,
     drawImage,
     drawRoundedRectangle,
+    drawRoundedRectangleVaried,
     drawRoundedRectangleWithBorder,
     drawText,
     easeInOutQuad,
+    easeOutCubic,
     getDiscordPfpPath,
     getTextWidth,
     isInside,
+    resetScissor,
+    scissor,
 } from '../Utils';
 import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
@@ -47,11 +51,24 @@ const Setting_icon_path = getAssetPath('settings.svg');
 const Edit_icon_path = getAssetPath('edit.svg');
 
 export const getCategoryRect = (index) => {
+    const visibleCategories = Categories.getVisibleCategories();
+    const safeIndex = Math.max(0, Math.min(index, visibleCategories.length - 1));
     return {
         x: GuiRectangles.LeftPanel.x + PADDING,
-        y: GuiRectangles.LeftPanel.y + PADDING + index * (CATEGORY_HEIGHT + CATEGORY_PADDING),
+        y: GuiRectangles.LeftPanel.y + PADDING + safeIndex * (CATEGORY_HEIGHT + CATEGORY_PADDING),
         width: GuiRectangles.LeftPanel.width - PADDING * 2,
         height: CATEGORY_HEIGHT,
+    };
+};
+
+export const getDiscordPfpRect = () => {
+    const leftPanel = GuiRectangles.LeftPanel;
+    const pfpSize = 28;
+    return {
+        x: leftPanel.x + (leftPanel.width - pfpSize) / 2,
+        y: leftPanel.y + leftPanel.height - pfpSize - PADDING,
+        width: pfpSize,
+        height: pfpSize,
     };
 };
 
@@ -276,8 +293,8 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
 
 export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
     const leftPanel = GuiRectangles.LeftPanel;
-    const pfpSize = 28;
-    const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
+    const pfpRect = getDiscordPfpRect();
+    const pfpY = pfpRect.y;
     const editIconSize = 16;
     const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
     const editIconY = pfpY - editIconSize - 15;
@@ -286,32 +303,75 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
     if (Categories.catAnimationRect) {
         const elapsed = Date.now() - Categories.catTransitionStart;
         const rawProgress = Math.min(1, elapsed / Categories.catAnimationDuration);
-        const p = easeInOutQuad(rawProgress);
+        const catAnimProgress = easeInOutQuad(rawProgress);
         const rect = Categories.catAnimationRect;
-        rect.x = rect.startX + (rect.endX - rect.startX) * p;
-        rect.y = rect.startY + (rect.endY - rect.startY) * p;
+        rect.x = rect.startX + (rect.endX - rect.startX) * catAnimProgress;
+        rect.y = rect.startY + (rect.endY - rect.startY) * catAnimProgress;
+        if (rect.startRadius !== undefined && rect.endRadius !== undefined) {
+            rect.radius = rect.startRadius + (rect.endRadius - rect.startRadius) * catAnimProgress;
+        }
         if (rawProgress >= 1) Categories.catAnimationRect = null;
     }
 
-    if (Categories.catAnimationRect) {
-        const rect = Categories.catAnimationRect;
-        drawRoundedRectangle({ ...rect, color: THEME.ACCENT_DIM });
-    } else {
-        const selectedCat = Categories.categories.find((cat) => cat.name === Categories.selected);
-        if (selectedCat) {
-            const i = Categories.categories.indexOf(selectedCat);
-            const rect = getCategoryRect(i);
-            const moduleRectSize = 28;
-            const iconX = rect.x + (rect.width - moduleRectSize) / 2;
-            const iconY = rect.y + (rect.height - moduleRectSize) / 2;
-            const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
-            drawRoundedRectangle({ ...highlightRect, color: THEME.ACCENT_DIM });
-        } else if (Categories.selected === 'Edit') {
-            drawRoundedRectangle({ ...editButtonRect, color: THEME.ACCENT_DIM });
-        }
-    }
+    const allCategoryItems = [
+        ...Categories.getVisibleCategories().map((c, i) => ({ name: c.name, rect: getCategoryRect(i) })),
+        {
+            name: 'Discord',
+            rect: { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 },
+        },
+        { name: 'Edit', rect: editButtonRect },
+    ];
 
-    const allCategoryItems = [...Categories.categories.map((c, i) => ({ name: c.name, rect: getCategoryRect(i) })), { name: 'Edit', rect: editButtonRect }];
+    const drawHoverHighlight = (rect, color, itemName) => {
+        const isSelectionWipingThisItem = Categories.catAnimationRect && itemName === Categories.selected;
+        if (!isSelectionWipingThisItem) {
+            drawRoundedRectangle({ ...rect, color });
+            return;
+        }
+
+        const wipeRect = Categories.catAnimationRect;
+        const overlapX = Math.max(rect.x, wipeRect.x);
+        const overlapRight = Math.min(rect.x + rect.width, wipeRect.x + wipeRect.width);
+        if (overlapRight <= overlapX) {
+            drawRoundedRectangle({ ...rect, color });
+            return;
+        }
+
+        if (Categories.transitionDirection >= 0) {
+            const wipeBottom = wipeRect.y + wipeRect.height;
+            const hasHit = wipeBottom > rect.y;
+            if (!hasHit) {
+                drawRoundedRectangle({ ...rect, color });
+                return;
+            }
+            const penetration = Math.min(rect.height, Math.max(0, wipeBottom - rect.y));
+            const visibleStartY = Math.max(rect.y, Math.min(rect.y + rect.height, wipeBottom));
+            const visibleHeight = rect.y + rect.height - visibleStartY;
+            if (visibleHeight <= 0) return;
+            scissor(rect.x, visibleStartY, rect.width, visibleHeight);
+            const r = rect.radius || 0;
+            const liveTopRadius = Math.max(0, r - penetration);
+            drawRoundedRectangleVaried({ ...rect, tl: liveTopRadius, tr: liveTopRadius, br: r, bl: r, color });
+            resetScissor();
+            return;
+        }
+
+        const wipeTop = wipeRect.y;
+        const hasHit = wipeTop < rect.y + rect.height;
+        if (!hasHit) {
+            drawRoundedRectangle({ ...rect, color });
+            return;
+        }
+        const penetration = Math.min(rect.height, Math.max(0, rect.y + rect.height - wipeTop));
+        const visibleEndY = Math.max(rect.y, Math.min(rect.y + rect.height, wipeTop));
+        const visibleHeight = visibleEndY - rect.y;
+        if (visibleHeight <= 0) return;
+        scissor(rect.x, rect.y, rect.width, visibleHeight);
+        const r = rect.radius || 0;
+        const liveBottomRadius = Math.max(0, r - penetration);
+        drawRoundedRectangleVaried({ ...rect, tl: r, tr: r, br: liveBottomRadius, bl: liveBottomRadius, color });
+        resetScissor();
+    };
 
     allCategoryItems.forEach((item) => {
         const isHovered = isInside(mouseX, mouseY, item.rect);
@@ -326,31 +386,59 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         const delta = (now - state.lastUpdate) / 150;
         state.lastUpdate = now;
 
-        if (isHovered) {
-            state.progress = Math.min(1, state.progress + delta);
-        } else {
-            state.progress = Math.max(0, state.progress - delta);
-        }
+        if (isHovered) state.progress = Math.min(1, state.progress + delta);
+        else state.progress = Math.max(0, state.progress - delta);
 
-        if (state.progress > 0 && Categories.selected !== name) {
+        if (state.progress > 0 && (Categories.selected !== name || Categories.catAnimationRect)) {
             const rect = item.rect;
+            const easedProgress = easeOutCubic(state.progress);
             const moduleRectSize = 28;
             const iconX = rect.x + (rect.width - moduleRectSize) / 2;
             const iconY = rect.y + (rect.height - moduleRectSize) / 2;
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
 
-            const finalRect = name === 'Edit' ? item.rect : highlightRect;
+            const finalRect =
+                name === 'Edit' || name === 'Discord'
+                    ? { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 }
+                    : highlightRect;
 
-            drawRoundedRectangle({
-                ...finalRect,
-                color: colorWithAlpha(THEME.BG_INSET, state.progress),
-            });
+            drawHoverHighlight(finalRect, colorWithAlpha(THEME.BG_INSET, easedProgress), name);
         }
     });
+
+    // Draw selection after hover so the moving/selected highlight overwrites hover as it arrives.
+    if (Categories.catAnimationRect) {
+        const rect = Categories.catAnimationRect;
+        drawRoundedRectangle({ ...rect, color: THEME.ACCENT_DIM });
+        drawRoundedRectangle({ ...rect, color: colorWithAlpha(THEME.ACCENT, 0.16) });
+    } else {
+        const selectedCat = Categories.getVisibleCategories().find((cat) => cat.name === Categories.selected);
+        if (selectedCat) {
+            const i = Categories.getVisibleCategories().indexOf(selectedCat);
+            const rect = getCategoryRect(i);
+            const moduleRectSize = 28;
+            const iconX = rect.x + (rect.width - moduleRectSize) / 2;
+            const iconY = rect.y + (rect.height - moduleRectSize) / 2;
+            const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
+            drawRoundedRectangle({ ...highlightRect, color: THEME.ACCENT_DIM });
+            drawRoundedRectangle({ ...highlightRect, color: colorWithAlpha(THEME.ACCENT, 0.12) });
+        } else if (Categories.selected === 'Discord') {
+            drawRoundedRectangle({
+                x: pfpRect.x - 2,
+                y: pfpRect.y - 2,
+                width: pfpRect.width + 4,
+                height: pfpRect.height + 4,
+                radius: 16,
+                color: THEME.ACCENT_DIM,
+            });
+        } else if (Categories.selected === 'Edit') {
+            drawRoundedRectangle({ ...editButtonRect, color: THEME.ACCENT_DIM });
+        }
+    }
 };
 
 export const drawLeftPanelIcons = (mouseX, mouseY) => {
-    Categories.categories.forEach((cat, i) => {
+    Categories.getVisibleCategories().forEach((cat, i) => {
         const rect = getCategoryRect(i);
         const moduleSize = 17;
         const iconX = rect.x + (rect.width - moduleSize) / 2;
@@ -362,19 +450,17 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
     });
 
     const leftPanel = GuiRectangles.LeftPanel;
-    const pfpSize = 28;
-    const pfpX = leftPanel.x + (leftPanel.width - pfpSize) / 2;
-    const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
+    const pfpRect = getDiscordPfpRect();
 
     const editIconSize = 16;
     const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
-    const editIconY = pfpY - editIconSize - 15;
+    const editIconY = pfpRect.y - editIconSize - 15;
 
     drawImage(Edit_icon_path, editIconX, editIconY, editIconSize, editIconSize);
 
     const discordPfpPath = getDiscordPfpPath();
     if (discordPfpPath) {
-        drawCircularImage(discordPfpPath, pfpX, pfpY, pfpSize);
+        drawCircularImage(discordPfpPath, pfpRect.x, pfpRect.y, pfpRect.width);
     }
 };
 

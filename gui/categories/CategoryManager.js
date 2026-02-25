@@ -5,7 +5,7 @@ import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
 import { GuiRectangles } from '../core/GuiState';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
-import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, drawSubcategoryButtons, getCategoryRect } from './CategoryRenderer';
+import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, drawSubcategoryButtons, getCategoryRect, getDiscordPfpRect } from './CategoryRenderer';
 import { SearchBar } from './CategorySearchBar';
 import { Categories } from './CategorySystem';
 
@@ -33,6 +33,23 @@ export const createCategoriesManager = (deps) => {
     const ICON_SIZE = 28;
     const HIGHLIGHT_PADDING = 2;
     const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
+
+    const getCategorySelectionRect = (name) => {
+        if (name === 'Discord') {
+            const pfpRect = getDiscordPfpRect();
+            return { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 };
+        }
+        const visibleIndex = Categories.getVisibleCategories().findIndex((category) => category.name === name);
+        if (visibleIndex === -1) return null;
+        const rect = getCategoryRect(visibleIndex);
+        return {
+            x: rect.x + (rect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+            y: rect.y + (rect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+            width: HIGHLIGHT_SIZE,
+            height: HIGHLIGHT_SIZE,
+            radius: 8,
+        };
+    };
 
     const setRightPanelScrollY = (value) => {
         currentRightPanelScrollY = value;
@@ -66,23 +83,25 @@ export const createCategoriesManager = (deps) => {
         Categories.selectedItem = null;
         Categories.selectedSubcategory = null;
         Categories.transitionType = 'category-swap';
-        const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.previousSelected);
-        const newIndex = Categories.categories.findIndex((c) => c.name === targetName);
-        if (oldIndex !== -1 && newIndex !== -1) {
-            const oldRect = getCategoryRect(oldIndex);
-            const newRect = getCategoryRect(newIndex);
+        const oldRect = getCategorySelectionRect(Categories.previousSelected);
+        const newRect = getCategorySelectionRect(targetName);
+        if (oldRect && newRect) {
             Categories.catAnimationRect = {
-                startX: oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                startY: oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                endX: newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                endY: newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                width: HIGHLIGHT_SIZE,
-                height: HIGHLIGHT_SIZE,
-                radius: 8,
+                startX: oldRect.x,
+                startY: oldRect.y,
+                endX: newRect.x,
+                endY: newRect.y,
+                width: oldRect.width,
+                height: oldRect.height,
+                startRadius: oldRect.radius || 8,
+                endRadius: newRect.radius || 8,
+                radius: oldRect.radius || 8,
             };
             Categories.catTransitionStart = Date.now();
+            Categories.transitionDirection = newRect.y >= oldRect.y ? 1 : -1;
+        } else {
+            Categories.transitionDirection = 1;
         }
-        Categories.transitionDirection = newIndex >= oldIndex ? 1 : -1;
         Categories.transitionProgress = 0;
         Categories.transitionStart = Date.now();
         playClickSound();

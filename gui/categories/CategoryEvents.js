@@ -3,6 +3,7 @@ import { Separator } from '../components/Separator';
 import { GuiRectangles } from '../core/GuiState';
 import { OverlayManager } from '../OverlayUtils';
 import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
+import { getCategoryRect, getDiscordPfpRect } from './CategoryRenderer';
 import { SearchBar } from './CategorySearchBar';
 import { Categories } from './CategorySystem';
 
@@ -10,6 +11,38 @@ const ANIMATION_DURATION = 300;
 const ICON_SIZE = 28;
 const HIGHLIGHT_PADDING = 2;
 const HIGHLIGHT_SIZE = ICON_SIZE + HIGHLIGHT_PADDING * 2;
+
+const getEditButtonRect = () => {
+    const leftPanel = GuiRectangles.LeftPanel;
+    const pfpRect = getDiscordPfpRect();
+    const editIconSize = 16;
+    const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
+    const editIconY = pfpRect.y - editIconSize - 15;
+    return {
+        x: editIconX - 6,
+        y: editIconY - 6,
+        width: editIconSize + 12,
+        height: editIconSize + 12,
+    };
+};
+
+const getCategorySelectionRect = (name) => {
+    if (name === 'Discord') {
+        const pfpRect = getDiscordPfpRect();
+        return { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4, radius: 16 };
+    }
+    if (name === 'Edit') return { ...getEditButtonRect(), radius: 8 };
+    const visibleIndex = Categories.getVisibleCategories().findIndex((category) => category.name === name);
+    if (visibleIndex === -1) return getEditButtonRect();
+    const rect = getCategoryRect(visibleIndex);
+    return {
+        x: rect.x + (rect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+        y: rect.y + (rect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
+        width: HIGHLIGHT_SIZE,
+        height: HIGHLIGHT_SIZE,
+        radius: 8,
+    };
+};
 
 export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
     const directCat = Categories.categories.find((c) => c.name === categoryName);
@@ -111,18 +144,9 @@ export const handleCategoryClick = (
     if (Categories.transitionDirection !== 0) return;
 
     const leftPanel = GuiRectangles.LeftPanel;
-    const pfpSize = 28;
-    const pfpY = leftPanel.y + leftPanel.height - pfpSize - PADDING;
-    const editIconSize = 16;
-    const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
-    const editIconY = pfpY - editIconSize - 15;
-
-    const editButtonRect = {
-        x: editIconX - 6,
-        y: editIconY - 6,
-        width: editIconSize + 12,
-        height: editIconSize + 12,
-    };
+    const editButtonRect = getEditButtonRect();
+    const pfpRect = getDiscordPfpRect();
+    const pfpButtonRect = { x: pfpRect.x - 2, y: pfpRect.y - 2, width: pfpRect.width + 4, height: pfpRect.height + 4 };
 
     if (Categories.currentPage === 'categories') {
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);
@@ -252,7 +276,6 @@ export const handleCategoryClick = (
     }
 
     let clickedCategoryName = null;
-    let clickedIndex = -1;
 
     if (isInside(mouseX, mouseY, leftPanel)) {
         if (isInside(mouseX, mouseY, editButtonRect)) {
@@ -260,33 +283,38 @@ export const handleCategoryClick = (
             OverlayManager.openPositionsGUI();
             return;
         } else {
-            Categories.categories.some((cat, i) => {
+            Categories.getVisibleCategories().some((cat, i) => {
                 const rect = getCategoryRect(i);
                 if (isInside(mouseX, mouseY, rect)) {
                     clickedCategoryName = cat.name;
-                    clickedIndex = i;
                     return true;
                 }
                 return false;
             });
+            if (!clickedCategoryName && isInside(mouseX, mouseY, pfpButtonRect)) {
+                clickedCategoryName = 'Discord';
+            }
         }
 
         if (clickedCategoryName && clickedCategoryName !== Categories.selected) {
             if (clickedCategoryName !== 'Modules') {
                 SearchBar.resetSearch();
             }
-            const oldIndex = Categories.categories.findIndex((c) => c.name === Categories.selected);
-            let oldRect = Categories.selected === 'Edit' || oldIndex === -1 ? editButtonRect : getCategoryRect(oldIndex);
-            const newRect = getCategoryRect(clickedIndex);
+            const oldRect = getCategorySelectionRect(Categories.selected);
+            const newRect = getCategorySelectionRect(clickedCategoryName);
+            const oldMidY = oldRect.y + oldRect.height / 2;
+            const newMidY = newRect.y + newRect.height / 2;
 
             Categories.catAnimationRect = {
-                startX: oldRect.x + (oldRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                startY: oldRect.y + (oldRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                endX: newRect.x + (newRect.width - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                endY: newRect.y + (newRect.height - ICON_SIZE) / 2 - HIGHLIGHT_PADDING,
-                width: HIGHLIGHT_SIZE,
-                height: HIGHLIGHT_SIZE,
-                radius: 8,
+                startX: oldRect.x,
+                startY: oldRect.y,
+                endX: newRect.x,
+                endY: newRect.y,
+                width: oldRect.width,
+                height: oldRect.height,
+                startRadius: oldRect.radius || 8,
+                endRadius: newRect.radius || 8,
+                radius: oldRect.radius || 8,
             };
             Categories.catTransitionStart = Date.now();
             Categories.previousSelected = Categories.selected;
@@ -298,7 +326,7 @@ export const handleCategoryClick = (
             invalidateLayoutCache();
             resetCategoryScroll();
             Categories.transitionType = 'category-swap';
-            Categories.transitionDirection = clickedIndex > oldIndex ? 1 : -1;
+            Categories.transitionDirection = newMidY >= oldMidY ? 1 : -1;
             Categories.transitionProgress = 0;
             Categories.transitionStart = Date.now();
             playClickSound();
@@ -396,7 +424,7 @@ export const handleCategoryScroll = (
     setOptionsScrollY,
     optionsContentHeight
 ) => {
-    const SCROLL_SPEED = 15;
+    const SCROLL_SPEED = Math.max(1, Number(Categories.guiScrollSpeed) || 15);
 
     if (Categories.currentPage === 'categories') {
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);

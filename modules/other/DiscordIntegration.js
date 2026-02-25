@@ -1,4 +1,5 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
+import { Categories } from '../../gui/categories/CategorySystem';
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -27,28 +28,37 @@ class DiscordIntegration extends ModuleBase {
         this.FAILSAFE_EMBEDS = true;
         this.FIVE_MINUTES = 5 * 60 * 1000;
 
-        this.addDirectTextInput('Webhook URL', this.URL, (v) => this.handleWebhookUrlChange(v), 'Enter your webhook URL here.', this.sectionName);
-        this.addDirectTextInput('User ID', this.ID, (v) => this.handleIDChange(v), 'Enter your user ID here.', this.sectionName);
+        Categories.addSettingsTextInput(
+            'Webhook URL',
+            this.URL,
+            (v) => this.handleWebhookUrlChange(v),
+            'Enter your webhook URL here.',
+            this.sectionName,
+            'Discord'
+        );
+        Categories.addSettingsTextInput('User ID', this.ID, (v) => this.handleIDChange(v), 'Enter your user ID here.', this.sectionName, 'Discord');
 
-        this.addDirectToggle(
+        Categories.addSettingsToggle(
             'Send Embed on CT load',
             (v) => Webhook.sendLoadEmbeds(!!v),
             'Sends an embed to your webhook when CT loads',
             true,
-            this.sectionName
+            this.sectionName,
+            'Discord'
         );
 
-        this.addDirectToggle(
+        Categories.addSettingsToggle(
             'Macro Embeds',
             (v) => {
                 this.MACRO_EMBEDS = !!v;
             },
-            'Sends an embed every 5 minutes with a screenshot while active',
+            'Sends an embed every 5 minutes with a screenshot while active + a disable embed when turned off.',
             true,
-            this.sectionName
+            this.sectionName,
+            'Discord'
         );
 
-        this.addDirectToggle(
+        Categories.addSettingsToggle(
             'Failsafe Embeds',
             (v) => {
                 this.FAILSAFE_EMBEDS = !!v;
@@ -56,7 +66,8 @@ class DiscordIntegration extends ModuleBase {
             },
             'Sends failsafe embeds and screenshots to your webhook',
             true,
-            this.sectionName
+            this.sectionName,
+            'Discord'
         );
 
         this.when(
