@@ -4,6 +4,7 @@ import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { TimeUtils, Timer } from '../../utils/TimeUtils';
 import { Utils } from '../../utils/Utils';
+import { Webhook } from '../../utils/Webhooks';
 
 const STATE = {
     IDLE: 'Idle',
@@ -269,6 +270,7 @@ class MacroScheduler extends ModuleBase {
             if (now < this.timerEnd) return;
             Chat.messageScheduler('&aStarting macros.');
             this.startTrackedMacros();
+            this.sendSchedulerConnectEmbed();
             this.beginSession();
         }
     }
@@ -288,6 +290,7 @@ class MacroScheduler extends ModuleBase {
         const cleanBreakTime = breakTime.includes(' ') ? breakTime.replace(/ (?=[^ ]+$)/, ' and ') : breakTime;
 
         this.stopTrackedMacros();
+        this.sendSchedulerDisconnectEmbed(cleanBreakTime);
 
         const reason = `Scheduler: Resting for ${cleanBreakTime}`;
         this.disconnect(reason);
@@ -305,18 +308,122 @@ class MacroScheduler extends ModuleBase {
         this.updateOverlay();
     }
 
+    cancelScheduledMacro(macroName) {
+        if (!macroName || !this.enabled) return false;
+        if (this.state !== STATE.RESTING && this.state !== STATE.RETURNING) return false;
+
+        const index = this.trackedMacros.indexOf(macroName);
+        if (index === -1) return false;
+
+        this.trackedMacros.splice(index, 1);
+
+        const duration = this.getMacroDuration(macroName);
+        Webhook.sendScreenshot(`Disabled ${macroName}`, duration);
+
+        if (this.trackedMacros.length === 0) {
+            this.state = STATE.IDLE;
+            this.timerEnd = 0;
+            this.breakDurationMs = 0;
+            this.returnStep = 0;
+            Chat.messageScheduler(`&e${macroName} disabled.`);
+        } else {
+            Chat.messageScheduler(`&e${macroName} disabled, ${this.trackedMacros.length} others remaining.`);
+        }
+
+        this.saveState();
+        this.updateOverlay();
+        return true;
+    }
+
     startTrackedMacros() {
         this.trackedMacros.forEach((name) => {
             const module = MacroState.getModule(name);
-            if (module && module.isMacro && !module.enabled) module.toggle(true, false);
+            if (module && module.isMacro && !module.enabled) module.toggle(true, false, 'scheduler');
         });
     }
 
     stopTrackedMacros() {
         this.trackedMacros.forEach((name) => {
             const module = MacroState.getModule(name);
-            if (module && module.isMacro) module.toggle(false, true);
+            if (module && module.isMacro) module.toggle(false, true, 'scheduler');
         });
+    }
+
+    sendSchedulerDisconnectEmbed(cleanBreakTime) {
+        const lines = [];
+
+        this.trackedMacros.forEach((name) => {
+            const meta = MacroState.getLastDisableMeta(name);
+            if (!meta || meta.context !== 'scheduler') return;
+
+            const macroLines = [];
+            const runtime = this.getMacroDuration(name);
+            if (runtime) macroLines.push(`Runtime: ${runtime}`);
+
+            const stats = this.getMacroOverlayStats(name);
+            if (stats.length) macroLines.push(...stats.slice(0, 4));
+
+            lines.push('**' + name + '**' + (macroLines.length ? '\n' + macroLines.join('\n') : ''));
+        });
+
+        const description = [`Break Time: ${cleanBreakTime}`, lines.length ? lines.join('\n\n') : 'No macro stats available.'].join('\n\n');
+        this.sendSchedulerEmbed('Scheduler Disconnected', description, 0xe67e22);
+    }
+
+    sendSchedulerConnectEmbed() {
+        const macroList = this.trackedMacros.length ? this.trackedMacros.join(', ') : 'None';
+        this.sendSchedulerEmbed('Scheduler Connected', `Resuming macros: ${macroList}`, 0x2ecc71);
+    }
+
+    sendSchedulerEmbed(title, description, color) {
+        Webhook.sendEmbed(
+            [
+                {
+                    title,
+                    description,
+                    color,
+                    timestamp: new Date().toISOString(),
+                    footer: { text: 'V5 Scheduler' },
+                },
+            ],
+            false
+        );
+    }
+
+    getMacroDuration(macroName) {
+        const saved = OverlayManager.savedSessions && OverlayManager.savedSessions[macroName];
+        if (saved && typeof saved.elapsedMs === 'number') {
+            return TimeUtils.formatDurationMs(saved.elapsedMs);
+        }
+
+        const startTime = OverlayManager.startTimes && OverlayManager.startTimes[macroName];
+        if (startTime) return OverlayManager.formatUptime(startTime);
+        return '';
+    }
+
+    getMacroOverlayStats(macroName) {
+        const module = MacroState.getModule(macroName);
+        if (!module) return [];
+
+        const overlayName = module.oid || macroName;
+        const overlay = Array.isArray(OverlayManager.ids) ? OverlayManager.ids.find((id) => id && id.name === overlayName) : null;
+        if (!overlay || !Array.isArray(overlay.sections)) return [];
+
+        const lines = [];
+        overlay.sections.forEach((section) => {
+            const data = section && section.data ? section.data : null;
+            if (!data || typeof data !== 'object') return;
+
+            Object.entries(data).forEach(([key, value]) => {
+                try {
+                    const resolved = typeof value === 'function' ? value() : value;
+                    if (resolved === undefined || resolved === null || String(resolved).trim() === '') return;
+                    lines.push(`${key}: ${resolved}`);
+                } catch (e) {}
+            });
+        });
+
+        return lines;
     }
 
     getSchedulableMacros() {

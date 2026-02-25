@@ -6,6 +6,7 @@ class MacroStateClass {
         this.enabledMacros = new Set();
 
         this.modules = new Map();
+        this.lastDisableMeta = new Map();
     }
 
     registerModule(module) {
@@ -58,10 +59,11 @@ class MacroStateClass {
         this.activeMacro = moduleName;
     }
 
-    onModuleDisabled(moduleName) {
+    onModuleDisabled(moduleName, context = 'user') {
         if (!moduleName) return;
         if (!this.enabledMacros.has(moduleName)) return;
 
+        this.lastDisableMeta.set(moduleName, this.captureDisableMeta(moduleName, context));
         this.enabledMacros.delete(moduleName);
 
         if (this.enabledMacros.size === 0) {
@@ -72,6 +74,18 @@ class MacroStateClass {
             const remaining = Array.from(this.enabledMacros);
             this.activeMacro = remaining[remaining.length - 1];
         }
+    }
+
+    getLastDisableMeta(moduleName) {
+        if (!moduleName) return null;
+        return this.lastDisableMeta.get(moduleName) || null;
+    }
+
+    captureDisableMeta(moduleName, context = 'user') {
+        return {
+            context: context || 'user',
+            timestamp: Date.now(),
+        };
     }
 
     // unused, just use 'isMacro: true' in module constructor instead.

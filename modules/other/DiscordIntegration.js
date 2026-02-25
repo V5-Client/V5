@@ -72,7 +72,7 @@ class DiscordIntegration extends ModuleBase {
         const currentMacro = this.getActiveMacro();
 
         if ((!currentMacro || !this.MACRO_EMBEDS) && this.lastActiveMacro) {
-            if (this.MACRO_EMBEDS) this.sendDisableEmbed(this.lastActiveMacro);
+            if (this.MACRO_EMBEDS) this.trySendDisableEmbed(this.lastActiveMacro);
             this.lastActiveMacro = null;
             this.lastSendTime = 0;
             return;
@@ -81,7 +81,7 @@ class DiscordIntegration extends ModuleBase {
         if (!currentMacro || !this.MACRO_EMBEDS) return (this.lastSendTime = 0);
         if (this.lastActiveMacro && this.lastActiveMacro !== currentMacro) {
             const stillEnabled = MacroState.getEnabledMacros().includes(this.lastActiveMacro);
-            if (!stillEnabled) this.sendDisableEmbed(this.lastActiveMacro);
+            if (!stillEnabled) this.trySendDisableEmbed(this.lastActiveMacro);
             this.lastSendTime = 0;
         }
 
@@ -113,6 +113,12 @@ class DiscordIntegration extends ModuleBase {
         if (startTime) return OverlayManager.formatUptime(startTime);
 
         return '';
+    }
+
+    trySendDisableEmbed(macroName) {
+        const meta = MacroState.getLastDisableMeta(macroName);
+        if (meta && meta.context === 'scheduler') return;
+        this.sendDisableEmbed(macroName);
     }
 
     sendDisableEmbed(macroName) {

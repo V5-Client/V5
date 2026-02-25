@@ -113,8 +113,9 @@ export class ModuleBase {
      * Toggle the module on/off
      * @param {boolean} [value] - Optional: force specific state (true/false). If undefined, toggles current state.
      * @param {boolean} [parentManaged=false] - If true, this enable was triggered by another module. Hides overlay and prevents double-state recording.
+     * @param {string} [toggleContext='user'] - Source of the toggle event (user, scheduler).
      */
-    toggle(value, parentManaged = false) {
+    toggle(value, parentManaged = false, toggleContext = 'user') {
         const newVal = typeof value === 'boolean' ? value : !this.enabled;
 
         if (this.enabled === newVal) {
@@ -129,7 +130,7 @@ export class ModuleBase {
 
             if (this.isMacro) {
                 Mixin.set('macroEnabled', true);
-                MacroState.onModuleEnabled(this.name);
+                MacroState.onModuleEnabled(this.name, toggleContext);
             }
 
             if (this.oid && !this.isParentManaged) {
@@ -145,7 +146,7 @@ export class ModuleBase {
             this._registers.forEach((h) => h.register());
         } else {
             if (this.isMacro) {
-                MacroState.onModuleDisabled(this.name);
+                MacroState.onModuleDisabled(this.name, toggleContext);
                 Mixin.set('macroEnabled', MacroState.isMacroRunning());
             }
 
@@ -209,6 +210,13 @@ export class ModuleBase {
         this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
 
         this._wrappedKey.onKeyPress(() => {
+            if (this.isMacro && !this.enabled) {
+                const scheduler = MacroState.getModule('Scheduler');
+                if (scheduler && typeof scheduler.cancelScheduledMacro === 'function') {
+                    if (scheduler.cancelScheduledMacro(this.name)) return;
+                }
+            }
+
             if (this.enabled && this.isParentManaged) {
                 notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
                 return;
