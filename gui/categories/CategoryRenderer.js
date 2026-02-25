@@ -397,10 +397,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             const iconY = rect.y + (rect.height - moduleRectSize) / 2;
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
 
-            const finalRect =
-                name === 'Edit' || name === 'Discord'
-                    ? { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 }
-                    : highlightRect;
+            const finalRect = name === 'Edit' || name === 'Discord' ? { ...item.rect, radius: name === 'Discord' ? 16 : item.rect.radius || 8 } : highlightRect;
 
             drawHoverHighlight(finalRect, colorWithAlpha(THEME.BG_INSET, easedProgress), name);
         }
