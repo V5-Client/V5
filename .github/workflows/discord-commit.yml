@@ -1,212 +1,183 @@
 name: Send Commit Message to Discord
 
 on:
-    push:
-        branches:
-            - '**'
-    workflow_dispatch:
-        inputs:
-            sha:
-                description: 'Commit SHA to run against (optional).'
-                required: false
-                type: string
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA to run against (optional).'
+        required: false
+        type: string
 
 jobs:
-    notify-discord:
-        runs-on: ubuntu-latest
+  notify-discord:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout repo
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
-                  ref: ${{ inputs.sha || github.sha }}
+    env:
+      NPM_GLOBAL_PREFIX: ~/.npm-global
+      WRANGLER_VERSION: latest
 
-            - name: Prepare Data
-              shell: bash
-              run: |
-                  set -euo pipefail
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.sha || github.sha }}
 
-                  HEAD_SHA="$(git rev-parse HEAD)"
-                  echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
-                  echo "COMMIT_URL=https://github.com/${GITHUB_REPOSITORY}/commit/${HEAD_SHA}" >> "$GITHUB_ENV"
-                  echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
-                  echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
-                  echo "REPO_FULL=${GITHUB_REPOSITORY}" >> "$GITHUB_ENV"
-                  echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_ENV"
+      - name: Cache Wrangler (npm global)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.npm-global
+          key: "${{ runner.os }}-wrangler-${{ env.WRANGLER_VERSION }}"
+          restore-keys: |
+            ${{ runner.os }}-wrangler-
 
-                  declare -A USERS=(
-                    ["EpsilonPhoenix"]="<@899647076370092042>"
-                    ["qxionr"]="<@790294721943699477>"
-                    ["quiteboring"]="<@1441859003708866601>"
-                    ["rdbtCVS"]="<@777346923232886784>"
-                    ["IcyHenryT"]="<@1160548899711356958>"
-                    ["oblongboot"]="<@768481984242253904>"
-                    ["axlecoffee"]="<@790736254714642453>"
-                  )
+      - name: Install Wrangler
+        run: |
+          mkdir -p "$NPM_GLOBAL_PREFIX"
+          npm config set prefix "$NPM_GLOBAL_PREFIX"
+          echo "$NPM_GLOBAL_PREFIX/bin" >> $GITHUB_PATH
+          if ! command -v wrangler >/dev/null 2>&1; then
+            npm install -g wrangler@latest
+          fi
+          wrangler --version
 
-                  ACTOR="$(git log -1 --pretty=%an)"
-                  echo "DISCORD_AUTHOR=${USERS[$ACTOR]:-$ACTOR}" >> "$GITHUB_ENV"
+      - name: Prepare Data
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+          echo "COMMIT_URL=https://github.com/${GITHUB_REPOSITORY}/commit/${HEAD_SHA}" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
+          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
+          echo "REPO_FULL=${GITHUB_REPOSITORY}" >> "$GITHUB_ENV"
+          echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_ENV"
 
-                  BASE_SHA="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "4b825dc642cb6eb9a060e54bf8d69288fbee4904")"
+          declare -A USERS=(
+            ["EpsilonPhoenix"]="<@899647076370092042>"
+            ["qxionr"]="<@790294721943699477>"
+            ["quiteboring"]="<@1441859003708866601>"
+            ["rdbtCVS"]="<@777346923232886784>"
+            ["IcyHenryT"]="<@1160548899711356958>"
+            ["oblongboot"]="<@768481984242253904>"
+            ["axlecoffee"]="<@790736254714642453>"
+          )
 
-                  STATS="$(git diff --shortstat "$BASE_SHA" "$HEAD_SHA" || echo "0 files changed")"
-                  echo "STATS_TEXT=$STATS" >> "$GITHUB_ENV"
+          ACTOR="$(git log -1 --pretty=%an)"
+          echo "DISCORD_AUTHOR=${USERS[$ACTOR]:-$ACTOR}" >> "$GITHUB_ENV"
 
-                  EXT_LIST="$(
-                    git diff --name-only "$BASE_SHA" "$HEAD_SHA" | awk '
-                      {
-                        f=$0
-                        n=split(f,a,"/")
-                        b=a[n]
-                        if (index(b,".")==0) ext="noext"
-                        else { ext=b; sub(/^.*\./,"",ext) }
-                        print ext
-                      }
-                    ' | sort | uniq -c | sort -nr | head -n 10 \
-                      | awk '{print $2 " (" $1 ")"}' \
-                      | paste -sd ", " -
-                  )"
-                  [[ -z "${EXT_LIST:-}" ]] && EXT_LIST="No specific types"
-                  EXT_LIST="${EXT_LIST:0:1024}"
-                  echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
+          BASE_SHA="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "4b825dc642cb6eb9a060e54bf8d69288fbee4904")"
 
-            - name: Zip repository
-              if: ${{ endsWith(github.repository, '/V5') }}
-              shell: bash
-              run: |
-                  set -euo pipefail
-                  zip -r V5.zip . -x ".git/*" ".github/*" ".vscode/*" "README.md" ".gitignore"
+          STATS="$(git diff --shortstat "$BASE_SHA" "$HEAD_SHA" || echo "0 files changed")"
+          echo "STATS_TEXT=$STATS" >> "$GITHUB_ENV"
 
-            - name: Upload to Cloudflare R2
-              if: ${{ endsWith(github.repository, '/V5') }}
-              uses: cloudflare/wrangler-action@v3
-              with:
-                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-                  wranglerVersion: '3'
-                  command: >
-                      r2 object put v5-builds/V5.zip
-                      --file V5.zip
+          EXT_LIST="$(
+            git diff --name-only "$BASE_SHA" "$HEAD_SHA" | awk '
+              {
+                f=$0
+                n=split(f,a,"/")
+                b=a[n]
+                if (index(b,".")==0) ext="noext"
+                else { ext=b; sub(/^.*\./,"",ext) }
+                print ext
+              }
+            ' | sort | uniq -c | sort -nr | head -n 10 \
+              | awk '{print $2 " (" $1 ")"}' \
+              | paste -sd ", " -
+          )"
+          [[ -z "${EXT_LIST:-}" ]] && EXT_LIST="No specific types"
+          EXT_LIST="${EXT_LIST:0:1024}"
+          echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
-            - name: Send to Discord
-              env:
-                  WEBHOOK: ${{ secrets.PUSH_NOTIFIER }}
-              shell: bash
-              run: |
-                  set -euo pipefail
+      - name: Zip repository
+        if: ${{ endsWith(github.repository, '/V5') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -r V5.zip . -x ".git/*" ".github/*" ".vscode/*" "README.md" ".gitignore"
 
-                  COMMIT_MSG="$(git log -1 --pretty=%B)"
-                  export CHUNK_LIMIT=3500
-                  export COMMIT_MSG
+      - name: Upload to Cloudflare R2
+        if: ${{ endsWith(github.repository, '/V5') }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler r2 object put v5-builds/V5.zip \
+            --file V5.zip
 
-                  mapfile -d '' MSG_CHUNKS < <(
-                    python3 - << 'PY'
-                  import os
-                  import sys
-
-                  s = os.environ.get("COMMIT_MSG", "")
-                  limit = int(os.environ.get("CHUNK_LIMIT", "3500"))
-
-                  if not s:
-                      sys.stdout.write("No commit message.\0")
-                      sys.exit(0)
-
-                  start = 0
-                  s_len = len(s)
-
-                  while start < s_len:
-                      end = start + limit
-                      if end >= s_len:
-                          sys.stdout.write(s[start:] + '\0')
-                          break
-
-                      chunk = s[start:end]
-                      last_newline = chunk.rfind('\n')
-
-                      if last_newline != -1:
-                          cut_point = last_newline + 1
-                      else:
-                          cut_point = limit
-
-                      sys.stdout.write(chunk[:cut_point] + '\0')
-                      start += cut_point
-                  PY
-                  )
-
-                  if [[ "${#MSG_CHUNKS[@]}" -eq 0 ]]; then
-                    MSG_CHUNKS=("No commit message.")
-                  fi
-
-                  TOTAL="${#MSG_CHUNKS[@]}"
-
-                  FIRST_MSG="${MSG_CHUNKS[0]}"
-
-                  PAYLOAD="$(jq -cn \
-                    --arg msg "$FIRST_MSG" \
-                    --arg url "$COMMIT_URL" \
-                    --arg author "$DISCORD_AUTHOR" \
-                    --arg branch "$BRANCH" \
-                    --arg time "$TIMESTAMP" \
-                    --arg stats "$STATS_TEXT" \
-                    --arg types "$FILE_TYPES" \
-                    --arg repo "$REPO_NAME" \
-                    --arg repofull "$REPO_FULL" \
-                    --arg idx "1" \
-                    --arg total "$TOTAL" \
-                    '{
-                      username: ($repo + " Commits"),
-                      avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
-                      embeds: [{
-                        title: ("[" + $repo + "] New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
-                        description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
-                        color: 3447003,
-                        timestamp: $time,
-                        fields: [
-                          {name: "Repository", value: $repofull, inline: true},
-                          {name: "Author", value: $author, inline: true},
-                          {name: "Branch", value: $branch, inline: true},
-                          {name: "📊 Changes", value: $stats, inline: false},
-                          {name: "📂 File Types", value: $types, inline: false}
-                        ]
-                      }]
-                    }'
-                  )"
-
-                  curl -sS --fail-with-body \
-                    -H "Content-Type: application/json" \
-                    -d "$PAYLOAD" \
-                    "$WEBHOOK"
-
-                  for ((i = 1; i < TOTAL; i++)); do
-                    PART="${MSG_CHUNKS[$i]}"
-                    IDX="$((i+1))"
-
-                    CONT_PAYLOAD="$(jq -cn \
-                      --arg msg "$PART" \
-                      --arg url "$COMMIT_URL" \
-                      --arg time "$TIMESTAMP" \
-                      --arg repo "$REPO_NAME" \
-                      --arg repofull "$REPO_FULL" \
-                      --arg idx "$IDX" \
-                      --arg total "$TOTAL" \
-                      '{
-                        username: ($repo + " Commits"),
-                        avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
-                        embeds: [{
-                          title: ("[" + $repo + "] New Commit (continued " + $idx + "/" + $total + ")"),
-                          description: ($msg + "\n\n[View Commit](" + $url + ")"),
-                          color: 3447003,
-                          timestamp: $time,
-                          fields: [
-                            {name: "Repository", value: $repofull, inline: true}
-                          ]
-                        }]
-                      }'
-                    )"
-
-                    curl -sS --fail-with-body \
-                      -H "Content-Type: application/json" \
-                      -d "$CONT_PAYLOAD" \
-                      "$WEBHOOK"
-                  done
+      - name: Send to Discord
+        env:
+          WEBHOOK: ${{ secrets.PUSH_NOTIFIER }}
+        shell: bash
+        run: |
+          # (unchanged)
+          set -euo pipefail
+          COMMIT_MSG="$(git log -1 --pretty=%B)"
+          export CHUNK_LIMIT=3500
+          export COMMIT_MSG
+          mapfile -d '' MSG_CHUNKS < <(
+            python3 - << 'PY'
+          import os,sys
+          s=os.environ.get("COMMIT_MSG","")
+          limit=int(os.environ.get("CHUNK_LIMIT","3500"))
+          if not s:
+              sys.stdout.write("No commit message.\0");sys.exit(0)
+          start=0
+          while start<len(s):
+              end=start+limit
+              if end>=len(s):
+                  sys.stdout.write(s[start:]+'\0');break
+              chunk=s[start:end]
+              last_newline=chunk.rfind('\n')
+              cut=(last_newline+1) if last_newline!=-1 else limit
+              sys.stdout.write(chunk[:cut]+'\0')
+              start+=cut
+          PY
+          )
+          if [[ "${#MSG_CHUNKS[@]}" -eq 0 ]]; then MSG_CHUNKS=("No commit message."); fi
+          TOTAL="${#MSG_CHUNKS[@]}"
+          FIRST_MSG="${MSG_CHUNKS[0]}"
+          PAYLOAD="$(jq -cn \
+            --arg msg "$FIRST_MSG" \
+            --arg url "$COMMIT_URL" \
+            --arg author "$DISCORD_AUTHOR" \
+            --arg branch "$BRANCH" \
+            --arg time "$TIMESTAMP" \
+            --arg stats "$STATS_TEXT" \
+            --arg types "$FILE_TYPES" \
+            --arg repo "$REPO_NAME" \
+            --arg repofull "$REPO_FULL" \
+            --arg idx "1" \
+            --arg total "$TOTAL" \
+            '{username:($repo+" Commits"),avatar_url:"https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
+              embeds:[{title:("["+$repo+"] New Commit"+(if ($total|tonumber)>1 then " ("+$idx+"/"+$total+")" else "" end)),
+              description:("📝 **Summary**\n"+$msg+"\n\n[View Commit]("+$url+")"),
+              color:3447003,timestamp:$time,
+              fields:[{name:"Repository",value:$repofull,inline:true},
+                      {name:"Author",value:$author,inline:true},
+                      {name:"Branch",value:$branch,inline:true},
+                      {name:"📊 Changes",value:$stats,inline:false},
+                      {name:"📂 File Types",value:$types,inline:false}]}]}' )"
+          curl -sS --fail-with-body -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK"
+          for ((i=1;i<TOTAL;i++)); do
+            PART="${MSG_CHUNKS[$i]}"; IDX="$((i+1))"
+            CONT_PAYLOAD="$(jq -cn \
+              --arg msg "$PART" \
+              --arg url "$COMMIT_URL" \
+              --arg time "$TIMESTAMP" \
+              --arg repo "$REPO_NAME" \
+              --arg repofull "$REPO_FULL" \
+              --arg idx "$IDX" \
+              --arg total "$TOTAL" \
+              '{username:($repo+" Commits"),avatar_url:"https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
+                embeds:[{title:("["+$repo+"] New Commit (continued "+$idx+"/"+$total+")"),
+                description:($msg+"\n\n[View Commit]("+$url+")"),
+                color:3447003,timestamp:$time,
+                fields:[{name:"Repository",value:$repofull,inline:true}]}]}' )"
+            curl -sS --fail-with-body -H "Content-Type: application/json" -d "$CONT_PAYLOAD" "$WEBHOOK"
+          done
