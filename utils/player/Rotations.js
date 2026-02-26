@@ -55,7 +55,7 @@ class RotationsTo {
         this.target = null;
         this.targetVector = null;
         this.trackedEntity = null;
-        this.precision = 0.1;
+        this.precision = 0.2;
         this.isRotating = false;
         this.lastTime = 0;
         this.actions = [];

@@ -128,7 +128,7 @@ class PathSpline {
         let lastPlacedRaw = smoothSplineData[0];
         let lastForwardDir = null;
 
-        boxPositions.push(new Vec3d(start.x + 0.5, start.y + 2.62, start.z + 0.5));
+        boxPositions.push(new Vec3d(start.x, start.y + 2.12, start.z));
 
         for (let i = 1; i < smoothSplineData.length - 1; i++) {
             const curr = smoothSplineData[i];
@@ -174,14 +174,14 @@ class PathSpline {
                     if (dot < 0.4) continue;
                 }
 
-                const targetPoint = new Vec3d(curr.x + offsetX + 0.5, curr.y + 2.62, curr.z + offsetZ + 0.5);
+                const targetPoint = new Vec3d(curr.x + offsetX, curr.y + 2.12, curr.z + offsetZ);
                 this.appendLookPoint(boxPositions, this.adjustLookPoint(targetPoint, curr));
                 lastPlacedRaw = curr;
                 if (cfMag > 0.1) lastForwardDir = { x: currentForward.x / cfMag, z: currentForward.z / cfMag };
             }
         }
 
-        this.appendLookPoint(boxPositions, new Vec3d(endPoint.x + 0.5, endPoint.y + 2.62, endPoint.z + 0.5));
+        this.appendLookPoint(boxPositions, new Vec3d(endPoint.x, endPoint.y + 2.12, endPoint.z));
         this.cachedBoxPositions = boxPositions;
         return boxPositions;
     }
@@ -415,7 +415,7 @@ class PathSpline {
 
         this.cachedFlyLookPoints.forEach((pos) => {
             if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
-                const renderPos = new Vec3d(pos.x, pos.y - 0.2, pos.z);
+                const renderPos = new Vec3d(pos.x, pos.y + 0.2, pos.z);
                 Render.drawSizedBox(renderPos, size, size, size, Render.Color(255, 0, 255, 180), true, 1, true);
             }
         });
