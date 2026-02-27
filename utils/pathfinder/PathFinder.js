@@ -446,7 +446,9 @@ class Finder {
         const feetPos = new BP(x, y, z);
         const headPos = new BP(x, y + 1, z);
 
-        return world.getBlockState(feetPos).getCollisionShape(world, feetPos).isEmpty() && world.getBlockState(headPos).getCollisionShape(world, headPos).isEmpty();
+        return (
+            world.getBlockState(feetPos).getCollisionShape(world, feetPos).isEmpty() && world.getBlockState(headPos).getCollisionShape(world, headPos).isEmpty()
+        );
     }
 
     resolveFlyPoint(x, y, z, verticalSearch = 3) {
