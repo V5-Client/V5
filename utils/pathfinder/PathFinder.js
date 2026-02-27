@@ -48,7 +48,7 @@ class Finder {
         this.flySplinePath = null;
 
         v5Command('path', (...args) => {
-            const end = this.parseGoalCoordinates(args, 'Usage: /v5 path goto x y z [x2 y2 z2...]');
+            const end = this.parseGoalCoordinates(args, 'Usage: /v5 path goto <x> <y> <z> [x2 y2 z2...]');
             if (!end) return;
 
             this.resetPath();
@@ -57,7 +57,7 @@ class Finder {
         });
 
         v5Command('flypath', (...args) => {
-            const end = this.parseGoalCoordinates(args, 'Usage: /v5 path fly <x> <y> <z> [x2 y2 z2...]');
+            const end = this.parseGoalCoordinates(args, 'Usage: /v5 path fly <x> <y> <z> [x2 y2 z2...]', true);
             if (!end) return;
 
             this.resetPath();
@@ -71,7 +71,7 @@ class Finder {
         });
     }
 
-    parseGoalCoordinates(args, usageText) {
+    parseGoalCoordinates(args, usageText, isFly = false) {
         if (args.length < 3 || args.length % 3 !== 0) {
             Chat.messagePathfinder(usageText);
             return null;
@@ -85,7 +85,12 @@ class Finder {
 
         const goals = [];
         for (let i = 0; i < coords.length; i += 3) {
-            goals.push([coords[i], coords[i + 1], coords[i + 2]]);
+            const point = isFly ? this.resolveFlyPoint(coords[i], coords[i + 1], coords[i + 2]) : [coords[i], coords[i + 1], coords[i + 2]];
+            if (!point) {
+                showNotification('Invalid Fly Goal', `No valid fly position near ${coords[i]}, ${coords[i + 1]}, ${coords[i + 2]}.`, 'ERROR', 5000);
+                return null;
+            }
+            goals.push(point);
         }
 
         return goals;
@@ -411,16 +416,61 @@ class Finder {
         let y = Math.round(Player.getY());
 
         for (let i = 0; i < 5; i++) {
-            if (this.isBlockWalkable(x, y, z)) return { x, y, z };
+            if (this.isBlockWalkable(x, y, z)) return { x, y: y - 1, z };
             y--;
         }
         return { x, y: Math.round(Player.getY()) - 1, z };
+    }
+
+    getPlayerFlyStart() {
+        const point = this.resolveFlyPoint(Player.getX(), Player.getY(), Player.getZ(), 4);
+        if (point) return { x: point[0], y: point[1], z: point[2] };
+
+        return {
+            x: Math.floor(Player.getX()),
+            y: Math.floor(Player.getY()),
+            z: Math.floor(Player.getZ()),
+        };
     }
 
     isBlockWalkable(x, y, z) {
         const pos = new BP(x, y, z);
         const world = World.getWorld();
         return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
+    }
+
+    isFlyPositionClear(x, y, z) {
+        const world = World.getWorld();
+        if (!world) return false;
+
+        const feetPos = new BP(x, y, z);
+        const headPos = new BP(x, y + 1, z);
+
+        return world.getBlockState(feetPos).getCollisionShape(world, feetPos).isEmpty() && world.getBlockState(headPos).getCollisionShape(world, headPos).isEmpty();
+    }
+
+    resolveFlyPoint(x, y, z, verticalSearch = 3) {
+        const baseX = Math.floor(x);
+        const baseY = Math.floor(y);
+        const baseZ = Math.floor(z);
+
+        if (this.isFlyPositionClear(baseX, baseY, baseZ)) {
+            return [baseX, baseY, baseZ];
+        }
+
+        for (let offset = 1; offset <= verticalSearch; offset++) {
+            const upY = baseY + offset;
+            if (this.isFlyPositionClear(baseX, upY, baseZ)) {
+                return [baseX, upY, baseZ];
+            }
+
+            const downY = baseY - offset;
+            if (this.isFlyPositionClear(baseX, downY, baseZ)) {
+                return [baseX, downY, baseZ];
+            }
+        }
+
+        return null;
     }
 
     createStartPoints(startPoints) {
@@ -437,7 +487,7 @@ class Finder {
         const points = [];
         const metadata = [];
 
-        const start = this.getPlayerStart();
+        const start = this.isFly ? this.getPlayerFlyStart() : this.getPlayerStart();
         const playerPoint = [start.x, start.y, start.z];
 
         points.push(playerPoint);
@@ -445,6 +495,10 @@ class Finder {
             type: 'player',
             point: [playerPoint[0], playerPoint[1], playerPoint[2]],
         });
+
+        if (this.isFly) {
+            return { points, metadata };
+        }
 
         PathConfig.getAreaWarpPoints(Utils.area()).forEach((warpPoint) => {
             const point = [warpPoint.x, warpPoint.y, warpPoint.z];

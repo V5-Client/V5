@@ -106,7 +106,7 @@ class PathJumps {
     }
 
     hasGapAt(x, y, z) {
-        return !this.isBlockSolid(x, y, z) || !this.isBlockSolid(x, y - 1, z);
+        return !this.isBlockSolid(x, y, z);
     }
 
     calculateGapWidth(startNode, path, startIndex) {
@@ -180,7 +180,6 @@ class PathJumps {
         const name = landingBlock.type.getRegistryName().toLowerCase();
         if (name.includes('slab') || name.includes('stair') || name.includes('snow')) return false;
         if (!this.isBlockSolid(node.x, node.y, node.z)) return false;
-        if (!this.isBlockSolid(node.x, node.y - 1, node.z)) return false;
         if (this.isBlockSolid(node.x, baseY + 1, node.z)) return false;
         if (this.isBlockSolid(node.x, baseY + 2, node.z)) return false;
         return true;
