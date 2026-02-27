@@ -1,4 +1,3 @@
-// TODO: Implement gap jumping (like jumping over the lava rivers in forge). Detect from pathspline y pos changes.
 import { Chat } from '../../Chat';
 import { BP, SnowBlock, Vec3d } from '../../Constants';
 import { Keybind } from '../../player/Keybinding';
@@ -203,6 +202,53 @@ class PathJumps {
         return false;
     }
 
+    checkGapJump(path, closestIndex) {
+        if (closestIndex === -1 || path.length < closestIndex + 3) return false;
+
+        const pY = Player.getY();
+        let baseY = Math.round(path[closestIndex].y);
+
+        if (Math.abs(pY - (baseY + 1)) > 1.8) return false;
+
+        let dropIndex = -1;
+        let recoveryIndex = -1;
+
+        const maxLook = Math.min(path.length, closestIndex + 7);
+
+        for (let i = closestIndex + 1; i < maxLook; i++) {
+            let y = Math.round(path[i].y);
+            if (y < baseY) {
+                if (dropIndex === -1) dropIndex = i;
+            } else if (dropIndex !== -1 && y >= baseY) {
+                recoveryIndex = i;
+                break;
+            } else if (y > baseY && dropIndex === -1) {
+                return false;
+            }
+        }
+
+        if (dropIndex !== -1 && recoveryIndex !== -1) {
+            const dropStartNode = path[dropIndex - 1];
+            const recoveryNode = path[recoveryIndex];
+
+            const gapHorizDistSq = Math.pow(recoveryNode.x - dropStartNode.x, 2) + Math.pow(recoveryNode.z - dropStartNode.z, 2);
+
+            if (gapHorizDistSq > 0 && gapHorizDistSq <= 20) {
+                const pX = Player.getX();
+                const pZ = Player.getZ();
+
+                const distToEdgeSq = Math.pow(pX - (dropStartNode.x + 0.5), 2) + Math.pow(pZ - (dropStartNode.z + 0.5), 2);
+
+                if (distToEdgeSq <= 1.35 * 1.35) {
+                    if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Gap jump detected');
+                    Keybind.setKey('space', true);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     detectJump(path) {
         if (!Player.getPlayer()) return this.reset();
         const { lookahead, closestIndex } = this.drawPathAndPlayerLookAhead(path);
@@ -211,13 +257,19 @@ class PathJumps {
 
         if (closestIndex === -1) return this.reset();
         if (this.checkFluidJump()) return;
+
         if (!Player.getPlayer().isOnGround()) return;
+
         if (this.hasLowCeiling(Math.floor(Player.getX()), Math.floor(Player.getY() - 0.001), Math.floor(Player.getZ()))) {
             this.reset();
             return;
         }
+
+        if (this.checkGapJump(path, closestIndex)) return;
+
         if (this.checkSnowJump(lookahead)) return;
         if (this.checkObstacleJump(lookahead)) return;
+
         if (!Movement.isRecovering()) {
             Keybind.setKey('space', false);
         }

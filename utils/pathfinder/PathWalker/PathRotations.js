@@ -73,7 +73,16 @@ class PathRotations {
         this.unseenSince = 0;
         this.unseenStartPathPosition = 0;
         this.currentPathCurvature = 0;
+        this.initialTurnBoostTicks = 0;
         PathRotationsUtility.stopRotation();
+    }
+
+    shouldBoostInitialTurn(yawError) {
+        return this.initialTurnBoostTicks > 0 && Math.abs(yawError) >= Math.max(35.0, this.YAW_DEADZONE * 4);
+    }
+
+    getInitialTurnBoostFactor(yawError) {
+        return this.shouldBoostInitialTurn(yawError) ? 2.0 : 1.0;
     }
 
     isPointVisible(playerEyes, targetPoint) {
@@ -357,7 +366,8 @@ class PathRotations {
         const remainingPath = lastIndex - this.currentPathPosition;
         const finishFactor = remainingPath < 3.0 ? Math.max(0.1, remainingPath / 3.0) : 1.0;
         const isStraight = this.currentPathCurvature < 0.15;
-        const dynamicSmooth = (isStraight ? this.SMOOTH_FACTOR * 0.5 : this.SMOOTH_FACTOR) / finishFactor;
+        const dynamicSmoothBase = (isStraight ? this.SMOOTH_FACTOR * 0.5 : this.SMOOTH_FACTOR) / finishFactor;
+        const dynamicSmooth = Math.min(1.0, dynamicSmoothBase * this.getInitialTurnBoostFactor(yawDelta));
         const dynamicYawDeadzone = (isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE) * finishFactor;
 
         if (Math.abs(yawDelta) > dynamicYawDeadzone) {
@@ -367,6 +377,14 @@ class PathRotations {
         const pitchDelta = angles.pitch - this.rawTargetPitch;
         if (Math.abs(pitchDelta) > this.PITCH_DEADZONE * finishFactor) {
             this.rawTargetPitch += pitchDelta * Math.min(1.0, dynamicSmooth);
+        }
+
+        if (this.initialTurnBoostTicks > 0) {
+            if (Math.abs(MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw)) <= Math.max(10.0, this.YAW_DEADZONE * 2)) {
+                this.initialTurnBoostTicks = 0;
+            } else {
+                this.initialTurnBoostTicks--;
+            }
         }
 
         const lastPoint = this.boxPositions[lastIndex];
@@ -387,19 +405,22 @@ class PathRotations {
         const pitchError = this.rawTargetPitch - this.currentPitch;
         const absYawError = Math.abs(yawError);
         const isStraight = this.currentPathCurvature < 0.2;
+        const initialTurnBoostFactor = this.getInitialTurnBoostFactor(yawError);
         const errorMultiplier = Math.min(1.5, Math.max(0.6, absYawError / 10));
-        const dynamicKp = this.BASE_KP * errorMultiplier;
+        const dynamicKp = this.BASE_KP * errorMultiplier * initialTurnBoostFactor;
         const dynamicKd = isStraight ? this.KD * 1.3 : this.KD;
+        const accelLimit = this.ACCEL_LIMIT * initialTurnBoostFactor;
+        const maxVelocity = this.MAX_VELOCITY * initialTurnBoostFactor;
 
         if (absYawError < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.02) {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
         } else {
             let desiredYawAccel = yawError * dynamicKp - this.yawVelocity * dynamicKd;
-            desiredYawAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredYawAccel));
+            desiredYawAccel = Math.max(-accelLimit, Math.min(accelLimit, desiredYawAccel));
             this.yawVelocity += desiredYawAccel;
             this.yawVelocity *= 0.92;
-            this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
+            this.yawVelocity = Math.max(-maxVelocity, Math.min(maxVelocity, this.yawVelocity));
             this.currentYaw += this.yawVelocity;
         }
 
@@ -408,10 +429,10 @@ class PathRotations {
             this.pitchVelocity = 0;
         } else {
             let desiredPitchAccel = pitchError * dynamicKp - this.pitchVelocity * dynamicKd;
-            desiredPitchAccel = Math.max(-this.ACCEL_LIMIT, Math.min(this.ACCEL_LIMIT, desiredPitchAccel));
+            desiredPitchAccel = Math.max(-accelLimit, Math.min(accelLimit, desiredPitchAccel));
             this.pitchVelocity += desiredPitchAccel;
             this.pitchVelocity *= 0.92;
-            this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
+            this.pitchVelocity = Math.max(-maxVelocity, Math.min(maxVelocity, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
     }
@@ -463,6 +484,7 @@ class PathRotations {
             this.currentPathPosition = 0;
             this.isInitialized = true;
             this.rotationActive = true;
+            this.initialTurnBoostTicks = 10;
         }
     }
 }
