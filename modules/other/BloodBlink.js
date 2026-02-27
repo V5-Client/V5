@@ -1,3 +1,4 @@
+//@VIP
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { CommonPingS2C, WorldTimeUpdateS2C } from '../../utils/Packets';
@@ -36,12 +37,13 @@ class BloodBlink extends ModuleBase {
         this.blinkReady = false;
         this.dungeonStarted = true;
 
-        this.pearlSlot = 1;
-        this.aotvSlot = 1;
+        this.pearlSlot = -1;
+        this.aotvSlot = -1;
 
         this.on('tick', () => {
             this.pearlSlot = Guis.findItemInHotbar('Ender Pearl');
-            this.aotvSlot = Guis.findItemInHotbar('Aspect of the Void') || Guis.findItemInHotbar('Aspect of the End');
+            this.aotvSlot = Guis.findItemInHotbar('Aspect of the Void');
+            if (this.aotvSlot === -1) this.aotvSlot = Guis.findItemInHotbar('Aspect of the End');
             if (this.blinkDelay >= 0 && --this.blinkDelay <= 0) {
                 this.blinkDelay = -1;
                 Keybind.setKey('space', false);
@@ -49,8 +51,9 @@ class BloodBlink extends ModuleBase {
             }
         });
 
-        register('command', () => {
-            this.blink();
+        register('command', (...args) => {
+            const customRoomName = (args || []).join(' ').trim();
+            this.blink(true, customRoomName || 'blood');
         }).setName('BloodBlink');
 
         this.on('packetReceived', (packet) => {
@@ -62,31 +65,31 @@ class BloodBlink extends ModuleBase {
             else this.outbounds = this.outbounds - 1;
             if (!Utils.subArea().startsWith('The Catacombs')) return;
             if (this.dungeonStarted) return;
-            if (this.outbounds == 21 && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
+            if (this.outbounds == 21 && (Player.getY() == 71 || Player.getY() == 72)) return this.setupBlink();
+            if (this.outbounds == 1 && this.blinkReady && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
         }).setFilteredClass(CommonPingS2C);
 
         this.on('chat', (event) => {
             const msg = event.message.getUnformattedText();
             if (msg == 'Starting in 1 second.') this.blinkReady = true;
-            if (
-                msg ==
-                'You are not allowed to use Potion Effects while in Dungeon, therefore all active effects have been paused and stored. They will be restored when you leave Dungeon!'
-            ) {
+            const catacombsEntryRegex = /(?:\[[^\]]+\]\s+)?[A-Za-z0-9_]{1,16} entered (?:MM )?The Catacombs, [^!\n]+!/;
+            if (catacombsEntryRegex.test(msg)) {
                 this.dungeonStarted = false;
-                Client.scheduleTask(200, () => {
+                Client.scheduleTask(300, () => {
                     this.dungeonStarted = true;
                 });
             }
         });
     }
 
-    getBloodCenter() {
+    getBloodCenter(roomName = 'blood') {
         if (this.reflectionFailed || !DungeonScanner || !roomsField) return null;
         const rooms = roomsField.get(DungeonScanner.INSTANCE);
         if (!rooms) return null;
+        const roomQuery = roomName.toString().trim().toLowerCase() || 'blood';
         for (const room of rooms) {
-            const name = room?.name?.toString ? room.name.toString() : room?.name;
-            if (name && name.toLowerCase().includes('blood')) {
+            const name = room?.name?.toString();
+            if (name && name.toLowerCase().includes(roomQuery)) {
                 const center = this.getRoomCenter(room);
                 if (center) return center;
             }
@@ -134,13 +137,19 @@ class BloodBlink extends ModuleBase {
         RIGHT_CLICK_METHOD.invoke(mc);
     }
 
-    blink() {
+    setHeldItemSafe(slot) {
+        if (slot < 0 || slot > 8) return false;
+        Player.setHeldItemIndex(slot);
+        return true;
+    }
+
+    blink(force = false, roomName = 'blood') {
         if (this.reflectionFailed) {
             Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
             return;
         }
 
-        const bloodCenter = this.getBloodCenter();
+        const bloodCenter = this.getBloodCenter(roomName);
         const playerX = Player.getX();
         const playerY = Player.getY();
         const playerZ = Player.getZ();
@@ -150,14 +159,14 @@ class BloodBlink extends ModuleBase {
         const closest = { x: -220, z: -220 };
         const distanceTo = (point) => Math.hypot(point.x - playerX, point.z - playerZ);
 
-        const upTo210LeapsY = Math.round((200 - playerY) / 12);
+        const upTo210LeapsY = Math.round((220 - playerY) / 12);
         const toCornerLeapsX = Math.round((closest.x - playerX) / 12);
         const toCornerLeapsXDelta = Math.round((toCornerLeapsX - (closest.x - playerX) / 12) * 12);
         console.log(toCornerLeapsXDelta);
         const toCornerLeapsZ = Math.round((closest.z - playerZ) / 12);
         const toCornerLeapsZDelta = Math.round((toCornerLeapsZ - (closest.z - playerZ) / 12) * 12);
         console.log(toCornerLeapsZDelta);
-        const downTo30LeapsY = Math.round(220 / 12);
+        const downTo30LeapsY = Math.round(300 / 12);
         const toBloodLeapsX = Math.round((bloodX - closest.x - toCornerLeapsXDelta) / 12);
         const toBloodLeapsZ = Math.round((bloodZ - closest.z - toCornerLeapsZDelta) / 12);
         const directToBloodLeapsX = Math.round((bloodX - playerX) / 12);
@@ -168,7 +177,7 @@ class BloodBlink extends ModuleBase {
         Rotations.rotateToAngles(0, -90);
 
         if (bloodCenter) {
-            if (!this.blinkReady) return (this.blinkDelay = 20);
+            if (!this.blinkReady && !force) return (this.blinkDelay = 20);
             this.blinkReady = false;
             Client.scheduleTask(0, () => {
                 Rotations.rotateToAngles(Player.getYaw(), -90);
@@ -188,21 +197,12 @@ class BloodBlink extends ModuleBase {
             });
 
             Client.scheduleTask(2, () => {
-                Player.setHeldItemIndex(this.pearlSlot);
+                this.setHeldItemSafe(this.pearlSlot);
             });
             Client.scheduleTask(3, () => {
                 this.rightClick();
             });
-            Client.scheduleTask(4, () => {
-                this.rightClick();
-            });
             Client.scheduleTask(5, () => {
-                this.rightClick();
-            });
-            Client.scheduleTask(6, () => {
-                this.rightClick();
-            });
-            Client.scheduleTask(7, () => {
                 this.rightClick();
             });
         } else {
@@ -224,7 +224,7 @@ class BloodBlink extends ModuleBase {
         }
         if (Player.getY() >= 74) return (this.blinkDelay = 0); // standing on door method
         Client.scheduleTask(0, () => {
-            Player.setHeldItemIndex(this.aotvSlot);
+            this.setHeldItemSafe(this.aotvSlot);
         });
         Client.scheduleTask(1, () => {
             Rotations.rotateToAngles(0, -90);
@@ -234,7 +234,7 @@ class BloodBlink extends ModuleBase {
             this.rightClick();
         });
         Client.scheduleTask(3, () => {
-            Player.setHeldItemIndex(this.pearlSlot);
+            this.setHeldItemSafe(this.pearlSlot);
         });
         Client.scheduleTask(6, () => {
             this.rightClick();
@@ -255,7 +255,7 @@ class BloodBlink extends ModuleBase {
             this.rightClick();
         });
         Client.scheduleTask(19, () => {
-            Player.setHeldItemIndex(this.aotvSlot);
+            this.setHeldItemSafe(this.aotvSlot);
         });
         this.blinkDelay = 21;
     }

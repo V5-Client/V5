@@ -71,14 +71,59 @@ jobs:
                   EXT_LIST="${EXT_LIST:0:1024}"
                   echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
 
-            - name: Zip repository
+            - name: Build channel ZIPs
               if: ${{ endsWith(github.repository, '/V5') }}
               shell: bash
               run: |
                   set -euo pipefail
-                  zip -r V5.zip . -x ".git/*" ".github/*" ".vscode/*" "README.md" ".gitignore"
 
-            - name: Upload to Cloudflare R2
+                  strip_channel() {
+                    local dir="$1"
+                    local channel="$2"
+
+                    find "$dir" -name '*.js' -type f -print0 | while IFS= read -r -d '' file; do
+                      first_line="$(head -n 1 "$file" || true)"
+                      case "$first_line" in
+                        '//@Beta')
+                          if [[ "$channel" != "Beta" ]]; then
+                            truncate -s 0 "$file"
+                          else
+                            sed -i '1d' "$file"
+                          fi
+                          ;;
+                        '//@VIP')
+                          if [[ "$channel" == "Release" ]]; then
+                            truncate -s 0 "$file"
+                          else
+                            sed -i '1d' "$file"
+                          fi
+                          ;;
+                      esac
+                    done
+                  }
+
+                  workdir="$(mktemp -d)"
+                  trap 'rm -rf "$workdir"' EXIT
+
+                  source_dir="$workdir/source"
+                  mkdir -p "$source_dir"
+
+                  cp -a . "$source_dir"/
+                  rm -rf "$source_dir/.git" "$source_dir/.github" "$source_dir/.vscode"
+                  rm -f "$source_dir/README.md" "$source_dir/.gitignore"
+
+                  for channel in Release VIP Beta; do
+                    build_dir="$workdir/$channel"
+                    mkdir -p "$build_dir"
+                    cp -a "$source_dir"/. "$build_dir"/
+                    strip_channel "$build_dir" "$channel"
+                    (
+                      cd "$build_dir"
+                      zip -qr "$GITHUB_WORKSPACE/V5-$channel.zip" .
+                    )
+                  done
+
+            - name: Upload Release zip to R2
               if: ${{ endsWith(github.repository, '/V5') }}
               uses: cloudflare/wrangler-action@v3
               with:
@@ -86,8 +131,30 @@ jobs:
                   accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   wranglerVersion: '3'
                   command: >
-                      r2 object put v5-builds/V5.zip
-                      --file V5.zip
+                      r2 object put v5-builds/V5-Release.zip
+                      --file V5-Release.zip
+
+            - name: Upload VIP zip to R2
+              if: ${{ endsWith(github.repository, '/V5') }}
+              uses: cloudflare/wrangler-action@v3
+              with:
+                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  wranglerVersion: '3'
+                  command: >
+                      r2 object put v5-builds/V5-VIP.zip
+                      --file V5-VIP.zip
+
+            - name: Upload Beta zip to R2
+              if: ${{ endsWith(github.repository, '/V5') }}
+              uses: cloudflare/wrangler-action@v3
+              with:
+                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  wranglerVersion: '3'
+                  command: >
+                      r2 object put v5-builds/V5-Beta.zip
+                      --file V5-Beta.zip
 
             - name: Send to Discord
               env:
