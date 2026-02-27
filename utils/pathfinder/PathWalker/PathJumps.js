@@ -1,6 +1,6 @@
+// TODO: Implement gap jumping (like jumping over the lava rivers in forge). Detect from pathspline y pos changes.
 import { Chat } from '../../Chat';
 import { BP, SnowBlock, Vec3d } from '../../Constants';
-import { MathUtils } from '../../Math';
 import { Keybind } from '../../player/Keybinding';
 import PathConfig from '../PathConfig';
 import { PathExecutor } from '../PathExecutor';
@@ -16,11 +16,6 @@ class PathJumps {
 
         this.STEP_HEIGHT = 0.6;
         this.LOOKAHEAD_NODES = 3;
-        this.EDGE_LOOKAHEAD_NODES = 5;
-        this.EDGE_JUMP_DISTANCE = 1.8;
-        this.GAP_CHECK_RESOLUTION = 0.5;
-        this.MIN_GAP_WIDTH = 1.8;
-        this.MAX_GAP_SEARCH = 4;
 
         PathExecutor.onTick(() => {
             this.cacheFrame++;
@@ -105,37 +100,6 @@ class PathJumps {
         }
     }
 
-    hasGapAt(x, y, z) {
-        return !this.isBlockSolid(x, y, z);
-    }
-
-    calculateGapWidth(startNode, path, startIndex) {
-        const maxSearch = Math.min(startIndex + this.MAX_GAP_SEARCH, path.length);
-        for (let i = startIndex; i < maxSearch; i++) {
-            const node = path[i];
-            if (!this.hasGapAt(node.x, node.y, node.z)) {
-                const dx = node.x - startNode.x;
-                const dz = node.z - startNode.z;
-                return Math.hypot(dx, dz);
-            }
-        }
-        return this.MAX_GAP_SEARCH + 1;
-    }
-
-    hasGapBetweenNodes(node1, node2) {
-        const dx = node2.x - node1.x,
-            dy = node2.y - node1.y,
-            dz = node2.z - node1.z;
-        const dist = Math.hypot(dx, dz);
-        const numChecks = Math.ceil(dist / this.GAP_CHECK_RESOLUTION);
-        if (numChecks === 0) return false;
-        for (let i = 0; i <= numChecks; i++) {
-            const t = i / numChecks;
-            if (this.hasGapAt(node1.x + dx * t, node1.y + dy * t, node1.z + dz * t)) return true;
-        }
-        return false;
-    }
-
     getSnowLayers(block) {
         if (!block || block.type.getRegistryName() !== 'minecraft:snow') return 0;
         try {
@@ -143,63 +107,6 @@ class PathJumps {
         } catch (e) {
             return 0;
         }
-    }
-
-    getHorizontalDistance(x1, z1, x2, z2) {
-        const dx = x1 - x2;
-        const dz = z1 - z2;
-        return Math.hypot(dx, dz);
-    }
-
-    getYawTo(fromX, fromZ, toX, toZ) {
-        const dx = toX - fromX;
-        const dz = toZ - fromZ;
-        return (Math.atan2(-dx, dz) * 180) / Math.PI;
-    }
-
-    getYawDifference(fromYaw, toYaw) {
-        return Math.abs(MathUtils.getAngleDifference(fromYaw, toYaw));
-    }
-
-    isYawAligned(playerYaw, targetYaw, maxDiff) {
-        return this.getYawDifference(playerYaw, targetYaw) <= maxDiff;
-    }
-
-    findLandingIndex(path, startIndex) {
-        const maxSearch = Math.min(startIndex + this.MAX_GAP_SEARCH, path.length - 1);
-        for (let i = startIndex + 1; i <= maxSearch; i++) {
-            const node = path[i];
-            if (!this.hasGapAt(node.x, node.y, node.z)) return i;
-        }
-        return -1;
-    }
-
-    isSafeLanding(node, baseY) {
-        const landingBlock = this.getCachedBlock(node.x, node.y, node.z);
-        if (!landingBlock) return false;
-        const name = landingBlock.type.getRegistryName().toLowerCase();
-        if (name.includes('slab') || name.includes('stair') || name.includes('snow')) return false;
-        if (!this.isBlockSolid(node.x, node.y, node.z)) return false;
-        if (this.isBlockSolid(node.x, baseY + 1, node.z)) return false;
-        if (this.isBlockSolid(node.x, baseY + 2, node.z)) return false;
-        return true;
-    }
-
-    hasClearJumpArc(startNode, endNode, baseY) {
-        const dx = endNode.x - startNode.x;
-        const dz = endNode.z - startNode.z;
-        const dist = Math.hypot(dx, dz);
-        const numChecks = Math.ceil(dist / this.GAP_CHECK_RESOLUTION);
-        if (numChecks <= 0) return false;
-        for (let i = 1; i < numChecks; i++) {
-            const t = i / numChecks;
-            const x = startNode.x + dx * t;
-            const z = startNode.z + dz * t;
-            if (this.isBlockSolid(x, baseY, z)) return false;
-            if (this.isBlockSolid(x, baseY + 1, z)) return false;
-            if (this.isBlockSolid(x, baseY + 2, z)) return false;
-        }
-        return true;
     }
 
     drawPathAndPlayerLookAhead(path) {
@@ -266,54 +173,6 @@ class PathJumps {
         return false;
     }
 
-    checkEdgeJump(path, closestIndex) {
-        const player = Player.getPlayer();
-        if (!player || !player.isOnGround()) return false;
-
-        const start = closestIndex + 1;
-        const end = Math.min(start + this.EDGE_LOOKAHEAD_NODES, path.length);
-        const playerX = Player.getX();
-        const playerZ = Player.getZ();
-        const playerYaw = player.getYaw();
-        const baseY = Math.floor(Player.getY() - 0.001);
-
-        for (let i = start; i < end; i++) {
-            const node = path[i];
-            const block = this.getCachedBlock(node.x, node.y, node.z);
-            if (block) {
-                const name = block.type.getRegistryName().toLowerCase();
-                if (name.includes('snow')) return false;
-                if (name.includes('slab') || name.includes('stair')) continue;
-            }
-
-            let hasGap = this.hasGapAt(node.x, node.y, node.z);
-            if (!hasGap && i > start) hasGap = this.hasGapBetweenNodes(path[i - 1], node);
-            if (!hasGap) continue;
-
-            const landingIndex = this.findLandingIndex(path, i);
-            if (landingIndex === -1) continue;
-            const landingNode = path[landingIndex];
-
-            const jumpDistance = this.getHorizontalDistance(node.x + 0.5, node.z + 0.5, landingNode.x + 0.5, landingNode.z + 0.5);
-            if (jumpDistance < this.MIN_GAP_WIDTH || jumpDistance > this.MAX_GAP_SEARCH + 0.5) continue;
-
-            const distanceToEdge = this.getHorizontalDistance(playerX, playerZ, node.x + 0.5, node.z + 0.5);
-            if (distanceToEdge > this.EDGE_JUMP_DISTANCE) continue;
-
-            const targetYaw = this.getYawTo(playerX, playerZ, landingNode.x + 0.5, landingNode.z + 0.5);
-            if (!this.isYawAligned(playerYaw, targetYaw, 35)) continue;
-
-            if (Math.abs(landingNode.y - baseY) > 0.6) continue;
-            if (!this.isSafeLanding(landingNode, baseY)) continue;
-            if (!this.hasClearJumpArc(node, landingNode, baseY)) continue;
-
-            if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Edge jump detected');
-            Keybind.setKey('space', true);
-            return true;
-        }
-        return false;
-    }
-
     checkObstacleJump(lookahead) {
         if (lookahead.length === 0) return false;
         const pX = Player.getX(),
@@ -358,7 +217,6 @@ class PathJumps {
             return;
         }
         if (this.checkSnowJump(lookahead)) return;
-        if (this.checkEdgeJump(path, closestIndex)) return;
         if (this.checkObstacleJump(lookahead)) return;
         if (!Movement.isRecovering()) {
             Keybind.setKey('space', false);
