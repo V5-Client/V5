@@ -424,7 +424,7 @@ class Bot extends ModuleBase {
             : !this.currentTarget || this.isAirOrBedrock(blockName) || this.allowScan;
     }
 
-    handleRotationOrScan() {
+    handleRotationOrScan(allowStickyTarget = true) {
         if (this.manualScan) {
             this.lowestCostBlockIndex++;
             if (this.lowestCostBlockIndex >= this.foundLocations.length) {
@@ -436,6 +436,10 @@ class Bot extends ModuleBase {
             this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
             return;
         }
+        const currentName = this.currentTarget
+            ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z)?.type?.getRegistryName() || ''
+            : '';
+        if (allowStickyTarget && this.currentTarget && !this.isAirOrBedrock(currentName) && this.refreshCurrentTargetAimPoint()) return;
 
         this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
         this.allowScan = false;
@@ -510,7 +514,7 @@ class Bot extends ModuleBase {
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, Date.now() + this.movementReevalCooldownMs);
             this.stopMiningControls(true);
             this.resetTickCounters();
-            this.handleRotationOrScan();
+            this.handleRotationOrScan(true);
             return;
         }
         if (this.MOVEMENT && Date.now() < this.movementReevalCooldownUntil) {
@@ -533,7 +537,7 @@ class Bot extends ModuleBase {
         const shouldGlide = this.shouldGlideToNextBlock(blockName);
         if (shouldGlide) {
             this.resetTickCounters();
-            this.handleRotationOrScan();
+            this.handleRotationOrScan(false);
         }
 
         const targetVector = this.getAimVectorForTarget(this.currentTarget);
@@ -604,7 +608,9 @@ class Bot extends ModuleBase {
                 const aimData = this.findVisibleAimPoint(x, y, z, eyePos, lookVec, mineReachSq, this.FOVPenalty);
 
                 if (aimData) {
-                    const cost = this.calculateBlockCost(targetCosts[blockName], aimData.dist, aimData.dot);
+                    const baseCost = this.calculateBlockCost(targetCosts[blockName], aimData.dist, aimData.dot);
+                    const visibilityStability = this.calculateVisibilityStability(x, y, z, eyePos, mineReachSq);
+                    const cost = baseCost + (1 - visibilityStability) * 18;
                     found.push({
                         x,
                         y,
@@ -613,6 +619,7 @@ class Bot extends ModuleBase {
                         aimX: aimData.x,
                         aimY: aimData.y,
                         aimZ: aimData.z,
+                        visibilityStability,
                     });
                 }
             }
@@ -880,6 +887,54 @@ class Bot extends ModuleBase {
         return baseCost + distance * 2 - dotProduct * 50;
     }
 
+    calculateVisibilityStability(x, y, z, eyePos, maxReachSq) {
+        const offsets = [
+            [0, 0, 0],
+            [0.18, 0, 0],
+            [-0.18, 0, 0],
+            [0, 0, 0.18],
+            [0, 0, -0.18],
+        ];
+
+        let visibleSamples = 0;
+        for (let i = 0; i < offsets.length; i++) {
+            const sampleEye = {
+                x: eyePos.x + offsets[i][0],
+                y: eyePos.y,
+                z: eyePos.z + offsets[i][2],
+            };
+
+            if (this.findVisibleAimPoint(x, y, z, sampleEye, null, maxReachSq, false)) {
+                visibleSamples++;
+            }
+        }
+
+        return visibleSamples / offsets.length;
+    }
+
+    isTargetDirectlyUnderPlayer(target = this.currentTarget) {
+        if (!target) return false;
+
+        const playerBlockX = Math.floor(Player.getX());
+        const playerBlockY = Math.floor(Player.getY());
+        const playerBlockZ = Math.floor(Player.getZ());
+
+        return target.x === playerBlockX && target.z === playerBlockZ && target.y <= playerBlockY - 1;
+    }
+
+    isTargetAbovePlayer(target = this.currentTarget, minUpwardPitchDeg = 60) {
+        if (!target) return false;
+
+        const targetPoint = {
+            x: target.aimX ?? target.x + 0.5,
+            y: target.aimY ?? target.y + 0.5,
+            z: target.aimZ ?? target.z + 0.5,
+        };
+        const { pitch } = MathUtils.calculateAbsoluteAngles(targetPoint);
+
+        return pitch <= -Math.abs(minUpwardPitchDeg);
+    }
+
     setSneak(shouldSneak, force = false) {
         if (force || this.lastSneakCommand !== shouldSneak || Player.isSneaking() !== shouldSneak) {
             Keybind.setKey('shift', shouldSneak);
@@ -903,38 +958,54 @@ class Bot extends ModuleBase {
         const values = MathUtils.getDistanceToPlayerEyes(targetPoint);
         const yaw = MathUtils.calculateAngles(targetPoint).yaw;
 
-        const now = Date.now();
-        if (!this._movementHumanizer || now - this._movementHumanizer.lastRefresh > 120) {
+        if (!this._movementHumanizer) {
             this._movementHumanizer = {
-                lastRefresh: now,
-                strafeThreshold: 10 + (Math.random() * 4 - 2),
-                stopYawThreshold: 4 + (Math.random() * 2 - 1),
-                moveInMin: 2.35 + (Math.random() * 0.15 - 0.075),
-                moveInMax: 3.2 + (Math.random() * 0.2 - 0.1),
+                strafeThreshold: 10,
+                stopYawThreshold: 4,
+                moveInMin: 2.35,
+                moveInMax: 3.15,
+                moveOutThreshold: 3.75,
+                unsneakLargeMoveThreshold: 6.2,
+                unsneakDropYThreshold: 0.5,
             };
         }
 
         const cfg = this._movementHumanizer;
-        const baseMoveOutThreshold = cfg.moveInMax + 0.6;
-        const wasSneaking = this.lastSneakCommand;
-        const unsneakEnter = values.distance > baseMoveOutThreshold + 0.08 || Math.abs(values.differenceY) > 1.9 || values.differenceY < -0.72;
-        const unsneakHold = values.distance > baseMoveOutThreshold - 0.22 || Math.abs(values.differenceY) > 1.65 || values.differenceY < -0.5;
-        const shouldSneak = wasSneaking ? !unsneakEnter : !unsneakHold;
+        if (this.isTargetDirectlyUnderPlayer(this.currentTarget) || this.isTargetAbovePlayer(this.currentTarget)) {
+            Keybind.stopMovement();
+            this.setSneak(true);
+            Keybind.setKey('space', false);
+            return;
+        }
 
-        this.setSneak(shouldSneak);
+        let moveRight = yaw > cfg.strafeThreshold;
+        let moveLeft = yaw < -cfg.strafeThreshold;
+        let moveForward = values.distanceFlat > cfg.moveInMax && Math.abs(values.differenceY) <= 2.0;
+        let moveBack = values.distanceFlat < cfg.moveInMin;
+
+        const isAligned = yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold;
+        const inDistanceBand = values.distanceFlat >= 2.5 && values.distanceFlat <= 3.25;
+        if (isAligned || inDistanceBand) {
+            moveRight = false;
+            moveLeft = false;
+            moveForward = false;
+            moveBack = false;
+        }
+
+        Keybind.setKey('d', moveRight);
+        Keybind.setKey('a', moveLeft);
+        Keybind.setKey('w', moveForward);
+        Keybind.setKey('s', moveBack);
         Keybind.setKey('space', false);
 
-        Keybind.setKey('d', yaw > cfg.strafeThreshold);
-        Keybind.setKey('a', yaw < -cfg.strafeThreshold);
-
-        Keybind.setKey('w', values.distance > cfg.moveInMax && Math.abs(values.differenceY) <= 2.0);
-        Keybind.setKey('s', values.distance < cfg.moveInMin);
-
-        if ((yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold) || (values.distance >= 2.5 && values.distance <= 3.25)) {
-            Keybind.stopMovement();
-            this.setSneak(shouldSneak);
-            Keybind.setKey('space', false);
-        }
+        const isMoving = moveRight || moveLeft || moveForward || moveBack;
+        const playerFeetY = Player.getY();
+        const targetTopY = this.currentTarget.y + 1;
+        const dropAmount = playerFeetY - targetTopY;
+        const requiresDropToMove = dropAmount > cfg.unsneakDropYThreshold && values.distanceFlat > 0.35;
+        const requiresLargeMove = values.distanceFlat > cfg.unsneakLargeMoveThreshold;
+        const shouldUnsneak = isMoving && (requiresDropToMove || requiresLargeMove);
+        this.setSneak(!shouldUnsneak);
     }
 
     refreshCurrentTargetAimPoint() {
