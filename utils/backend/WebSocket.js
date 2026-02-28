@@ -50,11 +50,11 @@ function connectWebSocket() {
         }
     }
 
-    const token = V5Auth.INSTANCE.getJwtToken();
+    const token = V5Auth.internalToken || V5Auth.INSTANCE.getJwtToken();
 
     if (!token) return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
     returnDiscord(token);
-    const wsUrl = `${Links.WEBSOCKET_URL}?token=${token}`;
+    const wsUrl = `${Links.WEBSOCKET_URL}?token=${encodeURIComponent(token)}`;
     ws = new WebSocket(wsUrl);
 
     ws.onOpen = () => {
