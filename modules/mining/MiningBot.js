@@ -69,6 +69,7 @@ class Bot extends ModuleBase {
         this.rotationSpeed = 75;
         this.movementReevalCooldownUntil = 0;
         this.movementReevalCooldownMs = 180;
+        this.lastSneakCommand = false;
 
         this.initCosts();
         this.bindToggleKey();
@@ -509,7 +510,6 @@ class Bot extends ModuleBase {
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, Date.now() + this.movementReevalCooldownMs);
             Keybind.stopMovement();
             Keybind.setKey('space', false);
-            Keybind.setKey('shift', false);
             this.resetTickCounters();
             this.handleRotationOrScan();
             return;
@@ -517,7 +517,6 @@ class Bot extends ModuleBase {
         if (this.MOVEMENT && Date.now() < this.movementReevalCooldownUntil) {
             Keybind.stopMovement();
             Keybind.setKey('space', false);
-            Keybind.setKey('shift', false);
         } else {
             this.handleVeinMovement();
         }
@@ -876,11 +875,17 @@ class Bot extends ModuleBase {
         return baseCost + distance * 2 + -dotProduct * 50;
     }
 
+    setSneak(shouldSneak, force = false) {
+        if (force || this.lastSneakCommand !== shouldSneak || Player.isSneaking() !== shouldSneak) {
+            Keybind.setKey('shift', shouldSneak);
+            this.lastSneakCommand = shouldSneak;
+        }
+    }
+
     handleVeinMovement() {
         if (!this.MOVEMENT || !this.currentTarget) {
             Keybind.stopMovement();
             Keybind.setKey('space', false);
-            Keybind.setKey('shift', false);
             return;
         }
 
@@ -905,9 +910,15 @@ class Bot extends ModuleBase {
         }
 
         const cfg = this._movementHumanizer;
-        const shouldSneak = this.canSneakWhileSeeingTarget(targetPoint);
+        const baseMoveOutThreshold = cfg.moveInMax + 0.6;
+        const wasSneaking = this.lastSneakCommand;
+        const unsneakEnter =
+            values.distance > baseMoveOutThreshold + 0.08 || Math.abs(values.differenceY) > 1.9 || values.differenceY < -0.72;
+        const unsneakHold =
+            values.distance > baseMoveOutThreshold - 0.22 || Math.abs(values.differenceY) > 1.65 || values.differenceY < -0.5;
+        const shouldSneak = wasSneaking ? !unsneakEnter : !unsneakHold;
 
-        Keybind.setKey('shift', shouldSneak);
+        this.setSneak(shouldSneak);
         Keybind.setKey('space', false);
 
         Keybind.setKey('d', yaw > cfg.strafeThreshold);
@@ -918,34 +929,9 @@ class Bot extends ModuleBase {
 
         if ((yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold) || (values.distance >= 2.5 && values.distance <= 3.25)) {
             Keybind.stopMovement();
-            Keybind.setKey('shift', shouldSneak);
+            this.setSneak(shouldSneak);
             Keybind.setKey('space', false);
         }
-    }
-
-    canSneakWhileSeeingTarget(targetPoint) {
-        if (!this.currentTarget || !targetPoint) return false;
-
-        const eyePos = Player.getPlayer().getEyePos();
-        const sneakEyeY = eyePos.y - 0.08;
-        const dX = targetPoint.x - eyePos.x;
-        const dY = targetPoint.y - sneakEyeY;
-        const dZ = targetPoint.z - eyePos.z;
-        const distSq = dX * dX + dY * dY + dZ * dZ;
-
-        if (distSq > this.faceReach * this.faceReach) return false;
-
-        return Raytrace.isLineClear(
-            eyePos.x,
-            sneakEyeY,
-            eyePos.z,
-            targetPoint.x,
-            targetPoint.y,
-            targetPoint.z,
-            this.currentTarget.x,
-            this.currentTarget.y,
-            this.currentTarget.z
-        );
     }
 
     refreshCurrentTargetAimPoint() {
@@ -1057,6 +1043,7 @@ class Bot extends ModuleBase {
             return;
         }
 
+        this.lastSneakCommand = Player.isSneaking();
         this.setCost();
         if (!this.isParentManaged) {
             this.message('&aEnabled');
@@ -1078,7 +1065,7 @@ class Bot extends ModuleBase {
         this.state = this.STATES.WAITING;
         Keybind.stopMovement();
         Keybind.setKey('space', false);
-        Keybind.setKey('shift', false);
+        this.setSneak(false, true);
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);
         this.foundLocations = [];
