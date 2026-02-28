@@ -2,6 +2,14 @@ import { BufferedInputStream, FileOutputStream, URL } from './Constants';
 
 const DEFAULT_DOWNLOAD_BUFFER_SIZE = 8192;
 
+function resolveBufferSize(value) {
+    const numeric = Number(value);
+    if (!isFinite(numeric)) return DEFAULT_DOWNLOAD_BUFFER_SIZE;
+
+    const normalized = Math.floor(numeric);
+    return normalized > 0 ? normalized : DEFAULT_DOWNLOAD_BUFFER_SIZE;
+}
+
 function closeQuietly(resource) {
     if (!resource) return;
     try {
@@ -44,7 +52,8 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
         input = new BufferedInputStream(connection.getInputStream());
         output = new FileOutputStream(resolveDestinationPath(destination));
 
-        const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, bufferSize);
+        const normalizedBufferSize = resolveBufferSize(bufferSize);
+        const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, normalizedBufferSize);
         let total = 0;
         let count;
         let lastReported = -1;
@@ -70,6 +79,7 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
 }
 
 export function streamDownloadToFileAsync(url, destination, options = {}) {
+    options = options || {};
     const { onProgress = null, onError = null, onComplete = null, bufferSize = DEFAULT_DOWNLOAD_BUFFER_SIZE } = options;
 
     const t = new java.lang.Thread(() => {
@@ -88,6 +98,7 @@ export function streamDownloadToFileAsync(url, destination, options = {}) {
 }
 
 export function downloadFile(url, destination, options = {}) {
+    options = options || {};
     const { onProgress = null, onComplete = null, onError = null, bufferSize = DEFAULT_DOWNLOAD_BUFFER_SIZE } = options;
 
     return streamDownloadToFileAsync(url, destination, {
