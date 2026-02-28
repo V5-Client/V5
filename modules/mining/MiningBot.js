@@ -413,6 +413,7 @@ class Bot extends ModuleBase {
             Keybind.setKey('leftclick', false);
             if (this.isAirOrBedrock(blockName)) {
                 this.lowestCostBlockIndex++;
+                if (this.lowestCostBlockIndex >= this.foundLocations.length) this.allowScan = true;
             }
             if (this.currentTarget && !this.nukedBlock) {
                 const pos = [this.currentTarget.x, this.currentTarget.y, this.currentTarget.z];
@@ -484,6 +485,7 @@ class Bot extends ModuleBase {
             if (this.manualScan) {
                 if (!this.advanceManualScan()) {
                     if (this.MOVEMENT) Keybind.stopMovement();
+                    Keybind.setKey('leftclick', false);
                     return;
                 }
             } else {
@@ -494,18 +496,19 @@ class Bot extends ModuleBase {
             this.allowScan = false;
         }
 
-        let lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
+        const lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
         if (!lowestCostBlock) {
             if (this.MOVEMENT) Keybind.stopMovement();
+            Keybind.setKey('leftclick', false);
             return;
         }
 
-        let block = World.getBlockAt(lowestCostBlock.x, lowestCostBlock.y, lowestCostBlock.z);
-        let blockName = block?.type?.getRegistryName() || '';
+        const block = World.getBlockAt(lowestCostBlock.x, lowestCostBlock.y, lowestCostBlock.z);
+        const blockName = block?.type?.getRegistryName() || '';
 
         if (!this.updateBlockTracking(lowestCostBlock, blockName)) return;
 
-        this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
+        this.currentTarget = lowestCostBlock;
         if (this.MOVEMENT && !this.refreshCurrentTargetAimPoint()) {
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, Date.now() + this.movementReevalCooldownMs);
             Keybind.stopMovement();
@@ -525,10 +528,10 @@ class Bot extends ModuleBase {
 
         this.incrementMiningCountersIfLookingAtCurrent(fakeLookMode);
 
+        if (!this.currentTarget) return;
+
         this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
         this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
-
-        if (!this.currentTarget) return;
 
         //this.adjustGemstoneMovement(blockName);
 
@@ -1024,7 +1027,7 @@ class Bot extends ModuleBase {
     }
 
     glideDelay() {
-        return 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS());
+        return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS()));
     }
 
     onEnable() {
@@ -1042,6 +1045,7 @@ class Bot extends ModuleBase {
         }
 
         this.lastSneakCommand = Player.isSneaking();
+        this.movementReevalCooldownUntil = 0;
         this.setCost();
         if (!this.isParentManaged) {
             this.message('&aEnabled');
@@ -1077,6 +1081,7 @@ class Bot extends ModuleBase {
         this.nukedBlock = false;
         this.mineTickCount = 0;
         this.tickCount = 0;
+        this.movementReevalCooldownUntil = 0;
         this.lastRenderFrameTime = null;
         Rotations.stopRotation();
         this.normalRender.unregister();
