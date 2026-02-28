@@ -912,10 +912,8 @@ class Bot extends ModuleBase {
         const cfg = this._movementHumanizer;
         const baseMoveOutThreshold = cfg.moveInMax + 0.6;
         const wasSneaking = this.lastSneakCommand;
-        const unsneakEnter =
-            values.distance > baseMoveOutThreshold + 0.08 || Math.abs(values.differenceY) > 1.9 || values.differenceY < -0.72;
-        const unsneakHold =
-            values.distance > baseMoveOutThreshold - 0.22 || Math.abs(values.differenceY) > 1.65 || values.differenceY < -0.5;
+        const unsneakEnter = values.distance > baseMoveOutThreshold + 0.08 || Math.abs(values.differenceY) > 1.9 || values.differenceY < -0.72;
+        const unsneakHold = values.distance > baseMoveOutThreshold - 0.22 || Math.abs(values.differenceY) > 1.65 || values.differenceY < -0.5;
         const shouldSneak = wasSneaking ? !unsneakEnter : !unsneakHold;
 
         this.setSneak(shouldSneak);
