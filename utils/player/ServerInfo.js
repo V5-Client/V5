@@ -116,7 +116,11 @@ register('step', () => {
 
 export const ServerInfo = {
     getPing: () => Math.round(monitor.avgPing),
-    getTPS: () => Number.parseFloat(monitor.currentTps.toFixed(2)),
+    getTPS: () => {
+        const raw = Number(monitor.currentTps);
+        const safe = Number.isFinite(raw) ? Math.max(0, Math.min(20, raw)) : 20;
+        return Number.parseFloat(safe.toFixed(2));
+    },
     getTpsColor: (tps) => {
         if (tps > 19.8) return 0x00aa00;
         if (tps > 19) return 0x55ff55;

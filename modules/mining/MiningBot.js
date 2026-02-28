@@ -37,10 +37,8 @@ class Bot extends ModuleBase {
         this.ADDITIONAL_LAG_COMP = 0;
 
         this.STATES = { WAITING: 0, ABILITY: 1, MINING: 2, BUFF: 3, REFUEL: 4 };
-        this.TYPES = { MININGBOT: 0, COMMISSION: 1, GEMSTONE: 2, ORE: 3, TUNNEL: 4 };
 
         this.state = this.STATES.WAITING;
-        this.type = this.TYPES.MININGBOT;
         this.TYPE = null;
 
         this.COSTTYPE = null;
@@ -49,9 +47,7 @@ class Bot extends ModuleBase {
         this.currentTarget = null;
         this.lastBlockPos = null;
         this.lastBlockType = null;
-        this.miningbot = null;
         this.ability = null;
-        this.file = null;
 
         this.mineTickCount = 0;
         this.tickCount = 0;
@@ -63,10 +59,10 @@ class Bot extends ModuleBase {
         this.FOVPenalty = true;
         this.abilityFromChat = false;
         this.lastUse = 0;
+        this.ABILITY_COOLDOWN_MS = 200000;
 
         this.faceReach = 4.5;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
-        this.rotationSpeed = 75;
         this.movementReevalCooldownUntil = 0;
         this.movementReevalCooldownMs = 180;
         this.lastSneakCommand = false;
@@ -308,6 +304,7 @@ class Bot extends ModuleBase {
     }
 
     ensureDrillEquipped(drill) {
+        if (!drill || drill.slot === undefined || drill.slot === null) return false;
         if (Player.getHeldItemIndex() !== drill.slot) {
             Guis.setItemSlot(drill.slot);
             return true;
@@ -316,19 +313,15 @@ class Bot extends ModuleBase {
     }
 
     loadAbilitySetting() {
-        this.file = Utils.getConfigFile('miningstats.json');
-        if (this.file) this.ability = this.file.ability;
-    }
-
-    hasConfiguredAbility() {
-        this.loadAbilitySetting();
-        return this.ability && this.ability !== 'none' && this.ability !== 'None' && this.ability !== '';
+        const file = Utils.getConfigFile('miningstats.json');
+        this.ability = file?.ability || null;
     }
 
     shouldScanForNewBlock() {
         if (!this.currentTarget || this.allowScan) return true;
 
         const block = World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z);
+        if (!block?.type) return true;
         const blockName = block?.type?.getRegistryName() || '';
 
         return this.isAirOrBedrock(blockName);
@@ -344,6 +337,8 @@ class Bot extends ModuleBase {
 
             if (this.lowestCostBlockIndex >= this.foundLocations.length) {
                 this.foundLocations = [];
+                this.currentTarget = null;
+                this.lowestCostBlockIndex = 0;
                 return false;
             }
 
@@ -397,13 +392,12 @@ class Bot extends ModuleBase {
         }
     }
 
-    adjustGemstoneMovement(blockName) {
-        if (this.COSTTYPE !== this.gemstoneCosts || !this.currentTarget) return;
-
-        const { distance: blockDist } = MathUtils.getDistanceToPlayerEyes(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z);
-        if (blockDist < 1) Keybind.setKey('s', true);
-        else if (blockDist > 4.5) Keybind.setKey('w', true);
-        else Keybind.stopMovement();
+    stopMiningControls(stopMovement = false) {
+        if (stopMovement) {
+            Keybind.stopMovement();
+            Keybind.setKey('space', false);
+        }
+        Keybind.setKey('leftclick', false);
     }
 
     handleBreaking(blockName, fakeLookMode) {
@@ -436,6 +430,7 @@ class Bot extends ModuleBase {
             if (this.lowestCostBlockIndex >= this.foundLocations.length) {
                 this.foundLocations = [];
                 this.currentTarget = null;
+                this.lowestCostBlockIndex = 0;
                 return;
             }
             this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
@@ -446,11 +441,17 @@ class Bot extends ModuleBase {
         this.allowScan = false;
     }
 
+    isTunnelMode() {
+        if (this.COSTTYPE === this.tunnelCosts) return true;
+        const selectedType = Array.isArray(this.TYPE) ? this.TYPE.find((option) => option.enabled)?.name : null;
+        return selectedType === 'Tunnel';
+    }
+
     handleAbilityState() {
         if (this.SCAN_ONLY) return (this.state = this.STATES.MINING);
 
         const abilityStatus = this.getAbilityStatusFromTab();
-        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + 200 * 1000 < Date.now()) {
+        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < Date.now()) {
             if (this.ensureDrillEquipped(this.drill)) return;
 
             const fakeLookMode = this.getFakeLookMode();
@@ -473,33 +474,29 @@ class Bot extends ModuleBase {
     handleMiningState() {
         if (this.SCAN_ONLY) {
             this.scanForBlock(this.COSTTYPE);
-            if (this.MOVEMENT) Keybind.stopMovement();
+            if (this.MOVEMENT) this.stopMiningControls(true);
             return;
         }
 
-        this.ensureDrillEquipped(this.drill);
+        if (this.ensureDrillEquipped(this.drill)) return;
 
-        if (this.lastUse + 200 * 1000 < Date.now()) return (this.state = this.STATES.ABILITY);
+        if (this.lastUse + this.ABILITY_COOLDOWN_MS < Date.now()) return (this.state = this.STATES.ABILITY);
 
         if (this.shouldScanForNewBlock()) {
             if (this.manualScan) {
                 if (!this.advanceManualScan()) {
-                    if (this.MOVEMENT) Keybind.stopMovement();
-                    Keybind.setKey('leftclick', false);
+                    this.stopMiningControls(this.MOVEMENT);
                     return;
                 }
             } else {
-                this.scanForBlock(this.COSTTYPE, null);
-                this.currentTarget = this.foundLocations[0];
-                this.lowestCostBlockIndex = 0;
+                this.scanForBlock(this.COSTTYPE);
             }
             this.allowScan = false;
         }
 
         const lowestCostBlock = this.currentTarget || this.foundLocations[this.lowestCostBlockIndex];
         if (!lowestCostBlock) {
-            if (this.MOVEMENT) Keybind.stopMovement();
-            Keybind.setKey('leftclick', false);
+            this.stopMiningControls(this.MOVEMENT);
             return;
         }
 
@@ -511,15 +508,13 @@ class Bot extends ModuleBase {
         this.currentTarget = lowestCostBlock;
         if (this.MOVEMENT && !this.refreshCurrentTargetAimPoint()) {
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, Date.now() + this.movementReevalCooldownMs);
-            Keybind.stopMovement();
-            Keybind.setKey('space', false);
+            this.stopMiningControls(true);
             this.resetTickCounters();
             this.handleRotationOrScan();
             return;
         }
         if (this.MOVEMENT && Date.now() < this.movementReevalCooldownUntil) {
-            Keybind.stopMovement();
-            Keybind.setKey('space', false);
+            this.stopMiningControls(true);
         } else {
             this.handleVeinMovement();
         }
@@ -530,10 +525,8 @@ class Bot extends ModuleBase {
 
         if (!this.currentTarget) return;
 
-        this.miningspeed = this.type === this.TYPES.TUNNEL ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
+        this.miningspeed = this.isTunnelMode() ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
         this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
-
-        //this.adjustGemstoneMovement(blockName);
 
         this.handleBreaking(blockName, fakeLookMode);
 
@@ -564,6 +557,14 @@ class Bot extends ModuleBase {
         const found = [];
         const queue = [{ x: start.x, y: start.y, z: start.z }];
         let head = 0;
+        const dirs = [
+            [1, 0, 0],
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, -1],
+        ];
 
         const reach = 4.5 + this.bfsPad;
         const minBx = Math.floor(eyePos.x - reach) - 1,
@@ -599,8 +600,7 @@ class Bot extends ModuleBase {
             const block = World.getBlockAt(x, y, z);
             if (!block || !block.type) continue;
             const blockName = block.type.getRegistryName();
-            if (!blockName || !(blockName in targetCosts) || targetCosts[blockName] === null) {
-            } else {
+            if (blockName && blockName in targetCosts && targetCosts[blockName] !== null) {
                 const aimData = this.findVisibleAimPoint(x, y, z, eyePos, lookVec, mineReachSq, this.FOVPenalty);
 
                 if (aimData) {
@@ -616,15 +616,6 @@ class Bot extends ModuleBase {
                     });
                 }
             }
-
-            const dirs = [
-                [1, 0, 0],
-                [-1, 0, 0],
-                [0, 1, 0],
-                [0, -1, 0],
-                [0, 0, 1],
-                [0, 0, -1],
-            ];
             for (let i = 0; i < 6; i++) {
                 const nx = x + dirs[i][0],
                     ny = y + dirs[i][1],
@@ -665,6 +656,7 @@ class Bot extends ModuleBase {
     }
 
     findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true) {
+        if (!eyePos || !Number.isFinite(maxReachSq) || maxReachSq <= 0) return null;
         const cx = x + 0.5,
             cy = y + 0.5,
             cz = z + 0.5;
@@ -680,9 +672,9 @@ class Bot extends ModuleBase {
             if (dotToCenter < -0.05) return null;
         }
 
-        const invX = 1 / vx,
-            invY = 1 / vy,
-            invZ = 1 / vz;
+        const invX = vx === 0 ? Infinity : 1 / vx,
+            invY = vy === 0 ? Infinity : 1 / vy,
+            invZ = vz === 0 ? Infinity : 1 / vz;
         const tx1 = (x - eyePos.x) * invX,
             tx2 = (x + 1 - eyePos.x) * invX;
         const ty1 = (y - eyePos.y) * invY,
@@ -694,11 +686,16 @@ class Bot extends ModuleBase {
         const tminY = ty1 < ty2 ? ty1 : ty2;
         const tminZ = tz1 < tz2 ? tz1 : tz2;
 
-        const tEntry = Math.max(tminX, tminY, tminZ);
-
         let faceAxis = 'x';
-        if (tEntry === tminY) faceAxis = 'y';
-        else if (tEntry === tminZ) faceAxis = 'z';
+        let tEntry = tminX;
+        if (tminY > tEntry) {
+            tEntry = tminY;
+            faceAxis = 'y';
+        }
+        if (tminZ > tEntry) {
+            tEntry = tminZ;
+            faceAxis = 'z';
+        }
 
         let s;
         if (faceAxis === 'x') {
@@ -722,8 +719,6 @@ class Bot extends ModuleBase {
         };
 
         const checkLine = (axis, ttx, tty, ttz, ffx, ffy, ffz) => {
-            const jU = 0,
-                jV = 0;
             let tx = ttx,
                 ty = tty,
                 tz = ttz,
@@ -732,20 +727,20 @@ class Bot extends ModuleBase {
                 fz = ffz;
 
             if (axis === 'x') {
-                ty = clamp(tty + jU, y + LO, y + HI);
-                tz = clamp(ttz + jV, z + LO, z + HI);
-                fy = clamp(ffy + jU, y + LO, y + HI);
-                fz = clamp(ffz + jV, z + LO, z + HI);
+                ty = clamp(tty, y + LO, y + HI);
+                tz = clamp(ttz, z + LO, z + HI);
+                fy = clamp(ffy, y + LO, y + HI);
+                fz = clamp(ffz, z + LO, z + HI);
             } else if (axis === 'y') {
-                tx = clamp(ttx + jU, x + LO, x + HI);
-                tz = clamp(ttz + jV, z + LO, z + HI);
-                fx = clamp(ffx + jU, x + LO, x + HI);
-                fz = clamp(ffz + jV, z + LO, z + HI);
+                tx = clamp(ttx, x + LO, x + HI);
+                tz = clamp(ttz, z + LO, z + HI);
+                fx = clamp(ffx, x + LO, x + HI);
+                fz = clamp(ffz, z + LO, z + HI);
             } else {
-                tx = clamp(ttx + jU, x + LO, x + HI);
-                ty = clamp(tty + jV, y + LO, y + HI);
-                fx = clamp(ffx + jU, x + LO, x + HI);
-                fy = clamp(ffy + jV, y + LO, y + HI);
+                tx = clamp(ttx, x + LO, x + HI);
+                ty = clamp(tty, y + LO, y + HI);
+                fx = clamp(ffx, x + LO, x + HI);
+                fy = clamp(ffy, y + LO, y + HI);
             }
             if (Raytrace.isLineClear(eyePos.x, eyePos.y, eyePos.z, tx, ty, tz, x, y, z)) {
                 return { hit: true, x: fx, y: fy, z: fz };
@@ -810,8 +805,15 @@ class Bot extends ModuleBase {
 
         if (!result) {
             const orthos = ['x', 'y', 'z'].filter((a) => a !== faceAxis);
-            const ORTH_OFFSETS = [0, 0.35, -0.35];
-            const ORTH_ORDER = [1, 2, 0];
+            const samples = [
+                [0, 0],
+                [0.35, 0],
+                [-0.35, 0],
+                [0, 0.35],
+                [0, -0.35],
+                [0.35, 0.35],
+                [-0.35, -0.35],
+            ];
 
             for (let axis of orthos) {
                 if (result) break;
@@ -825,10 +827,10 @@ class Bot extends ModuleBase {
                     sOrtho = eyePos.z >= cz ? 1 : -1;
                 }
 
-                for (let idx of ORTH_ORDER) {
+                for (let i = 0; i < samples.length; i++) {
                     if (result) break;
-                    const u = idx === 0 ? 0 : ORTH_OFFSETS[idx];
-                    const v = idx === 0 ? 0 : ORTH_OFFSETS[idx];
+                    const u = samples[i][0];
+                    const v = samples[i][1];
 
                     let tx, ty, tz, fx, fy, fz;
                     if (axis === 'x') {
@@ -869,13 +871,13 @@ class Bot extends ModuleBase {
         if (distSq > maxReachSq) return null;
 
         const dist = Math.hypot(dX, dY, dZ);
-        const dot = lookVec ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1;
+        const dot = lookVec && dist > 0 ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1;
 
         return { x: result.x, y: result.y, z: result.z, dist, dot };
     }
 
     calculateBlockCost(baseCost, distance, dotProduct) {
-        return baseCost + distance * 2 + -dotProduct * 50;
+        return baseCost + distance * 2 - dotProduct * 50;
     }
 
     setSneak(shouldSneak, force = false) {
@@ -960,9 +962,9 @@ class Bot extends ModuleBase {
 
     getAimVectorForTarget(target) {
         if (!target) return null;
-        const ax = target.aimX !== undefined ? target.aimX : target.x + 0.5;
-        const ay = target.aimY !== undefined ? target.aimY : target.y + 0.5;
-        const az = target.aimZ !== undefined ? target.aimZ : target.z + 0.5;
+        const ax = target.aimX != null ? target.aimX : target.x + 0.5;
+        const ay = target.aimY != null ? target.aimY : target.y + 0.5;
+        const az = target.aimZ != null ? target.aimZ : target.z + 0.5;
         return [ax, ay, az];
     }
 
@@ -973,24 +975,26 @@ class Bot extends ModuleBase {
     setCost(cost) {
         if (cost) {
             this.COSTTYPE = cost;
-        } else {
-            const Type = Array.isArray(this.TYPE) ? this.TYPE.find((option) => option.enabled)?.name : null;
-            if (Type) {
-                const costPropertyName = Type.toLowerCase() + 'Costs';
+            return;
+        }
 
-                if (this[costPropertyName]) {
-                    this.COSTTYPE = this[costPropertyName];
-                } else {
-                    this.message(`&cCould not find cost type for ${Type}!`);
-                    this.COSTTYPE = null;
-                }
-            } else {
-                this.COSTTYPE = null;
-            }
+        const typeName = Array.isArray(this.TYPE) ? this.TYPE.find((option) => option.enabled)?.name : null;
+        if (!typeName) {
+            this.COSTTYPE = null;
+            return;
+        }
+
+        const costPropertyName = typeName.toLowerCase() + 'Costs';
+        if (this[costPropertyName]) {
+            this.COSTTYPE = this[costPropertyName];
+        } else {
+            this.message(`&cCould not find cost type for ${typeName}!`);
+            this.COSTTYPE = null;
         }
     }
 
     populateLocations(locations, parentManaged) {
+        if (!Array.isArray(locations) || locations.length === 0) return false;
         this.manualScan = true;
 
         const eyePos = Player.getPlayer().getEyePos();
@@ -1037,13 +1041,14 @@ class Bot extends ModuleBase {
             return;
         }
 
-        this.drill = MiningUtils.getDrills().drill;
+        this.drill = MiningUtils.getDrills()?.drill;
         if (!this.drill) {
             this.message('&cNo drill detected!');
             this.toggle(false);
             return;
         }
 
+        this.loadAbilitySetting();
         this.lastSneakCommand = Player.isSneaking();
         this.movementReevalCooldownUntil = 0;
         this.setCost();
@@ -1082,7 +1087,11 @@ class Bot extends ModuleBase {
         this.mineTickCount = 0;
         this.tickCount = 0;
         this.movementReevalCooldownUntil = 0;
+        this._movementHumanizer = null;
         this.lastRenderFrameTime = null;
+        this.lastRenderPos = null;
+        this.lastAimPos = null;
+        this.lastNextPos = null;
         Rotations.stopRotation();
         this.normalRender.unregister();
     }
@@ -1126,11 +1135,11 @@ class Bot extends ModuleBase {
                 this.lastAimPos.y = lerp(this.lastAimPos.y, current.aimY);
                 this.lastAimPos.z = lerp(this.lastAimPos.z, current.aimZ);
             }
+        } else {
+            this.lastAimPos = null;
         }
 
-        const candidateLocations = this.foundLocations.filter((loc) => {
-            return !(loc.x === current.x && loc.y === current.y && loc.z === current.z);
-        });
+        const candidateLocations = this.foundLocations.filter((loc) => !(loc.x === current.x && loc.y === current.y && loc.z === current.z));
 
         let nextTarget = null;
         if (candidateLocations.length > 0 && current.aimX !== undefined) {
