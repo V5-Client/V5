@@ -50,7 +50,7 @@ function connectWebSocket() {
         }
     }
 
-    const token = V5Auth.INSTANCE.getJwtToken();
+    const token = V5Auth.getJwtToken();
 
     if (!token) return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
     returnDiscord(token);
