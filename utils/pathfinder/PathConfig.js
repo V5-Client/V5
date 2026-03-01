@@ -19,6 +19,8 @@ class PathFindingConfig extends ModuleBase {
         this.RENDER_KEY_NODES = false;
         this.RENDER_FLOATING_SPLINE = false;
         this.RENDER_LOOK_POINTS = false;
+        this.WALKER_AOTE_ENABLED = false;
+        this.WALKER_AOTE_COOLDOWN_TICKS = 12;
 
         this.addDirectToggle(
             'Pathfinding Debug',
@@ -57,6 +59,28 @@ class PathFindingConfig extends ModuleBase {
             },
             'Renders the look points of the path',
             false,
+            'Pathfinding'
+        );
+
+        this.addDirectToggle(
+            'Walker AOTE Enabled',
+            (value) => {
+                this.WALKER_AOTE_ENABLED = value;
+            },
+            'Allows path walker to use Aspect of the End/Void for forward teleports.',
+            false,
+            'Pathfinding'
+        );
+
+        this.addDirectSlider(
+            'Walker AOTE Cooldown Ticks',
+            5,
+            20,
+            12,
+            (value) => {
+                this.WALKER_AOTE_COOLDOWN_TICKS = Math.max(0, Math.floor(value));
+            },
+            'Ticks between AOTE/AOTV right clicks.',
             'Pathfinding'
         );
 

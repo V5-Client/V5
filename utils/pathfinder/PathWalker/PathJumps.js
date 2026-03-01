@@ -12,6 +12,7 @@ class PathJumps {
         this.blockCache = new Map();
         this.cacheFrame = 0;
         this.lastFluidMessage = 0;
+        this.jumpSuppressTicks = 0;
 
         this.STEP_HEIGHT = 0.6;
         this.LOOKAHEAD_NODES = 3;
@@ -19,6 +20,10 @@ class PathJumps {
         PathExecutor.onTick(() => {
             this.cacheFrame++;
             if (this.blockCache.size > 1000) this.blockCache.clear();
+            if (this.jumpSuppressTicks > 0) {
+                this.jumpSuppressTicks--;
+                Keybind.setKey('space', false);
+            }
         });
     }
 
@@ -254,6 +259,10 @@ class PathJumps {
 
     detectJump(path) {
         if (!Player.getPlayer()) return this.reset();
+        if (this.jumpSuppressTicks > 0) {
+            Keybind.setKey('space', false);
+            return;
+        }
         const { lookahead, closestIndex } = this.drawPathAndPlayerLookAhead(path);
 
         this.currentLookaheadVecs = lookahead;
@@ -287,7 +296,12 @@ class PathJumps {
     reset() {
         this.lastLookaheadPositions = [];
         this.currentLookaheadVecs = [];
+        this.jumpSuppressTicks = 0;
         Keybind.setKey('space', false);
+    }
+
+    suppressJump(ticks = 5) {
+        this.jumpSuppressTicks = Math.max(this.jumpSuppressTicks, Math.max(0, Math.floor(ticks)));
     }
 }
 

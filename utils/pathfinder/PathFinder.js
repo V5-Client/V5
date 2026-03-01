@@ -13,6 +13,7 @@ import { FlyMovement } from './PathFlyer/PathMovement';
 import { FlyRotations } from './PathFlyer/PathRotations';
 import { Spline } from './PathSpline';
 import { Jump } from './PathWalker/PathJumps';
+import { Aote } from './PathWalker/PathAote';
 import { Movement } from './PathWalker/PathMovement';
 import { NonChangeRecovery, Recovery } from './PathWalker/PathRecovery';
 import { Rotations } from './PathWalker/PathRotations';
@@ -212,6 +213,7 @@ class Finder {
 
                 Executor.execute(() => {
                     Rotations.pathRotations(splinePath);
+                    Aote.onPathTick(Rotations);
                     Jump.detectJump(result.path_between_key_nodes);
                     Movement.beginMovement();
 
@@ -680,6 +682,7 @@ class Finder {
         FlyRotations.resetRotations();
         Spline.clearCache();
         Jump.reset();
+        Aote.stop(!!clearFlags);
         Movement.stopMovement();
         FlyMovement.stopMovement();
         if (clearFlags) {
@@ -720,6 +723,10 @@ class Finder {
 
     isPathing() {
         return !!this.tick;
+    }
+
+    getResult() {
+        return Swift.getResult();
     }
 }
 

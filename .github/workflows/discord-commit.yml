@@ -98,6 +98,9 @@ jobs:
                             sed -i '1d' "$file"
                           fi
                           ;;
+                        '//@Private')
+                          truncate -s 0 "$file"
+                          ;;
                       esac
                     done
                   }
