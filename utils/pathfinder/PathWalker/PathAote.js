@@ -37,6 +37,11 @@ class PathAote {
         const player = Player.getPlayer();
         if (!player) return;
 
+        if (this.getDistanceToFinalPoint(rotations) <= this.FINAL_POINT_NO_AOTE_RADIUS) {
+            this.restoreOriginalSlot();
+            return this.debug('near final point');
+        }
+
         if (this.cooldownTicks > 0) {
             this.cooldownTicks--;
             this.debug('cooldown');
@@ -84,10 +89,6 @@ class PathAote {
 
         if (!this.isPathStraightEnough(rotations, candidate.targetPathPosition, straightness)) {
             return this.debug('not straight');
-        }
-
-        if (this.getDistanceToFinalPoint(rotations) <= this.FINAL_POINT_NO_AOTE_RADIUS) {
-            return this.debug('near final point');
         }
 
         if (!this.isPlayerAimingTowardPath(rotations, candidate.targetPathPosition)) {
@@ -422,25 +423,29 @@ class PathAote {
         Chat.messagePathfinder(`§7AOTE: skipped (${reason})`);
     }
 
-    stop(restoreSlot = true) {
-        if (restoreSlot && this.originalSlot >= 0 && this.originalSlot <= 8) {
-            Guis.setItemSlot(this.originalSlot);
+    restoreOriginalSlot() {
+        if (this.originalSlot >= 0 && this.originalSlot <= 8) {
+            if (Player.getHeldItemIndex() !== this.originalSlot) {
+                Guis.setItemSlot(this.originalSlot);
+            }
             if (PathConfig.PATHFINDING_DEBUG) {
                 Chat.messagePathfinder(`§7AOTE: restored original slot (${this.originalSlot + 1})`);
             }
         }
+
+        this.originalSlot = -1;
+        this.activeAoteSlot = -1;
+        this.hasSwappedToAote = false;
+    }
+
+    stop(restoreSlot = true) {
+        if (restoreSlot) this.restoreOriginalSlot();
 
         this.cooldownTicks = 0;
         this.lastUsedPathPosition = null;
         this.lastSkipReason = '';
         this.lastSkipAt = 0;
         this.lastMissingItemAt = 0;
-
-        if (restoreSlot) {
-            this.originalSlot = -1;
-            this.activeAoteSlot = -1;
-            this.hasSwappedToAote = false;
-        }
     }
 }
 
