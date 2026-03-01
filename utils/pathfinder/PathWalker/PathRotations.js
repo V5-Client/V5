@@ -422,7 +422,6 @@ class PathRotations {
             this.complete = true;
             this.rotationActive = false;
         }
-
     }
 
     applyHumanizedPhysics() {
