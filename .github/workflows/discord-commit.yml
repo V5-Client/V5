@@ -127,7 +127,7 @@ jobs:
                   done
 
             - name: Upload Release zip to R2
-              if: ${{ endsWith(github.repository, '/V5') }}
+              if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
               uses: cloudflare/wrangler-action@v3
               with:
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -138,7 +138,7 @@ jobs:
                       --file V5-Release.zip
 
             - name: Upload VIP zip to R2
-              if: ${{ endsWith(github.repository, '/V5') }}
+              if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
               uses: cloudflare/wrangler-action@v3
               with:
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -149,7 +149,7 @@ jobs:
                       --file V5-VIP.zip
 
             - name: Upload Beta zip to R2
-              if: ${{ endsWith(github.repository, '/V5') }}
+              if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
               uses: cloudflare/wrangler-action@v3
               with:
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
