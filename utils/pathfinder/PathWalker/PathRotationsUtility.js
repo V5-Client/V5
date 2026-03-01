@@ -242,7 +242,7 @@ class PathRotsUtil {
 
         this.currentJitterTime += deltaTime;
 
-        if (this.currentJitterTime > 1.0 / this.tremorFrequency) {
+        if (this.tremorFrequency > 0 && this.currentJitterTime > 1.0 / this.tremorFrequency) {
             this.baseRandomYaw = (Math.random() - 0.5) * this.Randomness;
             this.baseRandomPitch = (Math.random() - 0.5) * this.Randomness;
             this.currentJitterTime -= 1.0 / this.tremorFrequency;
@@ -260,6 +260,9 @@ class PathRotsUtil {
         let normalizedDist = this.initialMaxDiff > 0 ? maxCurrentDiff / this.initialMaxDiff : 0.01;
 
         let fadeFactor = Math.pow(normalizedDist, this.fadeExponent);
+        if (!Number.isFinite(fadeFactor)) {
+            fadeFactor = 0;
+        }
 
         let jitterYaw = currentJitterYaw * fadeFactor;
         let jitterPitch = currentJitterPitch * fadeFactor;

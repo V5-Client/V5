@@ -178,12 +178,12 @@ class PathRotations {
         const t = Math.min(lastIndex, this.currentPathPosition + this.MIN_LOOKAHEAD);
         const point = this.getInterpolatedPoint(t);
         this.cachedVisible = { t, point, time: now };
-        return point;
+        return point || this.lookPoints[lastIndex];
     }
 
     updateLookPoint() {
         const player = Player.getPlayer();
-        if (!player) return;
+        if (!player || !this.lookPoints || this.lookPoints.length < 1) return;
         const playerEyes = player.getEyePos();
         const motion = { x: Player.getMotionX(), z: Player.getMotionZ() };
         const speed = Math.hypot(motion.x, motion.z);
@@ -203,12 +203,18 @@ class PathRotations {
             }
         }
 
+        if (!Number.isFinite(minDistSq)) {
+            minDistSq = 0;
+        }
         const lateralError = Math.sqrt(minDistSq);
         const baseLookahead = this.getAdaptiveLookaheadPoints();
         const interceptLookahead = baseLookahead + lateralError * 1.5 + speed * 10;
 
         const lastIndex = this.lookPoints.length - 1;
         let targetPoint = this.findVisibleLookTarget(playerEyes, interceptLookahead);
+        if (!targetPoint) {
+            targetPoint = this.lookPoints[lastIndex];
+        }
 
         const lastPoint = this.lookPoints[lastIndex];
         if (this.currentPathPosition >= lastIndex - 0.5 || this.isWithinArrivalThreshold(playerEyes, lastPoint)) {
@@ -288,7 +294,11 @@ class PathRotations {
     }
 
     beginFlyRotations(preGeneratedLookPoints) {
-        if (!preGeneratedLookPoints || !preGeneratedLookPoints.length) return;
+        if (!preGeneratedLookPoints || preGeneratedLookPoints.length < 2) {
+            this.resetRotations();
+            this.complete = true;
+            return;
+        }
         const player = Player.getPlayer();
         if (!player) return;
         this.lookPoints = preGeneratedLookPoints;

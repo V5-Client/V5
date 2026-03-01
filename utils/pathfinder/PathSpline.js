@@ -199,8 +199,9 @@ class PathSpline {
             if (raw.length === 0 || Math.hypot(p.x - raw[raw.length - 1].x, p.y - raw[raw.length - 1].y, p.z - raw[raw.length - 1].z) > 0.1) raw.push(p);
         }
 
-        const yaw = (Player.getYaw() + 90) * (Math.PI / 180);
-        const pitch = -Player.getPitch() * (Math.PI / 180);
+        const player = Player.getPlayer();
+        const yaw = ((player ? Player.getYaw() : 0) + 90) * (Math.PI / 180);
+        const pitch = -(player ? Player.getPitch() : 0) * (Math.PI / 180);
         const lookV = { x: Math.cos(yaw) * Math.cos(pitch), y: Math.sin(pitch), z: Math.sin(yaw) * Math.cos(pitch) };
         const initialLook = new Vec3d(raw[0].x + lookV.x * 2, raw[0].y + lookV.y * 2, raw[0].z + lookV.z * 2);
 
@@ -248,6 +249,7 @@ class PathSpline {
     }
 
     refineLookPath(points) {
+        if (!points || points.length === 0) return [];
         const final = [points[0]];
         for (let i = 1; i < points.length; i++) {
             const d = Math.hypot(points[i].x - final[final.length - 1].x, points[i].y - final[final.length - 1].y, points[i].z - final[final.length - 1].z);
@@ -338,6 +340,7 @@ class PathSpline {
     }
 
     resamplePolylineByDistance(points, step) {
+        if (!Number.isFinite(step) || step <= 0) return points || [];
         if (!points || points.length < 2) return points || [];
         const out = [points[0]];
         let carry = 0;

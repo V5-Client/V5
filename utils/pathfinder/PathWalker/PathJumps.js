@@ -45,6 +45,7 @@ class PathJumps {
         const block = this.getCachedBlock(x, y, z);
         if (!block || block.type.getID() === 0) return false;
         const world = World.getWorld();
+        if (!world) return false;
         const blockPosNMS = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
         const blockState = world.getBlockState(blockPosNMS);
         return !blockState.getCollisionShape(world, blockPosNMS).isEmpty();
@@ -52,6 +53,7 @@ class PathJumps {
 
     hasLowCeiling(x, y, z) {
         const world = World.getWorld();
+        if (!world) return false;
         for (let offset = 2; offset <= 3; offset++) {
             const block = this.getCachedBlock(x, y + offset, z);
             if (!block || block.type.getID() === 0) continue;
@@ -77,6 +79,7 @@ class PathJumps {
 
     canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
         const world = World.getWorld();
+        if (!world) return { lookahead: [], closestIndex: -1 };
         const blockPosNMS = new BP(Math.floor(blockX), Math.floor(blockY), Math.floor(blockZ));
         const blockState = world.getBlockState(blockPosNMS);
         try {
@@ -258,7 +261,12 @@ class PathJumps {
         if (closestIndex === -1) return this.reset();
         if (this.checkFluidJump()) return;
 
-        if (!Player.getPlayer().isOnGround()) return;
+        if (!Player.getPlayer().isOnGround()) {
+            if (!Movement.isRecovering() && !this.isPlayerInFluid()) {
+                Keybind.setKey('space', false);
+            }
+            return;
+        }
 
         if (this.hasLowCeiling(Math.floor(Player.getX()), Math.floor(Player.getY() - 0.001), Math.floor(Player.getZ()))) {
             this.reset();

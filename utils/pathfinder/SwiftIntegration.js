@@ -75,14 +75,15 @@ class SwiftIntegration {
 
         const pathArr = PathManager.getPathArray();
         const keyArr = PathManager.getKeyNodesArray();
+        if (!pathArr || !keyArr) return null;
 
         const path = [];
-        for (let i = 0; i < pathArr.length; i += 3) {
+        for (let i = 0; i + 2 < pathArr.length; i += 3) {
             path.push({ x: pathArr[i], y: pathArr[i + 1], z: pathArr[i + 2] });
         }
 
         const keynodes = [];
-        for (let i = 0; i < keyArr.length; i += 3) {
+        for (let i = 0; i + 2 < keyArr.length; i += 3) {
             keynodes.push({ x: keyArr[i], y: keyArr[i + 1], z: keyArr[i + 2] });
         }
 

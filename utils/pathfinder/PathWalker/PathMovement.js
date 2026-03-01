@@ -53,7 +53,7 @@ class PathMovement {
     }
 
     backup(ticks, onComplete) {
-        this.backupTicks = ticks;
+        this.backupTicks = Math.max(0, ticks | 0);
         this.backupCallback = onComplete || null;
     }
 
@@ -73,6 +73,8 @@ class PathMovement {
         Keybind.setKey('a', false);
         Keybind.setKey('d', false);
         Keybind.setKey('space', false);
+        Keybind.setKey('shift', false);
+        Keybind.setKey('sprint', false);
     }
 }
 

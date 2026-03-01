@@ -23,7 +23,10 @@ class PathMovement {
             if (!this.isActive || !this.path || this.path.length === 0) return;
 
             const player = Player.getPlayer();
-            if (!player) return;
+            if (!player) {
+                this.stopMovement();
+                return;
+            }
 
             if (!player.getAbilities().flying) {
                 player.getAbilities().flying = true;
@@ -35,6 +38,7 @@ class PathMovement {
 
     beginMovement(smoothPath) {
         if (!smoothPath || smoothPath.length === 0) return;
+        this.releaseMovementKeys();
         this.path = smoothPath;
         this.currentIndex = 0;
         this.isActive = true;
@@ -116,6 +120,10 @@ class PathMovement {
         const pY = Player.getY();
         const pZ = Player.getZ();
         const finalTarget = this.path[this.path.length - 1];
+        if (!finalTarget) {
+            this.stopMovement();
+            return;
+        }
 
         if (this.state === 'DECELERATING') {
             this.decelTicks++;
@@ -152,6 +160,10 @@ class PathMovement {
 
         const moveIndex = Math.min(this.path.length - 1, this.currentIndex + dynamicLookahead);
         const target = this.path[moveIndex];
+        if (!target) {
+            this.stopMovement();
+            return;
+        }
 
         const diffY = target.y - pY;
         const predicted = predictStoppingPosition(10);
@@ -173,6 +185,8 @@ class PathMovement {
     stopMovement() {
         this.isActive = false;
         this.state = 'NONE';
+        this.currentIndex = 0;
+        this.decelTicks = 0;
         this.releaseMovementKeys();
         this.path = [];
     }

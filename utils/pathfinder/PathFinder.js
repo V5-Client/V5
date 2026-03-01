@@ -30,6 +30,9 @@ class Finder {
         this.recalculateAttempts = 0;
         this.recalculateRetryQueued = false;
         this.MAX_RECALCULATE_ATTEMPTS = 5;
+        this.recalculateScheduleId = 0;
+        this.searchStartedAt = 0;
+        this.SEARCH_TIMEOUT_MS = 25000;
 
         this.currentStarts = null;
         this.startCandidates = [];
@@ -96,7 +99,8 @@ class Finder {
         return goals;
     }
 
-    findPath(end, onComplete, renderOnly = false, isFly = false, startPoints = null) {
+    findPath(end, onComplete, renderOnly = false, isFly = false, startPoints = null, preserveRecalculateAttempts = false) {
+        this.recalculateScheduleId++;
         this.currentEnd = end;
         this.currentStarts = startPoints;
         this.currentCallback = onComplete;
@@ -113,8 +117,10 @@ class Finder {
         this.warpCommandIssued = false;
         this.warpRetryCount = 0;
         this.warpLastAttemptAt = 0;
-        this.recalculateAttempts = 0;
         this.hasReachedWarpPoint = false;
+        if (!preserveRecalculateAttempts) {
+            this.recalculateAttempts = 0;
+        }
 
         const start = starts[0];
 
@@ -127,6 +133,7 @@ class Finder {
             showNotification('Pathfinding Failed', Swift.getLastError() || 'Failed to start', 'ERROR', 5000);
             return;
         }
+        this.searchStartedAt = Date.now();
 
         if (this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
             Chat.messagePathfinder('§eSearching for path...');
@@ -141,7 +148,17 @@ class Finder {
         PathExecutor.execute();
 
         this.tick = register('tick', () => {
-            if (Swift.isSearching()) return;
+            if (Swift.isSearching()) {
+                if (this.searchStartedAt > 0 && Date.now() - this.searchStartedAt > this.SEARCH_TIMEOUT_MS) {
+                    if (PathConfig.PATHFINDING_DEBUG) {
+                        Chat.messagePathfinder('6Path search timed out, recalculating');
+                    }
+                    Swift.cancel();
+                    Swift.clear();
+                    this.recalculate();
+                }
+                return;
+            }
 
             const result = Swift.getResult();
 
@@ -166,7 +183,8 @@ class Finder {
             }
 
             if (!this.saidInfo && this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
-                Chat.messagePathfinder(`Path found: ${result.path.length} nodes in ${result.time_ms}ms`);
+                const nodeCount = Array.isArray(result.path) ? result.path.length : result.keynodes.length;
+                Chat.messagePathfinder(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
                 this.saidInfo = true;
             }
 
@@ -317,19 +335,20 @@ class Finder {
         const callback = this.currentCallback;
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
+        const scheduleId = ++this.recalculateScheduleId;
 
         this.resetPath(false);
 
         this.saidInfo = false;
 
         ScheduleTask(3, () => {
-            if (this.currentEnd === null) return;
+            if (scheduleId !== this.recalculateScheduleId) return;
             this.currentEnd = end;
             this.currentStarts = starts;
             this.currentCallback = callback;
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
-            this.findPath(end, callback, false, this.isFly, starts);
+            this.findPath(end, callback, false, this.isFly, starts, true);
         });
     }
 
@@ -339,13 +358,14 @@ class Finder {
         const callback = this.currentCallback;
         const wasFromFile = this.calledFromFile;
         const attempts = this.recalculateAttempts;
+        const scheduleId = ++this.recalculateScheduleId;
 
         this.resetPath(false);
 
         this.saidInfo = false;
 
         ScheduleTask(5, () => {
-            if (this.currentEnd === null) return;
+            if (scheduleId !== this.recalculateScheduleId) return;
 
             this.currentEnd = end;
             this.currentStarts = starts;
@@ -353,7 +373,7 @@ class Finder {
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
 
-            this.findPath(end, callback, false, this.isFly, starts);
+            this.findPath(end, callback, false, this.isFly, starts, true);
         });
     }
 
@@ -477,9 +497,14 @@ class Finder {
 
     createStartPoints(startPoints) {
         if (startPoints) {
+            const validStarts = startPoints
+                .filter((point) => Array.isArray(point) && point.length >= 3)
+                .map((point) => [Math.floor(Number(point[0])), Math.floor(Number(point[1])), Math.floor(Number(point[2]))])
+                .filter((point) => point.every((v) => !Number.isNaN(v)));
+
             return {
-                points: startPoints,
-                metadata: startPoints.map((point) => ({
+                points: validStarts,
+                metadata: validStarts.map((point) => ({
                     type: 'custom',
                     point: [point[0], point[1], point[2]],
                 })),
@@ -519,6 +544,9 @@ class Finder {
     handleStartPointWarp(result) {
         if (!this.selectedStartCandidate) {
             this.selectedStartCandidate = this.resolvePathStartCandidate(result);
+        }
+        if (!this.selectedStartCandidate) {
+            return true;
         }
 
         if (this.selectedStartCandidate.type !== 'warp') {
@@ -671,11 +699,13 @@ class Finder {
         this.flySplinePath = null;
         this.startCandidates = [];
         this.selectedStartCandidate = null;
+        this.searchStartedAt = 0;
         this.warpCommandIssued = false;
         this.warpRetryCount = 0;
         this.warpLastAttemptAt = 0;
 
         if (clearFlags) {
+            this.recalculateScheduleId++;
             this.saidInfo = false;
             this.calledFromFile = false;
             this.currentEnd = null;

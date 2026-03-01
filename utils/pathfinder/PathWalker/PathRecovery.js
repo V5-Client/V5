@@ -48,9 +48,13 @@ class PathRecovery {
             this.stuckPos = { x: pX, z: pZ };
         }
 
+        if (!player.isOnGround()) {
+            this.lastPos = { x: pX, z: pZ };
+            return null;
+        }
+
         this.stuckTicks++;
         this.lastPos = { x: pX, z: pZ };
-        if (!player.isOnGround()) return null; // move to the 'if (!player) return null;' if this breaks it. but i'm pretty sure here makes it better!
 
         if (this.stuckTicks >= this.STUCK_TICKS_BACKUP_RECALC && this.currentLevel < 3) {
             if (PathConfig.PATHFINDING_DEBUG) {
@@ -122,7 +126,7 @@ class PathNonChangeRecovery {
             return false;
         }
 
-        if (typeof pathPosition !== 'number') {
+        if (typeof pathPosition !== 'number' || !Number.isFinite(pathPosition)) {
             this.resetTracking();
             return false;
         }
