@@ -85,7 +85,7 @@ const v5Logic = () => {
         Chat.message('&7/v5 mining <stats|refuel|maxge|gemstone|ore> ...');
         Chat.message('&7/v5 path <goto|fly|stop> ... &f- Pathfinder utilities');
         Chat.message('&7/v5 farming set <start|end> &f- Configure Garden warps');
-        Chat.message('&7/v5 routes <walker|routewalker> ... &f- Route Walker routes');
+        Chat.message('&7/v5 routes <action> [movement] [index] &f- Route Walker routes');
         Chat.message('&7/v5 dr ... or /v5 dungeonroutes ...');
         Chat.message('&7/v5 debug <blockinfo|istranslucent|packetinfo> ...');
     };
@@ -200,14 +200,8 @@ const v5Logic = () => {
     });
 
     literal('routes', () => {
-        exec(() => usage('/v5 routes <walker|routewalker> <action> [movement] [index]'));
-        const registerWalkerCommand = () => {
-            exec(() => usage('/v5 routes walker <action> [movement] [index]'));
-            argument('args', greedyString(), () => exec(({ args }) => run('routewalker', args)));
-        };
-
-        literal('walker', registerWalkerCommand);
-        literal('routewalker', registerWalkerCommand);
+        exec(() => usage('/v5 routes <add|remove|clear> [movement] [index]'));
+        argument('args', greedyString(), () => exec(({ args }) => run('routewalker', args)));
     });
 
     // rdbt hasn't pushed dungeonroutes yet, commenting out rn.

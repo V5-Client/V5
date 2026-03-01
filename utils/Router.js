@@ -177,7 +177,7 @@ class Routes {
                     point.z = Math.floor(looking.z);
                 } else {
                     point.x = Math.floor(Player.getX());
-                    point.y = Math.floor(Player.getY() - 1);
+                    point.y = Math.floor(Player.getY() - 0.001);
                     point.z = Math.floor(Player.getZ());
                 }
 

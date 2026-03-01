@@ -50,8 +50,8 @@ class RouteWalkerer extends ModuleBase {
             let indexNum = undefined;
 
             const actionUpper = action?.toUpperCase();
-            if (!actionUpper) return this.message('action required! e.g /v5 routes walker ADD/REMOVE/CLEAR');
-            if (actionUpper === 'ADD' && !arg1) return this.message('movement type required! e.g /v5 routes walker add WALK/ETHERWARP');
+            if (!actionUpper) return this.message('action required! e.g /v5 routes ADD/REMOVE/CLEAR');
+            if (actionUpper === 'ADD' && !arg1) return this.message('movement type required! e.g /v5 routes add WALK/ETHERWARP');
 
             if (indexArg !== undefined) {
                 let parsedNum = Number.parseInt(indexArg);
@@ -90,7 +90,7 @@ class RouteWalkerer extends ModuleBase {
                 };
 
                 route.forEach((point, i) => {
-                    if (!this.CheckPoint(point)) return;
+                    if (!this.checkPoint(point)) return;
 
                     const pointColor = getColor(point.movements);
 
@@ -98,7 +98,7 @@ class RouteWalkerer extends ModuleBase {
 
                     if (i < route.length - 1) {
                         const nextPoint = route[i + 1];
-                        if (!this.CheckPoint(nextPoint)) return;
+                        if (!this.checkPoint(nextPoint)) return;
                         Render.drawLine(
                             new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
                             new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
@@ -112,7 +112,7 @@ class RouteWalkerer extends ModuleBase {
                 const firstPoint = route[0];
                 const lastPoint = route[route.length - 1];
 
-                if (route.length < 1 || !this.CheckPoint(firstPoint) || !this.CheckPoint(lastPoint)) return;
+                if (route.length < 1 || !this.checkPoint(firstPoint) || !this.checkPoint(lastPoint)) return;
 
                 Render.drawLine(
                     new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
@@ -140,7 +140,7 @@ class RouteWalkerer extends ModuleBase {
 
             switch (this.action) {
                 case this.ACTIONS.WALK:
-                    Keybind.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true);
+                    Keybind.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true, true);
 
                     Keybind.setKey('shift', this.SNEAK);
                     Keybind.setKey('leftclick', this.LEFTCLICK);
@@ -278,7 +278,7 @@ class RouteWalkerer extends ModuleBase {
         );
     }
 
-    CheckPoint(point) {
+    checkPoint(point) {
         if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') return true;
 
         return false;

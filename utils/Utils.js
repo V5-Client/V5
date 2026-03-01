@@ -304,6 +304,8 @@ class UtilsClass {
                     if (registryName.includes('carpet')) continue;
 
                     if (shouldIgnoreBottomSlab) {
+                        if (registryName.includes('farmland')) continue;
+
                         if (registryName.includes('slab')) {
                             const stateString = blockState.toString();
                             if (stateString.includes('type=bottom')) continue;
