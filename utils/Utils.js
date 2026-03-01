@@ -1,5 +1,6 @@
 import { Chat } from './Chat';
 import { BP, isLinux, isMac, isWindows, Vec3d } from './Constants';
+import { GameMessageS2C } from './Packets';
 
 export const mc = Client.getMinecraft();
 
@@ -181,6 +182,45 @@ class CookieDetector {
     }
 }
 
+class ManaDetector {
+    constructor() {
+        this.currentMana = null;
+        this.manaPatternWithColors = /(?:\u00A7b)?([\d,]+)\/([\d,]+)\u270E\s*(?:Mana|(?:\u00A73)?([\d,]+)\u02AC)\s*/;
+        this.manaPattern = /([\d,]+)\/([\d,]+)\u270E\s*(?:Mana|([\d,]+)\u02AC)\s*/;
+
+        register('worldLoad', () => this.reset());
+        register('packetReceived', (packet) => {
+            this.onGameMessage(packet);
+        }).setFilteredClass(GameMessageS2C);
+    }
+
+    onGameMessage(packet) {
+        if (!packet || !packet.overlay || !packet.overlay()) return;
+
+        const content = packet.content();
+        const actionBar = content?.getString();
+        if (!actionBar) return;
+
+        let match = actionBar.match(this.manaPatternWithColors);
+
+        if (!match) {
+            const stripped = actionBar.replace(/\u00A7[0-9A-FK-ORa-fk-or]/g, '');
+            match = stripped.match(this.manaPattern);
+        }
+        if (!match) return;
+
+        this.currentMana = Number(match[1]);
+    }
+
+    getCurrentMana() {
+        return this.currentMana;
+    }
+
+    reset() {
+        this.currentMana = null;
+    }
+}
+
 class CollisionChecker {
     checkPlayerCollision() {
         try {
@@ -264,6 +304,7 @@ let locationDetector = new LocationDetector();
 let collisionChecker = new CollisionChecker();
 let vectorConverter = new VectorConverter();
 let cookieDetector = new CookieDetector();
+let manaDetector = new ManaDetector();
 
 class UtilsClass {
     constructor() {
@@ -485,6 +526,10 @@ class UtilsClass {
 
     hasCookie() {
         return cookieDetector.check();
+    }
+
+    getCurrentMana() {
+        return manaDetector.getCurrentMana();
     }
 
     checkPlayerCollision() {

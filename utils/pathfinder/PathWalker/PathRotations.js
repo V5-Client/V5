@@ -27,6 +27,8 @@ class PathRotations {
         this.VISIBILITY_CACHE_MS = 50;
         this.MAX_DIRECTION_DIVERGENCE = 50.0;
         this.MAX_UPWARD_PITCH = -45.0;
+        this.TELEPORT_RESYNC_DURATION_TICKS = 14;
+        this.TELEPORT_RESYNC_SEARCH_WINDOW = 72;
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
         this.currentPathCurvature = 0;
@@ -41,6 +43,10 @@ class PathRotations {
         });
 
         PathExecutor.onTick(() => {
+            if (this.postTeleportResyncTicks > 0) {
+                this.postTeleportResyncTicks--;
+            }
+
             if (this.lookaheadOverrideExpiry > 0) {
                 this.lookaheadOverrideExpiry--;
                 if (this.lookaheadOverrideExpiry <= 0) {
@@ -74,7 +80,20 @@ class PathRotations {
         this.unseenStartPathPosition = 0;
         this.currentPathCurvature = 0;
         this.initialTurnBoostTicks = 0;
+        this.postTeleportResyncTicks = 0;
         PathRotationsUtility.stopRotation();
+    }
+
+    onTeleportTriggered(targetPathPosition = null) {
+        this.postTeleportResyncTicks = this.TELEPORT_RESYNC_DURATION_TICKS;
+        this.cachedLookahead = null;
+        this.unseenSince = 0;
+        this.unseenStartPathPosition = this.currentPathPosition;
+        this.setTemporaryLookahead(this.MAX_LOOKAHEAD, this.TELEPORT_RESYNC_DURATION_TICKS);
+
+        if (typeof targetPathPosition === 'number') {
+            this.currentPathPosition = Math.max(this.currentPathPosition, Math.max(0, targetPathPosition - 2.0));
+        }
     }
 
     shouldBoostInitialTurn(yawError) {
@@ -262,8 +281,13 @@ class PathRotations {
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
 
-        const searchWindow = isFalling ? 4 : isJumpingHigh ? 12 : 8;
-        const startIdx = isFalling ? Math.floor(this.currentPathPosition) : Math.max(0, Math.floor(this.currentPathPosition) - 2);
+        const isTeleportResync = this.postTeleportResyncTicks > 0;
+        let searchWindow = isFalling ? 4 : isJumpingHigh ? 12 : 8;
+        let startIdx = isFalling ? Math.floor(this.currentPathPosition) : Math.max(0, Math.floor(this.currentPathPosition) - 2);
+        if (isTeleportResync) {
+            searchWindow = Math.max(searchWindow, this.TELEPORT_RESYNC_SEARCH_WINDOW);
+            startIdx = Math.max(0, Math.floor(this.currentPathPosition) - 24);
+        }
 
         const endIdx = Math.min(this.boxPositions.length - 2, startIdx + searchWindow);
 
@@ -290,9 +314,10 @@ class PathRotations {
             }
         }
 
-        const effectiveThreshold = isFalling ? 5.0 : isJumpingHigh ? this.PROXIMITY_THRESHOLD * 2 : this.PROXIMITY_THRESHOLD;
+        let effectiveThreshold = isFalling ? 5.0 : isJumpingHigh ? this.PROXIMITY_THRESHOLD * 2 : this.PROXIMITY_THRESHOLD;
+        if (isTeleportResync) effectiveThreshold *= 1.8;
         if (minDistanceSq < effectiveThreshold * effectiveThreshold) {
-            const maxJump = isFalling ? 0.5 : 2.0;
+            const maxJump = isTeleportResync ? 14.0 : isFalling ? 0.5 : 2.0;
             this.currentPathPosition = Math.min(this.currentPathPosition + maxJump, bestT);
         }
 

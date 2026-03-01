@@ -49,6 +49,7 @@ class CommissionMacro extends ModuleBase {
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = 0;
         this.currentPathWaypoint = null;
+        this.currentPathWaypoints = [];
 
         this.commissions = [];
         this.currentCommission = null;
@@ -278,6 +279,7 @@ class CommissionMacro extends ModuleBase {
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = 0;
         this.currentPathWaypoint = null;
+        this.currentPathWaypoints = [];
 
         MiningBot.toggle(false, true);
         CombatBot.clearExternalTargets();
@@ -507,10 +509,10 @@ class CommissionMacro extends ModuleBase {
 
         Chat.message(`Starting &e${task.name}&f commission.`);
 
-        const initialWaypoint = this.getClosestWaypoint(waypoints);
-        this.currentPathWaypoint = initialWaypoint;
+        this.currentPathWaypoints = waypoints.slice();
+        this.currentPathWaypoint = this.getClosestWaypoint(waypoints);
         this.setState(STATES.TRAVELING);
-        Pathfinder.findPath([initialWaypoint], (success) => this.onPathComplete(success));
+        Pathfinder.findPath(waypoints, (success) => this.onPathComplete(success));
     }
 
     handleNoAvailableSpots() {
@@ -773,7 +775,13 @@ class CommissionMacro extends ModuleBase {
     }
 
     handlePathingAvoidance() {
-        if (!this.isTravelMiningPathing() || this.avoidanceRadius <= 0 || !this.currentPathWaypoint) {
+        if (!this.isTravelMiningPathing() || this.avoidanceRadius <= 0) {
+            this.pathingAvoidanceBreachAt = null;
+            return;
+        }
+
+        this.updateCurrentPathWaypointFromResult();
+        if (!this.currentPathWaypoint) {
             this.pathingAvoidanceBreachAt = null;
             return;
         }
@@ -803,14 +811,14 @@ class CommissionMacro extends ModuleBase {
         );
         if (safeWaypoints.length === 0) return;
 
-        const nextWaypoint = this.getClosestWaypoint(safeWaypoints);
-        this.currentPathWaypoint = nextWaypoint;
+        this.currentPathWaypoints = safeWaypoints;
+        this.currentPathWaypoint = this.getClosestWaypoint(safeWaypoints);
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = now;
 
         Chat.message('&eAvoidance radius breached for 5s, repathing to a different vein...');
         Pathfinder.resetPath();
-        Pathfinder.findPath([nextWaypoint], (success) => this.onPathComplete(success));
+        Pathfinder.findPath(safeWaypoints, (success) => this.onPathComplete(success));
     }
 
     isSameWaypoint(a, b) {
@@ -819,6 +827,33 @@ class CommissionMacro extends ModuleBase {
 
     getDistance(x1, y1, z1, x2, y2, z2) {
         return Math.hypot(x1 - x2, y1 - y2, z1 - z2);
+    }
+
+    updateCurrentPathWaypointFromResult() {
+        if (!this.currentPathWaypoints || this.currentPathWaypoints.length === 0) return;
+
+        const result = Pathfinder.getResult();
+        const path = result?.path;
+        if (!path || path.length === 0) return;
+
+        const pathEnd = path[path.length - 1];
+        if (!pathEnd) return;
+
+        let bestWaypoint = this.currentPathWaypoints[0];
+        let bestDistanceSq = Number.MAX_VALUE;
+
+        this.currentPathWaypoints.forEach((waypoint) => {
+            const dx = pathEnd.x - waypoint[0];
+            const dy = pathEnd.y - (waypoint[1] + 1);
+            const dz = pathEnd.z - waypoint[2];
+            const distanceSq = dx * dx + dy * dy + dz * dz;
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                bestWaypoint = waypoint;
+            }
+        });
+
+        this.currentPathWaypoint = bestWaypoint;
     }
 
     onPathComplete(success) {
@@ -830,6 +865,7 @@ class CommissionMacro extends ModuleBase {
 
         this.pathingAvoidanceBreachAt = null;
         this.currentPathWaypoint = null;
+        this.currentPathWaypoints = [];
 
         if (this.travelPurpose === 'EMISSARY') {
             this.travelPurpose = null;
@@ -856,6 +892,7 @@ class CommissionMacro extends ModuleBase {
         Chat.message(`&cFailed to find a path for &b${this.currentCommission?.name || 'Unknown'}. Retrying...`);
         this.pathingAvoidanceBreachAt = null;
         this.currentPathWaypoint = null;
+        this.currentPathWaypoints = [];
         this.currentCommission = null;
         this.setState(STATES.IDLE);
     }
@@ -923,6 +960,8 @@ class CommissionMacro extends ModuleBase {
         CombatBot.toggle(false, true);
 
         this.travelPurpose = null;
+        this.currentPathWaypoint = null;
+        this.currentPathWaypoints = [];
         this.lastCompletedCommissionName = this.currentCommission?.name || null;
         this.lastCommissionName = this.currentCommission?.name || null;
         this.lastCommissionAt = Date.now();
