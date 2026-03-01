@@ -73,7 +73,7 @@ class PathAote {
             return this.debug('recovery');
         }
 
-        if (Math.abs(Player.getMotionY()) > 0.2 && !playerInFluid) {
+        if (Math.abs(Player.getMotionY()) > 0.25 && !playerInFluid) {
             return this.debug('vertical motion');
         }
 
