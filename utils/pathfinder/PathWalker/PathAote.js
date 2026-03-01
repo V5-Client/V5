@@ -70,11 +70,11 @@ class PathAote {
         }
 
         if (Movement.isRecovering()) {
-            return this.debug('recovery/vertical motion');
+            return this.debug('recovery');
         }
 
         if (Math.abs(Player.getMotionY()) > 0.2 && !playerInFluid) {
-            return this.debug('recovery/vertical motion');
+            return this.debug('vertical motion');
         }
 
         const candidate = this.getTargetAlongPath(rotations, range);
