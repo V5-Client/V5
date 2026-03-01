@@ -43,6 +43,10 @@ class PathRotations {
         });
 
         PathExecutor.onTick(() => {
+            if (this.postTeleportResyncTicks > 0) {
+                this.postTeleportResyncTicks--;
+            }
+
             if (this.lookaheadOverrideExpiry > 0) {
                 this.lookaheadOverrideExpiry--;
                 if (this.lookaheadOverrideExpiry <= 0) {
@@ -419,7 +423,6 @@ class PathRotations {
             this.rotationActive = false;
         }
 
-        if (this.postTeleportResyncTicks > 0) this.postTeleportResyncTicks--;
     }
 
     applyHumanizedPhysics() {
