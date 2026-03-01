@@ -4,7 +4,7 @@
             "warp": "elizabeth",
             "area": "Hub",
             "defaultUnlock": true,
-            "x": 4,
+            "x": -4,
             "y": 79,
             "z": 16
         },
@@ -188,7 +188,7 @@
             "warp": "stonks",
             "area": "Hub",
             "defaultUnlock": true,
-            "x": 37,
+            "x": -37,
             "y": 70,
             "z": -82
         },
