@@ -3,6 +3,11 @@ import { PathManager } from '../Constants.js';
 class SwiftIntegration {
     constructor() {
         this.pathManager = PathManager;
+        this.cachedResult = null;
+    }
+
+    clearResultCache() {
+        this.cachedResult = null;
     }
 
     toIntPoint(point, isFly) {
@@ -39,6 +44,8 @@ class SwiftIntegration {
     // This needs to be fixed but anytime i change anything it breaks more
     // Good luck for whoever tries next
     SwiftPath(startPoints, endPoints, isFly = false) {
+        this.cachedResult = null;
+
         const fly = isFly === true;
         const startsValid = Array.isArray(startPoints) && startPoints.length > 0 && Array.isArray(startPoints[0]);
         const endsValid = Array.isArray(endPoints) && endPoints.length > 0 && Array.isArray(endPoints[0]);
@@ -71,7 +78,14 @@ class SwiftIntegration {
     }
 
     getResult() {
-        if (!PathManager.hasPath()) return null;
+        if (!PathManager.hasPath()) {
+            this.cachedResult = null;
+            return null;
+        }
+
+        if (this.cachedResult) {
+            return this.cachedResult;
+        }
 
         const pathArr = PathManager.getPathArray();
         const keyArr = PathManager.getKeyNodesArray();
@@ -87,13 +101,16 @@ class SwiftIntegration {
             keynodes.push({ x: keyArr[i], y: keyArr[i + 1], z: keyArr[i + 2] });
         }
 
-        return {
+        const result = {
             path: path,
             keynodes: keynodes,
             path_between_key_nodes: path,
             time_ms: PathManager.getLastTimeMs(),
             nodes_explored: PathManager.getNodesExplored(),
         };
+
+        this.cachedResult = result;
+        return result;
     }
 
     getLastError() {
@@ -101,10 +118,12 @@ class SwiftIntegration {
     }
 
     cancel() {
+        this.cachedResult = null;
         PathManager.cancelSearch();
     }
 
     clear() {
+        this.cachedResult = null;
         PathManager.clear();
     }
 }

@@ -50,6 +50,9 @@ class Finder {
         this.flyLookPoints = null;
         this.flyMovementPath = null;
         this.flySplinePath = null;
+        this.cachedPathResult = null;
+        this.cachedWalkSplinePath = null;
+        this.cachedWalkSplineResult = null;
 
         v5Command('path', (...args) => {
             const end = this.parseGoalCoordinates(args, 'Usage: /v5 path goto <x> <y> <z> [x2 y2 z2...]');
@@ -106,6 +109,7 @@ class Finder {
         this.currentStarts = startPoints;
         this.currentCallback = onComplete;
         this.isFly = isFly;
+        this.clearPathCaches();
 
         const { points: starts, metadata: startMetadata } = this.createStartPoints(startPoints);
         if (!starts?.length) {
@@ -161,7 +165,13 @@ class Finder {
                 return;
             }
 
-            const result = Swift.getResult();
+            let result = this.cachedPathResult;
+            if (!result) {
+                result = Swift.getResult();
+                if (result) {
+                    this.cachedPathResult = result;
+                }
+            }
 
             if (!result || !result.keynodes?.length) {
                 if (this.checkIfReachedDestination()) {
@@ -192,7 +202,7 @@ class Finder {
             if (!this.handleStartPointWarp(result)) return;
 
             if (!this.isFly) {
-                const splinePath = this.createSplinePath(result);
+                const splinePath = this.getCachedWalkSplinePath(result);
 
                 if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS) {
                     this.startRender(result, splinePath);
@@ -647,6 +657,24 @@ class Finder {
         return nodes?.length ? Spline.generateSpline(nodes, 1) : null;
     }
 
+    getCachedWalkSplinePath(result) {
+        if (!result) return null;
+        if (this.cachedWalkSplineResult === result && this.cachedWalkSplinePath) {
+            return this.cachedWalkSplinePath;
+        }
+
+        const spline = this.createSplinePath(result);
+        this.cachedWalkSplineResult = result;
+        this.cachedWalkSplinePath = spline;
+        return spline;
+    }
+
+    clearPathCaches() {
+        this.cachedPathResult = null;
+        this.cachedWalkSplinePath = null;
+        this.cachedWalkSplineResult = null;
+    }
+
     startRender(result, splinePath) {
         if (this.render) return;
 
@@ -700,6 +728,7 @@ class Finder {
         this.flyLookPoints = null;
         this.flyMovementPath = null;
         this.flySplinePath = null;
+        this.clearPathCaches();
         this.startCandidates = [];
         this.selectedStartCandidate = null;
         this.searchStartedAt = 0;
@@ -726,7 +755,11 @@ class Finder {
     }
 
     getResult() {
-        return Swift.getResult();
+        if (this.cachedPathResult) return this.cachedPathResult;
+
+        const result = Swift.getResult();
+        if (result) this.cachedPathResult = result;
+        return result;
     }
 }
 
