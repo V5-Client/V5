@@ -12,14 +12,15 @@ class HUD extends ModuleBase {
             subcategory: 'Visuals',
             description: 'Different GUI components',
             tooltip: 'GUI overlays like FPS counter or Inventory HUD',
-            showEnabledToggle: true,
+            showEnabledToggle: false,
         });
 
-        this.STATS_HUD = false;
-        this.INVENTORY_HUD = false;
+        this.STATS_HUD = true;
+        this.INVENTORY_HUD = true;
 
-        this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.');
-        this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud');
+        this.addToggle('Enabled', (v) => this.toggle(!!v), 'Toggles HUD', true);
+        this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
+        this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
 
         this.positionConfig = Utils.getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
