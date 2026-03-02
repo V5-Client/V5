@@ -95,7 +95,7 @@ class PathRecovery {
     }
 
     isStallRecoveryActive() {
-        return this.stuckTicks > 0 || this.currentLevel > 0;
+        return this.currentLevel > 0;
     }
 
     resetTracking() {
