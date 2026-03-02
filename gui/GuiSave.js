@@ -156,6 +156,8 @@ function loadComponentValue(component, savedValue) {
                 const savedOption = savedValue.find((o) => o.name === option.name);
                 if (savedOption) {
                     option.enabled = savedOption.enabled;
+                    option.animationProgress = savedOption.enabled ? 1 : 0;
+                    option.animationStart = 0;
                 }
             });
         }

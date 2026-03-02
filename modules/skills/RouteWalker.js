@@ -50,8 +50,21 @@ class RouteWalkerer extends ModuleBase {
             let indexNum = undefined;
 
             const actionUpper = action?.toUpperCase();
-            if (!actionUpper) return this.message('action required! e.g /v5 routes ADD/REMOVE/CLEAR');
-            if (actionUpper === 'ADD' && !arg1) return this.message('movement type required! e.g /v5 routes add WALK/ETHERWARP');
+            if (actionUpper === 'ADD' && !arg1) return this.message('Movement type required! e.g /v5 routes add WALK/ETHERWARP');
+            if (actionUpper === 'CREATE') {
+                const createdRouteId = `${Date.now()}`;
+                const createdRouteName = `${createdRouteId}.json`;
+                const createdRoutePath = `RoutewalkerRoutes/${createdRouteName}`;
+
+                if (!Router.saveRouteToFile(createdRoutePath, [])) return;
+
+                this.loadedFile = createdRouteName;
+                this.route = [];
+                this.refreshRoutesToggle();
+                RouteState.setRoute(this.route, 'Route Walker');
+                this.message(`&aCreated route: &f${createdRouteName}`);
+                return;
+            }
 
             if (indexArg !== undefined) {
                 let parsedNum = Number.parseInt(indexArg);
@@ -212,7 +225,7 @@ class RouteWalkerer extends ModuleBase {
             }
         });
 
-        this.addMultiToggle(
+        this.routesToggle = this.addMultiToggle(
             'Routes',
             this.routesDir,
             true,
@@ -282,6 +295,25 @@ class RouteWalkerer extends ModuleBase {
         if (point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number') return true;
 
         return false;
+    }
+
+    refreshRoutesToggle() {
+        const routes = Router.getFilesinDir('RoutewalkerRoutes').map((name) => String(name));
+        if (!this.routesToggle) return;
+
+        const prevState = new Map((this.routesToggle.options || []).map((option) => [option.name, !!option.enabled]));
+
+        this.routesDir = routes;
+
+        this.routesToggle.options = routes.map((routeName) => {
+            const enabled = prevState.get(routeName) === true;
+            return {
+                name: routeName,
+                enabled: enabled,
+                animationProgress: enabled ? 1 : 0,
+                animationStart: 0,
+            };
+        });
     }
 
     getClosestPoint() {

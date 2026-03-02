@@ -327,7 +327,7 @@ export class ModuleBase {
      * @param {string} [defaultValue=false] - Optional: Default selected option name
      */
     addMultiToggle(title, options, singleSelect, callback, description = null, defaultValue = false) {
-        Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
+        return Categories.addMultiToggle('Modules', this.name, title, options, !!singleSelect, callback, description, defaultValue);
     }
 
     /**
@@ -341,7 +341,7 @@ export class ModuleBase {
      * @param {string} [sectionName=null] - Optional: Section header within Settings
      */
     addDirectMultiToggle(title, options, singleSelect, callback, description = null, defaultValue = false, sectionName = null) {
-        Categories.addSettingsMultiToggle(title, options, !!singleSelect, callback, description, defaultValue, sectionName, 'Settings');
+        return Categories.addSettingsMultiToggle(title, options, !!singleSelect, callback, description, defaultValue, sectionName, 'Settings');
     }
 
     /**
