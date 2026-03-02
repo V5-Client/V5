@@ -30,6 +30,8 @@ class HUD extends ModuleBase {
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
+
+        this.toggle(true);
     }
 
     onDisable() {
