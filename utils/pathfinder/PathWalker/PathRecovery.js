@@ -94,6 +94,10 @@ class PathRecovery {
         return dx * dx + dz * dz > this.PROGRESS_THRESHOLD_SQ;
     }
 
+    isStallRecoveryActive() {
+        return this.stuckTicks > 0 || this.currentLevel > 0;
+    }
+
     resetTracking() {
         this.stuckTicks = 0;
         this.currentLevel = 0;

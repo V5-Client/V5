@@ -235,12 +235,18 @@ class Finder {
                         Recovery.stop();
                     }
 
-                    if (NonChangeRecovery.trackProgress(Rotations.currentPathPosition)) {
+                    const recoveryAction = Recovery.trackProgress();
+                    if (recoveryAction) {
+                        this.handleRecovery(recoveryAction);
+                        if (recoveryAction === 'BACKUP_RECALC') {
+                            return;
+                        }
+                    }
+
+                    if (!Recovery.isStallRecoveryActive() && NonChangeRecovery.trackProgress(Rotations.currentPathPosition)) {
                         this.recalculate();
                         return;
                     }
-
-                    this.handleRecovery(Recovery.trackProgress());
                 });
             } else if (this.isFly) {
                 if (!this.flyStarted) {
