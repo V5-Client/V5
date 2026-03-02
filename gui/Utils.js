@@ -232,9 +232,15 @@ export const easeInBack = (x) => {
 
 export const isInside = (mouseX, mouseY, rect) => mouseX >= rect.x && mouseX <= rect.x + rect.width && mouseY >= rect.y && mouseY <= rect.y + rect.height;
 
-export const fetchURL = (url) => {
+export const fetchURL = (url, headers = {}) => {
     try {
         let conn = new java.net.URL(url).openConnection();
+        Object.keys(headers).forEach((key) => {
+            const value = headers[key];
+            if (value !== undefined && value !== null) {
+                conn.setRequestProperty(String(key), String(value));
+            }
+        });
         let reader = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
         let inputLine;
         let response = '';
@@ -265,8 +271,10 @@ export const returnDiscord = (authToken) => {
                 // make sure folder exists
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 
-                const url = `${Links.BASE_API_URL}/api/me?token=${authToken}`;
-                let responseText = fetchURL(url);
+                const url = `${Links.BASE_API_URL}/api/me`;
+                let responseText = fetchURL(url, {
+                    Authorization: `Bearer ${authToken}`,
+                });
 
                 if (!responseText || responseText.trim() === '') {
                     Chat.message('Failed to get a valid response for Discord PFP.');

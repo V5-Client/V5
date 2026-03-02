@@ -55,7 +55,7 @@ export const Categories = {
     catAnimationDuration: 200,
 
     hoverStates: {},
-    guiScrollSpeed: 15,
+    guiScrollSpeed: 25,
 
     getVisibleCategories() {
         return Categories.categories.filter((category) => !category.hiddenInSidebar);

