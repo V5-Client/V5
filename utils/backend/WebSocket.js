@@ -75,7 +75,7 @@ function connectWebSocket() {
     ws.onOpen = () => {
         reconnectAttempts = 0;
         isConnected = true;
-        sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
+        //sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
     };
 
     ws.onMessage = (message) => {
@@ -109,7 +109,7 @@ function attemptReconnect() {
         ScheduleTask(delay, () => {
             if (gameUnload) return;
             if (isConnected) return Chat.messageIrc('Already connected to irc!');
-            Chat.messageIrc('Reconnecting...');
+            //Chat.messageIrc('Reconnecting...');
             connectWebSocket();
             start = Date.now();
         });
