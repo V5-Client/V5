@@ -9,6 +9,7 @@ import { mc, Utils } from '../../utils/Utils';
 
 let DungeonScanner;
 let roomsField;
+let currentRoomField;
 
 const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
 RIGHT_CLICK_METHOD.setAccessible(true);
@@ -28,17 +29,20 @@ class BloodBlink extends ModuleBase {
             DungeonScanner = Java.type('com.github.synnerz.devonian.api.dungeon.DungeonScanner');
             roomsField = DungeonScanner.class.getDeclaredField('rooms');
             roomsField.setAccessible(true);
+            currentRoomField = DungeonScanner.class.getDeclaredField('currentRoom');
+            currentRoomField.setAccessible(true);
         } catch (e) {
             this.reflectionFailed = true;
         }
 
+        this.pearlSlot = -1;
+        this.aotvSlot = -1;
         this.blinkDelay = -1;
         this.outbounds = 0;
         this.blinkReady = false;
         this.dungeonStarted = true;
-
-        this.pearlSlot = -1;
-        this.aotvSlot = -1;
+        this.setupBlinkRunning = false;
+        this.blinkRunning = false;
 
         this.on('tick', () => {
             this.pearlSlot = Guis.findItemInHotbar('Ender Pearl');
@@ -46,7 +50,6 @@ class BloodBlink extends ModuleBase {
             if (this.aotvSlot === -1) this.aotvSlot = Guis.findItemInHotbar('Aspect of the End');
             if (this.blinkDelay >= 0 && --this.blinkDelay <= 0) {
                 this.blinkDelay = -1;
-                Keybind.setKey('space', false);
                 this.blink();
             }
         });
@@ -57,29 +60,54 @@ class BloodBlink extends ModuleBase {
         }).setName('BloodBlink');
 
         this.on('packetReceived', (packet) => {
-            this.outbounds = 40 - (packet.time() % 40);
+            this.outbounds = 40 - (packet?.time?.() % 40);
         }).setFilteredClass(WorldTimeUpdateS2C);
 
         this.on('packetReceived', () => {
             if (this.outbounds == 0) this.outbounds = 40;
             else this.outbounds = this.outbounds - 1;
             if (!Utils.subArea().startsWith('The Catacombs')) return;
+            if (this.outbounds > 25 && this.blinkReady && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
             if (this.dungeonStarted) return;
-            if (this.outbounds == 21 && (Player.getY() == 71 || Player.getY() == 72)) return this.setupBlink();
-            if (this.outbounds == 1 && this.blinkReady && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
+            if (this.outbounds > 30 || this.outbounds < 10) return;
+            if (Player.getY() == 71 || Player.getY() == 72) return this.setupBlink();
         }).setFilteredClass(CommonPingS2C);
 
         this.on('chat', (event) => {
             const msg = event.message.getUnformattedText();
-            if (msg == 'Starting in 1 second.') this.blinkReady = true;
             const catacombsEntryRegex = /(?:\[[^\]]+\]\s+)?[A-Za-z0-9_]{1,16} entered (?:MM )?The Catacombs, [^!\n]+!/;
             if (catacombsEntryRegex.test(msg)) {
                 this.dungeonStarted = false;
-                Client.scheduleTask(300, () => {
-                    this.dungeonStarted = true;
-                });
+                Chat.message('BloodBlink Dungeon Detected');
+            }
+
+            if (msg == 'Starting in 1 second.') this.dungeonStarted = true;
+            if (msg == '§e[NPC] §bMort§f: Here, I found this map when I first entered the dungeon.') {
+                Chat.message('BloodBlink Dungeon Start Detected');
+                this.blinkReady = true;
             }
         });
+
+        this.on('worldLoad', () => this.reset());
+        this.on('worldUnload', () => this.reset());
+    }
+
+    onEnable() {
+        this.reset();
+    }
+
+    onDisable() {
+        this.blinkDelay = -1;
+        this.setupBlinkRunning = false;
+        this.blinkRunning = false;
+    }
+
+    reset() {
+        this.blinkDelay = -1;
+        this.outbounds = 0;
+        this.blinkReady = false;
+        this.setupBlinkRunning = false;
+        this.blinkRunning = false;
     }
 
     getBloodCenter(roomName = 'blood') {
@@ -144,8 +172,12 @@ class BloodBlink extends ModuleBase {
     }
 
     blink(force = false, roomName = 'blood') {
+        if (this.blinkRunning || this.setupBlinkRunning) return;
+        this.blinkRunning = true;
+        Chat.message('BloodBlink Blink Blood');
         if (this.reflectionFailed) {
             Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
+            this.blinkRunning = false;
             return;
         }
 
@@ -157,15 +189,12 @@ class BloodBlink extends ModuleBase {
         const bloodZ = bloodCenter ? bloodCenter.z : this.getOppositeCoord(playerZ);
 
         const closest = { x: -220, z: -220 };
-        const distanceTo = (point) => Math.hypot(point.x - playerX, point.z - playerZ);
 
         const upTo210LeapsY = Math.round((220 - playerY) / 12);
         const toCornerLeapsX = Math.round((closest.x - playerX) / 12);
         const toCornerLeapsXDelta = Math.round((toCornerLeapsX - (closest.x - playerX) / 12) * 12);
-        console.log(toCornerLeapsXDelta);
         const toCornerLeapsZ = Math.round((closest.z - playerZ) / 12);
         const toCornerLeapsZDelta = Math.round((toCornerLeapsZ - (closest.z - playerZ) / 12) * 12);
-        console.log(toCornerLeapsZDelta);
         const downTo30LeapsY = Math.round(300 / 12);
         const toBloodLeapsX = Math.round((bloodX - closest.x - toCornerLeapsXDelta) / 12);
         const toBloodLeapsZ = Math.round((bloodZ - closest.z - toCornerLeapsZDelta) / 12);
@@ -174,25 +203,29 @@ class BloodBlink extends ModuleBase {
         const yawForX = (dx) => (dx >= 0 ? -90 : 90);
         const yawForZ = (dz) => (dz >= 0 ? 0 : 180);
 
-        Rotations.rotateToAngles(0, -90);
+        Rotations.applyRotationWithGCD(0, -90);
 
         if (bloodCenter) {
-            if (!this.blinkReady && !force) return (this.blinkDelay = 20);
+            if (!this.blinkReady && !force) {
+                this.blinkDelay = 20;
+                this.blinkRunning = false;
+                return;
+            }
             this.blinkReady = false;
             Client.scheduleTask(0, () => {
-                Rotations.rotateToAngles(Player.getYaw(), -90);
+                Rotations.applyRotationWithGCD(Player.getYaw(), -90);
                 this.repeatRightClick(upTo210LeapsY);
-                Rotations.rotateToAngles(yawForX(closest.x - playerX), 0);
+                Rotations.applyRotationWithGCD(yawForX(closest.x - playerX), 0);
                 this.repeatRightClick(toCornerLeapsX);
-                Rotations.rotateToAngles(yawForZ(closest.z - playerZ), 0);
+                Rotations.applyRotationWithGCD(yawForZ(closest.z - playerZ), 0);
                 this.repeatRightClick(toCornerLeapsZ);
-                Rotations.rotateToAngles(0, 90);
+                Rotations.applyRotationWithGCD(0, 90);
                 this.repeatRightClick(downTo30LeapsY);
-                Rotations.rotateToAngles(yawForX(bloodX - closest.x), 0);
+                Rotations.applyRotationWithGCD(yawForX(bloodX - closest.x), 0);
                 this.repeatRightClick(toBloodLeapsX);
-                Rotations.rotateToAngles(yawForZ(bloodZ - closest.z), 0);
+                Rotations.applyRotationWithGCD(yawForZ(bloodZ - closest.z), 0);
                 this.repeatRightClick(toBloodLeapsZ);
-                Rotations.rotateToAngles(0, -90);
+                Rotations.applyRotationWithGCD(0, -90);
                 this.repeatRightClick(10);
             });
 
@@ -204,60 +237,90 @@ class BloodBlink extends ModuleBase {
             });
             Client.scheduleTask(5, () => {
                 this.rightClick();
+                Rotations.applyRotationWithGCD(0, 90);
+            });
+            Client.scheduleTask(6, () => {
+                this.rightClick();
+                this.blinkRunning = false;
             });
         } else {
             Client.scheduleTask(0, () => {
-                Rotations.rotateToAngles(0, -90);
+                if (this.dungeonStarted) return Chat.message('Bloodblink fucked up (no blood detected)');
+                Rotations.applyRotationWithGCD(0, -90);
                 this.repeatRightClick(upTo210LeapsY);
-                Rotations.rotateToAngles(yawForX(bloodX - playerX), 0);
+                Rotations.applyRotationWithGCD(yawForX(bloodX - playerX), 0);
                 this.repeatRightClick(directToBloodLeapsX);
-                Rotations.rotateToAngles(yawForZ(bloodZ - playerZ), 0);
+                Rotations.applyRotationWithGCD(yawForZ(bloodZ - playerZ), 0);
                 this.repeatRightClick(directToBloodLeapsZ);
+            });
+            Client.scheduleTask(1, () => {
+                this.blinkRunning = false;
             });
         }
     }
 
     setupBlink() {
+        if (this.setupBlinkRunning || this.blinkRunning) return;
+        this.setupBlinkRunning = true;
+        Chat.message('BloodBlink Blink Setup');
         if (this.reflectionFailed) {
             Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
+            this.setupBlinkRunning = false;
             return;
         }
-        if (Player.getY() >= 74) return (this.blinkDelay = 0); // standing on door method
+        if (this.aotvSlot === -1 || this.pearlSlot === -1) {
+            Chat.message('missing aotv/pearl');
+            this.setupBlinkRunning = false;
+            return;
+        }
+        if (Player.getY() == 74 || Player.getY() >= 97) {
+            this.blinkDelay = 0;
+            this.setupBlinkRunning = false;
+            return;
+        } // standing on door method
         Client.scheduleTask(0, () => {
             this.setHeldItemSafe(this.aotvSlot);
         });
         Client.scheduleTask(1, () => {
-            Rotations.rotateToAngles(0, -90);
+            Rotations.applyRotationWithGCD(0, -90);
         });
         Client.scheduleTask(2, () => {
             this.rightClick();
-            this.rightClick();
         });
         Client.scheduleTask(3, () => {
+            this.rightClick();
+        });
+        Client.scheduleTask(4, () => {
+            this.rightClick();
+        });
+        Client.scheduleTask(5, () => {
             this.setHeldItemSafe(this.pearlSlot);
         });
-        Client.scheduleTask(6, () => {
+        Client.scheduleTask(9, () => {
             this.rightClick();
         });
-        Client.scheduleTask(8, () => {
-            this.rightClick();
-        });
-        Client.scheduleTask(10, () => {
-            this.rightClick();
-        });
-        Client.scheduleTask(12, () => {
+        Client.scheduleTask(11, () => {
             this.rightClick();
         });
         Client.scheduleTask(15, () => {
             this.rightClick();
         });
-        Client.scheduleTask(18, () => {
+        Client.scheduleTask(19, () => {
             this.rightClick();
         });
-        Client.scheduleTask(19, () => {
+        Client.scheduleTask(23, () => {
+            this.rightClick();
+        });
+        Client.scheduleTask(27, () => {
+            this.rightClick();
+        });
+        Client.scheduleTask(30, () => {
             this.setHeldItemSafe(this.aotvSlot);
         });
-        this.blinkDelay = 21;
+        Client.scheduleTask(31, () => {
+            this.setupBlinkRunning = false;
+        });
+        this.blinkDelay = 32;
     }
 }
 
