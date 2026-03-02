@@ -1,3 +1,4 @@
+//@VIP
 import { MCHand, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { MiningUtils } from '../../utils/MiningUtils';

@@ -1,7 +1,7 @@
+//@VIP
 import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
-import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { PlayerInteractItemC2S } from '../../utils/Packets';
 import { Guis } from '../../utils/player/Inventory';

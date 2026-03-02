@@ -1,3 +1,4 @@
+//@VIP
 import { Chat } from '../../utils/Chat';
 import { BP, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';

@@ -1,3 +1,4 @@
+//@VIP
 import { getSetting } from '../../gui/GuiSave';
 import { XrayPackage } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';

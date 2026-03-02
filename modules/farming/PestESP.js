@@ -1,3 +1,5 @@
+//@VIP
+// idk if ready for release up to zurviq
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';

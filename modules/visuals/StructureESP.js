@@ -1,3 +1,4 @@
+//@VIP
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';

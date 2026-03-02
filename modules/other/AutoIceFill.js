@@ -26,7 +26,7 @@ class AutoIceFill extends ModuleBase {
         super({
             name: 'Auto Ice Fill',
             subcategory: 'Other',
-            description: 'Requires Devonian Ice Fill solver enabled. Works on 400/500 speed; hold shift to slow down.',
+            description: 'Requires Devonian Ice Fill solver (no teleport skip) enabled. Works on 400/500 speed.',
             tooltip: '',
         });
 
@@ -173,6 +173,7 @@ class AutoIceFill extends ModuleBase {
         const steerX = leadX - this.clampOffset(parallelCancelX + lateralCancelX, MAX_SLIP_LEAD) + centerNudgeX;
         const steerZ = leadZ - this.clampOffset(parallelCancelZ + lateralCancelZ, MAX_SLIP_LEAD) + centerNudgeZ;
         Keybind.setKeysForStraightLineCoords(steerX, target.y, steerZ, false);
+        Keybind.setKey('Shift', true);
     }
 
     readSolutions() {

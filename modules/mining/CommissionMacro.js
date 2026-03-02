@@ -1,3 +1,4 @@
+//@VIP
 import { notificationManager } from '../../gui/NotificationManager';
 import { Chat } from '../../utils/Chat';
 import { MiningUtils } from '../../utils/MiningUtils';

@@ -1,3 +1,4 @@
+//@VIP
 import { Chat } from '../../../utils/Chat';
 import { Vec3d } from '../../../utils/Constants';
 import { Mixin } from '../../../utils/MixinManager';

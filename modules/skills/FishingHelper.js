@@ -1,3 +1,4 @@
+//@VIP
 import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { MacroState } from '../../utils/MacroState';

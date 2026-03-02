@@ -1,3 +1,4 @@
+//@Private
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 

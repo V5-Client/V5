@@ -1,3 +1,4 @@
+//@VIP
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
