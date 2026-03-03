@@ -636,7 +636,7 @@ class CommissionMacro extends ModuleBase {
         }
 
         if (closestDist < 4 && !Pathfinder.isPathing()) {
-            if (!this.checkEmissaryUnlocked()) return;
+            if (this.emissariesUnlocked && !this.checkEmissaryUnlocked()) return;
             if (!this.ensureDrillEquippedForEmissaryClaim()) return;
 
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
