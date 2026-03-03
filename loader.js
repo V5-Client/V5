@@ -2,7 +2,6 @@ if (global.V5Loaded) {
     for (let i = 0; i < 100; i++) {
         ChatLib.chat('V5 Already loaded? Multiple modules? Did you forget to set dev channel?');
     }
-    return;
 }
 global.V5Loaded = true;
 
