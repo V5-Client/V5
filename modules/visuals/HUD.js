@@ -18,7 +18,6 @@ class HUD extends ModuleBase {
         this.STATS_HUD = true;
         this.INVENTORY_HUD = true;
 
-        this.addToggle('Enabled', (v) => this.toggle(!!v), 'Toggles HUD', true);
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
 
@@ -26,12 +25,14 @@ class HUD extends ModuleBase {
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
         this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
 
-        this.on('renderOverlay', () => this.renderOverlay());
+        this.when(
+            () => this.STATS_HUD || this.INVENTORY_HUD,
+            'renderOverlay',
+            () => this.renderOverlay()
+        );
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
-
-        this.toggle(true);
     }
 
     onDisable() {
@@ -303,7 +304,6 @@ class HUD extends ModuleBase {
     }
 
     renderOverlay() {
-        if (!this.STATS_HUD && !this.INVENTORY_HUD) return;
         if (OverlayManager.drawingGUI) return;
 
         this.syncFromOverlayEditor();
