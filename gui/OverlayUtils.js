@@ -842,31 +842,6 @@ class OverlayUtils {
         NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
         NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
 
-        const inv = Player.getInventory();
-        if (inv) {
-            const items = inv.getItems();
-            if (items) {
-                const iconPad = 1 * s;
-                const hotbar = items.slice(0, 9);
-                const main = items.slice(9, 36);
-                const mainStartX = clamped.x + pad;
-                const hotbarStartY = mainStartY + mainRows * slot + gap;
-
-                main.forEach((item, i) => {
-                    if (!item) return;
-                    const row = Math.floor(i / cols);
-                    if (row >= mainRows) return;
-                    const col = i % cols;
-                    item.draw(mainStartX + col * slot + iconPad, mainStartY + row * slot + iconPad, s);
-                });
-
-                hotbar.forEach((item, i) => {
-                    if (!item) return;
-                    item.draw(mainStartX + i * slot + iconPad, hotbarStartY + iconPad, s);
-                });
-            }
-        }
-
         return { x: clamped.x, y: clamped.y, width, height };
     }
 
