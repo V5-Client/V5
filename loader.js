@@ -1,10 +1,3 @@
-if (global.V5Loaded) {
-    for (let i = 0; i < 100; i++) {
-        ChatLib.chat('V5 Already loaded? Multiple modules? Did you forget to set dev channel?');
-    }
-}
-global.V5Loaded = true;
-
 com.chattriggers.ctjs.api.Config.setAutoUpdateModules(false);
 com.chattriggers.ctjs.api.Config.setOpenConsoleOnError(true);
 
