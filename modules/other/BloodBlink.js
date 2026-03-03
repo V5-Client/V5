@@ -19,8 +19,8 @@ class BloodBlink extends ModuleBase {
         super({
             name: 'Blood Blink',
             subcategory: 'Other',
-            description: 'Blinks to the Blood Room at the start of a dungeon (requires Devonian).',
-            tooltip: 'Requires Devonian dungeon scanner. If Devonian is not installed, this module will not run.',
+            description: 'Requires the following enabled: Devonian Mod, Auto GFS, Cancel Interact (V5).',
+            tooltip: 'Blinks to the Blood Room at the start of a dungeon.',
         });
 
         this.reflectionFailed = false;
