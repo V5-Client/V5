@@ -46,7 +46,7 @@ class CommissionMacro extends ModuleBase {
         this.currentState = STATES.IDLE;
         this.avoidanceRadius = 10;
         this.goblinWeaponSlot = 1;
-        this.completedCommissionMilestoneI = true;
+        this.emissariesUnlocked = true;
         this.pauseTicks = 0;
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = 0;
@@ -152,15 +152,6 @@ class CommissionMacro extends ModuleBase {
             },
             'Hotbar slot with weapon for Goblin Slayer (1-8)'
         );
-
-        this.addToggle(
-            'Completed Commission Milestone I',
-            (value) => {
-                this.completedCommissionMilestoneI = !!value;
-            },
-            'If disabled, only the King emissary waypoint is used.',
-            true
-        );
     }
 
     getCommissionProgressDisplay() {
@@ -228,6 +219,7 @@ class CommissionMacro extends ModuleBase {
 
     onEnable() {
         this.message('&aEnabled');
+        this.emissariesUnlocked = true;
 
         this.commissionsCompleted = 0;
 
@@ -392,6 +384,7 @@ class CommissionMacro extends ModuleBase {
         if (activeCommissions.length === 0) {
             Chat.message('No commissions detected.');
             Chat.message('Ensure commissions are enabled in /tab');
+            Chat.message('You might have to speak to the king first.');
             this.toggle(false);
             return;
         }
@@ -643,6 +636,7 @@ class CommissionMacro extends ModuleBase {
         }
 
         if (closestDist < 4 && !Pathfinder.isPathing()) {
+            if (!this.checkEmissaryUnlocked()) return;
             if (!this.ensureDrillEquippedForEmissaryClaim()) return;
 
             const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
@@ -705,10 +699,19 @@ class CommissionMacro extends ModuleBase {
     }
 
     getAvailableEmissaryLocations() {
-        if (!this.completedCommissionMilestoneI) {
+        if (!this.emissariesUnlocked) {
             return [EMISSARY_LOCATIONS[0]];
         }
         return EMISSARY_LOCATIONS;
+    }
+
+    checkEmissaryUnlocked() {
+        if (!World.getAllEntities().find((e) => e.getName().includes('Emissary'))) {
+            this.emissariesUnlocked = false;
+            Chat.message('Emissary not found! Reverting to king.');
+            return false;
+        }
+        return true;
     }
 
     claimCompletedCommissions() {
@@ -940,6 +943,7 @@ class CommissionMacro extends ModuleBase {
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
+        MiningBot.setPrioritizeGrayMithril(true);
 
         MiningBot.setCost(MiningBot.mithrilCosts);
         MiningBot.toggle(true, true);

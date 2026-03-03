@@ -30,6 +30,7 @@ class Bot extends ModuleBase {
         this.lowestCostBlockIndex = 0;
 
         this.PRIORITIZE_TITANIUM = true;
+        this.PRIORITIZE_GRAY_MITHRIL = false;
         this.TICKGLIDE = true;
         this.FAKELOOK = false;
         this.MOVEMENT = false;
@@ -139,14 +140,18 @@ class Bot extends ModuleBase {
     }
 
     updateMithrilCosts() {
+        const lightBlueCost = this.PRIORITIZE_GRAY_MITHRIL ? 15 : 3;
+        const prismarineCost = 10;
+        const grayCost = this.PRIORITIZE_GRAY_MITHRIL ? 1 : 15;
+
         this.mithrilCosts = {
             'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 30,
-            'minecraft:light_blue_wool': 3,
-            'minecraft:prismarine': 5,
-            'minecraft:prismarine_bricks': 5,
-            'minecraft:dark_prismarine': 5,
-            'minecraft:gray_wool': 7,
-            'minecraft:cyan_terracotta': 7,
+            'minecraft:light_blue_wool': lightBlueCost,
+            'minecraft:prismarine': prismarineCost,
+            'minecraft:prismarine_bricks': prismarineCost,
+            'minecraft:dark_prismarine': prismarineCost,
+            'minecraft:gray_wool': grayCost,
+            'minecraft:cyan_terracotta': grayCost,
         };
     }
 
@@ -236,6 +241,13 @@ class Bot extends ModuleBase {
             },
             'Whenever Titanium is in range it will be targeted the most'
         );
+        this.addToggle(
+            'Prioritise Gray Mithril',
+            (value) => {
+                this.setPrioritizeGrayMithril(value);
+            },
+            'Reverses mithril block targeting costs to prioritise gray mithril.'
+        );
         this.addMultiToggle(
             'Fakelook',
             ['Off', 'Instant', 'Queued'],
@@ -276,6 +288,11 @@ class Bot extends ModuleBase {
 
     setPrioritizeTitanium(value) {
         this.PRIORITIZE_TITANIUM = value;
+        this.updateMithrilCosts();
+    }
+
+    setPrioritizeGrayMithril(value) {
+        this.PRIORITIZE_GRAY_MITHRIL = value;
         this.updateMithrilCosts();
     }
 
