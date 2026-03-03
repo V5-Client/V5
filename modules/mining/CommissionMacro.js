@@ -46,6 +46,7 @@ class CommissionMacro extends ModuleBase {
         this.currentState = STATES.IDLE;
         this.avoidanceRadius = 10;
         this.goblinWeaponSlot = 1;
+        this.completedCommissionMilestoneI = true;
         this.pauseTicks = 0;
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = 0;
@@ -150,6 +151,15 @@ class CommissionMacro extends ModuleBase {
                 this.goblinWeaponSlot = value;
             },
             'Hotbar slot with weapon for Goblin Slayer (1-8)'
+        );
+
+        this.addToggle(
+            'Completed Commission Milestone I',
+            (value) => {
+                this.completedCommissionMilestoneI = !!value;
+            },
+            'If disabled, only the King emissary waypoint is used.',
+            true
         );
     }
 
@@ -593,6 +603,7 @@ class CommissionMacro extends ModuleBase {
 
     handleClaiming() {
         this.cancelNpcRotationIfPathing();
+        const emissaryLocations = this.getAvailableEmissaryLocations();
 
         if (Guis.guiName() === 'Commissions') {
             this.claimCompletedCommissions();
@@ -620,7 +631,7 @@ class CommissionMacro extends ModuleBase {
                 // console.log('under platform');
                 this.travelPurpose = 'EMISSARY';
 
-                Pathfinder.findPath(EMISSARY_LOCATIONS, (success) => {
+                Pathfinder.findPath(emissaryLocations, (success) => {
                     if (!success) {
                         Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
                         // probably should blacklist emissary and go to different emissary
@@ -652,7 +663,7 @@ class CommissionMacro extends ModuleBase {
 
         if (Pathfinder.isPathing()) return;
         this.travelPurpose = 'EMISSARY';
-        Pathfinder.findPath(EMISSARY_LOCATIONS, (success) => {
+        Pathfinder.findPath(emissaryLocations, (success) => {
             if (!success) {
                 this.setState(STATES.CHOOSING);
             }
@@ -678,11 +689,12 @@ class CommissionMacro extends ModuleBase {
     }
 
     getClosestEmissary() {
+        const emissaryLocations = this.getAvailableEmissaryLocations();
         const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-        let closest = EMISSARY_LOCATIONS[0];
+        let closest = emissaryLocations[0];
         let closestDist = this.getDistance(...playerPos, ...closest);
-        for (let i = 1; i < EMISSARY_LOCATIONS.length; i++) {
-            const current = EMISSARY_LOCATIONS[i];
+        for (let i = 1; i < emissaryLocations.length; i++) {
+            const current = emissaryLocations[i];
             const currentDist = this.getDistance(...playerPos, ...current);
             if (currentDist < closestDist) {
                 closest = current;
@@ -690,6 +702,13 @@ class CommissionMacro extends ModuleBase {
             }
         }
         return closest;
+    }
+
+    getAvailableEmissaryLocations() {
+        if (!this.completedCommissionMilestoneI) {
+            return [EMISSARY_LOCATIONS[0]];
+        }
+        return EMISSARY_LOCATIONS;
     }
 
     claimCompletedCommissions() {

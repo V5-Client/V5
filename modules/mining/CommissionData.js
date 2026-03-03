@@ -1,5 +1,5 @@
 export const EMISSARY_LOCATIONS = [
-    [129, 195, 196],
+    [129, 195, 196], // KING, DO NOT REARRANGE ARRAY TO MAKE HIM ANYWHERE BUT FIRST
     [42, 134, 22],
     [171, 149, 31],
     [-73, 152, -11],
