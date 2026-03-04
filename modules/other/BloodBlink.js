@@ -1,4 +1,3 @@
-//@VIP
 import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { CommonPingS2C, WorldTimeUpdateS2C } from '../../utils/Packets';
