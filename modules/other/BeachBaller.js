@@ -90,7 +90,7 @@ class Beachballer extends ModuleBase {
             }
         });
 
-        this.on('renderWorld', () => {
+        this.on('postRenderWorld', () => {
             if (this.state === States.WAITING) return;
             this.renderTrajectory();
         });
@@ -236,7 +236,7 @@ class Beachballer extends ModuleBase {
     renderTrajectory() {
         const TRAIL_COLOR = [0, 255, 255, 200];
         const PREDICTION_COLOR = [255, 165, 0, 200];
-        const LANDING_COLOR = [50, 255, 50, 255];
+        const landingColor = Render.Color(50, 255, 50, 255);
         const LINE_THICKNESS = 3;
 
         if (this.trailHistory.length >= 2) {
@@ -267,11 +267,11 @@ class Beachballer extends ModuleBase {
             const markerSize = 0.3;
             const lp = this.landingPoint;
 
-            Render.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), LANDING_COLOR, 4, true);
-            Render.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), LANDING_COLOR, 4, true);
+            Render.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
+            Render.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
 
             const groundVec = new Vec3d(Math.floor(lp.x), Math.floor(Player.getY()), Math.floor(lp.z));
-            Render.drawWireFrame(groundVec, LANDING_COLOR, 2, true);
+            Render.drawWireFrame(groundVec, landingColor, 2, true);
         }
     }
 
@@ -324,7 +324,7 @@ class Beachballer extends ModuleBase {
             return;
         }
 
-        Rotations.rotateToVector([this.startPos[0], this.startPos[1] + 2, this.startPos[2]], 0.5, false);
+        //Rotations.rotateToVector([this.startPos[0], this.startPos[1] + 2, this.startPos[2]], 0.5, false);
         Keybind.setKeysForStraightLineCoords(this.startPos[0], this.startPos[1], this.startPos[2]);
     }
 
