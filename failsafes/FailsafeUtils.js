@@ -17,27 +17,75 @@ class FailsafeUtils {
             expiresAt: 0,
             lastModified: -1,
             config: {},
+            hasConfig: false,
+            normalized: null,
         };
+        this._utils = null;
     }
 
     _getConfig() {
         const now = Date.now();
         const lastModified = V5ConfigFile.exists() ? V5ConfigFile.lastModified() : -1;
         const cacheValid = now < this._cache.expiresAt && this._cache.lastModified === lastModified;
-        const hasCachedConfig = this._cache.config && Object.keys(this._cache.config).length > 0;
+        const hasCachedConfig = this._cache.hasConfig;
 
         if (cacheValid || (MacroState.isMacroRunning() && hasCachedConfig)) {
             return this._cache.config;
         }
 
-        const utils = require('../utils/Utils').Utils;
-        const config = utils.getConfigFile('config.json');
+        if (!this._utils) this._utils = require('../utils/Utils').Utils;
+        const config = this._utils.getConfigFile('config.json');
 
         this._cache.expiresAt = now + 250;
         this._cache.lastModified = lastModified;
         this._cache.config = config;
+        this._cache.hasConfig = !!config && Object.keys(config).length > 0;
+        this._cache.normalized = null;
 
         return config;
+    }
+
+    _normalizeFailsafeConfig(failsafesConfig) {
+        if (this._cache.normalized) return this._cache.normalized;
+
+        const enabledMap = {};
+        const enabledList = failsafesConfig['Enabled Failsafes'];
+        if (Array.isArray(enabledList)) {
+            for (let i = 0; i < enabledList.length; i++) {
+                const entry = enabledList[i];
+                if (!entry || !entry.name) continue;
+                enabledMap[entry.name] = !!entry.enabled;
+            }
+        }
+
+        const pingConfig = failsafesConfig['Discord ping on Check'];
+        let pingOnCheckValue = DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+
+        if (Array.isArray(pingConfig)) {
+            for (let i = 0; i < pingConfig.length; i++) {
+                const option = pingConfig[i];
+                if (option?.enabled) {
+                    pingOnCheckValue = option.name ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+                    break;
+                }
+            }
+        } else if (typeof pingConfig === 'boolean') {
+            pingOnCheckValue = pingConfig ? 'Ping' : 'None';
+        } else {
+            pingOnCheckValue = pingConfig ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
+        }
+
+        const normalized = {
+            enabledMap,
+            rawEnabledList: enabledList,
+            reactionInput: failsafesConfig['Failsafe Detection Delay (ms)'] ?? DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime,
+            playerProximityDistance: failsafesConfig['Player Proximity Distance'] ?? DEFAULT_FAILSAFE_SETTINGS.playerProximityDistance,
+            playSoundOnCheck: failsafesConfig['Play sound on check'] ?? DEFAULT_FAILSAFE_SETTINGS.playSoundOnCheck,
+            pingOnCheck: pingOnCheckValue,
+        };
+
+        this._cache.normalized = normalized;
+        return normalized;
     }
 
     getFailsafeSettings(name) {
@@ -47,9 +95,8 @@ class FailsafeUtils {
             return DEFAULT_FAILSAFE_SETTINGS;
         }
 
-        const failsafesConfig = config['Failsafes'];
-
-        const reactionInput = failsafesConfig['Failsafe Detection Delay (ms)'] ?? DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
+        const normalized = this._normalizeFailsafeConfig(config['Failsafes']);
+        const reactionInput = normalized.reactionInput;
         let reactionTime = DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
 
         if (typeof reactionInput === 'object' && reactionInput.low !== undefined) {
@@ -61,28 +108,15 @@ class FailsafeUtils {
             reactionTime = Number.isFinite(reactionInput) ? reactionInput : reactionTime;
         }
 
-        const enabledList = failsafesConfig['Enabled Failsafes'];
-        const isEnabled = Array.isArray(enabledList)
-            ? enabledList.some((entry) => entry.name === name && entry.enabled)
-            : (failsafesConfig[`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
-
-        const pingConfig = failsafesConfig['Discord ping on Check'];
-        let pingOnCheckValue = DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
-
-        if (Array.isArray(pingConfig)) {
-            pingOnCheckValue = pingConfig.find((option) => option.enabled)?.name ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
-        } else if (typeof pingConfig === 'boolean') {
-            pingOnCheckValue = pingConfig ? 'Ping' : 'None';
-        } else {
-            pingOnCheckValue = pingConfig ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
-        }
+        const hasEnabledList = Array.isArray(normalized.rawEnabledList);
+        const isEnabled = hasEnabledList ? (normalized.enabledMap[name] ?? false) : (config['Failsafes'][`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
 
         return {
             isEnabled: isEnabled,
             FailsafeReactionTime: reactionTime,
-            playerProximityDistance: failsafesConfig['Player Proximity Distance'] ?? DEFAULT_FAILSAFE_SETTINGS.playerProximityDistance,
-            pingOnCheck: pingOnCheckValue,
-            playSoundOnCheck: failsafesConfig['Play sound on check'] ?? DEFAULT_FAILSAFE_SETTINGS.playSoundOnCheck,
+            playerProximityDistance: normalized.playerProximityDistance,
+            pingOnCheck: normalized.pingOnCheck,
+            playSoundOnCheck: normalized.playSoundOnCheck,
         };
     }
 

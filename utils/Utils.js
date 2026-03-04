@@ -33,7 +33,7 @@ class ConfigFileManager {
         try {
             let jsonString = JSON.stringify(data, null, 2);
             FileLib.write(this.directory, fileName, jsonString);
-            this.cache.set(fileName, data);
+            this.cache.set(fileName, { data: data, timestamp: Date.now() });
             return true;
         } catch (e) {
             Chat.message('Config write error for ' + fileName + ': ' + e.message);
@@ -432,6 +432,9 @@ class UtilsClass {
     }
 
     getConfigFile(fileName) {
+        if (fileName === 'config.json') {
+            return configManager.readWithCache(fileName, 200);
+        }
         return configManager.read(fileName);
     }
 

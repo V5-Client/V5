@@ -11,7 +11,14 @@ let pendingWarpIgnore = false;
 let pendingWarpIgnoreTimer = null;
 
 const WARP_IGNORE_RADIUS = 3;
+const WARP_IGNORE_RADIUS_SQ = WARP_IGNORE_RADIUS * WARP_IGNORE_RADIUS;
 const WARP_IGNORE_TIMEOUT_MS = 3000;
+const TELEPORT_TIERS = [
+    { threshold: 1, pressure: 5, severity: 'low', color: 65280 },
+    { threshold: 2, pressure: 10, severity: 'medium', color: 16776960 },
+    { threshold: 3, pressure: 20, severity: 'high', color: 16744448 },
+    { threshold: Infinity, pressure: 50, severity: 'very high', color: 16711680 },
+];
 
 class TeleportFailsafe extends Failsafe {
     constructor() {
@@ -50,7 +57,7 @@ class TeleportFailsafe extends Failsafe {
             const dx = x - warpPoint.x;
             const dy = y - warpPoint.y;
             const dz = z - warpPoint.z;
-            return Math.hypot(dx, dy, dz) <= WARP_IGNORE_RADIUS;
+            return dx * dx + dy * dy + dz * dz <= WARP_IGNORE_RADIUS_SQ;
         });
 
         if (!isWarpPointTeleport) return false;
@@ -132,7 +139,11 @@ class TeleportFailsafe extends Failsafe {
             const newY = pos.y;
             const newZ = pos.z;
 
-            const distance = Math.hypot(newX - fromX, newY - fromY, newZ - fromZ);
+            const dx = newX - fromX;
+            const dy = newY - fromY;
+            const dz = newZ - fromZ;
+            const distanceSq = dx * dx + dy * dy + dz * dz;
+            const distance = Math.sqrt(distanceSq);
 
             const data = {
                 distance,
@@ -156,7 +167,7 @@ class TeleportFailsafe extends Failsafe {
             };
 
             if (this._shouldDisableTeleport(data)) return;
-            if (distance < 0.1) return;
+            if (distanceSq < 0.01) return;
             if (this.shouldIgnoreWarpTeleport(newX, newY, newZ)) return;
 
             if (newX === 0 && newY === 0 && newZ === 0) {
@@ -177,14 +188,7 @@ class TeleportFailsafe extends Failsafe {
     }
 
     onTrigger(fX, fY, fZ, nX, nY, nZ, dist) {
-        const tiers = [
-            { threshold: 1, pressure: 5, severity: 'low', color: 65280 },
-            { threshold: 2, pressure: 10, severity: 'medium', color: 16776960 },
-            { threshold: 3, pressure: 20, severity: 'high', color: 16744448 },
-            { threshold: Infinity, pressure: 50, severity: 'very high', color: 16711680 },
-        ];
-
-        const { pressure, severity, color } = tiers.find((t) => dist < t.threshold);
+        const { pressure, severity, color } = TELEPORT_TIERS.find((t) => dist < t.threshold);
 
         Chat.messageFailsafe(`&l&cTeleport Detected!`, false);
         Chat.messageFailsafe(`&c&lFrom: &r&7${fX.toFixed(2)}&f, &7${fY.toFixed(2)}&f, &7${fZ.toFixed(2)}&f`, false);

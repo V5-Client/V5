@@ -25,9 +25,9 @@ class ChatMentionFailsafe extends Failsafe {
             this.FailsafeReactionTime = this.settings.FailsafeReactionTime || 600;
 
             const content = packet.content().getString();
-            if (!content.includes(':')) return;
-
-            const messageBody = content.split(':').slice(1).join(':').trim();
+            const colonIndex = content.indexOf(':');
+            if (colonIndex === -1) return;
+            const messageBody = content.slice(colonIndex + 1).trim();
 
             const result = this.scanMessage(messageBody, content.trim());
             if (!result.isBlocked) return;
