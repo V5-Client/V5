@@ -109,7 +109,9 @@ class FailsafeUtils {
         }
 
         const hasEnabledList = Array.isArray(normalized.rawEnabledList);
-        const isEnabled = hasEnabledList ? (normalized.enabledMap[name] ?? false) : (config['Failsafes'][`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
+        const isEnabled = hasEnabledList
+            ? (normalized.enabledMap[name] ?? false)
+            : (config['Failsafes'][`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
 
         return {
             isEnabled: isEnabled,
