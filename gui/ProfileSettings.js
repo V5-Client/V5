@@ -1,4 +1,5 @@
 import { Categories } from './categories/CategorySystem';
+import { isGuiClickSoundEnabled, setGuiClickSoundEnabled } from './Utils';
 
 const initProfileSettings = () => {
     let discordCat = Categories.categories.find((category) => category.name === 'Discord');
@@ -26,6 +27,20 @@ const initProfileSettings = () => {
                 Categories.guiScrollSpeed = Math.max(1, Number(value) || 15);
             },
             'Adjusts how fast the GUI panels scroll.',
+            'GUI',
+            'Discord'
+        );
+    }
+
+    const hasClickSound = discordCat.directComponents.some((component) => component.title === 'GUI Click Sound');
+    if (!hasClickSound) {
+        Categories.addSettingsToggle(
+            'GUI Click Sound',
+            (value) => {
+                setGuiClickSoundEnabled(!!value);
+            },
+            'Plays a click sound when interacting with GUI.',
+            isGuiClickSoundEnabled(),
             'GUI',
             'Discord'
         );

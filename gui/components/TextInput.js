@@ -15,6 +15,8 @@ import {
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
 
+let activeTextInput = null;
+
 export class TextInput {
     constructor(title, x, y, width, height, defaultValue = '', callback = null) {
         this.title = title;
@@ -191,11 +193,15 @@ export class TextInput {
 
     handleClick(mouseX, mouseY) {
         if (isInside(mouseX, mouseY, this.inputRect)) {
+            if (activeTextInput && activeTextInput !== this) {
+                activeTextInput.handleInputFinish({ playSound: false });
+            }
             if (!this.isTyping) {
                 this.isTyping = true;
                 TypingState.isTyping = true;
                 playClickSound();
             }
+            activeTextInput = this;
             this.cursorIndex = this.getCursorIndexFromMouseX(mouseX);
             return true;
         }
@@ -295,11 +301,17 @@ export class TextInput {
         return false;
     }
 
-    handleInputFinish() {
+    handleInputFinish({ playSound = true } = {}) {
+        const wasTyping = this.isTyping;
         this.isTyping = false;
-        TypingState.isTyping = false;
+        if (activeTextInput === this) {
+            activeTextInput = null;
+        }
+        TypingState.isTyping = !!activeTextInput;
         this.value = this.text;
         if (this.callback) this.callback(this.value);
-        playClickSound();
+        if (playSound && wasTyping) {
+            playClickSound();
+        }
     }
 }

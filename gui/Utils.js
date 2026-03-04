@@ -255,7 +255,15 @@ export const fetchURL = (url, headers = {}) => {
     }
 };
 
+let guiClickSoundEnabled = true;
+export const isGuiClickSoundEnabled = () => guiClickSoundEnabled;
+
+export const setGuiClickSoundEnabled = (enabled) => {
+    guiClickSoundEnabled = enabled !== false;
+};
+
 export const playClickSound = () => {
+    if (!guiClickSoundEnabled) return;
     World.getWorld().playSoundClient(SoundEvent.of(Identifier.of('minecraft', 'entity.experience_orb.pickup')), SoundCategory.MASTER, 0.5, 1.0);
 };
 
