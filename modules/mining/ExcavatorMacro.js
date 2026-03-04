@@ -7,8 +7,8 @@ class ExcavatorMacro extends ModuleBase {
         super({
             name: 'Excavator Macro',
             subcategory: 'Mining',
-            description: 'Completes Commissions for you',
-            tooltip: 'Completes Commissions for you (Dwarven). Use /startcommission and /stopcommission',
+            description: 'Automatically gets glacite powder from the Fossil Excavator using suspicious scrap.',
+            tooltip: 'Glacite Powder Macro',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
             isMacro: true,
