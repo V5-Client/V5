@@ -15,6 +15,37 @@ import { ServerInfo } from '../../utils/player/ServerInfo';
 import Render from '../../utils/render/Render';
 import { Mouse } from '../../utils/Ungrab';
 
+const FORMATTING_CODE_REGEX = /§[0-9a-fk-or]/gi;
+const BFS_DIRS = [
+    [1, 0, 0],
+    [-1, 0, 0],
+    [0, 1, 0],
+    [0, -1, 0],
+    [0, 0, 1],
+    [0, 0, -1],
+];
+const ORTHO_FACE_AXES = {
+    x: ['y', 'z'],
+    y: ['x', 'z'],
+    z: ['x', 'y'],
+};
+const FACE_FALLBACK_SAMPLES = [
+    [0, 0],
+    [0.35, 0],
+    [-0.35, 0],
+    [0, 0.35],
+    [0, -0.35],
+    [0.35, 0.35],
+    [-0.35, -0.35],
+];
+const VISIBILITY_OFFSETS = [
+    [0, 0, 0],
+    [0.18, 0, 0],
+    [-0.18, 0, 0],
+    [0, 0, 0.18],
+    [0, 0, -0.18],
+];
+
 class Bot extends ModuleBase {
     constructor() {
         super({
@@ -62,6 +93,10 @@ class Bot extends ModuleBase {
         this.abilityFromChat = false;
         this.lastUse = 0;
         this.ABILITY_COOLDOWN_MS = 200000;
+        this.fakeLookModeName = 'Off';
+        this.selectedTypeName = 'Mithril';
+        this._abilityStatusCache = { expiresAt: 0, value: '' };
+        this._renderPalette = null;
 
         this.faceReach = 4.5;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
@@ -254,6 +289,7 @@ class Bot extends ModuleBase {
             true,
             (value) => {
                 this.FAKELOOK = value;
+                this.fakeLookModeName = this.getEnabledOptionName(value, 'Off');
             },
             'Fakelook begins to mine blocks before the player looks at them.',
             'Off'
@@ -264,6 +300,7 @@ class Bot extends ModuleBase {
             true,
             (value) => {
                 this.TYPE = value;
+                this.selectedTypeName = this.getEnabledOptionName(value, this.selectedTypeName);
                 this.setCost();
             },
             'Targets specified block type.',
@@ -297,24 +334,37 @@ class Bot extends ModuleBase {
     }
 
     getAbilityStatusFromTab() {
+        const now = Date.now();
+        if (now < this._abilityStatusCache.expiresAt) return this._abilityStatusCache.value;
+
         const tabNames = TabList.getNames();
         for (const [i, tabName] of tabNames.entries()) {
             const rawLine = tabName.getName().toString();
-            const line = rawLine.replace(/§[0-9a-fk-or]/gi, '').trim();
+            const line = rawLine.replace(FORMATTING_CODE_REGEX, '').trim();
 
             if (line.includes('Pickaxe Ability') && tabNames[i + 1]) {
-                return tabNames[i + 1]
-                    .getName()
-                    .toString()
-                    .replace(/§[0-9a-fk-or]/gi, '')
-                    .trim();
+                const ability = tabNames[i + 1].getName().toString().replace(FORMATTING_CODE_REGEX, '').trim();
+                this._abilityStatusCache.expiresAt = now + 200;
+                this._abilityStatusCache.value = ability;
+                return ability;
             }
         }
+        this._abilityStatusCache.expiresAt = now + 200;
+        this._abilityStatusCache.value = '';
         return '';
     }
 
     getFakeLookMode() {
-        return this.FAKELOOK?.find?.((option) => option.enabled)?.name || 'Off';
+        return this.fakeLookModeName || 'Off';
+    }
+
+    getEnabledOptionName(value, fallback = null) {
+        if (Array.isArray(value)) {
+            const selected = value.find((option) => option?.enabled)?.name;
+            return selected ?? fallback;
+        }
+        if (typeof value === 'string') return value;
+        return fallback;
     }
 
     isAirOrBedrock(blockName = '') {
@@ -472,8 +522,9 @@ class Bot extends ModuleBase {
     handleAbilityState() {
         if (this.SCAN_ONLY) return (this.state = this.STATES.MINING);
 
+        const now = Date.now();
         const abilityStatus = this.getAbilityStatusFromTab();
-        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < Date.now()) {
+        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < now) {
             if (this.ensureDrillEquipped(this.drill)) return;
 
             const fakeLookMode = this.getFakeLookMode();
@@ -484,7 +535,7 @@ class Bot extends ModuleBase {
 
             Keybind.rightClick();
 
-            this.lastUse = Date.now();
+            this.lastUse = now;
             this.abilityFromChat = false;
             this.state = this.STATES.MINING;
             return;
@@ -494,6 +545,8 @@ class Bot extends ModuleBase {
     }
 
     handleMiningState() {
+        const now = Date.now();
+
         if (this.SCAN_ONLY) {
             this.scanForBlock(this.COSTTYPE);
             if (this.MOVEMENT) this.stopMiningControls(true);
@@ -502,7 +555,7 @@ class Bot extends ModuleBase {
 
         if (this.ensureDrillEquipped(this.drill)) return;
 
-        if (this.lastUse + this.ABILITY_COOLDOWN_MS < Date.now()) return (this.state = this.STATES.ABILITY);
+        if (this.lastUse + this.ABILITY_COOLDOWN_MS < now) return (this.state = this.STATES.ABILITY);
 
         if (this.shouldScanForNewBlock()) {
             if (this.manualScan) {
@@ -529,13 +582,13 @@ class Bot extends ModuleBase {
 
         this.currentTarget = lowestCostBlock;
         if (this.MOVEMENT && !this.refreshCurrentTargetAimPoint()) {
-            this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, Date.now() + this.movementReevalCooldownMs);
+            this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, now + this.movementReevalCooldownMs);
             this.stopMiningControls(true);
             this.resetTickCounters();
             this.handleRotationOrScan(true);
             return;
         }
-        if (this.MOVEMENT && Date.now() < this.movementReevalCooldownUntil) {
+        if (this.MOVEMENT && now < this.movementReevalCooldownUntil) {
             this.stopMiningControls(true);
         } else {
             this.handleVeinMovement();
@@ -547,7 +600,8 @@ class Bot extends ModuleBase {
 
         if (!this.currentTarget) return;
 
-        this.miningspeed = this.isTunnelMode() ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
+        const tunnelMode = this.isTunnelMode();
+        this.miningspeed = tunnelMode ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
         this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
 
         this.handleBreaking(blockName, fakeLookMode);
@@ -579,14 +633,6 @@ class Bot extends ModuleBase {
         const found = [];
         const queue = [{ x: start.x, y: start.y, z: start.z }];
         let head = 0;
-        const dirs = [
-            [1, 0, 0],
-            [-1, 0, 0],
-            [0, 1, 0],
-            [0, -1, 0],
-            [0, 0, 1],
-            [0, 0, -1],
-        ];
 
         const reach = 4.5 + this.bfsPad;
         const minBx = Math.floor(eyePos.x - reach) - 1,
@@ -634,6 +680,7 @@ class Bot extends ModuleBase {
                         y,
                         z,
                         cost,
+                        blockName,
                         aimX: aimData.x,
                         aimY: aimData.y,
                         aimZ: aimData.z,
@@ -642,9 +689,9 @@ class Bot extends ModuleBase {
                 }
             }
             for (let i = 0; i < 6; i++) {
-                const nx = x + dirs[i][0],
-                    ny = y + dirs[i][1],
-                    nz = z + dirs[i][2];
+                const nx = x + BFS_DIRS[i][0],
+                    ny = y + BFS_DIRS[i][1],
+                    nz = z + BFS_DIRS[i][2];
 
                 if (!this.isWithinVisitedBounds(nx, ny, nz, minBx, minBy, minBz, dimX, dimY, dimZ)) continue;
 
@@ -692,7 +739,7 @@ class Bot extends ModuleBase {
         if (vLenSq === 0) return null;
 
         if (checkFov && lookVec) {
-            const vLen = Math.hypot(vx, vy, vz);
+            const vLen = Math.sqrt(vLenSq);
             const dotToCenter = (vx * lookVec.x + vy * lookVec.y + vz * lookVec.z) / vLen;
             if (dotToCenter < -0.05) return null;
         }
@@ -829,16 +876,7 @@ class Bot extends ModuleBase {
         tryFace(faceAxis);
 
         if (!result) {
-            const orthos = ['x', 'y', 'z'].filter((a) => a !== faceAxis);
-            const samples = [
-                [0, 0],
-                [0.35, 0],
-                [-0.35, 0],
-                [0, 0.35],
-                [0, -0.35],
-                [0.35, 0.35],
-                [-0.35, -0.35],
-            ];
+            const orthos = ORTHO_FACE_AXES[faceAxis];
 
             for (let axis of orthos) {
                 if (result) break;
@@ -852,10 +890,10 @@ class Bot extends ModuleBase {
                     sOrtho = eyePos.z >= cz ? 1 : -1;
                 }
 
-                for (let i = 0; i < samples.length; i++) {
+                for (let i = 0; i < FACE_FALLBACK_SAMPLES.length; i++) {
                     if (result) break;
-                    const u = samples[i][0];
-                    const v = samples[i][1];
+                    const u = FACE_FALLBACK_SAMPLES[i][0];
+                    const v = FACE_FALLBACK_SAMPLES[i][1];
 
                     let tx, ty, tz, fx, fy, fz;
                     if (axis === 'x') {
@@ -895,7 +933,7 @@ class Bot extends ModuleBase {
 
         if (distSq > maxReachSq) return null;
 
-        const dist = Math.hypot(dX, dY, dZ);
+        const dist = Math.sqrt(distSq);
         const dot = lookVec && dist > 0 ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1;
 
         return { x: result.x, y: result.y, z: result.z, dist, dot };
@@ -906,20 +944,12 @@ class Bot extends ModuleBase {
     }
 
     calculateVisibilityStability(x, y, z, eyePos, maxReachSq) {
-        const offsets = [
-            [0, 0, 0],
-            [0.18, 0, 0],
-            [-0.18, 0, 0],
-            [0, 0, 0.18],
-            [0, 0, -0.18],
-        ];
-
         let visibleSamples = 0;
-        for (let i = 0; i < offsets.length; i++) {
+        for (let i = 0; i < VISIBILITY_OFFSETS.length; i++) {
             const sampleEye = {
-                x: eyePos.x + offsets[i][0],
+                x: eyePos.x + VISIBILITY_OFFSETS[i][0],
                 y: eyePos.y,
-                z: eyePos.z + offsets[i][2],
+                z: eyePos.z + VISIBILITY_OFFSETS[i][2],
             };
 
             if (this.findVisibleAimPoint(x, y, z, sampleEye, null, maxReachSq, false)) {
@@ -927,7 +957,7 @@ class Bot extends ModuleBase {
             }
         }
 
-        return visibleSamples / offsets.length;
+        return visibleSamples / VISIBILITY_OFFSETS.length;
     }
 
     isTargetDirectlyUnderPlayer(target = this.currentTarget) {
@@ -1067,7 +1097,7 @@ class Bot extends ModuleBase {
             return;
         }
 
-        const typeName = Array.isArray(this.TYPE) ? this.TYPE.find((option) => option.enabled)?.name : null;
+        const typeName = this.selectedTypeName || this.getEnabledOptionName(this.TYPE);
         if (!typeName) {
             this.COSTTYPE = null;
             return;
@@ -1123,6 +1153,29 @@ class Bot extends ModuleBase {
         return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS()));
     }
 
+    getRenderPalette(isFakelook) {
+        if (!this._renderPalette) {
+            this._renderPalette = {
+                normal: {
+                    currentFill: Render.Color(85, 255, 255, 60),
+                    currentWire: Render.Color(85, 255, 255, 255),
+                    aimColor: Render.Color(255, 220, 80, 255),
+                    nextFill: Render.Color(255, 170, 100, 60),
+                    nextWire: Render.Color(255, 170, 100, 255),
+                },
+                fake: {
+                    currentFill: Render.Color(180, 100, 255, 60),
+                    currentWire: Render.Color(180, 100, 255, 255),
+                    aimColor: Render.Color(255, 150, 255, 255),
+                    nextFill: Render.Color(255, 130, 70, 60),
+                    nextWire: Render.Color(255, 130, 70, 255),
+                },
+            };
+        }
+
+        return isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
+    }
+
     onEnable() {
         if (Client.isInGui()) {
             this.message('&cCannot start while GUI is open!');
@@ -1138,6 +1191,8 @@ class Bot extends ModuleBase {
         }
 
         this.loadAbilitySetting();
+        this.fakeLookModeName = this.getEnabledOptionName(this.FAKELOOK, 'Off');
+        this.selectedTypeName = this.getEnabledOptionName(this.TYPE, this.selectedTypeName);
         this.lastSneakCommand = Player.isSneaking();
         this.movementReevalCooldownUntil = 0;
         this.setCost();
@@ -1228,10 +1283,8 @@ class Bot extends ModuleBase {
             this.lastAimPos = null;
         }
 
-        const candidateLocations = this.foundLocations.filter((loc) => !(loc.x === current.x && loc.y === current.y && loc.z === current.z));
-
         let nextTarget = null;
-        if (candidateLocations.length > 0 && current.aimX !== undefined) {
+        if (this.foundLocations.length > 1 && current.aimX !== undefined) {
             const eyePos = Player.getPlayer().getEyePos();
             const simLookX = current.aimX - eyePos.x;
             const simLookY = current.aimY - eyePos.y;
@@ -1244,7 +1297,8 @@ class Bot extends ModuleBase {
                 const normLookZ = simLookZ / simLookLen;
 
                 let bestCost = Infinity;
-                for (const loc of candidateLocations) {
+                for (const loc of this.foundLocations) {
+                    if (loc.x === current.x && loc.y === current.y && loc.z === current.z) continue;
                     if (loc.aimX === undefined) continue;
 
                     const dx = loc.aimX - eyePos.x;
@@ -1254,9 +1308,7 @@ class Bot extends ModuleBase {
                     if (dist === 0) continue;
 
                     const dot = (dx * normLookX + dy * normLookY + dz * normLookZ) / dist;
-                    const block = World.getBlockAt(loc.x, loc.y, loc.z);
-                    const blockName = block?.type?.getRegistryName();
-                    const baseCost = this.COSTTYPE?.[blockName] ?? 5;
+                    const baseCost = this.COSTTYPE?.[loc.blockName] ?? 5;
                     const cost = this.calculateBlockCost(baseCost, dist, dot);
 
                     if (cost < bestCost) {
@@ -1265,8 +1317,13 @@ class Bot extends ModuleBase {
                     }
                 }
             }
-        } else if (candidateLocations.length > 0) {
-            nextTarget = candidateLocations[0];
+        } else if (this.foundLocations.length > 1) {
+            for (let i = 0; i < this.foundLocations.length; i++) {
+                const loc = this.foundLocations[i];
+                if (loc.x === current.x && loc.y === current.y && loc.z === current.z) continue;
+                nextTarget = loc;
+                break;
+            }
         }
 
         if (nextTarget) {
@@ -1283,25 +1340,20 @@ class Bot extends ModuleBase {
 
         const fakeLookMode = this.getFakeLookMode();
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
+        const palette = isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
 
-        const currentFill = isFakelook ? Render.Color(180, 100, 255, 60) : Render.Color(85, 255, 255, 60);
-        const currentWire = isFakelook ? Render.Color(180, 100, 255, 255) : Render.Color(85, 255, 255, 255);
-        const aimColor = isFakelook ? Render.Color(255, 150, 255, 255) : Render.Color(255, 220, 80, 255);
-        const nextFill = isFakelook ? Render.Color(255, 130, 70, 60) : Render.Color(255, 170, 100, 60);
-        const nextWire = isFakelook ? Render.Color(255, 130, 70, 255) : Render.Color(255, 170, 100, 255);
-
-        Render.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), currentFill, currentWire, 6, false);
+        Render.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), palette.currentFill, palette.currentWire, 6, false);
 
         if (this.lastAimPos) {
             const d = 0.08;
             const { x, y, z } = this.lastAimPos;
-            Render.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), aimColor, 2, false);
-            Render.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), aimColor, 2, false);
-            Render.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), aimColor, 2, false);
+            Render.drawLine(new Vec3d(x - d, y, z), new Vec3d(x + d, y, z), palette.aimColor, 2, false);
+            Render.drawLine(new Vec3d(x, y - d, z), new Vec3d(x, y + d, z), palette.aimColor, 2, false);
+            Render.drawLine(new Vec3d(x, y, z - d), new Vec3d(x, y, z + d), palette.aimColor, 2, false);
         }
 
         if (this.lastNextPos) {
-            Render.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), nextFill, nextWire, 6, false);
+            Render.drawStyledBox(new Vec3d(this.lastNextPos.x, this.lastNextPos.y, this.lastNextPos.z), palette.nextFill, palette.nextWire, 6, false);
         }
     }
 

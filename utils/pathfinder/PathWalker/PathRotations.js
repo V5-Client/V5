@@ -108,7 +108,7 @@ class PathRotations {
         const dx = targetPoint.x - playerEyes.x;
         const dy = targetPoint.y - playerEyes.y;
         const dz = targetPoint.z - playerEyes.z;
-        const dist = Math.hypot(dx, dy, dz);
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (dist < 0.2) return true;
         try {
             const dir = new Vector3(dx / dist, dy / dist, dz / dist);
@@ -133,7 +133,10 @@ class PathRotations {
             const hitX = hit[0] + 0.5;
             const hitY = hit[1] + 0.5;
             const hitZ = hit[2] + 0.5;
-            const hitDist = Math.hypot(hitX - playerEyes.x, hitY - playerEyes.y, hitZ - playerEyes.z);
+            const hdx = hitX - playerEyes.x;
+            const hdy = hitY - playerEyes.y;
+            const hdz = hitZ - playerEyes.z;
+            const hitDist = Math.sqrt(hdx * hdx + hdy * hdy + hdz * hdz);
             return hitDist >= dist - 0.5;
         } catch (e) {
             return true;
@@ -141,8 +144,8 @@ class PathRotations {
     }
 
     getAngleBetweenVectors(v1, v2) {
-        const mag1 = Math.hypot(v1.x, v1.y, v1.z);
-        const mag2 = Math.hypot(v2.x, v2.y, v2.z);
+        const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
+        const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
         if (mag1 < 0.001 || mag2 < 0.001) return 0;
         const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
         const val = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
@@ -223,7 +226,9 @@ class PathRotations {
         const targetIndex = Math.floor(this.currentPathPosition);
         if (targetIndex + 3 >= this.boxPositions.length) return this.smoothedLookahead;
         const pathPoint = this.getInterpolatedPoint(this.currentPathPosition);
-        const deviationFromPath = Math.hypot(playerEyes.x - pathPoint.x, playerEyes.z - pathPoint.z);
+        const pdx = playerEyes.x - pathPoint.x;
+        const pdz = playerEyes.z - pathPoint.z;
+        const deviationFromPath = Math.sqrt(pdx * pdx + pdz * pdz);
         const deviationFactor = Math.min(1, Math.max(0, (deviationFromPath - 1.6) / 2.0));
         const startIndex = this.boxPositions[targetIndex];
         const endIndex = this.boxPositions[Math.min(targetIndex + 2, this.boxPositions.length - 1)];
@@ -325,13 +330,14 @@ class PathRotations {
         let result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
         const effectiveMin = this.isInRecoveryMode() ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
         let targetVisible = this.isPointVisible(playerEyes, result.point);
+        const now = Date.now();
 
         if (result.lookahead <= effectiveMin + 0.001 && !targetVisible) {
             if (!this.unseenSince) {
-                this.unseenSince = Date.now();
+                this.unseenSince = now;
                 this.unseenStartPathPosition = this.currentPathPosition;
             }
-            if (Date.now() - this.unseenSince >= 600) {
+            if (now - this.unseenSince >= 600) {
                 let attempts = 0;
                 const minRollbackPosition = Math.max(0, this.unseenStartPathPosition - 8);
                 while (this.currentPathPosition > minRollbackPosition && attempts < 8) {

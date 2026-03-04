@@ -666,13 +666,12 @@ class RefuelService {
                 break;
 
             case this.STATES.WALK_TO_MECHANIC:
-                const dist = Math.hypot(
-                    Player.getX() - DRILL_MECHANIC_LOCATION[0],
-                    Player.getY() - DRILL_MECHANIC_LOCATION[1],
-                    Player.getZ() - DRILL_MECHANIC_LOCATION[2]
-                );
+                const dx = Player.getX() - DRILL_MECHANIC_LOCATION[0];
+                const dy = Player.getY() - DRILL_MECHANIC_LOCATION[1];
+                const dz = Player.getZ() - DRILL_MECHANIC_LOCATION[2];
+                const distSq = dx * dx + dy * dy + dz * dz;
 
-                if (dist < 3.5) {
+                if (distSq < 12.25) {
                     Pathfinder.resetPath();
                     this.isPathing = false;
                     this.setState(this.STATES.ROTATE_TO_MECHANIC);
