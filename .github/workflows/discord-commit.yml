@@ -148,7 +148,7 @@ jobs:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
               run: |
-                  wrangler r2 object put v5-builds/V5-Release.zip --file V5-Release.zip
+                  wrangler r2 object put v5-builds/V5-Release.zip --file V5-Release.zip --remote
 
             - name: Upload VIP zip to R2
               if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
@@ -156,7 +156,7 @@ jobs:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
               run: |
-                  wrangler r2 object put v5-builds/V5-VIP.zip --file V5-VIP.zip
+                  wrangler r2 object put v5-builds/V5-VIP.zip --file V5-VIP.zip --remote
 
             - name: Upload Beta zip to R2
               if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
@@ -164,7 +164,7 @@ jobs:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
               run: |
-                  wrangler r2 object put v5-builds/V5-Beta.zip --file V5-Beta.zip
+                  wrangler r2 object put v5-builds/V5-Beta.zip --file V5-Beta.zip --remote
 
             - name: Send to Discord
               env:
