@@ -1025,8 +1025,8 @@ class Bot extends ModuleBase {
             this._movementHumanizer = {
                 strafeThreshold: 10,
                 stopYawThreshold: 4,
-                moveInMin: 2.35,
-                moveInMax: 3.15,
+                moveInMin: 1.75,
+                moveInMax: 3.0,
                 moveOutThreshold: 3.75,
                 unsneakLargeMoveThreshold: 6.2,
                 unsneakDropYThreshold: 0.5,
