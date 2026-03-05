@@ -31,7 +31,6 @@ class Pingless extends ModuleBase {
                 z = this.pos.z;
 
                 if (!Player.getPlayer().isOnGround()) return;
-                if (this.ticks < 4 && World.getBlockAt(x, y, z)?.type?.getRegistryName().includes('stained_glass')) return; // i dont think this affects anymore ?
 
                 if (
                     !Player.getHeldItem()

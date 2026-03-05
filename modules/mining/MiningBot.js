@@ -96,7 +96,22 @@ class Bot extends ModuleBase {
         this.fakeLookModeName = 'Off';
         this.selectedTypeName = 'Mithril';
         this._abilityStatusCache = { expiresAt: 0, value: '' };
-        this._renderPalette = null;
+        this._renderPalette = {
+            normal: {
+                currentFill: Render.Color(85, 255, 255, 60),
+                currentWire: Render.Color(85, 255, 255, 255),
+                aimColor: Render.Color(255, 220, 80, 255),
+                nextFill: Render.Color(255, 170, 100, 60),
+                nextWire: Render.Color(255, 170, 100, 255),
+            },
+            fake: {
+                currentFill: Render.Color(180, 100, 255, 60),
+                currentWire: Render.Color(180, 100, 255, 255),
+                aimColor: Render.Color(255, 150, 255, 255),
+                nextFill: Render.Color(255, 130, 70, 60),
+                nextWire: Render.Color(255, 130, 70, 255),
+            },
+        };
 
         this.faceReach = 4.5;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
@@ -1151,29 +1166,6 @@ class Bot extends ModuleBase {
 
     glideDelay() {
         return Math.max(0, 20 + this.ADDITIONAL_LAG_COMP - Math.trunc(ServerInfo.getTPS()));
-    }
-
-    getRenderPalette(isFakelook) {
-        if (!this._renderPalette) {
-            this._renderPalette = {
-                normal: {
-                    currentFill: Render.Color(85, 255, 255, 60),
-                    currentWire: Render.Color(85, 255, 255, 255),
-                    aimColor: Render.Color(255, 220, 80, 255),
-                    nextFill: Render.Color(255, 170, 100, 60),
-                    nextWire: Render.Color(255, 170, 100, 255),
-                },
-                fake: {
-                    currentFill: Render.Color(180, 100, 255, 60),
-                    currentWire: Render.Color(180, 100, 255, 255),
-                    aimColor: Render.Color(255, 150, 255, 255),
-                    nextFill: Render.Color(255, 130, 70, 60),
-                    nextWire: Render.Color(255, 130, 70, 255),
-                },
-            };
-        }
-
-        return isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
     }
 
     onEnable() {
