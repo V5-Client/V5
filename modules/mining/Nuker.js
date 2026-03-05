@@ -1,4 +1,4 @@
-import { BP, BlockHitResult, BlockOre, BlockRedstoneOre, BlockStone, Direction, MCHand, Vec3d } from '../../utils/Constants';
+import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { NukerUtils } from '../../utils/NukerUtils';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
@@ -34,7 +34,6 @@ class NukerClass extends ModuleBase {
 
         this.customBlockList = [];
 
-        this.blockType = 'Custom';
         this.targetMode = 'Random';
         this.nukeBelow = false;
         this.onGroundOnly = false;
@@ -93,7 +92,6 @@ class NukerClass extends ModuleBase {
         this.on('tick', () => {
             this.tickCounter++;
 
-            if (!this.isHoldingRequiredItem()) return;
             if (Client.isInGui() && !Client.isInChat()) return;
             if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.attackKey?.isPressed()) return;
             if (!this.onGround()) return;
@@ -140,11 +138,11 @@ class NukerClass extends ModuleBase {
             }
         });
 
-        this.on('renderBlockEntity', (entity) => {
-            if (Client.isInGui() && !Client.isInChat()) return;
-            if (!this.isHoldingRequiredItem()) return;
-
-            if (entity?.getBlockType()?.getID() === 200) {
+        this.when(
+            () => this.enabled && this.autoChest && !(Client.isInGui() && !Client.isInChat()),
+            'renderBlockEntity',
+            (entity) => {
+                if (entity?.getBlockType()?.getID() !== 200) return;
                 const chest = entity?.getBlock()?.pos;
                 if (!chest) return;
                 this.chestPos = chest;
@@ -153,14 +151,14 @@ class NukerClass extends ModuleBase {
                 if (this.clickQueue.has(posStr)) return;
                 if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
 
-                if (this.autoChest && !this.chestClickedThisTick && (!this.lastChestClick[posStr] || Date.now() - this.lastChestClick[posStr] > 50)) {
+                if (!this.chestClickedThisTick && (!this.lastChestClick[posStr] || Date.now() - this.lastChestClick[posStr] > 50)) {
                     this.clickQueue.add(posStr);
                     this.rightClickBlock([chest.x, chest.y, chest.z]);
                     this.lastChestClick[posStr] = Date.now();
                     this.chestClickedThisTick = true;
                 }
             }
-        });
+        );
 
         this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
@@ -198,12 +196,8 @@ class NukerClass extends ModuleBase {
                     let blockState = World.getWorld().getBlockState(blockPos).getBlock();
                     let isValid = false;
 
-                    if (this.blockType === 'Crystal Hollows') {
-                        isValid = blockState instanceof BlockStone || blockState instanceof BlockOre || blockState instanceof BlockRedstoneOre;
-                    } else if (this.blockType === 'Custom') {
-                        let id = World.getBlockAt(x, y, z).type.getID();
-                        isValid = this.customBlockList.some((b) => b.id === id);
-                    }
+                    let id = World.getBlockAt(x, y, z).type.getID();
+                    isValid = this.customBlockList.some((b) => b.id === id);
 
                     if (isValid) validBlocks.push(blockPos);
                 }
@@ -227,13 +221,6 @@ class NukerClass extends ModuleBase {
         }
 
         return validBlocks[Math.floor(Math.random() * validBlocks.length)];
-    }
-
-    isHoldingRequiredItem() {
-        if (this.blockType === 'Custom') return true;
-        let heldItem = Player.getHeldItem();
-        if (!heldItem) return false;
-        return this.REQUIRED_ITEMS.some((item) => heldItem.getName().toLowerCase().includes(item.toLowerCase()));
     }
 
     posToString(pos) {

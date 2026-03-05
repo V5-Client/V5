@@ -66,7 +66,7 @@ export class ModuleBase {
     static setupConditionChecker() {
         if (ModuleBase.conditionChecker) return;
 
-        ModuleBase.conditionChecker = register('step', () => {
+        ModuleBase.conditionChecker = register('tick', () => {
             for (let i = 0; i < ModuleBase.conditions.length; i++) {
                 const item = ModuleBase.conditions[i];
 
@@ -80,7 +80,7 @@ export class ModuleBase {
                     item.isRegistered = false;
                 }
             }
-        }).setFps(5);
+        });
     }
 
     // automatically handle enabling/disabling of registers
