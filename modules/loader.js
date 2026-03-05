@@ -44,8 +44,7 @@ import './other/AutoIceFill.js';
 import './other/BeachBaller.js';
 import './other/BloodBlink.js';
 import './other/CancelInteract.js';
-import './other/ChatBypass.js'; // maybe move into ChatPatch? idk
-import './other/ChatPatch.js';
+import './other/ChatQOL.js';
 import './other/DiscordRPC.js';
 //import './other/DungeonRoutes.js'; // IS NOT A FILE, RDBT HASN'T PUSHED YET
 import './other/Failsafes.js';

@@ -1,14 +1,23 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 
-class ChatBypass extends ModuleBase {
+class ChatQOL extends ModuleBase {
     constructor() {
         super({
-            name: 'Chat Bypass',
+            name: 'ChatQOL',
             subcategory: 'Other',
-            description: 'bypasses chat filters, WILL MUTE ON CHATREPORT (if you are saying something bad) DONT BE STUPID.',
-            tooltip: 'bypass chat filters. WILL MUTE ON CHATREPORT (if you are saying something bad) DONT BE STUPID.',
+            description: 'Chat QOL features like duplicate stacking and chat filter bypass.',
+            tooltip: 'Duplicate message stacking + chat bypass',
+            showEnabledToggle: false,
         });
 
+        this.CHAT_PATCH = true;
+        this.CHAT_BYPASS = true;
+
+        this.addToggle('Chat Patch', (v) => (this.CHAT_PATCH = !!v), 'Stacks duplicate chat messages with a counter (x2, x3, ...)', true);
+        this.addToggle('Chat Bypass', (v) => (this.CHAT_BYPASS = !!v), 'Bypasses blocked chat messages by replacing some characters', true);
+
+        this.lastMessageContent = null;
+        this.lastCounter = 1;
         this.bypassDict = {
             a: 'а',
             e: 'е',
@@ -34,7 +43,42 @@ class ChatBypass extends ModuleBase {
         this.ignoreDashes = false;
         this.lastMessage = '';
 
-        this.on('messageSent', (message, event) => {
+        this.registerChatPatch();
+        this.registerChatBypass();
+    }
+
+    registerChatPatch() {
+        const McText = net.minecraft.text.Text;
+
+        register('chat', (event) => {
+            if (!this.CHAT_PATCH) return;
+
+            const currentMsgRaw = event.message.getUnformattedText();
+
+            if (currentMsgRaw.toLowerCase() === this.lastMessageContent?.toLowerCase()) {
+                cancel(event);
+                this.lastCounter++;
+
+                const escapedMsg = currentMsgRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const deleteRegex = new RegExp(`^${escapedMsg}( §7\\(x\\d+\\))?$`);
+
+                ChatLib.deleteChat(deleteRegex);
+
+                const newText = event.message.copy().append(McText.literal(` §7(x${this.lastCounter})`));
+                const chatHud = Client.getMinecraft().inGameHud.getChatHud();
+                chatHud.addMessage(newText);
+                return;
+            }
+
+            this.lastMessageContent = currentMsgRaw;
+            this.lastCounter = 1;
+        });
+    }
+
+    registerChatBypass() {
+        register('messageSent', (message) => {
+            if (!this.CHAT_BYPASS) return;
+
             this.lastMessage = message;
             this.ignoreDashes = true;
             setTimeout(() => {
@@ -42,7 +86,9 @@ class ChatBypass extends ModuleBase {
             }, 200);
         });
 
-        this.on('chat', (message, event) => {
+        register('chat', (message, event) => {
+            if (!this.CHAT_BYPASS) return;
+
             let blockedText = ChatLib.removeFormatting(message);
             blockedText = blockedText.trim();
 
@@ -81,4 +127,4 @@ class ChatBypass extends ModuleBase {
     }
 }
 
-new ChatBypass();
+new ChatQOL();
