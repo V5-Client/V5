@@ -53,6 +53,17 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.lastVelocityY = 0;
         this.ballDescending = false;
+        this.holdShift = true;
+
+        this.addToggle(
+            'Hold Shift',
+            (value) => {
+                this.holdShift = value;
+                if (!value) Keybind.setKey('shift', false);
+            },
+            'Hold Shift.',
+            true
+        );
 
         this.createOverlay([
             {
@@ -308,7 +319,7 @@ class Beachballer extends ModuleBase {
             const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
             const distance = MathUtils.calculateDistance(playerPos, [dx, ballY, dz]);
 
-            Keybind.setKey('shift', true);
+            Keybind.setKey('shift', this.holdShift);
 
             if (distance.distanceFlat > 0.5) {
                 Keybind.setKeysForStraightLineCoords(dx, ballY, dz);
