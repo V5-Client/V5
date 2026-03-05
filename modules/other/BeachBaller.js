@@ -43,6 +43,7 @@ class Beachballer extends ModuleBase {
         this.totalBallsBounced = 0;
         this.tickCounter = 0;
         this.bounceTimer = 0;
+        this.hasActiveRun = false;
         this.startPos = [0, 0, 0];
         this.state = States.WAITING;
         this.trackedBall = null;
@@ -276,15 +277,28 @@ class Beachballer extends ModuleBase {
     }
 
     handleBounceState() {
+        const hasTrackedBall = this.trackedBall && !this.trackedBall.isDead();
+        const hasRecentBounceUpdate = Date.now() - this.bounceTimer < 1500;
+
+        if (hasTrackedBall && this.bounceCount > 0 && this.bounceCount <= 40) {
+            this.hasActiveRun = true;
+        }
+
         if (this.bounceCount > 40) {
-            this.totalBallsBounced++;
-            this.setState(States.RETURN);
+            const validCompletion = hasTrackedBall && this.hasActiveRun && hasRecentBounceUpdate;
+
+            if (validCompletion) {
+                this.totalBallsBounced++;
+                this.setState(States.RETURN);
+            }
+
             this.bounceCount = 0;
+            this.hasActiveRun = false;
             this.trackedBall = null;
             return;
         }
 
-        if (this.trackedBall && !this.trackedBall.isDead()) {
+        if (hasTrackedBall) {
             this.tickCounter = 0;
 
             const dx = this.trackedBall.getX() + (this.trackedBall.getX() - this.trackedBall.getLastX()) * 3;
@@ -333,6 +347,8 @@ class Beachballer extends ModuleBase {
             this.trackedBall = this.findBeachBall();
 
             if (this.trackedBall) {
+                this.bounceCount = 0;
+                this.hasActiveRun = false;
                 Chat.message('Found ball!');
                 this.setState(States.BOUNCE);
                 return;
@@ -394,6 +410,7 @@ class Beachballer extends ModuleBase {
     setState(newState) {
         this.state = newState;
         this.tickCounter = 0;
+        if (newState !== States.BOUNCE) this.hasActiveRun = false;
 
         if (newState === States.WAITING || newState === States.RETURN) {
             this.trackedBall = null;
@@ -414,6 +431,7 @@ class Beachballer extends ModuleBase {
         this.ballDescending = false;
         this.lastVelocityY = 0;
         this.totalBallsBounced = 0;
+        this.hasActiveRun = false;
         Chat.message('&aBeachBaller enabled');
     }
 
