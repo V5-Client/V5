@@ -22,6 +22,22 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ inputs.sha || github.sha }}
 
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Cache global npm
+              uses: actions/cache@v4
+              with:
+                  path: ~/.npm
+                  key: npm-global-${{ runner.os }}
+                  restore-keys: |
+                      npm-global-${{ runner.os }}
+
+            - name: Install latest Wrangler
+              run: npm install -g wrangler@latest --prefer-offline
+
             - name: Prepare Data
               shell: bash
               run: |
@@ -125,15 +141,6 @@ jobs:
                       zip -qr "$GITHUB_WORKSPACE/V5-$channel.zip" .
                     )
                   done
-
-            - name: Setup Node (for Wrangler cache)
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
-                  cache: npm
-
-            - name: Install Wrangler (latest)
-              run: npm install -g wrangler@latest --prefer-offline
 
             - name: Upload Release zip to R2
               if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
