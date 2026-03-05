@@ -38,7 +38,7 @@ class BloodBlink extends ModuleBase {
         this.aotvSlot = -1;
         this.blinkDelay = -1;
         this.outbounds = 0;
-        this.blinkReady = false;
+        this.blinkReady = 0;
         this.dungeonStarted = true;
         this.setupBlinkRunning = false;
         this.blinkRunning = false;
@@ -66,7 +66,7 @@ class BloodBlink extends ModuleBase {
             if (this.outbounds == 0) this.outbounds = 40;
             else this.outbounds = this.outbounds - 1;
             if (!Utils.subArea().startsWith('The Catacombs')) return;
-            if (this.outbounds > 25 && this.blinkReady && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
+            if (this.outbounds > 25 && Date.now() - this.blinkReady <= 3000 && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
             if (this.dungeonStarted) return;
             if (this.outbounds > 30 || this.outbounds < 10) return;
             if (Player.getY() == 71 || Player.getY() == 72) return this.setupBlink();
@@ -83,7 +83,7 @@ class BloodBlink extends ModuleBase {
             if (msg == 'Starting in 1 second.') this.dungeonStarted = true;
             if (msg == '§e[NPC] §bMort§f: Here, I found this map when I first entered the dungeon.') {
                 Chat.message('BloodBlink Dungeon Start Detected');
-                this.blinkReady = true;
+                this.blinkReady = Date.now();
             }
         });
 
@@ -104,7 +104,7 @@ class BloodBlink extends ModuleBase {
     reset() {
         this.blinkDelay = -1;
         this.outbounds = 0;
-        this.blinkReady = false;
+        this.blinkReady = 0;
         this.setupBlinkRunning = false;
         this.blinkRunning = false;
     }
@@ -205,12 +205,12 @@ class BloodBlink extends ModuleBase {
         Rotations.applyRotationWithGCD(0, -90);
 
         if (bloodCenter) {
-            if (!this.blinkReady && !force) {
+            if (!(Date.now() - this.blinkReady <= 3000) && !force) {
                 this.blinkDelay = 20;
                 this.blinkRunning = false;
                 return;
             }
-            this.blinkReady = false;
+            this.blinkReady = 0;
             Client.scheduleTask(0, () => {
                 Rotations.applyRotationWithGCD(Player.getYaw(), -90);
                 this.repeatRightClick(upTo210LeapsY);
