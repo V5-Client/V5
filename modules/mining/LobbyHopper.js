@@ -10,7 +10,6 @@ class LobbyHopper extends ModuleBase {
             description: 'Switches between CH lobbies',
             tooltip: 'Switches between CH lobbies',
             showEnabledToggle: true,
-            isMacro: true,
         });
 
         this.setTheme('#e0dd04');
