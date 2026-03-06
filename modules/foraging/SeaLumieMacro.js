@@ -2,7 +2,7 @@
 import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import RendererMain from '../../utils/render/RendererUtils';
+import Render from '../../utils/render/Render';
 
 class SeaLumie extends ModuleBase {
     constructor() {
@@ -22,10 +22,7 @@ class SeaLumie extends ModuleBase {
 
         this.state = this.STATES.WAITING;
         this.closestPickle = null;
-        this.renderer = null;
         this.startedScan = false;
-        this.tryBreak = false;
-        this.hasBroken = false;
 
         this.createOverlay([
             {
@@ -82,7 +79,6 @@ class SeaLumie extends ModuleBase {
                                         Chat.message(
                                             `Found the closest pickle using BFS at x=${this.closestPickle.x}, y=${this.closestPickle.y}, z=${this.closestPickle.z}`
                                         );
-                                        this.hasBroken = false;
                                         this.state = this.STATES.GOINGTO;
                                         return;
                                     }
@@ -139,7 +135,7 @@ class SeaLumie extends ModuleBase {
 
                             this.closestPickle = null;
                             Chat.message('Failed to find a pickle!');
-                            this.startedScan = true; // retry
+                            this.startedScan = false;
                             this.state = this.STATES.SCANNING;
                         });
                         scanThread.setDaemon(true);
@@ -149,7 +145,7 @@ class SeaLumie extends ModuleBase {
                 case this.STATES.GOINGTO:
                     if (Player.getAirLevel() <= 0) {
                         this.state = this.STATES.RESURFACING;
-                        Chat.message('Ran out of air, resufacing');
+                        Chat.message('Ran out of air, resurfacing');
                     }
                     break;
 
@@ -201,16 +197,20 @@ class SeaLumie extends ModuleBase {
             if (this.closestPickle) {
                 let waypointPos = new Vec3d(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                RendererMain.drawBox(waypointPos, [255, 0, 0, 255]);
+                Render.drawBox(waypointPos, [255, 0, 0, 255]);
             }
         });
     }
 
     onEnable() {
+        this.closestPickle = null;
+        this.startedScan = false;
         this.state = this.STATES.SCANNING;
     }
 
     onDisable() {
+        this.closestPickle = null;
+        this.startedScan = false;
         this.state = this.STATES.WAITING;
     }
 }
