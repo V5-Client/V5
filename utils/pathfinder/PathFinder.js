@@ -277,7 +277,7 @@ class Finder {
                     }
 
                     if (FlyMovement.isActive === false) {
-                        if (FlyMovement.complete && FlyRotations.complete) {
+                        if (FlyMovement.complete || this.checkIfReachedDestination()) {
                             this.finishSuccess();
                             return;
                         }
