@@ -47,9 +47,10 @@ class PestESP extends ModuleBase {
 
         this.when(
             () => this.enabled && Utils.area() === 'Garden',
-            'postrenderWorld',
+            'postRenderWorld',
             () => {
                 this.persistentPests.forEach((data) => {
+                    if (!data.entity || data.entity.isDead()) return;
                     Render.drawHitbox(data.entity.toMC(), Render.Color(255, 0, 0, 100), 5, false);
 
                     Render.drawTracer(new Vec3d(data.x, data.y, data.z), Render.Color(255, 0, 0, 255), 2, false);

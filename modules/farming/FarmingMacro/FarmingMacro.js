@@ -62,7 +62,8 @@ class FarmingMacro extends ModuleBase {
         this.movementKey = null;
         this.ignoreKeys = [];
         this.warping = false;
-        this.saidCommand = false;
+        this.speedCommandSent = false;
+        this.decidePrompted = false;
         this.points = Utils.getConfigFile('FarmingMacro/points.txt') || {};
 
         this.DEBUG = false;
@@ -74,11 +75,32 @@ class FarmingMacro extends ModuleBase {
             'Cane / Sunflower / Rose': new CaneSunflowerRose(this),
         };
 
-        this.currentHandler = null;
+        this.crop = FARMING_DATA[0].name;
+        this.currentHandler = this.HANDLERS[this.crop];
+        Object.assign(this, FARMING_DATA[0]);
 
         this.initGui();
         this.initCommands();
         this.initListeners();
+    }
+
+    applyCropSelection(selected) {
+        if (!selected) selected = this.crop || FARMING_DATA[0].name;
+        this.currentHandler = this.HANDLERS[selected] || null;
+        this.crop = selected;
+
+        this.createOverlay([
+            {
+                title: 'INFO',
+                data: {
+                    Crop: this.crop || 'None',
+                },
+            },
+        ]);
+
+        const data = FARMING_DATA.find((entry) => entry.name === selected);
+        if (data) Object.assign(this, data);
+        if (this.currentHandler) this.currentHandler.reset();
     }
 
     initGui() {
@@ -86,31 +108,20 @@ class FarmingMacro extends ModuleBase {
             'Crop',
             FARMING_DATA.map((data) => data.name),
             true,
-            (v) => {
-                const selected = v.find((option) => option.enabled)?.name;
-                this.currentHandler = this.HANDLERS[selected];
-
-                this.crop = selected;
-
-                this.createOverlay([
-                    {
-                        title: 'INFO',
-                        data: {
-                            Crop: this.crop || 'None',
-                        },
-                    },
-                ]);
-
-                if (this.currentHandler) {
-                    const data = FARMING_DATA.find((d) => d.name === selected);
-                    Object.assign(this, data);
-                }
+            (selectedOptions) => {
+                const selected = selectedOptions.find((option) => option.enabled)?.name;
+                this.applyCropSelection(selected);
             },
             'Type of crop to farm'
         );
 
-        this.addToggle('Hide Crop Particles', (v) => ((this.HIDEPARTICLES = v), Mixin.set('hideParticles', v)));
-        this.addToggle('Debug Messages', (v) => (this.DEBUG = v));
+        this.applyCropSelection(this.crop);
+
+        this.addToggle(
+            'Hide Crop Particles',
+            (isEnabled) => ((this.HIDEPARTICLES = isEnabled), Mixin.set('hideParticles', isEnabled))
+        );
+        this.addToggle('Debug Messages', (isEnabled) => (this.DEBUG = isEnabled));
 
         this.bindToggleKey();
     }
@@ -154,40 +165,29 @@ class FarmingMacro extends ModuleBase {
                 return;
             }
 
-            switch (this.state) {
-                case this.STATES.SCANFORCROP:
-                    if (!this.points.start || !this.points.end) {
-                        this.message('&cYou need to set both start and end points!');
-                        this.toggle(false);
+            if (this.state === this.STATES.SCANFORCROP) {
+                if (!this.points.start || !this.points.end) {
+                    this.message('&cYou need to set both start and end points!');
+                    this.toggle(false);
+                    return;
+                }
+
+                if (this.hasRanchersBoots()) {
+                    let correctSpeed = this.speed;
+                    let currentSpeed = this.getCurrentSpeedCap();
+
+                    if (correctSpeed !== currentSpeed) {
+                        if (!this.speedCommandSent) {
+                            ChatLib.command(`setmaxspeed ${correctSpeed}`);
+                            this.speedCommandSent = true;
+                        }
                         return;
                     }
 
-                    if (this.hasRanchersBoots()) {
-                        let correctSpeed = this.speed;
-                        let currentSpeed = this.getCurrentSpeedCap();
-
-                        if (correctSpeed !== currentSpeed) {
-                            if (!this.saidCommand) {
-                                ChatLib.command(`setmaxspeed ${correctSpeed}`);
-                                this.saidCommand = true;
-                            }
-                            return;
-                        }
-
-                        this.saidCommand = false;
-                    } else {
-                        this.message('&cNo rancher boots speed may be incorrect!');
-                    }
-
-                    break;
-                case this.STATES.DECIDEROTATION:
-                    break;
-
-                case this.STATES.REWARP:
-                    break;
-
-                case this.STATES.WAITING:
-                    break;
+                    this.speedCommandSent = false;
+                } else {
+                    this.message('&cNo rancher boots speed may be incorrect!');
+                }
             }
 
             this.currentHandler.onTick();
@@ -235,12 +235,12 @@ class FarmingMacro extends ModuleBase {
 
         let lore = boots
             .getLore()
-            .map((l) => ChatLib.removeFormatting(l))
+            .map((loreLine) => ChatLib.removeFormatting(loreLine))
             .join(' ');
 
         let match = lore.match(/Current Speed Cap:\s*(\d+)/i);
 
-        if (match) return Number.parseInt(match[1]);
+        if (match) return Number.parseInt(match[1], 10);
 
         return null;
     }
@@ -254,6 +254,7 @@ class FarmingMacro extends ModuleBase {
     onEnable() {
         this.message('&aEnabled');
         this.state = this.STATES.SCANFORCROP;
+        this.currentHandler?.reset();
 
         Mouse.ungrab();
     }
@@ -264,7 +265,10 @@ class FarmingMacro extends ModuleBase {
 
         this.warping = false;
         this.movementKey = null;
-        this.ignoreKeys = null;
+        this.ignoreKeys = [];
+        this.decidePrompted = false;
+        this.speedCommandSent = false;
+        this.currentHandler?.reset();
 
         Mouse.regrab();
         Keybind.unpressKeys();

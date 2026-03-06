@@ -1,5 +1,6 @@
 import { BP } from '../../../utils/Constants';
 import { MathUtils } from '../../../utils/Math';
+import { Keybind } from '../../../utils/player/Keybinding';
 
 export default class FarmHandler {
     constructor(parent) {
@@ -8,6 +9,69 @@ export default class FarmHandler {
 
     onTick() {
         throw new Error('onTick() must be implemented in the specific crop class!');
+    }
+
+    reset() {}
+
+    findTargetBlocks() {
+        const cube = this.scan3x3x3();
+        const { registry } = this.parent;
+        if (Array.isArray(registry)) return cube.filter((block) => registry.includes(block.name));
+        return cube.filter((block) => block.name === registry);
+    }
+
+    handleScanForCrop() {
+        const macro = this.parent;
+        const targetBlocks = this.findTargetBlocks();
+
+        if (targetBlocks.length > 0 && !macro.warping) {
+            const sum = targetBlocks.reduce(
+                (acc, block) => {
+                    acc.x += block.x;
+                    acc.y += block.y;
+                    acc.z += block.z;
+                    return acc;
+                },
+                { x: 0, y: 0, z: 0 }
+            );
+
+            const count = targetBlocks.length;
+            macro.targetX = sum.x / count + 0.5;
+            macro.targetY = sum.y / count;
+            macro.targetZ = sum.z / count + 0.5;
+
+            const xCoords = targetBlocks.map((block) => block.x);
+            const zCoords = targetBlocks.map((block) => block.z);
+            const spanX = Math.max(...xCoords) - Math.min(...xCoords);
+            const spanZ = Math.max(...zCoords) - Math.min(...zCoords);
+            macro.farmAxis = spanX > spanZ ? 'X' : spanZ > spanX ? 'Z' : 'X';
+
+            if (Player.isFlying()) {
+                Keybind.setKey('shift', true);
+                return;
+            }
+
+            Keybind.setKey('shift', false);
+            macro.state = macro.STATES.DECIDEROTATION;
+            return;
+        }
+
+        if (!macro.warping) {
+            if (
+                this.isAtPoint(macro.points.start.x, macro.points.start.y, macro.points.start.z) &&
+                this.areChunksLoaded(macro.points.start.x, macro.points.start.z)
+            ) {
+                macro.message('&cAt start point but no crops found!');
+                macro.toggle(false);
+            } else {
+                macro.message('&cNot near your selected crop! Warping...');
+                ChatLib.command('warp garden');
+                macro.warping = true;
+            }
+            return;
+        }
+
+        if (this.isAtPoint(macro.points.start.x, macro.points.start.y, macro.points.start.z)) macro.warping = false;
     }
 
     scan3x3x3() {
@@ -101,47 +165,50 @@ export default class FarmHandler {
         };
     }
 
-    decideDirection(actualAge) {
-        const p = this.parent;
+    decideDirection(actualAge, yOffset = 1) {
+        const macro = this.parent;
         const { maxDistLeft, maxDistRight } = this.getSidesDistance();
 
         if (maxDistRight > maxDistLeft) {
-            p.message(`&7Wall RIGHT moving LEFT!`, true);
-            p.movementKey = 'a';
-            p.ignoreKeys = ['d', 's'];
+            macro.message(`&7Wall RIGHT moving LEFT!`, true);
+            macro.movementKey = 'a';
+            macro.ignoreKeys = ['d', 's'];
         } else if (maxDistLeft > maxDistRight) {
-            p.message(`&7Wall LEFT moving RIGHT!`, true);
-            p.movementKey = 'd';
-            p.ignoreKeys = ['a', 's'];
+            macro.message(`&7Wall LEFT moving RIGHT!`, true);
+            macro.movementKey = 'd';
+            macro.ignoreKeys = ['a', 's'];
         } else {
-            let corners = this.checkForCrop(actualAge, 1);
-            if (corners.left.age > corners.right.age) {
-                p.message(`&7Older crop LEFT, moving LEFT!`, true);
-                p.movementKey = 'a';
-                p.ignoreKeys = ['d', 's'];
-            } else if (corners.right.age > corners.left.age) {
-                p.message(`&7Older crop RIGHT, moving RIGHT!`, true);
-                p.movementKey = 'd';
-                p.ignoreKeys = ['a', 's'];
+            const corners = this.checkForCrop(actualAge, yOffset);
+            const leftValue = actualAge ? corners.left.age : corners.left.exists;
+            const rightValue = actualAge ? corners.right.age : corners.right.exists;
+
+            if (leftValue > rightValue) {
+                macro.message(`&7Older crop LEFT, moving LEFT!`, true);
+                macro.movementKey = 'a';
+                macro.ignoreKeys = ['d', 's'];
+            } else if (rightValue > leftValue) {
+                macro.message(`&7Older crop RIGHT, moving RIGHT!`, true);
+                macro.movementKey = 'd';
+                macro.ignoreKeys = ['a', 's'];
             } else {
-                if (!p.saidCommand) p.message(`Macro can't decide, press A or D!`);
-                p.saidCommand = true;
+                if (!macro.decidePrompted) macro.message(`Macro can't decide, press A or D!`);
+                macro.decidePrompted = true;
                 if (Client.getMinecraft().options.leftKey.isPressed()) {
-                    p.movementKey = 'a';
-                    p.ignoreKeys = ['d', 's'];
-                    p.saidCommand = false;
+                    macro.movementKey = 'a';
+                    macro.ignoreKeys = ['d', 's'];
+                    macro.decidePrompted = false;
                 } else if (Client.getMinecraft().options.rightKey.isPressed()) {
-                    p.movementKey = 'd';
-                    p.ignoreKeys = ['a', 's'];
-                    p.saidCommand = false;
+                    macro.movementKey = 'd';
+                    macro.ignoreKeys = ['a', 's'];
+                    macro.decidePrompted = false;
                 }
             }
         }
     }
 
     checkForCrop(checkForAge = true, yOffset = 1) {
-        const p = Player.getPlayer();
-        let yaw = ((p.getYaw() % 360) + 360) % 360;
+        const playerEntity = Player.getPlayer();
+        let yaw = ((playerEntity.getYaw() % 360) + 360) % 360;
 
         let fx = 0,
             fz = 0; // Forward
@@ -163,9 +230,9 @@ export default class FarmHandler {
         }
 
         const getInfo = (offX, offZ) => {
-            const targetX = Math.floor(p.getX() + offX);
-            const targetY = Math.round(p.getY()) + yOffset;
-            const targetZ = Math.floor(p.getZ() + offZ);
+            const targetX = Math.floor(playerEntity.getX() + offX);
+            const targetY = Math.round(playerEntity.getY()) + yOffset;
+            const targetZ = Math.floor(playerEntity.getZ() + offZ);
 
             const pos = new BP(targetX, targetY, targetZ);
             const state = World.getWorld().getBlockState(pos);
@@ -224,23 +291,23 @@ export default class FarmHandler {
     }
 
     handleRewarp() {
-        const p = this.parent;
+        const macro = this.parent;
 
-        if (!p.warpDelay) {
+        if (!macro.warpDelay) {
             const randomDelay = Math.floor(Math.random() * 251) + 500;
-            p.warpDelay = Date.now() + randomDelay;
-            p.message(`&7Warping in ${randomDelay}ms...`, true);
+            macro.warpDelay = Date.now() + randomDelay;
+            macro.message(`&7Warping in ${randomDelay}ms...`, true);
             return;
         }
 
-        if (Date.now() >= p.warpDelay) ChatLib.command('warp garden');
+        if (Date.now() >= macro.warpDelay) ChatLib.command('warp garden');
 
-        if (this.isAtPoint(p.points.start.x, p.points.start.y, p.points.start.z, 1)) {
-            if (this.areChunksLoaded(p.points.start.x, p.points.start.z)) {
-                p.warpDelay = null;
-                p.state = p.STATES.SCANFORCROP;
+        if (this.isAtPoint(macro.points.start.x, macro.points.start.y, macro.points.start.z, 1)) {
+            if (this.areChunksLoaded(macro.points.start.x, macro.points.start.z)) {
+                macro.warpDelay = null;
+                macro.state = macro.STATES.SCANFORCROP;
             } else {
-                p.message('Waiting for chunks to load', true);
+                macro.message('Waiting for chunks to load', true);
             }
         }
     }
