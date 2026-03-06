@@ -59,6 +59,8 @@ class OverlayUtils {
         this.pendingSave = false;
         this.sessionResumeWindowMs = 5 * 60 * 1000; // resume macro within 5 minutes
         this.savedSessions = {};
+        this.sessionTrackedDefaults = {};
+        this.sessionTrackedValues = {};
         this.renderActive = false;
         this.drawingGUI = false;
 
@@ -132,6 +134,17 @@ class OverlayUtils {
         }).setFps(60);
     }
 
+    cloneTrackedDefaults(idName) {
+        return { ...(this.sessionTrackedDefaults[idName] || {}) };
+    }
+
+    resolveTrackedValues(idName) {
+        if (!this.sessionTrackedValues[idName]) {
+            this.sessionTrackedValues[idName] = this.cloneTrackedDefaults(idName);
+        }
+        return this.sessionTrackedValues[idName];
+    }
+
     startTime(idName, allowResume = true) {
         const now = Date.now();
         const saved = this.savedSessions[idName];
@@ -139,10 +152,12 @@ class OverlayUtils {
 
         if (canResume) {
             this.startTimes[idName] = now - saved.elapsedMs;
+            this.sessionTrackedValues[idName] = saved.trackedValues ? { ...saved.trackedValues } : this.cloneTrackedDefaults(idName);
             delete this.savedSessions[idName];
         } else {
             if (saved) delete this.savedSessions[idName];
             this.startTimes[idName] = now;
+            this.sessionTrackedValues[idName] = this.cloneTrackedDefaults(idName);
         }
 
         if (!this.animations[idName]) {
@@ -154,7 +169,12 @@ class OverlayUtils {
         this.startAnimationLoop();
     }
 
-    resetTime(idName) {
+    resetTime(idName, clearSavedSession = true) {
+        delete this.startTimes[idName];
+        if (clearSavedSession) {
+            delete this.savedSessions[idName];
+        }
+        delete this.sessionTrackedValues[idName];
         if (this.animations[idName]) {
             this.animations[idName].target = 0;
         }
@@ -166,9 +186,13 @@ class OverlayUtils {
         const startedAt = this.startTimes[idName];
         if (startedAt) {
             const now = Date.now();
-            this.savedSessions[idName] = { pausedAt: now, elapsedMs: now - startedAt };
+            this.savedSessions[idName] = {
+                pausedAt: now,
+                elapsedMs: now - startedAt,
+                trackedValues: { ...this.resolveTrackedValues(idName) },
+            };
         }
-        this.resetTime(idName);
+        this.resetTime(idName, false);
     }
 
     deleteID(idName) {
@@ -176,6 +200,8 @@ class OverlayUtils {
         delete this.animations[idName];
         delete this.startTimes[idName];
         delete this.savedSessions[idName];
+        delete this.sessionTrackedDefaults[idName];
+        delete this.sessionTrackedValues[idName];
         this.updateRenderActive();
         this.saveSettings();
     }
@@ -185,6 +211,8 @@ class OverlayUtils {
         this.animations = {};
         this.startTimes = {};
         this.savedSessions = {};
+        this.sessionTrackedDefaults = {};
+        this.sessionTrackedValues = {};
         this.dragging = false;
         this.pendingSave = false;
         this.renderActive = false;
@@ -214,6 +242,7 @@ class OverlayUtils {
 
     createID(idName, sections = [], options = {}) {
         const sectionsArray = this.ensureArray(sections);
+        const trackedDefaults = options.sessionTrackedValues ? { ...options.sessionTrackedValues } : null;
         let existing = this.ids.find((id) => id.name === idName);
 
         if (existing) {
@@ -232,6 +261,13 @@ class OverlayUtils {
             this.ids.push(newId);
         }
 
+        if (trackedDefaults) {
+            this.sessionTrackedDefaults[idName] = trackedDefaults;
+            if (!this.sessionTrackedValues[idName]) {
+                this.sessionTrackedValues[idName] = { ...trackedDefaults };
+            }
+        }
+
         if (!this.animations[idName]) {
             this.animations[idName] = { progress: 0, target: 0 };
         }
@@ -239,6 +275,50 @@ class OverlayUtils {
 
     createSchedulerID(idName, sections = []) {
         this.createID(idName, sections, { isScheduler: true });
+    }
+
+    getTrackedValue(idName, key, fallback = 0) {
+        const activeValues = this.sessionTrackedValues[idName];
+        if (activeValues && Object.prototype.hasOwnProperty.call(activeValues, key)) {
+            return activeValues[key];
+        }
+
+        const saved = this.savedSessions[idName];
+        if (saved && saved.trackedValues && Object.prototype.hasOwnProperty.call(saved.trackedValues, key)) {
+            return saved.trackedValues[key];
+        }
+
+        const defaults = this.sessionTrackedDefaults[idName];
+        if (defaults && Object.prototype.hasOwnProperty.call(defaults, key)) {
+            return defaults[key];
+        }
+
+        return fallback;
+    }
+
+    setTrackedValue(idName, key, value) {
+        const values = this.resolveTrackedValues(idName);
+        values[key] = value;
+        return value;
+    }
+
+    incrementTrackedValue(idName, key, amount = 1) {
+        const current = Number(this.getTrackedValue(idName, key, 0)) || 0;
+        return this.setTrackedValue(idName, key, current + amount);
+    }
+
+    getSessionElapsedMs(idName) {
+        const startedAt = this.startTimes[idName];
+        if (startedAt !== undefined) {
+            return Math.max(0, Date.now() - startedAt);
+        }
+
+        const saved = this.savedSessions[idName];
+        if (saved && saved.elapsedMs !== undefined) {
+            return Math.max(0, saved.elapsedMs);
+        }
+
+        return 0;
     }
 
     getExampleOverlay() {

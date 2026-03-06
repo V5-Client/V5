@@ -230,9 +230,9 @@ export class ModuleBase {
         return this;
     }
 
-    createOverlay(args) {
+    createOverlay(args, options = {}) {
         this.oid = this.name;
-        OverlayManager.createID(this.oid, args);
+        OverlayManager.createID(this.oid, args, options);
     }
 
     createSchedulerOverlay(args) {

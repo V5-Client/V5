@@ -59,29 +59,32 @@ class FishingMacro extends ModuleBase {
         this.waitingForRotationReset = false;
         this.previousYaw = null;
         this.previousPitch = null;
-        this.kills = 0;
         this.lastStriderCount = null;
-        this.sessionStart = null;
-        this.pausedTimeMs = 0;
-        this.lastDisableTime = null;
 
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    Phase: () => this.getStepDescription(),
+        this.createOverlay(
+            [
+                {
+                    title: 'Status',
+                    data: {
+                        Phase: () => this.getStepDescription(),
+                    },
                 },
-            },
-            {
-                title: 'Performance',
-                data: {
-                    Kills: () => this.kills,
-                    'Kills/hr': () => this.getKillsPerHour(),
-                    'XP Earned': () => this.getXpEarned(),
-                    'XP/hr': () => this.getXpPerHour(),
+                {
+                    title: 'Performance',
+                    data: {
+                        Kills: () => this.getKills(),
+                        'Kills/hr': () => this.getKillsPerHour(),
+                        'XP Earned': () => this.getXpEarned(),
+                        'XP/hr': () => this.getXpPerHour(),
+                    },
                 },
-            },
-        ]);
+            ],
+            {
+                sessionTrackedValues: {
+                    kills: 0,
+                },
+            }
+        );
     }
     tick() {
         this.updateKillCounter();
@@ -332,7 +335,7 @@ class FishingMacro extends ModuleBase {
         if (this.lastStriderCount !== null) {
             const diff = this.lastStriderCount - currentCount;
             if (diff > 0) {
-                this.kills += diff;
+                OverlayManager.incrementTrackedValue(this.oid, 'kills', diff);
             }
         }
 
@@ -357,21 +360,25 @@ class FishingMacro extends ModuleBase {
         }
     }
 
+    getKills() {
+        return OverlayManager.getTrackedValue(this.oid, 'kills', 0);
+    }
+
     getXpEarned() {
-        return this.formatNumber(this.kills * 2000);
+        return this.formatNumber(this.getKills() * 2000);
     }
 
     getXpPerHour() {
         const hours = this.getActiveHours();
         if (hours <= 0) return '0';
-        const xpPerHour = (this.kills * 2000) / hours;
+        const xpPerHour = (this.getKills() * 2000) / hours;
         return this.formatNumber(xpPerHour);
     }
 
     getKillsPerHour() {
         const hours = this.getActiveHours();
         if (hours <= 0) return '0';
-        return this.formatNumber(this.kills / hours);
+        return this.formatNumber(this.getKills() / hours);
     }
 
     formatNumber(value) {
@@ -381,9 +388,7 @@ class FishingMacro extends ModuleBase {
     }
 
     getActiveHours() {
-        if (!this.sessionStart) return 0;
-        const rawElapsed = Date.now() - this.sessionStart;
-        const elapsedMs = rawElapsed - this.pausedTimeMs;
+        const elapsedMs = OverlayManager.getSessionElapsedMs(this.oid);
         if (elapsedMs <= 0) return 0;
         return elapsedMs / 3600000;
     }
@@ -425,19 +430,7 @@ class FishingMacro extends ModuleBase {
     onEnable() {
         Chat.message('Fishing Macro Enabled');
 
-        const now = Date.now();
-        const wasRecentlyDisabled = this.lastDisableTime && now - this.lastDisableTime <= 120000;
-        if (wasRecentlyDisabled && this.sessionStart) {
-            this.pausedTimeMs += now - this.lastDisableTime;
-        } else {
-            this.kills = 0;
-            this.pausedTimeMs = 0;
-            this.sessionStart = now;
-        }
-
         this.lastStriderCount = null;
-        this.lastDisableTime = null;
-        this.updateOverlayUptime(); // this really should be like a overlay util or smth
         this.resetSequence();
         Keybind.setKey('shift', false);
         Mouse.ungrab();
@@ -447,16 +440,7 @@ class FishingMacro extends ModuleBase {
         Chat.message('Fishing Macro disabled');
         Keybind.setKey('shift', false);
         this.lastStriderCount = null;
-        this.lastDisableTime = Date.now();
         Mouse.regrab();
-    }
-
-    updateOverlayUptime() {
-        if (!this.oid || !OverlayManager || !OverlayManager.startTimes) return;
-        const now = Date.now();
-        const activeElapsed = Math.max(0, now - (this.sessionStart || now) - this.pausedTimeMs);
-        const adjustedStart = now - activeElapsed;
-        OverlayManager.startTimes[this.oid] = adjustedStart;
     }
 }
 

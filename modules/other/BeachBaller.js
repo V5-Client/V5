@@ -1,3 +1,4 @@
+import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
@@ -40,7 +41,6 @@ class Beachballer extends ModuleBase {
         this.bindToggleKey();
 
         this.bounceCount = 0;
-        this.totalBallsBounced = 0;
         this.tickCounter = 0;
         this.bounceTimer = 0;
         this.hasActiveRun = false;
@@ -65,16 +65,23 @@ class Beachballer extends ModuleBase {
             true
         );
 
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    State: () => this.getStateName(),
-                    Bounces: () => `${this.bounceCount}/40`,
-                    'Total Completed': () => this.totalBallsBounced,
+        this.createOverlay(
+            [
+                {
+                    title: 'Status',
+                    data: {
+                        State: () => this.getStateName(),
+                        Bounces: () => `${this.bounceCount}/40`,
+                        'Total Completed': () => this.getTotalBallsBounced(),
+                    },
                 },
-            },
-        ]);
+            ],
+            {
+                sessionTrackedValues: {
+                    totalBallsBounced: 0,
+                },
+            }
+        );
 
         this.on('tick', () => {
             if (Client.isInGui() && !Client.isInChat()) {
@@ -135,6 +142,10 @@ class Beachballer extends ModuleBase {
             default:
                 return 'Unknown';
         }
+    }
+
+    getTotalBallsBounced() {
+        return OverlayManager.getTrackedValue(this.oid, 'totalBallsBounced', 0);
     }
 
     updateTrajectory() {
@@ -299,7 +310,7 @@ class Beachballer extends ModuleBase {
             const validCompletion = hasTrackedBall && this.hasActiveRun && hasRecentBounceUpdate;
 
             if (validCompletion) {
-                this.totalBallsBounced++;
+                OverlayManager.incrementTrackedValue(this.oid, 'totalBallsBounced');
                 this.setState(States.RETURN);
             }
 
@@ -441,7 +452,6 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.ballDescending = false;
         this.lastVelocityY = 0;
-        this.totalBallsBounced = 0;
         this.hasActiveRun = false;
         Chat.message('&aBeachBaller enabled');
     }

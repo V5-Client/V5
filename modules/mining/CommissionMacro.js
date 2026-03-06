@@ -1,4 +1,5 @@
 //@VIP
+import { OverlayManager } from '../../gui/OverlayUtils';
 import { notificationManager } from '../../gui/NotificationManager';
 import { Chat } from '../../utils/Chat';
 import { MiningUtils } from '../../utils/MiningUtils';
@@ -41,8 +42,6 @@ class CommissionMacro extends ModuleBase {
         this.bindToggleKey();
         this.setTheme('#4cdfd2');
 
-        this.commissionsCompleted = 0;
-
         this.currentState = STATES.IDLE;
         this.avoidanceRadius = 10;
         this.goblinWeaponSlot = 1;
@@ -72,29 +71,35 @@ class CommissionMacro extends ModuleBase {
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
-        this.sessionStart = Date.now();
         this.npcRotationPending = false;
         this.npcRotationToken = 0;
 
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    State: () => this.currentState,
-                    Commission: () => this.currentCommission?.name || 'None',
-                    Progress: () => this.getCommissionProgressDisplay(),
-                    Tool: () => this.getTruncatedToolName(),
+        this.createOverlay(
+            [
+                {
+                    title: 'Status',
+                    data: {
+                        State: () => this.currentState,
+                        Commission: () => this.currentCommission?.name || 'None',
+                        Progress: () => this.getCommissionProgressDisplay(),
+                        Tool: () => this.getTruncatedToolName(),
+                    },
                 },
-            },
-            {
-                title: 'Profits',
-                data: {
-                    'Completed Commissions': () => this.commissionsCompleted,
-                    'Last Commission': () => this.getLastCommissionDisplay(),
-                    'Commissions/hr': () => this.getCommissionsPerHourDisplay(),
+                {
+                    title: 'Profits',
+                    data: {
+                        'Completed Commissions': () => this.getCompletedCommissions(),
+                        'Last Commission': () => this.getLastCommissionDisplay(),
+                        'Commissions/hr': () => this.getCommissionsPerHourDisplay(),
+                    },
                 },
-            },
-        ]);
+            ],
+            {
+                sessionTrackedValues: {
+                    commissionsCompleted: 0,
+                },
+            }
+        );
 
         this.on('step', () => {
             const newCommissions = MiningUtils.readCommissions();
@@ -106,7 +111,7 @@ class CommissionMacro extends ModuleBase {
         this.on('chat', (event) => {
             const msg = event.message.getUnformattedText();
             if (msg?.includes('Commission Complete! Visit the King to claim')) {
-                this.commissionsCompleted++;
+                OverlayManager.incrementTrackedValue(this.oid, 'commissionsCompleted');
                 this.onCommissionComplete();
             }
         });
@@ -165,12 +170,15 @@ class CommissionMacro extends ModuleBase {
         return this.lastCommissionName || 'None';
     }
 
+    getCompletedCommissions() {
+        return OverlayManager.getTrackedValue(this.oid, 'commissionsCompleted', 0);
+    }
+
     getCommissionsPerHourDisplay() {
-        if (!this.sessionStart) return '0.00';
-        const elapsedMs = Date.now() - this.sessionStart;
+        const elapsedMs = OverlayManager.getSessionElapsedMs(this.oid);
         if (elapsedMs <= 0) return '0.00';
         const hours = elapsedMs / 3600000;
-        const rate = this.commissionsCompleted / hours;
+        const rate = this.getCompletedCommissions() / hours;
         if (!Number.isFinite(rate)) return '0.00';
         return rate.toFixed(2);
     }
@@ -220,8 +228,6 @@ class CommissionMacro extends ModuleBase {
     onEnable() {
         this.message('&aEnabled');
         this.emissariesUnlocked = true;
-
-        this.commissionsCompleted = 0;
 
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
@@ -275,7 +281,6 @@ class CommissionMacro extends ModuleBase {
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
         this.lastCommissionAt = null;
-        this.sessionStart = Date.now();
         this.npcRotationPending = false;
         this.npcRotationToken = 0;
         this.areaCheckTime = null;

@@ -1,4 +1,5 @@
 //@Beta
+import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
@@ -56,7 +57,6 @@ class ScathaMacro extends ModuleBase {
         this.wormDetected = false;
         this.stuckCounter = 0;
         this.unstuckState = 0;
-        this.kills = 0;
         this.decimalZ = 0.5;
         this.normalKilling = true;
         this.gettingMenu = false;
@@ -80,22 +80,29 @@ class ScathaMacro extends ModuleBase {
         this.addSlider('Menu Click Delay', 500, 1500, 750, (v) => (this.menuClickDelay = v));
         this.addToggle('Pingless Angles', (v) => (this.pinglessAngles = !!v));
 
-        this.createOverlay([
-            {
-                title: 'Status',
-                data: {
-                    State: () => this.getStateName(this.state),
-                    'Stuck Count': () => this.stuckCounter,
+        this.createOverlay(
+            [
+                {
+                    title: 'Status',
+                    data: {
+                        State: () => this.getStateName(this.state),
+                        'Stuck Count': () => this.stuckCounter,
+                    },
                 },
-            },
-            {
-                title: 'Stats',
-                data: {
-                    Kills: () => this.kills,
-                    'Worm/Scatha': () => (this.scatha ? 'Scatha' : 'Worm'),
+                {
+                    title: 'Stats',
+                    data: {
+                        Kills: () => this.getKills(),
+                        'Worm/Scatha': () => (this.scatha ? 'Scatha' : 'Worm'),
+                    },
                 },
-            },
-        ]);
+            ],
+            {
+                sessionTrackedValues: {
+                    kills: 0,
+                },
+            }
+        );
 
         // Worm spawn message
         this.on('chat', () => {
@@ -161,6 +168,10 @@ class ScathaMacro extends ModuleBase {
         this.state = next;
     }
 
+    getKills() {
+        return OverlayManager.getTrackedValue(this.oid, 'kills', 0);
+    }
+
     onEnable() {
         this.sendMacroMessage('&aEnabled');
         this.setState(this.STATES.SETUP);
@@ -175,7 +186,6 @@ class ScathaMacro extends ModuleBase {
         this.sbOpened = false;
         this.stuckCounter = 0;
         this.unstuckState = 0;
-        this.kills = 0;
         Rotations.stopRotation();
         Keybind.setKey('leftclick', false);
         //Mouse.regrab();
@@ -684,7 +694,7 @@ class ScathaMacro extends ModuleBase {
                         this.wormDetected = false;
                         Chat.messageDebug('Worm killed!');
                         this.pause = true;
-                        this.kills++;
+                        OverlayManager.incrementTrackedValue(this.oid, 'kills');
                         Keybind.stopMovement();
                         if (this.normalKilling) {
                             Keybind.setKey('shift', false);
