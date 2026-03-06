@@ -27,8 +27,7 @@ export default class VerticalCrop extends FarmHandler {
                 break;
 
             case states.DECIDEROTATION:
-                const isCrop = (registryName) =>
-                    Array.isArray(macro.registry) ? macro.registry.includes(registryName) : registryName === macro.registry;
+                const isCrop = (registryName) => (Array.isArray(macro.registry) ? macro.registry.includes(registryName) : registryName === macro.registry);
 
                 let targetYaw;
 

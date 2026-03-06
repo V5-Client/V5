@@ -117,10 +117,7 @@ class FarmingMacro extends ModuleBase {
 
         this.applyCropSelection(this.crop);
 
-        this.addToggle(
-            'Hide Crop Particles',
-            (isEnabled) => ((this.HIDEPARTICLES = isEnabled), Mixin.set('hideParticles', isEnabled))
-        );
+        this.addToggle('Hide Crop Particles', (isEnabled) => ((this.HIDEPARTICLES = isEnabled), Mixin.set('hideParticles', isEnabled)));
         this.addToggle('Debug Messages', (isEnabled) => (this.DEBUG = isEnabled));
 
         this.bindToggleKey();
