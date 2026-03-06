@@ -1,4 +1,5 @@
 import FarmHandler from '../FarmHandler';
+import { CROP_TOOLS } from '../constants';
 
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
@@ -73,13 +74,7 @@ export default class CaneSunflowerRose extends FarmHandler {
                     registry = this.getRegistry(lookingAt);
                 }
 
-                const cropTools = {
-                    'minecraft:sugar_cane': 'Sugar Cane Hoe',
-                    'minecraft:sunflower': 'Sunflower Hoe',
-                    'minecraft:rose_bush': 'Rose Bush Hoe',
-                };
-
-                requiredToolName = cropTools[registry];
+                requiredToolName = CROP_TOOLS[registry];
 
                 if (!requiredToolName) {
                     macro.message(`&cMake sure you are looking at cane, sunflower, or rose!`);

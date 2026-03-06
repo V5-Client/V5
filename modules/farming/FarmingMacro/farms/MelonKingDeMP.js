@@ -1,4 +1,5 @@
 import FarmHandler from '../FarmHandler';
+import { CROP_TOOLS } from '../constants';
 
 import { Guis } from '../../../../utils/player/Inventory';
 import { Keybind } from '../../../../utils/player/Keybinding';
@@ -71,15 +72,7 @@ export default class MelonKingDeMP extends FarmHandler {
                         registry = this.getRegistry(lookingAt) || registry;
                     }
 
-                    const cropTools = {
-                        'minecraft:melon': 'Melon Dicer',
-                        'minecraft:melon_stem': 'Melon Dicer',
-
-                        'minecraft:carved_pumpkin': 'Pumpkin Dicer',
-                        'minecraft:pumpkin_stem': 'Pumpkin Dicer',
-                    };
-
-                    requiredToolName = cropTools[registry];
+                    requiredToolName = CROP_TOOLS[registry];
 
                     if (!requiredToolName) {
                         macro.message(`&cMake sure you are looking at a melon or pumpkin!`);

@@ -1,4 +1,5 @@
 import FarmHandler from '../FarmHandler';
+import { CROP_TOOLS } from '../constants';
 
 import { MathUtils } from '../../../../utils/Math';
 import { Guis } from '../../../../utils/player/Inventory';
@@ -90,14 +91,7 @@ export default class VerticalCrop extends FarmHandler {
                     registry = this.getRegistry(looking);
                 }
 
-                const cropTools = {
-                    'minecraft:nether_wart': 'Nether Wart Hoe',
-                    'minecraft:potatoes': 'Potato Hoe',
-                    'minecraft:wheat': 'Wheat Hoe',
-                    'minecraft:carrots': 'Carrot Hoe',
-                };
-
-                let requiredToolName = cropTools[registry];
+                let requiredToolName = CROP_TOOLS[registry];
                 if (!requiredToolName) {
                     macro.message(`&cNo tool mapped for block: ${registry}`);
                     macro.toggle(false);
