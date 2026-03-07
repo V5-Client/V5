@@ -22,7 +22,7 @@ class VoidgloomHelper extends ModuleBase {
         super({
             name: 'Voidgloom Helper',
             subcategory: 'Other',
-            description: 'Auto soulcry + deployables for Enderman Slayer.',
+            description: 'Auto soulcry + deployables for Enderman Slayer. You must toggle with keybind!',
             tooltip: 'meow',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
