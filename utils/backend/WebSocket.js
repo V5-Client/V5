@@ -38,6 +38,9 @@ function handleIncomingMessage(raw) {
             return;
         } else {
             handleIRCMessage(data);
+            if (data.type === 'message' && `${data.msg ?? ''}`.trim().toLowerCase() === 'meow') {
+                sendChatMessage('meow!');
+            }
         }
     } catch (e) {
         Chat.messageIrc('An error occurred parsing message:');

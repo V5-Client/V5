@@ -1,6 +1,5 @@
 import { Chat } from '../Chat';
 import { Categories } from '../../gui/categories/CategorySystem';
-import { sendChatMessage } from './WebSocket';
 
 let ircEnabled = true;
 Categories.addSettingsToggle('IRC', (v) => (ircEnabled = !!v), "Messages can be sent with '#msg'", true, 'IRC', 'Discord');
@@ -11,11 +10,6 @@ export function handleIRCMessage(data) {
         const sender = data.user || 'Unknown';
         const message = `${data.msg ?? ''}`;
         Chat.messageIrc(`&9${sender}&r: ${message}`);
-
-        if (message.trim().toLowerCase() === 'meow') {
-            sendChatMessage('meow!');
-        }
-
         return true;
     }
 
