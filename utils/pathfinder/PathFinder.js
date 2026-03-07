@@ -156,7 +156,7 @@ class Finder {
             if (Swift.isSearching()) {
                 if (this.searchStartedAt > 0 && Date.now() - this.searchStartedAt > this.SEARCH_TIMEOUT_MS) {
                     if (PathConfig.PATHFINDING_DEBUG) {
-                        Chat.messagePathfinder('6Path search timed out, recalculating');
+                        Chat.messagePathfinder('§6Path search timed out, recalculating');
                     }
                     Swift.cancel();
                     Swift.clear();
@@ -250,9 +250,10 @@ class Finder {
                 });
             } else if (this.isFly) {
                 if (!this.flyStarted) {
-                    const { lookPoints, movementPath } = Spline.createFlyPaths(result.path);
-                    this.flyLookPoints = lookPoints;
+                    const flyNodes = result.path?.length ? result.path : result.path_between_key_nodes?.length ? result.path_between_key_nodes : result.keynodes;
+                    const { lookPoints, movementPath } = Spline.createFlyPaths(flyNodes);
                     this.flyMovementPath = movementPath;
+                    this.flyLookPoints = lookPoints;
                     this.flySplinePath = this.createSplinePath(result);
 
                     FlyRotations.beginFlyRotations(this.flyLookPoints);
@@ -306,7 +307,12 @@ class Finder {
                     }
 
                     if (PathConfig.RENDER_LOOK_POINTS) {
+                        this.flyMovementPath?.forEach((p) => Render.drawBox(new Vec3d(p.x, p.y, p.z), Render.Color(0, 255, 0, 150), true));
                         this.flyLookPoints?.forEach((p) => Render.drawBox(p, Render.Color(255, 0, 0, 150), true));
+                        const yDiffPoint = FlyMovement.debugVerticalTarget;
+                        if (yDiffPoint) {
+                            Render.drawBox(new Vec3d(yDiffPoint.x, yDiffPoint.y, yDiffPoint.z), Render.Color(0, 255, 255, 180), true);
+                        }
                     }
                 });
             }

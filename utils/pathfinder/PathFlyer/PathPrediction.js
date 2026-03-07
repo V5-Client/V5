@@ -1,5 +1,3 @@
-// APPROXIMATION. It's not perfect but it's far more than good enough for this.
-
 export function getCurrentMotion() {
     return {
         x: Player.getMotionX(),
@@ -19,11 +17,11 @@ export function predictStoppingPosition(ticks = 30) {
     let { x: vx, y: vy, z: vz } = getCurrentMotion();
 
     const isFlying = !!player.getAbilities()?.flying;
-
-    const dragXZ = 0.91;
-    const dragYFlying = 0.6;
+    const horizontalDrag = 0.91;
+    const flyingVerticalDrag = 0.6;
+    const fallingVerticalDrag = 0.98;
     const gravity = -0.08;
-    const dragY = 0.98;
+    const epsilon = 0.01;
 
     for (let i = 0; i < ticks; i++) {
         px += vx;
@@ -31,17 +29,17 @@ export function predictStoppingPosition(ticks = 30) {
         pz += vz;
 
         if (isFlying) {
-            vx *= dragXZ;
-            vz *= dragXZ;
-            vy *= dragYFlying;
+            vx *= horizontalDrag;
+            vz *= horizontalDrag;
+            vy *= flyingVerticalDrag;
         } else {
             vy += gravity;
-            vx *= dragXZ;
-            vz *= dragXZ;
-            vy *= dragY;
+            vx *= horizontalDrag;
+            vz *= horizontalDrag;
+            vy *= fallingVerticalDrag;
         }
 
-        if (Math.abs(vx) < 0.01 && Math.abs(vz) < 0.01 && Math.abs(vy) < 0.01) break;
+        if (Math.abs(vx) < epsilon && Math.abs(vz) < epsilon && Math.abs(vy) < epsilon) break;
     }
 
     return { x: px, y: py, z: pz };

@@ -98,17 +98,45 @@ class PathRotations {
         return Math.max(0, Math.min(1, ((p.x - p1.x) * dx + (p.y - p1.y) * dy + (p.z - p1.z) * dz) / dSq));
     }
 
-    getInterpolatedPoint(indexFloat) {
+    getInterpolatedPoint(indexFloat, path = this.lookPoints) {
+        if (!path || path.length === 0) return null;
         const idx = Math.floor(indexFloat);
         const frac = indexFloat - idx;
-        const p1 = this.lookPoints[idx];
-        const p2 = this.lookPoints[Math.min(idx + 1, this.lookPoints.length - 1)];
+        const p1 = path[Math.max(0, Math.min(path.length - 1, idx))];
+        const p2 = path[Math.max(0, Math.min(path.length - 1, idx + 1))];
         if (!p2 || frac <= 0) return p1;
         return new Vec3d(p1.x + (p2.x - p1.x) * frac, p1.y + (p2.y - p1.y) * frac, p1.z + (p2.z - p1.z) * frac);
     }
 
     getDistSq(a, b) {
         return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
+    }
+
+    updatePathPosition(path, currentPathPosition, playerEyes, backtrack, searchRange) {
+        if (!path || path.length < 2) {
+            return { position: currentPathPosition, minDistSq: Infinity };
+        }
+
+        let nextPosition = currentPathPosition;
+        let minDistSq = Infinity;
+        const closestIndex = Math.floor(currentPathPosition);
+        const start = Math.max(0, closestIndex - backtrack);
+        const end = Math.min(path.length - 2, closestIndex + searchRange);
+
+        for (let i = start; i <= end; i++) {
+            const p1 = path[i];
+            const p2 = path[i + 1];
+            const segT = this.getClosestPointOnSegment(playerEyes, p1, p2);
+            const projected = this.getInterpolatedPoint(i + segT, path);
+            if (!projected) continue;
+            const dSq = this.getDistSq(playerEyes, projected);
+            if (dSq < minDistSq) {
+                minDistSq = dSq;
+                nextPosition = i + segT;
+            }
+        }
+
+        return { position: nextPosition, minDistSq };
     }
 
     isWithinArrivalThreshold(a, b) {
@@ -188,20 +216,9 @@ class PathRotations {
         const motion = { x: Player.getMotionX(), z: Player.getMotionZ() };
         const speed = Math.hypot(motion.x, motion.z);
 
-        let closestIndex = Math.floor(this.currentPathPosition);
-        let minDistSq = Infinity;
-        const searchRange = 15;
-        for (let i = Math.max(0, closestIndex - 5); i <= Math.min(this.lookPoints.length - 2, closestIndex + searchRange); i++) {
-            const p1 = this.lookPoints[i];
-            const p2 = this.lookPoints[i + 1];
-            const segT = this.getClosestPointOnSegment(playerEyes, p1, p2);
-            const projected = this.getInterpolatedPoint(i + segT);
-            const dSq = this.getDistSq(playerEyes, projected);
-            if (dSq < minDistSq) {
-                minDistSq = dSq;
-                this.currentPathPosition = i + segT;
-            }
-        }
+        const projection = this.updatePathPosition(this.lookPoints, this.currentPathPosition, playerEyes, 5, 15);
+        this.currentPathPosition = projection.position;
+        let minDistSq = projection.minDistSq;
 
         if (!Number.isFinite(minDistSq)) {
             minDistSq = 0;

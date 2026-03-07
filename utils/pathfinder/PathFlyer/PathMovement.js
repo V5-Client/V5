@@ -1,5 +1,5 @@
-import { Keybind } from '../../player/Keybinding';
 import { MathUtils } from '../../Math';
+import { Keybind } from '../../player/Keybinding';
 import { PathExecutor } from '../PathExecutor';
 import { getCurrentMotion, predictStoppingPosition } from './PathPrediction';
 
@@ -8,6 +8,7 @@ class PathMovement {
         this.path = [];
         this.currentIndex = 0;
         this.isActive = false;
+        this.complete = false;
         this.state = 'NONE';
         this.decelTicks = 0;
 
@@ -17,14 +18,16 @@ class PathMovement {
         this.MOTION_STOP_THRESHOLD_Y = 0.02;
         this.MAX_DECEL_TICKS = 60;
         this.MOVE_TARGET_LOOKAHEAD = 6;
-        this.LATERAL_DEADZONE = 0.65;
+        this.LATERAL_DEADZONE = 0.55;
+        this.VERTICAL_DEADZONE = 0.55;
+        this.VERTICAL_DEADZONE_MOVING = 0.75;
 
         PathExecutor.onTick(() => {
             if (!this.isActive || !this.path || this.path.length === 0) return;
 
             const player = Player.getPlayer();
             if (!player) {
-                this.stopMovement();
+                this.stopMovement(false);
                 return;
             }
 
@@ -32,7 +35,8 @@ class PathMovement {
                 player.getAbilities().flying = true;
                 player.sendAbilitiesUpdate();
             }
-            this.updateMovement();
+
+            this.updateMovement(player);
         });
     }
 
@@ -42,6 +46,7 @@ class PathMovement {
         this.path = smoothPath;
         this.currentIndex = 0;
         this.isActive = true;
+        this.complete = false;
         this.state = 'MOVING';
         this.decelTicks = 0;
     }
@@ -50,24 +55,39 @@ class PathMovement {
         return -(Math.atan2(dx, dz) * (180 / Math.PI));
     }
 
+    getDistanceSq(a, b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const dz = a.z - b.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    getDistanceSqXZ(a, b) {
+        const dx = a.x - b.x;
+        const dz = a.z - b.z;
+        return dx * dx + dz * dz;
+    }
+
     setMovementKeysToward(target) {
         const pX = Player.getX();
         const pZ = Player.getZ();
         const dx = target.x - pX;
         const dz = target.z - pZ;
-        const distSqXZ = dx * dx + dz * dz;
+        const desiredYaw = this.getYawToTarget(dx, dz);
+        this.setMovementKeysForYaw(desiredYaw, dx * dx + dz * dz);
+    }
 
+    setMovementKeysForYaw(desiredYaw, distSqXZ = 1) {
         ['w', 'a', 's', 'd'].forEach((k) => Keybind.setKey(k, false));
+
+        const playerYaw = Player.getYaw();
+        const yawDelta = MathUtils.wrapTo180(desiredYaw - playerYaw);
+        const absYawDelta = Math.abs(yawDelta);
 
         if (distSqXZ < 0.15) {
             Keybind.setKey('w', true);
             return;
         }
-
-        const desiredYaw = this.getYawToTarget(dx, dz);
-        const playerYaw = Player.getYaw();
-        const yawDelta = MathUtils.wrapTo180(desiredYaw - playerYaw);
-        const absYawDelta = Math.abs(yawDelta);
 
         if (absYawDelta < 75) {
             Keybind.setKey('w', true);
@@ -75,12 +95,10 @@ class PathMovement {
             Keybind.setKey('s', true);
         }
 
-        if (distSqXZ > Math.pow(this.LATERAL_DEADZONE * 1.5, 2)) {
-            if (absYawDelta > 25 && absYawDelta < 155) {
-                const sideKey = yawDelta > 0 ? 'd' : 'a';
-                if (absYawDelta > 45) {
-                    Keybind.setKey(sideKey, true);
-                }
+        if (distSqXZ > Math.pow(this.LATERAL_DEADZONE * 1.5, 2) && absYawDelta > 25 && absYawDelta < 155) {
+            const sideKey = yawDelta > 0 ? 'd' : 'a';
+            if (absYawDelta > 45) {
+                Keybind.setKey(sideKey, true);
             }
         }
     }
@@ -90,13 +108,6 @@ class PathMovement {
         this.state = 'DECELERATING';
         this.decelTicks = 0;
         this.releaseMovementKeys();
-    }
-
-    getDistanceSq(a, b) {
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const dz = a.z - b.z;
-        return dx * dx + dy * dy + dz * dz;
     }
 
     willArriveAtDestinationAfterStopping(targetPos) {
@@ -115,28 +126,13 @@ class PathMovement {
         return this.getDistanceSq(here, finalTarget) <= Math.pow(this.STOPPING_DISTANCE_THRESHOLD * 1.5, 2);
     }
 
-    updateMovement() {
-        const pX = Player.getX();
-        const pY = Player.getY();
-        const pZ = Player.getZ();
-        const finalTarget = this.path[this.path.length - 1];
-        if (!finalTarget) {
-            this.stopMovement();
-            return;
-        }
-
-        if (this.state === 'DECELERATING') {
-            this.decelTicks++;
-            this.releaseMovementKeys();
-            if (this.shouldFinishDeceleration(finalTarget) || this.decelTicks >= this.MAX_DECEL_TICKS) {
-                this.stopMovement();
-            }
-            return;
-        }
-
-        if (this.willArriveAtDestinationAfterStopping(finalTarget)) {
-            this.requestDeceleration();
-            return;
+    getMovementTarget(current, speedXZ) {
+        if (!this.path || this.path.length === 0) return null;
+        if (this.path.length === 1) {
+            return {
+                movementTarget: this.path[0],
+                verticalTarget: this.path[0],
+            };
         }
 
         let closestIndex = this.currentIndex;
@@ -146,44 +142,91 @@ class PathMovement {
 
         for (let i = searchStart; i <= searchEnd; i++) {
             const pt = this.path[i];
-            const d = Math.pow(pt.x - pX, 2) + Math.pow(pt.y - pY, 2) + Math.pow(pt.z - pZ, 2);
+            const d = this.getDistanceSqXZ(pt, current);
             if (d < closestDistSq) {
                 closestDistSq = d;
                 closestIndex = i;
             }
         }
+
         this.currentIndex = closestIndex;
-
-        const motion = getCurrentMotion();
-        const speedXZ = Math.hypot(motion.x, motion.z);
         const dynamicLookahead = Math.floor(this.MOVE_TARGET_LOOKAHEAD + speedXZ * 8);
-
         const moveIndex = Math.min(this.path.length - 1, this.currentIndex + dynamicLookahead);
-        const target = this.path[moveIndex];
-        if (!target) {
-            this.stopMovement();
+        const movementTarget = this.path[moveIndex];
+        const verticalLookahead = Math.min(this.path.length - 1, this.currentIndex + Math.max(1, Math.floor(1 + speedXZ * 2)));
+        const verticalTarget = this.path[verticalLookahead];
+
+        return {
+            movementTarget,
+            verticalTarget,
+        };
+    }
+
+    handleFlyBoost(next, current, player) {
+        return !!player?.isOnGround() && next.y - current.y > 0.5;
+    }
+
+    updateMovement(player) {
+        const pX = Player.getX();
+        const pY = Player.getY();
+        const pZ = Player.getZ();
+        const current = { x: pX, y: pY, z: pZ };
+
+        const finalTarget = this.path[this.path.length - 1];
+        if (!finalTarget) {
+            this.stopMovement(false);
             return;
         }
 
-        const diffY = target.y - pY;
-        const predicted = predictStoppingPosition(10);
-        const predictedDiffY = target.y - predicted.y;
+        if (this.state === 'DECELERATING') {
+            this.decelTicks++;
+            this.releaseMovementKeys();
+            const finished = this.shouldFinishDeceleration(finalTarget);
+            if (finished || this.decelTicks >= this.MAX_DECEL_TICKS) {
+                this.stopMovement(finished);
+            }
+            return;
+        }
 
-        const isLifting = predictedDiffY > 0.8 || diffY > 0.6;
-        const isDescending = !isLifting && (predictedDiffY < -0.8 || diffY < -0.6);
+        if (this.willArriveAtDestinationAfterStopping(finalTarget) || this.getDistanceSq(current, finalTarget) < 0.09) {
+            this.requestDeceleration();
+            return;
+        }
 
-        this.setMovementKeysToward(target);
-        Keybind.setKey('sprint', true);
+        const motion = getCurrentMotion();
+        const speedXZ = Math.hypot(motion.x, motion.z);
+        const targetInfo = this.getMovementTarget(current, speedXZ);
+        if (!targetInfo) {
+            this.stopMovement(false);
+            return;
+        }
+
+        const { movementTarget, verticalTarget } = targetInfo;
+        const boostJump = this.handleFlyBoost(movementTarget, current, player);
+        const yTarget = verticalTarget.y;
+        const yError = yTarget - pY;
+        const verticalDeadzone = speedXZ > 0.12 ? this.VERTICAL_DEADZONE_MOVING : this.VERTICAL_DEADZONE;
+        const isLifting = yError > verticalDeadzone;
+        const isDescending = yError < -verticalDeadzone;
+
+        this.setMovementKeysToward(movementTarget);
         Keybind.setKey('space', isLifting);
         Keybind.setKey('shift', isDescending);
+
+        if (boostJump) {
+            Keybind.setKey('space', true);
+        }
+
+        Keybind.setKey('sprint', true);
     }
 
     releaseMovementKeys() {
         ['w', 'a', 's', 'd', 'space', 'shift', 'sprint'].forEach((key) => Keybind.setKey(key, false));
     }
 
-    stopMovement() {
+    stopMovement(completed = false) {
         this.isActive = false;
+        this.complete = !!completed;
         this.state = 'NONE';
         this.currentIndex = 0;
         this.decelTicks = 0;

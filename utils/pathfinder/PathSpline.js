@@ -3,6 +3,8 @@ import Render from '../render/Render';
 
 class PathSpline {
     constructor() {
+        this.PLAYER_EYE_OFFSET = 1.62;
+
         this.STRONG_SMOOTH_RADIUS = 5;
         this.CURVE_DETECTION_RADIUS = 2;
         this.SMOOTH_SAMPLES = 6;
@@ -11,7 +13,6 @@ class PathSpline {
         this.MAX_GAP_DISTANCE = 12;
         this.OUTWARD_OFFSET_STRENGTH = 1.2;
 
-        this.FLY_PLAYER_EYE_OFFSET = 2.12;
         this.FLY_SPACING = 5.25;
         this.FLY_RAYTRACE_STEP = 0.35;
         this.FLY_BLOCK_NUDGE = 0.85;
@@ -47,29 +48,29 @@ class PathSpline {
 
     createFlyPaths(nodes) {
         const lookPoints = this.createFlyLookPoints(nodes);
-        const movementPath = this.generateMovementPath(nodes);
+        const movementPath = this.generateMovementPathFromLookPoints(lookPoints, this.PLAYER_EYE_OFFSET);
 
         return { lookPoints, movementPath };
     }
 
-    generateMovementPath(nodes, pointSpacing = this.FLY_SPACING) {
-        if (!nodes || nodes.length < 2) return [];
+    generateMovementPathFromLookPoints(lookPoints, eyeOffset) {
+        if (!lookPoints || lookPoints.length < 2) return [];
 
-        const raw = [];
-        for (const n of nodes) {
-            const x = n.x !== undefined ? n.x : n[0];
-            const y = n.y !== undefined ? n.y : n[1];
-            const z = n.z !== undefined ? n.z : n[2];
-            const p = new Vec3d(x, y, z);
-            const prev = raw.length ? raw[raw.length - 1] : null;
-            if (!prev || p.x !== prev.x || p.y !== prev.y || p.z !== prev.z) raw.push(p);
+        const feetPath = [];
+        for (const p of lookPoints) {
+            const feetPoint = new Vec3d(p.x, p.y - eyeOffset, p.z);
+            const prev = feetPath.length ? feetPath[feetPath.length - 1] : null;
+            if (!prev || Math.hypot(feetPoint.x - prev.x, feetPoint.y - prev.y, feetPoint.z - prev.z) > 0.08) {
+                feetPath.push(feetPoint);
+            }
         }
-        if (raw.length < 2) return [];
 
-        const rounded = this.roundPolylineCorners(raw, pointSpacing);
-        const resampled = this.resamplePolylineByDistance(rounded, 0.5);
+        if (feetPath.length < 2) {
+            return feetPath.map((p) => ({ x: p.x, y: p.y, z: p.z }));
+        }
 
-        return resampled.map((p) => ({ x: p.x, y: p.y, z: p.z }));
+        const dense = this.resamplePolylineByDistance(feetPath, 1.5);
+        return dense.map((p) => ({ x: p.x, y: p.y, z: p.z }));
     }
 
     generateSpline(keyPathNodes, tolerance = 10) {
@@ -195,7 +196,7 @@ class PathSpline {
 
         const raw = [];
         for (const n of normalizedNodes) {
-            const p = new Vec3d(n.x, n.y + this.FLY_PLAYER_EYE_OFFSET, n.z);
+            const p = new Vec3d(n.x, n.y + this.PLAYER_EYE_OFFSET, n.z);
             if (raw.length === 0 || Math.hypot(p.x - raw[raw.length - 1].x, p.y - raw[raw.length - 1].y, p.z - raw[raw.length - 1].z) > 0.1) raw.push(p);
         }
 
