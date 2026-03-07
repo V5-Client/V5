@@ -1,5 +1,4 @@
-﻿//@VIP
-import { Chat } from '../../utils/Chat';
+﻿import { Chat } from '../../utils/Chat';
 import { EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
