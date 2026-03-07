@@ -121,54 +121,6 @@ jobs:
                     done
                   }
 
-                  bundle_channel_js() {
-                    local dir="$1"
-                    local channel="$2"
-                    local out_file="$dir/V5-${channel}.js"
-                    local metadata_file="$dir/metadata.json"
-
-                    mapfile -t externals < <(
-                      node - "$metadata_file" <<'NODE'
-                  const fs = require('fs');
-                  const metadataFile = process.argv[2];
-
-                  try {
-                    const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
-                    const deps = Array.isArray(metadata.requires) ? metadata.requires : [];
-                    deps.forEach((dep) => {
-                      if (typeof dep === 'string' && dep.trim()) console.log(dep.trim());
-                    });
-                  } catch (e) {
-                    process.exit(0);
-                  }
-                  NODE
-                    )
-
-                    esbuild_args=(
-                      --bundle
-                      --format=cjs
-                      --target=es2018
-                      --minify
-                      --legal-comments=none
-                      --outfile="$out_file"
-                    )
-                    for dep in "${externals[@]}"; do
-                      esbuild_args+=(--external:"$dep")
-                    done
-
-                    npx --yes esbuild "$dir/loader.js" "${esbuild_args[@]}"
-                    npx --yes \
-                      -p @swc/core \
-                      -p @swc/cli \
-                      swc "$out_file" \
-                      -o "$out_file" \
-                      -C jsc.target=es5 \
-                      -C minify=true
-
-                    find "$dir" -name '*.js' -type f ! -path "$out_file" ! -path "$dir/mixins/*" ! -path "$dir/utils/MixinManager.js" -delete
-                    mv "$out_file" "$dir/loader.js"
-                  }
-
                   workdir="$(mktemp -d)"
                   trap 'rm -rf "$workdir"' EXIT
 
@@ -184,7 +136,6 @@ jobs:
                     mkdir -p "$build_dir"
                     cp -a "$source_dir"/. "$build_dir"/
                     strip_channel "$build_dir" "$channel"
-                    bundle_channel_js "$build_dir" "$channel"
                     (
                       cd "$build_dir"
                       zip -qr "$GITHUB_WORKSPACE/V5-$channel.zip" .
