@@ -5,7 +5,7 @@ import { Links, V5Auth } from '../Constants';
 import { ChatMessageC2S } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { v5Command } from '../V5Commands';
-import { handleIRCMessage } from './IRC';
+import { handleIRCMessage, isAutoMeowEnabled } from './IRC';
 import { handleRemoteMessage } from './RemoteControl';
 
 let reconnectAttempts = 0;
@@ -38,7 +38,7 @@ function handleIncomingMessage(raw) {
             return;
         } else {
             handleIRCMessage(data);
-            if (data.type === 'message' && `${data.msg ?? ''}`.trim().toLowerCase() === 'meow') {
+            if (isAutoMeowEnabled() && data.type === 'message' && `${data.msg ?? ''}`.trim().toLowerCase() === 'meow') {
                 sendChatMessage('meow!');
             }
         }

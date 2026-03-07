@@ -2,7 +2,13 @@ import { Chat } from '../Chat';
 import { Categories } from '../../gui/categories/CategorySystem';
 
 let ircEnabled = true;
+let autoMeowEnabled = false;
 Categories.addSettingsToggle('IRC', (v) => (ircEnabled = !!v), "Messages can be sent with '#msg'", true, 'IRC', 'Discord');
+Categories.addSettingsToggle('Auto Meow', (v) => (autoMeowEnabled = !!v), 'Auto-reply "meow!" when someone sends "meow"', false, 'IRC', 'Discord');
+
+export function isAutoMeowEnabled() {
+    return autoMeowEnabled;
+}
 
 export function handleIRCMessage(data) {
     if (data.type === 'message') {
