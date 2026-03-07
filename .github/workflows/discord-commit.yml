@@ -38,9 +38,6 @@ jobs:
             - name: Install latest Wrangler
               run: npm install -g wrangler@latest --prefer-offline
 
-            - name: Install latest UglifyJS
-              run: npm install -g uglify-js@latest --prefer-offline
-
             - name: Prepare Data
               shell: bash
               run: |
@@ -124,17 +121,188 @@ jobs:
                     done
                   }
 
-                  uglify_channel_js() {
+                  minify_channel_js() {
                     local dir="$1"
                     find "$dir" -name '*.js' -type f -print0 | while IFS= read -r -d '' file; do
-                      [[ -s "$file" ]] || continue
-                      tmp="${file}.min"
-                      uglifyjs "$file" \
-                        --compress ecma=5,passes=2 \
-                        --mangle \
-                        --comments false \
-                        --output "$tmp"
-                      mv "$tmp" "$file"
+                      node - "$file" <<'NODE'
+                  const fs = require('fs');
+                  const file = process.argv[2];
+                  const src = fs.readFileSync(file, 'utf8');
+
+                  function isWordChar(ch) {
+                    return /[A-Za-z0-9_$]/.test(ch);
+                  }
+
+                  function isRegexAllowed(lastToken) {
+                    if (!lastToken) return true;
+                    if (lastToken.type === 'word') {
+                      return new Set([
+                        'return',
+                        'throw',
+                        'case',
+                        'delete',
+                        'void',
+                        'typeof',
+                        'instanceof',
+                        'in',
+                        'of',
+                        'new',
+                        'do',
+                        'else',
+                        'yield',
+                        'await',
+                      ]).has(lastToken.value);
+                    }
+                    return /[({[=,:;!?&|+\-*%^~<>]/.test(lastToken.value);
+                  }
+
+                  function stripComments(input) {
+                    let out = '';
+                    let i = 0;
+                    let state = 'code';
+                    let escape = false;
+                    let inRegexClass = false;
+                    let word = '';
+                    let lastToken = { type: 'char', value: ';' };
+
+                    function flushWord() {
+                      if (!word) return;
+                      lastToken = { type: 'word', value: word };
+                      word = '';
+                    }
+
+                    while (i < input.length) {
+                      const ch = input[i];
+                      const nx = i + 1 < input.length ? input[i + 1] : '';
+
+                      if (state === 'line_comment') {
+                        if (ch === '\n') {
+                          out += '\n';
+                          state = 'code';
+                        }
+                        i += 1;
+                        continue;
+                      }
+
+                      if (state === 'block_comment') {
+                        if (ch === '\n') out += '\n';
+                        if (ch === '*' && nx === '/') {
+                          state = 'code';
+                          i += 2;
+                        } else {
+                          i += 1;
+                        }
+                        continue;
+                      }
+
+                      if (state === 'single' || state === 'double' || state === 'template') {
+                        out += ch;
+                        if (escape) {
+                          escape = false;
+                        } else if (ch === '\\') {
+                          escape = true;
+                        } else if (
+                          (state === 'single' && ch === "'") ||
+                          (state === 'double' && ch === '"') ||
+                          (state === 'template' && ch === '`')
+                        ) {
+                          state = 'code';
+                          lastToken = { type: 'char', value: 'L' };
+                        }
+                        i += 1;
+                        continue;
+                      }
+
+                      if (state === 'regex') {
+                        out += ch;
+                        if (escape) {
+                          escape = false;
+                        } else if (ch === '\\') {
+                          escape = true;
+                        } else if (ch === '[') {
+                          inRegexClass = true;
+                        } else if (ch === ']' && inRegexClass) {
+                          inRegexClass = false;
+                        } else if (ch === '/' && !inRegexClass) {
+                          state = 'code';
+                          lastToken = { type: 'char', value: '/' };
+                        }
+                        i += 1;
+                        continue;
+                      }
+
+                      if (isWordChar(ch)) {
+                        out += ch;
+                        word += ch;
+                        i += 1;
+                        continue;
+                      }
+
+                      flushWord();
+
+                      if (ch === '/' && nx === '/') {
+                        state = 'line_comment';
+                        i += 2;
+                        continue;
+                      }
+
+                      if (ch === '/' && nx === '*') {
+                        state = 'block_comment';
+                        i += 2;
+                        continue;
+                      }
+
+                      if (ch === '/') {
+                        if (isRegexAllowed(lastToken)) {
+                          out += ch;
+                          state = 'regex';
+                        } else {
+                          out += ch;
+                          lastToken = { type: 'char', value: '/' };
+                        }
+                        i += 1;
+                        continue;
+                      }
+
+                      if (ch === "'") {
+                        out += ch;
+                        state = 'single';
+                        i += 1;
+                        continue;
+                      }
+                      if (ch === '"') {
+                        out += ch;
+                        state = 'double';
+                        i += 1;
+                        continue;
+                      }
+                      if (ch === '`') {
+                        out += ch;
+                        state = 'template';
+                        i += 1;
+                        continue;
+                      }
+
+                      out += ch;
+                      if (!/\s/.test(ch)) {
+                        lastToken = { type: 'char', value: ch };
+                      }
+                      i += 1;
+                    }
+
+                    flushWord();
+                    return out;
+                  }
+
+                  const stripped = stripComments(src);
+                  const compact = stripped
+                    .split(/\r?\n/)
+                    .map((line) => line.trim())
+                    .filter((line) => line.length > 0)
+                    .join('\n');
+
+                  fs.writeFileSync(file, compact ? `${compact}\n` : '', 'utf8');
+                  NODE
                     done
                   }
 
@@ -153,7 +321,7 @@ jobs:
                     mkdir -p "$build_dir"
                     cp -a "$source_dir"/. "$build_dir"/
                     strip_channel "$build_dir" "$channel"
-                    uglify_channel_js "$build_dir"
+                    minify_channel_js "$build_dir"
                     (
                       cd "$build_dir"
                       zip -qr "$GITHUB_WORKSPACE/V5-$channel.zip" .
