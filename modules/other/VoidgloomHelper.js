@@ -15,6 +15,8 @@ const FEATURE = {
     DEPLOY: 'deploy',
 };
 
+const HELD_ITEM_SWAP_BLACKLIST = ['ragnarock'];
+
 class VoidgloomHelper extends ModuleBase {
     constructor() {
         super({
@@ -36,6 +38,7 @@ class VoidgloomHelper extends ModuleBase {
         this.bossActive = false;
         this.lastOwnStandSeen = 0;
         this.enableSoulcry = true;
+        this.soulcryBossOnly = false;
         this.enableDeploy = true;
 
         this.addToggle(
@@ -46,6 +49,16 @@ class VoidgloomHelper extends ModuleBase {
             },
             'Automatically uses soulcry with katana',
             true
+        );
+
+        this.addToggle(
+            'Boss Only Soulcry',
+            (value) => {
+                this.soulcryBossOnly = !!value;
+                if (this.soulcryBossOnly && !this.bossActive && this.currentFeature === FEATURE.SOULCRY) this.resetAction();
+            },
+            'Only auto soulcry while your Voidgloom boss is active',
+            false
         );
 
         this.addToggle(
@@ -68,7 +81,6 @@ class VoidgloomHelper extends ModuleBase {
     detectBossSpawn() {
         if (!this.enableDeploy) {
             this.pendingDeploy = false;
-            return;
         }
 
         const now = Date.now();
@@ -89,8 +101,10 @@ class VoidgloomHelper extends ModuleBase {
             this.lastOwnStandSeen = now;
             if (!this.bossActive) {
                 this.bossActive = true;
-                this.pendingDeploy = true;
-                Chat.message('Boss detected! Deploying orb/flare.');
+                if (this.enableDeploy) {
+                    this.pendingDeploy = true;
+                    Chat.message('Boss detected! Deploying orb/flare.');
+                }
             }
         }
 
@@ -109,6 +123,8 @@ class VoidgloomHelper extends ModuleBase {
             return;
         }
 
+        if (this.isHoldingBlacklistedItem()) return;
+
         if (this.enableDeploy && this.pendingDeploy) {
             const deploySlot = this.findDeployableSlot();
             if (deploySlot !== -1) {
@@ -120,7 +136,7 @@ class VoidgloomHelper extends ModuleBase {
         }
 
         const katanaSlot = Guis.findItemInHotbar('Katana');
-        if (this.enableSoulcry && katanaSlot !== -1 && this.canSoulcry(katanaSlot)) {
+        if (this.enableSoulcry && (!this.soulcryBossOnly || this.bossActive) && katanaSlot !== -1 && this.canSoulcry(katanaSlot)) {
             this.beginAction(FEATURE.SOULCRY, katanaSlot);
         }
     }
@@ -132,6 +148,11 @@ class VoidgloomHelper extends ModuleBase {
         }
 
         if ((this.currentFeature === FEATURE.SOULCRY && !this.enableSoulcry) || (this.currentFeature === FEATURE.DEPLOY && !this.enableDeploy)) {
+            this.resetAction();
+            return;
+        }
+
+        if (this.currentFeature === FEATURE.SOULCRY && this.soulcryBossOnly && !this.bossActive) {
             this.resetAction();
             return;
         }
@@ -195,6 +216,11 @@ class VoidgloomHelper extends ModuleBase {
             if (slot !== -1) return slot;
         }
         return -1;
+    }
+
+    isHoldingBlacklistedItem() {
+        const heldName = ChatLib.removeFormatting(Player.getHeldItem()?.getName?.() ?? '').toLowerCase();
+        return HELD_ITEM_SWAP_BLACKLIST.some((name) => heldName.includes(name));
     }
 
     onEnable() {
