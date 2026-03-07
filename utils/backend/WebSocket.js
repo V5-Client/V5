@@ -45,7 +45,7 @@ function handleIncomingMessage(raw) {
     }
 }
 
-function sendChatMessage(content) {
+export function sendChatMessage(content) {
     if (!isConnected || !ws) return;
     try {
         ws.send(content);
