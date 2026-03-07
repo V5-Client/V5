@@ -1,5 +1,4 @@
-//@VIP
-import { MCHand, Vec3d } from '../../utils/Constants';
+import { BP, MCHand, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -16,35 +15,27 @@ import Render from '../../utils/render/Render';
 import { Mouse } from '../../utils/Ungrab';
 
 const FORMATTING_CODE_REGEX = /§[0-9a-fk-or]/gi;
-const BFS_DIRS = [
-    [1, 0, 0],
-    [-1, 0, 0],
-    [0, 1, 0],
-    [0, -1, 0],
-    [0, 0, 1],
-    [0, 0, -1],
-];
+const BFS_DIR_X = [1, -1, 0, 0, 0, 0];
+const BFS_DIR_Y = [0, 0, 1, -1, 0, 0];
+const BFS_DIR_Z = [0, 0, 0, 0, 1, -1];
 const ORTHO_FACE_AXES = {
     x: ['y', 'z'],
     y: ['x', 'z'],
     z: ['x', 'y'],
 };
-const FACE_FALLBACK_SAMPLES = [
-    [0, 0],
-    [0.35, 0],
-    [-0.35, 0],
-    [0, 0.35],
-    [0, -0.35],
-    [0.35, 0.35],
-    [-0.35, -0.35],
-];
-const VISIBILITY_OFFSETS = [
-    [0, 0, 0],
-    [0.18, 0, 0],
-    [-0.18, 0, 0],
-    [0, 0, 0.18],
-    [0, 0, -0.18],
-];
+const FACE_FALLBACK_SAMPLES = [0, 0, 0.35, 0, -0.35, 0, 0, 0.35, 0, -0.35, 0.35, 0.35, -0.35, -0.35];
+const VISIBILITY_OFFSETS = [0, 0, 0, 0.18, 0, 0, -0.18, 0, 0, 0, 0, 0.18, 0, 0, -0.18];
+const VISIBILITY_SAMPLE_COUNT = VISIBILITY_OFFSETS.length / 3;
+const AIM_POINT_INSET = 0.48;
+const AIM_POINT_FACE_INSET = 0.48;
+const AIM_POINT_EDGE_MAG = 0.45;
+const AIM_POINT_MID_CAP = 0.3;
+const AIM_POINT_LO = 0.02;
+const AIM_POINT_HI = 0.98;
+const TARGET_MODES = {
+    REACHABLE: 'reachable',
+    APPROACH: 'approach',
+};
 
 class Bot extends ModuleBase {
     constructor() {
@@ -113,11 +104,32 @@ class Bot extends ModuleBase {
             },
         };
 
-        this.faceReach = 4.5;
+        this.mineReach = 4.5;
+        this.faceReach = this.mineReach;
+        this.approachScanReach = 8;
         this.bfsPad = Math.hypot(1, 1, 1) * 0.5;
+        this.reachableCandidateEvaluationBudget = 24;
+        this.reachableVisibleTargetBudget = 10;
+        this.reachableVisibleStopCount = 3;
+        this.approachTargetBudget = 10;
         this.movementReevalCooldownUntil = 0;
-        this.movementReevalCooldownMs = 180;
+        this.movementReevalCooldownMs = 300;
         this.lastSneakCommand = false;
+        this._scanWorkspace = {
+            capacity: 0,
+            visitMark: 0,
+            visited: null,
+            queueX: null,
+            queueY: null,
+            queueZ: null,
+            candidateX: null,
+            candidateY: null,
+            candidateZ: null,
+            candidateTargetCost: null,
+            candidateCheapCost: null,
+            candidateBlockName: null,
+        };
+        this._visibilitySampleEye = { x: 0, y: 0, z: 0 };
 
         this.initCosts();
         this.bindToggleKey();
@@ -190,9 +202,9 @@ class Bot extends ModuleBase {
     }
 
     updateMithrilCosts() {
-        const lightBlueCost = this.PRIORITIZE_GRAY_MITHRIL ? 15 : 3;
+        const lightBlueCost = this.PRIORITIZE_GRAY_MITHRIL ? 20 : 3;
         const prismarineCost = 10;
-        const grayCost = this.PRIORITIZE_GRAY_MITHRIL ? 1 : 15;
+        const grayCost = this.PRIORITIZE_GRAY_MITHRIL ? 1 : 20;
 
         this.mithrilCosts = {
             'minecraft:polished_diorite': this.PRIORITIZE_TITANIUM ? 1 : 30,
@@ -247,6 +259,35 @@ class Bot extends ModuleBase {
     resetTickCounters() {
         this.mineTickCount = 0;
         this.tickCount = 0;
+    }
+
+    ensureScanWorkspace(requiredCapacity) {
+        const workspace = this._scanWorkspace;
+        if (workspace.capacity < requiredCapacity) {
+            let nextCapacity = workspace.capacity || 256;
+            while (nextCapacity < requiredCapacity) nextCapacity *= 2;
+
+            workspace.capacity = nextCapacity;
+            workspace.visited = new Int32Array(nextCapacity);
+            workspace.queueX = new Int32Array(nextCapacity);
+            workspace.queueY = new Int32Array(nextCapacity);
+            workspace.queueZ = new Int32Array(nextCapacity);
+            workspace.candidateX = new Int32Array(nextCapacity);
+            workspace.candidateY = new Int32Array(nextCapacity);
+            workspace.candidateZ = new Int32Array(nextCapacity);
+            workspace.candidateTargetCost = new Int32Array(nextCapacity);
+            workspace.candidateCheapCost = new Float64Array(nextCapacity);
+            workspace.candidateBlockName = new Array(nextCapacity);
+            workspace.visitMark = 0;
+        }
+
+        workspace.visitMark++;
+        if (workspace.visitMark >= 2147483647) {
+            workspace.visited = new Int32Array(workspace.capacity);
+            workspace.visitMark = 1;
+        }
+
+        return workspace;
     }
 
     initSettings() {
@@ -384,6 +425,39 @@ class Bot extends ModuleBase {
 
     isAirOrBedrock(blockName = '') {
         return blockName.includes('air') || blockName.includes('bedrock');
+    }
+
+    isSolidBlockAt(x, y, z) {
+        const block = World.getBlockAt(x, y, z);
+        if (!block?.type || block.type.getID() === 0) return false;
+
+        const world = World.getWorld();
+        if (!world) return false;
+
+        const blockPos = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
+        return !world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty();
+    }
+
+    hasForwardObstacle() {
+        const player = Player.getPlayer();
+        if (!player) return false;
+
+        const lookVec = Player.asPlayerMP()?.getLookVector();
+        if (!lookVec) return false;
+
+        const forwardX = Player.getX() + lookVec.x * 0.8;
+        const forwardZ = Player.getZ() + lookVec.z * 0.8;
+        const feetY = Math.floor(Player.getY());
+
+        return this.isSolidBlockAt(forwardX, feetY, forwardZ) || this.isSolidBlockAt(forwardX, feetY + 1, forwardZ);
+    }
+
+    getTargetMode(target = this.currentTarget) {
+        return target?.targetMode || TARGET_MODES.REACHABLE;
+    }
+
+    isApproachTarget(target = this.currentTarget) {
+        return this.getTargetMode(target) === TARGET_MODES.APPROACH;
     }
 
     ensureDrillEquipped(drill) {
@@ -596,7 +670,33 @@ class Bot extends ModuleBase {
         if (!this.updateBlockTracking(lowestCostBlock, blockName)) return;
 
         this.currentTarget = lowestCostBlock;
-        if (this.MOVEMENT && !this.refreshCurrentTargetAimPoint()) {
+        const wasApproachTarget = this.isApproachTarget(this.currentTarget);
+        let hasFreshAimPoint = false;
+        if (wasApproachTarget) {
+            if (!this.MOVEMENT) {
+                this.currentTarget = null;
+                this.foundLocations = [];
+                this.lowestCostBlockIndex = 0;
+                this.stopMiningControls(false);
+                return;
+            }
+
+            if (!this.refreshCurrentTargetAimPoint()) {
+                this.resetTickCounters();
+                Keybind.setKey('leftclick', false);
+                this.handleVeinMovement();
+
+                const approachVector = this.getAimVectorForTarget(this.currentTarget);
+                if (approachVector) Rotations.rotateToVector(approachVector);
+                return;
+            }
+
+            this.resetTickCounters();
+            this.nukedBlock = false;
+            hasFreshAimPoint = true;
+        }
+
+        if (this.MOVEMENT && !hasFreshAimPoint && !this.refreshCurrentTargetAimPoint()) {
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, now + this.movementReevalCooldownMs);
             this.stopMiningControls(true);
             this.resetTickCounters();
@@ -633,6 +733,239 @@ class Bot extends ModuleBase {
         }
     }
 
+    insertSortedCandidate(list, candidate, maxCount, scoreKey = 'cost') {
+        if (!Array.isArray(list) || maxCount <= 0) return;
+
+        const score = candidate?.[scoreKey];
+        if (!Number.isFinite(score)) return;
+
+        let insertAt = list.length;
+        while (insertAt > 0 && list[insertAt - 1][scoreKey] > score) insertAt--;
+        if (insertAt >= maxCount) return;
+
+        list.splice(insertAt, 0, candidate);
+        if (list.length > maxCount) list.pop();
+    }
+
+    collectScanTargets(
+        targetCosts,
+        start,
+        eyePos,
+        lookVec,
+        scanReach,
+        excludedBlock = null,
+        collectReachableCandidates = true,
+        collectApproachTargets = false
+    ) {
+        const reachableCandidateReach = this.mineReach + this.bfsPad;
+        const reachableCandidateReachSq = reachableCandidateReach * reachableCandidateReach;
+        const approachReachSq = this.approachScanReach * this.approachScanReach;
+        const reachableCandidates = {
+            count: 0,
+            length: 0,
+            x: null,
+            y: null,
+            z: null,
+            cheapCost: null,
+            blockName: null,
+            targetCost: null,
+        };
+        const approachTargets = [];
+        let head = 0;
+
+        const reach = scanReach + this.bfsPad;
+        const minBx = Math.floor(eyePos.x - reach) - 1,
+            dimX = Math.floor(eyePos.x + reach) + 1 - minBx + 1;
+        const minBy = Math.floor(eyePos.y - reach) - 1,
+            dimY = Math.floor(eyePos.y + reach) + 1 - minBy + 1;
+        const minBz = Math.floor(eyePos.z - reach) - 1,
+            dimZ = Math.floor(eyePos.z + reach) + 1 - minBz + 1;
+        const maxQueueSize = dimX * dimY * dimZ;
+        const workspace = this.ensureScanWorkspace(maxQueueSize);
+        const visited = workspace.visited;
+        const queueX = workspace.queueX;
+        const queueY = workspace.queueY;
+        const queueZ = workspace.queueZ;
+        const candidateX = workspace.candidateX;
+        const candidateY = workspace.candidateY;
+        const candidateZ = workspace.candidateZ;
+        const candidateTargetCost = workspace.candidateTargetCost;
+        const candidateCheapCost = workspace.candidateCheapCost;
+        const candidateBlockName = workspace.candidateBlockName;
+        const visitMark = workspace.visitMark;
+        const eyeX = eyePos.x;
+        const eyeY = eyePos.y;
+        const eyeZ = eyePos.z;
+        const hasLookVec = !!lookVec;
+        const lookX = hasLookVec ? lookVec.x : 0;
+        const lookY = hasLookVec ? lookVec.y : 0;
+        const lookZ = hasLookVec ? lookVec.z : 0;
+        let reachableCount = 0;
+        let tail = 1;
+
+        if (!this.isWithinVisitedBounds(start.x, start.y, start.z, minBx, minBy, minBz, dimX, dimY, dimZ)) {
+            return null;
+        }
+
+        queueX[0] = start.x;
+        queueY[0] = start.y;
+        queueZ[0] = start.z;
+        visited[start.x - minBx + dimX * (start.y - minBy + dimY * (start.z - minBz))] = visitMark;
+
+        const bfsReachSq = reach * reach;
+
+        while (head < tail) {
+            const x = queueX[head];
+            const y = queueY[head];
+            const z = queueZ[head];
+            head++;
+
+            if (excludedBlock && x === excludedBlock.x && y === excludedBlock.y && z === excludedBlock.z) continue;
+
+            const block = World.getBlockAt(x, y, z);
+            if (!block || !block.type) continue;
+
+            const blockName = block.type.getRegistryName();
+            const targetCost = blockName ? targetCosts[blockName] : undefined;
+            if (blockName && targetCost !== undefined && targetCost !== null) {
+                const dx = x + 0.5 - eyeX;
+                const dy = y + 0.5 - eyeY;
+                const dz = z + 0.5 - eyeZ;
+                const distToCenterSq = dx * dx + dy * dy + dz * dz;
+
+                if (collectReachableCandidates && distToCenterSq <= reachableCandidateReachSq) {
+                    const distToCenter = Math.sqrt(distToCenterSq);
+                    const dotToCenter = hasLookVec && distToCenter > 0 ? (dx * lookX + dy * lookY + dz * lookZ) / distToCenter : 1;
+                    candidateX[reachableCount] = x;
+                    candidateY[reachableCount] = y;
+                    candidateZ[reachableCount] = z;
+                    candidateCheapCost[reachableCount] = this.calculateBlockCost(targetCost, distToCenter, dotToCenter);
+                    candidateBlockName[reachableCount] = blockName;
+                    candidateTargetCost[reachableCount] = targetCost;
+                    reachableCount++;
+                }
+
+                if (collectApproachTargets && distToCenterSq <= approachReachSq) {
+                    const distToCenter = Math.sqrt(distToCenterSq);
+                    this.insertSortedCandidate(
+                        approachTargets,
+                        {
+                            x,
+                            y,
+                            z,
+                            cost: this.calculateApproachCost(targetCost, distToCenter),
+                            blockName,
+                            dist: distToCenter,
+                            targetMode: TARGET_MODES.APPROACH,
+                        },
+                        this.approachTargetBudget
+                    );
+                }
+            }
+
+            for (let i = 0; i < 6; i++) {
+                const nx = x + BFS_DIR_X[i],
+                    ny = y + BFS_DIR_Y[i],
+                    nz = z + BFS_DIR_Z[i];
+
+                if (!this.isWithinVisitedBounds(nx, ny, nz, minBx, minBy, minBz, dimX, dimY, dimZ)) continue;
+
+                const vIdx = nx - minBx + dimX * (ny - minBy + dimY * (nz - minBz));
+                if (visited[vIdx] !== visitMark) {
+                    const ddx = nx + 0.5 - eyeX;
+                    const ddy = ny + 0.5 - eyeY;
+                    const ddz = nz + 0.5 - eyeZ;
+                    if (ddx * ddx + ddy * ddy + ddz * ddz <= bfsReachSq) {
+                        visited[vIdx] = visitMark;
+                        queueX[tail] = nx;
+                        queueY[tail] = ny;
+                        queueZ[tail] = nz;
+                        tail++;
+                    }
+                }
+            }
+        }
+
+        reachableCandidates.count = reachableCount;
+        reachableCandidates.length = reachableCount;
+        reachableCandidates.x = candidateX;
+        reachableCandidates.y = candidateY;
+        reachableCandidates.z = candidateZ;
+        reachableCandidates.cheapCost = candidateCheapCost;
+        reachableCandidates.blockName = candidateBlockName;
+        reachableCandidates.targetCost = candidateTargetCost;
+
+        return {
+            reachableCandidates,
+            approachTargets,
+            visitedCount: head,
+        };
+    }
+
+    evaluateReachableCandidates(candidates, eyePos, lookVec, maxReachSq) {
+        if (!candidates) return [];
+
+        let sortedCandidates = candidates;
+        if (Array.isArray(candidates)) {
+            if (candidates.length === 0) return [];
+        } else {
+            const count = candidates.count || candidates.length || 0;
+            if (count === 0) return [];
+
+            sortedCandidates = new Array(count);
+            for (let i = 0; i < count; i++) {
+                sortedCandidates[i] = {
+                    x: candidates.x[i],
+                    y: candidates.y[i],
+                    z: candidates.z[i],
+                    cheapCost: candidates.cheapCost[i],
+                    blockName: candidates.blockName[i],
+                    targetCost: candidates.targetCost[i],
+                };
+            }
+        }
+
+        sortedCandidates.sort((a, b) => a.cheapCost - b.cheapCost);
+
+        const visibleTargets = [];
+        let evaluatedCount = 0;
+
+        for (let i = 0; i < sortedCandidates.length; i++) {
+            if (evaluatedCount >= this.reachableCandidateEvaluationBudget && visibleTargets.length >= this.reachableVisibleStopCount) {
+                break;
+            }
+
+            evaluatedCount++;
+
+            const candidate = sortedCandidates[i];
+            const aimData = this.findVisibleAimPoint(candidate.x, candidate.y, candidate.z, eyePos, lookVec, maxReachSq, this.FOVPenalty);
+            if (!aimData) continue;
+
+            const baseCost = this.calculateBlockCost(candidate.targetCost, aimData.dist, aimData.dot);
+            const visibilityStability = this.calculateVisibilityStability(candidate.x, candidate.y, candidate.z, eyePos, maxReachSq, 1);
+            const cost = baseCost + (1 - visibilityStability) * 18;
+
+            this.insertSortedCandidate(
+                visibleTargets,
+                {
+                    x: candidate.x,
+                    y: candidate.y,
+                    z: candidate.z,
+                    cost,
+                    blockName: candidate.blockName,
+                    aimX: aimData.x,
+                    aimY: aimData.y,
+                    aimZ: aimData.z,
+                    visibilityStability,
+                    targetMode: TARGET_MODES.REACHABLE,
+                },
+                this.reachableVisibleTargetBudget
+            );
+        }
+
+        return visibleTargets;
+    }
+
     scanForBlock(targetCosts, startPos = null, excludedBlock = null) {
         if (!targetCosts) return this.message('No target specified, is cost type set?');
 
@@ -645,24 +978,10 @@ class Bot extends ModuleBase {
         const lookVec = Player.asPlayerMP().getLookVector();
 
         const start = startPos || { x: Math.floor(pX), y: Math.floor(pY), z: Math.floor(pZ) };
-        const found = [];
-        const queue = [{ x: start.x, y: start.y, z: start.z }];
-        let head = 0;
-
-        const reach = 4.5 + this.bfsPad;
-        const minBx = Math.floor(eyePos.x - reach) - 1,
-            dimX = Math.floor(eyePos.x + reach) + 1 - minBx + 1;
-        const minBy = Math.floor(eyePos.y - reach) - 1,
-            dimY = Math.floor(eyePos.y + reach) + 1 - minBy + 1;
-        const minBz = Math.floor(eyePos.z - reach) - 1,
-            dimZ = Math.floor(eyePos.z + reach) + 1 - minBz + 1;
-        const visited = new Uint8Array(dimX * dimY * dimZ);
-
-        const idxOf = (x, y, z) => x - minBx + dimX * (y - minBy + dimY * (z - minBz));
-        const isVisited = (idx) => visited[idx] === 1;
-        const setVisited = (idx) => (visited[idx] = 1);
-
-        if (!this.isWithinVisitedBounds(start.x, start.y, start.z, minBx, minBy, minBz, dimX, dimY, dimZ)) {
+        const allowApproachTargets = this.MOVEMENT && !this.manualScan && this.approachScanReach > this.mineReach;
+        const mineReachSq = this.mineReach * this.mineReach;
+        const reachableScan = this.collectScanTargets(targetCosts, start, eyePos, lookVec, this.mineReach, excludedBlock, true, false);
+        if (!reachableScan) {
             this.scanning = false;
             this.currentTarget = null;
             this.foundLocations = [];
@@ -670,61 +989,13 @@ class Bot extends ModuleBase {
             return;
         }
 
-        setVisited(idxOf(start.x, start.y, start.z));
-
-        const bfsReachSq = reach * reach;
-        const mineReachSq = 4.5 * 4.5;
-
-        while (head < queue.length) {
-            const { x, y, z } = queue[head++];
-
-            if (excludedBlock && x === excludedBlock.x && y === excludedBlock.y && z === excludedBlock.z) continue;
-
-            const block = World.getBlockAt(x, y, z);
-            if (!block || !block.type) continue;
-            const blockName = block.type.getRegistryName();
-            if (blockName && blockName in targetCosts && targetCosts[blockName] !== null) {
-                const aimData = this.findVisibleAimPoint(x, y, z, eyePos, lookVec, mineReachSq, this.FOVPenalty);
-
-                if (aimData) {
-                    const baseCost = this.calculateBlockCost(targetCosts[blockName], aimData.dist, aimData.dot);
-                    const visibilityStability = this.calculateVisibilityStability(x, y, z, eyePos, mineReachSq);
-                    const cost = baseCost + (1 - visibilityStability) * 18;
-                    found.push({
-                        x,
-                        y,
-                        z,
-                        cost,
-                        blockName,
-                        aimX: aimData.x,
-                        aimY: aimData.y,
-                        aimZ: aimData.z,
-                        visibilityStability,
-                    });
-                }
-            }
-            for (let i = 0; i < 6; i++) {
-                const nx = x + BFS_DIRS[i][0],
-                    ny = y + BFS_DIRS[i][1],
-                    nz = z + BFS_DIRS[i][2];
-
-                if (!this.isWithinVisitedBounds(nx, ny, nz, minBx, minBy, minBz, dimX, dimY, dimZ)) continue;
-
-                const vIdx = idxOf(nx, ny, nz);
-                if (!isVisited(vIdx)) {
-                    const ddx = nx + 0.5 - eyePos.x;
-                    const ddy = ny + 0.5 - eyePos.y;
-                    const ddz = nz + 0.5 - eyePos.z;
-                    if (ddx * ddx + ddy * ddy + ddz * ddz <= bfsReachSq) {
-                        setVisited(vIdx);
-                        queue.push({ x: nx, y: ny, z: nz });
-                    }
-                }
-            }
+        let found = this.evaluateReachableCandidates(reachableScan.reachableCandidates, eyePos, lookVec, mineReachSq);
+        if (found.length === 0 && allowApproachTargets) {
+            const approachScan = this.collectScanTargets(targetCosts, start, eyePos, lookVec, this.approachScanReach, excludedBlock, false, true);
+            found = approachScan?.approachTargets || [];
         }
 
         if (found.length > 0) {
-            found.sort((a, b) => a.cost - b.cost);
             this.nukedBlock = false;
             this.foundLocations = found;
             this.currentTarget = this.foundLocations[0];
@@ -744,12 +1015,16 @@ class Bot extends ModuleBase {
 
     findVisibleAimPoint(x, y, z, eyePos, lookVec, maxReachSq, checkFov = true) {
         if (!eyePos || !Number.isFinite(maxReachSq) || maxReachSq <= 0) return null;
+
         const cx = x + 0.5,
             cy = y + 0.5,
             cz = z + 0.5;
-        const vx = cx - eyePos.x,
-            vy = cy - eyePos.y,
-            vz = cz - eyePos.z;
+        const eyeX = eyePos.x,
+            eyeY = eyePos.y,
+            eyeZ = eyePos.z;
+        const vx = cx - eyeX,
+            vy = cy - eyeY,
+            vz = cz - eyeZ;
         const vLenSq = vx * vx + vy * vy + vz * vz;
         if (vLenSq === 0) return null;
 
@@ -762,12 +1037,12 @@ class Bot extends ModuleBase {
         const invX = vx === 0 ? Infinity : 1 / vx,
             invY = vy === 0 ? Infinity : 1 / vy,
             invZ = vz === 0 ? Infinity : 1 / vz;
-        const tx1 = (x - eyePos.x) * invX,
-            tx2 = (x + 1 - eyePos.x) * invX;
-        const ty1 = (y - eyePos.y) * invY,
-            ty2 = (y + 1 - eyePos.y) * invY;
-        const tz1 = (z - eyePos.z) * invZ,
-            tz2 = (z + 1 - eyePos.z) * invZ;
+        const tx1 = (x - eyeX) * invX,
+            tx2 = (x + 1 - eyeX) * invX;
+        const ty1 = (y - eyeY) * invY,
+            ty2 = (y + 1 - eyeY) * invY;
+        const tz1 = (z - eyeZ) * invZ,
+            tz2 = (z + 1 - eyeZ) * invZ;
 
         const tminX = tx1 < tx2 ? tx1 : tx2;
         const tminY = ty1 < ty2 ? ty1 : ty2;
@@ -793,157 +1068,201 @@ class Bot extends ModuleBase {
             s = vz > 0 ? -1 : 1;
         }
 
-        const INSET = 0.48,
-            FACE_INSET = 0.48,
-            EDGE_MAG = 0.45,
-            MID_CAP = 0.3;
-        const LO = 0.02,
-            HI = 0.98;
-        const clamp = (v, l, h) => {
-            if (v < l) return l;
-            if (v > h) return h;
-            return v;
-        };
+        let resultX = 0;
+        let resultY = 0;
+        let resultZ = 0;
+        let found = false;
+        let axis = faceAxis;
+        let pass = 0;
 
-        const checkLine = (axis, ttx, tty, ttz, ffx, ffy, ffz) => {
-            let tx = ttx,
-                ty = tty,
-                tz = ttz,
-                fx = ffx,
-                fy = ffy,
-                fz = ffz;
+        while (!found && pass < 3) {
+            if (pass === 1) axis = ORTHO_FACE_AXES[faceAxis][0];
+            else if (pass === 2) axis = ORTHO_FACE_AXES[faceAxis][1];
 
-            if (axis === 'x') {
-                ty = clamp(tty, y + LO, y + HI);
-                tz = clamp(ttz, z + LO, z + HI);
-                fy = clamp(ffy, y + LO, y + HI);
-                fz = clamp(ffz, z + LO, z + HI);
-            } else if (axis === 'y') {
-                tx = clamp(ttx, x + LO, x + HI);
-                tz = clamp(ttz, z + LO, z + HI);
-                fx = clamp(ffx, x + LO, x + HI);
-                fz = clamp(ffz, z + LO, z + HI);
-            } else {
-                tx = clamp(ttx, x + LO, x + HI);
-                ty = clamp(tty, y + LO, y + HI);
-                fx = clamp(ffx, x + LO, x + HI);
-                fy = clamp(ffy, y + LO, y + HI);
+            const isPrimaryAxis = pass === 0;
+            const isX = axis === 'x';
+            const isY = axis === 'y';
+            let localS = s;
+            if (!isPrimaryAxis) {
+                if (isX) localS = eyeX >= cx ? 1 : -1;
+                else if (isY) localS = eyeY >= cy ? 1 : -1;
+                else localS = eyeZ >= cz ? 1 : -1;
             }
-            if (Raytrace.isLineClear(eyePos.x, eyePos.y, eyePos.z, tx, ty, tz, x, y, z)) {
-                return { hit: true, x: fx, y: fy, z: fz };
-            }
-            return { hit: false };
-        };
 
-        let result = null;
+            if (isPrimaryAxis) {
+                let uSource = isX ? eyeY : eyeX;
+                let vSource = isY ? eyeZ : eyeY;
+                let uBase = (isX ? y : x) + AIM_POINT_LO;
+                let vBase = (isY ? z : y) + AIM_POINT_LO;
+                let uLimit = (isX ? y : x) + AIM_POINT_HI;
+                let vLimit = (isY ? z : y) + AIM_POINT_HI;
 
-        const tryFace = (axis) => {
-            if (result) return;
-            const isX = axis === 'x',
-                isY = axis === 'y';
+                let uRaw = uSource < uBase ? uBase : uSource;
+                if (uRaw > uLimit) uRaw = uLimit;
+                uRaw -= isX ? cy : cx;
 
-            const uRaw = clamp(isX ? eyePos.y : eyePos.x, (isX ? y : x) + LO, (isX ? y : x) + HI) - (isX ? cy : cx);
-            const vRaw = clamp(isY ? eyePos.z : eyePos.y, (isY ? z : y) + LO, (isY ? z : y) + HI) - (isY ? cz : cy);
+                let vRaw = vSource < vBase ? vBase : vSource;
+                if (vRaw > vLimit) vRaw = vLimit;
+                vRaw -= isY ? cz : cy;
 
-            const uMid = Math.max(-MID_CAP, Math.min(MID_CAP, uRaw));
-            const vMid = Math.max(-MID_CAP, Math.min(MID_CAP, vRaw));
-            const uEdge = uRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
-            const vEdge = vRaw >= 0 ? EDGE_MAG : -EDGE_MAG;
+                let uMid = uRaw;
+                if (uMid < -AIM_POINT_MID_CAP) uMid = -AIM_POINT_MID_CAP;
+                else if (uMid > AIM_POINT_MID_CAP) uMid = AIM_POINT_MID_CAP;
 
-            const tryP = (u, v) => {
-                if (result) return;
-                let tx, ty, tz, fx, fy, fz;
-                if (isX) {
-                    tx = cx + s * INSET;
-                    ty = cy + u;
-                    tz = cz + v;
-                    fx = cx + s * FACE_INSET;
-                    fy = ty;
-                    fz = tz;
-                } else if (isY) {
-                    tx = cx + u;
-                    ty = cy + s * INSET;
-                    tz = cz + v;
-                    fx = tx;
-                    fy = cy + s * FACE_INSET;
-                    fz = tz;
-                } else {
-                    tx = cx + u;
-                    ty = cy + v;
-                    tz = cz + s * INSET;
-                    fx = tx;
-                    fy = ty;
-                    fz = cz + s * FACE_INSET;
-                }
-                const hit = checkLine(axis, tx, ty, tz, fx, fy, fz);
-                if (hit.hit) result = hit;
-            };
+                let vMid = vRaw;
+                if (vMid < -AIM_POINT_MID_CAP) vMid = -AIM_POINT_MID_CAP;
+                else if (vMid > AIM_POINT_MID_CAP) vMid = AIM_POINT_MID_CAP;
 
-            tryP(uMid, vMid);
+                const uEdge = uRaw >= 0 ? AIM_POINT_EDGE_MAG : -AIM_POINT_EDGE_MAG;
+                const vEdge = vRaw >= 0 ? AIM_POINT_EDGE_MAG : -AIM_POINT_EDGE_MAG;
 
-            tryP(0, 0);
+                for (let sampleIndex = 0; sampleIndex < 4 && !found; sampleIndex++) {
+                    let u = 0;
+                    let v = 0;
+                    if (sampleIndex === 0) {
+                        u = uMid;
+                        v = vMid;
+                    } else if (sampleIndex === 2) {
+                        u = uEdge;
+                    } else if (sampleIndex === 3) {
+                        v = vEdge;
+                    }
+                    let tx;
+                    let ty;
+                    let tz;
+                    let fx;
+                    let fy;
+                    let fz;
 
-            tryP(uEdge, 0);
-
-            tryP(0, vEdge);
-        };
-
-        tryFace(faceAxis);
-
-        if (!result) {
-            const orthos = ORTHO_FACE_AXES[faceAxis];
-
-            for (let axis of orthos) {
-                if (result) break;
-
-                let sOrtho;
-                if (axis === 'x') {
-                    sOrtho = eyePos.x >= cx ? 1 : -1;
-                } else if (axis === 'y') {
-                    sOrtho = eyePos.y >= cy ? 1 : -1;
-                } else {
-                    sOrtho = eyePos.z >= cz ? 1 : -1;
-                }
-
-                for (let i = 0; i < FACE_FALLBACK_SAMPLES.length; i++) {
-                    if (result) break;
-                    const u = FACE_FALLBACK_SAMPLES[i][0];
-                    const v = FACE_FALLBACK_SAMPLES[i][1];
-
-                    let tx, ty, tz, fx, fy, fz;
-                    if (axis === 'x') {
-                        tx = cx + sOrtho * INSET;
+                    if (isX) {
+                        tx = cx + localS * AIM_POINT_INSET;
                         ty = cy + u;
                         tz = cz + v;
-                        fx = cx + sOrtho * FACE_INSET;
-                        fy = cy + u;
-                        fz = cz + v;
-                    } else if (axis === 'y') {
-                        ty = cy + sOrtho * INSET;
+                        fx = cx + localS * AIM_POINT_FACE_INSET;
+                        fy = ty;
+                        fz = tz;
+                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
+                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
+                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
+                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
+                        if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
+                        else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
+                        if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
+                        else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
+                    } else if (isY) {
                         tx = cx + u;
+                        ty = cy + localS * AIM_POINT_INSET;
                         tz = cz + v;
-                        fy = cy + sOrtho * FACE_INSET;
-                        fx = cx + u;
-                        fz = cz + v;
+                        fx = tx;
+                        fy = cy + localS * AIM_POINT_FACE_INSET;
+                        fz = tz;
+                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
+                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
+                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
+                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
+                        if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
+                        else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
+                        if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
+                        else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
                     } else {
-                        tz = cz + sOrtho * INSET;
                         tx = cx + u;
                         ty = cy + v;
-                        fz = cz + sOrtho * FACE_INSET;
+                        tz = cz + localS * AIM_POINT_INSET;
+                        fx = tx;
+                        fy = ty;
+                        fz = cz + localS * AIM_POINT_FACE_INSET;
+                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
+                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
+                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
+                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
+                        if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
+                        else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
+                        if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
+                        else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
+                    }
+
+                    if (Raytrace.isLineClear(eyeX, eyeY, eyeZ, tx, ty, tz, x, y, z)) {
+                        resultX = fx;
+                        resultY = fy;
+                        resultZ = fz;
+                        found = true;
+                    }
+                }
+            } else {
+                for (let sampleIndex = 0; sampleIndex < FACE_FALLBACK_SAMPLES.length && !found; sampleIndex += 2) {
+                    const u = FACE_FALLBACK_SAMPLES[sampleIndex];
+                    const v = FACE_FALLBACK_SAMPLES[sampleIndex + 1];
+                    let tx;
+                    let ty;
+                    let tz;
+                    let fx;
+                    let fy;
+                    let fz;
+
+                    if (isX) {
+                        tx = cx + localS * AIM_POINT_INSET;
+                        ty = cy + u;
+                        tz = cz + v;
+                        fx = cx + localS * AIM_POINT_FACE_INSET;
+                        fy = cy + u;
+                        fz = cz + v;
+                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
+                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
+                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
+                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
+                        if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
+                        else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
+                        if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
+                        else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
+                    } else if (isY) {
+                        ty = cy + localS * AIM_POINT_INSET;
+                        tx = cx + u;
+                        tz = cz + v;
+                        fy = cy + localS * AIM_POINT_FACE_INSET;
+                        fx = cx + u;
+                        fz = cz + v;
+                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
+                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
+                        if (tz < z + AIM_POINT_LO) tz = z + AIM_POINT_LO;
+                        else if (tz > z + AIM_POINT_HI) tz = z + AIM_POINT_HI;
+                        if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
+                        else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
+                        if (fz < z + AIM_POINT_LO) fz = z + AIM_POINT_LO;
+                        else if (fz > z + AIM_POINT_HI) fz = z + AIM_POINT_HI;
+                    } else {
+                        tz = cz + localS * AIM_POINT_INSET;
+                        tx = cx + u;
+                        ty = cy + v;
+                        fz = cz + localS * AIM_POINT_FACE_INSET;
                         fx = cx + u;
                         fy = cy + v;
+                        if (tx < x + AIM_POINT_LO) tx = x + AIM_POINT_LO;
+                        else if (tx > x + AIM_POINT_HI) tx = x + AIM_POINT_HI;
+                        if (ty < y + AIM_POINT_LO) ty = y + AIM_POINT_LO;
+                        else if (ty > y + AIM_POINT_HI) ty = y + AIM_POINT_HI;
+                        if (fx < x + AIM_POINT_LO) fx = x + AIM_POINT_LO;
+                        else if (fx > x + AIM_POINT_HI) fx = x + AIM_POINT_HI;
+                        if (fy < y + AIM_POINT_LO) fy = y + AIM_POINT_LO;
+                        else if (fy > y + AIM_POINT_HI) fy = y + AIM_POINT_HI;
                     }
-                    const hit = checkLine(axis, tx, ty, tz, fx, fy, fz);
-                    if (hit.hit) result = hit;
+
+                    if (Raytrace.isLineClear(eyeX, eyeY, eyeZ, tx, ty, tz, x, y, z)) {
+                        resultX = fx;
+                        resultY = fy;
+                        resultZ = fz;
+                        found = true;
+                    }
                 }
             }
+
+            pass++;
         }
 
-        if (!result) return null;
+        if (!found) return null;
 
-        const dX = result.x - eyePos.x,
-            dY = result.y - eyePos.y,
-            dZ = result.z - eyePos.z;
+        const dX = resultX - eyeX,
+            dY = resultY - eyeY,
+            dZ = resultZ - eyeZ;
         const distSq = dX * dX + dY * dY + dZ * dZ;
 
         if (distSq > maxReachSq) return null;
@@ -951,28 +1270,32 @@ class Bot extends ModuleBase {
         const dist = Math.sqrt(distSq);
         const dot = lookVec && dist > 0 ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1;
 
-        return { x: result.x, y: result.y, z: result.z, dist, dot };
+        return { x: resultX, y: resultY, z: resultZ, dist, dot };
     }
 
     calculateBlockCost(baseCost, distance, dotProduct) {
         return baseCost + distance * 2 - dotProduct * 50;
     }
 
-    calculateVisibilityStability(x, y, z, eyePos, maxReachSq) {
-        let visibleSamples = 0;
-        for (let i = 0; i < VISIBILITY_OFFSETS.length; i++) {
-            const sampleEye = {
-                x: eyePos.x + VISIBILITY_OFFSETS[i][0],
-                y: eyePos.y,
-                z: eyePos.z + VISIBILITY_OFFSETS[i][2],
-            };
+    calculateApproachCost(baseCost, distance) {
+        return baseCost + distance * 2;
+    }
+
+    calculateVisibilityStability(x, y, z, eyePos, maxReachSq, confirmedVisibleSamples = 0) {
+        let visibleSamples = confirmedVisibleSamples;
+        const sampleEye = this._visibilitySampleEye;
+        sampleEye.y = eyePos.y;
+
+        for (let i = confirmedVisibleSamples > 0 ? 3 : 0; i < VISIBILITY_OFFSETS.length; i += 3) {
+            sampleEye.x = eyePos.x + VISIBILITY_OFFSETS[i];
+            sampleEye.z = eyePos.z + VISIBILITY_OFFSETS[i + 2];
 
             if (this.findVisibleAimPoint(x, y, z, sampleEye, null, maxReachSq, false)) {
                 visibleSamples++;
             }
         }
 
-        return visibleSamples / VISIBILITY_OFFSETS.length;
+        return visibleSamples / VISIBILITY_SAMPLE_COUNT;
     }
 
     isTargetDirectlyUnderPlayer(target = this.currentTarget) {
@@ -1023,13 +1346,14 @@ class Bot extends ModuleBase {
 
         if (!this._movementHumanizer) {
             this._movementHumanizer = {
-                strafeThreshold: 10,
-                stopYawThreshold: 4,
-                moveInMin: 1.75,
+                strafeThreshold: 20,
+                stopYawThreshold: 10,
+                moveInMin: 1.25,
                 moveInMax: 3.0,
                 moveOutThreshold: 3.75,
-                unsneakLargeMoveThreshold: 6.2,
+                unsneakLargeMoveThreshold: 5.5,
                 unsneakDropYThreshold: 0.5,
+                jumpReachPadding: 0.2,
             };
         }
 
@@ -1043,10 +1367,10 @@ class Bot extends ModuleBase {
 
         let moveRight = yaw > cfg.strafeThreshold;
         let moveLeft = yaw < -cfg.strafeThreshold;
-        let moveForward = values.distanceFlat > cfg.moveInMax && Math.abs(values.differenceY) <= 2.0;
+        let moveForward = values.distanceFlat > cfg.moveInMax;
         let moveBack = values.distanceFlat < cfg.moveInMin;
 
-        const isAligned = yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold;
+        const isAligned = yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold && values.distance <= 4;
         const inDistanceBand = values.distanceFlat >= 2.5 && values.distanceFlat <= 3.25;
         if (isAligned || inDistanceBand) {
             moveRight = false;
@@ -1059,7 +1383,6 @@ class Bot extends ModuleBase {
         Keybind.setKey('a', moveLeft);
         Keybind.setKey('w', moveForward);
         Keybind.setKey('s', moveBack);
-        Keybind.setKey('space', false);
 
         const isMoving = moveRight || moveLeft || moveForward || moveBack;
         const playerFeetY = Player.getY();
@@ -1067,8 +1390,12 @@ class Bot extends ModuleBase {
         const dropAmount = playerFeetY - targetTopY;
         const requiresDropToMove = dropAmount > cfg.unsneakDropYThreshold && values.distanceFlat > 0.35;
         const requiresLargeMove = values.distanceFlat > cfg.unsneakLargeMoveThreshold;
+        const justOutOfReach = true; //values.distance > this.mineReach && values.distance <= this.mineReach + cfg.jumpReachPadding;
+        const blockedForward = moveForward && this.hasForwardObstacle();
+        const shouldJump = Player.getPlayer()?.isOnGround() && justOutOfReach && blockedForward;
         const shouldUnsneak = isMoving && (requiresDropToMove || requiresLargeMove);
         this.setSneak(!shouldUnsneak);
+        Keybind.setKey('space', shouldJump);
     }
 
     refreshCurrentTargetAimPoint() {
@@ -1091,6 +1418,8 @@ class Bot extends ModuleBase {
         this.currentTarget.aimX = hit.x;
         this.currentTarget.aimY = hit.y;
         this.currentTarget.aimZ = hit.z;
+        this.currentTarget.dist = hit.dist;
+        this.currentTarget.targetMode = TARGET_MODES.REACHABLE;
         return true;
     }
 
@@ -1132,7 +1461,7 @@ class Bot extends ModuleBase {
         this.manualScan = true;
 
         const eyePos = Player.getPlayer().getEyePos();
-        const maxReachSq = 4.5 * 4.5;
+        const maxReachSq = this.mineReach * this.mineReach;
 
         this.foundLocations = locations
             .map((loc) => {
@@ -1149,6 +1478,7 @@ class Bot extends ModuleBase {
                     aimZ: hit.z,
                     dist: hit.dist,
                     isVisible: true,
+                    targetMode: TARGET_MODES.REACHABLE,
                 };
             })
             .filter((loc) => loc !== null);
