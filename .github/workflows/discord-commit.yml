@@ -165,7 +165,7 @@ jobs:
                       -C jsc.target=es5 \
                       -C minify=true
 
-                    find "$dir" -name '*.js' -type f ! -path "$out_file" ! -path "$dir/mixins/*" -delete
+                    find "$dir" -name '*.js' -type f ! -path "$out_file" ! -path "$dir/mixins/*" ! -path "$dir/utils/MixinManager.js" -delete
                     mv "$out_file" "$dir/loader.js"
                   }
 
