@@ -250,7 +250,11 @@ class Finder {
                 });
             } else if (this.isFly) {
                 if (!this.flyStarted) {
-                    const flyNodes = result.path?.length ? result.path : result.path_between_key_nodes?.length ? result.path_between_key_nodes : result.keynodes;
+                    const flyNodes = result.path?.length
+                        ? result.path
+                        : result.path_between_key_nodes?.length
+                          ? result.path_between_key_nodes
+                          : result.keynodes;
                     const { lookPoints, movementPath } = Spline.createFlyPaths(flyNodes);
                     this.flyMovementPath = movementPath;
                     this.flyLookPoints = lookPoints;
