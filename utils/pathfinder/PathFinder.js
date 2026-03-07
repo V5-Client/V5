@@ -214,6 +214,11 @@ class Finder {
                     return;
                 }
 
+                if (this.checkIfReachedDestination()) {
+                    this.finishSuccess();
+                    return;
+                }
+
                 if (!splinePath?.length) return;
 
                 if (Rotations.boxPositions?.length && Rotations.complete) {
