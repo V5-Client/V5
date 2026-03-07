@@ -671,19 +671,20 @@ class Bot extends ModuleBase {
 
         this.currentTarget = lowestCostBlock;
         const wasApproachTarget = this.isApproachTarget(this.currentTarget);
-        let hasFreshAimPoint = false;
-        if (wasApproachTarget) {
-            if (!this.MOVEMENT) {
-                this.currentTarget = null;
-                this.foundLocations = [];
-                this.lowestCostBlockIndex = 0;
-                this.stopMiningControls(false);
-                return;
-            }
+        if (wasApproachTarget && !this.MOVEMENT) {
+            this.currentTarget = null;
+            this.foundLocations = [];
+            this.lowestCostBlockIndex = 0;
+            this.stopMiningControls(false);
+            return;
+        }
 
-            if (!this.refreshCurrentTargetAimPoint()) {
-                this.resetTickCounters();
-                Keybind.setKey('leftclick', false);
+        const hasFreshAimPoint = this.refreshCurrentTargetAimPoint();
+        if (!hasFreshAimPoint) {
+            this.resetTickCounters();
+
+            if (wasApproachTarget && this.MOVEMENT) {
+                this.allowScan = true;
                 this.handleVeinMovement();
 
                 const approachVector = this.getAimVectorForTarget(this.currentTarget);
@@ -691,18 +692,13 @@ class Bot extends ModuleBase {
                 return;
             }
 
-            this.resetTickCounters();
-            this.nukedBlock = false;
-            hasFreshAimPoint = true;
-        }
-
-        if (this.MOVEMENT && !hasFreshAimPoint && !this.refreshCurrentTargetAimPoint()) {
             this.movementReevalCooldownUntil = Math.max(this.movementReevalCooldownUntil, now + this.movementReevalCooldownMs);
             this.stopMiningControls(true);
-            this.resetTickCounters();
-            this.handleRotationOrScan(true);
+            this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
+            this.allowScan = false;
             return;
         }
+
         if (this.MOVEMENT && now < this.movementReevalCooldownUntil) {
             this.stopMiningControls(true);
         } else {
