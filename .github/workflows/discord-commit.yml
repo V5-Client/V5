@@ -38,6 +38,9 @@ jobs:
             - name: Install latest Wrangler
               run: npm install -g wrangler@latest --prefer-offline
 
+            - name: Install latest UglifyJS
+              run: npm install -g uglify-js@latest --prefer-offline
+
             - name: Prepare Data
               shell: bash
               run: |
@@ -123,51 +126,16 @@ jobs:
 
                   uglify_channel_js() {
                     local dir="$1"
-                    npx --yes -p uglify-js node - "$dir" <<'NODE'
-                  const fs = require('fs');
-                  const path = require('path');
-                  const UglifyJS = require('uglify-js');
-
-                  const root = process.argv[2];
-
-                  function walk(dir) {
-                    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-                      const full = path.join(dir, entry.name);
-                      if (entry.isDirectory()) {
-                        walk(full);
-                        continue;
-                      }
-                      if (!entry.isFile() || !entry.name.endsWith('.js')) continue;
-
-                      const src = fs.readFileSync(full, 'utf8');
-                      if (!src.trim()) continue;
-
-                      const result = UglifyJS.minify(src, {
-                        compress: {
-                          ecma: 5,
-                          passes: 2,
-                        },
-                        mangle: {
-                          toplevel: false,
-                        },
-                        format: {
-                          comments: false,
-                          semicolons: true,
-                        },
-                      });
-
-                      if (result.error) {
-                        console.error(`Uglify failed for ${full}`);
-                        console.error(result.error);
-                        process.exit(1);
-                      }
-
-                      fs.writeFileSync(full, result.code + '\n', 'utf8');
-                    }
-                  }
-
-                  walk(root);
-                  NODE
+                    find "$dir" -name '*.js' -type f -print0 | while IFS= read -r -d '' file; do
+                      [[ -s "$file" ]] || continue
+                      tmp="${file}.min"
+                      uglifyjs "$file" \
+                        --compress ecma=5,passes=2 \
+                        --mangle \
+                        --comments false \
+                        --output "$tmp"
+                      mv "$tmp" "$file"
+                    done
                   }
 
                   workdir="$(mktemp -d)"
