@@ -125,15 +125,38 @@ jobs:
                     local dir="$1"
                     local channel="$2"
                     local out_file="$dir/V5-${channel}.js"
+                    local metadata_file="$dir/metadata.json"
 
-                    npx --yes esbuild "$dir/loader.js" \
-                      --bundle \
-                      --format=iife \
-                      --platform=browser \
-                      --target=es2018 \
-                      --minify \
-                      --legal-comments=none \
+                    mapfile -t externals < <(
+                      node - "$metadata_file" <<'NODE'
+                  const fs = require('fs');
+                  const metadataFile = process.argv[2];
+
+                  try {
+                    const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
+                    const deps = Array.isArray(metadata.requires) ? metadata.requires : [];
+                    deps.forEach((dep) => {
+                      if (typeof dep === 'string' && dep.trim()) console.log(dep.trim());
+                    });
+                  } catch (e) {
+                    process.exit(0);
+                  }
+                  NODE
+                    )
+
+                    esbuild_args=(
+                      --bundle
+                      --format=esm
+                      --target=es2018
+                      --minify
+                      --legal-comments=none
                       --outfile="$out_file"
+                    )
+                    for dep in "${externals[@]}"; do
+                      esbuild_args+=(--external:"$dep")
+                    done
+
+                    npx --yes esbuild "$dir/loader.js" "${esbuild_args[@]}"
 
                     find "$dir" -name '*.js' -type f ! -path "$out_file" -delete
                     mv "$out_file" "$dir/loader.js"
