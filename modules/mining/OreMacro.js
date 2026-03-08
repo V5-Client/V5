@@ -101,7 +101,7 @@ class OreMacro extends ModuleBase {
         ]);
 
         v5Command('ore', (action, arg1, indexArg) => {
-            if (!action) return Chat.message('§cUsage: .ore <add|remove|clear> [type] [index]');
+            if (!action) return Chat.message('§cUsage: /v5 mining ore <add|remove|clear> [type] [index]');
 
             const actionUpper = action.toUpperCase();
             let movementType = undefined;
