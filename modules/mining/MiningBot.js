@@ -341,7 +341,7 @@ class Bot extends ModuleBase {
         );
         this.addMultiToggle(
             'Fakelook',
-            ['Off', 'Instant', 'Queued'],
+            ['Off', 'Queued'],
             true,
             (value) => {
                 this.FAKELOOK = value;
