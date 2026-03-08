@@ -7,6 +7,11 @@ class MacroStateClass {
 
         this.modules = new Map();
         this.lastDisableMeta = new Map();
+        this.lastActiveMacro = null;
+    }
+
+    getLastActiveMacro() {
+        return this.lastActiveMacro;
     }
 
     registerModule(module) {
@@ -57,6 +62,7 @@ class MacroStateClass {
 
         this.running = true;
         this.activeMacro = moduleName;
+        this.lastActiveMacro = moduleName;
     }
 
     onModuleDisabled(moduleName, context = 'user') {
