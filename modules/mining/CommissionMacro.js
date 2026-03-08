@@ -308,6 +308,8 @@ class CommissionMacro extends ModuleBase {
 
     runLogic() {
         if (!this.enabled) return;
+        MiningBot.setCost(MiningBot.mithrilCosts);
+
         this.cancelNpcRotationIfPathing();
         this.handlePathingAvoidance();
 
@@ -949,7 +951,6 @@ class CommissionMacro extends ModuleBase {
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
         MiningBot.setPrioritizeGrayMithril(true);
 
-        MiningBot.setCost(MiningBot.mithrilCosts);
         MiningBot.toggle(true, true);
     }
 
