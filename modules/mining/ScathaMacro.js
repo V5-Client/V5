@@ -1,15 +1,24 @@
 //@Beta
-import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import { Rotations } from '../../utils/player/RotationsTest';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Timer } from '../../utils/TimeUtils';
 import { Utils } from '../../utils/Utils';
+import { manager } from '../../utils/SkyblockEvents';
+import { MiningUtils } from '../../utils/MiningUtils';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { Rotations } from '../../utils/player/Rotations';
+
+//todo
+// find the best possible place to pathfind to
+// chest click when digging down
+// lane switch
+// better pane detection both back and forth
+// its not done dont use
 
 class ScathaMacro extends ModuleBase {
     constructor() {
@@ -22,850 +31,418 @@ class ScathaMacro extends ModuleBase {
             isMacro: true,
         });
 
-        this.bindToggleKey();
+        this.MAGICFIND_SET = 0;
+        this.MINING_SET = 0;
+        this.SPREAD_SET = 0;
+        this.CLICK_DELAY = 0;
 
-        this.ModuleName = 'Scatha Macro';
-
-        this.STATES = {
-            SETUP: 0,
-            MINING: 1,
-            ROUTING: 2,
-            CENTERING: 3,
-            KILLING: 4,
-            WAITING: 5,
-            BACKWARDS: 6,
-            TUNNEL: 7,
-            MINERAL: 8,
-        };
-
-        this.setState(this.STATES.SETUP);
-
-        // Timers
-        this.stuckTimer = new Timer();
-        this.chestTimer = new Timer();
-        this.menuTimer = new Timer();
-        this.scathaSpawnTimer = new Timer();
-        this.centeringTimer = new Timer();
-
-        // Flags and counters
-        this.centeringStart = true;
-        this.pause = false;
-        this.pickaxeAbility = true;
-        this.close = false;
-        this.sorrow = false;
-        this.scatha = false;
-        this.wormDetected = false;
-        this.stuckCounter = 0;
-        this.unstuckState = 0;
-        this.decimalZ = 0.5;
-        this.normalKilling = true;
-        this.gettingMenu = false;
-        this.menuState = 0;
-        this.tunnel = false;
-
-        // Hotbar slots
-        this.tpSlot = -1;
-        this.drillSlot = -1;
-        this.rodSlot = -1;
-        this.daeSlot = -1;
-
-        // Last positions for stuck check
-        this.stuckPositions = [];
-
-        // Settings (default values)
-        this.menuClickDelay = 750;
-        this.pinglessAngles = false;
-
-        // Settings UI
-        this.addSlider('Menu Click Delay', 500, 1500, 750, (v) => (this.menuClickDelay = v));
-        this.addToggle('Pingless Angles', (v) => (this.pinglessAngles = !!v));
-
-        this.createOverlay(
-            [
-                {
-                    title: 'Status',
-                    data: {
-                        State: () => this.getStateName(this.state),
-                        'Stuck Count': () => this.stuckCounter,
-                    },
-                },
-                {
-                    title: 'Stats',
-                    data: {
-                        Kills: () => this.getKills(),
-                        'Worm/Scatha': () => (this.scatha ? 'Scatha' : 'Worm'),
-                    },
-                },
-            ],
-            {
-                sessionTrackedValues: {
-                    kills: 0,
-                },
-            }
+        this.addSlider(
+            'Magic Find set slot',
+            1,
+            9,
+            1,
+            (value) => {
+                this.MAGICFIND_SET = value;
+            },
+            'The slot in your wardrobe that has your magic find set'
         );
 
-        // Worm spawn message
-        this.on('chat', () => {
-            this.scathaSpawnTimer.reset();
-            this.menuTimer.reset();
-            Rotations.rotateToAngles(90, 10);
-            this.sorrow = false;
-            this.pause = true;
-            this.setState(this.STATES.KILLING);
-            Keybind.stopMovement();
-            Keybind.setKey('leftclick', false);
-            Keybind.setKey('w', false);
-            Chat.messageDebug('Detected Worm. Killing');
+        this.addSlider(
+            'Mining set slot',
+            1,
+            9,
+            1,
+            (value) => {
+                this.MINING_SET = value;
+            },
+            'The slot in your wardrobe that has your mining set'
+        );
 
-            ScheduleTask(15, () => {
-                if (this.rodSlot !== -1) Guis.setItemSlot(this.rodSlot);
-            });
+        this.addSlider(
+            'Mineral set slot',
+            1,
+            9,
+            1,
+            (value) => {
+                this.SPREAD_SET = value;
+            },
+            'The slot in your wardrobe that has your mineral set'
+        );
 
-            ScheduleTask(30, () => {
-                this.findTarget();
-                const heat = this.getHeat();
-                if (this.scatha || heat <= 90) {
-                    // PLACEHOLDER: pet swap (black cat) if available
-                    // Keybind.rightClick();
-                } else {
-                    this.pause = false;
-                    return;
-                }
-            });
+        this.addSlider(
+            'Click delay',
+            0,
+            1000,
+            500,
+            (value) => {
+                this.CLICK_DELAY = value;
+            },
+            'The delay between clicks'
+        );
 
-            ScheduleTask(30, () => {
-                this.pause = false;
-            });
-        }).setCriteria('You hear the sound of something approaching...');
+        this.isWarping = false;
+        this.travelledToCH = false;
+        this.goingToCH = false;
+        this.requiredItems = null;
+        this.items = { aspect: null, drill: null, daedalus: null, rod: null, shuriken: null, bobomb: null };
+        this.triedPath = false;
+        this.handleAOTV = { rotated: false, usedAOTV: false };
+        this.HOTMState = { opened: false, switchedPage: false };
+        this.actionQueue = [];
+        this.lastActionTime = 0;
 
-        // Ability ready (Anomalous Desire)
-        this.on('chat', () => {
-            this.pickaxeAbility = true;
-        }).setCriteria('Anomalous Desire is now available!');
+        this.CHBounds = {
+            minX: 202,
+            maxX: 823,
+            minY: 31,
+            maxY: 189,
+            minZ: 202,
+            maxZ: 823,
+        };
 
-        // Reduce stuck counter every 20 seconds
-        this.on('step', () => {
-            if (this.stuckCounter >= 1) this.stuckCounter--;
-        }).setDelay(20);
+        this.bindToggleKey();
+        this.setTheme('#5a7cbb');
 
-        // Main macro loop
-        this.on('step', () => this.mainLoop()).setFps(5);
+        this.STATES = {
+            WAITING: 0,
+            WARPING: 1,
+            DIGGING: 2,
+            PREPARE: 3,
+            DECIDEDIRECTION: 4,
+            MINING: 5,
+        };
+
+        this.state = this.STATES.WAITING;
+
+        manager.subscribe('warp', () => {
+            if (!this.enabled) return;
+            this.isWarping = true;
+        });
+
+        this.on('chat', (event) => {
+            const msg = event.message.getUnformattedText();
+            const lower = msg.toLowerCase();
+
+            if (lower.includes("You haven't unlocked this fast travel destination") && this.goingToCH) {
+                this.message("&cCan't start macro outside CH because you dont have the warp!");
+                this.toggle(false);
+                return;
+            }
+        });
+
+        this.on('tick', () => {
+            switch (this.state) {
+                case this.STATES.WARPING:
+                    this.handleWarping();
+                    break;
+                case this.STATES.DIGGING:
+                    this.handleDigging();
+                    break;
+                case this.STATES.PREPARE:
+                    this.handlePrepare();
+                    break;
+                case this.STATES.DECIDEDIRECTION:
+                    this.handleDirection();
+                    break;
+                case this.STATES.MINING:
+                    this.handleMining();
+                    break;
+            }
+        });
     }
 
-    getStateName(val) {
-        try {
-            return Object.keys(this.STATES).find((k) => this.STATES[k] === val) || String(val);
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            return String(val);
+    handleWarping() {
+        if (Utils.area() === 'Crystal Hollows') return (this.state = this.STATES.DIGGING);
+        if (this.isWarping && this.travelledToCH) return (this.goingToCH = true);
+
+        if (Utils.area() !== 'Crystal Hollows' && !this.travelledToCH) {
+            ChatLib.command('warp ch');
+            this.travelledToCH = true;
         }
     }
 
-    setState(next) {
-        const prevName = this.getStateName(this.state);
-        const nextName = this.getStateName(next);
-        Chat.messageDebug(`State: ${prevName} -> ${nextName}`);
-        this.state = next;
+    handleDigging() {
+        if (!this.triedPath) {
+            //hardcoded point dont shout at me yes yes blah blah
+            Pathfinder.findPath([[503, 84, 223]], (success) => {
+                if (success) return (this.state = this.STATES.DIGGING);
+
+                // go hub and rewarp and shit
+                this.message('&cPath not found!');
+                this.toggle(false);
+            });
+
+            this.triedPath = true;
+            this.state = this.STATES.WAITING;
+            return;
+        }
+
+        if (!this.handleAOTV.rotated) {
+            this.handleAOTV.rotated = true;
+
+            Guis.setItemSlot(this.items.aspect);
+
+            Rotations.rotateToAngles(Player.getYaw(), 90);
+            Rotations.onEndRotation(() => {
+                Keybind.rightClick();
+                this.handleAOTV.usedAOTV = true;
+            });
+        }
+
+        if (!this.handleAOTV.usedAOTV) return;
+
+        Guis.setItemSlot(this.items.drill);
+        Keybind.setKey('leftclick', true);
+
+        // check for chests
+
+        if (Math.floor(Player.getY()) === 31) this.state = this.STATES.PREPARE;
     }
 
-    getKills() {
-        return OverlayManager.getTrackedValue(this.oid, 'kills', 0);
-    }
-
-    onEnable() {
-        this.sendMacroMessage('&aEnabled');
-        this.setState(this.STATES.SETUP);
-        //Mouse.ungrab();
-    }
-
-    onDisable() {
-        this.sendMacroMessage('&cDisabled');
-        this.centeringStart = true;
-        this.pickaxeAbility = true;
-        this.pause = false;
-        this.sbOpened = false;
-        this.stuckCounter = 0;
-        this.unstuckState = 0;
-        Rotations.stopRotation();
-        Keybind.setKey('leftclick', false);
-        //Mouse.regrab();
-        Keybind.stopMovement();
-    }
-
-    // Main loop handling state machine
-    mainLoop() {
-        if (!this.enabled) return;
-        switch (this.state) {
-            case this.STATES.SETUP: {
-                if (Client.isInGui() && !Client.isInChat()) return;
-
-                const stand = this.findTarget();
-                if (stand) {
-                    this.setState(this.STATES.KILLING);
-                    return;
-                }
-                if (this.pause) return;
-
-                this.stuckTimer.reset();
-
-                this.drillSlot = Guis.findItemInHotbar('Drill');
-                this.tpSlot = Guis.findItemInHotbar('Aspect of the');
-                this.rodSlot = Guis.findItemInHotbar('Rod');
-                this.daeSlot = Guis.findItemInHotbar('Daedalus Blade');
-
-                if (this.drillSlot === -1) Chat.message('No Drill found');
-                if (this.tpSlot === -1) Chat.message('No AOTV found');
-                if (this.rodSlot === -1) Chat.message('No Rod found');
-                if (this.daeSlot === -1) Chat.message('No Daedalus Blade found');
-
-                if (this.tpSlot === -1 || this.drillSlot === -1 || this.rodSlot === -1 || this.daeSlot === -1) {
-                    this.sendMacroMessage('Missing required items');
-                    this.toggle(false);
-                    return;
-                }
-
-                if (Utils.area() !== 'Crystal Hollows') {
-                    this.sendMacroMessage('Not in crystal hollows');
-                    this.toggle(false);
-                    return;
-                }
-                if (Player.getY() !== 31) {
-                    this.sendMacroMessage('Not on bedrock');
-                    this.toggle(false);
-                    return;
-                }
-
-                if (this.centeringStart) {
-                    Keybind.setKey('leftclick', false);
-                    this.setState(this.STATES.CENTERING);
-                    this.centeringStart = false;
-                    return;
-                }
-
-                let backwardsTunnel = false;
-                for (let offsetX = -96; offsetX <= 4; offsetX++) {
-                    const blockAtY = World.getBlockAt(Player.getX() + offsetX, Player.getY(), Player.getZ())?.type?.getRegistryName();
-                    const blockAtYPlus1 = World.getBlockAt(Player.getX() + offsetX, Player.getY() + 1, Player.getZ())?.type?.getRegistryName();
-                    if ((blockAtY && ['minecraft:stone'].includes(blockAtY)) || (blockAtYPlus1 && ['minecraft:stone'].includes(blockAtYPlus1))) {
-                        backwardsTunnel = true;
-                        break;
-                    }
-                }
-                if (!backwardsTunnel) {
-                    Keybind.stopMovement();
-                    this.setState(this.STATES.BACKWARDS);
-                    return;
-                }
-
-                Keybind.stopMovement();
-                Rotations.rotateToAngles(90, Player.getPitch());
-                Guis.setItemSlot(this.drillSlot);
-                this.setState(this.STATES.MINING);
-                break;
+    handlePrepare() {
+        if (!this.HOTMState.completed) {
+            if (this.togglePerks(false)) {
+                this.HOTMState = { opened: false, switchedPage: false, completed: true };
+                this.lastActionTime = Date.now();
+                ChatLib.command('wardrobe');
             }
+            return;
+        }
 
-            case this.STATES.MINING: {
-                if (Client.isInGui() && !Client.isInChat()) return;
-                this.normalKilling = true;
-                Keybind.setKey('s', false);
-                this.ShuffleToBlockCenter();
-
-                if (this.pickaxeAbility && this.scathaSpawnTimer.hasPassed(29000)) {
-                    this.pickaxeAbility = false;
-                    Keybind.setKey('leftclick', false);
-                    ScheduleTask(3, () => Keybind.rightClick());
-                    return;
-                }
-
-                if (Player.getPlayer().isCrawling()) {
-                    Keybind.stopMovement();
-                    Keybind.setKey('shift', true);
-                    return;
-                } else {
-                    Keybind.setKey('shift', false);
-                }
-
-                if (this.canClickChest()) {
-                    Keybind.setKey('leftclick', false);
-                    Keybind.setKey('w', true);
-                    Keybind.rightClick();
-                    this.chestTimer.reset();
-                    return;
-                }
-
-                const playerPos = new Vec3d(Player.getX(), Player.getY(), Player.getZ());
-                this.stuckPositions.push(playerPos);
-                if (this.stuckPositions.length > 10) this.stuckPositions.shift();
-                if (this.stuckPositions.some((pos) => pos.getDistance(playerPos) >= 0.5)) this.stuckTimer.reset();
-
-                if (Player.getX() >= 202.2 && Player.getX() <= 202.4) {
-                    this.gettingMenu = true;
-                    this.menuTimer.reset();
-                    this.menuState = 99;
-                    this.setState(this.STATES.ROUTING);
-                    return;
-                }
-
-                if (this.stuckCounter >= 3) Utils.warnPlayer('You are currently stuck!');
-                if (this.stuckCounter >= 6) {
-                    Utils.warnPlayer('You are currently stuck!');
-                    this.toggle(false);
-                }
-
-                if (this.stuckTimer.hasPassed(2000)) {
-                    this.stuckCounter++;
-                    Keybind.stopMovement();
-                    Keybind.setKey('leftclick', false);
-                    Keybind.setKey('s', true);
-                    this.setState(this.STATES.CENTERING);
-                    Chat.messageDebug('Getting unstuck');
-                    return;
-                }
-
-                Keybind.setKey('leftclick', true);
-                Keybind.setKey('w', true);
-
-                const pane = World.getBlockAt(Player.getX(), Player.getY(), Player.getZ())?.type?.getRegistryName()?.includes('_pane');
-                const block = World.getBlockAt(Player.getX() - 1, Player.getY(), Player.getZ())?.type?.getRegistryName();
-                const blockaheadName = World.getBlockAt(Player.getX() - 2, Player.getY(), Player.getZ())?.type?.getRegistryName();
-                const isSolid = (n) => n && !['minecraft:air', 'minecraft:water', 'minecraft:lava'].includes(n);
-                const blocks = isSolid(block) || isSolid(blockaheadName);
-
-                if (this.pinglessAngles) {
-                    let targetPitch = 12;
-                    if (blocks) targetPitch = 35;
-                    if (pane) targetPitch = 70;
-                    Rotations.rotateToAngles(90, targetPitch);
-                } else {
-                    const targetPitch = pane ? 70 : 35;
-                    Rotations.rotateToAngles(90, targetPitch);
-                }
-                break;
-            }
-
-            case this.STATES.ROUTING: {
-                Keybind.setKey('leftclick', false);
-                if (this.menuState === 99) {
-                    this.gettingMenu = true;
-                    this.menuState = 0;
-                }
-                this.tunnel = true;
-
-                if (this.gettingMenu) {
-                    if (this.menuState === 0 && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        ChatLib.command('hotm');
-                        this.menuTimer.reset();
-                        this.menuState++;
-                        return;
-                    }
-                    if (
-                        this.menuState === 1 &&
-                        Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasPassed(this.menuClickDelay)
-                    ) {
-                        const mole = Player.getContainer()?.getStackInSlot(13);
-                        if (mole && mole?.type?.getID() === 689) {
-                            Guis.clickSlot(13, false, 'RIGHT');
-                            this.menuTimer.reset();
-                            this.menuState++;
-                            return;
-                        } else this.menuState++;
-                    }
-                    if (
-                        this.menuState === 2 &&
-                        Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasPassed(this.menuClickDelay)
-                    ) {
-                        const efficientMiner = Player.getContainer()?.getStackInSlot(22);
-                        if (efficientMiner && efficientMiner?.type?.getID() === 689) {
-                            Guis.clickSlot(22, false, 'RIGHT');
-                            this.menuTimer.reset();
-                            this.menuState++;
-                            return;
-                        } else this.menuState++;
-                    }
-                    if (this.menuState === 3) {
-                        ChatLib.command('wardrobe');
-                        this.menuTimer.reset();
-                        this.menuState++;
-                        return;
-                    }
-                    if (this.menuState === 4 && Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        for (let i = 0; i < Player.getContainer().getSize(); i++) {
-                            const item = Player.getContainer().getStackInSlot(i);
-                            if (!item) continue;
-                            const name = item.getName().removeFormatting().toLowerCase();
-                            if (name.includes('mineral boots')) {
-                                const targetSlot = i + 9;
-                                Guis.clickSlot(targetSlot, false, 'LEFT');
-                                this.menuTimer.reset();
-                                this.menuState++;
-                                return;
-                            }
-                        }
-                    }
-                    if (this.menuState === 5 && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        Guis.closeInv();
-                        ScheduleTask(5, () => {
-                            Rotations.rotateToAngles(90, -75);
-                            this.setState(this.STATES.BACKWARDS);
-                            this.menuState = 0;
-                            this.unstuckState = 1;
-                            this.menuTimer.reset();
-                        });
-                    }
-                }
-                break;
-            }
-
-            case this.STATES.BACKWARDS: {
-                if (this.pause) return;
-                if (!this.scathaSpawnTimer.hasPassed(27000)) {
-                    Keybind.stopMovement();
-                    this.stuckTimer.reset();
-                    Rotations.rotateToAngles(90, -75);
-                    return;
-                }
-                if (!this.scathaSpawnTimer.hasPassed(28000)) {
-                    if (this.drillSlot !== -1) Guis.setItemSlot(this.drillSlot);
-                    Keybind.stopMovement();
-                    this.stuckTimer.reset();
-                    return;
-                }
-
-                if (Player.getX() >= 823.69 && this.stuckTimer.hasPassed(1000)) {
-                    if (this.menuState === 0 && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        ChatLib.command('hotm');
-                        this.menuTimer.reset();
-                        this.menuState++;
-                        return;
-                    }
-                    if (
-                        this.menuState === 1 &&
-                        Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasPassed(this.menuClickDelay)
-                    ) {
-                        const mole = Player.getContainer()?.getStackInSlot(13);
-                        if (mole && (mole?.type?.getID() === '845' || mole?.type?.getID() === '846')) {
-                            Guis.clickSlot(13, false, 'RIGHT');
-                            this.menuTimer.reset();
-                            this.menuState++;
-                            return;
-                        } else this.menuState++;
-                    }
-                    if (
-                        this.menuState === 2 &&
-                        Player.getContainer()?.getName() == '§rHeart of the Mountain' &&
-                        this.menuTimer.hasPassed(this.menuClickDelay)
-                    ) {
-                        const efficientMiner = Player.getContainer()?.getStackInSlot(22);
-                        if (efficientMiner && (efficientMiner?.type?.getID() === '845' || efficientMiner?.type?.getID() === '846')) {
-                            Guis.clickSlot(22, false, 'RIGHT');
-                            this.menuTimer.reset();
-                            this.menuState++;
-                            return;
-                        } else this.menuState++;
-                    }
-                    if (this.menuState === 3) {
-                        ChatLib.command('wardrobe');
-                        this.menuTimer.reset();
-                        this.menuState++;
-                        return;
-                    }
-                    if (this.menuState === 4 && Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        for (let i = 0; i < Player.getContainer().getSize(); i++) {
-                            const item = Player.getContainer().getStackInSlot(i);
-                            if (!item) continue;
-                            const name = item.getName().removeFormatting().toLowerCase();
-                            if (name.includes('sorrow boots') || name.includes('superior dragon boots')) {
-                                const targetSlot = i + 9;
-                                Guis.clickSlot(targetSlot, false, 'LEFT');
-                                this.menuTimer.reset();
-                                this.menuState++;
-                                return;
-                            }
-                        }
-                    }
-                    if (this.menuState === 5 && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        Guis.closeInv();
-                        this.menuTimer.reset();
-                        this.setState(this.STATES.TUNNEL);
-                        if (this.drillSlot !== -1) Guis.setItemSlot(this.drillSlot);
-                        this.tunnelPos = [Player.getX(), Player.getY(), Player.getZ() + 6];
-                        Keybind.setKey('leftclick', false);
-                        Keybind.stopMovement();
-                        this.tunnel = false;
-                        return;
-                    }
-                }
-                if (Client.isInGui() && !Client.isInChat()) return;
-
-                if (this.drillSlot !== -1) Guis.setItemSlot(this.drillSlot);
-
-                if (this.pickaxeAbility) {
-                    this.pickaxeAbility = false;
-                    Keybind.setKey('leftclick', false);
-                    ScheduleTask(3, () => Keybind.rightClick());
-                    return;
-                }
-                if (this.canClickChest()) {
-                    Keybind.setKey('leftclick', false);
-                    Keybind.setKey('w', true);
-                    Keybind.rightClick();
-                    this.chestTimer.reset();
-                    return;
-                }
-
-                Keybind.setKey('leftclick', true);
-                Keybind.setKey('w', false);
-
-                this.normalKilling = false;
-
-                const playerPos2 = new Vector(Player.getX(), Player.getY(), Player.getZ());
-                this.stuckPositions.push(playerPos2);
-                if (this.stuckPositions.length > 10) this.stuckPositions.shift();
-                if (this.stuckPositions.some((pos) => pos.getDistance(playerPos2) >= 0.5)) this.stuckTimer.reset();
-
-                const isSolidBlock = (name) => name && !['minecraft:air', 'minecraft:water', 'minecraft:lava', 'minecraft:bedrock'].includes(name);
-                const paneHere = World.getBlockAt(Player.getX(), Player.getY(), Player.getZ())?.type?.getRegistryName()?.includes('_pane');
-                const paneAboveHere = World.getBlockAt(Player.getX(), Player.getY() + 1, Player.getZ())
-                    ?.type?.getRegistryName()
-                    ?.includes('_pane');
-                const blockAt = isSolidBlock(World.getBlockAt(Player.getX() + 1, Player.getY(), Player.getZ())?.type?.getRegistryName());
-                const blockAbove = isSolidBlock(World.getBlockAt(Player.getX() + 1, Player.getY() + 1, Player.getZ())?.type?.getRegistryName());
-                const blockBehind = isSolidBlock(World.getBlockAt(Player.getX() + 2, Player.getY(), Player.getZ())?.type?.getRegistryName());
-                const blockBehindAbove = isSolidBlock(World.getBlockAt(Player.getX() + 2, Player.getY() + 1, Player.getZ())?.type?.getRegistryName());
-
-                this.ShuffleToBlockCenter();
-
-                if (this.stuckCounter >= 3) Utils.warnPlayer('You are currently stuck!');
-                if (this.stuckCounter >= 6) {
-                    Utils.warnPlayer('You are currently stuck!');
-                    this.toggle(false);
-                }
-
-                if (this.stuckTimer.hasPassed(2000) && Player.getX() <= 823.69) {
-                    this.stuckCounter++;
-                    Keybind.stopMovement();
-                    Keybind.setKey('leftclick', false);
-                    Keybind.setKey('s', true);
-                    this.setState(this.STATES.CENTERING);
-                    Chat.messageDebug('Getting unstuck');
-                    return;
-                }
-
-                const panes = paneHere || paneAboveHere;
-                const blocks = blockAt || blockAbove || blockBehind || blockBehindAbove;
-
-                if (blocks || panes) {
-                    Keybind.stopMovement();
-                    Rotations.rotateToAngles(-90, paneHere ? 70 : 35);
-                    Rotations.onEndRotation(() => {
-                        let foundBlockAhead = false;
-                        for (let offsetX = 1; offsetX <= 7; offsetX++) {
-                            const blockAtY = World.getBlockAt(Player.getX() + offsetX, Player.getY(), Player.getZ())?.type?.getRegistryName();
-                            const blockAtYPlus1 = World.getBlockAt(Player.getX() + offsetX, Player.getY() + 1, Player.getZ())?.type?.getRegistryName();
-                            if (
-                                (blockAtY && !['minecraft:air', 'minecraft:water', 'minecraft:lava', 'minecraft:bedrock'].includes(blockAtY)) ||
-                                (blockAtYPlus1 && !['minecraft:air', 'minecraft:water', 'minecraft:lava', 'minecraft:bedrock'].includes(blockAtYPlus1))
-                            ) {
-                                foundBlockAhead = true;
-                                break;
-                            }
-                        }
-                        if (foundBlockAhead) {
-                            Keybind.setKey('w', true);
-                            Keybind.setKey('leftclick', true);
-                        } else {
-                            Keybind.setKey('w', false);
-                            Keybind.setKey('leftclick', true);
-                        }
-                    });
-                } else {
-                    if (!this.normalKilling) {
-                        Keybind.stopMovement();
-                        Rotations.rotateToAngles(90, -75);
-                        Rotations.onEndRotation(() => {
-                            Keybind.setKey('leftclick', true);
-                            Keybind.setKey('s', true);
-                        });
-                    }
-                }
-                break;
-            }
-
-            case this.STATES.TUNNEL: {
-                if (Client.isInGui() && !Client.isInChat()) return;
-                this.unstuckState = 0;
-                if (this.canClickChest()) {
-                    Keybind.setKey('leftclick', false);
-                    Keybind.setKey('w', true);
-                    Keybind.rightClick();
-                    this.chestTimer.reset();
-                    return;
-                }
-                if (Player.getZ() > this.tunnelPos[2]) {
-                    this.setState(this.STATES.CENTERING);
-                    Rotations.rotateToAngles(90, 35);
-                    Keybind.stopMovement();
-                    Keybind.setKey('leftclick', false);
-                    Chat.messageDebug('Back to Mining!');
-                    return;
-                }
-                Rotations.rotateToAngles(0, 60);
-                Rotations.onEndRotation(() => {
-                    Keybind.setKey('w', true);
-                    Keybind.setKey('leftclick', true);
-                });
-                break;
-            }
-
-            case this.STATES.CENTERING: {
-                if (Client.isInGui() && !Client.isInChat()) return;
-                Keybind.setKey('leftclick', false);
-                if (this.tpSlot !== -1) Guis.setItemSlot(this.tpSlot);
-                Rotations.rotateToAngles(this.getRoundedYaw(), 85);
-                this.centeringTimer.reset();
-                ScheduleTask(5, () => Keybind.stopMovement());
-                ScheduleTask(9, () => {
-                    Keybind.rightClick();
-                    Chat.messageDebug('Centering with AOTV.');
-                });
-                ScheduleTask(18, () => {
-                    if (this.unstuckState === 0) this.setState(this.STATES.SETUP);
-                    else if (this.unstuckState === 1) this.setState(this.STATES.BACKWARDS);
-                    Chat.messageDebug('Finished Centering.');
-                });
-                this.setState(this.STATES.WAITING);
-                break;
-            }
-            case this.STATES.WAITING: {
-                // Failsafe in case scheduled transition is missed
-                if (this.centeringTimer.hasPassed(2000)) {
-                    if (this.unstuckState === 1) this.setState(this.STATES.BACKWARDS);
-                    else this.setState(this.STATES.SETUP);
-                }
-                Keybind.stopMovement();
-                Keybind.setKey('leftclick', false);
-                break;
-            }
-
-            case this.STATES.KILLING: {
-                Keybind.stopMovement();
-                if (this.pause) return;
-
-                if (!this.normalKilling) {
-                    if (this.scatha) {
-                        if (Player.getContainer()?.getName() != '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay) && !this.sorrow) {
-                            ChatLib.command('wardrobe');
-                            this.menuTimer.reset();
-                            return;
-                        }
-                        if (Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay) && !this.sorrow) {
-                            for (let i = 0; i < Player.getContainer().getSize(); i++) {
-                                const item = Player.getContainer().getStackInSlot(i);
-                                if (!item) continue;
-                                const name = item.getName().removeFormatting().toLowerCase();
-                                if (name.includes('sorrow boots') || name.includes('superior dragon boots')) {
-                                    const targetSlot = i + 9;
-                                    Guis.clickSlot(targetSlot, false, 'LEFT');
-                                    this.menuTimer.reset();
-                                    this.sorrow = true;
-                                    return;
-                                }
-                            }
-                        }
-                        if (this.sorrow && this.menuTimer.hasPassed(this.menuClickDelay)) Guis.closeInv();
-                        if (!this.sorrow) return;
-                    }
-                }
-
-                const playerX = Player.getX();
-                const playerZ = Player.getZ();
-                const playerYaw = Player.getYaw();
-                Keybind.setKey('w', false);
-                Keybind.setKey('s', false);
-                if (Client.isInGui() && !Client.isInChat()) return;
-                if (this.daeSlot !== -1) Guis.setItemSlot(this.daeSlot);
-                let target = this.findTarget();
-                if (!target) {
-                    if (!this.normalKilling) Keybind.setKey('w', true);
-                    if (this.wormDetected) {
-                        this.wormDetected = false;
-                        Chat.messageDebug('Worm killed!');
-                        this.pause = true;
-                        OverlayManager.incrementTrackedValue(this.oid, 'kills');
-                        Keybind.stopMovement();
-                        if (this.normalKilling) {
-                            Keybind.setKey('shift', false);
-                            this.setState(this.STATES.SETUP);
-                        }
-                        if (!this.normalKilling) {
-                            Keybind.setKey('shift', false);
-                            this.setState(this.STATES.MINERAL);
-                        }
-                        if (this.daeSlot !== -1) Guis.setItemSlot(this.daeSlot);
-                        ScheduleTask(5, () => {
-                            this.pause = false;
-                            this.menuTimer.reset();
-                        });
-                    }
-                    return;
-                }
-                this.wormDetected = true;
-                Keybind.leftClick();
-                const dx = target.getX() - playerX;
-                const dz = target.getZ() - playerZ;
-                const yawRad = ((playerYaw + 90) * Math.PI) / 180;
-                const forwardX = Math.cos(yawRad);
-                const forwardZ = Math.sin(yawRad);
-                const forwardDist = dx * forwardX + dz * forwardZ;
-                const threshold = 0.01;
-                const backthreshold = 2;
-                Keybind.setKey('w', false);
-                Keybind.setKey('s', false);
-                if (this.normalKilling) {
-                    if (forwardDist < -threshold) Keybind.setKey('s', true);
-                } else {
-                    if (this.menuTimer.hasPassed(this.menuClickDelay)) {
-                        Keybind.setKey('w', false);
-                        Keybind.setKey('s', false);
-                        if (forwardDist > backthreshold) Keybind.setKey('w', true);
-                        else if (forwardDist < -threshold) Keybind.setKey('s', true);
-                    }
-                }
-                break;
-            }
-
-            case this.STATES.MINERAL: {
-                if (this.pause) return;
-                if (!this.scatha) {
-                    this.setState(this.STATES.BACKWARDS);
-                    return;
-                }
-                if (this.close && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                    Guis.closeInv();
-                    this.setState(this.STATES.BACKWARDS);
-                    this.close = false;
-                    this.scatha = false;
-                    return;
-                }
-                if (Player.getContainer()?.getName() != '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                    ChatLib.command('wardrobe');
-                    this.menuTimer.reset();
-                    return;
-                }
-                if (Player.getContainer()?.getName() == '§rWardrobe (1/2)' && this.menuTimer.hasPassed(this.menuClickDelay)) {
-                    for (let i = 0; i < Player.getContainer().getSize(); i++) {
-                        const item = Player.getContainer().getStackInSlot(i);
-                        if (!item) continue;
-                        const name = item.getName().removeFormatting().toLowerCase();
-                        if (name.includes('mineral boots')) {
-                            const targetSlot = i + 9;
-                            Guis.clickSlot(targetSlot, false, 'LEFT');
-                            this.menuTimer.reset();
-                            this.close = true;
-                            return;
-                        }
-                    }
-                }
-                break;
-            }
+        if (this.applySet(this.MINING_SET)) {
+            Guis.closeInv();
+            this.state = this.STATES.DECIDEDIRECTION;
+            return;
         }
     }
 
-    sendMacroMessage(msg) {
-        Chat.message(this.ModuleName + ': ' + msg);
+    handleDirection() {
+        const pX = Player.getX();
+
+        const distWest = Math.abs(pX - this.CHBounds.minX); // x: 202
+        const distEast = Math.abs(pX - this.CHBounds.maxX); // x: 823
+
+        let angle = distEast < distWest ? -90 : 90;
+
+        Rotations.rotateToAngles(angle, 35);
+        Rotations.onEndRotation(() => (this.state = this.STATES.MINING));
+
+        this.state = this.STATES.WAITING;
     }
 
-    canClickChest() {
-        if (!this.chestTimer.hasPassed(130)) return false;
-        const object = Player.lookingAt();
-        if (object instanceof Block) {
-            const id = object.type.getID();
-            if (id === 188) return true;
+    handleMining() {
+        let looking = Player.lookingAt();
+
+        let currentPitch = 35;
+
+        if (this.isInPane()) currentPitch = 60;
+
+        Rotations.rotateToAngles(Player.getYaw(), currentPitch);
+
+        if (looking instanceof Block) {
+            let blockId = looking?.type?.getRegistryName();
+            if (blockId.includes('bedrock')) return Keybind.setKey('leftclick', false);
         }
+
+        Keybind.setKey('leftclick', true);
+        Keybind.setKey('w', true);
+    }
+
+    isInPane() {
+        let player = Player.getPlayer();
+        let currentBlock = World.getBlockAt(player.x, player.y, player.z);
+        let id = currentBlock?.type?.getRegistryName();
+
+        if (id.includes('pane' || id.includes('glass'))) return true;
+
         return false;
     }
 
-    // Safer target finder (formatting-agnostic)
-    findTarget() {
-        const py = Math.floor(Player.getY());
-        const pz = Math.floor(Player.getZ());
-        const list = World.getAllEntitiesOfType(ArmorStandEntity);
-        const ent =
-            list.find((e) => {
-                const raw = e.getName?.() || '';
-                const name = ChatLib.removeFormatting(raw);
-                const ey = Math.floor(e.getY());
-                const ez = Math.floor(e.getZ());
-                const worm = name.includes('Worm');
-                const scatha = name.includes('Scatha');
-                const base = e.isInvisible() && Math.abs(ez - pz) <= 1 && ey >= py && ey <= 35;
-                if (base && scatha) this.scatha = true;
-                return base && (scatha || worm);
-            }) || null;
-        return ent;
+    togglePerks(isEnabling) {
+        const container = Player.getContainer();
+
+        if (!Guis.guiName('Heart of the Mountain') || !container) {
+            if (!this.HOTMState.opened) {
+                ChatLib.command('hotm');
+                this.HOTMState.opened = true;
+                this.lastActionTime = Date.now();
+            }
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.lastActionTime < this.CLICK_DELAY) return;
+
+        const ignoreID = 'minecraft:redstone_block';
+        const isPageOne = container.getStackInSlot(0).getName()?.includes('Tier 5');
+
+        let currentSlots = [];
+        isPageOne ? (currentSlots = [13, 22, 8]) : (currentSlots = [42, 40]);
+
+        for (let slot of currentSlots) {
+            const item = container.getStackInSlot(slot);
+            if (!item) continue;
+
+            if (slot === 8) {
+                Guis.clickSlot(slot, false, 'RIGHT');
+                this.lastActionTime = now;
+                return false;
+            }
+
+            const itemID = item.type.getRegistryName().toString();
+            const isRedstone = itemID === ignoreID;
+            const shouldClick = isEnabling ? isRedstone : !isRedstone;
+
+            if (shouldClick) {
+                Guis.clickSlot(slot, false, 'RIGHT');
+                this.lastActionTime = now;
+                return false;
+            }
+        }
+
+        if (!isPageOne) {
+            this.HOTMState.opened = false;
+            return true;
+        }
+
+        return false;
     }
 
-    findTargetStand() {
-        const py = Math.floor(Player.getY());
-        const pz = Math.floor(Player.getZ());
-        const list = World.getAllEntitiesOfType(ArmorStandEntity);
-        const ent =
-            list.find((e) => {
-                const name = e.getName?.() || '';
-                const ey = Math.floor(e.getY());
-                const ez = Math.floor(e.getZ());
-                const worm = name.includes('§8[§7Lv5§8] §cWorm§r');
-                const scatha = name.includes('§8[§7Lv10§8] §cScatha§r');
-                const base = e.isInvisible() && Math.abs(ez - pz) <= 1 && ey >= py && ey <= 35 && name.includes('❤');
-                if (base && scatha) this.scatha = true;
-                return base && (scatha || worm);
-            }) || null;
-        return ent;
+    removeArmor() {
+        if (Guis.guiName() !== 'Wardrobe (1/3)') return false;
+
+        const container = Player.getContainer();
+        if (!container) return false;
+
+        const now = Date.now();
+        if (now - this.lastActionTime < this.CLICK_DELAY) return false;
+
+        const slotsToCheck = [36, 37, 38, 39, 40, 41, 42, 43];
+
+        for (let slot of slotsToCheck) {
+            const item = container.getStackInSlot(slot);
+            if (!item) continue;
+
+            const itemID = item.type.getRegistryName().toString();
+
+            if (itemID.includes('lime_dye')) {
+                Guis.clickSlot(slot, false, 'LEFT');
+                this.lastActionTime = now;
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    getHeat() {
-        let heat = 0;
-        try {
-            Scoreboard.getLines().forEach((line) => {
-                let name = ChatLib.removeFormatting(line.getName());
-                if (name.includes('Heat')) {
-                    const num = MathUtils.getNumbersFromString(name);
-                    if (typeof num === 'number') heat = num;
-                }
-            });
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            Chat.messageDebug('Heat not detected');
+    applySet(slot) {
+        if (Guis.guiName() !== 'Wardrobe (1/3)') return false;
+
+        const now = Date.now();
+        if (now - this.lastActionTime < this.CLICK_DELAY) return false;
+
+        const targetSlot = slot + 35;
+
+        const item = Player.getContainer().getStackInSlot(targetSlot);
+        const itemID = item.type.getRegistryName().toString();
+
+        if (itemID.includes('lime_dye')) {
+            this.lastActionTime = now;
+            return true;
         }
-        if (heat === undefined || Number.isNaN(heat) || heat === null) {
-            Chat.messageDebug('Heat not detected');
-            return 0;
-        }
-        return heat;
+
+        Guis.clickSlot(targetSlot, false, 'LEFT');
+        this.lastActionTime = now;
+        return true;
     }
 
-    getRoundedYaw() {
-        const yaw = Player.getYaw();
-        return Math.round(yaw / 90) * 90;
+    getMostSuitableDig() {}
+
+    getAllRequiredItems() {
+        let items = {
+            'Aspect of the Void': { slot: -1, include: true },
+            'Mining Tool': { slot: -1, include: null },
+            //Rod: { slot: -1, include: true },
+            //Daedalus: { slot: -1, include: true },
+            // shuriken
+            // bobomb
+        };
+
+        items['Aspect of the Void'].slot = Guis.findItemInHotbar('Aspect of the Void');
+        items['Mining Tool'].slot = MiningUtils.getDrills().drill?.slot ?? -1;
+        //items['Rod'].slot = Guis.findItemInHotbar('Rod')
+        //items['Daedalus'].slot = Guis.findItemInHotbar('Daedalus')
+
+        this.items.aspect = items['Aspect of the Void'].slot;
+        this.items.drill = items['Mining Tool'].slot;
+        //this.items.daedalus = items['Daedalus Axe'].slot;
+        //this.items.rod = items['Rod'].slot;
+        //this.items.shuriken = items['Shuriken'].slot;
+        //this.items.bobomb = items['Bobomb'].slot;
+
+        let missingItems = [];
+        for (let itemName in items) {
+            if (items[itemName].slot === -1) {
+                missingItems.push(itemName);
+            }
+        }
+
+        if (missingItems.length > 0) {
+            this.message('Missing required items: ' + missingItems.join(', '));
+            this.toggle(false);
+            return null;
+        }
+
+        return items;
     }
 
-    ShuffleToBlockCenter() {
-        this.decimalZ = Player.getZ() % 1;
-        if (this.decimalZ < 0.3) {
-            Keybind.setKey('shift', true);
-            ScheduleTask(1, () => Keybind.setKey('a', true));
-            ScheduleTask(2, () => Keybind.setKey('a', false));
-            ScheduleTask(3, () => Keybind.setKey('shift', false));
+    hasMaxGE() {
+        let ge = null;
+        this.file = Utils.getConfigFile('miningstats.json');
+        if (this.file) ge = this.file.maxge;
+
+        if (ge === null) {
+            this.message("&cYou don't have max GE!");
+            this.toggle(false);
+            return false;
         }
-        if (this.decimalZ > 0.7) {
-            Keybind.setKey('shift', true);
-            ScheduleTask(1, () => Keybind.setKey('d', true));
-            ScheduleTask(2, () => Keybind.setKey('d', false));
-            ScheduleTask(3, () => Keybind.setKey('shift', false));
-        }
+
+        return true;
+    }
+
+    handleAllRequirements() {
+        this.getAllRequiredItems();
+        this.hasMaxGE();
+    }
+
+    onEnable() {
+        this.message('&aEnabled');
+        this.handleAllRequirements();
+        this.state = this.STATES.WARPING;
+        this.usedAOTV = false;
+        this.rotated = false;
+        this.triedPath = false;
+    }
+
+    onDisable() {
+        this.message('&cDisabled');
+        this.state = this.STATES.WAITING;
+
+        this.isWarping = false;
+        this.travelledToCH = false;
+        this.goingToCH = false;
+        this.requiredItems = null;
+
+        this.items = { aspect: null, drill: null, daedalus: null, rod: null, shuriken: null, bobomb: null };
+
+        this.triedPath = false;
+
+        this.handleAOTV = { rotated: false, usedAOTV: false };
+        this.HOTMState = { opened: false, switchedPage: false };
+
+        this.actionQueue = [];
+        this.lastActionTime = 0;
+        Keybind.setKey('leftclick', false);
     }
 }
 

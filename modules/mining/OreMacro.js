@@ -101,33 +101,46 @@ class OreMacro extends ModuleBase {
         ]);
 
         v5Command('ore', (action, arg1, indexArg) => {
-            if (!action) return Chat.message('§cAction required: "add", "remove", "clear"');
-
-            const parsedArg1 = Number.parseInt(arg1, 10);
-            let movementTypeStr = arg1;
-            let finalIndex = Number.parseInt(indexArg, 10);
-
-            if (arg1 !== undefined && !Number.isNaN(parsedArg1) && indexArg === undefined) {
-                finalIndex = parsedArg1;
-                movementTypeStr = undefined;
-            }
+            if (!action) return Chat.message('§cUsage: .ore <add|remove|clear> [type] [index]');
 
             const actionUpper = action.toUpperCase();
-            const movementType = movementTypeStr ? movementTypeStr.toUpperCase() : undefined;
+            let movementType = undefined;
+            let finalIndex = undefined;
+
+            if (arg1 !== undefined) {
+                const parsedArg1 = Number.parseInt(arg1, 10);
+
+                if (!Number.isNaN(parsedArg1)) {
+                    finalIndex = parsedArg1;
+                } else {
+                    movementType = arg1.toUpperCase();
+
+                    if (indexArg !== undefined) {
+                        finalIndex = Number.parseInt(indexArg, 10);
+                    }
+                }
+            }
+
+            const allowedTypes = ['WALK', 'MINEABLE'];
+            if (movementType && !allowedTypes.includes(movementType)) {
+                return Chat.message(`§cInvalid type! Use: ${allowedTypes.join(', ')}`);
+            }
+
             const isMineable = movementType === 'MINEABLE';
-            const indexNum = Number.isNaN(finalIndex) ? undefined : finalIndex;
 
             this.route = Router.Edit(
                 actionUpper,
                 this.route,
                 `OreRoutes/${this.loadedFile}`,
-                indexNum,
+                Number.isNaN(finalIndex) ? undefined : finalIndex,
                 !!movementType,
-                ['WALK', 'MINEABLE'],
+                allowedTypes,
                 movementType,
                 isMineable
             );
+
             this.updateRouteMeta();
+            Chat.message(`§aRoute updated: ${actionUpper} ${movementType || ''}`);
         });
 
         this.when(
