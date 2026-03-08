@@ -1,9 +1,14 @@
 import { AlertUtils } from '../../failsafes/AlertUtils';
 import { getSetting } from '../../gui/GuiSave';
 import { Chat } from '../../utils/Chat';
-import { File, globalAssetsDir } from '../../utils/Constants';
+import { File, globalAssetsDir, V5Auth } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { DisconnectS2C } from '../../utils/Packets';
+import { DisconnectS2C, LoginDisconnectS2C } from '../../utils/Packets';
+import { MacroState } from '../../utils/MacroState';
+const JURL = Java.type('java.net.URL');
+const JHttpURLConnection = Java.type('java.net.HttpURLConnection');
+const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
+const JScanner = Java.type('java.util.Scanner');
 
 class Failsafes extends ModuleBase {
     constructor() {
@@ -28,11 +33,13 @@ class Failsafes extends ModuleBase {
         this.pingOnCheck = 'Ping';
         this.playSoundOnCheck = true;
 
-        this.on('packetReceived', (packet) => {
+        register('packetReceived', (packet) => {
+            //  console.log('MEOW.');
             if (!this.clipOnBan) return;
             const reason = packet?.reason();
-            const fullText = reason?.getString();
+            const fullText = reason?.getString?.() || reason?.toString?.();
             const lowerText = fullText?.toLowerCase();
+
             if (
                 lowerText?.includes('banned') ||
                 lowerText?.includes('cheating') ||
@@ -40,9 +47,36 @@ class Failsafes extends ModuleBase {
                 lowerText?.includes('security') ||
                 lowerText?.includes('chat')
             ) {
+                const lastMacro = MacroState.getLastActiveMacro() || 'None';
+                this.postBanLog(fullText, lastMacro);
                 ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(DisconnectS2C);
+
+        register('packetReceived', (packet) => {
+            const reason = packet?.reason();
+            const fullText = reason?.getString?.() || reason?.toString?.();
+            const lowerText = fullText?.toLowerCase();
+
+            if (
+                lowerText?.includes('banned') ||
+                lowerText?.includes('cheating') ||
+                lowerText?.includes('boosting') ||
+                lowerText?.includes('security') ||
+                lowerText?.includes('chat')
+            ) {
+                const lastMacro = MacroState.getLastActiveMacro() || 'None';
+                this.postBanLog(fullText, lastMacro);
+                ChatLib.command('v5 clip', true);
+            }
+        }).setFilteredClass(LoginDisconnectS2C);
+
+        this.on('command', (...args) => {
+            if (!this.clipOnBan) return;
+            const lastMacro = MacroState.getLastActiveMacro() || 'None';
+            this.postBanLog('Test Banned for Cheating', lastMacro, true);
+            ChatLib.command('v5 clip', true);
+        }).setName('testbanlog');
 
         const sectionName = 'Failsafes';
 
@@ -132,6 +166,39 @@ class Failsafes extends ModuleBase {
             false,
             sectionName
         );
+    }
+
+    postBanLog(reason, lastMacro, verbose = false) {
+        new Thread(() => {
+            try {
+                const jwt = V5Auth.getJwtToken();
+                const url = new JURL('https://backend.rdbt.top/api/logs/bans');
+                const conn = url.openConnection();
+                conn.setRequestMethod('POST');
+                conn.setDoOutput(true);
+                conn.setRequestProperty('Authorization', `Bearer ${jwt}`);
+                conn.setRequestProperty('Content-Type', 'application/json; charset=UTF-8');
+
+                const body = JSON.stringify({
+                    reason: reason,
+                    lastMacro: lastMacro,
+                });
+
+                const wr = new JOutputStreamWriter(conn.getOutputStream());
+                wr.write(body);
+                wr.close();
+
+                const status = conn.getResponseCode();
+                if (status >= 200 && status < 300) {
+                    if (verbose) console.log(`Ban log sent.`);
+                } else {
+                    console.error(`Error sending ban log. Status: ${status}`);
+                }
+                conn.disconnect();
+            } catch (e) {
+                console.error(`Exception sending ban log: ${e}`);
+            }
+        }).start();
     }
 
     getFilesinDir() {
