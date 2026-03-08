@@ -26,7 +26,7 @@ const setPickerColor = (picker, value) => {
 
     let safeValue = value;
     if (typeof safeValue === 'number') {
-        safeValue = Math.trunc(safeValue);
+        safeValue = Math.trunc(safeValue) | 0;
     }
 
     const resolved = safeValue instanceof Color ? safeValue : new Color(safeValue);
