@@ -35,7 +35,6 @@ class Failsafes extends ModuleBase {
 
         register('packetReceived', (packet) => {
             //  console.log('MEOW.');
-            if (!this.clipOnBan) return;
             const reason = packet?.reason();
             const fullText = reason?.getString?.() || reason?.toString?.();
             const lowerText = fullText?.toLowerCase();
@@ -49,7 +48,7 @@ class Failsafes extends ModuleBase {
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
                 this.postBanLog(fullText, lastMacro);
-                ChatLib.command('v5 clip', true);
+                if (this.clipOnBan) ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(DisconnectS2C);
 
@@ -67,15 +66,14 @@ class Failsafes extends ModuleBase {
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
                 this.postBanLog(fullText, lastMacro);
-                ChatLib.command('v5 clip', true);
+                if (this.clipOnBan) ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(LoginDisconnectS2C);
 
         this.on('command', (...args) => {
-            if (!this.clipOnBan) return;
             const lastMacro = MacroState.getLastActiveMacro() || 'None';
             this.postBanLog('Test Banned for Cheating', lastMacro, true);
-            ChatLib.command('v5 clip', true);
+            if (this.clipOnBan) ChatLib.command('v5 clip', true);
         }).setName('testbanlog');
 
         const sectionName = 'Failsafes';
