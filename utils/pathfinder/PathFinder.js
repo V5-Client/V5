@@ -30,7 +30,7 @@ class Finder {
         this.currentCallback = null;
         this.recalculateAttempts = 0;
         this.recalculateRetryQueued = false;
-        this.MAX_RECALCULATE_ATTEMPTS = 5;
+        this.MAX_RECALCULATE_ATTEMPTS = 9;
         this.recalculateScheduleId = 0;
         this.searchStartedAt = 0;
         this.SEARCH_TIMEOUT_MS = 25000;
