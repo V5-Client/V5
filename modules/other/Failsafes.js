@@ -70,11 +70,11 @@ class Failsafes extends ModuleBase {
             }
         }).setFilteredClass(LoginDisconnectS2C);
 
-        this.on('command', (...args) => {
-            const lastMacro = MacroState.getLastActiveMacro() || 'None';
-            this.postBanLog('Test Banned for Cheating', lastMacro, MacroState.isMacroRunning(), true);
-            if (this.clipOnBan) ChatLib.command('v5 clip', true);
-        }).setName('testbanlog');
+        // this.on('command', (...args) => {
+        //     const lastMacro = MacroState.getLastActiveMacro() || 'None';
+        //     this.postBanLog('Test Banned for Cheating', lastMacro, MacroState.isMacroRunning(), true);
+        //     if (this.clipOnBan) ChatLib.command('v5 clip', true);
+        // }).setName('testbanlog');
 
         const sectionName = 'Failsafes';
 
