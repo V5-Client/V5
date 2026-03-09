@@ -368,4 +368,4 @@ class RouteWalkerer extends ModuleBase {
     }
 }
 
-new RouteWalkerer();
+export const RouteWalker = new RouteWalkerer();

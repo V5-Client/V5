@@ -1,55 +1,56 @@
 /* MINING */
-import './mining/CommissionMacro.js';
-import './mining/ExcavatorMacro.js';
-import './mining/LobbyHopper.js';
-import './mining/Nuker.js';
-import './mining/OreMacro.js';
-import './mining/PinglessMining.js';
-//import './mining/PowderMacro.js';
-//import './Mining/ScathaMacro.js';
-import './mining/TunnelsMiner.js';
+import './mining/CommissionMacro';
+import './mining/ExcavatorMacro';
+import './mining/LobbyHopper';
+import './mining/ArmadilloSetupMacro';
+import './mining/Nuker';
+import './mining/OreMacro';
+import './mining/PinglessMining';
+//import './mining/PowderMacro';
+//import './Mining/ScathaMacro';
+import './mining/TunnelsMiner';
 
 /* FORAGING */
-import './foraging/AutoHarp.js';
-import './foraging/HuntingHelpers.js';
-//import './foraging/SeaLumieMacro.js';
+import './foraging/AutoHarp';
+import './foraging/HuntingHelpers';
+//import './foraging/SeaLumieMacro';
 
 /* FARMING */
-import './farming/FarmingMacro/FarmingMacro.js';
-import './farming/PestESP.js';
+import './farming/FarmingMacro/FarmingMacro';
+import './farming/PestESP';
 
 /* VISUALS */
-import './visuals/BlockVisual.js';
-import './visuals/ESP.js';
-import './visuals/GIF.js';
-import './visuals/HUD.js';
-import './visuals/MobHider.js';
-import './visuals/MusicOverlay.js';
-import './visuals/ProfileHider.js';
-import './visuals/StructureESP.js';
-import './visuals/Xray.js';
+import './visuals/BlockVisual';
+import './visuals/ESP';
+import './visuals/GIF';
+import './visuals/HUD';
+import './visuals/MobHider';
+import './visuals/MusicOverlay';
+import './visuals/ProfileHider';
+import './visuals/StructureESP';
+import './visuals/Xray';
 
 /* SKILLS */
-import './skills/AutoExperiments.js';
-import './skills/FishingHelper.js';
-import './skills/FishingMacro.js';
-import './skills/JerryBoxMacro.js';
-import './skills/MinionCollector.js';
-import './skills/RouteWalker.js';
+import './skills/AutoExperiments';
+import './skills/FishingHelper';
+import './skills/FishingMacro';
+import './skills/JerryBoxMacro';
+import './skills/MinionCollector';
+import './skills/RouteWalker';
 
 /* OTHER */
-import './other/AutoBeg.js';
-import './other/AutoConversation.js';
-import './other/AutoIceFill.js';
-import './other/BeachBaller.js';
-import './other/BloodBlink.js';
-import './other/CancelInteract.js';
-import './other/ChatQOL.js';
-import './other/DiscordRPC.js';
-//import './other/DungeonRoutes.js'; // IS NOT A FILE, RDBT HASN'T PUSHED YET
-import './other/Failsafes.js';
-import './other/InventoryWalk.js';
-import './other/LeftClickEtherwarp.js';
-import './other/RatProtection.js';
-import './other/VoidgloomHelper.js';
-import './other/AutoCombine.js';
+import './other/AutoBeg';
+import './other/AutoConversation';
+import './other/AutoIceFill';
+import './other/BeachBaller';
+import './other/BloodBlink';
+import './other/CancelInteract';
+import './other/ChatQOL';
+import './other/DiscordRPC';
+//import './other/DungeonRoutes'; // IS NOT A FILE, RDBT HASN'T PUSHED YET
+import './other/Failsafes';
+import './other/InventoryWalk';
+import './other/LeftClickEtherwarp';
+import './other/RatProtection';
+import './other/VoidgloomHelper';
+import './other/AutoCombine';

@@ -1,7 +1,7 @@
-import { drawRect, drawText } from '../gui/Utils.js';
-import { Chat } from '../utils/Chat.js';
+import { drawRect, drawText } from '../gui/Utils';
+import { Chat } from '../utils/Chat';
 import { File, KeyBindUtils, NVG, globalAssetsDir } from '../utils/Constants';
-import { Utils } from '../utils/Utils.js';
+import { Utils } from '../utils/Utils';
 import FailsafeUtils from './FailsafeUtils';
 
 let failsafeSound = 'Tave Check.wav';
@@ -207,7 +207,7 @@ class AlertUtilsClass {
      */
     _makeFailsafeKeybind() {
         const keyName = 'Cancel Reaction';
-        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const existingKeybinds = Utils.getConfigFile('keybindson') || {};
         let savedKeycode = existingKeybinds[keyName];
 
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
@@ -222,9 +222,9 @@ class AlertUtilsClass {
         });
 
         register('gameUnload', () => {
-            let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+            let allKeybinds = Utils.getConfigFile('keybindson') || {};
             allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
-            Utils.writeConfigFile('keybinds.json', allKeybinds);
+            Utils.writeConfigFile('keybindson', allKeybinds);
 
             this.stopSound();
         });

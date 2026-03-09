@@ -1,9 +1,9 @@
-import ChatMentionFailsafe from './impl/ChatMentionFailsafe.js';
-import PlayerGriefFailsafe from './impl/PlayerGriefFailsafe.js';
-import RotationFailsafe from './impl/RotationFailsafe.js';
-import SlotChangeFailsafe from './impl/SlotChangeFailsafe.js';
-import TeleportFailsafe from './impl/TeleportFailsafe.js';
-import VelocityFailsafe from './impl/VelocityFailsafe.js';
+import ChatMentionFailsafe from './impl/ChatMentionFailsafe';
+import PlayerGriefFailsafe from './impl/PlayerGriefFailsafe';
+import RotationFailsafe from './impl/RotationFailsafe';
+import SlotChangeFailsafe from './impl/SlotChangeFailsafe';
+import TeleportFailsafe from './impl/TeleportFailsafe';
+import VelocityFailsafe from './impl/VelocityFailsafe';
 
 // just keep it here to import all the failsafes to loader :)
 class FailsafeManager {

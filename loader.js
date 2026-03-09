@@ -2,33 +2,33 @@ com.chattriggers.ctjs.api.Config.setAutoUpdateModules(false);
 com.chattriggers.ctjs.api.Config.setOpenConsoleOnError(true);
 
 /* KEYBINDS */
-import './utils/KeybindInitializer.js';
+import './utils/KeybindInitializer';
 
 /* COMMANDS */
-import './utils/V5Commands.js';
+import './utils/V5Commands';
 
 /* GUI */
-import './gui/GUI.js';
+import './gui/GUI';
 
 /* CORE */
-import './utils/Config.js';
-import './utils/backend/WebSocket.js';
+import './utils/Config';
+import './utils/backend/WebSocket';
 
 /* Utils */
-import './utils/MacroState.js';
-import './modules/other/MacroScheduler.js';
-import './modules/other/MacroControllers.js';
-import './modules/other/DiscordIntegration.js';
-import './utils/pathfinder/PathFinder.js';
-import './utils/Clipping.js';
-import './utils/Misc.js';
-import './failsafes/FailsafeManager.js';
-import './utils/V5Mod.js';
-import './utils/SkyblockEvents.js';
+import './utils/MacroState';
+import './modules/other/MacroScheduler';
+import './modules/other/MacroControllers';
+import './modules/other/DiscordIntegration';
+import './utils/pathfinder/PathFinder';
+import './utils/Clipping';
+import './utils/Misc';
+import './failsafes/FailsafeManager';
+import './utils/V5Mod';
+import './utils/SkyblockEvents';
 
 /* Modules */
-import './modules/loader.js';
-import './utils/Debugging.js';
+import './modules/loader';
+import './utils/Debugging';
 
 import { loadSettings } from './gui/GuiSave';
 loadSettings();
