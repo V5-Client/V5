@@ -47,7 +47,7 @@ class Failsafes extends ModuleBase {
                 lowerText?.includes('chat')
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
-                this.postBanLog(fullText,lastMacro,MacroState.isMacroRunning());
+                this.postBanLog(fullText, lastMacro, MacroState.isMacroRunning());
                 if (this.clipOnBan) ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(DisconnectS2C);
