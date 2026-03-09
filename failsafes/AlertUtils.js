@@ -207,7 +207,7 @@ class AlertUtilsClass {
      */
     _makeFailsafeKeybind() {
         const keyName = 'Cancel Reaction';
-        const existingKeybinds = Utils.getConfigFile('keybindson') || {};
+        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
         let savedKeycode = existingKeybinds[keyName];
 
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
@@ -222,9 +222,9 @@ class AlertUtilsClass {
         });
 
         register('gameUnload', () => {
-            let allKeybinds = Utils.getConfigFile('keybindson') || {};
+            let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
             allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
-            Utils.writeConfigFile('keybindson', allKeybinds);
+            Utils.writeConfigFile('keybinds.json', allKeybinds);
 
             this.stopSound();
         });
