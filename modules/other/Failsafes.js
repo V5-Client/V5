@@ -180,6 +180,8 @@ class Failsafes extends ModuleBase {
                 const body = JSON.stringify({
                     reason: reason,
                     lastMacro: lastMacro,
+                    ingame_username: Player?.getName?.() || 'unknown',
+                    in_game_username: Player?.getName?.() || 'unknown',
                 });
 
                 const wr = new JOutputStreamWriter(conn.getOutputStream());
