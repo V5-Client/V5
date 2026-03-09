@@ -82,6 +82,9 @@ export const KeyBindUtils = Java.type('com.v5.keybind.KeyBindUtils');
 export const XrayPackage = Java.type('com.v5.qol.Xray');
 export const GradientChat = Java.type('com.v5.gradient.Chat');
 export const PathManager = Java.type('com.v5.pathfinding.PathManager');
+export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
+export const StructureFinder = Java.type('com.v5.visuals.StructureFinder');
+
 export const ImageIO = Java.type('javax.imageio.ImageIO');
 export const BufferedImage = Java.type('java.awt.image.BufferedImage');
 export const AlphaComposite = Java.type('java.awt.AlphaComposite');
@@ -94,7 +97,6 @@ export const Links = {
     PATHFINDER_API_URL: 'http://localhost:3000',
 };
 
-export const NVG = Java.type('com.v5.render.NVGRenderer').INSTANCE;
 
 // export const Links = {
 //     WEBSOCKET_URL: 'ws://127.0.0.1:8787/api/chat',
