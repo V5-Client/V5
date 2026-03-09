@@ -341,8 +341,8 @@ class PathJumps {
             return;
         }
 
-        if ((nextFlags & this.FLAG_STEP_UP_NEXT) && this.checkPreemptiveClimbJump(path, closestIndex)) return;
-        
+        if (nextFlags & this.FLAG_STEP_UP_NEXT && this.checkPreemptiveClimbJump(path, closestIndex)) return;
+
         if (this.checkPreemptiveClimbJump(path, closestIndex)) return;
 
         if (this.checkGapJump(path, closestIndex)) return;

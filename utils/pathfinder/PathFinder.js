@@ -471,7 +471,7 @@ class Finder {
             return;
         }
 
-        if ((flags & TIGHT) || (flags & NEAR_EDGE)) {
+        if (flags & TIGHT || flags & NEAR_EDGE) {
             Rotations.setTemporaryLookahead(Math.max(Rotations.RECOVERY_MIN_LOOKAHEAD, 0.35), 6);
         }
     }

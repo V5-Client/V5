@@ -171,7 +171,7 @@ class SwiftIntegration {
             return '';
         }
     }
- 
+
     cancel() {
         this.cachedResult = null;
         PathManager.cancelSearch();
