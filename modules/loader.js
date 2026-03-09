@@ -2,7 +2,6 @@
 import './mining/CommissionMacro';
 import './mining/ExcavatorMacro';
 import './mining/LobbyHopper';
-import './mining/ArmadilloSetupMacro';
 import './mining/Nuker';
 import './mining/OreMacro';
 import './mining/PinglessMining';
