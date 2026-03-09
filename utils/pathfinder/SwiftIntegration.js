@@ -40,10 +40,7 @@ class SwiftIntegration {
         return javaArray;
     }
 
-    // I dont know what codex wrote but it works
-    // This needs to be fixed but anytime i change anything it breaks more
-    // Good luck for whoever tries next
-    SwiftPath(startPoints, endPoints, isFly = false) {
+    SwiftPath(startPoints, endPoints, isFly = false, variantSeed = 0) {
         this.cachedResult = null;
 
         const fly = isFly === true;
@@ -57,6 +54,7 @@ class SwiftIntegration {
             const startArray = this.toJavaPointArray(startPoints, fly);
             const endArray = this.toJavaPointArray(endPoints, fly);
             if (!startArray || !endArray) return false;
+            this.setSearchVariantSeed(variantSeed);
 
             if (fly) {
                 return this.pathManager.findFlyPath(startArray, endArray);
@@ -101,12 +99,24 @@ class SwiftIntegration {
             keynodes.push({ x: keyArr[i], y: keyArr[i + 1], z: keyArr[i + 2] });
         }
 
+        const pathFlags = this.readIntArraySafely(() => PathManager.getPathFlagsArray());
+        const keyNodeFlags = this.readIntArraySafely(() => PathManager.getKeyNodeFlagsArray());
+        const keyNodeMetrics = this.readIntArraySafely(() => PathManager.getKeyNodeMetricsArray());
+        const pathFlagBits = this.readIntArraySafely(() => PathManager.getPathFlagBits());
+        const pathSignature = this.readStringSafely(() => PathManager.getPathSignature());
+
         const result = {
             path: path,
             keynodes: keynodes,
             path_between_key_nodes: path,
             time_ms: PathManager.getLastTimeMs(),
             nodes_explored: PathManager.getNodesExplored(),
+            selected_start_index: this.getSelectedStartIndex(),
+            path_flags: pathFlags,
+            keynode_flags: keyNodeFlags,
+            keynode_metrics: keyNodeMetrics,
+            path_flag_bits: pathFlagBits,
+            path_signature: pathSignature,
         };
 
         this.cachedResult = result;
@@ -117,6 +127,51 @@ class SwiftIntegration {
         return PathManager.getLastError();
     }
 
+    setSearchVariantSeed(seed) {
+        PathManager.setSearchVariantSeed(Math.floor(Number(seed)) || 0);
+    }
+
+    getSelectedStartIndex() {
+        const index = PathManager.getSelectedStartIndex();
+        return typeof index === 'number' ? index : -1;
+    }
+
+    addTransientAvoidPoint(x, y, z, radius = 2, penalty = 36, ttlSearches = 2) {
+        PathManager.addTransientAvoidPoint(
+            Math.floor(Number(x)) || 0,
+            Math.floor(Number(y)) || 0,
+            Math.floor(Number(z)) || 0,
+            Math.max(1, Math.floor(Number(radius)) || 2),
+            Number(penalty) || 36,
+            Math.max(1, Math.floor(Number(ttlSearches)) || 2)
+        );
+    }
+
+    clearTransientAvoidPoints() {
+        PathManager.clearTransientAvoidPoints();
+    }
+
+    readIntArraySafely(getter) {
+        try {
+            const arr = getter();
+            if (!arr || typeof arr.length !== 'number') return [];
+            const out = new Array(arr.length);
+            for (let i = 0; i < arr.length; i++) out[i] = Number(arr[i]) || 0;
+            return out;
+        } catch (e) {
+            return [];
+        }
+    }
+
+    readStringSafely(getter) {
+        try {
+            const value = getter();
+            return typeof value === 'string' ? value : value ? String(value) : '';
+        } catch (e) {
+            return '';
+        }
+    }
+ 
     cancel() {
         this.cachedResult = null;
         PathManager.cancelSearch();

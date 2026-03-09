@@ -16,6 +16,16 @@ class PathJumps {
 
         this.STEP_HEIGHT = 0.6;
         this.LOOKAHEAD_NODES = 3;
+        this.PREEMPTIVE_JUMP_DISTANCE = 1.65;
+
+        this.FLAG_FLUID_FEET = 1 << 0;
+        this.FLAG_FLUID_HEAD = 1 << 1;
+        this.FLAG_LOW_HEADROOM = 1 << 2;
+        this.FLAG_NEAR_EDGE = 1 << 3;
+        this.FLAG_NEAR_WALL = 1 << 4;
+        this.FLAG_STEP_UP_NEXT = 1 << 5;
+        this.FLAG_DROP_NEXT = 1 << 6;
+        this.FLAG_TIGHT_CORRIDOR = 1 << 7;
 
         PathExecutor.onTick(() => {
             this.cacheFrame++;
@@ -210,6 +220,34 @@ class PathJumps {
         return false;
     }
 
+    checkPreemptiveClimbJump(path, closestIndex) {
+        if (!Array.isArray(path) || closestIndex < 0) return false;
+        if (closestIndex + 1 >= path.length) return false;
+
+        const currentNode = path[closestIndex];
+        const nextNode = path[closestIndex + 1];
+        if (!currentNode || !nextNode) return false;
+
+        const currentY = Math.round(currentNode.y);
+        const nextY = Math.round(nextNode.y);
+        if (nextY <= currentY) return false;
+
+        const targetX = nextNode.x + 0.5;
+        const targetZ = nextNode.z + 0.5;
+        const dx = targetX - Player.getX();
+        const dz = targetZ - Player.getZ();
+        const distSq = dx * dx + dz * dz;
+
+        if (distSq > this.PREEMPTIVE_JUMP_DISTANCE * this.PREEMPTIVE_JUMP_DISTANCE) return false;
+
+        const rise = nextY - Math.floor(Player.getY() - 0.001);
+        if (rise < 1 || rise > 2) return false;
+
+        if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Predictive climb jump');
+        Keybind.setKey('space', true);
+        return true;
+    }
+
     checkGapJump(path, closestIndex) {
         if (closestIndex === -1 || path.length < closestIndex + 3) return false;
 
@@ -257,8 +295,21 @@ class PathJumps {
         return false;
     }
 
-    detectJump(path) {
+    applyFlagBits(flagBits) {
+        if (!Array.isArray(flagBits) || flagBits.length < 8) return;
+        this.FLAG_FLUID_FEET = flagBits[0] || this.FLAG_FLUID_FEET;
+        this.FLAG_FLUID_HEAD = flagBits[1] || this.FLAG_FLUID_HEAD;
+        this.FLAG_LOW_HEADROOM = flagBits[2] || this.FLAG_LOW_HEADROOM;
+        this.FLAG_NEAR_EDGE = flagBits[3] || this.FLAG_NEAR_EDGE;
+        this.FLAG_NEAR_WALL = flagBits[4] || this.FLAG_NEAR_WALL;
+        this.FLAG_STEP_UP_NEXT = flagBits[5] || this.FLAG_STEP_UP_NEXT;
+        this.FLAG_DROP_NEXT = flagBits[6] || this.FLAG_DROP_NEXT;
+        this.FLAG_TIGHT_CORRIDOR = flagBits[7] || this.FLAG_TIGHT_CORRIDOR;
+    }
+
+    detectJump(path, pathFlags = null, pathFlagBits = null) {
         if (!Player.getPlayer()) return this.reset();
+        this.applyFlagBits(pathFlagBits);
         if (this.jumpSuppressTicks > 0) {
             Keybind.setKey('space', false);
             return;
@@ -268,6 +319,14 @@ class PathJumps {
         this.currentLookaheadVecs = lookahead;
 
         if (closestIndex === -1) return this.reset();
+        const nextFlags = Array.isArray(pathFlags) ? pathFlags[Math.min(pathFlags.length - 1, Math.max(0, closestIndex + 1))] || 0 : 0;
+
+        if (nextFlags & this.FLAG_LOW_HEADROOM) {
+            this.suppressJump(4);
+            Keybind.setKey('space', false);
+            return;
+        }
+
         if (this.checkFluidJump()) return;
 
         if (!Player.getPlayer().isOnGround()) {
@@ -281,6 +340,10 @@ class PathJumps {
             this.reset();
             return;
         }
+
+        if ((nextFlags & this.FLAG_STEP_UP_NEXT) && this.checkPreemptiveClimbJump(path, closestIndex)) return;
+        
+        if (this.checkPreemptiveClimbJump(path, closestIndex)) return;
 
         if (this.checkGapJump(path, closestIndex)) return;
 

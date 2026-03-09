@@ -34,6 +34,10 @@ class Finder {
         this.recalculateScheduleId = 0;
         this.searchStartedAt = 0;
         this.SEARCH_TIMEOUT_MS = 25000;
+        this.pathVariantSeed = 0;
+        this.lastPathSignature = '';
+        this.samePathSignatureCount = 0;
+        this.lastRecalculateReason = '';
 
         this.currentStarts = null;
         this.startCandidates = [];
@@ -125,6 +129,9 @@ class Finder {
         this.hasReachedWarpPoint = false;
         if (!preserveRecalculateAttempts) {
             this.recalculateAttempts = 0;
+            this.pathVariantSeed = 0;
+            this.lastPathSignature = '';
+            this.samePathSignatureCount = 0;
         }
 
         const start = starts[0];
@@ -134,7 +141,7 @@ class Finder {
             Chat.messagePathfinder(`Path from &a${start[0]}, ${start[1]}, ${start[2]}&f to &c${endStr}`);
         }
 
-        if (!Swift.SwiftPath(starts, end, isFly)) {
+        if (!Swift.SwiftPath(starts, end, isFly, this.pathVariantSeed)) {
             showNotification('Pathfinding Failed', Swift.getLastError() || 'Failed to start', 'ERROR', 5000);
             return;
         }
@@ -160,7 +167,7 @@ class Finder {
                     }
                     Swift.cancel();
                     Swift.clear();
-                    this.recalculate();
+                    this.recalculate('search_timeout');
                 }
                 return;
             }
@@ -198,6 +205,7 @@ class Finder {
                 Chat.messagePathfinder(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
                 this.saidInfo = true;
             }
+            this.updatePathSignatureState(result);
 
             if (!this.handleStartPointWarp(result)) return;
 
@@ -222,14 +230,15 @@ class Finder {
                 if (!splinePath?.length) return;
 
                 if (Rotations.boxPositions?.length && Rotations.complete) {
-                    this.checkIfReachedDestination() ? this.finishSuccess() : this.recalculate();
+                    this.checkIfReachedDestination() ? this.finishSuccess() : this.recalculate('rotation_complete_not_at_goal');
                     return;
                 }
 
                 Executor.execute(() => {
                     Rotations.pathRotations(splinePath);
+                    this.applyPathRuntimeHints(result);
                     Aote.onPathTick(Rotations);
-                    Jump.detectJump(result.path_between_key_nodes);
+                    Jump.detectJump(result.path_between_key_nodes, result.path_flags, result.path_flag_bits);
                     Movement.beginMovement();
 
                     if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
@@ -249,7 +258,7 @@ class Finder {
                     }
 
                     if (!Recovery.isStallRecoveryActive() && NonChangeRecovery.trackProgress(Rotations.currentPathPosition)) {
-                        this.recalculate();
+                        this.recalculate('nonchange_progress');
                         return;
                     }
                 });
@@ -340,13 +349,22 @@ class Finder {
                 //Movement.forceJump(4);
                 break;
             case 'BACKUP_RECALC':
-                Movement.backup(15, () => this.recalculate());
+                this.addTransientAvoidAtPlayer(2, 42, 2);
+                Movement.backup(15, () => this.recalculate('backup_recalc'));
                 break;
         }
     }
 
-    recalculate() {
+    recalculate(reason = 'generic') {
+        this.lastRecalculateReason = reason;
+        if (!this.isFly) {
+            const intensity = this.samePathSignatureCount >= 2 ? 2 : 1;
+            this.pathVariantSeed += intensity;
+            this.addTransientAvoidAtPlayer(2 + Math.min(1, intensity), 34 + intensity * 8, 2);
+        }
+
         this.recalculateAttempts++;
+        this.pathVariantSeed = Math.max(this.pathVariantSeed, this.recalculateAttempts);
         this.recalculateRetryQueued = false;
 
         if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
@@ -385,7 +403,81 @@ class Finder {
         });
     }
 
+    updatePathSignatureState(result) {
+        const signature = typeof result?.path_signature === 'string' ? result.path_signature : '';
+        if (!signature) {
+            this.lastPathSignature = '';
+            this.samePathSignatureCount = 0;
+            return;
+        }
+
+        if (signature === this.lastPathSignature) {
+            this.samePathSignatureCount++;
+        } else {
+            this.lastPathSignature = signature;
+            this.samePathSignatureCount = 0;
+        }
+
+        if (this.samePathSignatureCount >= 2 && this.recalculateAttempts > 0) {
+            this.pathVariantSeed += 1;
+            this.addTransientAvoidAtPlayer(3, 48, 2);
+        }
+    }
+
+    addTransientAvoidAtPlayer(radius = 2, penalty = 36, ttlSearches = 2) {
+        if (this.isFly) return;
+        const player = Player.getPlayer();
+        if (!player) return;
+
+        const x = Math.floor(Player.getX());
+        const y = Math.floor(Player.getY());
+        const z = Math.floor(Player.getZ());
+
+        Swift.addTransientAvoidPoint(x, y, z, 1, Math.max(8, penalty * 0.45), Math.max(1, ttlSearches));
+
+        const yaw = Number(Player.getYaw()) || 0;
+        const yawRad = ((yaw + 90) * Math.PI) / 180;
+        let fx = Math.round(Math.cos(yawRad));
+        let fz = Math.round(Math.sin(yawRad));
+        if (fx === 0 && fz === 0) fx = 1;
+
+        const cluster = [
+            [x + fx, y, z + fz, radius, penalty],
+            [x + fx * 2, y, z + fz * 2, radius, penalty * 1.15],
+            [x + fz, y, z - fx, Math.max(1, radius - 1), penalty * 0.7],
+            [x - fz, y, z + fx, Math.max(1, radius - 1), penalty * 0.7],
+        ];
+
+        cluster.forEach((p) => {
+            Swift.addTransientAvoidPoint(p[0], p[1], p[2], Math.max(1, Math.floor(p[3])), Number(p[4]) || penalty, ttlSearches);
+        });
+    }
+
+    applyPathRuntimeHints(result) {
+        if (!result || this.isFly || Recovery.isStallRecoveryActive()) return;
+        if (!Array.isArray(result.path_flags) || !result.path_flags.length) return;
+
+        const pathIndex = Math.max(0, Math.min(result.path_flags.length - 1, Math.floor(Rotations.currentPathPosition || 0)));
+        const flags = result.path_flags[pathIndex] || 0;
+
+        const bits = Array.isArray(result.path_flag_bits) && result.path_flag_bits.length >= 8 ? result.path_flag_bits : null;
+        const LOW_HEAD = bits ? bits[2] : 1 << 2;
+        const NEAR_EDGE = bits ? bits[3] : 1 << 3;
+        const TIGHT = bits ? bits[7] : 1 << 7;
+
+        if (flags & LOW_HEAD) {
+            Jump.suppressJump(4);
+            Rotations.setTemporaryLookahead(Rotations.RECOVERY_MIN_LOOKAHEAD, 8);
+            return;
+        }
+
+        if ((flags & TIGHT) || (flags & NEAR_EDGE)) {
+            Rotations.setTemporaryLookahead(Math.max(Rotations.RECOVERY_MIN_LOOKAHEAD, 0.35), 6);
+        }
+    }
+
     retryRecalculate() {
+        this.pathVariantSeed = Math.max(this.pathVariantSeed, this.recalculateAttempts);
         const end = this.currentEnd;
         const starts = this.currentStarts;
         const callback = this.currentCallback;
@@ -550,6 +642,18 @@ class Finder {
         const start = this.isFly ? this.getPlayerFlyStart() : this.getPlayerStart();
         const playerPoint = [start.x, start.y, start.z];
 
+        if (!this.isFly) {
+            const variantPoint = this.getVariantWalkStart(playerPoint, this.pathVariantSeed);
+            if (variantPoint) {
+                points.push(variantPoint);
+                metadata.push({
+                    type: 'player_variant',
+                    point: [variantPoint[0], variantPoint[1], variantPoint[2]],
+                    seed: this.pathVariantSeed,
+                });
+            }
+        }
+
         points.push(playerPoint);
         metadata.push({
             type: 'player',
@@ -572,6 +676,49 @@ class Finder {
         });
 
         return { points, metadata };
+    }
+
+    getVariantWalkStart(playerPoint, seed = 0) {
+        if (!Array.isArray(playerPoint) || playerPoint.length < 3 || !Number.isFinite(seed) || seed <= 0) {
+            return null;
+        }
+
+        const [baseX, baseY, baseZ] = playerPoint;
+        const offsets = [
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+            [0, -1],
+            [1, 1],
+            [1, -1],
+            [-1, 1],
+            [-1, -1],
+            [2, 0],
+            [0, 2],
+            [-2, 0],
+            [0, -2],
+        ];
+
+        const startIndex = seed % offsets.length;
+        for (let i = 0; i < offsets.length; i++) {
+            const idx = (startIndex + i) % offsets.length;
+            const [dx, dz] = offsets[idx];
+            const x = baseX + dx;
+            const z = baseZ + dz;
+
+            if (this.isWalkColumnValid(x, baseY, z)) {
+                return [x, baseY, z];
+            }
+        }
+
+        return null;
+    }
+
+    isWalkColumnValid(x, groundY, z) {
+        if (this.isBlockWalkable(x, groundY, z)) return false;
+        if (!this.isBlockWalkable(x, groundY + 1, z)) return false;
+        if (!this.isBlockWalkable(x, groundY + 2, z)) return false;
+        return true;
     }
 
     handleStartPointWarp(result) {
@@ -643,9 +790,12 @@ class Finder {
         return false;
     }
 
-    // The pathfinder doesnt explicity state what start point was used.
-    // Check all start points with the first node to find the closest to see which one was used.
     resolvePathStartCandidate(result) {
+        const selectedStartIndex = typeof result?.selected_start_index === 'number' ? result.selected_start_index : -1;
+        if (selectedStartIndex >= 0 && selectedStartIndex < this.startCandidates.length) {
+            return this.startCandidates[selectedStartIndex];
+        }
+
         const firstNode = result?.path?.[0];
         if (!firstNode) return this.startCandidates[0];
 
@@ -743,6 +893,9 @@ class Finder {
         }
         Swift.cancel();
         Swift.clear();
+        if (clearFlags) {
+            Swift.clearTransientAvoidPoints();
+        }
 
         this.flyStarted = false;
         this.flyStartDelayTicks = 0;
@@ -766,6 +919,10 @@ class Finder {
             this.currentCallback = null;
             this.recalculateAttempts = 0;
             this.recalculateRetryQueued = false;
+            this.pathVariantSeed = 0;
+            this.lastPathSignature = '';
+            this.samePathSignatureCount = 0;
+            this.lastRecalculateReason = '';
             this.isFly = false;
             this.hasReachedWarpPoint = false;
         }
