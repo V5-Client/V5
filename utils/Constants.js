@@ -97,7 +97,6 @@ export const Links = {
     PATHFINDER_API_URL: 'http://localhost:3000',
 };
 
-
 // export const Links = {
 //     WEBSOCKET_URL: 'ws://127.0.0.1:8787/api/chat',
 //     BASE_API_URL: 'http://127.0.0.1:8787',
