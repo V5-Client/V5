@@ -47,7 +47,7 @@ class Failsafes extends ModuleBase {
                 lowerText?.includes('chat')
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
-                this.postBanLog(fullText, lastMacro);
+                this.postBanLog(fullText,lastMacro,MacroState.isMacroRunning());
                 if (this.clipOnBan) ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(DisconnectS2C);
@@ -65,14 +65,14 @@ class Failsafes extends ModuleBase {
                 lowerText?.includes('chat')
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
-                this.postBanLog(fullText, lastMacro);
+                this.postBanLog(fullText, lastMacro, MacroState.isMacroRunning());
                 if (this.clipOnBan) ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(LoginDisconnectS2C);
 
         this.on('command', (...args) => {
             const lastMacro = MacroState.getLastActiveMacro() || 'None';
-            this.postBanLog('Test Banned for Cheating', lastMacro, true);
+            this.postBanLog('Test Banned for Cheating', lastMacro, MacroState.isMacroRunning(), true);
             if (this.clipOnBan) ChatLib.command('v5 clip', true);
         }).setName('testbanlog');
 
@@ -166,7 +166,7 @@ class Failsafes extends ModuleBase {
         );
     }
 
-    postBanLog(reason, lastMacro, verbose = false) {
+    postBanLog(reason, lastMacro, currentlyMacroing, verbose = false) {
         new Thread(() => {
             try {
                 const jwt = V5Auth.getJwtToken();
@@ -180,6 +180,7 @@ class Failsafes extends ModuleBase {
                 const body = JSON.stringify({
                     reason: reason,
                     lastMacro: lastMacro,
+                    currentlyMacroing: currentlyMacroing,
                     ingame_username: Player?.getName?.() || 'unknown',
                 });
 
