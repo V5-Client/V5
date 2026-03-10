@@ -105,21 +105,19 @@ class SunGecko extends ModuleBase {
         this.pathRequestActive = false;
         this.rotationPending = false;
         this.rotationToken = 0;
-        this.stateToken = 0;
         this.actionCooldownUntil = 0;
-        this.combatBotManaged = false;
         this.terracottaClickCooldownUntil = 0;
-        this.holyIceSwapDone = false;
+
         this.createOverlay(
             [
                 {
                     title: 'Status',
                     data: {
                         State: () => this.getStateName(),
-                        Kills: () => this.getKillCount(),
-                        'Kills/hr': () => this.getKillsPerHour(),
-                        Essence: () => this.getEssenceCount(),
-                        'Essence/hr': () => this.getEssencePerHour(),
+                        Kills: () => this.formatNumber(OverlayManager.getTrackedValue(this.oid, 'kills', 0)),
+                        'Kills/hr': () => this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'kills', 0)),
+                        Essence: () => this.formatNumber(OverlayManager.getTrackedValue(this.oid, 'essence', 0)),
+                        'Essence/hr': () => this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'essence', 0)),
                     },
                 },
             ],
@@ -186,9 +184,7 @@ class SunGecko extends ModuleBase {
 
     scheduleState(nextState, delay = 1) {
         this.setState(States.WAITING);
-        const token = ++this.stateToken;
         ScheduleTask(delay, () => {
-            if (!this.enabled || this.stateToken !== token) return;
             this.setState(nextState);
         });
     }
@@ -390,12 +386,9 @@ class SunGecko extends ModuleBase {
             if (CombatBot.enabled) {
                 CombatBot.toggle(false, true);
             }
-            this.combatBotManaged = false;
             this.setState(States.DETERMIN);
             return;
         }
-
-        this.holyIceSwapDone = false;
 
         const nearbyTerracotta = this.countNearbyBlocks('minecraft:red_terracotta');
         if (nearbyTerracotta > 10 && Date.now() >= this.terracottaClickCooldownUntil) {
@@ -412,7 +405,6 @@ class SunGecko extends ModuleBase {
                 Guis.setItemSlot(holyIceSlot);
             }
             CombatBot.toggle(true, true);
-            this.combatBotManaged = true;
         }
     }
 
@@ -427,22 +419,6 @@ class SunGecko extends ModuleBase {
             default:
                 return 'Unknown';
         }
-    }
-
-    getKillCount() {
-        return this.formatNumber(OverlayManager.getTrackedValue(this.oid, 'kills', 0));
-    }
-
-    getEssenceCount() {
-        return this.formatNumber(OverlayManager.getTrackedValue(this.oid, 'essence', 0));
-    }
-
-    getKillsPerHour() {
-        return this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'kills', 0));
-    }
-
-    getEssencePerHour() {
-        return this.formatHourlyRate(OverlayManager.getTrackedValue(this.oid, 'essence', 0));
     }
 
     formatHourlyRate(total) {
@@ -471,31 +447,22 @@ class SunGecko extends ModuleBase {
         this.pathRequestActive = false;
         this.rotationPending = false;
         this.rotationToken = 0;
-        this.stateToken = 0;
         this.actionCooldownUntil = 0;
-        this.combatBotManaged = false;
         this.terracottaClickCooldownUntil = 0;
-        this.holyIceSwapDone = false;
         this.setState(States.DETERMIN);
         Mouse.ungrab();
         Chat.message('&aSunGecko enabled');
     }
 
     onDisable() {
-        this.stateToken++;
         this.pathRequestActive = false;
         this.rotationPending = false;
         Keybind.unpressKeys();
         Pathfinder.resetPath();
         Rotations.stopRotation();
         this.terracottaClickCooldownUntil = 0;
-        this.holyIceSwapDone = false;
         CombatBot.clearExternalTargets();
-        if (this.combatBotManaged && CombatBot.enabled) {
-            CombatBot.toggle(false, true);
-        }
-        this.combatBotManaged = false;
-        if (Guis.guiName() !== null) Guis.closeInv();
+        if (CombatBot.enabled) CombatBot.toggle(false, true);
         this.state = States.WAITING;
         Mouse.regrab();
         Chat.message('&cSunGecko disabled');
