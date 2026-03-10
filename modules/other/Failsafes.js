@@ -47,7 +47,7 @@ class Failsafes extends ModuleBase {
                     Client.scheduleTask(40, () => Clipping.saveClip());
                 }
             }
-        }).setFilteredClass([LoginDisconnectS2C, DisconnectS2C]);
+        }).setFilteredClasses([LoginDisconnectS2C, DisconnectS2C]);
 
         // Helper to keep code clean
 
