@@ -32,6 +32,7 @@ class OreMacro extends ModuleBase {
         });
 
         this.bindToggleKey();
+        this.setTheme('#815bf5');
 
         this.FASTAOTV = false;
 
@@ -148,40 +149,12 @@ class OreMacro extends ModuleBase {
                 return this.supportedIslands.includes(Utils.area());
             },
             'postRenderWorld',
-            () => {
-                if (!this.route || this.route.length < 1) return;
-
-                let pathCounter = 1;
-                let mineCounter = 1;
-
-                for (let i = 0; i < this.route.length; i++) {
-                    const current = this.route[i];
-                    if (!current || typeof current.x !== 'number') continue;
-
-                    let boxColor, edgeColor, label;
-                    const pos = new Vec3d(current.x, current.y, current.z);
-
-                    if (current.movements === 'MINEABLE') {
-                        boxColor = Render.Color(0, 255, 0, 80);
-                        edgeColor = Render.Color(0, 255, 0, 255);
-                        label = `Mineable #${mineCounter++}`;
-                    } else {
-                        boxColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 80) : Render.Color(145, 70, 255, 80);
-                        edgeColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 255) : Render.Color(145, 70, 255, 255);
-                        label = `#${pathCounter++}`;
-                    }
-
-                    if (label) {
-                        Render.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
-                    }
-
-                    Render.drawStyledBox(pos, boxColor, edgeColor, 4, false);
-                }
-            }
+            () => this.handlePointRendering()
         );
 
         this.on('tick', () => {
             MiningBot.setCost(this.oreCosts);
+            MiningBot.MOVEMENT = false;
 
             switch (this.state) {
                 case this.STATES.DECIDING:
@@ -614,9 +587,7 @@ class OreMacro extends ModuleBase {
     }
 
     getClosestPoint() {
-        if (!this.route || this.route.length === 0) {
-            return null;
-        }
+        if (!this.route || this.route.length === 0) return null;
 
         let closestPointData = null;
         let shortestDistance = Infinity;
@@ -629,15 +600,14 @@ class OreMacro extends ModuleBase {
                 let distData = MathUtils.getDistanceToPlayer(point.x, point.y, point.z);
                 let currentDistance = distData.distance;
 
-                if (currentDistance < shortestDistance) {
-                    shortestDistance = currentDistance;
+                if (currentDistance > shortestDistance) continue;
+                shortestDistance = currentDistance;
 
-                    closestPointData = {
-                        point: point,
-                        distance: currentDistance,
-                        index: i,
-                    };
-                }
+                closestPointData = {
+                    point: point,
+                    distance: currentDistance,
+                    index: i,
+                };
             }
         }
 
@@ -659,10 +629,6 @@ class OreMacro extends ModuleBase {
 
         const packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch));
         Client.sendPacket(packet);
-    }
-
-    message(msg) {
-        Chat.message('&#815bf5Ore Macro: &f' + msg);
     }
 
     onEnable() {
@@ -688,6 +654,37 @@ class OreMacro extends ModuleBase {
         this.state = this.STATES.WAITING;
         Keybind.unpressKeys();
         MiningBot.toggle(false, true);
+    }
+
+    handlePointRendering() {
+        if (!this.route || this.route.length < 1) return;
+
+        let pathCounter = 1;
+        let mineCounter = 1;
+
+        for (let i = 0; i < this.route.length; i++) {
+            const current = this.route[i];
+            if (!current || typeof current.x !== 'number') continue;
+
+            let boxColor, edgeColor, label;
+            const pos = new Vec3d(current.x, current.y, current.z);
+
+            if (current.movements === 'MINEABLE') {
+                boxColor = Render.Color(0, 255, 0, 80);
+                edgeColor = Render.Color(0, 255, 0, 255);
+                label = `Mineable #${mineCounter++}`;
+            } else {
+                boxColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 80) : Render.Color(145, 70, 255, 80);
+                edgeColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 255) : Render.Color(145, 70, 255, 255);
+                label = `#${pathCounter++}`;
+            }
+
+            if (label) {
+                Render.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+            }
+
+            Render.drawStyledBox(pos, boxColor, edgeColor, 4, false);
+        }
     }
 }
 

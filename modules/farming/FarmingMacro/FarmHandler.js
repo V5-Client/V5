@@ -191,7 +191,7 @@ export default class FarmHandler {
                 macro.movementKey = 'd';
                 macro.ignoreKeys = ['a', 's'];
             } else {
-                if (!macro.decidePrompted) macro.message(`Macro can't decide, press A or D!`);
+                if (!macro.decidePrompted) macro.message(`&cMacro can't decide, press A or D!`);
                 macro.decidePrompted = true;
                 if (Client.getMinecraft().options.leftKey.isPressed()) {
                     macro.movementKey = 'a';

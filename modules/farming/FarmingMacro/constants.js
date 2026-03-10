@@ -18,5 +18,5 @@ export const CROP_TOOLS = {
 
     'minecraft:red_mushroom': 'Fungi Cutter',
     'minecraft:brown_mushroom': 'Fungi Cutter',
-    'minecraft:cocoa_beans': 'Cocoa Chopper',
+    'minecraft:cocoa': 'Cocoa Chopper',
 };

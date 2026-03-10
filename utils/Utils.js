@@ -371,7 +371,6 @@ class UtilsClass {
         const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
 
         let yaw = ((player.getYaw() % 360) + 360) % 360;
-
         const world = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
 
         let minX = Math.floor(expandedBox.minX);
@@ -386,12 +385,25 @@ class UtilsClass {
                 for (let z = minZ; z <= maxZ; z++) {
                     let block = World.getBlockAt(x, y, z);
                     if (!block || block.type.getID() === 0) continue;
-                    if (this.noCollision(new Vec3d(x, y, z))) continue;
 
-                    if (Math.abs(playerBox.minX - (x + 1)) < 0.02) world.WEST = true;
-                    if (Math.abs(playerBox.maxX - x) < 0.02) world.EAST = true;
-                    if (Math.abs(playerBox.minZ - (z + 1)) < 0.02) world.NORTH = true;
-                    if (Math.abs(playerBox.maxZ - z) < 0.02) world.SOUTH = true;
+                    let blockPos = new BP(x, y, z);
+                    let blockState = World.getWorld().getBlockState(blockPos);
+                    let voxelShape = blockState.getCollisionShape(World.getWorld(), blockPos);
+
+                    if (!voxelShape || voxelShape.isEmpty()) continue;
+
+                    let collisionBoxes = voxelShape.getBoundingBoxes();
+
+                    for (let i = 0; i < collisionBoxes.size(); i++) {
+                        let blockBox = collisionBoxes.get(i).offset(x, y, z);
+
+                        if (expandedBox.intersects(blockBox)) {
+                            if (blockBox.maxX <= playerBox.minX + 0.05) world.WEST = true;
+                            if (blockBox.minX >= playerBox.maxX - 0.05) world.EAST = true;
+                            if (blockBox.maxZ <= playerBox.minZ + 0.05) world.NORTH = true;
+                            if (blockBox.minZ >= playerBox.maxZ - 0.05) world.SOUTH = true;
+                        }
+                    }
                 }
             }
         }

@@ -99,13 +99,15 @@ export default class VerticalCrop extends FarmHandler {
                 }
 
                 let targetSlot = Guis.findItemInHotbar(requiredToolName);
-                if (targetSlot !== -1) {
+                macro.state = states.DECIDEMOVEMENT;
+
+                /*if (targetSlot !== -1) {
                     Guis.setItemSlot(targetSlot);
                     if (Player.getHeldItemIndex() === targetSlot) macro.state = states.DECIDEMOVEMENT;
                 } else {
                     macro.message(`&cMissing "${requiredToolName}"!`);
                     macro.toggle(false);
-                }
+                }*/
                 break;
 
             case states.DECIDEMOVEMENT:

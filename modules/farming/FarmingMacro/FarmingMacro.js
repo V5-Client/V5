@@ -11,37 +11,44 @@ import { Utils } from '../../../utils/Utils';
 import { v5Command } from '../../../utils/V5Commands';
 
 const FARMING_DATA = [
-    {
-        name: 'Vertical NetherWart / Potato / Wheat / Carrot',
+    /*{
+        farmName: 'Vertical NetherWart / Potato / Wheat / Carrot',
         registry: ['minecraft:nether_wart', 'minecraft:potatoes', 'minecraft:wheat', 'minecraft:carrots'],
         speed: 93,
         pitch: 3,
-    },
+    }, */
     {
-        name: "MelonKingDe's Melon / Pumpkin",
+        farmName: 'Melon / Pumpkin - 400 Speed',
         registry: ['minecraft:melon', 'minecraft:carved_pumpkin'],
         speed: 400,
         pitch: -59.2,
     },
-    {
-        name: 'Cane / Sunflower / Rose',
+    /*{
+        farmName: 'Cane / Sunflower / Rose',
         registry: ['minecraft:sugar_cane', 'minecraft:sunflower', 'minecraft:rose_bush'],
         speed: 328,
         pitch: 0,
+    },*/
+    {
+        farmName: 'Cocoa Bean - 400 Speed',
+        registry: ['minecraft:cocoa'],
+        speed: 400,
+        pitch: -45,
     },
 ];
 
 import CaneSunflowerRose from './farms/CaneSunflowerRose';
 import MelonKingDeMP from './farms/MelonKingDeMP';
 import VerticalCrop from './farms/VerticalFarm';
+import CocoaBean from './farms/CocoaBean';
 
 class FarmingMacro extends ModuleBase {
     constructor() {
         super({
             name: 'Farming Macro',
             subcategory: 'Farming',
-            description: 'Automates farming for various crops.',
-            tooltip: 'WIP farming macro',
+            description: 'Automates farming for various crops. Uses Superfarm 7.0',
+            tooltip: 'Automates farming for various crops. Uses Superfarm 7.0',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
         });
@@ -70,9 +77,10 @@ class FarmingMacro extends ModuleBase {
         this.HIDEPARTICLES = false;
 
         this.HANDLERS = {
-            'Vertical NetherWart / Potato / Wheat / Carrot': new VerticalCrop(this),
-            "MelonKingDe's Melon / Pumpkin": new MelonKingDeMP(this),
-            'Cane / Sunflower / Rose': new CaneSunflowerRose(this),
+            // update to 7.0 'Vertical NetherWart / Potato / Wheat / Carrot': new VerticalCrop(this),
+            'Melon / Pumpkin - 400 Speed': new MelonKingDeMP(this),
+            // update to 7.0 'Cane / Sunflower / Rose': new CaneSunflowerRose(this),
+            'Cocoa Bean - 400 Speed': new CocoaBean(this),
         };
 
         this.crop = FARMING_DATA[0].name;
@@ -85,7 +93,7 @@ class FarmingMacro extends ModuleBase {
     }
 
     applyCropSelection(selected) {
-        if (!selected) selected = this.crop || FARMING_DATA[0].name;
+        if (!selected) selected = this.crop || FARMING_DATA[0].farmName;
         this.currentHandler = this.HANDLERS[selected] || null;
         this.crop = selected;
 
@@ -93,20 +101,20 @@ class FarmingMacro extends ModuleBase {
             {
                 title: 'INFO',
                 data: {
-                    Crop: this.crop || 'None',
+                    Farm: this.crop || 'None',
                 },
             },
         ]);
 
-        const data = FARMING_DATA.find((entry) => entry.name === selected);
+        const data = FARMING_DATA.find((entry) => entry.farmName === selected);
         if (data) Object.assign(this, data);
         if (this.currentHandler) this.currentHandler.reset();
     }
 
     initGui() {
         this.addMultiToggle(
-            'Crop',
-            FARMING_DATA.map((data) => data.name),
+            'Farm',
+            FARMING_DATA.map((data) => data.farmName),
             true,
             (selectedOptions) => {
                 const selected = selectedOptions.find((option) => option.enabled)?.name;
@@ -125,36 +133,36 @@ class FarmingMacro extends ModuleBase {
 
     initCommands() {
         v5Command('setstart', () => {
-            if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
+            // if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
             this.points.start = {
                 x: Math.floor(Player.getX()),
                 y: Math.round(Player.getY()),
                 z: Math.floor(Player.getZ()),
             };
             ChatLib.command('sethome');
-            Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
+            Utils.writeConfigFile('FarmingMacro/points.json', this.points);
             this.message('&aStart point saved!');
         });
 
         v5Command('setend', () => {
-            if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
+            // if (Utils.area() !== 'Garden') return this.message('&cNot in garden!');
             this.points.end = {
                 x: Math.floor(Player.getX()),
                 y: Math.round(Player.getY()),
                 z: Math.floor(Player.getZ()),
             };
-            Utils.writeConfigFile('FarmingMacro/points.txt', this.points);
+            Utils.writeConfigFile('FarmingMacro/points.json', this.points);
             this.message('&aEnd point saved!');
         });
     }
 
     initListeners() {
         this.on('tick', () => {
-            if (Utils.area() !== 'Garden') {
-                this.message('&cYou are not on the Garden!');
-                this.toggle(false);
-                return;
-            }
+            //if (Utils.area() !== 'Garden') {
+            //    this.message('&cYou are not on the Garden!');
+            //    this.toggle(false);
+            //    return;
+            //}
 
             if (!this.currentHandler) {
                 this.message('&cNo handler found for this crop!');
@@ -173,13 +181,13 @@ class FarmingMacro extends ModuleBase {
                     let correctSpeed = this.speed;
                     let currentSpeed = this.getCurrentSpeedCap();
 
-                    if (correctSpeed !== currentSpeed) {
+                    /*if (correctSpeed !== currentSpeed) {
                         if (!this.speedCommandSent) {
                             ChatLib.command(`setmaxspeed ${correctSpeed}`);
                             this.speedCommandSent = true;
                         }
                         return;
-                    }
+                    } */
 
                     this.speedCommandSent = false;
                 } else {
@@ -191,7 +199,7 @@ class FarmingMacro extends ModuleBase {
         });
 
         this.when(
-            () => Utils.area() === 'Garden',
+            () => true,
             'postRenderWorld',
             () => {
                 if (!this.points) return;
@@ -274,4 +282,4 @@ class FarmingMacro extends ModuleBase {
     }
 }
 
-export default new FarmingMacro();
+new FarmingMacro();
