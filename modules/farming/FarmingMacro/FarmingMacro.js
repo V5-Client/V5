@@ -131,7 +131,7 @@ class FarmingMacro extends ModuleBase {
             (isEnabled) => {
                 this.FAST_COCOA = isEnabled;
             },
-            'If enabled, the macro will not hold down a or d when macroing cocoa bean meaning you need a slower speed'
+            'If enabled, the macro will hold down a or d when macroing cocoa bean meaning you need a faster speed'
         );
         this.addToggle('Hide Crop Particles', (isEnabled) => ((this.HIDEPARTICLES = isEnabled), Mixin.set('hideParticles', isEnabled)));
         this.addToggle('Debug Messages', (isEnabled) => (this.DEBUG = isEnabled));
