@@ -88,9 +88,9 @@ export default class CocoaBean extends FarmHandler {
                     }
                 }
 
-                if (backwardCrops < forwardCrops) {
+                if (backwardCrops < forwardCrops && !macro.decidePrompted) {
                     macro.movementKey = 'w';
-                } else if (forwardCrops < backwardCrops) {
+                } else if (forwardCrops < backwardCrops && !macro.decidePrompted) {
                     macro.movementKey = 's';
                 } else {
                     if (!macro.decidePrompted) {
