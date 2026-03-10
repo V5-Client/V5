@@ -6,7 +6,14 @@ let autoMeowEnabled = false;
 let randomChoiceMeow = false;
 Categories.addSettingsToggle('IRC', (v) => (ircEnabled = !!v), "Messages can be sent with '#msg'", true, 'IRC', 'Discord');
 Categories.addSettingsToggle('Auto Meow', (v) => (autoMeowEnabled = !!v), 'Auto-reply "meow!" when someone sends "meow"', false, 'IRC', 'Discord');
-Categories.addSettingsToggle('Random choice meow', (v) => (randomChoiceMeow = !!v), 'Pick a random meow instead of the default "meow!" (REQUIRES AUTO MEOW)', false, 'IRC', 'Discord');
+Categories.addSettingsToggle(
+    'Random choice meow',
+    (v) => (randomChoiceMeow = !!v),
+    'Pick a random meow instead of the default "meow!" (REQUIRES AUTO MEOW)',
+    false,
+    'IRC',
+    'Discord'
+);
 
 export function isAutoMeowEnabled() {
     return autoMeowEnabled;

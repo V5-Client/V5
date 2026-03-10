@@ -41,20 +41,9 @@ function handleIncomingMessage(raw) {
             if (isAutoMeowEnabled() && data.type === 'message' && `${data.msg ?? ''}`.trim().toLowerCase() === 'meow') {
                 if (!isRandomChoiceMeowEnabled()) sendChatMessage('meow!');
                 if (isRandomChoiceMeowEnabled()) {
-                    const meows = [
-                        "meow!",
-                        "mrrp!",
-                        "mreow!",
-                        "mroew!",
-                        "mew!",
-                        "mrow!",
-                        "nya!",
-                        "prrrt!",
-                        "mraow!",
-                        "mrrow!"
-                    ];
+                    const meows = ['meow!', 'mrrp!', 'mreow!', 'mroew!', 'mew!', 'mrow!', 'nya!', 'prrrt!', 'mraow!', 'mrrow!'];
                     const randmeow = meows[Math.floor(Math.random() * meows.length)];
-                    sendChatMessage(randmeow)
+                    sendChatMessage(randmeow);
                 }
             }
         }
