@@ -25,6 +25,7 @@ import './utils/Misc';
 import './failsafes/FailsafeManager';
 import './utils/V5Mod';
 import './utils/SkyblockEvents';
+import './utils/render/RenderBenchmark';
 
 /* Modules */
 import './modules/loader';
