@@ -41,8 +41,6 @@ export default class CocoaBean extends FarmHandler {
                 Rotations.rotateToAngles(macro.yaw, macro.pitch);
                 Rotations.onEndRotation(() => (macro.state = states.DECIDEITEM));
                 break;
-
-            case states.DECIDEITEM:
             case states.DECIDEITEM:
                 let block = this.getRelativeBlock(0, 2, 1);
                 let registry = block?.type?.getRegistryName() || '';
