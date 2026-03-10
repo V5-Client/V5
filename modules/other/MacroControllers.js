@@ -22,6 +22,7 @@ class Controller extends ModuleBase {
         );
 
         this.addDirectToggle('Limit FPS', (v) => this.handleFPS(v), 'Limits FPS while macro is running.', false, sectionName);
+        this.addDirectToggle('Mute Game', (v) => this.handleMute(v), 'Mutes game audio while macro is running.', false, sectionName);
 
         this.addDirectMultiToggle(
             'Render Limiters',
@@ -45,6 +46,10 @@ class Controller extends ModuleBase {
 
     handleFPS(value) {
         Mixin.set('limitFps', value);
+    }
+
+    handleMute(value) {
+        Mixin.set('muteGame', value);
     }
 }
 
