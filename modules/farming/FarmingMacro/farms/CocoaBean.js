@@ -10,10 +10,14 @@ export default class CocoaBean extends FarmHandler {
 
         this.parent = parent;
         this.onWall = false;
+        this.strafeKey = null;
+        this.holdStrafe = false;
     }
 
     reset() {
         this.onWall = false;
+        this.strafeKey = null;
+        this.holdStrafe = false;
     }
 
     onTick() {
@@ -36,6 +40,8 @@ export default class CocoaBean extends FarmHandler {
                     if (diffPrev > 180) diffPrev = 360 - diffPrev;
                     return diffCurr < diffPrev ? curr : prev;
                 });
+
+                this.strafeKey = macro.yaw === 180 || macro.yaw === 90 ? 'd' : 'a';
 
                 macro.yaw = closestYaw;
                 Rotations.rotateToAngles(macro.yaw, macro.pitch);
@@ -65,6 +71,8 @@ export default class CocoaBean extends FarmHandler {
                 macro.state = states.DECIDEMOVEMENT;
                 break;
             case states.DECIDEMOVEMENT:
+                this.holdStrafe = macro.FAST_COCOA;
+
                 let forwardCrops = 0;
                 let backwardCrops = 0;
 
@@ -102,10 +110,12 @@ export default class CocoaBean extends FarmHandler {
                 }
 
                 Keybind.setKey(macro.movementKey, true);
-                Keybind.setKey('d', true);
+                Keybind.setKey(this.strafeKey, true);
                 Keybind.setKey('leftclick', true);
+
                 macro.state = states.IDLECHECKS;
                 break;
+
             case states.IDLECHECKS:
                 if (this.isAtPoint(macro.points.end.x, macro.points.end.y, macro.points.end.z, 1)) {
                     macro.message('&aReached end of farm! rewarping.');
@@ -117,12 +127,19 @@ export default class CocoaBean extends FarmHandler {
                 Keybind.setKey(macro.movementKey, true);
                 Keybind.setKey('leftclick', true);
 
-                // decide wether left or right based on direction
-                Keybind.setKey('d', true);
-
                 let sideCollisions = Utils.sidesOfCollision();
                 let hasSide = sideCollisions.right || sideCollisions.left;
                 let hitWall = macro.movementKey === 'w' ? sideCollisions.front : sideCollisions.back;
+
+                if (this.holdStrafe) {
+                    Keybind.setKey(this.strafeKey, true);
+                } else {
+                    if (hasSide) {
+                        Keybind.setKey(this.strafeKey, false);
+                    } else {
+                        Keybind.setKey(this.strafeKey, true);
+                    }
+                }
 
                 if (!this.onWall && hasSide && !hitWall) {
                     this.onWall = true;

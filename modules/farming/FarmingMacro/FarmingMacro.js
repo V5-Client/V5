@@ -30,7 +30,7 @@ const FARMING_DATA = [
         pitch: 0,
     },*/
     {
-        farmName: 'Cocoa Bean - 400 Speed',
+        farmName: 'Cocoa Bean - 400 / 160 Speed',
         registry: ['minecraft:cocoa'],
         speed: 400,
         pitch: -45,
@@ -75,12 +75,13 @@ class FarmingMacro extends ModuleBase {
 
         this.DEBUG = false;
         this.HIDEPARTICLES = false;
+        this.FAST_COCOA = false;
 
         this.HANDLERS = {
             'Vertical NetherWart / Potato / Wheat / Carrot - 93 Speed': new VerticalCrop(this),
             'Melon / Pumpkin - 400 Speed': new MelonKingDeMP(this),
             // update to 7.0 'Cane / Sunflower / Rose': new CaneSunflowerRose(this),
-            'Cocoa Bean - 400 Speed': new CocoaBean(this),
+            'Cocoa Bean - 400 / 160 Speed': new CocoaBean(this),
         };
 
         this.crop = FARMING_DATA[0].name;
@@ -125,6 +126,13 @@ class FarmingMacro extends ModuleBase {
 
         this.applyCropSelection(this.crop);
 
+        this.addToggle(
+            'Hold A/D when macroing cocoa bean',
+            (isEnabled) => {
+                this.FAST_COCOA = isEnabled;
+            },
+            'If enabled, the macro will not hold down a or d when macroing cocoa bean meaning you need a slower speed'
+        );
         this.addToggle('Hide Crop Particles', (isEnabled) => ((this.HIDEPARTICLES = isEnabled), Mixin.set('hideParticles', isEnabled)));
         this.addToggle('Debug Messages', (isEnabled) => (this.DEBUG = isEnabled));
 
