@@ -5,7 +5,7 @@ import { Links, V5Auth } from '../Constants';
 import { ChatMessageC2S } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { v5Command } from '../V5Commands';
-import { handleIRCMessage, isAutoMeowEnabled } from './IRC';
+import { handleIRCMessage, isAutoMeowEnabled, isRandomChoiceMeowEnabled } from './IRC';
 import { handleRemoteMessage } from './RemoteControl';
 
 let reconnectAttempts = 0;
@@ -39,7 +39,23 @@ function handleIncomingMessage(raw) {
         } else {
             handleIRCMessage(data);
             if (isAutoMeowEnabled() && data.type === 'message' && `${data.msg ?? ''}`.trim().toLowerCase() === 'meow') {
-                sendChatMessage('meow!');
+                if (!isRandomChoiceMeowEnabled()) sendChatMessage('meow!');
+                if (isRandomChoiceMeowEnabled()) {
+                    const meows = [
+                        "meow!",
+                        "mrrp!",
+                        "mreow!",
+                        "mroew!",
+                        "mew!",
+                        "mrow!",
+                        "nya!",
+                        "prrrt!",
+                        "mraow!",
+                        "mrrow!"
+                    ];
+                    const randmeow = meows[Math.floor(Math.random() * meows.length)];
+                    sendChatMessage(randmeow)
+                }
             }
         }
     } catch (e) {
