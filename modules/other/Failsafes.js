@@ -48,7 +48,7 @@ class Failsafes extends ModuleBase {
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
                 this.postBanLog(fullText, lastMacro, MacroState.isMacroRunning());
-                if (this.clipOnBan) ChatLib.command('v5 clip', true);
+                if (this.clipOnBan && World.isLoaded()) ChatLib.command('v5 clip', true);
             }
         }).setFilteredClass(DisconnectS2C);
 
@@ -66,7 +66,7 @@ class Failsafes extends ModuleBase {
             ) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
                 this.postBanLog(fullText, lastMacro, MacroState.isMacroRunning());
-                if (this.clipOnBan) ChatLib.command('v5 clip', true);
+                if (this.clipOnBan && World.isLoaded()) ChatLib.command('v5 clip', true); //TODO: use actual clipping file instead of cmds (last time i tried it duplicated the module)
             }
         }).setFilteredClass(LoginDisconnectS2C);
 
