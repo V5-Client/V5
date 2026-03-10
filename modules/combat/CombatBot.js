@@ -18,7 +18,7 @@ const BLACKHOLE_TEXTURES = new Set([
 ]);
 
 const BLACKHOLE_AVOID_RADIUS = 8.5;
-const ATTACK_REACH = 3.0;
+const ATTACK_REACH = 4;
 const BLACKHOLE_SCAN_INTERVAL = 10;
 const BLACKHOLE_SCAN_RADIUS = 30;
 const BLACKHOLE_SCAN_Y_RANGE = 20;
@@ -234,13 +234,13 @@ class Combat extends ModuleBase {
         const pos = this.getTargetPosition(this.target);
         if (!pos) return;
 
-        const distance = this.getDistanceToPlayer(pos);
+        const distanceData = this.getDistanceToPlayer(pos);
         const targetChanged = previousTarget !== this.target;
         if (targetChanged && this.combatState !== COMBAT_STATE.PATHING) {
             this.setState(COMBAT_STATE.IDLE);
         }
 
-        this.handleState(pos, distance);
+        this.handleState(pos, distanceData);
     }
 
     getTargetDisplayName(target) {
@@ -314,11 +314,9 @@ class Combat extends ModuleBase {
         if (!this.activeBlackholes || this.activeBlackholes.length === 0) return true;
         if (!this.shouldUseBlackholeLogic()) return true;
 
-        const radiusSq = BLACKHOLE_AVOID_RADIUS * BLACKHOLE_AVOID_RADIUS;
         for (const bh of this.activeBlackholes) {
-            const dx = x - bh.x;
-            const dz = z - bh.z;
-            if (dx * dx + dz * dz < radiusSq && Math.abs(y - bh.y) < 10) return false;
+            const distanceData = this.getDistanceBetween({ x, y, z }, bh);
+            if (distanceData.distanceFlat < BLACKHOLE_AVOID_RADIUS && Math.abs(distanceData.distanceY) < 10) return false;
         }
         return true;
     }
@@ -365,8 +363,8 @@ class Combat extends ModuleBase {
         const pos = this.getTargetPosition(entity);
         if (!pos) return false;
 
-        const dist = this.getDistance3D(pos.x, pos.y, pos.z, record.x, record.y, record.z);
-        return dist <= this.visibilityGraceDistance;
+        const distanceData = this.getDistanceBetween(pos, record);
+        return distanceData.distance <= this.visibilityGraceDistance;
     }
 
     rememberMobPosition(pos) {
@@ -374,7 +372,7 @@ class Combat extends ModuleBase {
         const now = Date.now();
         this.pruneMobMemory(now);
 
-        const existing = this.mobMemory.find((m) => this.getDistance3D(m.x, m.y, m.z, pos.x, pos.y, pos.z) < 3);
+        const existing = this.mobMemory.find((m) => this.getDistanceBetween(m, pos).distance < 3);
         if (existing) {
             existing.time = now;
             return;
@@ -411,7 +409,7 @@ class Combat extends ModuleBase {
         this.mobMemory.forEach((m) => {
             const dx = m.x - px;
             const dz = m.z - pz;
-            const dist = Math.hypot(dx, dz);
+            const dist = this.getDistanceToPlayer(m).distanceFlat;
             const dirDot = dist > 0 ? (dx * forward.x + dz * forward.z) / dist : 1;
             const score = dist - dirDot * 6;
             if (score < bestScore) {
@@ -425,7 +423,7 @@ class Combat extends ModuleBase {
 
     clearSearchTarget(pos) {
         if (pos) {
-            this.mobMemory = this.mobMemory.filter((m) => this.getDistance3D(m.x, m.y, m.z, pos.x, pos.y, pos.z) > 3);
+            this.mobMemory = this.mobMemory.filter((m) => this.getDistanceBetween(m, pos).distance > 3);
         }
         this.cancelSearchTarget();
         if (!this.target) this.setState(COMBAT_STATE.IDLE);
@@ -441,9 +439,9 @@ class Combat extends ModuleBase {
         if (!this.mobMemory || this.mobMemory.length === 0) return false;
 
         if (this.searchTarget) {
-            const dist = this.getDistanceToPlayer(this.searchTarget);
+            const distanceData = this.getDistanceToPlayer(this.searchTarget);
             const timedOut = Date.now() - this.searchTargetSetTime > SEARCH_TARGET_TIMEOUT_MS;
-            if (dist <= 2.5 || timedOut) this.clearSearchTarget(this.searchTarget);
+            if (distanceData.distance <= 2.5 || timedOut) this.clearSearchTarget(this.searchTarget);
         }
 
         if (!this.searchTarget && (!this.mobMemory || this.mobMemory.length === 0)) return false;
@@ -548,46 +546,46 @@ class Combat extends ModuleBase {
         }
     }
 
-    handleState(pos, distance) {
+    handleState(pos, distanceData) {
         switch (this.combatState) {
             case COMBAT_STATE.IDLE:
-                return this.handleIdleState(pos, distance);
+                return this.handleIdleState(pos, distanceData);
             case COMBAT_STATE.PATHING:
-                return this.handlePathingState(pos, distance);
+                return this.handlePathingState(pos, distanceData);
             case COMBAT_STATE.APPROACHING:
-                return this.handleApproachingState(pos, distance);
+                return this.handleApproachingState(pos, distanceData);
             case COMBAT_STATE.ATTACKING:
-                return this.handleAttackingState(pos, distance);
+                return this.handleAttackingState(pos, distanceData);
         }
     }
 
-    handleIdleState(pos, distance) {
-        if (distance > this.pathfindingThreshold) return this.startPathingToTarget(pos);
-        if (distance > this.attackRange) return this.setState(COMBAT_STATE.APPROACHING);
+    handleIdleState(pos, distanceData) {
+        if (distanceData.distance > this.pathfindingThreshold) return this.startPathingToTarget(pos);
+        if (distanceData.distance > this.attackRange) return this.setState(COMBAT_STATE.APPROACHING);
         this.setState(COMBAT_STATE.ATTACKING);
     }
 
-    handlePathingState(pos, distance) {
+    handlePathingState(pos, distanceData) {
         if (this.lastPathTarget) {
-            const targetMoved = this.getDistance3D(pos.x, pos.y, pos.z, this.lastPathTarget.x, this.lastPathTarget.y, this.lastPathTarget.z);
-            if (targetMoved > this.pathTargetMoveThreshold) {
+            const targetMoved = this.getDistanceBetween(pos, this.lastPathTarget);
+            if (targetMoved.distance > this.pathTargetMoveThreshold) {
                 this.startPathingToTarget(pos);
                 return;
             }
         }
 
-        if (distance <= this.attackRange) {
+        if (distanceData.distance <= this.attackRange) {
             this.setState(COMBAT_STATE.ATTACKING);
         }
     }
 
-    handleApproachingState(pos, distance) {
-        if (distance <= this.attackRange) {
+    handleApproachingState(pos, distanceData) {
+        if (distanceData.distance <= this.attackRange) {
             this.setState(COMBAT_STATE.ATTACKING);
             return;
         }
 
-        if (distance > this.pathfindingThreshold) {
+        if (distanceData.distance > this.pathfindingThreshold) {
             this.startPathingToTarget(pos);
             return;
         }
@@ -597,14 +595,26 @@ class Combat extends ModuleBase {
         this.startRotationToTarget();
     }
 
-    handleAttackingState(pos, distance) {
-        if (distance > this.attackRange * 1.3) {
+    handleAttackingState(pos, distanceData) {
+        if (distanceData.distance > this.pathfindingThreshold) {
+            this.startPathingToTarget(pos);
+            return;
+        }
+
+        if (distanceData.distance > this.attackRange * 1.5) {
             this.setState(COMBAT_STATE.APPROACHING);
             return;
         }
 
-        if (this.isAimingAtTarget()) this.tryAttack();
-        else this.startRotationToTarget();
+        if (distanceData) this.tryAttack();
+        this.startRotationToTarget();
+
+        Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
+        if (distanceData.distanceFlat <= 2) Keybind.stopMovement();
+        if (distanceData.distanceY < -3) {
+            Keybind.setKey('space', true);
+        }
+        Keybind.setKey('sprint', true);
     }
 
     startPathingToTarget(pos) {
@@ -645,8 +655,8 @@ class Combat extends ModuleBase {
 
             if (this.target && !this.isTargetInvalid(this.target)) {
                 const currentPos = this.getTargetPosition(this.target);
-                const dist = currentPos ? this.getDistanceToPlayer(currentPos) : 999;
-                this.setState(dist <= this.attackRange ? COMBAT_STATE.ATTACKING : COMBAT_STATE.APPROACHING);
+                const distanceData = currentPos ? this.getDistanceToPlayer(currentPos) : null;
+                this.setState((distanceData?.distance ?? Infinity) <= this.attackRange ? COMBAT_STATE.ATTACKING : COMBAT_STATE.APPROACHING);
             } else {
                 this.setState(COMBAT_STATE.IDLE);
             }
@@ -736,11 +746,11 @@ class Combat extends ModuleBase {
     }
 
     getDistanceToPlayer(pos) {
-        return Math.hypot(Player.getX() - pos.x, Player.getY() - pos.y, Player.getZ() - pos.z);
+        return MathUtils.getDistanceToPlayer(pos.x, pos.y, pos.z);
     }
 
-    getDistance3D(x1, y1, z1, x2, y2, z2) {
-        return Math.hypot(x1 - x2, y1 - y2, z1 - z2);
+    getDistanceBetween(pos1, pos2) {
+        return MathUtils.getDistance(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 
     detectTargets() {
@@ -828,7 +838,7 @@ class Combat extends ModuleBase {
 
         if (this.target && !this.isTargetInvalid(this.target)) {
             const pos = this.getTargetPosition(this.target);
-            if (pos && this.getDistanceToPlayer(pos) < this.targetStickinessRange) return this.target;
+            if (pos && this.getDistanceToPlayer(pos).distance < this.targetStickinessRange) return this.target;
         }
 
         let lowestCost = Infinity;
@@ -840,9 +850,9 @@ class Combat extends ModuleBase {
             if (!pos) return;
             if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
 
-            const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), pos.x, pos.y, pos.z);
+            const distanceData = this.getDistanceToPlayer(pos);
             const angles = MathUtils.angleToPlayer([pos.x, pos.y, pos.z]);
-            const cost = distance * 10 + angles.distance * 0.5;
+            const cost = distanceData.distance * 10 + angles.distance * 0.5;
 
             if (cost < lowestCost) {
                 lowestCost = cost;

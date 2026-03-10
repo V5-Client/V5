@@ -53,3 +53,4 @@ import './other/LeftClickEtherwarp';
 import './other/RatProtection';
 import './other/VoidgloomHelper';
 import './other/AutoCombine';
+import './other/SunGeckoMacro';
