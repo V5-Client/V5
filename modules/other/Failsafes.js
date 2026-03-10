@@ -5,6 +5,7 @@ import { File, globalAssetsDir, V5Auth } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { DisconnectS2C, LoginDisconnectS2C } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
+import Clipping from '../../utils/Clipping';
 const JURL = Java.type('java.net.URL');
 const JHttpURLConnection = Java.type('java.net.HttpURLConnection');
 const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
@@ -34,41 +35,21 @@ class Failsafes extends ModuleBase {
         this.playSoundOnCheck = true;
 
         register('packetReceived', (packet) => {
-            //  console.log('MEOW.');
             const reason = packet?.reason();
             const fullText = reason?.getString?.() || reason?.toString?.();
             const lowerText = fullText?.toLowerCase();
 
-            if (
-                lowerText?.includes('banned') ||
-                lowerText?.includes('cheating') ||
-                lowerText?.includes('boosting') ||
-                lowerText?.includes('security') ||
-                lowerText?.includes('chat')
-            ) {
+            if (this.isBanReason(lowerText)) {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
                 this.postBanLog(fullText, lastMacro, MacroState.isMacroRunning());
-                if (this.clipOnBan && World.isLoaded()) ChatLib.command('v5 clip', true);
-            }
-        }).setFilteredClass(DisconnectS2C);
 
-        register('packetReceived', (packet) => {
-            const reason = packet?.reason();
-            const fullText = reason?.getString?.() || reason?.toString?.();
-            const lowerText = fullText?.toLowerCase();
-
-            if (
-                lowerText?.includes('banned') ||
-                lowerText?.includes('cheating') ||
-                lowerText?.includes('boosting') ||
-                lowerText?.includes('security') ||
-                lowerText?.includes('chat')
-            ) {
-                const lastMacro = MacroState.getLastActiveMacro() || 'None';
-                this.postBanLog(fullText, lastMacro, MacroState.isMacroRunning());
-                if (this.clipOnBan && World.isLoaded()) ChatLib.command('v5 clip', true); //TODO: use actual clipping file instead of cmds (last time i tried it duplicated the module)
+                if (this.clipOnBan) {
+                    Client.scheduleTask(40, () => Clipping.saveClip());
+                }
             }
-        }).setFilteredClass(LoginDisconnectS2C);
+        }).setFilteredClass([LoginDisconnectS2C, DisconnectS2C]);
+
+        // Helper to keep code clean
 
         // this.on('command', (...args) => {
         //     const lastMacro = MacroState.getLastActiveMacro() || 'None';
@@ -164,6 +145,11 @@ class Failsafes extends ModuleBase {
             false,
             sectionName
         );
+    }
+
+    isBanReason(text) {
+        if (!text) return false;
+        return text.includes('banned') || text.includes('cheating') || text.includes('boosting') || text.includes('security');
     }
 
     postBanLog(reason, lastMacro, currentlyMacroing, verbose = false) {

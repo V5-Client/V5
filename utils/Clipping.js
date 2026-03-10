@@ -125,7 +125,7 @@ class ClippingManager extends ModuleBase {
             this.startRecording(true);
         }).setDelay(1);
 
-        register('renderOverlay', () => {
+        register('step', () => {
             if (!this.isRecording || !this.process) return;
 
             const window = Client.getMinecraft().getWindow();
@@ -748,4 +748,5 @@ class ClippingManager extends ModuleBase {
     }
 }
 
-export const Clipping = new ClippingManager();
+const Clipping = new ClippingManager();
+export default Clipping;
