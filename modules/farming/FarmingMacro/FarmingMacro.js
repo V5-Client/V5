@@ -11,12 +11,12 @@ import { Utils } from '../../../utils/Utils';
 import { v5Command } from '../../../utils/V5Commands';
 
 const FARMING_DATA = [
-    /*{
-        farmName: 'Vertical NetherWart / Potato / Wheat / Carrot',
+    {
+        farmName: 'Vertical NetherWart / Potato / Wheat / Carrot - 93 Speed',
         registry: ['minecraft:nether_wart', 'minecraft:potatoes', 'minecraft:wheat', 'minecraft:carrots'],
         speed: 93,
         pitch: 3,
-    }, */
+    },
     {
         farmName: 'Melon / Pumpkin - 400 Speed',
         registry: ['minecraft:melon', 'minecraft:carved_pumpkin'],
@@ -47,8 +47,8 @@ class FarmingMacro extends ModuleBase {
         super({
             name: 'Farming Macro',
             subcategory: 'Farming',
-            description: 'Automates farming for various crops. Uses Superfarm 7.0',
-            tooltip: 'Automates farming for various crops. Uses Superfarm 7.0',
+            description: 'Automates farming for various crops',
+            tooltip: 'Automates farming for various crops',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
         });
@@ -77,7 +77,7 @@ class FarmingMacro extends ModuleBase {
         this.HIDEPARTICLES = false;
 
         this.HANDLERS = {
-            // update to 7.0 'Vertical NetherWart / Potato / Wheat / Carrot': new VerticalCrop(this),
+            'Vertical NetherWart / Potato / Wheat / Carrot - 93 Speed': new VerticalCrop(this),
             'Melon / Pumpkin - 400 Speed': new MelonKingDeMP(this),
             // update to 7.0 'Cane / Sunflower / Rose': new CaneSunflowerRose(this),
             'Cocoa Bean - 400 Speed': new CocoaBean(this),
