@@ -32,7 +32,7 @@ import './visuals/Xray';
 /* SKILLS */
 import './skills/AutoExperiments';
 import './skills/FishingHelper';
-import './skills/FishingMacro';
+import './skills/StridersurferMacro';
 import './skills/JerryBoxMacro';
 import './skills/MinionCollector';
 import './skills/RouteWalker';

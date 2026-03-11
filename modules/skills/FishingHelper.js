@@ -1,4 +1,3 @@
-//@VIP
 import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { MacroState } from '../../utils/MacroState';
@@ -11,7 +10,7 @@ class FishingMacro extends ModuleBase {
         super({
             name: 'Fishing Helper',
             subcategory: 'Skills',
-            description: 'General Fishing Macro',
+            description: 'Auto reel + recast + pet swap',
             tooltip: 'Auto stuff',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
@@ -89,7 +88,7 @@ class FishingMacro extends ModuleBase {
 
     onEnable() {
         MacroState.setMacroRunning(true, 'FISHING');
-        Chat.message('Fishing Macro Enabled');
+        Chat.message('Fishing Helper Enabled');
 
         this.resetSequence();
         Keybind.setKey('shift', false);
@@ -97,7 +96,7 @@ class FishingMacro extends ModuleBase {
 
     onDisable() {
         MacroState.setMacroRunning(false, 'FISHING');
-        Chat.message('Fishing Macro disabled');
+        Chat.message('Fishing Helper disabled');
         Keybind.setKey('shift', false);
     }
 }
