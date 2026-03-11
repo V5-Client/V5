@@ -23,8 +23,8 @@ class PathRotations {
         this.ARRIVAL_THRESHOLD_Y = 5.5;
         this.FINAL_COMPLETE_XZ = 1.45;
         this.FINAL_COMPLETE_Y = 2.35;
-        this.SMOOTH_FACTOR_STRAIGHT = 0.04;
-        this.SMOOTH_FACTOR_TURN = 0.07;
+        this.SMOOTH_FACTOR_STRAIGHT = 0.02;
+        this.SMOOTH_FACTOR_TURN = 0.15;
 
         this.resetRotations();
 
@@ -116,13 +116,11 @@ class PathRotations {
         if (!path || path.length < 2) {
             return { position: currentPathPosition, minDistSq: Infinity };
         }
-
         let nextPosition = currentPathPosition;
         let minDistSq = Infinity;
         const closestIndex = Math.floor(currentPathPosition);
         const start = Math.max(0, closestIndex - backtrack);
         const end = Math.min(path.length - 2, closestIndex + searchRange);
-
         for (let i = start; i <= end; i++) {
             const p1 = path[i];
             const p2 = path[i + 1];
@@ -135,7 +133,6 @@ class PathRotations {
                 nextPosition = i + segT;
             }
         }
-
         return { position: nextPosition, minDistSq };
     }
 
@@ -171,7 +168,7 @@ class PathRotations {
         const a1 = this.lookPoints[Math.min(idx + 1, this.lookPoints.length - 1)];
         const baseDir = { x: a1.x - a0.x, y: a1.y - a0.y, z: a1.z - a0.z };
         let maxAngle = 0;
-        for (let k = 2; k <= 6; k++) {
+        for (let k = 2; k <= 8; k++) {
             const i0 = Math.min(idx + k, this.lookPoints.length - 2);
             const b0 = this.lookPoints[i0];
             const b1 = this.lookPoints[i0 + 1];
@@ -179,7 +176,8 @@ class PathRotations {
             maxAngle = Math.max(maxAngle, this.getAngleBetweenVectorsDeg(baseDir, futureDir));
         }
         this.currentPathCurvatureDeg = maxAngle;
-        if (maxAngle < 10) return 7.5;
+        if (maxAngle < 5) return 12.0;
+        if (maxAngle < 12) return 8.0;
         if (maxAngle < 22) return 5.5;
         return 3.0;
     }
@@ -193,7 +191,7 @@ class PathRotations {
             }
         }
         const lastIndex = this.lookPoints.length - 1;
-        let lookahead = Math.min(this.MAX_LOOKAHEAD, Math.max(this.MIN_LOOKAHEAD, idealLookaheadPoints));
+        let lookahead = Math.min(15.0, Math.max(this.MIN_LOOKAHEAD, idealLookaheadPoints));
         while (lookahead >= this.MIN_LOOKAHEAD - 1e-6) {
             const t = Math.min(lastIndex, this.currentPathPosition + lookahead);
             const point = this.getInterpolatedPoint(t);
@@ -220,18 +218,18 @@ class PathRotations {
         this.currentPathPosition = projection.position;
         let minDistSq = projection.minDistSq;
 
-        if (!Number.isFinite(minDistSq)) {
-            minDistSq = 0;
-        }
+        if (!Number.isFinite(minDistSq)) minDistSq = 0;
+
         const lateralError = Math.sqrt(minDistSq);
         const baseLookahead = this.getAdaptiveLookaheadPoints();
-        const interceptLookahead = baseLookahead + lateralError * 1.5 + speed * 10;
+        const isStraight = this.currentPathCurvatureDeg < 5;
+
+        const interceptLookahead = isStraight ? Math.max(baseLookahead, 10.0 + speed * 5) : baseLookahead + lateralError * 1.5 + speed * 10;
 
         const lastIndex = this.lookPoints.length - 1;
         let targetPoint = this.findVisibleLookTarget(playerEyes, interceptLookahead);
-        if (!targetPoint) {
-            targetPoint = this.lookPoints[lastIndex];
-        }
+
+        if (!targetPoint) targetPoint = this.lookPoints[lastIndex];
 
         const lastPoint = this.lookPoints[lastIndex];
         if (this.currentPathPosition >= lastIndex - 0.5 || this.isWithinArrivalThreshold(playerEyes, lastPoint)) {
@@ -244,12 +242,10 @@ class PathRotations {
 
         this.currentTargetPoint = targetPoint;
         const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
-
         const desiredYaw = MathUtils.wrapTo180(angles.yaw);
         const yawDelta = MathUtils.getAngleDifference(this.rawTargetYaw, desiredYaw);
 
-        const isTurning = this.currentPathCurvatureDeg > 15;
-        const alpha = isTurning ? 0.12 : 0.04;
+        const alpha = isStraight ? this.SMOOTH_FACTOR_STRAIGHT : this.SMOOTH_FACTOR_TURN;
 
         this.rawTargetYaw = MathUtils.wrapTo180(this.rawTargetYaw + yawDelta * alpha);
         this.rawTargetPitch = this.rawTargetPitch + (angles.pitch - this.rawTargetPitch) * alpha;
@@ -284,8 +280,11 @@ class PathRotations {
                 .isEmpty();
             isNarrow = (side1 && side2) || (side3 && side4);
         } catch (e) {}
-        const dynamicKD = isNarrow ? this.KD * 1.6 : this.KD;
-        const dynamicAccel = isNarrow ? this.ACCEL_LIMIT * 0.65 : this.ACCEL_LIMIT;
+
+        const isStraight = this.currentPathCurvatureDeg < 5;
+        const dynamicKD = isNarrow ? this.KD * 1.6 : isStraight ? this.KD * 1.2 : this.KD;
+        const dynamicAccel = isNarrow ? this.ACCEL_LIMIT * 0.65 : isStraight ? this.ACCEL_LIMIT * 0.8 : this.ACCEL_LIMIT;
+
         if (Math.abs(yawError) < this.SETTLE_THRESHOLD && Math.abs(this.yawVelocity) < 0.04) {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
@@ -296,6 +295,7 @@ class PathRotations {
             this.yawVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.yawVelocity));
             this.currentYaw += this.yawVelocity;
         }
+
         if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.04) {
             this.currentPitch = this.rawTargetPitch;
             this.pitchVelocity = 0;
@@ -306,6 +306,7 @@ class PathRotations {
             this.pitchVelocity = Math.max(-this.MAX_VELOCITY, Math.min(this.MAX_VELOCITY, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
+
         if (this.currentPitch > 90) this.currentPitch = 90;
         if (this.currentPitch < -90) this.currentPitch = -90;
     }
