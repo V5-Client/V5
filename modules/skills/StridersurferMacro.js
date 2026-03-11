@@ -106,17 +106,15 @@ class StridersurferMacro extends ModuleBase {
         }
 
         switch (this.step) {
-            case STEPS.WAITING_FOR_BITE: {
-                const armorStands = World.getAllEntitiesOfType(ArmorStandEntity);
-                const biteIndicator = armorStands.find((element) => element.getName() === '!!!');
+            case STEPS.WAITING_FOR_BITE:
+                const biteIndicator = World.getAllEntitiesOfType(ArmorStandEntity).find((entity) => entity.getName() === '!!!');
                 if (!biteIndicator) {
                     if (this.hasBiteWaitTimedOut()) {
                         const rodSlot = this.getRodSlot();
                         if (rodSlot !== -1) {
                             Guis.setItemSlot(8);
                             this.biteWaitStartedAt = 0;
-                            this.step = STEPS.RECOVERY_SWAP_BACK_TO_ROD;
-                            this.tickDelay = 1 + this.randomTickDelay();
+                            this.transitionTo(STEPS.RECOVERY_SWAP_BACK_TO_ROD, 1 + this.randomTickDelay());
                         }
                     }
                     return;
@@ -124,18 +122,14 @@ class StridersurferMacro extends ModuleBase {
 
                 this.biteWaitStartedAt = 0;
                 Keybind.rightClick();
-                this.step = STEPS.POST_REEL_DECISION;
-                this.tickDelay = this.randomTickDelay();
+                this.transitionTo(STEPS.POST_REEL_DECISION);
                 break;
-            }
-            case STEPS.POST_REEL_DECISION: {
+            case STEPS.POST_REEL_DECISION:
                 const armorStands = World.getAllEntitiesOfType(ArmorStandEntity);
                 const striderCount = armorStands.reduce((acc, entity) => (entity.getName().includes('Stridersurfer') ? acc + 1 : acc), 0);
                 if (striderCount > 24) {
-                    Keybind.setKey('shift', true);
-                    this.step = STEPS.EQUIP_FLAY;
-                    this.tickDelay = this.randomTickDelay();
-                    break;
+                    this.transitionTo(STEPS.EQUIP_FLAY);
+                    return;
                 }
 
                 const closeStridersurfer = this.getNearbyStridersurfer(armorStands);
@@ -143,99 +137,76 @@ class StridersurferMacro extends ModuleBase {
                     this.previousYaw = Player.getPlayer().getYaw();
                     this.previousPitch = Player.getPlayer().getPitch();
                     this.stridersurferTarget = closeStridersurfer;
-                    const axeSlot = this.getAxeSlot();
-                    if (axeSlot !== -1) Guis.setItemSlot(axeSlot);
-                    this.step = STEPS.SNAP_TO_STRIDER;
-                    this.tickDelay = 0;
-                    break;
+                    Guis.setItemSlot(this.getAxeSlot());
+                    this.transitionTo(STEPS.SNAP_TO_STRIDER, 0);
+                    return;
                 }
 
-                this.step = STEPS.CAST_ROD;
-                this.tickDelay = this.randomTickDelay();
+                this.transitionTo(STEPS.CAST_ROD);
                 break;
-            }
-            case STEPS.RECOVERY_SWAP_BACK_TO_ROD: {
-                const rodSlot = this.getRodSlot();
-                if (rodSlot !== -1) Guis.setItemSlot(rodSlot);
-                this.step = STEPS.RECOVERY_RECAST_ROD;
-                this.tickDelay = 1 + this.randomTickDelay();
+            case STEPS.RECOVERY_SWAP_BACK_TO_ROD:
+                Guis.setItemSlot(this.getRodSlot());
+                this.transitionTo(STEPS.RECOVERY_RECAST_ROD, 1 + this.randomTickDelay());
                 break;
-            }
             case STEPS.RECOVERY_RECAST_ROD:
                 Keybind.rightClick();
                 this.biteWaitStartedAt = Date.now();
-                this.step = STEPS.WAITING_FOR_BITE;
-                this.tickDelay = 1 + this.randomTickDelay();
+                this.transitionTo(STEPS.WAITING_FOR_BITE, 1 + this.randomTickDelay());
                 break;
             case STEPS.EQUIP_FLAY:
-                const flaySlot = this.getFlaySlot();
-                if (flaySlot !== -1) Guis.setItemSlot(flaySlot);
-                this.tickDelay = this.randomTickDelay();
-                Keybind.setKey('shift', true);
+                Guis.setItemSlot(this.getFlaySlot());
+
                 if (this.shouldSwapPet(this.petNameKill)) {
-                    this.pendingPetName = this.petNameKill;
-                    this.pendingPetPhase = 'kill';
-                    this.step = STEPS.OPEN_PETS;
-                } else {
-                    this.step = STEPS.START_KILL_COMBO;
+                    this.startPetSwap(this.petNameKill, 'kill');
+                    return;
                 }
+
+                Keybind.setKey('shift', true);
+                this.transitionTo(STEPS.START_KILL_COMBO);
                 break;
             case STEPS.START_KILL_COMBO:
                 Keybind.rightClick();
                 Keybind.setKey('shift', true);
-                this.step = STEPS.EQUIP_AXE_AFTER_OPEN;
-                this.tickDelay = 0;
+                this.transitionTo(STEPS.EQUIP_AXE_AFTER_OPEN, 1);
                 break;
             case STEPS.EQUIP_AXE_AFTER_OPEN:
-                const swapAxeSlot = this.getAxeSlot();
-                if (swapAxeSlot !== -1) Guis.setItemSlot(swapAxeSlot);
+                Guis.setItemSlot(this.getAxeSlot());
                 Keybind.setKey('shift', true);
-                this.step = STEPS.RE_EQUIP_FLAY;
-                this.tickDelay = 5 + this.randomTickDelay();
+                this.transitionTo(STEPS.RE_EQUIP_FLAY, 7 + this.randomTickDelay());
                 break;
             case STEPS.RE_EQUIP_FLAY:
-                const reEquipFlaySlot = this.getFlaySlot();
-                if (reEquipFlaySlot !== -1) Guis.setItemSlot(reEquipFlaySlot);
+                Guis.setItemSlot(this.getFlaySlot());
                 Keybind.setKey('shift', true);
-                this.step = STEPS.FINISH_KILL_COMBO;
-                this.tickDelay = this.randomTickDelay();
+                this.transitionTo(STEPS.FINISH_KILL_COMBO);
                 break;
             case STEPS.FINISH_KILL_COMBO:
                 Keybind.rightClick();
                 Keybind.setKey('shift', true);
-                this.step = STEPS.RESET_STANCE;
-                this.tickDelay = 0;
+                this.transitionTo(STEPS.RESET_STANCE, 0);
                 break;
             case STEPS.RESET_STANCE:
-                const resetAxeSlot = this.getAxeSlot();
-                if (resetAxeSlot !== -1) Guis.setItemSlot(resetAxeSlot);
+                Guis.setItemSlot(this.getAxeSlot());
                 Keybind.setKey('shift', false);
-                this.step = STEPS.EQUIP_ROD;
-                this.tickDelay = 4 + this.randomTickDelay();
+                this.transitionTo(STEPS.EQUIP_ROD, 4 + this.randomTickDelay());
                 break;
             case STEPS.EQUIP_ROD:
-                const rodSlot = this.getRodSlot();
-                if (rodSlot !== -1) Guis.setItemSlot(rodSlot);
-                this.step = STEPS.CAST_ROD;
-                this.tickDelay = 1 + this.randomTickDelay();
+                Guis.setItemSlot(this.getRodSlot());
+                this.transitionTo(STEPS.CAST_ROD, 1 + this.randomTickDelay());
                 break;
             case STEPS.CAST_ROD:
                 Keybind.rightClick();
                 this.biteWaitStartedAt = Date.now();
+
                 if (this.shouldSwapPet(this.petNameRecast)) {
-                    this.pendingPetName = this.petNameRecast;
-                    this.pendingPetPhase = 'recast';
-                    this.step = STEPS.OPEN_PETS;
-                    this.tickDelay = 1 + this.randomTickDelay();
-                } else {
-                    this.resetLoop();
-                    this.step = STEPS.WAITING_FOR_BITE;
+                    this.startPetSwap(this.petNameRecast, 'recast');
+                    return;
                 }
+
+                this.restartWaitingForBite();
                 break;
             case STEPS.OPEN_PETS:
                 ChatLib.command('pets');
-                this.step = STEPS.CLICK_PET_SLOT;
-                this.tickDelay = 5 + this.randomTickDelay();
+                this.transitionTo(STEPS.CLICK_PET_SLOT, 4 + this.randomTickDelay());
                 break;
             case STEPS.CLICK_PET_SLOT:
                 if (!this.shouldSwapPet(this.pendingPetName) || !Guis.clickItem(this.pendingPetName, false, 'LEFT', true, false)) {
@@ -243,25 +214,25 @@ class StridersurferMacro extends ModuleBase {
                 }
 
                 if (this.pendingPetPhase === 'kill') {
-                    this.pendingPetName = '';
-                    this.pendingPetPhase = null;
-                    this.step = STEPS.START_KILL_COMBO;
-                } else {
-                    this.resetLoop();
-                    this.step = STEPS.WAITING_FOR_BITE;
+                    this.clearPendingPetSwap();
+                    this.transitionTo(STEPS.START_KILL_COMBO, 1 + this.randomTickDelay());
+                    return;
                 }
+
+                this.restartWaitingForBite();
                 break;
-            case STEPS.SNAP_TO_STRIDER: {
+            case STEPS.SNAP_TO_STRIDER:
                 if (!this.stridersurferTarget || !this.isStridersurferWithinRange(this.stridersurferTarget)) {
                     this.resumeLoopAfterStrider();
-                    break;
+                    return;
                 }
 
                 const aimPoint = Rotations.getEntityAimPoint(this.stridersurferTarget);
                 if (!aimPoint) {
                     this.resumeLoopAfterStrider();
-                    break;
+                    return;
                 }
+
                 aimPoint.y = aimPoint.y - 1.3;
 
                 this.waitingForStriderSwing = true;
@@ -270,12 +241,10 @@ class StridersurferMacro extends ModuleBase {
                     Keybind.leftClick();
                     this.waitingForStriderSwing = false;
                 });
-                this.step = STEPS.RESTORE_ROTATION;
-                this.tickDelay = this.randomTickDelay();
+                this.transitionTo(STEPS.RESTORE_ROTATION);
                 break;
-            }
-            case STEPS.RESTORE_ROTATION: {
-                if (this.waitingForStriderSwing || Rotations.isRotating) break;
+            case STEPS.RESTORE_ROTATION:
+                if (this.waitingForStriderSwing || Rotations.isRotating) return;
 
                 this.waitingForRotationReset = true;
                 if (this.previousYaw !== null && this.previousPitch !== null) {
@@ -287,23 +256,38 @@ class StridersurferMacro extends ModuleBase {
                     this.waitingForRotationReset = false;
                 }
 
-                this.step = STEPS.RESUME_LOOP;
-                this.tickDelay = this.randomTickDelay();
+                this.transitionTo(STEPS.RESUME_LOOP);
                 break;
-            }
-            case STEPS.RESUME_LOOP: {
+            case STEPS.RESUME_LOOP:
                 if (this.waitingForRotationReset || Rotations.isRotating) break;
                 this.resumeLoopAfterStrider();
                 break;
-            }
         }
     }
 
-    resetLoop() {
-        this.step = STEPS.EQUIP_ROD;
-        this.tickDelay = this.randomTickDelay();
+    restartWaitingForBite() {
+        this.clearPendingPetSwap();
+        this.clearStriderState();
+        this.transitionTo(STEPS.WAITING_FOR_BITE);
+    }
+
+    transitionTo(step, delay = this.randomTickDelay()) {
+        this.step = step;
+        this.tickDelay = delay;
+    }
+
+    startPetSwap(name, phase) {
+        this.pendingPetName = name;
+        this.pendingPetPhase = phase;
+        this.transitionTo(STEPS.OPEN_PETS);
+    }
+
+    clearPendingPetSwap() {
         this.pendingPetName = '';
         this.pendingPetPhase = null;
+    }
+
+    clearStriderState() {
         this.stridersurferTarget = null;
         this.waitingForStriderSwing = false;
         this.waitingForRotationReset = false;
@@ -395,13 +379,8 @@ class StridersurferMacro extends ModuleBase {
     }
 
     resumeLoopAfterStrider() {
-        this.stridersurferTarget = null;
-        this.waitingForStriderSwing = false;
-        this.waitingForRotationReset = false;
-        this.previousYaw = null;
-        this.previousPitch = null;
-        this.step = STEPS.EQUIP_ROD;
-        this.tickDelay = this.randomTickDelay();
+        this.clearStriderState();
+        this.transitionTo(STEPS.EQUIP_ROD);
     }
 
     hasBiteWaitTimedOut() {
@@ -502,7 +481,9 @@ class StridersurferMacro extends ModuleBase {
     onEnable() {
         Chat.message('Stridersurfer Macro Enabled');
         this.lastStriderCount = null;
-        this.resetLoop();
+        this.clearPendingPetSwap();
+        this.clearStriderState();
+        this.transitionTo(STEPS.EQUIP_ROD);
         Keybind.setKey('shift', false);
         Mouse.ungrab();
     }
