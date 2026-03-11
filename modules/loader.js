@@ -1,6 +1,7 @@
 /* MINING */
 import './mining/CommissionMacro';
 import './mining/ExcavatorMacro';
+import './mining/GlaciteCommissionMacro';
 import './mining/LobbyHopper';
 import './mining/Nuker';
 import './mining/OreMacro';

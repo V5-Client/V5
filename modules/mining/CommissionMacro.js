@@ -24,7 +24,6 @@ const STATES = {
     SELLING: 'Selling Items',
     REFUELING: 'Refueling Drill',
     CLAIMING: 'Claiming Rewards',
-    SWAPPING_PICK: 'Swapping Pickonimbus',
 };
 
 class CommissionMacro extends ModuleBase {

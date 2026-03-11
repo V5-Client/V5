@@ -192,12 +192,45 @@ class Bot extends ModuleBase {
             'minecraft:infested_cobblestone': 4,
             'minecraft:blue_stained_glass': 4,
             'minecraft:blue_stained_glass_pane': 4,
+            'minecraft:lime_stained_glass': 4,
+            'minecraft:lime_stained_glass_pane': 4,
             'minecraft:green_stained_glass': 4,
             'minecraft:green_stained_glass_pane': 4,
             'minecraft:black_stained_glass': 4,
             'minecraft:black_stained_glass_pane': 4,
             'minecraft:brown_stained_glass': 4,
             'minecraft:brown_stained_glass_pane': 4,
+        };
+
+        this.tunnelOreCosts = {
+            glacite: {
+                'minecraft:packed_ice': 4,
+            },
+            umber: {
+                'minecraft:smooth_red_sandstone': 4,
+                'minecraft:terracotta': 4,
+                'minecraft:brown_terracotta': 4,
+            },
+            tungsten: {
+                'minecraft:clay': 4,
+                'minecraft:infested_cobblestone': 4,
+            },
+            aquamarine: {
+                'minecraft:blue_stained_glass': 4,
+                'minecraft:blue_stained_glass_pane': 4,
+            },
+            peridot: {
+                'minecraft:green_stained_glass': 4,
+                'minecraft:green_stained_glass_pane': 4,
+            },
+            onyx: {
+                'minecraft:black_stained_glass': 4,
+                'minecraft:black_stained_glass_pane': 4,
+            },
+            citrine: {
+                'minecraft:brown_stained_glass': 4,
+                'minecraft:brown_stained_glass_pane': 4,
+            },
         };
     }
 
@@ -430,6 +463,7 @@ class Bot extends ModuleBase {
     isSolidBlockAt(x, y, z) {
         const block = World.getBlockAt(x, y, z);
         if (!block?.type || block.type.getID() === 0) return false;
+        if (block.type.getRegistryName?.() === 'minecraft:snow') return false;
 
         const world = World.getWorld();
         if (!world) return false;
@@ -532,7 +566,6 @@ class Bot extends ModuleBase {
     }
 
     incrementMiningCountersIfLookingAtCurrent(fakeLookMode) {
-        this.tickCount++;
         if (fakeLookMode !== 'Off') {
             Player.getPlayer().swingHand(MCHand.MAIN_HAND);
             this.mineTickCount++;
@@ -635,6 +668,7 @@ class Bot extends ModuleBase {
 
     handleMiningState() {
         const now = Date.now();
+        this.tickCount++;
 
         if (this.SCAN_ONLY) {
             this.scanForBlock(this.COSTTYPE);
@@ -681,8 +715,6 @@ class Bot extends ModuleBase {
 
         const hasFreshAimPoint = this.refreshCurrentTargetAimPoint();
         if (!hasFreshAimPoint) {
-            this.resetTickCounters();
-
             if (wasApproachTarget && this.MOVEMENT) {
                 this.allowScan = true;
                 this.handleVeinMovement();
@@ -696,7 +728,6 @@ class Bot extends ModuleBase {
             this.stopMiningControls(true);
             this.scanForBlock(this.COSTTYPE, null, this.currentTarget);
             this.allowScan = false;
-            return;
         }
 
         if (this.MOVEMENT && now < this.movementReevalCooldownUntil) {
@@ -1342,9 +1373,9 @@ class Bot extends ModuleBase {
 
         if (!this._movementHumanizer) {
             this._movementHumanizer = {
-                strafeThreshold: 20,
+                strafeThreshold: 15,
                 stopYawThreshold: 10,
-                moveInMin: 1.25,
+                moveInMin: 1.5,
                 moveInMax: 3.0,
                 moveOutThreshold: 3.75,
                 unsneakLargeMoveThreshold: 5.5,
@@ -1450,6 +1481,19 @@ class Bot extends ModuleBase {
             this.message(`&cCould not find cost type for ${typeName}!`);
             this.COSTTYPE = null;
         }
+    }
+
+    getTunnelCostsForOres(ores) {
+        const oreList = Array.isArray(ores) ? ores : [ores];
+        const mergedCosts = {};
+
+        oreList.forEach((ore) => {
+            const oreCosts = this.tunnelOreCosts?.[String(ore).toLowerCase()];
+            if (!oreCosts) return;
+            Object.assign(mergedCosts, oreCosts);
+        });
+
+        return Object.keys(mergedCosts).length ? mergedCosts : this.tunnelCosts;
     }
 
     populateLocations(locations, parentManaged) {

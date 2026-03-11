@@ -22,11 +22,8 @@ class TunnelsMiner extends ModuleBase {
         this.oreTypes = Object.keys(Veins); // glacite,peridot,umber,tungsten,aquamarine,onyx,citrine
         this.selectedOres = [this.oreTypes[0]]; // glacite
         this.botManaged = false;
+        this.botStartedWork = false;
         this.veinDataCache = new Map();
-        this.targets = [];
-        this.targetIndex = -1;
-        this.currentTarget = null;
-        this.completedVeins = new Set();
 
         this.edgeOffsets = [
             [1, 0, 0],
@@ -67,9 +64,7 @@ class TunnelsMiner extends ModuleBase {
     }
 
     onEnable() {
-        MiningBot.setCost(MiningBot.tunnelCosts);
-        this.buildTargetQueue();
-        this.pathfindNextTarget();
+        this.startPathfind();
     }
 
     onDisable() {
@@ -80,14 +75,38 @@ class TunnelsMiner extends ModuleBase {
         this.selectedOres = [...new Set(value.filter((entry) => entry.enabled).map((entry) => entry.name))];
     }
 
+    setSelectedOreNames(ores) {
+        const nextOres = Array.isArray(ores) ? ores.filter((ore) => this.oreTypes.includes(ore)) : [];
+        this.selectedOres = [...new Set(nextOres)];
+        return this.selectedOres;
+    }
+
+    restart() {
+        if (!this.enabled) return;
+        this.stopAll();
+        this.startPathfind();
+    }
+
     onTick() {
         if (!this.botManaged) return;
-        if (MiningBot.foundLocations.length > 0) return;
+        const hasActiveWork = MiningBot.isScanning() || MiningBot.currentTarget || MiningBot.foundLocations.length > 0;
+        if (hasActiveWork) {
+            this.botStartedWork = true;
+            return;
+        }
+
+        if (MiningBot.enabled && !this.botStartedWork) {
+            return;
+        }
+
+        if (MiningBot.enabled && MiningBot.state !== MiningBot.STATES.MINING) {
+            return;
+        }
 
         MiningBot.toggle(false, true);
         this.botManaged = false;
-        if (this.currentTarget?.veinKey) this.completedVeins.add(this.currentTarget.veinKey);
-        this.pathfindNextTarget();
+        this.botStartedWork = false;
+        this.startPathfind();
     }
 
     stopAll() {
@@ -97,79 +116,38 @@ class TunnelsMiner extends ModuleBase {
             MiningBot.isParentManaged = false;
         }
         this.botManaged = false;
-        this.targets = [];
-        this.targetIndex = -1;
-        this.currentTarget = null;
-        this.completedVeins.clear();
+        this.botStartedWork = false;
     }
 
-    buildTargetQueue() {
+    startPathfind() {
         const scan = this.scanForVeins(this.selectedOres);
         if (!scan?.targets?.length) {
-            this.targets = [];
-            this.targetIndex = -1;
+            Chat.message('&cNo reachable veins found.');
             return;
         }
 
-        this.targets = scan.targets.filter((target) => !this.completedVeins.has(target.veinKey));
-        this.targetIndex = -1;
-    }
+        const ends = scan.targets.map((target) => [target.candidate.x, target.candidate.y - 1, target.candidate.z]);
+        Chat.message(`&bPathing to best target (${scan.targets.length} options)...`);
 
-    pathfindNextTarget() {
-        if (!this.enabled) return;
-
-        while (true) {
-            this.targetIndex++;
-
-            if (this.targetIndex >= this.targets.length) {
-                this.buildTargetQueue();
-                if (!this.targets.length) {
-                    Chat.message('&cNo reachable veins found.');
+        Pathfinder.findPath(
+            ends,
+            (success) => {
+                if (!success) {
+                    Chat.message('&cPathfinding failed.');
                     return;
                 }
-                this.targetIndex++;
-            }
 
-            const target = this.targets[this.targetIndex];
-            if (!target) {
-                Chat.message('&cNo reachable veins found.');
-                return;
-            }
-
-            this.currentTarget = target;
-            Chat.message(`&bPathing to ${target.ore} vein...`);
-            const end = [[target.candidate.x, target.candidate.y - 1, target.candidate.z]];
-
-            Pathfinder.findPath(
-                end,
-                (success) => {
-                    if (!this.enabled) return;
-                    if (!success) {
-                        if (this.currentTarget?.veinKey) this.completedVeins.add(this.currentTarget.veinKey);
-                        return this.pathfindNextTarget();
-                    }
-                    this.onPathSuccess();
-                },
-                false
-            );
-
-            return;
-        }
+                this.onPathSuccess();
+            },
+            false
+        );
     }
 
     onPathSuccess() {
-        if (!this.currentTarget) return;
-
-        const didStart = MiningBot.populateLocations(this.currentTarget.veinBlocks, true);
-        if (!didStart || MiningBot.foundLocations.length === 0) {
-            MiningBot.toggle(false, true);
-            if (this.currentTarget.veinKey) this.completedVeins.add(this.currentTarget.veinKey);
-            this.botManaged = false;
-            this.pathfindNextTarget();
-            return;
-        }
-
+        this.forceTunnelMiningBotCosts();
+        MiningBot.toggle(true, true);
         this.botManaged = true;
+        this.botStartedWork = false;
     }
 
     scanForVeins(ores) {
@@ -186,15 +164,18 @@ class TunnelsMiner extends ModuleBase {
             const veins = Veins[ore];
             veins.forEach((vein, index) => {
                 const { veinSet, edgeBlocks, veinBlocks } = this.getVeinData(ore, index, vein);
-                const candidate = this.getFirstVeinCandidate(edgeBlocks, veinSet, passableCache);
-                if (!candidate) return;
+                if (!this.isVeinValid(vein)) return;
 
-                targets.push({
-                    ore,
-                    veinIndex: index,
-                    veinKey: `${ore}:${index}`,
-                    candidate,
-                    veinBlocks,
+                const candidates = this.getVeinCandidates(edgeBlocks, veinSet, passableCache);
+                if (!candidates.length) return;
+
+                candidates.forEach((candidate) => {
+                    targets.push({
+                        ore,
+                        veinIndex: index,
+                        candidate,
+                        veinBlocks,
+                    });
                 });
             });
         });
@@ -220,8 +201,9 @@ class TunnelsMiner extends ModuleBase {
         return edges;
     }
 
-    getFirstVeinCandidate(edgeBlocks, veinSet, passableCache) {
+    getVeinCandidates(edgeBlocks, veinSet, passableCache) {
         const checked = new Map();
+        const candidates = [];
 
         for (const edge of edgeBlocks) {
             for (const [dx, , dz] of this.neighborOffsets) {
@@ -232,11 +214,11 @@ class TunnelsMiner extends ModuleBase {
                 const candidate = this.findStandPosition(start, veinSet, passableCache);
                 checked.set(key, candidate);
                 if (!candidate?.valid) continue;
-                return candidate.pos;
+                candidates.push(candidate.pos);
             }
         }
 
-        return null;
+        return candidates;
     }
 
     findStandPosition(start, veinSet, passableCache) {
@@ -287,6 +269,24 @@ class TunnelsMiner extends ModuleBase {
         return true;
     }
 
+    isVeinValid(vein) {
+        for (const [x, y, z] of vein) {
+            const block = World.getBlockAt(x, y, z);
+            const blockName = block?.type?.getRegistryName?.() || '';
+            if (this.isMined(blockName)) return false;
+        }
+        return true;
+    }
+
+    isMined(blockName) {
+        return blockName === 'minecraft:air' || blockName === 'minecraft:bedrock';
+    }
+
+    forceTunnelMiningBotCosts() {
+        MiningBot.selectedTypeName = 'Tunnel';
+        MiningBot.setCost(MiningBot.getTunnelCostsForOres(this.selectedOres));
+    }
+
     posKey(x, y, z) {
         return `${x},${y},${z}`;
     }
@@ -296,9 +296,9 @@ class TunnelsMiner extends ModuleBase {
         const cached = this.veinDataCache.get(key);
         if (cached?.veinRef === vein) return cached;
 
-        const veinSet = new Set(vein.map((b) => this.posKey(b[0], b[1], b[2])));
+        const veinSet = new Set(vein.map((block) => this.posKey(block[0], block[1], block[2])));
         const edgeBlocks = this.getEdgeBlocks(vein, veinSet);
-        const veinBlocks = vein.map((b) => ({ x: b[0], y: b[1], z: b[2] }));
+        const veinBlocks = vein.map((block) => ({ x: block[0], y: block[1], z: block[2] }));
 
         const data = { veinSet, edgeBlocks, veinBlocks, veinRef: vein };
         this.veinDataCache.set(key, data);
