@@ -5,7 +5,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 
-class FishingMacro extends ModuleBase {
+class FishingHelper extends ModuleBase {
     constructor() {
         super({
             name: 'Fishing Helper',
@@ -101,4 +101,4 @@ class FishingMacro extends ModuleBase {
     }
 }
 
-new FishingMacro();
+new FishingHelper();
