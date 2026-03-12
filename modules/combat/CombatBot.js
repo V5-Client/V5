@@ -1,5 +1,5 @@
 ﻿import { Chat } from '../../utils/Chat';
-import { EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
+import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -22,6 +22,9 @@ const ATTACK_REACH = 4;
 const BLACKHOLE_SCAN_INTERVAL = 10;
 const BLACKHOLE_SCAN_RADIUS = 30;
 const BLACKHOLE_SCAN_Y_RANGE = 20;
+const BLACKHOLE_MEMORY_MS = 60000;
+const BLACKHOLE_FORGET_CHECK_RADIUS = 20;
+const BLACKHOLE_MERGE_RADIUS = 2.5;
 
 const SEARCH_TARGET_TIMEOUT_MS = 15000;
 const TARGET_BLACKLIST_MS = 10000;
@@ -272,18 +275,13 @@ class Combat extends ModuleBase {
         this.scanTicker = (this.scanTicker || 0) + 1;
         if (this.scanTicker % BLACKHOLE_SCAN_INTERVAL !== 0) return;
 
-        const stands = World.getAllEntities().filter((e) => e.getClassName().includes('ArmorStand') || e.getName().includes('Armor Stand'));
-        if (!stands || stands.length === 0) {
-            this.activeBlackholes = [];
-            return;
-        }
-
-        const newBlackholes = [];
+        const stands = World.getAllEntitiesOfType(ArmorStandEntity.class);
+        const visibleBlackholes = [];
         const playerX = Player.getX();
         const playerY = Player.getY();
         const playerZ = Player.getZ();
 
-        for (const stand of stands) {
+        for (const stand of stands || []) {
             try {
                 const dx = stand.getX() - playerX;
                 const dy = stand.getY() - playerY;
@@ -293,21 +291,54 @@ class Combat extends ModuleBase {
                 const headItem = stand.getStackInSlot(5);
                 if (!headItem) continue;
 
-                const mcItem = headItem.toMC ? headItem.toMC() : headItem;
-                const profileType = net.minecraft.component.DataComponentTypes.PROFILE;
-                const profileComponent = mcItem?.get(profileType);
-                const data = profileComponent?.getGameProfile?.().toString();
-                const base64Match = data ? data.match(/value=([A-Za-z0-9+/=]+)/) : null;
-
-                if (base64Match && base64Match[1] && BLACKHOLE_TEXTURES.has(base64Match[1])) {
-                    newBlackholes.push({ x: stand.getX(), y: stand.getY(), z: stand.getZ() });
+                if (this.isBlackholeHead(headItem)) {
+                    visibleBlackholes.push({ x: stand.getX(), y: stand.getY(), z: stand.getZ() });
                 }
             } catch (e) {
                 console.error('V5 Caught error' + e + e.stack);
             }
         }
 
-        this.activeBlackholes = newBlackholes;
+        const now = Date.now();
+
+        visibleBlackholes.forEach((pos) => {
+            const existing = this.activeBlackholes.find((bh) => this.getDistanceBetween(bh, pos).distanceFlat <= BLACKHOLE_MERGE_RADIUS);
+            if (existing) {
+                existing.x = pos.x;
+                existing.y = pos.y;
+                existing.z = pos.z;
+                existing.lastSeen = now;
+                return;
+            }
+            this.activeBlackholes.push({ x: pos.x, y: pos.y, z: pos.z, lastSeen: now });
+        });
+
+        this.activeBlackholes = this.activeBlackholes.filter((bh) => {
+            const age = now - (bh.lastSeen || 0);
+            if (age <= BLACKHOLE_MEMORY_MS) return true;
+
+            const distance = this.getDistanceBetween({ x: playerX, y: playerY, z: playerZ }, bh);
+            return distance.distanceFlat > BLACKHOLE_FORGET_CHECK_RADIUS;
+        });
+    }
+
+    isBlackholeHead(item) {
+        try {
+            const mcItem = item?.toMC ? item.toMC() : item;
+            if (!mcItem) return false;
+
+            const profileType = net.minecraft.component.DataComponentTypes.PROFILE;
+            const profileComponent = mcItem.get(profileType);
+            const profileString = profileComponent?.getGameProfile?.()?.toString() || '';
+            if (!profileString) return false;
+
+            for (const base64 of BLACKHOLE_TEXTURES) {
+                if (profileString.includes(base64)) return true;
+            }
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
+        return false;
     }
 
     isPositionSafe(x, y, z) {
@@ -316,7 +347,7 @@ class Combat extends ModuleBase {
 
         for (const bh of this.activeBlackholes) {
             const distanceData = this.getDistanceBetween({ x, y, z }, bh);
-            if (distanceData.distanceFlat < BLACKHOLE_AVOID_RADIUS && Math.abs(distanceData.distanceY) < 10) return false;
+            if (distanceData.distanceFlat < BLACKHOLE_AVOID_RADIUS) return false;
         }
         return true;
     }
