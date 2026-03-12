@@ -44,9 +44,6 @@ export class ModuleBase {
         // add to gui
         if (!this.hideInModules) {
             Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
-            if (this.showEnabledToggle) {
-                Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
-            }
         }
 
         if (opts.autoDisableOnWorldUnload) {

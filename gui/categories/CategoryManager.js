@@ -4,7 +4,6 @@ import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
-import { ToggleButton } from '../components/Toggle';
 import { GuiRectangles, GuiState } from '../core/GuiState';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, drawSubcategoryButtons, getCategoryRect, getDiscordPfpRect } from './CategoryRenderer';
@@ -250,7 +249,6 @@ export const createCategoriesManager = (deps) => {
 
         const checkComponent = (item, component) => {
             if (!component || component instanceof Separator) return;
-            if (component instanceof ToggleButton && component.title === 'Enabled') return;
             const titleMatch = matchesSearch(component.title, searchRegexes);
             const descMatch = matchesSearch(component.description, searchRegexes);
             if (titleMatch || descMatch) pushMatch(item, component);
@@ -340,9 +338,6 @@ export const createCategoriesManager = (deps) => {
         let currentY = 78;
         for (let i = 0; i < item.components.length; i++) {
             const comp = item.components[i];
-            if (comp instanceof ToggleButton && comp.title === 'Enabled') {
-                continue;
-            }
             const isSeparator = comp instanceof Separator;
             let compHeight = isSeparator ? 26 : 48 + 6;
 
@@ -366,9 +361,7 @@ export const createCategoriesManager = (deps) => {
         if (!Categories.selectedItem || Categories.selected !== 'Modules') return null;
         const module = MacroState.getModule(Categories.selectedItem.title);
         if (!module) return null;
-
-        const hasEnabledToggle = Categories.selectedItem.components?.some((component) => component instanceof ToggleButton && component.title === 'Enabled');
-        if (!module.isMacro && !hasEnabledToggle) return null;
+        if (!module.isMacro && !module.showEnabledToggle) return null;
 
         return module;
     };
@@ -457,9 +450,6 @@ export const createCategoriesManager = (deps) => {
             const components = Categories.selectedItem.components;
             if (components) {
                 components.forEach((component) => {
-                    if (component instanceof ToggleButton && component.title === 'Enabled') {
-                        return;
-                    }
                     let compHeight = component instanceof Separator ? 26 : 54;
                     if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                         compHeight += component.getExpandedHeight() * (component.animationProgress || 0);

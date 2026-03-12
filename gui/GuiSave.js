@@ -1,5 +1,6 @@
 import { Chat } from '../utils/Chat';
 import { Color } from '../utils/Constants';
+import { MacroState } from '../utils/MacroState';
 import { Utils } from '../utils/Utils';
 import { Categories } from './categories/CategorySystem';
 import { Button } from './components/Button';
@@ -30,6 +31,10 @@ function buildSettingsMapFromComponents() {
                 const key = `${item.title}.${component.title}`;
                 storeComponentValue(key, component);
             });
+
+            if (category.name === 'Modules') {
+                storeModuleEnabledValue(item.title);
+            }
         });
 
         // SETTINGS PAGE
@@ -41,6 +46,12 @@ function buildSettingsMapFromComponents() {
             });
         }
     });
+}
+
+function storeModuleEnabledValue(moduleName) {
+    const module = MacroState.getModule(moduleName);
+    if (!module || module.showEnabledToggle === false) return;
+    SettingsMap.set(`${moduleName}.Enabled`, !!module.enabled);
 }
 
 function storeComponentValue(key, component) {
@@ -76,6 +87,11 @@ export const saveSettings = () => {
 export const applySettings = () => {
     Categories.categories.forEach((category) => {
         getCategoryItems(category).forEach((item) => {
+            if (category.name === 'Modules') {
+                const enabled = getSetting(item.title, 'Enabled');
+                applyModuleEnabled(item.title, enabled);
+            }
+
             item.components.forEach((component) => {
                 triggerComponentCallback(item.title, component);
             });
@@ -89,6 +105,15 @@ export const applySettings = () => {
         }
     });
 };
+
+function applyModuleEnabled(moduleName, savedValue) {
+    if (savedValue === undefined) return;
+
+    const module = MacroState.getModule(moduleName);
+    if (!module || module.showEnabledToggle === false) return;
+
+    module.toggle(!!savedValue);
+}
 
 function triggerComponentCallback(parentName, component) {
     if (!component.callback) return;
@@ -134,6 +159,7 @@ export const loadSettings = () => {
         });
 
         buildSettingsMapFromComponents();
+        mergeSavedModuleEnabledStates(settings);
         applySettings();
     } catch (e) {
         Chat.message(`Error loading settings: ${e}`);
@@ -141,6 +167,17 @@ export const loadSettings = () => {
         buildSettingsMapFromComponents();
     }
 };
+
+function mergeSavedModuleEnabledStates(settings) {
+    const modulesCategory = Categories.categories.find((category) => category.name === 'Modules');
+    if (!modulesCategory || !settings) return;
+
+    getCategoryItems(modulesCategory).forEach((item) => {
+        const savedEnabled = settings[item.title]?.Enabled;
+        if (savedEnabled === undefined) return;
+        SettingsMap.set(`${item.title}.Enabled`, !!savedEnabled);
+    });
+}
 
 function loadComponentValue(component, savedValue) {
     if (savedValue === undefined) return;

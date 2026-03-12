@@ -27,7 +27,6 @@ import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
-import { ToggleButton } from '../components/Toggle';
 import { GuiRectangles } from '../core/GuiState';
 import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
@@ -279,8 +278,6 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
 
     let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
-        if (component instanceof ToggleButton && component.title === 'Enabled') return;
-
         const isPopup = component instanceof Popup;
         if (!isPopup && typeof component.draw !== 'function') return;
 
