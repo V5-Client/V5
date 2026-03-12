@@ -30,11 +30,17 @@ class PathRecovery {
 
         const pX = Player.getX();
         const pZ = Player.getZ();
+        if (!Number.isFinite(pX) || !Number.isFinite(pZ)) {
+            this.resetTracking();
+            this.lastPos = null;
+            return null;
+        }
 
         let distMovedSq = 1.0;
-        if (this.lastPos) {
-            const dx = pX - this.lastPos.x;
-            const dz = pZ - this.lastPos.z;
+        const lastPos = this.lastPos;
+        if (lastPos && Number.isFinite(lastPos.x) && Number.isFinite(lastPos.z)) {
+            const dx = pX - lastPos.x;
+            const dz = pZ - lastPos.z;
             distMovedSq = dx * dx + dz * dz;
         }
 
@@ -84,12 +90,15 @@ class PathRecovery {
     }
 
     hasMadeProgress() {
-        if (!this.stuckPos) return false;
+        const stuckPos = this.stuckPos;
+        if (!stuckPos || !Number.isFinite(stuckPos.x) || !Number.isFinite(stuckPos.z)) return false;
 
         const pX = Player.getX();
         const pZ = Player.getZ();
-        const dx = pX - this.stuckPos.x;
-        const dz = pZ - this.stuckPos.z;
+        if (!Number.isFinite(pX) || !Number.isFinite(pZ)) return false;
+
+        const dx = pX - stuckPos.x;
+        const dz = pZ - stuckPos.z;
 
         return dx * dx + dz * dz > this.PROGRESS_THRESHOLD_SQ;
     }
