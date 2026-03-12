@@ -17,12 +17,13 @@ import { setTooltip } from '../core/GuiTooltip';
 const PRESS_ANIM_DURATION = 120;
 
 export class Button {
-    constructor(title, x, y, buttonText = 'Press', callback = null) {
+    constructor(title, x, y, buttonText = 'Press', callback = null, options = {}) {
         this.title = title;
         this.x = x;
         this.y = y;
         this.buttonText = buttonText;
         this.callback = callback;
+        this.showContainer = options.showContainer !== false;
 
         this.optionPanelWidth = 0;
         this.containerHeight = 48;
@@ -70,30 +71,30 @@ export class Button {
     draw(mouseX, mouseY) {
         const componentHeight = this.containerHeight;
         const panelWidth = this.optionPanelWidth - PADDING * 2 - 20;
-
-        this.drawHighlight(panelWidth, componentHeight);
-
-        drawRoundedRectangleWithBorder({
-            x: this.x,
-            y: this.y,
-            width: panelWidth,
-            height: componentHeight,
-            radius: 10,
-            color: THEME.BG_COMPONENT,
-            borderWidth: 1,
-            borderColor: THEME.BORDER,
-        });
-
-        drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, THEME.TEXT);
-
         const buttonPadding = 10;
         const buttonHeight = 22;
         const buttonTextWidth = getTextWidth(this.buttonText, FontSizes.REGULAR);
         const buttonWidth = Math.max(64, buttonTextWidth + buttonPadding * 2);
-        const rightMargin = 12;
 
-        const buttonX = this.x + panelWidth - buttonWidth - rightMargin;
-        const buttonY = this.y + componentHeight / 2 - buttonHeight / 2;
+        if (this.showContainer) {
+            this.drawHighlight(panelWidth, componentHeight);
+
+            drawRoundedRectangleWithBorder({
+                x: this.x,
+                y: this.y,
+                width: panelWidth,
+                height: componentHeight,
+                radius: 10,
+                color: THEME.BG_COMPONENT,
+                borderWidth: 1,
+                borderColor: THEME.BORDER,
+            });
+
+            drawText(this.title, this.x + 12, this.y + componentHeight / 2, FontSizes.REGULAR, THEME.TEXT);
+        }
+
+        const buttonX = this.showContainer ? this.x + panelWidth - buttonWidth - 12 : this.x;
+        const buttonY = this.showContainer ? this.y + componentHeight / 2 - buttonHeight / 2 : this.y;
 
         this.buttonRect = {
             x: buttonX,
@@ -129,14 +130,16 @@ export class Button {
         const textY = buttonY + buttonHeight / 2 + pressOffset;
         drawText(this.buttonText, textX, textY, FontSizes.REGULAR, THEME.TEXT);
 
-        const componentRect = {
-            x: this.x,
-            y: this.y,
-            width: panelWidth,
-            height: componentHeight,
-        };
+        const tooltipRect = this.showContainer
+            ? {
+                  x: this.x,
+                  y: this.y,
+                  width: panelWidth,
+                  height: componentHeight,
+              }
+            : this.buttonRect;
 
-        if (this.description && isInside(mouseX, mouseY, componentRect)) {
+        if (this.description && isInside(mouseX, mouseY, tooltipRect)) {
             setTooltip(this.description);
         }
     }

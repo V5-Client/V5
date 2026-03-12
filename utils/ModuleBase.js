@@ -31,6 +31,7 @@ export class ModuleBase {
         this.oid = null;
         this.hexCode = null;
         this.hideInModules = opts.hideInModules === true;
+        this.showEnabledToggle = opts.showEnabledToggle !== false;
 
         this.isParentManaged = false;
 
@@ -43,7 +44,7 @@ export class ModuleBase {
         // add to gui
         if (!this.hideInModules) {
             Categories.addCategoryItem(this.subcategory, this.name, this.description, this.tooltip);
-            if (opts.showEnabledToggle !== false) {
+            if (this.showEnabledToggle) {
                 Categories.addToggle('Modules', this.name, 'Enabled', (value) => this.toggle(!!value), `Toggles ${this.name}`);
             }
         }
@@ -210,24 +211,36 @@ export class ModuleBase {
         this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
 
         this._wrappedKey.onKeyPress(() => {
-            if (this.isMacro && !this.enabled) {
-                const scheduler = MacroState.getModule('Scheduler');
-                if (scheduler && typeof scheduler.cancelScheduledMacro === 'function') {
-                    if (scheduler.cancelScheduledMacro(this.name)) return;
-                }
-            }
-
-            if (this.enabled && this.isParentManaged) {
-                notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
-                return;
-            }
-            this.toggle();
+            this.requestToggleFromUser();
         });
 
         register('gameUnload', () => {
             this._saveKey(title, this._wrappedKey.keyBinding.boundKey.code);
         });
         return this;
+    }
+
+    /**
+     * Toggle initiated by user input (keybind/gui button).
+     * Preserves scheduler cancel and parent-managed safeguards.
+     * @returns {boolean} True when this action enabled the module.
+     */
+    requestToggleFromUser() {
+        if (this.isMacro && !this.enabled) {
+            const scheduler = MacroState.getModule('Scheduler');
+            if (scheduler && typeof scheduler.cancelScheduledMacro === 'function') {
+                if (scheduler.cancelScheduledMacro(this.name)) return false;
+            }
+        }
+
+        if (this.enabled && this.isParentManaged) {
+            notificationManager.add('Cannot toggle module', `${this.name} is being managed by another macro. Toggle the parent macro.`, 'ERROR', '5000');
+            return false;
+        }
+
+        const wasEnabled = this.enabled;
+        this.toggle();
+        return !wasEnabled && this.enabled;
     }
 
     createOverlay(args, options = {}) {

@@ -1,5 +1,6 @@
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
+import { ToggleButton } from '../components/Toggle';
 import { GuiRectangles } from '../core/GuiState';
 import { OverlayManager } from '../OverlayUtils';
 import { easeInOutQuad, FontSizes, getTextWidth, isInside, PADDING, playClickSound, SUBCATEGORY_BUTTON_HEIGHT, SUBCATEGORY_BUTTON_SPACING } from '../Utils';
@@ -190,6 +191,10 @@ export const handleCategoryClick = (
         let currentDrawnCompY = optionY + 78 - sY;
 
         for (const component of components) {
+            if (component instanceof ToggleButton && component.title === 'Enabled') {
+                continue;
+            }
+
             if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
                 const drawnCompY = currentDrawnCompY;
                 let handled = false;
@@ -487,6 +492,10 @@ export const handleCategoryScroll = (
         let componentY = optionY + 78;
         if (components) {
             components.forEach((component) => {
+                if (component instanceof ToggleButton && component.title === 'Enabled') {
+                    return;
+                }
+
                 let expansionHeight = 0;
                 if (typeof component.getExpandedHeight === 'function') {
                     expansionHeight =

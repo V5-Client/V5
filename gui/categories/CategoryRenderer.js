@@ -27,6 +27,7 @@ import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
+import { ToggleButton } from '../components/Toggle';
 import { GuiRectangles } from '../core/GuiState';
 import { setTooltip } from '../core/GuiTooltip';
 import { SearchBar } from './CategorySearchBar';
@@ -237,7 +238,7 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
     return currentY + scrollY;
 };
 
-export const drawOptionsPanel = (panel, mouseX, mouseY) => {
+export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null) => {
     const selectedItem = Categories.selectedItem;
     if (!selectedItem) return;
 
@@ -261,11 +262,25 @@ export const drawOptionsPanel = (panel, mouseX, mouseY) => {
     const drawnDescY = optionY + 52 - scrollY;
     drawText(selectedItem.description, backButtonX, drawnDescY + 5, FontSizes.SMALL, THEME.TEXT_MUTED);
 
+    if (macroToggleButton) {
+        const buttonTextWidth = getTextWidth(macroToggleButton.buttonText || 'Enable', FontSizes.REGULAR);
+        const buttonWidth = Math.max(64, buttonTextWidth + 20);
+        const titleCenterY = drawnTitleY + 7;
+
+        macroToggleButton.x = optionPanelX + panel.width - PADDING - buttonWidth - 10;
+        macroToggleButton.y = titleCenterY - 11;
+        macroToggleButton.optionPanelWidth = buttonWidth;
+        macroToggleButton.optionPanelHeight = panel.height;
+        macroToggleButton.draw(mouseX, mouseY);
+    }
+
     const dividerY = optionY + 66 - scrollY;
     drawRoundedRectangle({ x: backButtonX, y: dividerY, width: panel.width - PADDING * 2 - 20, height: 1, radius: 1, color: THEME.BG_INSET });
 
     let drawnCompY = optionY + 78 - scrollY;
     selectedItem.components.forEach((component) => {
+        if (component instanceof ToggleButton && component.title === 'Enabled') return;
+
         const isPopup = component instanceof Popup;
         if (!isPopup && typeof component.draw !== 'function') return;
 

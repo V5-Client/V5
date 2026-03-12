@@ -1,13 +1,16 @@
 import { drawRoundedRectangle, drawRoundedRectangleWithBorder, isInside, PADDING, playClickSound, resetScissor, scissor } from '../Utils';
+import { Button } from '../components/Button';
 import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
 import { Separator } from '../components/Separator';
-import { GuiRectangles } from '../core/GuiState';
+import { ToggleButton } from '../components/Toggle';
+import { GuiRectangles, GuiState } from '../core/GuiState';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
 import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, drawSubcategoryButtons, getCategoryRect, getDiscordPfpRect } from './CategoryRenderer';
 import { SearchBar } from './CategorySearchBar';
 import { Categories } from './CategorySystem';
+import { MacroState } from '../../utils/MacroState';
 
 export const createCategoriesManager = (deps) => {
     let targetRightPanelScrollY = 0;
@@ -27,6 +30,25 @@ export const createCategoriesManager = (deps) => {
     let autoScrollRightActive = false;
     let autoScrollOptionsActive = false;
     let pendingHighlightComponent = null;
+    const macroToggleButton = new Button(
+        '',
+        0,
+        0,
+        'Enable',
+        () => {
+            const selectedItem = Categories.selectedItem;
+            if (!selectedItem) return;
+
+            const module = MacroState.getModule(selectedItem.title);
+            if (!module) return;
+
+            const enabledByClick = typeof module.requestToggleFromUser === 'function' ? module.requestToggleFromUser() : false;
+            if (module.isMacro && enabledByClick && GuiState.myGui.isOpen()) {
+                GuiState.myGui.close();
+            }
+        },
+        { showContainer: false }
+    );
 
     const SCROLL_SMOOTHING_FACTOR = 0.2;
     const AUTO_SCROLL_SMOOTHING_FACTOR = 0.06;
@@ -228,6 +250,7 @@ export const createCategoriesManager = (deps) => {
 
         const checkComponent = (item, component) => {
             if (!component || component instanceof Separator) return;
+            if (component instanceof ToggleButton && component.title === 'Enabled') return;
             const titleMatch = matchesSearch(component.title, searchRegexes);
             const descMatch = matchesSearch(component.description, searchRegexes);
             if (titleMatch || descMatch) pushMatch(item, component);
@@ -317,6 +340,9 @@ export const createCategoriesManager = (deps) => {
         let currentY = 78;
         for (let i = 0; i < item.components.length; i++) {
             const comp = item.components[i];
+            if (comp instanceof ToggleButton && comp.title === 'Enabled') {
+                continue;
+            }
             const isSeparator = comp instanceof Separator;
             let compHeight = isSeparator ? 26 : 48 + 6;
 
@@ -334,6 +360,17 @@ export const createCategoriesManager = (deps) => {
         }
 
         return 0;
+    };
+
+    const getSelectedToggleModule = () => {
+        if (!Categories.selectedItem || Categories.selected !== 'Modules') return null;
+        const module = MacroState.getModule(Categories.selectedItem.title);
+        if (!module) return null;
+
+        const hasEnabledToggle = Categories.selectedItem.components?.some((component) => component instanceof ToggleButton && component.title === 'Enabled');
+        if (!module.isMacro && !hasEnabledToggle) return null;
+
+        return module;
     };
 
     const calculateContentHeight = () => {
@@ -420,6 +457,9 @@ export const createCategoriesManager = (deps) => {
             const components = Categories.selectedItem.components;
             if (components) {
                 components.forEach((component) => {
+                    if (component instanceof ToggleButton && component.title === 'Enabled') {
+                        return;
+                    }
                     let compHeight = component instanceof Separator ? 26 : 54;
                     if ((component instanceof MultiToggle || component instanceof ColorPicker) && typeof component.getExpandedHeight === 'function') {
                         compHeight += component.getExpandedHeight() * (component.animationProgress || 0);
@@ -620,7 +660,12 @@ export const createCategoriesManager = (deps) => {
             }
         }
 
-        if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY);
+        const toggleModule = getSelectedToggleModule();
+        if (toggleModule) {
+            macroToggleButton.setButtonText(toggleModule.enabled ? 'Disable' : 'Enable');
+        }
+
+        if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY, toggleModule ? macroToggleButton : null);
         resetScissor();
     };
 
@@ -642,6 +687,11 @@ export const createCategoriesManager = (deps) => {
             isLayoutCacheValid = false;
             isContentHeightCacheValid = false;
             resetCategoryScroll();
+            return;
+        }
+
+        const toggleModule = getSelectedToggleModule();
+        if (toggleModule && macroToggleButton.handleClick(mouseX, mouseY)) {
             return;
         }
 
