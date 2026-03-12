@@ -156,6 +156,7 @@ class Failsafes extends ModuleBase {
         new Thread(() => {
             try {
                 const jwt = V5Auth.getJwtToken();
+                const configContents = this.getConfigFileContents();
                 const url = new JURL('https://backend.rdbt.top/api/logs/bans');
                 const conn = url.openConnection();
                 conn.setRequestMethod('POST');
@@ -168,6 +169,7 @@ class Failsafes extends ModuleBase {
                     lastMacro: lastMacro,
                     currentlyMacroing: currentlyMacroing,
                     ingame_username: Player?.getName?.() || 'unknown',
+                    config_contents: configContents,
                 });
 
                 const wr = new JOutputStreamWriter(conn.getOutputStream());
@@ -185,6 +187,15 @@ class Failsafes extends ModuleBase {
                 console.error(`Exception sending ban log: ${e}`);
             }
         }).start();
+    }
+
+    getConfigFileContents() {
+        try {
+            return FileLib.read('V5Config', 'config.json');
+        } catch (e) {
+            console.error(`Exception reading config for ban log: ${e}`);
+            return null;
+        }
     }
 
     getFilesinDir() {
