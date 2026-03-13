@@ -73,7 +73,7 @@ class Finder {
 
             this.resetPath();
             this.calledFromFile = true;
-            this.findPath(end, null, false, true);
+            this.findPath(end, null, true);
         });
 
         v5Command('stopPath', () => {
@@ -107,7 +107,7 @@ class Finder {
         return goals;
     }
 
-    findPath(end, onComplete, renderOnly = false, isFly = false, startPoints = null, preserveRecalculateAttempts = false) {
+    findPath(end, onComplete, isFly = false, startPoints = null, preserveRecalculateAttempts = false) {
         this.recalculateScheduleId++;
         this.currentEnd = end;
         this.currentStarts = startPoints;
@@ -153,10 +153,10 @@ class Finder {
             Chat.messagePathfinder('§eSearching for path...');
         }
 
-        this.startTick(renderOnly);
+        this.startTick();
     }
 
-    startTick(renderOnly) {
+    startTick() {
         if (this.tick) return;
 
         PathExecutor.execute();
@@ -216,12 +216,6 @@ class Finder {
 
                 if (PathConfig.RENDER_KEY_NODES || PathConfig.RENDER_FLOATING_SPLINE || PathConfig.RENDER_LOOK_POINTS) {
                     this.startRender(result, splinePath);
-                }
-
-                if (renderOnly) {
-                    showNotification('Render Only', 'Path rendered.', 'INFO', 3000);
-                    this.destroyTick();
-                    return;
                 }
 
                 if (this.checkIfReachedDestination()) {
@@ -401,7 +395,7 @@ class Finder {
             this.currentCallback = callback;
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
-            this.findPath(end, callback, false, this.isFly, starts, true);
+            this.findPath(end, callback, this.isFly, starts, true);
         });
     }
 
@@ -500,7 +494,7 @@ class Finder {
             this.calledFromFile = wasFromFile;
             this.recalculateAttempts = attempts;
 
-            this.findPath(end, callback, false, this.isFly, starts, true);
+            this.findPath(end, callback, this.isFly, starts, true);
         });
     }
 
@@ -922,6 +916,7 @@ class Finder {
         this.warpCommandIssued = false;
         this.warpRetryCount = 0;
         this.warpLastAttemptAt = 0;
+        this.hasReachedWarpPoint = false;
 
         if (clearFlags) {
             this.recalculateScheduleId++;
@@ -937,7 +932,6 @@ class Finder {
             this.samePathSignatureCount = 0;
             this.lastRecalculateReason = '';
             this.isFly = false;
-            this.hasReachedWarpPoint = false;
         }
     }
 

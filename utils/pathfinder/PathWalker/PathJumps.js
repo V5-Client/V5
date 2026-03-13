@@ -50,6 +50,14 @@ class PathJumps {
         return this.blockCache.get(key);
     }
 
+    getBlockName(block) {
+        try {
+            return block?.type?.getRegistryName?.()?.toLowerCase?.() || '';
+        } catch (e) {
+            return '';
+        }
+    }
+
     isBlockNonCollidable(world, blockVec) {
         const blockPosNMS = new BP(Math.floor(blockVec.x), Math.floor(blockVec.y), Math.floor(blockVec.z));
         const blockState = world.getBlockState(blockPosNMS);
@@ -72,7 +80,7 @@ class PathJumps {
         for (let offset = 2; offset <= 3; offset++) {
             const block = this.getCachedBlock(x, y + offset, z);
             if (!block || block.type.getID() === 0) continue;
-            if (block.type.getRegistryName().toLowerCase().includes('stair')) continue;
+            if (this.getBlockName(block).includes('stair')) continue;
             const blockPosNMS = new BP(Math.floor(x), Math.floor(y + offset), Math.floor(z));
             const blockState = world.getBlockState(blockPosNMS);
             if (!blockState.getCollisionShape(world, blockPosNMS).isEmpty()) return true;
@@ -85,10 +93,8 @@ class PathJumps {
         if (!playerMP) return false;
         if (playerMP.isInLava() || playerMP.isInWater()) return true;
         const block = this.getCachedBlock(Player.getX(), Player.getY(), Player.getZ());
-        if (block && block.type) {
-            const name = block.type.getRegistryName().toLowerCase();
-            return name.includes('water') || name.includes('lava');
-        }
+        const name = this.getBlockName(block);
+        if (name) return name.includes('water') || name.includes('lava');
         return false;
     }
 
@@ -118,7 +124,7 @@ class PathJumps {
     }
 
     getSnowLayers(block) {
-        if (!block || block.type.getRegistryName() !== 'minecraft:snow') return 0;
+        if (this.getBlockName(block) !== 'minecraft:snow') return 0;
         try {
             return block.getState().get(SnowBlock.LAYERS);
         } catch (e) {
@@ -159,7 +165,7 @@ class PathJumps {
             const isSolid = !this.isBlockNonCollidable(world, blockVec);
 
             if (isSolid) {
-                const name = block ? block.type.getRegistryName().toLowerCase() : 'minecraft:air';
+                const name = this.getBlockName(block) || 'minecraft:air';
                 lookahead.push({ vec: blockVec, name, block });
             }
         }
@@ -179,7 +185,7 @@ class PathJumps {
     checkSnowJump(lookahead) {
         if (lookahead.length < 1) return false;
         const data = lookahead[0];
-        if (!data.block || data.block.type.getRegistryName() !== 'minecraft:snow') return false;
+        if (this.getBlockName(data.block) !== 'minecraft:snow') return false;
         const layers = this.getSnowLayers(data.block);
         if (layers === 0) return false;
         const diff = data.vec.y - (8 - layers) * 0.125 - (Player.getY() - 1);
@@ -198,13 +204,13 @@ class PathJumps {
             pZ = Player.getZ();
         const playerFloorY = Math.floor(pY - 0.001);
         const currentFeetBlock = this.getCachedBlock(pX, playerFloorY, pZ);
-        const currentName = currentFeetBlock ? currentFeetBlock.type.getRegistryName().toLowerCase() : '';
+        const currentName = this.getBlockName(currentFeetBlock);
         const standingOnPartial = currentName.includes('stair') || currentName.includes('slab');
         const stairClimbLimit = standingOnPartial ? 1.05 : this.STEP_HEIGHT;
         let needsJump = false;
         let canWalkInstead = false;
         for (const data of lookahead) {
-            if (data.block && data.block.type.getRegistryName().includes('snow')) continue;
+            if (this.getBlockName(data.block).includes('snow')) continue;
             const heightDifference = data.vec.y - playerFloorY;
             if (heightDifference > stairClimbLimit) needsJump = true;
             if (data.name.includes('slab')) {

@@ -227,15 +227,22 @@ class PathRotations {
         const baseLookahead = this.getAdaptiveLookaheadPoints();
         const idx = Math.floor(this.currentPathPosition);
         const isActuallyStraight = this.isPathStraight(idx, 15);
-        let idealT = Math.min(this.lookPoints.length - 1, this.currentPathPosition + (isActuallyStraight ? 18.0 : baseLookahead));
+        const lookaheadDistance = isActuallyStraight ? 18.0 : baseLookahead;
+        const idealT = Math.min(this.lookPoints.length - 1, this.currentPathPosition + lookaheadDistance);
         if (isActuallyStraight) {
             const farPoint = this.getInterpolatedPoint(idealT);
             if (farPoint && this.isPointVisible(playerEyes, farPoint)) {
                 this.currentTargetPoint = farPoint;
+            } else {
+                this.currentTargetPoint = this.findVisibleLookTarget(playerEyes, lookaheadDistance);
             }
         } else if (!this.currentTargetPoint || Math.abs(idealT - (this.cachedVisible.t || 0)) > 0.2) {
-            const newTarget = this.findVisibleLookTarget(playerEyes, idealT);
+            const newTarget = this.findVisibleLookTarget(playerEyes, lookaheadDistance);
             if (newTarget) this.currentTargetPoint = newTarget;
+        }
+        if (!this.currentTargetPoint) {
+            this.currentTargetPoint = this.getInterpolatedPoint(Math.min(this.lookPoints.length - 1, this.currentPathPosition + this.MIN_LOOKAHEAD));
+            if (!this.currentTargetPoint) return;
         }
         const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
         const desiredYaw = MathUtils.wrapTo180(angles.yaw);

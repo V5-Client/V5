@@ -122,6 +122,14 @@ class PathAote {
         return null;
     }
 
+    getBlockName(block) {
+        try {
+            return block?.type?.getRegistryName?.()?.toLowerCase?.() || '';
+        } catch (e) {
+            return '';
+        }
+    }
+
     ensureAoteHeld(slot) {
         if (slot == null || slot < 0 || slot > 8) return false;
 
@@ -146,17 +154,20 @@ class PathAote {
 
     getTargetAlongPath(rotations, desiredDistance) {
         const path = rotations.boxPositions;
-        const pathEnd = path.length - 1;
         const startT = rotations.currentPathPosition;
 
-        if (!path || path.length < 2 || startT >= pathEnd - 0.1) return null;
+        if (!path || path.length < 2) return null;
+        const pathEnd = path.length - 1;
+        if (startT >= pathEnd - 0.1) return null;
 
         let prevPoint = rotations.getInterpolatedPoint(startT);
+        if (!prevPoint) return null;
         let traveled = 0;
         let targetT = null;
 
         for (let t = startT + 1; t <= pathEnd; t += 1) {
             const point = rotations.getInterpolatedPoint(Math.min(pathEnd, t));
+            if (!point) break;
             traveled += this.distance(prevPoint, point);
 
             if (traveled >= desiredDistance) {
@@ -352,7 +363,8 @@ class PathAote {
         const block = World.getBlockAt(x, y, z);
         if (!block || !block.type) return false;
 
-        const name = block.type.getRegistryName().toLowerCase();
+        const name = this.getBlockName(block);
+        if (!name) return false;
         if (name.includes('carpet') || name.includes('flower_pot') || name.includes('web')) return true;
 
         if (name === 'minecraft:snow') {
@@ -376,7 +388,8 @@ class PathAote {
 
         const block = World.getBlockAt(x, y, z);
         if (!block || !block.type) return false;
-        const name = block.type.getRegistryName().toLowerCase();
+        const name = this.getBlockName(block);
+        if (!name) return false;
         if (name.includes('mud')) return true;
         if (this.canTeleportThrough(x, y, z)) return false;
 
@@ -384,19 +397,24 @@ class PathAote {
     }
 
     getSnowLayers(block) {
-        if (!block || block.type.getRegistryName() !== 'minecraft:snow') return 0;
-        return block.getState().get(SnowBlock.LAYERS);
+        if (this.getBlockName(block) !== 'minecraft:snow') return 0;
+        try {
+            return block.getState().get(SnowBlock.LAYERS);
+        } catch (e) {
+            return 0;
+        }
     }
 
     getDistanceToFinalPoint(rotations) {
-        const finalPoint = rotations?.boxPositions?.[rotations.boxPositions.length - 1];
+        const path = rotations?.boxPositions;
+        const finalPoint = Array.isArray(path) && path.length ? path[path.length - 1] : null;
         if (!finalPoint) return Number.MAX_VALUE;
         const player = Player.getPlayer();
         if (!player) return Number.MAX_VALUE;
         const eyes = player.getEyePos();
         const dx = eyes.x - finalPoint.x;
         const dy = eyes.y - finalPoint.y;
-        const dz = Player.getZ() - finalPoint.z;
+        const dz = eyes.z - finalPoint.z;
         return Math.hypot(dx, dy, dz);
     }
 

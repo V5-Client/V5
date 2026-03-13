@@ -49,12 +49,17 @@ class PathMovement {
     }
 
     forceJump(ticks = 4) {
-        this.forceJumpTicks = ticks;
+        this.forceJumpTicks = Math.max(0, Math.floor(Number(ticks) || 0));
     }
 
     backup(ticks, onComplete) {
         this.backupTicks = Math.max(0, ticks | 0);
         this.backupCallback = onComplete || null;
+        if (this.backupTicks === 0 && this.backupCallback) {
+            const cb = this.backupCallback;
+            this.backupCallback = null;
+            cb();
+        }
     }
 
     isRecovering() {
