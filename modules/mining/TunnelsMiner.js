@@ -138,8 +138,7 @@ class TunnelsMiner extends ModuleBase {
                 }
 
                 this.onPathSuccess();
-            },
-            false
+            }
         );
     }
 
