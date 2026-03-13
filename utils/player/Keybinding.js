@@ -45,13 +45,18 @@ class ControlSystem {
     }
 
     updateKeyState(action, isPressed) {
-        if (this.isGuiOpen()) return false;
+        const guiOpen = this.isGuiOpen();
 
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
-            const mouseGrabbed = net.minecraft.client.Mouse.class.getDeclaredField('field_1783');
-            mouseGrabbed.setAccessible(true);
-            mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
+
+            if (isPressed && guiOpen) return false;
+
+            if (isPressed) {
+                const mouseGrabbed = net.minecraft.client.Mouse.class.getDeclaredField('field_1783');
+                mouseGrabbed.setAccessible(true);
+                mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
+            }
 
             ScheduleTask(() => {
                 attackKey.setPressed(!!isPressed);
@@ -59,6 +64,8 @@ class ControlSystem {
 
             return true;
         }
+
+        if (guiOpen) return false;
 
         const options = mc.options;
         const mapping = {
