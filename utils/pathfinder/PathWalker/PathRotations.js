@@ -466,6 +466,7 @@ class PathRotations {
             this.pitchVelocity = Math.max(-maxVelocity, Math.min(maxVelocity, this.pitchVelocity));
             this.currentPitch += this.pitchVelocity;
         }
+        this.currentPitch = Math.max(-90, Math.min(90, this.currentPitch));
     }
 
     getClosestPointOnSegment(p, p1, p2) {
@@ -502,7 +503,6 @@ class PathRotations {
         if (!this.boxPositions) {
             this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
             if (!this.boxPositions || !this.boxPositions.length) return;
-            Spline.cachedFlyLookPoints = this.boxPositions;
         }
         const player = Player.getPlayer();
         if (player && !this.isInitialized) {

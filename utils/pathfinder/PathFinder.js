@@ -89,7 +89,7 @@ class Finder {
         }
 
         const coords = args.map(Number);
-        if (coords.some(Number.isNaN)) {
+        if (coords.some((value) => !Number.isFinite(value))) {
             showNotification('Invalid Coordinates', 'All coordinates must be valid numbers.', 'ERROR', 5000);
             return null;
         }
@@ -118,6 +118,7 @@ class Finder {
         const { points: starts, metadata: startMetadata } = this.createStartPoints(startPoints);
         if (!starts?.length) {
             showNotification('Pathfinding Failed', 'No valid start points were provided.', 'ERROR', 5000);
+            this.callCallback(false);
             return;
         }
 
@@ -143,6 +144,7 @@ class Finder {
 
         if (!Swift.SwiftPath(starts, end, isFly, this.pathVariantSeed)) {
             showNotification('Pathfinding Failed', Swift.getLastError() || 'Failed to start', 'ERROR', 5000);
+            this.callCallback(false);
             return;
         }
         this.searchStartedAt = Date.now();
@@ -579,21 +581,31 @@ class Finder {
     }
 
     isBlockWalkable(x, y, z) {
-        const pos = new BP(x, y, z);
         const world = World.getWorld();
-        return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
+        if (!world) return false;
+
+        try {
+            const pos = new BP(x, y, z);
+            return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
+        } catch (e) {
+            return false;
+        }
     }
 
     isFlyPositionClear(x, y, z) {
         const world = World.getWorld();
         if (!world) return false;
+        try {
+            const feetPos = new BP(x, y, z);
+            const headPos = new BP(x, y + 1, z);
 
-        const feetPos = new BP(x, y, z);
-        const headPos = new BP(x, y + 1, z);
-
-        return (
-            world.getBlockState(feetPos).getCollisionShape(world, feetPos).isEmpty() && world.getBlockState(headPos).getCollisionShape(world, headPos).isEmpty()
-        );
+            return (
+                world.getBlockState(feetPos).getCollisionShape(world, feetPos).isEmpty() &&
+                world.getBlockState(headPos).getCollisionShape(world, headPos).isEmpty()
+            );
+        } catch (e) {
+            return false;
+        }
     }
 
     resolveFlyPoint(x, y, z, verticalSearch = 3) {
@@ -624,8 +636,9 @@ class Finder {
         if (startPoints) {
             const validStarts = startPoints
                 .filter((point) => Array.isArray(point) && point.length >= 3)
-                .map((point) => [Math.floor(Number(point[0])), Math.floor(Number(point[1])), Math.floor(Number(point[2]))])
-                .filter((point) => point.every((v) => !Number.isNaN(v)));
+                .map((point) => [Number(point[0]), Number(point[1]), Number(point[2])])
+                .filter((point) => point.every((v) => Number.isFinite(v)))
+                .map((point) => [Math.floor(point[0]), Math.floor(point[1]), Math.floor(point[2])]);
 
             return {
                 points: validStarts,

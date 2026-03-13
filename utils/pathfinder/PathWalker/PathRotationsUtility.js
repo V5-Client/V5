@@ -273,7 +273,7 @@ class PathRotsUtil {
     rotateTo(vector, instant = false, durationMs = 500) {
         let vec = Utils.convertToVector(vector);
         let player = Player.getPlayer();
-        if (!player) return;
+        if (!player || !vec || !Number.isFinite(vec.x) || !Number.isFinite(vec.y) || !Number.isFinite(vec.z)) return;
 
         let playerPos = player.getPos();
         let eyeHeight = player.getEyePos().y - playerPos.y;

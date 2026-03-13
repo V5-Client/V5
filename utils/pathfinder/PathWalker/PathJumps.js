@@ -85,7 +85,7 @@ class PathJumps {
         if (!playerMP) return false;
         if (playerMP.isInLava() || playerMP.isInWater()) return true;
         const block = this.getCachedBlock(Player.getX(), Player.getY(), Player.getZ());
-        if (block) {
+        if (block && block.type) {
             const name = block.type.getRegistryName().toLowerCase();
             return name.includes('water') || name.includes('lava');
         }
@@ -94,7 +94,7 @@ class PathJumps {
 
     canWalkUpStairs(playerX, playerY, playerZ, blockX, blockY, blockZ) {
         const world = World.getWorld();
-        if (!world) return { lookahead: [], closestIndex: -1 };
+        if (!world) return false;
         const blockPosNMS = new BP(Math.floor(blockX), Math.floor(blockY), Math.floor(blockZ));
         const blockState = world.getBlockState(blockPosNMS);
         try {
@@ -148,6 +148,7 @@ class PathJumps {
         const lookahead = [];
         const end = Math.min(closestIndex + 1 + this.LOOKAHEAD_NODES, path.length);
         const world = World.getWorld();
+        if (!world) return { lookahead: [], closestIndex: -1 };
 
         for (let i = closestIndex + 1; i < end; i++) {
             const node = path[i];

@@ -410,14 +410,14 @@ class PathSpline {
     }
 
     drawLookPoints() {
-        if (!this.cachedFlyLookPoints) return;
+        if (!this.cachedBoxPositions?.length) return;
 
         const px = Player.getX();
         const pz = Player.getZ();
 
         const size = 0.4;
 
-        this.cachedFlyLookPoints.forEach((pos) => {
+        this.cachedBoxPositions.forEach((pos) => {
             if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
                 const renderPos = new Vec3d(pos.x, pos.y + 0.2, pos.z);
                 Render.drawSizedBox(renderPos, size, size, size, Render.Color(255, 0, 255, 180), true, 1, true);

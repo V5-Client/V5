@@ -108,7 +108,7 @@ class PathAote {
         this.lastUsedPathPosition = rotations.currentPathPosition;
 
         if (PathConfig.PATHFINDING_DEBUG) {
-            Chat.messagePathfinder(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)})`);
+            Chat.messagePathfinder(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)}`);
         }
     }
 
@@ -391,8 +391,11 @@ class PathAote {
     getDistanceToFinalPoint(rotations) {
         const finalPoint = rotations?.boxPositions?.[rotations.boxPositions.length - 1];
         if (!finalPoint) return Number.MAX_VALUE;
-        const dx = Player.getX() - finalPoint.x;
-        const dy = Player.getY() - finalPoint.y;
+        const player = Player.getPlayer();
+        if (!player) return Number.MAX_VALUE;
+        const eyes = player.getEyePos();
+        const dx = eyes.x - finalPoint.x;
+        const dy = eyes.y - finalPoint.y;
         const dz = Player.getZ() - finalPoint.z;
         return Math.hypot(dx, dy, dz);
     }

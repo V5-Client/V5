@@ -13,11 +13,15 @@ class SwiftIntegration {
     toIntPoint(point, isFly) {
         if (!Array.isArray(point) || point.length < 3) return null;
 
-        const x = Math.floor(Number(point[0]));
-        const yBase = Math.floor(Number(point[1]));
-        const z = Math.floor(Number(point[2]));
+        const rawX = Number(point[0]);
+        const rawY = Number(point[1]);
+        const rawZ = Number(point[2]);
 
-        if (Number.isNaN(x) || Number.isNaN(yBase) || Number.isNaN(z)) return null;
+        if (!Number.isFinite(rawX) || !Number.isFinite(rawY) || !Number.isFinite(rawZ)) return null;
+
+        const x = Math.floor(rawX);
+        const yBase = Math.floor(rawY);
+        const z = Math.floor(rawZ);
 
         return [x, isFly ? yBase : yBase + 1, z];
     }
@@ -137,13 +141,22 @@ class SwiftIntegration {
     }
 
     addTransientAvoidPoint(x, y, z, radius = 2, penalty = 36, ttlSearches = 2) {
+        const px = Number(x);
+        const py = Number(y);
+        const pz = Number(z);
+        const rad = Number(radius);
+        const pen = Number(penalty);
+        const ttl = Number(ttlSearches);
+
+        if (!Number.isFinite(px) || !Number.isFinite(py) || !Number.isFinite(pz)) return;
+
         PathManager.addTransientAvoidPoint(
-            Math.floor(Number(x)) || 0,
-            Math.floor(Number(y)) || 0,
-            Math.floor(Number(z)) || 0,
-            Math.max(1, Math.floor(Number(radius)) || 2),
-            Number(penalty) || 36,
-            Math.max(1, Math.floor(Number(ttlSearches)) || 2)
+            Math.floor(px),
+            Math.floor(py),
+            Math.floor(pz),
+            Math.max(1, Math.floor(Number.isFinite(rad) ? rad : 2)),
+            Number.isFinite(pen) ? pen : 36,
+            Math.max(1, Math.floor(Number.isFinite(ttl) ? ttl : 2))
         );
     }
 
