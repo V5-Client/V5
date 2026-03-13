@@ -4,6 +4,7 @@ class SwiftIntegration {
     constructor() {
         this.pathManager = PathManager;
         this.cachedResult = null;
+        this.intArrayClass = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 0).getClass();
     }
 
     clearResultCache() {
@@ -27,8 +28,7 @@ class SwiftIntegration {
     }
 
     toJavaPointArray(points, isFly) {
-        const intArrayClass = java.lang.reflect.Array.newInstance(java.lang.Integer.TYPE, 0).getClass();
-        const javaArray = java.lang.reflect.Array.newInstance(intArrayClass, points.length);
+        const javaArray = java.lang.reflect.Array.newInstance(this.intArrayClass, points.length);
 
         for (let i = 0; i < points.length; i++) {
             const parsed = this.toIntPoint(points[i], isFly);

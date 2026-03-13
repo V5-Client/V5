@@ -822,7 +822,7 @@ class Finder {
     }
 
     getStartNodeDistanceSq(node, point) {
-        const compareY = this.isFly ? point[1] : point[1] + 1;
+        const compareY = point[1];
         const dx = node.x - point[0];
         const dy = node.y - compareY;
         const dz = node.z - point[2];
