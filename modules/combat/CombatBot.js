@@ -176,7 +176,7 @@ class Combat extends ModuleBase {
             const targetUuid = this.getTargetUuid(this.target);
             if (!targetUuid || !this.blacklistedTargets.has(targetUuid)) {
                 const pos = this.getTargetPosition(this.target);
-                if (pos && (!this.shouldUseBlackholeLogic() || this.isPositionSafe(pos.x, pos.y, pos.z))) {
+                if (pos && this.isPositionSafe(pos.x, pos.y, pos.z)) {
                     const entity = this.target.toMC ? this.target.toMC() : this.target;
                     Render.drawHitbox(entity, Render.Color(255, 0, 0, 100), 7, false);
                 }
@@ -189,13 +189,13 @@ class Combat extends ModuleBase {
             if (targetUuid && this.blacklistedTargets.has(targetUuid)) return;
 
             const pos = this.getTargetPosition(target);
-            if (this.shouldUseBlackholeLogic() && pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
+            if (pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
 
             const entity = target.toMC ? target.toMC() : target;
             Render.drawHitbox(entity, Render.Color(0, 70, 200, 100), 3, false);
         });
 
-        if (this.shouldUseBlackholeLogic() && this.activeBlackholes.length > 0) {
+        if (this.activeBlackholes.length > 0) {
             this.activeBlackholes.forEach((bh) => {
                 Render.drawBox(new Vec3d(bh.x - 0.5, bh.y + 0.5, bh.z - 0.5), Render.Color(0, 0, 0, 150), false);
             });
@@ -258,20 +258,7 @@ class Combat extends ModuleBase {
         }
     }
 
-    shouldUseBlackholeLogic() {
-        if (this.enabledPresets.has('Ice Walkers')) return true;
-        return !!this.customTargetNames?.some((name) => {
-            const n = name.toLowerCase();
-            return n.includes('ice') || n.includes('glacite') || n.includes('walker');
-        });
-    }
-
     scanBlackholes() {
-        if (!this.shouldUseBlackholeLogic()) {
-            this.activeBlackholes = [];
-            return;
-        }
-
         this.scanTicker = (this.scanTicker || 0) + 1;
         if (this.scanTicker % BLACKHOLE_SCAN_INTERVAL !== 0) return;
 
@@ -343,7 +330,6 @@ class Combat extends ModuleBase {
 
     isPositionSafe(x, y, z) {
         if (!this.activeBlackholes || this.activeBlackholes.length === 0) return true;
-        if (!this.shouldUseBlackholeLogic()) return true;
 
         for (const bh of this.activeBlackholes) {
             const distanceData = this.getDistanceBetween({ x, y, z }, bh);
@@ -493,7 +479,7 @@ class Combat extends ModuleBase {
 
     startPathingToSearch(pos) {
         if (!pos) return;
-        if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) {
+        if (!this.isPositionSafe(pos.x, pos.y, pos.z)) {
             this.clearSearchTarget(pos);
             return;
         }
@@ -649,7 +635,7 @@ class Combat extends ModuleBase {
     }
 
     startPathingToTarget(pos) {
-        if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) {
+        if (!this.isPositionSafe(pos.x, pos.y, pos.z)) {
             Chat.message('&cTarget is inside a Blackhole! Aborting path.');
             this.blacklistTarget(this.target, TARGET_BLACKLIST_MS);
             this.target = null;
@@ -762,10 +748,8 @@ class Combat extends ModuleBase {
             const targetUUID = this.getTargetUuid(target);
             if (targetUUID && this.blacklistedTargets.has(targetUUID)) return true;
 
-            if (this.shouldUseBlackholeLogic()) {
-                const pos = this.getTargetPosition(target);
-                if (pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return true;
-            }
+            const pos = this.getTargetPosition(target);
+            if (pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return true;
 
             if (!targetUUID) return !this.targets.includes(target);
 
@@ -790,7 +774,6 @@ class Combat extends ModuleBase {
         const mobs = [];
 
         const addMobIfSafe = (entity) => {
-            if (!this.shouldUseBlackholeLogic()) return mobs.push(entity);
             const x = entity.getX();
             const y = entity.getY();
             const z = entity.getZ();
@@ -879,7 +862,7 @@ class Combat extends ModuleBase {
             if (this.isTargetInvalid(target)) return;
             const pos = this.getTargetPosition(target);
             if (!pos) return;
-            if (this.shouldUseBlackholeLogic() && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
+            if (!this.isPositionSafe(pos.x, pos.y, pos.z)) return;
 
             const distanceData = this.getDistanceToPlayer(pos);
             const angles = MathUtils.angleToPlayer([pos.x, pos.y, pos.z]);
