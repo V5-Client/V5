@@ -1,6 +1,4 @@
-import { Chat } from '../Chat';
 import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../Constants';
-import { Mixin } from '../MixinManager';
 import { PlayerInteractBlockC2S } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { Utils, mc } from '../Utils';
@@ -12,29 +10,30 @@ RIGHT_CLICK_METHOD.setAccessible(true);
 
 class ControlSystem {
     constructor() {
-        this.lastClick = 0;
         this.lastActionTime = Date.now();
     }
 
+    isGuiOpen() {
+        return Client.isInGui() && !Client.isInChat();
+    }
+
     triggerLeftClick() {
-        if (Client.isInGui() && !Client.isInChat()) {
-            return Chat.message('Left click suppressed: User in menu.');
-        }
+        if (this.isGuiOpen()) return;
         ScheduleTask(() => {
             LEFT_CLICK_METHOD.invoke(mc);
         });
     }
 
     triggerRightClick() {
-        if (Client.isInGui() && !Client.isInChat()) {
-            return Chat.message('Right click suppressed: User in menu.');
-        }
+        if (this.isGuiOpen()) return;
         ScheduleTask(() => {
             RIGHT_CLICK_METHOD.invoke(mc);
         });
     }
 
     sendRightClickPacket(delay, x, y, z) {
+        if (this.isGuiOpen()) return;
+
         const bp = new BP(x, y, z);
         const hitResult = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5), Direction.UP, bp, false);
         const action = () => {
@@ -46,31 +45,10 @@ class ControlSystem {
     }
 
     updateKeyState(action, isPressed) {
-        const guiOpen = Client.isInGui();
+        if (this.isGuiOpen()) return false;
 
         if (action === 'leftclick') {
             const attackKey = mc.options.attackKey;
-
-            if (guiOpen) {
-                Mixin.set('shouldClick', true);
-
-                this.lastClick = 2;
-                ScheduleTask(() => {
-                    attackKey.setPressed(false);
-                });
-
-                return true;
-            }
-
-            if (this.lastClick > 0) {
-                this.lastClick--;
-                ScheduleTask(() => {
-                    attackKey.setPressed(false);
-                });
-
-                return true;
-            }
-
             const mouseGrabbed = net.minecraft.client.Mouse.class.getDeclaredField('field_1783');
             mouseGrabbed.setAccessible(true);
             mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
@@ -81,8 +59,6 @@ class ControlSystem {
 
             return true;
         }
-
-        if (guiOpen) return false;
 
         const options = mc.options;
         const mapping = {
@@ -122,7 +98,7 @@ class ControlSystem {
 
     setMovementByYaw(yaw, shouldJump) {
         this.haltMovement();
-        if (Client.isInGui() && !Client.isInChat()) return;
+        if (this.isGuiOpen()) return;
 
         if (yaw > -50 && yaw < 50) this.updateKeyState('w', true);
         if (yaw > -135.5 && yaw < -7) this.updateKeyState('a', true);
@@ -140,7 +116,7 @@ class ControlSystem {
 
     setCardinalMovement(yaw, shouldJump, ignoreBottomSlab) {
         this.haltMovement();
-        if (Client.isInGui() && !Client.isInChat()) return;
+        if (this.isGuiOpen()) return;
 
         const quadrants = [
             { min: -22.5, max: 22.5, keys: ['w'] },
@@ -168,6 +144,8 @@ class ControlSystem {
     }
 
     setMovementToCoords(x, y, z, shouldJump, ignoreBottomSlab) {
+        if (this.isGuiOpen()) return;
+
         const dx = x - Player.getX();
         const dz = z - Player.getZ();
         let angle = -(Math.atan2(dx, dz) * (180 / Math.PI)) - Player.getYaw();
