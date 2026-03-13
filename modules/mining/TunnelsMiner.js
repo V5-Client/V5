@@ -129,17 +129,14 @@ class TunnelsMiner extends ModuleBase {
         const ends = scan.targets.map((target) => [target.candidate.x, target.candidate.y - 1, target.candidate.z]);
         Chat.message(`&bPathing to best target (${scan.targets.length} options)...`);
 
-        Pathfinder.findPath(
-            ends,
-            (success) => {
-                if (!success) {
-                    Chat.message('&cPathfinding failed.');
-                    return;
-                }
-
-                this.onPathSuccess();
+        Pathfinder.findPath(ends, (success) => {
+            if (!success) {
+                Chat.message('&cPathfinding failed.');
+                return;
             }
-        );
+
+            this.onPathSuccess();
+        });
     }
 
     onPathSuccess() {
