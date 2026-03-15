@@ -102,7 +102,13 @@ class NukerUtilsClass {
     }
 
     isBlockInRange(blockPos) {
-        const { distance } = MathUtils.getDistanceToPlayerEyes(blockPos[0], blockPos[1], blockPos[2]);
+        const eyePos = Player.getPlayer()?.getEyePos();
+        if (!eyePos) return false;
+
+        const clampedX = Math.max(blockPos[0], Math.min(eyePos.x, blockPos[0] + 1));
+        const clampedY = Math.max(blockPos[1], Math.min(eyePos.y, blockPos[1] + 1));
+        const clampedZ = Math.max(blockPos[2], Math.min(eyePos.z, blockPos[2] + 1));
+        const { distance } = MathUtils.calculateDistance([eyePos.x, eyePos.y, eyePos.z], [clampedX, clampedY, clampedZ]);
         return distance <= NukerUtilsClass.MAX_REACH_DISTANCE;
     }
 

@@ -41,6 +41,7 @@ class NukerClass extends ModuleBase {
         this.heightLimit = 5;
         this.onGroundDelay = 1;
         this.offGroundDelay = 1;
+        this.customReach = 4.5;
 
         v5Command('nukeit', (ticks = 1) => {
             let block = Player.lookingAt();
@@ -163,6 +164,7 @@ class NukerClass extends ModuleBase {
         this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
         this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
+        this.addSlider('Custom Reach', '4.5', 6.0, this.customReach, (v) => (this.customReach = Number(v)), 'Adjust player reach');
         this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
         this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v));
         this.addMultiToggle('Target Mode', ['Random', 'Closest', 'Lowest', 'Highest'], true, (v) => {
@@ -184,16 +186,19 @@ class NukerClass extends ModuleBase {
         const pPos = { x: Math.floor(Player.getX()), y: Math.floor(Player.getY()), z: Math.floor(Player.getZ()) };
         const pCords = this.cords();
         const validBlocks = [];
+        const scanReach = this.customReach;
+        const scanRadius = Math.ceil(scanReach);
+        const maxY = pPos.y + Math.max(this.heightLimit, scanRadius);
+        const minY = pPos.y - (this.nukeBelow ? 0 : scanRadius);
 
-        for (let x = pPos.x - 5; x <= pPos.x + 5; x++) {
-            for (let y = pPos.y - (this.nukeBelow ? 0 : 5); y <= pPos.y + this.heightLimit; y++) {
-                for (let z = pPos.z - 5; z <= pPos.z + 5; z++) {
+        for (let x = pPos.x - scanRadius; x <= pPos.x + scanRadius; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                for (let z = pPos.z - scanRadius; z <= pPos.z + scanRadius; z++) {
                     const posKey = `${x},${y},${z}`;
                     if (this.minedBlocks.has(posKey)) continue;
-                    if (this.distance(pCords, [x, y, z]).distance > 4.5) continue;
+                    if (this.distanceToBlockBox(pCords, [x, y, z]).distance > scanReach) continue;
 
                     let blockPos = new BP(x, y, z);
-                    let blockState = World.getWorld().getBlockState(blockPos).getBlock();
                     let isValid = false;
 
                     let id = World.getBlockAt(x, y, z).type.getID();
@@ -208,7 +213,9 @@ class NukerClass extends ModuleBase {
 
         if (this.targetMode === 'Closest') {
             return validBlocks.sort(
-                (a, b) => this.distance(pCords, [a.getX(), a.getY(), a.getZ()]).distance - this.distance(pCords, [b.getX(), b.getY(), b.getZ()]).distance
+                (a, b) =>
+                    this.distanceToBlockBox(pCords, [a.getX(), a.getY(), a.getZ()]).distance -
+                    this.distanceToBlockBox(pCords, [b.getX(), b.getY(), b.getZ()]).distance
             )[0];
         } else if (this.targetMode === 'Lowest') {
             let minY = Math.min(...validBlocks.map((b) => b.getY()));
@@ -232,6 +239,13 @@ class NukerClass extends ModuleBase {
             dy = from[1] - to[1],
             dz = from[2] - to[2];
         return { distance: Math.hypot(dx, dy, dz) };
+    }
+
+    distanceToBlockBox(from, to) {
+        const clampedX = Math.max(to[0], Math.min(from[0], to[0] + 1));
+        const clampedY = Math.max(to[1], Math.min(from[1], to[1] + 1));
+        const clampedZ = Math.max(to[2], Math.min(from[2], to[2] + 1));
+        return this.distance(from, [clampedX, clampedY, clampedZ]);
     }
 
     onGround() {
