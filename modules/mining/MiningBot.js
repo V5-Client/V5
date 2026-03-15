@@ -1539,12 +1539,6 @@ class Bot extends ModuleBase {
     }
 
     onEnable() {
-        if (Client.isInGui()) {
-            this.message('&cCannot start while GUI is open!');
-            this.toggle(false);
-            return;
-        }
-
         this.drill = MiningUtils.getDrills()?.drill;
         if (!this.drill) {
             this.message('&cNo drill detected!');
@@ -1598,6 +1592,7 @@ class Bot extends ModuleBase {
         this.lastRenderPos = null;
         this.lastAimPos = null;
         this.lastNextPos = null;
+        this.inGui = false;
         Rotations.stopRotation();
         this.normalRender.unregister();
     }
