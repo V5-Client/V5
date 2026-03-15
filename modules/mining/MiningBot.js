@@ -1592,7 +1592,6 @@ class Bot extends ModuleBase {
         this.lastRenderPos = null;
         this.lastAimPos = null;
         this.lastNextPos = null;
-        this.inGui = false;
         Rotations.stopRotation();
         this.normalRender.unregister();
     }
