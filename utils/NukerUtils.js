@@ -18,7 +18,6 @@ class NukerUtilsClass {
         this.lastNukeTime = Date.now();
         this.nukeQueue = [];
         this.tickCounter = 0;
-        this.sequence = 0;
         this.delay = 0;
         this.fakelookMode = 'Queue';
         this.currentBreakingBlockPos = null;
@@ -26,8 +25,6 @@ class NukerUtilsClass {
 
     registerTickHandler() {
         register('tick', () => {
-            this.sequence = Mixin.get('playerActionSequence', 0);
-
             const isNuking = this.nukeQueue.length > 0 || this.tickCounter > 0;
             Mixin.set('nukerActive', isNuking);
 
@@ -58,7 +55,7 @@ class NukerUtilsClass {
     }
 
     sendBreakPackets(blockPos, facing) {
-        Client.sendPacket(new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPos, facing, this.sequence));
+        Client.sendSequencedPacket((sequence) => new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPos, facing, sequence));
         Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
     }
 
@@ -96,7 +93,7 @@ class NukerUtilsClass {
         const blockPosition = this.createBlockPosition(blockPos);
         const facing = this.closestDirection(blockPosition);
 
-        Client.sendPacket(new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPosition, facing, this.sequence));
+        Client.sendSequencedPacket((sequence) => new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPosition, facing, sequence));
 
         this.currentBreakingBlockPos = blockPos;
     }

@@ -267,7 +267,7 @@ class NukerClass extends ModuleBase {
 
     rightClickBlock(xyz) {
         let hitResult = new BlockHitResult(new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5), Direction.UP, new BP(xyz[0], xyz[1], xyz[2]), false);
-        Client.sendPacket(new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, 0));
+        Client.sendSequencedPacket((sequence) => new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, sequence));
     }
 
     init() {
