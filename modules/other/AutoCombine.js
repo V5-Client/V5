@@ -2,6 +2,9 @@ import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 
+const BASE_BOOK_LEVELS = ['I', 'II', 'III', 'IV'];
+const EXTENDED_BOOK_LEVELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
 class AutoCombine extends ModuleBase {
     constructor() {
         super({
@@ -29,6 +32,14 @@ class AutoCombine extends ModuleBase {
         this.second = null;
         this.lastCombineSlots = [];
         this.timeoutFlags = 0;
+        this.enableLevelTenBooks = false;
+
+        this.addToggle(
+            'Support Level 10 Books',
+            (value) => (this.enableLevelTenBooks = !!value),
+            'Allow combining enchanted books from I through X. Level X pairs are ignored so results stay capped at X.',
+            false
+        );
 
         this.on('tick', (tick) => this.onTick(tick));
     }
@@ -151,8 +162,11 @@ class AutoCombine extends ModuleBase {
         let chosenPair = null;
         let fallbackPair = null;
         const levels = Array.from(booksByLevel.keys()).sort((a, b) => a - b);
+        const maxPairLevel = this.enableLevelTenBooks ? 9 : 4;
 
         for (const level of levels) {
+            if (level > maxPairLevel) continue;
+
             const bookList = booksByLevel.get(level);
             if (!bookList || bookList.length < 2) continue;
 
@@ -190,13 +204,13 @@ class AutoCombine extends ModuleBase {
     getEnchantmentLevel(line) {
         if (!line) return 0;
 
-        const regex = /\s(VI{0,3}|I{1,3}|IV|IX|X)$/;
+        const supportedLevels = this.enableLevelTenBooks ? EXTENDED_BOOK_LEVELS : BASE_BOOK_LEVELS;
+        const regex = new RegExp(`\\s(${supportedLevels.join('|')})$`);
         const match = line.match(regex);
         if (!match) return 0;
 
         const romanStr = match[1];
-        const romans = ['I', 'II', 'III', 'IV'];
-        return romans.indexOf(romanStr) + 1;
+        return supportedLevels.indexOf(romanStr) + 1;
     }
 
     setState(state) {
