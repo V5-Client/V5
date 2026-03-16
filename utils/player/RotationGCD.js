@@ -23,17 +23,15 @@ class SharedRotationGCD {
     }
 
     normalizeAngle(angle) {
-        let result = angle;
-        while (result > 180) result -= 360;
-        while (result < -180) result += 360;
-        return result;
+        return (((angle % 360) + 540) % 360) - 180;
+    }
+
+    clampPitch(pitch) {
+        return Math.max(-90, Math.min(90, pitch));
     }
 
     getRotationDelta(from, to) {
-        let delta = this.normalizeAngle(to) - this.normalizeAngle(from);
-        if (delta > 180) delta -= 360;
-        if (delta < -180) delta += 360;
-        return delta;
+        return this.angleDifference(to, from);
     }
 
     angleDifference(a, b) {
@@ -41,6 +39,8 @@ class SharedRotationGCD {
     }
 
     aimModulo360(currentYaw, targetYaw) {
+        if (!Number.isFinite(currentYaw)) return this.normalizeAngle(targetYaw);
+        if (!Number.isFinite(targetYaw)) return this.normalizeAngle(currentYaw);
         return currentYaw + this.angleDifference(targetYaw, currentYaw);
     }
 
@@ -55,12 +55,11 @@ class SharedRotationGCD {
         return result;
     }
 
-    syncFromPlayer() {
-        const player = Player.getPlayer();
+    syncFromPlayer(yaw = null, pitch = null, player = Player.getPlayer()) {
         if (!player) return false;
 
-        this.lastYaw = player.getYaw();
-        this.lastPitch = player.getPitch();
+        this.lastYaw = Number.isFinite(yaw) ? yaw : player.getYaw();
+        this.lastPitch = Number.isFinite(pitch) ? this.clampPitch(pitch) : this.clampPitch(player.getPitch());
         this.initialized = true;
         return true;
     }
@@ -105,9 +104,8 @@ class SharedRotationGCD {
             }
         }
 
-        const safeYaw = this.normalizeAngle(yaw);
-        const safePitch = Math.max(-90, Math.min(90, pitch));
-        const wrappedYaw = this.aimModulo360(this.lastYaw, safeYaw);
+        const safePitch = this.clampPitch(pitch);
+        const wrappedYaw = this.aimModulo360(this.lastYaw, yaw);
         const gcdYaw = this.applyGCD(wrappedYaw, this.lastYaw, gcd);
         const gcdPitch = this.applyGCD(safePitch, this.lastPitch, gcd, -90, 90);
 

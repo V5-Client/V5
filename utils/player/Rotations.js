@@ -115,8 +115,7 @@ class RotationsTo {
     }
 
     applyRotationWithGCD(yaw, pitch) {
-        const safe = this.sanitizeRotation(yaw, pitch);
-        RotationGCD.applyToPlayer(safe.yaw, safe.pitch);
+        RotationGCD.applyToPlayer(yaw, this.clampPitch(pitch));
     }
 
     normalizeAngle(angle) {
@@ -127,9 +126,9 @@ class RotationsTo {
         return Math.max(-90, Math.min(90, pitch));
     }
 
-    sanitizeRotation(yaw, pitch) {
+    sanitizeRotation(yaw, pitch, normalizeYaw = true) {
         return {
-            yaw: this.normalizeAngle(yaw),
+            yaw: normalizeYaw ? this.normalizeAngle(yaw) : yaw,
             pitch: this.clampPitch(pitch),
         };
     }
@@ -210,7 +209,8 @@ class RotationsTo {
         let currentYaw = currentRotation?.yaw ?? player.getYaw();
         let currentPitch = currentRotation?.pitch ?? player.getPitch();
 
-        let deltaYaw = this.normalizeAngle(finalTarget.yaw - currentYaw);
+        const targetYaw = RotationGCD.aimModulo360(currentYaw, finalTarget.yaw);
+        let deltaYaw = targetYaw - currentYaw;
         let deltaPitch = finalTarget.pitch - currentPitch;
         let distance = Math.hypot(deltaYaw, deltaPitch);
 
@@ -221,12 +221,12 @@ class RotationsTo {
 
         if (distance <= effectivePrecision) {
             if (isExactVector && player) {
-                const safe = this.sanitizeRotation(finalTarget.yaw, finalTarget.pitch);
+                const safe = this.sanitizeRotation(targetYaw, finalTarget.pitch, false);
                 player.setYaw(safe.yaw);
                 player.setPitch(safe.pitch);
-                RotationGCD.syncFromPlayer();
+                RotationGCD.syncFromPlayer(safe.yaw, safe.pitch, player);
             } else {
-                this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+                this.applyRotationWithGCD(targetYaw, finalTarget.pitch);
             }
 
             this.lastTime = Date.now();
@@ -237,7 +237,7 @@ class RotationsTo {
         }
 
         if (RotationModule.rotationMode === 'Instant') {
-            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+            this.applyRotationWithGCD(targetYaw, finalTarget.pitch);
             if (!this.trackedEntity && !this.targetVector) {
                 return this.stopRotation();
             }
@@ -289,7 +289,6 @@ class RotationsTo {
             }
         }
 
-        nextYaw = this.normalizeAngle(nextYaw);
         nextPitch = Math.max(-90, Math.min(90, nextPitch));
 
         if (!Number.isNaN(nextYaw) && !Number.isNaN(nextPitch)) {
