@@ -7,6 +7,7 @@ import { PlayerActionC2S } from '../../utils/Packets';
 import { Raytrace } from '../../utils/Raytrace';
 import { manager } from '../../utils/SkyblockEvents';
 import { Utils } from '../../utils/Utils';
+import { Mixin } from '../../utils/MixinManager';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
@@ -86,6 +87,8 @@ class Bot extends ModuleBase {
         this.ABILITY_COOLDOWN_MS = 200000;
         this.fakeLookModeName = 'Off';
         this.selectedTypeName = 'Mithril';
+        this.wasInGui = false;
+        this.reclickAfterGui = false;
         this._abilityStatusCache = { expiresAt: 0, value: '' };
         this._renderPalette = {
             normal: {
@@ -588,13 +591,16 @@ class Bot extends ModuleBase {
             Keybind.setKey('space', false);
         }
         Keybind.setKey('leftclick', false);
+        Mixin.set('shouldClick', false);
     }
 
     handleBreaking(blockName, fakeLookMode) {
         if (fakeLookMode === 'Off') {
             Keybind.setKey('leftclick', true);
+            Mixin.set('shouldClick', true);
         } else {
             Keybind.setKey('leftclick', false);
+            Mixin.set('shouldClick', false);
             if (this.isAirOrBedrock(blockName)) {
                 this.lowestCostBlockIndex++;
                 if (this.lowestCostBlockIndex >= this.foundLocations.length) this.allowScan = true;
@@ -737,6 +743,19 @@ class Bot extends ModuleBase {
         }
 
         const fakeLookMode = this.getFakeLookMode();
+        const inGui = Client.isInGui();
+
+        if (this.wasInGui && !inGui && fakeLookMode === 'Off') {
+            this.reclickAfterGui = true;
+        }
+        this.wasInGui = inGui;
+
+        if (this.reclickAfterGui) {
+            Keybind.setKey('leftclick', false);
+            Mixin.set('shouldClick', false);
+            this.reclickAfterGui = false;
+            return;
+        }
 
         this.incrementMiningCountersIfLookingAtCurrent(fakeLookMode);
 
@@ -1560,6 +1579,9 @@ class Bot extends ModuleBase {
         this.allowScan = true;
         this.FOVPenalty = true;
         this.state = this.STATES.ABILITY;
+        this.wasInGui = Client.isInGui();
+        this.reclickAfterGui = false;
+        Mixin.set('shouldClick', false);
         this.normalRender.register();
     }
 
@@ -1575,6 +1597,7 @@ class Bot extends ModuleBase {
         this.setSneak(false, true);
         Keybind.setKey('leftclick', false);
         Keybind.setKey('rightclick', false);
+        Mixin.set('shouldClick', false);
         this.foundLocations = [];
         this.lastBlockPos = null;
         this.lastBlockType = null;
@@ -1586,6 +1609,8 @@ class Bot extends ModuleBase {
         this.nukedBlock = false;
         this.mineTickCount = 0;
         this.tickCount = 0;
+        this.wasInGui = false;
+        this.reclickAfterGui = false;
         this.movementReevalCooldownUntil = 0;
         this._movementHumanizer = null;
         this.lastRenderFrameTime = null;
