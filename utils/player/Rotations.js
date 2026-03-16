@@ -1,4 +1,5 @@
 import { ModuleBase } from '../ModuleBase';
+import { RotationGCD } from './RotationGCD';
 import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
 
@@ -62,9 +63,6 @@ class RotationsTo {
         this.startTime = 0;
         this.initialDistance = 0;
         this.curveSeed = 0;
-        this.lastAppliedYaw = 0;
-        this.lastAppliedPitch = 0;
-        this.gcdInitialized = false;
         this.motionProfile = 'linear';
         this.speedMultiplier = 1.0;
 
@@ -116,72 +114,24 @@ class RotationsTo {
         };
     }
 
-    calculateGCD() {
-        const sensitivity = Client.getMinecraft()?.options?.mouseSensitivity.getValue();
-        const f = sensitivity * 0.6 + 0.2;
-        return f * f * f * 1.2;
-    }
-
-    getCurrentRotation(player = Player.getPlayer()) {
-        if (!player) return null;
-        return {
-            yaw: this.gcdInitialized ? this.lastAppliedYaw : player.getYaw(),
-            pitch: this.gcdInitialized ? this.lastAppliedPitch : player.getPitch(),
-        };
-    }
-
-    angleDifference(a, b) {
-        return this.normalizeAngle(a - b);
-    }
-
-    aimModulo360(currentYaw, targetYaw) {
-        return currentYaw + this.angleDifference(targetYaw, currentYaw);
-    }
-
-    applyGCD(rotation, prevRotation, min = null, max = null) {
-        const gcd = this.calculateGCD();
-        const delta = this.angleDifference(rotation, prevRotation);
-        const roundedDelta = Math.round(delta / gcd) * gcd;
-        let result = prevRotation + roundedDelta;
-        if (max !== null && result > max) result -= gcd;
-        if (min !== null && result < min) result += gcd;
-        return result;
-    }
-
     applyRotationWithGCD(yaw, pitch) {
-        const player = Player.getPlayer();
-        if (!player) return;
-        if (!this.gcdInitialized) {
-            this.lastAppliedYaw = player.getYaw();
-            this.lastAppliedPitch = player.getPitch();
-            this.gcdInitialized = true;
-        }
-
-        this.lastAppliedYaw = this.applyGCD(this.aimModulo360(this.lastAppliedYaw, yaw), this.lastAppliedYaw);
-        this.lastAppliedPitch = this.applyGCD(this.clampPitch(pitch), this.lastAppliedPitch, -90, 90);
-
-        player.setYaw(this.lastAppliedYaw);
-        player.setPitch(this.lastAppliedPitch);
-    }
-
-    resetGCDTracking() {
-        const player = Player.getPlayer();
-        if (player) {
-            this.lastAppliedYaw = player.getYaw();
-            this.lastAppliedPitch = player.getPitch();
-        }
-        this.gcdInitialized = false;
+        const safe = this.sanitizeRotation(yaw, pitch);
+        RotationGCD.applyToPlayer(safe.yaw, safe.pitch);
     }
 
     normalizeAngle(angle) {
-        let result = angle % 360;
-        if (result >= 180) result -= 360;
-        if (result < -180) result += 360;
-        return result;
+        return (((angle % 360) + 540) % 360) - 180;
     }
 
     clampPitch(pitch) {
         return Math.max(-90, Math.min(90, pitch));
+    }
+
+    sanitizeRotation(yaw, pitch) {
+        return {
+            yaw: this.normalizeAngle(yaw),
+            pitch: this.clampPitch(pitch),
+        };
     }
 
     getEntityAimPoint(entity) {
@@ -256,21 +206,28 @@ class RotationsTo {
         const player = Player.getPlayer();
         if (!player) return this.stopRotation();
 
-        const currentRotation = this.getCurrentRotation(player);
-        let currentYaw = currentRotation.yaw;
-        let currentPitch = currentRotation.pitch;
+        const currentRotation = RotationGCD.getCurrentRotation(player);
+        let currentYaw = currentRotation?.yaw ?? player.getYaw();
+        let currentPitch = currentRotation?.pitch ?? player.getPitch();
 
         let deltaYaw = this.normalizeAngle(finalTarget.yaw - currentYaw);
         let deltaPitch = finalTarget.pitch - currentPitch;
         let distance = Math.hypot(deltaYaw, deltaPitch);
 
-        const isVectorTarget = this.targetVector !== null;
+        const isExactVector = this.targetVector !== null;
         let effectivePrecision = this.precision;
-        if (isVectorTarget) effectivePrecision = Math.max(0.05, this.calculateGCD());
+        if (isExactVector) effectivePrecision = Math.max(0.05, RotationGCD.calculateGCD());
         else if (this.trackedEntity) effectivePrecision = 0.5;
 
         if (distance <= effectivePrecision) {
-            this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+            if (isExactVector && player) {
+                const safe = this.sanitizeRotation(finalTarget.yaw, finalTarget.pitch);
+                player.setYaw(safe.yaw);
+                player.setPitch(safe.pitch);
+                RotationGCD.syncFromPlayer();
+            } else {
+                this.applyRotationWithGCD(finalTarget.yaw, finalTarget.pitch);
+            }
 
             this.lastTime = Date.now();
             if (!this.trackedEntity) {
@@ -332,6 +289,7 @@ class RotationsTo {
             }
         }
 
+        nextYaw = this.normalizeAngle(nextYaw);
         nextPitch = Math.max(-90, Math.min(90, nextPitch));
 
         if (!Number.isNaN(nextYaw) && !Number.isNaN(nextPitch)) {
@@ -340,6 +298,10 @@ class RotationsTo {
     }
 
     rotateToAngles(yaw, pitch, speedMultiplier = 1.0) {
+        if (!this.isRotating) {
+            RotationGCD.syncFromPlayer();
+        }
+
         if (this.isRotating && this.target) {
             const dYaw = Math.abs(this.normalizeAngle(yaw - this.target.yaw));
             const dPitch = Math.abs(pitch - this.target.pitch);
@@ -372,6 +334,9 @@ class RotationsTo {
         const vec = Utils.convertToVector(vector);
 
         const wasRotatingToVector = this.isRotating && this.targetVector && !this.trackedEntity;
+        if (!wasRotatingToVector) {
+            RotationGCD.syncFromPlayer();
+        }
 
         this.targetVector = { vector: vec, shiftTarget };
         this.trackedEntity = null;
@@ -413,6 +378,9 @@ class RotationsTo {
         }
 
         const alreadyTrackingThis = this.isRotating && this.trackedEntity && this.isTrackingEntity(entity);
+        if (!alreadyTrackingThis) {
+            RotationGCD.syncFromPlayer();
+        }
 
         this.trackedEntity = entity;
         this.targetVector = null;
@@ -467,7 +435,7 @@ class RotationsTo {
         this.trackedEntity = null;
         this.lastTime = 0;
         this.initialDistance = 0;
-        this.resetGCDTracking();
+        RotationGCD.syncFromPlayer();
         while (this.actions.length > 0) {
             try {
                 this.actions.shift().func();
