@@ -52,6 +52,7 @@ class ExcavatorMacro extends ModuleBase {
         this.clickedChisel = false;
         this.inExcavator = false;
         this.tickCount = this.TICKDELAY || 0;
+        this.blacklistedSlots = new Map();
 
         this.createOverlay([
             {
@@ -65,6 +66,8 @@ class ExcavatorMacro extends ModuleBase {
         ]);
 
         this.on('tick', () => {
+            this.updateBlacklistedSlots();
+
             if (Utils.subArea() !== 'Fossil Research Center') {
                 this.message('&cNot in the Research Center!');
                 this.toggle(false);
@@ -94,12 +97,12 @@ class ExcavatorMacro extends ModuleBase {
                     if (!this.clickedChisel) {
                         if (!this.clickDelay()) return;
 
-                        let chisel = Guis.clickItem('minecraft:armor_stand', true, 'MIDDLE', false);
+                        let chisel = this.clickItem('minecraft:armor_stand', true, 'MIDDLE', false, 16);
 
                         if (!chisel) {
                             this.message('&cNo chisel!');
-                            this.toggle(false);
-                            return;
+                            //this.toggle(false);
+                            //return;
                         }
 
                         this.clickedChisel = true;
@@ -108,28 +111,23 @@ class ExcavatorMacro extends ModuleBase {
                     if (this.clickedChisel && !this.clickedScrap) {
                         if (!this.clickDelay()) return;
 
-                        let scrap = Guis.clickItem('Suspicious Scrap');
+                        let scrap = this.clickItem('Suspicious Scrap', false, 'LEFT', true, 16);
 
                         if (!scrap) {
                             this.message('&cNo scrap!');
-                            this.toggle(false);
-                            return;
+                            //this.toggle(false);
+                            //return;
                         }
 
                         this.clickedScrap = true;
+                        return;
                     }
 
                     if (this.clickedChisel && this.clickedScrap) {
                         if (!this.clickDelay()) return;
 
-                        if (this.NODELAY) {
-                            let chiselSlot = Player.getContainer().getStackInSlot(14);
-                            if (!chiselSlot) return;
-                        }
-
                         Guis.clickItem('Start Excavator', true, 'MIDDLE');
                     }
-
                     this.state = this.STATES.EXCAVATING;
                     break;
                 case this.STATES.EXCAVATING:
@@ -137,7 +135,17 @@ class ExcavatorMacro extends ModuleBase {
 
                     const brownSlots = [];
                     for (let i = 0; i < 54; i++) {
+                        if (this.isSlotBlacklisted(i)) continue;
+
                         let slot = Player.getContainer().getStackInSlot(i);
+
+                        if (slot?.type?.getRegistryName()?.includes('black_stained')) {
+                            this.clickedScrap = false;
+
+                            this.clickedChisel = false;
+                            this.state = this.STATES.SETUP;
+                            return;
+                        }
 
                         if (slot?.type?.getRegistryName()?.includes('yellow_stained')) {
                             Guis.closeInv();
@@ -151,6 +159,8 @@ class ExcavatorMacro extends ModuleBase {
                         if (slot?.type?.getRegistryName()?.includes('lime_stained')) {
                             if (!this.clickDelay()) return;
                             Guis.clickSlot(i);
+                            this.blacklistSlot(i, 10);
+                            return;
                         }
 
                         if (slot?.type?.getRegistryName()?.includes('brown_stained')) brownSlots.push(i);
@@ -163,11 +173,54 @@ class ExcavatorMacro extends ModuleBase {
                         if (!this.clickDelay()) return;
 
                         Guis.clickSlot(randomBrownSlot);
+                        this.blacklistSlot(randomBrownSlot, 10);
                         return;
                     }
                     break;
             }
         });
+    }
+
+    clickItem(name, shift = false, button = 'LEFT', displayName = true, startSlot = 0) {
+        const container = Player.getContainer();
+        if (!container) return false;
+
+        const items = container.getItems();
+        if (!items) return false;
+
+        const targetName = name.toLowerCase();
+        for (let i = startSlot; i < items.length; i++) {
+            const item = items[i];
+            if (!item) continue;
+
+            const itemName = displayName !== false ? ChatLib.removeFormatting(String(item.getName?.() || '')) : String(item.type?.getRegistryName?.() || '');
+            if (!itemName) continue;
+
+            if (itemName.toLowerCase().includes(targetName)) {
+                return Guis.clickSlot(i, shift, button);
+            }
+        }
+
+        return false;
+    }
+
+    updateBlacklistedSlots() {
+        for (const [slot, ticks] of this.blacklistedSlots) {
+            if (ticks <= 1) {
+                this.blacklistedSlots.delete(slot);
+                continue;
+            }
+
+            this.blacklistedSlots.set(slot, ticks - 1);
+        }
+    }
+
+    isSlotBlacklisted(slot) {
+        return this.blacklistedSlots.has(slot);
+    }
+
+    blacklistSlot(slot, ticks) {
+        this.blacklistedSlots.set(slot, ticks);
     }
 
     clickDelay() {
@@ -193,6 +246,7 @@ class ExcavatorMacro extends ModuleBase {
         this.clickedChisel = false;
         this.clickedScrap = false;
         this.inExcavator = false;
+        this.blacklistedSlots.clear();
     }
 }
 
