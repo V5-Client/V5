@@ -70,11 +70,15 @@ function connectWebSocket() {
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }
+        ws = null;
     }
 
     const token = V5Auth.getJwtToken();
 
-    if (!token) return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
+    if (!token) {
+        isConnected = false;
+        return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
+    }
     returnDiscord(token);
     const wsUrl = `${Links.WEBSOCKET_URL}`;
     ws = new WebSocket(wsUrl);
@@ -98,8 +102,11 @@ function connectWebSocket() {
     };
 
     ws.onClose = (code, reason) => {
-        if (code == '1000') return;
         isConnected = false;
+        if (code == '1000') {
+            ws = null;
+            return;
+        }
         Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
         attemptReconnect();
     };
@@ -128,7 +135,9 @@ function attemptReconnect() {
 
 register('gameUnload', () => {
     gameUnload = true;
+    isConnected = false;
     ws?.close();
+    ws = null;
 });
 
 register('packetSent', (packet, event) => {

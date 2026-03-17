@@ -166,6 +166,7 @@ class FarmingMacro extends ModuleBase {
 
     initListeners() {
         this.on('tick', () => {
+            if (!this.enabled) return;
             //if (Utils.area() !== 'Garden') {
             //    this.message('&cYou are not on the Garden!');
             //    this.toggle(false);

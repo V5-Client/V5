@@ -34,6 +34,7 @@ class AutoIceFill extends ModuleBase {
         this.activeStart = null;
         this.pathIndex = 0;
         this.reflectionFailed = false;
+        this.reflectionWarningShown = false;
 
         try {
             IceFillSolver = Java.type('com.github.synnerz.devonian.features.dungeons.solvers.IceFillSolver');
@@ -56,14 +57,21 @@ class AutoIceFill extends ModuleBase {
     }
 
     onDisable() {
+        this.reflectionWarningShown = false;
         this.stopFollowing(true);
     }
 
     onTick() {
         if (this.reflectionFailed) {
-            Chat.message('&c[Auto Ice Fill] Failed to access Devonian solver. Please install devonian or disable auto ice fill.');
+            if (!this.reflectionWarningShown) {
+                Chat.message('&c[Auto Ice Fill] Failed to access Devonian solver. Please install devonian or disable auto ice fill.');
+                this.reflectionWarningShown = true;
+            }
             return;
         }
+
+        const player = Player.getPlayer();
+        if (!player) return;
 
         const solutions = this.readSolutions();
         const paths = solutions;
@@ -73,9 +81,9 @@ class AutoIceFill extends ModuleBase {
             if (updated) this.activePath = updated;
         }
 
-        const playerXReal = Player.getX();
-        const playerZReal = Player.getZ();
-        const playerY = Player.getY();
+        const playerXReal = player.getX();
+        const playerZReal = player.getZ();
+        const playerY = player.getY();
         const playerX = Math.floor(playerXReal);
         const playerZ = Math.floor(playerZReal);
 
@@ -95,8 +103,8 @@ class AutoIceFill extends ModuleBase {
         const playerBlockX = Math.floor(playerXReal);
         const playerBlockZ = Math.floor(playerZReal);
 
-        const velX = Player.getMotionX();
-        const velZ = Player.getMotionZ();
+        const velX = player.getMotionX();
+        const velZ = player.getMotionZ();
 
         if (this.isOnBlock(target, playerBlockX, playerBlockZ, playerY) && this.shouldAdvanceBlock(target, playerXReal, playerZReal, playerY, velX, velZ)) {
             this.pathIndex += 1;
@@ -173,7 +181,7 @@ class AutoIceFill extends ModuleBase {
         const steerX = leadX - this.clampOffset(parallelCancelX + lateralCancelX, MAX_SLIP_LEAD) + centerNudgeX;
         const steerZ = leadZ - this.clampOffset(parallelCancelZ + lateralCancelZ, MAX_SLIP_LEAD) + centerNudgeZ;
         Keybind.setKeysForStraightLineCoords(steerX, target.y, steerZ, false);
-        Keybind.setKey('Shift', true);
+        Keybind.setKey('shift', true);
     }
 
     readSolutions() {
@@ -225,7 +233,10 @@ class AutoIceFill extends ModuleBase {
     }
 
     stopFollowing(resetKeys) {
-        if (resetKeys) Keybind.stopMovement();
+        if (resetKeys) {
+            Keybind.stopMovement();
+            Keybind.setKey('shift', false);
+        }
         this.activePath = null;
         this.activeStart = null;
         this.pathIndex = 0;
@@ -234,7 +245,7 @@ class AutoIceFill extends ModuleBase {
     isTargetBlock(coord) {
         if (!coord) return false;
         const block = World.getBlockAt(coord.x, coord.y, coord.z);
-        return block.type.getID() !== 0;
+        return !!block && !!block.type && block.type.getID() !== 0;
     }
 
     attachNearestPath(paths, px, pz, py, resetKeys = true) {

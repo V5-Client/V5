@@ -71,6 +71,7 @@ class ExcavatorMacro extends ModuleBase {
             if (Utils.subArea() !== 'Fossil Research Center') {
                 this.message('&cNot in the Research Center!');
                 this.toggle(false);
+                return;
             }
 
             if (this.inExcavator) {
@@ -134,10 +135,12 @@ class ExcavatorMacro extends ModuleBase {
                     if (Guis.guiName() !== 'Fossil Excavator') return;
 
                     const brownSlots = [];
+                    const container = Player.getContainer();
+                    if (!container) return;
                     for (let i = 0; i < 54; i++) {
                         if (this.isSlotBlacklisted(i)) continue;
 
-                        let slot = Player.getContainer().getStackInSlot(i);
+                        let slot = container.getStackInSlot(i);
 
                         if (slot?.type?.getRegistryName()?.includes('black_stained')) {
                             this.clickedScrap = false;

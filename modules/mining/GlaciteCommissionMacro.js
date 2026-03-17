@@ -82,6 +82,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         );
 
         this.on('step', () => {
+            if (!this.enabled) return;
             const newCommissions = MiningUtils.readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
         }).setDelay(1);
@@ -159,6 +160,7 @@ class GlaciteCommissionMacro extends ModuleBase {
 
     runLogic() {
         if (!this.enabled) return;
+        if (!Player.getPlayer()) return;
 
         this.cancelNpcRotationIfPathing();
 

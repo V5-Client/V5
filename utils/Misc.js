@@ -9,7 +9,7 @@ v5Command('blockinfo', () => {
         const blockInfo = MiningUtils.getBlockInfo(registryName);
         const displayRegistry = registryName || 'unknown';
 
-        Chat.message('blockid: ' + block.type.getID());
+        Chat.message('blockid: ' + (block.type?.getID?.() ?? 'unknown'));
         Chat.message('registry: ' + displayRegistry);
         if (blockInfo) {
             Chat.message('block name: ' + blockInfo.name);

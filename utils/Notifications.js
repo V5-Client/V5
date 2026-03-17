@@ -70,7 +70,9 @@ class AlertManager {
     }
 
     sendMac(msg) {
-        this.runCmd(['/usr/bin/osascript', '-e', `display notification "${msg}" with title "${this.appName}"`]);
+        const safeMsg = String(msg).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const safeTitle = String(this.appName).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        this.runCmd(['/usr/bin/osascript', '-e', `display notification "${safeMsg}" with title "${safeTitle}"`]);
     }
 
     sendLinux(msg) {

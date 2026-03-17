@@ -10,6 +10,7 @@ export const raytraceBlocks = (
 ) => {
     if (!startPos) startPos = getPlayerEyeCoords();
     if (!directionVector) directionVector = getPlayerLookVec();
+    if (!startPos || !directionVector) return returnWhenTrue ? null : [];
 
     // Ensure directionVector is normalized
     const normalizedDir = directionVector.normalize();
@@ -22,7 +23,10 @@ export const raytraceBlocks = (
 };
 
 export const getPlayerEyeCoords = (forceSneak = false) => {
-    const eyePos = Player.getPlayer().getEyePos(); // native Vec3d
+    const player = Player.getPlayer();
+    if (!player) return null;
+
+    const eyePos = player.getEyePos(); // native Vec3d
     let x = eyePos.x;
     let y = eyePos.y;
     let z = eyePos.z;
@@ -32,7 +36,10 @@ export const getPlayerEyeCoords = (forceSneak = false) => {
 };
 
 export const getPlayerLookVec = () => {
-    const lookVec = Player.getPlayer().getRotationVec(1.0); // tickDelta = 1.0 is standard
+    const player = Player.getPlayer();
+    if (!player) return null;
+
+    const lookVec = player.getRotationVec(1.0); // tickDelta = 1.0 is standard
     return new Vector3(lookVec.x, lookVec.y, lookVec.z);
 };
 
@@ -65,6 +72,9 @@ export const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue
 
         // Check current block
         const currentBlock = World.getBlockAt(...currentPos);
+        if (!currentBlock || !currentBlock.type) {
+            return returnWhenTrue ? null : path;
+        }
 
         if (blockCheckFunc && blockCheckFunc(currentBlock)) {
             if (returnWhenTrue) {

@@ -261,6 +261,7 @@ class Bot extends ModuleBase {
         this.normalRender = register('postRenderWorld', () => this.renderNormal()).unregister();
 
         this.on('tick', () => {
+            if (!this.enabled) return;
             if (Client.isInGui()) {
                 Keybind.unpressKeys();
                 return;
@@ -277,17 +278,20 @@ class Bot extends ModuleBase {
         });
 
         manager.subscribe('abilityready', () => {
+            if (!this.enabled) return;
             this.resetTickCounters();
             this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
         });
 
         manager.subscribe('abilityused', () => {
+            if (!this.enabled) return;
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
             this.resetTickCounters();
         });
 
         manager.subscribe('abilitygone', () => {
+            if (!this.enabled) return;
             this.speedBoost = false;
             this.lastUse = Date.now();
             this.resetTickCounters();

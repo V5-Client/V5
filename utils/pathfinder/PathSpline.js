@@ -382,7 +382,9 @@ class PathSpline {
             const world = World.getWorld();
             if (!world) return false;
             const pos = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
-            return !world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
+            const state = world.getBlockState(pos);
+            if (!state) return false;
+            return !state.getCollisionShape(world, pos).isEmpty();
         } catch (e) {
             return false;
         }
@@ -411,6 +413,9 @@ class PathSpline {
 
     drawLookPoints() {
         if (!this.cachedBoxPositions?.length) return;
+
+        const player = Player.getPlayer();
+        if (!player) return;
 
         const px = Player.getX();
         const pz = Player.getZ();

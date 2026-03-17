@@ -45,7 +45,12 @@ export function handleIRCMessage(data) {
         if (data.code === 'PREFIX_UPDATED') {
             Chat.messageIrc('Your prefix has been changed');
         } else if (data.code === 'MUTED') {
-            Chat.messageIrc('You have been muted until ' + new Date(data.mute_expires_at * 1000).toISOString());
+            const expiresAt = Number(data.mute_expires_at);
+            if (Number.isFinite(expiresAt)) {
+                Chat.messageIrc('You have been muted until ' + new Date(expiresAt * 1000).toISOString());
+            } else {
+                Chat.messageIrc('You have been muted');
+            }
         } else {
             Chat.messageIrc(`System: ${data.code || ''}`);
         }

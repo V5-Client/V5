@@ -55,10 +55,6 @@ class Music extends ModuleBase {
         register('gameUnload', () => this.savePosition());
         register('guiClosed', () => this.savePosition());
         Runtime.getRuntime().addShutdownHook(new java.lang.Thread(() => this.stopWindowsProgram()));
-        this.onDisable(() => {
-            this.savePosition();
-            this.stopWindowsProgram();
-        });
     }
 
     parseTimeToSeconds(timeStr) {
@@ -271,6 +267,11 @@ class Music extends ModuleBase {
         } finally {
             NVG.endFrame();
         }
+    }
+
+    onDisable() {
+        this.savePosition();
+        this.stopWindowsProgram();
     }
 
     fetchWindowsData() {

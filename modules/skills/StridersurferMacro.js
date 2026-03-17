@@ -353,11 +353,16 @@ class StridersurferMacro extends ModuleBase {
     }
 
     getNearbyStridersurfer(armorStands) {
+        const player = Player.getPlayer();
+        if (!player) return null;
+        const eyes = player.getEyePos();
+        if (!eyes) return null;
+
         return armorStands.find((entity) => {
             try {
                 const name = entity.getName();
                 if (!name || !String(name).toLowerCase().includes('stridersurfer')) return false;
-                const distance = this.distanceFromEyes(entity, Player.getPlayer().getEyePos());
+                const distance = this.distanceFromEyes(entity, eyes);
                 return distance !== null && distance <= 3;
             } catch (e) {
                 console.error('V5 Caught error' + e + e.stack);
@@ -367,7 +372,12 @@ class StridersurferMacro extends ModuleBase {
     }
 
     isStridersurferWithinRange(entity) {
-        const distance = this.distanceFromEyes(entity, Player.getPlayer().getEyePos());
+        const player = Player.getPlayer();
+        if (!player) return false;
+        const eyes = player.getEyePos();
+        if (!eyes) return false;
+
+        const distance = this.distanceFromEyes(entity, eyes);
         return distance !== null && distance <= 3;
     }
 

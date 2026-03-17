@@ -262,7 +262,7 @@ class Combat extends ModuleBase {
         this.scanTicker = (this.scanTicker || 0) + 1;
         if (this.scanTicker % BLACKHOLE_SCAN_INTERVAL !== 0) return;
 
-        const stands = World.getAllEntitiesOfType(ArmorStandEntity.class);
+        const stands = World.getAllEntitiesOfType(ArmorStandEntity);
         const visibleBlackholes = [];
         const playerX = Player.getX();
         const playerY = Player.getY();

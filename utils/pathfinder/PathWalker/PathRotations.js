@@ -37,6 +37,10 @@ class PathRotations {
 
         PathExecutor.onStep(() => {
             if (!this.rotationActive || !this.boxPositions || this.boxPositions.length < 2) return;
+            if (!Player.getPlayer()) {
+                this.resetRotations();
+                return;
+            }
             this.updateLookPoint();
             this.applyHumanizedPhysics();
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);

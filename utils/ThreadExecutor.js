@@ -24,7 +24,7 @@ class ThreadExecutor {
      * @param {Function} task - The function to run.
      */
     execute(task) {
-        if (this.service.isShutdown()) return;
+        if (this.service.isShutdown() || typeof task !== 'function') return;
 
         this.service.execute(() => {
             try {

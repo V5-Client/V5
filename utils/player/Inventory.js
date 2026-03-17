@@ -36,7 +36,7 @@ class ItemSearcher {
 
     findAllInList(inventory, targetName) {
         let slots = [];
-        if (!inventory) return -1;
+        if (!inventory) return slots;
         for (var i = 0; i < inventory.getSize(); i++) {
             const stack = inventory.getStackInSlot(i);
             if (this.matchName(stack, targetName, false)) {
@@ -139,7 +139,8 @@ export const Guis = {
             const item = items[i];
             if (!item) continue;
 
-            const itemName = displayName !== false ? ChatLib.removeFormatting(String(item.getName())) : String(item.type.getRegistryName());
+            const itemName = displayName !== false ? ChatLib.removeFormatting(String(item.getName())) : String(item.type?.getRegistryName?.() || '');
+            if (!itemName) continue;
 
             const match = exact ? itemName.toLowerCase() === name.toLowerCase() : itemName.toLowerCase().indexOf(name.toLowerCase()) !== -1;
 

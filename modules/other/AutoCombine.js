@@ -33,6 +33,7 @@ class AutoCombine extends ModuleBase {
         this.lastCombineSlots = [];
         this.timeoutFlags = 0;
         this.enableLevelTenBooks = false;
+        this.tickCounter = 0;
 
         this.addToggle(
             'Support Level 10 Books',
@@ -44,8 +45,9 @@ class AutoCombine extends ModuleBase {
         this.on('tick', (tick) => this.onTick(tick));
     }
 
-    onTick(tick) {
-        if (tick % 5 !== 1) return;
+    onTick() {
+        this.tickCounter = (this.tickCounter + 1) % 5;
+        if (this.tickCounter !== 1) return;
         switch (this.state) {
             case this.STATES.OPEN_ANVIL:
                 this.openAnvil();
@@ -235,6 +237,8 @@ class AutoCombine extends ModuleBase {
         this.pendingPair = null;
         this.first = null;
         this.second = null;
+        this.lastCombineSlots = [];
+        this.tickCounter = 0;
         this.setState(this.STATES.OPEN_ANVIL);
         if (close) Guis.closeInv();
     }

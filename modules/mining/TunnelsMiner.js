@@ -247,9 +247,15 @@ class TunnelsMiner extends ModuleBase {
         if (passableCache?.has(cacheKey)) return passableCache.get(cacheKey);
 
         const block = World.getBlockAt(blockVec.x, blockVec.y, blockVec.z);
-        if (block.type.getRegistryName() === 'minecraft:snow') {
+        const registryName = block?.type?.getRegistryName?.();
+        if (registryName === 'minecraft:snow') {
             passableCache?.set(cacheKey, true);
             return true;
+        }
+
+        if (!block?.type) {
+            passableCache?.set(cacheKey, false);
+            return false;
         }
 
         const result = Pathfinder.isBlockWalkable(blockVec.x, blockVec.y, blockVec.z);

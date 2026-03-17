@@ -40,6 +40,11 @@ class LeftClickEtherwarp extends ModuleBase {
             }
         }
     }
+
+    onDisable() {
+        this.clickStart = Infinity;
+        Keybind.setKey('shift', false);
+    }
 }
 
 new LeftClickEtherwarp();

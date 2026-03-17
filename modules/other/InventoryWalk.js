@@ -15,15 +15,16 @@ class InventoryWalk extends ModuleBase {
         this.clicked = false;
         this.time = 0;
         this.lastPing = Date.now();
-        this.keybinds = [
-            new KeyBind(Client.getMinecraft().options.forwardKey),
-            new KeyBind(Client.getMinecraft().options.leftKey),
-            new KeyBind(Client.getMinecraft().options.rightKey),
-            new KeyBind(Client.getMinecraft().options.backKey),
-            new KeyBind(Client.getMinecraft().options.jumpKey),
-            new KeyBind(Client.getMinecraft().options.sprintKey),
-            new KeyBind(Client.getMinecraft().options.sneakKey),
-        ];
+        const options = Client.getMinecraft().options;
+        this.keybinds = [options.forwardKey, options.leftKey, options.rightKey, options.backKey, options.jumpKey, options.sprintKey, options.sneakKey].map(
+            (keybind) => ({
+                getKeyCode: () => (typeof keybind.getKeyCode === 'function' ? keybind.getKeyCode() : (keybind.boundKey?.code ?? -1)),
+                setState: (down) => {
+                    if (typeof keybind.setState === 'function') keybind.setState(!!down);
+                    else if (typeof keybind.setPressed === 'function') keybind.setPressed(!!down);
+                },
+            })
+        );
 
         this.on('tick', () => {
             if (!Client.isInGui()) this.clicked = false;
@@ -64,6 +65,12 @@ class InventoryWalk extends ModuleBase {
         this.on('packetReceived', (packet) => {
             this.lastPing = Date.now();
         }).setFilteredClass(CommonPingS2C);
+    }
+
+    onDisable() {
+        this.clicked = false;
+        this.time = 0;
+        this.keybinds.forEach((keybind) => keybind.setState(false));
     }
 }
 

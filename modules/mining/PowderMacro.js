@@ -87,10 +87,12 @@ class PowderMacro extends ModuleBase {
 
     onChestSpawn() {
         if (!this.enabled || this.state === State.CHEST) return;
+        const player = Player.getPlayer();
+        if (!player) return;
 
         this.savedRotation = {
-            yaw: Player.getYaw(),
-            pitch: Player.getPitch(),
+            yaw: player.getYaw(),
+            pitch: player.getPitch(),
         };
 
         this.targetChest = null;
@@ -119,12 +121,18 @@ class PowderMacro extends ModuleBase {
     }
 
     onEnable() {
+        const player = Player.getPlayer();
+        if (!player) {
+            this.toggle(false);
+            return;
+        }
+
         Keybind.setKey('leftclick', true);
         Keybind.setKey('shift', true);
 
         this.pivot = {
-            yaw: Player.getYaw(),
-            pitch: Player.getPitch(),
+            yaw: player.getYaw(),
+            pitch: player.getPitch(),
         };
         this.startTime = Date.now();
 
@@ -145,6 +153,11 @@ class PowderMacro extends ModuleBase {
 
     rotateLoop() {
         if (!this.enabled) return;
+        const player = Player.getPlayer();
+        if (!player) {
+            setTimeout(() => this.rotateLoop(), TICK_INTERVAL_MS);
+            return;
+        }
 
         try {
             switch (this.state) {
@@ -192,7 +205,10 @@ class PowderMacro extends ModuleBase {
     }
 
     tickReturning() {
-        const current = { yaw: Player.getYaw(), pitch: Player.getPitch() };
+        const player = Player.getPlayer();
+        if (!player) return;
+
+        const current = { yaw: player.getYaw(), pitch: player.getPitch() };
         const target = this.savedRotation ?? this.pivot;
 
         const diffYaw = Rotations.normalizeAngle(target.yaw - current.yaw);
@@ -228,9 +244,12 @@ class PowderMacro extends ModuleBase {
     }
 
     findNearestChest() {
-        const baseX = Math.floor(Player.getX());
-        const baseY = Math.floor(Player.getY());
-        const baseZ = Math.floor(Player.getZ());
+        const player = Player.getPlayer();
+        if (!player) return null;
+
+        const baseX = Math.floor(player.getX());
+        const baseY = Math.floor(player.getY());
+        const baseZ = Math.floor(player.getZ());
 
         for (const [dx, dy, dz] of SEARCH_OFFSETS) {
             const block = World.getBlockAt(baseX + dx, baseY + dy, baseZ + dz);
@@ -246,9 +265,11 @@ class PowderMacro extends ModuleBase {
         if (!block) return false;
 
         const blockType = block.getType();
+        if (!blockType) return false;
         if (CHEST_BLOCK_IDS.has(blockType.getID())) return true;
 
-        return blockType.getName().toLowerCase().includes('chest');
+        const blockName = typeof blockType.getName === 'function' ? blockType.getName() : '';
+        return blockName.toLowerCase().includes('chest');
     }
 
     getBlockCenter(block) {

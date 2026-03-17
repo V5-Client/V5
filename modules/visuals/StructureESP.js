@@ -18,6 +18,7 @@ class StructureESP extends ModuleBase {
             const cz = packet?.getChunkZ();
             if (typeof cx !== 'number' || typeof cz !== 'number') return;
             setTimeout(() => {
+                if (!this.enabled) return;
                 StructureFinder.submitChunkScan(cx, cz);
             }, 50);
         }).setFilteredClass(ChunkDataS2C);
@@ -33,6 +34,7 @@ class StructureESP extends ModuleBase {
         });
 
         manager.subscribe('warp', () => {
+            if (!this.enabled) return;
             console.log('Warp detected! Resetting module data...');
             StructureFinder.clear();
         });

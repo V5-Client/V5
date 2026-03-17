@@ -130,6 +130,7 @@ class SunGecko extends ModuleBase {
         );
 
         this.on('tick', () => {
+            if (!Player.getPlayer()) return;
             switch (this.state) {
                 case States.WAITING:
                     break;
@@ -163,9 +164,12 @@ class SunGecko extends ModuleBase {
     }
 
     countNearbyBlocks(registryName) {
-        const baseX = Math.floor(Player.getX());
-        const baseY = Math.floor(Player.getY());
-        const baseZ = Math.floor(Player.getZ());
+        const player = Player.getPlayer();
+        if (!player) return 0;
+
+        const baseX = Math.floor(player.getX());
+        const baseY = Math.floor(player.getY());
+        const baseZ = Math.floor(player.getZ());
         const radius = 5;
         let total = 0;
 

@@ -140,6 +140,8 @@ class RouteWalkerer extends ModuleBase {
 
         this.on('tick', () => {
             if (!this.route || this.route.length === 0) return;
+            const player = Player.getPlayer();
+            if (!player) return;
 
             if (!this.foundpoint) {
                 this.data = this.getClosestPoint();
@@ -165,7 +167,7 @@ class RouteWalkerer extends ModuleBase {
 
                     let angle = MathUtils.calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
 
-                    Rotations.rotateToAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : Player.getPitch(), 1.0, false);
+                    Rotations.rotateToAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : player.getPitch(), 1.0, false);
 
                     if (currentDistance < 3) {
                         this.etherwarpReady = false;
@@ -194,7 +196,7 @@ class RouteWalkerer extends ModuleBase {
 
                     const targetBlockPos = new BlockPos(this.point.x, this.point.y, this.point.z);
 
-                    if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) > 0.1) return;
+                    if (Math.abs(player.getMotionX()) + Math.abs(player.getMotionZ()) > 0.1) return;
 
                     let point = Raytrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 

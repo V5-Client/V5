@@ -140,10 +140,13 @@ class LocationDetector {
     }
 
     getLobbyDay() {
-        return Math.floor(Client.getMinecraft().world.getTimeOfDay() / 24000);
+        const world = Client.getMinecraft()?.world;
+        if (!world) return 0;
+        return Math.floor(world.getTimeOfDay() / 24000);
     }
 
     stripFormatting(text) {
+        if (text == null) return '';
         return text.replace(/§[0-9A-FK-OR]/gi, '');
     }
 
@@ -260,9 +263,14 @@ class CollisionChecker {
 
     hasCollision(x, y, z) {
         try {
+            const world = World.getWorld();
+            if (!world) return false;
+
             let blockPos = new BP(x, y, z);
-            let blockState = World.getWorld().getBlockState(blockPos);
-            let shape = blockState.getCollisionShape(blockPos);
+            let blockState = world.getBlockState(blockPos);
+            if (!blockState) return false;
+
+            let shape = blockState.getCollisionShape(world, blockPos);
             return !shape.isEmpty();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
@@ -312,15 +320,22 @@ class UtilsClass {
     }
 
     noCollision(blockVec) {
+        const world = World.getWorld();
+        if (!blockVec || !world) return false;
         const blockPosNMS = new BP(blockVec.x, blockVec.y, blockVec.z);
-        const blockState = World.getWorld().getBlockState(blockPosNMS);
-        const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
+        const blockState = world.getBlockState(blockPosNMS);
+        if (!blockState) return false;
+        const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
         return collisionShape.isEmpty();
     }
 
     playerIsCollided(ignoreBottomSlab) {
         const shouldIgnoreBottomSlab = !!ignoreBottomSlab;
-        const playerBox = Player.getPlayer().getBoundingBox();
+        const player = Player.getPlayer();
+        const world = World.getWorld();
+        if (!player || !world) return false;
+
+        const playerBox = player.getBoundingBox();
         // Use a small epsilon to avoid "ghost" collisions with adjacent blocks
         const expandedBox = playerBox.expand(0.01, 0, 0.01);
 
@@ -336,11 +351,13 @@ class UtilsClass {
                 for (let z = minZ; z <= maxZ; z++) {
                     let block = World.getBlockAt(x, y, z);
 
-                    if (!block || block.type.getID() === 0) continue;
+                    if (!block || !block.type || block.type.getID() === 0) continue;
 
                     const blockPosNMS = new BP(x, y, z);
-                    const blockState = World.getWorld().getBlockState(blockPosNMS);
-                    const registryName = block.type.getRegistryName().toLowerCase();
+                    const blockState = world.getBlockState(blockPosNMS);
+                    const registryName = block.type.getRegistryName()?.toLowerCase?.();
+
+                    if (!registryName || !blockState) continue;
 
                     if (registryName.includes('carpet')) continue;
 
@@ -353,7 +370,7 @@ class UtilsClass {
                         }
                     }
 
-                    const collisionShape = blockState.getCollisionShape(World.getWorld(), blockPosNMS);
+                    const collisionShape = blockState.getCollisionShape(world, blockPosNMS);
                     if (collisionShape.isEmpty()) continue;
 
                     return true;
@@ -367,11 +384,14 @@ class UtilsClass {
     // ik this is so ugly idgaf
     sidesOfCollision() {
         const player = Player.getPlayer();
+        const mcWorld = World.getWorld();
+        if (!player || !mcWorld) return { front: false, back: false, left: false, right: false };
+
         const playerBox = player.getBoundingBox();
         const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
 
         let yaw = ((player.getYaw() % 360) + 360) % 360;
-        const world = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
+        const collisionSides = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
 
         let minX = Math.floor(expandedBox.minX);
         let minY = Math.floor(expandedBox.minY);
@@ -384,11 +404,12 @@ class UtilsClass {
             for (let y = minY; y <= maxY; y++) {
                 for (let z = minZ; z <= maxZ; z++) {
                     let block = World.getBlockAt(x, y, z);
-                    if (!block || block.type.getID() === 0) continue;
+                    if (!block || !block.type || block.type.getID() === 0) continue;
 
                     let blockPos = new BP(x, y, z);
-                    let blockState = World.getWorld().getBlockState(blockPos);
-                    let voxelShape = blockState.getCollisionShape(World.getWorld(), blockPos);
+                    let blockState = mcWorld.getBlockState(blockPos);
+                    if (!blockState) continue;
+                    let voxelShape = blockState.getCollisionShape(mcWorld, blockPos);
 
                     if (!voxelShape || voxelShape.isEmpty()) continue;
 
@@ -398,10 +419,10 @@ class UtilsClass {
                         let blockBox = collisionBoxes.get(i).offset(x, y, z);
 
                         if (expandedBox.intersects(blockBox)) {
-                            if (blockBox.maxX <= playerBox.minX + 0.05) world.WEST = true;
-                            if (blockBox.minX >= playerBox.maxX - 0.05) world.EAST = true;
-                            if (blockBox.maxZ <= playerBox.minZ + 0.05) world.NORTH = true;
-                            if (blockBox.minZ >= playerBox.maxZ - 0.05) world.SOUTH = true;
+                            if (blockBox.maxX <= playerBox.minX + 0.05) collisionSides.WEST = true;
+                            if (blockBox.minX >= playerBox.maxX - 0.05) collisionSides.EAST = true;
+                            if (blockBox.maxZ <= playerBox.minZ + 0.05) collisionSides.NORTH = true;
+                            if (blockBox.minZ >= playerBox.maxZ - 0.05) collisionSides.SOUTH = true;
                         }
                     }
                 }
@@ -411,25 +432,25 @@ class UtilsClass {
         let res = { front: false, back: false, left: false, right: false };
 
         if (yaw >= 315 || yaw < 45) {
-            res.front = world.SOUTH;
-            res.back = world.NORTH;
-            res.left = world.EAST;
-            res.right = world.WEST;
+            res.front = collisionSides.SOUTH;
+            res.back = collisionSides.NORTH;
+            res.left = collisionSides.EAST;
+            res.right = collisionSides.WEST;
         } else if (yaw >= 45 && yaw < 135) {
-            res.front = world.WEST;
-            res.back = world.EAST;
-            res.left = world.SOUTH;
-            res.right = world.NORTH;
+            res.front = collisionSides.WEST;
+            res.back = collisionSides.EAST;
+            res.left = collisionSides.SOUTH;
+            res.right = collisionSides.NORTH;
         } else if (yaw >= 135 && yaw < 225) {
-            res.front = world.NORTH;
-            res.back = world.SOUTH;
-            res.left = world.WEST;
-            res.right = world.EAST;
+            res.front = collisionSides.NORTH;
+            res.back = collisionSides.SOUTH;
+            res.left = collisionSides.WEST;
+            res.right = collisionSides.EAST;
         } else if (yaw >= 225 && yaw < 315) {
-            res.front = world.EAST;
-            res.back = world.WEST;
-            res.left = world.NORTH;
-            res.right = world.SOUTH;
+            res.front = collisionSides.EAST;
+            res.back = collisionSides.WEST;
+            res.left = collisionSides.NORTH;
+            res.right = collisionSides.SOUTH;
         }
 
         return res;

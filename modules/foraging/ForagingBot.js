@@ -156,8 +156,8 @@ class ForagingBot extends ModuleBase {
     }
 
     handleScanning() {
-        this.scanConnectedBlocks(this.route[this.pointIndex]);
-        this.state = this.STATES.WAITING;
+        const scanned = this.scanConnectedBlocks(this.route[this.pointIndex]);
+        if (scanned !== false) this.state = this.STATES.THROWING;
     }
 
     handleThrowing() {
@@ -193,7 +193,11 @@ class ForagingBot extends ModuleBase {
         const targetId = target?.type?.getID();
         if (targetId === undefined || targetId === null) {
             Chat.message('Foraging Bot: Start block has no ID.');
-            return [];
+            this.connectedBlocks = [];
+            this.scannedBlocksSnapshot = [];
+            this.targetBlock = null;
+            this.advanceRoutePoint();
+            return false;
         }
 
         const toKey = (x, y, z) => `${x},${y},${z}`;

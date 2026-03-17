@@ -37,8 +37,10 @@ class MinionCollector extends ModuleBase {
 
     scanAndQueue() {
         let targets = [];
-        const entities = World.getAllEntitiesOfType(ArmorStandEntity.class);
-        const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
+        const player = Player.getPlayer();
+        if (!player) return;
+        const entities = World.getAllEntitiesOfType(ArmorStandEntity);
+        const playerPos = [player.getX(), player.getY(), player.getZ()];
 
         for (let entity of entities) {
             const x = Math.floor(entity.getX());

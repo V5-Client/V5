@@ -219,7 +219,10 @@ class VoxelTraverser {
             }
 
             if (currentX !== ignoreX || currentY !== ignoreY || currentZ !== ignoreZ) {
-                let blockId = World.getBlockAt(currentX, currentY, currentZ).type.getID();
+                const block = World.getBlockAt(currentX, currentY, currentZ);
+                if (!block || !block.type) return false;
+
+                let blockId = block.type.getID();
 
                 if (!PASSABLE_BLOCKS.has(blockId)) {
                     return false;

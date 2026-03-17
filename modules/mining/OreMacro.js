@@ -153,6 +153,7 @@ class OreMacro extends ModuleBase {
         );
 
         this.on('tick', () => {
+            if (!Player.getPlayer()) return;
             MiningBot.setCost(this.oreCosts);
             MiningBot.MOVEMENT = false;
 
@@ -265,7 +266,8 @@ class OreMacro extends ModuleBase {
                         Guis.setItemSlot(aotv);
                         Keybind.setKey('shift', true);
 
-                        if (!Player.getPlayer().isSneaking()) return;
+                        const player = Player.getPlayer();
+                        if (!player?.isSneaking()) return;
 
                         Rotations.rotateToVector(this.pointData.closest, 1);
                         Rotations.onEndRotation(() => {

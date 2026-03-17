@@ -35,7 +35,7 @@ class AutoConversation extends ModuleBase {
                     if (value) commands.push(value);
                 }
 
-                const siblings = comp.getSiblings();
+                const siblings = comp.getSiblings?.() || [];
                 for (const sibling of siblings) {
                     commands = commands.concat(getAllClickEvents(sibling));
                 }
@@ -47,9 +47,9 @@ class AutoConversation extends ModuleBase {
             if (commands.length === 0) return;
 
             if (commands.length >= 2 && this.autoSelect) {
-                ScheduleTask(this.delay, () => ChatLib.say(commands[0]));
+                ScheduleTask(this.delay, () => ChatLib.command(commands[0].replace(/^\//, '')));
             } else if (commands.length === 1) {
-                ScheduleTask(this.delay, () => ChatLib.say(commands[0]));
+                ScheduleTask(this.delay, () => ChatLib.command(commands[0].replace(/^\//, '')));
             }
         });
 

@@ -137,6 +137,7 @@ class GemstoneMacro extends ModuleBase {
         );
 
         this.on('tick', () => {
+            if (!Player.getPlayer()) return;
             MiningBot.setCost(this.getGemstoneCosts());
 
             switch (this.state) {
@@ -212,7 +213,8 @@ class GemstoneMacro extends ModuleBase {
                     if (!this.rotatedToPoint) {
                         Guis.setItemSlot(aotv);
                         Keybind.setKey('shift', true);
-                        if (!Player.getPlayer().isSneaking()) return;
+                        const player = Player.getPlayer();
+                        if (!player?.isSneaking()) return;
 
                         Rotations.rotateToVector(this.closestPoint, 1);
                         Rotations.onEndRotation(() => {

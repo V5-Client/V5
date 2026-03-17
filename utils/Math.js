@@ -40,10 +40,12 @@ class DistanceCalculator {
             return new Point3D(input, y, z);
         }
         const vec = Utils.convertToVector(input);
+        if (!vec) return null;
         return new Point3D(vec.x ?? vec.getX(), vec.y ?? vec.getY(), vec.z ?? vec.getZ());
     }
 
     getPlayerPos() {
+        if (!Player.getPlayer()) return null;
         return new Point3D(Player.getX(), Player.getY(), Player.getZ());
     }
 
@@ -80,6 +82,7 @@ class AngleCalculator {
     }
 
     calculateRelativeAngles(targetVec) {
+        if (!targetVec) return { yaw: 0, pitch: 0 };
         const eyes = Player.getPlayer()?.getEyePos();
         if (!eyes) return { yaw: 0, pitch: 0 };
 
@@ -99,6 +102,7 @@ class AngleCalculator {
     }
 
     calculateAbsoluteAngles(targetVec) {
+        if (!targetVec) return { yaw: 0, pitch: 0 };
         const eyes = Player.getPlayer()?.getEyePos();
         if (!eyes) return { yaw: 0, pitch: 0 };
 
@@ -125,45 +129,50 @@ export const MathUtils = {
     distanceToPlayerPoint: function (point) {
         const eyes = distCalc.getPlayerEyes();
         const target = distCalc.getPointFromInput(point);
-        return eyes ? eyes.dist(target) : 0;
+        return eyes && target ? eyes.dist(target) : 0;
     },
 
     distanceToPlayer: function (point) {
         const eyes = distCalc.getPlayerEyes();
         if (!eyes) return 0;
-        const target = new Point3D(point[0], point[1], point[2]);
+        const target = distCalc.getPointFromInput(point);
+        if (!target) return 0;
         return distCalc.computeDistance([eyes.x, eyes.y, eyes.z], [target.x, target.y, target.z]);
     },
 
     distanceToPlayerFeet: function (point) {
         const feet = distCalc.getPlayerPos();
-        const target = new Point3D(point[0], point[1], point[2]);
+        if (!feet) return 0;
+        const target = distCalc.getPointFromInput(point);
+        if (!target) return 0;
         return distCalc.computeDistance([feet.x, feet.y, feet.z], [target.x, target.y, target.z]);
     },
 
     distanceToPlayerCenter: function (point) {
         const eyes = distCalc.getPlayerEyes();
         if (!eyes) return 0;
+        const target = distCalc.getPointFromInput(point);
+        if (!target) return 0;
         const centerY = Player.getY() + Player.asPlayerMP().getHeight() / 2;
-        const target = new Point3D(point[0], point[1], point[2]);
         return distCalc.computeDistance([eyes.x, centerY, eyes.z], [target.x, target.y, target.z]);
     },
 
     distanceToPlayerCT: function (entity) {
         const eyes = distCalc.getPlayerEyes();
-        if (!eyes) return 0;
+        if (!eyes || !entity) return 0;
         return distCalc.computeDistance([eyes.x, eyes.y, eyes.z], [entity.getX(), entity.getY(), entity.getZ()]);
     },
 
     distanceToPlayerMC: function (entity) {
         const eyes = distCalc.getPlayerEyes();
-        if (!eyes) return 0;
+        if (!eyes || !entity) return 0;
         return distCalc.computeDistance([eyes.x, eyes.y, eyes.z], [entity.getX(), entity.getY(), entity.getZ()]);
     },
 
     calculateDistanceBP: function (pos1, pos2) {
         const p1 = distCalc.getPointFromInput(pos1);
         const p2 = distCalc.getPointFromInput(pos2);
+        if (!p1 || !p2) return { distance: 0, distanceFlat: 0, distanceY: 0 };
         return {
             distance: p1.dist(p2),
             distanceFlat: p1.horizontalDist(p2),
@@ -172,12 +181,16 @@ export const MathUtils = {
     },
 
     calculateDistance: function (p1, p2) {
-        return distCalc.computeDistance(p1, p2);
+        const point1 = distCalc.getPointFromInput(p1);
+        const point2 = distCalc.getPointFromInput(p2);
+        if (!point1 || !point2) return { distance: 0, distanceFlat: 0, distanceY: 0 };
+        return distCalc.computeDistance([point1.x, point1.y, point1.z], [point2.x, point2.y, point2.z]);
     },
 
     getDistanceToPlayer: function (x, y, z) {
         const feet = distCalc.getPlayerPos();
         const target = distCalc.getPointFromInput(x, y, z);
+        if (!feet || !target) return { distance: 0, distanceFlat: 0, distanceY: 0 };
         return distCalc.computeDistance([feet.x, feet.y, feet.z], [target.x, target.y, target.z]);
     },
 
@@ -185,12 +198,14 @@ export const MathUtils = {
         const eyes = distCalc.getPlayerEyes();
         if (!eyes) return { distance: 0, distanceFlat: 0, differenceY: 0 };
         const target = distCalc.getPointFromInput(x, y, z);
+        if (!target) return { distance: 0, distanceFlat: 0, differenceY: 0 };
         return distCalc.computeDistance([eyes.x, eyes.y, eyes.z], [target.x, target.y, target.z]);
     },
 
     getDistance: function (x1, y1, z1, x2, y2, z2) {
         const p1 = distCalc.getPointFromInput(x1, y1, z1);
         const p2 = distCalc.getPointFromInput(x2, y2, z2);
+        if (!p1 || !p2) return { distance: 0, distanceFlat: 0, distanceY: 0 };
         return distCalc.computeDistance([p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]);
     },
 
@@ -206,7 +221,8 @@ export const MathUtils = {
     },
 
     angleToPlayer: function (point) {
-        const target = new Point3D(point[0], point[1], point[2]);
+        const target = distCalc.getPointFromInput(point);
+        if (!target) return { distance: 0, yaw: 0, pitch: 0, yawAbs: 0, pitchAbs: 0 };
         const rel = angleCalc.calculateRelativeAngles(target);
         const dist = Math.hypot(rel.yaw, rel.pitch);
         return {
@@ -232,11 +248,13 @@ export const MathUtils = {
 
     calculateAngles: function (vec) {
         const target = distCalc.getPointFromInput(vec);
+        if (!target) return { yaw: 0, pitch: 0 };
         return angleCalc.calculateRelativeAngles(target);
     },
 
     calculateAbsoluteAngles: function (vec) {
         const target = distCalc.getPointFromInput(vec);
+        if (!target) return { yaw: 0, pitch: 0 };
         return angleCalc.calculateAbsoluteAngles(target);
     },
 

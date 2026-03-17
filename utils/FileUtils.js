@@ -37,6 +37,7 @@ function resolveDestinationPath(destination) {
 
 export function ensureDirectory(dir) {
     if (!dir) return;
+    if (typeof dir.mkdirs !== 'function' || typeof dir.exists !== 'function') return;
     if (!dir.exists()) dir.mkdirs();
 }
 
@@ -50,7 +51,10 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
 
         const expectedSize = connection.getContentLength();
         input = new BufferedInputStream(connection.getInputStream());
-        output = new FileOutputStream(resolveDestinationPath(destination));
+        const destinationFile = destination && typeof destination.getParentFile === 'function' ? destination : new java.io.File(String(destination));
+        const parent = destinationFile.getParentFile ? destinationFile.getParentFile() : null;
+        ensureDirectory(parent);
+        output = new FileOutputStream(resolveDestinationPath(destinationFile));
 
         const normalizedBufferSize = resolveBufferSize(bufferSize);
         const data = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, normalizedBufferSize);
@@ -117,6 +121,7 @@ export function downloadFile(url, destination, options = {}) {
 }
 
 export function findFileRecursive(rootDir, fileName) {
+    if (!rootDir || typeof rootDir.listFiles !== 'function') return null;
     const files = rootDir.listFiles();
     if (!files) return null;
 
@@ -138,7 +143,11 @@ export function deleteRecursive(target) {
 
     if (target.isDirectory()) {
         const children = target.listFiles();
-        if (children) children.forEach((child) => deleteRecursive(child));
+        if (children) {
+            for (let i = 0; i < children.length; i++) {
+                deleteRecursive(children[i]);
+            }
+        }
     }
 
     try {

@@ -3,7 +3,6 @@ import { Chat } from '../Chat';
 import { BP, Vec3d } from '../Constants';
 import Render from '../render/Render';
 import { ScheduleTask } from '../ScheduleTask';
-import { Executor } from '../ThreadExecutor';
 import { MathUtils } from '../Math';
 import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
@@ -234,34 +233,32 @@ class Finder {
                     return;
                 }
 
-                Executor.execute(() => {
-                    Rotations.pathRotations(splinePath);
-                    this.applyPathRuntimeHints(result);
-                    Aote.onPathTick(Rotations);
-                    Jump.detectJump(result.path_between_key_nodes, result.path_flags, result.path_flag_bits);
-                    Movement.beginMovement();
+                Rotations.pathRotations(splinePath);
+                this.applyPathRuntimeHints(result);
+                Aote.onPathTick(Rotations);
+                Jump.detectJump(result.path_between_key_nodes, result.path_flags, result.path_flag_bits);
+                Movement.beginMovement();
 
-                    if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
-                        if (PathConfig.PATHFINDING_DEBUG) {
-                            Chat.messagePathfinder('§aUnstuck!');
-                        }
-                        this.recalculateAttempts = 0;
-                        Recovery.stop();
+                if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
+                    if (PathConfig.PATHFINDING_DEBUG) {
+                        Chat.messagePathfinder('§aUnstuck!');
                     }
+                    this.recalculateAttempts = 0;
+                    Recovery.stop();
+                }
 
-                    const recoveryAction = Recovery.trackProgress();
-                    if (recoveryAction) {
-                        this.handleRecovery(recoveryAction);
-                        if (recoveryAction === 'BACKUP_RECALC') {
-                            return;
-                        }
-                    }
-
-                    if (!Recovery.isStallRecoveryActive() && NonChangeRecovery.trackProgress(Rotations.currentPathPosition)) {
-                        this.recalculate('nonchange_progress');
+                const recoveryAction = Recovery.trackProgress();
+                if (recoveryAction) {
+                    this.handleRecovery(recoveryAction);
+                    if (recoveryAction === 'BACKUP_RECALC') {
                         return;
                     }
-                });
+                }
+
+                if (!Recovery.isStallRecoveryActive() && NonChangeRecovery.trackProgress(Rotations.currentPathPosition)) {
+                    this.recalculate('nonchange_progress');
+                    return;
+                }
             } else if (this.isFly) {
                 if (!this.flyStarted) {
                     const flyNodes = result.path?.length
@@ -556,9 +553,12 @@ class Finder {
     }
 
     getPlayerStart() {
-        const x = Math.floor(Player.getX());
-        const z = Math.floor(Player.getZ());
-        let y = Math.round(Player.getY());
+        const player = Player.getPlayer();
+        if (!player) return null;
+
+        const x = Math.floor(player.getX());
+        const z = Math.floor(player.getZ());
+        let y = Math.round(player.getY());
 
         for (let i = 0; i < 5; i++) {
             if (this.isBlockWalkable(x, y, z)) return { x, y: y - 1, z };
@@ -568,7 +568,10 @@ class Finder {
     }
 
     getPlayerFlyStart() {
-        const point = this.resolveFlyPoint(Player.getX(), Player.getY(), Player.getZ(), 4);
+        const player = Player.getPlayer();
+        if (!player) return null;
+
+        const point = this.resolveFlyPoint(player.getX(), player.getY(), player.getZ(), 4);
         if (point) return { x: point[0], y: point[1], z: point[2] };
 
         return {
@@ -584,7 +587,9 @@ class Finder {
 
         try {
             const pos = new BP(x, y, z);
-            return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
+            const state = world.getBlockState(pos);
+            if (!state) return false;
+            return state.getCollisionShape(world, pos).isEmpty();
         } catch (e) {
             return false;
         }
@@ -596,11 +601,11 @@ class Finder {
         try {
             const feetPos = new BP(x, y, z);
             const headPos = new BP(x, y + 1, z);
+            const feetState = world.getBlockState(feetPos);
+            const headState = world.getBlockState(headPos);
+            if (!feetState || !headState) return false;
 
-            return (
-                world.getBlockState(feetPos).getCollisionShape(world, feetPos).isEmpty() &&
-                world.getBlockState(headPos).getCollisionShape(world, headPos).isEmpty()
-            );
+            return feetState.getCollisionShape(world, feetPos).isEmpty() && headState.getCollisionShape(world, headPos).isEmpty();
         } catch (e) {
             return false;
         }
@@ -651,6 +656,10 @@ class Finder {
         const metadata = [];
 
         const start = this.isFly ? this.getPlayerFlyStart() : this.getPlayerStart();
+        if (!start) {
+            return { points, metadata };
+        }
+
         const playerPoint = [start.x, start.y, start.z];
 
         if (!this.isFly) {

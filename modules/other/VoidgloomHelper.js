@@ -89,10 +89,12 @@ class VoidgloomHelper extends ModuleBase {
 
         stands.forEach((stand) => {
             if (detected) return;
-            if (!stand.getName().includes('Spawned by')) return;
-            const name = ChatLib.removeFormatting(stand.getName()).split('by: ')[1];
-            if (!name) return;
-            if (name.toLowerCase() === Player.getName().toLowerCase()) {
+            const standName = typeof stand.getName === 'function' ? stand.getName() : '';
+            if (!standName.includes('Spawned by')) return;
+            const name = ChatLib.removeFormatting(standName).split('by: ')[1];
+            const playerName = Player.getName ? Player.getName() : '';
+            if (!name || !playerName) return;
+            if (name.toLowerCase() === String(playerName).toLowerCase()) {
                 detected = true;
             }
         });

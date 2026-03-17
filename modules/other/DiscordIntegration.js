@@ -51,6 +51,10 @@ class DiscordIntegration extends ModuleBase {
             'Macro Embeds',
             (v) => {
                 this.MACRO_EMBEDS = !!v;
+                if (!this.MACRO_EMBEDS) {
+                    this.lastActiveMacro = null;
+                    this.lastSendTime = 0;
+                }
             },
             'Sends an embed every 5 minutes with a screenshot while active + a disable embed when turned off.',
             true,
@@ -77,6 +81,11 @@ class DiscordIntegration extends ModuleBase {
                 this.onTick();
             }
         );
+    }
+
+    onDisable() {
+        this.lastActiveMacro = null;
+        this.lastSendTime = 0;
     }
 
     onTick() {

@@ -289,7 +289,7 @@ class ClippingManager extends ModuleBase {
                     archiveName = 'ffmpeg.tar.xz';
                 } else {
                     urlStr = FFMPEG_URLS.MAC_BINARY;
-                    archiveName = 'ffmpeg.7z';
+                    archiveName = ffmpegName;
                 }
                 const archiveFile = new File(globalAssetsDir, archiveName);
 
@@ -302,6 +302,13 @@ class ClippingManager extends ModuleBase {
                         lastUpdate = percent;
                     }
                 });
+
+                if (isMac) {
+                    this.organizeBinaries();
+                    Chat.messageClip('&aDownload complete!');
+                    this.startRecording(true);
+                    return;
+                }
 
                 Chat.messageClip('&aDownload complete! Extracting...');
                 this.extractFFmpeg(archiveFile);

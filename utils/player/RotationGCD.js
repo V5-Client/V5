@@ -86,6 +86,7 @@ class SharedRotationGCD {
     applyToPlayer(yaw, pitch) {
         const player = Player.getPlayer();
         if (!player) return null;
+        if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return null;
 
         const now = Date.now();
         const gcd = this.calculateGCD();

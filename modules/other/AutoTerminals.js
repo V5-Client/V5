@@ -56,7 +56,9 @@ class AutoTerminals extends ModuleBase {
             case TERMS.ORDER:
                 break;
             case TERMS.NAME:
-                const letter = containerName.match(/What starts with: '(\w+)'?/)[1];
+                const letterMatch = containerName.match(/What starts with: '(\w+)'?/);
+                if (!letterMatch) return;
+                const letter = letterMatch[1];
                 for (let i = 0; i <= 36; i++) {
                     let item = items[i];
                     if (item) {

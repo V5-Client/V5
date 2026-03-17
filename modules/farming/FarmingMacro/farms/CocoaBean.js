@@ -41,9 +41,8 @@ export default class CocoaBean extends FarmHandler {
                     return diffCurr < diffPrev ? curr : prev;
                 });
 
-                this.strafeKey = macro.yaw === 180 || macro.yaw === 90 ? 'd' : 'a';
-
                 macro.yaw = closestYaw;
+                this.strafeKey = macro.yaw === 180 || macro.yaw === 90 ? 'd' : 'a';
                 Rotations.rotateToAngles(macro.yaw, macro.pitch);
                 Rotations.onEndRotation(() => (macro.state = states.DECIDEITEM));
                 break;
@@ -117,7 +116,7 @@ export default class CocoaBean extends FarmHandler {
                 break;
 
             case states.IDLECHECKS:
-                if (this.isAtPoint(macro.points.end.x, macro.points.end.y, macro.points.end.z, 1)) {
+                if (macro.points?.end && this.isAtPoint(macro.points.end.x, macro.points.end.y, macro.points.end.z, 1)) {
                     macro.message('&aReached end of farm! rewarping.');
                     Keybind.unpressKeys();
                     macro.state = states.REWARP;

@@ -63,6 +63,7 @@ class NetworkMonitor {
     }
 
     sendPingRequest() {
+        if (!Player.getPlayer()) return;
         if (!this.waitingForPing) {
             Client.sendPacket(new ClientStatusC2S(ClientStatusC2S.class_2800.REQUEST_STATS));
             this.pingStartNano = System.nanoTime();

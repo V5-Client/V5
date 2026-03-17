@@ -148,6 +148,12 @@ class SeaLumie extends ModuleBase {
                         Chat.message('Ran out of air, resurfacing');
                     }
                     break;
+                case this.STATES.RESURFACING:
+                    if (Player.getAirLevel() > 0) {
+                        this.startedScan = false;
+                        this.state = this.STATES.SCANNING;
+                    }
+                    break;
 
                 /* Rotations.rotateTo([
             this.closestPickle.x,
@@ -197,7 +203,7 @@ class SeaLumie extends ModuleBase {
             if (this.closestPickle) {
                 let waypointPos = new Vec3d(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                Render.drawBox(waypointPos, [255, 0, 0, 255]);
+                Render.drawBox(waypointPos, Render.Color(255, 0, 0, 255));
             }
         });
     }

@@ -11,6 +11,7 @@ class PathMovement {
         this.complete = false;
         this.state = 'NONE';
         this.decelTicks = 0;
+        this.forcedFlying = false;
 
         this.PREDICT_TICKS = 30;
         this.STOPPING_DISTANCE_THRESHOLD = 0.85;
@@ -32,6 +33,7 @@ class PathMovement {
             }
 
             if (!player.getAbilities().flying) {
+                this.forcedFlying = true;
                 player.getAbilities().flying = true;
                 player.sendAbilitiesUpdate();
             }
@@ -49,6 +51,7 @@ class PathMovement {
         this.complete = false;
         this.state = 'MOVING';
         this.decelTicks = 0;
+        this.forcedFlying = false;
     }
 
     getYawToTarget(dx, dz) {
@@ -231,6 +234,16 @@ class PathMovement {
         this.currentIndex = 0;
         this.decelTicks = 0;
         this.releaseMovementKeys();
+
+        if (this.forcedFlying) {
+            const player = Player.getPlayer();
+            if (player && player.getAbilities().flying) {
+                player.getAbilities().flying = false;
+                player.sendAbilitiesUpdate();
+            }
+        }
+
+        this.forcedFlying = false;
         this.path = [];
     }
 }

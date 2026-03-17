@@ -27,6 +27,7 @@ class Scanner {
         this.onChunkData = register('packetReceived', (packet) => {
             const cx = packet?.getChunkX();
             const cz = packet?.getChunkZ();
+            if (!Number.isFinite(cx) || !Number.isFinite(cz)) return;
             setTimeout(() => this.searchChunk(cx, cz), 50);
         })
             .setFilteredClass(ChunkDataS2C)
@@ -34,6 +35,7 @@ class Scanner {
 
         this.onBlockUpdate = register('packetReceived', (packet) => {
             const pos = packet?.getPos();
+            if (!pos) return;
             this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
         })
             .setFilteredClass(BlockUpdateS2C)
@@ -56,7 +58,12 @@ class Scanner {
     }
 
     setTargets(targetList) {
-        this.targets = targetList.map((t) => t.toLowerCase());
+        if (!Array.isArray(targetList)) {
+            this.targets = [];
+            this.clear();
+            return;
+        }
+        this.targets = targetList.map((t) => String(t).toLowerCase());
         this.clear();
     }
 
@@ -84,16 +91,19 @@ class Scanner {
             new Runnable({
                 run: () => {
                     try {
+                        if (!this.enabled) return;
                         const world = Client.getMinecraft().world;
                         const chunk = world?.getChunk(cx, cz);
-                        if (!chunk || chunk.isEmpty()) return;
+                        if (!world || !chunk || chunk.isEmpty()) return;
 
                         const found = [];
                         const sections = chunk.getSectionArray();
+                        if (!sections) return;
                         const minY = world.getBottomY();
 
-                        sections.forEach((section, sIndex) => {
-                            if (!section || section.isEmpty()) return;
+                        for (let sIndex = 0; sIndex < sections.length; sIndex++) {
+                            const section = sections[sIndex];
+                            if (!section || section.isEmpty()) continue;
 
                             for (let y = 0; y < 16; y++) {
                                 for (let x = 0; x < 16; x++) {
@@ -105,18 +115,21 @@ class Scanner {
                                         if (!this.isInBounds(wx, wy, wz)) continue;
 
                                         const state = section.getBlockState(x, y, z);
-                                        if (state.isAir()) continue;
+                                        if (!state || state.isAir()) continue;
 
-                                        const name = state.getBlock().getTranslationKey().toLowerCase();
+                                        const block = state.getBlock ? state.getBlock() : null;
+                                        const name = block && block.getTranslationKey ? String(block.getTranslationKey()).toLowerCase() : '';
+                                        if (!name) continue;
                                         if (this.targets.some((t) => name.includes(t))) {
                                             found.push({ x: wx, y: wy, z: wz });
                                         }
                                     }
                                 }
                             }
-                        });
+                        }
 
                         const key = ChunkPos.toLong(cx, cz);
+                        if (!this.enabled) return;
                         this.lock.lock();
                         try {
                             if (found.length > 0) this.chunks.put(key, found);
@@ -139,15 +152,19 @@ class Scanner {
             new Runnable({
                 run: () => {
                     try {
+                        if (!this.enabled) return;
                         const world = Client.getMinecraft().world;
                         if (!world) return;
 
                         const state = world.getBlockState(new BP(bx, by, bz));
-                        const name = state.getBlock().getTranslationKey().toLowerCase();
+                        const block = state && state.getBlock ? state.getBlock() : null;
+                        const name = block && block.getTranslationKey ? String(block.getTranslationKey()).toLowerCase() : '';
+                        if (!name) return;
                         const isTarget = this.targets.some((t) => name.includes(t));
 
                         const key = ChunkPos.toLong(bx >> 4, bz >> 4);
 
+                        if (!this.enabled) return;
                         this.lock.lock();
                         try {
                             let blocks = this.chunks.get(key);

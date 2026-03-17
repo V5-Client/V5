@@ -34,7 +34,7 @@ class ProfileHider extends ModuleBase {
                 try {
                     const hexStr = rawCustomInput.substring(1, 7);
                     const nameText = rawCustomInput.substring(7);
-                    const colorInt = java.lang.Integer.Number.parseInt(hexStr, 16);
+                    const colorInt = java.lang.Integer.parseInt(hexStr, 16);
 
                     return Text.literal(nameText).styled((s) => s.withColor(colorInt));
                 } catch (e) {

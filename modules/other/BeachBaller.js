@@ -395,7 +395,7 @@ class Beachballer extends ModuleBase {
 
     findBeachBall() {
         const radius = 10;
-        const stands = World.getAllEntitiesOfType(ArmorStandEntity.class);
+        const stands = World.getAllEntitiesOfType(ArmorStandEntity);
 
         for (let element of stands) {
             const ex = element.getX();
@@ -445,8 +445,14 @@ class Beachballer extends ModuleBase {
     }
 
     onEnable() {
+        const player = Player.getPlayer();
+        if (!player) {
+            this.toggle(false);
+            return;
+        }
+
         this.setState(States.PLACE);
-        this.startPos = [Player.getX(), Player.getY(), Player.getZ()];
+        this.startPos = [player.getX(), player.getY(), player.getZ()];
         this.trackedBall = null;
         this.trailHistory = [];
         this.predictedPath = [];

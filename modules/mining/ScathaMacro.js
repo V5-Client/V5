@@ -120,10 +120,11 @@ class ScathaMacro extends ModuleBase {
         });
 
         this.on('chat', (event) => {
+            if (!this.enabled) return;
             const msg = event.message.getUnformattedText();
-            const lower = msg.toLowerCase();
+            const lower = (msg || '').toLowerCase();
 
-            if (lower.includes("You haven't unlocked this fast travel destination") && this.goingToCH) {
+            if (lower.includes("you haven't unlocked this fast travel destination") && this.goingToCH) {
                 this.message("&cCan't start macro outside CH because you dont have the warp!");
                 this.toggle(false);
                 return;
@@ -131,6 +132,8 @@ class ScathaMacro extends ModuleBase {
         });
 
         this.on('tick', () => {
+            if (!this.enabled) return;
+            if (!Player.getPlayer()) return;
             switch (this.state) {
                 case this.STATES.WARPING:
                     this.handleWarping();
@@ -274,7 +277,7 @@ class ScathaMacro extends ModuleBase {
         if (now - this.lastActionTime < this.CLICK_DELAY) return;
 
         const ignoreID = 'minecraft:redstone_block';
-        const isPageOne = container.getStackInSlot(0).getName()?.includes('Tier 5');
+        const isPageOne = container.getStackInSlot(0)?.getName()?.includes('Tier 5');
 
         let currentSlots = [];
         isPageOne ? (currentSlots = [13, 22, 8]) : (currentSlots = [42, 40]);
@@ -343,7 +346,12 @@ class ScathaMacro extends ModuleBase {
 
         const targetSlot = slot + 35;
 
-        const item = Player.getContainer().getStackInSlot(targetSlot);
+        const container = Player.getContainer();
+        if (!container) return false;
+
+        const item = container.getStackInSlot(targetSlot);
+        if (!item) return false;
+
         const itemID = item.type.getRegistryName().toString();
 
         if (itemID.includes('lime_dye')) {
@@ -411,13 +419,12 @@ class ScathaMacro extends ModuleBase {
     }
 
     handleAllRequirements() {
-        this.getAllRequiredItems();
-        this.hasMaxGE();
+        return !!this.getAllRequiredItems() && this.hasMaxGE();
     }
 
     onEnable() {
         this.message('&aEnabled');
-        this.handleAllRequirements();
+        if (!this.handleAllRequirements()) return;
         this.state = this.STATES.WARPING;
         this.usedAOTV = false;
         this.rotated = false;

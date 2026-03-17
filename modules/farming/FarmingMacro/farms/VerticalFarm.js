@@ -131,7 +131,7 @@ export default class VerticalCrop extends FarmHandler {
                 break;
 
             case states.IDLECHECKS:
-                if (this.isAtPoint(macro.points.end.x, macro.points.end.y, macro.points.end.z, 1)) {
+                if (macro.points?.end && this.isAtPoint(macro.points.end.x, macro.points.end.y, macro.points.end.z, 1)) {
                     macro.message('&aReached end of farm! rewarping.');
                     Keybind.unpressKeys();
                     Keybind.setKey('leftclick', false);

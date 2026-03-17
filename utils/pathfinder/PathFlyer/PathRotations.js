@@ -31,6 +31,10 @@ class PathRotations {
 
         PathExecutor.onStep(() => {
             if (!this.rotationActive || !this.lookPoints) return;
+            if (!Player.getPlayer()) {
+                this.resetRotations();
+                return;
+            }
             this.updateLookPoint();
             this.applyHumanizedPhysics();
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
@@ -322,7 +326,10 @@ class PathRotations {
             return;
         }
         const player = Player.getPlayer();
-        if (!player) return;
+        if (!player) {
+            this.resetRotations();
+            return;
+        }
         this.lookPoints = preGeneratedLookPoints;
         this.currentPathPosition = 0.0;
         this.complete = false;

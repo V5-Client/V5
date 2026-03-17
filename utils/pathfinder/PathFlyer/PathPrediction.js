@@ -1,4 +1,8 @@
 export function getCurrentMotion() {
+    if (!Player.getPlayer()) {
+        return { x: 0, y: 0, z: 0 };
+    }
+
     return {
         x: Player.getMotionX(),
         y: Player.getMotionY(),
@@ -8,7 +12,7 @@ export function getCurrentMotion() {
 
 export function predictStoppingPosition(ticks = 30) {
     const player = Player.getPlayer();
-    if (!player) return { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
+    if (!player) return { x: 0, y: 0, z: 0 };
 
     let px = Player.getX();
     let py = Player.getY();

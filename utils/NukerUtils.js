@@ -41,6 +41,7 @@ class NukerUtilsClass {
 
     processNextQueuedAction() {
         const nextAction = this.nukeQueue.pop();
+        if (!nextAction || !Array.isArray(nextAction) || nextAction.length < 2) return;
         const blockCoords = nextAction[0];
         const ticksToWait = nextAction[1];
         this.nukeQueue = [];
@@ -83,7 +84,11 @@ class NukerUtilsClass {
 
         if (timeSinceLastNuke > threshold || ticks === 1 || this.delay >= NukerUtilsClass.MIN_NUKE_INTERVAL) {
             if (this.delay > NukerUtilsClass.MIN_NUKE_INTERVAL) {
-                ScheduleTask(1, () => MiningBot.ticksMined--);
+                ScheduleTask(1, () => {
+                    if (typeof MiningBot !== 'undefined' && MiningBot) {
+                        MiningBot.ticksMined--;
+                    }
+                });
             }
             this.delay = 0;
         }
@@ -114,7 +119,11 @@ class NukerUtilsClass {
     }
 
     closestDirection(blockPos) {
-        const playerEyePos = Player.getPlayer().getEyePos();
+        const player = Player.getPlayer();
+        if (!player) return Direction.UP;
+
+        const playerEyePos = player.getEyePos();
+        if (!playerEyePos) return Direction.UP;
         const faces = [Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST];
 
         let minDistance = Infinity;

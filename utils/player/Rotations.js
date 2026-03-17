@@ -297,6 +297,7 @@ class RotationsTo {
     }
 
     rotateToAngles(yaw, pitch, speedMultiplier = 1.0) {
+        if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return;
         if (!this.isRotating) {
             RotationGCD.syncFromPlayer();
         }
@@ -331,6 +332,7 @@ class RotationsTo {
 
     rotateToVector(vector, shiftTarget = true, speedMultiplier = 1.0) {
         const vec = Utils.convertToVector(vector);
+        if (!vec) return;
 
         const wasRotatingToVector = this.isRotating && this.targetVector && !this.trackedEntity;
         if (!wasRotatingToVector) {
@@ -447,7 +449,7 @@ class RotationsTo {
     getAnglesFromVector(vector) {
         let vec = Utils.convertToVector(vector);
         let p = Player.getPlayer();
-        if (!p) return null;
+        if (!vec || !p) return null;
         let dx = vec.x - p.getX();
         let dy = vec.y - p.getEyePos().y;
         let dz = vec.z - p.getZ();

@@ -97,6 +97,9 @@ class DiscordNotifier {
     publish(embeds, shouldMention = true) {
         if (!this.endpoint || !this.active) return;
 
+        const playerName = Player.getName ? Player.getName() : 'V5';
+        const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
+
         Executor.execute(() => {
             try {
                 const connection = new URL(this.endpoint).openConnection();
@@ -105,9 +108,8 @@ class DiscordNotifier {
                 connection.setRequestProperty('User-Agent', 'V5-Client/' + this.clientVersion);
                 connection.setDoOutput(true);
 
-                const playerUuid = Player.getUUID().toString().replace(/-/g, '');
                 const body = {
-                    username: Player.getName(),
+                    username: playerName,
                     avatar_url: 'https://minotar.net/cube/' + playerUuid + '/100.png',
                     embeds: embeds,
                 };
@@ -171,6 +173,9 @@ class DiscordNotifier {
     uploadScreenshot(file, title = 'Screenshot Captured', description, color = 0x3498db, footer = 'V5 Client', ping = false) {
         if (!this.endpoint || !this.active) return;
 
+        const playerName = Player.getName ? Player.getName() : 'V5';
+        const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
+
         Executor.execute(() => {
             try {
                 const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
@@ -188,8 +193,8 @@ class DiscordNotifier {
 
                 const filename = file.getName();
                 const embedPayload = {
-                    username: Player.getName(),
-                    avatar_url: 'https://minotar.net/cube/' + Player.getUUID().toString().replace(/-/g, '') + '/100.png',
+                    username: playerName,
+                    avatar_url: 'https://minotar.net/cube/' + playerUuid + '/100.png',
                     content: ping ? (this.mentionId ? '<@' + this.mentionId + '>' : '') : '',
                     embeds: [
                         {

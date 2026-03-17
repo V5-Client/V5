@@ -56,11 +56,15 @@ export default class FarmHandler {
             return;
         }
 
+        const startPoint = macro.points?.start;
+        if (!startPoint) {
+            macro.message('&cYou need to set a start point first!');
+            macro.toggle(false);
+            return;
+        }
+
         if (!macro.warping) {
-            if (
-                this.isAtPoint(macro.points.start.x, macro.points.start.y, macro.points.start.z) &&
-                this.areChunksLoaded(macro.points.start.x, macro.points.start.z)
-            ) {
+            if (this.isAtPoint(startPoint.x, startPoint.y, startPoint.z) && this.areChunksLoaded(startPoint.x, startPoint.z)) {
                 macro.message('&cAt start point but no crops found!');
                 macro.toggle(false);
             } else {
@@ -71,7 +75,7 @@ export default class FarmHandler {
             return;
         }
 
-        if (this.isAtPoint(macro.points.start.x, macro.points.start.y, macro.points.start.z)) macro.warping = false;
+        if (this.isAtPoint(startPoint.x, startPoint.y, startPoint.z)) macro.warping = false;
     }
 
     scan3x3x3() {
@@ -292,6 +296,13 @@ export default class FarmHandler {
 
     handleRewarp() {
         const macro = this.parent;
+        const startPoint = macro.points?.start;
+
+        if (!startPoint) {
+            macro.message('&cYou need to set a start point first!');
+            macro.toggle(false);
+            return;
+        }
 
         if (!macro.warpDelay) {
             const randomDelay = Math.floor(Math.random() * 251) + 500;
@@ -302,8 +313,8 @@ export default class FarmHandler {
 
         if (Date.now() >= macro.warpDelay) ChatLib.command('warp garden');
 
-        if (this.isAtPoint(macro.points.start.x, macro.points.start.y, macro.points.start.z, 1)) {
-            if (this.areChunksLoaded(macro.points.start.x, macro.points.start.z)) {
+        if (this.isAtPoint(startPoint.x, startPoint.y, startPoint.z, 1)) {
+            if (this.areChunksLoaded(startPoint.x, startPoint.z)) {
                 macro.warpDelay = null;
                 macro.state = macro.STATES.SCANFORCROP;
             } else {

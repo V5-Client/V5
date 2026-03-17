@@ -199,10 +199,11 @@ class NukerClass extends ModuleBase {
                     if (this.distanceToBlockBox(pCords, [x, y, z]).distance > scanReach) continue;
 
                     let blockPos = new BP(x, y, z);
-                    let isValid = false;
+                    const block = World.getBlockAt(x, y, z);
+                    if (!block?.type) continue;
 
-                    let id = World.getBlockAt(x, y, z).type.getID();
-                    isValid = this.customBlockList.some((b) => b.id === id);
+                    const id = block.type.getID();
+                    const isValid = this.customBlockList.some((b) => b.id === id);
 
                     if (isValid) validBlocks.push(blockPos);
                 }

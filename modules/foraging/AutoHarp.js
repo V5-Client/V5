@@ -20,7 +20,7 @@ class AutoHarp extends ModuleBase {
             }
         }
 
-        const notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => new Note(slot));
+        this.notes = [37, 38, 39, 40, 41, 42, 43].map((slot) => new Note(slot));
 
         this.on('tick', () => {
             const invName = Guis.guiName();
@@ -29,7 +29,7 @@ class AutoHarp extends ModuleBase {
             const container = Player.getContainer();
             if (!container) return;
 
-            notes.forEach((note) => {
+            this.notes.forEach((note) => {
                 if (note.DELAY > 0) note.DELAY--;
 
                 const item = container.getStackInSlot(note.slot)?.type?.getRegistryName();
@@ -55,6 +55,13 @@ class AutoHarp extends ModuleBase {
         });
 
         this.addSlider('Delay', 0, 10, 3, (v) => (this.DELAY = v));
+    }
+
+    onDisable() {
+        this.notes?.forEach((note) => {
+            note.clicked = false;
+            note.DELAY = 0;
+        });
     }
 }
 new AutoHarp();

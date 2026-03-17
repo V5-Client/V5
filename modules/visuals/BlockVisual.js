@@ -112,7 +112,7 @@ class BlockVisual extends ModuleBase {
         if (!block) return false;
         const above1 = World.getBlockAt(block.x, block.y + 1, block.z);
         const above2 = World.getBlockAt(block.x, block.y + 2, block.z);
-        return above1.getType().getID() === 0 && above2.getType().getID() === 0;
+        return !!above1 && !!above2 && above1.getType().getID() === 0 && above2.getType().getID() === 0;
     }
 }
 

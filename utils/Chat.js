@@ -60,7 +60,7 @@ class ChatClass {
      * @returns {TextComponent} The formatted message
      */
     formatLink(...args) {
-        if (args.length === 3 && args[2].includes('http')) {
+        if (args.length === 3 && typeof args[2] === 'string' && args[2].includes('http')) {
             const [message, label, url] = args;
 
             return new TextComponent(

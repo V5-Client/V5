@@ -90,6 +90,9 @@ class PathRecovery {
     }
 
     hasMadeProgress() {
+        const player = Player.getPlayer();
+        if (!player) return false;
+
         const stuckPos = this.stuckPos;
         if (!stuckPos || !Number.isFinite(stuckPos.x) || !Number.isFinite(stuckPos.z)) return false;
 

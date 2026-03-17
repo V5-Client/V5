@@ -30,7 +30,8 @@ class Pingless extends ModuleBase {
                 y = this.pos.y;
                 z = this.pos.z;
 
-                if (!Player.getPlayer().isOnGround()) return;
+                const player = Player.getPlayer();
+                if (!player || !player.isOnGround()) return;
 
                 if (
                     !Player.getHeldItem()
@@ -60,6 +61,7 @@ class Pingless extends ModuleBase {
             }
         }).setFilteredClass(HandSwingC2S);
 
+        this.tickCount = 1;
         this.addSlider('Tick Delay', 0, 5, 1, (v) => (this.tickCount = v), 'How long to wait before removing hardstone.');
     }
 }

@@ -42,6 +42,7 @@ class PathJumps {
         const by = Math.floor(y);
         const bz = Math.floor(z);
         const key = `${bx},${by},${bz},${this.cacheFrame}`;
+        if (!World.getWorld()) return null;
 
         if (!this.blockCache.has(key)) {
             this.blockCache.set(key, World.getBlockAt(bx, by, bz));
@@ -61,6 +62,7 @@ class PathJumps {
     isBlockNonCollidable(world, blockVec) {
         const blockPosNMS = new BP(Math.floor(blockVec.x), Math.floor(blockVec.y), Math.floor(blockVec.z));
         const blockState = world.getBlockState(blockPosNMS);
+        if (!blockState) return false;
         return blockState.getCollisionShape(world, blockPosNMS).isEmpty();
     }
 
@@ -71,6 +73,7 @@ class PathJumps {
         if (!world) return false;
         const blockPosNMS = new BP(Math.floor(x), Math.floor(y), Math.floor(z));
         const blockState = world.getBlockState(blockPosNMS);
+        if (!blockState) return false;
         return !blockState.getCollisionShape(world, blockPosNMS).isEmpty();
     }
 
@@ -83,6 +86,7 @@ class PathJumps {
             if (this.getBlockName(block).includes('stair')) continue;
             const blockPosNMS = new BP(Math.floor(x), Math.floor(y + offset), Math.floor(z));
             const blockState = world.getBlockState(blockPosNMS);
+            if (!blockState) continue;
             if (!blockState.getCollisionShape(world, blockPosNMS).isEmpty()) return true;
         }
         return false;
@@ -103,6 +107,7 @@ class PathJumps {
         if (!world) return false;
         const blockPosNMS = new BP(Math.floor(blockX), Math.floor(blockY), Math.floor(blockZ));
         const blockState = world.getBlockState(blockPosNMS);
+        if (!blockState) return true;
         try {
             const stateString = blockState.toString();
             const facingMatch = stateString.match(/facing=(\w+)/);
@@ -336,7 +341,10 @@ class PathJumps {
 
         if (this.checkFluidJump()) return;
 
-        if (!Player.getPlayer().isOnGround()) {
+        const player = Player.getPlayer();
+        if (!player) return this.reset();
+
+        if (!player.isOnGround()) {
             if (!Movement.isRecovering() && !this.isPlayerInFluid()) {
                 Keybind.setKey('space', false);
             }
@@ -365,6 +373,8 @@ class PathJumps {
         this.lastLookaheadPositions = [];
         this.currentLookaheadVecs = [];
         this.jumpSuppressTicks = 0;
+        this.blockCache.clear();
+        this.cacheFrame = 0;
         Keybind.setKey('space', false);
     }
 

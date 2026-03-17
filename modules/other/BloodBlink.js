@@ -63,13 +63,16 @@ class BloodBlink extends ModuleBase {
         }).setFilteredClass(WorldTimeUpdateS2C);
 
         this.on('packetReceived', () => {
+            const player = Player.getPlayer();
+            if (!player) return;
+
             if (this.outbounds == 0) this.outbounds = 40;
             else this.outbounds = this.outbounds - 1;
             if (!Utils.subArea().startsWith('The Catacombs')) return;
-            if (this.outbounds > 25 && Date.now() - this.blinkReady <= 3000 && (Player.getY() == 71 || Player.getY() == 72)) this.setupBlink();
+            if (this.outbounds > 25 && Date.now() - this.blinkReady <= 3000 && (player.getY() == 71 || player.getY() == 72)) this.setupBlink();
             if (this.dungeonStarted) return;
             if (this.outbounds > 30 || this.outbounds < 10) return;
-            if (Player.getY() == 71 || Player.getY() == 72) return this.setupBlink();
+            if (player.getY() == 71 || player.getY() == 72) return this.setupBlink();
         }).setFilteredClass(CommonPingS2C);
 
         this.on('chat', (event) => {
@@ -139,13 +142,17 @@ class BloodBlink extends ModuleBase {
     }
 
     getBloodX() {
+        const player = Player.getPlayer();
+        if (!player) return 0;
         const center = this.getBloodCenter();
-        return center ? center.x : this.getOppositeCoord(Player.getX());
+        return center ? center.x : this.getOppositeCoord(player.getX());
     }
 
     getBloodZ() {
+        const player = Player.getPlayer();
+        if (!player) return 0;
         const center = this.getBloodCenter();
-        return center ? center.z : this.getOppositeCoord(Player.getZ());
+        return center ? center.z : this.getOppositeCoord(player.getZ());
     }
 
     getOppositeCoord(coord) {
@@ -172,6 +179,8 @@ class BloodBlink extends ModuleBase {
 
     blink(force = false, roomName = 'blood') {
         if (this.blinkRunning || this.setupBlinkRunning) return;
+        const player = Player.getPlayer();
+        if (!player) return;
         this.blinkRunning = true;
         Chat.message('BloodBlink Blink Blood');
         if (this.reflectionFailed) {
@@ -181,9 +190,9 @@ class BloodBlink extends ModuleBase {
         }
 
         const bloodCenter = this.getBloodCenter(roomName);
-        const playerX = Player.getX();
-        const playerY = Player.getY();
-        const playerZ = Player.getZ();
+        const playerX = player.getX();
+        const playerY = player.getY();
+        const playerZ = player.getZ();
         const bloodX = bloodCenter ? bloodCenter.x : this.getOppositeCoord(playerX);
         const bloodZ = bloodCenter ? bloodCenter.z : this.getOppositeCoord(playerZ);
 
@@ -260,6 +269,8 @@ class BloodBlink extends ModuleBase {
 
     setupBlink() {
         if (this.setupBlinkRunning || this.blinkRunning) return;
+        const player = Player.getPlayer();
+        if (!player) return;
         this.setupBlinkRunning = true;
         Chat.message('BloodBlink Blink Setup');
         if (this.reflectionFailed) {
@@ -272,7 +283,7 @@ class BloodBlink extends ModuleBase {
             this.setupBlinkRunning = false;
             return;
         }
-        if (Player.getY() == 74 || Player.getY() >= 97) {
+        if (player.getY() == 74 || player.getY() >= 97) {
             this.blinkDelay = 0;
             this.setupBlinkRunning = false;
             return;

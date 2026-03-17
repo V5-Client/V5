@@ -11,7 +11,7 @@ class ESP extends ModuleBase {
             tooltip: 'Shows players through walls',
         });
 
-        this.rgba = [255, 0, 0, 255];
+        this.rgba = Render.Color(255, 0, 0, 255);
 
         this.showNames = false;
 

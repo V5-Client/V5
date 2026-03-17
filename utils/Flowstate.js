@@ -12,8 +12,9 @@ class FlowstateUtilsClass {
         this.currentBlock = null;
 
         register('playerInteract', (action, object) => {
-            if (action.toString() === 'AttackBlock') {
-                if (!object.type.name.toLowerCase().includes('bedrock')) {
+            if (String(action) === 'AttackBlock') {
+                const typeName = object?.type?.name ? String(object.type.name).toLowerCase() : '';
+                if (typeName && !typeName.includes('bedrock')) {
                     this.block.x = object.getX();
                     this.block.y = object.getY();
                     this.block.z = object.getZ();

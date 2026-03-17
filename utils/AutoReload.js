@@ -24,14 +24,24 @@ const watcherThread = new java.lang.Thread(() => {
 
     function listFiles(file) {
         if (file.isDirectory()) {
-            file.listFiles().forEach((f) => listFiles(f));
+            const children = file.listFiles();
+            if (children) {
+                for (let i = 0; i < children.length; i++) {
+                    listFiles(children[i]);
+                }
+            }
             file.toPath().register(watchService, WatchEvent.ENTRY_MODIFY, WatchEvent.ENTRY_CREATE);
         }
     }
     listFiles(path);
 
     let start = true;
-    register('gameUnload', () => (start = false));
+    register('gameUnload', () => {
+        start = false;
+        try {
+            watchService.close();
+        } catch (e) {}
+    });
 
     while (start) {
         try {

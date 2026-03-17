@@ -93,7 +93,10 @@ class PathRotsUtil {
         this.rotating = true;
 
         const player = Player.getPlayer();
-        if (!player) return;
+        if (!player) {
+            this.stopRotation();
+            return;
+        }
 
         if (this.instantMode) {
             this.applyRotationWithGCD(yaw, pitch);
