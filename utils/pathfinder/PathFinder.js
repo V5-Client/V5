@@ -205,6 +205,10 @@ class Finder {
             if (!this.saidInfo && this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
                 const nodeCount = Array.isArray(result.path) ? result.path.length : result.keynodes.length;
                 Chat.messagePathfinder(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
+                const nsPerNode = Number(result.nanoseconds_per_node);
+                if (Number.isFinite(nsPerNode) && nsPerNode > 0) {
+                    Chat.messagePathfinder(`Nanoseconds per node: ${Math.round(nsPerNode)}ns`);
+                }
                 this.saidInfo = true;
             }
             this.updatePathSignatureState(result);

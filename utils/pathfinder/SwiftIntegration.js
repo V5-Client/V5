@@ -115,6 +115,7 @@ class SwiftIntegration {
             path_between_key_nodes: path,
             time_ms: PathManager.getLastTimeMs(),
             nodes_explored: PathManager.getNodesExplored(),
+            nanoseconds_per_node: PathManager.getNanosecondsPerNode(),
             selected_start_index: this.getSelectedStartIndex(),
             path_flags: pathFlags,
             keynode_flags: keyNodeFlags,
