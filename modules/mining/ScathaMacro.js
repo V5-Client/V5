@@ -241,7 +241,7 @@ class ScathaMacro extends ModuleBase {
 
         if (looking instanceof Block) {
             let blockId = looking?.type?.getRegistryName();
-            if (blockId.includes('bedrock')) return Keybind.setKey('leftclick', false);
+            if (blockId?.includes('bedrock')) return Keybind.setKey('leftclick', false);
         }
 
         Keybind.setKey('leftclick', true);
@@ -253,7 +253,7 @@ class ScathaMacro extends ModuleBase {
         let currentBlock = World.getBlockAt(player.x, player.y, player.z);
         let id = currentBlock?.type?.getRegistryName();
 
-        if (id.includes('pane' || id.includes('glass'))) return true;
+        if (id?.includes('pane') || id?.includes('glass')) return true;
 
         return false;
     }

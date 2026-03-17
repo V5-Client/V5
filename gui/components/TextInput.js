@@ -14,8 +14,10 @@ import {
     playClickSound,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
+import { GuiState } from '../core/GuiState';
 
 let activeTextInput = null;
+const allTextInputs = [];
 
 export class TextInput {
     constructor(title, x, y, width, height, defaultValue = '', callback = null) {
@@ -42,8 +44,10 @@ export class TextInput {
         this.highlight = createHighlight();
 
         this.inputRect = {};
+        allTextInputs.push(this);
 
         register('guiKey', (char, keyCode, gui, event) => {
+            if (!GuiState.myGui.isOpen()) return;
             if (this.isTyping && this.handleKeyType(char, keyCode)) {
                 cancel(event);
             }
@@ -313,5 +317,21 @@ export class TextInput {
         if (playSound && wasTyping) {
             playClickSound();
         }
+    }
+
+    static finalizeAllTyping({ playSound = false } = {}) {
+        allTextInputs.forEach((input) => {
+            if (input.isTyping) {
+                input.handleInputFinish({ playSound });
+            }
+        });
+    }
+
+    static handleGlobalClick(mouseX, mouseY) {
+        if (!activeTextInput || !activeTextInput.isTyping) return false;
+        if (isInside(mouseX, mouseY, activeTextInput.inputRect)) return false;
+
+        activeTextInput.handleInputFinish({ playSound: false });
+        return true;
     }
 }

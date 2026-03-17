@@ -65,7 +65,7 @@ class InterfaceHandler {
             return false;
         }
         const items = container.getItems();
-        if (!items || !slot || slot >= items.length) {
+        if (!items || slot == null || slot < 0 || slot >= items.length) {
             Chat.message('ClickSlot failed due to invalid slot');
             return false;
         }

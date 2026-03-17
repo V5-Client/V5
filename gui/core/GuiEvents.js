@@ -3,6 +3,8 @@ import { Utils } from '../../utils/Utils';
 import { callCommand, v5Command } from '../../utils/V5Commands';
 import { categoryManager } from '../categories/CategoryManager';
 import { SearchBar } from '../categories/CategorySearchBar';
+import { Slider } from '../components/Slider';
+import { TextInput } from '../components/TextInput';
 import { loadSettings, saveSettings } from '../GuiSave';
 import { clamp, isInside } from '../Utils';
 import { drawGUI } from './GuiRenderer';
@@ -50,9 +52,10 @@ const handleMouseRelease = () => {
 };
 
 const handleGuiClosed = () => {
+    TextInput.finalizeAllTyping({ playSound: false });
+    Slider.finalizeAllTyping();
     SearchBar.resetSearch();
     saveSettings();
-    loadSettings();
 };
 
 GuiState.myGui.registerClicked((mouseX, mouseY, button) => {

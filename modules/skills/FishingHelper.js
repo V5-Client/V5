@@ -68,11 +68,8 @@ class FishingHelper extends ModuleBase {
                 break;
             case 31:
                 Guis.clickSlot(this.pendingPetSlot);
-                if (this.pendingPetSlot === this.petSlotKill) this.step = 4;
-                else {
-                    this.resetSequence();
-                    this.step = 0;
-                }
+                this.resetSequence();
+                this.step = 0;
                 break;
         }
     }

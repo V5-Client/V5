@@ -71,7 +71,7 @@ class FarmingMacro extends ModuleBase {
         this.warping = false;
         this.speedCommandSent = false;
         this.decidePrompted = false;
-        this.points = Utils.getConfigFile('FarmingMacro/points.txt') || {};
+        this.points = Utils.getConfigFile('FarmingMacro/points.json') || {};
 
         this.DEBUG = false;
         this.HIDEPARTICLES = false;
@@ -84,7 +84,7 @@ class FarmingMacro extends ModuleBase {
             'Cocoa Bean - 400 / 160 Speed': new CocoaBean(this),
         };
 
-        this.crop = FARMING_DATA[0].name;
+        this.crop = FARMING_DATA[0].farmName;
         this.currentHandler = this.HANDLERS[this.crop];
         Object.assign(this, FARMING_DATA[0]);
 

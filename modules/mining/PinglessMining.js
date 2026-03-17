@@ -40,7 +40,7 @@ class Pingless extends ModuleBase {
                 )
                     return; // tools only
 
-                let blockName = World.getBlockAt(x, y, z)?.type?.getRegistryName();
+                let blockName = World.getBlockAt(x, y, z)?.type?.getRegistryName() || '';
                 if ((World.getBlockAt(x, y, z)?.type?.getID() !== 1 && !blockName.includes('ore')) || blockName.includes('redstone')) return;
 
                 this.mining = true;

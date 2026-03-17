@@ -432,7 +432,8 @@ export const handleCategoryScroll = (
             const openPopup = directCat.directComponents.find((component) => component instanceof Popup && component.isOpen);
             if (openPopup && typeof openPopup.handleScroll === 'function') {
                 openPopup.optionPanelWidth = panel.width;
-                if (openPopup.handleScroll(mouseX, mouseY, dir)) return;
+                openPopup.handleScroll(mouseX, mouseY, dir);
+                return;
             }
 
             let scrollHandled = false;
@@ -480,7 +481,8 @@ export const handleCategoryScroll = (
         const openPopup = components?.find((component) => component instanceof Popup && component.isOpen);
         if (openPopup && typeof openPopup.handleScroll === 'function') {
             openPopup.optionPanelWidth = panel.width;
-            if (openPopup.handleScroll(mouseX, mouseY, dir)) return;
+            openPopup.handleScroll(mouseX, mouseY, dir);
+            return;
         }
 
         let scrollHandled = false;

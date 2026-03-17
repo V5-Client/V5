@@ -10,6 +10,7 @@ class AutoConversation extends ModuleBase {
         });
 
         this.delay = 20;
+        this.autoSelect = true;
 
         this.on('chat', (event) => {
             if (!this.enabled) return;
@@ -59,7 +60,6 @@ class AutoConversation extends ModuleBase {
             'Automatically select the first option if multiple are present',
             this.autoSelect
         );
-        this.autoSelect = true;
     }
 }
 

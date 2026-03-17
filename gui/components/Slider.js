@@ -13,6 +13,9 @@ import {
     playClickSound,
 } from '../Utils';
 import { setTooltip } from '../core/GuiTooltip';
+import { GuiState } from '../core/GuiState';
+
+const allSliders = [];
 
 export class Slider {
     constructor(title, min = 0, max = 100, x, y, width = 100, height = 5, value = 50, callback = null, isRange = false) {
@@ -67,8 +70,10 @@ export class Slider {
         this.description = null;
         this.valueRect = {};
         this.highlight = createHighlight();
+        allSliders.push(this);
 
         register('guiKey', (char, keyCode) => {
+            if (!GuiState.myGui.isOpen()) return;
             if (this.isTyping) this.handleKeyType(char, keyCode);
         });
     }
@@ -466,5 +471,13 @@ export class Slider {
 
         if (maxPrecision <= 0) return 1;
         return Math.pow(10, -maxPrecision);
+    }
+
+    static finalizeAllTyping() {
+        allSliders.forEach((slider) => {
+            if (slider.isTyping) {
+                slider.handleInputFinish();
+            }
+        });
     }
 }

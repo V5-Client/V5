@@ -49,7 +49,7 @@ class MinionCollector extends ModuleBase {
             if (this.collectedMinions.has(posKey)) continue;
 
             let hasItem = false;
-            for (let i = 0; i <= 4; i++) {
+            for (let i = 0; i <= 5; i++) {
                 if (entity.getStackInSlot(i)) {
                     hasItem = true;
                     break;

@@ -176,7 +176,7 @@ class NukerClass extends ModuleBase {
                 title: 'Status',
                 data: {
                     'Target Mode': () => this.targetMode,
-                    'Blocks Queued': () => (this.nukeQueue ? this.nukeQueue.length : 0),
+                    'Blocks Queued': () => NukerUtils.nukeQueue.length,
                 },
             },
         ]);

@@ -71,11 +71,12 @@ class AutoTerminals extends ModuleBase {
                 break;
         }
 
-        for (let i = 0; i <= this.targetSlots.length; i++) {
-            const Slot = this.targetSlots[i];
-            if (this.clickedSlots.indexOf(Slot) === -1) {
-                this.clickedSlots.push(Slot);
-                Guis.clickSlot(Slot);
+        for (let i = 0; i < this.targetSlots.length; i++) {
+            const slot = this.targetSlots[i];
+            if (slot === undefined) continue;
+            if (this.clickedSlots.indexOf(slot) === -1) {
+                this.clickedSlots.push(slot);
+                Guis.clickSlot(slot);
                 this.lastClick = Date.now();
                 return;
             }

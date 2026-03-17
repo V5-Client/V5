@@ -90,14 +90,21 @@ class PathFindingConfig extends ModuleBase {
     loadWarpPoints() {
         const warppointsloc = new File(globalAssetsDir, 'WarpPoints.json');
         const raw = FileLib.read(warppointsloc.getPath());
-        return JSON.parse(raw).warps.map((warp) => ({
-            warp: warp.warp,
-            area: warp.area,
-            defaultUnlock: !!warp.defaultUnlock,
-            x: Number(warp.x),
-            y: Number(warp.y),
-            z: Number(warp.z),
-        }));
+        try {
+            const parsed = raw ? JSON.parse(raw) : null;
+            const warps = Array.isArray(parsed?.warps) ? parsed.warps : [];
+            return warps.map((warp) => ({
+                warp: warp.warp,
+                area: warp.area,
+                defaultUnlock: !!warp.defaultUnlock,
+                x: Number(warp.x),
+                y: Number(warp.y),
+                z: Number(warp.z),
+            }));
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+            return [];
+        }
     }
 
     registerWarpPointSettings() {

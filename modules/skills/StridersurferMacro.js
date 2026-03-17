@@ -112,7 +112,7 @@ class StridersurferMacro extends ModuleBase {
                     if (this.hasBiteWaitTimedOut()) {
                         const rodSlot = this.getRodSlot();
                         if (rodSlot !== -1) {
-                            Guis.setItemSlot(8);
+                            Guis.setItemSlot(rodSlot);
                             this.biteWaitStartedAt = 0;
                             this.transitionTo(STEPS.RECOVERY_SWAP_BACK_TO_ROD, 1 + this.randomTickDelay());
                         }

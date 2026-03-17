@@ -134,7 +134,7 @@ class AutoExperiments extends ModuleBase {
                 this.clicks = 0;
                 break;
             case STATES.ULTRASEQUENCER:
-                this.patternCaptured = false;
+                this.ultraPatternCaptured = false;
                 this.ultrasequencerOrder.clear();
                 this.clicks = 0;
                 this.lastSlot49Item = null;

@@ -175,8 +175,9 @@ class TeleportFailsafe extends Failsafe {
                 return;
             }
 
+            const scheduledAt = Date.now();
             setTimeout(() => {
-                if (this.disabled || this._shouldDisableTeleport(data)) return;
+                if (this.disabled || !MacroState.isMacroRunning() || scheduledAt < this._disabledUntil || this._shouldDisableTeleport(data)) return;
                 this.onTrigger(fromX, fromY, fromZ, newX, newY, newZ, distance);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(PlayerPositionLookS2C);

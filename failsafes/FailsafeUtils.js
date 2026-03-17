@@ -1,5 +1,4 @@
 import { V5ConfigFile } from '../utils/Constants';
-import { MacroState } from '../utils/MacroState';
 
 const DEFAULT_FAILSAFE_SETTINGS = {
     isEnabled: true,
@@ -27,9 +26,7 @@ class FailsafeUtils {
         const now = Date.now();
         const lastModified = V5ConfigFile.exists() ? V5ConfigFile.lastModified() : -1;
         const cacheValid = now < this._cache.expiresAt && this._cache.lastModified === lastModified;
-        const hasCachedConfig = this._cache.hasConfig;
-
-        if (cacheValid || (MacroState.isMacroRunning() && hasCachedConfig)) {
+        if (cacheValid) {
             return this._cache.config;
         }
 

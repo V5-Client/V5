@@ -36,7 +36,7 @@ class PathRotations {
         this.resetRotations();
 
         PathExecutor.onStep(() => {
-            if (!this.rotationActive || !this.boxPositions) return;
+            if (!this.rotationActive || !this.boxPositions || this.boxPositions.length < 2) return;
             this.updateLookPoint();
             this.applyHumanizedPhysics();
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
@@ -281,7 +281,12 @@ class PathRotations {
 
         const motionY = Player.getMotionY();
         const isFalling = motionY < -0.4 || this.isPathDropping();
-        const isJumpingHigh = motionY > 0.1 || player.getY() - this.getInterpolatedPoint(this.currentPathPosition).y > 2.0;
+        const pathAnchor = this.getInterpolatedPoint(this.currentPathPosition);
+        if (!pathAnchor) {
+            this.rotationActive = false;
+            return;
+        }
+        const isJumpingHigh = motionY > 0.1 || player.getY() - pathAnchor.y > 2.0;
 
         let bestT = this.currentPathPosition;
         let minDistanceSq = Infinity;
@@ -487,10 +492,13 @@ class PathRotations {
     }
 
     getInterpolatedPoint(indexFloat) {
-        const idx = Math.floor(indexFloat),
-            frac = indexFloat - idx;
+        if (!this.boxPositions || this.boxPositions.length === 0) return null;
+        const safeIndexFloat = Number.isFinite(indexFloat) ? Math.max(0, Math.min(indexFloat, this.boxPositions.length - 1)) : 0;
+        const idx = Math.floor(safeIndexFloat),
+            frac = safeIndexFloat - idx;
         const p1 = this.boxPositions[idx],
             p2 = this.boxPositions[Math.min(idx + 1, this.boxPositions.length - 1)];
+        if (!p1) return null;
         if (!p2 || frac <= 0) return p1;
         return new Vec3d(p1.x + (p2.x - p1.x) * frac, p1.y + (p2.y - p1.y) * frac, p1.z + (p2.z - p1.z) * frac);
     }
@@ -500,9 +508,14 @@ class PathRotations {
     }
 
     pathRotations(splineData) {
-        if (!this.boxPositions) {
-            this.boxPositions = Spline.createLookPoints(splineData, 0.25, 4.5);
-            if (!this.boxPositions || !this.boxPositions.length) return;
+        if (!this.boxPositions || this.boxPositions.length < 2) {
+            const lookPoints = Spline.createLookPoints(splineData, 0.25, 4.5);
+            if (!lookPoints || lookPoints.length < 2) {
+                this.boxPositions = null;
+                this.rotationActive = false;
+                return;
+            }
+            this.boxPositions = lookPoints;
         }
         const player = Player.getPlayer();
         if (player && !this.isInitialized) {

@@ -324,7 +324,8 @@ export class Popup {
     }
 
     handleOverlayClick(mouseX, mouseY) {
-        if (this.animationState !== 'open') return false;
+        if (this.animationState === 'closed') return false;
+        if (this.animationState !== 'open') return true;
 
         if (isInside(mouseX, mouseY, this.closeRect)) {
             this.toggleOpen(false);
@@ -416,8 +417,9 @@ export class Popup {
     }
 
     handleScroll(mouseX, mouseY, dir) {
-        if (this.animationState !== 'open') return false;
-        if (!isInside(mouseX, mouseY, this.windowRect)) return false;
+        if (this.animationState === 'closed') return false;
+        if (this.animationState !== 'open') return true;
+        if (!isInside(mouseX, mouseY, this.windowRect)) return true;
 
         const contentHeight = this.windowRect.height - this.headerHeight - this.windowPadding * 2;
         const maxScroll = Math.max(0, this.getContentHeight() - contentHeight - this.windowPadding);

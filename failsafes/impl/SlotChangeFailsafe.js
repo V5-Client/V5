@@ -22,8 +22,9 @@ class SlotChangeFailsafe extends Failsafe {
             const newSlot = packet.slot() + 1;
 
             if (currentSlot === newSlot) return;
+            const scheduledAt = Date.now();
             setTimeout(() => {
-                if (this.disabled) return;
+                if (this.disabled || !MacroState.isMacroRunning() || scheduledAt < this._disabledUntil) return;
                 this.onTrigger(currentSlot, newSlot);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(UpdateSelectedSlotS2C);

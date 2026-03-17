@@ -24,7 +24,7 @@ class FlowstateUtilsClass {
             }
         });
 
-        register('PacketReceived', (packet) => {
+        register('packetReceived', (packet) => {
             if (Player.getHeldItem() === null) return;
 
             let lore = Player.getHeldItem()

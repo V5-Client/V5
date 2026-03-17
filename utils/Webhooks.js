@@ -79,7 +79,8 @@ class DiscordNotifier {
                             const latestFile = java.util.Arrays.stream(files)
                                 .filter((f) => f.getName().endsWith('.png'))
                                 .max(java.util.Comparator.comparingLong((f) => f.lastModified()))
-                                .get();
+                                .orElse(null);
+                            if (!latestFile) return;
 
                             const finalTitle = title || 'Screenshot captured from ' + Utils.area();
 

@@ -65,7 +65,7 @@ class ControlSystem {
             return true;
         }
 
-        if (guiOpen) return false;
+        if (guiOpen && isPressed) return false;
 
         const options = mc.options;
         const mapping = {

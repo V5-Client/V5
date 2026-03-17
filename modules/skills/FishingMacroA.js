@@ -105,9 +105,9 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 2: // use hype x times
-                this.hypeClicksRemaining--;
                 if (this.hypeClicksRemaining > 0) {
                     Keybind.rightClick();
+                    this.hypeClicksRemaining--;
                 } else {
                     if (this.thunderSpawn) {
                         this.thunderSpawn = false;

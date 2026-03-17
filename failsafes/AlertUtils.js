@@ -222,11 +222,10 @@ class AlertUtilsClass {
         });
 
         register('gameUnload', () => {
+            this.disableReaction();
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
             allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
             Utils.writeConfigFile('keybinds.json', allKeybinds);
-
-            this.stopSound();
         });
     }
 

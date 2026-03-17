@@ -147,6 +147,7 @@ class RouteWalkerer extends ModuleBase {
             }
 
             this.point = this.route[this.currentIndex];
+            if (!this.point) return;
             this.action = this.ACTIONS[this.point.movements];
 
             let distData = MathUtils.getDistanceToPlayer(this.point.x, this.point.y, this.point.z);
@@ -233,6 +234,8 @@ class RouteWalkerer extends ModuleBase {
             (selected) => {
                 this.loadedFile = Router.getFilefromCallback(selected);
                 this.route = Router.loadRouteFromFile('RoutewalkerRoutes/', this.loadedFile);
+                this.currentIndex = 0;
+                this.foundpoint = false;
                 RouteState.setRoute(this.route, 'Route Walker');
             },
             'The route the macro will use'

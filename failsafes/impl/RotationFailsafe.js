@@ -48,8 +48,9 @@ class RotationFailsafe extends Failsafe {
 
             if (posDistance >= 0.001) return;
 
+            const scheduledAt = Date.now();
             setTimeout(() => {
-                if (this.disabled) return;
+                if (this.disabled || !MacroState.isMacroRunning() || scheduledAt < this._disabledUntil) return;
                 this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(PlayerPositionLookS2C);

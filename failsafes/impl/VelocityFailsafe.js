@@ -42,8 +42,9 @@ class VelocityFailsafe extends Failsafe {
             const speed = Math.hypot(vx, vy, vz);
 
             if (this._shouldDisableVelocity(speed, blockName)) return;
+            const scheduledAt = Date.now();
             setTimeout(() => {
-                if (this.disabled || this._shouldDisableVelocity(speed, blockName)) return;
+                if (this.disabled || !MacroState.isMacroRunning() || scheduledAt < this._disabledUntil || this._shouldDisableVelocity(speed, blockName)) return;
                 this.onTrigger(speed);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(EntityVelocityUpdateS2C);

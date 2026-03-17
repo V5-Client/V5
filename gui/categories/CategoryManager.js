@@ -3,6 +3,7 @@ import { Button } from '../components/Button';
 import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
+import { TextInput } from '../components/TextInput';
 import { Separator } from '../components/Separator';
 import { GuiRectangles, GuiState } from '../core/GuiState';
 import { handleCategoryClick, handleCategoryScroll, updateCategoryTransitions } from './CategoryEvents';
@@ -660,6 +661,8 @@ export const createCategoriesManager = (deps) => {
     };
 
     const handleClick = (mouseX, mouseY) => {
+        if (TextInput.handleGlobalClick(mouseX, mouseY)) return;
+
         const panel = deps.rectangles.RightPanel;
         const activeCat = Categories.categories.find((c) => c.name === Categories.selected);
         const components = Categories.currentPage === 'categories' ? activeCat?.directComponents : Categories.selectedItem?.components;
@@ -685,25 +688,28 @@ export const createCategoriesManager = (deps) => {
             return;
         }
 
-        const directMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'direct-component' && isInside(mouseX, mouseY, layout.rect));
-        if (directMatch) {
-            pendingSettingsComponent = directMatch.item.component;
-            beginCategorySwap('Settings');
-            return;
-        }
+        const canUseCachedLayouts = Categories.currentPage === 'categories' && Categories.transitionDirection === 0;
+        if (canUseCachedLayouts) {
+            const directMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'direct-component' && isInside(mouseX, mouseY, layout.rect));
+            if (directMatch) {
+                pendingSettingsComponent = directMatch.item.component;
+                beginCategorySwap('Settings');
+                return;
+            }
 
-        const themeMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'theme-component' && isInside(mouseX, mouseY, layout.rect));
-        if (themeMatch) {
-            pendingThemeComponent = themeMatch.item.component;
-            beginCategorySwap('Theme');
-            return;
-        }
+            const themeMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'theme-component' && isInside(mouseX, mouseY, layout.rect));
+            if (themeMatch) {
+                pendingThemeComponent = themeMatch.item.component;
+                beginCategorySwap('Theme');
+                return;
+            }
 
-        const moduleMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'module-component' && isInside(mouseX, mouseY, layout.rect));
-        if (moduleMatch) {
-            pendingModuleComponent = { item: moduleMatch.item.parentItem, component: moduleMatch.item.component };
-            beginModuleOptionsSwap(moduleMatch.item.parentItem);
-            return;
+            const moduleMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'module-component' && isInside(mouseX, mouseY, layout.rect));
+            if (moduleMatch) {
+                pendingModuleComponent = { item: moduleMatch.item.parentItem, component: moduleMatch.item.component };
+                beginModuleOptionsSwap(moduleMatch.item.parentItem);
+                return;
+            }
         }
 
         handleCategoryClick(
