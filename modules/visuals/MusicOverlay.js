@@ -105,9 +105,8 @@ class Music extends ModuleBase {
             currentSec = Math.max(0, this.data.positionMs / 1000);
             totalSec = Math.max(0, this.data.durationMs / 1000);
 
-            const baseTimestamp = typeof this.data.snapshotUnixMs === 'number' && this.data.snapshotUnixMs > 0
-                ? this.data.snapshotUnixMs
-                : this.lastDataReceivedAt;
+            const baseTimestamp =
+                typeof this.data.snapshotUnixMs === 'number' && this.data.snapshotUnixMs > 0 ? this.data.snapshotUnixMs : this.lastDataReceivedAt;
 
             if (!isPaused && baseTimestamp > 0) {
                 const elapsedSinceReceive = Math.max(0, (Date.now() - baseTimestamp) / 1000);
@@ -124,7 +123,7 @@ class Music extends ModuleBase {
 
         return {
             currentText: this.formatSecondsToTime(currentSec),
-            totalText: totalSec > 0 ? this.formatSecondsToTime(totalSec) : (this.data.totalTime || '0:00'),
+            totalText: totalSec > 0 ? this.formatSecondsToTime(totalSec) : this.data.totalTime || '0:00',
             progress: totalSec > 0 ? Math.max(0, Math.min(currentSec / totalSec, 1)) : 0,
         };
     }
