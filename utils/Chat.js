@@ -21,6 +21,13 @@ class ChatClass {
         this._sendGradient('IRC »', msg);
     }
 
+    sendAnnouncement(msg) {
+        if (!msg) return;
+        Client.getMinecraft().execute(() => {
+            GradientChat.sendGradientMsg('V5 Announcement »', 0xf4a261, 0xe76f51, msg);
+        });
+    }
+
     messageFailsafe(msg, sendIntensity = true) {
         this._sendGradient('V5 Failsafes »', msg);
         if (sendIntensity) this._sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());

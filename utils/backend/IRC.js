@@ -19,6 +19,10 @@ export function isAutoMeowEnabled() {
     return autoMeowEnabled;
 }
 
+export function isIrcEnabled() {
+    return ircEnabled;
+}
+
 export function isRandomChoiceMeowEnabled() {
     return randomChoiceMeow;
 }
@@ -45,6 +49,12 @@ export function handleIRCMessage(data) {
         } else {
             Chat.messageIrc(`System: ${data.code || ''}`);
         }
+        return true;
+    }
+
+    if (data.type === 'announcement') {
+        if (!ircEnabled) return;
+        Chat.sendAnnouncement(`${data.msg ?? ''}`);
         return true;
     }
 
