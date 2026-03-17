@@ -579,7 +579,7 @@ class CommissionMacro extends ModuleBase {
 
             const name = ChatLib.removeFormatting(item.getName());
             const isTrash = TRASH_ITEMS.some((trash) => name.includes(trash));
-            const isNotEquipment = !name.includes('Drill') && !name.includes('Pickaxe') && !name.includes('Minecart');
+            const isNotEquipment = !name.includes('Drill') && !name.includes('Pickaxe') && !name.includes('Minecart') && !name.includes('Tasty');
 
             if (isTrash && isNotEquipment) {
                 Guis.clickSlot(i, false);
