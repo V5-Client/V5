@@ -19,6 +19,7 @@ class RPC extends ModuleBase {
         this.lastUpdate = 0;
 
         Categories.addSettingsToggle('Discord RPC', (v) => this.toggle(!!v), "Shows you're playing V5 in Discord RPC.", true, 'Discord RPC', 'Discord');
+        this.toggle(true);
 
         this.on('step', () => {
             DiscordRPC.stayOn();
