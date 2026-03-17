@@ -25,11 +25,7 @@ class Music extends ModuleBase {
         this.exePath = this.resolveExePath();
 
         this.data = null;
-        this.lastSongTitle = '';
-        this.lastSongTimeStr = '';
-        this.interpolatedSeconds = 0;
-        this.lastFrameTime = Date.now();
-        this.ticksSinceSync = 0;
+        this.lastDataReceivedAt = 0;
         this.lastRestartAttempt = 0;
 
         this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
@@ -44,7 +40,6 @@ class Music extends ModuleBase {
         this.baseHeight = 90;
 
         this.on('step', () => {
-            this.ticksSinceSync += 5;
             if (Client.getFPS() > 0) {
                 this.getSongData();
             }
@@ -68,8 +63,11 @@ class Music extends ModuleBase {
 
     parseTimeToSeconds(timeStr) {
         if (!timeStr || !timeStr.includes(':')) return 0;
-        const parts = timeStr.split(':');
-        return Number.parseInt(parts[0], 10) * 60 + Number.parseInt(parts[1], 10);
+        const parts = timeStr.split(':').map((p) => Number.parseInt(p, 10));
+        if (parts.some((p) => Number.isNaN(p))) return 0;
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
+        return parts[0] || 0;
     }
 
     resolveExePath() {
@@ -78,9 +76,57 @@ class Music extends ModuleBase {
 
     formatSecondsToTime(seconds) {
         const s = Math.max(0, Math.floor(seconds));
+        const hours = Math.floor(s / 3600);
         const mins = Math.floor(s / 60);
+        const minsInHour = mins % 60;
         const secs = s % 60;
+        if (hours > 0) {
+            return hours + ':' + (minsInHour < 10 ? '0' + minsInHour : minsInHour) + ':' + (secs < 10 ? '0' + secs : secs);
+        }
         return mins + ':' + (secs < 10 ? '0' + secs : secs);
+    }
+
+    getPlaybackState() {
+        if (!this.data) {
+            return {
+                currentText: '--:--',
+                totalText: '--:--',
+                progress: 0,
+            };
+        }
+
+        const hasMsTimeline = typeof this.data.positionMs === 'number' && typeof this.data.durationMs === 'number' && this.data.durationMs > 0;
+        const isPaused = !!this.data.isPaused;
+
+        let currentSec = 0;
+        let totalSec = 0;
+
+        if (hasMsTimeline) {
+            currentSec = Math.max(0, this.data.positionMs / 1000);
+            totalSec = Math.max(0, this.data.durationMs / 1000);
+
+            const baseTimestamp = typeof this.data.snapshotUnixMs === 'number' && this.data.snapshotUnixMs > 0
+                ? this.data.snapshotUnixMs
+                : this.lastDataReceivedAt;
+
+            if (!isPaused && baseTimestamp > 0) {
+                const elapsedSinceReceive = Math.max(0, (Date.now() - baseTimestamp) / 1000);
+                currentSec += Math.min(elapsedSinceReceive, 5.0);
+            }
+        } else {
+            currentSec = this.parseTimeToSeconds(this.data.time || '0:00');
+            totalSec = this.parseTimeToSeconds(this.data.totalTime || '0:00');
+        }
+
+        if (totalSec > 0) {
+            currentSec = Math.min(currentSec, totalSec);
+        }
+
+        return {
+            currentText: this.formatSecondsToTime(currentSec),
+            totalText: totalSec > 0 ? this.formatSecondsToTime(totalSec) : (this.data.totalTime || '0:00'),
+            progress: totalSec > 0 ? Math.max(0, Math.min(currentSec / totalSec, 1)) : 0,
+        };
     }
 
     savePosition() {
@@ -114,10 +160,6 @@ class Music extends ModuleBase {
 
         this.syncFromOverlayEditor();
 
-        const now = Date.now();
-        const deltaTime = (now - this.lastFrameTime) / 1000;
-        this.lastFrameTime = now;
-
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
 
@@ -125,42 +167,10 @@ class Music extends ModuleBase {
         const songName = isSkeleton ? 'Searching for Media...' : this.data.song || 'Unknown Title';
         const imageURL = isSkeleton || !this.data.art || this.data.art.toLowerCase() === 'none' ? '' : this.data.art;
 
-        const timeMax = isSkeleton ? '--:--' : this.data.totalTime || '0:00';
-        const isPaused = isSkeleton ? true : !!this.data.isPaused;
-
-        let interpolatedTimeText = '--:--';
-        let progress = 0;
-
-        if (!isSkeleton) {
-            const totalSec = this.parseTimeToSeconds(timeMax);
-            const serverSec = this.parseTimeToSeconds(this.data.time || '0:00');
-
-            if (this.data.song !== this.lastSongTitle) {
-                this.interpolatedSeconds = serverSec;
-                this.lastSongTitle = this.data.song;
-                this.ticksSinceSync = 0;
-            }
-
-            const drift = Math.abs(this.interpolatedSeconds - serverSec);
-            const serverUpdated = this.data.time !== this.lastSongTimeStr;
-
-            if (serverUpdated) {
-                this.interpolatedSeconds = serverSec;
-                this.lastSongTimeStr = this.data.time;
-            } else if (drift > 8) {
-                this.interpolatedSeconds = serverSec;
-            } else if (this.ticksSinceSync > 200) {
-                this.interpolatedSeconds = serverSec;
-                this.ticksSinceSync = 0;
-            } else {
-                if (!isPaused && totalSec > 0 && this.interpolatedSeconds < totalSec) {
-                    this.interpolatedSeconds += deltaTime;
-                }
-            }
-
-            interpolatedTimeText = this.formatSecondsToTime(this.interpolatedSeconds);
-            progress = totalSec > 0 ? Math.min(this.interpolatedSeconds / totalSec, 1) : 0;
-        }
+        const playback = this.getPlaybackState();
+        const interpolatedTimeText = playback.currentText;
+        const timeMax = playback.totalText;
+        const progress = playback.progress;
 
         const s = this.scale || 1.0;
         const padding = 12 * s;
@@ -273,6 +283,7 @@ class Music extends ModuleBase {
         })
             .then((res) => {
                 this.data = res;
+                this.lastDataReceivedAt = Date.now();
             })
             .catch((e) => {
                 // would only really happen if it wasn't running.
