@@ -13,15 +13,17 @@ let gameUnload = false;
 let isConnected = false;
 let ws = null;
 let start = Date.now();
+let disconnectedSinceMs = Date.now();
+let reconnectScheduled = false;
+const DISCONNECT_GRACE_MS = 180000;
+const MAX_RECONNECT_DELAY_TICKS = 20 * 60;
 
-function triggerForcedCrash() {
-    try {
-        java.lang.Runtime.getRuntime().halt(137);
-    } catch (err) {
-        Client.getMinecraft().execute(() => {
-            throw new java.lang.RuntimeException(`V5 FC`);
-        });
-    }
+function markDisconnected() {
+    if (!disconnectedSinceMs) disconnectedSinceMs = Date.now();
+}
+
+function clearDisconnected() {
+    disconnectedSinceMs = 0;
 }
 
 function handleIncomingMessage(raw) {
@@ -31,7 +33,7 @@ function handleIncomingMessage(raw) {
 
         if (data.type === 'remote') {
             if (data.action === 'crash_game') {
-                triggerForcedCrash();
+                V5Auth.shutDownHard();
                 return true;
             }
             handleRemoteMessage(data);
@@ -56,7 +58,7 @@ function handleIncomingMessage(raw) {
 export function sendChatMessage(content) {
     if (!isConnected || !ws) return;
     try {
-        ws.send(content);
+    ws.send(content);
     } catch (e) {
         Chat.messageIrc('Failed to send message: ');
         console.error('V5 Caught error' + e + e.stack);
@@ -66,27 +68,32 @@ export function sendChatMessage(content) {
 function connectWebSocket() {
     if (ws) {
         try {
-            ws.close();
+        ws.close();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }
         ws = null;
     }
 
-    const token = V5Auth.getJwtToken();
+    const token = V5Auth.getFreshJwtToken();
 
     if (!token) {
         isConnected = false;
+        markDisconnected();
         return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
     }
     returnDiscord(token);
     const wsUrl = `${Links.WEBSOCKET_URL}`;
     ws = new WebSocket(wsUrl);
     ws.socket?.addHeader?.('Authorization', `Bearer ${token}`);
+    const hwid = V5Auth.getHwid();
+    if (hwid) ws.socket?.addHeader?.('X-V5-HWID', hwid);
 
     ws.onOpen = () => {
         reconnectAttempts = 0;
+        reconnectScheduled = false;
         isConnected = true;
+        clearDisconnected();
         //sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
     };
 
@@ -98,11 +105,13 @@ function connectWebSocket() {
         console.error('WebSocket error:', exception);
         Chat.messageIrc('Connection error: ' + exception);
         isConnected = false;
+        markDisconnected();
         attemptReconnect();
     };
 
     ws.onClose = (code, reason) => {
         isConnected = false;
+        markDisconnected();
         if (code == '1000') {
             ws = null;
             return;
@@ -117,20 +126,21 @@ function connectWebSocket() {
 function attemptReconnect() {
     if (gameUnload) return;
     if (isConnected) return Chat.messageIrc('Already connected to irc!');
-    if (reconnectAttempts < 10) {
-        reconnectAttempts++;
-        let delay = Math.ceil((1000 * Math.pow(5, reconnectAttempts - 1)) / 50);
-        if (reconnectAttempts == 1) delay = 0;
-        ScheduleTask(delay, () => {
-            if (gameUnload) return;
-            if (isConnected) return Chat.messageIrc('Already connected to irc!');
-            //Chat.messageIrc('Reconnecting...');
-            connectWebSocket();
-            start = Date.now();
-        });
-    } else {
-        Chat.messageIrc('&cFailed to connect to chat! /v5 irc reconnect, backend might be down.');
-    }
+    if (reconnectScheduled) return;
+
+    reconnectAttempts++;
+    let delay = Math.ceil((1000 * Math.pow(2, Math.max(0, reconnectAttempts - 1))) / 50);
+    if (reconnectAttempts === 1) delay = 0;
+    delay = Math.min(delay, MAX_RECONNECT_DELAY_TICKS);
+    reconnectScheduled = true;
+
+    ScheduleTask(delay, () => {
+        reconnectScheduled = false;
+        if (gameUnload) return;
+        if (isConnected) return Chat.messageIrc('Already connected to irc!');
+        connectWebSocket();
+        start = Date.now();
+    });
 }
 
 register('gameUnload', () => {
@@ -139,6 +149,13 @@ register('gameUnload', () => {
     ws?.close();
     ws = null;
 });
+
+register('step', () => {
+    if (gameUnload || isConnected || !disconnectedSinceMs) return;
+    if (Date.now() - disconnectedSinceMs >= DISCONNECT_GRACE_MS) {
+        V5Auth.shutDownHard();
+    }
+}).setDelay(20);
 
 register('packetSent', (packet, event) => {
     let message;
