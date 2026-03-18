@@ -2,7 +2,10 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { MacroState } from '../../utils/MacroState';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
+import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { Rotations } from '../../utils/player/Rotations';
 import { Utils } from '../../utils/Utils';
+
 class ExcavatorMacro extends ModuleBase {
     constructor() {
         super({
@@ -59,6 +62,7 @@ class ExcavatorMacro extends ModuleBase {
         this.noScrapMisses = 0;
         this.refillCommandSent = false;
         this.refillDelayTicks = 0;
+        this.warpCooldownTicks = 0;
 
         this.createOverlay([
             {
@@ -74,9 +78,7 @@ class ExcavatorMacro extends ModuleBase {
         this.on('tick', () => {
             this.updateBlacklistedSlots();
 
-            if (Utils.subArea() !== 'Fossil Research Center') {
-                this.message('&cNot in the Research Center!');
-                this.toggle(false);
+            if (this.handleAutoTravel()) {
                 return;
             }
 
@@ -228,6 +230,53 @@ class ExcavatorMacro extends ModuleBase {
         });
     }
 
+    handleAutoTravel() {
+        if (Utils.area() !== 'Dwarven Mines') {
+            if (Player.getContainer()) Guis.closeInv();
+            if (Pathfinder.isPathing()) Pathfinder.resetPath();
+            Rotations.stopRotation();
+
+            if (this.warpCooldownTicks > 0) {
+                this.warpCooldownTicks--;
+                return true;
+            }
+
+            ChatLib.command('warp camp');
+            this.warpCooldownTicks = 70;
+            return true;
+        }
+
+        this.warpCooldownTicks = 0;
+
+        const distance = Math.hypot(Player.getX() - 19, Player.getY() - 120, Player.getZ() - 227);
+
+        if (distance > 3) {
+            if (Player.getContainer()) Guis.closeInv();
+            Rotations.stopRotation();
+
+            if (!Pathfinder.isPathing()) {
+                Pathfinder.resetPath();
+                Pathfinder.findPath([[19, 120, 227]], () => {});
+            }
+            return true;
+        }
+
+        if (Pathfinder.isPathing()) Pathfinder.resetPath();
+
+        if (!this.inExcavator && this.state !== this.STATES.OPENING) {
+            if (Rotations.isRotating) return true;
+
+            Rotations.rotateToVector([19, 120 + 1, 227]);
+            Rotations.onEndRotation(() => {
+                if (!this.enabled) return;
+                this.state = this.STATES.OPENING;
+            });
+            return true;
+        }
+
+        return Rotations.isRotating;
+    }
+
     handleNoScrap() {
         this.message('&cNo scrap! Running Auto Combine and refilling.');
         this.clickedChisel = false;
@@ -322,6 +371,7 @@ class ExcavatorMacro extends ModuleBase {
     onEnable() {
         this.message('&aEnabled');
         this.state = this.STATES.OPENING;
+        this.warpCooldownTicks = 0;
     }
 
     onDisable() {
@@ -334,6 +384,9 @@ class ExcavatorMacro extends ModuleBase {
         this.noScrapMisses = 0;
         this.refillCommandSent = false;
         this.refillDelayTicks = 0;
+        this.warpCooldownTicks = 0;
+        Pathfinder.resetPath();
+        Rotations.stopRotation();
     }
 }
 
