@@ -95,6 +95,9 @@ class ExcavatorMacro extends ModuleBase {
                     if (Player.lookingAt() instanceof Entity && !this.inExcavator) {
                         Keybind.rightClick();
                         this.state = this.STATES.SETUP;
+                    } else {
+                        if (Rotations.isRotating) return;
+                        Rotations.rotateToVector([19, 120 + 1, 227]);
                     }
 
                     break;
@@ -256,25 +259,15 @@ class ExcavatorMacro extends ModuleBase {
 
             if (!Pathfinder.isPathing()) {
                 Pathfinder.resetPath();
-                Pathfinder.findPath([[19, 120, 227]], () => {});
+                Pathfinder.findPath([[19, 120, 227]], () => {
+                    if (!this.enabled) return;
+                    this.state = this.STATES.OPENING;
+                });
             }
             return true;
         }
 
-        if (Pathfinder.isPathing()) Pathfinder.resetPath();
-
-        if (!this.inExcavator && this.state !== this.STATES.OPENING) {
-            if (Rotations.isRotating) return true;
-
-            Rotations.rotateToVector([19, 120 + 1, 227]);
-            Rotations.onEndRotation(() => {
-                if (!this.enabled) return;
-                this.state = this.STATES.OPENING;
-            });
-            return true;
-        }
-
-        return Rotations.isRotating;
+        return false;
     }
 
     handleNoScrap() {
