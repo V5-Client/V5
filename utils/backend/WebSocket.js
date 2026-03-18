@@ -58,7 +58,7 @@ function handleIncomingMessage(raw) {
 export function sendChatMessage(content) {
     if (!isConnected || !ws) return;
     try {
-    ws.send(content);
+        ws.send(content);
     } catch (e) {
         Chat.messageIrc('Failed to send message: ');
         console.error('V5 Caught error' + e + e.stack);
@@ -68,7 +68,7 @@ export function sendChatMessage(content) {
 function connectWebSocket() {
     if (ws) {
         try {
-        ws.close();
+            ws.close();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }
