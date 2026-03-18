@@ -111,11 +111,12 @@ function connectWebSocket() {
 
     ws.onClose = (code, reason) => {
         isConnected = false;
-        markDisconnected();
         if (code == '1000') {
             ws = null;
+            clearDisconnected();
             return;
         }
+        markDisconnected();
         Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
         attemptReconnect();
     };
