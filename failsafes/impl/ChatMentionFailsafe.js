@@ -17,7 +17,7 @@ class ChatMentionFailsafe extends Failsafe {
 
     registerChatListeners() {
         register('packetReceived', (packet, event) => {
-            if (!MacroState.isMacroRunning() || this.disabled) return;
+            if (!MacroState.isFailsafeMacroRunning() || this.disabled) return;
             if (packet.overlay()) return; // action bar
 
             this.settings = FailsafeUtils.getFailsafeSettings('Chat Mention');

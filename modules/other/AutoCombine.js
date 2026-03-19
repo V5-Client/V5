@@ -14,6 +14,7 @@ class AutoCombine extends ModuleBase {
             tooltip: 'Automatically combine items in your inventory with /anvil.',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
+            ignoreFailsafes: true,
         });
         this.bindToggleKey();
 

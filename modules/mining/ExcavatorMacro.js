@@ -16,6 +16,7 @@ class ExcavatorMacro extends ModuleBase {
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
             isMacro: true,
+            ignoreFailsafes: true,
         });
 
         this.bindToggleKey();

@@ -48,6 +48,16 @@ class MacroStateClass {
         return Array.from(this.enabledMacros);
     }
 
+    isFailsafeMacroRunning() {
+        for (const macroName of this.enabledMacros) {
+            const module = this.getModule(macroName);
+            if (!module?.isMacro) continue;
+            if (module.ignoreFailsafes === true) continue;
+            return true;
+        }
+        return false;
+    }
+
     onModuleEnabled(moduleName) {
         if (!moduleName) return;
         const module = this.getModule(moduleName);

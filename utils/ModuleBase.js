@@ -18,7 +18,7 @@ export class ModuleBase {
      * @param {string} [subcategory] - Subcategory name (required if nameOrOpts is string)
      * @param {string} [description=''] - Module description (required if nameOrOpts is string)
      * @param {string} [tooltip=null] - Tooltip text (required if nameOrOpts is string)
-     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, showEnabledToggle, autoDisableOnWorldUnload, isMacro
+     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, showEnabledToggle, autoDisableOnWorldUnload, isMacro, ignoreFailsafes
      */
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
         const opts = typeof nameOrOpts === 'object' ? nameOrOpts : { name: nameOrOpts, subcategory, description, tooltip };
@@ -36,6 +36,7 @@ export class ModuleBase {
         this.isParentManaged = false;
 
         this.isMacro = opts.isMacro === true;
+        this.ignoreFailsafes = opts.ignoreFailsafes === true;
 
         MacroState.registerModule(this);
 

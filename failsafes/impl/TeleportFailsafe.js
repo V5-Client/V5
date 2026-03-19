@@ -30,12 +30,12 @@ class TeleportFailsafe extends Failsafe {
 
     registerRightClickListener() {
         register('packetSent', () => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isFailsafeMacroRunning()) return;
             lastRightClickTime = Date.now();
         }).setFilteredClass(PlayerInteractItemC2S);
 
         register('packetSent', (packet) => {
-            if (!MacroState.isMacroRunning()) return;
+            if (!MacroState.isFailsafeMacroRunning()) return;
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
                 lastCommandTime = Date.now();
@@ -123,7 +123,7 @@ class TeleportFailsafe extends Failsafe {
 
     registerTPListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning() || this.disabled) return;
+            if (!MacroState.isFailsafeMacroRunning() || this.disabled) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('TP');
             if (!this.settings.isEnabled) return;
@@ -177,7 +177,7 @@ class TeleportFailsafe extends Failsafe {
 
             const scheduledAt = Date.now();
             setTimeout(() => {
-                if (this.disabled || !MacroState.isMacroRunning() || scheduledAt < this._disabledUntil || this._shouldDisableTeleport(data)) return;
+                if (this.disabled || !MacroState.isFailsafeMacroRunning() || scheduledAt < this._disabledUntil || this._shouldDisableTeleport(data)) return;
                 this.onTrigger(fromX, fromY, fromZ, newX, newY, newZ, distance);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(PlayerPositionLookS2C);

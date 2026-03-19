@@ -20,7 +20,7 @@ class VelocityFailsafe extends Failsafe {
 
     registerVeloListeners() {
         register('packetReceived', (packet) => {
-            if (!MacroState.isMacroRunning() || this.disabled) return;
+            if (!MacroState.isFailsafeMacroRunning() || this.disabled) return;
             this._handleVelocityOnDamageDisabled();
             if (this.disabled) return;
             const playerMP = Player.asPlayerMP();
@@ -44,7 +44,7 @@ class VelocityFailsafe extends Failsafe {
             if (this._shouldDisableVelocity(speed, blockName)) return;
             const scheduledAt = Date.now();
             setTimeout(() => {
-                if (this.disabled || !MacroState.isMacroRunning() || scheduledAt < this._disabledUntil || this._shouldDisableVelocity(speed, blockName)) return;
+                if (this.disabled || !MacroState.isFailsafeMacroRunning() || scheduledAt < this._disabledUntil || this._shouldDisableVelocity(speed, blockName)) return;
                 this.onTrigger(speed);
             }, this._getReactionDelay(this.settings));
         }).setFilteredClass(EntityVelocityUpdateS2C);
