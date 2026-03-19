@@ -21,22 +21,20 @@ const STATES = {
 };
 
 const SHOOT_RANGE = 6;
-const CLICK_DELAY_MS = 225;
+const CLICK_DELAY_MS = 150;
 const KILL_TIMEOUT_MS = 4000;
 const REPATH_DELAY_MS = 750;
 const PATH_TIMEOUT_MS = 20000;
 const GOAL_OFFSETS = [-1, 0, 1];
 const AIM_POINT_Y_OFFSET = 0.5;
-const AIM_TOLERANCE = 10;
+const AIM_TOLERANCE = 20;
 const BACKUP_DISTANCE = 2.5;
 const LOBBY_SWAP_WAIT_MS = 4000;
 const VIP_SWAP_RETRY_MS = 750;
 const VIP_SWAP_TIMEOUT_MS = 10000;
 const VIP_SWAP_TRANSFER_TIMEOUT_MS = 10000;
 const VIP_SWAP_SLOT = 50;
-const VIP_SWAP_NPC_POS = { x: -5.5, y: 69, z: -22.5 };
-const VIP_SWAP_NPC_POS_TOLERANCE = 0.75;
-const VIP_SWAP_INTERACT_RANGE = 4;
+const VIP_SWAP_INTERACT_RANGE = 3;
 
 const SWAP_MODES = {
     ISLAND: 'IslandSwap',
@@ -75,14 +73,11 @@ class RatMacro extends ModuleBase {
         this.pathStartedAt = 0;
         this.engageStartedAt = 0;
         this.lastClickAt = 0;
-        this.lastRepathAt = 0;
         this.swapMode = SWAP_MODES.ISLAND;
         this.swapStage = SWAP_STAGES.NONE;
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
         this.vipRotationToken = 0;
-        this.vipSwapSawWorldUnload = false;
-        this.clearBlacklistOnNextWorldUnload = false;
 
         this.createOverlay(
             [
@@ -143,7 +138,7 @@ class RatMacro extends ModuleBase {
 
         if (Utils.area() !== 'Hub') {
             this.state = STATES.WAITING;
-            this.releaseMovement();
+            Keybind.stopMovement();
             return;
         }
 
@@ -186,7 +181,6 @@ class RatMacro extends ModuleBase {
             return;
         }
 
-        const visible = this.isRatVisible(target);
         const distance = this.getDistanceToPlayer(position);
 
         if (Date.now() - this.engageStartedAt >= KILL_TIMEOUT_MS) {
@@ -194,12 +188,12 @@ class RatMacro extends ModuleBase {
             return;
         }
 
-        if (visible && distance <= SHOOT_RANGE) {
-            this.cancelPathing();
-            this.releaseMovement();
+        if (distance <= SHOOT_RANGE) {
+            if (Pathfinder.isPathing()) return;
+            Keybind.stopMovement();
             this.state = STATES.ENGAGING;
 
-            if (!this.ensureWeaponEquipped()) return;
+            Guis.setItemSlot(this.weaponSlot);
 
             if (distance < BACKUP_DISTANCE) {
                 Keybind.setKey('s', true);
@@ -213,7 +207,7 @@ class RatMacro extends ModuleBase {
                 this.lastClickAt = Date.now();
             }
         } else {
-            if (!Pathfinder.isPathing() && Date.now() - this.lastRepathAt >= REPATH_DELAY_MS) {
+            if (!Pathfinder.isPathing()) {
                 this.startSingleTargetPath(target);
                 return;
             }
@@ -265,7 +259,6 @@ class RatMacro extends ModuleBase {
             this.currentTargetId = selected.id;
             this.currentTargetKey = selected.key;
             this.engageStartedAt = Date.now();
-            this.lastRepathAt = 0;
             this.state = STATES.ENGAGING;
         });
     }
@@ -277,7 +270,6 @@ class RatMacro extends ModuleBase {
             return;
         }
 
-        this.lastRepathAt = Date.now();
         this.state = STATES.PATHING;
 
         const token = ++this.pathRequestToken;
@@ -370,7 +362,7 @@ class RatMacro extends ModuleBase {
 
     updateDeadRatBlacklist() {
         getRawHubRats().forEach((entity) => {
-            if (!entity || !this.isRatDead(entity)) return;
+            if (!entity || !entity.isDead()) return;
             this.blacklistRat(entity);
         });
     }
@@ -379,7 +371,7 @@ class RatMacro extends ModuleBase {
         return getHubRats().filter((entity) => {
             if (!entity) return false;
             if (this.isBlacklistedRat(entity)) return false;
-            return !this.isRatDead(entity);
+            return !entity.isDead();
         });
     }
 
@@ -391,7 +383,7 @@ class RatMacro extends ModuleBase {
         const entity = getRawHubRats().find((rat) => rat && getRatId(rat) === id);
         if (!entity) return null;
 
-        if (this.isRatDead(entity)) {
+        if (entity.isDead()) {
             this.blacklistRat(entity);
             return null;
         }
@@ -442,16 +434,6 @@ class RatMacro extends ModuleBase {
         if (candidate.key) this.blacklistedRatKeys.add(candidate.key);
     }
 
-    isRatDead(entity) {
-        if (!entity || typeof entity.isDead !== 'function') return false;
-
-        try {
-            return entity.isDead();
-        } catch (e) {
-            return false;
-        }
-    }
-
     getRatKey(entity) {
         return this.getRatPositionKey(this.getRatPosition(entity));
     }
@@ -472,7 +454,12 @@ class RatMacro extends ModuleBase {
 
     getTargetAimPoint(entity) {
         const aimPoint = Rotations.getEntityAimPoint(entity);
-        if (!aimPoint) return null;
+        if (!aimPoint)
+            return {
+                x: entity.x,
+                y: entity.y,
+                z: entity.z,
+            };
 
         return {
             x: aimPoint.x,
@@ -505,12 +492,8 @@ class RatMacro extends ModuleBase {
     }
 
     blacklistCurrentTarget() {
-        if (this.currentTargetId) {
-            this.blacklistedRatIds.add(this.currentTargetId);
-        }
-        if (this.currentTargetKey) {
-            this.blacklistedRatKeys.add(this.currentTargetKey);
-        }
+        if (this.currentTargetId) this.blacklistedRatIds.add(this.currentTargetId);
+        if (this.currentTargetKey) this.blacklistedRatKeys.add(this.currentTargetKey);
 
         this.clearCurrentTarget();
     }
@@ -520,8 +503,7 @@ class RatMacro extends ModuleBase {
         this.currentTargetId = null;
         this.currentTargetKey = null;
         this.engageStartedAt = 0;
-        this.lastRepathAt = 0;
-        this.releaseMovement();
+        Keybind.stopMovement();
         Rotations.stopRotation();
         this.state = STATES.WAITING;
     }
@@ -532,8 +514,7 @@ class RatMacro extends ModuleBase {
         this.currentTargetId = null;
         this.currentTargetKey = null;
         this.engageStartedAt = 0;
-        this.lastRepathAt = 0;
-        this.releaseMovement();
+        Keybind.stopMovement();
         Rotations.stopRotation();
 
         if (this.swapStage !== SWAP_STAGES.NONE) return;
@@ -541,7 +522,6 @@ class RatMacro extends ModuleBase {
         this.swapStage = SWAP_STAGES.WAIT_HUB_SCAN;
         this.swapUntil = this.swapMode === SWAP_MODES.VIP ? 0 : Date.now() + LOBBY_SWAP_WAIT_MS;
         this.lastSwapActionAt = 0;
-        this.vipSwapSawWorldUnload = false;
         this.state = 'Warping Hub';
         ChatLib.command('warp hub');
     }
@@ -556,7 +536,6 @@ class RatMacro extends ModuleBase {
                     this.swapStage = SWAP_STAGES.NONE;
                     this.swapUntil = 0;
                     this.lastSwapActionAt = 0;
-                    this.vipSwapSawWorldUnload = false;
                     this.state = STATES.WAITING;
                     return false;
                 }
@@ -565,9 +544,7 @@ class RatMacro extends ModuleBase {
                     this.swapStage = SWAP_STAGES.WAIT_VIP_MENU;
                     this.swapUntil = Date.now() + VIP_SWAP_TIMEOUT_MS;
                     this.lastSwapActionAt = 0;
-                    this.vipSwapSawWorldUnload = false;
                     this.state = 'Changing Lobby';
-                    this.clearBlacklistOnNextWorldUnload = true;
                     this.tryHandleVipSwapMenu();
                     return true;
                 }
@@ -581,7 +558,6 @@ class RatMacro extends ModuleBase {
             this.swapUntil = Date.now() + LOBBY_SWAP_WAIT_MS;
             this.lastSwapActionAt = Date.now();
             this.state = 'Changing Lobby';
-            this.clearBlacklistOnNextWorldUnload = true;
             ChatLib.command('is');
             return true;
         }
@@ -604,7 +580,6 @@ class RatMacro extends ModuleBase {
                 this.swapUntil = Date.now() + VIP_SWAP_TRANSFER_TIMEOUT_MS;
                 this.lastSwapActionAt = Date.now();
                 this.vipRotationToken++;
-                this.vipSwapSawWorldUnload = false;
                 this.state = 'Switching VIP Hub';
                 return true;
             }
@@ -619,20 +594,18 @@ class RatMacro extends ModuleBase {
             this.swapUntil = 0;
             this.lastSwapActionAt = 0;
             this.vipRotationToken++;
-            this.vipSwapSawWorldUnload = false;
             this.state = STATES.WAITING;
             return false;
         }
 
         if (this.swapStage === SWAP_STAGES.WAIT_VIP_TRANSFER) {
-            if (!this.vipSwapSawWorldUnload || Utils.area() !== 'Hub') {
+            if (Utils.area() !== 'Hub') {
                 if (Date.now() < this.swapUntil) return true;
 
                 this.swapStage = SWAP_STAGES.NONE;
                 this.swapUntil = 0;
                 this.lastSwapActionAt = 0;
                 this.vipRotationToken++;
-                this.vipSwapSawWorldUnload = false;
                 this.state = STATES.WAITING;
                 return false;
             }
@@ -640,7 +613,6 @@ class RatMacro extends ModuleBase {
             this.swapStage = SWAP_STAGES.WAIT_HUB_SCAN;
             this.swapUntil = 0;
             this.lastSwapActionAt = 0;
-            this.vipSwapSawWorldUnload = false;
             this.state = STATES.WAITING;
             return true;
         }
@@ -649,7 +621,6 @@ class RatMacro extends ModuleBase {
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
         this.vipRotationToken++;
-        this.vipSwapSawWorldUnload = false;
         return false;
     }
 
@@ -660,12 +631,7 @@ class RatMacro extends ModuleBase {
     tryHandleVipSwapMenu() {
         this.lastSwapActionAt = Date.now();
 
-        const npc = this.findVipSwapNpc();
-        if (!npc) return false;
-
-        const npcPosition = this.getRatPosition(npc);
-        if (!npcPosition) return false;
-
+        const npcPosition = { x: -5.5, y: 69, z: -22.5 };
         if (this.getDistanceToPlayer(npcPosition) > VIP_SWAP_INTERACT_RANGE) {
             this.state = 'Walking to VIP NPC';
             this.startVipSwapPath(npcPosition);
@@ -718,18 +684,6 @@ class RatMacro extends ModuleBase {
         return goals;
     }
 
-    findVipSwapNpc() {
-        return World.getAllPlayers().find((entity) => {
-            if (!entity) return false;
-
-            return (
-                Math.abs(entity.getX() - VIP_SWAP_NPC_POS.x) <= VIP_SWAP_NPC_POS_TOLERANCE &&
-                Math.abs(entity.getY() - VIP_SWAP_NPC_POS.y) <= VIP_SWAP_NPC_POS_TOLERANCE &&
-                Math.abs(entity.getZ() - VIP_SWAP_NPC_POS.z) <= VIP_SWAP_NPC_POS_TOLERANCE
-            );
-        });
-    }
-
     handlePathTimeout() {
         if (!Pathfinder.isPathing() || this.pathStartedAt <= 0) return false;
         if (Date.now() - this.pathStartedAt < PATH_TIMEOUT_MS) return false;
@@ -756,17 +710,6 @@ class RatMacro extends ModuleBase {
         Pathfinder.resetPath();
     }
 
-    releaseMovement() {
-        Keybind.stopMovement();
-        Keybind.setKey('sprint', false);
-    }
-
-    ensureWeaponEquipped() {
-        if (Player.getHeldItemIndex() === this.weaponSlot) return true;
-        Guis.setItemSlot(this.weaponSlot);
-        return false;
-    }
-
     getTargetDisplayName() {
         if (!this.currentTargetId) return 'None';
         return `Rat ${this.currentTargetId.slice(0, 6)}`;
@@ -778,14 +721,8 @@ class RatMacro extends ModuleBase {
     }
 
     onWorldUnload() {
-        if (this.swapStage === SWAP_STAGES.WAIT_VIP_TRANSFER) {
-            this.vipSwapSawWorldUnload = true;
-        }
-        if (this.clearBlacklistOnNextWorldUnload) {
-            this.blacklistedRatIds.clear();
-            this.blacklistedRatKeys.clear();
-            this.clearBlacklistOnNextWorldUnload = false;
-        }
+        this.blacklistedRatIds.clear();
+        this.blacklistedRatKeys.clear();
         this.pendingCandidates = [];
         this.currentTargetId = null;
         this.currentTargetKey = null;
@@ -794,7 +731,7 @@ class RatMacro extends ModuleBase {
         this.lastSwapActionAt = 0;
         this.vipRotationToken++;
         Pathfinder.resetPath();
-        this.releaseMovement();
+        Keybind.stopMovement();
         Rotations.stopRotation();
         if (this.swapStage === SWAP_STAGES.NONE) {
             this.state = STATES.WAITING;
@@ -810,13 +747,10 @@ class RatMacro extends ModuleBase {
         this.pathStartedAt = 0;
         this.engageStartedAt = 0;
         this.lastClickAt = 0;
-        this.lastRepathAt = 0;
         this.swapStage = SWAP_STAGES.NONE;
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
         this.vipRotationToken = 0;
-        this.vipSwapSawWorldUnload = false;
-        this.clearBlacklistOnNextWorldUnload = false;
         this.state = STATES.WAITING;
         Mouse.ungrab();
         this.message('&aEnabled');
@@ -829,14 +763,11 @@ class RatMacro extends ModuleBase {
         this.currentTargetKey = null;
         this.pathStartedAt = 0;
         this.engageStartedAt = 0;
-        this.lastRepathAt = 0;
         this.swapStage = SWAP_STAGES.NONE;
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
         this.vipRotationToken++;
-        this.vipSwapSawWorldUnload = false;
-        this.clearBlacklistOnNextWorldUnload = false;
-        this.releaseMovement();
+        Keybind.stopMovement();
         Keybind.unpressKeys();
         Rotations.stopRotation();
         this.state = STATES.WAITING;
