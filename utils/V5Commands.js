@@ -114,7 +114,17 @@ const v5Logic = () => {
         exec(() => {
             const path = new File(Client.getMinecraft().runDirectory, 'config/ChatTriggers/modules/V5Config');
             const file = new File(path);
-            if (file.exists()) Desktop.getDesktop().open(file);
+            try {
+                Desktop.getDesktop().open(file);
+            } catch (error) {
+                try {
+                    net.minecraft.util.Util.getOperatingSystem().open(file);
+                    return;
+                } catch (fallbackError) {
+                    Chat.message('&eUnable to open config folder automatically.');
+                    Chat.message(`&7Path: &f${file.getAbsolutePath()}`);
+                }
+            }
         });
     });
 
