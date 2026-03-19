@@ -24,7 +24,6 @@ class PathRotations {
         this.MAX_LOOK_DISTANCE = 0.8;
         this.LOOKAHEAD_STEP = 0.4;
         this.RECOVERY_LOOKAHEAD_STEP = 0.15;
-        this.VISIBILITY_CACHE_MS = 50;
         this.MAX_DIRECTION_DIVERGENCE = 50.0;
         this.MAX_UPWARD_PITCH = -45.0;
         this.TELEPORT_RESYNC_DURATION_TICKS = 14;
@@ -61,8 +60,6 @@ class PathRotations {
     }
 
     resetRotations() {
-        this.currentBoxIndex = 0;
-        this.lastBoxIndex = 0;
         this.currentPathPosition = 0.0;
         this.isInitialized = false;
         this.complete = false;
@@ -76,8 +73,6 @@ class PathRotations {
         this.boxPositions = null;
         this.currentTargetPoint = null;
         this.smoothedLookahead = this.MAX_LOOKAHEAD;
-        this.cachedLookahead = null;
-        this.lastVisibilityCheck = 0;
         this.lookaheadOverride = null;
         this.lookaheadOverrideExpiry = 0;
         this.unseenSince = 0;
@@ -90,7 +85,6 @@ class PathRotations {
 
     onTeleportTriggered(targetPathPosition = null) {
         this.postTeleportResyncTicks = this.TELEPORT_RESYNC_DURATION_TICKS;
-        this.cachedLookahead = null;
         this.unseenSince = 0;
         this.unseenStartPathPosition = this.currentPathPosition;
         this.setTemporaryLookahead(this.MAX_LOOKAHEAD, this.TELEPORT_RESYNC_DURATION_TICKS);
@@ -160,12 +154,6 @@ class PathRotations {
         this.lookaheadOverride = distance;
         this.lookaheadOverrideExpiry = durationTicks;
         this.smoothedLookahead = distance;
-        this.cachedLookahead = null;
-    }
-
-    clearLookaheadOverride() {
-        this.lookaheadOverride = null;
-        this.lookaheadOverrideExpiry = 0;
     }
 
     isInRecoveryMode() {
@@ -173,12 +161,6 @@ class PathRotations {
     }
 
     findVisibleLookahead(playerEyes, idealLookahead) {
-        const now = Date.now();
-        if (!this.isInRecoveryMode() && this.cachedLookahead !== null && now - this.lastVisibilityCheck < this.VISIBILITY_CACHE_MS) {
-            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + this.cachedLookahead);
-            return { point: this.getInterpolatedPoint(t), lookahead: this.cachedLookahead };
-        }
-        this.lastVisibilityCheck = now;
         const immediateT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 0.5);
         const immediatePoint = this.getInterpolatedPoint(immediateT);
         const vecImmediate = {
@@ -214,13 +196,20 @@ class PathRotations {
                 }
             }
             if (this.isPointVisible(playerEyes, point)) {
-                this.cachedLookahead = lookahead;
                 return { point, lookahead };
             }
             const step = lookahead < this.MIN_LOOKAHEAD ? this.RECOVERY_LOOKAHEAD_STEP : this.LOOKAHEAD_STEP;
             lookahead -= step;
         }
-        this.cachedLookahead = effectiveMin;
+        let closeLookahead = Math.max(this.RECOVERY_MIN_LOOKAHEAD, this.MIN_LOOKAHEAD - 0.2);
+        while (closeLookahead >= this.RECOVERY_MIN_LOOKAHEAD) {
+            const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + closeLookahead);
+            const point = this.getInterpolatedPoint(t);
+            if (this.isPointVisible(playerEyes, point)) {
+                return { point, lookahead: closeLookahead };
+            }
+            closeLookahead -= this.RECOVERY_LOOKAHEAD_STEP;
+        }
         const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + effectiveMin);
         return { point: this.getInterpolatedPoint(t), lookahead: effectiveMin };
     }
@@ -355,7 +344,6 @@ class PathRotations {
                     if (this.isPointVisible(playerEyes, this.getInterpolatedPoint(t))) {
                         this.unseenSince = 0;
                         this.unseenStartPathPosition = this.currentPathPosition;
-                        this.cachedLookahead = null;
                         result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
                         targetVisible = this.isPointVisible(playerEyes, result.point);
                         break;
