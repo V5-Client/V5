@@ -89,6 +89,10 @@ class TunnelsMiner extends ModuleBase {
 
     onTick() {
         if (!this.botManaged) return;
+        if (MiningBot.enabled) {
+            this.forceTunnelMiningBotCosts();
+        }
+
         const hasActiveWork = MiningBot.isScanning() || MiningBot.currentTarget || MiningBot.foundLocations.length > 0;
         if (hasActiveWork) {
             this.botStartedWork = true;
@@ -140,8 +144,8 @@ class TunnelsMiner extends ModuleBase {
     }
 
     onPathSuccess() {
-        this.forceTunnelMiningBotCosts();
         MiningBot.toggle(true, true);
+        this.forceTunnelMiningBotCosts();
         this.botManaged = true;
         this.botStartedWork = false;
     }
