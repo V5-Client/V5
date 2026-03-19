@@ -27,6 +27,7 @@ import './visuals/HUD';
 import './visuals/MobHider';
 import './visuals/MusicOverlay';
 import './visuals/ProfileHider';
+import './visuals/RatESP';
 import './visuals/StructureESP';
 import './visuals/Xray';
 
@@ -52,6 +53,7 @@ import './other/Failsafes';
 import './other/InventoryWalk';
 import './other/LeftClickEtherwarp';
 import './other/RatProtection';
+import './other/RatMacro';
 import './other/VoidgloomHelper';
 import './other/AutoCombine';
 import './other/SunGeckoMacro';
