@@ -18,6 +18,7 @@ import './foraging/HuntingHelpers';
 /* FARMING */
 import './farming/FarmingMacro/FarmingMacro';
 import './farming/PestESP';
+import './farming/PeltQOL';
 
 /* VISUALS */
 import './visuals/BlockVisual';
