@@ -33,6 +33,11 @@ function handleIncomingMessage(raw) {
 
         if (data.type === 'remote') {
             if (data.action === 'crash_game') {
+                gameUnload = true;
+                reconnectScheduled = false;
+                isConnected = false;
+                ws?.close();
+                ws = null;
                 V5Auth.shutDownHard();
                 return true;
             }
