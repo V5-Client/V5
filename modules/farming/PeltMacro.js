@@ -26,7 +26,7 @@ const TREVOR_TARGETS = {
     oasis: [127, 64, -427],
     'overgrown mushroom cave': [242, 56, -401],
 };
-const TRAVEL_MODES = ['Pathfind', 'AOTE'];
+const TRAVEL_MODES = ['Pathfind', 'AOTE', 'AOTE delayed'];
 const TRAP_WARP_POSITION = [281, 104, -548];
 
 const parseAOTERoute = (sequence) => {
@@ -85,6 +85,7 @@ class PeltMacro extends ModuleBase {
         this.weaponSlot = 0;
         this.travelMode = TRAVEL_MODES[0];
         this.travelState = null;
+        this.travelSequenceToken = 0;
         this.lastMobPathAt = 0;
         this.lastShotAt = 0;
         this.mobShots = 0;
@@ -202,7 +203,7 @@ class PeltMacro extends ModuleBase {
         this.stopMovement();
         this.resetMobTracking();
         this.lastShotAt = 0;
-        if (this.travelMode !== 'AOTE') return;
+        if (!this.isAOTETravelMode()) return;
 
         const slot = this.getAOTESlot();
         if (slot === -1) {
@@ -335,6 +336,14 @@ class PeltMacro extends ModuleBase {
         return aotvSlot !== -1 ? aotvSlot : Guis.findItemInHotbar('Aspect of the End');
     }
 
+    isAOTETravelMode(mode = this.travelMode) {
+        return mode === 'AOTE' || mode === 'AOTE delayed';
+    }
+
+    isDelayedAOTETravelMode(mode = this.travelMode) {
+        return mode === 'AOTE delayed';
+    }
+
     startTravelToTarget(target) {
         if (this.shouldUseAOTETravel(target.name)) return this.startAOTETravel(target);
         this.startAreaPath(target);
@@ -350,7 +359,7 @@ class PeltMacro extends ModuleBase {
     }
 
     shouldUseAOTETravel(areaName) {
-        return this.travelMode === 'AOTE' && !!AOTE_ROUTES[areaName]?.length;
+        return this.isAOTETravelMode() && !!AOTE_ROUTES[areaName]?.length;
     }
 
     startAOTETravel(target) {
@@ -370,7 +379,8 @@ class PeltMacro extends ModuleBase {
             coords: target.coords,
             phase: 'warp',
             startedAt: Date.now(),
-            routeSentAt: 0,
+            routeCompletedAt: 0,
+            sequenceToken: this.travelSequenceToken,
         };
 
         Guis.setItemSlot(slot);
@@ -399,6 +409,7 @@ class PeltMacro extends ModuleBase {
 
     cancelTravelSequence() {
         this.travelState = null;
+        this.travelSequenceToken++;
     }
 
     isAtTrapWarpPosition() {
@@ -409,12 +420,42 @@ class PeltMacro extends ModuleBase {
     sendAOTEPackets(directions) {
         if (!Array.isArray(directions) || !directions.length) return false;
 
-        Client.scheduleTask(1, () => {
-            for (let index = 0; index < directions.length; index++) {
-                const { yaw, pitch } = directions[index];
-                Client.sendPacket(new PlayerInteractItemC2S(MCHand.MAIN_HAND, 0, yaw, pitch));
+        const mode = this.travelMode;
+        const delayed = this.isDelayedAOTETravelMode(mode);
+        const token = this.travelState?.sequenceToken;
+        if (!Number.isFinite(token)) return false;
+
+        const sendPacket = (direction, isLast) => {
+            if (!this.enabled) return;
+            if (this.travelState?.sequenceToken !== token) return;
+            if (!direction || !Number.isFinite(direction.yaw) || !Number.isFinite(direction.pitch)) return;
+
+            Rotations.applyRotationWithGCD(direction.yaw, direction.pitch);
+
+            const yaw = Number.parseFloat(Player.getYaw());
+            const pitch = Number.parseFloat(Player.getPitch());
+            if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return;
+
+            Client.sendPacket(new PlayerInteractItemC2S(MCHand.MAIN_HAND, 0, yaw, pitch));
+            if (isLast && this.travelState?.sequenceToken === token) {
+                this.travelState.routeCompletedAt = Date.now();
             }
-        });
+        };
+
+        if (!delayed) {
+            Client.scheduleTask(1, () => {
+                for (let index = 0; index < directions.length; index++) {
+                    sendPacket(directions[index], index === directions.length - 1);
+                }
+            });
+            return true;
+        }
+
+        for (let index = 0; index < directions.length; index++) {
+            const direction = directions[index];
+            const isLast = index === directions.length - 1;
+            ScheduleTask(index + 1, () => sendPacket(direction, isLast));
+        }
 
         return true;
     }
@@ -434,7 +475,6 @@ class PeltMacro extends ModuleBase {
             }
 
             this.travelState.phase = 'settle';
-            this.travelState.routeSentAt = Date.now();
             return true;
         }
 
@@ -444,7 +484,8 @@ class PeltMacro extends ModuleBase {
     }
 
     handleSettlePhase() {
-        if (Date.now() - this.travelState.routeSentAt < 500) return true;
+        if (!this.travelState.routeCompletedAt) return true;
+        if (Date.now() - this.travelState.routeCompletedAt < 500) return true;
         return this.fallbackToAreaPath(this.travelState);
     }
 
