@@ -8,6 +8,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { manager } from '../../utils/SkyblockEvents';
+import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { CombatBot } from '../combat/CombatBot';
@@ -100,7 +101,7 @@ class CommissionMacro extends ModuleBase {
         );
 
         this.on('step', () => {
-            const newCommissions = MiningUtils.readCommissions();
+            const newCommissions = TabListUtils.readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
         }).setDelay(1);
 
@@ -363,7 +364,7 @@ class CommissionMacro extends ModuleBase {
         }
         this.areaCheckTime = null;
 
-        const newCommissions = MiningUtils.readCommissions();
+        const newCommissions = TabListUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
         if (this.shouldWaitForLastCompleted()) return;

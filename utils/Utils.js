@@ -1,6 +1,7 @@
 import { Chat } from './Chat';
 import { BP, isLinux, isMac, isWindows, Vec3d } from './Constants';
 import { GameMessageS2C } from './Packets';
+import { TabListUtils } from './TabListUtils';
 
 export const mc = Client.getMinecraft();
 
@@ -66,43 +67,12 @@ class ConfigFileManager {
 
 class LocationDetector {
     constructor() {
-        this.currentArea = 'Unknown';
         this.currentSubArea = 'Unknown';
-        this.areaLastChecked = 0;
         this.subAreaLastChecked = 0;
     }
 
     getArea() {
-        let now = Date.now();
-
-        if (now - this.areaLastChecked < CACHE_DURATION_MS) {
-            return this.currentArea;
-        }
-
-        this.areaLastChecked = now;
-
-        try {
-            let tabLines = TabList.getNames();
-            if (!tabLines) return this.currentArea;
-
-            for (var i = 0; i < tabLines.length; i++) {
-                let lineStr = String(tabLines[i]);
-                let cleanLine = this.stripFormatting(lineStr);
-
-                if (cleanLine.indexOf('Area:') !== -1) {
-                    let parts = cleanLine.split('Area:');
-                    if (parts.length > 1) {
-                        this.currentArea = parts[1].trim();
-                        return this.currentArea;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            return this.currentArea;
-        }
-
-        return this.currentArea;
+        return TabListUtils.getArea();
     }
 
     getSubArea() {
@@ -151,37 +121,9 @@ class LocationDetector {
     }
 
     reset() {
-        this.currentArea = 'Unknown';
         this.currentSubArea = 'Unknown';
-        this.areaLastChecked = 0;
         this.subAreaLastChecked = 0;
-    }
-}
-
-class CookieDetector {
-    constructor() {
-        this.hasCookie = false;
-        this.lastChecked = 0;
-    }
-
-    check() {
-        if (Date.now() - this.lastChecked < 2000) return this.hasCookie;
-        this.lastChecked = Date.now();
-
-        try {
-            const footer = TabList.getFooter();
-            if (!footer) return this.hasCookie;
-
-            const raw = ChatLib.removeFormatting(footer);
-            if (raw.includes('Cookie Buff') && raw.includes('Not active! Obtain booster cookies')) {
-                this.hasCookie = false;
-            } else if (raw.includes('Cookie Buff')) {
-                this.hasCookie = true;
-            }
-        } catch (e) {
-            console.error('V5 Caught error checking cookie: ' + e);
-        }
-        return this.hasCookie;
+        TabListUtils.resetAreaCache();
     }
 }
 
@@ -311,7 +253,6 @@ let configManager = new ConfigFileManager(CONFIG_DIR_NAME);
 let locationDetector = new LocationDetector();
 let collisionChecker = new CollisionChecker();
 let vectorConverter = new VectorConverter();
-let cookieDetector = new CookieDetector();
 let manaDetector = new ManaDetector();
 
 class UtilsClass {
@@ -561,7 +502,7 @@ class UtilsClass {
     }
 
     hasCookie() {
-        return cookieDetector.check();
+        return TabListUtils.hasCookie();
     }
 
     getCurrentMana() {

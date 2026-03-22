@@ -12,9 +12,9 @@ import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
 import Render from '../../utils/render/Render';
+import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 
-const FORMATTING_CODE_REGEX = /§[0-9a-fk-or]/gi;
 const BFS_DIR_X = [1, -1, 0, 0, 0, 0];
 const BFS_DIR_Y = [0, 0, 1, -1, 0, 0];
 const BFS_DIR_Z = [0, 0, 0, 0, 1, -1];
@@ -86,7 +86,6 @@ class Bot extends ModuleBase {
         this.ABILITY_COOLDOWN_MS = 200000;
         this.fakeLookModeName = 'Off';
         this.selectedTypeName = 'Mithril';
-        this._abilityStatusCache = { expiresAt: 0, value: '' };
         this._renderPalette = {
             normal: {
                 currentFill: Render.Color(85, 255, 255, 60),
@@ -431,27 +430,6 @@ class Bot extends ModuleBase {
         this.updateMithrilCosts();
     }
 
-    getAbilityStatusFromTab() {
-        const now = Date.now();
-        if (now < this._abilityStatusCache.expiresAt) return this._abilityStatusCache.value;
-
-        const tabNames = TabList.getNames();
-        for (const [i, tabName] of tabNames.entries()) {
-            const rawLine = tabName.getName().toString();
-            const line = rawLine.replace(FORMATTING_CODE_REGEX, '').trim();
-
-            if (line.includes('Pickaxe Ability') && tabNames[i + 1]) {
-                const ability = tabNames[i + 1].getName().toString().replace(FORMATTING_CODE_REGEX, '').trim();
-                this._abilityStatusCache.expiresAt = now + 200;
-                this._abilityStatusCache.value = ability;
-                return ability;
-            }
-        }
-        this._abilityStatusCache.expiresAt = now + 200;
-        this._abilityStatusCache.value = '';
-        return '';
-    }
-
     getFakeLookMode() {
         return this.fakeLookModeName || 'Off';
     }
@@ -654,7 +632,7 @@ class Bot extends ModuleBase {
         if (this.SCAN_ONLY) return (this.state = this.STATES.MINING);
 
         const now = Date.now();
-        const abilityStatus = this.getAbilityStatusFromTab();
+        const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
         if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < now) {
             if (this.ensureDrillEquipped(this.drill)) return;
 

@@ -2,9 +2,12 @@ import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Consta
 import { ModuleBase } from '../../utils/ModuleBase';
 import { NukerUtils } from '../../utils/NukerUtils';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { manager } from '../../utils/SkyblockEvents';
 import { Executor } from '../../utils/ThreadExecutor';
+import { TabListUtils } from '../../utils/TabListUtils';
 import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
+import { Keybind } from '../../utils/player/Keybinding';
 import Render from '../../utils/render/Render';
 
 class NukerClass extends ModuleBase {
@@ -38,10 +41,14 @@ class NukerClass extends ModuleBase {
         this.nukeBelow = false;
         this.onGroundOnly = false;
         this.autoChest = false;
+        this.usePickaxeAbility = false;
         this.heightLimit = 5;
         this.onGroundDelay = 1;
         this.offGroundDelay = 1;
         this.customReach = 4.5;
+        this.abilityFromChat = false;
+        this.lastUse = 0;
+        this.ABILITY_COOLDOWN_MS = 200000;
 
         v5Command('nukeit', (ticks = 1) => {
             let block = Player.lookingAt();
@@ -103,6 +110,11 @@ class NukerClass extends ModuleBase {
             this.lastMineTick = this.tickCounter;
             this.chestClickedThisTick = false;
 
+            if (this.shouldUsePickaxeAbility()) {
+                this.usePickaxeAbilityNow();
+                return;
+            }
+
             for (const [pos, tick] of this.minedBlocks) {
                 if (this.tickCounter - tick > this.BLOCK_COOLDOWN) {
                     this.minedBlocks.delete(pos);
@@ -130,6 +142,17 @@ class NukerClass extends ModuleBase {
                     }
                 }
             });
+        });
+
+        manager.subscribe('abilityready', () => {
+            if (!this.enabled || !this.usePickaxeAbility) return;
+            this.abilityFromChat = true;
+        });
+
+        manager.subscribe('abilityused', () => {
+            if (!this.enabled || !this.usePickaxeAbility) return;
+            this.lastUse = Date.now();
+            this.abilityFromChat = false;
         });
 
         this.on('postRenderWorld', () => {
@@ -164,6 +187,7 @@ class NukerClass extends ModuleBase {
         this.addToggle('Auto Chest', (v) => (this.autoChest = v), 'Auto-opens chests');
         this.addToggle("Don't nuke below", (v) => (this.nukeBelow = v), 'Prevents nuking below');
         this.addToggle('On Ground Only', (v) => (this.onGroundOnly = v), 'Only mine when on ground');
+        this.addToggle('Use Pickaxe Ability', (v) => (this.usePickaxeAbility = v), 'Uses pickaxe ability when available');
         this.addSlider('Custom Reach', '4.5', 6.0, this.customReach, (v) => (this.customReach = Number(v)), 'Adjust player reach');
         this.addSlider('On Ground Delay', 1, 20, 1, (v) => (this.onGroundDelay = v));
         this.addSlider('Off Ground Delay', 1, 20, 1, (v) => (this.offGroundDelay = v));
@@ -231,6 +255,26 @@ class NukerClass extends ModuleBase {
         return validBlocks[Math.floor(Math.random() * validBlocks.length)];
     }
 
+    isHoldingMiningTool() {
+        const heldName = TabListUtils.stripFormatting(Player.getHeldItem()?.getName?.() ?? '');
+        return this.REQUIRED_ITEMS.some((name) => heldName.includes(name));
+    }
+
+    shouldUsePickaxeAbility() {
+        if (!this.usePickaxeAbility) return false;
+        if (!this.isHoldingMiningTool()) return false;
+
+        const now = Date.now();
+        const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
+        return abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < now;
+    }
+
+    usePickaxeAbilityNow() {
+        Keybind.rightClick();
+        this.lastUse = Date.now();
+        this.abilityFromChat = false;
+    }
+
     posToString(pos) {
         return pos.getX ? `${pos.getX()},${pos.getY()},${pos.getZ()}` : `${pos[0]},${pos[1]},${pos[2]}`;
     }
@@ -277,6 +321,7 @@ class NukerClass extends ModuleBase {
         this.tickCounter = 0;
         this.minedBlocks.clear();
         this.clickQueue.clear();
+        this.abilityFromChat = false;
     }
 
     onEnable() {

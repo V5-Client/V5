@@ -8,6 +8,7 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { manager } from '../../utils/SkyblockEvents';
+import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 import { MiningBot } from './MiningBot';
 import { tunnelsMiner } from './TunnelsMiner';
@@ -83,7 +84,7 @@ class GlaciteCommissionMacro extends ModuleBase {
 
         this.on('step', () => {
             if (!this.enabled) return;
-            const newCommissions = MiningUtils.readCommissions();
+            const newCommissions = TabListUtils.readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
         }).setDelay(1);
 
@@ -191,7 +192,7 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
-        const newCommissions = MiningUtils.readCommissions();
+        const newCommissions = TabListUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
         if (this.shouldWaitForLastCompleted()) return;
@@ -218,7 +219,7 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     handleMining() {
-        const newCommissions = MiningUtils.readCommissions();
+        const newCommissions = TabListUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
         if (this.shouldWaitForLastCompleted()) return;

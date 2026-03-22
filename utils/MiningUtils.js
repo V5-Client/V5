@@ -8,6 +8,7 @@ import Pathfinder from './pathfinder/PathFinder';
 import { Guis } from './player/Inventory';
 import { Keybind } from './player/Keybinding';
 import { Rotations } from './player/Rotations';
+import { TabListUtils } from './TabListUtils';
 
 const BLOCK_HARDNESS_DATA = {
     'minecraft:polished_diorite': { hardness: 2000, name: 'Titanium' },
@@ -883,20 +884,7 @@ class CommissionParser {
     }
 
     static parseTab() {
-        try {
-            let tabNames = TabList.getNames();
-            let startIdx = this.findIndex(tabNames, 'Commissions:');
-
-            if (startIdx === -1) return [];
-
-            let endIdx = this.findIndex(tabNames, 'Powders:', startIdx + 1);
-            if (endIdx === -1) endIdx = tabNames.length;
-
-            return this.extractCommissionData(tabNames, startIdx + 1, endIdx);
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            return [];
-        }
+        return TabListUtils.readCommissions();
     }
 
     static parseGui(container, isKnownCommission) {
@@ -918,41 +906,6 @@ class CommissionParser {
             console.error('V5 Caught error' + e + e.stack);
             return [];
         }
-    }
-
-    static findIndex(items, target, start) {
-        start = start || 0;
-        for (var i = start; i < items.length; i++) {
-            let cleaned = ChatLib.removeFormatting(items[i] || '').trim();
-            if (cleaned === target) return i;
-        }
-        return -1;
-    }
-
-    static extractCommissionData(items, start, end) {
-        let commissions = [];
-
-        for (var i = start; i < end; i++) {
-            let text = ChatLib.removeFormatting(items[i] || '').trim();
-            if (text.indexOf(':') === -1) continue;
-
-            let parts = text.split(':');
-            let name = parts[0].trim();
-            let progressText = parts[1].trim();
-            let progress;
-
-            if (progressText.indexOf('DONE') !== -1) {
-                progress = 1;
-            } else if (progressText.indexOf('%') !== -1) {
-                progress = Number.parseFloat(progressText.replace(/ /g, '').replaceAll('%', '')) / 100;
-            } else {
-                continue;
-            }
-
-            commissions.push({ name: name, progress: progress });
-        }
-
-        return commissions;
     }
 
     static parseGuiCommissionStack(stack, isKnownCommission) {
