@@ -64,6 +64,13 @@ class PeltQOL extends ModuleBase {
         this.reset();
     }
 
+    ensureForceEnabled() {
+        this.autoAcceptQuest = true;
+        this.autoCallTrevor = true;
+        this.renderESP = true;
+        this.toggle(true);
+    }
+
     reset() {
         this.animals = [];
         this.huntCompleted = false;
@@ -134,4 +141,4 @@ class PeltQOL extends ModuleBase {
     }
 }
 
-new PeltQOL();
+export const PeltQOLModule = new PeltQOL();
