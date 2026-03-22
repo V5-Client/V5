@@ -116,7 +116,7 @@ class PeltQOL extends ModuleBase {
         if (this.autoCallTrevor && lower.includes(RETRY)) return this.run('call trevor');
 
         const cooldown = this.autoCallTrevor && lower.match(/\[npc\] trevor: try coming back in.*?(\d+)\s*s\b/);
-        if (cooldown) this.run('call trevor', Math.max(+cooldown[1] * 20 - 50, 0));
+        if (cooldown) this.run('call trevor', Math.max(+cooldown[1] * 20 - 40, 0));
     }
 
     scan() {
