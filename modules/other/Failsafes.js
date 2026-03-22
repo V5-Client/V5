@@ -155,7 +155,11 @@ class Failsafes extends ModuleBase {
     postBanLog(reason, lastMacro, currentlyMacroing, verbose = false) {
         new Thread(() => {
             try {
-                const jwt = V5Auth.getJwtToken();
+                const jwt = V5Auth.getFreshJwtToken();
+                if (!jwt) {
+                    console.error('Skipping ban log: no fresh auth token available.');
+                    return;
+                }
                 const configContents = this.getConfigFileContents();
                 const url = new JURL('https://backend.rdbt.top/api/logs/bans');
                 const conn = url.openConnection();
