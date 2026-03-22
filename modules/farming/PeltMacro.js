@@ -21,7 +21,7 @@ const TREVOR_TARGETS = {
     'desert settlement': [164, 76, -375],
     'desert mountain': [241, 96, -411],
     'mushroom desert': [193, 66, -468],
-    'mushroom gorge': [284, 44, -497],
+    'mushroom gorge': [308, 52, -454],
     'glowing mushroom cave': [190, 42, -494],
     oasis: [127, 64, -427],
     'overgrown mushroom cave': [242, 56, -401],
