@@ -135,6 +135,7 @@ class ChocolateFactory extends ModuleBase {
     onTick() {
         const container = Player.getContainer();
         if (!container) return;
+        if (Guis.guiName() !== 'Chocolate Factory') return;
 
         const now = Date.now();
         if ((this.clickFactory || this.claimStrays) && now - this.lastActionAt >= this.actionDelayMs) {
