@@ -9,6 +9,7 @@ import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { Keybind } from '../../utils/player/Keybinding';
 import Render from '../../utils/render/Render';
+import { Chat } from '../../utils/Chat';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -99,6 +100,14 @@ class NukerClass extends ModuleBase {
 
         this.on('tick', () => {
             this.tickCounter++;
+
+            if (this.customBlockList.length === 0) {
+                Chat.message('Try adjusting your targets with /v5 nuker commands:');
+                Chat.message(' - /v5 nuker add - adds the block your looking at');
+                Chat.message(' - /v5 nuker remove - removes the block your looking at');
+                Chat.message(' - /v5 nuker clear - clear all targets');
+                Chat.message(' - /v5 nuker list - list all targets');
+            }
 
             if (Client.isInGui() && !Client.isInChat()) return;
             if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.attackKey?.isPressed()) return;
