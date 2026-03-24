@@ -53,6 +53,7 @@ import './other/ChatQOL';
 import './other/DiscordRPC';
 //import './other/DungeonRoutes'; // IS NOT A FILE, RDBT HASN'T PUSHED YET
 import './other/Failsafes';
+import './other/Freecam';
 import './other/InventoryWalk';
 import './other/LeftClickEtherwarp';
 import './other/RatProtection';
