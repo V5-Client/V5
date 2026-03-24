@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
@@ -159,7 +158,7 @@ class FishingMacro extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('fishing macro enabled');
+        this.message('&aEnabled');
         this.step = -2;
         this.tickDelay = 0;
         this.thunderSpawn = false;
@@ -167,7 +166,7 @@ class FishingMacro extends ModuleBase {
     }
 
     onDisable() {
-        Chat.message('fishing macro un-enabled');
+        this.message('&cDisabled');
     }
 }
 

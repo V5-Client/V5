@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Utils } from '../../utils/Utils';
@@ -28,6 +27,7 @@ class AutoIceFill extends ModuleBase {
             subcategory: 'Other',
             description: 'Requires Devonian Ice Fill solver (no teleport skip) enabled. Works on 400/500 speed.',
             tooltip: '',
+            theme: '#8fe8ff',
         });
 
         this.activePath = null;
@@ -64,7 +64,7 @@ class AutoIceFill extends ModuleBase {
     onTick() {
         if (this.reflectionFailed) {
             if (!this.reflectionWarningShown) {
-                Chat.message('&c[Auto Ice Fill] Failed to access Devonian solver. Please install devonian or disable auto ice fill.');
+                this.message('&cFailed to access Devonian solver. Please install devonian or disable auto ice fill.');
                 this.reflectionWarningShown = true;
             }
             return;

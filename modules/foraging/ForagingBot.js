@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -192,7 +191,7 @@ class ForagingBot extends ModuleBase {
         const target = World.getBlockAt(start[0], start[1], start[2]);
         const targetId = target?.type?.getID();
         if (targetId === undefined || targetId === null) {
-            Chat.message('Foraging Bot: Start block has no ID.');
+            this.message('&cStart block has no ID.');
             this.connectedBlocks = [];
             this.scannedBlocksSnapshot = [];
             this.targetBlock = null;
@@ -219,7 +218,7 @@ class ForagingBot extends ModuleBase {
         this.connectedBlocks = found;
         this.scannedBlocksSnapshot = found.map((b) => ({ ...b }));
         this.targetBlock = null;
-        Chat.message(`Scan complete. Found ${found.length} blocks.`);
+        this.message(`Scan complete. Found ${found.length} blocks.`);
         return found;
     }
 
@@ -264,14 +263,14 @@ class ForagingBot extends ModuleBase {
 
     advanceRoutePoint() {
         if (this.route.length <= 1) {
-            Chat.message('Foraging Bot: Route complete. Stopping.');
+            this.message('Route complete. Stopping.');
             this.toggle(false);
             return false;
         }
 
         this.pointIndex = (this.pointIndex + 1) % this.route.length;
         this.resetState(this.STATES.PATHFINDING, this.pointIndex);
-        Chat.message(`Foraging Bot: Moving to next route point (${this.pointIndex + 1}/${this.route.length}).`);
+        this.message(`Moving to next route point (${this.pointIndex + 1}/${this.route.length}).`);
         return true;
     }
 
@@ -341,12 +340,12 @@ class ForagingBot extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('Foraging Bot: &aEnabled');
+        this.message('&aEnabled');
         this.resetState(this.STATES.PATHFINDING, 0);
     }
 
     onDisable() {
-        Chat.message('Foraging Bot: &cDisabled');
+        this.message('&cDisabled');
         Rotations.stopRotation();
         Pathfinder.resetPath();
         this.resetState(this.STATES.WAITING, this.pointIndex);

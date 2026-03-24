@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Veins } from './GlaciteData';
@@ -126,16 +125,16 @@ class TunnelsMiner extends ModuleBase {
     startPathfind() {
         const scan = this.scanForVeins(this.selectedOres);
         if (!scan?.targets?.length) {
-            Chat.message('&cNo reachable veins found.');
+            this.message('&cNo reachable veins found.');
             return;
         }
 
         const ends = scan.targets.map((target) => [target.candidate.x, target.candidate.y - 1, target.candidate.z]);
-        Chat.message(`&bPathing to best target (${scan.targets.length} options)...`);
+        this.message(`&bPathing to best target (${scan.targets.length} options)...`);
 
         Pathfinder.findPath(ends, (success) => {
             if (!success) {
-                Chat.message('&cPathfinding failed.');
+                this.message('&cPathfinding failed.');
                 return;
             }
 

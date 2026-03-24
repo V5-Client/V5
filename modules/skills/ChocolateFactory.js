@@ -78,6 +78,7 @@ class ChocolateFactory extends ModuleBase {
             subcategory: 'Skills',
             description: 'Automates cookie clicking, stray claims, and egg tracking in Chocolate Factory.',
             tooltip: 'Chocolate Factory automation + egg ESP.',
+            theme: '#8f5a2b',
         });
 
         this.clickFactory = false;
@@ -88,8 +89,6 @@ class ChocolateFactory extends ModuleBase {
 
         this.lastActionAt = 0;
         this.detectedEggs = new Map();
-
-        this.setTheme('#8f5a2b');
 
         this.addToggle('Auto Click', (value) => (this.clickFactory = !!value), 'Right clicks the chocolate cookie while the factory menu is open.', false);
         this.addToggle('Auto Claim Strays', (value) => (this.claimStrays = !!value), 'Claims stray rabbits in the Chocolate Factory menu.', false);

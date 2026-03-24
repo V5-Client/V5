@@ -1,5 +1,4 @@
 //@Beta
-import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -27,6 +26,7 @@ class ScathaMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Automatically mines and kills Scappas for you',
             tooltip: 'Automatically mines and kills Scappas for you',
+            theme: '#5a7cbb',
             showEnabledToggle: false,
             isMacro: true,
         });
@@ -101,7 +101,6 @@ class ScathaMacro extends ModuleBase {
         };
 
         this.bindToggleKey();
-        this.setTheme('#5a7cbb');
 
         this.STATES = {
             WAITING: 0,

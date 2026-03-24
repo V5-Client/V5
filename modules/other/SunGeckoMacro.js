@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { CombatBot } from '../combat/CombatBot';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -455,7 +454,7 @@ class SunGecko extends ModuleBase {
         this.terracottaClickCooldownUntil = 0;
         this.setState(States.DETERMIN);
         Mouse.ungrab();
-        Chat.message('&aSunGecko enabled');
+        this.message('&aEnabled');
     }
 
     onDisable() {
@@ -469,7 +468,7 @@ class SunGecko extends ModuleBase {
         if (CombatBot.enabled) CombatBot.toggle(false, true);
         this.state = States.WAITING;
         Mouse.regrab();
-        Chat.message('&cSunGecko disabled');
+        this.message('&cDisabled');
     }
 }
 

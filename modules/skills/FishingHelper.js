@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -85,7 +84,7 @@ class FishingHelper extends ModuleBase {
 
     onEnable() {
         MacroState.setMacroRunning(true, 'FISHING');
-        Chat.message('Fishing Helper Enabled');
+        this.message('&aEnabled');
 
         this.resetSequence();
         Keybind.setKey('shift', false);
@@ -93,7 +92,7 @@ class FishingHelper extends ModuleBase {
 
     onDisable() {
         MacroState.setMacroRunning(false, 'FISHING');
-        Chat.message('Fishing Helper disabled');
+        this.message('&cDisabled');
         Keybind.setKey('shift', false);
     }
 }

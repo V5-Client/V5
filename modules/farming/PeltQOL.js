@@ -35,6 +35,7 @@ class PeltQOL extends ModuleBase {
             subcategory: 'Farming',
             description: 'Highlights Trevor hunt animals.',
             tooltip: 'Highlights Trevor hunt animals.',
+            theme: '#d99a3e',
         });
 
         this.autoAcceptQuest = true;
@@ -43,8 +44,6 @@ class PeltQOL extends ModuleBase {
         this.animals = [];
         this.huntCompleted = false;
         this.rarityRgb = WHITE;
-
-        this.setTheme('#9bc53d');
 
         this.addToggle('Auto Accept Quest', (value) => (this.autoAcceptQuest = !!value), "Automatically clicks Trevor's YES prompt to start a hunt.", true);
         this.addToggle('Auto Call Trevor', (value) => (this.autoCallTrevor = !!value), 'Automatically runs /call trevor when a hunt completes.', true);

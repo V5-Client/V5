@@ -1,5 +1,4 @@
-﻿import { Chat } from '../../utils/Chat';
-import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
+﻿import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -66,11 +65,11 @@ class Combat extends ModuleBase {
             subcategory: 'Combat',
             description: 'Universal settings for combat bot',
             tooltip: 'Combat bot settings',
+            theme: '#c74d4d',
             showEnabledToggle: false,
             isMacro: true,
         });
         this.bindToggleKey();
-        this.setTheme('#c74d4d');
 
         this.enabledPresets = new Set();
         this.customTargetNames = [];
@@ -636,7 +635,7 @@ class Combat extends ModuleBase {
 
     startPathingToTarget(pos) {
         if (!this.isPositionSafe(pos.x, pos.y, pos.z)) {
-            Chat.message('&cTarget is inside a Blackhole! Aborting path.');
+            this.message('&cTarget is inside a Blackhole! Aborting path.');
             this.blacklistTarget(this.target, TARGET_BLACKLIST_MS);
             this.target = null;
             this.setState(COMBAT_STATE.IDLE);
@@ -717,7 +716,7 @@ class Combat extends ModuleBase {
         this.failedPathCallbacks.set(uuid, failures);
 
         if (failures > 2) {
-            Chat.message('&cTarget path failed too many times. Blacklisting target for 10s.');
+            this.message('&cTarget path failed too many times. Blacklisting target for 10s.');
             this.blacklistTarget(target, TARGET_BLACKLIST_MS);
             this.failedPathCallbacks.delete(uuid);
             return true;
@@ -920,7 +919,7 @@ class Combat extends ModuleBase {
 
         if (this.externalTargets === null) {
             const presets = Array.from(this.enabledPresets).join(', ');
-            Chat.message(`&7Targeting: &b${presets || 'None selected'}`);
+            this.message(`&7Targeting: &b${presets || 'None selected'}`);
         }
 
         this.activeBlackholes = [];

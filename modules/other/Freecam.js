@@ -5,8 +5,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { mc } from '../../utils/Utils';
 
-const STEP_FPS = 100;
-const STEP_SCALE = 20 / STEP_FPS;
 const Perspective = net.minecraft.client.option.Perspective;
 const THIRD_PERSON_DISTANCE = 4.0;
 
@@ -14,24 +12,24 @@ class Freecam extends ModuleBase {
     constructor() {
         super({
             name: 'Freecam',
-            subcategory: 'Other',
+            subcategory: 'Visuals',
             description: 'Detach your camera and fly it around locally.',
             tooltip: 'Client-side freecam.',
+            theme: '#5fb0ff',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
         });
 
         this.bindToggleKey();
-        this.setTheme('#5fb0ff');
 
-        this.moveSpeed = 1.2;
+        this.moveSpeed = 10;
         this.cameraPos = null;
         this.velocity = new Vec3d(0, 0, 0);
         this.savedPerspective = null;
 
-        this.addSlider('Move Speed', 1, 30, Math.round(this.moveSpeed * 5), (value) => (this.moveSpeed = Number(value) / 5), 'Freecam move speed.');
+        this.addSlider('Move Speed', 1, 30, 10, (value) => (this.moveSpeed = Number(value) / 25), 'Freecam move speed.');
 
-        this.on('step', () => this.onTick()).setFps(STEP_FPS);
+        this.on('step', () => this.onTick()).setFps(100);
     }
 
     onEnable() {
@@ -49,7 +47,7 @@ class Freecam extends ModuleBase {
             return;
         }
 
-        this.message('Enabled');
+        this.message('&aEnabled');
         this.cameraPos = this.getInitialCameraPos(player, player.getYaw(), player.getPitch());
         this.velocity = new Vec3d(0, 0, 0);
         this.savedPerspective = mc.options.getPerspective();
@@ -64,7 +62,7 @@ class Freecam extends ModuleBase {
     }
 
     onDisable() {
-        this.message('Disabled');
+        this.message('&cDisabled');
         this.cameraPos = null;
         this.velocity = new Vec3d(0, 0, 0);
         Keybind.unpressKeys();
@@ -135,7 +133,7 @@ class Freecam extends ModuleBase {
         const magnitude = Math.hypot(moveX, moveY, moveZ) || 1;
         const hasInput = Math.abs(moveX) > 0 || Math.abs(moveY) > 0 || Math.abs(moveZ) > 0;
 
-        const targetSpeed = this.moveSpeed * STEP_SCALE;
+        const targetSpeed = this.moveSpeed;
         const targetX = hasInput ? (moveX / magnitude) * targetSpeed : 0;
         const targetY = hasInput ? (moveY / magnitude) * targetSpeed : 0;
         const targetZ = hasInput ? (moveZ / magnitude) * targetSpeed : 0;

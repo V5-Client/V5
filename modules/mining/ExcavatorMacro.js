@@ -13,6 +13,7 @@ class ExcavatorMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Automatically gets glacite powder from the Fossil Excavator using suspicious scrap.',
             tooltip: 'Glacite Powder Macro',
+            theme: '#c4682b',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
             isMacro: true,
@@ -20,7 +21,6 @@ class ExcavatorMacro extends ModuleBase {
         });
 
         this.bindToggleKey();
-        this.setTheme('#c4682b');
 
         this.NODELAY = false;
         this.TICKDELAY = 0;

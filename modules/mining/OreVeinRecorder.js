@@ -5,7 +5,6 @@
 // Vibecoded slop, made for development purposes only.
 // Vibecoded slop, made for development purposes only.
 
-import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import RenderUtils from '../../utils/render/RendererUtils';
@@ -190,7 +189,7 @@ class OreVeinRecorder extends ModuleBase {
 
         const name = ORE_TYPES[oreKey].name;
         const totalBlocks = this.scannedBlocks[oreKey].size;
-        Chat.message(`&aCaptured ${cluster.length} ${name} blocks. Saved ${totalBlocks} total ${name} blocks.`);
+        this.message(`&aCaptured ${cluster.length} ${name} blocks. Saved ${totalBlocks} total ${name} blocks.`);
     }
 
     scanVein(startPos, oreKey) {
@@ -242,7 +241,7 @@ class OreVeinRecorder extends ModuleBase {
         }
 
         if (hitLimit) {
-            Chat.message(`&eReached scan limit (${this.maxBlocksPerScan}) for this vein. Some blocks may be missing.`);
+            this.message(`&eReached scan limit (${this.maxBlocksPerScan}) for this vein. Some blocks may be missing.`);
         }
 
         return found;
@@ -271,7 +270,7 @@ class OreVeinRecorder extends ModuleBase {
             .join(', ');
 
         if (sorted.length > 0) {
-            Chat.message(`&eNearby block IDs (r=${radius}): ${sorted}`);
+            this.message(`&eNearby block IDs (r=${radius}): ${sorted}`);
         }
     }
 
@@ -334,12 +333,12 @@ class OreVeinRecorder extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message(`&aOre vein recorder enabled. ${this.totalVeins()} saved veins loaded.`);
+        this.message(`&aEnabled. ${this.totalVeins()} saved veins loaded.`);
     }
 
     onDisable() {
         this.saveToDisk();
-        Chat.message('&cOre vein recorder disabled.');
+        this.message('&cDisabled.');
     }
 }
 

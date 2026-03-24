@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
@@ -105,7 +104,7 @@ class VoidgloomHelper extends ModuleBase {
                 this.bossActive = true;
                 if (this.enableDeploy) {
                     this.pendingDeploy = true;
-                    Chat.message('Boss detected! Deploying orb/flare.');
+                    this.message('Boss detected! Deploying orb/flare.');
                 }
             }
         }
@@ -226,11 +225,11 @@ class VoidgloomHelper extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('VoidgloomHelper enabled');
+        this.message('&aEnabled');
     }
 
     onDisable() {
-        Chat.message('VoidgloomHelper disabled');
+        this.message('&cDisabled');
         this.resetAction();
         this.pendingDeploy = false;
         this.bossActive = false;

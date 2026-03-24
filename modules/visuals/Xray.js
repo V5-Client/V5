@@ -11,10 +11,11 @@ class Xray extends ModuleBase {
             subcategory: 'Visuals',
             description: 'See through walls - Sodium and Iris will break Xray',
             tooltip: 'See through walls client-side.',
+            theme: '#94a2bb',
+            showEnabledToggle: false,
         });
 
         this.bindToggleKey();
-        this.setTheme('#94a2bb');
 
         this.firstTransparency = getSetting('Xray', 'Transparency');
 

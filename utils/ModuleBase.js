@@ -11,6 +11,16 @@ import { Utils } from './Utils';
 export class ModuleBase {
     static conditions = [];
     static conditionChecker = null;
+    static defaultThemes = {
+        Combat: '#c74d4d',
+        Core: '#7c8cff',
+        Farming: '#9bc53d',
+        Foraging: '#4cbf7b',
+        Mining: '#5a7cbb',
+        Other: '#5fb0ff',
+        Skills: '#65a6f0',
+        Visuals: '#94a2bb',
+    };
 
     /**
      * Create a new module
@@ -18,7 +28,7 @@ export class ModuleBase {
      * @param {string} [subcategory] - Subcategory name (required if nameOrOpts is string)
      * @param {string} [description=''] - Module description (required if nameOrOpts is string)
      * @param {string} [tooltip=null] - Tooltip text (required if nameOrOpts is string)
-     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, showEnabledToggle, autoDisableOnWorldUnload, isMacro, ignoreFailsafes
+     * @param {object} [opts] - Options object with properties: name, subcategory, description, tooltip, theme, showEnabledToggle, autoDisableOnWorldUnload, isMacro, ignoreFailsafes
      */
     constructor(nameOrOpts, subcategory, description = '', tooltip = null) {
         const opts = typeof nameOrOpts === 'object' ? nameOrOpts : { name: nameOrOpts, subcategory, description, tooltip };
@@ -32,6 +42,7 @@ export class ModuleBase {
         this.hexCode = null;
         this.hideInModules = opts.hideInModules === true;
         this.showEnabledToggle = opts.showEnabledToggle !== false;
+        this.setTheme(opts.theme || ModuleBase.getDefaultTheme(this.subcategory));
 
         this.isParentManaged = false;
 
@@ -60,6 +71,10 @@ export class ModuleBase {
         }
 
         ModuleBase.setupConditionChecker();
+    }
+
+    static getDefaultTheme(subcategory) {
+        return ModuleBase.defaultThemes[subcategory] || '#5fb0ff';
     }
 
     static setupConditionChecker() {
@@ -170,12 +185,24 @@ export class ModuleBase {
     }
 
     setTheme(hexCode) {
+        if (!hexCode || typeof hexCode !== 'string') {
+            this.hexCode = null;
+            return this;
+        }
+
+        if (hexCode.startsWith('&#') || hexCode.startsWith('&')) {
+            this.hexCode = hexCode;
+            return this;
+        }
+
         this.hexCode = `&${hexCode}`;
+        return this;
     }
 
     message(message) {
-        if (!this.name || !this.hexCode) return Chat.message('&cModule message error!');
-        Chat.message(`${this.hexCode}${this.name}: &f${message}`);
+        if (!this.name) return Chat.message('&cModule message error!');
+        const theme = this.hexCode || `&${ModuleBase.getDefaultTheme(this.subcategory)}`;
+        Chat.message(`${theme}${this.name}: &f${message}`);
     }
 
     /**

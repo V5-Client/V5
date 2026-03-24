@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../../utils/Chat';
 import { Vec3d } from '../../../utils/Constants';
 import { Mixin } from '../../../utils/MixinManager';
 import { ModuleBase } from '../../../utils/ModuleBase';
@@ -49,6 +48,7 @@ class FarmingMacro extends ModuleBase {
             subcategory: 'Farming',
             description: 'Automates farming for various crops',
             tooltip: 'Automates farming for various crops',
+            theme: '#33ba11',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
         });
@@ -261,8 +261,7 @@ class FarmingMacro extends ModuleBase {
 
     message(msg, debug = false) {
         if (debug && !this.DEBUG) return;
-        const prefix = debug ? '&#33ba11Farming Macro: &c[DEBUG]' : '&#33ba11Farming Macro:';
-        Chat.message(`${prefix}&f ${msg}`);
+        return super.message(debug ? `&c[DEBUG]&f ${msg}` : msg);
     }
 
     onEnable() {

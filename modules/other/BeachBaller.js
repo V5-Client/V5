@@ -1,11 +1,9 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import { Rotations } from '../../utils/player/Rotations';
 import Render from '../../utils/render/Render';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
@@ -36,6 +34,7 @@ class Beachballer extends ModuleBase {
             subcategory: 'Other',
             description: 'Automatically bounces beach balls',
             tooltip: 'Bounces beach balls and returns to start position at 40 bounces',
+            theme: '#ffb347',
             showEnabledToggle: false,
             isMacro: true,
         });
@@ -372,7 +371,7 @@ class Beachballer extends ModuleBase {
             if (this.trackedBall) {
                 this.bounceCount = 0;
                 this.hasActiveRun = false;
-                Chat.message('Found ball!');
+                this.message('Found ball!');
                 this.setState(States.BOUNCE);
                 return;
             }
@@ -380,7 +379,7 @@ class Beachballer extends ModuleBase {
 
         const ballSlot = Guis.findItemInHotbar('Bouncy Beach Ball');
         if (ballSlot === -1) {
-            Chat.message('&cNo bouncy balls in hotbar!');
+            this.message('&cNo bouncy balls in hotbar!');
             this.toggle(false);
             return;
         }
@@ -461,7 +460,7 @@ class Beachballer extends ModuleBase {
         this.lastVelocityY = 0;
         this.hasActiveRun = false;
         Mouse.ungrab();
-        Chat.message('&aBeachBaller enabled');
+        this.message('&aEnabled');
     }
 
     onDisable() {
@@ -473,7 +472,7 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.ballDescending = false;
         Mouse.regrab();
-        Chat.message('&cBeachBaller disabled');
+        this.message('&cDisabled');
     }
 }
 

@@ -1,6 +1,5 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { Categories } from '../../gui/categories/CategorySystem';
-import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { TimeUtils } from '../../utils/TimeUtils';
@@ -12,6 +11,7 @@ class DiscordIntegration extends ModuleBase {
             name: 'Discord Integration',
             subcategory: 'Core',
             description: 'Discord Integration',
+            theme: '#7289da',
             showEnabledToggle: true,
             hideInModules: true,
         });
@@ -165,11 +165,11 @@ class DiscordIntegration extends ModuleBase {
 
         const canonical = trimmed.split(/[?#]/)[0];
         const valid = canonical === '' || /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[^\s/]+\/?$/.test(canonical);
-        if (!valid) return Chat.message('&cInvalid Discord webhook format.');
+        if (!valid) return this.message('&cInvalid Discord webhook format.');
 
         this.URL = trimmed;
         Webhook.setWebhook(trimmed);
-        Chat.message('&aDiscord webhook endpoint updated.');
+        this.message('&aDiscord webhook endpoint updated.');
     }
 
     handleIDChange(id) {
@@ -177,7 +177,7 @@ class DiscordIntegration extends ModuleBase {
         if (trimmed === String(this.ID ?? '').trim()) return;
         this.ID = trimmed;
         Webhook.setUserId(trimmed);
-        Chat.message('&aDiscord webhook ID updated.');
+        this.message('&aDiscord webhook ID updated.');
     }
 }
 

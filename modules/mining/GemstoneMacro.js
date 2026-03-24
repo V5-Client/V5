@@ -23,6 +23,7 @@ class GemstoneMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Macro for gemstones',
             tooltip: 'Macro for gemstones',
+            theme: '#fb42f5',
             showEnabledToggle: false,
             isMacro: true,
             autoDisableOnWorldUnload: true,
@@ -46,8 +47,6 @@ class GemstoneMacro extends ModuleBase {
         };
 
         this.bindToggleKey();
-        this.setTheme('#fb42f5');
-
         this.FASTAOTV = false;
         this.MOBKILLER = false;
 

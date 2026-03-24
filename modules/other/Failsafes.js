@@ -1,6 +1,5 @@
 import { AlertUtils } from '../../failsafes/AlertUtils';
 import { getSetting } from '../../gui/GuiSave';
-import { Chat } from '../../utils/Chat';
 import { File, globalAssetsDir, V5Auth } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { DisconnectS2C, LoginDisconnectS2C } from '../../utils/Packets';
@@ -206,7 +205,7 @@ class Failsafes extends ModuleBase {
         const targetPath = new File(globalAssetsDir, 'failsafes/sounds');
 
         if (!targetPath.exists() || !targetPath.isDirectory()) {
-            Chat.message(`&cError: Directory not found.`);
+            this.message('&cError: Directory not found.');
             return [];
         }
 

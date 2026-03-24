@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 
 class AutoBeg extends ModuleBase {
@@ -238,12 +237,12 @@ class AutoBeg extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message(`${this.name} &aEnabled.`);
+        this.message(`&aEnabled.`);
         this.lastMessageTime = Date.now();
     }
 
     onDisable() {
-        Chat.message(`${this.name} &cDisabled.`);
+        this.message(`&cDisabled.`);
     }
 
     sendBegMessage() {

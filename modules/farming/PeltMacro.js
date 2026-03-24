@@ -75,12 +75,12 @@ class PeltMacro extends ModuleBase {
             name: 'Pelt Macro',
             subcategory: 'Farming',
             description: 'Pathfinds to Trevor hunt coordinates from chat.',
+            theme: '#d99a3e',
             isMacro: true,
             showEnabledToggle: false,
         });
 
         this.bindToggleKey();
-        this.setTheme('#d99a3e');
         this.status = 'Idle';
         this.weaponSlot = 0;
         this.travelMode = TRAVEL_MODES[0];

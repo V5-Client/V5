@@ -1,6 +1,5 @@
 //@VIP
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { Chat } from '../../utils/Chat';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -31,13 +30,13 @@ class GlaciteCommissionMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Completes Glacite mining commissions with Tunnels Miner',
             tooltip: 'Reads Glacite commissions from tab, mines required tunnel ores, and claims with pigeon or emissary.',
+            theme: '#88d7ff',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
             isMacro: true,
         });
 
         this.bindToggleKey();
-        this.setTheme('#88d7ff');
 
         this.currentState = STATES.IDLE;
         this.pauseTicks = 0;
@@ -117,7 +116,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         this.refreshDrillReference();
 
         if (!this.drill) {
-            Chat.message('&cNo drill or pickaxe found in hotbar!');
+            this.message('&cNo drill or pickaxe found in hotbar!');
             this.toggle(false);
             return;
         }
@@ -304,7 +303,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         Pathfinder.findPath([EMISSARY_LOCATION], (success) => {
             if (!this.enabled || this.currentState !== STATES.CLAIMING) return;
             if (!success) {
-                Chat.message('&cFailed to reach Glacite emissary.');
+                this.message('&cFailed to reach Glacite emissary.');
                 this.setState(STATES.CHOOSING);
                 this.delay(20);
             }
@@ -529,7 +528,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         if (now - this.noSupportedMessageAt < 5000) return;
 
         this.noSupportedMessageAt = now;
-        Chat.message('&eNo supported Glacite mining commissions detected.');
+        this.message('&eNo supported Glacite mining commissions detected.');
     }
 
     cancelNpcRotationIfPathing() {

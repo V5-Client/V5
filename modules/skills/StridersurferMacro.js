@@ -1,5 +1,4 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { Chat } from '../../utils/Chat';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
@@ -489,7 +488,7 @@ class StridersurferMacro extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('Stridersurfer Macro Enabled');
+        this.message('&aEnabled');
         this.lastStriderCount = null;
         this.clearPendingPetSwap();
         this.clearStriderState();
@@ -499,7 +498,7 @@ class StridersurferMacro extends ModuleBase {
     }
 
     onDisable() {
-        Chat.message('Stridersurfer Macro disabled');
+        this.message('&cDisabled');
         Keybind.setKey('shift', false);
         this.lastStriderCount = null;
         this.biteWaitStartedAt = 0;

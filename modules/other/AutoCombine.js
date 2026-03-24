@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 
@@ -13,6 +12,7 @@ class AutoCombine extends ModuleBase {
             subcategory: 'Other',
             description: 'Automatically combine items in your inventory with /anvil.',
             tooltip: 'Automatically combine items in your inventory with /anvil.',
+            theme: '#f1a64b',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: true,
             ignoreFailsafes: true,
@@ -81,7 +81,7 @@ class AutoCombine extends ModuleBase {
         if (!Player.getContainer()) return this.timeout();
         this.findNextCombinePair();
         if (!this.pendingPair) {
-            Chat.message('[AutoCombine] No combineable pair found');
+            this.message('No combineable pair found');
             if (Player.getContainer()) Guis.closeInv();
             this.toggle(false);
             return;
@@ -92,7 +92,7 @@ class AutoCombine extends ModuleBase {
             return;
         }
 
-        Chat.message(`[AutoCombine] Found ${this.pendingPair.type} ${this.pendingPair.level} | slots ${this.first?.slot} & ${this.second?.slot}`);
+        this.message(`Found ${this.pendingPair.type} ${this.pendingPair.level} | slots ${this.first?.slot} & ${this.second?.slot}`);
         this.setState(this.STATES.FIRST_BOOK);
     }
 
@@ -237,10 +237,10 @@ class AutoCombine extends ModuleBase {
     }
 
     timeout() {
-        Chat.message('Returned without doing anything? stuck? waiting?');
+        this.message('Returned without doing anything? stuck? waiting?');
         this.timeoutFlags++;
         if (this.timeoutFlags > 4) {
-            Chat.message('&cStuck detected. Force resetting.');
+            this.message('&cStuck detected. Force resetting.');
             this.reset(true);
         }
     }
@@ -260,12 +260,12 @@ class AutoCombine extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('Auto Combine Enabled');
+        this.message('&aEnabled');
         this.reset();
     }
 
     onDisable() {
-        Chat.message('Auto Combine Disabled');
+        this.message('&cDisabled');
         this.reset();
     }
 }

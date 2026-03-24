@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { CommonPingS2C, WorldTimeUpdateS2C } from '../../utils/Packets';
 import { Guis } from '../../utils/player/Inventory';
@@ -20,6 +19,7 @@ class BloodBlink extends ModuleBase {
             subcategory: 'Other',
             description: 'Requires the following enabled: Devonian Mod, Auto GFS, Cancel Interact (V5).',
             tooltip: 'Blinks to the Blood Room at the start of a dungeon.',
+            theme: '#d94b5c',
         });
 
         this.reflectionFailed = false;
@@ -80,12 +80,12 @@ class BloodBlink extends ModuleBase {
             const catacombsEntryRegex = /(?:\[[^\]]+\]\s+)?[A-Za-z0-9_]{1,16} entered (?:MM )?The Catacombs, [^!\n]+!/;
             if (catacombsEntryRegex.test(msg)) {
                 this.dungeonStarted = false;
-                Chat.message('BloodBlink Dungeon Detected');
+                this.message('Dungeon Detected');
             }
 
             if (msg == 'Starting in 1 second.') this.dungeonStarted = true;
             if (msg == '§e[NPC] §bMort§f: Here, I found this map when I first entered the dungeon.') {
-                Chat.message('BloodBlink Dungeon Start Detected');
+                this.message('Dungeon Start Detected');
                 this.blinkReady = Date.now();
             }
         });
@@ -182,9 +182,9 @@ class BloodBlink extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
         this.blinkRunning = true;
-        Chat.message('BloodBlink Blink Blood');
+        this.message('Blink Blood');
         if (this.reflectionFailed) {
-            Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
+            this.message('&cFailed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
             this.blinkRunning = false;
             return;
         }
@@ -253,7 +253,7 @@ class BloodBlink extends ModuleBase {
             });
         } else {
             Client.scheduleTask(0, () => {
-                if (this.dungeonStarted) return Chat.message('Bloodblink fucked up (no blood detected)');
+                if (this.dungeonStarted) return this.message('fucked up (no blood detected)');
                 Rotations.applyRotationWithGCD(0, -90);
                 this.repeatRightClick(upTo210LeapsY);
                 Rotations.applyRotationWithGCD(yawForX(bloodX - playerX), 0);
@@ -272,14 +272,14 @@ class BloodBlink extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
         this.setupBlinkRunning = true;
-        Chat.message('BloodBlink Blink Setup');
+        this.message('Blink Setup');
         if (this.reflectionFailed) {
-            Chat.message('&c[Blood Blink] Failed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
+            this.message('&cFailed to access Devonian DungeonScanner. Please install devonian or disable Blood Blink.');
             this.setupBlinkRunning = false;
             return;
         }
         if (this.aotvSlot === -1 || this.pearlSlot === -1) {
-            Chat.message('missing aotv/pearl');
+            this.message('missing aotv/pearl');
             this.setupBlinkRunning = false;
             return;
         }

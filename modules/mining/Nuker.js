@@ -9,7 +9,6 @@ import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { Keybind } from '../../utils/player/Keybinding';
 import Render from '../../utils/render/Render';
-import { Chat } from '../../utils/Chat';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -18,12 +17,12 @@ class NukerClass extends ModuleBase {
             subcategory: 'Mining',
             description: 'Automatically nukes nearby blocks.',
             tooltip: 'Automatically nukes nearby blocks',
+            theme: '#e23737',
             autoDisableOnWorldUnload: true,
             showEnabledToggle: false,
             isMacro: true,
         });
         this.bindToggleKey();
-        this.setTheme('#e23737');
 
         this.target = null;
         this.lastMineTick = 0;
@@ -102,11 +101,11 @@ class NukerClass extends ModuleBase {
             this.tickCounter++;
 
             if (this.customBlockList.length === 0) {
-                Chat.message('Try adjusting your targets with /v5 nuker commands:');
-                Chat.message(' - /v5 nuker add - adds the block your looking at');
-                Chat.message(' - /v5 nuker remove - removes the block your looking at');
-                Chat.message(' - /v5 nuker clear - clear all targets');
-                Chat.message(' - /v5 nuker list - list all targets');
+                this.message('Try setting targets with /v5 commands:');
+                this.message('- /v5 nuker add - adds block at crosshair');
+                this.message('- /v5 nuker remove - removes block at crosshair');
+                this.message('- /v5 nuker clear - clear all targets');
+                this.message('- /v5 nuker list - list all targets');
             }
 
             if (Client.isInGui() && !Client.isInChat()) return;

@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
@@ -38,7 +37,7 @@ class PowderMacro extends ModuleBase {
             name: 'Powder Macro',
             description: 'Powder Macro',
             subcategory: 'Mining',
-            hideEnabledButton: true,
+            hideEnabledButton: true, // what the fuck is this, this isnt a thing???
             isMacro: true,
         });
 
@@ -136,7 +135,7 @@ class PowderMacro extends ModuleBase {
         };
         this.startTime = Date.now();
 
-        Chat.message('Powder Macro Enabled!');
+        this.message('&aPowder Macro Enabled!');
 
         this.setState(State.MINING);
         this.rotateLoop();
@@ -148,7 +147,7 @@ class PowderMacro extends ModuleBase {
         Rotations.stopRotation();
         this.resetState();
 
-        Chat.message('Powder Macro Disabled!');
+        this.message('&cPowder Macro Disabled!');
     }
 
     rotateLoop() {

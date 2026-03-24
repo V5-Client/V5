@@ -20,12 +20,12 @@ class RouteWalkerer extends ModuleBase {
             subcategory: 'Skills',
             description: 'Follows multiple points in a route',
             tooltip: 'Etherwarps and walks to multiple points in a route',
+            theme: '#65a6f0',
             showEnabledToggle: false,
             isMacro: true,
         });
 
         this.bindToggleKey();
-        this.setTheme('#65a6f0');
 
         this.routesDir = Router.getFilesinDir('RoutewalkerRoutes');
 

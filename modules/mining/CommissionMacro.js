@@ -1,6 +1,5 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { notificationManager } from '../../gui/NotificationManager';
-import { Chat } from '../../utils/Chat';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -34,12 +33,12 @@ class CommissionMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Completes Commissions for you',
             tooltip: 'Completes Commissions for you (Dwarven).',
+            theme: '#4cdfd2',
             showEnabledToggle: false,
             autoDisableOnWorldUnload: false,
             isMacro: true,
         });
         this.bindToggleKey();
-        this.setTheme('#4cdfd2');
 
         this.currentState = STATES.IDLE;
         this.avoidanceRadius = 10;
@@ -234,7 +233,7 @@ class CommissionMacro extends ModuleBase {
         this.blueCheese = drills.blueCheese;
 
         if (!this.drill) {
-            Chat.message('&cNo drill or pickaxe found in hotbar!');
+            this.message('&cNo drill or pickaxe found in hotbar!');
             this.toggle(false);
             return;
         }
@@ -351,7 +350,7 @@ class CommissionMacro extends ModuleBase {
         const now = Date.now();
         if (area !== 'Dwarven Mines') {
             if (!this.areaCheckTime) {
-                Chat.message('&eNot in Dwarven Mines, warping...');
+                this.message('&eNot in Dwarven Mines, warping...');
                 ChatLib.command('warpforge');
                 this.areaCheckTime = now;
                 return;
@@ -388,16 +387,16 @@ class CommissionMacro extends ModuleBase {
 
         const activeCommissions = this.getActiveCommissions();
         if (activeCommissions.length === 0) {
-            Chat.message('No commissions detected.');
-            Chat.message('Ensure commissions are enabled in /tab');
-            Chat.message('You might have to speak to the king first.');
+            this.message('No commissions detected.');
+            this.message('Ensure commissions are enabled in /tab');
+            this.message('You might have to speak to the king first.');
             this.toggle(false);
             return;
         }
 
         const supportedTasks = this.getSupportedTasks(activeCommissions);
         if (supportedTasks.length === 0) {
-            Chat.message('&eNo supported commissions available.');
+            this.message('&eNo supported commissions available.');
             this.toggle(false);
             return;
         }
@@ -517,7 +516,7 @@ class CommissionMacro extends ModuleBase {
         this.travelPurpose = task.type;
         this.pathingAvoidanceBreachAt = null;
 
-        Chat.message(`Starting &e${task.name}&f commission.`);
+        this.message(`Starting &e${task.name}&f commission.`);
 
         this.currentPathWaypoints = waypoints.slice();
         this.currentPathWaypoint = this.getClosestWaypoint(waypoints);
@@ -526,7 +525,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleNoAvailableSpots() {
-        Chat.message('No available spots! Finding new lobby');
+        this.message('No available spots! Finding new lobby');
         ChatLib.command('hub');
         this.resetState();
         this.delay(80);
@@ -632,7 +631,7 @@ class CommissionMacro extends ModuleBase {
 
                 Pathfinder.findPath(emissaryLocations, (success) => {
                     if (!success) {
-                        Chat.message('&cFailed to get to emissary ╭( ๐_๐)╮');
+                        this.message('&cFailed to get to emissary ╭( ๐_๐)╮');
                         // probably should blacklist emissary and go to different emissary
                         this.setState(STATES.CHOOSING);
                     }
@@ -714,7 +713,7 @@ class CommissionMacro extends ModuleBase {
     checkEmissaryUnlocked() {
         if (!World.getAllEntities().find((e) => e.getName().includes('Emissary'))) {
             this.emissariesUnlocked = false;
-            Chat.message('Emissary not found! Reverting to king.');
+            this.message('Emissary not found! Reverting to king.');
             return false;
         }
         return true;
@@ -845,7 +844,7 @@ class CommissionMacro extends ModuleBase {
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = now;
 
-        Chat.message('&eAvoidance radius breached for 5s, repathing to a different vein...');
+        this.message('&eAvoidance radius breached for 5s, repathing to a different vein...');
         Pathfinder.resetPath();
         Pathfinder.findPath(safeWaypoints, (success) => this.onPathComplete(success));
     }
@@ -918,7 +917,7 @@ class CommissionMacro extends ModuleBase {
 
     onPathFail() {
         if (!this.enabled) return;
-        Chat.message(`&cFailed to find a path for &b${this.currentCommission?.name || 'Unknown'}. Retrying...`);
+        this.message(`&cFailed to find a path for &b${this.currentCommission?.name || 'Unknown'}. Retrying...`);
         this.pathingAvoidanceBreachAt = null;
         this.currentPathWaypoint = null;
         this.currentPathWaypoints = [];
@@ -928,7 +927,7 @@ class CommissionMacro extends ModuleBase {
 
     startMining() {
         if (Client.isInGui()) {
-            Chat.message('&eWaiting for GUI to close before mining...');
+            this.message('&eWaiting for GUI to close before mining...');
             this.setState(STATES.WAITING_GUI_CLOSE);
             return;
         }
@@ -999,7 +998,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     onInventoryFull() {
-        Chat.message('&eInventory full! Selling items...');
+        this.message('&eInventory full! Selling items...');
         MiningBot.toggle(false, true);
         this.savedState = this.currentState;
         this.setState(STATES.SELLING);
@@ -1010,18 +1009,18 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        Chat.message('&eDrill empty! Refueling...');
+        this.message('&eDrill empty! Refueling...');
         MiningBot.toggle(false, true);
         this.setState(STATES.REFUELING);
 
         MiningUtils.doRefueling(true, (success) => {
             if (!success) {
-                Chat.message('&cRefueling failed!');
+                this.message('&cRefueling failed!');
                 this.toggle(false);
                 return;
             }
 
-            Chat.message('&aRefueling successful!');
+            this.message('&aRefueling successful!');
             const drills = MiningUtils.getDrills();
             this.drill = drills.drill;
             this.blueCheese = drills.blueCheese; // unused rn

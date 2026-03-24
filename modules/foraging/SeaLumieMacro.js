@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Render from '../../utils/render/Render';
@@ -76,7 +75,7 @@ class SeaLumie extends ModuleBase {
                                     let blockAbove = World.getBlockAt(currentBlock.x, currentBlock.y + 1, currentBlock.z);
                                     if (blockAbove?.type?.getRegistryName()?.includes('water')) {
                                         this.closestPickle = currentBlock;
-                                        Chat.message(
+                                        this.message(
                                             `Found the closest pickle using BFS at x=${this.closestPickle.x}, y=${this.closestPickle.y}, z=${this.closestPickle.z}`
                                         );
                                         this.state = this.STATES.GOINGTO;
@@ -134,7 +133,7 @@ class SeaLumie extends ModuleBase {
                             }
 
                             this.closestPickle = null;
-                            Chat.message('Failed to find a pickle!');
+                            this.message('Failed to find a pickle!');
                             this.startedScan = false;
                             this.state = this.STATES.SCANNING;
                         });
@@ -145,7 +144,7 @@ class SeaLumie extends ModuleBase {
                 case this.STATES.GOINGTO:
                     if (Player.getAirLevel() <= 0) {
                         this.state = this.STATES.RESURFACING;
-                        Chat.message('Ran out of air, resurfacing');
+                        this.message('Ran out of air, resurfacing');
                     }
                     break;
                 case this.STATES.RESURFACING:
@@ -166,7 +165,7 @@ class SeaLumie extends ModuleBase {
             this.closestPickle.y,
             this.closestPickle.z
           );
-          Chat.message(block);
+          this.message(block);
 
           if (block?.type?.getRegistryName()?.includes("pickle")) {
             // get if the block iss still there
@@ -185,7 +184,7 @@ class SeaLumie extends ModuleBase {
               let looking = Player.lookingAt();
 
               if (looking?.type?.getRegistryName()?.includes("pickle")) {
-                Chat.message("STILL");
+                this.message("STILL");
                 Keybind.setKey("leftclick", true); // this instead of leftclick so you  dont do 50cps
               } else {
                 Keybind.setKey("leftclick", false);

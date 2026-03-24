@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { PlayerInteractBlockC2S } from '../../utils/Packets';
 

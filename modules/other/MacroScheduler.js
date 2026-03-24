@@ -1,5 +1,4 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { TimeUtils, Timer } from '../../utils/TimeUtils';
@@ -19,6 +18,7 @@ class MacroScheduler extends ModuleBase {
             name: 'Scheduler',
             subcategory: 'Core',
             description: 'Automates macro sessions, breaks, and relogging.',
+            theme: '#7c8cff',
             showEnabledToggle: false,
             hideInModules: true,
         });
@@ -123,14 +123,14 @@ class MacroScheduler extends ModuleBase {
         } else {
             this.updateOverlay();
         }
-        Chat.messageScheduler('&aStarted.');
+        this.message('&aStarted.');
     }
 
     onDisable() {
         this.saveState();
         OverlayManager.resetTime(this.oid);
         this.overlayShown = false;
-        Chat.messageScheduler('&cStopped.');
+        this.message('&cStopped.');
     }
 
     tick() {
@@ -205,7 +205,7 @@ class MacroScheduler extends ModuleBase {
 
         if (this.worldUnloadTimer.hasReachedDelay()) {
             this.worldUnloadTimer.reset();
-            Chat.messageScheduler('&eConnecting to Hypixel...');
+            this.message('&eConnecting to Hypixel...');
             Client.connect('mc.hypixel.net');
         }
     }
@@ -233,7 +233,7 @@ class MacroScheduler extends ModuleBase {
                 this.saveState();
                 return;
             }
-            Chat.messageScheduler('&eConnecting to Hypixel...');
+            this.message('&eConnecting to Hypixel...');
             Client.connect('mc.hypixel.net');
             this.returnStep = 1;
             this.timerEnd = now + 12000;
@@ -244,7 +244,7 @@ class MacroScheduler extends ModuleBase {
         if (this.returnStep === 1) {
             if (!World.isLoaded()) {
                 if (now < this.timerEnd) return;
-                Chat.messageScheduler('&eRetrying connection...');
+                this.message('&eRetrying connection...');
                 Client.connect('mc.hypixel.net');
                 this.timerEnd = now + 12000;
                 this.saveState();
@@ -258,7 +258,7 @@ class MacroScheduler extends ModuleBase {
 
         if (this.returnStep === 2) {
             if (now < this.timerEnd) return;
-            Chat.messageScheduler('&eJoining Skyblock...');
+            this.message('&eJoining Skyblock...');
             ChatLib.command('play skyblock');
             this.returnStep = 3;
             this.timerEnd = Date.now() + 3000;
@@ -268,7 +268,7 @@ class MacroScheduler extends ModuleBase {
 
         if (this.returnStep === 3) {
             if (now < this.timerEnd) return;
-            Chat.messageScheduler('&aStarting macros.');
+            this.message('&aStarting macros.');
             this.startTrackedMacros();
             this.sendSchedulerConnectEmbed();
             this.beginSession();
@@ -325,9 +325,9 @@ class MacroScheduler extends ModuleBase {
             this.timerEnd = 0;
             this.breakDurationMs = 0;
             this.returnStep = 0;
-            Chat.messageScheduler(`&e${macroName} disabled.`);
+            this.message(`&e${macroName} disabled.`);
         } else {
-            Chat.messageScheduler(`&e${macroName} disabled, ${this.trackedMacros.length} others remaining.`);
+            this.message(`&e${macroName} disabled, ${this.trackedMacros.length} others remaining.`);
         }
 
         this.saveState();

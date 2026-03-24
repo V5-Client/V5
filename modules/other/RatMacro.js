@@ -56,11 +56,11 @@ class RatMacro extends ModuleBase {
             subcategory: 'Other',
             description: 'VIBECODED SLOP. Pathfinds to Hub rats and shoots them with your held gun.',
             tooltip: 'VIBECODED SLOP. Pathfinds to Hub rats and shoots them with your held gun.',
+            theme: '#d7b24a',
             showEnabledToggle: false,
             isMacro: true,
         });
         this.bindToggleKey();
-        this.setTheme('#d7b24a');
 
         this.state = STATES.WAITING;
         this.weaponSlot = 0;

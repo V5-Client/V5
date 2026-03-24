@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
@@ -50,7 +49,7 @@ class JerryBoxMacro extends ModuleBase {
                         if (!isHoldingJerry) {
                             const slot = Guis.findItemInHotbar('Jerry Box');
                             if (slot === -1) {
-                                Chat.message('Out of Jerry Boxes. Disabling.');
+                                this.message('&cOut of Jerry Boxes. Disabling.');
                                 this.toggle(false);
                                 return;
                             }
@@ -104,14 +103,14 @@ class JerryBoxMacro extends ModuleBase {
     }
 
     onEnable() {
-        Chat.message('Jerry Box Macro enabled.');
+        this.message('&aEnabled');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
         Mouse.ungrab();
     }
 
     onDisable() {
-        Chat.message('Jerry Box Macro disabled.');
+        this.message('&cDisabled');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
         Mouse.regrab();

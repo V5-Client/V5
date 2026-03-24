@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
@@ -88,7 +87,7 @@ class AutoExperiments extends ModuleBase {
 
         switch (this.state) {
             case STATES.EXPERIMENT_OVER:
-                Chat.message('&aExperiment completed! Claiming...');
+                this.message('&aExperiment completed! Claiming...');
                 this.startReopenSequence();
                 break;
             case STATES.DECIDING:
@@ -159,7 +158,7 @@ class AutoExperiments extends ModuleBase {
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
             Guis.closeInv();
             this.reset();
-            return Chat.message('Experiments complete');
+            return this.message('Experiments complete');
         }
 
         if (this.isStakeSelection('Chronomatron', containerName)) return this.selectHighestStake(items, [24, 23, 22, 21, 20]);
@@ -170,7 +169,7 @@ class AutoExperiments extends ModuleBase {
         if (!this.isCompleted(items[23])) return this.clickSlot(SLOTS.ULTRASEQUENCER);
 
         this.clickSlot(SLOTS.SUPERPAIRS);
-        Chat.message('Superpairs ready');
+        this.message('Superpairs ready');
     }
 
     /**
@@ -282,7 +281,7 @@ class AutoExperiments extends ModuleBase {
 
         const lore = rewardItem.getLore();
         if (this.canClick() && lore && lore.join(' ').includes('Click to claim rewards')) {
-            Chat.message('&a[Superpairs] Claiming rewards...');
+            this.message('&a[Superpairs] Claiming rewards...');
             this.clickSlot(13, 'LEFT');
             this.superpairsRewardsClaimed = true;
         }
@@ -302,7 +301,7 @@ class AutoExperiments extends ModuleBase {
                 return this.startReopenSequence();
             }
             Guis.closeInv();
-            return Chat.message('Not enough bits!');
+            return this.message('Not enough bits!');
         }
 
         const slot = this.buyXpTargetLevel <= 100 ? SLOTS.GRAND_BOTTLE : SLOTS.TITANIC_BOTTLE;
@@ -323,7 +322,7 @@ class AutoExperiments extends ModuleBase {
             this.reopeningStarted = true;
             this.lastClickTime = Date.now();
         } else {
-            Chat.message('&aReopening Experimentation Table...');
+            this.message('&aReopening Experimentation Table...');
             Keybind.rightClick();
             this.ultrasequencerOrder.clear();
             this.chronomatronOrder = [];
@@ -398,7 +397,7 @@ class AutoExperiments extends ModuleBase {
                 const requiredXp = this.extractStakeCost(item);
                 if (requiredXp > 0) {
                     this.buyXpTargetLevel = requiredXp;
-                    Chat.message('&eNeed more XP for Superpairs. Reopening to buy bottles...');
+                    this.message('&eNeed more XP for Superpairs. Reopening to buy bottles...');
                     this.startReopenSequence();
                     return true;
                 }

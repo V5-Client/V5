@@ -1,5 +1,4 @@
 //@VIP
-import { Chat } from '../../utils/Chat';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -27,12 +26,12 @@ class OreMacro extends ModuleBase {
             subcategory: 'Mining',
             description: 'Walks and Etherwarps to set mine points or uses MiningBot',
             tooltip: 'Universal pure Ore Miner',
+            theme: '#815bf5',
             showEnabledToggle: false,
             isMacro: true,
         });
 
         this.bindToggleKey();
-        this.setTheme('#815bf5');
 
         this.FASTAOTV = false;
 
@@ -102,7 +101,7 @@ class OreMacro extends ModuleBase {
         ]);
 
         v5Command('ore', (action, arg1, indexArg) => {
-            if (!action) return Chat.message('§cUsage: /v5 mining ore <add|remove|clear> [type] [index]');
+            if (!action) return this.message('&cUsage: /v5 mining ore <add|remove|clear> [type] [index]');
 
             const actionUpper = action.toUpperCase();
             let movementType = undefined;
@@ -124,7 +123,7 @@ class OreMacro extends ModuleBase {
 
             const allowedTypes = ['WALK', 'MINEABLE'];
             if (movementType && !allowedTypes.includes(movementType)) {
-                return Chat.message(`§cInvalid type! Use: ${allowedTypes.join(', ')}`);
+                return this.message(`&cInvalid type! Use: ${allowedTypes.join(', ')}`);
             }
 
             const isMineable = movementType === 'MINEABLE';
@@ -141,7 +140,7 @@ class OreMacro extends ModuleBase {
             );
 
             this.updateRouteMeta();
-            Chat.message(`§aRoute updated: ${actionUpper} ${movementType || ''}`);
+            this.message(`&aRoute updated: ${actionUpper} ${movementType || ''}`);
         });
 
         this.when(

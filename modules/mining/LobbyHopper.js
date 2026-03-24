@@ -9,10 +9,9 @@ class LobbyHopper extends ModuleBase {
             subcategory: 'Mining',
             description: 'Switches between CH lobbies',
             tooltip: 'Switches between CH lobbies',
+            theme: '#e0dd04',
             showEnabledToggle: true,
         });
-
-        this.setTheme('#e0dd04');
 
         this.maxDay = 0;
         this.said = false;

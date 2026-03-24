@@ -44,6 +44,7 @@ class Bot extends ModuleBase {
             subcategory: 'Mining',
             description: 'Universal settings for Mining & block miner',
             tooltip: 'Automatically mines.',
+            theme: '#5a7cbb',
             showEnabledToggle: false,
             isMacro: true,
         });
@@ -134,8 +135,6 @@ class Bot extends ModuleBase {
         this.bindToggleKey();
         this.initEventHandlers();
         this.initSettings();
-
-        this.setTheme('#5a7cbb');
 
         this.createOverlay([
             {
