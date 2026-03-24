@@ -1,7 +1,6 @@
 import { Chat } from '../utils/Chat';
 import { Color, File, Identifier, Links, NVG, SoundCategory, SoundEvent, globalAssetsDir } from '../utils/Constants';
 import { downloadFile } from '../utils/FileUtils';
-import { Utils } from '../utils/Utils';
 
 export const colorWithAlpha = (baseColor, alpha) => {
     let r, g, b, a;

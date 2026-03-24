@@ -1,7 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { CommonPingS2C, WorldTimeUpdateS2C } from '../../utils/Packets';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { mc, Utils } from '../../utils/Utils';
 

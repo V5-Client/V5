@@ -1,6 +1,6 @@
 import { KeyBindUtils, NVG } from '../../utils/Constants';
 import { Utils } from '../../utils/Utils';
-import { callCommand, v5Command } from '../../utils/V5Commands';
+import { v5Command } from '../../utils/V5Commands';
 import { categoryManager } from '../categories/CategoryManager';
 import { SearchBar } from '../categories/CategorySearchBar';
 import { Slider } from '../components/Slider';
