@@ -4,6 +4,7 @@ import { Guis } from '../../utils/player/Inventory';
 
 const BASE_BOOK_LEVELS = ['I', 'II', 'III', 'IV'];
 const EXTENDED_BOOK_LEVELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+const BOOK_LORE_BLACKLIST = ['requires enchanting'];
 
 class AutoCombine extends ModuleBase {
     constructor() {
@@ -153,6 +154,7 @@ class AutoCombine extends ModuleBase {
         for (let slot = 30; slot < container?.getSize(); slot++) {
             const item = container?.getStackInSlot(slot);
             if (!item?.getName()?.includes('Enchanted Book')) continue;
+            if (this.isBlacklistedBook(item)) continue;
 
             const bookData = this.getBookData(item?.getLore()?.[1]?.toString());
             if (!bookData) continue;
@@ -219,6 +221,14 @@ class AutoCombine extends ModuleBase {
             type,
             level: supportedLevels.indexOf(match[2]) + 1,
         };
+    }
+
+    isBlacklistedBook(item) {
+        const lore = item?.getLore?.() ?? [];
+        return lore.some((line) => {
+            const cleanedLine = ChatLib.removeFormatting(`${line}`).trim().toLowerCase();
+            return BOOK_LORE_BLACKLIST.some((entry) => cleanedLine.includes(entry));
+        });
     }
 
     setState(state) {
