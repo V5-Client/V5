@@ -91,7 +91,7 @@ class AutoCombine extends ModuleBase {
             return;
         }
 
-        Chat.message(`[AutoCombine] Found pair level ${this.pendingPair.level} | slots ${this.first?.slot} & ${this.second?.slot}`);
+        Chat.message(`[AutoCombine] Found ${this.pendingPair.type} ${this.pendingPair.level} | slots ${this.first?.slot} & ${this.second?.slot}`);
         this.setState(this.STATES.FIRST_BOOK);
     }
 
@@ -148,38 +148,37 @@ class AutoCombine extends ModuleBase {
 
     findNextCombinePair() {
         const container = Player.getContainer();
-        const booksByLevel = new Map();
+        const booksByTypeAndLevel = new Map();
 
         for (let slot = 30; slot < container?.getSize(); slot++) {
             const item = container?.getStackInSlot(slot);
             if (!item?.getName()?.includes('Enchanted Book')) continue;
 
-            const enchantmentLevel = this.getEnchantmentLevel(item?.getLore()?.[1]?.toString());
-            if (enchantmentLevel <= 0) continue;
+            const bookData = this.getBookData(item?.getLore()?.[1]?.toString());
+            if (!bookData) continue;
 
-            if (!booksByLevel.has(enchantmentLevel)) booksByLevel.set(enchantmentLevel, []);
-            booksByLevel.get(enchantmentLevel).push({ item, slot });
+            const key = `${bookData.type}|${bookData.level}`;
+            if (!booksByTypeAndLevel.has(key)) booksByTypeAndLevel.set(key, { ...bookData, books: [] });
+            booksByTypeAndLevel.get(key).books.push({ item, slot });
         }
 
         const blacklist = new Set(this.lastCombineSlots || []);
         let chosenPair = null;
         let fallbackPair = null;
-        const levels = Array.from(booksByLevel.keys()).sort((a, b) => a - b);
+        const bookGroups = Array.from(booksByTypeAndLevel.values()).sort((a, b) => a.level - b.level || a.type.localeCompare(b.type));
         const maxPairLevel = this.enableLevelTenBooks ? 9 : 4;
 
-        for (const level of levels) {
-            if (level > maxPairLevel) continue;
+        for (const group of bookGroups) {
+            if (group.level > maxPairLevel) continue;
+            if (group.books.length < 2) continue;
 
-            const bookList = booksByLevel.get(level);
-            if (!bookList || bookList.length < 2) continue;
-
-            if (!fallbackPair) fallbackPair = { level, books: bookList.slice(0, 2) };
+            if (!fallbackPair) fallbackPair = { type: group.type, level: group.level, books: group.books.slice(0, 2) };
 
             let candidate = null;
-            for (let i = 0; i < bookList.length; i++) {
-                for (let j = i + 1; j < bookList.length; j++) {
-                    const first = bookList[i];
-                    const second = bookList[j];
+            for (let i = 0; i < group.books.length; i++) {
+                for (let j = i + 1; j < group.books.length; j++) {
+                    const first = group.books[i];
+                    const second = group.books[j];
                     if (blacklist.has(first.slot) || blacklist.has(second.slot)) continue;
                     candidate = [first, second];
                     break;
@@ -188,13 +187,13 @@ class AutoCombine extends ModuleBase {
             }
 
             if (candidate) {
-                chosenPair = { level, books: candidate };
+                chosenPair = { type: group.type, level: group.level, books: candidate };
                 break;
             }
         }
 
         const pair = chosenPair || fallbackPair;
-        this.pendingPair = pair ? { level: pair.level, books: pair.books } : null;
+        this.pendingPair = pair ? { type: pair.type, level: pair.level, books: pair.books } : null;
         this.first = null;
         this.second = null;
 
@@ -204,16 +203,22 @@ class AutoCombine extends ModuleBase {
         this.lastCombineSlots = [this.first.slot, this.second.slot];
     }
 
-    getEnchantmentLevel(line) {
-        if (!line) return 0;
+    getBookData(line) {
+        if (!line) return null;
 
         const supportedLevels = this.enableLevelTenBooks ? EXTENDED_BOOK_LEVELS : BASE_BOOK_LEVELS;
-        const regex = new RegExp(`\\s(${supportedLevels.join('|')})$`);
-        const match = line.match(regex);
-        if (!match) return 0;
+        const cleanedLine = ChatLib.removeFormatting(`${line}`).trim();
+        const regex = new RegExp(`^(.*)\\s(${supportedLevels.join('|')})$`);
+        const match = cleanedLine.match(regex);
+        if (!match) return null;
 
-        const romanStr = match[1];
-        return supportedLevels.indexOf(romanStr) + 1;
+        const type = match[1].trim();
+        if (!type) return null;
+
+        return {
+            type,
+            level: supportedLevels.indexOf(match[2]) + 1,
+        };
     }
 
     setState(state) {
