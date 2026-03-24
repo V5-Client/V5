@@ -35,6 +35,7 @@ import './visuals/Xray';
 
 /* SKILLS */
 import './skills/AutoExperiments';
+import './skills/ChocolateFactory';
 import './skills/FishingHelper';
 import './skills/StridersurferMacro';
 import './skills/JerryBoxMacro';
