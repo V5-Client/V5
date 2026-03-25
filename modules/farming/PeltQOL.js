@@ -40,6 +40,7 @@ class PeltQOL extends ModuleBase {
 
         this.autoAcceptQuest = true;
         this.autoCallTrevor = true;
+        this.rezarAbicaseAccessory = true;
         this.renderESP = true;
         this.animals = [];
         this.huntCompleted = false;
@@ -47,6 +48,7 @@ class PeltQOL extends ModuleBase {
 
         this.addToggle('Auto Accept Quest', (value) => (this.autoAcceptQuest = !!value), "Automatically clicks Trevor's YES prompt to start a hunt.", true);
         this.addToggle('Auto Call Trevor', (value) => (this.autoCallTrevor = !!value), 'Automatically runs /call trevor when a hunt completes.', true);
+        this.addToggle('Rezar Abicase Accessory', (value) => (this.rezarAbicaseAccessory = !!value), 'Use the shorter Trevor recall delay when the Rezar Abicase Accessory is equipped.', true);
         this.addToggle('ESP', (value) => (this.renderESP = !!value), 'ESP to Trevor animals.', true);
 
         this.on('chat', ({ message }) => this.handleChat(message));
@@ -115,7 +117,10 @@ class PeltQOL extends ModuleBase {
         if (this.autoCallTrevor && lower.includes(RETRY)) return this.run('call trevor');
 
         const cooldown = this.autoCallTrevor && lower.match(/\[npc\] trevor: try coming back in.*?(\d+)\s*s\b/);
-        if (cooldown) this.run('call trevor', Math.max(+cooldown[1] * 20 - 40, 0));
+        if (cooldown) {
+            const delayOffset = this.rezarAbicaseAccessory ? 40 : 80;
+            this.run('call trevor', Math.max(+cooldown[1] * 20 - delayOffset, 0));
+        }
     }
 
     scan() {
