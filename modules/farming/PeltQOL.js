@@ -48,7 +48,12 @@ class PeltQOL extends ModuleBase {
 
         this.addToggle('Auto Accept Quest', (value) => (this.autoAcceptQuest = !!value), "Automatically clicks Trevor's YES prompt to start a hunt.", true);
         this.addToggle('Auto Call Trevor', (value) => (this.autoCallTrevor = !!value), 'Automatically runs /call trevor when a hunt completes.', true);
-        this.addToggle('Rezar Abicase Accessory', (value) => (this.rezarAbicaseAccessory = !!value), 'Use the shorter Trevor recall delay when the Rezar Abicase Accessory is equipped.', true);
+        this.addToggle(
+            'Rezar Abicase Accessory',
+            (value) => (this.rezarAbicaseAccessory = !!value),
+            'Use the shorter Trevor recall delay when the Rezar Abicase Accessory is equipped.',
+            true
+        );
         this.addToggle('ESP', (value) => (this.renderESP = !!value), 'ESP to Trevor animals.', true);
 
         this.on('chat', ({ message }) => this.handleChat(message));
