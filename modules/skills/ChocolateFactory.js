@@ -228,7 +228,6 @@ class ChocolateFactory extends ModuleBase {
 
             Render.drawSizedBox(boxPos, 0.5, 0.5, 0.5, egg.color.fill, true, 2, false);
             Render.drawTracer(tracerPos, egg.color.line, 2, false);
-            Render.drawText(egg.renderName, textPos, 1, false, true, false, true);
         });
     }
 
