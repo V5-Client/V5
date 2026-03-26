@@ -123,6 +123,7 @@ class PeltMacro extends ModuleBase {
         this.areaTravelState = null;
         this.areaTravelToken = 0;
         this.areaPathRequestToken = 0;
+        this.targetHandleToken = 0;
 
         this.addMultiToggle(
             'Travel Mode',
@@ -167,9 +168,14 @@ class PeltMacro extends ModuleBase {
         this.on('chat', ({ message }) => {
             this.trackPelts(message);
             const target = this.getTrevorTarget(message);
-            if (!target) return;
-            if (this.tryHandlePeltMob(true)) return;
-            this.startTravelToTarget(target);
+            if (!target || !this.enabled) return;
+
+            const token = ++this.targetHandleToken;
+            ScheduleTask(1, () => {
+                if (!this.enabled || token !== this.targetHandleToken) return;
+                if (this.tryHandlePeltMob(true)) return;
+                this.startTravelToTarget(target);
+            });
         });
     }
 
@@ -180,6 +186,7 @@ class PeltMacro extends ModuleBase {
         this.resetMobTracking();
         this.resetAreaTravelState();
         this.lastShotAt = 0;
+        this.targetHandleToken++;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
         ChatLib.command('call trevor');
@@ -247,6 +254,7 @@ class PeltMacro extends ModuleBase {
         const pelts = parseInt(match[1].replace(/,/g, ''), 10);
         if (!Number.isFinite(pelts) || pelts <= 0) return;
         OverlayManager.incrementTrackedValue(this.oid, 'pelts', pelts);
+        this.targetHandleToken++;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
         this.resetAreaTravelState();
@@ -687,6 +695,7 @@ class PeltMacro extends ModuleBase {
         const token = this.restartToken;
 
         this.stopMovement();
+        this.targetHandleToken++;
         this.cancelTravelSequence();
         this.resetAreaTravelState();
         this.resetMobTracking();
@@ -827,6 +836,7 @@ class PeltMacro extends ModuleBase {
     onDisable() {
         this.status = 'Idle';
         this.lastShotAt = 0;
+        this.targetHandleToken++;
         this.syncMobJumpHold(false);
         this.cancelTravelSequence();
         this.cancelRestartSequence();
