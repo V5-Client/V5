@@ -18,13 +18,34 @@ import { Mouse } from '../../utils/Ungrab';
 const RaycastContext = net.minecraft.world.RaycastContext;
 
 const TREVOR_TARGETS = {
-    'desert settlement': [164, 76, -375],
-    'desert mountain': [241, 96, -411],
-    'mushroom desert': [193, 66, -468],
-    'mushroom gorge': [308, 52, -454],
-    'glowing mushroom cave': [190, 42, -494],
-    oasis: [127, 64, -427],
-    'overgrown mushroom cave': [242, 56, -401],
+    'desert settlement': [
+        [164, 76, -375],
+        [196, 76, -369],
+    ],
+    'desert mountain': [
+        [241, 96, -411],
+        [259, 95, -533],
+    ],
+    'mushroom desert': [
+        [193, 66, -468],
+        [332, 101, -447],
+    ],
+    'mushroom gorge': [
+        [308, 52, -454],
+        [272, 55, -523],
+    ],
+    'glowing mushroom cave': [
+        [215, 42, -443],
+        [221, 40, -560],
+    ],
+    oasis: [
+        [127, 64, -427],
+        [132, 83, -543],
+    ],
+    'overgrown mushroom cave': [
+        [242, 56, -401],
+        [284, 54, -379],
+    ],
 };
 const TRAVEL_MODES = ['Pathfind', 'AOTE', 'AOTE delayed'];
 const TRAP_WARP_POSITION = [281, 104, -548];
@@ -99,6 +120,9 @@ class PeltMacro extends ModuleBase {
         this.holdingMobJump = false;
         this.restartToken = 0;
         this.restartActive = false;
+        this.areaTravelState = null;
+        this.areaTravelToken = 0;
+        this.areaPathRequestToken = 0;
 
         this.addMultiToggle(
             'Travel Mode',
@@ -154,6 +178,7 @@ class PeltMacro extends ModuleBase {
         Mouse.ungrab();
         this.status = 'Calling Trevor';
         this.resetMobTracking();
+        this.resetAreaTravelState();
         this.lastShotAt = 0;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
@@ -180,9 +205,33 @@ class PeltMacro extends ModuleBase {
         const match = text.match(/\[npc\]\s*trevor:.*?near the (.+?)\.\s*$/i);
         if (!match) return null;
         const name = match[1].trim().toLowerCase();
-        const coords = TREVOR_TARGETS[name];
-        if (!coords) return null;
-        return { name, coords };
+        const goals = this.normalizeTrevorGoals(TREVOR_TARGETS[name]);
+        if (!goals.length) return null;
+        return { name, goals };
+    }
+
+    normalizeTrevorGoals(rawGoals) {
+        if (!Array.isArray(rawGoals) || !rawGoals.length) return [];
+
+        const input = typeof rawGoals[0] === 'number' ? [rawGoals] : rawGoals;
+        const goals = [];
+        const seen = new Set();
+
+        for (const goal of input) {
+            if (!Array.isArray(goal) || goal.length < 3) continue;
+
+            const x = Math.floor(Number(goal[0]));
+            const y = Math.floor(Number(goal[1]));
+            const z = Math.floor(Number(goal[2]));
+            if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+
+            const key = `${x},${y},${z}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            goals.push([x, y, z]);
+        }
+
+        return goals;
     }
 
     getMessageText(message) {
@@ -200,22 +249,10 @@ class PeltMacro extends ModuleBase {
         OverlayManager.incrementTrackedValue(this.oid, 'pelts', pelts);
         this.cancelTravelSequence();
         this.cancelRestartSequence();
+        this.resetAreaTravelState();
         this.stopMovement();
         this.resetMobTracking();
         this.lastShotAt = 0;
-        if (!this.isAOTETravelMode()) return;
-
-        const slot = this.getAOTESlot();
-        if (slot === -1) {
-            this.message('&cNo Aspect of the Void/End in hotbar. Falling back to pathing.');
-            return;
-        }
-
-        Guis.setItemSlot(slot);
-        if (this.isAtTrapWarpPosition()) return;
-
-        this.status = 'Warping to Trap';
-        ChatLib.command('warp trap');
     }
 
     getPeltsDisplay() {
@@ -328,6 +365,7 @@ class PeltMacro extends ModuleBase {
     prepareForTravel() {
         this.cancelRestartSequence();
         this.cancelTravelSequence();
+        this.resetAreaTravelState();
         this.resetMobTracking();
     }
 
@@ -345,17 +383,56 @@ class PeltMacro extends ModuleBase {
     }
 
     startTravelToTarget(target) {
+        this.prepareForTravel();
+        const goals = this.normalizeTrevorGoals(target?.goals);
+        if (!goals.length) return;
+
+        this.areaTravelState = {
+            areaName: target.name,
+            goals,
+            blacklist: new Set(),
+            token: ++this.areaTravelToken,
+        };
+
         if (this.shouldUseAOTETravel(target.name)) return this.startAOTETravel(target);
-        this.startAreaPath(target);
+        this.startAreaPath();
     }
 
-    startAreaPath(target) {
-        this.prepareForTravel();
-        const [x, y, z] = target.coords;
-        this.mobTrackedAt = Date.now();
+    startAreaPath() {
+        const state = this.areaTravelState;
+        if (!state?.goals?.length) return false;
+        if (this.findPeltMob()) return false;
+
+        const availableGoals = state.goals.filter((goal) => !state.blacklist.has(this.getGoalKey(goal)));
+        if (!availableGoals.length) return false;
+
+        const pathToken = ++this.areaPathRequestToken;
+        const stateToken = state.token;
+        const [x, y, z] = availableGoals[0];
+        if (!this.mobTrackedAt) this.mobTrackedAt = Date.now();
         this.status = `Area ${x}, ${y}, ${z}`;
         Pathfinder.resetPath();
-        Pathfinder.findPath([[x, y, z]]);
+        Pathfinder.findPath(availableGoals, (success) => {
+            if (!this.enabled || pathToken !== this.areaPathRequestToken) return;
+
+            const currentState = this.areaTravelState;
+            if (!currentState || currentState.token !== stateToken) return;
+            if (!success) return;
+
+            const reachedGoal = this.getClosestGoalToPlayer(availableGoals);
+            if (reachedGoal) currentState.blacklist.add(this.getGoalKey(reachedGoal));
+
+            const remaining = currentState.goals.filter((goal) => !currentState.blacklist.has(this.getGoalKey(goal)));
+            if (!remaining.length) return;
+            if (this.findPeltMob()) return;
+
+            ScheduleTask(2, () => {
+                const latestState = this.areaTravelState;
+                if (!this.enabled || !latestState || latestState.token !== stateToken) return;
+                this.startAreaPath();
+            });
+        });
+        return true;
     }
 
     shouldUseAOTETravel(areaName) {
@@ -363,20 +440,18 @@ class PeltMacro extends ModuleBase {
     }
 
     startAOTETravel(target) {
-        this.prepareForTravel();
-        this.mobTrackedAt = Date.now();
+        if (!this.mobTrackedAt) this.mobTrackedAt = Date.now();
         this.stopMovement();
         const atTrapWarp = this.isAtTrapWarpPosition();
         const slot = this.getAOTESlot();
         if (slot === -1) {
             this.message('&cNo Aspect of the Void/End in hotbar. Falling back to pathing.');
-            this.startAreaPath(target);
+            this.startAreaPath();
             return;
         }
 
         this.travelState = {
             areaName: target.name,
-            coords: target.coords,
             phase: 'warp',
             startedAt: Date.now(),
             routeCompletedAt: 0,
@@ -460,9 +535,9 @@ class PeltMacro extends ModuleBase {
         return true;
     }
 
-    fallbackToAreaPath(target) {
+    fallbackToAreaPath() {
         this.cancelTravelSequence();
-        this.startAreaPath(target);
+        this.startAreaPath();
         return true;
     }
 
@@ -471,7 +546,7 @@ class PeltMacro extends ModuleBase {
             this.status = `AOTEing ${this.travelState.areaName}`;
             const route = AOTE_ROUTES[this.travelState.areaName];
             if (!this.sendAOTEPackets(route)) {
-                return this.fallbackToAreaPath(this.travelState);
+                return this.fallbackToAreaPath();
             }
 
             this.travelState.phase = 'settle';
@@ -480,13 +555,13 @@ class PeltMacro extends ModuleBase {
 
         this.status = 'Waiting for /warp trap';
         if (Date.now() - this.travelState.startedAt <= 5000) return true;
-        return this.fallbackToAreaPath(this.travelState);
+        return this.fallbackToAreaPath();
     }
 
     handleSettlePhase() {
         if (!this.travelState.routeCompletedAt) return true;
         if (Date.now() - this.travelState.routeCompletedAt < 500) return true;
-        return this.fallbackToAreaPath(this.travelState);
+        return this.fallbackToAreaPath();
     }
 
     tryHandlePeltMob(forcePath) {
@@ -525,8 +600,43 @@ class PeltMacro extends ModuleBase {
         return Math.hypot(entity.getX() - Player.getX(), entity.getY() - Player.getY(), entity.getZ() - Player.getZ());
     }
 
+    getGoalKey(goal) {
+        if (!Array.isArray(goal) || goal.length < 3) return '';
+        return `${Math.floor(Number(goal[0]))},${Math.floor(Number(goal[1]))},${Math.floor(Number(goal[2]))}`;
+    }
+
+    getClosestGoalToPlayer(goals) {
+        if (!Array.isArray(goals) || !goals.length) return null;
+
+        let closest = null;
+        let bestDistSq = Infinity;
+        const playerX = Player.getX();
+        const playerY = Player.getY();
+        const playerZ = Player.getZ();
+
+        for (const goal of goals) {
+            if (!Array.isArray(goal) || goal.length < 3) continue;
+            const dx = playerX - goal[0];
+            const dy = playerY - goal[1];
+            const dz = playerZ - goal[2];
+            const distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq >= bestDistSq) continue;
+            bestDistSq = distSq;
+            closest = goal;
+        }
+
+        return closest;
+    }
+
+    resetAreaTravelState() {
+        this.areaTravelState = null;
+        this.areaTravelToken++;
+        this.areaPathRequestToken++;
+    }
+
     trackCurrentMob(mobId) {
         if (this.currentMobId !== mobId) {
+            this.resetAreaTravelState();
             this.currentMobId = mobId;
             this.mobShots = 0;
             this.mobRepositions = 0;
@@ -578,6 +688,7 @@ class PeltMacro extends ModuleBase {
 
         this.stopMovement();
         this.cancelTravelSequence();
+        this.resetAreaTravelState();
         this.resetMobTracking();
         this.lastShotAt = 0;
         this.status = 'Restarting Hunt';
@@ -719,6 +830,7 @@ class PeltMacro extends ModuleBase {
         this.syncMobJumpHold(false);
         this.cancelTravelSequence();
         this.cancelRestartSequence();
+        this.resetAreaTravelState();
         this.resetMobTracking();
         this.stopMovement();
         Mouse.regrab();
