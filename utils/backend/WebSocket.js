@@ -13,9 +13,13 @@ let gameUnload = false;
 let isConnected = false;
 let ws = null;
 let start = Date.now();
+let connectedAtMs = 0;
 let disconnectedSinceMs = Date.now();
 let reconnectScheduled = false;
+let nextSocketGeneration = 0;
+let activeSocketGeneration = 0;
 const DISCONNECT_GRACE_MS = 180000;
+const STABLE_CONNECTION_MS = 10000;
 const MAX_RECONNECT_DELAY_TICKS = 20 * 60;
 
 function markDisconnected() {
@@ -24,6 +28,37 @@ function markDisconnected() {
 
 function clearDisconnected() {
     disconnectedSinceMs = 0;
+}
+
+function isCurrentSocket(socket, generation) {
+    return ws === socket && generation === activeSocketGeneration;
+}
+
+function handleSocketDisconnect({ code, reason, exception }) {
+    isConnected = false;
+
+    const closeCode = Number(code);
+    if (closeCode === 1000) {
+        ws = null;
+        connectedAtMs = 0;
+        clearDisconnected();
+        return;
+    }
+
+    const connectedForMs = connectedAtMs ? Date.now() - connectedAtMs : 0;
+    connectedAtMs = 0;
+    if (connectedForMs >= STABLE_CONNECTION_MS) {
+        reconnectAttempts = 0;
+    }
+
+    markDisconnected();
+    if (exception) {
+        console.error('WebSocket error:', exception);
+        Chat.messageIrc('Connection error: ' + exception);
+    } else {
+        Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
+    }
+    attemptReconnect();
 }
 
 function handleIncomingMessage(raw) {
@@ -71,13 +106,17 @@ export function sendChatMessage(content) {
 }
 
 function connectWebSocket() {
-    if (ws) {
+    const socketGeneration = ++nextSocketGeneration;
+    activeSocketGeneration = socketGeneration;
+    const previousSocket = ws;
+    ws = null;
+
+    if (previousSocket) {
         try {
-            ws.close();
+            previousSocket.close();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }
-        ws = null;
     }
 
     const token = V5Auth.getFreshJwtToken();
@@ -89,44 +128,48 @@ function connectWebSocket() {
     }
     returnDiscord(token);
     const wsUrl = `${Links.WEBSOCKET_URL}`;
-    ws = new WebSocket(wsUrl);
-    ws.socket?.addHeader?.('Authorization', `Bearer ${token}`);
+    const socket = new WebSocket(wsUrl);
+    ws = socket;
+    connectedAtMs = 0;
+    socket.socket?.addHeader?.('Authorization', `Bearer ${token}`);
     const hwid = V5Auth.getHwid();
-    if (hwid) ws.socket?.addHeader?.('X-V5-HWID', hwid);
+    if (hwid) socket.socket?.addHeader?.('X-V5-HWID', hwid);
+    let disconnectHandled = false;
+    const handleDisconnectOnce = (payload) => {
+        if (!isCurrentSocket(socket, socketGeneration)) return;
+        if (disconnectHandled) return;
+        disconnectHandled = true;
+        handleSocketDisconnect(payload);
+    };
 
-    ws.onOpen = () => {
-        reconnectAttempts = 0;
+    socket.onOpen = () => {
+        if (!isCurrentSocket(socket, socketGeneration)) return;
         reconnectScheduled = false;
         isConnected = true;
+        connectedAtMs = Date.now();
         clearDisconnected();
         //sendChatMessage(`Time taken to connect: ${Date.now() - start}ms`);
     };
 
-    ws.onMessage = (message) => {
+    socket.onMessage = (message) => {
+        if (!isCurrentSocket(socket, socketGeneration)) return;
         handleIncomingMessage(message);
     };
 
-    ws.onError = (exception) => {
-        console.error('WebSocket error:', exception);
-        Chat.messageIrc('Connection error: ' + exception);
-        isConnected = false;
-        markDisconnected();
-        attemptReconnect();
+    socket.onError = (exception) => {
+        handleDisconnectOnce({
+            exception,
+        });
     };
 
-    ws.onClose = (code, reason) => {
-        isConnected = false;
-        if (code == '1000') {
-            ws = null;
-            clearDisconnected();
-            return;
-        }
-        markDisconnected();
-        Chat.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
-        attemptReconnect();
+    socket.onClose = (code, reason) => {
+        handleDisconnectOnce({
+            code,
+            reason,
+        });
     };
 
-    ws.connect();
+    socket.connect();
 }
 
 function attemptReconnect() {
