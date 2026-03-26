@@ -85,7 +85,12 @@ class PeltQOL extends ModuleBase {
 
     run(command, delay = 0) {
         command = `${command || ''}`.trim().replace(/^\//, '');
-        if (command) ScheduleTask(delay, () => ChatLib.command(command));
+        if (!command) return;
+        if (delay > 0) {
+            ScheduleTask(delay, () => ChatLib.command(command));
+            return;
+        }
+        ChatLib.command(command);
     }
 
     findStart(message) {

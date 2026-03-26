@@ -124,6 +124,7 @@ class PeltMacro extends ModuleBase {
         this.areaTravelToken = 0;
         this.areaPathRequestToken = 0;
         this.targetHandleToken = 0;
+        this.pendingTrevorTarget = null;
 
         this.addMultiToggle(
             'Travel Mode',
@@ -169,13 +170,8 @@ class PeltMacro extends ModuleBase {
             this.trackPelts(message);
             const target = this.getTrevorTarget(message);
             if (!target || !this.enabled) return;
-
-            const token = ++this.targetHandleToken;
-            ScheduleTask(1, () => {
-                if (!this.enabled || token !== this.targetHandleToken) return;
-                if (this.tryHandlePeltMob(true)) return;
-                this.startTravelToTarget(target);
-            });
+            this.targetHandleToken++;
+            this.pendingTrevorTarget = target;
         });
     }
 
@@ -187,6 +183,7 @@ class PeltMacro extends ModuleBase {
         this.resetAreaTravelState();
         this.lastShotAt = 0;
         this.targetHandleToken++;
+        this.pendingTrevorTarget = null;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
         ChatLib.command('call trevor');
@@ -202,9 +199,20 @@ class PeltMacro extends ModuleBase {
             this.restartTrevorHunt(`&eDetected area &f${areaName}&e outside of &fThe Farming Islands&e. Restarting Trevor hunt.`);
             return;
         }
+        if (this.consumePendingTrevorTarget()) return;
         if (this.handleTravelTick()) return;
         if (this.checkMobTimeout()) return;
         this.tryHandlePeltMob(false);
+    }
+
+    consumePendingTrevorTarget() {
+        const target = this.pendingTrevorTarget;
+        if (!target) return false;
+        this.pendingTrevorTarget = null;
+
+        if (this.tryHandlePeltMob(true)) return true;
+        this.startTravelToTarget(target);
+        return true;
     }
 
     getTrevorTarget(message) {
@@ -255,6 +263,7 @@ class PeltMacro extends ModuleBase {
         if (!Number.isFinite(pelts) || pelts <= 0) return;
         OverlayManager.incrementTrackedValue(this.oid, 'pelts', pelts);
         this.targetHandleToken++;
+        this.pendingTrevorTarget = null;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
         this.resetAreaTravelState();
@@ -696,6 +705,7 @@ class PeltMacro extends ModuleBase {
 
         this.stopMovement();
         this.targetHandleToken++;
+        this.pendingTrevorTarget = null;
         this.cancelTravelSequence();
         this.resetAreaTravelState();
         this.resetMobTracking();
@@ -837,6 +847,7 @@ class PeltMacro extends ModuleBase {
         this.status = 'Idle';
         this.lastShotAt = 0;
         this.targetHandleToken++;
+        this.pendingTrevorTarget = null;
         this.syncMobJumpHold(false);
         this.cancelTravelSequence();
         this.cancelRestartSequence();
