@@ -390,6 +390,7 @@ class PeltMacro extends ModuleBase {
 
     stopMovement() {
         this.stopPathing();
+        Keybind.stopMovement();
         Rotations.stopRotation();
     }
 
@@ -497,6 +498,7 @@ class PeltMacro extends ModuleBase {
         }
 
         this.status = `Warp Trap -> ${target.name}`;
+        this.stopMovement();
         ChatLib.command('warp trap');
     }
 
@@ -706,6 +708,7 @@ class PeltMacro extends ModuleBase {
 
         ScheduleTask(delay, () => {
             if (!this.enabled || token !== this.restartToken) return;
+            this.stopMovement();
             ChatLib.command(normalized);
         });
     }
