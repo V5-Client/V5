@@ -22,13 +22,13 @@ class Music extends ModuleBase {
 
         this.musicProcess = null;
         this.assetsDir = globalAssetsDir.getAbsoluteFile();
-        this.executableBase = "MusicHelper"
-        this.executable = null
+        this.executableBase = 'MusicHelper';
+        this.executable = null;
         this.data = null;
         this.lastDataReceivedAt = 0;
         this.lastRestartAttempt = 0;
         this.getCorrectBinary();
-        this.runBinary()
+        this.runBinary();
         this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
         const savedX = typeof this.positionConfig.x === 'number' ? this.positionConfig.x : 100;
         const savedY = typeof this.positionConfig.y === 'number' ? this.positionConfig.y : 100;
@@ -38,11 +38,11 @@ class Music extends ModuleBase {
         this.scale = Math.max(0.5, Math.min(3.0, savedScale));
         this.dynamicWidth = 200;
         this.baseHeight = 90;
-        this.addShutdownHook()
+        this.addShutdownHook();
         this.on('step', () => {
             if (Client.getFPS() > 0) {
                 this.fetchData();
-               // Chat.message('ok so correct binary is '+this.executable)
+                // Chat.message('ok so correct binary is '+this.executable)
             }
         }).setFps(4);
 
@@ -53,8 +53,8 @@ class Music extends ModuleBase {
         });
 
         register('gameUnload', () => {
-            this.savePosition(); 
-            this.killBinary()
+            this.savePosition();
+            this.killBinary();
         });
         register('guiClosed', () => this.savePosition());
     }
@@ -70,9 +70,9 @@ class Music extends ModuleBase {
 
     getCorrectBinary() {
         if (isWindows) {
-            this.executable = this.executableBase + '.exe'
+            this.executable = this.executableBase + '.exe';
         } else {
-            this.executable = this.executableBase
+            this.executable = this.executableBase;
         }
     }
 
@@ -89,27 +89,29 @@ class Music extends ModuleBase {
         return parts[0] || 0;
     }
     addShutdownHook() {
-        java.lang.Runtime.getRuntime().addShutdownHook(new java.lang.Thread(() => {
-            if (this.musicProcess) {
-                this.musicProcess.destroyForcibly();
-            }
-        }))
+        java.lang.Runtime.getRuntime().addShutdownHook(
+            new java.lang.Thread(() => {
+                if (this.musicProcess) {
+                    this.musicProcess.destroyForcibly();
+                }
+            })
+        );
     }
     runBinary() {
         if (!this.isExecutableInAssets()) return false;
         if (this.isProcessAlive()) return false;
         try {
-            const bin = new File(this.assetsDir, this.executable)
-            const PB = new ProcessBuilder(bin)
+            const bin = new File(this.assetsDir, this.executable);
+            const PB = new ProcessBuilder(bin);
 
             if (!isWindows) {
-                bin.setExecutable(true)
+                bin.setExecutable(true);
             }
             PB.directory(this.assetsDir);
-            this.musicProcess = PB.start()
-           // Chat.message("meow")
+            this.musicProcess = PB.start();
+            // Chat.message("meow")
         } catch (e) {
-            Chat.message("hi error in music thing runbinary", +e)
+            Chat.message('hi error in music thing runbinary', +e);
         }
     }
     formatSecondsToTime(seconds) {
