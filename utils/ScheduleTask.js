@@ -19,7 +19,9 @@ register('tick', () => {
 
     for (let i = 0; i < due.length; i++) {
         try {
-            due[i]();
+            const callback = due[i];
+            if (typeof callback !== 'function') continue;
+            callback();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }
