@@ -81,7 +81,9 @@ const AOTE_ROUTES = {
 const PELT_NAMES = new Set(['Cow', 'Pig', 'Sheep', 'Chicken', 'Rabbit', 'Horse', 'Mooshroom', 'Dinnerbone']);
 const PELT_HP = new Set([100, 200, 500, 1000, 2000, 5000, 10000, 1024, 20000, 30000, 60000]);
 const MOB_REACHED_DISTANCE = 5;
-const MOB_KILL_TIMEOUT_MS = 30000;
+const MOB_KILL_TIMEOUT_DEFAULT_SECONDS = 30;
+const MOB_KILL_TIMEOUT_MIN_SECONDS = 15;
+const MOB_KILL_TIMEOUT_MAX_SECONDS = 40;
 const SHOOT_COOLDOWN_MS = 250;
 const AIM_TOLERANCE = 5;
 const MAX_STATIONARY_SHOTS = 3;
@@ -123,6 +125,7 @@ class PeltMacro extends ModuleBase {
         this.areaTravelState = null;
         this.areaTravelToken = 0;
         this.areaPathRequestToken = 0;
+        this.mobKillTimeoutMs = MOB_KILL_TIMEOUT_DEFAULT_SECONDS * 1000;
         this.targetHandleToken = 0;
         this.pendingTrevorTarget = null;
 
@@ -146,6 +149,17 @@ class PeltMacro extends ModuleBase {
                 this.weaponSlot = Math.max(0, Math.min(8, Math.round(value) - 1));
             },
             'Hotbar slot to swap to before shooting the pelt mob.'
+        );
+        this.addSlider(
+            'Mob Kill Timeout',
+            MOB_KILL_TIMEOUT_MIN_SECONDS,
+            MOB_KILL_TIMEOUT_MAX_SECONDS,
+            MOB_KILL_TIMEOUT_DEFAULT_SECONDS,
+            (value) => {
+                const timeoutSeconds = Math.max(MOB_KILL_TIMEOUT_MIN_SECONDS, Math.min(MOB_KILL_TIMEOUT_MAX_SECONDS, Math.round(value)));
+                this.mobKillTimeoutMs = timeoutSeconds * 1000;
+            },
+            'How long to track a pelt mob before restarting Trevor hunt.'
         );
         this.createOverlay(
             [
@@ -535,7 +549,7 @@ class PeltMacro extends ModuleBase {
         };
 
         if (!delayed) {
-            Client.scheduleTask(1, () => {
+            ScheduleTask(1, () => {
                 for (let index = 0; index < directions.length; index++) {
                     sendPacket(directions[index], index === directions.length - 1);
                 }
@@ -675,7 +689,7 @@ class PeltMacro extends ModuleBase {
 
     checkMobTimeout() {
         if (this.restartActive || !this.mobTrackedAt) return false;
-        if (Date.now() - this.mobTrackedAt < MOB_KILL_TIMEOUT_MS) return false;
+        if (Date.now() - this.mobTrackedAt < this.mobKillTimeoutMs) return false;
 
         this.restartTrevorHunt();
         return true;
