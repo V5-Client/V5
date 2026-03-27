@@ -10,10 +10,11 @@ import {
     getTextWidth,
     THEME,
 } from '../../gui/Utils';
-import { File, InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
+import { File, InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner, globalAssetsDir, OS, isLinux, isMac } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
+import { Chat } from '../../utils/Chat';
 
 class Music extends ModuleBase {
     constructor() {
@@ -21,27 +22,27 @@ class Music extends ModuleBase {
 
         this.musicProcess = null;
         this.assetsDir = globalAssetsDir.getAbsoluteFile();
-        this.windowsExePath = 'WindowsMusicHelper.exe';
-        this.exePath = this.resolveExePath();
-
+        this.executableBase = "MusicHelper"
+        this.executable = null
         this.data = null;
         this.lastDataReceivedAt = 0;
         this.lastRestartAttempt = 0;
-
+        this.getCorrectBinary();
+        this.runBinary()
         this.positionConfig = Utils.getConfigFile('OverlayPositions/music_overlay.json') || {};
         const savedX = typeof this.positionConfig.x === 'number' ? this.positionConfig.x : 100;
         const savedY = typeof this.positionConfig.y === 'number' ? this.positionConfig.y : 100;
         const savedScale = typeof this.positionConfig.scale === 'number' ? this.positionConfig.scale : 1.0;
-
         this.x = savedX;
         this.y = savedY;
         this.scale = Math.max(0.5, Math.min(3.0, savedScale));
         this.dynamicWidth = 200;
         this.baseHeight = 90;
-
+        this.addShutdownHook()
         this.on('step', () => {
             if (Client.getFPS() > 0) {
-                this.getSongData();
+                this.fetchData();
+               // Chat.message('ok so correct binary is '+this.executable)
             }
         }).setFps(4);
 
@@ -51,10 +52,32 @@ class Music extends ModuleBase {
             }
         });
 
-        register('worldUnload', () => this.stopWindowsProgram());
-        register('gameUnload', () => this.savePosition());
+        register('gameUnload', () => {
+            this.savePosition(); 
+            this.killBinary()
+        });
         register('guiClosed', () => this.savePosition());
-        Runtime.getRuntime().addShutdownHook(new java.lang.Thread(() => this.stopWindowsProgram()));
+    }
+    isProcessAlive() {
+        if (!this.musicProcess) return false;
+        try {
+            this.musicProcess.exitValue();
+            return false;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    getCorrectBinary() {
+        if (isWindows) {
+            this.executable = this.executableBase + '.exe'
+        } else {
+            this.executable = this.executableBase
+        }
+    }
+
+    isExecutableInAssets() {
+        return new File(this.assetsDir, this.executable).exists();
     }
 
     parseTimeToSeconds(timeStr) {
@@ -65,11 +88,30 @@ class Music extends ModuleBase {
         if (parts.length === 2) return parts[0] * 60 + parts[1];
         return parts[0] || 0;
     }
-
-    resolveExePath() {
-        return new File(this.assetsDir, this.windowsExePath).getAbsoluteFile();
+    addShutdownHook() {
+        java.lang.Runtime.getRuntime().addShutdownHook(new java.lang.Thread(() => {
+            if (this.musicProcess) {
+                this.musicProcess.destroyForcibly();
+            }
+        }))
     }
+    runBinary() {
+        if (!this.isExecutableInAssets()) return false;
+        if (this.isProcessAlive()) return false;
+        try {
+            const bin = new File(this.assetsDir, this.executable)
+            const PB = new ProcessBuilder(bin)
 
+            if (!isWindows) {
+                bin.setExecutable(true)
+            }
+            PB.directory(this.assetsDir);
+            this.musicProcess = PB.start()
+           // Chat.message("meow")
+        } catch (e) {
+            Chat.message("hi error in music thing runbinary", +e)
+        }
+    }
     formatSecondsToTime(seconds) {
         const s = Math.max(0, Math.floor(seconds));
         const hours = Math.floor(s / 3600);
@@ -80,6 +122,13 @@ class Music extends ModuleBase {
             return hours + ':' + (minsInHour < 10 ? '0' + minsInHour : minsInHour) + ':' + (secs < 10 ? '0' + secs : secs);
         }
         return mins + ':' + (secs < 10 ? '0' + secs : secs);
+    }
+
+    killBinary() {
+        if (this.musicProcess) {
+            this.musicProcess.destroyForcibly();
+            this.musicProcess = null;
+        }
     }
 
     getPlaybackState() {
@@ -271,10 +320,10 @@ class Music extends ModuleBase {
 
     onDisable() {
         this.savePosition();
-        this.stopWindowsProgram();
+        this.killBinary();
     }
 
-    fetchWindowsData() {
+    fetchData() {
         requestV2({
             url: 'http://localhost:61942/',
             method: 'GET',
@@ -286,64 +335,13 @@ class Music extends ModuleBase {
                 this.lastDataReceivedAt = Date.now();
             })
             .catch((e) => {
-                // would only really happen if it wasn't running.
                 const now = Date.now();
                 if (now - this.lastRestartAttempt < 2000) return;
                 this.lastRestartAttempt = now;
-                this.stopWindowsProgram();
-                this.runWindowsProgram();
-            });
-    }
-
-    getSongData() {
-        if (isWindows) {
-            this.assetsDir = globalAssetsDir.getAbsoluteFile();
-            this.exePath = this.resolveExePath();
-            if (!this.checkWindowsProgram()) this.runWindowsProgram();
-            this.fetchWindowsData();
-        }
-    }
-
-    checkWindowsProgram() {
-        return this.musicProcess !== null && this.musicProcess.isAlive();
-    }
-
-    runWindowsProgram() {
-        if (!this.exePath.exists() || this.checkWindowsProgram()) return;
-
-        try {
-            const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
-            pb.directory(this.assetsDir);
-            this.musicProcess = pb.start();
-        } catch (e) {
-            console.error(`[Music] Start error: ${e}`);
-            return;
-        }
-
-        new Thread(() => {
-            let sc = null;
-            try {
-                sc = new Scanner(new InputStreamReader(this.musicProcess.getInputStream()));
-                while (this.musicProcess !== null && this.musicProcess.isAlive()) {
-                    if (sc.hasNextLine()) sc.nextLine();
-                    else Thread.sleep(100);
+                if (!this.isProcessAlive()) {
+                    this.runBinary();
                 }
-            } catch (e) {
-            } finally {
-                if (sc) sc.close();
-                if (this.musicProcess !== null && !this.musicProcess.isAlive()) this.musicProcess = null;
-            }
-        }).start();
-    }
-
-    stopWindowsProgram() {
-        if (this.musicProcess !== null) {
-            this.musicProcess.destroyForcibly();
-            this.musicProcess = null;
-        }
-        try {
-            java.lang.Runtime.getRuntime().exec(`taskkill /F /IM ${this.windowsExePath}`);
-        } catch (e) {}
+            });
     }
 }
 
