@@ -10,11 +10,11 @@ class ChatQOL extends ModuleBase {
             showEnabledToggle: false,
         });
 
-        this.CHAT_PATCH = true;
-        this.CHAT_BYPASS = true;
+        this.CHAT_PATCH = false;
+        this.CHAT_BYPASS = false;
 
-        this.addToggle('Chat Patch', (v) => (this.CHAT_PATCH = !!v), 'Stacks duplicate chat messages with a counter (x2, x3, ...)', true);
-        this.addToggle('Chat Bypass', (v) => (this.CHAT_BYPASS = !!v), 'Bypasses blocked chat messages by replacing some characters', true);
+        this.addToggle('Chat Patch', (v) => (this.CHAT_PATCH = !!v), 'Stacks duplicate chat messages with a counter (x2, x3, ...)', false);
+        this.addToggle('Chat Bypass', (v) => (this.CHAT_BYPASS = !!v), 'Bypasses blocked chat messages by replacing some characters', false);
 
         this.lastMessageContent = null;
         this.lastCounter = 1;
