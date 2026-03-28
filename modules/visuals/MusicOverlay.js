@@ -25,6 +25,8 @@ class Music extends ModuleBase {
         this.executableBase = 'MusicHelper';
         this.executable = null;
         this.data = null;
+        this.hasPlayerCTLBool =null;// this.checkPlayerCTL();
+        this.checkPlayerCTL();
         this.lastDataReceivedAt = 0;
         this.lastRestartAttempt = 0;
         this.getCorrectBinary();
@@ -57,7 +59,31 @@ class Music extends ModuleBase {
             this.killBinary();
         });
         register('guiClosed', () => this.savePosition());
+
+        if (!this.hasPlayerCTLBool) {
+            Chat.message("You do not have playerctl installed, run sudo apt install playerctl (install command varies by distro) and re-enable this module")
+            this.toggle(false)
+        }
     }
+
+    checkPlayerCTL() {
+        try {
+            if (!isLinux) return true;
+            if (this.hasPlayerCTLBool !== null) { // already assigned
+                return this.hasPlayerCTLBool;
+            }
+            const process = java.lang.Runtime.getRuntime().exec(["bash", "-c", "command -v playerctl"]);
+            process.waitFor();
+            const exists = process.exitValue() === 0;
+            this.hasPlayerCTLBool = exists;
+            //Chat.message(exists)
+            return exists;
+        } catch (e) {
+            this.hasPlayerCTLBool = false;
+            return false;
+        }
+    }
+
     isProcessAlive() {
         if (!this.musicProcess) return false;
         try {
