@@ -50,14 +50,6 @@ class NukerClass extends ModuleBase {
         this.lastUse = 0;
         this.ABILITY_COOLDOWN_MS = 200000;
 
-        v5Command('nukeit', (ticks = 1) => {
-            let block = Player.lookingAt();
-            if (block?.getClass() === Block) {
-                let pos = [block.getX(), block.getY(), block.getZ()];
-                NukerUtils.nuke(pos, ticks);
-            }
-        });
-
         v5Command('nukeradd', () => {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {

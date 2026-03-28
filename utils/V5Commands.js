@@ -186,7 +186,6 @@ const v5Logic = () => {
 
     literal('nuker', () => {
         exec(() => usage('/v5 nuker <nuke|add|remove|list|clear>'));
-        literal('nuke', () => exec(() => run('nukeit')));
         literal('add', () => exec(() => run('nukeradd')));
         literal('remove', () => {
             exec(() => usage('/v5 nuker remove <id>'));

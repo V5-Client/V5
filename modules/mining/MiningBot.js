@@ -587,8 +587,10 @@ class Bot extends ModuleBase {
             }
             if (this.currentTarget && !this.nukedBlock) {
                 const pos = [this.currentTarget.x, this.currentTarget.y, this.currentTarget.z];
-                if (fakeLookMode === 'Instant') NukerUtils.nuke(pos, this.totalTicks);
-                else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
+                if (fakeLookMode === 'Instant') {
+                    // Instant nuker might be bad dont use it
+                    //NukerUtils.nuke(pos, this.totalTicks);
+                } else if (fakeLookMode === 'Queued') NukerUtils.nukeQueueAdd(pos, this.totalTicks);
                 this.nukedBlock = true;
             }
         }

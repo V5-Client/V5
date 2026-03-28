@@ -17,6 +17,8 @@ import './foraging/HuntingHelpers';
 
 /* FARMING */
 import './farming/FarmingMacro/FarmingMacro';
+import './farming/GlowingMushroomESP';
+import './farming/GlowingMushroomMacro';
 import './farming/PestESP';
 import './farming/PeltMacro';
 import './farming/PeltQOL';

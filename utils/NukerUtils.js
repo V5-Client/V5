@@ -25,11 +25,6 @@ class NukerUtilsClass {
 
     registerTickHandler() {
         register('tick', () => {
-            const isNuking = this.nukeQueue.length > 0 || this.tickCounter > 0;
-            Mixin.set('nukerActive', isNuking);
-
-            if (this.fakelookMode !== 'Queue') return;
-
             if (this.nukeQueue.length > 0) {
                 this.processNextQueuedAction();
             } else if (this.tickCounter > 0) {
@@ -64,6 +59,9 @@ class NukerUtilsClass {
         this.nukeQueue.push([blockPos, ticks]);
     }
 
+    // THIS IS DETECTED I THINK DONT USE IT IT RAPES YOU BRUTALLY
+    // TIMEDEO WILL COME TO YOU HOME ADDRESS
+    // AND FORCE HIS BIG BLACK 4 INCH COCK DOWN YOUR THROAT
     nuke(blockPos, ticks = 1) {
         if (!this.isBlockInRange(blockPos)) return;
 
