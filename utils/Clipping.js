@@ -135,6 +135,8 @@ class ClippingManager extends ModuleBase {
             if (this.lastW && (this.lastW !== w || this.lastH !== h)) {
                 this.stopRecording(false, true, true);
                 this.startRecording(true);
+                this.lastW = 0;
+                this.lastH = 0;
                 return;
             }
             this.lastW = w;
