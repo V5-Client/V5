@@ -222,11 +222,10 @@ class ChocolateFactory extends ModuleBase {
             const x = egg.entity.getX();
             const y = egg.entity.getY();
             const z = egg.entity.getZ();
-            const textPos = new Vec3d(x, y + 1.8, z);
-            const tracerPos = new Vec3d(x, y + 1.4, z);
-            const boxPos = new Vec3d(x - 0.25, y + 1.15, z - 0.25);
+            const tracerPos = new Vec3d(x, y + 1.75, z);
+            const boxPos = new Vec3d(x, y + 1.45, z);
 
-            Render.drawSizedBox(boxPos, 0.5, 0.5, 0.5, egg.color.fill, true, 2, false);
+            Render.drawSizedBox(boxPos, 0.6, 0.6, 0.6, egg.color.fill, true, 2, false);
             Render.drawTracer(tracerPos, egg.color.line, 2, false);
         });
     }
