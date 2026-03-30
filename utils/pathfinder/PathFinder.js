@@ -901,7 +901,7 @@ class Finder {
         FlyRotations.resetRotations();
         Spline.clearCache();
         Jump.reset();
-        Aote.stop(!!clearFlags);
+        Aote.stop(true);
         Movement.stopMovement();
         FlyMovement.stopMovement();
         if (clearFlags) {
