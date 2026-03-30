@@ -4,6 +4,7 @@ import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 import { MathUtils } from '../../Math';
 import { PathExecutor } from '../PathExecutor';
 import { Spline } from '../PathSpline';
+import { predictXZ } from './PathPrediction';
 import { PathRotationsUtility } from './PathRotationsUtility';
 
 class PathRotations {
@@ -26,6 +27,10 @@ class PathRotations {
         this.RECOVERY_LOOKAHEAD_STEP = 0.15;
         this.MAX_DIRECTION_DIVERGENCE = 50.0;
         this.MAX_UPWARD_PITCH = -45.0;
+        this.PREDICTION_TICKS = 10;
+        this.PREDICTION_MIN_SPEED_XZ = 0.05;
+        this.PREDICTION_MAX_ADVANCE_GROUND = 0.9;
+        this.PREDICTION_MAX_ADVANCE_AIR = 2.4;
         this.TELEPORT_RESYNC_DURATION_TICKS = 14;
         this.TELEPORT_RESYNC_SEARCH_WINDOW = 72;
         this.lookaheadOverride = null;
@@ -323,6 +328,9 @@ class PathRotations {
             const maxJump = isTeleportResync ? 14.0 : isFalling ? 0.5 : 2.0;
             this.currentPathPosition = Math.min(this.currentPathPosition + maxJump, bestT);
         }
+        if (!isTeleportResync) {
+            this.applyPredictedPathProgress(player);
+        }
 
         const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
         let result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
@@ -481,6 +489,58 @@ class PathRotations {
         const dSq = dx * dx + dz * dz;
         if (dSq === 0) return 0;
         return Math.max(0, Math.min(1, ((p.x - p1.x) * dx + (p.z - p1.z) * dz) / dSq));
+    }
+
+    projectPathPositionHorizontal(x, z, hint = 0) {
+        if (!this.boxPositions || this.boxPositions.length < 2) return 0;
+        const lastSegment = this.boxPositions.length - 2;
+        const base = Math.max(0, Math.min(lastSegment, Math.floor(hint)));
+        const start = Math.max(0, base - 8);
+        const end = Math.min(lastSegment, base + 28);
+
+        let bestT = Math.max(0, Math.min(this.boxPositions.length - 1, hint));
+        let bestDistSq = Infinity;
+
+        for (let i = start; i <= end; i++) {
+            const a = this.boxPositions[i];
+            const b = this.boxPositions[i + 1];
+            if (!a || !b) continue;
+
+            const abx = b.x - a.x;
+            const abz = b.z - a.z;
+            const lenSq = abx * abx + abz * abz;
+            const t = lenSq <= 1e-8 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * abx + (z - a.z) * abz) / lenSq));
+            const px = a.x + abx * t;
+            const pz = a.z + abz * t;
+            const dx = x - px;
+            const dz = z - pz;
+            const distSq = dx * dx + dz * dz;
+
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestT = i + t;
+            }
+        }
+
+        return bestT;
+    }
+
+    applyPredictedPathProgress(player) {
+        if (!this.boxPositions || this.boxPositions.length < 2) return;
+
+        const motionX = Player.getMotionX();
+        const motionZ = Player.getMotionZ();
+        const speedXZ = Math.hypot(motionX, motionZ);
+        const onGround = !!player?.isOnGround?.();
+
+        if (onGround && speedXZ < this.PREDICTION_MIN_SPEED_XZ) return;
+
+        const predicted = onGround ? { x: Player.getX(), z: Player.getZ() } : predictXZ(this.PREDICTION_TICKS);
+        const projectedPredicted = this.projectPathPositionHorizontal(predicted.x, predicted.z, this.currentPathPosition);
+        if (!Number.isFinite(projectedPredicted) || projectedPredicted <= this.currentPathPosition) return;
+
+        const maxAdvance = onGround ? this.PREDICTION_MAX_ADVANCE_GROUND : this.PREDICTION_MAX_ADVANCE_AIR;
+        this.currentPathPosition = Math.min(this.currentPathPosition + maxAdvance, projectedPredicted);
     }
 
     getInterpolatedPoint(indexFloat) {
