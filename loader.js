@@ -15,7 +15,7 @@ import './utils/Config';
 import './utils/backend/WebSocket';
 
 /* Utils */
-import './utils/MacroState';
+import { MacroState } from './utils/MacroState';
 import './modules/other/MacroScheduler';
 import './modules/other/MacroControllers';
 import './modules/other/DiscordIntegration';
@@ -31,4 +31,5 @@ import './modules/loader';
 import './utils/Debugging';
 
 import { loadSettings } from './gui/GuiSave';
+MacroState.setupLastMacroToggleKey();
 loadSettings();
