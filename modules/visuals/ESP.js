@@ -14,6 +14,7 @@ class ESP extends ModuleBase {
         this.rgba = Render.Color(255, 0, 0, 255);
 
         this.showNames = false;
+        this.disableEspWithinDistance = 2;
 
         this.addToggle(
             'Show Names',
@@ -33,15 +34,31 @@ class ESP extends ModuleBase {
             'Color of the ESP box'
         );
 
+        this.addSlider(
+            'Disable ESP Distance',
+            0,
+            10,
+            this.disableEspWithinDistance,
+            (value) => {
+                this.disableEspWithinDistance = value;
+            },
+            'Disables ESP for players within this many blocks of you'
+        );
+
         this.on('postRenderWorld', () => {
             let players = World.getAllPlayers();
             const self = Player.getPlayer();
+            const disableEspWithinDistanceSq = this.disableEspWithinDistance * this.disableEspWithinDistance;
 
             for (const player of players) {
                 if (player.getUUID().equals(Player.getUUID())) continue;
                 if (player.getUUID().version() !== 4) continue;
 
                 const entity = player.toMC();
+                const distanceSq = self.squaredDistanceTo(entity);
+
+                if (distanceSq <= disableEspWithinDistanceSq) continue;
+
                 Render.drawHitbox(entity, this.rgba, 4, false);
 
                 if (!this.showNames) continue;
@@ -49,7 +66,6 @@ class ESP extends ModuleBase {
                 const canSee = self.canSee(entity);
                 const maxDefaultNametagDistance = canSee ? 64 : 32;
                 const maxDefaultNametagDistanceSq = maxDefaultNametagDistance * maxDefaultNametagDistance;
-                const distanceSq = self.squaredDistanceTo(entity);
 
                 if (distanceSq <= maxDefaultNametagDistanceSq) continue;
 
