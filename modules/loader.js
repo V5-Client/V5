@@ -12,6 +12,7 @@ import './mining/TunnelsMiner';
 
 /* FORAGING */
 import './foraging/AutoHarp';
+import './foraging/HideonLeafESP';
 import './foraging/HuntingHelpers';
 //import './foraging/SeaLumieMacro';
 
