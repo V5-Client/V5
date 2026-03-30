@@ -1,4 +1,4 @@
-// @Private
+//@Private
 // Vibecoded slop
 // who cares
 // 10m/h on nuker mode
