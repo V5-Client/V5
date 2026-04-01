@@ -55,8 +55,6 @@ class ExcavatorMacro extends ModuleBase {
 
         this.state = this.STATES.OPENING;
 
-        this.clickedScrap = false;
-        this.clickedChisel = false;
         this.inExcavator = false;
         this.tickCount = this.TICKDELAY || 0;
         this.blacklistedSlots = new Map();
@@ -70,8 +68,6 @@ class ExcavatorMacro extends ModuleBase {
                 title: 'Status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    Chisel: () => (this.clickedChisel ? 'Yes' : 'No'),
-                    Scrap: () => (this.clickedScrap ? 'Yes' : 'No'),
                 },
             },
         ]);
@@ -104,47 +100,10 @@ class ExcavatorMacro extends ModuleBase {
                     break;
                 case this.STATES.SETUP:
                     if (Guis.guiName() !== 'Fossil Excavator') return;
-
                     this.inExcavator = true;
 
-                    if (!this.clickedChisel) {
-                        if (!this.clickDelay()) return;
-
-                        let chisel = this.clickItem('minecraft:armor_stand', true, 'MIDDLE', false, 16);
-
-                        if (!chisel) {
-                            this.message('&cNo chisel!');
-                            //this.toggle(false);
-                            //return;
-                        }
-
-                        this.clickedChisel = true;
-                    }
-
-                    if (this.clickedChisel && !this.clickedScrap) {
-                        if (!this.clickDelay()) return;
-
-                        let scrap = this.clickItem('Suspicious Scrap', false, 'LEFT', true, 16);
-
-                        if (!scrap) {
-                            this.noScrapMisses++;
-                            if (this.noScrapMisses >= 5) {
-                                this.handleNoScrap();
-                                return;
-                            }
-                        } else {
-                            this.noScrapMisses = 0;
-                        }
-
-                        this.clickedScrap = true;
-                        return;
-                    }
-
-                    if (this.clickedChisel && this.clickedScrap) {
-                        if (!this.clickDelay()) return;
-
-                        Guis.clickItem('Start Excavator', true, 'MIDDLE');
-                    }
+                    if (!this.clickDelay()) return;
+                    Guis.clickItem('Start Excavator', true, 'MIDDLE');
                     this.state = this.STATES.EXCAVATING;
                     break;
                 case this.STATES.EXCAVATING:
@@ -159,17 +118,12 @@ class ExcavatorMacro extends ModuleBase {
                         let slot = container.getStackInSlot(i);
 
                         if (slot?.type?.getRegistryName()?.includes('black_stained')) {
-                            this.clickedScrap = false;
-
-                            this.clickedChisel = false;
                             this.state = this.STATES.SETUP;
                             return;
                         }
 
                         if (slot?.type?.getRegistryName()?.includes('yellow_stained')) {
                             Guis.closeInv();
-                            this.clickedChisel = false;
-                            this.clickedScrap = false;
                             this.inExcavator = false;
                             this.state = this.STATES.OPENING;
                             return;
@@ -273,8 +227,6 @@ class ExcavatorMacro extends ModuleBase {
 
     handleNoScrap() {
         this.message('&cNo scrap! Running Auto Combine and refilling.');
-        this.clickedChisel = false;
-        this.clickedScrap = false;
         this.inExcavator = false;
         this.noScrapMisses = 0;
         this.refillCommandSent = false;
@@ -301,8 +253,6 @@ class ExcavatorMacro extends ModuleBase {
     resumeExcavatorLoop() {
         this.refillCommandSent = false;
         this.refillDelayTicks = 0;
-        this.clickedChisel = false;
-        this.clickedScrap = false;
         this.inExcavator = false;
         this.noScrapMisses = 0;
         this.state = this.STATES.OPENING;
@@ -371,8 +321,6 @@ class ExcavatorMacro extends ModuleBase {
     onDisable() {
         this.message('&cDisabled');
         this.state = this.STATES.WAITING;
-        this.clickedChisel = false;
-        this.clickedScrap = false;
         this.inExcavator = false;
         this.blacklistedSlots.clear();
         this.noScrapMisses = 0;
