@@ -57,6 +57,14 @@
             "z": -547
         },
         {
+            "warp": "glowing",
+            "area": "The Farming Islands",
+            "defaultUnlock": false,
+            "x": 205,
+            "y": 42,
+            "z": -499
+        },
+        {
             "warp": "park",
             "area": "The Park",
             "defaultUnlock": true,
