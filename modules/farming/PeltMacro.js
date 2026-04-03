@@ -206,11 +206,10 @@ class PeltMacro extends ModuleBase {
     handleTick() {
         PeltQOLModule.ensureForceEnabled();
         const areaName = Utils.area();
-        const inFarmingIslands = areaName === 'The Farming Islands';
-        this.syncMobJumpHold(this.enabled && inFarmingIslands && this.shouldHoldMobJump());
+        this.syncMobJumpHold(this.enabled && this.shouldHoldMobJump());
         if (!this.enabled || !areaName) return;
-        if (!inFarmingIslands) {
-            this.restartTrevorHunt(`&eDetected area &f${areaName}&e outside of &fThe Farming Islands&e. Restarting Trevor hunt.`);
+        if (areaName != 'The Farming Islands') {
+            this.restartTrevorHunt(areaName);
             return;
         }
         if (this.consumePendingTrevorTarget()) return;
@@ -693,6 +692,8 @@ class PeltMacro extends ModuleBase {
         if (this.restartActive || !this.mobTrackedAt) return false;
         if (Date.now() - this.mobTrackedAt < this.mobKillTimeoutMs) return false;
 
+        ChatLib.command('warp hub');
+
         this.restartTrevorHunt();
         return true;
     }
@@ -713,7 +714,7 @@ class PeltMacro extends ModuleBase {
         });
     }
 
-    restartTrevorHunt(reason = null) {
+    restartTrevorHunt() {
         if (this.restartActive) return;
 
         this.restartActive = true;
@@ -729,9 +730,23 @@ class PeltMacro extends ModuleBase {
         this.lastShotAt = 0;
         this.status = 'Restarting Hunt';
 
-        this.queueCommand('warp hub', 0, token);
-        this.queueCommand('warp trapper', 70, token);
-        this.queueCommand('call trevor', 80, token);
+        ScheduleTask(70, () => {
+            let area = Utils.area();
+            if (area == 'unknown') {
+                ChatLib.command('play skyblock');
+                ScheduleTask(70, () => {
+                    ChatLib.command('warp trapper');
+                    ScheduleTask(10, () => {
+                        ChatLib.command('call trevor');
+                    });
+                });
+            } else {
+                ChatLib.command('warp trapper');
+                ScheduleTask(10, () => {
+                    ChatLib.command('call trevor');
+                });
+            }
+        });
     }
 
     startMobPath(mob, mobId, distance) {
@@ -791,7 +806,7 @@ class PeltMacro extends ModuleBase {
         this.status = 'Shooting Mob';
         const aimPoint = this.getAimPoint(entity);
         Guis.setItemSlot(this.weaponSlot);
-        Rotations.rotateToVector(aimPoint, true);
+        Rotations.rotateToEntity(entity);
 
         if (Date.now() - this.lastShotAt < SHOOT_COOLDOWN_MS) return;
         if (!this.isAimedAt(aimPoint)) return;
