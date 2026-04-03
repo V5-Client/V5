@@ -5,6 +5,7 @@ import { Chat } from './Chat';
 import { KeyBindUtils } from './Constants';
 import { MacroState } from './MacroState';
 import { Mixin } from './MixinManager';
+import { ScheduleTask } from './ScheduleTask';
 import { manager } from './SkyblockEvents';
 import { Utils } from './Utils';
 
@@ -66,7 +67,15 @@ export class ModuleBase {
             manager.subscribe('limbo', () => {
                 if (!this.enabled) return;
                 this.toggle(false);
-                Chat.message('&cYou were spawned in limbo! Active macro was disabled.');
+                Chat.message('&cYou were spawned in limbo! Attempting to recover...');
+                ChatLib.command('leave');
+                ScheduleTask(20, () => {
+                    ChatLib.command('play skyblock');
+                });
+                ScheduleTask(60, () => {
+                    this.toggle(true);
+                    Chat.message('&aRecovered from limbo?');
+                });
             });
         }
 
