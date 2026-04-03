@@ -2,7 +2,7 @@ const FORMATTING_CODE_REGEX = /§[0-9a-fk-or]/gi;
 
 class TabListUtilsClass {
     constructor() {
-        this.currentArea = 'Unknown';
+        this.currentArea = 'unknown';
         this.areaLastChecked = 0;
         this.hasCookieBuff = false;
         this.cookieLastChecked = 0;
@@ -26,6 +26,7 @@ class TabListUtilsClass {
         if (now - this.areaLastChecked < this.AREA_CACHE_MS) return this.currentArea;
 
         this.areaLastChecked = now;
+        this.currentArea = 'unknown';
 
         try {
             const tabLines = this.getNames();
@@ -36,7 +37,10 @@ class TabListUtilsClass {
                 const parts = cleanLine.split('Area:');
                 if (parts.length <= 1) continue;
 
-                this.currentArea = parts[1].trim();
+                const detectedArea = parts[1].trim();
+                if (!detectedArea) continue;
+
+                this.currentArea = detectedArea;
                 return this.currentArea;
             }
         } catch (e) {
@@ -47,7 +51,7 @@ class TabListUtilsClass {
     }
 
     resetAreaCache() {
-        this.currentArea = 'Unknown';
+        this.currentArea = 'unknown';
         this.areaLastChecked = 0;
     }
 
