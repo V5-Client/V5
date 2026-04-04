@@ -199,13 +199,6 @@ register('gameUnload', () => {
     ws = null;
 });
 
-register('step', () => {
-    if (gameUnload || isConnected || !disconnectedSinceMs) return;
-    if (Date.now() - disconnectedSinceMs >= DISCONNECT_GRACE_MS) {
-        V5Auth.shutDownHard();
-    }
-}).setDelay(20);
-
 register('packetSent', (packet, event) => {
     let message;
     try {
