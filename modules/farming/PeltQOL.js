@@ -26,10 +26,7 @@ const RGB = {
     f: [255, 255, 255],
 };
 const FINISH = ['killing the animal rewarded you', 'your mob died randomly, you are rewarded'];
-const RETRY = [
-    "[npc] trevor: i couldn't locate any animals. come back in a little bit!",
-    "[npc] trevor: i'm currently hunting! don't call again!",
-];
+const RETRY = ["[npc] trevor: i couldn't locate any animals. come back in a little bit!", "[npc] trevor: i'm currently hunting! don't call again!"];
 
 class PeltQOL extends ModuleBase {
     constructor() {
