@@ -40,7 +40,7 @@ const TREVOR_TARGETS = {
     ],
     oasis: [
         [127, 64, -427],
-        [132, 83, -543],
+        [121, 75, -505],
     ],
     'overgrown mushroom cave': [
         [242, 56, -401],

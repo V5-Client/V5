@@ -26,7 +26,10 @@ const RGB = {
     f: [255, 255, 255],
 };
 const FINISH = ['killing the animal rewarded you', 'your mob died randomly, you are rewarded'];
-const RETRY = "[npc] trevor: i couldn't locate any animals. come back in a little bit!";
+const RETRY = [
+    "[npc] trevor: i couldn't locate any animals. come back in a little bit!",
+    "[npc] trevor: i'm currently hunting! don't call again!",
+];
 
 class PeltQOL extends ModuleBase {
     constructor() {
@@ -124,7 +127,7 @@ class PeltQOL extends ModuleBase {
             return;
         }
 
-        if (this.autoCallTrevor && lower.includes(RETRY)) return this.run('call trevor');
+        if (this.autoCallTrevor && RETRY.some((hint) => lower.includes(hint))) return this.run('call trevor');
 
         const cooldown = this.autoCallTrevor && lower.match(/\[npc\] trevor: try coming back in.*?(\d+)\s*s\b/);
         if (cooldown) {
