@@ -11,6 +11,7 @@ import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 import { MiningBot } from './MiningBot';
 import { tunnelsMiner } from './TunnelsMiner';
+import { Utils } from '../../utils/Utils';
 
 const STATES = {
     IDLE: 'Idle',
@@ -191,6 +192,24 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
+        const area = Utils.area();
+        const subarea = Utils.subArea();
+        const now = Date.now();
+        const validSubareas = ['Glacite Tunnels', 'Fossil Research Center', 'Dwarven Base Camp'];
+        if (area !== 'Dwarven Mines' || !validSubareas.includes(subarea)) {
+            if (!this.areaCheckTime) {
+                this.message('&eNot in the Glacite area, warping to camp...');
+                ChatLib.command('warp camp');
+                this.areaCheckTime = now;
+                return;
+            }
+            if (now - this.areaCheckTime > 10000) {
+                ChatLib.command('warp camp');
+                this.areaCheckTime = now;
+            }
+            return;
+        }
+        this.areaCheckTime = null;
         const newCommissions = TabListUtils.readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 

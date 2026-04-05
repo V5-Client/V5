@@ -9,6 +9,7 @@ import './mining/PinglessMining';
 //import './mining/PowderMacro';
 //import './Mining/ScathaMacro';
 import './mining/TunnelsMiner';
+//import './mining/VeinDetectorTest';
 
 /* FORAGING */
 import './foraging/AutoHarp';
