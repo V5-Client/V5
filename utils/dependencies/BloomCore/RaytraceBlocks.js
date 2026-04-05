@@ -1,3 +1,4 @@
+import { getEtherwarpEyeCoords } from '../../Etherwarp';
 import { Vector3 } from './Vector3';
 
 export const raytraceBlocks = (
@@ -26,12 +27,13 @@ export const getPlayerEyeCoords = (forceSneak = false) => {
     const player = Player.getPlayer();
     if (!player) return null;
 
+    if (forceSneak) return getEtherwarpEyeCoords(true, player);
+
     const eyePos = player.getEyePos(); // native Vec3d
     let x = eyePos.x;
     let y = eyePos.y;
     let z = eyePos.z;
 
-    if (forceSneak && !Player.isSneaking()) y -= 0.08;
     return [x, y, z];
 };
 

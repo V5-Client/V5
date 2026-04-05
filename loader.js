@@ -20,6 +20,7 @@ import './modules/other/MacroScheduler';
 import './modules/other/MacroControllers';
 import './modules/other/DiscordIntegration';
 import './utils/pathfinder/PathFinder';
+import './utils/pathfinder/EtherwarpPathfinder';
 import './utils/Clipping';
 import './utils/Misc';
 import './failsafes/FailsafeManager';

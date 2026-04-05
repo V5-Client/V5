@@ -84,6 +84,7 @@ const v5Logic = () => {
         Chat.message('&7/v5 clip save &f- Save latest recording');
         Chat.message('&7/v5 mining <stats|refuel|maxge|gemstone|ore> ...');
         Chat.message('&7/v5 path <goto|fly|stop> ... &f- Pathfinder utilities');
+        Chat.message('&7/v5 etherwarp <x> <y> <z> &f- Test etherwarp pathfinding');
         Chat.message('&7/v5 farming set <start|end> &f- Configure Garden warps');
         Chat.message('&7/v5 routes <action> [movement] [index] &f- Route Walker routes');
         Chat.message('&7/v5 dr ... or /v5 dungeonroutes ...');
@@ -182,6 +183,11 @@ const v5Logic = () => {
         });
 
         literal('stop', () => exec(() => run('stopPath')));
+    });
+
+    literal('etherwarp', () => {
+        exec(() => usage('/v5 etherwarp <x> <y> <z>'));
+        argument('args', greedyString(), () => exec(({ args }) => run('etherwarp', args)));
     });
 
     literal('nuker', () => {
