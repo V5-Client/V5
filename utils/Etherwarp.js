@@ -1,6 +1,19 @@
 import { Utils } from './Utils';
 
-const MODERN_ETHERWARP_AREAS = new Set(['Hub', 'Dwarven Mines', 'Gold Mine', 'The Park', 'Park', "Spider's Den", 'Spider Den', 'The End', 'End', 'The Farming Islands', 'The Barn', 'Galatea']);
+const MODERN_ETHERWARP_AREAS = new Set([
+    'Hub',
+    'Dwarven Mines',
+    'Gold Mine',
+    'The Park',
+    'Park',
+    "Spider's Den",
+    'Spider Den',
+    'The End',
+    'End',
+    'The Farming Islands',
+    'The Barn',
+    'Galatea',
+]);
 const ETHERWARP_PLAYER_EYE_HEIGHT = 1.62;
 const ETHERWARP_LEGACY_SNEAK_OFFSET = 0.08;
 const ETHERWARP_MODERN_SNEAK_OFFSET = 0.35;
