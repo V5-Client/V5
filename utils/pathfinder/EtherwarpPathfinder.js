@@ -89,7 +89,7 @@ class EtherwarpPathHandler {
 
         const start = this.getPlayerSupportBlock();
         if (!start) {
-            Chat.messagePathfinder('&cUnable to determine your current position.');
+            Chat.messagePathfinder('&cUnable to determine a valid etherwarp landing block under you.');
             return;
         }
 
@@ -161,11 +161,7 @@ class EtherwarpPathHandler {
             }
         }
 
-        return {
-            x,
-            y: baseY,
-            z,
-        };
+        return null;
     }
 
     isValidEtherwarpLanding(world, x, y, z) {
