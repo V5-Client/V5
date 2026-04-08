@@ -170,10 +170,7 @@ class EtherwarpPathHandler {
         const feetFlags = this.getPathFlags(x, y + standOffset, z);
         const headFlags = this.getPathFlags(x, y + standOffset + 1, z);
 
-        return (
-            PathManager.isEtherwarpTeleportSpaceClearFlags(feetFlags) &&
-            PathManager.isEtherwarpTeleportSpaceClearFlags(headFlags)
-        );
+        return PathManager.isEtherwarpTeleportSpaceClearFlags(feetFlags) && PathManager.isEtherwarpTeleportSpaceClearFlags(headFlags);
     }
 
     getPathFlags(x, y, z) {
