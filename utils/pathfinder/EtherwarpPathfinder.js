@@ -1,5 +1,5 @@
 import { Chat } from '../Chat';
-import { BP, MCHand, PathManager, Vec3d } from '../Constants';
+import { MCHand, PathManager, Vec3d } from '../Constants';
 import { PlayerInteractItemC2S } from '../Packets';
 import { Guis } from '../player/Inventory';
 import { Keybind } from '../player/Keybinding';
@@ -8,8 +8,6 @@ import { v5Command } from '../V5Commands';
 import Render from '../render/Render';
 import { Rotations } from '../player/Rotations';
 
-const NativeStateEncoder = Java.type('com.v5.swift.nativepath.NativeStateEncoder');
-const NativeVoxelFlags = Java.type('com.v5.swift.nativepath.NativeVoxelFlags');
 const SEARCH_OPTIONS = {
     maxIterations: 100000,
     threadCount: 0,
@@ -156,7 +154,7 @@ class EtherwarpPathHandler {
         const candidates = [baseY, baseY - 1, baseY - 2, baseY - 3, baseY + 1];
 
         for (const y of candidates) {
-            if (this.isValidEtherwarpLanding(world, x, y, z)) {
+            if (this.isValidEtherwarpLanding(x, y, z)) {
                 return { x, y, z };
             }
         }
@@ -164,24 +162,22 @@ class EtherwarpPathHandler {
         return null;
     }
 
-    isValidEtherwarpLanding(world, x, y, z) {
-        const supportFlags = this.getNativeFlags(world, x, y, z);
-        if ((supportFlags & NativeVoxelFlags.SOLID) === 0) return false;
+    isValidEtherwarpLanding(x, y, z) {
+        const supportFlags = this.getPathFlags(x, y, z);
+        if (!PathManager.isEtherwarpSupportSolid(supportFlags)) return false;
 
-        const standOffset = (supportFlags & NativeVoxelFlags.FENCE_LIKE) !== 0 ? 2 : 1;
-        const feetFlags = this.getNativeFlags(world, x, y + standOffset, z);
-        const headFlags = this.getNativeFlags(world, x, y + standOffset + 1, z);
+        const standOffset = PathManager.getEtherwarpStandOffsetForFlags(supportFlags);
+        const feetFlags = this.getPathFlags(x, y + standOffset, z);
+        const headFlags = this.getPathFlags(x, y + standOffset + 1, z);
 
-        return this.isEtherwarpTeleportSpaceClear(feetFlags) && this.isEtherwarpTeleportSpaceClear(headFlags);
+        return (
+            PathManager.isEtherwarpTeleportSpaceClearFlags(feetFlags) &&
+            PathManager.isEtherwarpTeleportSpaceClearFlags(headFlags)
+        );
     }
 
-    isEtherwarpTeleportSpaceClear(flags) {
-        return (flags & NativeVoxelFlags.ETHER_TELEPORT_CLEAR) !== 0 && (flags & NativeVoxelFlags.ETHER_FEET_BLOCKER) === 0;
-    }
-
-    getNativeFlags(world, x, y, z) {
-        const state = world.getBlockState(new BP(x, y, z));
-        return state ? NativeStateEncoder.flagsForState(state) : 0;
+    getPathFlags(x, y, z) {
+        return Number(PathManager.getEtherwarpVoxelFlagsAt(x, y, z)) || 0;
     }
 
     getEyeHeight() {
