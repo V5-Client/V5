@@ -39,7 +39,7 @@ class AutoCombine extends ModuleBase {
         this.addToggle(
             'Support Level 10 Books',
             (value) => (this.enableLevelTenBooks = !!value),
-            'Allow combining enchanted books from I through X. Level X pairs are ignored so results stay capped at X.',
+            'Combines books up to level 10. Do not enable if your using normal level 5 capped books.',
             false
         );
 
@@ -91,7 +91,6 @@ class AutoCombine extends ModuleBase {
             return;
         }
 
-        this.message(`Found ${this.pendingPair.type} ${this.pendingPair.level} | slots ${this.first?.slot} & ${this.second?.slot}`);
         this.setState(this.STATES.FIRST_BOOK);
     }
 
@@ -154,7 +153,14 @@ class AutoCombine extends ModuleBase {
             const item = container?.getStackInSlot(slot);
             if (!item?.getName()?.includes('Enchanted Book')) continue;
 
-            const bookData = this.getBookData(item?.getLore()?.[1]?.toString());
+            const lore = item?.getLore?.();
+            if (!lore?.length) continue;
+
+            let bookData = null;
+            for (let i = 0; i < lore.length; i++) {
+                bookData = this.getBookData(lore?.[i]?.toString?.() ?? lore?.[i]);
+                if (bookData) break;
+            }
             if (!bookData) continue;
 
             const key = `${bookData.type}|${bookData.level}`;
