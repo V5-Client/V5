@@ -1,32 +1,26 @@
-import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
+import { ZombieEntity, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import Render from '../../utils/render/Render';
 
-const RAT_TEXTURE =
-    'ewogICJ0aW1lc3RhbXAiIDogMTYxODQxOTcwMTc1MywKICAicHJvZmlsZUlkIiA6ICI3MzgyZGRmYmU0ODU0NTVjODI1ZjkwMGY4OGZkMzJmOCIsCiAgInByb2ZpbGVOYW1lIiA6ICJCdUlJZXQiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYThhYmI0NzFkYjBhYjc4NzAzMDExOTc5ZGM4YjQwNzk4YTk0MWYzYTRkZWMzZWM2MWNiZWVjMmFmOGNmZmU4IiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=';
+const RAT_WIDTH = 0.3;
+const RAT_HEIGHT = 0.975;
+const EPSILON = 0.01;
 const WORLD_TICK_MS = 50;
 
-export function isRatHead(item) {
-    const mcItem = item?.toMC?.();
-    if (!mcItem) return false;
-
-    const profileType = net.minecraft.component.DataComponentTypes.PROFILE;
-    const profileComponent = mcItem.get(profileType);
-    const profileString = profileComponent?.getGameProfile?.()?.toString() || '';
-
-    return profileString.includes(RAT_TEXTURE);
+function approxEqual(a, b, epsilon = EPSILON) {
+    return Math.abs(a - b) <= epsilon;
 }
 
 export function isRatEntity(entity) {
     if (!entity) return false;
     if (entity.isDead()) return false;
-    return isRatHead(entity.getStackInSlot(5));
+    return approxEqual(entity.getWidth(), RAT_WIDTH) && approxEqual(entity.getHeight(), RAT_HEIGHT);
 }
 
 export function isRawRatEntity(entity) {
     if (!entity) return false;
-    return isRatHead(entity.getStackInSlot(5));
+    return approxEqual(entity.getWidth(), RAT_WIDTH) && approxEqual(entity.getHeight(), RAT_HEIGHT);
 }
 
 export function getRatId(entity) {
@@ -41,7 +35,7 @@ export function getHubRats() {
 
 export function getRawHubRats() {
     if (!World.isLoaded() || Utils.area() !== 'Hub') return [];
-    return World.getAllEntitiesOfType(ArmorStandEntity).filter((entity) => isRawRatEntity(entity));
+    return World.getAllEntitiesOfType(ZombieEntity).filter((entity) => isRawRatEntity(entity));
 }
 
 class RatESP extends ModuleBase {
@@ -49,8 +43,8 @@ class RatESP extends ModuleBase {
         super({
             name: 'Rat ESP',
             subcategory: 'Visuals',
-            description: 'Highlights Hub rats using their skull profile texture.',
-            tooltip: 'Highlights Hub rats using their skull profile texture.',
+            description: 'Highlights Hub rats.',
+            tooltip: 'Highlights Hub rats.',
         });
 
         this.rats = [];
@@ -62,7 +56,7 @@ class RatESP extends ModuleBase {
         this.on('tick', () => {
             this.lastWorldTickAt = Date.now();
         });
-        this.on('step', () => this.scanRats()).setFps(5);
+        this.on('tick', () => this.scanRats());
 
         this.when(
             () => this.enabled && World.isLoaded() && Utils.area() === 'Hub' && this.rats.length > 0,
@@ -93,8 +87,8 @@ class RatESP extends ModuleBase {
             if (!position) return;
 
             const cubeSize = 0.7;
-            const cubePos = new Vec3d(position.x, position.y + 1.4, position.z);
-            const cubeCenter = new Vec3d(position.x, position.y + 1.75, position.z);
+            const cubePos = new Vec3d(position.x, position.y, position.z);
+            const cubeCenter = new Vec3d(position.x, position.y, position.z);
 
             Render.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
             Render.drawTracer(cubeCenter, this.tracerColor, 2, false);
