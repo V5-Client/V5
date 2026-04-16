@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -361,4 +362,4 @@ class ForagingBot extends ModuleBase {
     }
 }
 
-export const ForagingB = new ForagingBot();
+export const ForagingB = isDeveloperModeEnabled() ? new ForagingBot() : null;

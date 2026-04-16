@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Render from '../../utils/render/Render';
@@ -219,4 +220,4 @@ class SeaLumie extends ModuleBase {
         this.state = this.STATES.WAITING;
     }
 }
-new SeaLumie();
+if (isDeveloperModeEnabled()) new SeaLumie();

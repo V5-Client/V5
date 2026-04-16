@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
@@ -293,4 +294,4 @@ class PowderMacro extends ModuleBase {
     }
 }
 
-new PowderMacro();
+if (isDeveloperModeEnabled()) new PowderMacro();

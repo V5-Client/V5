@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -373,4 +374,4 @@ class RouteWalkerer extends ModuleBase {
     }
 }
 
-export const RouteWalker = new RouteWalkerer();
+export const RouteWalker = isDeveloperModeEnabled() ? new RouteWalkerer() : null;

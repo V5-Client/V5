@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -596,4 +597,4 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 }
 
-new GlaciteCommissionMacro();
+if (isDeveloperModeEnabled()) new GlaciteCommissionMacro();

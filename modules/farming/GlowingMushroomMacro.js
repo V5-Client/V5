@@ -4,6 +4,7 @@
 // 10m/h on nuker mode
 // great
 // love it
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { MacroState } from '../../utils/MacroState';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -499,4 +500,4 @@ class GlowingMushroomMacro extends ModuleBase {
     }
 }
 
-new GlowingMushroomMacro();
+if (isDeveloperModeEnabled()) new GlowingMushroomMacro();

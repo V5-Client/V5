@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../../utils/DeveloperModeState';
 import { Vec3d } from '../../../utils/Constants';
 import { Mixin } from '../../../utils/MixinManager';
 import { ModuleBase } from '../../../utils/ModuleBase';
@@ -290,4 +291,4 @@ class FarmingMacro extends ModuleBase {
     }
 }
 
-new FarmingMacro();
+if (isDeveloperModeEnabled()) new FarmingMacro();
