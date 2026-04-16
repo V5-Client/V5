@@ -49,19 +49,15 @@ import './skills/RouteWalker';
 /* OTHER */
 import './other/AutoBeg';
 import './other/AutoConversation';
-import './other/AutoIceFill';
 import './other/BeachBaller';
-import './other/BloodBlink';
 import './other/CancelInteract';
 import './other/ChatQOL';
 import './other/DiscordRPC';
-//import './other/DungeonRoutes'; // IS NOT A FILE, RDBT HASN'T PUSHED YET
 import './other/Failsafes';
 import './other/Freecam';
 import './other/InventoryWalk';
 import './other/LeftClickEtherwarp';
 import './other/RatProtection';
-import './other/RatMacro';
 import './other/VoidgloomHelper';
 import './other/AutoCombine';
 import './other/SunGeckoMacro';
