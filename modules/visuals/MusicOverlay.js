@@ -24,8 +24,7 @@ class Music extends ModuleBase {
 
         this.musicProcess = null;
         this.assetsDir = globalAssetsDir.getAbsoluteFile();
-        this.windowsExeDownloadUrl =
-            'https://github.com/V5-Client/WindowsMusicHelper/releases/download/v1.0.0/WindowsMusicHelper.exe';
+        this.windowsExeDownloadUrl = 'https://github.com/V5-Client/WindowsMusicHelper/releases/download/v1.0.0/WindowsMusicHelper.exe';
         this.windowsExePath = 'WindowsMusicHelper.exe';
         this.exePath = this.resolveExePath();
         this.isDownloadingHelper = false;
