@@ -48,7 +48,7 @@ class Routes {
      * @param {*} folder The directory in V5Config
      * @returns all files in that directory
      */
-    getFilesinDir(folder) {
+    getFilesInDir(folder) {
         let mcDir = new File(Client.getMinecraft().runDirectory);
         let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5Config/' + folder);
 

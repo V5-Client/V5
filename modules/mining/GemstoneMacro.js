@@ -67,7 +67,7 @@ class GemstoneMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.routesDir = Router.getFilesinDir('GemstoneRoutes');
+        this.routesDir = Router.getFilesInDir('GemstoneRoutes');
         this.route = null;
         this.loadedFile = null;
 

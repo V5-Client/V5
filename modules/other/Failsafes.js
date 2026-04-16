@@ -134,7 +134,7 @@ class Failsafes extends ModuleBase {
         );
         this.addDirectMultiToggle(
             'Failsafe sound',
-            this.getFilesinDir(),
+            this.getFilesInDir(),
             true,
             () => {
                 const selectedFiles = getSetting('Failsafes', 'Failsafe sound');
@@ -207,7 +207,7 @@ class Failsafes extends ModuleBase {
         }
     }
 
-    getFilesinDir() {
+    getFilesInDir() {
         const targetPath = new File(globalAssetsDir, 'failsafes/sounds');
 
         if (!targetPath.exists() || !targetPath.isDirectory()) {

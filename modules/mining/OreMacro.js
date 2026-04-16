@@ -54,7 +54,7 @@ class OreMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.routesDir = Router.getFilesinDir('OreRoutes');
+        this.routesDir = Router.getFilesInDir('OreRoutes');
         this.route = null;
         this.loadedFile = null;
 
