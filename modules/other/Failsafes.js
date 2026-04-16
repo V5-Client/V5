@@ -42,7 +42,8 @@ class Failsafes extends ModuleBase {
                 const lastMacro = MacroState.getLastActiveMacro() || 'None';
 
                 const lastMacroMeta = MacroState.getLastDisableMeta(lastMacro);
-                const within5Minutes = Date.now() - lastMacroMeta.timestamp <= 5 * 60 * 1000;
+                const lastDisableTimestamp = lastMacroMeta?.timestamp;
+                const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
                 const currentlyMacroing = MacroState.isMacroRunning() || within5Minutes;
 
                 this.postBanLog(fullText, lastMacro, currentlyMacroing);
