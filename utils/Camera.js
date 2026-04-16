@@ -1,8 +1,6 @@
 import { Mixin } from './MixinManager';
 import { Utils } from './Utils';
 
-// this will be used for zero ping stuff.
-
 class CameraUtils {
     /**
      * Override the player's camera position. Pass null/undefined to clear.
