@@ -11,7 +11,10 @@ import {
     THEME,
 } from '../../gui/Utils';
 import { File, InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
+import { Chat } from '../../utils/Chat';
+import { streamDownloadToFile } from '../../utils/FileUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { Executor } from '../../utils/ThreadExecutor';
 import { Utils } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 
@@ -21,8 +24,11 @@ class Music extends ModuleBase {
 
         this.musicProcess = null;
         this.assetsDir = globalAssetsDir.getAbsoluteFile();
+        this.windowsExeDownloadUrl =
+            'https://github.com/V5-Client/WindowsMusicHelper/releases/download/v1.0.0/WindowsMusicHelper.exe';
         this.windowsExePath = 'WindowsMusicHelper.exe';
         this.exePath = this.resolveExePath();
+        this.isDownloadingHelper = false;
 
         this.data = null;
         this.lastDataReceivedAt = 0;
@@ -299,6 +305,10 @@ class Music extends ModuleBase {
         if (isWindows) {
             this.assetsDir = globalAssetsDir.getAbsoluteFile();
             this.exePath = this.resolveExePath();
+            if (!this.exePath.exists()) {
+                this.downloadWindowsProgram();
+                return;
+            }
             if (!this.checkWindowsProgram()) this.runWindowsProgram();
             this.fetchWindowsData();
         }
@@ -308,8 +318,39 @@ class Music extends ModuleBase {
         return this.musicProcess !== null && this.musicProcess.isAlive();
     }
 
+    downloadWindowsProgram() {
+        if (!isWindows || this.isDownloadingHelper) return;
+        this.isDownloadingHelper = true;
+
+        Executor.execute(() => {
+            try {
+                Chat.message('&7WindowsMusicHelper.exe not found. Downloading...');
+                let lastUpdate = -25;
+                streamDownloadToFile(this.windowsExeDownloadUrl, this.exePath, (percent) => {
+                    if (percent >= lastUpdate + 25) {
+                        Chat.message(`&7Music helper download: &b${percent}%`);
+                        lastUpdate = percent;
+                    }
+                });
+                Chat.message('&aWindows music helper installed.');
+            } catch (e) {
+                Chat.message(`&cWindows music helper download failed: ${e}`);
+                console.error(`[Music] Download error: ${e}`);
+                try {
+                    if (this.exePath.exists() && this.exePath.length() <= 0) this.exePath.delete();
+                } catch (deleteError) {}
+            } finally {
+                this.isDownloadingHelper = false;
+            }
+        });
+    }
+
     runWindowsProgram() {
-        if (!this.exePath.exists() || this.checkWindowsProgram()) return;
+        if (!this.exePath.exists()) {
+            this.downloadWindowsProgram();
+            return;
+        }
+        if (this.checkWindowsProgram()) return;
 
         try {
             const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
