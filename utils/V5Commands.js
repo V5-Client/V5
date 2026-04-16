@@ -152,6 +152,7 @@ const v5Logic = () => {
     });
 
     literal('mining', () => {
+        //exec(() => usage('/v5 mining <stats|refuel|maxge|gemstone|ore|veintest> [args]'));
         exec(() => usage('/v5 mining <stats|refuel|maxge|gemstone|ore> [args]'));
 
         literal('stats', () => exec(() => run('getminingstats')));
@@ -167,6 +168,11 @@ const v5Logic = () => {
             exec(() => usage('/v5 mining ore <args>'));
             argument('args', greedyString(), () => exec(({ args }) => callCommand('ore', args)));
         });
+
+        //literal('veintest', () => {
+        //    exec(() => usage('/v5 mining veintest <type|off|rescan|list>'));
+        //    argument('args', greedyString(), () => exec(({ args }) => callCommand('veintest', args)));
+        //});
     });
 
     literal('path', () => {

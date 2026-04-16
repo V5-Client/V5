@@ -733,18 +733,23 @@ class PeltMacro extends ModuleBase {
         this.status = 'Restarting Hunt';
 
         ScheduleTask(70, () => {
+            if (!this.enabled || token !== this.restartToken) return;
             let area = Utils.area();
             if (area == 'unknown') {
                 ChatLib.command('play skyblock');
                 ScheduleTask(70, () => {
+                    if (!this.enabled || token !== this.restartToken) return;
                     ChatLib.command('warp trapper');
                     ScheduleTask(10, () => {
+                        if (!this.enabled || token !== this.restartToken) return;
                         ChatLib.command('call trevor');
                     });
                 });
             } else {
                 ChatLib.command('warp trapper');
                 ScheduleTask(10, () => {
+                    if (!this.enabled || token !== this.restartToken) return;
+
                     ChatLib.command('call trevor');
                 });
             }
