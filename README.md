@@ -13,7 +13,8 @@ This project is licensed under **GNU GPL v3.0**. In short:
 2. Every distribution must include the license text and existing copyright notices.
 3. You can use this software privately.
 4. If you distribute modified versions, you must provide the complete source code under GPL-3.0.
-- This means that any forks/copies/clones must have the source code freely available.  
+
+- This means that any forks/copies/clones must have the source code freely available.
 
 ## Repositories
 
@@ -21,7 +22,7 @@ V5 is split across two repositories:
 
 - **Fabric mod (V5Loader):** https://github.com/V5-Client/V5Loader  
   Contains the technical client internals (rendering, pathfinding, ChatTriggers JavaScript engine).
-- **JavaScript module (this repo):** https://github.com/V5-Client/V5  
+- **JavaScript module (V5):** https://github.com/V5-Client/V5  
   Contains macros/scripts used by the client.
 
 ## Working on the Fabric Mod ([V5Loader](https://github.com/V5-Client/V5Loader))
@@ -69,6 +70,10 @@ cmake -S NativeSrc -B NativeSrc/build -DCMAKE_BUILD_TYPE=Release; cmake --build 
 After building, place the jar at:
 
 - `.minecraft/V5/V5-Loader.jar`
+
+You must have the [V5ModLoader.jar](https://rdbt.top/docs/getting-started) in your mods loader for it to work.
+
+The V5ModLoader simply handles V5 user accounts to prevent abuse.
 
 ## Working on the JavaScript Module ([V5](https://github.com/V5-Client/V5))
 
