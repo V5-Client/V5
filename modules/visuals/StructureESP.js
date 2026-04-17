@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { StructureFinder, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';
@@ -56,4 +57,4 @@ class StructureESP extends ModuleBase {
     }
 }
 
-new StructureESP();
+if (isDeveloperModeEnabled()) new StructureESP();

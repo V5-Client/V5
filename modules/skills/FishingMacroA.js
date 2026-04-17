@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
@@ -170,4 +171,4 @@ class FishingMacro extends ModuleBase {
     }
 }
 
-new FishingMacro();
+if (isDeveloperModeEnabled()) new FishingMacro();

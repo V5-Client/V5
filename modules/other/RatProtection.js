@@ -21,7 +21,7 @@ class RatProtection extends ModuleBase {
             url: 'https://sessionserver.mojang.com/session/minecraft/join',
             method: 'POST',
             body: {
-                accessToken: Client.getMinecraft().getSession().getAccessToken(),
+                accessToken: Client.getMinecraft().getSession().getAccessToken(), // omg its the rat, you found it
                 selectedProfile: Player.getUUID().toString().replaceAll('-', ''),
                 serverId: java.util.UUID.randomUUID().toString().replaceAll('-', ''),
             },

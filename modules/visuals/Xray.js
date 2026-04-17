@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { getSetting } from '../../gui/GuiSave';
 import { XrayPackage } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -58,4 +59,4 @@ class Xray extends ModuleBase {
     }
 }
 
-new Xray();
+if (isDeveloperModeEnabled()) new Xray();

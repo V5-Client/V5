@@ -1,5 +1,6 @@
 //@VIP
 // idk if ready for release up to zurviq
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
@@ -60,4 +61,4 @@ class PestESP extends ModuleBase {
     }
 }
 
-new PestESP();
+if (isDeveloperModeEnabled()) new PestESP();

@@ -246,7 +246,7 @@ class EtherwarpPathHandler {
         this.executionToken++;
 
         this.preparePlayer(slot);
-        ScheduleTask(1, () => this.executePath(this.executionToken));
+        ScheduleTask(2, () => this.executePath(this.executionToken));
 
         this.messagePathfinder('&7Executing etherpath...');
         return true;

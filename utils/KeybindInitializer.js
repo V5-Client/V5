@@ -1,9 +1,9 @@
 import { KeyBindUtils } from './Constants';
 
 class Keybind {
-    static initalizer() {
+    static initializer() {
         KeyBindUtils.init();
     }
 }
 
-Keybind.initalizer();
+Keybind.initializer();

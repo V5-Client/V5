@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Veins } from './GlaciteData';
@@ -311,4 +312,4 @@ class TunnelsMiner extends ModuleBase {
     }
 }
 
-export const tunnelsMiner = new TunnelsMiner();
+export const tunnelsMiner = isDeveloperModeEnabled() ? new TunnelsMiner() : null;

@@ -1,4 +1,5 @@
 //@Beta
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
@@ -448,4 +449,4 @@ class ScathaMacro extends ModuleBase {
     }
 }
 
-new ScathaMacro();
+if (isDeveloperModeEnabled()) new ScathaMacro();

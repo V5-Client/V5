@@ -132,8 +132,6 @@ function connectWebSocket() {
     ws = socket;
     connectedAtMs = 0;
     socket.socket?.addHeader?.('Authorization', `Bearer ${token}`);
-    const hwid = V5Auth.getHwid();
-    if (hwid) socket.socket?.addHeader?.('X-V5-HWID', hwid);
     let disconnectHandled = false;
     const handleDisconnectOnce = (payload) => {
         if (!isCurrentSocket(socket, socketGeneration)) return;

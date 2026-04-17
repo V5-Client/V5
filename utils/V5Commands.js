@@ -1,5 +1,6 @@
 import { Chat } from './Chat';
 import { Desktop, File } from './Constants';
+import { isDeveloperModeEnabled, setDeveloperModeEnabled } from './DeveloperModeState';
 import { ServerInfo } from './player/ServerInfo';
 
 const commandRegistry = new Map();
@@ -65,6 +66,7 @@ export const callCommand = (id, ...args) => {
 };
 
 const { buildCommand, registerCommand, redirect } = Commands;
+let developerModeEnableConfirmationPending = false;
 
 const v5Logic = () => {
     const { literal, argument, greedyString, integer, exec, float } = Commands;
@@ -81,6 +83,7 @@ const v5Logic = () => {
         Chat.message('&bV5 Command Help:');
         Chat.message('&7/v5 gui &f- Open the main GUI');
         Chat.message('&7/v5 tps | /v5 ping &f- Show server TPS and ping');
+        Chat.message('&7/v5 developerMode <true|false> &f- Toggle developer mode');
         Chat.message('&7/v5 clip save &f- Save latest recording');
         Chat.message('&7/v5 mining <stats|refuel|maxge|gemstone|ore> ...');
         Chat.message('&7/v5 path <goto|fly|stop> ... &f- Pathfinder utilities');
@@ -101,6 +104,44 @@ const v5Logic = () => {
         const tpsColor = toMinecraftHexColor(ServerInfo.getTpsColor(tps));
         const pingColor = toMinecraftHexColor(ServerInfo.getPingColor(ping));
         Chat.message(`TPS ${tpsColor}${tps}&f | Ping ${pingColor}${ping}ms`);
+    };
+
+    const setDeveloperMode = (enabled) => {
+        if (!enabled) {
+            developerModeEnableConfirmationPending = false;
+
+            if (!isDeveloperModeEnabled()) {
+                Chat.message('&cDeveloper Mode is already disabled.');
+                return;
+            }
+
+            setDeveloperModeEnabled(false);
+            Chat.message('&aDeveloper Mode disabled.');
+            ChatLib.command('ct load', true);
+            return;
+        }
+
+        if (isDeveloperModeEnabled()) {
+            Chat.message("&cDeveloper Mode enabled. Run '/V5 developerMode false' to disable.");
+            return;
+        }
+
+        if (!developerModeEnableConfirmationPending) {
+            developerModeEnableConfirmationPending = true;
+            Chat.message(
+                '&cDeveloper Mode should only be enabled if you know what your doing. It will disable auto updates, unlock WIP modules, and  potentially ban you.'
+            );
+            Chat.message("&cRun '/V5 developerMode true' again to confirm.");
+            return;
+        }
+
+        developerModeEnableConfirmationPending = false;
+        setDeveloperModeEnabled(true);
+        Chat.message(
+            '&cDeveloper Mode should only be enabled if you know what your doing. It will disable auto updates, unlock WIP modules, and  potentially ban you.'
+        );
+        Chat.message("&cDeveloper Mode enabled. Run '/V5 developerMode false' to disable.");
+        ChatLib.command('ct load', true);
     };
 
     exec((ctx = {}) => {
@@ -258,6 +299,12 @@ const v5Logic = () => {
 
     literal('tps', () => exec(showServerInfo));
     literal('ping', () => exec(showServerInfo));
+
+    literal('developerMode', () => {
+        exec(() => usage('/v5 developerMode <true|false>'));
+        literal('true', () => exec(() => setDeveloperMode(true)));
+        literal('false', () => exec(() => setDeveloperMode(false)));
+    });
 
     literal('debug', () => {
         exec(() => usage('/v5 debug <blockinfo|istranslucent|packetinfo>'));

@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -54,7 +55,7 @@ class OreMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.routesDir = Router.getFilesinDir('OreRoutes');
+        this.routesDir = Router.getFilesInDir('OreRoutes');
         this.route = null;
         this.loadedFile = null;
 
@@ -689,4 +690,4 @@ class OreMacro extends ModuleBase {
     }
 }
 
-new OreMacro();
+if (isDeveloperModeEnabled()) new OreMacro();

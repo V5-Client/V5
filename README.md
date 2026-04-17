@@ -1,119 +1,81 @@
-# 🌌 V5 | ModuleBase Developer Documentation (1.21.10)
+# V5 Developer README
 
-This guide provides a full technical breakdown of the **V5** framework for Minecraft 1.21.10. It is designed to help developers implement custom logic using the `ModuleBase` utility class.
+General users should use the public docs:
+https://rdbt.top/docs/getting-started
 
----
+The rest of this README is for developers and contributors.
 
-## 🏗️ The Module Lifecycle
+## License Summary
 
-The `ModuleBase` class manages the state, UI, and event listeners of your macro. By extending this class, your script gains access to automatic event cleanup and GUI integration.
+This project is licensed under **GNU GPL v3.0**. In short:
 
-### Core Architecture
+1. Anyone can copy, modify, and distribute this software.
+2. Every distribution must include the license text and existing copyright notices.
+3. You can use this software privately.
+4. If you distribute modified versions, you must provide the complete source code under GPL-3.0.
+- This means that any forks/copies/clones must have the source code freely available.  
 
-1. **Constructor**: Define the module metadata and initialize UI elements (Sliders/Toggles).
-2. **Auto-Registry**: Use `this.on()` to hook into game events. These are automatically unregistered when the module is toggled off to ensure zero background resource usage.
+## Repositories
 
----
+V5 is split across two repositories:
 
-## 🛠️ Complete API Reference
+- **Fabric mod (V5Loader):** https://github.com/V5-Client/V5Loader  
+  Contains the technical client internals (rendering, pathfinding, ChatTriggers JavaScript engine).
+- **JavaScript module (this repo):** https://github.com/V5-Client/V5  
+  Contains macros/scripts used by the client.
 
-### Constructor Options
+## Working on the Fabric Mod ([V5Loader](https://github.com/V5-Client/V5Loader))
 
-| Option              | Type    | Description                                                                 |
-| :------------------ | :------ | :-------------------------------------------------------------------------- |
-| `name`              | String  | The display name in the V5 GUI.                                             |
-| `subcategory`       | String  | Category grouping (e.g., 'Combat', 'Farming').                              |
-| `description`       | String  | Brief summary of what the module does.                                      |
-| `showEnabledToggle` | Boolean | If `false`, the "Enabled" switch is hidden (useful for command-only tools). |
+Run these commands from the `V5Loader` repository root.
 
-### Event Methods
+### Build outputs
 
-- `this.on(event, callback)`: The primary way to run code. Supports all standard events (tick, chat, renderWorld, packetReceived).
-- `onEnable()`: Triggered once when the user toggles the module ON.
-- `onDisable()`: Triggered once when the user toggles the module OFF.
+- `NativeSrc/build/V5PathJNI.so` (Linux)
+- `NativeSrc/build/V5PathJNI.dylib` (macOS)
+- `NativeSrc/build/Release/V5PathJNI.dll` or `NativeSrc/build/V5PathJNI.dll` (Windows)
 
-### UI Injection Methods
+### Bundle output into V5Loader
 
-- `this.addToggle(title, callback, description)`: Adds a boolean switch.
-- `this.addSlider(title, min, max, default, callback, description)`: Adds a numerical slider.
-- `this.bindToggleKey(title?)`: Adds a hotkey selector to the Minecraft keybind menu.
+Copy the built library into:
 
----
+- `src/main/resources/assets/v5/`
 
-## 📜 Full Code Template
+For production release commits, this copy step is handled automatically by GitHub Actions.
 
-This is a complete, ready-to-use template including all common features.
+### Quick dev commands
 
-```javascript
-import { ModuleBase } from './utils/ModuleBase';
+Each command compiles native code, copies the output, runs API dump, then builds Kotlin.
 
-/**
- * V5 Macro Implementation
- * Targeted for Minecraft 1.21.10
- */
-class Template extends ModuleBase {
-    constructor() {
-        // 1. Setup Module Identity
-        super({
-            name: 'Template',
-            subcategory: 'Core',
-            description: 'A template for 1.21.10 modules.',
-            tooltip: 'A template for 1.21.10 modules.',
-            showEnabledToggle: true,
-        });
+- **Linux:**
 
-        // 2. Initial Variables
-        this.boolean = false;
-        this.number = 5;
-
-        // 3. UI Implementation
-        this.bindToggleKey('Macro Toggle Key');
-        this.setTheme('#65a6f0'); // Used to change the color of this.message prefix
-
-        this.addToggle(
-            'Boolean',
-            (val) => {
-                this.boolean = val;
-            },
-            'A boolean value.'
-        );
-
-        this.addSlider(
-            'Number',
-            1,
-            20,
-            10,
-            (val) => {
-                this.number = val;
-            },
-            'A number value.'
-        );
-
-        // 4. Managed Event Listeners
-        // These auto-register/unregister with the module toggle
-        this.on('tick', () => {
-            if (this.boolean) {
-                // Perform movement checks here
-            }
-        });
-
-        this.on('renderWorld', () => {
-            // Visual logic here
-        });
-    }
-
-    /**
-     * Optional Overrides
-     */
-    onEnable() {
-        this.message('Enabled');
-    }
-
-    onDisable() {
-        this.message('Disabled');
-    }
-}
-
-// Instantiate the module
-new Template();
+```bash
+cmake -S NativeSrc -B NativeSrc/build -DCMAKE_BUILD_TYPE=Release && cmake --build NativeSrc/build --config Release -j && cp ./NativeSrc/build/V5PathJNI.so ./src/main/resources/assets/v5/V5PathJNI.so && ./gradlew apiDump && ./gradlew build
 ```
+
+- **macOS:**
+
+```bash
+cmake -S NativeSrc -B NativeSrc/build -DCMAKE_BUILD_TYPE=Release && cmake --build NativeSrc/build --config Release -j && cp ./NativeSrc/build/V5PathJNI.dylib ./src/main/resources/assets/v5/V5PathJNI.dylib && ./gradlew apiDump && ./gradlew build
+```
+
+- **Windows (PowerShell):**
+
+```powershell
+cmake -S NativeSrc -B NativeSrc/build -DCMAKE_BUILD_TYPE=Release; cmake --build NativeSrc/build --config Release --parallel; if (Test-Path .\NativeSrc\build\Release\V5PathJNI.dll) { Copy-Item .\NativeSrc\build\Release\V5PathJNI.dll .\src\main\resources\assets\v5\V5PathJNI.dll -Force } else { Copy-Item .\NativeSrc\build\V5PathJNI.dll .\src\main\resources\assets\v5\V5PathJNI.dll -Force }; .\gradlew apiDump; .\gradlew build
+```
+
+### Install built mod
+
+After building, place the jar at:
+
+- `.minecraft/V5/V5-Loader.jar`
+
+## Working on the JavaScript Module ([V5](https://github.com/V5-Client/V5))
+
+1. In-game, run `/V5 developerMode true`.
+   This disables auto-updater behavior so your local edits are not overwritten.~
+2. You are able to git clone into modules folder for ease of use.
+3. After making code changes, run `/ct load` to reload immediately.
+4. Use `/ct console` to view the JavaScript console.
+
+More detailed contributor docs may be added in the future.

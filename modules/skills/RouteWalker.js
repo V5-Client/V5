@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -27,7 +28,7 @@ class RouteWalkerer extends ModuleBase {
 
         this.bindToggleKey();
 
-        this.routesDir = Router.getFilesinDir('RoutewalkerRoutes');
+        this.routesDir = Router.getFilesInDir('RoutewalkerRoutes');
 
         this.LEFTCLICK = false;
         this.SNEAK = false;
@@ -304,7 +305,7 @@ class RouteWalkerer extends ModuleBase {
     }
 
     refreshRoutesToggle() {
-        const routes = Router.getFilesinDir('RoutewalkerRoutes').map((name) => String(name));
+        const routes = Router.getFilesInDir('RoutewalkerRoutes').map((name) => String(name));
         if (!this.routesToggle) return;
 
         const prevState = new Map((this.routesToggle.options || []).map((option) => [option.name, !!option.enabled]));
@@ -373,4 +374,4 @@ class RouteWalkerer extends ModuleBase {
     }
 }
 
-export const RouteWalker = new RouteWalkerer();
+export const RouteWalker = isDeveloperModeEnabled() ? new RouteWalkerer() : null;

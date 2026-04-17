@@ -1,4 +1,5 @@
 //@VIP
+import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -67,7 +68,7 @@ class GemstoneMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        this.routesDir = Router.getFilesinDir('GemstoneRoutes');
+        this.routesDir = Router.getFilesInDir('GemstoneRoutes');
         this.route = null;
         this.loadedFile = null;
 
@@ -481,4 +482,4 @@ class GemstoneMacro extends ModuleBase {
     }
 }
 
-new GemstoneMacro();
+if (isDeveloperModeEnabled()) new GemstoneMacro();
