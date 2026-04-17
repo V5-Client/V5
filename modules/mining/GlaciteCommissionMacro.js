@@ -1,4 +1,3 @@
-//@VIP
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { MiningUtils } from '../../utils/MiningUtils';

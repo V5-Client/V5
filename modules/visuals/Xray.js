@@ -1,4 +1,3 @@
-//@VIP
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { getSetting } from '../../gui/GuiSave';
 import { XrayPackage } from '../../utils/Constants';

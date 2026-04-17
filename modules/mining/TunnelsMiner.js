@@ -1,4 +1,3 @@
-//@VIP
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';

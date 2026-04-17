@@ -1,4 +1,3 @@
-//@VIP
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';

@@ -1,4 +1,3 @@
-//@Beta
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';

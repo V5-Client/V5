@@ -1,4 +1,3 @@
-//@VIP
 // idk if ready for release up to zurviq
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
