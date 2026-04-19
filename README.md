@@ -71,7 +71,7 @@ After building, place the jar at:
 
 - `.minecraft/V5/V5-Loader.jar`
 
-You must have the [V5ModLoader.jar](https://rdbt.top/docs/getting-started) in your mods loader for it to work.
+You must have the [V5ModLoader.jar](https://rdbt.top/docs/getting-started) in your mods folder for it to work.
 
 The V5ModLoader simply handles V5 user accounts to prevent abuse.
 
