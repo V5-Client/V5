@@ -1,9 +1,10 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { MCHand, Vec3d } from '../../utils/Constants';
+import { MCHand, PathManager, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { PlayerInteractItemC2S } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
+import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import { PathExecutor } from '../../utils/pathfinder/PathExecutor';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
@@ -47,7 +48,7 @@ const TREVOR_TARGETS = {
         [284, 54, -379],
     ],
 };
-const TRAVEL_MODES = ['Pathfind', 'AOTE', 'AOTE delayed'];
+const TRAVEL_MODES = ['Pathfind', 'AOTE delayed'];
 const TRAP_WARP_POSITION = [281, 104, -548];
 
 const parseAOTERoute = (sequence) => {
@@ -93,6 +94,11 @@ const MOB_REPOSITION_MS = 1000;
 const MOB_PATH_RETRY_MS = 100;
 const MOB_VISIBILITY_PADDING = 0.25;
 const MOB_VISIBILITY_SAMPLE_OFFSETS = [0, 0.5, 1];
+const PELT_ETHERWARP_RADIUS = 14;
+const PELT_ETHERWARP_MAX_DISTANCE = 24;
+const ETHERWARP_LOS_HEAD_ABOVE_FEET = 1.62;
+const ETHERWARP_LOS_RAY_EXTEND = 0.25;
+const ETHERWARP_BLACKLIST_CUBE_HALF = 1;
 
 class PeltMacro extends ModuleBase {
     constructor() {
@@ -130,7 +136,17 @@ class PeltMacro extends ModuleBase {
         this.mobKillTimeoutMs = MOB_KILL_TIMEOUT_DEFAULT_SECONDS * 1000;
         this.targetHandleToken = 0;
         this.pendingTrevorTarget = null;
+        this.useEtherwarpPathfinder = false;
+        this.etherwarpLandingBlacklist = new Set();
 
+        this.addToggle(
+            'Etherwarp Pathfinder',
+            (enabled) => {
+                this.useEtherwarpPathfinder = !!enabled;
+            },
+            'Use etherwarp pathfinding (Aspect of the Void/End) for area travel and reaching pelt mobs instead of walking paths when possible.',
+            false
+        );
         this.addMultiToggle(
             'Travel Mode',
             TRAVEL_MODES,
@@ -364,7 +380,114 @@ class PeltMacro extends ModuleBase {
         }
     }
 
+    /** Eye position once per LOS decision: client eyes, else feet + native etherwarp eye height. */
+    getPeltEtherwarpLosEye() {
+        const player = Player.getPlayer();
+        if (!player) return null;
+        try {
+            const ep = player.getEyePos?.();
+            if (ep) {
+                const ex = Number(ep.x);
+                const ey = Number(ep.y);
+                const ez = Number(ep.z);
+                if ([ex, ey, ez].every(Number.isFinite)) return { ex, ey, ez };
+            }
+        } catch (e) {
+            /* fall through */
+        }
+        try {
+            const eh = Number(PathManager.getCurrentEtherwarpEyeHeight?.());
+            const add = Number.isFinite(eh) ? eh : ETHERWARP_LOS_HEAD_ABOVE_FEET;
+            const ex = Number(Player.getX());
+            const ey = Number(Player.getY()) + add;
+            const ez = Number(Player.getZ());
+            if ([ex, ey, ez].every(Number.isFinite)) return { ex, ey, ez };
+        } catch (e2) {
+            /* ignore */
+        }
+        return null;
+    }
+
+    /**
+     * Collider raycast: first block hit along eye→(sample + small extend toward sample) must be the landing block.
+     * Extending the ray slightly past the sample avoids MISS when the endpoint sits exactly on an air/solid boundary.
+     */
+    isLosRayHitLandingBlock(eyePos, endX, endY, endZ, landingBx, landingBy, landingBz, player, world) {
+        if (!eyePos || !player || !world) return false;
+        if (![endX, endY, endZ].every(Number.isFinite)) return false;
+        try {
+            const ex = eyePos.x;
+            const ey = eyePos.y;
+            const ez = eyePos.z;
+            let dx = endX - ex;
+            let dy = endY - ey;
+            let dz = endZ - ez;
+            const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (len < 1e-4) return false;
+            dx /= len;
+            dy /= len;
+            dz /= len;
+            const ext = ETHERWARP_LOS_RAY_EXTEND;
+            const endVec = new Vec3d(endX + dx * ext, endY + dy * ext, endZ + dz * ext);
+            const hit = world.raycast(
+                new RaycastContext(eyePos, endVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player)
+            );
+            if (!hit) return false;
+            const typeStr = String(hit.getType?.());
+            if (typeStr === 'MISS') return false;
+            const pos = hit.getBlockPos?.();
+            if (!pos) return false;
+            return pos.getX() === landingBx && pos.getY() === landingBy && pos.getZ() === landingBz;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Player/world + eye Vec3d once per resolveEtherwarpLandingGoal — avoids N× getPlayer/getWorld/native eye + Vec3d alloc.
+     */
+    buildEtherwarpLosEnv(eye) {
+        if (!eye || ![eye.ex, eye.ey, eye.ez].every(Number.isFinite)) return null;
+        const player = Player.getPlayer();
+        const world = World.getWorld();
+        if (!player || !world) return null;
+        let eyePos = null;
+        try {
+            const nativeEye = player.getEyePos?.();
+            if (nativeEye && [nativeEye.x, nativeEye.y, nativeEye.z].every(Number.isFinite)) {
+                eyePos = new Vec3d(nativeEye.x, nativeEye.y, nativeEye.z);
+            }
+        } catch (e) {
+            eyePos = null;
+        }
+        if (!eyePos) eyePos = new Vec3d(eye.ex, eye.ey, eye.ez);
+        return { player, world, eyePos };
+    }
+
+    /**
+     * Single collider probe: landing block visible from eye (same ray contract as etherwarp LOS).
+     */
+    hasEtherwarpLandingLos(losEnv, goal) {
+        if (!losEnv || !goal) return false;
+
+        const gx = Number(goal.x);
+        const gy = Number(goal.y);
+        const gz = Number(goal.z);
+        if (![gx, gy, gz].every(Number.isFinite)) return false;
+
+        const lbX = Math.floor(gx);
+        const lbY = Math.floor(gy);
+        const lbZ = Math.floor(gz);
+        const { player, world, eyePos } = losEnv;
+
+        const tx = lbX + 0.5;
+        const ty = gy + 0.5;
+        const tz = lbZ + 0.5;
+        return this.isLosRayHitLandingBlock(eyePos, tx, ty, tz, lbX, lbY, lbZ, player, world);
+    }
+
     resetMobTracking() {
+        this.resetEtherwarpLandingBlacklist();
         this.lastMobPathAt = 0;
         this.currentMobId = '';
         this.mobShots = 0;
@@ -385,6 +508,7 @@ class PeltMacro extends ModuleBase {
     stopPathing() {
         this.mobPathActive = false;
         this.mobPathToken++;
+        if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
         Pathfinder.resetPath();
         PathExecutor.destroy();
     }
@@ -396,6 +520,9 @@ class PeltMacro extends ModuleBase {
     }
 
     prepareForTravel() {
+        if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
+        Pathfinder.resetPath();
+        PathExecutor.destroy();
         this.cancelRestartSequence();
         this.cancelTravelSequence();
         this.resetAreaTravelState();
@@ -408,10 +535,6 @@ class PeltMacro extends ModuleBase {
     }
 
     isAOTETravelMode(mode = this.travelMode) {
-        return mode === 'AOTE' || mode === 'AOTE delayed';
-    }
-
-    isDelayedAOTETravelMode(mode = this.travelMode) {
         return mode === 'AOTE delayed';
     }
 
@@ -444,27 +567,41 @@ class PeltMacro extends ModuleBase {
         const [x, y, z] = availableGoals[0];
         if (!this.mobTrackedAt) this.mobTrackedAt = Date.now();
         this.status = `Area ${x}, ${y}, ${z}`;
-        Pathfinder.resetPath();
-        Pathfinder.findPath(availableGoals, (success) => {
-            if (!this.enabled || pathToken !== this.areaPathRequestToken) return;
 
-            const currentState = this.areaTravelState;
-            if (!currentState || currentState.token !== stateToken) return;
-            if (!success) return;
+        if (this.useEtherwarpPathfinder) {
+            const goalCoords = this.getClosestGoalToPlayer(availableGoals);
+            if (goalCoords) {
+                const goal =
+                    this.resolveEtherwarpLandingGoal(goalCoords[0], goalCoords[1], goalCoords[2], {
+                        horizontalRefX: goalCoords[0],
+                        horizontalRefZ: goalCoords[2],
+                    }) || null;
+                if (!goal) {
+                    this.startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals);
+                    return true;
+                }
+                const started = EtherwarpPathfinder.findPath(goal, {
+                    silent: true,
+                    restoreSlot: true,
+                    onSuccess: () => {
+                        if (!this.enabled || pathToken !== this.areaPathRequestToken) return;
+                        if (!this.areaTravelState || this.areaTravelState.token !== stateToken) return;
+                        this.completeAreaPathSegment(stateToken, pathToken, availableGoals);
+                    },
+                    onFail: () => {
+                        if (!this.enabled || pathToken !== this.areaPathRequestToken) return;
+                        if (!this.areaTravelState || this.areaTravelState.token !== stateToken) return;
+                        this.startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals);
+                    },
+                });
+                if (started) {
+                    this.blacklistEtherwarpLandingGoal(goal);
+                    return true;
+                }
+            }
+        }
 
-            const reachedGoal = this.getClosestGoalToPlayer(availableGoals);
-            if (reachedGoal) currentState.blacklist.add(this.getGoalKey(reachedGoal));
-
-            const remaining = currentState.goals.filter((goal) => !currentState.blacklist.has(this.getGoalKey(goal)));
-            if (!remaining.length) return;
-            if (this.findPeltMob()) return;
-
-            ScheduleTask(2, () => {
-                const latestState = this.areaTravelState;
-                if (!this.enabled || !latestState || latestState.token !== stateToken) return;
-                this.startAreaPath();
-            });
-        });
+        this.startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals);
         return true;
     }
 
@@ -529,8 +666,6 @@ class PeltMacro extends ModuleBase {
     sendAOTEPackets(directions) {
         if (!Array.isArray(directions) || !directions.length) return false;
 
-        const mode = this.travelMode;
-        const delayed = this.isDelayedAOTETravelMode(mode);
         const token = this.travelState?.sequenceToken;
         if (!Number.isFinite(token)) return false;
 
@@ -550,15 +685,6 @@ class PeltMacro extends ModuleBase {
                 this.travelState.routeCompletedAt = Date.now();
             }
         };
-
-        if (!delayed) {
-            ScheduleTask(1, () => {
-                for (let index = 0; index < directions.length; index++) {
-                    sendPacket(directions[index], index === directions.length - 1);
-                }
-            });
-            return true;
-        }
 
         for (let index = 0; index < directions.length; index++) {
             const direction = directions[index];
@@ -639,6 +765,35 @@ class PeltMacro extends ModuleBase {
         return `${Math.floor(Number(goal[0]))},${Math.floor(Number(goal[1]))},${Math.floor(Number(goal[2]))}`;
     }
 
+    getEtherwarpLandingKey(goal) {
+        if (!goal || goal.x === undefined) return '';
+        const x = Math.floor(Number(goal.x));
+        const y = Math.floor(Number(goal.y));
+        const z = Math.floor(Number(goal.z));
+        if (![x, y, z].every(Number.isFinite)) return '';
+        return `${x},${y},${z}`;
+    }
+
+    blacklistEtherwarpLandingGoal(goal) {
+        const x = Math.floor(Number(goal?.x));
+        const y = Math.floor(Number(goal?.y));
+        const z = Math.floor(Number(goal?.z));
+        if (![x, y, z].every(Number.isFinite)) return;
+
+        const h = ETHERWARP_BLACKLIST_CUBE_HALF;
+        for (let dx = -h; dx <= h; dx++) {
+            for (let dy = -h; dy <= h; dy++) {
+                for (let dz = -h; dz <= h; dz++) {
+                    this.etherwarpLandingBlacklist.add(`${x + dx},${y + dy},${z + dz}`);
+                }
+            }
+        }
+    }
+
+    resetEtherwarpLandingBlacklist() {
+        this.etherwarpLandingBlacklist.clear();
+    }
+
     getClosestGoalToPlayer(goals) {
         if (!Array.isArray(goals) || !goals.length) return null;
 
@@ -662,14 +817,109 @@ class PeltMacro extends ModuleBase {
         return closest;
     }
 
+    /**
+     * Resolves a PathManager-valid etherwarp landing near the anchor (see RatMacro / getEtherwarpLandingCandidates).
+     * Sort origin uses the player's support block when available so the native finder matches EtherwarpPathfinder start.
+     * Picks the first candidate (native order) with valid LOS; one raycast per candidate until one passes.
+     */
+    resolveEtherwarpLandingGoal(anchorX, anchorY, anchorZ, options = {}) {
+        const radius = Number.isFinite(options.radius) ? options.radius : PELT_ETHERWARP_RADIUS;
+        const maxDistance = Number.isFinite(options.maxDistance) ? options.maxDistance : PELT_ETHERWARP_MAX_DISTANCE;
+
+        const ax = Math.floor(Number(anchorX));
+        const ay = Math.floor(Number(anchorY));
+        const az = Math.floor(Number(anchorZ));
+        if (![ax, ay, az].every(Number.isFinite)) return null;
+
+        const support = EtherwarpPathfinder.getPlayerSupportBlock();
+        const sortOrigin = support || {
+            x: Math.floor(Player.getX()),
+            y: Math.floor(Player.getY()),
+            z: Math.floor(Player.getZ()),
+        };
+
+        const result = PathManager.getEtherwarpLandingCandidates(ax, ay, az, radius, maxDistance, sortOrigin.x, sortOrigin.y, sortOrigin.z);
+        if (!result?.goals || !result?.centers) return null;
+
+        const goals = result.goals;
+        const centers = result.centers;
+        const eye = this.getPeltEtherwarpLosEye();
+
+        const entries = [];
+        for (let gi = 0, ci = 0; gi + 2 < goals.length && ci + 2 < centers.length; gi += 3, ci += 3) {
+            const goal = { x: goals[gi], y: goals[gi + 1], z: goals[gi + 2] };
+            const center = { x: centers[ci], y: centers[ci + 1], z: centers[ci + 2] };
+            entries.push({ goal, center });
+        }
+        const filteredEntries = entries.filter((e) => !this.etherwarpLandingBlacklist.has(this.getEtherwarpLandingKey(e.goal)));
+        if (!filteredEntries.length) return null;
+
+        const losEnv = eye ? this.buildEtherwarpLosEnv(eye) : null;
+        if (losEnv) {
+            for (const e of filteredEntries) {
+                if (this.hasEtherwarpLandingLos(losEnv, e.goal)) return e.goal;
+            }
+        }
+
+        return filteredEntries[0].goal;
+    }
+
+    resolvePeltMobEtherwarpGoal(mob) {
+        if (!mob) return null;
+        const mx = mob.getX();
+        const my = mob.getY();
+        const mz = mob.getZ();
+
+        return this.resolveEtherwarpLandingGoal(mx, my, mz, {
+            horizontalRefX: mx,
+            horizontalRefZ: mz,
+        });
+    }
+
     resetAreaTravelState() {
+        if (this.areaTravelState) EtherwarpPathfinder.cancel(true);
         this.areaTravelState = null;
         this.areaTravelToken++;
         this.areaPathRequestToken++;
     }
 
+    completeAreaPathSegment(stateToken, pathToken, availableGoals) {
+        if (!this.enabled || pathToken !== this.areaPathRequestToken) return;
+
+        const currentState = this.areaTravelState;
+        if (!currentState || currentState.token !== stateToken) return;
+
+        const reachedGoal = this.getClosestGoalToPlayer(availableGoals);
+        if (reachedGoal) currentState.blacklist.add(this.getGoalKey(reachedGoal));
+
+        const remaining = currentState.goals.filter((goal) => !currentState.blacklist.has(this.getGoalKey(goal)));
+        if (!remaining.length) return;
+        if (this.findPeltMob()) return;
+
+        ScheduleTask(2, () => {
+            const latestState = this.areaTravelState;
+            if (!this.enabled || !latestState || latestState.token !== stateToken) return;
+            this.startAreaPath();
+        });
+    }
+
+    startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals) {
+        Pathfinder.resetPath();
+        Pathfinder.findPath(availableGoals, (success) => {
+            if (!this.enabled || pathToken !== this.areaPathRequestToken) return;
+
+            const currentState = this.areaTravelState;
+            if (!currentState || currentState.token !== stateToken) return;
+            if (!success) return;
+
+            this.completeAreaPathSegment(stateToken, pathToken, availableGoals);
+        });
+    }
+
     trackCurrentMob(mobId) {
         if (this.currentMobId !== mobId) {
+            this.resetEtherwarpLandingBlacklist();
+            if (EtherwarpPathfinder.isPathing()) EtherwarpPathfinder.cancel(true);
             this.resetAreaTravelState();
             this.currentMobId = mobId;
             this.mobShots = 0;
@@ -757,29 +1007,52 @@ class PeltMacro extends ModuleBase {
     }
 
     startMobPath(mob, mobId, distance) {
-        const x = Math.floor(mob.getX());
-        const y = Math.floor(mob.getY());
-        const z = Math.floor(mob.getZ());
-
         this.currentMobId = mobId;
         this.lastMobPathAt = Date.now();
         this.mobPathActive = true;
         const token = ++this.mobPathToken;
         this.status = `Mob ${Math.round(distance)}m`;
 
-        Pathfinder.resetPath();
-        Pathfinder.findPath(this.getMobGoals(mob, this.mobPathExpand), (success) => {
-            if (!this.enabled || token !== this.mobPathToken) return;
+        const runWalkMobPath = () => {
+            Pathfinder.resetPath();
+            Pathfinder.findPath(this.getMobGoals(mob, this.mobPathExpand), (success) => {
+                if (!this.enabled || token !== this.mobPathToken) return;
 
-            this.mobPathActive = false;
-            if (success) {
-                this.mobPathExpand = 5;
-                return;
+                this.mobPathActive = false;
+                if (success) {
+                    this.mobPathExpand = 5;
+                    return;
+                }
+
+                if (this.currentMobId !== mobId) return;
+                this.mobPathExpand = Math.min(this.mobPathExpand + 5, 50);
+            });
+        };
+
+        if (this.useEtherwarpPathfinder) {
+            const etherGoal = this.resolvePeltMobEtherwarpGoal(mob);
+            if (etherGoal) {
+                const started = EtherwarpPathfinder.findPath(etherGoal, {
+                    silent: true,
+                    restoreSlot: true,
+                    onSuccess: () => {
+                        if (!this.enabled || token !== this.mobPathToken) return;
+                        this.mobPathActive = false;
+                        this.mobPathExpand = 5;
+                    },
+                    onFail: () => {
+                        if (!this.enabled || token !== this.mobPathToken) return;
+                        runWalkMobPath();
+                    },
+                });
+                if (started) {
+                    this.blacklistEtherwarpLandingGoal(etherGoal);
+                    return;
+                }
             }
+        }
 
-            if (this.currentMobId !== mobId) return;
-            this.mobPathExpand = Math.min(this.mobPathExpand + 5, 50);
-        });
+        runWalkMobPath();
     }
 
     isMobRepositioning() {
@@ -801,12 +1074,12 @@ class PeltMacro extends ModuleBase {
 
         this.mobRepositionUntil = 0;
         this.mobShots = 0;
-        if (this.mobPathActive || Pathfinder.isPathing()) this.stopPathing();
+        if (this.mobPathActive || Pathfinder.isPathing() || EtherwarpPathfinder.isPathing()) this.stopPathing();
         return false;
     }
 
     handleVisibleMob(entity) {
-        if (Pathfinder.isPathing()) {
+        if (Pathfinder.isPathing() || EtherwarpPathfinder.isPathing()) {
             this.stopPathing();
         }
 
