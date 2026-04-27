@@ -429,9 +429,7 @@ class PeltMacro extends ModuleBase {
             dz /= len;
             const ext = ETHERWARP_LOS_RAY_EXTEND;
             const endVec = new Vec3d(endX + dx * ext, endY + dy * ext, endZ + dz * ext);
-            const hit = world.raycast(
-                new RaycastContext(eyePos, endVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player)
-            );
+            const hit = world.raycast(new RaycastContext(eyePos, endVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player));
             if (!hit) return false;
             const typeStr = String(hit.getType?.());
             if (typeStr === 'MISS') return false;
