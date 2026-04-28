@@ -178,6 +178,22 @@ export const handleCategoryClick = (
             height: 10,
         };
         if (isInside(mouseX, mouseY, backButtonRect)) {
+            if (Categories.optionsReturnCategory && Categories.optionsReturnCategory !== Categories.selected) {
+                const oldRect = getCategorySelectionRect(Categories.selected);
+                const newRect = getCategorySelectionRect(Categories.optionsReturnCategory);
+                Categories.catAnimationRect = {
+                    startX: oldRect.x,
+                    startY: oldRect.y,
+                    endX: newRect.x,
+                    endY: newRect.y,
+                    width: oldRect.width,
+                    height: oldRect.height,
+                    startRadius: oldRect.radius || 8,
+                    endRadius: newRect.radius || 8,
+                    radius: oldRect.radius || 8,
+                };
+                Categories.catTransitionStart = Date.now();
+            }
             Categories.transitionType = 'page';
             Categories.transitionDirection = -1;
             Categories.transitionProgress = 0;
@@ -297,6 +313,7 @@ export const handleCategoryClick = (
         }
 
         if (clickedCategoryName && clickedCategoryName !== Categories.selected) {
+            Categories.optionsReturnCategory = null;
             if (clickedCategoryName !== 'Modules') {
                 SearchBar.resetSearch();
             }
@@ -392,6 +409,7 @@ export const handleCategoryClick = (
 
             for (const layout of cachedItemLayouts) {
                 if (isInside(mouseX, mouseY, layout.rect)) {
+                    Categories.optionsReturnCategory = null;
                     Categories.transitionType = 'page';
                     Categories.transitionDirection = 1;
                     Categories.transitionProgress = 0;
@@ -405,6 +423,22 @@ export const handleCategoryClick = (
     }
 
     if (Categories.currentPage === 'options' && !isInside(mouseX, mouseY, GuiRectangles.RightPanel) && !isInside(mouseX, mouseY, leftPanel)) {
+        if (Categories.optionsReturnCategory && Categories.optionsReturnCategory !== Categories.selected) {
+            const oldRect = getCategorySelectionRect(Categories.selected);
+            const newRect = getCategorySelectionRect(Categories.optionsReturnCategory);
+            Categories.catAnimationRect = {
+                startX: oldRect.x,
+                startY: oldRect.y,
+                endX: newRect.x,
+                endY: newRect.y,
+                width: oldRect.width,
+                height: oldRect.height,
+                startRadius: oldRect.radius || 8,
+                endRadius: newRect.radius || 8,
+                radius: oldRect.radius || 8,
+            };
+            Categories.catTransitionStart = Date.now();
+        }
         Categories.transitionType = 'page';
         Categories.transitionDirection = -1;
         Categories.transitionProgress = 0;
@@ -538,6 +572,10 @@ export const updateCategoryTransitions = () => {
                 Categories.currentPage = 'categories';
             }
             if (Categories.currentPage === 'categories') {
+                if (Categories.transitionType === 'page' && Categories.transitionDirection === -1 && Categories.optionsReturnCategory) {
+                    Categories.selected = Categories.optionsReturnCategory;
+                    Categories.optionsReturnCategory = null;
+                }
                 Categories.selectedItem = null;
                 Categories.optionsScrollY = 0;
             }

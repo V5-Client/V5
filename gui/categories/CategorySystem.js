@@ -10,6 +10,11 @@ import { ToggleButton } from '../components/Toggle';
 export const Categories = {
     categories: [
         {
+            name: 'Dashboard',
+            items: [],
+            subcategories: [],
+        },
+        {
             name: 'Modules',
             items: [],
             subcategories: [],
@@ -34,7 +39,7 @@ export const Categories = {
             hiddenInSidebar: true,
         },
     ],
-    selected: 'Modules',
+    selected: 'Dashboard',
     selectedItem: null,
     currentPage: 'categories',
     transitionProgress: 0,
@@ -49,6 +54,7 @@ export const Categories = {
     previousSelected: null,
     transitionType: null,
     animationRect: null,
+    optionsReturnCategory: null,
 
     catAnimationRect: null,
     catTransitionStart: 0,

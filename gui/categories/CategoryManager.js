@@ -11,6 +11,7 @@ import { drawCategoryItems, drawDirectComponents, drawOptionsPanel, drawSubcateg
 import { SearchBar } from './CategorySearchBar';
 import { Categories } from './CategorySystem';
 import { MacroState } from '../../utils/MacroState';
+import { drawDashboard, getDashboardContentHeight, getDashboardModuleAt } from '../Dashboard';
 
 export const createCategoriesManager = (deps) => {
     let targetRightPanelScrollY = 0;
@@ -96,6 +97,7 @@ export const createCategoriesManager = (deps) => {
     };
 
     const beginCategorySwap = (targetName) => {
+        Categories.optionsReturnCategory = null;
         if (targetName !== 'Modules') {
             SearchBar.resetSearch();
         }
@@ -132,12 +134,13 @@ export const createCategoriesManager = (deps) => {
         resetCategoryScroll();
     };
 
-    const beginModuleOptionsSwap = (moduleItem) => {
+    const beginModuleOptionsSwap = (moduleItem, returnCategory = null) => {
         Categories.transitionType = 'page';
         Categories.transitionDirection = 1;
         Categories.transitionProgress = 0;
         Categories.transitionStart = Date.now();
         Categories.selectedItem = moduleItem;
+        Categories.optionsReturnCategory = returnCategory;
         playClickSound();
         isLayoutCacheValid = false;
         isContentHeightCacheValid = false;
@@ -368,6 +371,12 @@ export const createCategoriesManager = (deps) => {
     };
 
     const calculateContentHeight = () => {
+        if (Categories.selected === 'Dashboard') {
+            cachedContentHeight = getDashboardContentHeight();
+            isContentHeightCacheValid = true;
+            return;
+        }
+
         if (!isContentHeightCacheValid && Categories.selected) {
             let height = 0;
             const category = Categories.categories.find((c) => c.name === Categories.selected);
@@ -588,6 +597,10 @@ export const createCategoriesManager = (deps) => {
                 const cat = Categories.categories.find((c) => c.name === catName);
                 if (!cat) return;
                 let yOffset = panel.y + PADDING - currentRightPanelScrollY;
+                if (cat.name === 'Dashboard') {
+                    drawDashboard(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, currentRightPanelScrollY);
+                    return;
+                }
                 if (cat.directComponents && cat.directComponents.length > 0) {
                     drawDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, currentRightPanelScrollY, catName);
                     return;
@@ -642,8 +655,10 @@ export const createCategoriesManager = (deps) => {
                     else if (Categories.transitionDirection === -1) panelX -= panel.width * (1 - Categories.transitionProgress);
                 }
 
-                drawSingleCategory(Categories.selected, panelX, true);
-                if (Categories.selected === 'Modules') {
+                const transitionCategory =
+                    transitionActive && Categories.transitionType === 'page' && Categories.optionsReturnCategory ? Categories.optionsReturnCategory : Categories.selected;
+                drawSingleCategory(transitionCategory, panelX, true);
+                if (transitionCategory === 'Modules') {
                     SearchBar.draw(mouseX, mouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
                     SearchBar.updateHoverBlock({ ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
                 }
@@ -686,6 +701,36 @@ export const createCategoriesManager = (deps) => {
         const toggleModule = getSelectedToggleModule();
         if (toggleModule && macroToggleButton.handleClick(mouseX, mouseY)) {
             return;
+        }
+
+        if (Categories.selected === 'Dashboard' && Categories.currentPage === 'categories' && Categories.transitionDirection === 0) {
+            const moduleName = getDashboardModuleAt(mouseX, mouseY);
+            const moduleItem = moduleName ? Categories.findItem('Modules', moduleName) : null;
+            if (moduleItem) {
+                SearchBar.resetSearch();
+                Categories.previousSelected = Categories.selected;
+                const oldRect = getCategorySelectionRect(Categories.previousSelected);
+                const newRect = getCategorySelectionRect('Modules');
+                if (oldRect && newRect) {
+                    Categories.catAnimationRect = {
+                        startX: oldRect.x,
+                        startY: oldRect.y,
+                        endX: newRect.x,
+                        endY: newRect.y,
+                        width: oldRect.width,
+                        height: oldRect.height,
+                        startRadius: oldRect.radius || 8,
+                        endRadius: newRect.radius || 8,
+                        radius: oldRect.radius || 8,
+                    };
+                    Categories.catTransitionStart = Date.now();
+                }
+                Categories.selected = 'Modules';
+                Categories.currentPage = 'categories';
+                Categories.selectedSubcategory = null;
+                beginModuleOptionsSwap(moduleItem, 'Dashboard');
+                return;
+            }
         }
 
         const canUseCachedLayouts = Categories.currentPage === 'categories' && Categories.transitionDirection === 0;

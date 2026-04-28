@@ -48,6 +48,7 @@ const getAssetPath = (filename) => {
 const Module_icon_path = getAssetPath('folder.svg');
 const Theme_icon_path = getAssetPath('colorpalette.svg');
 const Setting_icon_path = getAssetPath('settings.svg');
+const Dashboard_icon_path = getAssetPath('dashboard.svg');
 const Edit_icon_path = getAssetPath('edit.svg');
 
 export const getCategoryRect = (index) => {
@@ -311,6 +312,10 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
     const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
     const editIconY = pfpY - editIconSize - 15;
     const editButtonRect = { x: editIconX - 6, y: editIconY - 6, width: editIconSize + 12, height: editIconSize + 12, radius: 8 };
+    const displaySelectedCategory =
+        Categories.transitionType === 'page' && Categories.transitionDirection === -1 && Categories.optionsReturnCategory
+            ? Categories.optionsReturnCategory
+            : Categories.selected;
 
     if (Categories.catAnimationRect) {
         const elapsed = Date.now() - Categories.catTransitionStart;
@@ -401,7 +406,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         if (isHovered) state.progress = Math.min(1, state.progress + delta);
         else state.progress = Math.max(0, state.progress - delta);
 
-        if (state.progress > 0 && (Categories.selected !== name || Categories.catAnimationRect)) {
+        if (state.progress > 0 && (displaySelectedCategory !== name || Categories.catAnimationRect)) {
             const rect = item.rect;
             const easedProgress = easeOutCubic(state.progress);
             const moduleRectSize = 28;
@@ -421,7 +426,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
         drawRoundedRectangle({ ...rect, color: THEME.ACCENT_DIM });
         drawRoundedRectangle({ ...rect, color: colorWithAlpha(THEME.ACCENT, 0.16) });
     } else {
-        const selectedCat = Categories.getVisibleCategories().find((cat) => cat.name === Categories.selected);
+        const selectedCat = Categories.getVisibleCategories().find((cat) => cat.name === displaySelectedCategory);
         if (selectedCat) {
             const i = Categories.getVisibleCategories().indexOf(selectedCat);
             const rect = getCategoryRect(i);
@@ -431,7 +436,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
             const highlightRect = { x: iconX - 2, y: iconY - 2, width: moduleRectSize + 4, height: moduleRectSize + 4, radius: 8 };
             drawRoundedRectangle({ ...highlightRect, color: THEME.ACCENT_DIM });
             drawRoundedRectangle({ ...highlightRect, color: colorWithAlpha(THEME.ACCENT, 0.12) });
-        } else if (Categories.selected === 'Discord') {
+        } else if (displaySelectedCategory === 'Discord') {
             drawRoundedRectangle({
                 x: pfpRect.x - 2,
                 y: pfpRect.y - 2,
@@ -440,7 +445,7 @@ export const drawLeftPanelBackgrounds = (mouseX, mouseY) => {
                 radius: 16,
                 color: THEME.ACCENT_DIM,
             });
-        } else if (Categories.selected === 'Edit') {
+        } else if (displaySelectedCategory === 'Edit') {
             drawRoundedRectangle({ ...editButtonRect, color: THEME.ACCENT_DIM });
         }
     }
@@ -453,7 +458,8 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         const iconX = rect.x + (rect.width - moduleSize) / 2;
         const iconY = rect.y + (rect.height - moduleSize) / 2;
         let iconPath = Setting_icon_path;
-        if (cat.name === 'Modules') iconPath = Module_icon_path;
+        if (cat.name === 'Dashboard') iconPath = Dashboard_icon_path;
+        else if (cat.name === 'Modules') iconPath = Module_icon_path;
         else if (cat.name === 'Theme') iconPath = Theme_icon_path;
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
     });
