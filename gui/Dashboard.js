@@ -63,7 +63,8 @@ const getFpsColor = (fps) => {
     return 0xff55ff55;
 };
 
-const getCardHeight = (rowCount, rowHeight = ROW_HEIGHT) => CARD_PADDING + HEADER_TO_FIRST_ROW + Math.max(rowCount - 1, 0) * rowHeight + CARD_PADDING + CARD_BOTTOM_PADDING;
+const getCardHeight = (rowCount, rowHeight = ROW_HEIGHT) =>
+    CARD_PADDING + HEADER_TO_FIRST_ROW + Math.max(rowCount - 1, 0) * rowHeight + CARD_PADDING + CARD_BOTTOM_PADDING;
 
 const drawCard = (title, x, y, width, height) => {
     drawRoundedRectangleWithBorder({

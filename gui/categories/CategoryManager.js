@@ -656,7 +656,9 @@ export const createCategoriesManager = (deps) => {
                 }
 
                 const transitionCategory =
-                    transitionActive && Categories.transitionType === 'page' && Categories.optionsReturnCategory ? Categories.optionsReturnCategory : Categories.selected;
+                    transitionActive && Categories.transitionType === 'page' && Categories.optionsReturnCategory
+                        ? Categories.optionsReturnCategory
+                        : Categories.selected;
                 drawSingleCategory(transitionCategory, panelX, true);
                 if (transitionCategory === 'Modules') {
                     SearchBar.draw(mouseX, mouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
