@@ -13,6 +13,11 @@ import './gui/GUI';
 /* CORE */
 import './utils/Config';
 import './utils/backend/WebSocket';
+import { RequestCommandCompletionsC2S } from './utils/Packets';
+
+register('packetSent', (packet, event) => {
+    if (packet.getPartialCommand().toLowerCase().startsWith('/v5')) cancel(event);
+}).setFilteredClass(RequestCommandCompletionsC2S);
 
 /* Utils */
 import { MacroState } from './utils/MacroState';
