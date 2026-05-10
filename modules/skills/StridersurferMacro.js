@@ -126,7 +126,7 @@ class StridersurferMacro extends ModuleBase {
             case STEPS.POST_REEL_DECISION:
                 const armorStands = World.getAllEntitiesOfType(ArmorStandEntity);
                 const striderCount = armorStands.reduce((acc, entity) => (entity.getName().includes('Stridersurfer') ? acc + 1 : acc), 0);
-                if (striderCount > 24) {
+                if (striderCount > 9) {
                     this.transitionTo(STEPS.EQUIP_FLAY);
                     return;
                 }
