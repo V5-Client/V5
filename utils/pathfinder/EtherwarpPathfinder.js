@@ -1,11 +1,10 @@
 import { Chat } from '../Chat';
-import { MCHand, PathManager, Vec3d } from '../Constants';
+import { MCHand, Vec3d } from '../Constants';
 import { CommonPingS2C, PlayerInteractItemC2S } from '../Packets';
 import { Guis } from '../player/Inventory';
 import { Keybind } from '../player/Keybinding';
 import { RotationGCD } from '../player/RotationGCD';
 import { ServerInfo } from '../player/ServerInfo';
-import Render from '../render/Render';
 import { ScheduleTask } from '../ScheduleTask';
 import { v5Command } from '../V5Commands';
 
@@ -21,9 +20,9 @@ const SEARCH_OPTIONS = {
 };
 
 const PATH_COLORS = {
-    pending: Render.Color(0, 170, 255, 180),
-    start: Render.Color(80, 255, 140, 180),
-    end: Render.Color(255, 90, 90, 180),
+    pending: new RenderColor(0, 170, 255, 180),
+    start: new RenderColor(80, 255, 140, 180),
+    end: new RenderColor(255, 90, 90, 180),
 };
 
 const MAX_RETRIES = 7;
@@ -535,12 +534,12 @@ class EtherwarpPathHandler {
             const centerVec = new Vec3d(point.x + 0.5, point.y + 1.05, point.z + 0.5);
             const boxColor = i === 0 ? PATH_COLORS.start : i === this.path.length - 1 ? PATH_COLORS.end : PATH_COLORS.pending;
 
-            Render.drawStyledBox(pointVec, boxColor, boxColor, 3, false);
+            RenderUtils.drawStyledBox(pointVec, boxColor, boxColor, 3, false);
 
             if (i >= this.path.length - 1) continue;
 
             const next = this.path[i + 1];
-            Render.drawLine(centerVec, new Vec3d(next.x + 0.5, next.y + 1.05, next.z + 0.5), PATH_COLORS.pending, 3, false);
+            RenderUtils.drawLine(centerVec, new Vec3d(next.x + 0.5, next.y + 1.05, next.z + 0.5), PATH_COLORS.pending, 3, false);
         }
     }
 

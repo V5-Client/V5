@@ -1,7 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Raytrace } from '../../utils/Raytrace';
-import Render from '../../utils/render/Render';
 
 class BlockVisual extends ModuleBase {
     constructor() {
@@ -12,8 +11,8 @@ class BlockVisual extends ModuleBase {
             tooltip: 'renders a box where youre looking / etherwarping',
         });
 
-        this.baseColor = Render.Color(255, 0, 0, 255);
-        this.RGBA = Render.Color(255, 0, 0, 255);
+        this.baseColor = new RenderColor(255, 0, 0, 255);
+        this.RGBA = new RenderColor(255, 0, 0, 255);
         this.EFFECT = 'None';
         this.DRAWLINES = false;
         this.currentBlock = null;
@@ -40,7 +39,7 @@ class BlockVisual extends ModuleBase {
             'Block Color',
             java.awt.Color.RED,
             (color) => {
-                this.baseColor = Render.Color(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                this.baseColor = new RenderColor(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
                 this.RGBA = this.baseColor;
             },
             'Color of the block box'
@@ -63,9 +62,9 @@ class BlockVisual extends ModuleBase {
 
             if (isEtherwarping) {
                 const canWarp = this.canEtherwarp(this.currentBlock);
-                this.RGBA = Render.Color(canWarp ? 0 : 255, canWarp ? 255 : 0, 0, currentAlpha);
+                this.RGBA = new RenderColor(canWarp ? 0 : 255, canWarp ? 255 : 0, 0, currentAlpha);
             } else {
-                this.RGBA = Render.Color(this.baseColor.r, this.baseColor.g, this.baseColor.b, currentAlpha);
+                this.RGBA = new RenderColor(this.baseColor.r, this.baseColor.g, this.baseColor.b, currentAlpha);
             }
 
             this.handleEffect(isEtherwarping);
@@ -76,7 +75,7 @@ class BlockVisual extends ModuleBase {
 
             const pos = new Vec3d(this.currentBlock.x, this.currentBlock.y, this.currentBlock.z);
 
-            this.DRAWLINES ? Render.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : Render.drawBox(pos, this.RGBA);
+            this.DRAWLINES ? RenderUtils.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : RenderUtils.drawFilledBox(pos, this.RGBA);
         });
     }
 
@@ -95,13 +94,13 @@ class BlockVisual extends ModuleBase {
     BreathingEffect() {
         const alpha = (Math.sin(Date.now() * 0.004) + 1) / 2;
         const newA = Math.floor(20 + alpha * 80);
-        this.RGBA = Render.Color(this.RGBA.r, this.RGBA.g, this.RGBA.b, newA);
+        this.RGBA = new RenderColor(this.RGBA.r, this.RGBA.g, this.RGBA.b, newA);
     }
 
     GradientEffect() {
         const hue = (Date.now() % 5000) / 5000;
         const color = java.awt.Color.getHSBColor(hue, 0.8, 1);
-        this.RGBA = Render.Color(color.getRed(), color.getGreen(), color.getBlue(), this.RGBA.a);
+        this.RGBA = new RenderColor(color.getRed(), color.getGreen(), color.getBlue(), this.RGBA.a);
     }
 
     getDistance() {

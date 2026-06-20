@@ -1,7 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import Render from '../../utils/render/Render';
 
 const ShulkerEntity = net.minecraft.entity.mob.ShulkerEntity;
 
@@ -15,8 +14,8 @@ class HideonLeafESP extends ModuleBase {
         });
 
         this.targets = [];
-        this.fillColor = Render.Color(0, 255, 0, 70);
-        this.tracerColor = Render.Color(0, 255, 0, 255);
+        this.fillColor = new RenderColor(0, 255, 0, 70);
+        this.tracerColor = new RenderColor(0, 255, 0, 255);
 
         this.on('step', () => this.scanTargets()).setFps(5);
 
@@ -44,8 +43,8 @@ class HideonLeafESP extends ModuleBase {
         this.targets = this.targets.filter((entity) => entity && !entity.isDead());
 
         this.targets.forEach((entity) => {
-            Render.drawHitbox(entity.toMC(), this.fillColor, 2, false);
-            Render.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
+            RenderUtils.drawHitbox(entity.toMC(), this.fillColor, 2, false);
+            RenderUtils.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
         });
     }
 

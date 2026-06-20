@@ -1,4 +1,3 @@
-import { NVG } from '../utils/Constants';
 import { TimeUtils } from '../utils/TimeUtils';
 import { Utils } from '../utils/Utils';
 import {

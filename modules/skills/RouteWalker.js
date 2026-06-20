@@ -6,7 +6,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
-import Render from '../../utils/render/Render';
 import { Router } from '../../utils/Router';
 import RouteState from '../../utils/RouteState';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -92,14 +91,14 @@ class RouteWalkerer extends ModuleBase {
                 if (!route || route.length === 0) return;
 
                 const getColor = (movement) => {
-                    if (!movement) return Render.Color(255, 255, 255, 255);
+                    if (!movement) return new RenderColor(255, 255, 255, 255);
                     switch (movement.toUpperCase()) {
                         case 'WALK':
-                            return Render.Color(0, 128, 255, 80);
+                            return new RenderColor(0, 128, 255, 80);
                         case 'ETHERWARP':
-                            return Render.Color(170, 0, 255, 80);
+                            return new RenderColor(170, 0, 255, 80);
                         default:
-                            return Render.Color(255, 255, 255, 80);
+                            return new RenderColor(255, 255, 255, 80);
                     }
                 };
 
@@ -108,12 +107,12 @@ class RouteWalkerer extends ModuleBase {
 
                     const pointColor = getColor(point.movements);
 
-                    Render.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
+                    RenderUtils.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
 
                     if (i < route.length - 1) {
                         const nextPoint = route[i + 1];
                         if (!this.checkPoint(nextPoint)) return;
-                        Render.drawLine(
+                        RenderUtils.drawLine(
                             new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
                             new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
                             getColor(nextPoint.movements),
@@ -128,7 +127,7 @@ class RouteWalkerer extends ModuleBase {
 
                 if (route.length < 1 || !this.checkPoint(firstPoint) || !this.checkPoint(lastPoint)) return;
 
-                Render.drawLine(
+                RenderUtils.drawLine(
                     new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
                     new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
                     getColor(firstPoint.movements),

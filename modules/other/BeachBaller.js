@@ -4,7 +4,6 @@ import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
-import Render from '../../utils/render/Render';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
 
@@ -259,7 +258,7 @@ class Beachballer extends ModuleBase {
     renderTrajectory() {
         const TRAIL_COLOR = [0, 255, 255, 200];
         const PREDICTION_COLOR = [255, 165, 0, 200];
-        const landingColor = Render.Color(50, 255, 50, 255);
+        const landingColor = new RenderColor(50, 255, 50, 255);
         const LINE_THICKNESS = 3;
 
         if (this.trailHistory.length >= 2) {
@@ -268,9 +267,9 @@ class Beachballer extends ModuleBase {
                 const end = this.trailHistory[i + 1];
 
                 const alpha = Math.floor(80 + (120 * i) / this.trailHistory.length);
-                const fadedColor = Render.Color(TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha);
+                const fadedColor = new RenderColor(TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha);
 
-                Render.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                RenderUtils.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
         }
 
@@ -280,9 +279,9 @@ class Beachballer extends ModuleBase {
                 const end = this.predictedPath[i + 1];
 
                 const alpha = Math.floor(200 * (1 - i / this.predictedPath.length));
-                const fadedColor = Render.Color(PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha);
+                const fadedColor = new RenderColor(PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha);
 
-                Render.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                RenderUtils.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
         }
 
@@ -290,11 +289,11 @@ class Beachballer extends ModuleBase {
             const markerSize = 0.3;
             const lp = this.landingPoint;
 
-            Render.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
-            Render.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
+            RenderUtils.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
+            RenderUtils.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
 
             const groundVec = new Vec3d(Math.floor(lp.x), Math.floor(Player.getY()), Math.floor(lp.z));
-            Render.drawWireFrame(groundVec, landingColor, 2, true);
+            RenderUtils.drawWireFrameBox(groundVec, landingColor, 2, true);
         }
     }
 

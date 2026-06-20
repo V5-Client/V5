@@ -101,24 +101,7 @@ export function streamDownloadToFileAsync(url, destination, options = {}) {
     return t;
 }
 
-export function downloadFile(url, destination, options = {}) {
-    options = options || {};
-    const { onProgress = null, onComplete = null, onError = null, bufferSize = DEFAULT_DOWNLOAD_BUFFER_SIZE } = options;
-
-    return streamDownloadToFileAsync(url, destination, {
-        onProgress,
-        onComplete,
-        bufferSize,
-        onError: (e) => {
-            if (typeof onError === 'function') {
-                onError(e);
-                return;
-            }
-
-            console.error('V5 Caught error' + e + e.stack);
-        },
-    });
-}
+export const downloadFile = streamDownloadToFileAsync;
 
 export function findFileRecursive(rootDir, fileName) {
     if (!rootDir || typeof rootDir.listFiles !== 'function') return null;

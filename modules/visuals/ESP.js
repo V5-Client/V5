@@ -1,6 +1,5 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import Render from '../../utils/render/Render';
 
 class ESP extends ModuleBase {
     constructor() {
@@ -11,7 +10,7 @@ class ESP extends ModuleBase {
             tooltip: 'Shows players through walls',
         });
 
-        this.rgba = Render.Color(255, 0, 0, 255);
+        this.rgba = new RenderColor(255, 0, 0, 255);
 
         this.showNames = false;
         this.disableEspWithinDistance = 2;
@@ -29,7 +28,7 @@ class ESP extends ModuleBase {
             'ESP Color',
             java.awt.Color.RED,
             (color) => {
-                this.rgba = Render.Color(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                this.rgba = new RenderColor(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
             },
             'Color of the ESP box'
         );
@@ -59,7 +58,7 @@ class ESP extends ModuleBase {
 
                 if (distanceSq <= disableEspWithinDistanceSq) continue;
 
-                Render.drawHitbox(entity, this.rgba, 4, false);
+                RenderUtils.drawHitbox(entity, this.rgba, 4, false);
 
                 if (!this.showNames) continue;
 
@@ -70,7 +69,7 @@ class ESP extends ModuleBase {
                 if (distanceSq <= maxDefaultNametagDistanceSq) continue;
 
                 let vec = new Vec3d(player.x, player.y + 2.3, player.z);
-                Render.drawText(player.getName(), vec, 1.2, true, false, true);
+                RenderUtils.drawText(player.getName(), vec, 1.2, true, false, true);
             }
         });
     }

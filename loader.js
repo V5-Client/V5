@@ -1,8 +1,5 @@
-com.chattriggers.ctjs.api.Config.setAutoUpdateModules(false);
-com.chattriggers.ctjs.api.Config.setOpenConsoleOnError(true);
-
-/* KEYBINDS */
-import './utils/KeybindInitializer';
+Config.setAutoUpdateModules(false);
+Config.setOpenConsoleOnError(true);
 
 /* COMMANDS */
 import './utils/V5Commands';

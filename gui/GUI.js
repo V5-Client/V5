@@ -14,7 +14,6 @@ import {
     updateSettingMap as _updateSettingMap,
 } from './GuiSave';
 
-import { NVG } from '../utils/Constants';
 
 const warmupTrigger = register('renderOverlay', () => {
     try {

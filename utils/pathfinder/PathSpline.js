@@ -1,5 +1,4 @@
 import { BP, Vec3d } from '../Constants';
-import Render from '../render/Render';
 
 class PathSpline {
     constructor() {
@@ -425,7 +424,7 @@ class PathSpline {
         this.cachedBoxPositions.forEach((pos) => {
             if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
                 const renderPos = new Vec3d(pos.x, pos.y + 0.2, pos.z);
-                Render.drawSizedBox(renderPos, size, size, size, Render.Color(255, 0, 255, 180), true, 1, true);
+                RenderUtils.drawSizedBox(renderPos, size, size, size, new RenderColor(255, 0, 255, 180), true, 1, true);
             }
         });
     }
@@ -433,10 +432,10 @@ class PathSpline {
     drawFloatingSpline(smoothSplineData) {
         if (!smoothSplineData || smoothSplineData.length < 2) return;
         for (let i = 0; i < smoothSplineData.length - 1; i++) {
-            Render.drawLine(
+            RenderUtils.drawLine(
                 new Vec3d(smoothSplineData[i].x + 0.5, smoothSplineData[i].y + 2.62, smoothSplineData[i].z + 0.5),
                 new Vec3d(smoothSplineData[i + 1].x + 0.5, smoothSplineData[i + 1].y + 2.62, smoothSplineData[i + 1].z + 0.5),
-                Render.Color(0, 255, 255, 255),
+                new RenderColor(0, 255, 255, 255),
                 3,
                 true
             );

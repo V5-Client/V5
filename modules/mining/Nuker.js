@@ -8,7 +8,6 @@ import { TabListUtils } from '../../utils/TabListUtils';
 import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { Keybind } from '../../utils/player/Keybinding';
-import Render from '../../utils/render/Render';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -158,7 +157,7 @@ class NukerClass extends ModuleBase {
         this.on('postRenderWorld', () => {
             if (this.target) this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
             if (this.chestPos && this.autoChest && this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance <= 8) {
-                Render.drawBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), Render.Color(100, 100, 255, 150), false);
+                RenderUtils.drawFilledBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), new RenderColor(100, 100, 255, 150), false);
             }
         });
 
@@ -307,7 +306,7 @@ class NukerClass extends ModuleBase {
         let r = Math.sin(time) * 127 + 128,
             g = Math.sin(time + 2) * 127 + 128,
             b = Math.sin(time + 4) * 127 + 128;
-        Render.drawWireFrame(new Vec3d(loc[0], loc[1], loc[2]), Render.Color(r, g, b, 255), 5, true);
+        RenderUtils.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
     }
 
     rightClickBlock(xyz) {

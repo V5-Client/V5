@@ -1,4 +1,3 @@
-import { KeyBindUtils, NVG } from '../../utils/Constants';
 import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { categoryManager } from '../categories/CategoryManager';
@@ -88,15 +87,15 @@ const handleKeybind = () => {
     if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1) savedKeycode = Keyboard.KEY_NONE;
 
     GUIKey = Keyboard.getKeyName(savedKeycode);
-    GUIKeyBind = KeyBindUtils.create('guiKey', keyName, savedKeycode);
+    GUIKeyBind = new KeyBind(keyName, savedKeycode, 'v5_modules');
 
     register('gameUnload', () => {
         let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-        allKeybinds[keyName] = GUIKeyBind.keyBinding.boundKey.code;
+        allKeybinds[keyName] = GUIKeyBind.getKeyCode();
         Utils.writeConfigFile('keybinds.json', allKeybinds);
     });
 
-    GUIKeyBind.onKeyPress(() => {
+    GUIKeyBind.registerKeyPress(() => {
         GuiState.isOpening = true;
         GuiState.openStartTime = Date.now();
         loadSettings();

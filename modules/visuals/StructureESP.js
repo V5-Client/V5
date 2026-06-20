@@ -1,8 +1,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
-import { StructureFinder, Vec3d } from '../../utils/Constants';
+import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';
-import Render from '../../utils/render/Render';
 import { manager } from '../../utils/SkyblockEvents';
 
 class StructureESP extends ModuleBase {
@@ -50,7 +49,7 @@ class StructureESP extends ModuleBase {
             if (!blocks || blocks.length < 3) return;
 
             for (let i = 0; i + 2 < blocks.length; i += 3) {
-                Render.drawBox(new Vec3d(blocks[i], blocks[i + 1], blocks[i + 2]), Render.Color(0, 255, 200, 100), false);
+                RenderUtils.drawFilledBox(new Vec3d(blocks[i], blocks[i + 1], blocks[i + 2]), new RenderColor(0, 255, 200, 100), false);
             }
         } catch (e) {}
     }

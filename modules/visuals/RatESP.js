@@ -1,7 +1,6 @@
 import { ZombieEntity, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import Render from '../../utils/render/Render';
 
 const RAT_WIDTH = 0.3;
 const RAT_HEIGHT = 0.975;
@@ -49,9 +48,9 @@ class RatESP extends ModuleBase {
 
         this.rats = [];
         this.lastWorldTickAt = 0;
-        this.fillColor = Render.Color(255, 255, 0, 80);
-        this.outlineColor = Render.Color(255, 255, 0, 255);
-        this.tracerColor = Render.Color(255, 255, 0, 255);
+        this.fillColor = new RenderColor(255, 255, 0, 80);
+        this.outlineColor = new RenderColor(255, 255, 0, 255);
+        this.tracerColor = new RenderColor(255, 255, 0, 255);
 
         this.on('tick', () => {
             this.lastWorldTickAt = Date.now();
@@ -90,8 +89,8 @@ class RatESP extends ModuleBase {
             const cubePos = new Vec3d(position.x, position.y, position.z);
             const cubeCenter = new Vec3d(position.x, position.y, position.z);
 
-            Render.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
-            Render.drawTracer(cubeCenter, this.tracerColor, 2, false);
+            RenderUtils.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
+            RenderUtils.drawTracer(cubeCenter, this.tracerColor, 2, false);
         });
     }
 

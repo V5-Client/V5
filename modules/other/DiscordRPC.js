@@ -1,4 +1,3 @@
-import { DiscordRPC } from '../../utils/Constants';
 import { Categories } from '../../gui/categories/CategorySystem';
 import { MacroState } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';

@@ -1,6 +1,6 @@
 import { AlertUtils } from '../../failsafes/AlertUtils';
 import { getSetting } from '../../gui/GuiSave';
-import { File, globalAssetsDir, V5Auth } from '../../utils/Constants';
+import { File, globalAssetsDir } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { DisconnectS2C, LoginDisconnectS2C } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';

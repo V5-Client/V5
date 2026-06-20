@@ -2,7 +2,6 @@ import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Utils } from '../../utils/Utils';
-import Render from '../../utils/render/Render';
 
 const NAMES = new Set(['Cow', 'Pig', 'Sheep', 'Chicken', 'Rabbit', 'Horse', 'Mooshroom', 'Dinnerbone']);
 const HP = new Set([100, 200, 500, 1000, 2000, 5000, 10000, 1024, 20000, 30000, 60000]);
@@ -140,8 +139,8 @@ class PeltQOL extends ModuleBase {
 
     render() {
         const [r, g, b] = this.rarityRgb;
-        const fill = Render.Color(r, g, b, 90);
-        const line = Render.Color(r, g, b, 255);
+        const fill = new RenderColor(r, g, b, 90);
+        const line = new RenderColor(r, g, b, 255);
 
         this.animals.forEach((e) => {
             const w = e.getWidth();
@@ -149,8 +148,8 @@ class PeltQOL extends ModuleBase {
             const x = e.getX();
             const y = e.getY();
             const z = e.getZ();
-            Render.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
-            Render.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
+            RenderUtils.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
+            RenderUtils.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
         });
     }
 }

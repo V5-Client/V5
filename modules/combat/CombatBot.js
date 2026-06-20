@@ -5,7 +5,6 @@ import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
-import Render from '../../utils/render/Render';
 
 const BLACKHOLE_TEXTURES = new Set([
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjE4NDg2Nzc3MywKICAicHJvZmlsZUlkIiA6ICJjNmViMzdjNmE4YjM0MDI3OGJjN2FmZGE3ZjMxOWJmMyIsCiAgInByb2ZpbGVOYW1lIiA6ICJFbFJleUNhbGFiYXphbCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS81NWI3MGYwOTRlMDE2Nzk1MDhkZDViY2EzOTY0MGVkOWVjNWM2YzY3OTJmYmQ4ZjU3YzAzYjNhMTJmOWMwYTkyIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=',
@@ -177,7 +176,7 @@ class Combat extends ModuleBase {
                 const pos = this.getTargetPosition(this.target);
                 if (pos && this.isPositionSafe(pos.x, pos.y, pos.z)) {
                     const entity = this.target.toMC ? this.target.toMC() : this.target;
-                    Render.drawHitbox(entity, Render.Color(255, 0, 0, 100), 7, false);
+                    RenderUtils.drawHitbox(entity, new RenderColor(255, 0, 0, 100), 7, false);
                 }
             }
         }
@@ -191,12 +190,12 @@ class Combat extends ModuleBase {
             if (pos && !this.isPositionSafe(pos.x, pos.y, pos.z)) return;
 
             const entity = target.toMC ? target.toMC() : target;
-            Render.drawHitbox(entity, Render.Color(0, 70, 200, 100), 3, false);
+            RenderUtils.drawHitbox(entity, new RenderColor(0, 70, 200, 100), 3, false);
         });
 
         if (this.activeBlackholes.length > 0) {
             this.activeBlackholes.forEach((bh) => {
-                Render.drawBox(new Vec3d(bh.x - 0.5, bh.y + 0.5, bh.z - 0.5), Render.Color(0, 0, 0, 150), false);
+                RenderUtils.drawFilledBox(new Vec3d(bh.x - 0.5, bh.y + 0.5, bh.z - 0.5), new RenderColor(0, 0, 0, 150), false);
             });
         }
     }

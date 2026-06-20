@@ -2,7 +2,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
-import { MCHand, PathManager } from '../../utils/Constants';
+import { MCHand } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { PlayerInteractItemC2S } from '../../utils/Packets';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';

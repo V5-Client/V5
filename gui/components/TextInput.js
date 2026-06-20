@@ -1,4 +1,4 @@
-import { DataFlavor, NVG, Toolkit } from '../../utils/Constants';
+import { DataFlavor, Toolkit } from '../../utils/Constants';
 import {
     FontSizes,
     PADDING,

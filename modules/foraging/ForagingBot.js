@@ -6,7 +6,6 @@ import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
-import Render from '../../utils/render/Render';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const MAX_SCAN = 500;
@@ -352,7 +351,7 @@ class ForagingBot extends ModuleBase {
 
         this.connectedBlocks.forEach((location) => {
             const blockVec = new Vec3d(location.x, location.y, location.z);
-            Render.drawWireFrame(blockVec, Render.Color(205, 133, 63, 255));
+            RenderUtils.drawWireFrameBox(blockVec, new RenderColor(205, 133, 63, 255));
         });
     }
 }

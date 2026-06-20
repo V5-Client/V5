@@ -1,4 +1,3 @@
-import { NVG } from '../../utils/Constants';
 import { categoryManager } from '../categories/CategoryManager';
 import { drawLeftPanelBackgrounds, drawLeftPanelIcons } from '../categories/CategoryRenderer';
 import { clamp, drawRoundedRectangleWithBorder, easeOutBack, resetScissor, scissor } from '../Utils';

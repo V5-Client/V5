@@ -1,5 +1,5 @@
 import { Chat } from '../../utils/Chat';
-import { File, NVG } from '../../utils/Constants';
+import { File } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 

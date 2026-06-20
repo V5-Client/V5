@@ -1,7 +1,6 @@
 import { showNotification } from '../../gui/NotificationManager';
 import { Chat } from '../Chat';
 import { BP, Vec3d } from '../Constants';
-import Render from '../render/Render';
 import { ScheduleTask } from '../ScheduleTask';
 import { MathUtils } from '../Math';
 import { Utils } from '../Utils';
@@ -313,7 +312,7 @@ class Finder {
                 this.render = register('postRenderWorld', () => {
                     if (PathConfig.RENDER_KEY_NODES && result.keynodes?.length >= 2) {
                         result.keynodes.forEach((node) => {
-                            Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
+                            RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), new RenderColor(0, 100, 200, 120), new RenderColor(0, 100, 200, 255), 4, true);
                         });
                     }
 
@@ -322,11 +321,11 @@ class Finder {
                     }
 
                     if (PathConfig.RENDER_LOOK_POINTS) {
-                        this.flyMovementPath?.forEach((p) => Render.drawBox(new Vec3d(p.x, p.y, p.z), Render.Color(0, 255, 0, 150), true));
-                        this.flyLookPoints?.forEach((p) => Render.drawBox(p, Render.Color(255, 0, 0, 150), true));
+                        this.flyMovementPath?.forEach((p) => RenderUtils.drawFilledBox(new Vec3d(p.x, p.y, p.z), new RenderColor(0, 255, 0, 150), true));
+                        this.flyLookPoints?.forEach((p) => RenderUtils.drawFilledBox(p, new RenderColor(255, 0, 0, 150), true));
                         const yDiffPoint = FlyMovement.debugVerticalTarget;
                         if (yDiffPoint) {
-                            Render.drawBox(new Vec3d(yDiffPoint.x, yDiffPoint.y, yDiffPoint.z), Render.Color(0, 255, 255, 180), true);
+                            RenderUtils.drawFilledBox(new Vec3d(yDiffPoint.x, yDiffPoint.y, yDiffPoint.z), new RenderColor(0, 255, 255, 180), true);
                         }
                     }
                 });
@@ -872,7 +871,7 @@ class Finder {
         this.render = register('postRenderWorld', () => {
             if (PathConfig.RENDER_KEY_NODES && result.keynodes?.length >= 2) {
                 result.keynodes.forEach((node) => {
-                    Render.drawStyledBox(new Vec3d(node.x, node.y, node.z), Render.Color(0, 100, 200, 120), Render.Color(0, 100, 200, 255), 4, true);
+                    RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), new RenderColor(0, 100, 200, 120), new RenderColor(0, 100, 200, 255), 4, true);
                 });
             }
             if (PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(splinePath);

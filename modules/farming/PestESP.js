@@ -3,7 +3,6 @@ import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
-import Render from '../../utils/render/Render';
 
 class PestESP extends ModuleBase {
     constructor() {
@@ -51,9 +50,9 @@ class PestESP extends ModuleBase {
             () => {
                 this.persistentPests.forEach((data) => {
                     if (!data.entity || data.entity.isDead()) return;
-                    Render.drawHitbox(data.entity.toMC(), Render.Color(255, 0, 0, 100), 5, false);
+                    RenderUtils.drawHitbox(data.entity.toMC(), new RenderColor(255, 0, 0, 100), 5, false);
 
-                    Render.drawTracer(new Vec3d(data.x, data.y, data.z), Render.Color(255, 0, 0, 255), 2, false);
+                    RenderUtils.drawTracer(new Vec3d(data.x, data.y, data.z), new RenderColor(255, 0, 0, 255), 2, false);
                 });
             }
         );

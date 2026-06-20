@@ -13,7 +13,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
-import Render from '../../utils/render/Render';
 import { MiningBot } from './MiningBot';
 
 class GemstoneMacro extends ModuleBase {
@@ -115,18 +114,18 @@ class GemstoneMacro extends ModuleBase {
 
                     const pos = new Vec3d(current.x, current.y, current.z);
 
-                    Render.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
-                    Render.drawStyledBox(pos, Render.Color(...amethyst, 80), Render.Color(...amethyst, 255), 2, false);
+                    RenderUtils.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                    RenderUtils.drawStyledBox(pos, new RenderColor(...amethyst, 80), new RenderColor(...amethyst, 255), 2, false);
 
                     const nextIndex = (i + 1) % this.route.length;
 
                     if (this.route.length > 1) {
                         const next = this.route[nextIndex];
                         if (next && typeof next.x === 'number') {
-                            Render.drawLine(
+                            RenderUtils.drawLine(
                                 new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
                                 new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
-                                Render.Color(...amethyst, 255),
+                                new RenderColor(...amethyst, 255),
                                 2
                             );
                         }

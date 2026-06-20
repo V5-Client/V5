@@ -1,4 +1,3 @@
-import { PathManager } from '../Constants.js';
 
 class SwiftIntegration {
     constructor() {

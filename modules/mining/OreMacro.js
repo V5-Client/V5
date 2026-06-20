@@ -7,7 +7,6 @@ import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
-import Render from '../../utils/render/Render';
 import { Router } from '../../utils/Router';
 import RouteState from '../../utils/RouteState';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -671,20 +670,20 @@ class OreMacro extends ModuleBase {
             const pos = new Vec3d(current.x, current.y, current.z);
 
             if (current.movements === 'MINEABLE') {
-                boxColor = Render.Color(0, 255, 0, 80);
-                edgeColor = Render.Color(0, 255, 0, 255);
+                boxColor = new RenderColor(0, 255, 0, 80);
+                edgeColor = new RenderColor(0, 255, 0, 255);
                 label = `Mineable #${mineCounter++}`;
             } else {
-                boxColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 80) : Render.Color(145, 70, 255, 80);
-                edgeColor = current.movements === 'WALK' ? Render.Color(255, 50, 50, 255) : Render.Color(145, 70, 255, 255);
+                boxColor = current.movements === 'WALK' ? new RenderColor(255, 50, 50, 80) : new RenderColor(145, 70, 255, 80);
+                edgeColor = current.movements === 'WALK' ? new RenderColor(255, 50, 50, 255) : new RenderColor(145, 70, 255, 255);
                 label = `#${pathCounter++}`;
             }
 
             if (label) {
-                Render.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                RenderUtils.drawText(label, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
             }
 
-            Render.drawStyledBox(pos, boxColor, edgeColor, 4, false);
+            RenderUtils.drawStyledBox(pos, boxColor, edgeColor, 4, false);
         }
     }
 }

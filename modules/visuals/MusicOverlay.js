@@ -10,7 +10,7 @@ import {
     getTextWidth,
     THEME,
 } from '../../gui/Utils';
-import { File, InputStreamReader, isWindows, NVG, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
+import { File, InputStreamReader, isWindows, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
 import { Chat } from '../../utils/Chat';
 import { streamDownloadToFile } from '../../utils/FileUtils';
 import { ModuleBase } from '../../utils/ModuleBase';

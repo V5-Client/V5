@@ -1,6 +1,6 @@
 import { drawRect, drawText } from '../gui/Utils';
 import { Chat } from '../utils/Chat';
-import { File, KeyBindUtils, NVG, globalAssetsDir } from '../utils/Constants';
+import { File, globalAssetsDir } from '../utils/Constants';
 import { Utils } from '../utils/Utils';
 import FailsafeUtils from './FailsafeUtils';
 
@@ -213,9 +213,9 @@ class AlertUtilsClass {
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
 
         this.cancelKey = Keyboard.getKeyName(savedKeycode);
-        this.cancelKeyBind = KeyBindUtils.create('reactionKey', keyName, savedKeycode);
+        this.cancelKeyBind = new KeyBind(keyName, savedKeycode, 'v5_modules');
 
-        this.cancelKeyBind.onKeyPress(() => {
+        this.cancelKeyBind.registerKeyPress(() => {
             if (!this.isAlerting) return;
             Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
             this.disableReaction();
@@ -224,7 +224,7 @@ class AlertUtilsClass {
         register('gameUnload', () => {
             this.disableReaction();
             let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-            allKeybinds[keyName] = this.cancelKeyBind.keyBinding.boundKey.code;
+            allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
             Utils.writeConfigFile('keybinds.json', allKeybinds);
         });
     }

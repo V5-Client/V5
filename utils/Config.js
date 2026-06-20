@@ -30,55 +30,29 @@ function organizeFailsafeSounds() {
 
 organizeFailsafeSounds();
 
-class ConfigInitializer {
-    constructor(baseName) {
-        this.root = baseName;
-        this.basePath = `./config/ChatTriggers/modules/`;
-        this.fullRootPath = `${this.basePath}${this.root}`;
+const CONFIG_ROOT = 'V5Config';
+const CONFIG_PATH = `./config/ChatTriggers/modules/${CONFIG_ROOT}`;
 
-        this.setupBaseDirectory();
-    }
+function generate(path, type, payload = []) {
+    if (FileLib.exists(CONFIG_ROOT, path) && (path.endsWith('.txt') || isValidJson(path))) return;
 
-    setupBaseDirectory() {
-        const rootDir = new File(this.basePath, this.root);
-        if (!rootDir.exists()) rootDir.mkdir();
-    }
+    if (type === 'dir') new File(CONFIG_PATH, path).mkdir();
+    else FileLib.append(CONFIG_ROOT, path, JSON.stringify(payload, null, 4));
+}
 
-    isCorrupted(path) {
-        if (path.endsWith('.txt')) return false;
-
-        const rawContent = FileLib.read(this.root, path);
-        try {
-            JSON.parse(rawContent);
-            return false;
-        } catch (e) {
-            Chat.message(`§cRepairing corrupted data: ${path}`);
-            console.error('V5 Caught error' + e + e.stack);
-            FileLib.delete(this.root, path);
-            return true;
-        }
-    }
-
-    generate(path, type, payload = []) {
-        const alreadyExists = FileLib.exists(this.root, path);
-        if (alreadyExists && !this.isCorrupted(path)) return;
-
-        switch (type) {
-            case 'dir':
-                new File(this.fullRootPath, path).mkdir();
-                break;
-            case 'text':
-                FileLib.append(this.root, path, payload.join('\n'));
-                break;
-            case 'file':
-            default:
-                FileLib.append(this.root, path, JSON.stringify(payload, null, 4));
-                break;
-        }
+function isValidJson(path) {
+    try {
+        JSON.parse(FileLib.read(CONFIG_ROOT, path));
+        return true;
+    } catch (e) {
+        Chat.message(`§cRepairing corrupted data: ${path}`);
+        console.error('V5 Caught error' + e + e.stack);
+        FileLib.delete(CONFIG_ROOT, path);
+        return false;
     }
 }
 
-const Manager = new ConfigInitializer('V5Config');
+new File('./config/ChatTriggers/modules', CONFIG_ROOT).mkdir();
 
 const responseMessages = ['???', 'bro wtf', 'what', 'rly', 'hmmmm', 'bro', '?', 'hello??', 'lol', 'nice bro', '...', 'omg', 'pls', 'lmfao', 'idiot', 'really'];
 
@@ -116,5 +90,5 @@ const manifest = {
     },
 };
 
-manifest.directories.forEach((dir) => Manager.generate(dir, 'dir'));
-Object.entries(manifest.jsonFiles).forEach(([path, data]) => Manager.generate(path, 'file', data));
+manifest.directories.forEach((dir) => generate(dir, 'dir'));
+Object.entries(manifest.jsonFiles).forEach(([path, data]) => generate(path, 'file', data));

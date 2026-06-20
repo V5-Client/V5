@@ -1,5 +1,4 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
-import { GradientChat } from './Constants';
 import { isDeveloperModeEnabled } from './DeveloperModeState';
 
 class ChatClass {

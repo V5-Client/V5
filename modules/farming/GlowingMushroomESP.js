@@ -1,7 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ParticleS2C } from '../../utils/Packets';
-import Render from '../../utils/render/Render';
 
 const ENTITY_EFFECT = net.minecraft.particle.ParticleTypes.ENTITY_EFFECT;
 const MUSHROOM_IDS = new Set(['minecraft:red_mushroom', 'minecraft:brown_mushroom']);
@@ -17,7 +16,7 @@ class GlowingMushroomESP extends ModuleBase {
 
         this.mushrooms = new Map();
 
-        this.fillColor = Render.Color(0, 255, 0, 70);
+        this.fillColor = new RenderColor(0, 255, 0, 70);
 
         this.on('packetReceived', (packet) => this.onParticlePacket(packet)).setFilteredClass(ParticleS2C);
         this.on('tick', () => this.cleanup());
@@ -80,7 +79,7 @@ class GlowingMushroomESP extends ModuleBase {
     renderMushrooms() {
         for (const data of this.mushrooms.values()) {
             const pos = new Vec3d(data.x + 0.5, data.y + 0.001, data.z + 0.5);
-            Render.drawSizedBox(pos, 0.4, 0.4, 0.4, this.fillColor, true, 1, false);
+            RenderUtils.drawSizedBox(pos, 0.4, 0.4, 0.4, this.fillColor, true, 1, false);
         }
     }
 }

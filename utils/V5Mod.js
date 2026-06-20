@@ -7,8 +7,6 @@ class V5Mod {
 
         if (!config || !config.welcomeShown) {
             try {
-                const WelcomeScreen = Java.type('com.v5.screen.WelcomeScreen');
-
                 WelcomeScreen.open();
                 Utils.writeConfigFile(META_FILE, { welcomeShown: true });
             } catch (e) {

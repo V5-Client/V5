@@ -1,4 +1,4 @@
-import { DataFlavor, NVG, Toolkit, globalAssetsDir } from '../../utils/Constants';
+import { DataFlavor, Toolkit, globalAssetsDir } from '../../utils/Constants';
 import {
     colorWithAlpha,
     drawImage,

@@ -1,7 +1,6 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import Render from '../../utils/render/Render';
 
 class SeaLumie extends ModuleBase {
     constructor() {
@@ -202,7 +201,7 @@ class SeaLumie extends ModuleBase {
             if (this.closestPickle) {
                 let waypointPos = new Vec3d(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                Render.drawBox(waypointPos, Render.Color(255, 0, 0, 255));
+                RenderUtils.drawFilledBox(waypointPos, new RenderColor(255, 0, 0, 255));
             }
         });
     }

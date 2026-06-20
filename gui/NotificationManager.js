@@ -1,4 +1,3 @@
-import { NVG } from '../utils/Constants';
 import { colorWithAlpha, drawRoundedRectangle, drawText, FontSizes, THEME } from './Utils';
 
 // Configuration

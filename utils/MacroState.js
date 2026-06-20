@@ -1,5 +1,4 @@
 import { Chat } from './Chat';
-import { KeyBindUtils } from './Constants';
 import { Utils } from './Utils';
 
 class MacroStateClass {
@@ -127,14 +126,14 @@ class MacroStateClass {
 
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[this.lastMacroToggleTitle] || Keyboard.KEY_NONE;
-        this.lastMacroToggleKey = KeyBindUtils.create('toggle_last_macro', this.lastMacroToggleTitle, savedKeycode);
+        this.lastMacroToggleKey = new KeyBind(this.lastMacroToggleTitle, savedKeycode, 'v5_modules');
 
-        this.lastMacroToggleKey.onKeyPress(() => {
+        this.lastMacroToggleKey.registerKeyPress(() => {
             this.toggleLastUsedMacroFromUser();
         });
 
         register('gameUnload', () => {
-            const keycode = this.lastMacroToggleKey?.keyBinding?.boundKey?.code;
+            const keycode = this.lastMacroToggleKey?.getKeyCode();
             if (typeof keycode !== 'number') return;
 
             const allKeybinds = Utils.getConfigFile('keybinds.json') || {};

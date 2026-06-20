@@ -2,7 +2,6 @@ import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
 import { Chat } from './Chat';
-import { KeyBindUtils } from './Constants';
 import { MacroState } from './MacroState';
 import { Mixin } from './MixinManager';
 import { ScheduleTask } from './ScheduleTask';
@@ -211,6 +210,12 @@ export class ModuleBase {
     message(message) {
         if (!this.name) return Chat.message('&cModule message error!');
         const theme = this.hexCode || `&${ModuleBase.getDefaultTheme(this.subcategory)}`;
+        if (theme.startsWith('&#')) {
+            return Chat.message(new TextComponent({ text: `${this.name}: `, color: `#${theme.slice(2)}` }, `&f${message}`));
+        }
+        if (theme.startsWith('#')) {
+            return Chat.message(new TextComponent({ text: `${this.name}: `, color: theme }, `&f${message}`));
+        }
         Chat.message(`${theme}${this.name}: &f${message}`);
     }
 
@@ -241,15 +246,14 @@ export class ModuleBase {
     bindToggleKey(title = `Toggle ${this.name}`) {
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
-        const id = (this.name || 'module').toLowerCase().replace(/[^a-z0-9]/g, '_');
-        this._wrappedKey = KeyBindUtils.create(id, title, savedKeycode);
+        this._wrappedKey = new KeyBind(title, savedKeycode, 'v5_modules');
 
-        this._wrappedKey.onKeyPress(() => {
+        this._wrappedKey.registerKeyPress(() => {
             this.requestToggleFromUser();
         });
 
         register('gameUnload', () => {
-            this._saveKey(title, this._wrappedKey.keyBinding.boundKey.code);
+            this._saveKey(title, this._wrappedKey.getKeyCode());
         });
         return this;
     }

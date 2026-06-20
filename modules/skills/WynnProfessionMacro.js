@@ -4,7 +4,6 @@ import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
-import Render from '../../utils/render/Render';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
@@ -475,18 +474,18 @@ class WynnProfessionMacro extends ModuleBase {
             const point = this.route[i];
             if (!this.isValidPoint(point)) continue;
 
-            const color = i === this.currentIndex ? Render.Color(85, 255, 85, 120) : Render.Color(63, 191, 127, 80);
-            Render.drawStyledBox(
+            const color = i === this.currentIndex ? new RenderColor(85, 255, 85, 120) : new RenderColor(63, 191, 127, 80);
+            RenderUtils.drawStyledBox(
                 new Vec3d(Math.floor(point.x), Math.floor(point.y) - 1, Math.floor(point.z)),
                 color,
-                Render.Color(63, 191, 127, 255),
+                new RenderColor(63, 191, 127, 255),
                 3,
                 false
             );
 
             const next = this.route[(i + 1) % this.route.length];
             if (!this.isValidPoint(next)) continue;
-            Render.drawLine(new Vec3d(point.x, point.y, point.z), new Vec3d(next.x, next.y, next.z), Render.Color(63, 191, 127, 180), 2, false);
+            RenderUtils.drawLine(new Vec3d(point.x, point.y, point.z), new Vec3d(next.x, next.y, next.z), new RenderColor(63, 191, 127, 180), 2, false);
         }
     }
 

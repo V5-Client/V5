@@ -1,4 +1,3 @@
-import { NVG } from '../../utils/Constants';
 import {
     clamp,
     colorWithAlpha,

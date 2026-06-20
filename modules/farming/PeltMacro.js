@@ -1,5 +1,5 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { MCHand, PathManager, Vec3d } from '../../utils/Constants';
+import { MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { PlayerInteractItemC2S } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';

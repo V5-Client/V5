@@ -1,4 +1,4 @@
-import { Color, NVG } from '../../utils/Constants';
+import { Color } from '../../utils/Constants';
 import { setTooltip } from '../core/GuiTooltip';
 import {
     clamp,
@@ -14,17 +14,6 @@ import {
     playClickSound,
     THEME,
 } from '../Utils';
-
-let Gradient;
-try {
-    Gradient = Java.type('com.v5.render.Gradient');
-} catch (e) {
-    console.error('V5 Caught error' + e + e.stack);
-    Gradient = {
-        LeftToRight: 'LeftToRight',
-        TopToBottom: 'TopToBottom',
-    };
-}
 
 export class ColorPicker {
     constructor(title, x, y, defaultColor, callback) {
@@ -270,11 +259,11 @@ export class ColorPicker {
 
                 const hueColorInt = java.awt.Color.HSBtoRGB(this.hue, 1, 1) | 0;
                 const whiteColorInt = new Color(1, 1, 1, 1).getRGB() | 0;
-                NVG.drawGradientRect(svX, svY, innerWidth, svHeight, whiteColorInt, hueColorInt, Gradient.LeftToRight, 6);
+                NVG.drawGradientRect(svX, svY, innerWidth, svHeight, whiteColorInt, hueColorInt, 'LeftToRight', 6);
 
                 const transparentInt = new Color(0, 0, 0, 0).getRGB() | 0;
                 const blackInt = new Color(0, 0, 0, 1).getRGB() | 0;
-                NVG.drawGradientRect(svX, svY, innerWidth, svHeight, transparentInt, blackInt, Gradient.TopToBottom, 6);
+                NVG.drawGradientRect(svX, svY, innerWidth, svHeight, transparentInt, blackInt, 'TopToBottom', 6);
 
                 NVG.drawHollowRect(svX - 1, svY - 1, innerWidth + 2, svHeight + 2, 1, THEME.BORDER.getRGB(), 7);
 
@@ -298,7 +287,7 @@ export class ColorPicker {
 
                 const cTransInt = new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 0).getRGB() | 0;
                 const cSolidInt = new Color(this.color.getRed() / 255, this.color.getGreen() / 255, this.color.getBlue() / 255, 1).getRGB() | 0;
-                NVG.drawGradientRect(svX, alphaY, innerWidth, barHeight, cTransInt, cSolidInt, Gradient.LeftToRight, 5);
+                NVG.drawGradientRect(svX, alphaY, innerWidth, barHeight, cTransInt, cSolidInt, 'LeftToRight', 5);
 
                 NVG.drawHollowRect(svX - 1, alphaY - 1, innerWidth + 2, barHeight + 2, 1, THEME.BORDER.getRGB(), 5);
 
