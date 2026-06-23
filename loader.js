@@ -26,7 +26,6 @@ import './utils/pathfinder/EtherwarpPathfinder';
 import './utils/Clipping';
 import './utils/Misc';
 import './failsafes/FailsafeManager';
-import './utils/V5Mod';
 import './utils/SkyblockEvents';
 
 /* Modules */
