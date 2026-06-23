@@ -41,7 +41,7 @@ export const setDeveloperModeEnabled = (value) => {
     return developerModeEnabled;
 };
 
-const isDeveloperModeEnabled = () => {
+export const isDeveloperModeEnabled = () => {
     if (!loadedFromDisk) loadDeveloperModeState();
     return developerModeEnabled;
 };
