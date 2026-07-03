@@ -112,7 +112,7 @@ jobs:
                     zip -qr "$GITHUB_WORKSPACE/V5-Mojmap.zip" .
                   )
             - name: Upload Release zip to R2
-              if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
+              if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/mojmap' }}
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
