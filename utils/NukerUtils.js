@@ -51,7 +51,9 @@ class NukerUtilsClass {
     }
 
     sendBreakPackets(blockPos, facing) {
-        Client.sendSequencedPacket((sequence) => new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket$Action.START_DESTROY_BLOCK, blockPos, facing, sequence));
+        Client.sendSequencedPacket(
+            (sequence) => new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket$Action.START_DESTROY_BLOCK, blockPos, facing, sequence)
+        );
         Client.sendPacket(new ServerboundSwingPacket(MCHand.MAIN_HAND));
     }
 
@@ -96,7 +98,9 @@ class NukerUtilsClass {
         const blockPosition = this.createBlockPosition(blockPos);
         const facing = this.closestDirection(blockPosition);
 
-        Client.sendSequencedPacket((sequence) => new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket$Action.START_DESTROY_BLOCK, blockPosition, facing, sequence));
+        Client.sendSequencedPacket(
+            (sequence) => new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket$Action.START_DESTROY_BLOCK, blockPosition, facing, sequence)
+        );
 
         this.currentBreakingBlockPos = blockPos;
     }
