@@ -26,8 +26,8 @@ class SharedRotationGCD {
     }
 
     aimModulo360(currentYaw, targetYaw) {
-        if (!Number.isFinite(currentYaw)) return this.normalizeAngle(targetYaw);
-        if (!Number.isFinite(targetYaw)) return this.normalizeAngle(currentYaw);
+        if (!Number.isFinite(currentYaw)) return targetYaw;
+        if (!Number.isFinite(targetYaw)) return currentYaw;
         return currentYaw + this.angleDifference(targetYaw, currentYaw);
     }
 
@@ -45,19 +45,23 @@ class SharedRotationGCD {
     syncFromPlayer(yaw = null, pitch = null, player = Player.getPlayer()) {
         if (!player) return false;
 
-        this.lastYaw = Number.isFinite(yaw) ? yaw : this.normalizeAngle(player.getYRot());
+        const playerYaw = player.getYRot();
+
+        this.lastYaw = Number.isFinite(yaw) ? this.aimModulo360(playerYaw, yaw) : playerYaw;
         this.lastPitch = Number.isFinite(pitch) ? this.clampPitch(pitch) : this.clampPitch(player.getXRot());
         this.initialized = true;
         return true;
     }
 
     resyncIfDrifted(player, gcd) {
-        const yawDrift = Math.abs(this.angleDifference(this.lastYaw, this.normalizeAngle(player.getYRot())));
-        const pitchDrift = Math.abs(player.getXRot() - this.lastPitch);
+        const playerYaw = player.getYRot();
+        const playerPitch = player.getXRot();
+        const yawDrift = Math.abs(this.angleDifference(this.lastYaw, playerYaw));
+        const pitchDrift = Math.abs(playerPitch - this.lastPitch);
 
-        if (yawDrift > gcd * 2 || pitchDrift > gcd * 2) {
-            this.lastYaw = this.normalizeAngle(player.getYRot());
-            this.lastPitch = player.getXRot();
+        if (yawDrift > gcd * 2 || Math.abs(playerYaw - this.lastYaw) > 180 || pitchDrift > gcd * 2) {
+            this.lastYaw = playerYaw;
+            this.lastPitch = playerPitch;
         }
     }
 
@@ -69,7 +73,7 @@ class SharedRotationGCD {
         }
 
         return {
-            yaw: this.initialized ? this.lastYaw : this.normalizeAngle(player.getYRot()),
+            yaw: this.initialized ? this.lastYaw : player.getYRot(),
             pitch: this.initialized ? this.lastPitch : player.getXRot(),
         };
     }
