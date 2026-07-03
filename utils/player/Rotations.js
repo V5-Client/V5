@@ -352,9 +352,9 @@ class RotationController {
         const player = Player.getPlayer();
         if (!vec || !player) return null;
 
-        const dx = vec.x - player.getX();
-        const dy = vec.y - player.getEyePos().y;
-        const dz = vec.z - player.getZ();
+        const dx = vec.x() - player.getX();
+        const dy = vec.y() - player.getEyePosition().y();
+        const dz = vec.z() - player.getZ();
 
         return {
             yaw: Math.atan2(-dx, dz) * (180 / Math.PI),

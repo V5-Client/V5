@@ -54,7 +54,7 @@ class PathRecovery {
             this.stuckPos = { x: pX, z: pZ };
         }
 
-        if (!player.isOnGround()) {
+        if (!player.onGround()) {
             this.lastPos = { x: pX, z: pZ };
             return null;
         }

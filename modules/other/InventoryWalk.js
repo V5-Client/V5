@@ -1,13 +1,13 @@
 import { TypingState } from '../../gui/Utils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import {
-    ClickSlotC2S,
-    CommonPingS2C,
-    InventoryS2C,
-    OpenScreenS2C,
-    ScreenHandlerSlotUpdateS2C,
-    SetCursorItemS2C,
-    SetPlayerInventoryS2C,
+    ServerboundContainerClickPacket,
+    ClientboundPingPacket,
+    ClientboundContainerSetContentPacket,
+    ClientboundOpenScreenPacket,
+    ClientboundContainerSetSlotPacket,
+    ClientboundSetCursorItemPacket,
+    ClientboundSetPlayerInventoryPacket,
 } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
@@ -24,13 +24,13 @@ class InventoryWalk extends ModuleBase {
         this.time = 0;
         this.lastPacketTime = Date.now();
         this.keybinds = [
-            new KeyBind(Client.getMinecraft().options.forwardKey),
-            new KeyBind(Client.getMinecraft().options.leftKey),
-            new KeyBind(Client.getMinecraft().options.rightKey),
-            new KeyBind(Client.getMinecraft().options.backKey),
-            new KeyBind(Client.getMinecraft().options.jumpKey),
-            new KeyBind(Client.getMinecraft().options.sprintKey),
-            new KeyBind(Client.getMinecraft().options.sneakKey),
+            new KeyBind(Client.getMinecraft().options.keyUp),
+            new KeyBind(Client.getMinecraft().options.keyLeft),
+            new KeyBind(Client.getMinecraft().options.keyRight),
+            new KeyBind(Client.getMinecraft().options.keyDown),
+            new KeyBind(Client.getMinecraft().options.keyJump),
+            new KeyBind(Client.getMinecraft().options.keySprint),
+            new KeyBind(Client.getMinecraft().options.keyShift),
         ];
 
         this.on('tick', () => {
@@ -57,7 +57,7 @@ class InventoryWalk extends ModuleBase {
             this.keybinds.forEach((keybind) => {
                 keybind.setState(false);
             });
-        }).setFilteredClass(ClickSlotC2S);
+        }).setFilteredClass(ServerboundContainerClickPacket);
 
         this.on('packetReceived', (packet) => {
             this.clicked = false;
@@ -67,7 +67,7 @@ class InventoryWalk extends ModuleBase {
                     keybind.setState(down);
                 });
             });
-        }).setFilteredClass(OpenScreenS2C);
+        }).setFilteredClass(ClientboundOpenScreenPacket);
 
         this.on('packetReceived', (packet) => {
             this.lastPacketTime = Date.now();

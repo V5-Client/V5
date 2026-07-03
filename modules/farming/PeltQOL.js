@@ -94,7 +94,7 @@ class PeltQOL extends ModuleBase {
 
     findStart(message) {
         const event = message.getStyle().getClickEvent();
-        const command = event && event.getAction().name() === 'RUN_COMMAND' && event.comp_3506();
+        const command = event && event.action().name() === 'RUN_COMMAND' && event.command(); // mojmap: command
         if (command && /^\s*\/chatprompt\b.*\byes\s*$/i.test(command)) return command;
         for (const child of message.getSiblings()) {
             const found = this.findStart(child);

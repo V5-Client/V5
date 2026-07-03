@@ -1,8 +1,8 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { ParticleS2C } from '../../utils/Packets';
+import { ClientboundLevelParticlesPacket } from '../../utils/Packets';
 
-const ENTITY_EFFECT = net.minecraft.particle.ParticleTypes.ENTITY_EFFECT;
+const ENTITY_EFFECT = net.minecraft.core.particles.ParticleTypes.ENTITY_EFFECT;
 const MUSHROOM_IDS = new Set(['minecraft:red_mushroom', 'minecraft:brown_mushroom']);
 
 class GlowingMushroomESP extends ModuleBase {
@@ -18,7 +18,7 @@ class GlowingMushroomESP extends ModuleBase {
 
         this.fillColor = new RenderColor(0, 255, 0, 70);
 
-        this.on('packetReceived', (packet) => this.onParticlePacket(packet)).setFilteredClass(ParticleS2C);
+        this.on('packetReceived', (packet) => this.onParticlePacket(packet)).setFilteredClass(ClientboundLevelParticlesPacket);
         this.on('tick', () => this.cleanup());
         this.on('worldLoad', () => this.mushrooms.clear());
         this.on('worldUnload', () => this.mushrooms.clear());
@@ -35,7 +35,8 @@ class GlowingMushroomESP extends ModuleBase {
     }
 
     onParticlePacket(packet) {
-        if (packet.getParameters().getType() !== ENTITY_EFFECT) return;
+        const particle = packet.getParticle?.();
+        if ((particle?.getType?.() ?? particle) !== ENTITY_EFFECT) return;
 
         const x = packet.getX();
         const y = packet.getY();

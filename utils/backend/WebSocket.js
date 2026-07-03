@@ -2,7 +2,7 @@ import WebSocket from 'WebSocket';
 import { returnDiscord } from '../../gui/Utils';
 import { Chat } from '../Chat';
 import { Links } from '../Constants';
-import { ChatMessageC2S } from '../Packets';
+import { ServerboundChatPacket } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { v5Command } from '../V5Commands';
 import { handleIRCMessage, isAutoMeowEnabled, isIrcEnabled, isRandomChoiceMeowEnabled } from './IRC';
@@ -200,7 +200,7 @@ register('gameUnload', () => {
 register('packetSent', (packet, event) => {
     let message;
     try {
-        message = packet.chatMessage();
+        message = packet.message();
     } catch (e) {
         console.error('V5 Caught error' + e + e.stack);
     }
@@ -209,7 +209,7 @@ register('packetSent', (packet, event) => {
     sendChatMessage(message.substring(1));
 
     cancel(event);
-}).setFilteredClass(ChatMessageC2S);
+}).setFilteredClass(ServerboundChatPacket);
 
 const reconnectIRC = () => {
     reconnectAttempts = 0;

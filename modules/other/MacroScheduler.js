@@ -437,7 +437,7 @@ class MacroScheduler extends ModuleBase {
         try {
             const mc = Client.getMinecraft();
             if (mc.getNetworkHandler()) {
-                const text = net.minecraft.text.Text.of(reason);
+                const text = net.minecraft.network.chat.Component.literal(String(reason ?? ''));
                 mc.getNetworkHandler().getConnection().disconnect(text);
             }
         } catch (e) {

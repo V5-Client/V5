@@ -1,7 +1,7 @@
 import { Chat } from '../../utils/Chat';
 import { MathUtils } from '../../utils/Math';
 import { MacroState } from '../../utils/MacroState';
-import { PlayerPositionLookS2C } from '../../utils/Packets';
+import { ClientboundPlayerPositionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
@@ -30,8 +30,8 @@ class RotationFailsafe extends Failsafe {
             const newZ = pos.z;
 
             const change = packet.change();
-            const newYaw = change.yaw();
-            const newPitch = change.pitch();
+            const newYaw = change.yRot();
+            const newPitch = change.xRot();
 
             const dx = Math.abs(newX - fromX);
             const dy = Math.abs(newY - fromY);
@@ -41,6 +41,7 @@ class RotationFailsafe extends Failsafe {
             const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, newYaw));
             const pitchDiff = Math.abs(newPitch - currPitch);
 
+            // todo: this isnt what a null rotation packet is, which retard made these failsafes?
             if (yawDiff === 0 && pitchDiff === 0) {
                 Chat.messageDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
                 return;
@@ -53,7 +54,7 @@ class RotationFailsafe extends Failsafe {
                 if (this.disabled || !MacroState.isFailsafeMacroRunning() || scheduledAt < this._disabledUntil) return;
                 this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
             }, this._getReactionDelay(this.settings));
-        }).setFilteredClass(PlayerPositionLookS2C);
+        }).setFilteredClass(ClientboundPlayerPositionPacket);
     }
 
     onTrigger(fromYaw, fromPitch, toYaw, toPitch, yawDiff, pitchDiff) {

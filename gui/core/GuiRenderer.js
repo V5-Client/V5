@@ -13,7 +13,7 @@ export const drawGUI = (mouseX, mouseY) => {
     const centerX = targetBackground.x + targetBackground.width / 2;
     const centerY = targetBackground.y + targetBackground.height / 2;
 
-    Client.getMinecraft().gameRenderer.renderBlur();
+    Client.getMinecraft().gameRenderer.processBlurEffect();
 
     try {
         NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());

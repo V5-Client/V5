@@ -170,7 +170,7 @@ class RouteWalkerer extends ModuleBase {
 
                     let angle = MathUtils.calculateAbsoluteAngles(new Vec3d(this.point.x + 0.5, this.point.y + 2, this.point.z + 0.5));
 
-                    Rotations.lookAtAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : player.getPitch(), { speedMultiplier: 1.0 });
+                    Rotations.lookAtAngles(angle.yaw, this.LOCKPITCH ? this.PITCH : player.getXRot(), { speedMultiplier: 1.0 });
 
                     if (currentDistance < 3) {
                         this.etherwarpReady = false;

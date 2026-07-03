@@ -263,7 +263,12 @@ export const setGuiClickSoundEnabled = (enabled) => {
 
 export const playClickSound = () => {
     if (!guiClickSoundEnabled) return;
-    World.getWorld().playSoundClient(SoundEvent.of(Identifier.of('minecraft', 'entity.experience_orb.pickup')), SoundCategory.MASTER, 0.5, 1.0);
+    World.getWorld().playPlayerSound(
+        SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath('minecraft', 'entity.experience_orb.pickup')),
+        SoundCategory.MASTER,
+        0.5,
+        1.0
+    );
 };
 
 const profilePath = new File(globalAssetsDir, 'discordProfile.png');

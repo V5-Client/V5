@@ -1,11 +1,10 @@
 import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { NukerUtils } from '../../utils/NukerUtils';
-import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { ServerboundUseItemOnPacket } from '../../utils/Packets';
 import { manager } from '../../utils/SkyblockEvents';
 import { Executor } from '../../utils/ThreadExecutor';
 import { TabListUtils } from '../../utils/TabListUtils';
-import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
 import { Keybind } from '../../utils/player/Keybinding';
 
@@ -105,7 +104,7 @@ class NukerClass extends ModuleBase {
             }
 
             if (Client.isInGui() && !Client.isInChat()) return;
-            if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.attackKey?.isPressed()) return;
+            if (Client.getKeyBindFromDescription('key.attack')?.isKeyDown() || Client.getMinecraft().options.keyAttack?.isDown()) return;
             if (!this.onGround()) return;
 
             let delay = Player.asPlayerMP().isOnGround() ? this.onGroundDelay : this.offGroundDelay;
@@ -284,6 +283,7 @@ class NukerClass extends ModuleBase {
     }
 
     distance(from, to) {
+        if (!from || !to) return { distance: Infinity };
         const dx = from[0] - to[0],
             dy = from[1] - to[1],
             dz = from[2] - to[2];
@@ -291,6 +291,7 @@ class NukerClass extends ModuleBase {
     }
 
     distanceToBlockBox(from, to) {
+        if (!from || !to) return { distance: Infinity };
         const clampedX = Math.max(to[0], Math.min(from[0], to[0] + 1));
         const clampedY = Math.max(to[1], Math.min(from[1], to[1] + 1));
         const clampedZ = Math.max(to[2], Math.min(from[2], to[2] + 1));
@@ -302,8 +303,9 @@ class NukerClass extends ModuleBase {
     }
 
     cords() {
-        let eye = Utils.convertToVector(Player.asPlayerMP().getEyePosition(1));
-        return [eye.x, eye.y, eye.z];
+        const eye = Player.getPlayer()?.getEyePosition();
+        if (!eye) return null;
+        return [eye.x(), eye.y(), eye.z()];
     }
 
     renderRGB(loc) {
@@ -316,7 +318,7 @@ class NukerClass extends ModuleBase {
 
     rightClickBlock(xyz) {
         let hitResult = new BlockHitResult(new Vec3d(xyz[0] + 0.5, xyz[1] + 0.5, xyz[2] + 0.5), Direction.UP, new BP(xyz[0], xyz[1], xyz[2]), false);
-        Client.sendSequencedPacket((sequence) => new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, sequence));
+        Client.sendSequencedPacket((sequence) => new ServerboundUseItemOnPacket(MCHand.MAIN_HAND, hitResult, sequence));
     }
 
     init() {

@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { PlayerInteractBlockC2S } from '../../utils/Packets';
+import { ServerboundUseItemOnPacket } from '../../utils/Packets';
 
 const AIR_BLOCKS = new Set(['minecraft:air', 'minecraft:cave_air', 'minecraft:void_air']);
 const INTERACTION_WHITELIST = new Set([
@@ -34,7 +34,7 @@ class CancelInteract extends ModuleBase {
         this.cancelTime = 0;
 
         this.on('playerInteract', (action, pos) => this.onPlayerInteract(action, pos));
-        this.on('packetSent', (packet, event) => this.onPacketSent(packet, event)).setFilteredClass(PlayerInteractBlockC2S);
+        this.on('packetSent', (packet, event) => this.onPacketSent(packet, event)).setFilteredClass(ServerboundUseItemOnPacket);
     }
 
     onPlayerInteract(action, pos) {

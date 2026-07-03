@@ -415,7 +415,7 @@ class Beachballer extends ModuleBase {
     isBeachBall(item) {
         try {
             const mcItem = item.toMC();
-            const profileType = net.minecraft.component.DataComponentTypes.PROFILE;
+            const profileType = net.minecraft.core.component.DataComponents.PROFILE;
 
             const profileComponent = mcItem.get(profileType);
             const data = profileComponent.getGameProfile().toString();

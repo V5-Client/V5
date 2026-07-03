@@ -1,6 +1,6 @@
 import { Chat } from '../Chat';
 import { MCHand, Vec3d } from '../Constants';
-import { CommonPingS2C, PlayerInteractItemC2S } from '../Packets';
+import { ClientboundPingPacket, ServerboundUseItemPacket } from '../Packets';
 import { Guis } from '../player/Inventory';
 import { Keybind } from '../player/Keybinding';
 import { RotationGCD } from '../player/RotationGCD';
@@ -65,7 +65,7 @@ class EtherwarpPathHandler {
             this.pollExecutionWait();
         }).setFps(100);
         register('renderWorld', () => this.render());
-        register('packetReceived', () => this.onCommonPingPacket()).setFilteredClass(CommonPingS2C);
+        register('packetReceived', () => this.onCommonPingPacket()).setFilteredClass(ClientboundPingPacket);
         register('worldUnload', () => this.handleWorldUnload());
     }
 
@@ -476,7 +476,7 @@ class EtherwarpPathHandler {
     sendEtherwarpClick() {
         const yaw = Number.parseFloat(Player.getYaw());
         const pitch = Number.parseFloat(Player.getPitch());
-        Client.sendSequencedPacket((sequence) => new PlayerInteractItemC2S(MCHand.MAIN_HAND, sequence, yaw, pitch));
+        Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
     }
 
     stopExecution(restoreSlot = true, preserveOriginalSlot = false) {

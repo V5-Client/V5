@@ -2,10 +2,11 @@ import { Vec3d } from '../../utils/Constants';
 import { Camera } from '../../utils/Camera';
 import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { MathUtils } from '../../utils/Math';
 import { Keybind } from '../../utils/player/Keybinding';
 import { mc } from '../../utils/Utils';
 
-const Perspective = net.minecraft.client.option.Perspective;
+const Perspective = net.minecraft.client.CameraType;
 const THIRD_PERSON_DISTANCE = 4.0;
 
 class Freecam extends ModuleBase {
@@ -48,16 +49,16 @@ class Freecam extends ModuleBase {
         }
 
         this.message('&aEnabled');
-        this.cameraPos = this.getInitialCameraPos(player, player.getYaw(), player.getPitch());
+        this.cameraPos = this.getInitialCameraPos(player, MathUtils.wrapTo180(player.getYRot()), player.getXRot());
         this.velocity = new Vec3d(0, 0, 0);
-        this.savedPerspective = mc.options.getPerspective();
+        this.savedPerspective = mc.options.getCameraType();
         Keybind.unpressKeys();
         Mixin.set('freecamEnabled', true);
         Mixin.delete('freecamFrozenYaw');
         Mixin.delete('freecamFrozenPitch');
         Mixin.delete('cameraOverrideYaw');
         Mixin.delete('cameraOverridePitch');
-        mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+        mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
         Camera.setCameraPosition(this.cameraPos);
     }
 
@@ -74,7 +75,7 @@ class Freecam extends ModuleBase {
         Camera.clearCameraPosition();
 
         if (this.savedPerspective) {
-            mc.options.setPerspective(this.savedPerspective);
+            mc.options.setCameraType(this.savedPerspective);
         }
 
         this.savedPerspective = null;
@@ -88,15 +89,15 @@ class Freecam extends ModuleBase {
         if (!player) return;
 
         if (!this.cameraPos) {
-            this.cameraPos = this.getInitialCameraPos(player, player.getYaw(), player.getPitch());
+            this.cameraPos = this.getInitialCameraPos(player, MathUtils.wrapTo180(player.getYRot()), player.getXRot());
         }
 
-        if (mc.options.getPerspective() !== Perspective.THIRD_PERSON_BACK) {
-            mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+        if (mc.options.getCameraType() !== Perspective.THIRD_PERSON_BACK) {
+            mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
         }
 
         const options = mc.options;
-        const yaw = (player.getYaw() * Math.PI) / 180;
+        const yaw = (MathUtils.wrapTo180(player.getYRot()) * Math.PI) / 180;
 
         let moveX = 0;
         let moveY = 0;
@@ -107,26 +108,26 @@ class Freecam extends ModuleBase {
         const leftX = Math.cos(yaw);
         const leftZ = Math.sin(yaw);
 
-        if (options.forwardKey.isPressed()) {
+        if (options.keyUp.isDown()) {
             moveX += forwardX;
             moveZ += forwardZ;
         }
-        if (options.backKey.isPressed()) {
+        if (options.keyDown.isDown()) {
             moveX -= forwardX;
             moveZ -= forwardZ;
         }
-        if (options.leftKey.isPressed()) {
+        if (options.keyLeft.isDown()) {
             moveX += leftX;
             moveZ += leftZ;
         }
-        if (options.rightKey.isPressed()) {
+        if (options.keyRight.isDown()) {
             moveX -= leftX;
             moveZ -= leftZ;
         }
-        if (options.jumpKey.isPressed()) {
+        if (options.keyJump.isDown()) {
             moveY += 1;
         }
-        if (options.sneakKey.isPressed()) {
+        if (options.keyShift.isDown()) {
             moveY -= 1;
         }
 
@@ -141,25 +142,25 @@ class Freecam extends ModuleBase {
         const smoothing = hasInput ? 0.35 : 0.12;
 
         this.velocity = new Vec3d(
-            this.velocity.x + (targetX - this.velocity.x) * smoothing,
-            this.velocity.y + (targetY - this.velocity.y) * smoothing,
-            this.velocity.z + (targetZ - this.velocity.z) * smoothing
+            this.velocity.x() + (targetX - this.velocity.x()) * smoothing,
+            this.velocity.y() + (targetY - this.velocity.y()) * smoothing,
+            this.velocity.z() + (targetZ - this.velocity.z()) * smoothing
         );
 
-        const velocityMagnitude = Math.hypot(this.velocity.x, this.velocity.y, this.velocity.z);
+        const velocityMagnitude = Math.hypot(this.velocity.x(), this.velocity.y(), this.velocity.z());
         if (velocityMagnitude < 0.0005) {
             this.velocity = new Vec3d(0, 0, 0);
             Camera.setCameraPosition(this.cameraPos);
             return;
         }
 
-        this.cameraPos = new Vec3d(this.cameraPos.x + this.velocity.x, this.cameraPos.y + this.velocity.y, this.cameraPos.z + this.velocity.z);
+        this.cameraPos = new Vec3d(this.cameraPos.x() + this.velocity.x(), this.cameraPos.y() + this.velocity.y(), this.cameraPos.z() + this.velocity.z());
 
         Camera.setCameraPosition(this.cameraPos);
     }
 
     getInitialCameraPos(player, yaw, pitch) {
-        const eyePos = player.getEyePos();
+        const eyePos = player.getEyePosition();
         const yawRad = (yaw * Math.PI) / 180;
         const pitchRad = (pitch * Math.PI) / 180;
         const cosPitch = Math.cos(pitchRad);
@@ -167,7 +168,7 @@ class Freecam extends ModuleBase {
         const lookY = -Math.sin(pitchRad);
         const lookZ = Math.cos(yawRad) * cosPitch;
 
-        return new Vec3d(eyePos.x - lookX * THIRD_PERSON_DISTANCE, eyePos.y - lookY * THIRD_PERSON_DISTANCE, eyePos.z - lookZ * THIRD_PERSON_DISTANCE);
+        return new Vec3d(eyePos.x() - lookX * THIRD_PERSON_DISTANCE, eyePos.y() - lookY * THIRD_PERSON_DISTANCE, eyePos.z() - lookZ * THIRD_PERSON_DISTANCE);
     }
 }
 

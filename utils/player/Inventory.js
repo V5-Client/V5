@@ -1,5 +1,5 @@
 import { Chat } from '../Chat';
-import { CloseHandledScreenC2S } from '../Packets';
+import { ServerboundContainerClosePacket } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
@@ -79,16 +79,16 @@ class InterfaceHandler {
         if (!player) return;
 
         try {
-            const syncId = Client.getMinecraft().player.currentScreenHandler.syncId;
+            const syncId = Client.getMinecraft().player.containerMenu.containerId;
             if (syncId) {
-                Client.sendPacket(new CloseHandledScreenC2S(syncId));
+                Client.sendPacket(new ServerboundContainerClosePacket(syncId));
             }
 
             if (Client.currentGui) {
                 Client.currentGui.close();
             }
 
-            Client.getMinecraft().options.attackKey.setPressed(false);
+            Client.getMinecraft().options.keyAttack.setDown(false);
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
         }

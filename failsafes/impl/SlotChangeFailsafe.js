@@ -1,6 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { UpdateSelectedSlotS2C } from '../../utils/Packets';
+import { ClientboundSetHeldSlotPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
@@ -27,7 +27,7 @@ class SlotChangeFailsafe extends Failsafe {
                 if (this.disabled || !MacroState.isFailsafeMacroRunning() || scheduledAt < this._disabledUntil) return;
                 this.onTrigger(currentSlot, newSlot);
             }, this._getReactionDelay(this.settings));
-        }).setFilteredClass(UpdateSelectedSlotS2C);
+        }).setFilteredClass(ClientboundSetHeldSlotPacket);
     }
 
     onTrigger(fromSlot, toSlot) {

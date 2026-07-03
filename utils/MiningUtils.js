@@ -600,7 +600,7 @@ class RefuelService {
                 break;
 
             case this.STATES.OPEN_PLAYER_INV_SWAP:
-                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screen.ingame.InventoryScreen(Client.getMinecraft().player));
+                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
                 // someone fix this fucking shit. i forgot how to open inventory so this is bandaid
                 this.setState(this.STATES.WAIT_PLAYER_INV_SWAP, 5);
                 break;
@@ -741,7 +741,7 @@ class RefuelService {
                 break;
 
             case this.STATES.OPEN_PLAYER_INV_RESTORE:
-                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screen.ingame.InventoryScreen(Client.getMinecraft().player));
+                Client.getMinecraft().setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(Client.getMinecraft().player));
                 this.setState(this.STATES.WAIT_PLAYER_INV_RESTORE, 5);
                 break;
 
@@ -1002,7 +1002,7 @@ class BlockUtils {
             if (x === null || y === null || z === null) return;
 
             let blockPos = new BP(x, y, z);
-            Client.getMinecraft().world.setBlockState(blockPos, Blocks.AIR.getDefaultState());
+            Client.getMinecraft().level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
         } catch (e) {
             Chat.message('error setting ghost block');
             console.error('V5 Caught error' + e + e.stack);

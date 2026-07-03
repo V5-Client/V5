@@ -57,7 +57,7 @@ class PathSpline {
 
         const feetPath = [];
         for (const p of lookPoints) {
-            const feetPoint = new Vec3d(p.x, p.y - eyeOffset, p.z);
+            const feetPoint = { x: p.x, y: p.y - eyeOffset, z: p.z };
             const prev = feetPath.length ? feetPath[feetPath.length - 1] : null;
             if (!prev || Math.hypot(feetPoint.x - prev.x, feetPoint.y - prev.y, feetPoint.z - prev.z) > 0.08) {
                 feetPath.push(feetPoint);
@@ -79,7 +79,7 @@ class PathSpline {
             const x = n.x !== undefined ? n.x : n[0];
             const y = n.y !== undefined ? n.y : n[1];
             const z = n.z !== undefined ? n.z : n[2];
-            return new Vec3d(x, y, z);
+            return { x, y, z };
         });
 
         const simplifiedPoints = [rawPoints[0]];
@@ -107,7 +107,7 @@ class PathSpline {
 
             for (let j = 0; j < numSteps; j++) {
                 if (i > 0 && j === 0) continue;
-                finalPath.push(new Vec3d(p1.x + (dx * j) / numSteps, p1.y + (dy * j) / numSteps, p1.z + (dz * j) / numSteps));
+                finalPath.push({ x: p1.x + (dx * j) / numSteps, y: p1.y + (dy * j) / numSteps, z: p1.z + (dz * j) / numSteps });
             }
         }
         finalPath.push(simplifiedPoints[simplifiedPoints.length - 1]);
@@ -128,7 +128,7 @@ class PathSpline {
         let lastPlacedRaw = smoothSplineData[0];
         let lastForwardDir = null;
 
-        boxPositions.push(new Vec3d(start.x, start.y + 2.62, start.z));
+        boxPositions.push({ x: start.x, y: start.y + 2.62, z: start.z });
 
         for (let i = 1; i < smoothSplineData.length - 1; i++) {
             const curr = smoothSplineData[i];
@@ -174,14 +174,14 @@ class PathSpline {
                     if (dot < 0.4) continue;
                 }
 
-                const targetPoint = new Vec3d(curr.x + offsetX, curr.y + 2.62, curr.z + offsetZ);
+                const targetPoint = { x: curr.x + offsetX, y: curr.y + 2.62, z: curr.z + offsetZ };
                 this.appendLookPoint(boxPositions, this.adjustLookPoint(targetPoint, curr));
                 lastPlacedRaw = curr;
                 if (cfMag > 0.1) lastForwardDir = { x: currentForward.x / cfMag, z: currentForward.z / cfMag };
             }
         }
 
-        this.appendLookPoint(boxPositions, new Vec3d(endPoint.x, endPoint.y + 2.62, endPoint.z));
+        this.appendLookPoint(boxPositions, { x: endPoint.x, y: endPoint.y + 2.62, z: endPoint.z });
         this.cachedBoxPositions = boxPositions;
         return boxPositions;
     }
@@ -195,7 +195,7 @@ class PathSpline {
 
         const raw = [];
         for (const n of normalizedNodes) {
-            const p = new Vec3d(n.x, n.y + this.PLAYER_EYE_OFFSET, n.z);
+            const p = { x: n.x, y: n.y + this.PLAYER_EYE_OFFSET, z: n.z };
             if (raw.length === 0 || Math.hypot(p.x - raw[raw.length - 1].x, p.y - raw[raw.length - 1].y, p.z - raw[raw.length - 1].z) > 0.1) raw.push(p);
         }
 
@@ -203,7 +203,7 @@ class PathSpline {
         const yaw = ((player ? Player.getYaw() : 0) + 90) * (Math.PI / 180);
         const pitch = -(player ? Player.getPitch() : 0) * (Math.PI / 180);
         const lookV = { x: Math.cos(yaw) * Math.cos(pitch), y: Math.sin(pitch), z: Math.sin(yaw) * Math.cos(pitch) };
-        const initialLook = new Vec3d(raw[0].x + lookV.x * 2, raw[0].y + lookV.y * 2, raw[0].z + lookV.z * 2);
+        const initialLook = { x: raw[0].x + lookV.x * 2, y: raw[0].y + lookV.y * 2, z: raw[0].z + lookV.z * 2 };
 
         const adaptivePoints = [initialLook, raw[0]];
         const roundedRaw = this.roundPolylineCorners(raw, this.FLY_SPACING);
@@ -280,7 +280,7 @@ class PathSpline {
 
             if (dot < -0.3) {
                 const ejectionDist = isTight ? 5.5 : 3.8;
-                const lookAhead = new Vec3d(b.x + u1.x * ejectionDist, b.y + u1.y * ejectionDist, b.z + u1.z * ejectionDist);
+                const lookAhead = { x: b.x + u1.x * ejectionDist, y: b.y + u1.y * ejectionDist, z: b.z + u1.z * ejectionDist };
                 out.push(this.adjustLookPoint(lookAhead, b));
             }
 
@@ -292,8 +292,8 @@ class PathSpline {
             const baseRadius = isTight ? 0.9 : Math.max(0.15, Math.min(1.6, spacing * 0.55));
             const r = Math.min(baseRadius, abMag * 0.45, bcMag * 0.45);
 
-            const pIn = new Vec3d(b.x - u1.x * r, b.y - u1.y * r, b.z - u1.z * r);
-            const pOut = new Vec3d(b.x + u2.x * r, b.y + u2.y * r, b.z + u2.z * r);
+            const pIn = { x: b.x - u1.x * r, y: b.y - u1.y * r, z: b.z - u1.z * r };
+            const pOut = { x: b.x + u2.x * r, y: b.y + u2.y * r, z: b.z + u2.z * r };
 
             if (this.isSegmentClear(pIn, pOut)) {
                 out.push(pIn);
@@ -357,7 +357,7 @@ class PathSpline {
             let tDist = step - carry;
             while (tDist <= dist + 1e-9) {
                 const t = tDist / dist;
-                out.push(new Vec3d(a.x + dx * t, a.y + dy * t, a.z + dz * t));
+                out.push({ x: a.x + dx * t, y: a.y + dy * t, z: a.z + dz * t });
                 tDist += step;
             }
             carry = (((dist - (tDist - step)) % step) + step) % step;
@@ -370,9 +370,9 @@ class PathSpline {
     }
 
     nudgePointOutOfBlock(point) {
-        const up = new Vec3d(point.x, point.y + this.FLY_BLOCK_NUDGE, point.z);
+        const up = { x: point.x, y: point.y + this.FLY_BLOCK_NUDGE, z: point.z };
         if (!this.isPointInsideBlock(up)) return up;
-        const down = new Vec3d(point.x, point.y - this.FLY_BLOCK_NUDGE, point.z);
+        const down = { x: point.x, y: point.y - this.FLY_BLOCK_NUDGE, z: point.z };
         return !this.isPointInsideBlock(down) ? down : point;
     }
 
@@ -391,9 +391,9 @@ class PathSpline {
 
     adjustLookPoint(point, rawNode) {
         if (!this.isPointInsideBlock(point)) return point;
-        const unoffset = new Vec3d(rawNode.x, point.y, rawNode.z);
+        const unoffset = { x: rawNode.x, y: point.y, z: rawNode.z };
         if (!this.isPointInsideBlock(unoffset)) return unoffset;
-        const lowered = new Vec3d(rawNode.x, point.y - 0.5, rawNode.z);
+        const lowered = { x: rawNode.x, y: point.y - 0.5, z: rawNode.z };
         return this.isPointInsideBlock(lowered) ? unoffset : lowered;
     }
 

@@ -5,7 +5,7 @@ import { Guis } from '../../utils/player/Inventory';
 const COOKIE_SLOT = 13;
 const MAX_TRACKED_EGGS = 6;
 const EGG_MESSAGE_REGEX = /.*\b(A|found|collected)\b.+Chocolate (Breakfast|Lunch|Dinner|Brunch|Déjeuner|Supper).*/i;
-const PROFILE_TYPE = net.minecraft.component.DataComponentTypes.PROFILE;
+const PROFILE_TYPE = net.minecraft.core.component.DataComponents.PROFILE;
 
 const EGG_TYPES = [
     {

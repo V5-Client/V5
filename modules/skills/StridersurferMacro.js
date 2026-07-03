@@ -1,5 +1,6 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ArmorStandEntity } from '../../utils/Constants';
+import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
@@ -131,8 +132,8 @@ class StridersurferMacro extends ModuleBase {
 
                 const closeStridersurfer = this.getNearbyStridersurfer(armorStands);
                 if (closeStridersurfer) {
-                    this.previousYaw = Player.getPlayer().getYaw();
-                    this.previousPitch = Player.getPlayer().getPitch();
+                    this.previousYaw = MathUtils.wrapTo180(Player.getPlayer().getYRot());
+                    this.previousPitch = Player.getPlayer().getXRot();
                     this.stridersurferTarget = closeStridersurfer;
                     Guis.setItemSlot(this.getAxeSlot());
                     this.transitionTo(STEPS.SNAP_TO_STRIDER, 0);
@@ -342,7 +343,7 @@ class StridersurferMacro extends ModuleBase {
     getNearbyStridersurfer(armorStands) {
         const player = Player.getPlayer();
         if (!player) return null;
-        const eyes = player.getEyePos();
+        const eyes = player.getEyePosition();
         if (!eyes) return null;
 
         return armorStands.find((entity) => {
@@ -361,7 +362,7 @@ class StridersurferMacro extends ModuleBase {
     isStridersurferWithinRange(entity) {
         const player = Player.getPlayer();
         if (!player) return false;
-        const eyes = player.getEyePos();
+        const eyes = player.getEyePosition();
         if (!eyes) return false;
 
         const distance = this.distanceFromEyes(entity, eyes);
@@ -369,9 +370,9 @@ class StridersurferMacro extends ModuleBase {
     }
 
     distanceFromEyes(entity, eyes) {
-        const dx = entity.getX() - eyes.x;
-        const dy = entity.getY() - 1 - eyes.y;
-        const dz = entity.getZ() - eyes.z;
+        const dx = entity.getX() - eyes.x();
+        const dy = entity.getY() - 1 - eyes.y();
+        const dz = entity.getZ() - eyes.z();
         return Math.hypot(dx, dy, dz);
     }
 

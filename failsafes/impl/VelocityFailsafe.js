@@ -1,6 +1,6 @@
 import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
-import { EntityVelocityUpdateS2C } from '../../utils/Packets';
+import { ClientboundSetEntityMotionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 
@@ -24,7 +24,7 @@ class VelocityFailsafe extends Failsafe {
             this._handleVelocityOnDamageDisabled();
             if (this.disabled) return;
             const playerMP = Player.asPlayerMP();
-            if (!playerMP || packet?.getEntityId() !== playerMP?.mcValue?.getId()) return;
+            if (!playerMP || packet?.id?.() !== playerMP?.mcValue?.getId()) return;
 
             const x = Math.floor(Player.getX());
             const y = Math.floor(Player.getY()) - 1;
@@ -36,9 +36,10 @@ class VelocityFailsafe extends Failsafe {
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
             if (!this.settings.isEnabled) return;
 
-            const vx = packet?.getVelocity().x;
-            const vy = packet?.getVelocity().y;
-            const vz = packet?.getVelocity().z;
+            const movement = packet?.movement?.();
+            const vx = movement?.x;
+            const vy = movement?.y;
+            const vz = movement?.z;
             const speed = Math.hypot(vx, vy, vz);
 
             if (this._shouldDisableVelocity(speed, blockName)) return;
@@ -48,7 +49,7 @@ class VelocityFailsafe extends Failsafe {
                     return;
                 this.onTrigger(speed);
             }, this._getReactionDelay(this.settings));
-        }).setFilteredClass(EntityVelocityUpdateS2C);
+        }).setFilteredClass(ClientboundSetEntityMotionPacket);
     }
 
     _handleVelocityOnDamageDisabled() {

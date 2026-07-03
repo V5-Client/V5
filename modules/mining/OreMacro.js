@@ -1,8 +1,8 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
-import { Vec3d } from '../../utils/Constants';
+import { MCHand, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
@@ -539,9 +539,9 @@ class OreMacro extends ModuleBase {
 
     raytraceBlockFaces(point) {
         const player = Player.getPlayer();
-        const startX = player.getEyePos().x;
-        const startY = player.getEyePos().y;
-        const startZ = player.getEyePos().z;
+        const startX = player.getEyePosition().x();
+        const startY = player.getEyePosition().y();
+        const startZ = player.getEyePosition().z();
 
         const centerX = point.x + 0.5;
         const centerY = point.y + 0.5;
@@ -622,16 +622,16 @@ class OreMacro extends ModuleBase {
         if (!targetVec) return;
 
         const player = Player.getPlayer();
-        const eyePos = player.getEyePos();
+        const eyePos = player.getEyePosition();
 
-        const dx = targetVec.x - eyePos.x;
-        const dy = targetVec.y - eyePos.y;
-        const dz = targetVec.z - eyePos.z;
+        const dx = targetVec.x - eyePos.x();
+        const dy = targetVec.y - eyePos.y();
+        const dz = targetVec.z - eyePos.z();
 
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         const pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
 
-        const packet = new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch));
+        const packet = new ServerboundUseItemPacket(MCHand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch));
         Client.sendPacket(packet);
     }
 

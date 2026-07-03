@@ -270,9 +270,9 @@ class GlowingMushroomMacro extends ModuleBase {
             const point = this.getMushroomAimPoint(mushroom, eye);
             if (!point) continue;
 
-            const dx = point.x - eye.x;
-            const dy = point.y - eye.y;
-            const dz = point.z - eye.z;
+            const dx = point.x - eye.x();
+            const dy = point.y - eye.y();
+            const dz = point.z - eye.z();
             const distance = Math.hypot(dx, dy, dz);
             if (distance > MAX_REACH) continue;
 
@@ -298,13 +298,13 @@ class GlowingMushroomMacro extends ModuleBase {
         for (const mushroom of mushrooms) {
             if (!isGlowingMushroomBlock(mushroom.x, mushroom.y, mushroom.z)) continue;
 
-            const nearestX = Math.max(mushroom.x, Math.min(eye.x, mushroom.x + 1));
-            const nearestY = Math.max(mushroom.y, Math.min(eye.y, mushroom.y + 1));
-            const nearestZ = Math.max(mushroom.z, Math.min(eye.z, mushroom.z + 1));
+            const nearestX = Math.max(mushroom.x, Math.min(eye.x(), mushroom.x + 1));
+            const nearestY = Math.max(mushroom.y, Math.min(eye.y(), mushroom.y + 1));
+            const nearestZ = Math.max(mushroom.z, Math.min(eye.z(), mushroom.z + 1));
 
-            const dx = nearestX - eye.x;
-            const dy = nearestY - eye.y;
-            const dz = nearestZ - eye.z;
+            const dx = nearestX - eye.x();
+            const dy = nearestY - eye.y();
+            const dz = nearestZ - eye.z();
             const distance = Math.hypot(dx, dy, dz);
             if (distance > MAX_REACH) continue;
 
@@ -399,7 +399,7 @@ class GlowingMushroomMacro extends ModuleBase {
     }
 
     getPlayerEye() {
-        return Player.getPlayer()?.getEyePos?.() || null;
+        return Player.getPlayer()?.getEyePosition?.() || null;
     }
 
     getMushroomAimPoint(mushroom, eye = this.getPlayerEye()) {
@@ -414,7 +414,7 @@ class GlowingMushroomMacro extends ModuleBase {
             };
 
             if (!this.isPointWithinReach(point, eye)) continue;
-            if (!Raytrace.isLineClear(eye.x, eye.y, eye.z, point.x, point.y, point.z, mushroom.x, mushroom.y, mushroom.z)) continue;
+            if (!Raytrace.isLineClear(eye.x(), eye.y(), eye.z(), point.x, point.y, point.z, mushroom.x, mushroom.y, mushroom.z)) continue;
 
             return point;
         }
@@ -435,9 +435,9 @@ class GlowingMushroomMacro extends ModuleBase {
         const z = Array.isArray(point) ? point[2] : point.z;
         if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return false;
 
-        const dx = x - eye.x;
-        const dy = y - eye.y;
-        const dz = z - eye.z;
+        const dx = x - eye.x();
+        const dy = y - eye.y();
+        const dz = z - eye.z();
         return Math.hypot(dx, dy, dz) <= MAX_REACH;
     }
 

@@ -233,9 +233,11 @@ class AlertUtilsClass {
      * Uses GLFW to grab the window on a failsafe if they have the setting toggled (WIP)
      */
     _grabWindowOnFailsafe() {
+        return;
+        // todo: fix: broken due to 26.1 mappings
         try {
             const GLFW = org.lwjgl.glfw.GLFW;
-            const windowHandle = Client.getMinecraft().getWindow().getHandle();
+            const windowHandle = Client.getMinecraft().getWindow();
 
             const wasIconified = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_ICONIFIED) === GLFW.GLFW_TRUE;
             const wasMaximized = GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_MAXIMIZED) === GLFW.GLFW_TRUE;

@@ -1,10 +1,10 @@
-import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';
+import { ClientboundBlockUpdatePacket, ClientboundLevelChunkWithLightPacket } from '../../utils/Packets';
 import { manager } from '../../utils/SkyblockEvents';
 
 const Long2ObjectOpenHashMap = Java.type('it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap');
 const ReentrantLock = Java.type('java.util.concurrent.locks.ReentrantLock');
-const ChunkPos = net.minecraft.util.math.ChunkPos;
-const BP = net.minecraft.util.math.BlockPos;
+const ChunkPos = net.minecraft.world.level.ChunkPos;
+const BP = net.minecraft.core.BlockPos;
 const Runnable = java.lang.Runnable;
 
 class Scanner {
@@ -25,12 +25,12 @@ class Scanner {
 
     init() {
         this.onChunkData = register('packetReceived', (packet) => {
-            const cx = packet?.getChunkX();
-            const cz = packet?.getChunkZ();
+            const cx = packet?.getX();
+            const cz = packet?.getZ();
             if (!Number.isFinite(cx) || !Number.isFinite(cz)) return;
             setTimeout(() => this.searchChunk(cx, cz), 50);
         })
-            .setFilteredClass(ChunkDataS2C)
+            .setFilteredClass(ClientboundLevelChunkWithLightPacket)
             .unregister();
 
         this.onBlockUpdate = register('packetReceived', (packet) => {
@@ -38,7 +38,7 @@ class Scanner {
             if (!pos) return;
             this.updateBlock(pos.getX(), pos.getY(), pos.getZ());
         })
-            .setFilteredClass(BlockUpdateS2C)
+            .setFilteredClass(ClientboundBlockUpdatePacket)
             .unregister();
 
         manager.subscribe('warp', () => this.clear());
@@ -92,14 +92,14 @@ class Scanner {
                 run: () => {
                     try {
                         if (!this.enabled) return;
-                        const world = Client.getMinecraft().world;
+                        const world = Client.getMinecraft().level;
                         const chunk = world?.getChunk(cx, cz);
                         if (!world || !chunk || chunk.isEmpty()) return;
 
                         const found = [];
                         const sections = chunk.getSectionArray();
                         if (!sections) return;
-                        const minY = world.getBottomY();
+                        const minY = world.getMinY();
 
                         for (let sIndex = 0; sIndex < sections.length; sIndex++) {
                             const section = sections[sIndex];
@@ -153,7 +153,7 @@ class Scanner {
                 run: () => {
                     try {
                         if (!this.enabled) return;
-                        const world = Client.getMinecraft().world;
+                        const world = Client.getMinecraft().level;
                         if (!world) return;
 
                         const state = world.getBlockState(new BP(bx, by, bz));

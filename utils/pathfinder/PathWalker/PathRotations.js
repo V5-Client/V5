@@ -108,15 +108,15 @@ class PathRotations {
     }
 
     isPointVisible(playerEyes, targetPoint) {
-        const dx = targetPoint.x - playerEyes.x;
-        const dy = targetPoint.y - playerEyes.y;
-        const dz = targetPoint.z - playerEyes.z;
+        const dx = targetPoint.x - playerEyes.x();
+        const dy = targetPoint.y - playerEyes.y();
+        const dz = targetPoint.z - playerEyes.z();
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (dist < 0.2) return true;
         try {
             const dir = new Vector3(dx / dist, dy / dist, dz / dist);
             const hit = raytraceBlocks(
-                [playerEyes.x, playerEyes.y, playerEyes.z],
+                [playerEyes.x(), playerEyes.y(), playerEyes.z()],
                 dir,
                 dist + 0.1,
                 (block) => {
@@ -136,9 +136,9 @@ class PathRotations {
             const hitX = hit[0] + 0.5;
             const hitY = hit[1] + 0.5;
             const hitZ = hit[2] + 0.5;
-            const hdx = hitX - playerEyes.x;
-            const hdy = hitY - playerEyes.y;
-            const hdz = hitZ - playerEyes.z;
+            const hdx = hitX - playerEyes.x();
+            const hdy = hitY - playerEyes.y();
+            const hdz = hitZ - playerEyes.z();
             const hitDist = Math.sqrt(hdx * hdx + hdy * hdy + hdz * hdz);
             return hitDist >= dist - 0.5;
         } catch (e) {
@@ -169,9 +169,9 @@ class PathRotations {
         const immediateT = Math.min(this.boxPositions.length - 1, this.currentPathPosition + 0.5);
         const immediatePoint = this.getInterpolatedPoint(immediateT);
         const vecImmediate = {
-            x: immediatePoint.x - playerEyes.x,
-            y: immediatePoint.y - playerEyes.y,
-            z: immediatePoint.z - playerEyes.z,
+            x: immediatePoint.x - playerEyes.x(),
+            y: immediatePoint.y - playerEyes.y(),
+            z: immediatePoint.z - playerEyes.z(),
         };
         const inRecovery = this.isInRecoveryMode();
         const effectiveMin = inRecovery ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
@@ -179,9 +179,9 @@ class PathRotations {
         while (lookahead >= effectiveMin) {
             const t = Math.min(this.boxPositions.length - 1, this.currentPathPosition + lookahead);
             const point = this.getInterpolatedPoint(t);
-            const dx = point.x - playerEyes.x;
-            const dy = point.y - playerEyes.y;
-            const dz = point.z - playerEyes.z;
+            const dx = point.x - playerEyes.x();
+            const dy = point.y - playerEyes.y();
+            const dz = point.z - playerEyes.z();
             const horzDist = Math.hypot(dx, dz);
             if (lookahead >= this.MIN_LOOKAHEAD) {
                 if (dy > 1.8 && horzDist < 0.8) {
@@ -224,8 +224,8 @@ class PathRotations {
         const targetIndex = Math.floor(this.currentPathPosition);
         if (targetIndex + 3 >= this.boxPositions.length) return this.smoothedLookahead;
         const pathPoint = this.getInterpolatedPoint(this.currentPathPosition);
-        const pdx = playerEyes.x - pathPoint.x;
-        const pdz = playerEyes.z - pathPoint.z;
+        const pdx = playerEyes.x() - pathPoint.x;
+        const pdz = playerEyes.z() - pathPoint.z;
         const deviationFromPath = Math.sqrt(pdx * pdx + pdz * pdz);
         const deviationFactor = Math.min(1, Math.max(0, (deviationFromPath - 1.6) / 2.0));
         const startIndex = this.boxPositions[targetIndex];
@@ -275,7 +275,7 @@ class PathRotations {
     updateLookPoint() {
         const player = Player.getPlayer();
         if (!player) return;
-        const playerEyes = player.getEyePos();
+        const playerEyes = player.getEyePosition();
 
         const motionY = Player.getMotionY();
         const isFalling = motionY < -0.4 || this.isPathDropping();
@@ -313,7 +313,7 @@ class PathRotations {
 
             const projectedPoint = this.getInterpolatedPoint(candidateT);
             let distSq = isFalling
-                ? Math.pow(playerEyes.x - projectedPoint.x, 2) + Math.pow(playerEyes.z - projectedPoint.z, 2)
+                ? Math.pow(playerEyes.x() - projectedPoint.x, 2) + Math.pow(playerEyes.z() - projectedPoint.z, 2)
                 : this.getDistSq(playerEyes, projectedPoint);
 
             if (distSq < minDistanceSq) {
@@ -367,15 +367,15 @@ class PathRotations {
         let targetPoint = result.point;
         if (result.lookahead < this.smoothedLookahead) this.smoothedLookahead = this.smoothedLookahead * 0.9 + result.lookahead * 0.1;
 
-        const rawDx = targetPoint.x - playerEyes.x;
-        const rawDy = targetPoint.y - playerEyes.y;
-        const rawDz = targetPoint.z - playerEyes.z;
+        const rawDx = targetPoint.x - playerEyes.x();
+        const rawDy = targetPoint.y - playerEyes.y();
+        const rawDz = targetPoint.z - playerEyes.z();
         const rawHorz = Math.hypot(rawDx, rawDz);
         const rawPitch = -Math.atan2(rawDy, rawHorz) * (180 / Math.PI);
 
         if (rawPitch < -50 && rawHorz < 1.0) {
             const newDy = rawHorz * Math.tan(30 * (Math.PI / 180));
-            targetPoint = new Vec3d(targetPoint.x, playerEyes.y + newDy, targetPoint.z);
+            targetPoint = new Vec3d(targetPoint.x, playerEyes.y() + newDy, targetPoint.z);
         }
 
         if (isFalling && rawHorz < 0.5) {
@@ -383,14 +383,14 @@ class PathRotations {
             targetPoint = this.getInterpolatedPoint(boostT);
         }
 
-        const dx = targetPoint.x - playerEyes.x;
-        const dy = targetPoint.y - playerEyes.y;
-        const dz = targetPoint.z - playerEyes.z;
+        const dx = targetPoint.x - playerEyes.x();
+        const dy = targetPoint.y - playerEyes.y();
+        const dz = targetPoint.z - playerEyes.z();
         const dist = Math.hypot(dx, dy, dz);
 
         if (dist > this.MAX_LOOK_DISTANCE) {
             const scale = this.MAX_LOOK_DISTANCE / dist;
-            targetPoint = new Vec3d(playerEyes.x + dx * scale, playerEyes.y + dy * scale, playerEyes.z + dz * scale);
+            targetPoint = new Vec3d(playerEyes.x() + dx * scale, playerEyes.y() + dy * scale, playerEyes.z() + dz * scale);
         }
 
         this.currentTargetPoint = targetPoint;
@@ -424,7 +424,7 @@ class PathRotations {
         }
 
         const lastPoint = this.boxPositions[lastIndex];
-        const endDistSq = Math.pow(playerEyes.x - lastPoint.x, 2) + Math.pow(playerEyes.y - lastPoint.y, 2) + Math.pow(playerEyes.z - lastPoint.z, 2);
+        const endDistSq = Math.pow(playerEyes.x() - lastPoint.x, 2) + Math.pow(playerEyes.y() - lastPoint.y, 2) + Math.pow(playerEyes.z() - lastPoint.z, 2);
         const nearEndBy3D = endDistSq <= Math.pow(this.COMPLETION_RADIUS, 2) && this.currentPathPosition >= lastIndex - 2.0;
         const atEndByPosition = this.currentPathPosition >= lastIndex - 0.25;
 
@@ -480,7 +480,7 @@ class PathRotations {
         const dz = p2.z - p1.z;
         const dSq = dx * dx + dy * dy + dz * dz;
         if (dSq === 0) return 0;
-        return Math.max(0, Math.min(1, ((p.x - p1.x) * dx + (p.y - p1.y) * dy + (p.z - p1.z) * dz) / dSq));
+        return Math.max(0, Math.min(1, ((p.x() - p1.x) * dx + (p.y() - p1.y) * dy + (p.z() - p1.z) * dz) / dSq));
     }
 
     getClosestPointOnSegmentHorizontal(p, p1, p2) {
@@ -488,7 +488,7 @@ class PathRotations {
             dz = p2.z - p1.z;
         const dSq = dx * dx + dz * dz;
         if (dSq === 0) return 0;
-        return Math.max(0, Math.min(1, ((p.x - p1.x) * dx + (p.z - p1.z) * dz) / dSq));
+        return Math.max(0, Math.min(1, ((p.x() - p1.x) * dx + (p.z() - p1.z) * dz) / dSq));
     }
 
     projectPathPositionHorizontal(x, z, hint = 0) {
@@ -556,7 +556,7 @@ class PathRotations {
     }
 
     getDistSq(pos, box) {
-        return (pos.x - box.x) ** 2 + (pos.y - box.y) ** 2 + (pos.z - box.z) ** 2;
+        return (pos.x() - box.x) ** 2 + (pos.y() - box.y) ** 2 + (pos.z() - box.z) ** 2;
     }
 
     pathRotations(splineData) {
@@ -571,8 +571,8 @@ class PathRotations {
         }
         const player = Player.getPlayer();
         if (player && !this.isInitialized) {
-            this.currentYaw = MathUtils.wrapTo180(player.getYaw());
-            this.currentPitch = player.getPitch();
+            this.currentYaw = MathUtils.wrapTo180(player.getYRot());
+            this.currentPitch = player.getXRot();
             this.rawTargetYaw = this.currentYaw;
             this.rawTargetPitch = this.currentPitch;
             this.yawVelocity = 0;

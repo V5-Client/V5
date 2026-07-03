@@ -10,11 +10,11 @@ import './gui/GUI';
 /* CORE */
 import './utils/Config';
 import './utils/backend/WebSocket';
-import { RequestCommandCompletionsC2S } from './utils/Packets';
+import { ServerboundCommandSuggestionPacket } from './utils/Packets';
 
 register('packetSent', (packet, event) => {
-    if (packet.getPartialCommand().toLowerCase().startsWith('/v5')) cancel(event);
-}).setFilteredClass(RequestCommandCompletionsC2S);
+    if (packet.getCommand().toLowerCase().startsWith('/v5')) cancel(event);
+}).setFilteredClass(ServerboundCommandSuggestionPacket);
 
 /* Utils */
 import { MacroState } from './utils/MacroState';
@@ -23,7 +23,7 @@ import './modules/other/MacroControllers';
 import './modules/other/DiscordIntegration';
 import './utils/pathfinder/PathFinder';
 import './utils/pathfinder/EtherwarpPathfinder';
-import './utils/Clipping';
+//import './utils/Clipping';
 import './utils/Misc';
 import './failsafes/FailsafeManager';
 import './utils/SkyblockEvents';

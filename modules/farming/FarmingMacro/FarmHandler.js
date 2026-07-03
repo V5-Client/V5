@@ -112,7 +112,7 @@ export default class FarmHandler {
         const playerBlockY = Math.round(player.getY());
         const playerBlockZ = Math.floor(player.getZ());
 
-        let yaw = ((player.getYaw() % 360) + 360) % 360;
+        let yaw = ((MathUtils.wrapTo180(player.getYRot()) % 360) + 360) % 360;
         const scanResults = [];
         const range = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
 
@@ -144,7 +144,7 @@ export default class FarmHandler {
 
     getBlockInFront(offsetDist = 1, yOffset = 0) {
         const player = Player.getPlayer();
-        let yaw = ((player.getYaw() % 360) + 360) % 360;
+        let yaw = ((MathUtils.wrapTo180(player.getYRot()) % 360) + 360) % 360;
         let dx = 0,
             dz = 0;
 
@@ -197,11 +197,11 @@ export default class FarmHandler {
             } else {
                 if (!macro.decidePrompted) macro.message(`&cMacro can't decide, press A or D!`);
                 macro.decidePrompted = true;
-                if (Client.getMinecraft().options.leftKey.isPressed()) {
+                if (Client.getMinecraft().options.keyLeft.isDown()) {
                     macro.movementKey = 'a';
                     macro.ignoreKeys = ['d', 's'];
                     macro.decidePrompted = false;
-                } else if (Client.getMinecraft().options.rightKey.isPressed()) {
+                } else if (Client.getMinecraft().options.keyRight.isDown()) {
                     macro.movementKey = 'd';
                     macro.ignoreKeys = ['a', 's'];
                     macro.decidePrompted = false;
@@ -212,7 +212,7 @@ export default class FarmHandler {
 
     checkForCrop(checkForAge = true, yOffset = 1) {
         const playerEntity = Player.getPlayer();
-        let yaw = ((playerEntity.getYaw() % 360) + 360) % 360;
+        let yaw = ((MathUtils.wrapTo180(playerEntity.getYRot()) % 360) + 360) % 360;
 
         let fx = 0,
             fz = 0; // Forward
@@ -282,7 +282,7 @@ export default class FarmHandler {
     areChunksLoaded(x, z) {
         const chunkX = Math.floor(x) >> 4;
         const chunkZ = Math.floor(z) >> 4;
-        return World.getWorld().getChunkManager().isChunkLoaded(chunkX, chunkZ);
+        return World.getWorld().getChunkSource().hasChunk(chunkX, chunkZ);
     }
 
     getAngle(point) {

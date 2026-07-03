@@ -4,7 +4,7 @@ import { OverlayManager } from '../../gui/OverlayUtils';
 import { Chat } from '../../utils/Chat';
 import { MCHand } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
@@ -368,7 +368,7 @@ class RatMacro extends ModuleBase {
                 const yaw = Number.parseFloat(Player.getYaw());
                 const pitch = Number.parseFloat(Player.getPitch());
                 this.debug(`firing at rat &e${this.formatRatRef()}&f with yaw &e${yaw.toFixed(2)}&f pitch &e${pitch.toFixed(2)}`);
-                Client.sendSequencedPacket((sequence) => new PlayerInteractItemC2S(MCHand.MAIN_HAND, sequence, yaw, pitch));
+                Client.sendSequencedPacket((sequence) => new ServerboundUseItemPacket(MCHand.MAIN_HAND, sequence, yaw, pitch));
                 this.markRatAssumedDead(attackTarget);
                 this.pendingAttackAtGoal = false;
                 this.finishCurrentTargetKilled();

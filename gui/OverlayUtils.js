@@ -685,7 +685,7 @@ class OverlayUtils {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
         if (sw === 0) return;
-        Client.getMinecraft().gameRenderer.renderBlur();
+        Client.getMinecraft().gameRenderer.processBlurEffect();
         this.editorBoxes = {};
         this.drawingGUI = true;
 
@@ -1010,7 +1010,7 @@ class OverlayUtils {
     }
 
     openPositionsGUI() {
-        GuiState.myGui.close();
+        Client.currentGui.close();
         Overlays.Gui.open();
     }
 

@@ -105,8 +105,8 @@ class PathRotsUtil {
             return;
         }
 
-        this.initialYaw = player.getYaw();
-        this.initialPitch = player.getPitch();
+        this.initialYaw = MathUtils.wrapTo180(player.getYRot());
+        this.initialPitch = player.getXRot();
 
         this.yawDiff = this.wrapDegrees(yaw - this.initialYaw);
         this.pitchDiff = pitch - this.initialPitch;
@@ -191,14 +191,14 @@ class PathRotsUtil {
     rotateTo(vector, instant = false, durationMs = 500) {
         let vec = Utils.convertToVector(vector);
         let player = Player.getPlayer();
-        if (!player || !vec || !Number.isFinite(vec.x) || !Number.isFinite(vec.y) || !Number.isFinite(vec.z)) return;
+        if (!player || !vec || !Number.isFinite(vec.x()) || !Number.isFinite(vec.y()) || !Number.isFinite(vec.z())) return;
 
         let playerPos = player.getPos();
-        let eyeHeight = player.getEyePos().y - playerPos.y;
+        let eyeHeight = player.getEyePosition().y() - playerPos.y();
 
-        let dx = vec.x - playerPos.x;
-        let dy = vec.y - (playerPos.y + eyeHeight);
-        let dz = vec.z - playerPos.z;
+        let dx = vec.x() - playerPos.x();
+        let dy = vec.y() - (playerPos.y() + eyeHeight);
+        let dz = vec.z() - playerPos.z();
 
         let targetYaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         let dist = Math.hypot(dx, dz);
@@ -241,7 +241,7 @@ class PathRotsUtil {
     getPlayerRotation() {
         const player = Player.getPlayer();
         if (!player) return null;
-        return { yaw: player.getYaw(), pitch: player.getPitch() };
+        return { yaw: MathUtils.wrapTo180(player.getYRot()), pitch: player.getXRot() };
     }
 }
 

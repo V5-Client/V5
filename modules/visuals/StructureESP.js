@@ -1,7 +1,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { BlockUpdateS2C, ChunkDataS2C } from '../../utils/Packets';
+import { ClientboundBlockUpdatePacket, ClientboundLevelChunkWithLightPacket } from '../../utils/Packets';
 import { manager } from '../../utils/SkyblockEvents';
 
 class StructureESP extends ModuleBase {
@@ -13,20 +13,20 @@ class StructureESP extends ModuleBase {
         });
 
         this.on('packetReceived', (packet) => {
-            const cx = packet?.getChunkX();
-            const cz = packet?.getChunkZ();
+            const cx = packet?.getX();
+            const cz = packet?.getZ();
             if (typeof cx !== 'number' || typeof cz !== 'number') return;
             setTimeout(() => {
                 if (!this.enabled) return;
                 StructureFinder.submitChunkScan(cx, cz);
             }, 50);
-        }).setFilteredClass(ChunkDataS2C);
+        }).setFilteredClass(ClientboundLevelChunkWithLightPacket);
 
         this.on('packetReceived', (packet) => {
             const pos = packet?.getPos();
             if (!pos) return;
             StructureFinder.submitBlockUpdate(pos.getX(), pos.getY(), pos.getZ());
-        }).setFilteredClass(BlockUpdateS2C);
+        }).setFilteredClass(ClientboundBlockUpdatePacket);
 
         this.on('postRenderWorld', () => {
             this.render();

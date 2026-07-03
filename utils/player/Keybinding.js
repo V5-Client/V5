@@ -1,10 +1,10 @@
 import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../Constants';
-import { PlayerInteractBlockC2S } from '../Packets';
+import { ServerboundUseItemOnPacket } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { Utils, mc } from '../Utils';
 
-const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1536');
-const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('method_1583');
+const LEFT_CLICK_METHOD = mc.getClass().getDeclaredMethod('startAttack'); // mojmap: startAttack
+const RIGHT_CLICK_METHOD = mc.getClass().getDeclaredMethod('startUseItem'); // mojmap: startUseItem
 LEFT_CLICK_METHOD.setAccessible(true);
 RIGHT_CLICK_METHOD.setAccessible(true);
 
@@ -37,7 +37,7 @@ class ControlSystem {
         const bp = new BP(x, y, z);
         const hitResult = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5), Direction.UP, bp, false);
         const action = () => {
-            Client.sendPacket(new PlayerInteractBlockC2S(MCHand.MAIN_HAND, hitResult, 0));
+            Client.sendPacket(new ServerboundUseItemOnPacket(MCHand.MAIN_HAND, hitResult, 0));
         };
 
         if (!delay || delay <= 0) action();
@@ -48,28 +48,18 @@ class ControlSystem {
         const guiOpen = this.isGuiOpen();
 
         if (action === 'leftclick') {
-            const attackKey = mc.options.attackKey;
+            const attackKey = mc.options.keyAttack;
 
             if (isPressed && guiOpen) return false;
 
             if (isPressed) {
-                const mouseGrabbed = net.minecraft.client.Mouse.class.getDeclaredField('field_1783');
+                const mouseGrabbed = net.minecraft.client.MouseHandler.class.getDeclaredField('mouseGrabbed'); // mojmap: mouseGrabbed
                 mouseGrabbed.setAccessible(true);
-                mouseGrabbed.setBoolean(Client.getMinecraft().mouse, true);
+                mouseGrabbed.setBoolean(Client.getMinecraft().mouseHandler, true);
             }
 
             ScheduleTask(() => {
-                attackKey.setPressed(!!isPressed);
-            });
-
-            return true;
-        }
-
-        if (action === 'rightclick') {
-            const useKey = mc.options.useKey;
-
-            ScheduleTask(() => {
-                useKey.setPressed(!!isPressed);
+                attackKey.setDown(!!isPressed);
             });
 
             return true;
@@ -79,19 +69,20 @@ class ControlSystem {
 
         const options = mc.options;
         const mapping = {
-            w: options.forwardKey,
-            s: options.backKey,
-            a: options.leftKey,
-            d: options.rightKey,
-            space: options.jumpKey,
-            shift: options.sneakKey,
-            sprint: options.sprintKey,
+            w: options.keyUp,
+            s: options.keyDown,
+            a: options.keyLeft,
+            d: options.keyRight,
+            space: options.keyJump,
+            shift: options.keyShift,
+            sprint: options.keySprint,
+            rightclick: options.keyUse,
         };
 
         const keyObj = mapping[action];
         if (keyObj) {
             ScheduleTask(() => {
-                keyObj.setPressed(!!isPressed);
+                keyObj.setDown(!!isPressed);
             });
             return true;
         }
@@ -101,16 +92,17 @@ class ControlSystem {
     checkKeyDown(key) {
         const options = mc.options;
         const mapping = {
-            w: options.forwardKey,
-            s: options.backKey,
-            a: options.leftKey,
-            d: options.rightKey,
-            space: options.jumpKey,
-            shift: options.sneakKey,
-            leftclick: options.attackKey,
-            sprint: options.sprintKey,
+            w: options.keyUp,
+            s: options.keyDown,
+            a: options.keyLeft,
+            d: options.keyRight,
+            space: options.keyJump,
+            shift: options.keyShift,
+            leftclick: options.keyAttack,
+            sprint: options.keySprint,
+            rightclick: options.keyUse,
         };
-        return mapping[key] ? mapping[key].isPressed() : false;
+        return mapping[key] ? mapping[key].isDown() : false;
     }
 
     setMovementByYaw(yaw, shouldJump) {
@@ -184,6 +176,7 @@ class ControlSystem {
         this.haltMovement();
         this.updateKeyState('shift', false);
         this.updateKeyState('leftclick', false);
+        this.updateKeyState('rightclick', false);
     }
 
     refreshCooldown() {

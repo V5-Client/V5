@@ -1,5 +1,5 @@
 import { System } from '../Constants';
-import { ClientStatusC2S, CommonPingS2C, GameJoinS2C, StatisticsS2C } from '../Packets';
+import { ServerboundClientCommandPacket, ClientboundPingPacket, ClientboundLoginPacket, ClientboundAwardStatsPacket } from '../Packets';
 
 class NetworkMonitor {
     constructor() {
@@ -65,7 +65,7 @@ class NetworkMonitor {
     sendPingRequest() {
         if (!Player.getPlayer()) return;
         if (!this.waitingForPing) {
-            Client.sendPacket(new ClientStatusC2S(ClientStatusC2S.class_2800.REQUEST_STATS));
+            Client.sendPacket(new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.REQUEST_STATS)); // mojmap: ServerboundClientCommandPacket$Action.REQUEST_STATS
             this.pingStartNano = System.nanoTime();
             this.waitingForPing = true;
         }
@@ -101,15 +101,15 @@ register('worldLoad', () => monitor.reset());
 
 register('packetReceived', (packet) => {
     monitor.recordTpsPacket();
-}).setFilteredClass(CommonPingS2C);
+}).setFilteredClass(ClientboundPingPacket);
 
 register('packetReceived', (packet) => {
     monitor.resolvePing();
-}).setFilteredClass(StatisticsS2C);
+}).setFilteredClass(ClientboundAwardStatsPacket);
 
 register('packetReceived', () => {
     monitor.waitingForPing = false;
-}).setFilteredClass(GameJoinS2C);
+}).setFilteredClass(ClientboundLoginPacket);
 
 register('step', () => {
     monitor.sendPingRequest();

@@ -45,7 +45,7 @@ export const createCategoriesManager = (deps) => {
 
             const enabledByClick = typeof module.requestToggleFromUser === 'function' ? module.requestToggleFromUser() : false;
             if (module.isMacro && enabledByClick && GuiState.myGui.isOpen()) {
-                GuiState.myGui.close();
+                Client.currentGui.close();
             }
         },
         { showContainer: false }

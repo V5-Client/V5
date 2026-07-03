@@ -2,9 +2,9 @@ import { AlertUtils } from '../../failsafes/AlertUtils';
 import { getSetting } from '../../gui/GuiSave';
 import { File, globalAssetsDir } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { DisconnectS2C, LoginDisconnectS2C } from '../../utils/Packets';
+import { ClientboundDisconnectPacket, ClientboundLoginDisconnectPacket } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
-import Clipping from '../../utils/Clipping';
+//import Clipping from '../../utils/Clipping';
 const JURL = Java.type('java.net.URL');
 const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
 
@@ -49,10 +49,10 @@ class Failsafes extends ModuleBase {
                 this.postBanLog(fullText, lastMacro, currentlyMacroing);
 
                 if (this.clipOnBan) {
-                    Client.scheduleTask(40, () => Clipping.saveClip());
+                    //Client.scheduleTask(40, () => Clipping.saveClip());
                 }
             }
-        }).setFilteredClasses([LoginDisconnectS2C, DisconnectS2C]);
+        }).setFilteredClasses([ClientboundLoginDisconnectPacket, ClientboundDisconnectPacket]);
 
         const sectionName = 'Failsafes';
 

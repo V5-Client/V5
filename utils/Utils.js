@@ -1,6 +1,6 @@
 import { Chat } from './Chat';
 import { BP, isLinux, isMac, isWindows, Vec3d } from './Constants';
-import { GameMessageS2C } from './Packets';
+import { ClientboundSystemChatPacket } from './Packets';
 import { TabListUtils } from './TabListUtils';
 
 export const mc = Client.getMinecraft();
@@ -110,9 +110,9 @@ class LocationDetector {
     }
 
     getLobbyDay() {
-        const world = Client.getMinecraft()?.world;
+        const world = Client.getMinecraft()?.level;
         if (!world) return 0;
-        return Math.floor(world.getTimeOfDay() / 24000);
+        return Math.floor(world.getDayTime() / 24000);
     }
 
     stripFormatting(text) {
@@ -136,7 +136,7 @@ class ManaDetector {
         register('worldLoad', () => this.reset());
         register('packetReceived', (packet) => {
             this.onGameMessage(packet);
-        }).setFilteredClass(GameMessageS2C);
+        }).setFilteredClass(ClientboundSystemChatPacket);
     }
 
     onGameMessage(packet) {
@@ -229,6 +229,10 @@ class VectorConverter {
             return new Vec3d(input.x, input.y, input.z);
         }
 
+        if (this.hasXYZMethods(input)) {
+            return new Vec3d(input.x(), input.y(), input.z());
+        }
+
         if (Array.isArray(input) && input.length >= 3) {
             return new Vec3d(input[0], input[1], input[2]);
         }
@@ -242,6 +246,10 @@ class VectorConverter {
 
     hasXYZ(obj) {
         return obj && typeof obj.x === 'number' && typeof obj.y === 'number' && typeof obj.z === 'number';
+    }
+
+    hasXYZMethods(obj) {
+        return obj && typeof obj.x === 'function' && typeof obj.y === 'function' && typeof obj.z === 'function';
     }
 
     hasPositionMethods(obj) {
@@ -331,7 +339,7 @@ class UtilsClass {
         const playerBox = player.getBoundingBox();
         const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
 
-        let yaw = ((player.getYaw() % 360) + 360) % 360;
+        let yaw = ((player.getYRot() % 360) + 360) % 360;
         const collisionSides = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
 
         let minX = Math.floor(expandedBox.minX);
@@ -354,10 +362,10 @@ class UtilsClass {
 
                     if (!voxelShape || voxelShape.isEmpty()) continue;
 
-                    let collisionBoxes = voxelShape.getBoundingBoxes();
+                    let collisionBoxes = voxelShape.toAabbs();
 
                     for (let i = 0; i < collisionBoxes.size(); i++) {
-                        let blockBox = collisionBoxes.get(i).offset(x, y, z);
+                        let blockBox = collisionBoxes.get(i).move(x, y, z);
 
                         if (expandedBox.intersects(blockBox)) {
                             if (blockBox.maxX <= playerBox.minX + 0.05) collisionSides.WEST = true;

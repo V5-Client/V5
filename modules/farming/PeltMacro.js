@@ -1,7 +1,7 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
@@ -17,7 +17,7 @@ import { Mouse } from '../../utils/Ungrab';
 
 // this is complete codex vibecoded slop, but it works so who cares!
 
-const RaycastContext = net.minecraft.world.RaycastContext;
+const RaycastContext = net.minecraft.world.level.ClipContext;
 
 const TREVOR_TARGETS = {
     'desert settlement': [
@@ -340,7 +340,7 @@ class PeltMacro extends ModuleBase {
         if (!player || !world || !entity) return false;
 
         try {
-            const eyePos = player.getEyePos();
+            const eyePos = player.getEyePosition();
             const mcEntity = entity.toMC ? entity.toMC() : entity;
             const box = mcEntity?.getBoundingBox?.();
             if (!eyePos || !box) return Player.asPlayerMP()?.canSeeEntity?.(entity) ?? false;
@@ -358,14 +358,8 @@ class PeltMacro extends ModuleBase {
                     const sampleY = minY + (maxY - minY) * yOffset;
                     for (const zOffset of MOB_VISIBILITY_SAMPLE_OFFSETS) {
                         const sampleZ = minZ + (maxZ - minZ) * zOffset;
-                        const hit = world.raycast(
-                            new RaycastContext(
-                                eyePos,
-                                new Vec3d(sampleX, sampleY, sampleZ),
-                                RaycastContext.ShapeType.COLLIDER,
-                                RaycastContext.FluidHandling.NONE,
-                                player
-                            )
+                        const hit = world.clip(
+                            new RaycastContext(eyePos, new Vec3d(sampleX, sampleY, sampleZ), RaycastContext.Block.COLLIDER, RaycastContext.Fluid.NONE, player)
                         );
 
                         if (!hit || String(hit.getType()) === 'MISS') {
@@ -388,9 +382,9 @@ class PeltMacro extends ModuleBase {
         try {
             const ep = player.getEyePos?.();
             if (ep) {
-                const ex = Number(ep.x);
-                const ey = Number(ep.y);
-                const ez = Number(ep.z);
+                const ex = Number(ep.x());
+                const ey = Number(ep.y());
+                const ez = Number(ep.z());
                 if ([ex, ey, ez].every(Number.isFinite)) return { ex, ey, ez };
             }
         } catch (e) {
@@ -417,9 +411,9 @@ class PeltMacro extends ModuleBase {
         if (!eyePos || !player || !world) return false;
         if (![endX, endY, endZ].every(Number.isFinite)) return false;
         try {
-            const ex = eyePos.x;
-            const ey = eyePos.y;
-            const ez = eyePos.z;
+            const ex = eyePos.x();
+            const ey = eyePos.y();
+            const ez = eyePos.z();
             let dx = endX - ex;
             let dy = endY - ey;
             let dz = endZ - ez;
@@ -430,7 +424,7 @@ class PeltMacro extends ModuleBase {
             dz /= len;
             const ext = ETHERWARP_LOS_RAY_EXTEND;
             const endVec = new Vec3d(endX + dx * ext, endY + dy * ext, endZ + dz * ext);
-            const hit = world.raycast(new RaycastContext(eyePos, endVec, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, player));
+            const hit = world.clip(new RaycastContext(eyePos, endVec, RaycastContext.Block.COLLIDER, RaycastContext.Fluid.NONE, player));
             if (!hit) return false;
             const typeStr = String(hit.getType?.());
             if (typeStr === 'MISS') return false;
@@ -679,7 +673,7 @@ class PeltMacro extends ModuleBase {
             const pitch = Number.parseFloat(Player.getPitch());
             if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return;
 
-            Client.sendPacket(new PlayerInteractItemC2S(MCHand.MAIN_HAND, 0, yaw, pitch));
+            Client.sendPacket(new ServerboundUseItemPacket(MCHand.MAIN_HAND, 0, yaw, pitch));
             if (isLast && this.travelState?.sequenceToken === token) {
                 this.travelState.routeCompletedAt = Date.now();
             }

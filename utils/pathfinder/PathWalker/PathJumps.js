@@ -60,7 +60,7 @@ class PathJumps {
     }
 
     isBlockNonCollidable(world, blockVec) {
-        const blockPosNMS = new BP(Math.floor(blockVec.x), Math.floor(blockVec.y), Math.floor(blockVec.z));
+        const blockPosNMS = new BP(Math.floor(blockVec.x()), Math.floor(blockVec.y()), Math.floor(blockVec.z()));
         const blockState = world.getBlockState(blockPosNMS);
         if (!blockState) return false;
         return blockState.getCollisionShape(world, blockPosNMS).isEmpty();
@@ -193,7 +193,7 @@ class PathJumps {
         if (this.getBlockName(data.block) !== 'minecraft:snow') return false;
         const layers = this.getSnowLayers(data.block);
         if (layers === 0) return false;
-        const diff = data.vec.y - (8 - layers) * 0.125 - (Player.getY() - 1);
+        const diff = data.vec.y() - (8 - layers) * 0.125 - (Player.getY() - 1);
         if (diff > 0.75 && layers > 6) {
             if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Snow jump detected');
             Keybind.setKey('space', true);
@@ -216,12 +216,12 @@ class PathJumps {
         let canWalkInstead = false;
         for (const data of lookahead) {
             if (this.getBlockName(data.block).includes('snow')) continue;
-            const heightDifference = data.vec.y - playerFloorY;
+            const heightDifference = data.vec.y() - playerFloorY;
             if (heightDifference > stairClimbLimit) needsJump = true;
             if (data.name.includes('slab')) {
                 canWalkInstead = true;
             } else if (data.name.includes('stair')) {
-                if (this.canWalkUpStairs(pX, pY, pZ, data.vec.x, data.vec.y, data.vec.z)) canWalkInstead = true;
+                if (this.canWalkUpStairs(pX, pY, pZ, data.vec.x(), data.vec.y(), data.vec.z())) canWalkInstead = true;
             }
         }
         if (needsJump && !canWalkInstead) {
@@ -344,7 +344,7 @@ class PathJumps {
         const player = Player.getPlayer();
         if (!player) return this.reset();
 
-        if (!player.isOnGround()) {
+        if (!player.onGround()) {
             if (!Movement.isRecovering() && !this.isPlayerInFluid()) {
                 Keybind.setKey('space', false);
             }
@@ -366,7 +366,7 @@ class PathJumps {
         if (!Movement.isRecovering()) {
             Keybind.setKey('space', false);
         }
-        this.lastLookaheadPositions = lookahead.map((d) => d.vec.y);
+        this.lastLookaheadPositions = lookahead.map((d) => d.vec.y());
     }
 
     reset() {

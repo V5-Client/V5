@@ -336,7 +336,7 @@ class Finder {
 
                     if (PathConfig.RENDER_LOOK_POINTS) {
                         this.flyMovementPath?.forEach((p) => RenderUtils.drawFilledBox(new Vec3d(p.x, p.y, p.z), new RenderColor(0, 255, 0, 150), true));
-                        this.flyLookPoints?.forEach((p) => RenderUtils.drawFilledBox(p, new RenderColor(255, 0, 0, 150), true));
+                        this.flyLookPoints?.forEach((p) => RenderUtils.drawFilledBox(new Vec3d(p.x, p.y, p.z), new RenderColor(255, 0, 0, 150), true));
                         const yDiffPoint = FlyMovement.debugVerticalTarget;
                         if (yDiffPoint) {
                             RenderUtils.drawFilledBox(new Vec3d(yDiffPoint.x, yDiffPoint.y, yDiffPoint.z), new RenderColor(0, 255, 255, 180), true);
@@ -541,7 +541,7 @@ class Finder {
                 if (dy < -0.1 || dy > 5.5) continue;
             }
 
-            if (this.isFly || player.isOnGround()) {
+            if (this.isFly || player.onGround()) {
                 return true;
             }
         }

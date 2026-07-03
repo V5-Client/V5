@@ -61,12 +61,15 @@ class DiscordNotifier {
     }
 
     takeScreenshot(title = null, description = null, color, footer, ping = false) {
+        // TODO: fix broken with 26.1
+        return;
+
         const mc = Client.getMinecraft();
-        const buffer = mc.getFramebuffer();
+        const buffer = mc.getMainRenderTarget();
         const gameDir = mc.runDirectory;
 
         try {
-            ScreenshotRecorder.saveScreenshot(
+            ScreenshotRecorder.grab(
                 gameDir,
                 buffer,
                 new Consumer({

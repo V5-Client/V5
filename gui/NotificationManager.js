@@ -373,7 +373,7 @@ class NotificationManager {
 
         try {
             const window = Client.getMinecraft().getWindow();
-            const scale = window.getScaleFactor();
+            const scale = window.getGuiScale();
             const mouseX = Client.getMouseX() / scale;
             const mouseY = Client.getMouseY() / scale;
 

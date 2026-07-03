@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { BlockUpdateS2C } from './Packets';
+import { ClientboundBlockUpdatePacket } from './Packets';
 
 class FlowstateUtilsClass {
     constructor() {
@@ -42,7 +42,7 @@ class FlowstateUtilsClass {
                 packet?.getPos()?.getX() == this.block.x &&
                 packet?.getPos()?.getY() == this.block.y &&
                 packet?.getPos()?.getZ() == this.block.z &&
-                (packet?.getState()?.getBlock()?.toString()?.includes('bedrock') || packet?.getState()?.getBlock()?.toString()?.includes('air'))
+                (packet?.getBlockState()?.getBlock()?.toString()?.includes('bedrock') || packet?.getBlockState()?.getBlock()?.toString()?.includes('air'))
             ) {
                 this.flowstateBlocksBroken += bonus;
                 this.countdown = 10;
@@ -61,7 +61,7 @@ class FlowstateUtilsClass {
                     Chat.message(`Current Flowstate: ${rounded}`);
                 }
             }
-        }).setFilteredClass(BlockUpdateS2C);
+        }).setFilteredClass(ClientboundBlockUpdatePacket);
 
         register('step', () => {
             if (this.countdown === 0) {

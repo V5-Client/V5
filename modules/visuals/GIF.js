@@ -253,7 +253,7 @@ class GIFOverlay extends ModuleBase {
     isChatOpen() {
         const gui = Client.currentGui.get();
         if (!gui) return false;
-        return gui.class.simpleName == 'class_408';
+        return gui.class.simpleName == 'ChatScreen'; // mojmap: ChatScreen
     }
 
     getGifFiles() {
@@ -302,7 +302,7 @@ class GIFOverlay extends ModuleBase {
     handleClick(x, y, button, isPressed) {
         if (this.instances.length === 0 || !this.isChatOpen() || button !== 0) return;
 
-        const scale = Client.getMinecraft().getWindow().getScaleFactor();
+        const scale = Client.getMinecraft().getWindow().getGuiScale();
         const mx = x / scale;
         const my = y / scale;
 
@@ -317,7 +317,7 @@ class GIFOverlay extends ModuleBase {
     handleDrag(dx, dy, x, y, button) {
         if (this.instances.length === 0 || !this.isChatOpen() || button !== 0) return;
 
-        const scale = Client.getMinecraft().getWindow().getScaleFactor();
+        const scale = Client.getMinecraft().getWindow().getGuiScale();
         const mx = x / scale;
         const my = y / scale;
 

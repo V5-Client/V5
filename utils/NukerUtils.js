@@ -1,7 +1,7 @@
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { MathUtils } from './Math';
 import { Mixin } from './MixinManager';
-import { HandSwingC2S, PlayerActionC2S, PlayerActionC2SAction } from './Packets';
+import { ServerboundSwingPacket, ServerboundPlayerActionPacket, ServerboundPlayerActionPacket$Action } from './Packets';
 import { ScheduleTask } from './ScheduleTask';
 
 class NukerUtilsClass {
@@ -29,7 +29,7 @@ class NukerUtilsClass {
                 this.processNextQueuedAction();
             } else if (this.tickCounter > 0) {
                 this.tickCounter--;
-                Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
+                Client.sendPacket(new ServerboundSwingPacket(MCHand.MAIN_HAND));
             }
         });
     }
@@ -51,8 +51,8 @@ class NukerUtilsClass {
     }
 
     sendBreakPackets(blockPos, facing) {
-        Client.sendSequencedPacket((sequence) => new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPos, facing, sequence));
-        Client.sendPacket(new HandSwingC2S(MCHand.MAIN_HAND));
+        Client.sendSequencedPacket((sequence) => new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket$Action.START_DESTROY_BLOCK, blockPos, facing, sequence));
+        Client.sendPacket(new ServerboundSwingPacket(MCHand.MAIN_HAND));
     }
 
     nukeQueueAdd(blockPos, ticks) {
@@ -96,19 +96,19 @@ class NukerUtilsClass {
         const blockPosition = this.createBlockPosition(blockPos);
         const facing = this.closestDirection(blockPosition);
 
-        Client.sendSequencedPacket((sequence) => new PlayerActionC2S(PlayerActionC2SAction.START_DESTROY_BLOCK, blockPosition, facing, sequence));
+        Client.sendSequencedPacket((sequence) => new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket$Action.START_DESTROY_BLOCK, blockPosition, facing, sequence));
 
         this.currentBreakingBlockPos = blockPos;
     }
 
     isBlockInRange(blockPos) {
-        const eyePos = Player.getPlayer()?.getEyePos();
+        const eyePos = Player.getPlayer()?.getEyePosition();
         if (!eyePos) return false;
 
-        const clampedX = Math.max(blockPos[0], Math.min(eyePos.x, blockPos[0] + 1));
-        const clampedY = Math.max(blockPos[1], Math.min(eyePos.y, blockPos[1] + 1));
-        const clampedZ = Math.max(blockPos[2], Math.min(eyePos.z, blockPos[2] + 1));
-        const { distance } = MathUtils.calculateDistance([eyePos.x, eyePos.y, eyePos.z], [clampedX, clampedY, clampedZ]);
+        const clampedX = Math.max(blockPos[0], Math.min(eyePos.x(), blockPos[0] + 1));
+        const clampedY = Math.max(blockPos[1], Math.min(eyePos.y(), blockPos[1] + 1));
+        const clampedZ = Math.max(blockPos[2], Math.min(eyePos.z(), blockPos[2] + 1));
+        const { distance } = MathUtils.calculateDistance([eyePos.x(), eyePos.y(), eyePos.z()], [clampedX, clampedY, clampedZ]);
         return distance <= NukerUtilsClass.MAX_REACH_DISTANCE;
     }
 
@@ -120,7 +120,7 @@ class NukerUtilsClass {
         const player = Player.getPlayer();
         if (!player) return Direction.UP;
 
-        const playerEyePos = player.getEyePos();
+        const playerEyePos = player.getEyePosition();
         if (!playerEyePos) return Direction.UP;
         const faces = [Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST];
 

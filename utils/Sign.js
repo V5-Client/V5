@@ -3,7 +3,7 @@ class SignClass {
         const i = Number(line) - 1;
         if (!Number.isFinite(i) || Math.floor(i) !== i || i < 0 || i > 3) return;
 
-        const messages = this._getField(Client.getMinecraft().currentScreen, 'field_40425');
+        const messages = this._getField(Client.getMinecraft().screen, 'messages'); // mojmap: messages
         if (!messages) return;
 
         messages[i] = String(text == null ? '' : text);

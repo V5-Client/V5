@@ -8,7 +8,7 @@ class SharedRotationGCD {
     }
 
     calculateGCD() {
-        const sensitivity = Client.getMinecraft().options.mouseSensitivity.value;
+        const sensitivity = Client.getMinecraft().options.sensitivity().get();
         const f = sensitivity * 0.6 + 0.2;
         return f * f * f * 1.2;
     }
@@ -45,19 +45,19 @@ class SharedRotationGCD {
     syncFromPlayer(yaw = null, pitch = null, player = Player.getPlayer()) {
         if (!player) return false;
 
-        this.lastYaw = Number.isFinite(yaw) ? yaw : player.getYaw();
-        this.lastPitch = Number.isFinite(pitch) ? this.clampPitch(pitch) : this.clampPitch(player.getPitch());
+        this.lastYaw = Number.isFinite(yaw) ? yaw : this.normalizeAngle(player.getYRot());
+        this.lastPitch = Number.isFinite(pitch) ? this.clampPitch(pitch) : this.clampPitch(player.getXRot());
         this.initialized = true;
         return true;
     }
 
     resyncIfDrifted(player, gcd) {
-        const yawDrift = Math.abs(this.angleDifference(this.lastYaw, player.getYaw()));
-        const pitchDrift = Math.abs(player.getPitch() - this.lastPitch);
+        const yawDrift = Math.abs(this.angleDifference(this.lastYaw, this.normalizeAngle(player.getYRot())));
+        const pitchDrift = Math.abs(player.getXRot() - this.lastPitch);
 
         if (yawDrift > gcd * 2 || pitchDrift > gcd * 2) {
-            this.lastYaw = player.getYaw();
-            this.lastPitch = player.getPitch();
+            this.lastYaw = this.normalizeAngle(player.getYRot());
+            this.lastPitch = player.getXRot();
         }
     }
 
@@ -69,8 +69,8 @@ class SharedRotationGCD {
         }
 
         return {
-            yaw: this.initialized ? this.lastYaw : player.getYaw(),
-            pitch: this.initialized ? this.lastPitch : player.getPitch(),
+            yaw: this.initialized ? this.lastYaw : this.normalizeAngle(player.getYRot()),
+            pitch: this.initialized ? this.lastPitch : player.getXRot(),
         };
     }
 
@@ -95,8 +95,8 @@ class SharedRotationGCD {
         this.lastPitch = gcdPitch;
         this.lastApplyAt = now;
 
-        player.setYaw(gcdYaw);
-        player.setPitch(gcdPitch);
+        player.setYRot(gcdYaw);
+        player.setXRot(gcdPitch);
 
         return { yaw: gcdYaw, pitch: gcdPitch };
     }

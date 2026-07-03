@@ -26,7 +26,7 @@ class ProfileHider extends ModuleBase {
 
         const username = Player.getName();
         const rawCustomInput = this.USERNAME?.trim() || this.defaultName || 'Failed to get username';
-        const Text = net.minecraft.text.Text;
+        const Text = net.minecraft.network.chat.Component;
         const newComponent = Text.empty();
 
         const getReplacement = () => {
@@ -64,13 +64,13 @@ class ProfileHider extends ModuleBase {
                 newComponent.append(Text.literal(content).setStyle(style));
             }
             return java.util.Optional.empty();
-        }, net.minecraft.text.Style.EMPTY);
+        }, net.minecraft.network.chat.Style.EMPTY);
 
         return newComponent;
     }
 
     chroma(text) {
-        const Text = net.minecraft.text.Text;
+        const Text = net.minecraft.network.chat.Component;
         const mutableText = Text.empty();
         const speed = 2000;
         const offset = 100;

@@ -174,7 +174,7 @@ class PathMovement {
     }
 
     handleFlyBoost(next, current, player) {
-        return !!player?.isOnGround() && next.y - current.y > 0.5;
+        return !!player?.onGround() && next.y - current.y > 0.5;
     }
 
     updateMovement(player) {

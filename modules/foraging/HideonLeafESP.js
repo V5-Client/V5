@@ -2,7 +2,7 @@ import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 
-const ShulkerEntity = net.minecraft.entity.mob.ShulkerEntity;
+const ShulkerEntity = net.minecraft.world.entity.monster.Shulker;
 
 class HideonLeafESP extends ModuleBase {
     constructor() {

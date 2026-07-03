@@ -1,5 +1,6 @@
 import { Chat } from '../../Chat';
 import { BP, SnowBlock } from '../../Constants';
+import { MathUtils } from '../../Math';
 import { Utils } from '../../Utils';
 import { Guis } from '../../player/Inventory';
 import { Keybind } from '../../player/Keybinding';
@@ -244,17 +245,17 @@ class PathAote {
         const player = Player.getPlayer();
         if (!player) return false;
 
-        const eyePos = player.getEyePos();
+        const eyePos = player.getEyePosition();
         const target = rotations.getInterpolatedPoint(targetPathPosition);
         if (!eyePos || !target) return false;
 
-        const dx = target.x - eyePos.x;
-        const dz = target.z - eyePos.z;
+        const dx = target.x - eyePos.x();
+        const dz = target.z - eyePos.z();
         const horiz = Math.hypot(dx, dz);
         if (horiz < 0.001) return true;
 
         const targetYaw = -(Math.atan2(dx, dz) * (180 / Math.PI));
-        const yawError = Math.abs(this.wrapAngle(targetYaw - player.getYaw()));
+        const yawError = Math.abs(this.wrapAngle(targetYaw - MathUtils.wrapTo180(player.getYRot())));
         return yawError <= this.MAX_AIM_YAW_ERROR;
     }
 
@@ -266,8 +267,8 @@ class PathAote {
     }
 
     getLookDirection(player) {
-        const yawRad = (-player.getYaw() * Math.PI) / 180;
-        const pitchRad = (-player.getPitch() * Math.PI) / 180;
+        const yawRad = (-MathUtils.wrapTo180(player.getYRot()) * Math.PI) / 180;
+        const pitchRad = (-player.getXRot() * Math.PI) / 180;
         const cosPitch = Math.cos(pitchRad);
         return {
             x: Math.sin(yawRad) * cosPitch,
@@ -281,7 +282,7 @@ class PathAote {
         const world = World.getWorld();
         if (!player || !world) return 0;
 
-        const start = player.getEyePos();
+        const start = player.getEyePosition();
         if (!start) return 0;
 
         const direction = this.getLookDirection(player);
@@ -411,10 +412,10 @@ class PathAote {
         if (!finalPoint) return Number.MAX_VALUE;
         const player = Player.getPlayer();
         if (!player) return Number.MAX_VALUE;
-        const eyes = player.getEyePos();
-        const dx = eyes.x - finalPoint.x;
-        const dy = eyes.y - finalPoint.y;
-        const dz = eyes.z - finalPoint.z;
+        const eyes = player.getEyePosition();
+        const dx = eyes.x() - finalPoint.x;
+        const dy = eyes.y() - finalPoint.y;
+        const dz = eyes.z() - finalPoint.z;
         return Math.hypot(dx, dy, dz);
     }
 

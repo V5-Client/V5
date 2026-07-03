@@ -1,8 +1,8 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
-import { Vec3d } from '../../utils/Constants';
+import { MCHand, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { PlayerInteractItemC2S } from '../../utils/Packets';
+import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { Raytrace } from '../../utils/Raytrace';
 import RouteState from '../../utils/RouteState';
 import { Router } from '../../utils/Router';
@@ -383,7 +383,7 @@ class GemstoneMacro extends ModuleBase {
 
     raytraceBlockFaces(point) {
         const player = Player.getPlayer();
-        const start = player.getEyePos();
+        const start = player.getEyePosition();
         const faces = [
             { name: 'EAST', target: [point.x + 1.1, point.y + 0.5, point.z + 0.5] },
             { name: 'WEST', target: [point.x - 0.1, point.y + 0.5, point.z + 0.5] },
@@ -396,8 +396,8 @@ class GemstoneMacro extends ModuleBase {
             shortest = Infinity;
         for (const face of faces) {
             const [tx, ty, tz] = face.target;
-            if (Raytrace.isLineClear(start.x, start.y, start.z, tx, ty, tz)) {
-                let d = Math.hypot(tx - start.x, ty - start.y, tz - start.z);
+            if (Raytrace.isLineClear(start.x(), start.y(), start.z(), tx, ty, tz)) {
+                let d = Math.hypot(tx - start.x(), ty - start.y(), tz - start.z());
                 if (d < shortest) {
                     shortest = d;
                     closest = { face: face.name, hitPos: { x: tx, y: ty, z: tz } };
@@ -423,13 +423,13 @@ class GemstoneMacro extends ModuleBase {
 
     rightClickEtherWarp(targetVec) {
         const player = Player.getPlayer();
-        const eye = player.getEyePos();
-        const dx = targetVec.x - eye.x,
-            dy = targetVec.y - eye.y,
-            dz = targetVec.z - eye.z;
+        const eye = player.getEyePosition();
+        const dx = targetVec.x - eye.x(),
+            dy = targetVec.y - eye.y(),
+            dz = targetVec.z - eye.z();
         const yaw = Math.atan2(-dx, dz) * (180 / Math.PI);
         const pitch = Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI);
-        Client.sendPacket(new PlayerInteractItemC2S(Hand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch)));
+        Client.sendPacket(new ServerboundUseItemPacket(MCHand.MAIN_HAND, 0, Number.parseFloat(yaw), Number.parseFloat(pitch)));
     }
 
     onEnable() {

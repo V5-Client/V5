@@ -48,7 +48,7 @@ class ChatQOL extends ModuleBase {
     }
 
     registerChatPatch() {
-        const McText = net.minecraft.text.Text;
+        const McText = net.minecraft.network.chat.Component;
 
         register('chat', (event) => {
             if (!this.CHAT_PATCH) return;
@@ -65,7 +65,7 @@ class ChatQOL extends ModuleBase {
                 ChatLib.deleteChat(deleteRegex);
 
                 const newText = event.message.copy().append(McText.literal(` §7(x${this.lastCounter})`));
-                const chatHud = Client.getMinecraft().inGameHud.getChatHud();
+                const chatHud = Client.getMinecraft().gui.getChat();
                 chatHud.addMessage(newText);
                 return;
             }

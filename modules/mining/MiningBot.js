@@ -3,7 +3,7 @@ import { MathUtils } from '../../utils/Math';
 import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { NukerUtils } from '../../utils/NukerUtils';
-import { PlayerActionC2S } from '../../utils/Packets';
+import { ServerboundPlayerActionPacket } from '../../utils/Packets';
 import { Raytrace } from '../../utils/Raytrace';
 import { manager } from '../../utils/SkyblockEvents';
 import { Utils } from '../../utils/Utils';
@@ -253,7 +253,7 @@ class Bot extends ModuleBase {
         this.exploit = register('packetSent', (packet, event) => {
             if (packet?.getAction()?.toString() === 'ABORT_DESTROY_BLOCK') cancel(event);
         })
-            .setFilteredClass(PlayerActionC2S)
+            .setFilteredClass(ServerboundPlayerActionPacket)
             .unregister();
 
         this.debug = register('postRenderWorld', () => this.renderDebug()).unregister();
@@ -263,7 +263,6 @@ class Bot extends ModuleBase {
             if (!this.enabled) return;
             if (this.refreshingMiningStats) {
                 this.stopMiningControls(true);
-                Keybind.setKey('rightclick', false);
                 return;
             }
             if (Client.isInGui()) {
@@ -471,8 +470,8 @@ class Bot extends ModuleBase {
         const lookVec = Player.asPlayerMP()?.getLookVector();
         if (!lookVec) return false;
 
-        const forwardX = Player.getX() + lookVec.x * 0.8;
-        const forwardZ = Player.getZ() + lookVec.z * 0.8;
+        const forwardX = Player.getX() + lookVec.x() * 0.8;
+        const forwardZ = Player.getZ() + lookVec.z() * 0.8;
         const feetY = Math.floor(Player.getY());
 
         return this.isSolidBlockAt(forwardX, feetY, forwardZ) || this.isSolidBlockAt(forwardX, feetY + 1, forwardZ);
@@ -559,7 +558,7 @@ class Bot extends ModuleBase {
 
     incrementMiningCountersIfLookingAtCurrent(fakeLookMode) {
         if (fakeLookMode !== 'Off') {
-            Player.getPlayer().swingHand(MCHand.MAIN_HAND);
+            Player.getPlayer().swing(MCHand.MAIN_HAND);
             this.mineTickCount++;
         } else {
             const lookingAt = Player.lookingAt();
@@ -795,12 +794,12 @@ class Bot extends ModuleBase {
         let head = 0;
 
         const reach = scanReach + this.bfsPad;
-        const minBx = Math.floor(eyePos.x - reach) - 1,
-            dimX = Math.floor(eyePos.x + reach) + 1 - minBx + 1;
-        const minBy = Math.floor(eyePos.y - reach) - 1,
-            dimY = Math.floor(eyePos.y + reach) + 1 - minBy + 1;
-        const minBz = Math.floor(eyePos.z - reach) - 1,
-            dimZ = Math.floor(eyePos.z + reach) + 1 - minBz + 1;
+        const minBx = Math.floor(eyePos.x() - reach) - 1,
+            dimX = Math.floor(eyePos.x() + reach) + 1 - minBx + 1;
+        const minBy = Math.floor(eyePos.y() - reach) - 1,
+            dimY = Math.floor(eyePos.y() + reach) + 1 - minBy + 1;
+        const minBz = Math.floor(eyePos.z() - reach) - 1,
+            dimZ = Math.floor(eyePos.z() + reach) + 1 - minBz + 1;
         const maxQueueSize = dimX * dimY * dimZ;
         const workspace = this.ensureScanWorkspace(maxQueueSize);
         const visited = workspace.visited;
@@ -814,13 +813,13 @@ class Bot extends ModuleBase {
         const candidateCheapCost = workspace.candidateCheapCost;
         const candidateBlockName = workspace.candidateBlockName;
         const visitMark = workspace.visitMark;
-        const eyeX = eyePos.x;
-        const eyeY = eyePos.y;
-        const eyeZ = eyePos.z;
+        const eyeX = eyePos.x();
+        const eyeY = eyePos.y();
+        const eyeZ = eyePos.z();
         const hasLookVec = !!lookVec;
-        const lookX = hasLookVec ? lookVec.x : 0;
-        const lookY = hasLookVec ? lookVec.y : 0;
-        const lookZ = hasLookVec ? lookVec.z : 0;
+        const lookX = hasLookVec ? lookVec.x() : 0;
+        const lookY = hasLookVec ? lookVec.y() : 0;
+        const lookZ = hasLookVec ? lookVec.z() : 0;
         let reachableCount = 0;
         let tail = 1;
 
@@ -995,7 +994,7 @@ class Bot extends ModuleBase {
         const pX = Player.getX(),
             pY = Player.getY(),
             pZ = Player.getZ();
-        const eyePos = Player.getPlayer().getEyePos();
+        const eyePos = Player.getPlayer().getEyePosition();
         const lookVec = Player.asPlayerMP().getLookVector();
 
         const start = startPos || { x: Math.floor(pX), y: Math.floor(pY), z: Math.floor(pZ) };
@@ -1040,9 +1039,9 @@ class Bot extends ModuleBase {
         const cx = x + 0.5,
             cy = y + 0.5,
             cz = z + 0.5;
-        const eyeX = eyePos.x,
-            eyeY = eyePos.y,
-            eyeZ = eyePos.z;
+        const eyeX = eyePos.x(),
+            eyeY = eyePos.y(),
+            eyeZ = eyePos.z();
         const vx = cx - eyeX,
             vy = cy - eyeY,
             vz = cz - eyeZ;
@@ -1051,7 +1050,7 @@ class Bot extends ModuleBase {
 
         if (checkFov && lookVec) {
             const vLen = Math.sqrt(vLenSq);
-            const dotToCenter = (vx * lookVec.x + vy * lookVec.y + vz * lookVec.z) / vLen;
+            const dotToCenter = (vx * lookVec.x() + vy * lookVec.y() + vz * lookVec.z()) / vLen;
             if (dotToCenter < -0.05) return null;
         }
 
@@ -1289,7 +1288,7 @@ class Bot extends ModuleBase {
         if (distSq > maxReachSq) return null;
 
         const dist = Math.sqrt(distSq);
-        const dot = lookVec && dist > 0 ? (dX * lookVec.x + dY * lookVec.y + dZ * lookVec.z) / dist : 1;
+        const dot = lookVec && dist > 0 ? (dX * lookVec.x() + dY * lookVec.y() + dZ * lookVec.z()) / dist : 1;
 
         return { x: resultX, y: resultY, z: resultZ, dist, dot };
     }
@@ -1305,11 +1304,15 @@ class Bot extends ModuleBase {
     calculateVisibilityStability(x, y, z, eyePos, maxReachSq, confirmedVisibleSamples = 0) {
         let visibleSamples = confirmedVisibleSamples;
         const sampleEye = this._visibilitySampleEye;
-        sampleEye.y = eyePos.y;
+        const eyeX = typeof eyePos?.x === 'function' ? eyePos.x() : eyePos?.x;
+        const eyeY = typeof eyePos?.y === 'function' ? eyePos.y() : eyePos?.y;
+        const eyeZ = typeof eyePos?.z === 'function' ? eyePos.z() : eyePos?.z;
+        if (![eyeX, eyeY, eyeZ].every(Number.isFinite)) return visibleSamples / VISIBILITY_SAMPLE_COUNT;
+        sampleEye.y = eyeY;
 
         for (let i = confirmedVisibleSamples > 0 ? 3 : 0; i < VISIBILITY_OFFSETS.length; i += 3) {
-            sampleEye.x = eyePos.x + VISIBILITY_OFFSETS[i];
-            sampleEye.z = eyePos.z + VISIBILITY_OFFSETS[i + 2];
+            sampleEye.x = eyeX + VISIBILITY_OFFSETS[i];
+            sampleEye.z = eyeZ + VISIBILITY_OFFSETS[i + 2];
 
             if (this.findVisibleAimPoint(x, y, z, sampleEye, null, maxReachSq, false)) {
                 visibleSamples++;
@@ -1422,7 +1425,7 @@ class Bot extends ModuleBase {
     refreshCurrentTargetAimPoint() {
         if (!this.currentTarget) return false;
 
-        const eyePos = Player.getPlayer().getEyePos();
+        const eyePos = Player.getPlayer().getEyePosition();
         const lookVec = Player.asPlayerMP().getLookVector();
         const hit = this.findVisibleAimPoint(
             this.currentTarget.x,
@@ -1494,7 +1497,7 @@ class Bot extends ModuleBase {
         if (!Array.isArray(locations) || locations.length === 0) return false;
         this.manualScan = true;
 
-        const eyePos = Player.getPlayer().getEyePos();
+        const eyePos = Player.getPlayer().getEyePosition();
         const maxReachSq = this.mineReach * this.mineReach;
 
         this.foundLocations = locations
@@ -1575,7 +1578,6 @@ class Bot extends ModuleBase {
         Keybind.setKey('space', false);
         this.setSneak(false, true);
         Keybind.setKey('leftclick', false);
-        Keybind.setKey('rightclick', false);
         this.foundLocations = [];
         this.lastBlockPos = null;
         this.lastBlockType = null;
@@ -1644,10 +1646,10 @@ class Bot extends ModuleBase {
 
         let nextTarget = null;
         if (this.foundLocations.length > 1 && current.aimX !== undefined) {
-            const eyePos = Player.getPlayer().getEyePos();
-            const simLookX = current.aimX - eyePos.x;
-            const simLookY = current.aimY - eyePos.y;
-            const simLookZ = current.aimZ - eyePos.z;
+            const eyePos = Player.getPlayer().getEyePosition();
+            const simLookX = current.aimX - eyePos.x();
+            const simLookY = current.aimY - eyePos.y();
+            const simLookZ = current.aimZ - eyePos.z();
             const simLookLen = Math.hypot(simLookX, simLookY, simLookZ);
 
             if (simLookLen > 0) {
@@ -1660,9 +1662,9 @@ class Bot extends ModuleBase {
                     if (loc.x === current.x && loc.y === current.y && loc.z === current.z) continue;
                     if (loc.aimX === undefined) continue;
 
-                    const dx = loc.aimX - eyePos.x;
-                    const dy = loc.aimY - eyePos.y;
-                    const dz = loc.aimZ - eyePos.z;
+                    const dx = loc.aimX - eyePos.x();
+                    const dy = loc.aimY - eyePos.y();
+                    const dz = loc.aimZ - eyePos.z();
                     const dist = Math.hypot(dx, dy, dz);
                     if (dist === 0) continue;
 

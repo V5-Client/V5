@@ -16,6 +16,7 @@ class HUD extends ModuleBase {
 
         this.STATS_HUD = true;
         this.INVENTORY_HUD = true;
+        this.worldLoaded = World.isLoaded();
 
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
@@ -25,13 +26,16 @@ class HUD extends ModuleBase {
         this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
 
         this.when(
-            () => this.STATS_HUD || this.INVENTORY_HUD,
+            () => this.INVENTORY_HUD,
             'renderOverlay',
             () => this.renderOverlay()
         );
+        NVG.registerV5PreRender(() => this.renderInventoryBackgroundOverlay());
+        NVG.registerV5Render(() => this.renderStatsOverlay());
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
+        register('tick', () => (this.worldLoaded = World.isLoaded()));
     }
 
     onDisable() {
@@ -176,6 +180,34 @@ class HUD extends ModuleBase {
         if (this.INVENTORY_HUD) this.recalcInventoryBounds();
     }
 
+    prepareOverlay(enabled, recalc) {
+        if (OverlayManager.drawingGUI || !enabled || !this.worldLoaded) return false;
+
+        this.syncFromOverlayEditor();
+
+        const sw = Renderer.screen.getWidth();
+        const sh = Renderer.screen.getHeight();
+        if (sw <= 0 || sh <= 0) return false;
+
+        recalc.call(this);
+        return { sw, sh };
+    }
+
+    drawInFrame(sw, sh, draw) {
+        try {
+            NVG.beginFrame(sw, sh);
+            draw.call(this);
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        } finally {
+            try {
+                NVG.endFrame();
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
+        }
+    }
+
     drawStatsHud() {
         const o = this.stats;
         const s = o.scale;
@@ -302,50 +334,27 @@ class HUD extends ModuleBase {
         });
     }
 
+    renderInventoryBackgroundOverlay() {
+        const frame = this.prepareOverlay(this.INVENTORY_HUD, this.recalcInventoryBounds);
+        if (!frame) return;
+        this.drawInFrame(frame.sw, frame.sh, this.drawInventoryHudBackground);
+    }
+
     renderOverlay() {
-        if (OverlayManager.drawingGUI) return;
-
-        this.syncFromOverlayEditor();
-
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
-        if (sw <= 0 || sh <= 0) return;
-
-        this.recalcAllBounds();
+        const frame = this.prepareOverlay(this.INVENTORY_HUD, this.recalcInventoryBounds);
+        if (!frame) return;
 
         try {
-            NVG.beginFrame(sw, sh);
-            if (this.INVENTORY_HUD) this.drawInventoryHudBackground();
+            this.drawInventoryHudItems();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
         }
+    }
 
-        if (this.INVENTORY_HUD) {
-            try {
-                this.drawInventoryHudItems();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
-        }
-
-        try {
-            NVG.beginFrame(sw, sh);
-            if (this.STATS_HUD) this.drawStatsHud();
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
-        }
+    renderStatsOverlay() {
+        const frame = this.prepareOverlay(this.STATS_HUD, this.recalcStatsBounds);
+        if (!frame) return;
+        this.drawInFrame(frame.sw, frame.sh, this.drawStatsHud);
     }
 }
 

@@ -76,7 +76,7 @@ v5Command('help', () => {
 v5Command('config', () => {
     const file = new File(Client.getMinecraft().runDirectory, 'config/ChatTriggers/modules/V5Config');
     try {
-        net.minecraft.util.Util.getOperatingSystem().open(file);
+        net.minecraft.util.Util.getPlatform().open(file);
     } catch (error) {
         Chat.message('&eUnable to open config folder automatically.');
         Chat.message(`&7Path: &f${file.getAbsolutePath()}`);

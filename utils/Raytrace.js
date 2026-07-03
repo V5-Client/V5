@@ -1,5 +1,6 @@
 import { raytraceBlocks } from './dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from './dependencies/BloomCore/Vector3';
+import { MathUtils } from './Math';
 
 export const SAMPLE_POINTS_PER_FACE = 9;
 export const MAX_DDA_ITERATIONS = 300;
@@ -57,10 +58,10 @@ class VisibilityChecker {
         let player = Player.getPlayer();
         if (!player) return null;
 
-        let eyePos = player.getEyePos();
+        let eyePos = player.getEyePosition();
         if (!eyePos) return null;
 
-        this.eyeCache.pos = { x: eyePos.x, y: eyePos.y, z: eyePos.z };
+        this.eyeCache.pos = { x: eyePos.x(), y: eyePos.y(), z: eyePos.z() };
         this.eyeCache.time = now;
 
         return this.eyeCache.pos;
@@ -301,8 +302,8 @@ class EntityRaytracer {
         let player = Player.getPlayer();
         if (!player) return null;
 
-        let yaw = player.getYaw();
-        let pitch = player.getPitch();
+        let yaw = MathUtils.wrapTo180(player.getYRot());
+        let pitch = player.getXRot();
 
         let yawRad = (-yaw * Math.PI) / 180;
         let pitchRad = (-pitch * Math.PI) / 180;

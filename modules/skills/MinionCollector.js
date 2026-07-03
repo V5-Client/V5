@@ -2,7 +2,7 @@ import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 import { MCHand, Vec3d } from '../../utils/Constants';
-import { PlayerInteractEntityC2S } from '../../utils/Packets';
+import { ServerboundInteractPacket } from '../../utils/Packets';
 import { Guis } from '../../utils/player/Inventory';
 
 class MinionCollector extends ModuleBase {
@@ -108,7 +108,7 @@ class MinionCollector extends ModuleBase {
     rightClickMinion(entity) {
         const ent = entity.toMC().getEntity();
         const vec = new Vec3d(0.0, 0.5, 0.0);
-        const packet = PlayerInteractEntityC2S.interactAt(ent, false, MCHand.MAIN_HAND, vec);
+        const packet = new ServerboundInteractPacket(ent.getId(), MCHand.MAIN_HAND, vec, false);
         Client.sendPacket(packet);
         this.lastCollection = 0;
     }

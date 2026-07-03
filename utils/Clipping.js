@@ -125,8 +125,8 @@ class ClippingManager extends ModuleBase {
             if (!this.isRecording || !this.process) return;
 
             const window = Client.getMinecraft().getWindow();
-            const w = window.getFramebufferWidth();
-            const h = window.getFramebufferHeight();
+            const w = window.getWidth();
+            const h = window.getHeight();
 
             if (this.lastW && (this.lastW !== w || this.lastH !== h)) {
                 this.stopRecording(false, true, true);
@@ -394,7 +394,7 @@ class ClippingManager extends ModuleBase {
 
     getWindowTitle() {
         let mcClass = Client.getMinecraft().getClass();
-        let method = mcClass.getDeclaredMethod('method_24287'); // getWindowTitle()
+        let method = mcClass.getDeclaredMethod('createTitle'); // mojmap: createTitle
         method.setAccessible(true);
 
         return method.invoke(Client.getMinecraft());
@@ -435,8 +435,8 @@ class ClippingManager extends ModuleBase {
         if (this.process && this.process.isAlive()) return;
 
         const window = Client.getMinecraft().getWindow();
-        const width = window.getFramebufferWidth();
-        const height = window.getFramebufferHeight();
+        const width = window.getWidth();
+        const height = window.getHeight();
         this.lastFrameTime = 0;
 
         const sessionId = Date.now();

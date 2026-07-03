@@ -2,7 +2,7 @@ import { Chat } from '../../utils/Chat';
 import { MacroState } from '../../utils/MacroState';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
-import { GameMessageS2C } from '../../utils/Packets';
+import { ClientboundSystemChatPacket } from '../../utils/Packets';
 
 class ChatMentionFailsafe extends Failsafe {
     constructor() {
@@ -33,7 +33,7 @@ class ChatMentionFailsafe extends Failsafe {
             if (!result.isBlocked) return;
 
             this.onTrigger(result);
-        }).setFilteredClass(GameMessageS2C);
+        }).setFilteredClass(ClientboundSystemChatPacket);
     }
 
     scanMessage(msg, fullMessage = msg) {

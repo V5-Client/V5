@@ -1,4 +1,5 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
+import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
@@ -91,8 +92,8 @@ class PowderMacro extends ModuleBase {
         if (!player) return;
 
         this.savedRotation = {
-            yaw: player.getYaw(),
-            pitch: player.getPitch(),
+            yaw: MathUtils.wrapTo180(player.getYRot()),
+            pitch: player.getXRot(),
         };
 
         this.targetChest = null;
@@ -131,8 +132,8 @@ class PowderMacro extends ModuleBase {
         Keybind.setKey('shift', true);
 
         this.pivot = {
-            yaw: player.getYaw(),
-            pitch: player.getPitch(),
+            yaw: MathUtils.wrapTo180(player.getYRot()),
+            pitch: player.getXRot(),
         };
         this.startTime = Date.now();
 
@@ -208,7 +209,7 @@ class PowderMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
 
-        const current = { yaw: player.getYaw(), pitch: player.getPitch() };
+        const current = { yaw: MathUtils.wrapTo180(player.getYRot()), pitch: player.getXRot() };
         const target = this.savedRotation ?? this.pivot;
 
         const diffYaw = RotationGCD.angleDifference(target.yaw, current.yaw);

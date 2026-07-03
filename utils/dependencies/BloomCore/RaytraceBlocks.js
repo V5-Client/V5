@@ -29,10 +29,10 @@ export const getPlayerEyeCoords = (forceSneak = false) => {
 
     if (forceSneak) return getEtherwarpEyeCoords(true, player);
 
-    const eyePos = player.getEyePos(); // native Vec3d
-    let x = eyePos.x;
-    let y = eyePos.y;
-    let z = eyePos.z;
+    const eyePos = player.getEyePosition(); // native Vec3d
+    let x = eyePos.x();
+    let y = eyePos.y();
+    let z = eyePos.z();
 
     return [x, y, z];
 };
@@ -42,7 +42,7 @@ export const getPlayerLookVec = () => {
     if (!player) return null;
 
     const lookVec = player.getRotationVec(1.0); // tickDelta = 1.0 is standard
-    return new Vector3(lookVec.x, lookVec.y, lookVec.z);
+    return new Vector3(lookVec.x(), lookVec.y(), lookVec.z());
 };
 
 export const traverseVoxels = (start, end, blockCheckFunc = null, returnWhenTrue = false, stopWhenNotAir = false, returnIntersection = false) => {

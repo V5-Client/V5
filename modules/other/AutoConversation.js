@@ -23,11 +23,11 @@ class AutoConversation extends ModuleBase {
                 const style = comp.getStyle();
                 const clickEvent = style ? style.getClickEvent() : null;
 
-                if (clickEvent && clickEvent.getAction().name() === 'RUN_COMMAND') {
+                if (clickEvent && clickEvent.action().name() === 'RUN_COMMAND') {
                     let value = null;
 
                     try {
-                        value = clickEvent.comp_3506();
+                        value = clickEvent.command(); // mojmap: command
                     } catch (e) {
                         console.error('V5 Caught error' + e + e.stack);
                     }

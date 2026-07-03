@@ -83,5 +83,5 @@ export const openGui = () => {
 };
 
 export const closeGui = () => {
-    GuiState.myGui.close();
+    Client.currentGui.close();
 };

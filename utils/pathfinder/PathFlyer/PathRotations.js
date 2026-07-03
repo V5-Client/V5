@@ -1,4 +1,4 @@
-import { BP, Vec3d } from '../../Constants';
+import { BP } from '../../Constants';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
 import { MathUtils } from '../../Math';
@@ -110,7 +110,7 @@ class PathRotations {
         const p1 = path[Math.max(0, Math.min(path.length - 1, idx))];
         const p2 = path[Math.max(0, Math.min(path.length - 1, idx + 1))];
         if (!p2 || frac <= 0) return p1;
-        return new Vec3d(p1.x + (p2.x - p1.x) * frac, p1.y + (p2.y - p1.y) * frac, p1.z + (p2.z - p1.z) * frac);
+        return { x: p1.x + (p2.x - p1.x) * frac, y: p1.y + (p2.y - p1.y) * frac, z: p1.z + (p2.z - p1.z) * frac };
     }
 
     getDistSq(a, b) {
@@ -222,7 +222,8 @@ class PathRotations {
     updateLookPoint() {
         const player = Player.getPlayer();
         if (!player || !this.lookPoints) return;
-        const playerEyes = player.getEyePos();
+        const eyePos = player.getEyePosition();
+        const playerEyes = { x: eyePos.x(), y: eyePos.y(), z: eyePos.z() };
         const projection = this.updatePathPosition(this.lookPoints, this.currentPathPosition, playerEyes, 1, 10);
         const distToPath = Math.sqrt(projection.minDistSq);
         if (projection.position > this.currentPathPosition + 0.05 || distToPath > 1.5) {
@@ -334,8 +335,8 @@ class PathRotations {
         this.currentPathPosition = 0.0;
         this.complete = false;
         this.cachedVisible = { t: null, point: null, time: 0 };
-        this.currentYaw = MathUtils.wrapTo180(player.getYaw());
-        this.currentPitch = player.getPitch();
+        this.currentYaw = MathUtils.wrapTo180(player.getYRot());
+        this.currentPitch = player.getXRot();
         this.rawTargetYaw = this.currentYaw;
         this.rawTargetPitch = this.currentPitch;
         this.yawVelocity = 0;

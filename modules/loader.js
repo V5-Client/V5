@@ -35,7 +35,6 @@ import './visuals/MusicOverlay';
 import './visuals/ProfileHider';
 import './visuals/RatESP';
 import './visuals/StructureESP';
-import './visuals/Xray';
 
 /* SKILLS */
 import './skills/AutoExperiments';

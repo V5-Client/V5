@@ -312,7 +312,7 @@ class Combat extends ModuleBase {
             const mcItem = item?.toMC ? item.toMC() : item;
             if (!mcItem) return false;
 
-            const profileType = net.minecraft.component.DataComponentTypes.PROFILE;
+            const profileType = net.minecraft.core.component.DataComponents.PROFILE;
             const profileComponent = mcItem.get(profileType);
             const profileString = profileComponent?.getGameProfile?.()?.toString() || '';
             if (!profileString) return false;

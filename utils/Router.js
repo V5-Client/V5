@@ -49,7 +49,7 @@ class Routes {
      * @returns all files in that directory
      */
     getFilesInDir(folder) {
-        let mcDir = new File(Client.getMinecraft().runDirectory);
+        let mcDir = new File(Client.getMinecraft().gameDirectory);
         let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5Config/' + folder);
 
         if (!configPath.exists() || !configPath.isDirectory()) {

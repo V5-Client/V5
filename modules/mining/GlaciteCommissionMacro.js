@@ -146,7 +146,6 @@ class GlaciteCommissionMacro extends ModuleBase {
         this.cancelNpcRotation();
         this.stopTunnelMiner();
         Pathfinder.resetPath(true);
-        Keybind.setKey('rightclick', false);
     }
 
     delayedReset(delay) {

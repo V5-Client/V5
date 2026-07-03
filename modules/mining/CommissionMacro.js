@@ -291,7 +291,6 @@ class CommissionMacro extends ModuleBase {
         CombatBot.clearExternalTargets();
         CombatBot.toggle(false);
         Pathfinder.resetPath(true);
-        Keybind.setKey('rightclick', false);
     }
 
     delayedReset(delay) {

@@ -1,6 +1,6 @@
 export const SharedConstants = net.minecraft.SharedConstants;
-export const MinecraftClient = net.minecraft.client.MinecraftClient;
-export const MCHand = net.minecraft.util.Hand;
+export const MinecraftClient = net.minecraft.client.Minecraft;
+export const MCHand = net.minecraft.world.InteractionHand;
 
 export const CLIENT_VERSION = '1.0.0';
 
@@ -48,32 +48,29 @@ export const FFMPEG_URLS = {
     MAC_BINARY: 'https://evermeet.cx/ffmpeg/ffmpeg-8.0.1',
 };
 
-export const BP = net.minecraft.util.math.BlockPos;
-export const Vec3d = net.minecraft.util.math.Vec3d;
-export const Direction = net.minecraft.util.math.Direction;
-export const BlockHitResult = net.minecraft.util.hit.BlockHitResult;
-export const VoxelShapes = net.minecraft.util.shape.VoxelShapes;
-export const Blocks = net.minecraft.block.Blocks;
-export const BlockStone = net.minecraft.block.BlockStone;
-export const BlockOre = net.minecraft.block.BlockOre;
-export const BlockRedstoneOre = net.minecraft.block.BlockRedstoneOre;
-export const SnowBlock = net.minecraft.block.SnowBlock;
-export const StainedGlassPaneBlock = net.minecraft.block.StainedGlassPaneBlock;
-export const ArmorStandEntity = net.minecraft.entity.decoration.ArmorStandEntity;
-export const ZombieEntity = net.minecraft.entity.mob.ZombieEntity;
-export const EndermanEntity = net.minecraft.entity.mob.EndermanEntity;
-export const BatEntity = net.minecraft.entity.passive.BatEntity;
+export const BP = net.minecraft.core.BlockPos;
+export const Vec3d = net.minecraft.world.phys.Vec3;
+export const Direction = net.minecraft.core.Direction;
+export const BlockHitResult = net.minecraft.world.phys.BlockHitResult;
+export const VoxelShapes = net.minecraft.world.phys.shapes.Shapes;
+export const Blocks = net.minecraft.world.level.block.Blocks;
+export const SnowBlock = net.minecraft.world.level.block.SnowLayerBlock;
+export const StainedGlassPaneBlock = net.minecraft.world.level.block.StainedGlassPaneBlock;
+export const ArmorStandEntity = net.minecraft.world.entity.decoration.ArmorStand;
+export const ZombieEntity = net.minecraft.world.entity.monster.zombie.Zombie;
+export const EndermanEntity = net.minecraft.world.entity.monster.EnderMan;
+export const BatEntity = net.minecraft.world.entity.ambient.Bat;
 export const PortalParticle = net.minecraft.client.particle.PortalParticle; // pls rename to the correct name idk what it is
 
-export const MinecraftText = net.minecraft.text.Text;
-export const Formatting = net.minecraft.util.Formatting;
-export const SoundCategory = net.minecraft.sound.SoundCategory;
-export const Identifier = net.minecraft.util.Identifier;
-export const SoundEvent = net.minecraft.sound.SoundEvent;
-export const NativeImage = net.minecraft.client.texture.NativeImage;
+export const MinecraftText = net.minecraft.network.chat.Component;
+export const Formatting = net.minecraft.ChatFormatting;
+export const SoundCategory = net.minecraft.sounds.SoundSource;
+export const Identifier = net.minecraft.resources.Identifier;
+export const SoundEvent = net.minecraft.sounds.SoundEvent;
+export const NativeImage = com.mojang.blaze3d.platform.NativeImage;
 export const Transferable = java.awt.datatransfer.Transferable;
 export const Consumer = java.util.function.Consumer;
-export const ScreenshotRecorder = net.minecraft.client.util.ScreenshotRecorder;
+export const ScreenshotRecorder = net.minecraft.client.Screenshot;
 
 export const ImageIO = Java.type('javax.imageio.ImageIO');
 export const BufferedImage = Java.type('java.awt.image.BufferedImage');

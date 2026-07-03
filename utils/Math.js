@@ -41,7 +41,7 @@ class DistanceCalculator {
         }
         const vec = Utils.convertToVector(input);
         if (!vec) return null;
-        return new Point3D(vec.x ?? vec.getX(), vec.y ?? vec.getY(), vec.z ?? vec.getZ());
+        return new Point3D(vec.x(), vec.y(), vec.z());
     }
 
     getPlayerPos() {
@@ -50,9 +50,9 @@ class DistanceCalculator {
     }
 
     getPlayerEyes() {
-        const eyePos = Player.getPlayer()?.getEyePos();
+        const eyePos = Player.getPlayer()?.getEyePosition();
         if (!eyePos) return null;
-        return new Point3D(eyePos.x, eyePos.y, eyePos.z);
+        return new Point3D(eyePos.x(), eyePos.y(), eyePos.z());
     }
 
     computeDistance(p1, p2) {
@@ -83,12 +83,12 @@ class AngleCalculator {
 
     calculateRelativeAngles(targetVec) {
         if (!targetVec) return { yaw: 0, pitch: 0 };
-        const eyes = Player.getPlayer()?.getEyePos();
+        const eyes = Player.getPlayer()?.getEyePosition();
         if (!eyes) return { yaw: 0, pitch: 0 };
 
-        const dx = targetVec.x - eyes.x;
-        const dy = targetVec.y - eyes.y;
-        const dz = targetVec.z - eyes.z;
+        const dx = targetVec.x - eyes.x();
+        const dy = targetVec.y - eyes.y();
+        const dz = targetVec.z - eyes.z();
 
         const horizontalDist = Math.hypot(dx, dz);
 
@@ -103,12 +103,12 @@ class AngleCalculator {
 
     calculateAbsoluteAngles(targetVec) {
         if (!targetVec) return { yaw: 0, pitch: 0 };
-        const eyes = Player.getPlayer()?.getEyePos();
+        const eyes = Player.getPlayer()?.getEyePosition();
         if (!eyes) return { yaw: 0, pitch: 0 };
 
-        const dx = targetVec.x - eyes.x;
-        const dy = targetVec.y - eyes.y;
-        const dz = targetVec.z - eyes.z;
+        const dx = targetVec.x - eyes.x();
+        const dy = targetVec.y - eyes.y();
+        const dz = targetVec.z - eyes.z();
 
         const horizontalDist = Math.hypot(dx, dz);
 

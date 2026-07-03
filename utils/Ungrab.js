@@ -20,11 +20,12 @@ class UngrabManager {
         Mixin.set('inputLocked', true);
 
         const mc = Client.getMinecraft();
-        if (mc.mouse) {
-            mc.mouse.unlockCursor();
+        if (mc.mouseHandler) {
+            mc.mouseHandler.releaseMouse();
 
             if (isLinux) {
-                GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+                // Todo: fix broken due to 26.1
+                //GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
             }
         }
     }
@@ -39,9 +40,10 @@ class UngrabManager {
         Mixin.set('inputLocked', false);
 
         const mc = Client.getMinecraft();
-        if (mc.currentScreen == null) {
-            mc.mouse.lockCursor();
-            GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        if (mc.screen == null) {
+            mc.mouseHandler.grabMouse();
+            // Todo: fix broken due to 26.1
+            //GLFW.glfwSetInputMode(mc.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
         }
     }
 }

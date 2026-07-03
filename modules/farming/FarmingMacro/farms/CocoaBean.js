@@ -1,5 +1,6 @@
 import FarmHandler from '../FarmHandler';
 import { CROP_TOOLS } from '../constants';
+import { MathUtils } from '../../../../utils/Math';
 import { Keybind } from '../../../../utils/player/Keybinding';
 import { Rotations } from '../../../../utils/player/Rotations';
 import { Utils } from '../../../../utils/Utils';
@@ -30,7 +31,7 @@ export default class CocoaBean extends FarmHandler {
                 break;
 
             case states.DECIDEROTATION:
-                const currentYaw = ((Player.getPlayer().getYaw() % 360) + 360) % 360;
+                const currentYaw = ((MathUtils.wrapTo180(Player.getPlayer().getYRot()) % 360) + 360) % 360;
                 let allowedYaws = macro.farmAxis === 'X' ? [90, 270] : [0, 180];
 
                 let closestYaw = allowedYaws.reduce((prev, curr) => {
@@ -97,10 +98,10 @@ export default class CocoaBean extends FarmHandler {
                         macro.decidePrompted = true;
                     }
 
-                    if (Client.getMinecraft().options.forwardKey.isPressed()) {
+                    if (Client.getMinecraft().options.keyUp.isDown()) {
                         macro.movementKey = 'w';
                         macro.decidePrompted = false;
-                    } else if (Client.getMinecraft().options.backKey.isPressed()) {
+                    } else if (Client.getMinecraft().options.keyDown.isDown()) {
                         macro.movementKey = 's';
                         macro.decidePrompted = false;
                     } else {
@@ -162,7 +163,7 @@ export default class CocoaBean extends FarmHandler {
     isMatureCocoa(block) {
         if (!block || !block.type.getRegistryName().includes('cocoa')) return false;
         try {
-            return block.getState().get(net.minecraft.state.property.Properties.AGE_2) === 2;
+            return block.getState().get(net.minecraft.world.level.block.state.properties.BlockStateProperties.AGE_2) === 2;
         } catch (e) {
             return false;
         }
@@ -170,7 +171,7 @@ export default class CocoaBean extends FarmHandler {
 
     getRelativePos(xRel, yRel, zRel) {
         const player = Player.getPlayer();
-        const liveYaw = ((player.getYaw() % 360) + 360) % 360;
+        const liveYaw = ((MathUtils.wrapTo180(player.getYRot()) % 360) + 360) % 360;
         let allowedYaws = [0, 90, 180, 270];
         let snappedYaw = allowedYaws.reduce((prev, curr) => {
             let diffCurr = Math.abs(curr - liveYaw);
