@@ -109,7 +109,7 @@ jobs:
 
                   (
                     cd "$source_dir"
-                    zip -qr "$GITHUB_WORKSPACE/V5-Release.zip" .
+                    zip -qr "$GITHUB_WORKSPACE/V5-Mojmap.zip" .
                   )
             - name: Upload Release zip to R2
               if: ${{ endsWith(github.repository, '/V5') && github.ref == 'refs/heads/main' }}
@@ -117,7 +117,7 @@ jobs:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
               run: |
-                  wrangler r2 object put v5-builds/V5-Release.zip --file V5-Release.zip --remote
+                  wrangler r2 object put v5-builds/V5-Mojmap.zip --file V5-Mojmap.zip --remote
 
             - name: Send to Discord
               env:
