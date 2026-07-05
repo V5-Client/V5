@@ -328,7 +328,9 @@ class PeltMacro extends ModuleBase {
 
     findPeltMob() {
         for (const entity of World.getAllEntities()) {
-            if (!PELT_NAMES.has(entity.getName()) || entity.isDead() || !PELT_HP.has(entity.getMaxHP())) continue;
+            if (!PELT_NAMES.has(entity.getName()) || entity.isDead()) continue;
+            const maxHp = entity.getMaxHP();
+            if (!PELT_HP.has(maxHp) && !(maxHp % 2 === 0 && PELT_HP.has(maxHp / 2))) continue;
             return entity;
         }
         return null;
