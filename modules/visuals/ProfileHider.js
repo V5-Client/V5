@@ -38,6 +38,7 @@ class ProfileHider extends ModuleBase {
 
                     return Text.literal(nameText).styled((s) => s.withColor(colorInt));
                 } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
                     return Text.literal(rawCustomInput);
                 }
             }
@@ -89,6 +90,7 @@ class ProfileHider extends ModuleBase {
             const saved = Utils.getConfigFile('AuthCache/do_not_share_this_file')?.username;
             if (saved) return saved;
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             console.error('Failed to load saved username');
         }
         return null;

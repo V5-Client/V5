@@ -176,6 +176,7 @@ class ClippingManager extends ModuleBase {
                         }
                     } catch (e) {
                         this.isRecording = false;
+                        console.error('V5 Caught error' + e + e.stack);
                     }
                 });
             } catch (e) {

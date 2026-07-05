@@ -403,6 +403,7 @@ class Combat extends ModuleBase {
             const rad = (yaw * Math.PI) / 180;
             return { x: -Math.sin(rad), z: Math.cos(rad) };
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return { x: 0, z: 1 };
         }
     }

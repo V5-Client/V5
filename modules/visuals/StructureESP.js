@@ -51,7 +51,9 @@ class StructureESP extends ModuleBase {
             for (let i = 0; i + 2 < blocks.length; i += 3) {
                 RenderUtils.drawFilledBox(new Vec3d(blocks[i], blocks[i + 1], blocks[i + 2]), new RenderColor(0, 255, 200, 100), false);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 }
 

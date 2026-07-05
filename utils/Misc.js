@@ -54,6 +54,7 @@ v5Command(
             // TODO: resolve fullClassPath callers explicitly if dynamic packet loading needs Mojmap-specific handling.
             loadedClass = Java.type(fullClassPath);
         } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
             return Chat.message('Packet not found');
         }
 

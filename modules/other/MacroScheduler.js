@@ -419,7 +419,9 @@ class MacroScheduler extends ModuleBase {
                     const resolved = typeof value === 'function' ? value() : value;
                     if (resolved === undefined || resolved === null || String(resolved).trim() === '') return;
                     lines.push(`${key}: ${resolved}`);
-                } catch (e) {}
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
             });
         });
 
