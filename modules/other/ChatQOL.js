@@ -66,7 +66,7 @@ class ChatQOL extends ModuleBase {
 
                 const newText = event.message.copy().append(McText.literal(` §7(x${this.lastCounter})`));
                 const chatHud = Client.getMinecraft().gui.getChat();
-                chatHud.addMessage(newText);
+                chatHud.addClientSystemMessage(newText);
                 return;
             }
 
