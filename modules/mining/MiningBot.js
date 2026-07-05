@@ -130,8 +130,6 @@ class Bot extends ModuleBase {
             candidateCheapCost: null,
             candidateBlockName: null,
         };
-        this._visibilitySampleEye = { x: 0, y: 0, z: 0 };
-
         this.initCosts();
         this.bindToggleKey();
         this.initEventHandlers();
@@ -1303,16 +1301,13 @@ class Bot extends ModuleBase {
 
     calculateVisibilityStability(x, y, z, eyePos, maxReachSq, confirmedVisibleSamples = 0) {
         let visibleSamples = confirmedVisibleSamples;
-        const sampleEye = this._visibilitySampleEye;
         const eyeX = typeof eyePos?.x === 'function' ? eyePos.x() : eyePos?.x;
         const eyeY = typeof eyePos?.y === 'function' ? eyePos.y() : eyePos?.y;
         const eyeZ = typeof eyePos?.z === 'function' ? eyePos.z() : eyePos?.z;
         if (![eyeX, eyeY, eyeZ].every(Number.isFinite)) return visibleSamples / VISIBILITY_SAMPLE_COUNT;
-        sampleEye.y = eyeY;
 
         for (let i = confirmedVisibleSamples > 0 ? 3 : 0; i < VISIBILITY_OFFSETS.length; i += 3) {
-            sampleEye.x = eyeX + VISIBILITY_OFFSETS[i];
-            sampleEye.z = eyeZ + VISIBILITY_OFFSETS[i + 2];
+            const sampleEye = new Vec3d(eyeX + VISIBILITY_OFFSETS[i], eyeY, eyeZ + VISIBILITY_OFFSETS[i + 2]);
 
             if (this.findVisibleAimPoint(x, y, z, sampleEye, null, maxReachSq, false)) {
                 visibleSamples++;

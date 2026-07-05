@@ -25,13 +25,13 @@ class RotationFailsafe extends Failsafe {
             const currPitch = Player.getPitch();
 
             const pos = packet.change().position();
-            const newX = pos.x;
-            const newY = pos.y;
-            const newZ = pos.z;
+            const newX = Number(pos.x());
+            const newY = Number(pos.y());
+            const newZ = Number(pos.z());
 
             const change = packet.change();
-            const newYaw = change.yRot();
-            const newPitch = change.xRot();
+            const newYaw = Number(change.yRot());
+            const newPitch = Number(change.xRot());
 
             const dx = Math.abs(newX - fromX);
             const dy = Math.abs(newY - fromY);

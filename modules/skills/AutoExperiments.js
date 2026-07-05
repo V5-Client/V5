@@ -221,7 +221,7 @@ class AutoExperiments extends ModuleBase {
                 const item = items[i];
                 if (item) {
                     const mc = item.toMC();
-                    if (mc && mc.hasGlint()) {
+                    if (mc && mc.hasFoil()) {
                         this.chronomatronOrder.push(i);
                         break;
                     }

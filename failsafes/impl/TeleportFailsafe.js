@@ -135,9 +135,9 @@ class TeleportFailsafe extends Failsafe {
             const change = packet.change();
             const pos = change.position();
 
-            const newX = pos.x;
-            const newY = pos.y;
-            const newZ = pos.z;
+            const newX = Number(pos.x());
+            const newY = Number(pos.y());
+            const newZ = Number(pos.z());
 
             const dx = newX - fromX;
             const dy = newY - fromY;
@@ -147,8 +147,8 @@ class TeleportFailsafe extends Failsafe {
 
             const data = {
                 distance,
-                yaw: change.yRot(),
-                pitch: change.xRot(),
+                yaw: Number(change.yRot()),
+                pitch: Number(change.xRot()),
                 currYaw: Player.getYaw(),
                 currPitch: Player.getPitch(),
                 lastRightClickTime,
