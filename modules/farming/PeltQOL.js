@@ -134,7 +134,11 @@ class PeltQOL extends ModuleBase {
 
     scan() {
         if (!this.enabled || Utils.area() !== 'The Farming Islands' || this.huntCompleted) return (this.animals = []);
-        this.animals = World.getAllEntities().filter((e) => NAMES.has(e.getName()) && !e.isDead() && HP.has(e.getMaxHP()));
+        this.animals = World.getAllEntities().filter((e) => {
+            if (!NAMES.has(e.getName()) || e.isDead()) return false;
+            const maxHp = e.getMaxHP();
+            return HP.has(maxHp) || (maxHp % 2 === 0 && HP.has(maxHp / 2));
+        });
     }
 
     render() {
