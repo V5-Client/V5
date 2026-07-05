@@ -173,7 +173,7 @@ class CollisionChecker {
             if (!player) return false;
 
             let bbox = player.getBoundingBox();
-            let expanded = bbox.expand(0.01, 0, 0.01);
+            let expanded = bbox.inflate(0.01, 0, 0.01);
 
             let xMin = Math.floor(expanded.minX);
             let yMin = Math.floor(expanded.minY);
@@ -286,7 +286,7 @@ class UtilsClass {
 
         const playerBox = player.getBoundingBox();
         // Use a small epsilon to avoid "ghost" collisions with adjacent blocks
-        const expandedBox = playerBox.expand(0.01, 0, 0.01);
+        const expandedBox = playerBox.inflate(0.01, 0, 0.01);
 
         let minX = Math.floor(expandedBox.minX);
         let minY = Math.floor(expandedBox.minY);
@@ -337,7 +337,7 @@ class UtilsClass {
         if (!player || !mcWorld) return { front: false, back: false, left: false, right: false };
 
         const playerBox = player.getBoundingBox();
-        const expandedBox = playerBox.expand(0.01, 0.01, 0.01);
+        const expandedBox = playerBox.inflate(0.01, 0.01, 0.01);
 
         let yaw = ((player.getYRot() % 360) + 360) % 360;
         const collisionSides = { NORTH: false, SOUTH: false, WEST: false, EAST: false };
