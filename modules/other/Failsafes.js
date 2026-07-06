@@ -39,15 +39,7 @@ class Failsafes extends ModuleBase {
             const lowerText = fullText?.toLowerCase();
 
             if (this.isBanReason(lowerText)) {
-                const lastMacros = MacroState.getLastActiveMacros();
-                const lastMacro = lastMacros.join(', ') || 'None';
-
-                const lastMacroMeta = MacroState.getLastDisableMeta(lastMacros[0]);
-                const lastDisableTimestamp = lastMacroMeta?.timestamp;
-                const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
-                const currentlyMacroing = MacroState.isMacroRunning() || within5Minutes;
-
-                this.postBanLog(fullText, lastMacro, currentlyMacroing);
+                this.postBanLog(fullText);
 
                 if (this.clipOnBan) {
                     //Client.scheduleTask(40, () => Clipping.saveClip());
@@ -150,7 +142,7 @@ class Failsafes extends ModuleBase {
         return text.includes('banned') || text.includes('cheating') || text.includes('boosting') || text.includes('security');
     }
 
-    postBanLog(reason, lastMacro, currentlyMacroing) {
+    postBanLog(reason) {
         const now = Date.now();
         if (now - this.lastBanLogTime < 60000) return;
         this.lastBanLogTime = now;
@@ -162,8 +154,6 @@ class Failsafes extends ModuleBase {
                     console.error('Skipping ban log: no fresh auth token available.');
                     return;
                 }
-                const configContents = this.getConfigFileContents();
-                const installedMods = new File('./mods').listFiles().join('\n');
                 const url = new JURL('https://backend.rdbt.top/api/logs/bans');
                 const conn = url.openConnection();
                 conn.setRequestMethod('POST');
@@ -171,14 +161,19 @@ class Failsafes extends ModuleBase {
                 conn.setRequestProperty('Authorization', `Bearer ${jwt}`);
                 conn.setRequestProperty('Content-Type', 'application/json; charset=UTF-8');
 
+                const lastMacros = MacroState.getLastActiveMacros();
+                const lastMacroMeta = MacroState.getLastDisableMeta(lastMacros[0]);
+                const lastDisableTimestamp = lastMacroMeta?.timestamp;
+                const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
+
                 const body = JSON.stringify({
                     reason: reason,
-                    lastMacro: lastMacro,
-                    currentlyMacroing: currentlyMacroing,
+                    lastMacro: lastMacros.join(', ') || 'None',
+                    currentlyMacroing: MacroState.isMacroRunning() || within5Minutes,
                     macroRuntime: MacroState.isMacroRunning() ? TimeUtils.formatUptime(MacroState.getStartTime()) : null,
                     ingame_username: Player?.getName?.() || 'unknown',
-                    config_contents: configContents,
-                    installed_mods: installedMods,
+                    config_contents: this.getConfigFileContents(),
+                    installed_mods: new File('./mods').listFiles().join('\n'),
                 });
 
                 const wr = new JOutputStreamWriter(conn.getOutputStream());
