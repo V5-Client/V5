@@ -26,9 +26,10 @@ class FlowstateUtilsClass {
         });
 
         register('packetReceived', (packet) => {
-            if (Player.getHeldItem() === null) return;
+            const heldItem = Player.getHeldItem();
+            if (!heldItem) return;
 
-            let lore = Player.getHeldItem()
+            let lore = heldItem
                 .getLore()
                 .map((l) => ChatLib.removeFormatting(l))
                 .join(' ');
