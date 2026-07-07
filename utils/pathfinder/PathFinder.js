@@ -815,7 +815,7 @@ class Finder {
         if (this.hasReachedWarpPoint) return true;
 
         const dist = MathUtils.getDistanceToPlayer(point[0], point[1], point[2]);
-        if (dist.distance <= 5) {
+        if (dist.distance <= 9) {
             this.hasReachedWarpPoint = true;
             return true;
         }
