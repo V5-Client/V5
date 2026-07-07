@@ -41,7 +41,7 @@ export const getPlayerLookVec = () => {
     const player = Player.getPlayer();
     if (!player) return null;
 
-    const lookVec = player.getRotationVec(1.0); // tickDelta = 1.0 is standard
+    const lookVec = player.getViewVector(1.0); // tickDelta = 1.0 is standard
     return new Vector3(lookVec.x(), lookVec.y(), lookVec.z());
 };
 

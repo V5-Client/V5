@@ -409,11 +409,12 @@ class MineTimeCalculations {
             return this.clamp(100);
         }
 
-        const x = position.x ?? (typeof position.getX === 'function' ? position.getX() : null);
-        const y = position.y ?? (typeof position.getY === 'function' ? position.getY() : null);
-        const z = position.z ?? (typeof position.getZ === 'function' ? position.getZ() : null);
+        const vec = Utils.convertToVector(position);
+        const x = vec?.x();
+        const y = vec?.y();
+        const z = vec?.z();
 
-        if (x === null || y === null || z === null) {
+        if (x == null || y == null || z == null) {
             return this.clamp(100);
         }
 
@@ -995,11 +996,12 @@ class BlockUtils {
     static setToAir(pos) {
         if (!pos) return;
         try {
-            const x = pos.x ?? (typeof pos.getX === 'function' ? pos.getX() : null);
-            const y = pos.y ?? (typeof pos.getY === 'function' ? pos.getY() : null);
-            const z = pos.z ?? (typeof pos.getZ === 'function' ? pos.getZ() : null);
+            const vec = Utils.convertToVector(pos);
+            const x = vec?.x();
+            const y = vec?.y();
+            const z = vec?.z();
 
-            if (x === null || y === null || z === null) return;
+            if (x == null || y == null || z == null) return;
 
             let blockPos = new BP(x, y, z);
             Client.getMinecraft().level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());

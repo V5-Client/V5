@@ -448,9 +448,9 @@ class PeltMacro extends ModuleBase {
         if (!player || !world) return null;
         let eyePos = null;
         try {
-            const nativeEye = player.getEyePos?.();
-            if (nativeEye && [nativeEye.x, nativeEye.y, nativeEye.z].every(Number.isFinite)) {
-                eyePos = new Vec3d(nativeEye.x, nativeEye.y, nativeEye.z);
+            const nativeEye = player.getEyePosition?.();
+            if (nativeEye && [nativeEye.x(), nativeEye.y(), nativeEye.z()].every(Number.isFinite)) {
+                eyePos = new Vec3d(nativeEye.x(), nativeEye.y(), nativeEye.z());
             }
         } catch (e) {
             eyePos = null;

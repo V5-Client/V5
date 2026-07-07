@@ -94,16 +94,16 @@ class Scanner {
                         if (!this.enabled) return;
                         const world = Client.getMinecraft().level;
                         const chunk = world?.getChunk(cx, cz);
-                        if (!world || !chunk || chunk.isEmpty()) return;
+                        if (!world || !chunk) return;
 
                         const found = [];
-                        const sections = chunk.getSectionArray();
+                        const sections = chunk.getSections();
                         if (!sections) return;
                         const minY = world.getMinY();
 
                         for (let sIndex = 0; sIndex < sections.length; sIndex++) {
                             const section = sections[sIndex];
-                            if (!section || section.isEmpty()) continue;
+                            if (!section || section.hasOnlyAir()) continue;
 
                             for (let y = 0; y < 16; y++) {
                                 for (let x = 0; x < 16; x++) {
@@ -118,7 +118,7 @@ class Scanner {
                                         if (!state || state.isAir()) continue;
 
                                         const block = state.getBlock ? state.getBlock() : null;
-                                        const name = block && block.getTranslationKey ? String(block.getTranslationKey()).toLowerCase() : '';
+                                        const name = block && block.getDescriptionId ? String(block.getDescriptionId()).toLowerCase() : '';
                                         if (!name) continue;
                                         if (this.targets.some((t) => name.includes(t))) {
                                             found.push({ x: wx, y: wy, z: wz });
@@ -128,7 +128,7 @@ class Scanner {
                             }
                         }
 
-                        const key = ChunkPos.toLong(cx, cz);
+                        const key = ChunkPos.pack(cx, cz);
                         if (!this.enabled) return;
                         this.lock.lock();
                         try {
@@ -158,11 +158,11 @@ class Scanner {
 
                         const state = world.getBlockState(new BP(bx, by, bz));
                         const block = state && state.getBlock ? state.getBlock() : null;
-                        const name = block && block.getTranslationKey ? String(block.getTranslationKey()).toLowerCase() : '';
+                        const name = block && block.getDescriptionId ? String(block.getDescriptionId()).toLowerCase() : '';
                         if (!name) return;
                         const isTarget = this.targets.some((t) => name.includes(t));
 
-                        const key = ChunkPos.toLong(bx >> 4, bz >> 4);
+                        const key = ChunkPos.pack(bx >> 4, bz >> 4);
 
                         if (!this.enabled) return;
                         this.lock.lock();
