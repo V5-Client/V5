@@ -306,6 +306,26 @@ class OverlayUtils {
         return this.setTrackedValue(idName, key, current + amount);
     }
 
+    getSessionSnapshot(idName) {
+        const overlay = this.ids.find((id) => id.name === idName);
+        const sections = (overlay?.sections || []).map((section) => {
+            const data = {};
+            Object.entries(section.data || {}).forEach(([key, value]) => {
+                data[key] = typeof value === 'function' ? value() : value;
+            });
+
+            return {
+                title: section.title,
+                data,
+            };
+        });
+
+        return {
+            trackedValues: { ...this.resolveTrackedValues(idName) },
+            sections,
+        };
+    }
+
     getSessionElapsedMs(idName) {
         const startedAt = this.startTimes[idName];
         if (startedAt !== undefined) {

@@ -77,6 +77,7 @@ const manifest = {
         'OverlayPositions/music_overlay.json': {},
         'webhook.json': {},
         'miningstats.json': {},
+        'module_history.json': { version: 1, sessions: [] },
         'GemstoneRoutes/empty.json': {},
         'RoutewalkerRoutes/empty.json': {},
         'TunnelMinerRoutes/empty.json': {},
