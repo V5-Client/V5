@@ -111,126 +111,104 @@ export const Categories = {
         return null;
     },
 
-    addToggle(categoryName, itemName, toggleTitle, callback = null, description = null, defaultValue = false) {
+    addComponent(categoryName, itemName, component, description) {
         const item = Categories.findItem(categoryName, itemName);
         if (!item) return null;
 
-        const toggle = new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback, defaultValue);
-        toggle.description = description;
-        item.components.push(toggle);
-        return toggle;
+        if (description !== undefined) component.description = description;
+        item.components.push(component);
+        return component;
+    },
+
+    addToggle(categoryName, itemName, toggleTitle, callback = null, description = null, defaultValue = false) {
+        return Categories.addComponent(categoryName, itemName, new ToggleButton(toggleTitle, 0, 0, undefined, undefined, callback, defaultValue), description);
     },
 
     addSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback);
-        slider.description = description;
-        item.components.push(slider);
-        return slider;
+        return Categories.addComponent(
+            categoryName,
+            itemName,
+            new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback),
+            description
+        );
     },
 
     addRangeSlider(categoryName, itemName, sliderTitle, min, max, defaultValue, callback = null, description = null) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const slider = new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback, true);
-        slider.description = description;
-        item.components.push(slider);
-        return slider;
+        return Categories.addComponent(
+            categoryName,
+            itemName,
+            new Slider(sliderTitle, min, max, 0, 0, undefined, undefined, defaultValue, callback, true),
+            description
+        );
     },
 
     addTextInput(categoryName, itemName, title, defaultValue, callback = null, description = null) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
-        input.description = description;
-        item.components.push(input);
-        return input;
+        return Categories.addComponent(categoryName, itemName, new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback), description);
     },
 
     addButton(categoryName, itemName, title, callback = null, description = null) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const button = new Button(title, 0, 0, undefined, callback);
-        button.description = description;
-        item.components.push(button);
-        return button;
+        return Categories.addComponent(categoryName, itemName, new Button(title, 0, 0, undefined, callback), description);
     },
 
     addPopup(categoryName, itemName, title, callback = null, description = null) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const popup = new Popup(title, 0, 0, undefined, undefined, callback);
-        popup.description = description;
-        item.components.push(popup);
-        return popup;
+        return Categories.addComponent(categoryName, itemName, new Popup(title, 0, 0, undefined, undefined, callback), description);
     },
 
     addMultiToggle(categoryName, itemName, toggleTitle, options, singleSelect = false, callback = null, description = null, defaultValue = false) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const multiToggle = new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback, defaultValue);
-        multiToggle.description = description;
-        item.components.push(multiToggle);
-        return multiToggle;
+        return Categories.addComponent(categoryName, itemName, new MultiToggle(toggleTitle, 0, 0, options, singleSelect, callback, defaultValue), description);
     },
 
     addColorPicker(categoryName, itemName, pickerTitle, defaultColor, callback = null, description = null) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const picker = new ColorPicker(pickerTitle, 0, 0, defaultColor, callback);
-        picker.description = description;
-        item.components.push(picker);
-        return picker;
+        return Categories.addComponent(categoryName, itemName, new ColorPicker(pickerTitle, 0, 0, defaultColor, callback), description);
     },
 
     addSeparator(categoryName, itemName, title, fullWidth = false) {
-        const item = Categories.findItem(categoryName, itemName);
-        if (!item) return null;
-
-        const separator = new Separator(title, fullWidth);
-        item.components.push(separator);
-        return separator;
+        return Categories.addComponent(categoryName, itemName, new Separator(title, fullWidth));
     },
 
-    addSettingsComponent(component, sectionName = null, categoryName = 'Settings') {
+    attachSettingsComponent(component, sectionName = null, categoryName = 'Settings', description) {
         const settingsCat = Categories.categories.find((c) => c.name === categoryName);
-        if (!settingsCat) return;
+        if (!settingsCat) return null;
 
         if (!settingsCat.directComponents) {
             settingsCat.directComponents = [];
         }
 
         component.sectionName = sectionName;
+        if (description !== undefined) component.description = description;
         settingsCat.directComponents.push(component);
+        return component;
+    },
+
+    addSettingsComponent(component, sectionName = null, categoryName = 'Settings') {
+        Categories.attachSettingsComponent(component, sectionName, categoryName);
     },
 
     addSettingsToggle(title, callback = null, description = null, defaultValue = false, sectionName = null, categoryName = 'Settings') {
-        const toggle = new ToggleButton(title, 0, 0, undefined, undefined, callback, defaultValue);
-        toggle.description = description;
-        Categories.addSettingsComponent(toggle, sectionName, categoryName);
-        return toggle;
+        return Categories.attachSettingsComponent(
+            new ToggleButton(title, 0, 0, undefined, undefined, callback, defaultValue),
+            sectionName,
+            categoryName,
+            description
+        );
     },
 
     addSettingsSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback);
-        slider.description = description;
-        Categories.addSettingsComponent(slider, sectionName, categoryName);
-        return slider;
+        return Categories.attachSettingsComponent(
+            new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback),
+            sectionName,
+            categoryName,
+            description
+        );
     },
 
     addSettingsRangeSlider(title, min, max, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        const slider = new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback, true);
-        slider.description = description;
-        Categories.addSettingsComponent(slider, sectionName, categoryName);
-        return slider;
+        return Categories.attachSettingsComponent(
+            new Slider(title, min, max, 0, 0, undefined, undefined, defaultValue, callback, true),
+            sectionName,
+            categoryName,
+            description
+        );
     },
 
     addSettingsMultiToggle(
@@ -243,44 +221,37 @@ export const Categories = {
         sectionName = null,
         categoryName = 'Settings'
     ) {
-        const multiToggle = new MultiToggle(title, 0, 0, options, singleSelect, callback, defaultValue);
-        multiToggle.description = description;
-        Categories.addSettingsComponent(multiToggle, sectionName, categoryName);
-        return multiToggle;
+        return Categories.attachSettingsComponent(
+            new MultiToggle(title, 0, 0, options, singleSelect, callback, defaultValue),
+            sectionName,
+            categoryName,
+            description
+        );
     },
 
     addSettingsColorPicker(title, defaultColor, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        const picker = new ColorPicker(title, 0, 0, defaultColor, callback);
-        picker.description = description;
-        Categories.addSettingsComponent(picker, sectionName, categoryName);
-        return picker;
+        return Categories.attachSettingsComponent(new ColorPicker(title, 0, 0, defaultColor, callback), sectionName, categoryName, description);
     },
 
     addSettingsTextInput(title, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        const input = new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback);
-        input.description = description;
-        Categories.addSettingsComponent(input, sectionName, categoryName);
-        return input;
+        return Categories.attachSettingsComponent(
+            new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback),
+            sectionName,
+            categoryName,
+            description
+        );
     },
 
     addSettingsButton(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        const button = new Button(title, 0, 0, undefined, callback);
-        button.description = description;
-        Categories.addSettingsComponent(button, sectionName, categoryName);
-        return button;
+        return Categories.attachSettingsComponent(new Button(title, 0, 0, undefined, callback), sectionName, categoryName, description);
     },
 
     addSettingsPopup(title, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
-        const popup = new Popup(title, 0, 0, undefined, undefined, callback);
-        popup.description = description;
-        Categories.addSettingsComponent(popup, sectionName, categoryName);
-        return popup;
+        return Categories.attachSettingsComponent(new Popup(title, 0, 0, undefined, undefined, callback), sectionName, categoryName, description);
     },
 
     addSettingsSeparator(title, categoryName = 'Settings') {
-        const separator = new Separator(title);
-        Categories.addSettingsComponent(separator, null, categoryName);
-        return separator;
+        return Categories.attachSettingsComponent(new Separator(title), null, categoryName);
     },
 
     getSettingsComponents(categoryName = 'Settings') {
