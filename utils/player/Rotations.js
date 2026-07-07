@@ -2,6 +2,8 @@ import { ModuleBase } from '../ModuleBase';
 import { RotationGCD } from './RotationGCD';
 import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
+import { Rotations as PathRotations } from '../pathfinder/PathWalker/PathRotations';
+import { FlyRotations } from '../pathfinder/PathFlyer/PathRotations';
 
 class RotationConfig extends ModuleBase {
     constructor() {
@@ -140,6 +142,8 @@ class RotationController {
     update() {
         if (!this.request) return;
         if (!this.refreshTarget()) return;
+
+        if (PathRotations.rotationActive || FlyRotations.rotationActive) return;
 
         const player = Player.getPlayer();
         if (!player || !this.targetAngles) {
