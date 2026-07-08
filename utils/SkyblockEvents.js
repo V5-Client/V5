@@ -22,36 +22,27 @@ const INCLUDE_CHECKS = {
     "can't fast travel while": 'incombat',
 };
 
-const triggerName = (name) => `v5skyblock${name.toLowerCase()}`;
-const events = [
-    ...new Set(
-        Object.keys(STARTSWITH_CHECKS)
-            .map((key) => STARTSWITH_CHECKS[key])
-            .concat(Object.keys(INCLUDE_CHECKS).map((key) => INCLUDE_CHECKS[key]))
-    ),
-];
-const triggers = {};
-for (const name of events) {
-    triggers[name] = createCustomTrigger(triggerName(name));
-}
-
-register('chat', (event) => {
+const getEventName = (event) => {
     const msg = event.message.getUnformattedText();
     const lower = msg.toLowerCase();
 
     for (const phrase in STARTSWITH_CHECKS) {
-        if (msg.startsWith(phrase)) return triggers[STARTSWITH_CHECKS[phrase]].trigger();
+        if (msg.startsWith(phrase)) return STARTSWITH_CHECKS[phrase];
     }
 
     for (const phrase in INCLUDE_CHECKS) {
-        if (lower.includes(phrase.toLowerCase())) return triggers[INCLUDE_CHECKS[phrase]].trigger();
+        if (lower.includes(phrase.toLowerCase())) return INCLUDE_CHECKS[phrase];
     }
-});
+
+    return null;
+};
 
 /**
  * @param {string} name
  * @param {function} callback
  */
-export const registerEventSB = (name, callback) => register(triggerName(name), callback);
+export const registerEventSB = (name, callback) => register('chat', (event) => {
+    if (getEventName(event) === name.toLowerCase()) callback(event);
+});
 
 export const manager = { subscribe: registerEventSB };
