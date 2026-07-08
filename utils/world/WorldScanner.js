@@ -1,10 +1,10 @@
 import { ClientboundBlockUpdatePacket, ClientboundLevelChunkWithLightPacket } from '../../utils/Packets';
+import { BP } from '../Constants';
 import { manager } from '../../utils/SkyblockEvents';
 
 const Long2ObjectOpenHashMap = Java.type('it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap');
 const ReentrantLock = Java.type('java.util.concurrent.locks.ReentrantLock');
 const ChunkPos = net.minecraft.world.level.ChunkPos;
-const BP = net.minecraft.core.BlockPos;
 const Runnable = java.lang.Runnable;
 
 class Scanner {
