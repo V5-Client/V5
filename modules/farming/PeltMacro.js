@@ -977,22 +977,22 @@ class PeltMacro extends ModuleBase {
         this.lastShotAt = 0;
         this.status = 'Restarting Hunt';
 
-        ScheduleTask(90, () => {
+        ScheduleTask(120, () => {
             if (!this.enabled || token !== this.restartToken) return;
             let area = Utils.area();
             if (area == 'unknown') {
                 ChatLib.command('play skyblock');
-                ScheduleTask(90, () => {
+                ScheduleTask(120, () => {
                     if (!this.enabled || token !== this.restartToken) return;
                     ChatLib.command('warp trapper');
-                    ScheduleTask(20, () => {
+                    ScheduleTask(30, () => {
                         if (!this.enabled || token !== this.restartToken) return;
                         PeltQOLModule.callTrevor();
                     });
                 });
             } else {
                 ChatLib.command('warp trapper');
-                ScheduleTask(20, () => {
+                ScheduleTask(30, () => {
                     if (!this.enabled || token !== this.restartToken) return;
 
                     PeltQOLModule.callTrevor();
