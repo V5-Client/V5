@@ -100,6 +100,7 @@ class NukerClass extends ModuleBase {
                 this.message('- /v5 nuker remove <index> - removes block by list index');
                 this.message('- /v5 nuker clear - clear all targets');
                 this.message('- /v5 nuker list - list all targets');
+                return;
             }
 
             if (Client.isInGui() && !Client.isInChat()) return;
