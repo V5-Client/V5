@@ -130,8 +130,8 @@ class LocationDetector {
 class ManaDetector {
     constructor() {
         this.currentMana = null;
-        this.manaPatternWithColors = /(?:\u00A7b)?([\d,]+)\/([\d,]+)\u270E\s*(?:Mana|(?:\u00A73)?([\d,]+)\u02AC)\s*/;
-        this.manaPattern = /([\d,]+)\/([\d,]+)\u270E\s*(?:Mana|([\d,]+)\u02AC)\s*/;
+        this.manaPatternWithColors = /(?:\u00A7b)?([\d,]+)\/([\d,]+)(?:\u270E|\uE003)\s*(?:Mana|(?:\u00A73)?([\d,]+)\u02AC)\s*/;
+        this.manaPattern = /([\d,]+)\/([\d,]+)(?:\u270E|\uE003)\s*(?:Mana|([\d,]+)\u02AC)\s*/;
 
         register('worldLoad', () => this.reset());
         register('packetReceived', (packet) => {
@@ -154,7 +154,7 @@ class ManaDetector {
         }
         if (!match) return;
 
-        this.currentMana = Number(match[1]);
+        this.currentMana = Number(match[1].replace(/,/g, ''));
     }
 
     getCurrentMana() {
