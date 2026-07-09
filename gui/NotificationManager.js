@@ -372,10 +372,8 @@ class NotificationManager {
         if (this.notifications.length === 0) return;
 
         try {
-            const window = Client.getMinecraft().getWindow();
-            const scale = window.getGuiScale();
-            const mouseX = Client.getMouseX() / scale;
-            const mouseY = Client.getMouseY() / scale;
+            const mouseX = Client.getMouseX();
+            const mouseY = Client.getMouseY();
 
             NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
             for (let i = this.notifications.length - 1; i >= 0; i--) {

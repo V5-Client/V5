@@ -71,10 +71,8 @@ GuiState.myGui.registerScrolled(handleScroll);
 
 NVG.registerV5Render(() => {
     if (GuiState.myGui.isOpen()) {
-        const window = Client.getMinecraft().getWindow();
-        const scale = window.getGuiScale();
-        const mouseX = Client.getMouseX() / scale;
-        const mouseY = Client.getMouseY() / scale;
+        const mouseX = Client.getMouseX();
+        const mouseY = Client.getMouseY();
         drawGUI(mouseX, mouseY);
     }
 });
