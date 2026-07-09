@@ -281,9 +281,9 @@ class Music extends ModuleBase {
 
     fetchWindowsData() {
         requestV2({
-            url: 'http://localhost:61942/',
+            url: 'http://127.0.0.1:61942/',
             method: 'GET',
-            timeout: 150,
+            timeout: 750,
             json: true,
         })
             .then((res) => {
@@ -292,10 +292,11 @@ class Music extends ModuleBase {
             })
             .catch((e) => {
                 // would only really happen if it wasn't running.
+                this.data = null;
+                if (this.checkWindowsProgram()) return;
                 const now = Date.now();
                 if (now - this.lastRestartAttempt < 2000) return;
                 this.lastRestartAttempt = now;
-                this.stopWindowsProgram();
                 this.runWindowsProgram();
             });
     }
