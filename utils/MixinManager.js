@@ -1,5 +1,6 @@
 const internalMixin = global.Mixin;
 const internalAt = global.At;
+const V5MixinStorage = Java.type('com.v5.storage.V5MixinStorage');
 
 class MixinStorage {
     constructor() {
@@ -21,28 +22,31 @@ class MixinStorage {
 
     set(key, value) {
         this._storage.put(key, value);
+        V5MixinStorage.set(key, value);
     }
 
     get(key, defaultValue = null) {
-        return this._storage.containsKey(key) ? this._storage.get(key) : defaultValue;
+        return V5MixinStorage.get(key, defaultValue);
     }
 
     setMethod(name, fn) {
         if (typeof fn !== 'function') return;
         this._storage.put(`method_${name}`, fn);
+        V5MixinStorage.set(`method_${name}`, fn);
     }
 
     getMethod(name) {
-        const fn = this._storage.get(`method_${name}`);
+        const fn = V5MixinStorage.get(`method_${name}`, null);
         return typeof fn === 'function' ? fn : (...args) => {};
     }
 
     exists(key) {
-        return this._storage.containsKey(key);
+        return V5MixinStorage.get(key, null) !== null;
     }
 
     delete(key) {
-        return this._storage.remove(key);
+        this._storage.remove(key);
+        V5MixinStorage.set(key, null);
     }
 
     clear() {
