@@ -42,7 +42,7 @@ class PeltQOL extends ModuleBase {
     constructor() {
         super({
             name: 'Pelt QOL',
-            subcategory: 'Farming',
+            subcategory: 'Other',
             description: 'Highlights Trevor hunt animals.',
             tooltip: 'Highlights Trevor hunt animals.',
             theme: '#d99a3e',

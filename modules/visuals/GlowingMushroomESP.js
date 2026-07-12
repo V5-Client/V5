@@ -9,7 +9,7 @@ class GlowingMushroomESP extends ModuleBase {
     constructor() {
         super({
             name: 'Glowing Mushroom ESP',
-            subcategory: 'Farming',
+            subcategory: 'Visuals',
             description: 'Highlights glowing mushrooms in the Glowing Mushroom Cave.',
             tooltip: 'funni mushroom esp',
         });

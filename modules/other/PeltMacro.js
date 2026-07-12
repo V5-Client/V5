@@ -106,7 +106,7 @@ class PeltMacro extends ModuleBase {
     constructor() {
         super({
             name: 'Pelt Macro',
-            subcategory: 'Farming',
+            subcategory: 'Other',
             description: 'Pathfinds to Trevor hunt coordinates from chat.',
             theme: '#d99a3e',
             isMacro: true,
