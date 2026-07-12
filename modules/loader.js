@@ -20,14 +20,6 @@ import './foraging/HuntingHelpers';
 
 /* FARMING */
 import './farming/PestESP';
-import './farming/ADRotatingMelonMacro';
-import './farming/CocoaBeansMacro';
-import './farming/SDSMushroomMacro';
-import './farming/SShapeCropMacro';
-import './farming/SShapeSugarCaneMacro';
-import './farming/VisitorMacro';
-import './farming/WSCropMacro';
-import './farming/WSFlowerMacro';
 
 /* VISUALS */
 import './visuals/BlockVisual';
