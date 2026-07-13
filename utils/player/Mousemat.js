@@ -28,7 +28,7 @@ class MousematController {
         });
 
         Guis.setItemSlot(slot);
-        ScheduleTask(() => {
+        ScheduleTask(2, () => {
             if (this.rotation !== rotation) return;
 
             const lore = ChatLib.removeFormatting(Player.getHeldItem()?.getLore?.().join('\n') || '');
@@ -40,6 +40,17 @@ class MousematController {
             rotation.waitingForSign = true;
             Keybind.rightClick();
         });
+        return true;
+    }
+
+    restore() {
+        const slot = Guis.findItemInHotbar('Squeaky Mousemat');
+        if (slot < 0) return false;
+
+        this.stop();
+        const rotation = (this.rotation = { originalSlot: Player.getHeldItemIndex() });
+        Guis.setItemSlot(slot);
+        ScheduleTask(2, () => this.snap(rotation));
         return true;
     }
 
@@ -80,7 +91,7 @@ class MousematController {
         this.rotation = null;
         this.callbacks = [];
         Keybind.leftClick();
-        ScheduleTask(1, () => {
+        ScheduleTask(2, () => {
             Guis.setItemSlot(rotation.originalSlot);
             callbacks.forEach((callback) => ScheduleTask(callback));
         });

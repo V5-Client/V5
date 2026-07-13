@@ -229,14 +229,25 @@ export class FarmingMacro extends ModuleBase {
             if (this.enabled && player) this.resumeFarming(player, farmState, rotation);
         };
         ScheduleTask(() => {
-            if (this.enabled && !this.rotateTo(rotation.yaw, rotation.pitch, resume)) resume();
+            if (farmingSettings.rotationMethod !== 'Mousemat') {
+                if (!this.rotateTo(rotation.yaw, rotation.pitch, resume)) resume();
+                return;
+            }
+            if (Mousemat.restore()) {
+                Mousemat.onComplete(resume);
+            } else {
+                this.message(`&cNo Mousemat found in hotbar.`);
+                this.toggle(false);
+            }
         });
     }
 
     resumeFarming(player, farmState, rotation) {
-        this.onFarmStart(player);
+        if (farmingSettings.rotationMethod !== 'Mousemat') {
+            this.onFarmStart(player);
+            Rotations.lookAtAngles(rotation.yaw, rotation.pitch);
+        }
         Object.assign(this, farmState);
-        if (farmingSettings.rotationMethod !== 'Mousemat') Rotations.lookAtAngles(rotation.yaw, rotation.pitch);
         this.pestTarget = null;
         this.pestRotation = null;
         this.pestFarmState = null;
