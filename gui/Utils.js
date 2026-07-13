@@ -202,6 +202,14 @@ export const composite = (op) => {
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
+export const interpolateColor = (from, to, progress) =>
+    new Color(
+        from.getRed() / 255 + ((to.getRed() - from.getRed()) / 255) * progress,
+        from.getGreen() / 255 + ((to.getGreen() - from.getGreen()) / 255) * progress,
+        from.getBlue() / 255 + ((to.getBlue() - from.getBlue()) / 255) * progress,
+        from.getAlpha() / 255 + ((to.getAlpha() - from.getAlpha()) / 255) * progress
+    );
+
 export const FontSizes = {
     TINY: 6,
     SMALL: 7,

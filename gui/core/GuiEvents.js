@@ -57,6 +57,15 @@ const handleGuiClosed = () => {
     saveSettings();
 };
 
+export const openGui = () => {
+    GuiState.isOpening = true;
+    GuiState.openStartTime = Date.now();
+    loadSettings();
+    categoryManager?.invalidateLayoutCache();
+    categoryManager?.invalidateContentHeightCache();
+    GuiState.myGui.open();
+};
+
 GuiState.myGui.registerClicked((mouseX, mouseY, button) => {
     if (button === 0) handleClick(mouseX, mouseY);
 });
@@ -94,23 +103,11 @@ const handleKeybind = () => {
     });
 
     GUIKeyBind.registerKeyPress(() => {
-        GuiState.isOpening = true;
-        GuiState.openStartTime = Date.now();
-        loadSettings();
-        categoryManager?.invalidateLayoutCache();
-        categoryManager?.invalidateContentHeightCache();
-        GuiState.myGui.open();
+        openGui();
     });
 };
 
-v5Command('gui', () => {
-    GuiState.isOpening = true;
-    GuiState.openStartTime = Date.now();
-    loadSettings();
-    categoryManager?.invalidateLayoutCache();
-    categoryManager?.invalidateContentHeightCache();
-    GuiState.myGui.open();
-});
+v5Command('gui', openGui);
 
 Client.getMinecraft().execute(() => {
     handleKeybind();

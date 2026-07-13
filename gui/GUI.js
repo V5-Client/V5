@@ -1,7 +1,5 @@
-import { categoryManager } from './categories/CategoryManager';
 import { Categories } from './categories/CategorySystem';
-import './core/GuiEvents';
-import { GuiState } from './core/GuiState';
+import { openGui as open } from './core/GuiEvents';
 import { showNotification as notify } from './NotificationManager';
 import './ProfileSettings';
 import './ThemeSettings';
@@ -60,14 +58,6 @@ export const addButton = (categoryName, itemName, title, callback = null, descri
 export const addPopup = (categoryName, itemName, title, callback = null, description = null) =>
     Categories.addPopup(categoryName, itemName, title, callback, description);
 
-export const openGui = () => {
-    const { loadSettings } = require('./GuiSave');
-    GuiState.isOpening = true;
-    GuiState.openStartTime = Date.now();
-    loadSettings();
-    categoryManager?.invalidateLayoutCache();
-    categoryManager?.invalidateContentHeightCache();
-    GuiState.myGui.open();
-};
+export const openGui = open;
 
 export const closeGui = () => Client.currentGui.close();

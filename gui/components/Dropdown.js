@@ -9,6 +9,7 @@ import {
     easeInOutQuad,
     easeOutCubic,
     getTextWidth,
+    interpolateColor,
     isInside,
     playClickSound,
 } from '../Utils';
@@ -262,7 +263,7 @@ export class MultiToggle {
                 const switchX = this.x + panelWidth - switchWidth - 12;
                 const switchY = optionTop + (this.optionHeight - switchHeight) / 2;
 
-                const trackColor = this.interpolateColor(THEME.SWITCH_OFF, THEME.ACCENT, option.animationProgress);
+                const trackColor = interpolateColor(THEME.SWITCH_OFF, THEME.ACCENT, option.animationProgress);
 
                 drawRoundedRectangle({
                     x: switchX,
@@ -295,14 +296,6 @@ export class MultiToggle {
                 }
             }
         }
-    }
-
-    interpolateColor(color1, color2, t) {
-        const r = color1.getRed() / 255 + (color2.getRed() / 255 - color1.getRed() / 255) * t;
-        const g = color1.getGreen() / 255 + (color2.getGreen() / 255 - color1.getGreen() / 255) * t;
-        const b = color1.getBlue() / 255 + (color2.getBlue() / 255 - color1.getBlue() / 255) * t;
-        const a = color1.getAlpha() / 255 + (color2.getAlpha() / 255 - color1.getAlpha() / 255) * t;
-        return new java.awt.Color(r, g, b, a);
     }
 
     handleClick(mouseX, mouseY) {
