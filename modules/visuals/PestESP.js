@@ -4,7 +4,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 
 const PEST_NAMES = ['Silverfish', 'Bat'];
-const PEST_KILL_RADIUS_SQ = 8 ** 2;
+const PEST_KILL_RADIUS_SQ = 10 ** 2;
 
 export function getNearbyPest() {
     const eyes = Player.getPlayer()?.getEyePosition();
