@@ -159,7 +159,7 @@ class MacroStateClass {
 
         const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[this.lastMacroToggleTitle] || Keyboard.KEY_NONE;
-        this.lastMacroToggleKey = new KeyBind(this.lastMacroToggleTitle, savedKeycode, 'v5_modules');
+        this.lastMacroToggleKey = new KeyBind(this.lastMacroToggleTitle, savedKeycode, 'v5_core');
 
         this.lastMacroToggleKey.registerKeyPress(() => {
             this.toggleLastUsedMacroFromUser();

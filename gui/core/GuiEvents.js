@@ -85,7 +85,7 @@ const handleKeybind = () => {
     if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1) savedKeycode = Keyboard.KEY_NONE;
 
     GUIKey = Keyboard.getKeyName(savedKeycode);
-    GUIKeyBind = new KeyBind(keyName, savedKeycode, 'v5_modules');
+    GUIKeyBind = new KeyBind(keyName, savedKeycode, 'v5_core');
 
     register('gameUnload', () => {
         let allKeybinds = Utils.getConfigFile('keybinds.json') || {};

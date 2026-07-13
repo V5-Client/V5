@@ -7,7 +7,7 @@ import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { v5Command } from '../../utils/V5Commands';
-import { farmingSettings, MOUSEMAT, MOUSEMAT_NAME } from './FarmingSettings';
+import { farmingSettings } from './FarmingSettings';
 import { getNearbyPest } from '../visuals/PestESP';
 import { pestSettings } from './PestKiller';
 import { rewarpSettings } from './RewarpSettings';
@@ -234,7 +234,7 @@ export class FarmingMacro extends ModuleBase {
     resumeFarming(player, farmState, rotation) {
         this.onFarmStart(player);
         Object.assign(this, farmState);
-        if (farmingSettings.rotationMethod !== MOUSEMAT) Rotations.lookAtAngles(rotation.yaw, rotation.pitch);
+        if (farmingSettings.rotationMethod !== 'Mousemat') Rotations.lookAtAngles(rotation.yaw, rotation.pitch);
         this.pestTarget = null;
         this.pestRotation = null;
         this.pestFarmState = null;
@@ -242,7 +242,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     rotateTo(yaw, pitch, callback = null) {
-        if (farmingSettings.rotationMethod !== MOUSEMAT) {
+        if (farmingSettings.rotationMethod !== 'Mousemat') {
             const started = Rotations.lookAtAngles(yaw, pitch);
             if (started && callback) Rotations.onComplete(callback);
             return started;
@@ -251,7 +251,7 @@ export class FarmingMacro extends ModuleBase {
         Keybind.unpressKeys();
         Rotations.stop();
         if (!Mousemat.rotateTo(yaw, pitch)) {
-            this.message(`&cNo ${MOUSEMAT_NAME} found in hotbar.`);
+            this.message(`&cNo Mousemat found in hotbar.`);
             this.toggle(false);
             return false;
         }

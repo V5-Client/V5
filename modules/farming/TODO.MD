@@ -1,1 +1,1 @@
-- Subcategory keybinds
+- More pest options (flight killer, disco)
