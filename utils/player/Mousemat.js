@@ -30,22 +30,20 @@ class MousematController {
             waitingForClose: false,
         });
 
-        ScheduleTask(2, () => {
+        Guis.setItemSlot(slot);
+        const lore = ChatLib.removeFormatting(Player.getHeldItem()?.getLore?.().join('\n') || '');
+        const selectedYaw = lore.match(/Selected Yaw: (-?[\d.]+)/);
+        const selectedPitch = lore.match(/Selected Pitch: (-?[\d.]+)/);
+        if (selectedYaw && selectedPitch && Number(selectedYaw[1]) === Number(rotation.yaw) && Number(selectedPitch[1]) === Number(rotation.pitch)) {
+            this.snap(rotation, 6);
+            return true;
+        }
+
+        ScheduleTask(6, () => {
             if (this.rotation !== rotation) return;
 
-            Guis.setItemSlot(slot);
-            ScheduleTask(2, () => {
-                if (this.rotation !== rotation) return;
-
-                const lore = ChatLib.removeFormatting(Player.getHeldItem()?.getLore?.().join('\n') || '');
-                const selectedYaw = lore.match(/Selected Yaw: (-?[\d.]+)/);
-                const selectedPitch = lore.match(/Selected Pitch: (-?[\d.]+)/);
-                if (selectedYaw && selectedPitch && Number(selectedYaw[1]) === Number(rotation.yaw) && Number(selectedPitch[1]) === Number(rotation.pitch))
-                    return this.snap(rotation);
-
-                rotation.waitingForSign = true;
-                Keybind.rightClick();
-            });
+            rotation.waitingForSign = true;
+            Keybind.rightClick();
         });
         return true;
     }
@@ -56,12 +54,8 @@ class MousematController {
 
         this.stop();
         const rotation = (this.rotation = { originalSlot: Player.getHeldItemIndex() });
-        ScheduleTask(2, () => {
-            if (this.rotation !== rotation) return;
-
-            Guis.setItemSlot(slot);
-            ScheduleTask(2, () => this.snap(rotation));
-        });
+        Guis.setItemSlot(slot);
+        this.snap(rotation, 6);
         return true;
     }
 
@@ -95,7 +89,7 @@ class MousematController {
         gui.close();
     }
 
-    snap(rotation) {
+    snap(rotation, delay = 0) {
         if (this.rotation !== rotation) return;
 
         rotation.waitingForClose = false;
@@ -117,7 +111,8 @@ class MousematController {
                 callbacks.forEach((callback) => ScheduleTask(callback));
             });
         };
-        ScheduleTask(2, click);
+        if (delay > 0) ScheduleTask(delay, click);
+        else click();
     }
 }
 
