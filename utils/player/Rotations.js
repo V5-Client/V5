@@ -278,9 +278,10 @@ class RotationController {
     }
 
     getPrecision() {
-        if (Number.isFinite(this.request?.precision)) return this.request.precision;
-        if (this.request?.type === 'entity') return ENTITY_PRECISION;
-        return DEFAULT_PRECISION;
+        let precision = DEFAULT_PRECISION;
+        if (Number.isFinite(this.request?.precision)) precision = this.request.precision;
+        else if (this.request?.type === 'entity') precision = ENTITY_PRECISION;
+        return Math.max(precision, RotationGCD.calculateGCD() / Math.SQRT2);
     }
 
     getStepRatio(distance, deltaTime) {
