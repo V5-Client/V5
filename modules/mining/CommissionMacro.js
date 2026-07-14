@@ -618,6 +618,7 @@ class CommissionMacro extends ModuleBase {
 
         const closest = this.getClosestEmissary();
         const closestDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
+        const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
 
         const yDiff = closest[1] - Player.getY();
         if (yDiff > 3 && closestDist < 10) {
@@ -639,7 +640,6 @@ class CommissionMacro extends ModuleBase {
             if (!this.ensureDrillEquippedForEmissaryClaim()) return;
             if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) >= 0.04) return;
 
-            const adjustedTarget = [closest[0] + 0.5, closest[1] + 2.2, closest[2] + 0.5];
             if (!Rotations.active) {
                 this.npcRotationPending = true;
                 const token = ++this.npcRotationToken;
