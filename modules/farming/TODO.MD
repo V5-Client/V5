@@ -1,2 +1,3 @@
 - More pest options (flight killer, disco)
 - Sprayonator
+- Profit calc
