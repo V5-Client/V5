@@ -1,7 +1,7 @@
 import { File } from './Constants';
 
 const USER_SCRIPTS_DIR = new File('./config/ChatTriggers/modules/V5Config/UserScripts');
-const EXAMPLE_SCRIPT = `;
+const EXAMPLE_SCRIPT = `
 import { ModuleBase } from '../../V5/utils/ModuleBase';
 import { ClientboundPlayerPositionPacket } from '../../V5/utils/Packets';
 import { v5Command } from '../../V5/utils/V5Commands';
