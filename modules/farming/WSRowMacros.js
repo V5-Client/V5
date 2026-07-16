@@ -15,7 +15,7 @@ const AD_MOVEMENTS = [
 class CycleMacro extends FarmingMacro {
     constructor(options, commandPrefix, config) {
         super(options, commandPrefix);
-        this.yaw = config.yaw;
+        this.yawMin = this.yawMax = ((((config.yaw + 45) % 90) + 90) % 90) - 45;
         this.pitchMin = this.pitchMax = config.pitch || 0;
         this.movements = config.movements;
         this.state = this.movements[0][0];
@@ -24,6 +24,21 @@ class CycleMacro extends FarmingMacro {
         this.switchDelay = config.switchDelay ?? 2;
         this.laneChangeKey = config.laneChangeKey;
 
+        if (![0, 45].includes(config.yaw)) {
+            const yawOffset = this.addRangeSlider(
+                'Yaw Offset',
+                -45,
+                45,
+                { low: this.yawMin, high: this.yawMax },
+                (value) => {
+                    this.yawMin = value.low;
+                    this.yawMax = value.high;
+                },
+                'Random yaw offset from cardinal.'
+            );
+            yawOffset.step = 0.01;
+            yawOffset.precision = 2;
+        }
         if (config.adjustablePitch) {
             this.addRangeSlider(
                 'Pitch',
@@ -43,6 +58,7 @@ class CycleMacro extends FarmingMacro {
     onFarmStart(player) {
         this.laneChanging = false;
         this.ignoreTicks = this.initialDelay;
+        this.yaw = farmingSettings.useMousemat ? (this.yawMin + this.yawMax) / 2 : Utils.randomFloat(this.yawMin, this.yawMax);
         const pitch = farmingSettings.useMousemat ? (this.pitchMin + this.pitchMax) / 2 : Utils.randomFloat(this.pitchMin, this.pitchMax);
         this.rotateTo(this.snapYaw(player.getYRot(), this.yaw), pitch);
     }
