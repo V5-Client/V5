@@ -3,7 +3,7 @@ import { RotationGCD } from './RotationGCD';
 import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
 import { Rotations as PathRotations } from '../pathfinder/PathWalker/PathRotations';
-import { FlyRotations } from '../pathfinder/PathFlyer/PathRotations';
+import { PathFlyer } from '../pathfinder/PathFlyer';
 import { EtherwarpPathState } from '../Etherwarp';
 
 class RotationConfig extends ModuleBase {
@@ -143,7 +143,7 @@ class RotationController {
         if (!this.request) return;
         if (!this.refreshTarget()) return;
 
-        if (PathRotations.rotationActive || FlyRotations.rotationActive || EtherwarpPathState.handler?.isPathing?.()) return;
+        if (PathRotations.rotationActive || PathFlyer.rotationActive || EtherwarpPathState.handler?.isPathing?.()) return;
 
         const player = Player.getPlayer();
         if (!player || !this.targetAngles) {

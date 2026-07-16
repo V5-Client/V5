@@ -7,8 +7,7 @@ import { Utils } from '../Utils';
 import { v5Command } from '../V5Commands';
 import PathConfig from './PathConfig';
 import { PathExecutor } from './PathExecutor';
-import { FlyMovement } from './PathFlyer/PathMovement';
-import { FlyRotations } from './PathFlyer/PathRotations';
+import { PathFlyer } from './PathFlyer';
 import { Spline } from './PathSpline';
 import { Jump } from './PathWalker/PathJumps';
 import { Aote } from './PathWalker/PathAote';
@@ -49,8 +48,6 @@ class Finder {
 
         this.flyStarted = false;
         this.flyStartDelayTicks = 0;
-        this.flyLookPoints = null;
-        this.flyMovementPath = null;
         this.flySplinePath = null;
         this.cachedPathResult = null;
         this.cachedWalkSplinePath = null;
@@ -268,18 +265,10 @@ class Finder {
                 }
             } else {
                 if (!this.flyStarted) {
-                    const flyNodes = result.path?.length
-                        ? result.path
-                        : result.path_between_key_nodes?.length
-                          ? result.path_between_key_nodes
-                          : result.keynodes;
-                    const { lookPoints, movementPath } = Spline.createFlyPaths(flyNodes);
-                    this.flyMovementPath = movementPath;
-                    this.flyLookPoints = lookPoints;
+                    const flyNodes = result.keynodes?.length ? result.keynodes : result.path?.length ? result.path : result.path_between_key_nodes;
                     this.flySplinePath = this.createSplinePath(result);
 
-                    FlyRotations.beginFlyRotations(this.flyLookPoints);
-                    FlyMovement.beginMovement(this.flyMovementPath);
+                    PathFlyer.begin(flyNodes);
 
                     this.flyStarted = true;
                     this.flyStartDelayTicks = 2;
@@ -290,24 +279,18 @@ class Finder {
                 }
 
                 if (this.flyStarted && this.flyStartDelayTicks === 0) {
-                    if (FlyRotations.complete && FlyMovement.isActive) {
-                        FlyMovement.requestDeceleration();
-                    }
-
                     if (this.checkIfReachedDestination()) {
                         this.finishSuccess();
                         return;
                     }
 
-                    if (FlyMovement.isActive === false) {
-                        if (FlyMovement.complete || this.checkIfReachedDestination()) {
+                    if (PathFlyer.isActive === false) {
+                        if (PathFlyer.complete || this.checkIfReachedDestination()) {
                             this.finishSuccess();
                             return;
                         }
 
-                        this.callCallback(false);
-                        this.resetPath();
-                        PathExecutor.destroy();
+                        this.recalculate('fly_stalled');
                         return;
                     }
                 }
@@ -335,12 +318,7 @@ class Finder {
                     }
 
                     if (PathConfig.RENDER_LOOK_POINTS) {
-                        this.flyMovementPath?.forEach((p) => RenderUtils.drawFilledBox(new Vec3d(p.x, p.y, p.z), new RenderColor(0, 255, 0, 150), true));
-                        this.flyLookPoints?.forEach((p) => RenderUtils.drawFilledBox(new Vec3d(p.x, p.y, p.z), new RenderColor(255, 0, 0, 150), true));
-                        const yDiffPoint = FlyMovement.debugVerticalTarget;
-                        if (yDiffPoint) {
-                            RenderUtils.drawFilledBox(new Vec3d(yDiffPoint.x, yDiffPoint.y, yDiffPoint.z), new RenderColor(0, 255, 255, 180), true);
-                        }
+                        PathFlyer.path?.forEach((p) => RenderUtils.drawFilledBox(new Vec3d(p.x, p.y, p.z), new RenderColor(0, 255, 0, 150), true));
                     }
                 });
             }
@@ -513,15 +491,17 @@ class Finder {
             const destY = goal[1];
             const destZ = goal[2];
 
-            const dx = pX - destX;
+            const dx = pX - (this.isFly ? destX + 0.5 : destX);
             const dy = pY - destY;
-            const dz = pZ - destZ;
+            const dz = pZ - (this.isFly ? destZ + 0.5 : destZ);
 
             const hDistSq = dx * dx + dz * dz;
-            if (hDistSq > 2 * 2) continue;
+            const maxHorizontalDistance = this.isFly ? 1.25 : 2;
+            if (hDistSq > maxHorizontalDistance * maxHorizontalDistance) continue;
 
             if (this.isFly) {
-                if (Math.abs(dy) > 4.5) continue;
+                if (Math.abs(dy) > 1) continue;
+                if (this.flyStarted && Math.hypot(Player.getMotionX(), Player.getMotionY(), Player.getMotionZ()) > 0.2) continue;
             } else {
                 if (dy < -0.1 || dy > 5.5) continue;
             }
@@ -894,12 +874,11 @@ class Finder {
         this.destroyTick();
         this.destroyRender();
         Rotations.resetRotations();
-        FlyRotations.resetRotations();
+        PathFlyer.reset();
         Spline.clearCache();
         Jump.reset();
         Aote.stop(true);
         Movement.stopMovement();
-        FlyMovement.stopMovement();
         if (clearFlags) {
             Recovery.stop();
             NonChangeRecovery.stop();
@@ -915,8 +894,6 @@ class Finder {
 
         this.flyStarted = false;
         this.flyStartDelayTicks = 0;
-        this.flyLookPoints = null;
-        this.flyMovementPath = null;
         this.flySplinePath = null;
         this.clearPathCaches();
         this.startCandidates = [];

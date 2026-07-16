@@ -2,8 +2,6 @@ import { BP, Vec3d } from '../Constants';
 
 class PathSpline {
     constructor() {
-        this.PLAYER_EYE_OFFSET = 1.62;
-
         this.STRONG_SMOOTH_RADIUS = 5;
         this.CURVE_DETECTION_RADIUS = 2;
         this.SMOOTH_SAMPLES = 6;
@@ -12,18 +10,8 @@ class PathSpline {
         this.MAX_GAP_DISTANCE = 12;
         this.OUTWARD_OFFSET_STRENGTH = 1.2;
 
-        this.FLY_SPACING = 5.25;
-        this.FLY_RAYTRACE_STEP = 0.35;
-        this.FLY_BLOCK_NUDGE = 0.85;
-
-        this.MIN_ADAPTIVE_TOLERANCE = 0.005;
-        this.MAX_ADAPTIVE_SPACING = 15.0;
-        this.Y_ADAPTIVE_SENSITIVITY = 1.5;
-
         this.lastDataHash = null;
         this.cachedBoxPositions = [];
-        this.cachedFlyLookPoints = [];
-        this.lastFlyHash = null;
     }
 
     buildPathHash(points, prefix = 'path', sampleCount = 6) {
@@ -43,33 +31,6 @@ class PathSpline {
         }
 
         return components.join('|');
-    }
-
-    createFlyPaths(nodes) {
-        const lookPoints = this.createFlyLookPoints(nodes);
-        const movementPath = this.generateMovementPathFromLookPoints(lookPoints, this.PLAYER_EYE_OFFSET);
-
-        return { lookPoints, movementPath };
-    }
-
-    generateMovementPathFromLookPoints(lookPoints, eyeOffset) {
-        if (!lookPoints || lookPoints.length < 2) return [];
-
-        const feetPath = [];
-        for (const p of lookPoints) {
-            const feetPoint = { x: p.x, y: p.y - eyeOffset, z: p.z };
-            const prev = feetPath.length ? feetPath[feetPath.length - 1] : null;
-            if (!prev || Math.hypot(feetPoint.x - prev.x, feetPoint.y - prev.y, feetPoint.z - prev.z) > 0.08) {
-                feetPath.push(feetPoint);
-            }
-        }
-
-        if (feetPath.length < 2) {
-            return feetPath.map((p) => ({ x: p.x, y: p.y, z: p.z }));
-        }
-
-        const dense = this.resamplePolylineByDistance(feetPath, 1.5);
-        return dense.map((p) => ({ x: p.x, y: p.y, z: p.z }));
     }
 
     generateSpline(keyPathNodes, tolerance = 10) {
@@ -186,196 +147,6 @@ class PathSpline {
         return boxPositions;
     }
 
-    createFlyLookPoints(nodes) {
-        if (!nodes || nodes.length < 2) return [];
-
-        const normalizedNodes = nodes.map((n) => ({ x: n.x ?? n[0], y: n.y ?? n[1], z: n.z ?? n[2] }));
-        const currentHash = this.buildPathHash(normalizedNodes, 'fly');
-        if (currentHash === this.lastFlyHash) return this.cachedFlyLookPoints;
-
-        const raw = [];
-        for (const n of normalizedNodes) {
-            const p = { x: n.x, y: n.y + this.PLAYER_EYE_OFFSET, z: n.z };
-            if (raw.length === 0 || Math.hypot(p.x - raw[raw.length - 1].x, p.y - raw[raw.length - 1].y, p.z - raw[raw.length - 1].z) > 0.1) raw.push(p);
-        }
-
-        const player = Player.getPlayer();
-        const yaw = ((player ? Player.getYaw() : 0) + 90) * (Math.PI / 180);
-        const pitch = -(player ? Player.getPitch() : 0) * (Math.PI / 180);
-        const lookV = { x: Math.cos(yaw) * Math.cos(pitch), y: Math.sin(pitch), z: Math.sin(yaw) * Math.cos(pitch) };
-        const initialLook = { x: raw[0].x + lookV.x * 2, y: raw[0].y + lookV.y * 2, z: raw[0].z + lookV.z * 2 };
-
-        const adaptivePoints = [initialLook, raw[0]];
-        const roundedRaw = this.roundPolylineCorners(raw, this.FLY_SPACING);
-
-        for (let i = 1; i < roundedRaw.length - 1; i++) {
-            const prev = adaptivePoints[adaptivePoints.length - 1];
-            const curr = roundedRaw[i];
-            const next = roundedRaw[i + 1];
-
-            const dist = Math.hypot(curr.x - prev.x, curr.y - prev.y, curr.z - prev.z);
-            const yDiff = Math.abs(curr.y - prev.y);
-
-            const ab = { x: curr.x - prev.x, y: curr.y - prev.y, z: curr.z - prev.z };
-            const bc = { x: next.x - curr.x, y: next.y - curr.y, z: next.z - curr.z };
-            const m1 = Math.hypot(ab.x, ab.y, ab.z);
-            const m2 = Math.hypot(bc.x, bc.y, bc.z);
-
-            let dot = 1.0;
-            if (m1 > 1e-6 && m2 > 1e-6) {
-                dot = (ab.x * bc.x + ab.y * bc.y + ab.z * bc.z) / (m1 * m2);
-            }
-
-            const curvature = 1.0 - dot;
-            const dynamicStep = Math.max(this.MIN_LOOK_POINT_SPACING, this.MAX_ADAPTIVE_SPACING * (1.0 - curvature * 10 - yDiff * this.Y_ADAPTIVE_SENSITIVITY));
-
-            if (dist >= dynamicStep || curvature > this.MIN_ADAPTIVE_TOLERANCE) {
-                adaptivePoints.push(this.adjustLookPoint(curr, curr));
-            }
-        }
-
-        adaptivePoints.push(roundedRaw[roundedRaw.length - 1]);
-        const lookPoints = this.refineLookPath(adaptivePoints);
-
-        for (let i = 0; i < lookPoints.length; i++) {
-            if (this.isPointInsideBlock(lookPoints[i])) {
-                lookPoints[i] = this.nudgePointOutOfBlock(lookPoints[i]);
-            }
-        }
-
-        this.lastFlyHash = currentHash;
-        this.cachedFlyLookPoints = lookPoints;
-        return lookPoints;
-    }
-
-    refineLookPath(points) {
-        if (!points || points.length === 0) return [];
-        const final = [points[0]];
-        for (let i = 1; i < points.length; i++) {
-            const d = Math.hypot(points[i].x - final[final.length - 1].x, points[i].y - final[final.length - 1].y, points[i].z - final[final.length - 1].z);
-            if (d > 0.2) final.push(points[i]);
-        }
-        return final;
-    }
-
-    roundPolylineCorners(points, spacing) {
-        if (!points || points.length < 3) return points || [];
-
-        const out = [points[0]];
-        for (let i = 1; i < points.length - 1; i++) {
-            const a = points[i - 1];
-            const b = points[i];
-            const c = points[i + 1];
-
-            const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
-            const bc = { x: c.x - b.x, y: c.y - b.y, z: c.z - b.z };
-            const abMag = Math.hypot(ab.x, ab.y, ab.z);
-            const bcMag = Math.hypot(bc.x, bc.y, bc.z);
-            if (abMag < 1e-6 || bcMag < 1e-6) continue;
-
-            const u1 = { x: ab.x / abMag, y: ab.y / abMag, z: ab.z / abMag };
-            const u2 = { x: bc.x / bcMag, y: bc.y / bcMag, z: bc.z / bcMag };
-            const dot = u1.x * u2.x + u1.y * u2.y + u1.z * u2.z;
-            const isTight = this.checkTightSpace(b);
-
-            if (dot < -0.3) {
-                const ejectionDist = isTight ? 5.5 : 3.8;
-                const lookAhead = { x: b.x + u1.x * ejectionDist, y: b.y + u1.y * ejectionDist, z: b.z + u1.z * ejectionDist };
-                out.push(this.adjustLookPoint(lookAhead, b));
-            }
-
-            if (dot > 0.985) {
-                out.push(b);
-                continue;
-            }
-
-            const baseRadius = isTight ? 0.9 : Math.max(0.15, Math.min(1.6, spacing * 0.55));
-            const r = Math.min(baseRadius, abMag * 0.45, bcMag * 0.45);
-
-            const pIn = { x: b.x - u1.x * r, y: b.y - u1.y * r, z: b.z - u1.z * r };
-            const pOut = { x: b.x + u2.x * r, y: b.y + u2.y * r, z: b.z + u2.z * r };
-
-            if (this.isSegmentClear(pIn, pOut)) {
-                out.push(pIn);
-                out.push(pOut);
-            } else {
-                out.push(b);
-            }
-        }
-        out.push(points[points.length - 1]);
-
-        const deduped = [out[0]];
-        for (let i = 1; i < out.length; i++) {
-            const prev = deduped[deduped.length - 1];
-            if (out[i].x !== prev.x || out[i].y !== prev.y || out[i].z !== prev.z) {
-                deduped.push(out[i]);
-            }
-        }
-        return deduped;
-    }
-
-    checkTightSpace(p) {
-        const checkDist = 1.2;
-        let blocked = 0;
-        if (this.isPointInsideBlock({ x: p.x + checkDist, y: p.y, z: p.z })) blocked++;
-        if (this.isPointInsideBlock({ x: p.x - checkDist, y: p.y, z: p.z })) blocked++;
-        if (this.isPointInsideBlock({ x: p.x, y: p.y, z: p.z + checkDist })) blocked++;
-        if (this.isPointInsideBlock({ x: p.x, y: p.y, z: p.z - checkDist })) blocked++;
-        return blocked >= 2;
-    }
-
-    isSegmentClear(a, b) {
-        const dx = b.x - a.x,
-            dy = b.y - a.y,
-            dz = b.z - a.z;
-        const dist = Math.hypot(dx, dy, dz);
-        if (dist < 1e-6) return true;
-
-        const steps = Math.ceil(dist / this.FLY_RAYTRACE_STEP);
-        for (let i = 1; i <= steps; i++) {
-            const t = i / steps;
-            if (this.isPointInsideBlock({ x: a.x + dx * t, y: a.y + dy * t, z: a.z + dz * t })) return false;
-        }
-        return true;
-    }
-
-    resamplePolylineByDistance(points, step) {
-        if (!Number.isFinite(step) || step <= 0) return points || [];
-        if (!points || points.length < 2) return points || [];
-        const out = [points[0]];
-        let carry = 0;
-
-        for (let i = 0; i < points.length - 1; i++) {
-            const a = points[i],
-                b = points[i + 1];
-            const dx = b.x - a.x,
-                dy = b.y - a.y,
-                dz = b.z - a.z;
-            const dist = Math.hypot(dx, dy, dz);
-            if (dist < 1e-9) continue;
-
-            let tDist = step - carry;
-            while (tDist <= dist + 1e-9) {
-                const t = tDist / dist;
-                out.push({ x: a.x + dx * t, y: a.y + dy * t, z: a.z + dz * t });
-                tDist += step;
-            }
-            carry = (((dist - (tDist - step)) % step) + step) % step;
-        }
-
-        const last = points[points.length - 1],
-            prev = out[out.length - 1];
-        if (prev.x !== last.x || prev.y !== last.y || prev.z !== last.z) out.push(last);
-        return out;
-    }
-
-    nudgePointOutOfBlock(point) {
-        const up = { x: point.x, y: point.y + this.FLY_BLOCK_NUDGE, z: point.z };
-        if (!this.isPointInsideBlock(up)) return up;
-        const down = { x: point.x, y: point.y - this.FLY_BLOCK_NUDGE, z: point.z };
-        return !this.isPointInsideBlock(down) ? down : point;
-    }
-
     isPointInsideBlock(point) {
         try {
             const world = World.getWorld();
@@ -444,9 +215,7 @@ class PathSpline {
 
     clearCache() {
         this.cachedBoxPositions = [];
-        this.cachedFlyLookPoints = [];
         this.lastDataHash = null;
-        this.lastFlyHash = null;
     }
 }
 
