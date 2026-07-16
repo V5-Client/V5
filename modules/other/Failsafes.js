@@ -142,6 +142,8 @@ class Failsafes extends ModuleBase {
     }
 
     postBanLog(reason) {
+        if (!reason?.includes('https://www.hypixel.net/appeal')) return;
+
         const now = Date.now();
         if (now - this.lastBanLogTime < 60000) return;
         this.lastBanLogTime = now;
