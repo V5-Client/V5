@@ -141,7 +141,17 @@ class Failsafes extends ModuleBase {
         return text.includes('banned') || text.includes('cheating') || text.includes('boosting') || text.includes('security');
     }
 
+    isHypixelServer() {
+        const serverAddress = Client.getMinecraft()?.getCurrentServer()?.ip?.toLowerCase();
+        if (!serverAddress) return false;
+
+        const hostname = serverAddress.split(':')[0];
+        return hostname === 'hypixel.net' || hostname.endsWith('.hypixel.net');
+    }
+
     postBanLog(reason) {
+        if (!this.isHypixelServer()) return;
+
         const now = Date.now();
         if (now - this.lastBanLogTime < 60000) return;
         this.lastBanLogTime = now;
