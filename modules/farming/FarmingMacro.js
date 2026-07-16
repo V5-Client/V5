@@ -14,6 +14,7 @@ const REWARP_RETRY_MS = 10_000;
 const MAX_REWARP_ATTEMPTS = 3;
 const MAX_PEST_TRACK_DISTANCE = 12;
 const PEST_STALL_GRACE_TICKS = 20;
+const GUI_RESUME_GRACE_TICKS = 5;
 const FARMING = 'Farming';
 const PEST = 'Pest';
 const RESTORING_PEST = 'Restoring Pest';
@@ -55,6 +56,7 @@ export class FarmingMacro extends ModuleBase {
         }
         this.farmingRotation = null;
         this.mode = FARMING;
+        this.stallGraceTicks = 0;
         Mouse.ungrab();
         this.startDelayTicks = 1;
         const player = Player.getPlayer();
@@ -74,7 +76,7 @@ export class FarmingMacro extends ModuleBase {
         this.pestTarget = null;
         this.pestRotation = null;
         this.pestFarmState = null;
-        this.pestStallGraceTicks = 0;
+        this.stallGraceTicks = 0;
         farmingSettings.restoreSlot();
     }
 
@@ -87,8 +89,12 @@ export class FarmingMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
 
+        if (Client.isInGui()) {
+            this.stationaryTicks = 0;
+            this.stallGraceTicks = Math.max(this.stallGraceTicks, GUI_RESUME_GRACE_TICKS);
+            return Keybind.unpressKeys();
+        }
         if (Mousemat.active) return;
-        if (Keybind.isGuiOpen()) return Keybind.unpressKeys();
 
         switch (this.mode) {
             case FARMING:
@@ -115,8 +121,8 @@ export class FarmingMacro extends ModuleBase {
 
         if (player.getAbilities().flying) return this.hold('shift');
 
-        if (this.pestStallGraceTicks > 0) {
-            this.pestStallGraceTicks--;
+        if (this.stallGraceTicks > 0) {
+            this.stallGraceTicks--;
             this.updatePosition(player);
         } else {
             this.updateFarmState(player);
@@ -238,7 +244,7 @@ export class FarmingMacro extends ModuleBase {
         this.pestTarget = null;
         this.pestRotation = null;
         this.pestFarmState = null;
-        this.pestStallGraceTicks = PEST_STALL_GRACE_TICKS;
+        this.stallGraceTicks = PEST_STALL_GRACE_TICKS;
         this.mode = FARMING;
     }
 
