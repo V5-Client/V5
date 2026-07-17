@@ -1,5 +1,6 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
+import { MiningUtils } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -25,6 +26,8 @@ class TunnelsMiner extends ModuleBase {
         this.oreTypes = Object.keys(Veins); // glacite,peridot,umber,tungsten,aquamarine,onyx,citrine
         this.selectedOres = [this.oreTypes[0]]; // glacite
         this.travelMode = 'Walk';
+        this.coldThreshold = 20;
+        this.waitingForCold = false;
         this.botManaged = false;
         this.botStartedWork = false;
         this.botIdleTicks = 0;
@@ -58,6 +61,8 @@ class TunnelsMiner extends ModuleBase {
             this.selectedOres[0]
         );
 
+        this.addSlider('Cold Warp Threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
+
         this.createOverlay([
             {
                 title: 'Status',
@@ -72,6 +77,7 @@ class TunnelsMiner extends ModuleBase {
         this.on('worldUnload', () => {
             this.exhaustedPositions.clear();
             this.stopAll();
+            if (!this.waitingForCold) this.toggle(false);
         });
     }
 
@@ -81,6 +87,7 @@ class TunnelsMiner extends ModuleBase {
     }
 
     onDisable() {
+        this.waitingForCold = false;
         this.stopAll();
         this.exhaustedPositions.clear();
     }
@@ -109,6 +116,8 @@ class TunnelsMiner extends ModuleBase {
     }
 
     onTick() {
+        if (!Player.getPlayer()) return;
+        if (!this.isParentManaged && this.handleCold()) return;
         if (!this.botManaged) return;
         if (MiningBot.enabled) {
             this.forceTunnelMiningBotCosts();
@@ -137,6 +146,26 @@ class TunnelsMiner extends ModuleBase {
         this.botIdleTicks = 0;
         this.activeMiningPosition = null;
         this.startPathfind(true);
+    }
+
+    handleCold() {
+        const cold = MiningUtils.getDebuff('cold');
+        if (this.waitingForCold) {
+            if (cold > 0) return true;
+
+            this.waitingForCold = false;
+            this.message('&aCold reached 0, resuming...');
+            this.startPathfind(true);
+            return true;
+        }
+
+        if (cold <= this.coldThreshold) return false;
+
+        this.waitingForCold = true;
+        this.stopAll();
+        this.message(`&eCold exceeded ${this.coldThreshold}, warping to camp...`);
+        ChatLib.command('warp camp');
+        return true;
     }
 
     stopAll() {

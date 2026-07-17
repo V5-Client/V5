@@ -44,6 +44,8 @@ class GlaciteCommissionMacro extends ModuleBase {
 
         this.currentState = STATES.IDLE;
         this.travelMode = TRAVEL_MODES[0];
+        this.coldThreshold = 20;
+        this.waitingForCold = false;
         this.pauseTicks = 0;
         this.commissions = [];
         this.currentCommission = null;
@@ -85,6 +87,8 @@ class GlaciteCommissionMacro extends ModuleBase {
             'How the macro travels to tunnel veins.',
             TRAVEL_MODES[0]
         );
+
+        this.addSlider('Cold Warp Threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
 
         this.createOverlay(
             [
@@ -155,6 +159,7 @@ class GlaciteCommissionMacro extends ModuleBase {
 
     onDisable() {
         this.message('&cDisabled');
+        this.waitingForCold = false;
         this.resetState();
         Mouse.regrab();
     }
@@ -187,6 +192,8 @@ class GlaciteCommissionMacro extends ModuleBase {
         if (!this.enabled) return;
         if (!Player.getPlayer()) return;
 
+        if (this.handleCold()) return;
+
         this.commissionClaimer.cancelNpcRotationIfPathing();
 
         if (this.pauseTicks > 0) {
@@ -213,6 +220,27 @@ class GlaciteCommissionMacro extends ModuleBase {
             default:
                 break;
         }
+    }
+
+    handleCold() {
+        const cold = MiningUtils.getDebuff('cold');
+        if (this.waitingForCold) {
+            if (cold > 0) return true;
+
+            this.waitingForCold = false;
+            this.message('&aCold reached 0, resuming...');
+            this.setState(STATES.CHOOSING);
+            this.pauseTicks = 0;
+            return false;
+        }
+
+        if (cold <= this.coldThreshold) return false;
+
+        this.waitingForCold = true;
+        this.stopTunnelMiner();
+        this.message(`&eCold exceeded ${this.coldThreshold}, warping to camp...`);
+        ChatLib.command('warp camp');
+        return true;
     }
 
     handleChoosing() {
