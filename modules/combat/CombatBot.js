@@ -897,7 +897,7 @@ class Combat extends ModuleBase {
                 const name = ChatLib.removeFormatting(String(nameObj?.getString?.() ?? nameObj)).toLowerCase();
                 const uuid = entity.getUUID();
                 if (whitelist && whitelist.has(uuid)) return;
-                if (!config.names.some((mobName) => name.includes(mobName))) return;
+                if (!config.names.some((mobName) => name.includes(mobName.toLowerCase()))) return;
                 if (entity.isSpectator?.() || entity.isInvisible() || entity.isDead()) return;
                 if (!this.isVisibleOrRecent(entity, config.checkVisibility)) return;
 
