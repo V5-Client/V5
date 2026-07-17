@@ -122,7 +122,7 @@ class Combat extends ModuleBase {
             (value) => {
                 this.customTargetNames = value
                     .split(',')
-                    .map((n) => n.trim())
+                    .map((n) => n.trim().toLowerCase())
                     .filter((n) => n.length > 0);
             },
             'Enter mob names to target, comma separated. (e.g. "Zombie, Skeleton")'
@@ -894,7 +894,7 @@ class Combat extends ModuleBase {
                 const nameObj = entity.getName();
                 if (!nameObj) return;
 
-                const name = ChatLib.removeFormatting(String(nameObj?.getString?.() ?? nameObj));
+                const name = ChatLib.removeFormatting(String(nameObj?.getString?.() ?? nameObj)).toLowerCase();
                 const uuid = entity.getUUID();
                 if (whitelist && whitelist.has(uuid)) return;
                 if (!config.names.some((mobName) => name.includes(mobName))) return;
