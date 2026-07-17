@@ -150,16 +150,13 @@ class TunnelsMiner extends ModuleBase {
 
     handleCold() {
         const cold = MiningUtils.getDebuff('cold');
-        if (this.waitingForCold) {
-            if (cold > 0) return true;
-
+        if (!this.waitingForCold && cold <= this.coldThreshold) return false;
+        if (cold === 0) {
             this.waitingForCold = false;
-            this.message('&aCold reached 0, resuming...');
             this.startPathfind(true);
             return true;
         }
-
-        if (cold <= this.coldThreshold) return false;
+        if (this.waitingForCold) return true;
 
         this.waitingForCold = true;
         this.stopAll();

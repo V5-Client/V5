@@ -21,6 +21,7 @@ const STATES = {
     MINING: 'Mining',
     CLAIMING: 'Claiming Rewards',
     WAITING_GUI_CLOSE: 'Closing GUI',
+    WAITING_COLD: 'Waiting for Cold',
 };
 
 const SUPPORTED_ORES = ['glacite', 'umber', 'tungsten', 'peridot', 'aquamarine', 'onyx', 'citrine'];
@@ -45,7 +46,6 @@ class GlaciteCommissionMacro extends ModuleBase {
         this.currentState = STATES.IDLE;
         this.travelMode = TRAVEL_MODES[0];
         this.coldThreshold = 20;
-        this.waitingForCold = false;
         this.pauseTicks = 0;
         this.commissions = [];
         this.currentCommission = null;
@@ -159,7 +159,6 @@ class GlaciteCommissionMacro extends ModuleBase {
 
     onDisable() {
         this.message('&cDisabled');
-        this.waitingForCold = false;
         this.resetState();
         Mouse.regrab();
     }
@@ -184,7 +183,9 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     delayedReset(delay) {
+        const waitingForCold = this.currentState === STATES.WAITING_COLD;
         this.resetState();
+        if (waitingForCold) this.setState(STATES.WAITING_COLD);
         this.delay(delay);
     }
 
@@ -192,7 +193,18 @@ class GlaciteCommissionMacro extends ModuleBase {
         if (!this.enabled) return;
         if (!Player.getPlayer()) return;
 
-        if (this.handleCold()) return;
+        const cold = MiningUtils.getDebuff('cold');
+        if (this.currentState === STATES.WAITING_COLD) {
+            if (cold > 0) return;
+            this.setState(STATES.CHOOSING);
+            this.pauseTicks = 0;
+        } else if (cold > this.coldThreshold) {
+            this.stopTunnelMiner();
+            this.setState(STATES.WAITING_COLD);
+            this.message(`&eCold exceeded ${this.coldThreshold}, warping to camp...`);
+            ChatLib.command('warp camp');
+            return;
+        }
 
         this.commissionClaimer.cancelNpcRotationIfPathing();
 
@@ -220,27 +232,6 @@ class GlaciteCommissionMacro extends ModuleBase {
             default:
                 break;
         }
-    }
-
-    handleCold() {
-        const cold = MiningUtils.getDebuff('cold');
-        if (this.waitingForCold) {
-            if (cold > 0) return true;
-
-            this.waitingForCold = false;
-            this.message('&aCold reached 0, resuming...');
-            this.setState(STATES.CHOOSING);
-            this.pauseTicks = 0;
-            return false;
-        }
-
-        if (cold <= this.coldThreshold) return false;
-
-        this.waitingForCold = true;
-        this.stopTunnelMiner();
-        this.message(`&eCold exceeded ${this.coldThreshold}, warping to camp...`);
-        ChatLib.command('warp camp');
-        return true;
     }
 
     handleChoosing() {
