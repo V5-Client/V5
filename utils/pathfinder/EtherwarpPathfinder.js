@@ -602,7 +602,7 @@ class EtherwarpPathHandler {
         this.stopExecution(restoreSlot);
 
         if (typeof onSuccess !== 'function') return;
-        onSuccess(currentGoal);
+        ScheduleTask(() => onSuccess(currentGoal));
     }
 
     finishFailure(reason, restoreSlot = true) {
@@ -625,7 +625,7 @@ class EtherwarpPathHandler {
         }
 
         if (typeof onFail !== 'function') return;
-        onFail(failureReason);
+        ScheduleTask(() => onFail(failureReason));
     }
 
     messagePathfinder(message) {
