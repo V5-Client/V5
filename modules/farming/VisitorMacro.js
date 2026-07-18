@@ -186,7 +186,7 @@ class VisitorMacro extends ModuleBase {
     checkOffer() {
         if (!Client.isInGui()) return this.retrySeeking();
 
-        if (this.declineCurrentVisitor || VISITOR_BLACKLIST.includes(this.visitors[this.visitorIndex])) {
+        if (this.declineCurrentVisitor) {
             if (!Guis.clickItem('Refuse Offer', false, 'LEFT')) return this.retrySeeking();
             return this.advanceVisitor();
         }
@@ -198,6 +198,11 @@ class VisitorMacro extends ModuleBase {
         if (lore.some((line) => cleanText(line).includes('Click to give!'))) {
             Guis.clickSlot(offerSlot, false, 'LEFT');
             return this.advanceVisitor(750);
+        }
+
+        if (VISITOR_BLACKLIST.includes(this.visitors[this.visitorIndex])) {
+            if (!Guis.clickItem('Refuse Offer', false, 'LEFT')) return this.retrySeeking();
+            return this.advanceVisitor();
         }
 
         this.requiredItems = parseRequiredItems(lore);
