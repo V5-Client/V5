@@ -402,7 +402,7 @@ class Bot extends ModuleBase {
     }
 
     isAirOrBedrock(blockName = '') {
-        return blockName.includes('air') || blockName.includes('bedrock');
+        return !blockName || blockName.endsWith(':air') || blockName.endsWith('_air') || blockName.includes('bedrock');
     }
 
     isSolidBlockAt(x, y, z) {
