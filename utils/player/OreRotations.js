@@ -11,7 +11,6 @@ class OreRotationController {
         this.step = 0;
         this.warmupSteps = 5;
         this.speed = 0.12;
-        this.speedOverride = null;
         this.gcd = 0;
         this.lastUpdateAt = 0;
         this.yawRemainder = 0;

@@ -697,8 +697,7 @@ class OreMiner extends ModuleBase {
         }
     }
 
-    orderTeleportAimPoints(visible) {
-        const points = visible.map((entry) => entry.point);
+    orderTeleportAimPoints(points) {
         for (let index = points.length - 1; index > 0; index--) {
             const swapIndex = Math.floor(Math.random() * (index + 1));
             [points[index], points[swapIndex]] = [points[swapIndex], points[index]];
