@@ -24,9 +24,8 @@ class NukerClass extends ModuleBase {
         this.target = null;
         this.lastMineTick = 0;
         this.tickCounter = 0;
-        this.lastChestClick = {};
         this.minedBlocks = new Map();
-        this.clickQueue = new Set();
+        this.chestClickCooldowns = new Map();
         this.chestClickedThisTick = false;
 
         this.BLOCK_COOLDOWN = 20;
@@ -92,6 +91,11 @@ class NukerClass extends ModuleBase {
 
         this.on('tick', () => {
             this.tickCounter++;
+
+            const now = Date.now();
+            for (const [posStr, clickedAt] of this.chestClickCooldowns) {
+                if (now - clickedAt >= 1000) this.chestClickCooldowns.delete(posStr);
+            }
 
             if (this.customBlockList.length === 0) {
                 this.message('Try setting targets with /v5 commands:');
@@ -173,13 +177,12 @@ class NukerClass extends ModuleBase {
                 this.chestPos = chest;
                 const posStr = `${chest.x},${chest.y},${chest.z}`;
 
-                if (this.clickQueue.has(posStr)) return;
                 if (this.distance(this.cords(), [chest.x, chest.y, chest.z]).distance > 6) return;
 
-                if (!this.chestClickedThisTick && (!this.lastChestClick[posStr] || Date.now() - this.lastChestClick[posStr] > 50)) {
-                    this.clickQueue.add(posStr);
+                const now = Date.now();
+                if (!this.chestClickedThisTick && now - (this.chestClickCooldowns.get(posStr) ?? 0) >= 1000) {
                     this.rightClickBlock([chest.x, chest.y, chest.z]);
-                    this.lastChestClick[posStr] = Date.now();
+                    this.chestClickCooldowns.set(posStr, now);
                     this.chestClickedThisTick = true;
                 }
             }
@@ -315,7 +318,7 @@ class NukerClass extends ModuleBase {
         this.lastMineTick = 0;
         this.tickCounter = 0;
         this.minedBlocks.clear();
-        this.clickQueue.clear();
+        this.chestClickCooldowns.clear();
         this.abilityFromChat = false;
     }
 
