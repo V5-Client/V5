@@ -91,6 +91,7 @@ const SUN_GECKO_COMBAT_ORIGIN = {
 };
 
 const WARP_WIZARD_DELAY_TICKS = 40;
+const MINIMUM_MOTES = 5000;
 
 class SunGecko extends ModuleBase {
     constructor() {
@@ -135,6 +136,7 @@ class SunGecko extends ModuleBase {
 
         this.on('tick', () => {
             if (!Player.getPlayer()) return;
+
             switch (this.state) {
                 case States.WAITING:
                     break;
@@ -165,6 +167,26 @@ class SunGecko extends ModuleBase {
         if (!Number.isFinite(essenceAmount) || essenceAmount <= 0) return;
 
         OverlayManager.incrementTrackedValue(this.oid, 'essence', essenceAmount);
+    }
+
+    getMotesFromScoreboard() {
+        try {
+            const lines = Scoreboard.getLines();
+            if (!lines) return null;
+
+            for (const line of lines) {
+                const lineText = ChatLib.removeFormatting(String(line));
+                const match = lineText.match(/Motes\s*[:\-]?\s*([\d,]+)/i);
+                if (!match) continue;
+
+                const motes = Number(match[1].replace(/,/g, ''));
+                return Number.isFinite(motes) ? motes : null;
+            }
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
+
+        return null;
     }
 
     countNearbyBlocks() {
@@ -308,6 +330,11 @@ class SunGecko extends ModuleBase {
                 this.scheduleState(States.DETERMIN, 40);
                 return;
             }
+            var motes = this.getMotesFromScoreboard();
+            if (motes !== null && motes < MINIMUM_MOTES) {
+                this.toggle(false);
+                return;
+            }
 
             if (Guis.guiName() !== null) {
                 this.clickMenuItem(ORUO.menuItem);
@@ -315,8 +342,7 @@ class SunGecko extends ModuleBase {
             }
 
             this.rotateAndInteract(ORUO, 'right');
-        } else if (closestPoint == 'Boss Combat') {
-            this.setState(States.COMBAT);
+        } else if (closestPoint == 'Boss Combat') {            this.setState(States.COMBAT);
             Keybind.setKey('w', true);
         } else if (closestPoint == 'Hub Tower') {
             this.startPathfind(this.buildPathGoals(HUB_TOWER_WAYPOINT.x, HUB_TOWER_WAYPOINT.y, HUB_TOWER_WAYPOINT.z));
