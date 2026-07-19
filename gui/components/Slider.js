@@ -270,7 +270,7 @@ export class Slider {
 
                 const distLow = Math.abs(val - this.value.low);
                 const distHigh = Math.abs(val - this.value.high);
-                this.draggingHandle = distLow < distHigh ? 'low' : 'high';
+                this.draggingHandle = this.value.low === this.value.high ? null : distLow < distHigh ? 'low' : 'high';
             }
             this.updateValue(mouseX);
             playClickSound();
@@ -385,6 +385,11 @@ export class Slider {
         let finalValue = Number.parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
 
         if (this.isRange) {
+            if (this.draggingHandle === null) {
+                if (finalValue < this.value.low) this.draggingHandle = 'low';
+                if (finalValue > this.value.high) this.draggingHandle = 'high';
+            }
+
             if (this.draggingHandle === 'low') {
                 this.value.low = Math.min(finalValue, this.value.high);
             } else if (this.draggingHandle === 'high') {
@@ -416,7 +421,7 @@ export class Slider {
                 const distLow = Math.abs(val - this.value.low);
                 const distHigh = Math.abs(val - this.value.high);
 
-                if (distLow < distHigh) {
+                if (distLow < distHigh || (distLow === distHigh && step < 0)) {
                     this.value.low = clamp(Number.parseFloat((this.value.low + step).toFixed(this.precision)), this.min, this.value.high);
                 } else {
                     this.value.high = clamp(Number.parseFloat((this.value.high + step).toFixed(this.precision)), this.value.low, this.max);
