@@ -124,7 +124,7 @@ class HUD extends ModuleBase {
 
         return [
             { label: 'FPS', value: String(fps), color: 0xffffffff },
-            { label: 'Ping', value: `123ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
+            { label: 'Ping', value: `${ping}`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
             { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
         ];
     }
