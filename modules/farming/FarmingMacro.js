@@ -7,6 +7,7 @@ import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
 import { farmingSettings } from './FarmingSettings';
+import { farmingDelays } from './FarmingDelays';
 import { visitorMacro } from './VisitorMacro';
 import { getNearbyPest } from '../visuals/PestESP';
 
@@ -63,6 +64,7 @@ export class FarmingMacro extends ModuleBase {
         }
         this.farmingRotation = null;
         this.nextSprayCheckAt = 0;
+        this.nextSprayonatorActionAt = 0;
         this.sprayonatorUnavailable = false;
         this.sprayonatorStep = null;
         this.mode = FARMING;
@@ -147,6 +149,7 @@ export class FarmingMacro extends ModuleBase {
 
     trySprayonator() {
         if (this.sprayonatorStep !== null) {
+            if (Date.now() < this.nextSprayonatorActionAt) return true;
             if (this.sprayonatorStep === 0) {
                 Guis.setItemSlot(this.sprayonatorSlot);
                 this.sprayonatorStep = 1;
@@ -158,6 +161,7 @@ export class FarmingMacro extends ModuleBase {
                 this.nextSprayCheckAt = Date.now() + SPRAY_CHECK_COOLDOWN_MS;
                 this.sprayonatorStep = null;
             }
+            this.nextSprayonatorActionAt = Date.now() + Utils.randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax) * 50;
             return true;
         }
 
@@ -170,6 +174,7 @@ export class FarmingMacro extends ModuleBase {
         this.sprayonatorSlot = slot;
         this.sprayonatorOriginalSlot = this.farmingSlot;
         this.sprayonatorStep = 0;
+        this.nextSprayonatorActionAt = 0;
         Client.unpressKeys();
         return true;
     }
@@ -269,7 +274,7 @@ export class FarmingMacro extends ModuleBase {
             const player = Player.getPlayer();
             if (this.enabled && player) this.resumeFarming(player, farmState, rotation);
         };
-        ScheduleTask(() => {
+        ScheduleTask(Utils.randomInt(farmingDelays.pestRestoreDelayMin, farmingDelays.pestRestoreDelayMax), () => {
             if (!farmingSettings.useMousemat) {
                 if (!this.rotateTo(rotation.yaw, rotation.pitch, resume)) resume();
                 return;

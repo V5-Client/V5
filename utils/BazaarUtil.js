@@ -1,6 +1,7 @@
 import { Guis } from './player/Inventory';
 import { Sign } from './Sign';
-import { Categories } from '../gui/categories/CategorySystem';
+import { Utils } from './Utils';
+import { farmingDelays } from '../modules/farming/FarmingDelays';
 
 const TIMEOUT = 10_000;
 
@@ -11,16 +12,6 @@ class BazaarUtil {
         this.deadline = 0;
         this.waitUntil = 0;
         this.confirmSlot = -1;
-        this.actionDelay = 250;
-        Categories.addSettingsSlider(
-            'Action Delay (ms)',
-            0,
-            1000,
-            this.actionDelay,
-            (value) => (this.actionDelay = Number(value)),
-            'Waits after each Bazaar action before checking the next screen.',
-            'Bazaar'
-        );
         register('tick', () => this.tick());
     }
 
@@ -131,7 +122,7 @@ class BazaarUtil {
             .toLowerCase();
     }
 
-    setState(state, delay = this.actionDelay) {
+    setState(state, delay = Utils.randomInt(farmingDelays.bazaarActionDelayMin, farmingDelays.bazaarActionDelayMax)) {
         this.state = state;
         this.deadline = Date.now() + TIMEOUT;
         this.waitUntil = Date.now() + delay;

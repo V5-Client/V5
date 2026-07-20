@@ -5,6 +5,8 @@ import { Guis } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { TabListUtils } from '../../utils/TabListUtils';
+import { Utils } from '../../utils/Utils';
+import { farmingDelays } from './FarmingDelays';
 
 const STATES = {
     SEEKING: 'Seeking visitor',
@@ -151,7 +153,7 @@ class VisitorMacro extends ModuleBase {
             Client.leftClick();
             if (!this.firstSeek) return;
             this.firstSeek = false;
-            ScheduleTask(5, () => {
+            ScheduleTask(Utils.randomInt(farmingDelays.visitorDoubleClickDelayMin, farmingDelays.visitorDoubleClickDelayMax), () => {
                 if (this.enabled) Client.leftClick();
             });
         });
@@ -196,7 +198,7 @@ class VisitorMacro extends ModuleBase {
         const lore = container.getStackInSlot(offerSlot).getLore() || [];
         if (lore.some((line) => cleanText(line).includes('Click to give!'))) {
             Guis.clickSlot(offerSlot, false, 'LEFT');
-            return this.advanceVisitor(750);
+            return this.advanceVisitor();
         }
 
         if (VISITOR_BLACKLIST.includes(this.visitors[this.visitorIndex])) {
@@ -237,9 +239,9 @@ class VisitorMacro extends ModuleBase {
         this.advanceVisitor();
     }
 
-    advanceVisitor(delay = 250) {
+    advanceVisitor() {
         this.state = STATES.ADVANCING;
-        this.nextActionAt = Date.now() + delay;
+        this.nextActionAt = Date.now() + Utils.randomInt(farmingDelays.visitorNextDelayMin, farmingDelays.visitorNextDelayMax);
     }
 
     skipVisitor() {
@@ -254,7 +256,7 @@ class VisitorMacro extends ModuleBase {
 
     retrySeeking() {
         this.state = STATES.SEEKING;
-        this.nextActionAt = Date.now() + 250;
+        this.nextActionAt = Date.now() + Utils.randomInt(farmingDelays.visitorRetryDelayMin, farmingDelays.visitorRetryDelayMax);
     }
 }
 
