@@ -59,16 +59,15 @@ export class Slider {
         this.dragging = false;
         this.draggingHandle = null;
         this.isTyping = false;
+        this.typingHandle = null;
 
-        this.inputValue = this.isRange
-            ? `${this.value.low.toFixed(this.precision)} - ${this.value.high.toFixed(this.precision)}`
-            : String(this.value.toFixed(this.precision));
+        this.inputValue = String((this.isRange ? this.value.low : this.value).toFixed(this.precision));
 
         this.optionPanelWidth = 0;
         this.containerHeight = 48;
         this.callback = callback;
         this.description = null;
-        this.valueRect = {};
+        this.valueRects = {};
         this.highlight = createHighlight();
         allSliders.push(this);
 
@@ -197,37 +196,45 @@ export class Slider {
             });
         }
 
-        const valueString = this.isRange
-            ? `${this.value.low.toFixed(this.precision)} - ${this.value.high.toFixed(this.precision)}`
-            : this.value.toFixed(this.precision);
-        const displayValue = this.isTyping ? this.inputValue : valueString;
-        const valueStringWidth = getTextWidth(displayValue, FontSizes.REGULAR);
+        const valueKeys = this.isRange ? ['low', 'high'] : ['value'];
+        const displayValues = valueKeys.map((key) =>
+            this.isTyping && this.typingHandle === key ? this.inputValue : (this.isRange ? this.value[key] : this.value).toFixed(this.precision)
+        );
         const valuePadding = 8;
         const valueBoxHeight = 20;
-        const valueBoxWidth = Math.max(40, valueStringWidth + valuePadding * 2);
-
-        const valueStringX = sliderX - valueBoxWidth - 8;
         const valueStringY = this.y + componentHeight / 2 - valueBoxHeight / 2;
+        const valueBoxGap = 4;
+        const valueBoxWidths = displayValues.map((displayValue) => Math.max(40, getTextWidth(displayValue, FontSizes.REGULAR) + valuePadding * 2));
+        let valueStringX = sliderX - valueBoxWidths.reduce((total, width) => total + width, 0) - valueBoxGap * (valueKeys.length - 1) - 8;
 
-        this.valueRect = {
-            x: valueStringX,
-            y: valueStringY,
-            width: valueBoxWidth,
-            height: valueBoxHeight,
-        };
+        this.valueRects = {};
+        valueKeys.forEach((key, index) => {
+            const displayValue = displayValues[index];
+            const valueStringWidth = getTextWidth(displayValue, FontSizes.REGULAR);
+            const valueBoxWidth = valueBoxWidths[index];
+            const isActive = this.isTyping && this.typingHandle === key;
 
-        drawRoundedRectangle({
-            x: valueStringX,
-            y: valueStringY,
-            width: valueBoxWidth,
-            height: valueBoxHeight,
-            radius: 6,
-            color: this.isTyping ? THEME.ACCENT : THEME.BG_INSET,
+            this.valueRects[key] = {
+                x: valueStringX,
+                y: valueStringY,
+                width: valueBoxWidth,
+                height: valueBoxHeight,
+            };
+
+            drawRoundedRectangle({
+                x: valueStringX,
+                y: valueStringY,
+                width: valueBoxWidth,
+                height: valueBoxHeight,
+                radius: 6,
+                color: isActive ? THEME.ACCENT : THEME.BG_INSET,
+            });
+
+            const textCenteredX = valueStringX + valueBoxWidth / 2 - valueStringWidth / 2;
+            drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM);
+
+            valueStringX += valueBoxWidth + valueBoxGap;
         });
-
-        const textCenteredX = valueStringX + valueBoxWidth / 2 - valueStringWidth / 2;
-
-        drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM);
 
         const componentRect = {
             x: this.x,
@@ -242,14 +249,24 @@ export class Slider {
     }
 
     handleClick(mouseX, mouseY) {
-        if (isInside(mouseX, mouseY, this.valueRect)) {
-            if (!this.isRange) {
+        const inputHandle = this.isRange
+            ? isInside(mouseX, mouseY, this.valueRects.low)
+                ? 'low'
+                : isInside(mouseX, mouseY, this.valueRects.high)
+                  ? 'high'
+                  : null
+            : isInside(mouseX, mouseY, this.valueRects.value)
+              ? 'value'
+              : null;
+
+        if (inputHandle) {
+            if (!this.isTyping || this.typingHandle !== inputHandle) {
+                if (this.isTyping) this.handleInputFinish();
                 this.isTyping = true;
+                this.typingHandle = inputHandle;
                 TypingState.isTyping = true;
-                this.inputValue = String(this.value.toFixed(this.precision));
-                return true;
+                this.inputValue = String((this.isRange ? this.value[inputHandle] : this.value).toFixed(this.precision));
             }
-            // no typing for range sliders because laziness
             return true;
         }
 
@@ -270,7 +287,7 @@ export class Slider {
 
                 const distLow = Math.abs(val - this.value.low);
                 const distHigh = Math.abs(val - this.value.high);
-                this.draggingHandle = distLow < distHigh ? 'low' : 'high';
+                this.draggingHandle = this.value.low === this.value.high ? null : distLow < distHigh ? 'low' : 'high';
             }
             this.updateValue(mouseX);
             playClickSound();
@@ -305,7 +322,7 @@ export class Slider {
     }
 
     handleKeyType(char, keyCode) {
-        if (!this.isTyping || this.isRange) return false;
+        if (!this.isTyping) return false;
 
         const DELETE_KEY = 259;
         const ENTER_KEY = 257;
@@ -355,18 +372,27 @@ export class Slider {
 
         if (Number.isNaN(typedValue)) {
             this.isTyping = false;
+            this.typingHandle = null;
             TypingState.isTyping = false;
             return;
         }
 
-        let finalValue = clamp(typedValue, this.min, this.max);
-        this.value = Number.parseFloat(finalValue.toFixed(this.precision));
+        const min = this.isRange && this.typingHandle === 'high' ? this.value.low : this.min;
+        const max = this.isRange && this.typingHandle === 'low' ? this.value.high : this.max;
+        const finalValue = Number.parseFloat(clamp(typedValue, min, max).toFixed(this.precision));
+
+        if (this.isRange) {
+            this.value[this.typingHandle] = finalValue;
+        } else {
+            this.value = finalValue;
+        }
 
         if (this.callback) {
             this.callback(this.value);
         }
 
         this.isTyping = false;
+        this.typingHandle = null;
         TypingState.isTyping = false;
         playClickSound();
     }
@@ -385,6 +411,11 @@ export class Slider {
         let finalValue = Number.parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
 
         if (this.isRange) {
+            if (this.draggingHandle === null) {
+                if (finalValue < this.value.low) this.draggingHandle = 'low';
+                if (finalValue > this.value.high) this.draggingHandle = 'high';
+            }
+
             if (this.draggingHandle === 'low') {
                 this.value.low = Math.min(finalValue, this.value.high);
             } else if (this.draggingHandle === 'high') {
@@ -416,7 +447,7 @@ export class Slider {
                 const distLow = Math.abs(val - this.value.low);
                 const distHigh = Math.abs(val - this.value.high);
 
-                if (distLow < distHigh) {
+                if (distLow < distHigh || (distLow === distHigh && step < 0)) {
                     this.value.low = clamp(Number.parseFloat((this.value.low + step).toFixed(this.precision)), this.min, this.value.high);
                 } else {
                     this.value.high = clamp(Number.parseFloat((this.value.high + step).toFixed(this.precision)), this.value.low, this.max);

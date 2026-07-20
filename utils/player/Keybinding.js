@@ -26,19 +26,6 @@ class ControlSystem {
         });
     }
 
-    sendRightClickPacket(delay, x, y, z) {
-        if (this.isGuiOpen()) return;
-
-        const bp = new BP(x, y, z);
-        const hitResult = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5), Direction.UP, bp, false);
-        const action = () => {
-            Client.sendPacket(new ServerboundUseItemOnPacket(MCHand.MAIN_HAND, hitResult, 0));
-        };
-
-        if (!delay || delay <= 0) action();
-        else ScheduleTask(delay, action);
-    }
-
     updateKeyState(action, isPressed) {
         const guiOpen = this.isGuiOpen();
 
@@ -175,7 +162,6 @@ const controls = new ControlSystem();
 export const Keybind = {
     leftClick: () => controls.triggerLeftClick(),
     rightClick: () => controls.triggerRightClick(),
-    rightClickPacket: (t, x, y, z) => controls.sendRightClickPacket(t, x, y, z),
     setKey: (k, d) => controls.updateKeyState(k, d),
     isKeyDown: (k) => controls.checkKeyDown(k),
     setKeysBasedOnYaw: (y, j) => controls.setMovementByYaw(y, j),

@@ -91,6 +91,7 @@ class RotationController {
         return this.start({ type: 'vector', value: vec }, options);
     }
 
+    // MAKE SURE YOU ONLY CALL THIS ONCE PER ENTITY. REPEATDLY CALLING trackEntity EVERY TICK CAUSES IT TO BREAK.
     trackEntity(entity, options = {}) {
         if (!this.isEntityUsable(entity)) return false;
         return this.start({ type: 'entity', value: entity }, options);

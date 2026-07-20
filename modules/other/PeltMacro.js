@@ -1075,7 +1075,7 @@ class PeltMacro extends ModuleBase {
         this.status = 'Shooting Mob';
         const aimPoint = this.getAimPoint(entity);
         Guis.setItemSlot(this.weaponSlot);
-        Rotations.trackEntity(entity);
+        if (!Rotations.active) Rotations.trackEntity(entity);
 
         if (Date.now() - this.lastShotAt < SHOOT_COOLDOWN_MS) return;
         if (!this.isAimedAt(aimPoint)) return;
