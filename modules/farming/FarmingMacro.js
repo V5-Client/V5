@@ -5,6 +5,7 @@ import { ScheduleTask } from '../../utils/ScheduleTask';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
+import { Guis } from '../../utils/player/Inventory';
 import { farmingSettings } from './FarmingSettings';
 import { visitorMacro } from './VisitorMacro';
 import { getNearbyPest } from '../visuals/PestESP';
@@ -14,6 +15,8 @@ const MAX_REWARP_ATTEMPTS = 3;
 const MAX_PEST_TRACK_DISTANCE = 12;
 const PEST_STALL_GRACE_TICKS = 20;
 const GUI_RESUME_GRACE_TICKS = 5;
+const SPRAY_CHECK_COOLDOWN_MS = 10_000;
+const MISSING_SPRAY_MATERIAL_REGEX = /^You don't have any .+!$/;
 const FARMING = 'Farming';
 const PEST = 'Pest';
 const RESTORING_PEST = 'Restoring Pest';
@@ -38,6 +41,11 @@ export class FarmingMacro extends ModuleBase {
         ]);
 
         this.on('tick', () => this.handleTick());
+        this.on('chat', (event) => {
+            if (farmingSettings.useSprayonator && MISSING_SPRAY_MATERIAL_REGEX.test(event.message?.getUnformattedText?.() || '')) {
+                this.sprayonatorUnavailable = true;
+            }
+        });
     }
 
     onEnable() {
@@ -54,6 +62,9 @@ export class FarmingMacro extends ModuleBase {
             }
         }
         this.farmingRotation = null;
+        this.nextSprayCheckAt = 0;
+        this.sprayonatorUnavailable = false;
+        this.sprayonatorStep = null;
         this.mode = FARMING;
         this.stallGraceTicks = 0;
         Mouse.ungrab();
@@ -61,6 +72,7 @@ export class FarmingMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
 
+        this.farmingSlot = Player.getHeldItemIndex();
         this.startFarming(player);
     }
 
@@ -76,6 +88,8 @@ export class FarmingMacro extends ModuleBase {
         this.pestRotation = null;
         this.pestFarmState = null;
         this.stallGraceTicks = 0;
+        if (this.sprayonatorStep > 0) Guis.setItemSlot(this.sprayonatorOriginalSlot);
+        this.sprayonatorStep = null;
         farmingSettings.restoreSlot();
     }
 
@@ -108,7 +122,9 @@ export class FarmingMacro extends ModuleBase {
     }
 
     handleFarming(player) {
+        if (this.sprayonatorStep !== null) return this.trySprayonator();
         if (farmingSettings.killNearbyPests && this.handlePest(player)) return;
+        if (this.trySprayonator()) return;
 
         if (!farmingSettings.looping && this.isAtPoint(player, this.points.end)) return this.beginRewarp();
         if (farmingSettings.looping && farmingSettings.runVisitorMacro && TabListUtils.readVisitors().length >= farmingSettings.minimumVisitors) {
@@ -127,6 +143,39 @@ export class FarmingMacro extends ModuleBase {
             this.updateFarmState(player);
         }
         this.invokeFarmState();
+    }
+
+    trySprayonator() {
+        if (this.sprayonatorStep !== null) {
+            if (this.sprayonatorStep === 0) {
+                Guis.setItemSlot(this.sprayonatorSlot);
+                this.sprayonatorStep = 1;
+            } else if (this.sprayonatorStep === 1) {
+                Client.rightClick();
+                this.sprayonatorStep = 2;
+            } else {
+                Guis.setItemSlot(this.sprayonatorOriginalSlot);
+                this.nextSprayCheckAt = Date.now() + SPRAY_CHECK_COOLDOWN_MS;
+                this.sprayonatorStep = null;
+            }
+            return true;
+        }
+
+        const now = Date.now();
+        if (this.sprayonatorUnavailable || !farmingSettings.useSprayonator || now < this.nextSprayCheckAt || !this.hasNoSpray()) return false;
+
+        const slot = Guis.findItemInHotbar('Sprayonator');
+        if (slot < 0) return false;
+
+        this.sprayonatorSlot = slot;
+        this.sprayonatorOriginalSlot = this.farmingSlot;
+        this.sprayonatorStep = 0;
+        Client.unpressKeys();
+        return true;
+    }
+
+    hasNoSpray() {
+        return TabListUtils.getNames().some((line) => /\bSpray:\s*None\b/.test(TabListUtils.stripFormatting(line?.getName?.() ?? line)));
     }
 
     beginRewarp(rewarpStartPoint = this.points.start) {

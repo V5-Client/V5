@@ -13,6 +13,7 @@ class FarmingSettings extends ModuleBase {
         });
 
         this.useMousemat = false;
+        this.useSprayonator = false;
         this.killNearbyPests = false;
         this.originalSlot = -1;
         this.command = 'warp garden';
@@ -25,6 +26,11 @@ class FarmingSettings extends ModuleBase {
         this.minimumVisitors = 1;
 
         this.addToggle('Use Mousemat', (value) => (this.useMousemat = !!value), 'Use Squeaky Mousemat instead of V5 rotations to face the farming angle.');
+        this.addToggle(
+            'Sprayonator While Farming',
+            (value) => (this.useSprayonator = !!value),
+            'Uses a Sprayonator while farming. \nMust have material already selected and in inventory/sacks'
+        );
         this.addToggle('Kill nearby pests while farming', (value) => (this.killNearbyPests = !!value), 'Pauses farming to kill nearby pests.');
         this.addToggle(
             'Looping Mode',
