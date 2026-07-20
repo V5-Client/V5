@@ -13,7 +13,7 @@ import { getNearbyPest } from '../visuals/PestESP';
 
 const REWARP_RETRY_MS = 10_000;
 const MAX_REWARP_ATTEMPTS = 3;
-const MAX_PEST_TRACK_DISTANCE = 12;
+const MAX_PEST_TRACK_DISTANCE = 14;
 const PEST_STALL_GRACE_TICKS = 20;
 const GUI_RESUME_GRACE_TICKS = 5;
 const SPRAY_CHECK_COOLDOWN_MS = 10_000;

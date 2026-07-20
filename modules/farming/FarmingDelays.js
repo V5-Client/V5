@@ -15,6 +15,8 @@ class FarmingDelays extends ModuleBase {
 
         this.visitorDoubleClickDelayMin = 3;
         this.visitorDoubleClickDelayMax = 7;
+        this.visitorAutoSellDelayMin = 3;
+        this.visitorAutoSellDelayMax = 6;
         this.visitorNextDelayMin = 250;
         this.visitorNextDelayMax = 750;
         this.visitorRetryDelayMin = 250;
@@ -29,6 +31,7 @@ class FarmingDelays extends ModuleBase {
         this.bazaarActionDelayMax = 750;
 
         this.addDelayRange('Visitor Double Click Delay (Ticks)', 'visitorDoubleClickDelay', MIN_TICK_DELAY, MAX_TICK_DELAY);
+        this.addDelayRange('Visitor Autosell Click Delay (Ticks)', 'visitorAutoSellDelay', MIN_TICK_DELAY, MAX_TICK_DELAY);
         this.addDelayRange('Next Visitor Delay (ms)', 'visitorNextDelay', 0, MAX_ACTION_DELAY_MS);
         this.addDelayRange('Visitor Retry Delay (ms)', 'visitorRetryDelay', 0, MAX_ACTION_DELAY_MS);
         this.addDelayRange('Pest Restore Delay (Ticks)', 'pestRestoreDelay', MIN_TICK_DELAY, MAX_TICK_DELAY);

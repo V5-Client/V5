@@ -10,6 +10,7 @@ import { farmingDelays } from './FarmingDelays';
 import { farmingSettings } from './FarmingSettings';
 
 const STATES = {
+    SELLING: 'Selling items',
     SEEKING: 'Seeking visitor',
     PATHING: 'Pathing',
     OPENING: 'Opening offer',
@@ -27,6 +28,24 @@ const INTERACT_DISTANCE = 3;
 const OPEN_TIMEOUT_MS = 1000;
 const VISITOR_TIMEOUT_MS = 15_000;
 const TELEPORT_RETRY_MS = 1000;
+const MIN_FREE_SLOTS = 14;
+const AUTOSELL_ITEMS = [
+    'Atmospheric Filter',
+    'Squeaky Toy',
+    'Beady Eyes',
+    'Clipped Wings',
+    'Overclocker',
+    'Mantid Claw',
+    'Flowering Bouquet',
+    'Bookworm',
+    'Chirping Stereo',
+    'Firefly',
+    'Capsule',
+    'Vinyl',
+    'Wriggling Larva',
+    'Quickdraw',
+    'Rarefinder',
+];
 const VISITOR_BLACKLIST = ['Vinyl Collector', 'Gold Forger', 'Rhys'];
 const PHILIP_SKIN_ID = 'minecraft:skins/299bb71d656072506bc04541cbcade06d5ec4b62';
 const PHILIP_PATH_DISTANCE = 5;
@@ -87,13 +106,11 @@ class VisitorMacro extends ModuleBase {
         }
 
         this.visitorIndex = 0;
-        this.transition(this.visitors.length ? STATES.SEEKING : STATES.PHILIP_SEEKING, TELEPORT_RETRY_MS);
-        this.philipStartedAt = this.visitors.length ? 0 : this.nextActionAt;
         this.firstSeek = true;
         this.declineCurrentVisitor = false;
-        this.visitorStartedAt = Date.now();
-        ChatLib.command('tptoplot barn');
-        if (this.visitors.length) this.message(`&aFound ${this.visitors.length} visitors.`);
+        const inventory = Player.getInventory();
+        this.autoSellPending = inventory && inventory.getItems().filter((item) => !item).length < MIN_FREE_SLOTS;
+        this.startVisitors();
     }
 
     onDisable() {
@@ -104,6 +121,10 @@ class VisitorMacro extends ModuleBase {
     }
 
     tick() {
+        if (this.state === STATES.SELLING) {
+            if (Date.now() >= this.nextActionAt) this.sellNextItem();
+            return;
+        }
         if (this.philipStartedAt && Date.now() - this.philipStartedAt >= PHILIP_TIMEOUT_MS) return this.toggle(false);
         if (!this.philipStartedAt && this.state !== STATES.ADVANCING && Date.now() - this.visitorStartedAt >= VISITOR_TIMEOUT_MS) return this.skipVisitor();
         if (this.state === STATES.OPENING) {
@@ -156,6 +177,43 @@ class VisitorMacro extends ModuleBase {
         }
     }
 
+    sellNextItem() {
+        if (Guis.guiName() !== 'Trades') {
+            ChatLib.command('trades');
+            this.nextActionAt = Date.now() + OPEN_TIMEOUT_MS;
+            return;
+        }
+
+        const items = Player.getContainer()?.getItems();
+        if (!items || items.length <= 54) return;
+        for (let i = 54; i < items.length; i++) {
+            const item = items[i];
+            if (item && AUTOSELL_ITEMS.some((name) => cleanText(item.getName()).includes(name))) {
+                Guis.clickSlot(i, false, 'LEFT');
+                this.nextActionAt = Date.now() + Utils.randomInt(farmingDelays.visitorAutoSellDelayMin, farmingDelays.visitorAutoSellDelayMax) * 50;
+                return;
+            }
+        }
+
+        Guis.closeInv();
+        this.startVisitors(false);
+    }
+
+    startVisitors(warpToBarn = true) {
+        this.transition(this.visitors.length ? STATES.SEEKING : STATES.PHILIP_SEEKING, TELEPORT_RETRY_MS);
+        this.philipStartedAt = this.visitors.length ? 0 : this.nextActionAt;
+        this.visitorStartedAt = Date.now();
+        if (warpToBarn) ChatLib.command('tptoplot barn');
+        if (warpToBarn && this.visitors.length) this.message(`&aFound ${this.visitors.length} visitors.`);
+    }
+
+    startAutoSell() {
+        if (!this.autoSellPending) return false;
+        this.autoSellPending = false;
+        this.transition(STATES.SELLING);
+        return true;
+    }
+
     seekVisitor() {
         const target = this.visitors[this.visitorIndex];
         if (!target) return this.toggle(false);
@@ -168,6 +226,7 @@ class VisitorMacro extends ModuleBase {
         const dz = entity.getZ() - Player.getZ();
         const distanceSq = dx * dx + dy * dy + dz * dz;
         if (distanceSq > 15 ** 2) return this.retryBarn();
+        if (this.startAutoSell()) return;
 
         if (distanceSq > INTERACT_DISTANCE ** 2) return this.pathTo(entity);
         if (Rotations.active) return;
@@ -208,6 +267,7 @@ class VisitorMacro extends ModuleBase {
                 if (this.enabled && this.state === STATES.PHILIP_SEEKING && !success) this.retry(STATES.PHILIP_SEEKING);
             });
         }
+        if (this.startAutoSell()) return;
 
         if (philip.distanceTo(Player.getX(), Player.getY(), Player.getZ()) > PHILIP_PATH_DISTANCE) {
             if (this.state === STATES.PHILIP_PATHING) return;
@@ -320,7 +380,7 @@ class VisitorMacro extends ModuleBase {
         if (!this.requiredItems.length) return this.retry(STATES.SEEKING);
         const inventory = Player.getInventory();
         const requiredSlots = this.requiredItems.reduce((slots, item) => slots + Math.ceil(item.count / 64), 0);
-        if (!inventory || inventory.getItems().filter((item) => item === null).length < requiredSlots) return this.handlePurchaseFailure();
+        if (!inventory || inventory.getItems().filter((item) => !item).length < requiredSlots) return this.handlePurchaseFailure();
         this.buyNextItem();
     }
 
