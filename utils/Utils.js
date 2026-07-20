@@ -112,7 +112,7 @@ class LocationDetector {
     getLobbyDay() {
         const world = Client.getMinecraft()?.level;
         if (!world) return 0;
-        return Math.floor(world.getDayTime() / 24000);
+        return Math.floor(world.getOverworldClockTime() / 24000);
     }
 
     stripFormatting(text) {
