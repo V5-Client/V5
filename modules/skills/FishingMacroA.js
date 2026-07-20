@@ -2,7 +2,6 @@ import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 
 class FishingMacro extends ModuleBase {
     constructor() {
@@ -88,14 +87,14 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case -1:
-                Keybind.rightClick();
+                Client.rightClick();
                 this.step++;
                 break;
             case 0: // detect fish bobber pull ready thing
                 let stand = World.getAllEntitiesOfType(ArmorStandEntity);
                 const target = stand.find((element) => element.getName() === '!!!');
                 if (!target) return;
-                Keybind.rightClick();
+                Client.rightClick();
                 this.step++;
                 break;
             case 1: // swap to hype
@@ -105,7 +104,7 @@ class FishingMacro extends ModuleBase {
                 break;
             case 2: // use hype x times
                 if (this.hypeClicksRemaining > 0) {
-                    Keybind.rightClick();
+                    Client.rightClick();
                     this.hypeClicksRemaining--;
                 } else {
                     if (this.thunderSpawn) {
@@ -125,7 +124,7 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 4:
-                Keybind.rightClick();
+                Client.rightClick();
                 this.deployableUsageTime = Date.now();
                 this.step++;
                 break;
@@ -138,7 +137,7 @@ class FishingMacro extends ModuleBase {
                     this.eelSpawn = false;
                     return;
                 }
-                Keybind.rightClick();
+                Client.rightClick();
                 if (this.petSwap) {
                     this.step = 7;
                 } else {

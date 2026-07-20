@@ -3,7 +3,6 @@ import { Camera } from '../../utils/Camera';
 import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { MathUtils } from '../../utils/Math';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Mouse } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
@@ -54,7 +53,6 @@ class Freecam extends ModuleBase {
         this.velocity = new Vec3d(0, 0, 0);
         this.savedPerspective = mc.options.getCameraType();
         this.lastRenderAt = Date.now();
-        Keybind.unpressKeys();
         Mouse.forceGrab();
         Mixin.set('cameraOverrideYaw', MathUtils.wrapTo180(player.getYRot()));
         Mixin.set('cameraOverridePitch', player.getXRot());
@@ -67,7 +65,6 @@ class Freecam extends ModuleBase {
         this.message('&cDisabled');
         this.cameraPos = null;
         this.velocity = new Vec3d(0, 0, 0);
-        Keybind.unpressKeys();
         Mixin.set('freecamEnabled', false);
         Mixin.delete('cameraOverrideYaw');
         Mixin.delete('cameraOverridePitch');

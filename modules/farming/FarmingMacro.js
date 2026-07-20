@@ -1,5 +1,4 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Mousemat } from '../../utils/player/Mousemat';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -69,7 +68,7 @@ export class FarmingMacro extends ModuleBase {
         if (this.rewarpActionStarted) visitorMacro.toggle(false);
         Mousemat.stop();
         Rotations.stop();
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         Mouse.regrab();
         this.mode = FARMING;
         this.rewarpActionStarted = false;
@@ -92,8 +91,7 @@ export class FarmingMacro extends ModuleBase {
         if (Client.isInGui()) {
             this.stationaryTicks = 0;
             this.stallGraceTicks = Math.max(this.stallGraceTicks, GUI_RESUME_GRACE_TICKS);
-            Keybind.unpressKeys();
-            return ScheduleTask(1, Keybind.setKey('leftclick', false));
+            return;
         }
         if (Mousemat.active) return;
 
@@ -103,7 +101,7 @@ export class FarmingMacro extends ModuleBase {
             case PEST:
                 return this.handlePest(player);
             case RESTORING_PEST:
-                return Keybind.unpressKeys();
+                return Client.unpressKeys();
             case REWARPING:
                 return this.handleRewarp(player);
         }
@@ -135,7 +133,7 @@ export class FarmingMacro extends ModuleBase {
         this.rewarpStartPoint = rewarpStartPoint;
         this.rewarpAttempts = 0;
         this.nextRewarpAt = Date.now() + Utils.randomInt(farmingSettings.delayMin, farmingSettings.delayMax);
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         this.mode = REWARPING;
 
         if (!farmingSettings.runVisitorMacro || TabListUtils.readVisitors().length < farmingSettings.minimumVisitors) return;
@@ -151,7 +149,7 @@ export class FarmingMacro extends ModuleBase {
             if (visitorMacro.enabled) return;
             this.rewarpActionStarted = false;
         }
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         if (this.isAtPoint(player, this.rewarpStartPoint)) {
             this.mode = FARMING;
             this.startFarming(player);
@@ -179,7 +177,7 @@ export class FarmingMacro extends ModuleBase {
             if (!this.pestTarget) return false;
         }
 
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         if (this.mode === FARMING) {
             this.pestRotation = { yaw: player.getYRot(), pitch: player.getXRot() };
             this.pestFarmState = {
@@ -193,7 +191,7 @@ export class FarmingMacro extends ModuleBase {
             farmingSettings.originalSlot = Player.getHeldItemIndex();
         }
         if (!farmingSettings.selectVacuum()) return true;
-        Keybind.setKey('rightclick', true);
+        Client.setKey('rightclick', true);
         Rotations.trackEntity(this.pestTarget);
         return true;
     }
@@ -214,7 +212,7 @@ export class FarmingMacro extends ModuleBase {
 
         this.mode = RESTORING_PEST;
         Rotations.stop();
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         farmingSettings.restoreSlot();
         if (!rotation || !this.enabled) return;
 
@@ -267,7 +265,7 @@ export class FarmingMacro extends ModuleBase {
             return started;
         }
 
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         Rotations.stop();
         if (!Mousemat.rotateTo(yaw, pitch)) {
             this.message(`&cNo Mousemat found in hotbar.`);
@@ -279,9 +277,9 @@ export class FarmingMacro extends ModuleBase {
     }
 
     hold(key = '') {
-        ['a', 'd', 'w', 's', 'shift'].forEach((movement) => Keybind.setKey(movement, key.includes(movement)));
-        Keybind.setKey('leftclick', true);
-        Keybind.setKey('sprint', false);
+        ['a', 'd', 'w', 's', 'shift'].forEach((movement) => Client.setKey(movement, key.includes(movement)));
+        Client.setKey('leftclick', true);
+        Client.setKey('sprint', false);
     }
 
     saveRewarpPoint(name) {

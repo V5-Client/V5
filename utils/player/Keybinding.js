@@ -1,5 +1,3 @@
-import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../Constants';
-import { ServerboundUseItemOnPacket } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { Utils, mc } from '../Utils';
 
@@ -160,14 +158,23 @@ class ControlSystem {
 const controls = new ControlSystem();
 
 export const Keybind = {
+    // @Deprecated Use Client.leftClick()
     leftClick: () => controls.triggerLeftClick(),
+    // @Deprecated Use Client.rightClick()
     rightClick: () => controls.triggerRightClick(),
+    // @Deprecated Use Client.setKey()
     setKey: (k, d) => controls.updateKeyState(k, d),
+    // @Deprecated Use Client.isKeyDown()
     isKeyDown: (k) => controls.checkKeyDown(k),
+    // @Deprecated Use Movement.setKeysBasedOnYaw()
     setKeysBasedOnYaw: (y, j) => controls.setMovementByYaw(y, j),
+    // @Deprecated Use Movement.setKeysForStraightLine()
     setKeysForStraightLine: (y, j, ignoreBottomSlab) => controls.setCardinalMovement(y, j, ignoreBottomSlab),
+    // @Deprecated Use Movement.setKeysForStraightLineCoords()
     setKeysForStraightLineCoords: (x, y, z, j, ignoreBottomSlab) => controls.setMovementToCoords(x, y, z, j, ignoreBottomSlab),
+    // @Deprecated Use Client.stopMovement()
     stopMovement: () => controls.haltMovement(),
+    // @Deprecated Use Client.unpressKeys()
     unpressKeys: () => controls.fullRelease(),
     isGuiOpen: () => controls.isGuiOpen(),
 };

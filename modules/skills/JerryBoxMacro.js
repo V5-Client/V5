@@ -1,6 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Mouse } from '../../utils/Ungrab';
 class JerryBoxMacro extends ModuleBase {
     constructor() {
@@ -70,7 +69,7 @@ class JerryBoxMacro extends ModuleBase {
                         this.setState(this.STATES.RIGHT_CLICK);
                         return;
                     }
-                    Keybind.rightClick();
+                    Client.rightClick();
                     this.waitLeft = this.guiWaitMax;
                     this.setState(this.STATES.CLICK_BUTTON);
                     break;

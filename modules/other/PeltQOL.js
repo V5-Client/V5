@@ -3,7 +3,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 
 const NAMES = new Set(['Cow', 'Pig', 'Sheep', 'Chicken', 'Rabbit', 'Horse', 'Mooshroom', 'Dinnerbone']);
 const HP = new Set([100, 200, 500, 1000, 2000, 5000, 10000, 1024, 20000, 30000, 60000]);
@@ -171,7 +170,7 @@ class PeltQOL extends ModuleBase {
                 break;
             }
             case ABIPHONE.RIGHT_CLICK: {
-                Keybind.rightClick();
+                Client.rightClick();
                 this.abiphoneWait = 10;
                 this.abiphoneState = ABIPHONE.FIND_TREVOR;
                 break;

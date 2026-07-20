@@ -2,7 +2,6 @@ import { bazaarUtil } from '../../utils/BazaarUtil';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { TabListUtils } from '../../utils/TabListUtils';
@@ -86,7 +85,7 @@ class VisitorMacro extends ModuleBase {
         bazaarUtil.cancel();
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
         Rotations.stop();
-        Keybind.stopMovement();
+        Client.stopMovement();
     }
 
     tick() {
@@ -149,11 +148,11 @@ class VisitorMacro extends ModuleBase {
         Rotations.lookAtVector(aimPoint);
         Rotations.onComplete(() => {
             if (!this.enabled || this.state !== STATES.OPENING) return;
-            Keybind.leftClick();
+            Client.leftClick();
             if (!this.firstSeek) return;
             this.firstSeek = false;
             ScheduleTask(5, () => {
-                if (this.enabled) Keybind.leftClick();
+                if (this.enabled) Client.leftClick();
             });
         });
     }
@@ -246,7 +245,7 @@ class VisitorMacro extends ModuleBase {
     skipVisitor() {
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
         Rotations.stop();
-        Keybind.stopMovement();
+        Client.stopMovement();
         Guis.closeInv();
         this.message('&eVisitor timed out, skipping.');
         bazaarUtil.cancel();

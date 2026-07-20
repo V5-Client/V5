@@ -6,7 +6,6 @@ import { Utils } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
 import { Guis } from './player/Inventory';
-import { Keybind } from './player/Keybinding';
 import { Rotations } from './player/Rotations';
 import { TabListUtils } from './TabListUtils';
 
@@ -631,7 +630,7 @@ class RefuelService {
                 break;
 
             case this.STATES.OPEN_ABIPHONE:
-                Keybind.rightClick();
+                Client.rightClick();
                 this.setState(this.STATES.SELECT_CONTACT, 0, 50);
                 break;
 
@@ -730,7 +729,7 @@ class RefuelService {
                     Rotations.onComplete(() => {
                         if (!this.npcRotationPending || this.npcRotationToken !== token) return;
                         this.npcRotationPending = false;
-                        Keybind.rightClick();
+                        Client.rightClick();
                         this.setState(this.STATES.WAIT_FOR_ANVIL, 10, 200);
                     });
                 }

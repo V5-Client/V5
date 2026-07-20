@@ -6,7 +6,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { formatRoundedNumber } from '../../utils/NumberUtils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
+import { Movement } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
@@ -264,8 +264,8 @@ class SunGecko extends ModuleBase {
             if (!this.enabled || this.state !== States.DETERMIN) return;
             if (this.rotationToken !== token) return;
 
-            if (clickType === 'left') Keybind.leftClick();
-            else Keybind.rightClick();
+            if (clickType === 'left') Client.leftClick();
+            else Client.rightClick();
 
             this.actionCooldownUntil = Date.now() + nextDelay * 50;
             this.scheduleState(States.DETERMIN, nextDelay);
@@ -317,7 +317,7 @@ class SunGecko extends ModuleBase {
             this.rotateAndInteract(ORUO, 'right');
         } else if (closestPoint == 'Boss Combat') {
             this.setState(States.COMBAT);
-            Keybind.setKey('w', true);
+            Client.setKey('w', true);
         } else if (closestPoint == 'Hub Tower') {
             this.startPathfind(this.buildPathGoals(HUB_TOWER_WAYPOINT.x, HUB_TOWER_WAYPOINT.y, HUB_TOWER_WAYPOINT.z));
         }
@@ -335,16 +335,16 @@ class SunGecko extends ModuleBase {
         const distanceToLadder = MathUtils.fastDistance(Player.getX(), 0, Player.getZ(), RIFT_SPAWN_LADDER_WAYPOINT.x, 0, RIFT_SPAWN_LADDER_WAYPOINT.z);
 
         if (distanceToLadder > 0.25) {
-            Keybind.setKey('shift', true);
-            Keybind.setKey('sprint', false);
+            Client.setKey('shift', true);
+            Client.setKey('sprint', false);
             Rotations.lookAtVector(RIFT_SPAWN_LADDER_AIM_POINT);
-            Keybind.setKeysForStraightLineCoords(RIFT_SPAWN_LADDER_WAYPOINT.x, RIFT_SPAWN_LADDER_WAYPOINT.y, RIFT_SPAWN_LADDER_WAYPOINT.z, false, true);
+            Movement.setKeysForStraightLineCoords(RIFT_SPAWN_LADDER_WAYPOINT.x, RIFT_SPAWN_LADDER_WAYPOINT.y, RIFT_SPAWN_LADDER_WAYPOINT.z, false, true);
             return;
         }
 
-        Keybind.stopMovement();
-        Keybind.setKey('shift', false);
-        Keybind.setKey('sprint', false);
+        Client.stopMovement();
+        Client.setKey('shift', false);
+        Client.setKey('sprint', false);
         if (Rotations.active) Rotations.stop();
     }
 
@@ -360,13 +360,13 @@ class SunGecko extends ModuleBase {
         );
 
         if (distanceToExit > 1) {
-            Keybind.setKey('shift', false);
-            Keybind.setKey('sprint', false);
-            Keybind.setKeysForStraightLineCoords(RIFT_SPAWN_EXIT_WAYPOINT.x, RIFT_SPAWN_EXIT_WAYPOINT.y, RIFT_SPAWN_EXIT_WAYPOINT.z, false, true);
+            Client.setKey('shift', false);
+            Client.setKey('sprint', false);
+            Movement.setKeysForStraightLineCoords(RIFT_SPAWN_EXIT_WAYPOINT.x, RIFT_SPAWN_EXIT_WAYPOINT.y, RIFT_SPAWN_EXIT_WAYPOINT.z, false, true);
             return;
         }
 
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         this.startPathfind(this.buildPathGoals(EYE_TELEPORTER.x, EYE_TELEPORTER.y, EYE_TELEPORTER.z));
     }
 
@@ -388,7 +388,7 @@ class SunGecko extends ModuleBase {
 
         const nearbyTerracotta = this.countNearbyBlocks();
         if (nearbyTerracotta > 10 && Date.now() >= this.terracottaClickCooldownUntil) {
-            Keybind.rightClick();
+            Client.rightClick();
             this.terracottaClickCooldownUntil = Date.now() + 5000;
         }
 
@@ -445,7 +445,7 @@ class SunGecko extends ModuleBase {
 
     onDisable() {
         this.pathRequestActive = false;
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         Pathfinder.resetPath();
         Rotations.stop();
         this.terracottaClickCooldownUntil = 0;

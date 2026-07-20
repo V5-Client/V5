@@ -8,7 +8,6 @@ import { Raytrace } from '../../utils/Raytrace';
 import { manager } from '../../utils/SkyblockEvents';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
 import { TabListUtils } from '../../utils/TabListUtils';
@@ -246,7 +245,7 @@ class Bot extends ModuleBase {
                 return;
             }
             if (Client.isInGui()) {
-                Keybind.unpressKeys();
+                Client.unpressKeys();
                 return;
             }
 
@@ -291,7 +290,7 @@ class Bot extends ModuleBase {
             'Movement',
             (value) => {
                 this.MOVEMENT = value;
-                if (!value) Keybind.stopMovement();
+                if (!value) Client.stopMovement();
             },
             'Moves around vein while mining.',
             true
@@ -529,17 +528,17 @@ class Bot extends ModuleBase {
 
     stopMiningControls(stopMovement = false) {
         if (stopMovement) {
-            Keybind.stopMovement();
-            Keybind.setKey('space', false);
+            Client.stopMovement();
+            Client.setKey('space', false);
         }
-        Keybind.setKey('leftclick', false);
+        Client.setKey('leftclick', false);
     }
 
     handleBreaking(blockName, fakeLookMode) {
         if (fakeLookMode === 'Off') {
-            Keybind.setKey('leftclick', true);
+            Client.setKey('leftclick', true);
         } else {
-            Keybind.setKey('leftclick', false);
+            Client.setKey('leftclick', false);
             if (this.isAirOrBedrock(blockName)) {
                 this.lowestCostBlockIndex++;
                 if (this.lowestCostBlockIndex >= this.foundLocations.length) this.allowScan = true;
@@ -600,10 +599,10 @@ class Bot extends ModuleBase {
             const fakeLookMode = this.getFakeLookMode();
 
             if (Player.getPlayer().handSwinging && fakeLookMode === 'Off') {
-                return Keybind.setKey('leftclick', false);
+                return Client.setKey('leftclick', false);
             }
 
-            Keybind.rightClick();
+            Client.rightClick();
 
             this.lastUse = now;
             this.abilityFromChat = false;
@@ -1204,15 +1203,15 @@ class Bot extends ModuleBase {
 
     setSneak(shouldSneak, force = false) {
         if (force || this.lastSneakCommand !== shouldSneak || Player.isSneaking() !== shouldSneak) {
-            Keybind.setKey('shift', shouldSneak);
+            Client.setKey('shift', shouldSneak);
             this.lastSneakCommand = shouldSneak;
         }
     }
 
     handleVeinMovement() {
         if (!this.MOVEMENT || !this.currentTarget) {
-            Keybind.stopMovement();
-            Keybind.setKey('space', false);
+            Client.stopMovement();
+            Client.setKey('space', false);
             return;
         }
 
@@ -1242,9 +1241,9 @@ class Bot extends ModuleBase {
         const tunnelMode = this.isTunnelMode();
         const isHighTarget = this.isTargetAbovePlayer(this.currentTarget);
         if (this.isTargetDirectlyUnderPlayer(this.currentTarget) || (!tunnelMode && isHighTarget)) {
-            Keybind.stopMovement();
+            Client.stopMovement();
             this.setSneak(true);
-            Keybind.setKey('space', false);
+            Client.setKey('space', false);
             return;
         }
 
@@ -1266,10 +1265,10 @@ class Bot extends ModuleBase {
             moveBack = false;
         }
 
-        Keybind.setKey('d', moveRight);
-        Keybind.setKey('a', moveLeft);
-        Keybind.setKey('w', moveForward);
-        Keybind.setKey('s', moveBack);
+        Client.setKey('d', moveRight);
+        Client.setKey('a', moveLeft);
+        Client.setKey('w', moveForward);
+        Client.setKey('s', moveBack);
 
         const isMoving = moveRight || moveLeft || moveForward || moveBack;
         const playerFeetY = Player.getY();
@@ -1282,7 +1281,7 @@ class Bot extends ModuleBase {
         const shouldJump = Player.getPlayer()?.onGround() && justOutOfReach && blockedForward;
         const shouldUnsneak = isMoving && (requiresDropToMove || requiresLargeMove);
         this.setSneak(!shouldUnsneak);
-        Keybind.setKey('space', shouldJump);
+        Client.setKey('space', shouldJump);
     }
 
     refreshCurrentTargetAimPoint() {
@@ -1433,10 +1432,10 @@ class Bot extends ModuleBase {
         }
 
         this.state = this.STATES.WAITING;
-        Keybind.stopMovement();
-        Keybind.setKey('space', false);
+        Client.stopMovement();
+        Client.setKey('space', false);
         this.setSneak(false, true);
-        Keybind.setKey('leftclick', false);
+        Client.setKey('leftclick', false);
         this.foundLocations = [];
         this.lastBlockPos = null;
         this.lastBlockType = null;

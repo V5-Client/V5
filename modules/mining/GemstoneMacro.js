@@ -10,7 +10,6 @@ import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ServerInfo } from '../../utils/player/ServerInfo';
 import { MiningBot } from './MiningBot';
@@ -156,7 +155,7 @@ class GemstoneMacro extends ModuleBase {
 
                 case this.STATES.ETHERWARPING:
                     MiningBot.toggle(false);
-                    Keybind.setKey('leftclick', false);
+                    Client.setKey('leftclick', false);
                     let aotv = Guis.findItemInHotbar('Aspect of the Void');
 
                     if (aotv === -1) {
@@ -210,7 +209,7 @@ class GemstoneMacro extends ModuleBase {
 
                     if (!this.rotatedToPoint) {
                         Guis.setItemSlot(aotv);
-                        Keybind.setKey('shift', true);
+                        Client.setKey('shift', true);
                         const player = Player.getPlayer();
                         if (!player?.isSneaking()) return;
 
@@ -223,7 +222,7 @@ class GemstoneMacro extends ModuleBase {
                                 this.lastX = Player.getX();
                                 this.lastY = Player.getY();
                                 this.lastZ = Player.getZ();
-                                Keybind.setKey('shift', false);
+                                Client.setKey('shift', false);
                             });
                         });
                         this.rotatedToPoint = true;
@@ -448,7 +447,7 @@ class GemstoneMacro extends ModuleBase {
         Rotations.stop();
         MiningBot.toggle(false, true);
         MiningBot.foundLocations = [];
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         Mouse.regrab();
 
         this.state = this.STATES.WAITING;

@@ -2,7 +2,6 @@ import { Chat } from '../Chat';
 import { MCHand, Vec3d } from '../Constants';
 import { ClientboundPingPacket, ServerboundUseItemPacket } from '../Packets';
 import { Guis } from '../player/Inventory';
-import { Keybind } from '../player/Keybinding';
 import { finiteNumber } from '../NumberUtils';
 import { RotationGCD } from '../player/RotationGCD';
 import { ServerInfo } from '../player/ServerInfo';
@@ -335,8 +334,8 @@ class EtherwarpPathHandler {
 
     preparePlayer(slot) {
         this.stateVersion++;
-        Keybind.stopMovement();
-        Keybind.setKey('shift', true);
+        Client.stopMovement();
+        Client.setKey('shift', true);
         Guis.setItemSlot(slot);
     }
 
@@ -531,8 +530,8 @@ class EtherwarpPathHandler {
         ScheduleTask(0, () => {
             if (this.stateVersion !== cleanupVersion) return;
 
-            Keybind.setKey('shift', false);
-            Keybind.stopMovement();
+            Client.setKey('shift', false);
+            Client.stopMovement();
 
             if (slotToRestore !== -1) Guis.setItemSlot(slotToRestore);
         });

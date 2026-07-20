@@ -3,7 +3,7 @@ import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
+import { Movement } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
 import { Router } from '../../utils/Router';
@@ -160,11 +160,11 @@ class RouteWalkerer extends ModuleBase {
 
             switch (this.action) {
                 case this.ACTIONS.WALK:
-                    Keybind.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true, true);
+                    Movement.setKeysForStraightLineCoords(this.point.x, this.point.y, this.point.z, true, true);
 
-                    Keybind.setKey('shift', this.SNEAK);
-                    Keybind.setKey('leftclick', this.LEFTCLICK);
-                    Keybind.setKey('sprint', true);
+                    Client.setKey('shift', this.SNEAK);
+                    Client.setKey('leftclick', this.LEFTCLICK);
+                    Client.setKey('sprint', true);
 
                     if (this.LEFTCLICK) Guis.setItemSlot(this.LEFTCLICKSLOT - 1);
 
@@ -183,8 +183,8 @@ class RouteWalkerer extends ModuleBase {
                     break;
 
                 case this.ACTIONS.ETHERWARP:
-                    Keybind.stopMovement();
-                    Keybind.setKey('shift', true);
+                    Client.stopMovement();
+                    Client.setKey('shift', true);
 
                     let aotv = Guis.findItemInHotbar('Aspect of the Void');
                     if (aotv === -1) aotv = Guis.findItemInHotbar('Aspect of the End'); // can aote etherwarp?
@@ -209,7 +209,7 @@ class RouteWalkerer extends ModuleBase {
 
                             Rotations.onComplete(() => {
                                 ScheduleTask(7, () => {
-                                    Keybind.rightClick();
+                                    Client.rightClick();
                                 });
                             });
                             this.etherwarpReady = true;
@@ -364,8 +364,8 @@ class RouteWalkerer extends ModuleBase {
 
     onDisable() {
         this.message('&cDisabled');
-        Keybind.unpressKeys();
-        Keybind.setKey('leftclick', false);
+        Client.unpressKeys();
+        Client.setKey('leftclick', false);
         Rotations.stop();
         Mouse.regrab();
         this.foundpoint = false;

@@ -1,7 +1,6 @@
 import { ScheduleTask } from '../ScheduleTask';
 import { Sign } from '../Sign';
 import { Guis } from './Inventory';
-import { Keybind } from './Keybinding';
 
 const CLICK_COOLDOWN_MS = 3_050;
 
@@ -66,7 +65,7 @@ class MousematController {
             if (this.rotation !== rotation) return;
 
             rotation.waitingForSign = true;
-            Keybind.rightClick();
+            Client.rightClick();
         });
         return true;
     }
@@ -138,7 +137,7 @@ class MousematController {
             const cooldown = this.lastClickAt + CLICK_COOLDOWN_MS - Date.now();
             if (!retry && cooldown > 0) return ScheduleTask(Math.ceil(cooldown / 50), click);
 
-            Keybind.leftClick();
+            Client.leftClick();
             this.lastClickAt = Date.now();
             ScheduleTask(checkRotation);
         };

@@ -8,7 +8,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
@@ -185,7 +184,7 @@ class RatMacro extends ModuleBase {
 
         if (Utils.area() !== 'Hub') {
             this.cancelPathing();
-            Keybind.stopMovement();
+            Client.stopMovement();
             this.setState(STATES.WAITING, `left hub for ${Utils.area() || 'unknown area'}`);
             return;
         }
@@ -337,7 +336,7 @@ class RatMacro extends ModuleBase {
         this.cancelRatPathState();
         this.pendingAttackAtGoal = true;
         this.setState(STATES.ENGAGING, `preparing shot for ${this.formatRatRef()}`);
-        Keybind.stopMovement();
+        Client.stopMovement();
         Rotations.stop();
         Guis.setItemSlot(this.weaponSlot);
         this.debug(`queued attack on rat &e${this.formatRatRef()}&f using slot &e${this.weaponSlot + 1}`);
@@ -846,7 +845,7 @@ class RatMacro extends ModuleBase {
         this.currentTargetPathAttempts = 0;
         this.pendingAttackAtGoal = false;
         this.pendingAttackToken++;
-        Keybind.stopMovement();
+        Client.stopMovement();
         Rotations.stop();
         this.setState(STATES.WAITING, 'cleared active target');
     }
@@ -1055,7 +1054,7 @@ class RatMacro extends ModuleBase {
         Rotations.lookAtVector(aimPoint);
         if (Client.isInGui()) return;
         this.debug('right clicking VIP NPC to open selector');
-        Keybind.rightClick();
+        Client.rightClick();
 
         return true;
     }
@@ -1139,7 +1138,7 @@ class RatMacro extends ModuleBase {
         }
         this.vipRotationToken++;
         this.cancelPathing();
-        Keybind.stopMovement();
+        Client.stopMovement();
         Rotations.stop();
         if (this.swapStage === SWAP_STAGES.NONE) {
             this.debug('world unloaded, clearing Rat Macro runtime state');
@@ -1192,8 +1191,8 @@ class RatMacro extends ModuleBase {
         this.lastSwapActionAt = 0;
         this.lastWorldUnloadAt = 0;
         this.vipRotationToken++;
-        Keybind.stopMovement();
-        Keybind.unpressKeys();
+        Client.stopMovement();
+        Client.unpressKeys();
         Rotations.stop();
         this.debug('disabled, cleared targeting/pathing state');
         this.setState(STATES.WAITING, 'module disabled');

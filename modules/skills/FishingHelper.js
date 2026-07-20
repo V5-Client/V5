@@ -1,7 +1,6 @@
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 
 class FishingHelper extends ModuleBase {
     constructor() {
@@ -54,14 +53,14 @@ class FishingHelper extends ModuleBase {
                 const target = armorStands.find((element) => element.getName() === '!!!');
                 if (!target) return;
 
-                Keybind.rightClick();
+                Client.rightClick();
 
                 this.step = 20; // recast
                 this.tickDelay = this.randomTickDelay();
                 break;
             }
             case 20:
-                Keybind.rightClick();
+                Client.rightClick();
                 this.bobberActiveAt = Date.now();
                 if (this.petSwapRecast) {
                     this.pendingPetSlot = this.petSlotRecast;
@@ -98,12 +97,12 @@ class FishingHelper extends ModuleBase {
         this.message('&aEnabled');
 
         this.resetSequence();
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
     }
 
     onDisable() {
         this.message('&cDisabled');
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
     }
 }
 

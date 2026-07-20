@@ -2,7 +2,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { MacroState } from '../../utils/MacroState';
 import { MathUtils } from '../../utils/Math';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
 import { Utils } from '../../utils/Utils';
@@ -90,7 +89,7 @@ class ExcavatorMacro extends ModuleBase {
             switch (this.state) {
                 case this.STATES.OPENING:
                     if (Player.lookingAt() instanceof Entity && !this.inExcavator) {
-                        Keybind.rightClick();
+                        Client.rightClick();
                         this.state = this.STATES.SETUP;
                     } else {
                         if (Rotations.active) return;

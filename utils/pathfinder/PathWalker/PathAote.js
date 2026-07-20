@@ -3,7 +3,6 @@ import { BP, SnowBlock } from '../../Constants';
 import { MathUtils } from '../../Math';
 import { Utils } from '../../Utils';
 import { Guis } from '../../player/Inventory';
-import { Keybind } from '../../player/Keybinding';
 import PathConfig from '../PathConfig';
 import { Jump } from './PathJumps';
 import { Movement } from './PathMovement';
@@ -102,7 +101,7 @@ class PathAote {
 
         if (!this.hasEnoughMana()) return;
 
-        Keybind.rightClick();
+        Client.rightClick();
         Jump.suppressJump(5);
         rotations.onTeleportTriggered(candidate.targetPathPosition);
         this.cooldownTicks = PathConfig.WALKER_AOTE_COOLDOWN_TICKS;

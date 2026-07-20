@@ -6,7 +6,6 @@ import { manager } from '../../utils/SkyblockEvents';
 import { Executor } from '../../utils/ThreadExecutor';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { v5Command } from '../../utils/V5Commands';
-import { Keybind } from '../../utils/player/Keybinding';
 
 class NukerClass extends ModuleBase {
     constructor() {
@@ -293,7 +292,7 @@ class NukerClass extends ModuleBase {
     }
 
     usePickaxeAbilityNow() {
-        Keybind.rightClick();
+        Client.rightClick();
         this.lastUse = Date.now();
         this.abilityFromChat = false;
     }

@@ -179,17 +179,17 @@ class SeaLumie extends ModuleBase {
                 ]
               ).distance > 4
             ) {
-              Keybind.setKey("w", true);
+              Client.setKey("w", true);
             } else {
               let looking = Player.lookingAt();
 
               if (looking?.type?.getRegistryName()?.includes("pickle")) {
                 this.message("STILL");
-                Keybind.setKey("leftclick", true); // this instead of leftclick so you  dont do 50cps
+                Client.setKey("leftclick", true); // this instead of leftclick so you  dont do 50cps
               } else {
-                Keybind.setKey("leftclick", false);
+                Client.setKey("leftclick", false);
               }
-              Keybind.setKey("w", false);
+              Client.setKey("w", false);
             }
           } else {
             this.startedScan = false;

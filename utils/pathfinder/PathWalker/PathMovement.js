@@ -1,5 +1,4 @@
 import { finiteNumber } from '../../NumberUtils';
-import { Keybind } from '../../player/Keybinding';
 import { PathExecutor } from '../PathExecutor';
 
 class PathMovement {
@@ -11,21 +10,21 @@ class PathMovement {
 
         PathExecutor.onTick(() => {
             if (this.forceJumpTicks > 0) {
-                Keybind.setKey('space', true);
+                Client.setKey('space', true);
                 this.forceJumpTicks--;
                 if (this.forceJumpTicks === 0) {
-                    Keybind.setKey('space', false);
+                    Client.setKey('space', false);
                 }
             }
 
             if (this.backupTicks > 0) {
-                Keybind.setKey('w', false);
-                Keybind.setKey('s', true);
-                Keybind.setKey('sprint', false);
+                Client.setKey('w', false);
+                Client.setKey('s', true);
+                Client.setKey('sprint', false);
                 this.backupTicks--;
 
                 if (this.backupTicks === 0) {
-                    Keybind.setKey('s', false);
+                    Client.setKey('s', false);
 
                     if (this.backupCallback) {
                         const cb = this.backupCallback;
@@ -44,8 +43,8 @@ class PathMovement {
         this.isActive = true;
 
         if (this.backupTicks <= 0) {
-            if (!player.isSprinting()) Keybind.setKey('sprint', true);
-            Keybind.setKey('w', true);
+            if (!player.isSprinting()) Client.setKey('sprint', true);
+            Client.setKey('w', true);
         }
     }
 
@@ -73,14 +72,14 @@ class PathMovement {
         this.backupTicks = 0;
         this.backupCallback = null;
 
-        Keybind.stopMovement();
-        Keybind.setKey('w', false);
-        Keybind.setKey('s', false);
-        Keybind.setKey('a', false);
-        Keybind.setKey('d', false);
-        Keybind.setKey('space', false);
-        Keybind.setKey('shift', false);
-        Keybind.setKey('sprint', false);
+        Client.stopMovement();
+        Client.setKey('w', false);
+        Client.setKey('s', false);
+        Client.setKey('a', false);
+        Client.setKey('d', false);
+        Client.setKey('space', false);
+        Client.setKey('shift', false);
+        Client.setKey('sprint', false);
     }
 }
 

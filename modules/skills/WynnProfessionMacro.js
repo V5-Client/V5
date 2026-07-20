@@ -5,7 +5,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { formatRoundedNumber } from '../../utils/NumberUtils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Utils } from '../../utils/Utils';
@@ -165,7 +164,7 @@ class WynnProfessionMacro extends ModuleBase {
         this.waitStartedAt = 0;
         this.lastRepairActionAt = 0;
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         Rotations.stop();
     }
 
@@ -318,14 +317,14 @@ class WynnProfessionMacro extends ModuleBase {
         if (!this.enabled) return;
 
         this.state = STATES.ROTATING;
-        Keybind.unpressKeys();
+        Client.unpressKeys();
 
         Rotations.lookAtVector(new Vec3d(point.x, point.y + 1.62, point.z), { speedMultiplier: 1.0 });
         Rotations.onComplete(() => {
             if (!this.enabled) return;
 
-            if (point.click === 'RIGHT') Keybind.rightClick();
-            else Keybind.leftClick();
+            if (point.click === 'RIGHT') Client.rightClick();
+            else Client.leftClick();
 
             this.state = STATES.WAITING_BREAK_SOUND;
             this.waitStartedAt = Date.now();
@@ -353,7 +352,7 @@ class WynnProfessionMacro extends ModuleBase {
         this.message('&eTool durability is empty, pathing to the nearest blacksmith.');
 
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         Rotations.stop();
 
         Pathfinder.findPath(this.buildBlacksmithPathGoals(), (success) => {
@@ -371,7 +370,7 @@ class WynnProfessionMacro extends ModuleBase {
         if (!this.enabled) return;
 
         this.state = STATES.REPAIR_ROTATING;
-        Keybind.unpressKeys();
+        Client.unpressKeys();
 
         const target = this.getClosestBlacksmith();
         const aimPoint = new Vec3d(target.x + 0.5, target.y + 2.62, target.z + 0.5);
@@ -380,7 +379,7 @@ class WynnProfessionMacro extends ModuleBase {
         Rotations.onComplete(() => {
             if (!this.enabled) return;
 
-            Keybind.rightClick();
+            Client.rightClick();
             this.state = STATES.REPAIR_OPENING;
             this.lastRepairActionAt = Date.now();
         });

@@ -2,7 +2,7 @@ import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../uti
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Keybind } from '../../utils/player/Keybinding';
+import { Movement } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
 
@@ -537,7 +537,7 @@ class Combat extends ModuleBase {
                 break;
             case COMBAT_STATE.APPROACHING:
             case COMBAT_STATE.ATTACKING:
-                Keybind.stopMovement();
+                Client.stopMovement();
                 break;
         }
     }
@@ -546,7 +546,7 @@ class Combat extends ModuleBase {
         switch (state) {
             case COMBAT_STATE.IDLE:
             case COMBAT_STATE.PATHING:
-                Keybind.stopMovement();
+                Client.stopMovement();
                 Rotations.stop();
                 break;
             case COMBAT_STATE.APPROACHING:
@@ -556,7 +556,7 @@ class Combat extends ModuleBase {
             case COMBAT_STATE.ATTACKING:
                 Pathfinder.resetPath();
                 this.isPathing = false;
-                Keybind.stopMovement();
+                Client.stopMovement();
                 break;
         }
     }
@@ -605,8 +605,8 @@ class Combat extends ModuleBase {
             return;
         }
 
-        Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
-        Keybind.setKey('sprint', true);
+        Movement.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
+        Client.setKey('sprint', true);
         this.startRotationToTarget();
     }
 
@@ -624,12 +624,12 @@ class Combat extends ModuleBase {
         if (distanceData) this.tryAttack();
         this.startRotationToTarget();
 
-        Keybind.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
-        if (distanceData.distanceFlat <= 2) Keybind.stopMovement();
+        Movement.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
+        if (distanceData.distanceFlat <= 2) Client.stopMovement();
         if (distanceData.distanceY < -3) {
-            Keybind.setKey('space', true);
+            Client.setKey('space', true);
         }
-        Keybind.setKey('sprint', true);
+        Client.setKey('sprint', true);
     }
 
     startPathingToTarget(pos) {
@@ -729,7 +729,7 @@ class Combat extends ModuleBase {
         const now = Date.now();
         const cooldown = 1000 / this.attackCPS;
         if (now - this.lastAttackTime < cooldown) return;
-        Keybind.leftClick();
+        Client.leftClick();
         this.lastAttackTime = now;
     }
 

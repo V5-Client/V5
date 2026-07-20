@@ -7,7 +7,6 @@ import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { MacroState } from '../../utils/MacroState';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
 import { NukerUtils } from '../../utils/NukerUtils';
@@ -120,7 +119,7 @@ class GlowingMushroomMacro extends ModuleBase {
         this.cancelCurrentPathing();
         this.harvestRequestActive = false;
         Rotations.stop();
-        Keybind.stopMovement();
+        Client.stopMovement();
         this.restoreEspState();
         this.message('&cDisabled');
     }
@@ -221,7 +220,7 @@ class GlowingMushroomMacro extends ModuleBase {
         if (!this.warpStartedAt) {
             this.cancelCurrentPathing();
             Rotations.stop();
-            Keybind.stopMovement();
+            Client.stopMovement();
             this.status = 'Warping to Glowing Cave';
             this.message('&eNot in The Farming Islands, warping...');
         }
@@ -437,7 +436,7 @@ class GlowingMushroomMacro extends ModuleBase {
             let totalClicks = clicks;
 
             if (refreshedPoint && this.isPointWithinReach(refreshedPoint, refreshedEye)) {
-                Keybind.leftClick();
+                Client.leftClick();
                 totalClicks++;
 
                 ScheduleTask(() => {

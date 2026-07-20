@@ -2,7 +2,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundSetTitleTextPacket } from '../../utils/Packets';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { manager } from '../../utils/SkyblockEvents';
@@ -70,14 +69,14 @@ class FishOnMCMacro extends ModuleBase {
             if (position === -1) return;
 
             this.lastFishAt = Date.now();
-            Keybind.setKey('shift', position < 50);
+            Client.setKey('shift', position < 50);
         }).setFilteredClass(net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket);
 
         this.on('packetReceived', (packet) => {
             if (this.state !== STATES.FISHING) return;
 
             const title = String(packet.text().getString());
-            if (title === 'BITE!') Keybind.rightClick();
+            if (title === 'BITE!') Client.rightClick();
         }).setFilteredClass(ClientboundSetTitleTextPacket);
 
         this.on('chat', (event) => {
@@ -121,7 +120,7 @@ class FishOnMCMacro extends ModuleBase {
 
             if (this.state !== STATES.FISHING || !this.lastFishAt || Date.now() - this.lastFishAt < 500) return;
 
-            Keybind.setKey('shift', false);
+            Client.setKey('shift', false);
             this.castRod();
             this.lastFishAt = 0;
         });
@@ -144,14 +143,14 @@ class FishOnMCMacro extends ModuleBase {
             yaw: Player.getYaw(),
             pitch: Player.getPitch(),
         };
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
         Mouse.ungrab();
         this.castRod();
     }
 
     onDisable() {
         this.message('&cDisabled');
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
         Pathfinder.resetPath();
         Rotations.stop();
         if (this.state === STATES.OPENING_MERCHANT || this.state === STATES.SELLING || this.state >= STATES.QUEST_OPENING) Guis.closeInv();
@@ -167,7 +166,7 @@ class FishOnMCMacro extends ModuleBase {
 
         this.message('&eInventory full! Selling items...');
         this.lastFishAt = 0;
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
         this.merchant = merchants.reduce((closest, entity) => {
             const distance = Math.hypot(entity.getX() - Player.getX(), entity.getY() - Player.getY(), entity.getZ() - Player.getZ());
             const closestDistance = Math.hypot(closest.getX() - Player.getX(), closest.getY() - Player.getY(), closest.getZ() - Player.getZ());
@@ -208,12 +207,12 @@ class FishOnMCMacro extends ModuleBase {
         this.state = STATES.OPENING_MERCHANT;
 
         if (!Rotations.lookAtVector(aimPoint)) {
-            Keybind.rightClick();
+            Client.rightClick();
             return;
         }
 
         Rotations.onComplete(() => {
-            if (this.enabled && this.state === STATES.OPENING_MERCHANT) Keybind.rightClick();
+            if (this.enabled && this.state === STATES.OPENING_MERCHANT) Client.rightClick();
         });
     }
 
@@ -274,7 +273,7 @@ class FishOnMCMacro extends ModuleBase {
         this.state = STATES.QUEST_OPENING;
         this.lastQuestActionAt = 0;
         this.message('&eOpening quests...');
-        if (this.hasFishingHook()) Keybind.rightClick();
+        if (this.hasFishingHook()) Client.rightClick();
         ScheduleTask(3, () => {
             if (this.enabled && this.state >= STATES.QUEST_OPENING) ChatLib.command('quests');
         });
@@ -342,15 +341,15 @@ class FishOnMCMacro extends ModuleBase {
 
         this.lastCastAt = Date.now();
         if (!this.hasFishingHook()) {
-            Keybind.rightClick();
+            Client.rightClick();
             return;
         }
 
-        Keybind.rightClick();
+        Client.rightClick();
         ScheduleTask(4, () => {
             if (this.enabled) {
                 this.lastCastAt = Date.now();
-                Keybind.rightClick();
+                Client.rightClick();
             }
         });
     }

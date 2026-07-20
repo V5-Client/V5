@@ -1,5 +1,4 @@
 import { MathUtils } from '../Math';
-import { Keybind } from '../player/Keybinding';
 import { PathExecutor } from './PathExecutor';
 import { PathRotationsUtility } from './PathWalker/PathRotationsUtility';
 
@@ -115,12 +114,12 @@ class SimulationPathFlyer {
         }
 
         if (onGround || (!abilities.flying && this.flightStartTicks < this.FLIGHT_START_TICKS)) {
-            ['w', 'a', 's', 'd', 'shift', 'sprint'].forEach((key) => Keybind.setKey(key, false));
+            ['w', 'a', 's', 'd', 'shift', 'sprint'].forEach((key) => Client.setKey(key, false));
             if (this.flightStartTicks < this.FLIGHT_START_TICKS) {
-                Keybind.setKey('space', !Keybind.isKeyDown('space'));
+                Client.setKey('space', !Client.isKeyDown('space'));
                 this.flightStartTicks++;
             } else {
-                Keybind.setKey('space', true);
+                Client.setKey('space', true);
             }
             return;
         }
@@ -416,7 +415,7 @@ class SimulationPathFlyer {
             shift: action.vertical < 0,
             sprint: action.sprint,
         };
-        Object.keys(keys).forEach((key) => Keybind.setKey(key, keys[key]));
+        Object.keys(keys).forEach((key) => Client.setKey(key, keys[key]));
     }
 
     distanceSq(a, b) {
@@ -424,7 +423,7 @@ class SimulationPathFlyer {
     }
 
     releaseKeys() {
-        ['w', 'a', 's', 'd', 'space', 'shift', 'sprint'].forEach((key) => Keybind.setKey(key, false));
+        ['w', 'a', 's', 'd', 'space', 'shift', 'sprint'].forEach((key) => Client.setKey(key, false));
     }
 
     stop(completed = false) {

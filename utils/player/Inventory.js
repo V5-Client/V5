@@ -1,7 +1,6 @@
 import { Chat } from '../Chat';
 import { ServerboundContainerClosePacket } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
-import { Keybind } from './Keybinding';
 import { Rotations } from './Rotations';
 
 class ItemSearcher {
@@ -176,9 +175,9 @@ export const Guis = {
 
     stopInGui: function () {
         if (handler.getCurrentTitle() !== null) {
-            Keybind.stopMovement();
-            Keybind.setKey('shift', false);
-            Keybind.setKey('leftclick', false);
+            Client.stopMovement();
+            Client.setKey('shift', false);
+            Client.setKey('leftclick', false);
             Rotations.stop();
         }
     },

@@ -1,6 +1,5 @@
 import { Chat } from '../../Chat';
 import { BP, SnowBlock, Vec3d } from '../../Constants';
-import { Keybind } from '../../player/Keybinding';
 import PathConfig from '../PathConfig';
 import { PathExecutor } from '../PathExecutor';
 import { Movement } from './PathMovement';
@@ -32,7 +31,7 @@ class PathJumps {
             if (this.blockCache.size > 1000) this.blockCache.clear();
             if (this.jumpSuppressTicks > 0) {
                 this.jumpSuppressTicks--;
-                Keybind.setKey('space', false);
+                Client.setKey('space', false);
             }
         });
     }
@@ -179,7 +178,7 @@ class PathJumps {
     }
     checkFluidJump() {
         if (!this.isPlayerInFluid()) return false;
-        Keybind.setKey('space', true);
+        Client.setKey('space', true);
         if (Date.now() - this.lastFluidMessage > 2000) {
             if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Fluid jump detected');
             this.lastFluidMessage = Date.now();
@@ -196,7 +195,7 @@ class PathJumps {
         const diff = data.vec.y() - (8 - layers) * 0.125 - (Player.getY() - 1);
         if (diff > 0.75 && layers > 6) {
             if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Snow jump detected');
-            Keybind.setKey('space', true);
+            Client.setKey('space', true);
             return true;
         }
         return false;
@@ -226,7 +225,7 @@ class PathJumps {
         }
         if (needsJump && !canWalkInstead) {
             if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Standard jump detected');
-            Keybind.setKey('space', true);
+            Client.setKey('space', true);
             return true;
         }
         return false;
@@ -256,7 +255,7 @@ class PathJumps {
         if (rise < 1 || rise > 2) return false;
 
         if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Predictive climb jump');
-        Keybind.setKey('space', true);
+        Client.setKey('space', true);
         return true;
     }
 
@@ -299,7 +298,7 @@ class PathJumps {
 
                 if (distToEdgeSq <= 1.35 * 1.35) {
                     if (PathConfig.PATHFINDING_DEBUG) Chat.messagePathfinder('Gap jump detected');
-                    Keybind.setKey('space', true);
+                    Client.setKey('space', true);
                     return true;
                 }
             }
@@ -323,7 +322,7 @@ class PathJumps {
         if (!Player.getPlayer()) return this.reset();
         this.applyFlagBits(pathFlagBits);
         if (this.jumpSuppressTicks > 0) {
-            Keybind.setKey('space', false);
+            Client.setKey('space', false);
             return;
         }
         const { lookahead, closestIndex } = this.drawPathAndPlayerLookAhead(path);
@@ -335,7 +334,7 @@ class PathJumps {
 
         if (nextFlags & this.FLAG_LOW_HEADROOM) {
             this.suppressJump(4);
-            Keybind.setKey('space', false);
+            Client.setKey('space', false);
             return;
         }
 
@@ -346,7 +345,7 @@ class PathJumps {
 
         if (!player.onGround()) {
             if (!Movement.isRecovering() && !this.isPlayerInFluid()) {
-                Keybind.setKey('space', false);
+                Client.setKey('space', false);
             }
             return;
         }
@@ -364,7 +363,7 @@ class PathJumps {
         if (this.checkObstacleJump(lookahead)) return;
 
         if (!Movement.isRecovering()) {
-            Keybind.setKey('space', false);
+            Client.setKey('space', false);
         }
         this.lastLookaheadPositions = lookahead.map((d) => d.vec.y());
     }
@@ -375,7 +374,7 @@ class PathJumps {
         this.jumpSuppressTicks = 0;
         this.blockCache.clear();
         this.cacheFrame = 0;
-        Keybind.setKey('space', false);
+        Client.setKey('space', false);
     }
 
     suppressJump(ticks = 5) {

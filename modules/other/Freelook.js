@@ -1,7 +1,6 @@
 import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { MathUtils } from '../../utils/Math';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Mouse } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
@@ -40,7 +39,6 @@ class Freelook extends ModuleBase {
 
     onDisable() {
         this.message('&cDisabled');
-        Keybind.unpressKeys();
         Mixin.set('freelookEnabled', false);
         Mixin.delete('cameraOverrideYaw');
         Mixin.delete('cameraOverridePitch');

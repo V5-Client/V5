@@ -12,7 +12,7 @@ import { v5Command } from '../../utils/V5Commands';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import { MiningBot } from './MiningBot';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
+import { Movement } from '../../utils/player/Movement';
 import { OreRotations } from '../../utils/player/OreRotations';
 
 const MINE_REACH_SQ = 4.49 * 4.49;
@@ -566,13 +566,13 @@ class OreMiner extends ModuleBase {
                     this.retryTeleportAim(waypoint);
                     return;
                 }
-                Keybind.rightClick();
+                Client.rightClick();
                 this.enterState('TP_LAND');
                 return;
 
             case 'TP_LAND':
                 if (this.isAtWaypoint(waypoint)) {
-                    Keybind.setKey('shift', false);
+                    Client.setKey('shift', false);
                     this.enterState('MINE_INIT');
                 } else if (++this.waitTicks >= 30) {
                     if (++this.teleportRetries >= 5) {
@@ -608,11 +608,11 @@ class OreMiner extends ModuleBase {
                 this.mineRetries = 0;
                 this.currentRenderTarget = null;
                 this.nextRenderTarget = null;
-                Keybind.setKey('leftclick', false);
+                Client.setKey('leftclick', false);
                 if (waypoint.isDeployable && this.deployableWaypointsEnabled && !this.hasNearbyDeployable(waypoint.pos)) this.enterState('DEPLOYABLE');
                 else {
                     Guis.setItemSlot(this.drillSlot);
-                    Keybind.setKey('leftclick', true);
+                    Client.setKey('leftclick', true);
                     this.enterState('MINE_NEXT');
                 }
                 return;
@@ -629,7 +629,7 @@ class OreMiner extends ModuleBase {
 
             case 'MINE_ONETAP':
                 if (++this.waitTicks >= 2) {
-                    Keybind.setKey('leftclick', true);
+                    Client.setKey('leftclick', true);
                     this.mineIndex++;
                     this.enterState('MINE_NEXT');
                 }
@@ -641,8 +641,8 @@ class OreMiner extends ModuleBase {
             case 'ADVANCE':
                 this.waypointIndex = (this.waypointIndex + 1) % this.loadedWaypoints.length;
                 this.mineIndex = 0;
-                Keybind.setKey('leftclick', false);
-                Keybind.stopMovement();
+                Client.setKey('leftclick', false);
+                Client.stopMovement();
                 this.enterState('WAYPOINT');
                 return;
         }
@@ -669,15 +669,15 @@ class OreMiner extends ModuleBase {
     tickTeleportStrafe(waypoint) {
         this.ensureShiftHeld();
         if (!this.etherwarpStrafeAligned) {
-            Keybind.setKey('a', false);
-            Keybind.setKey('d', false);
+            Client.setKey('a', false);
+            Client.setKey('d', false);
             if (OreRotations.isRotating && ++this.waitTicks < 60) return;
             OreRotations.stop();
             this.etherwarpStrafeAligned = true;
             this.waitTicks = 0;
         }
 
-        Keybind.setKey(this.strafeKey, true);
+        Client.setKey(this.strafeKey, true);
         this.waitTicks++;
         if (this.waitTicks >= 40) {
             this.stopStrafing(false);
@@ -789,24 +789,24 @@ class OreMiner extends ModuleBase {
                     return;
                 }
 
-                Keybind.stopMovement();
-                Keybind.setKey('shift', false);
+                Client.stopMovement();
+                Client.setKey('shift', false);
                 OreRotations.stop();
                 this.enterState('WAYPOINT');
                 return;
             }
 
-            Keybind.stopMovement();
-            Keybind.setKey('shift', false);
+            Client.stopMovement();
+            Client.setKey('shift', false);
             OreRotations.stop();
             this.enterState('MINE_INIT');
             return;
         }
 
         const nearEdge = this.hasEdgeAhead(x, y, z);
-        Keybind.setKeysForStraightLineCoords(x, y, z, !nearEdge);
-        Keybind.setKey('shift', nearEdge);
-        Keybind.setKey('sprint', !nearEdge && dx * dx + dz * dz > 2);
+        Movement.setKeysForStraightLineCoords(x, y, z, !nearEdge);
+        Client.setKey('shift', nearEdge);
+        Client.setKey('sprint', !nearEdge && dx * dx + dz * dz > 2);
         this.waitTicks++;
         this.updateWalkWaypointLookAhead();
         if (this.waitTicks >= 300) {
@@ -850,10 +850,10 @@ class OreMiner extends ModuleBase {
 
     tickDeployable() {
         if (this.waitTicks === 0) Guis.setItemSlot(this.deployableSlot);
-        if (this.waitTicks === 2) Keybind.rightClick();
+        if (this.waitTicks === 2) Client.rightClick();
         if (++this.waitTicks >= 4) {
             Guis.setItemSlot(this.drillSlot);
-            Keybind.setKey('leftclick', true);
+            Client.setKey('leftclick', true);
             this.enterState('MINE_NEXT');
         }
     }
@@ -883,7 +883,7 @@ class OreMiner extends ModuleBase {
         const blocks = waypoint.minableBlocks;
         while (this.mineIndex < blocks.length && this.shouldSkipBlock(blocks[this.mineIndex])) this.mineIndex++;
         if (this.mineIndex >= blocks.length) {
-            Keybind.setKey('leftclick', false);
+            Client.setKey('leftclick', false);
             this.enterState('ADVANCE');
             return;
         }
@@ -910,8 +910,8 @@ class OreMiner extends ModuleBase {
 
     tickMineStrafe(waypoint) {
         if (OreRotations.isRotating) return;
-        Keybind.setKey('shift', true);
-        Keybind.setKey(this.strafeKey, true);
+        Client.setKey('shift', true);
+        Client.setKey(this.strafeKey, true);
         const block = waypoint.minableBlocks[this.mineIndex];
         const aim = this.getMineAim(block);
         if (aim) {
@@ -930,8 +930,8 @@ class OreMiner extends ModuleBase {
         this.currentRenderTarget = { x: block.x, y: block.y, z: block.z };
         this.nextRenderTarget = this.findNextMineTarget(this.mineIndex + 1);
         this.mineRetries = 0;
-        if (block.oneTap || block.rOneTap) Keybind.setKey('leftclick', false);
-        else Keybind.setKey('leftclick', true);
+        if (block.oneTap || block.rOneTap) Client.setKey('leftclick', false);
+        else Client.setKey('leftclick', true);
         OreRotations.lookAtVector(aim, this.oreMineSpeed);
         this.enterState('MINE_WAIT_ROTATION');
     }
@@ -940,13 +940,13 @@ class OreMiner extends ModuleBase {
         const block = waypoint.minableBlocks[this.mineIndex];
         if (!block) return this.enterState('MINE_NEXT');
         if (block.oneTap) {
-            Keybind.setKey('leftclick', false);
-            Keybind.leftClick();
+            Client.setKey('leftclick', false);
+            Client.leftClick();
         } else if (block.rOneTap) {
-            Keybind.setKey('leftclick', false);
-            Keybind.rightClick();
+            Client.setKey('leftclick', false);
+            Client.rightClick();
         } else {
-            Keybind.setKey('leftclick', true);
+            Client.setKey('leftclick', true);
             this.enterState('MINE_HOLD');
             return;
         }
@@ -958,7 +958,7 @@ class OreMiner extends ModuleBase {
         const blockName = this.getBlockName(block);
         if (blockName !== this.currentBlockName || MiningBot.isAirOrBedrock(blockName)) {
             if (this.strafedForBlock) {
-                Keybind.setKey('shift', false);
+                Client.setKey('shift', false);
                 this.strafedForBlock = false;
             }
             this.mineIndex++;
@@ -966,7 +966,7 @@ class OreMiner extends ModuleBase {
             return;
         }
 
-        Keybind.setKey('leftclick', true);
+        Client.setKey('leftclick', true);
         if (++this.waitTicks < this.mineTimeoutTicks) return;
 
         if (++this.mineRetries > 8) {
@@ -990,7 +990,7 @@ class OreMiner extends ModuleBase {
         this.abilityFromChat = false;
         this.abilityAvailabilityConsumed = true;
         this.abilityUseReadyAt = 0;
-        Keybind.setKey('leftclick', false);
+        Client.setKey('leftclick', false);
         this.abilitySteps = this.buildAbilitySteps();
         this.enterState('ABILITY');
     }
@@ -1007,18 +1007,18 @@ class OreMiner extends ModuleBase {
             const rodSlot = Guis.findItemInHotbar('rod');
             if (rodSlot >= 0) {
                 add(() => Guis.setItemSlot(rodSlot), 2);
-                add(() => Keybind.rightClick(), 4);
+                add(() => Client.rightClick(), 4);
             }
 
             add(() => Guis.setItemSlot(this.abilityDrillSwapEnabled ? this.abilityDrillSlot : this.drillSlot), 2);
-            add(() => Keybind.rightClick(), 4);
+            add(() => Client.rightClick(), 4);
         }
 
         add(() => {
-            Keybind.setKey('leftclick', false);
+            Client.setKey('leftclick', false);
             Guis.setItemSlot(this.drillSlot);
         }, 2);
-        add(() => Keybind.setKey('leftclick', true), 2);
+        add(() => Client.setKey('leftclick', true), 2);
 
         this.abilityTotalTicks = tick;
         return steps;
@@ -1136,8 +1136,8 @@ class OreMiner extends ModuleBase {
         const key = this.chooseEtherwarpStrafeKey(waypoint);
         if (!key) return false;
 
-        Keybind.setKey('a', false);
-        Keybind.setKey('d', false);
+        Client.setKey('a', false);
+        Client.setKey('d', false);
         this.strafeKey = key;
         this.etherwarpStrafeAligned = false;
         this.ensureShiftHeld();
@@ -1268,19 +1268,19 @@ class OreMiner extends ModuleBase {
     }
 
     ensureShiftHeld() {
-        if (!Keybind.isKeyDown('shift')) Keybind.setKey('shift', true);
+        if (!Client.isKeyDown('shift')) Client.setKey('shift', true);
     }
 
     stopStrafing(releaseSneak = true) {
-        if (this.strafeKey) Keybind.setKey(this.strafeKey, false);
-        if (releaseSneak) Keybind.setKey('shift', false);
+        if (this.strafeKey) Client.setKey(this.strafeKey, false);
+        if (releaseSneak) Client.setKey('shift', false);
         this.strafeKey = null;
         this.etherwarpStrafeAligned = false;
     }
 
     releaseControls() {
         this.stopStrafing();
-        Keybind.unpressKeys();
+        Client.unpressKeys();
     }
 
     render() {

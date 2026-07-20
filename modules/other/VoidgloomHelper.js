@@ -1,7 +1,6 @@
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 
 const ACTION = {
     IDLE: 'idle',
@@ -167,7 +166,7 @@ class VoidgloomHelper extends ModuleBase {
                 if (this.currentFeature === FEATURE.SOULCRY) this.lastSoulcry = Date.now();
                 if (this.currentFeature === FEATURE.DEPLOY) this.pendingDeploy = false;
 
-                Keybind.rightClick();
+                Client.rightClick();
                 this.actionPhase = ACTION.RETURN;
                 break;
             case ACTION.RETURN:

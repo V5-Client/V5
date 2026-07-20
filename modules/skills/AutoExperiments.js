@@ -1,6 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 
 /**
  * @typedef {com.chattriggers.ctjs.api.inventory.Item} item
@@ -321,7 +320,7 @@ class AutoExperiments extends ModuleBase {
             this.lastClickTime = Date.now();
         } else {
             this.message('&aReopening Experimentation Table...');
-            Keybind.rightClick();
+            Client.rightClick();
             this.ultrasequencerOrder.clear();
             this.chronomatronOrder = [];
             this.ultraPatternCaptured = false;

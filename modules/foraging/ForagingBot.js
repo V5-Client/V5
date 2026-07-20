@@ -3,7 +3,6 @@ import { Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Raytrace } from '../../utils/Raytrace';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -163,7 +162,7 @@ class ForagingBot extends ModuleBase {
         const aimPoint = targetBlock.hitPoint || [targetBlock.x + 0.5, targetBlock.y + 0.7, targetBlock.z + 0.5];
         Rotations.lookAtVector(aimPoint, { speedMultiplier: 2 });
         Rotations.onComplete(() => {
-            Keybind.rightClick();
+            Client.rightClick();
             this.lastClickedBlock = { x: targetBlock.x, y: targetBlock.y, z: targetBlock.z };
             this.connectedBlocks = this.connectedBlocks.filter(
                 (block) =>

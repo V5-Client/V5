@@ -2,7 +2,6 @@ import { MathUtils } from './Math';
 import { EtherwarpPathfinder } from './pathfinder/EtherwarpPathfinder';
 import Pathfinder from './pathfinder/PathFinder';
 import { Guis } from './player/Inventory';
-import { Keybind } from './player/Keybinding';
 import { Rotations } from './player/Rotations';
 
 export class CommissionClaimer {
@@ -41,7 +40,7 @@ export class CommissionClaimer {
                 Guis.setItemSlot(pigeonSlot);
                 this.delay(3);
             } else {
-                Keybind.rightClick();
+                Client.rightClick();
                 this.delay(10);
             }
             return;
@@ -72,7 +71,7 @@ export class CommissionClaimer {
                     this.npcRotationPending = false;
                     if (!this.isClaiming() || this.isPathing()) return;
                     if (!this.canInteract()) return;
-                    Keybind.leftClick();
+                    Client.leftClick();
                     this.delay(10);
                 });
             }

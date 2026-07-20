@@ -1,6 +1,5 @@
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Keybind } from '../../utils/player/Keybinding';
 
 class HuntingHelper extends ModuleBase {
     constructor() {
@@ -24,7 +23,7 @@ class HuntingHelper extends ModuleBase {
                 const reelStand = stand.some((element) => element.getName() === 'REEL');
                 if (!reelStand) return (this.reeled = false);
                 if (!this.reeled) {
-                    Keybind.rightClick();
+                    Client.rightClick();
                     this.reeled = true;
                     return;
                 }

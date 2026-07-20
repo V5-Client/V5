@@ -3,7 +3,7 @@ import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
+import { Movement } from '../../utils/player/Movement';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 import { Mouse } from '../../utils/Ungrab';
 
@@ -57,7 +57,7 @@ class Beachballer extends ModuleBase {
             'Hold Shift',
             (value) => {
                 this.holdShift = value;
-                if (!value) Keybind.setKey('shift', false);
+                if (!value) Client.setKey('shift', false);
             },
             'Hold Shift.',
             true
@@ -328,13 +328,13 @@ class Beachballer extends ModuleBase {
             const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
             const distance = MathUtils.calculateDistance(playerPos, [dx, ballY, dz]);
 
-            Keybind.setKey('shift', this.holdShift);
+            Client.setKey('shift', this.holdShift);
 
             if (distance.distanceFlat > 0.5) {
-                Keybind.setKeysForStraightLineCoords(dx, ballY, dz);
+                Movement.setKeysForStraightLineCoords(dx, ballY, dz);
             }
             if (distance.distanceFlat < 0.2) {
-                Keybind.stopMovement();
+                Client.stopMovement();
             }
         } else {
             this.tickCounter++;
@@ -346,19 +346,19 @@ class Beachballer extends ModuleBase {
     }
 
     handleReturnState() {
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         this.trackedBall = null;
 
         const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
         const distanceToStart = MathUtils.calculateDistance(playerPos, this.startPos);
 
         if (distanceToStart.distance < 2) {
-            Keybind.rightClick();
+            Client.rightClick();
             this.setState(States.PLACE);
             return;
         }
 
-        Keybind.setKeysForStraightLineCoords(this.startPos[0], this.startPos[1], this.startPos[2]);
+        Movement.setKeysForStraightLineCoords(this.startPos[0], this.startPos[1], this.startPos[2]);
     }
 
     handlePlaceState() {
@@ -385,7 +385,7 @@ class Beachballer extends ModuleBase {
 
         this.tickCounter++;
         if (this.tickCounter % 10 === 0) {
-            Keybind.rightClick();
+            Client.rightClick();
         }
     }
 
@@ -461,7 +461,7 @@ class Beachballer extends ModuleBase {
     }
 
     onDisable() {
-        Keybind.unpressKeys();
+        Client.unpressKeys();
         this.trackedBall = null;
         this.state = States.WAITING;
         this.trailHistory = [];

@@ -1,7 +1,6 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Utils } from '../../utils/Utils';
 import { manager } from '../../utils/SkyblockEvents';
 import { MiningUtils } from '../../utils/MiningUtils';
@@ -182,7 +181,7 @@ class ScathaMacro extends ModuleBase {
 
             Rotations.lookAtAngles(Player.getYaw(), 90);
             Rotations.onComplete(() => {
-                Keybind.rightClick();
+                Client.rightClick();
                 this.handleAOTV.usedAOTV = true;
             });
         }
@@ -190,7 +189,7 @@ class ScathaMacro extends ModuleBase {
         if (!this.handleAOTV.usedAOTV) return;
 
         Guis.setItemSlot(this.items.drill);
-        Keybind.setKey('leftclick', true);
+        Client.setKey('leftclick', true);
 
         // check for chests
 
@@ -239,11 +238,11 @@ class ScathaMacro extends ModuleBase {
 
         if (looking instanceof Block) {
             let blockId = looking?.type?.getRegistryName();
-            if (blockId?.includes('bedrock')) return Keybind.setKey('leftclick', false);
+            if (blockId?.includes('bedrock')) return Client.setKey('leftclick', false);
         }
 
-        Keybind.setKey('leftclick', true);
-        Keybind.setKey('w', true);
+        Client.setKey('leftclick', true);
+        Client.setKey('w', true);
     }
 
     isInPane() {
@@ -442,7 +441,7 @@ class ScathaMacro extends ModuleBase {
 
         this.actionQueue = [];
         this.lastActionTime = 0;
-        Keybind.setKey('leftclick', false);
+        Client.setKey('leftclick', false);
     }
 }
 

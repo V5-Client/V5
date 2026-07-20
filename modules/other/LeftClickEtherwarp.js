@@ -1,5 +1,4 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Keybind } from '../../utils/player/Keybinding';
 
 class LeftClickEtherwarp extends ModuleBase {
     constructor() {
@@ -21,8 +20,8 @@ class LeftClickEtherwarp extends ModuleBase {
         if (Client.isInGui()) return;
         if (Date.now() - this.clickStart > this.waitDuration) {
             if (this.hasAspectHeld()) {
-                Keybind.rightClick();
-                Keybind.setKey('shift', false);
+                Client.rightClick();
+                Client.setKey('shift', false);
                 this.clickStart = Infinity;
             }
         }
@@ -33,7 +32,7 @@ class LeftClickEtherwarp extends ModuleBase {
         if (button != 0) return;
         if (isPressed) {
             if (this.hasAspectHeld()) {
-                Keybind.setKey('shift', true);
+                Client.setKey('shift', true);
                 this.clickStart = Date.now();
             }
         }
@@ -45,7 +44,7 @@ class LeftClickEtherwarp extends ModuleBase {
 
     onDisable() {
         this.clickStart = Infinity;
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
     }
 }
 

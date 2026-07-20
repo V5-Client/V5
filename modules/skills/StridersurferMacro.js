@@ -5,7 +5,6 @@ import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { formatRoundedNumber } from '../../utils/NumberUtils';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { Mouse } from '../../utils/Ungrab';
 
@@ -120,7 +119,7 @@ class StridersurferMacro extends ModuleBase {
                 }
 
                 this.biteWaitStartedAt = 0;
-                Keybind.rightClick();
+                Client.rightClick();
                 this.transitionTo(STEPS.POST_REEL_DECISION);
                 break;
             case STEPS.POST_REEL_DECISION:
@@ -148,7 +147,7 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.RECOVERY_RECAST_ROD, 1 + this.randomTickDelay());
                 break;
             case STEPS.RECOVERY_RECAST_ROD:
-                Keybind.rightClick();
+                Client.rightClick();
                 this.biteWaitStartedAt = Date.now();
                 this.transitionTo(STEPS.WAITING_FOR_BITE, 1 + this.randomTickDelay());
                 break;
@@ -160,32 +159,32 @@ class StridersurferMacro extends ModuleBase {
                     return;
                 }
 
-                Keybind.setKey('shift', true);
+                Client.setKey('shift', true);
                 this.transitionTo(STEPS.START_KILL_COMBO);
                 break;
             case STEPS.START_KILL_COMBO:
-                Keybind.rightClick();
-                Keybind.setKey('shift', true);
+                Client.rightClick();
+                Client.setKey('shift', true);
                 this.transitionTo(STEPS.EQUIP_AXE_AFTER_OPEN, 1);
                 break;
             case STEPS.EQUIP_AXE_AFTER_OPEN:
                 Guis.setItemSlot(this.getAxeSlot());
-                Keybind.setKey('shift', true);
+                Client.setKey('shift', true);
                 this.transitionTo(STEPS.RE_EQUIP_FLAY, 7 + this.randomTickDelay());
                 break;
             case STEPS.RE_EQUIP_FLAY:
                 Guis.setItemSlot(this.getFlaySlot());
-                Keybind.setKey('shift', true);
+                Client.setKey('shift', true);
                 this.transitionTo(STEPS.FINISH_KILL_COMBO);
                 break;
             case STEPS.FINISH_KILL_COMBO:
-                Keybind.rightClick();
-                Keybind.setKey('shift', true);
+                Client.rightClick();
+                Client.setKey('shift', true);
                 this.transitionTo(STEPS.RESET_STANCE, 0);
                 break;
             case STEPS.RESET_STANCE:
                 Guis.setItemSlot(this.getAxeSlot());
-                Keybind.setKey('shift', false);
+                Client.setKey('shift', false);
                 this.transitionTo(STEPS.EQUIP_ROD, 4 + this.randomTickDelay());
                 break;
             case STEPS.EQUIP_ROD:
@@ -193,7 +192,7 @@ class StridersurferMacro extends ModuleBase {
                 this.transitionTo(STEPS.CAST_ROD, 1 + this.randomTickDelay());
                 break;
             case STEPS.CAST_ROD:
-                Keybind.rightClick();
+                Client.rightClick();
                 this.biteWaitStartedAt = Date.now();
 
                 if (this.shouldSwapPet(this.petNameRecast)) {
@@ -236,7 +235,7 @@ class StridersurferMacro extends ModuleBase {
 
                 Rotations.lookAtVector(aimPoint);
                 Rotations.onComplete(() => {
-                    Keybind.leftClick();
+                    Client.leftClick();
                 });
                 this.transitionTo(STEPS.RESTORE_ROTATION);
                 break;
@@ -477,13 +476,13 @@ class StridersurferMacro extends ModuleBase {
         this.clearPendingPetSwap();
         this.clearStriderState();
         this.transitionTo(STEPS.EQUIP_ROD);
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
         Mouse.ungrab();
     }
 
     onDisable() {
         this.message('&cDisabled');
-        Keybind.setKey('shift', false);
+        Client.setKey('shift', false);
         this.lastStriderCount = null;
         this.biteWaitStartedAt = 0;
         Mouse.regrab();

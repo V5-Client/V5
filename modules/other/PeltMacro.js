@@ -11,7 +11,6 @@ import { PathExecutor } from '../../utils/pathfinder/PathExecutor';
 import { MathUtils } from '../../utils/Math';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { RotationGCD } from '../../utils/player/RotationGCD';
 import { PeltQOLModule } from './PeltQOL';
@@ -504,7 +503,7 @@ class PeltMacro extends ModuleBase {
 
     stopMovement() {
         this.stopPathing();
-        Keybind.stopMovement();
+        Client.stopMovement();
         Rotations.stop();
     }
 
@@ -1080,7 +1079,7 @@ class PeltMacro extends ModuleBase {
         if (Date.now() - this.lastShotAt < SHOOT_COOLDOWN_MS) return;
         if (!this.isAimedAt(aimPoint)) return;
 
-        Keybind.rightClick();
+        Client.rightClick();
         this.lastShotAt = Date.now();
         this.mobShots++;
     }
@@ -1092,7 +1091,7 @@ class PeltMacro extends ModuleBase {
     syncMobJumpHold(shouldHold) {
         const changed = this.holdingMobJump !== shouldHold;
         this.holdingMobJump = shouldHold;
-        if (changed || shouldHold) Keybind.setKey('space', shouldHold);
+        if (changed || shouldHold) Client.setKey('space', shouldHold);
     }
 
     getMobGoals(entity, expand = 0) {

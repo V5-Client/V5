@@ -1,7 +1,6 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Keybind } from '../../utils/player/Keybinding';
 import { Rotations } from '../../utils/player/Rotations';
 import { RotationGCD } from '../../utils/player/RotationGCD';
 import { manager } from '../../utils/SkyblockEvents';
@@ -106,8 +105,8 @@ class PowderMacro extends ModuleBase {
         this.targetChest = null;
         Rotations.stop();
 
-        if (!Keybind.isKeyDown('shift')) Keybind.setKey('shift', true);
-        if (!Keybind.isKeyDown('leftclick')) Keybind.setKey('leftclick', true);
+        if (!Client.isKeyDown('shift')) Client.setKey('shift', true);
+        if (!Client.isKeyDown('leftclick')) Client.setKey('leftclick', true);
 
         this.setState(State.RETURNING);
     }
@@ -117,8 +116,8 @@ class PowderMacro extends ModuleBase {
     }
 
     setMiningKeys(active) {
-        Keybind.setKey('leftclick', active);
-        Keybind.setKey('shift', active);
+        Client.setKey('leftclick', active);
+        Client.setKey('shift', active);
     }
 
     onEnable() {
@@ -128,8 +127,8 @@ class PowderMacro extends ModuleBase {
             return;
         }
 
-        Keybind.setKey('leftclick', true);
-        Keybind.setKey('shift', true);
+        Client.setKey('leftclick', true);
+        Client.setKey('shift', true);
 
         this.pivot = {
             yaw: MathUtils.wrapTo180(player.getYRot()),
@@ -144,8 +143,8 @@ class PowderMacro extends ModuleBase {
     }
 
     onDisable() {
-        Keybind.setKey('leftclick', false);
-        Keybind.setKey('shift', false);
+        Client.setKey('leftclick', false);
+        Client.setKey('shift', false);
         Rotations.stop();
         this.resetState();
 
@@ -193,8 +192,8 @@ class PowderMacro extends ModuleBase {
     }
 
     tickChest() {
-        Keybind.setKey('leftclick', false);
-        Keybind.setKey('shift', false);
+        Client.setKey('leftclick', false);
+        Client.setKey('shift', false);
 
         if (!this.validateTargetChest()) {
             this.targetChest = this.findNearestChest();
