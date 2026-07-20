@@ -1,5 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Guis } from '../../utils/player/Inventory';
+import { TabListUtils } from '../../utils/TabListUtils';
 
 const MAX_REWARP_DELAY_MS = 2000;
 
@@ -24,6 +25,7 @@ class FarmingSettings extends ModuleBase {
         this.rewarpButtons = [];
         this.runVisitorMacro = false;
         this.minimumVisitors = 1;
+        this.autoPhilipBonus = false;
 
         this.addToggle('Use Mousemat', (value) => (this.useMousemat = !!value), 'Use Squeaky Mousemat instead of V5 rotations to face the farming angle.');
         this.addToggle(
@@ -68,6 +70,11 @@ class FarmingSettings extends ModuleBase {
             'Runs Visitor Macro when at least this many visitors are waiting.'
         );
         minimumVisitors.visible = false;
+        this.addToggle(
+            'Auto Philip Bonus',
+            (value) => (this.autoPhilipBonus = !!value),
+            'Empties a vacuum bag with Philip when Buzzing Bonus is inactive and it holds 40 or more pests.'
+        );
     }
 
     addRewarpButtons(...buttons) {
@@ -91,6 +98,15 @@ class FarmingSettings extends ModuleBase {
         if (Player.getHeldItemIndex() === slot) return true;
         Guis.setItemSlot(slot);
         return false;
+    }
+
+    shouldRunPhilipBonus() {
+        if (!this.autoPhilipBonus || TabListUtils.findIndex(TabListUtils.getNames(), 'Bonus: INACTIVE') === -1) return false;
+        const vacuum = Player.getInventory()
+            ?.getItems?.()
+            .find((item) => String(Guis.stripFormatting(item?.getName?.() || '')).includes('Vacuum'));
+        const vacuumLine = String(Guis.stripFormatting(vacuum?.getLore?.().find((line) => String(line).includes('Vacuum Bag:')) || ''));
+        return (Number.parseInt(vacuumLine.replace(/[^\d]/g, ''), 10) || 0) >= 40;
     }
 }
 

@@ -17,6 +17,7 @@ const MAX_PEST_TRACK_DISTANCE = 12;
 const PEST_STALL_GRACE_TICKS = 20;
 const GUI_RESUME_GRACE_TICKS = 5;
 const SPRAY_CHECK_COOLDOWN_MS = 10_000;
+const TAB_CHECK_GRACE_MS = 10_000;
 const MISSING_SPRAY_MATERIAL_REGEX = /^You don't have any .+!$/;
 const FARMING = 'Farming';
 const PEST = 'Pest';
@@ -64,9 +65,8 @@ export class FarmingMacro extends ModuleBase {
         }
         this.farmingRotation = null;
         this.nextSprayCheckAt = 0;
-        this.nextSprayonatorActionAt = 0;
         this.sprayonatorUnavailable = false;
-        this.sprayonatorStep = null;
+        this.sprayonatorAction = null;
         this.mode = FARMING;
         this.stallGraceTicks = 0;
         Mouse.ungrab();
@@ -79,19 +79,18 @@ export class FarmingMacro extends ModuleBase {
     }
 
     onDisable() {
-        if (this.rewarpActionStarted) visitorMacro.toggle(false);
+        if (visitorMacro.enabled && visitorMacro.isParentManaged) visitorMacro.toggle(false);
         Mousemat.stop();
         Rotations.stop();
         Client.unpressKeys();
         Mouse.regrab();
         this.mode = FARMING;
-        this.rewarpActionStarted = false;
         this.pestTarget = null;
         this.pestRotation = null;
         this.pestFarmState = null;
         this.stallGraceTicks = 0;
-        if (this.sprayonatorStep > 0) Guis.setItemSlot(this.sprayonatorOriginalSlot);
-        this.sprayonatorStep = null;
+        if (this.sprayonatorAction) Guis.setItemSlot(this.sprayonatorOriginalSlot);
+        this.sprayonatorAction = null;
         farmingSettings.restoreSlot();
     }
 
@@ -124,12 +123,12 @@ export class FarmingMacro extends ModuleBase {
     }
 
     handleFarming(player) {
-        if (this.sprayonatorStep !== null) return this.trySprayonator();
+        if (this.sprayonatorAction) return;
         if (farmingSettings.killNearbyPests && this.handlePest(player)) return;
         if (this.trySprayonator()) return;
 
         if (!farmingSettings.looping && this.isAtPoint(player, this.points.end)) return this.beginRewarp();
-        if (farmingSettings.looping && farmingSettings.runVisitorMacro && TabListUtils.readVisitors().length >= farmingSettings.minimumVisitors) {
+        if (farmingSettings.looping && this.shouldRunVisitorMacro()) {
             ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });
         }
@@ -148,34 +147,29 @@ export class FarmingMacro extends ModuleBase {
     }
 
     trySprayonator() {
-        if (this.sprayonatorStep !== null) {
-            if (Date.now() < this.nextSprayonatorActionAt) return true;
-            if (this.sprayonatorStep === 0) {
-                Guis.setItemSlot(this.sprayonatorSlot);
-                this.sprayonatorStep = 1;
-            } else if (this.sprayonatorStep === 1) {
-                Client.rightClick();
-                this.sprayonatorStep = 2;
-            } else {
-                Guis.setItemSlot(this.sprayonatorOriginalSlot);
-                this.nextSprayCheckAt = Date.now() + SPRAY_CHECK_COOLDOWN_MS;
-                this.sprayonatorStep = null;
-            }
-            this.nextSprayonatorActionAt = Date.now() + Utils.randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax) * 50;
-            return true;
-        }
-
         const now = Date.now();
-        if (this.sprayonatorUnavailable || !farmingSettings.useSprayonator || now < this.nextSprayCheckAt || !this.hasNoSpray()) return false;
+        if (this.sprayonatorUnavailable || !farmingSettings.useSprayonator || now < this.nextSprayCheckAt || now < this.nextTabCheckAt || !this.hasNoSpray()) {
+            return false;
+        }
 
         const slot = Guis.findItemInHotbar('Sprayonator');
         if (slot < 0) return false;
 
-        this.sprayonatorSlot = slot;
         this.sprayonatorOriginalSlot = this.farmingSlot;
-        this.sprayonatorStep = 0;
-        this.nextSprayonatorActionAt = 0;
+        const action = {};
+        this.sprayonatorAction = action;
         Client.unpressKeys();
+        Guis.setItemSlot(slot);
+        ScheduleTask(Utils.randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax), () => {
+            if (this.sprayonatorAction !== action) return;
+            Client.rightClick();
+            ScheduleTask(Utils.randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax), () => {
+                if (this.sprayonatorAction !== action) return;
+                Guis.setItemSlot(this.sprayonatorOriginalSlot);
+                this.nextSprayCheckAt = Date.now() + SPRAY_CHECK_COOLDOWN_MS;
+                this.sprayonatorAction = null;
+            });
+        });
         return true;
     }
 
@@ -190,19 +184,22 @@ export class FarmingMacro extends ModuleBase {
         Client.unpressKeys();
         this.mode = REWARPING;
 
-        if (!farmingSettings.runVisitorMacro || TabListUtils.readVisitors().length < farmingSettings.minimumVisitors) return;
+        if (!this.shouldRunVisitorMacro()) return;
 
         this.nextRewarpAt = 0;
         if (visitorMacro.enabled) return;
-        this.rewarpActionStarted = true;
         visitorMacro.toggle(true, true);
     }
 
+    shouldRunVisitorMacro() {
+        if (Date.now() < this.nextTabCheckAt) return false;
+        return (
+            farmingSettings.shouldRunPhilipBonus() || (farmingSettings.runVisitorMacro && TabListUtils.readVisitors().length >= farmingSettings.minimumVisitors)
+        );
+    }
+
     handleRewarp(player) {
-        if (this.nextRewarpAt === 0) {
-            if (visitorMacro.enabled) return;
-            this.rewarpActionStarted = false;
-        }
+        if (this.nextRewarpAt === 0 && visitorMacro.enabled) return;
         Client.unpressKeys();
         if (this.isAtPoint(player, this.rewarpStartPoint)) {
             this.mode = FARMING;
@@ -289,6 +286,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     resumeFarming(player, farmState, rotation) {
+        this.nextTabCheckAt = Date.now() + TAB_CHECK_GRACE_MS;
         if (!farmingSettings.useMousemat) {
             this.startFarming(player);
             Rotations.lookAtAngles(rotation.yaw, rotation.pitch);
@@ -302,6 +300,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     startFarming(player) {
+        this.nextTabCheckAt = Date.now() + TAB_CHECK_GRACE_MS;
         this.stationaryTicks = 0;
         this.updatePosition(player);
         this.onFarmStart(player);
