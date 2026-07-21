@@ -37,13 +37,11 @@ class AutoSell {
     }
 
     stop() {
-        if (!this.state) return;
-        this.finish();
+        if (this.state) this.finish();
     }
 
     finish() {
         this.state = null;
-        this.nextActionAt = 0;
         Guis.closeInv();
         return true;
     }

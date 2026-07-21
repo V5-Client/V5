@@ -50,7 +50,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
-        if (!rewarpSettings.isLooping()) {
+        if (!rewarpSettings.looping) {
             if (!this.isPoint(this.points.start) || !this.isPoint(this.points.end)) {
                 this.message('Set both Rewarp points before enabling Rewarp mode.');
                 this.toggle(false);
@@ -125,7 +125,7 @@ export class FarmingMacro extends ModuleBase {
         if (this.sprayonatorAction) return;
         if (farmingSettings.killNearbyPests && this.handlePest(player)) return;
 
-        const looping = rewarpSettings.isLooping();
+        const looping = rewarpSettings.looping;
         if (!looping && this.isAtPoint(player, this.points.end)) return this.beginRewarp();
         if (looping && this.shouldRunBarnTasks()) {
             ChatLib.command('sethome');

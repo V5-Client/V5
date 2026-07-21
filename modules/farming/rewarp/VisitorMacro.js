@@ -89,11 +89,6 @@ class VisitorMacro {
         }
     }
 
-    finishVisitors() {
-        this.running = false;
-        return true;
-    }
-
     advanceToNextVisitor() {
         Guis.closeInv();
         this.visitorIndex++;
@@ -103,14 +98,14 @@ class VisitorMacro {
         this.visitorStartedAt = Date.now();
         if (this.visitorIndex >= this.visitors.length) {
             Chat.message('&aAll stored visitors completed.');
-            return this.finishVisitors();
+            return this.stop();
         }
         this.transition(STATES.SEEKING);
     }
 
     seekVisitor() {
         const target = this.visitors[this.visitorIndex];
-        if (!target) return this.finishVisitors();
+        if (!target) return this.stop();
 
         const entity = this.findVisitor(target);
         if (!entity) return this.retryBarn();

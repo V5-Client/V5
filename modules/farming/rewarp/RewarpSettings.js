@@ -3,10 +3,6 @@ import { Guis } from '../../../utils/player/Inventory';
 import { TabListUtils } from '../../../utils/TabListUtils';
 
 const MAX_REWARP_DELAY_MS = 2000;
-const REWARP_STYLES = {
-    START_END: 'Start/End',
-    LOOPING: 'Looping',
-};
 
 class RewarpSettings extends ModuleBase {
     constructor() {
@@ -17,7 +13,7 @@ class RewarpSettings extends ModuleBase {
             showEnabledToggle: false,
         });
 
-        this.style = REWARP_STYLES.START_END;
+        this.looping = false;
         this.command = 'warp garden';
         this.delayMin = 500;
         this.delayMax = 750;
@@ -31,14 +27,14 @@ class RewarpSettings extends ModuleBase {
 
         this.addMultiToggle(
             'Rewarp Style',
-            Object.values(REWARP_STYLES),
+            ['Start/End', 'Looping'],
             true,
             (options) => {
-                this.style = options.find((option) => option.enabled)?.name || REWARP_STYLES.START_END;
-                this.rewarpButtons.forEach((button) => (button.visible = !this.isLooping()));
+                this.looping = options[1].enabled;
+                this.rewarpButtons.forEach((button) => (button.visible = !this.looping));
             },
             'Start/End warps at the saved endpoint. Looping sets home before running barn tasks.',
-            this.style
+            'Start/End'
         );
         this.addTextInput('Rewarp Command', this.command, (value) => {
             this.command = String(value || '')
@@ -55,9 +51,7 @@ class RewarpSettings extends ModuleBase {
             'Run Visitor Macro',
             (value) => {
                 this.runVisitorMacro = !!value;
-                minimumVisitors.visible = !!value;
-                maxVisitorPrice.visible = !!value;
-                declinePurchaseFailures.visible = !!value;
+                [minimumVisitors, maxVisitorPrice, declinePurchaseFailures].forEach((setting) => (setting.visible = !!value));
             },
             'Runs at the barn before rewarping when enough visitors are waiting.'
         );
@@ -92,12 +86,8 @@ class RewarpSettings extends ModuleBase {
         );
     }
 
-    isLooping() {
-        return this.style === REWARP_STYLES.LOOPING;
-    }
-
     addRewarpButtons(...buttons) {
-        buttons.forEach((button) => (button.visible = !this.isLooping()));
+        buttons.forEach((button) => (button.visible = !this.looping));
         this.rewarpButtons.push(...buttons);
     }
 

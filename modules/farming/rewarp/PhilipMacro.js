@@ -26,7 +26,6 @@ for (let x = -33; x <= -20; x++) {
 class PhilipMacro {
     start() {
         this.running = true;
-        this.completed = false;
         this.startedAt = Date.now();
         this.transition(STATES.SEEKING);
     }

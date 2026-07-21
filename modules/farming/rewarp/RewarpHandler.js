@@ -7,9 +7,7 @@ import { Utils } from '../../../utils/Utils';
 const PHASES = {
     BARN: 'Warping to barn',
     DECIDING: 'Determining',
-    SELLING: 'Selling',
-    VISITORS: 'Visitors',
-    PHILIP: 'Philip',
+    RUNNING: 'Running task',
     REWARP: 'Rewarping',
 };
 const REWARP_RETRY_MS = 10_000;
@@ -21,12 +19,11 @@ class RewarpHandler {
         this.rewarpStartPoint = rewarpStartPoint;
         this.rewarpAttempts = 0;
         this.nextActionAt = Date.now() + Utils.randomInt(rewarpSettings.delayMin, rewarpSettings.delayMax);
-        this.runVisitors = rewarpSettings.shouldRunVisitorMacro();
-        this.runPhilip = rewarpSettings.shouldRunPhilipBonus();
-        this.phase = this.runVisitors || this.runPhilip ? PHASES.BARN : PHASES.REWARP;
-        this.autoSellCompleted = false;
-        this.visitorsCompleted = false;
-        this.philipCompleted = false;
+
+        const runPhilip = rewarpSettings.shouldRunPhilipBonus();
+        this.tasks = rewarpSettings.shouldRunVisitorMacro() || runPhilip ? [autoSell, visitorMacro] : [];
+        if (runPhilip) this.tasks.push(philipMacro);
+        this.phase = this.tasks.length ? PHASES.BARN : PHASES.REWARP;
     }
 
     stop() {
@@ -38,10 +35,7 @@ class RewarpHandler {
     tick(player) {
         if (this.phase !== PHASES.REWARP && Date.now() < this.nextActionAt) return;
 
-        if (this.phase !== PHASES.VISITORS && this.phase !== PHASES.PHILIP) Client.stopMovement();
-
         if (this.phase === PHASES.BARN) {
-            if (Date.now() < this.nextActionAt) return;
             ChatLib.command('tptoplot barn');
             this.phase = PHASES.DECIDING;
             this.nextActionAt = Date.now() + 2000;
@@ -49,37 +43,17 @@ class RewarpHandler {
         }
 
         if (this.phase === PHASES.DECIDING) {
-            if (this.runVisitors && autoSell.shouldRun() && !this.autoSellCompleted) {
-                this.phase = PHASES.SELLING;
-                autoSell.start();
-            } else if (this.runVisitors && !this.visitorsCompleted && visitorMacro.start()) {
-                this.phase = PHASES.VISITORS;
-            } else if (this.runPhilip && !this.philipCompleted) {
-                this.phase = PHASES.PHILIP;
-                philipMacro.start();
-            } else {
-                this.phase = PHASES.REWARP;
+            while ((this.task = this.tasks.shift())) {
+                if (this.task === autoSell && !autoSell.shouldRun()) continue;
+                if (this.task.start() !== false) {
+                    this.phase = PHASES.RUNNING;
+                    break;
+                }
             }
+            if (!this.task) this.phase = PHASES.REWARP;
         }
 
-        if (this.phase === PHASES.SELLING) {
-            if (autoSell.tick()) {
-                this.phase = PHASES.DECIDING;
-                this.autoSellCompleted = true;
-            }
-        }
-        if (this.phase === PHASES.VISITORS) {
-            if (visitorMacro.tick()) {
-                this.phase = PHASES.DECIDING;
-                this.visitorsCompleted = true;
-            }
-        }
-        if (this.phase === PHASES.PHILIP) {
-            if (philipMacro.tick()) {
-                this.phase = PHASES.DECIDING;
-                this.philipCompleted = true;
-            }
-        }
+        if (this.phase === PHASES.RUNNING && this.task.tick()) this.phase = PHASES.DECIDING;
         if (this.phase === PHASES.REWARP) return this.rewarp(player);
     }
 
