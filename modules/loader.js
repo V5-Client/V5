@@ -63,6 +63,7 @@ import './other/LeftClickEtherwarp';
 import './other/RatProtection';
 import './other/VoidgloomHelper';
 import './other/AutoCombine';
+import './other/AutoFusionRepeat';
 import './other/SunGeckoMacro';
 import './other/RatMacro';
 import './other/PeltMacro';
