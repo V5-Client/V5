@@ -8,16 +8,15 @@ import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
 import { farmingSettings } from './FarmingSettings';
 import { farmingDelays } from './FarmingDelays';
-import { visitorMacro } from './VisitorMacro';
+import { rewarpHandler } from './rewarp/RewarpHandler';
+import { rewarpSettings } from './rewarp/RewarpSettings';
 import { getNearbyPest } from '../visuals/PestESP';
 
-const REWARP_RETRY_MS = 10_000;
-const MAX_REWARP_ATTEMPTS = 3;
 const MAX_PEST_TRACK_DISTANCE = 14;
 const PEST_STALL_GRACE_TICKS = 20;
 const GUI_RESUME_GRACE_TICKS = 5;
-const SPRAY_CHECK_COOLDOWN_MS = 10_000;
-const TAB_CHECK_GRACE_MS = 10_000;
+const SPRAY_CHECK_COOLDOWN_MS = 5_000;
+const TAB_CHECK_GRACE_MS = 2_500;
 const MISSING_SPRAY_MATERIAL_REGEX = /^You don't have any .+!$/;
 const FARMING = 'Farming';
 const PEST = 'Pest';
@@ -34,7 +33,7 @@ export class FarmingMacro extends ModuleBase {
         this.bindToggleKey();
         const rewarpStart = this.addButton('Set Rewarp Start', () => this.saveRewarpPoint('start'), 'Stand at the position reached by the rewarp command.');
         const rewarpEnd = this.addButton('Set Rewarp End', () => this.saveRewarpPoint('end'), 'Stand at the farm endpoint that should trigger a rewarp.');
-        farmingSettings.addRewarpButtons(rewarpStart, rewarpEnd);
+        rewarpSettings.addRewarpButtons(rewarpStart, rewarpEnd);
         this.createOverlay([
             {
                 title: 'Status',
@@ -51,7 +50,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
-        if (!farmingSettings.looping) {
+        if (!rewarpSettings.isLooping()) {
             if (!this.isPoint(this.points.start) || !this.isPoint(this.points.end)) {
                 this.message('Set both Rewarp points before enabling Rewarp mode.');
                 this.toggle(false);
@@ -79,7 +78,7 @@ export class FarmingMacro extends ModuleBase {
     }
 
     onDisable() {
-        if (visitorMacro.enabled && visitorMacro.isParentManaged) visitorMacro.toggle(false);
+        rewarpHandler.stop();
         Mousemat.stop();
         Rotations.stop();
         Client.unpressKeys();
@@ -103,7 +102,7 @@ export class FarmingMacro extends ModuleBase {
         const player = Player.getPlayer();
         if (!player) return;
 
-        if (Client.isInGui()) {
+        if (Client.isInGui() && this.mode !== REWARPING) {
             this.stationaryTicks = 0;
             this.stallGraceTicks = Math.max(this.stallGraceTicks, GUI_RESUME_GRACE_TICKS);
             return;
@@ -118,20 +117,22 @@ export class FarmingMacro extends ModuleBase {
             case RESTORING_PEST:
                 return Client.unpressKeys();
             case REWARPING:
-                return this.handleRewarp(player);
+                return rewarpHandler.tick(player);
         }
     }
 
     handleFarming(player) {
         if (this.sprayonatorAction) return;
         if (farmingSettings.killNearbyPests && this.handlePest(player)) return;
-        if (this.trySprayonator()) return;
 
-        if (!farmingSettings.looping && this.isAtPoint(player, this.points.end)) return this.beginRewarp();
-        if (farmingSettings.looping && this.shouldRunVisitorMacro()) {
+        const looping = rewarpSettings.isLooping();
+        if (!looping && this.isAtPoint(player, this.points.end)) return this.beginRewarp();
+        if (looping && this.shouldRunBarnTasks()) {
             ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });
         }
+
+        if (this.trySprayonator()) return;
 
         if (Rotations.active) return this.hold();
 
@@ -178,44 +179,18 @@ export class FarmingMacro extends ModuleBase {
     }
 
     beginRewarp(rewarpStartPoint = this.points.start) {
-        this.rewarpStartPoint = rewarpStartPoint;
-        this.rewarpAttempts = 0;
-        this.nextRewarpAt = Date.now() + Utils.randomInt(farmingSettings.delayMin, farmingSettings.delayMax);
         Client.unpressKeys();
         this.mode = REWARPING;
-
-        if (!this.shouldRunVisitorMacro()) return;
-
-        this.nextRewarpAt = 0;
-        if (visitorMacro.enabled) return;
-        visitorMacro.toggle(true, true);
+        rewarpHandler.start(this, rewarpStartPoint);
     }
 
-    shouldRunVisitorMacro() {
-        if (Date.now() < this.nextTabCheckAt) return false;
-        return (
-            farmingSettings.shouldRunPhilipBonus() || (farmingSettings.runVisitorMacro && TabListUtils.readVisitors().length >= farmingSettings.minimumVisitors)
-        );
+    shouldRunBarnTasks() {
+        return Date.now() >= this.nextTabCheckAt && (rewarpSettings.shouldRunVisitorMacro() || rewarpSettings.shouldRunPhilipBonus());
     }
 
-    handleRewarp(player) {
-        if (this.nextRewarpAt === 0 && visitorMacro.enabled) return;
-        Client.unpressKeys();
-        if (this.isAtPoint(player, this.rewarpStartPoint)) {
-            this.mode = FARMING;
-            this.startFarming(player);
-            return;
-        }
-        if (Date.now() < this.nextRewarpAt) return;
-        if (this.rewarpAttempts >= MAX_REWARP_ATTEMPTS || !farmingSettings.command) {
-            this.message('&cRewarp failed.');
-            this.toggle(false);
-            return;
-        }
-
-        ChatLib.command(farmingSettings.command);
-        this.rewarpAttempts++;
-        this.nextRewarpAt = Date.now() + REWARP_RETRY_MS;
+    finishRewarp(player) {
+        this.mode = FARMING;
+        this.startFarming(player);
     }
 
     handlePest(player) {
@@ -348,7 +323,7 @@ export class FarmingMacro extends ModuleBase {
     rewarpPointsOverlap() {
         if (!this.isPoint(this.points.start) || !this.isPoint(this.points.end)) return false;
         const { start, end } = this.points;
-        return Math.hypot(start.x - end.x, start.y - end.y, start.z - end.z) <= farmingSettings.triggerRadius * 2;
+        return Math.hypot(start.x - end.x, start.y - end.y, start.z - end.z) <= rewarpSettings.triggerRadius * 2;
     }
 
     isAtPoint(player, point) {
@@ -356,7 +331,7 @@ export class FarmingMacro extends ModuleBase {
         const dx = player.getX() - point.x;
         const dy = player.getY() - point.y;
         const dz = player.getZ() - point.z;
-        return dx * dx + dy * dy + dz * dz <= farmingSettings.triggerRadius ** 2;
+        return dx * dx + dy * dy + dz * dz <= rewarpSettings.triggerRadius ** 2;
     }
 
     isPoint(point) {
