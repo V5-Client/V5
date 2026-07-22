@@ -16,6 +16,7 @@ const MAX_PEST_TRACK_DISTANCE = 14;
 const PEST_STALL_GRACE_TICKS = 20;
 const GUI_RESUME_GRACE_TICKS = 5;
 const SPRAY_CHECK_COOLDOWN_MS = 5_000;
+const SPRAY_RESTORE_DELAY_TICKS = 3;
 const TAB_CHECK_GRACE_MS = 5_000;
 const MISSING_SPRAY_MATERIAL_REGEX = /^You don't have enough .+!$/;
 const FARMING = 'Farming';
@@ -180,6 +181,7 @@ export class FarmingMacro extends ModuleBase {
             ScheduleTask(Utils.randomInt(farmingDelays.sprayonatorActionDelayMin, farmingDelays.sprayonatorActionDelayMax), () => {
                 if (this.sprayonatorAction !== action) return;
                 Guis.setItemSlot(this.sprayonatorOriginalSlot);
+                this.startDelayTicks = Math.max(this.startDelayTicks, SPRAY_RESTORE_DELAY_TICKS);
                 this.nextSprayCheckAt = Date.now() + SPRAY_CHECK_COOLDOWN_MS;
                 this.sprayonatorAction = null;
             });
