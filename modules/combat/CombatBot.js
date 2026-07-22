@@ -1,4 +1,4 @@
-import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
+import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
 import { MathUtils } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -34,43 +34,17 @@ const COMBAT_STATE = {
     ATTACKING: 'ATTACKING',
 };
 
-const COMBAT_PRESETS = {
-    Graveyard: {
-        entityClass: ZombieEntity,
-        checkVisibility: true,
-        boundaryCheck: (x, y, z) => y >= 60 && y <= 100 && x <= -72,
-    },
-    Endermen: {
-        entityClass: EndermanEntity,
-        checkVisibility: true,
-        boundaryCheck: () => true,
-    },
-    Goblins: {
-        names: ['Goblin', 'Weakling', 'Knifethrower', 'Fireslinger'],
-        checkVisibility: true,
-        boundaryCheck: (x, y, z) => y > 127 && !(z > 153 && x < -157) && !(z < 148 && x > -77),
-    },
-    'Ice Walkers': {
-        names: ['Ice Walker', 'Glacite Walker'],
-        checkVisibility: true,
-        boundaryCheck: (x, y, z) => y >= 127 && y <= 145 && z <= 180 && z >= 130 && x <= 80,
-    },
-};
-
 class Combat extends ModuleBase {
     constructor() {
         super({
-            name: 'Combat Bot',
+            name: 'Combat Bot Settings',
             subcategory: 'Combat',
-            description: 'Universal settings for combat bot',
-            tooltip: 'Combat bot settings',
+            description: 'Shared settings for modules that use Combat Bot.',
+            tooltip: 'Only used by modules that use Combat Bot.',
             theme: '#c74d4d',
-            isMacro: true,
+            showEnabledToggle: false,
         });
-        this.bindToggleKey();
 
-        this.enabledPresets = new Set();
-        this.customTargetNames = [];
         this.externalTargets = null;
 
         this.target = null;
@@ -101,32 +75,6 @@ class Combat extends ModuleBase {
         this.searchTarget = null;
         this.searchTargetSetTime = 0;
         this.pathRequestToken = 0;
-
-        this.addMultiToggle(
-            'Target Presets',
-            Object.keys(COMBAT_PRESETS),
-            false,
-            (selected) => {
-                this.enabledPresets.clear();
-                const isEnabled = (name) => selected.some((item) => item.name === name && item.enabled === true);
-                Object.keys(COMBAT_PRESETS).forEach((presetName) => {
-                    if (isEnabled(presetName)) this.enabledPresets.add(presetName);
-                });
-            },
-            'Select which mob types to target when running standalone'
-        );
-
-        this.addTextInput(
-            'Custom Target Names',
-            '',
-            (value) => {
-                this.customTargetNames = value
-                    .split(',')
-                    .map((n) => n.trim().toLowerCase())
-                    .filter((n) => n.length > 0);
-            },
-            'Enter mob names to target, comma separated. (e.g. "Zombie, Skeleton")'
-        );
 
         this.addSlider(
             'Pathfinding Threshold',
@@ -768,58 +716,8 @@ class Combat extends ModuleBase {
         return MathUtils.getDistance(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 
-    detectTargets() {
-        if (this.enabledPresets.size === 0 && (!this.customTargetNames || this.customTargetNames.length === 0)) return [];
-
-        const mobs = [];
-
-        const addMobIfSafe = (entity) => {
-            const x = entity.getX();
-            const y = entity.getY();
-            const z = entity.getZ();
-            if (this.isPositionSafe(x, y, z)) mobs.push(entity);
-        };
-
-        this.enabledPresets.forEach((presetName) => {
-            const config = COMBAT_PRESETS[presetName];
-            if (!config) return;
-
-            if (config.entityClass) {
-                World.getAllEntitiesOfType(config.entityClass).forEach((entity) => {
-                    try {
-                        if (entity.isDead()) return;
-                        const x = entity.getX();
-                        const y = entity.getY();
-                        const z = entity.getZ();
-                        if (!config.boundaryCheck(x, y, z)) return;
-                        if (!this.isVisibleOrRecent(entity, config.checkVisibility)) return;
-                        addMobIfSafe(entity);
-                    } catch (e) {
-                        console.error('V5 Caught error' + e + e.stack);
-                    }
-                });
-                return;
-            }
-
-            if (config.names) this.findMob(config).forEach(addMobIfSafe);
-        });
-
-        if (this.customTargetNames && this.customTargetNames.length > 0) {
-            const customConfig = {
-                names: this.customTargetNames,
-                checkVisibility: true,
-                boundaryCheck: () => true,
-            };
-            this.findMob(customConfig).forEach(addMobIfSafe);
-        }
-
-        return mobs;
-    }
-
     getTargets() {
-        if (this.externalTargets !== null) return this.externalTargets;
-        if (this.isParentManaged) return [];
-        return this.detectTargets();
+        return this.externalTargets || [];
     }
 
     setExternalTargets(targets) {
@@ -916,13 +814,6 @@ class Combat extends ModuleBase {
     }
 
     onEnable() {
-        if (!this.isParentManaged) this.message('&aEnabled');
-
-        if (this.externalTargets === null) {
-            const presets = Array.from(this.enabledPresets).join(', ');
-            this.message(`&7Targeting: &b${presets || 'None selected'}`);
-        }
-
         this.activeBlackholes = [];
     }
 
