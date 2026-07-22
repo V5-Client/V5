@@ -113,8 +113,7 @@ class PestKiller {
         const goals = [];
         pests.forEach((pest) => {
             this.pathPestPositions.set(this.id(pest), { x: pest.getX(), y: pest.getY(), z: pest.getZ() });
-            const goal = Pathfinder.resolveFlyPoint(pest.getX(), pest.getY(), pest.getZ());
-            if (goal) goals.push(goal);
+            goals.push(...this.verticalGoals(pest.getX(), pest.getZ()));
         });
         this.startPath(goals, (success) => {
             this.state = STATES.SEARCHING;
