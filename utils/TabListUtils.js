@@ -158,6 +158,32 @@ class TabListUtilsClass {
         }
     }
 
+    readPests() {
+        try {
+            const tabNames = this.getNames();
+            const startIdx = tabNames.findIndex((line) => this.stripFormatting(line?.getName?.() ?? line).includes('Pests:'));
+            if (startIdx === -1) return { alivePestCount: 0, infestedPlots: [] };
+
+            let alivePestCount = 0;
+            let infestedPlots = [];
+            for (let i = startIdx + 1; i < tabNames.length; i++) {
+                const text = this.stripFormatting(tabNames[i]?.getName?.() ?? tabNames[i]).trim();
+                if (text.includes('Pest Traps:')) break;
+
+                const aliveMatch = text.match(/^Alive:\s*(\d+)/);
+                if (aliveMatch) alivePestCount = Number(aliveMatch[1]);
+
+                const plotsMatch = text.match(/^Plots:\s*(.*)/);
+                if (plotsMatch) infestedPlots = plotsMatch[1].match(/\d+/g)?.map(Number) ?? [];
+            }
+
+            return { alivePestCount: alivePestCount, infestedPlots: infestedPlots };
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+            return { alivePestCount: 0, infestedPlots: [] };
+        }
+    }
+
     findIndex(items, target, start = 0) {
         for (let i = start; i < items.length; i++) {
             const cleaned = this.stripFormatting(items[i]).trim();
