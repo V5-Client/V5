@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { ClientboundSetHeldSlotPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
@@ -6,11 +5,6 @@ import FailsafeUtils from '../FailsafeUtils';
 class SlotChangeFailsafe extends Failsafe {
     constructor() {
         super();
-        this.settings = FailsafeUtils.getFailsafeSettings('Slot Change');
-        this.registerSlotChangeListeners();
-    }
-
-    registerSlotChangeListeners() {
         register('packetReceived', (packet) => {
             if (!this.isActive() || this.disabled) return;
 
@@ -21,19 +15,19 @@ class SlotChangeFailsafe extends Failsafe {
             const newSlot = packet.slot() + 1;
 
             if (currentSlot === newSlot) return;
-            const scheduledAt = Date.now();
-            setTimeout(() => {
-                if (this.disabled || !this.isActive() || scheduledAt < this._disabledUntil) return;
-                this.onTrigger(currentSlot, newSlot);
-            }, this._getReactionDelay(this.settings));
+            this._scheduleTrigger(
+                () =>
+                    this._reportFailsafe({
+                        type: 'Slot Change',
+                        severity: 'high',
+                        pressure: 50,
+                        description: `Slot changed from ${currentSlot} to ${newSlot}!`,
+                        chat: `&c&lHeld slot has changed from ${currentSlot} to slot ${newSlot}!`,
+                    }),
+                this.settings
+            );
         }).setFilteredClass(ClientboundSetHeldSlotPacket);
-    }
-
-    onTrigger(fromSlot, toSlot) {
-        Chat.messageFailsafe(`&c&lHeld slot has changed from ${fromSlot} to slot ${toSlot}!`);
-        FailsafeUtils.incrementFailsafeIntensity(50);
-        FailsafeUtils.sendFailsafeEmbed('Slot Change', 'high', `Slot changed from ${fromSlot} to ${toSlot}!`, 16744448);
     }
 }
 
-export default new SlotChangeFailsafe();
+new SlotChangeFailsafe();

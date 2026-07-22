@@ -3,15 +3,22 @@ import { MathUtils } from '../../utils/Math';
 import { ClientboundPlayerPositionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
+import TeleportFailsafe from './TeleportFailsafe';
+
+const ROTATION_TIERS = [
+    { limit: 20, pressure: 20, severity: 'medium' },
+    { limit: 40, pressure: 50, severity: 'high' },
+    { limit: Infinity, pressure: 100, severity: 'very high' },
+];
 
 class RotationFailsafe extends Failsafe {
     constructor() {
         super();
-        this.settings = FailsafeUtils.getFailsafeSettings('Rotation');
-        this.registerRotationListeners();
-    }
-
-    registerRotationListeners() {
+        this.totalRotation = 0;
+        this.packetWindowStartedAt = 0;
+        this.flags = 0;
+        this.lastFlagAt = 0;
+        this.triggered = false;
         register('packetReceived', (packet) => {
             if (!this.isActive() || this.disabled) return;
             this.settings = FailsafeUtils.getFailsafeSettings('Rotation');
@@ -32,57 +39,90 @@ class RotationFailsafe extends Failsafe {
             const newYaw = Number(change.yRot());
             const newPitch = Number(change.xRot());
 
-            const dx = Math.abs(newX - fromX);
-            const dy = Math.abs(newY - fromY);
-            const dz = Math.abs(newZ - fromZ);
-            const posDistance = Math.hypot(dx, dy, dz);
+            const posDistance = Math.hypot(newX - fromX, newY - fromY, newZ - fromZ);
 
             const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, newYaw));
             const pitchDiff = Math.abs(newPitch - currPitch);
 
-            // todo: this isnt what a null rotation packet is, which retard made these failsafes?
             if (yawDiff === 0 && pitchDiff === 0) {
                 Chat.messageDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
                 return;
             }
 
+            if (newX === 0 && newY === 0 && newZ === 0) {
+                this._reportFailsafe({
+                    type: 'Rotation',
+                    severity: 'very high',
+                    pressure: 100,
+                    description: 'Null position-look packet received while checking rotation.',
+                    chat: '&c&lNULL ROTATION PACKET DETECTED, DO NOT REACT!',
+                });
+                return;
+            }
+
+            if (TeleportFailsafe.itemTeleportInProgress()) return;
             if (posDistance >= 0.001) return;
 
-            const scheduledAt = Date.now();
-            setTimeout(() => {
-                if (this.disabled || !this.isActive() || scheduledAt < this._disabledUntil) return;
-                this.onTrigger(currYaw, currPitch, newYaw, newPitch, yawDiff, pitchDiff);
-            }, this._getReactionDelay(this.settings));
+            const preset = FailsafeUtils.getSensitivityPreset().rotation;
+            const now = Date.now();
+            const rotation = yawDiff + pitchDiff;
+            if (!this.packetWindowStartedAt || now - this.packetWindowStartedAt > 2000) {
+                this.packetWindowStartedAt = now;
+                this.totalRotation = rotation;
+            } else {
+                this.totalRotation += rotation;
+            }
+
+            if (now - this.lastFlagAt > 2500) this.flags = 0;
+
+            const smallRotation = yawDiff >= preset.smallYawThreshold || pitchDiff >= preset.smallPitchThreshold;
+            if (smallRotation) {
+                this.flags++;
+                this.lastFlagAt = now;
+            }
+
+            if (this.triggered) return;
+            if (this.totalRotation >= preset.totalDegThreshold || this.flags >= preset.smallFlagThreshold) {
+                this.triggered = true;
+                this._scheduleTrigger(
+                    () => {
+                        this.onTrigger(currYaw, currPitch, newYaw, newPitch, this.totalRotation);
+                        this.reset();
+                    },
+                    this.settings,
+                    () => !this.disabled && !TeleportFailsafe.itemTeleportInProgress()
+                );
+            }
         }).setFilteredClass(ClientboundPlayerPositionPacket);
     }
 
-    onTrigger(fromYaw, fromPitch, toYaw, toPitch, yawDiff, pitchDiff) {
-        const totalRotation = yawDiff + pitchDiff;
+    onTrigger(fromYaw, fromPitch, toYaw, toPitch, totalRotation) {
+        const { pressure, severity } = ROTATION_TIERS.find((tier) => totalRotation < tier.limit);
 
-        const tiers = [
-            { limit: 5, pressure: 10, severity: 'low', color: 65280 },
-            { limit: 20, pressure: 20, severity: 'medium', color: 16776960 },
-            { limit: 40, pressure: 50, severity: 'high', color: 16744448 },
-            { limit: Infinity, pressure: 100, severity: 'very high', color: 16711680 },
-        ];
-
-        const { pressure, severity, color } = tiers.find((t) => totalRotation < t.limit);
-
-        Chat.messageFailsafe(`&c&lYou were rotated by the server!`, false);
-        Chat.messageFailsafe(`&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`, false);
-        Chat.messageFailsafe(`&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`, false);
-        Chat.messageFailsafe(`&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`, true);
-        FailsafeUtils.incrementFailsafeIntensity(pressure);
-
-        FailsafeUtils.sendFailsafeEmbed(
-            'Rotation',
+        this._reportFailsafe({
+            type: 'Rotation',
             severity,
-            `**From:** Yaw ${fromYaw.toFixed(2)} | Pitch ${fromPitch.toFixed(2)}
+            pressure,
+            description: `**From:** Yaw ${fromYaw.toFixed(2)} | Pitch ${fromPitch.toFixed(2)}
             **To:** Yaw ${toYaw.toFixed(2)} | Pitch ${toPitch.toFixed(2)}
             **Total Rotation:** ${totalRotation.toFixed(2)}°`,
-            color
-        );
+            chat: [
+                `&c&lYou were rotated by the server!`,
+                `&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`,
+                `&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`,
+                `&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`,
+            ],
+        });
+    }
+
+    reset() {
+        super.reset();
+        this.totalRotation = 0;
+        this.packetWindowStartedAt = 0;
+        this.flags = 0;
+        this.lastFlagAt = 0;
+        this.triggered = false;
     }
 }
 
-export default new RotationFailsafe();
+new RotationFailsafe();

@@ -1,58 +1,58 @@
-import { manager } from '../utils/SkyblockEvents';
 import { MacroState } from '../utils/MacroState';
+import { manager } from '../utils/SkyblockEvents';
 import { finiteNumber } from '../utils/NumberUtils';
+
+const DEFAULT_DISABLE_MS = 3000;
+const PICKONIMBUS_DISABLE_MS = 5000;
+let globalDisabledUntil = 0;
+
+const disableAll = (durationMs) => {
+    globalDisabledUntil = Math.max(globalDisabledUntil, Date.now() + durationMs);
+};
+
+register('worldLoad', () => disableAll(DEFAULT_DISABLE_MS));
+['serverchange', 'death', 'warp'].forEach((event) => manager.subscribe(event, () => disableAll(1000)));
+manager.subscribe('limbo', () => disableAll(DEFAULT_DISABLE_MS));
+manager.subscribe('pickonimbusbroke', () => disableAll(PICKONIMBUS_DISABLE_MS));
+
 export class Failsafe {
-    registered = false;
-    disabled = false;
     _disabledUntil = 0;
-    _disabledTimer = null;
 
-    constructor() {
-        this._registerListeners();
+    get disabled() {
+        return Date.now() < this._getDisabledUntil();
     }
 
-    shouldTrigger() {
-        return true;
-    }
     isActive() {
         return MacroState.isFailsafeMacroRunning();
     }
-    onTrigger() {}
+
     reset() {
-        this.disabled = false;
         this._disabledUntil = 0;
-        if (this._disabledTimer) {
-            clearTimeout(this._disabledTimer);
-            this._disabledTimer = null;
-        }
+    }
+
+    _scheduleTrigger(fireFn, settings, validateFn = null) {
+        const scheduledAt = Date.now();
+        const delay = this._getReactionDelay(settings);
+
+        setTimeout(() => {
+            if (this.disabled || scheduledAt < this._getDisabledUntil()) return;
+            if (!MacroState.isFailsafeMacroRunning()) return;
+            if (validateFn && !validateFn()) return;
+            fireFn();
+        }, delay);
+    }
+
+    _reportFailsafe(payload) {
+        const FailsafeManager = require('./FailsafeManager').default;
+        FailsafeManager.report(payload);
     }
 
     _setDisabled(durationMs) {
-        const now = Date.now();
-        const end = now + durationMs;
-
-        if (end <= this._disabledUntil && this.disabled) return;
-
-        this._disabledUntil = end;
-        this.disabled = true;
-
-        if (this._disabledTimer) clearTimeout(this._disabledTimer);
-
-        this._disabledTimer = setTimeout(() => {
-            if (Date.now() >= this._disabledUntil) {
-                this.disabled = false;
-                this._disabledTimer = null;
-            }
-        }, durationMs);
+        this._disabledUntil = Math.max(this._disabledUntil, Date.now() + durationMs);
     }
 
-    _registerListeners() {
-        if (this.registered) return;
-        this.registered = true;
-        register('worldLoad', () => {
-            this._setDisabled(1000);
-        });
-        ['serverchange', 'death', 'warp'].forEach((event) => manager.subscribe(event, () => this._setDisabled(1000)));
+    _getDisabledUntil() {
+        return Math.max(globalDisabledUntil, this._disabledUntil);
     }
 
     _getReactionDelay(settings) {

@@ -2,25 +2,16 @@ import { Chat } from '../../utils/Chat';
 import { ClientboundSetEntityMotionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
+import { TIER_SEVERITIES } from '../SensitivityPresets';
 
-const VELOCITY_TIERS = [
-    { threshold: 0.5, pressure: 10, severity: 'low', color: 65280 },
-    { threshold: 1, pressure: 20, severity: 'medium', color: 16776960 },
-    { threshold: 2, pressure: 50, severity: 'high', color: 16744448 },
-    { threshold: Infinity, pressure: 100, severity: 'very high', color: 16711680 },
-];
+const VELOCITY_PRESSURES = [10, 20, 50, 100];
 
 class VelocityFailsafe extends Failsafe {
     constructor() {
         super();
-        this.registerVeloListeners();
-        this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
-    }
-
-    registerVeloListeners() {
         register('packetReceived', (packet) => {
             if (!this.isActive() || this.disabled) return;
-            this._handleVelocityOnDamageDisabled();
+            if (Player.getPlayer()?.hurtTime > 0) this._setDisabled(1000);
             if (this.disabled) return;
             const playerMP = Player.asPlayerMP();
             if (!playerMP || packet?.id?.() !== playerMP?.mcValue?.getId()) return;
@@ -30,7 +21,8 @@ class VelocityFailsafe extends Failsafe {
             const z = Math.floor(Player.getZ());
             const blockBelow = World.getBlockAt(x, y, z);
             const blockName = blockBelow?.getType()?.getRegistryName() || '';
-            if (this._bypassTrigger(blockName)) return;
+            const heldItem = Player.getHeldItem()?.getName()?.removeFormatting()?.toLowerCase();
+            if (heldItem?.includes('grappling') || blockName.includes('slime_block')) return;
 
             this.settings = FailsafeUtils.getFailsafeSettings('Velocity');
             if (!this.settings.isEnabled) return;
@@ -41,51 +33,31 @@ class VelocityFailsafe extends Failsafe {
             const vz = movement?.z;
             const speed = Math.hypot(vx, vy, vz);
 
-            if (this._shouldDisableVelocity(speed, blockName)) return;
-            const scheduledAt = Date.now();
-            setTimeout(() => {
-                if (this.disabled || !this.isActive() || scheduledAt < this._disabledUntil || this._shouldDisableVelocity(speed, blockName)) return;
-                this.onTrigger(speed);
-            }, this._getReactionDelay(this.settings));
+            const roundedSpeed = Math.round(speed);
+            if (blockName && !blockName.includes('air') && (roundedSpeed === 1 || roundedSpeed === 0)) {
+                Chat.messageDebug('disabling fall velocity packet');
+                this._setDisabled(1000);
+                return;
+            }
+
+            this._scheduleTrigger(() => this.onTrigger(speed), this.settings);
         }).setFilteredClass(ClientboundSetEntityMotionPacket);
     }
 
-    _handleVelocityOnDamageDisabled() {
-        const player = Player.getPlayer();
-        if (!player) return;
-
-        if (player.hurtTime > 0) {
-            this._setDisabled(1000);
-        }
-    }
-
-    _shouldDisableVelocity(velocity, blockBelow) {
-        if (this.disabled) return true;
-        if (velocity === undefined) return false;
-        const roundedVelocity = Math.round(velocity);
-
-        if (blockBelow && !blockBelow.includes('air') && (roundedVelocity === 1 || roundedVelocity === 0)) {
-            Chat.messageDebug('disabling fall velocity packet');
-            this._setDisabled(1000);
-        }
-
-        return this.disabled;
-    }
-
-    _bypassTrigger(blockBelowName) {
-        const heldItem = Player.getHeldItem()?.getName()?.removeFormatting();
-        if (heldItem?.includes('Grappling')) return true;
-
-        return blockBelowName.includes('slime_block');
-    }
-
     onTrigger(speed) {
-        const { pressure, severity, color } = VELOCITY_TIERS.find((t) => speed < t.threshold) || VELOCITY_TIERS[VELOCITY_TIERS.length - 1];
+        const tiers = FailsafeUtils.getSensitivityPreset().velocity.tiers;
+        const tierIndex = tiers.findIndex((threshold) => speed < threshold);
+        const pressure = VELOCITY_PRESSURES[tierIndex];
+        const severity = TIER_SEVERITIES[tierIndex];
 
-        Chat.messageFailsafe(`&c&lVelocity failsafe triggered! Velocity: ${speed.toFixed(0)}`);
-        FailsafeUtils.incrementFailsafeIntensity(pressure);
-        FailsafeUtils.sendFailsafeEmbed('Velocity', severity, `Velocity change detected: ${speed.toFixed(0)}`, color);
+        this._reportFailsafe({
+            type: 'Velocity',
+            severity,
+            pressure,
+            description: `Velocity change detected: ${speed.toFixed(2)}`,
+            chat: `&c&lVelocity failsafe triggered! Velocity: ${speed.toFixed(2)}`,
+        });
     }
 }
 
-export default new VelocityFailsafe();
+new VelocityFailsafe();

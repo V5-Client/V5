@@ -1,33 +1,21 @@
 import { drawRect, drawText } from '../gui/Utils';
+import { getSetting } from '../gui/GuiSave';
 import { Chat } from '../utils/Chat';
-import { File, globalAssetsDir } from '../utils/Constants';
-import { Utils } from '../utils/Utils';
-import FailsafeUtils from './FailsafeUtils';
+import { getSeverity } from './FailsafeUtils';
 
-let failsafeSound = 'Tave Check.wav';
-
-const AudioSystem = javax.sound.sampled.AudioSystem;
-const FloatControl = javax.sound.sampled.FloatControl;
-
-// todo
-// touchen up colours rn they ugly
-// touch up code
-// rewrite some stuff!
-// allow edit of failsafe sound
+let failsafeSound = 'Tave Check.ogg';
+const playerNotificationSound = 'Player Failsafe.ogg';
 
 class AlertUtilsClass {
     constructor() {
-        this.clip = null;
-        this.audioStream = null;
-        this.gainControl = null;
+        this.sound = null;
         this.savedSound = null;
         this.isAlerting = false;
 
-        this.cancelKeyBind = null;
         this.cancelKey = null;
 
         this.render = null;
-        this.tracker = null;
+        this.cancelHandler = null;
 
         this._makeFailsafeKeybind();
 
@@ -36,10 +24,13 @@ class AlertUtilsClass {
         }).setName('trigger');
     }
 
-    /**
-     * Combines all internal methods to create a failsafe alert
-     */
-    triggerReaction() {
+    triggerReaction(severity = 'high') {
+        const next = getSeverity(severity);
+        if (this.isAlerting && next.rank < getSeverity(this.alertSeverity).rank) return;
+
+        this.alertSeverity = severity;
+        this.alertLine = next.line;
+        this.alertColor = next.alertColor;
         if (this.isAlerting) return;
 
         Chat.messageFailsafe('Suspicious activity detected, reaction occuring!');
@@ -49,7 +40,6 @@ class AlertUtilsClass {
         this.playSound();
         this._grabWindowOnFailsafe();
 
-        const line1 = 'V5 BELIEVES YOU HAVE BEEN MACRO CHECKED!';
         const key = this.cancelKey;
         const line2Start = 'PRESS ';
         const line2End = ' TO DISABLE THE REACTION';
@@ -60,11 +50,12 @@ class AlertUtilsClass {
         const fontSize = 20;
         const lineSpacing = 8;
         const yOffset = 100;
-        const redColor = Math.trunc(0xffff0000); // change this
-        const highlightColor = Math.trunc(0xffffffff); // this too
+        const highlightColor = 0xffffffff;
 
         this.render = register('renderOverlay', () => {
             const scale = fontSize / 10;
+            const line1 = this.alertLine;
+            const redColor = this.alertColor;
             const x1 = screenW / 2 - (Renderer.getStringWidth(line1) * scale) / 2;
             const totalLine2Width = (Renderer.getStringWidth(line2Start) + Renderer.getStringWidth(key) + Renderer.getStringWidth(line2End)) * scale;
             let currentX2 = screenW / 2 - totalLine2Width / 2;
@@ -86,96 +77,58 @@ class AlertUtilsClass {
         });
     }
 
-    /**
-     * Disables the reaction & nulls all registers included
-     */
+    setCancelHandler(callback) {
+        this.cancelHandler = typeof callback === 'function' ? callback : null;
+    }
+
     disableReaction() {
         this.isAlerting = false;
         this.stopSound();
+        const handler = this.cancelHandler;
+        this.cancelHandler = null;
+        if (handler) {
+            try {
+                handler();
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            }
+        }
 
         if (this.render) {
             this.render.unregister();
             this.render = null;
         }
+    }
 
-        if (this.tracker) {
-            this.tracker.unregister();
-            this.tracker = null;
+    playSound(soundName = failsafeSound) {
+        if (!(getSetting('Failsafes', 'Play sound on check') ?? true)) return;
+
+        try {
+            if (!this.sound || this.savedSound !== soundName) {
+                this.sound?.destroy();
+                this.sound = new Sound({ source: `failsafes/sounds/${soundName}` });
+                this.savedSound = soundName;
+            }
+            this.sound.rewind();
+        } catch (e) {
+            this.sound = null;
+            console.error('V5 Caught error' + e + e.stack);
         }
     }
 
-    /**
-     * Plays a sound if the player has the setting toggled
-     */
-    playSound() {
-        if (!FailsafeUtils.getFailsafeSettings('Play sound on check').playSoundOnCheck) return;
-        const currentSound = failsafeSound;
-        if (!this.clip || this.savedSound !== currentSound) this._loadsoundFile();
-
-        if (this.clip) {
-            this.clip.stop();
-            this.clip.setFramePosition(0);
-            this.clip.start();
-        }
+    playQuietNotification() {
+        if (this.isAlerting) return;
+        this.playSound(playerNotificationSound);
     }
 
-    /**
-     * Stops any sounds from playing
-     */
     stopSound() {
-        if (this.clip && this.clip.isRunning()) this.clip.stop();
+        if (this.sound && World.isLoaded()) this.sound.stop();
     }
 
     setFailsafeSound(fileName) {
         failsafeSound = fileName;
     }
 
-    /**
-     * Loads a sound file using Java methods
-     */
-    _loadsoundFile() {
-        if (this.clip) {
-            try {
-                this.clip.stop();
-                this.clip.close();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
-            this.clip = null;
-        }
-
-        if (this.audioStream) {
-            try {
-                this.audioStream.close();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
-            this.audioStream = null;
-        }
-
-        const currentSound = failsafeSound;
-        this.savedSound = currentSound || 'Tave Check.wav';
-        if ((currentSound || '').includes('undefined')) this.savedSound = 'Tave Check.wav';
-
-        this.soundFile = new File(globalAssetsDir, `failsafes/sounds/${this.savedSound}`);
-        if (!this.soundFile.exists()) return;
-
-        try {
-            this.audioStream = AudioSystem.getAudioInputStream(this.soundFile);
-            this.clip = AudioSystem.getClip();
-            this.clip.open(this.audioStream);
-            if (this.clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-                this.gainControl = this.clip.getControl(FloatControl.Type.MASTER_GAIN);
-            }
-        } catch (e) {
-            this.clip = null;
-            console.error('V5 Caught error' + e + e.stack);
-        }
-    }
-
-    /**
-     * Uses NVG to draw a overlay over the whole screen
-     */
     _renderAlertScreen() {
         if (Client.isInChat()) return;
         try {
@@ -187,7 +140,7 @@ class AlertUtilsClass {
                 y: 0,
                 width: Renderer.screen.getWidth(),
                 height: Renderer.screen.getHeight(),
-                color: Math.trunc((120 << 24) | (255 << 16) | (0 << 8)), // change this too pls
+                color: 0x78ff0000,
             });
 
             NVG.restore();
@@ -202,20 +155,12 @@ class AlertUtilsClass {
         }
     }
 
-    /**
-     * Creates a keybind for canceling the reaction
-     */
     _makeFailsafeKeybind() {
         const keyName = 'Cancel Reaction';
-        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
-        let savedKeycode = existingKeybinds[keyName];
+        const cancelKeyBind = new KeyBind(keyName, Keyboard.KEY_K, 'v5_core');
+        this.cancelKey = Keyboard.getKeyName(cancelKeyBind.getKeyCode());
 
-        if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
-
-        this.cancelKey = Keyboard.getKeyName(savedKeycode);
-        this.cancelKeyBind = new KeyBind(keyName, savedKeycode, 'v5_core');
-
-        this.cancelKeyBind.registerKeyPress(() => {
+        cancelKeyBind.registerKeyPress(() => {
             if (!this.isAlerting) return;
             Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
             this.disableReaction();
@@ -223,15 +168,11 @@ class AlertUtilsClass {
 
         register('gameUnload', () => {
             this.disableReaction();
-            let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-            allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
-            Utils.writeConfigFile('keybinds.json', allKeybinds);
+            if (this.sound && World.isLoaded()) this.sound.destroy();
+            this.sound = null;
         });
     }
 
-    /**
-     * Uses GLFW to grab the window on a failsafe if they have the setting toggled (WIP)
-     */
     _grabWindowOnFailsafe() {
         try {
             const GLFW = org.lwjgl.glfw.GLFW;

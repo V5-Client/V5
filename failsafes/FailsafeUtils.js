@@ -1,98 +1,51 @@
-import { V5ConfigFile } from '../utils/Constants';
+import { getSetting } from '../gui/GuiSave';
 import { finiteNumber } from '../utils/NumberUtils';
+import { PRESETS } from './SensitivityPresets';
+
+const SEVERITIES = {
+    low: { rank: 1, color: 0x00ff00, alertColor: 0xff00ff00, line: 'LOW SUSPICIOUS ACTIVITY DETECTED!' },
+    medium: { rank: 2, color: 0xffff00, alertColor: 0xffffff00, line: 'SUSPICIOUS ACTIVITY DETECTED!' },
+    high: { rank: 3, color: 0xff8000, alertColor: 0xffff5500, line: 'YOU MAY HAVE BEEN MACRO CHECKED!' },
+    'very high': { rank: 4, color: 0xff0000, alertColor: 0xffff0000, line: 'YOU ARE BEING MACRO CHECKED!' },
+};
+
+export const getSeverity = (severity) => SEVERITIES[String(severity || 'high').toLowerCase()] || SEVERITIES.high;
 
 const DEFAULT_FAILSAFE_SETTINGS = {
     isEnabled: true,
     FailsafeReactionTime: 600,
     playerProximityDistance: 3,
     pingOnCheck: 'Ping',
-    playSoundOnCheck: true,
+    sensitivityPreset: 'Normal',
+    pauseMacroOnFailsafe: true,
+    minAlertSeverity: 'high',
+    chatMentionHighWords: 'wdr, report, cheat, hack, exploit, macro',
+    chatMentionMediumWords: '',
+    playerGriefWhitelist: '',
 };
 
 class FailsafeUtils {
     constructor() {
         this.failsafeIntensity = 0;
 
-        this._cache = {
-            expiresAt: 0,
-            lastModified: -1,
-            config: {},
-            hasConfig: false,
-            normalized: null,
-        };
-        this._utils = null;
+        register('step', () => {
+            this.failsafeIntensity = Math.max(0, this.failsafeIntensity * 0.92);
+            if (this.failsafeIntensity < 0.1) this.failsafeIntensity = 0;
+        }).setDelay(1);
     }
 
-    _getConfig() {
-        const now = Date.now();
-        const lastModified = V5ConfigFile.exists() ? V5ConfigFile.lastModified() : -1;
-        const cacheValid = now < this._cache.expiresAt && this._cache.lastModified === lastModified;
-        if (cacheValid) {
-            return this._cache.config;
-        }
-
-        if (!this._utils) this._utils = require('../utils/Utils').Utils;
-        const config = this._utils.getConfigFile('config.json');
-
-        this._cache.expiresAt = now + 250;
-        this._cache.lastModified = lastModified;
-        this._cache.config = config;
-        this._cache.hasConfig = !!config && Object.keys(config).length > 0;
-        this._cache.normalized = null;
-
-        return config;
+    _getSetting(name, fallback) {
+        return getSetting('Failsafes', name) ?? fallback;
     }
 
-    _normalizeFailsafeConfig(failsafesConfig) {
-        if (this._cache.normalized) return this._cache.normalized;
-
-        const enabledMap = {};
-        const enabledList = failsafesConfig['Enabled Failsafes'];
-        if (Array.isArray(enabledList)) {
-            for (const entry of enabledList) {
-                if (!entry || !entry.name) continue;
-                enabledMap[entry.name] = !!entry.enabled;
-            }
-        }
-
-        const pingConfig = failsafesConfig['Discord ping on Check'];
-        let pingOnCheckValue = DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
-
-        if (Array.isArray(pingConfig)) {
-            for (const option of pingConfig) {
-                if (option?.enabled) {
-                    pingOnCheckValue = option.name ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
-                    break;
-                }
-            }
-        } else if (typeof pingConfig === 'boolean') {
-            pingOnCheckValue = pingConfig ? 'Ping' : 'None';
-        } else {
-            pingOnCheckValue = pingConfig ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
-        }
-
-        const normalized = {
-            enabledMap,
-            rawEnabledList: enabledList,
-            reactionInput: failsafesConfig['Failsafe Detection Delay (ms)'] ?? DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime,
-            playerProximityDistance: failsafesConfig['Player Proximity Distance'] ?? DEFAULT_FAILSAFE_SETTINGS.playerProximityDistance,
-            playSoundOnCheck: failsafesConfig['Play sound on check'] ?? DEFAULT_FAILSAFE_SETTINGS.playSoundOnCheck,
-            pingOnCheck: pingOnCheckValue,
-        };
-
-        this._cache.normalized = normalized;
-        return normalized;
+    _getSelectedSetting(name, fallback) {
+        const options = this._getSetting(name, []);
+        return (Array.isArray(options) && options.find((option) => option?.enabled)?.name) || fallback;
     }
 
     getFailsafeSettings(name) {
-        const config = this._getConfig();
-
-        if (!config || !config['Failsafes']) {
-            return DEFAULT_FAILSAFE_SETTINGS;
-        }
-
-        const normalized = this._normalizeFailsafeConfig(config['Failsafes']);
-        const reactionInput = normalized.reactionInput;
+        const enabled = this._getSetting('Enabled Failsafes', null);
+        const reactionInput = this._getSetting('Failsafe Detection Delay (ms)', DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime);
         let reactionTime = DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime;
 
         if (typeof reactionInput === 'object' && reactionInput.low !== undefined) {
@@ -104,58 +57,52 @@ class FailsafeUtils {
             reactionTime = finiteNumber(reactionInput, reactionTime);
         }
 
-        const hasEnabledList = Array.isArray(normalized.rawEnabledList);
-        const isEnabled = hasEnabledList
-            ? (normalized.enabledMap[name] ?? false)
-            : (config['Failsafes'][`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
-
         return {
-            isEnabled: isEnabled,
+            isEnabled: Array.isArray(enabled) ? enabled.some((option) => option?.name === name && option.enabled) : DEFAULT_FAILSAFE_SETTINGS.isEnabled,
             FailsafeReactionTime: reactionTime,
-            playerProximityDistance: normalized.playerProximityDistance,
-            pingOnCheck: normalized.pingOnCheck,
-            playSoundOnCheck: normalized.playSoundOnCheck,
+            playerProximityDistance: this._getSetting('Player Proximity Distance', DEFAULT_FAILSAFE_SETTINGS.playerProximityDistance),
+            chatMentionHighWords: this._getSetting('Chat Mention - High Severity Words', DEFAULT_FAILSAFE_SETTINGS.chatMentionHighWords),
+            chatMentionMediumWords: this._getSetting('Chat Mention - Medium Severity Words', DEFAULT_FAILSAFE_SETTINGS.chatMentionMediumWords),
+            playerGriefWhitelist: this._getSetting('Player Grief - Whitelist', DEFAULT_FAILSAFE_SETTINGS.playerGriefWhitelist),
         };
     }
 
-    sendFailsafeEmbed(type, severity, description, color) {
+    getGlobalSettings() {
+        return {
+            sensitivityPreset: this._getSelectedSetting('Failsafe Sensitivity', DEFAULT_FAILSAFE_SETTINGS.sensitivityPreset),
+            pauseMacroOnFailsafe: this._getSetting('Pause macro on failsafe', DEFAULT_FAILSAFE_SETTINGS.pauseMacroOnFailsafe),
+            minAlertSeverity: this._getSelectedSetting('Min severity to fire alert overlay', DEFAULT_FAILSAFE_SETTINGS.minAlertSeverity),
+        };
+    }
+
+    getSensitivityPreset() {
+        return PRESETS[this.getGlobalSettings().sensitivityPreset] || PRESETS.Normal;
+    }
+
+    sendFailsafeEmbed(type, severity, description) {
         const { Webhook } = require('../utils/Webhooks');
+        const mode = this._getSelectedSetting('Discord ping on Check', DEFAULT_FAILSAFE_SETTINGS.pingOnCheck);
+        if (mode === 'None') return;
 
-        const pingOnCheckValue = this.getFailsafeSettings(type).pingOnCheck;
-
-        if (pingOnCheckValue === 'Ping' || pingOnCheckValue === 'Embed Only') {
-            Webhook.sendFailsafeEmbed(
-                [
-                    {
-                        title: `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
-                        description: `${description}`,
-                        color: color,
-                        footer: { text: `V5 Failsafes` },
-                        timestamp: new Date().toISOString(),
-                    },
-                ],
-                pingOnCheckValue === 'Ping'
-            );
-        } else if (pingOnCheckValue === 'Ping & Screenshot' || pingOnCheckValue === 'Screenshot Only') {
-            Client.scheduleTask(5, () =>
-                Webhook.sendFailsafeScreenshot(
-                    `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
-                    description,
-                    color,
-                    `V5 Failsafes`,
-                    pingOnCheckValue === 'Ping & Screenshot'
-                )
-            );
+        const ping = mode.startsWith('Ping');
+        const title = `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`;
+        const color = getSeverity(severity).color;
+        if (mode.includes('Screenshot')) {
+            Client.scheduleTask(5, () => Webhook.sendFailsafeScreenshot(title, description, color, 'V5 Failsafes', ping));
+            return;
         }
+
+        Webhook.sendFailsafeEmbed([{ title, description, color, footer: { text: 'V5 Failsafes' }, timestamp: new Date().toISOString() }], ping);
     }
 
     incrementFailsafeIntensity(amt) {
-        this.failsafeIntensity += amt;
-        setTimeout(() => (this.failsafeIntensity -= amt / 10), 1000);
+        const amount = Number(amt);
+        if (!Number.isFinite(amount)) return;
+        this.failsafeIntensity = Math.max(0, Math.min(1000, this.failsafeIntensity + amount));
     }
 
     getIntensity() {
-        return this.failsafeIntensity;
+        return Math.max(0, Math.min(1000, Math.round(this.failsafeIntensity)));
     }
 }
 
