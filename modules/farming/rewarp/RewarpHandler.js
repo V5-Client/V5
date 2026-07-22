@@ -3,33 +3,45 @@ import { philipMacro } from './PhilipMacro';
 import { visitorMacro } from './VisitorMacro';
 import { rewarpSettings } from './RewarpSettings';
 import { Utils } from '../../../utils/Utils';
+import Pathfinder from '../../../utils/pathfinder/PathFinder';
+import { pestKiller } from './PestKiller';
 
 const PHASES = {
     BARN: 'Warping to barn',
     DECIDING: 'Determining',
     RUNNING: 'Running task',
     REWARP: 'Rewarping',
+    RETURNING: 'Returning',
 };
 const REWARP_RETRY_MS = 10_000;
 const MAX_REWARP_ATTEMPTS = 3;
 
 class RewarpHandler {
-    start(macro, rewarpStartPoint) {
+    start(macro, rewarpStartPoint, runPestKiller = false, skipPestInitialLocation = false) {
         this.macro = macro;
         this.rewarpStartPoint = rewarpStartPoint;
+        this.runPestKiller = runPestKiller;
+        this.skipPestInitialLocation = skipPestInitialLocation;
         this.rewarpAttempts = 0;
-        this.nextActionAt = Date.now() + Utils.randomInt(rewarpSettings.delayMin, rewarpSettings.delayMax);
+        this.returnStarted = false;
+        this.returnResult = null;
 
+        const runVisitor = rewarpSettings.shouldRunVisitorMacro();
         const runPhilip = rewarpSettings.shouldRunPhilipBonus();
-        this.tasks = rewarpSettings.shouldRunVisitorMacro() || runPhilip ? [autoSell, visitorMacro] : [];
+        this.tasks = runVisitor ? [autoSell, visitorMacro] : [];
         if (runPhilip) this.tasks.push(philipMacro);
-        this.phase = this.tasks.length ? PHASES.BARN : PHASES.REWARP;
+        const hasBarnTasks = this.tasks.length > 0;
+        if (runPestKiller) this.tasks.push(pestKiller);
+        this.phase = hasBarnTasks ? PHASES.BARN : this.tasks.length ? PHASES.DECIDING : PHASES.REWARP;
+        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + Utils.randomInt(rewarpSettings.delayMin, rewarpSettings.delayMax);
     }
 
     stop() {
         autoSell.stop();
         visitorMacro.stop();
         philipMacro.stop();
+        pestKiller.stop();
+        if (this.returnStarted && Pathfinder.isPathing()) Pathfinder.resetPath();
     }
 
     tick(player) {
@@ -45,16 +57,35 @@ class RewarpHandler {
         if (this.phase === PHASES.DECIDING) {
             while ((this.task = this.tasks.shift())) {
                 if (this.task === autoSell && !autoSell.shouldRun()) continue;
-                if (this.task.start() !== false) {
+                if (this.task.start(this.macro, this.task === pestKiller && this.skipPestInitialLocation) !== false) {
                     this.phase = PHASES.RUNNING;
                     break;
                 }
             }
-            if (!this.task) this.phase = PHASES.REWARP;
+            if (!this.task) this.phase = this.runPestKiller && !rewarpSettings.looping ? PHASES.RETURNING : PHASES.REWARP;
         }
 
         if (this.phase === PHASES.RUNNING && this.task.tick()) this.phase = PHASES.DECIDING;
+        if (this.phase === PHASES.RETURNING) return this.returnToStart();
         if (this.phase === PHASES.REWARP) return this.rewarp(player);
+    }
+
+    returnToStart() {
+        if (this.returnResult !== null) {
+            if (this.returnResult) {
+                this.macro.finishRewarp(Player.getPlayer());
+            } else {
+                this.macro.message('&cFailed to return from Pest Killer.');
+                this.macro.toggle(false);
+            }
+            return;
+        }
+        if (this.returnStarted) return;
+
+        this.returnStarted = true;
+        const point = this.rewarpStartPoint;
+        const savedPosition = [Math.floor(point.x), Math.floor(point.y), Math.floor(point.z)];
+        Pathfinder.findPath([savedPosition, [savedPosition[0], savedPosition[1] + 1, savedPosition[2]]], (success) => (this.returnResult = success), true);
     }
 
     rewarp(player) {

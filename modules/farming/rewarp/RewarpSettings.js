@@ -24,6 +24,8 @@ class RewarpSettings extends ModuleBase {
         this.maxVisitorPrice = 500_000;
         this.declinePurchaseFailures = false;
         this.autoPhilipBonus = false;
+        this.pestKiller = false;
+        this.pestThreshold = 5;
 
         this.addMultiToggle(
             'Rewarp Style',
@@ -84,6 +86,23 @@ class RewarpSettings extends ModuleBase {
             (value) => (this.autoPhilipBonus = !!value),
             'Empties a vacuum bag with Philip when Buzzing Bonus is inactive and it holds 40 or more pests.'
         );
+        this.addToggle(
+            'Pest Killer',
+            (value) => {
+                this.pestKiller = !!value;
+                pestThreshold.visible = !!value;
+            },
+            'Pauses farming to clear pests when the configured threshold is reached.'
+        );
+        const pestThreshold = this.addSlider(
+            'Pest Threshold',
+            1,
+            8,
+            this.pestThreshold,
+            (value) => (this.pestThreshold = Math.round(value)),
+            'Starts Pest Killer at this many alive pests.'
+        );
+        pestThreshold.visible = false;
     }
 
     addRewarpButtons(...buttons) {
@@ -101,7 +120,7 @@ class RewarpSettings extends ModuleBase {
             ?.getItems?.()
             .find((item) => String(Guis.stripFormatting(item?.getName?.() || '')).includes('Vacuum'));
         const vacuumLine = String(Guis.stripFormatting(vacuum?.getLore?.().find((line) => String(line).includes('Vacuum Bag:')) || ''));
-        return (Number.parseInt(vacuumLine.replace(/[^\d]/g, ''), 10) || 0) >= 40;
+        return (Number.parseInt(Guis.stripFormatting(vacuumLine).replace(/[^\d]/g, ''), 10) || 0) >= 40;
     }
 }
 

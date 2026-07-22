@@ -6,15 +6,17 @@ import { Utils } from '../../utils/Utils';
 const PEST_NAMES = ['Silverfish', 'Bat'];
 const PEST_KILL_RADIUS_SQ = 12 ** 2;
 
+export function getLoadedPests() {
+    return World.getAllEntities().filter((entity) => !!entity && !entity.isDead() && PEST_NAMES.some((name) => entity.getName()?.includes(name)));
+}
+
 export function getNearbyPest() {
     const eyes = Player.getPlayer()?.getEyePosition();
     if (!eyes) return null;
 
     let closest = null;
     let closestDistanceSq = PEST_KILL_RADIUS_SQ;
-    World.getAllEntities().forEach((entity) => {
-        if (entity.isDead() || !PEST_NAMES.some((name) => entity.getName()?.includes(name))) return;
-
+    getLoadedPests().forEach((entity) => {
         const dx = entity.getX() - eyes.x();
         const dy = entity.getY() - eyes.y();
         const dz = entity.getZ() - eyes.z();
@@ -42,17 +44,14 @@ class PestESP extends ModuleBase {
 
             const now = Date.now();
 
-            World.getAllEntities().forEach((entity) => {
-                const name = entity.getName();
-                if (name && PEST_NAMES.some((target) => name.includes(target))) {
-                    this.persistentPests.set(entity.getUUID().toString(), {
-                        x: entity.getX(),
-                        y: entity.getY(),
-                        z: entity.getZ(),
-                        entity: entity,
-                        lastSeen: now,
-                    });
-                }
+            getLoadedPests().forEach((entity) => {
+                this.persistentPests.set(entity.getUUID().toString(), {
+                    x: entity.getX(),
+                    y: entity.getY(),
+                    z: entity.getZ(),
+                    entity: entity,
+                    lastSeen: now,
+                });
             });
 
             this.persistentPests.forEach((data, uuid) => {

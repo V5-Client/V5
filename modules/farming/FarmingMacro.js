@@ -16,7 +16,7 @@ const MAX_PEST_TRACK_DISTANCE = 14;
 const PEST_STALL_GRACE_TICKS = 20;
 const GUI_RESUME_GRACE_TICKS = 5;
 const SPRAY_CHECK_COOLDOWN_MS = 5_000;
-const TAB_CHECK_GRACE_MS = 2_500;
+const TAB_CHECK_GRACE_MS = 5_000;
 const MISSING_SPRAY_MATERIAL_REGEX = /^You don't have enough .+!$/;
 const FARMING = 'Farming';
 const PEST = 'Pest';
@@ -50,6 +50,11 @@ export class FarmingMacro extends ModuleBase {
     }
 
     onEnable() {
+        if ((farmingSettings.killNearbyPests || rewarpSettings.pestKiller) && Guis.findItemInHotbar('Vacuum') < 0) {
+            this.message('&cNo Vacuum found in hotbar.');
+            this.toggle(false);
+            return;
+        }
         if (!rewarpSettings.looping) {
             if (!this.isPoint(this.points.start) || !this.isPoint(this.points.end)) {
                 this.message('Set both Rewarp points before enabling Rewarp mode.');
@@ -126,6 +131,14 @@ export class FarmingMacro extends ModuleBase {
         if (farmingSettings.killNearbyPests && this.handlePest(player)) return;
 
         const looping = rewarpSettings.looping;
+        if (rewarpSettings.pestKiller && Date.now() >= this.nextTabCheckAt && TabListUtils.readPests().alivePestCount >= rewarpSettings.pestThreshold) {
+            const pestColumnClear = this.isPestColumnClear(player);
+            if (looping || pestColumnClear) {
+                const returnPoint = { x: player.getX(), y: player.getY(), z: player.getZ() };
+                if (looping) ChatLib.command('sethome');
+                return this.beginRewarp(returnPoint, true, looping && !pestColumnClear);
+            }
+        }
         if (!looping && this.isAtPoint(player, this.points.end)) return this.beginRewarp();
         if (looping && this.shouldRunBarnTasks()) {
             ChatLib.command('sethome');
@@ -178,10 +191,19 @@ export class FarmingMacro extends ModuleBase {
         return TabListUtils.getNames().some((line) => /\bSpray:\s*None\b/.test(TabListUtils.stripFormatting(line?.getName?.() ?? line)));
     }
 
-    beginRewarp(rewarpStartPoint = this.points.start) {
+    beginRewarp(rewarpStartPoint = this.points.start, runPestKiller = false, skipPestInitialLocation = false) {
         Client.unpressKeys();
         this.mode = REWARPING;
-        rewarpHandler.start(this, rewarpStartPoint);
+        rewarpHandler.start(this, rewarpStartPoint, runPestKiller, skipPestInitialLocation);
+    }
+
+    isPestColumnClear(player) {
+        const x = Math.floor(player.getX());
+        const z = Math.floor(player.getZ());
+        for (let y = Math.floor(player.getY()) + 2; y <= 76; y++) {
+            if (String(World.getBlockAt(x, y, z)?.type?.getRegistryName?.()) !== 'minecraft:air') return false;
+        }
+        return true;
     }
 
     shouldRunBarnTasks() {
