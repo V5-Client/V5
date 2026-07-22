@@ -10,6 +10,7 @@ const PEST_RANGE_SQ = 10 ** 2;
 const PARTICLE_SEARCH_MS = 2_000;
 const PLOT_PATH_DELAY_MS = 2_000;
 const PLOT_WARP_MS = 3_000;
+const PLOT_TIMEOUT_MS = 30_000;
 const PATH_RETRY_MS = 1_000;
 const MAX_SEARCH_FAILURES = 3;
 const STATES = {
@@ -43,6 +44,14 @@ class PestKiller {
 
     tick() {
         if (!this.running) return true;
+        if (this.currentPlot !== null && Date.now() >= this.plotTimeoutAt) {
+            const plot = this.currentPlot;
+            this.stopPath();
+            this.stopKilling();
+            this.finishArea();
+            this.goDirectlyToPlots = true;
+            this.macro.message(`&eSkipping pest plot ${plot} after 30 seconds.`);
+        }
         if (this.state === STATES.WAITING_FOR_PLOT && Date.now() < this.pathfindAfter) return false;
 
         const pests = this.goDirectlyToPlots ? [] : getLoadedPests();
@@ -90,6 +99,7 @@ class PestKiller {
         this.searchFailures = 0;
         this.visitedPlots.add(plot);
         ChatLib.command(`tptoplot ${plot}`);
+        this.plotTimeoutAt = Date.now() + PLOT_TIMEOUT_MS;
         this.state = STATES.WAITING_FOR_PLOT;
         this.pathfindAfter = Date.now() + PLOT_PATH_DELAY_MS;
         this.nextActionAt = Date.now() + PLOT_WARP_MS;
