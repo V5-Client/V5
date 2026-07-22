@@ -96,7 +96,7 @@ class MiningStatsCollector {
             Thread.sleep(500);
 
             ChatLib.command('stats');
-            if (!this.waitForGui('Your Equipment and Stats')) return this.timeout();
+            if (!this.waitForGui('Stats & Equipment')) return this.timeout();
             if (!this.waitForItem('Mining Stats')) return this.timeout();
             Thread.sleep(100);
             this.collectedData = {};
