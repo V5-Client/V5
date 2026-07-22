@@ -39,14 +39,17 @@ class PathRotations {
 
         this.resetRotations();
 
-        PathExecutor.onStep(() => {
+        register('renderWorld', () => {
             if (!this.rotationActive || !this.boxPositions || this.boxPositions.length < 2) return;
             if (!Player.getPlayer()) {
                 this.resetRotations();
                 return;
             }
-            this.updateLookPoint();
-            this.applyHumanizedPhysics();
+            const now = Date.now();
+            const timeScale = this.lastRotationUpdate ? Math.min(2, (now - this.lastRotationUpdate) / (1000 / 120)) : 1;
+            this.lastRotationUpdate = now;
+            this.updateLookPoint(timeScale);
+            this.applyHumanizedPhysics(timeScale);
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
         });
 
@@ -83,6 +86,7 @@ class PathRotations {
         this.unseenSince = 0;
         this.unseenStartPathPosition = 0;
         this.currentPathCurvature = 0;
+        this.lastRotationUpdate = 0;
         this.initialTurnBoostTicks = 0;
         this.postTeleportResyncTicks = 0;
         PathRotationsUtility.stopRotation();
@@ -219,7 +223,7 @@ class PathRotations {
         return { point: this.getInterpolatedPoint(t), lookahead: effectiveMin };
     }
 
-    getAdaptiveLookahead(playerEyes) {
+    getAdaptiveLookahead(playerEyes, timeScale = 1) {
         if (this.lookaheadOverride !== null && this.lookaheadOverrideExpiry > 0) return this.lookaheadOverride;
         const targetIndex = Math.floor(this.currentPathPosition);
         if (targetIndex + 3 >= this.boxPositions.length) return this.smoothedLookahead;
@@ -261,6 +265,7 @@ class PathRotations {
         const adjustFactor = Math.max(deviationFactor, curveFactor);
         const targetLookaheadDistance = this.MAX_LOOKAHEAD - (this.MAX_LOOKAHEAD - this.MIN_LOOKAHEAD) * adjustFactor;
         let lerpFactor = targetLookaheadDistance > this.smoothedLookahead ? 0.1 : 0.05;
+        lerpFactor = 1 - Math.pow(1 - lerpFactor, timeScale);
         this.smoothedLookahead += (targetLookaheadDistance - this.smoothedLookahead) * lerpFactor;
         return this.smoothedLookahead;
     }
@@ -272,7 +277,7 @@ class PathRotations {
         return current.y - lookAhead.y > 0.8;
     }
 
-    updateLookPoint() {
+    updateLookPoint(timeScale = 1) {
         const player = Player.getPlayer();
         if (!player) return;
         const playerEyes = player.getEyePosition();
@@ -332,7 +337,7 @@ class PathRotations {
             this.applyPredictedPathProgress(player);
         }
 
-        const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes);
+        const adaptiveLookahead = this.getAdaptiveLookahead(playerEyes, timeScale);
         let result = this.findVisibleLookahead(playerEyes, adaptiveLookahead);
         const effectiveMin = this.isInRecoveryMode() ? this.RECOVERY_MIN_LOOKAHEAD : this.MIN_LOOKAHEAD;
         let targetVisible = this.isPointVisible(playerEyes, result.point);
@@ -403,7 +408,7 @@ class PathRotations {
         const finishFactor = remainingPath < 3.0 ? Math.max(0.1, remainingPath / 3.0) : 1.0;
         const isStraight = this.currentPathCurvature < 0.15;
         const dynamicSmoothBase = (isStraight ? this.SMOOTH_FACTOR * 0.5 : this.SMOOTH_FACTOR) / finishFactor;
-        const dynamicSmooth = Math.min(1.0, dynamicSmoothBase * this.getInitialTurnBoostFactor(yawDelta));
+        const dynamicSmooth = 1 - Math.pow(1 - Math.min(1.0, dynamicSmoothBase * this.getInitialTurnBoostFactor(yawDelta)), timeScale);
         const dynamicYawDeadzone = (isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE) * finishFactor;
 
         if (Math.abs(yawDelta) > dynamicYawDeadzone) {
@@ -419,7 +424,7 @@ class PathRotations {
             if (Math.abs(MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw)) <= Math.max(10.0, this.YAW_DEADZONE * 2)) {
                 this.initialTurnBoostTicks = 0;
             } else {
-                this.initialTurnBoostTicks--;
+                this.initialTurnBoostTicks -= timeScale;
             }
         }
 
@@ -435,7 +440,7 @@ class PathRotations {
         }
     }
 
-    applyHumanizedPhysics() {
+    applyHumanizedPhysics(timeScale = 1) {
         this.currentYaw = MathUtils.wrapTo180(this.currentYaw);
         const yawError = MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
@@ -452,24 +457,24 @@ class PathRotations {
             this.currentYaw = this.rawTargetYaw;
             this.yawVelocity = 0;
         } else {
-            let desiredYawAccel = yawError * dynamicKp - this.yawVelocity * dynamicKd;
-            desiredYawAccel = Math.max(-accelLimit, Math.min(accelLimit, desiredYawAccel));
+            let desiredYawAccel = (yawError * dynamicKp - this.yawVelocity * dynamicKd) * timeScale;
+            desiredYawAccel = Math.max(-accelLimit * timeScale, Math.min(accelLimit * timeScale, desiredYawAccel));
             this.yawVelocity += desiredYawAccel;
-            this.yawVelocity *= 0.92;
+            this.yawVelocity *= Math.pow(0.92, timeScale);
             this.yawVelocity = Math.max(-maxVelocity, Math.min(maxVelocity, this.yawVelocity));
-            this.currentYaw += this.yawVelocity;
+            this.currentYaw += this.yawVelocity * timeScale;
         }
 
         if (Math.abs(pitchError) < this.SETTLE_THRESHOLD && Math.abs(this.pitchVelocity) < 0.02) {
             this.currentPitch = this.rawTargetPitch;
             this.pitchVelocity = 0;
         } else {
-            let desiredPitchAccel = pitchError * dynamicKp - this.pitchVelocity * dynamicKd;
-            desiredPitchAccel = Math.max(-accelLimit, Math.min(accelLimit, desiredPitchAccel));
+            let desiredPitchAccel = (pitchError * dynamicKp - this.pitchVelocity * dynamicKd) * timeScale;
+            desiredPitchAccel = Math.max(-accelLimit * timeScale, Math.min(accelLimit * timeScale, desiredPitchAccel));
             this.pitchVelocity += desiredPitchAccel;
-            this.pitchVelocity *= 0.92;
+            this.pitchVelocity *= Math.pow(0.92, timeScale);
             this.pitchVelocity = Math.max(-maxVelocity, Math.min(maxVelocity, this.pitchVelocity));
-            this.currentPitch += this.pitchVelocity;
+            this.currentPitch += this.pitchVelocity * timeScale;
         }
         this.currentPitch = Math.max(-90, Math.min(90, this.currentPitch));
     }

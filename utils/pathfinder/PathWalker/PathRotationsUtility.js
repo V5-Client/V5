@@ -36,7 +36,7 @@ class PathRotsUtil {
 
         this.initialMaxDiff = 0;
 
-        register('step', () => this.tick()).setFps(150);
+        register('renderWorld', () => this.tick());
     }
 
     applyRotationWithGCD(yaw, pitch) {
