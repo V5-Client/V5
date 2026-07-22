@@ -577,16 +577,8 @@ class Finder {
     }
 
     isFlyPositionClear(x, y, z) {
-        const world = World.getWorld();
-        if (!world) return false;
         try {
-            const feetPos = new BP(x, y, z);
-            const headPos = new BP(x, y + 1, z);
-            const feetState = world.getBlockState(feetPos);
-            const headState = world.getBlockState(headPos);
-            if (!feetState || !headState) return false;
-
-            return feetState.getCollisionShape(world, feetPos).isEmpty() && headState.getCollisionShape(world, headPos).isEmpty();
+            return PathManager.isFlyPositionClear(x, y, z);
         } catch (e) {
             return false;
         }
