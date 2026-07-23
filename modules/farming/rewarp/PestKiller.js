@@ -12,7 +12,7 @@ const PLOT_PATH_DELAY_MS = 2_000;
 const PLOT_WARP_MS = 3_000;
 const PLOT_TIMEOUT_MS = 30_000;
 const PATH_RETRY_MS = 1_000;
-const TAB_REFRESH_MS = 5_000;
+const LAST_PEST_KILL_GRACE_MS = 5_000;
 const MAX_SEARCH_FAILURES = 3;
 const STATES = {
     SEARCHING: 'Searching',
@@ -37,7 +37,7 @@ class PestKiller {
         this.visitedPlots = new Set();
         this.pathToken = 0;
         this.pathRetryAt = 0;
-        this.tabRefreshAt = 0;
+        this.tabGraceEndsAt = 0;
         this.targetId = null;
         this.trackedTargetId = null;
         farmingSettings.originalSlot = Player.getHeldItemIndex();
@@ -62,12 +62,8 @@ class PestKiller {
             if (target) return this.kill(target);
             this.stopKilling();
             if (!pests.length) {
-                if (TabListUtils.readPests().alivePestCount <= 1) {
-                    this.stop();
-                    return true;
-                }
                 this.finishArea();
-                this.tabRefreshAt = Date.now() + TAB_REFRESH_MS;
+                this.tabGraceEndsAt = Date.now() + LAST_PEST_KILL_GRACE_MS;
             }
         }
 
@@ -78,7 +74,7 @@ class PestKiller {
             return false;
         }
 
-        if (Date.now() < this.tabRefreshAt) return false;
+        if (Date.now() < this.tabGraceEndsAt) return false;
         const infestedPlots = TabListUtils.readPests().infestedPlots;
         if (this.state === STATES.PATHING_PESTS) {
             this.stopPath();
