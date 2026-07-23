@@ -49,6 +49,7 @@ import './skills/WynnProfessionMacro';
 /* OTHER */
 import './other/AutoBeg';
 import './other/AutoConversation';
+import './other/AuctionHelper';
 import './other/BeachBaller';
 import './other/CancelInteract';
 import './other/ChatQOL';
