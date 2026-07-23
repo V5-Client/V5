@@ -1,10 +1,10 @@
 import { Chat } from './Chat';
-import { File, Links, globalAssetsDir } from './Constants';
+import { BufferedReader, File, InputStreamReader, Links, StandardCharsets, URL, globalAssetsDir } from './Constants';
 import { downloadFile } from './FileUtils';
 
 export const fetchURL = (url, headers = {}) => {
     try {
-        let conn = new java.net.URL(url).openConnection();
+        const conn = new URL(url).openConnection();
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
         Object.keys(headers).forEach((key) => {
@@ -13,7 +13,7 @@ export const fetchURL = (url, headers = {}) => {
                 conn.setRequestProperty(String(key), String(value));
             }
         });
-        let reader = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+        const reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
         let inputLine;
         let response = '';
         while ((inputLine = reader.readLine()) != null) {
@@ -63,12 +63,14 @@ export const returnDiscord = (authToken) => {
                 }
 
                 downloadFile(data.discord.avatar, profilePath.getAbsolutePath(), {
+                    onComplete: () => {
+                        discordPfpPath = profilePath.getAbsolutePath();
+                    },
                     onError: (e) => {
                         Chat.message('Download failed: ' + e);
                         console.error('V5 Caught error' + e + e.stack);
                     },
                 });
-                discordPfpPath = profilePath.getAbsolutePath();
             });
             t.setDaemon(true);
             t.start();

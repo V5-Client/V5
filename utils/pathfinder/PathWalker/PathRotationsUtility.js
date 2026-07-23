@@ -40,7 +40,7 @@ class PathRotsUtil {
     }
 
     applyRotationWithGCD(yaw, pitch) {
-        RotationGCD.applyToPlayer(yaw, pitch);
+        return RotationGCD.applyToPlayer(yaw, pitch);
     }
 
     wrapDegrees(degrees) {

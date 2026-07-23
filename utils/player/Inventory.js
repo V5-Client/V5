@@ -32,7 +32,7 @@ class ItemSearcher {
     }
 
     findAllInList(inventory, targetName) {
-        let slots = [];
+        const slots = [];
         if (!inventory) return slots;
         for (var i = 0; i < inventory.getSize(); i++) {
             const stack = inventory.getStackInSlot(i);
@@ -61,7 +61,7 @@ class InterfaceHandler {
             return false;
         }
         const items = container.getItems();
-        if (!items || slot == null || slot < 0 || slot >= items.length) {
+        if (!items || slot == null || slot >= items.length) {
             Chat.message('ClickSlot failed due to invalid slot');
             return false;
         }

@@ -31,18 +31,16 @@ class AutoHarp extends ModuleBase {
                     note.DELAY = 0;
                 }
 
-                if (item?.includes('quartz')) {
-                    if (note.clicked || note.DELAY !== 0) return;
+                if (!item?.includes('quartz') || note.clicked || note.DELAY !== 0) return;
 
-                    const belowItem = container.getStackInSlot(note.slot - 9)?.type?.getRegistryName();
-                    if (belowItem?.includes('wool')) {
-                        note.DELAY = this.DELAY;
-                    } else {
-                        note.clicked = true;
-                    }
-
-                    Guis.clickSlot(note.slot, false, 'MIDDLE');
+                const belowItem = container.getStackInSlot(note.slot - 9)?.type?.getRegistryName();
+                if (belowItem?.includes('wool')) {
+                    note.DELAY = this.DELAY;
+                } else {
+                    note.clicked = true;
                 }
+
+                Guis.clickSlot(note.slot, false, 'MIDDLE');
             });
         });
 

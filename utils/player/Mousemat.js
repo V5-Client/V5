@@ -77,7 +77,9 @@ class MousematController {
         if (slot < 0) return false;
 
         this.stop();
-        const rotation = (this.rotation = { originalSlot: Player.getHeldItemIndex(), ...(this.getSelectedRotation(slot) || {}) });
+        const selectedRotation = this.getSelectedRotation(slot);
+        if (!selectedRotation) return false;
+        const rotation = (this.rotation = { originalSlot: Player.getHeldItemIndex(), ...selectedRotation });
         Guis.setItemSlot(slot);
         this.snap(rotation, this.getActionDelay());
         return true;

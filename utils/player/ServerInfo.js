@@ -99,11 +99,11 @@ const monitor = new NetworkMonitor();
 
 register('worldLoad', () => monitor.reset());
 
-register('packetReceived', (packet) => {
+register('packetReceived', () => {
     monitor.recordTpsPacket();
 }).setFilteredClass(ClientboundPingPacket);
 
-register('packetReceived', (packet) => {
+register('packetReceived', () => {
     monitor.resolvePing();
 }).setFilteredClass(ClientboundAwardStatsPacket);
 

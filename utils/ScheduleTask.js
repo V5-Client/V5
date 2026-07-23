@@ -20,7 +20,6 @@ register('tick', () => {
 
     for (const callback of due) {
         try {
-            if (typeof callback !== 'function') continue;
             callback();
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);

@@ -1,8 +1,5 @@
-import { GLFW, System } from './Constants';
+import { GLFW, isLinux } from './Constants';
 import { Mixin } from './MixinManager';
-
-const os = System.getProperty('os.name').toLowerCase();
-const isLinux = os.includes('nux') || os.includes('nix');
 
 class UngrabManager {
     constructor() {

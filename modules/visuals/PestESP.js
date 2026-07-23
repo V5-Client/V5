@@ -49,7 +49,7 @@ class PestESP extends ModuleBase {
                     x: entity.getX(),
                     y: entity.getY(),
                     z: entity.getZ(),
-                    entity: entity,
+                    entity,
                     lastSeen: now,
                 });
             });

@@ -675,6 +675,7 @@ class Bot extends ModuleBase {
             this.stopMiningControls(true);
             this.scanForBlock(this.COSTTYPE, this.currentTarget);
             this.allowScan = false;
+            return;
         }
 
         if (this.MOVEMENT && now < this.movementReevalCooldownUntil) {

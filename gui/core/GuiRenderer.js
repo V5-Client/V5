@@ -8,6 +8,7 @@ export const drawGUI = (mouseX, mouseY) => {
     const elapsed = Date.now() - GuiState.openStartTime;
     const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
     const ease = easeOutBack(progress);
+    GuiState.isOpening = progress < 1;
 
     const targetBackground = GuiRectangles.Background;
     const centerX = targetBackground.x + targetBackground.width / 2;

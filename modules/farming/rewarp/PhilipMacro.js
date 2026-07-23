@@ -61,7 +61,7 @@ class PhilipMacro {
         return World.getAllPlayers().find((player) => {
             try {
                 return player.toMC().getSkin().body().texturePath().toString() === SKIN_ID;
-            } catch (e) {
+            } catch (ignored) {
                 return false;
             }
         });
@@ -79,7 +79,6 @@ class PhilipMacro {
             return;
         }
 
-        // this is because pathfinder is shit, therefor we have to manually path the last distance otherwise it will cope and die
         if (philip.distanceTo(Player.getX(), Player.getY(), Player.getZ()) > PATH_DISTANCE) {
             if (Pathfinder.isPathing()) return;
             this.transition(STATES.PATHING);
@@ -128,6 +127,7 @@ class PhilipMacro {
     }
 
     retry() {
+        Client.stopMovement();
         this.transition(STATES.SEEKING, Utils.randomInt(farmingDelays.visitorRetryDelayMin, farmingDelays.visitorRetryDelayMax));
     }
 

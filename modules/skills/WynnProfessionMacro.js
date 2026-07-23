@@ -303,6 +303,7 @@ class WynnProfessionMacro extends ModuleBase {
 
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
         Pathfinder.findPath(this.buildPathGoals(point), (success) => {
+            if (!this.enabled || this.state !== STATES.PATHING) return;
             if (!success) {
                 this.message(`&cPathfinding failed at point #${this.currentIndex + 1}.`);
                 this.toggle(false);
@@ -321,7 +322,7 @@ class WynnProfessionMacro extends ModuleBase {
 
         Rotations.lookAtVector(new Vec3d(point.x, point.y + 1.62, point.z), { speedMultiplier: 1.0 });
         Rotations.onComplete(() => {
-            if (!this.enabled) return;
+            if (!this.enabled || this.state !== STATES.ROTATING) return;
 
             if (point.click === 'RIGHT') Client.rightClick();
             else Client.leftClick();
@@ -356,6 +357,7 @@ class WynnProfessionMacro extends ModuleBase {
         Rotations.stop();
 
         Pathfinder.findPath(this.buildBlacksmithPathGoals(), (success) => {
+            if (!this.enabled || this.state !== STATES.REPAIR_PATHING) return;
             if (!success) {
                 this.message('&cPathfinding to a blacksmith failed.');
                 this.toggle(false);
@@ -377,7 +379,7 @@ class WynnProfessionMacro extends ModuleBase {
         Rotations.lookAtVector(aimPoint, { speedMultiplier: 1.0 });
 
         Rotations.onComplete(() => {
-            if (!this.enabled) return;
+            if (!this.enabled || this.state !== STATES.REPAIR_ROTATING) return;
 
             Client.rightClick();
             this.state = STATES.REPAIR_OPENING;
@@ -417,7 +419,7 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     finishRepairDetour() {
-        if (!this.enabled) return;
+        if (!this.enabled || this.state !== STATES.REPAIR_SELECTING_ITEM) return;
 
         Guis.closeInv();
         this.currentIndex = this.getClosestPointIndex();
@@ -435,7 +437,7 @@ class WynnProfessionMacro extends ModuleBase {
     }
 
     buildBlacksmithPathGoals() {
-        return BLACKSMITH_LOCATIONS.map((point) => this.buildPathGoals(point));
+        return BLACKSMITH_LOCATIONS.reduce((goals, point) => goals.concat(this.buildPathGoals(point)), []);
     }
 
     getClosestBlacksmith() {

@@ -38,6 +38,7 @@ class RouteWalkerer extends ModuleBase {
         this.foundpoint = false;
         this.currentIndex = 0;
         this.etherwarpReady = false;
+        this.etherwarpClickToken = 0;
 
         this.ACTIONS = {
             WALK: 1,
@@ -62,6 +63,7 @@ class RouteWalkerer extends ModuleBase {
 
                     this.loadedFile = createdRouteName;
                     this.route = [];
+                    this.invalidateEtherwarpClick();
                     this.refreshRoutesToggle();
                     RouteState.setRoute(this.route, 'Route Walker');
                     this.message(`&aCreated route: &f${createdRouteName}`);
@@ -83,6 +85,7 @@ class RouteWalkerer extends ModuleBase {
                     ['WALK', 'ETHERWARP'],
                     [arg1?.toUpperCase()]
                 );
+                this.invalidateEtherwarpClick();
             },
             ['greedyString']
         );
@@ -201,15 +204,18 @@ class RouteWalkerer extends ModuleBase {
 
                     if (Math.abs(player.getMotionX()) + Math.abs(player.getMotionZ()) > 0.1) return;
 
-                    let point = Raytrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
+                    const point = Raytrace.getVisiblePoint(targetBlockPos.getX(), targetBlockPos.getY(), targetBlockPos.getZ(), false);
 
                     if (!this.etherwarpReady) {
                         if (point) {
+                            const expectedIndex = this.currentIndex;
+                            const clickToken = ++this.etherwarpClickToken;
                             Rotations.lookAtVector([point[0], point[1], point[2]], { speedMultiplier: 0.5 });
 
                             Rotations.onComplete(() => {
                                 ScheduleTask(7, () => {
-                                    Client.rightClick();
+                                    if (this.enabled && clickToken === this.etherwarpClickToken && this.etherwarpReady && this.currentIndex === expectedIndex)
+                                        Client.rightClick();
                                 });
                             });
                             this.etherwarpReady = true;
@@ -239,12 +245,15 @@ class RouteWalkerer extends ModuleBase {
             (selected) => {
                 this.loadedFile = Router.getFilefromCallback(selected);
                 this.route = Router.loadRouteFromFile('RoutewalkerRoutes/', this.loadedFile);
+                this.invalidateEtherwarpClick();
                 this.currentIndex = 0;
                 this.foundpoint = false;
                 RouteState.setRoute(this.route, 'Route Walker');
             },
             'The route the macro will use'
         );
+
+        this.on('worldUnload', () => this.invalidateEtherwarpClick());
 
         this.addToggle(
             'Render Points',
@@ -302,6 +311,11 @@ class RouteWalkerer extends ModuleBase {
 
     checkPoint(point) {
         return !!(point && typeof point.x === 'number' && typeof point.y === 'number' && typeof point.z === 'number');
+    }
+
+    invalidateEtherwarpClick() {
+        this.etherwarpClickToken++;
+        this.etherwarpReady = false;
     }
 
     refreshRoutesToggle() {
@@ -363,6 +377,7 @@ class RouteWalkerer extends ModuleBase {
     }
 
     onDisable() {
+        this.invalidateEtherwarpClick();
         this.message('&cDisabled');
         Client.unpressKeys();
         Client.setKey('leftclick', false);
@@ -370,7 +385,6 @@ class RouteWalkerer extends ModuleBase {
         Mouse.regrab();
         this.foundpoint = false;
         this.currentIndex = 0;
-        this.etherwarpReady = false;
     }
 }
 

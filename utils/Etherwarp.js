@@ -31,6 +31,6 @@ export const getEtherwarpEyeHeight = (player = Player.getPlayer(), area = Utils.
 export const getEtherwarpEyeCoords = (forceSneak = false, player = Player.getPlayer(), area = Utils.area()) => {
     if (!player) return null;
 
-    const eyeY = player.getY() + ETHERWARP_PLAYER_EYE_HEIGHT - getEtherwarpSneakOffset(area);
+    const eyeY = forceSneak ? player.getY() + ETHERWARP_PLAYER_EYE_HEIGHT - getEtherwarpSneakOffset(area) : player.getEyePosition().y();
     return [player.getX(), eyeY, player.getZ()];
 };

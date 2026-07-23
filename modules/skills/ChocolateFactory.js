@@ -167,7 +167,7 @@ class ChocolateFactory extends ModuleBase {
 
     scanEggs() {
         if (!this.enabled || !this.eggEsp || !World.isLoaded()) {
-            this.resetState();
+            this.detectedEggs.clear();
             return;
         }
 

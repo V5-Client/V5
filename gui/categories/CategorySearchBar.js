@@ -7,6 +7,7 @@ import {
     drawRoundedRectangleWithBorder,
     drawText,
     FontSizes,
+    getTypedCharacter,
     getTextWidth,
     isInside,
     PADDING,
@@ -15,19 +16,7 @@ import {
     TypingState,
 } from '../Utils';
 
-const ASSETS_PATHS = [globalAssetsDir.getPath() + '/'];
-
-const getAssetPath = (filename) => {
-    for (const basePath of ASSETS_PATHS) {
-        const fullPath = basePath + filename;
-        if (new java.io.File(fullPath).exists()) {
-            return fullPath;
-        }
-    }
-    return ASSETS_PATHS[0] + filename;
-};
-
-const SEARCH_ICON = getAssetPath('search.svg');
+const SEARCH_ICON = globalAssetsDir.getPath() + '/search.svg';
 
 register('guiKey', (char, keyCode, gui, event) => {
     if (SearchBar.isFocused) {
@@ -277,14 +266,7 @@ export const SearchBar = {
         if (charStr && charStr.length === 1) {
             const code = charStr.codePointAt(0);
             if (code >= 33 && code <= 126) {
-                let finalChar = charStr;
-                if (code >= 97 && code <= 122) {
-                    const shiftHeld = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-                    if (shiftHeld) {
-                        finalChar = charStr.toUpperCase();
-                    }
-                }
-                this.insertText(finalChar);
+                this.insertText(getTypedCharacter(charStr));
                 return true;
             }
         }

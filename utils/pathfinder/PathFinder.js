@@ -82,7 +82,6 @@ class Finder {
 
         v5Command('path stop', () => {
             this.resetPath();
-            PathExecutor.destroy();
         });
     }
 
@@ -202,7 +201,6 @@ class Finder {
 
                     this.callCallback(false);
                     this.resetPath();
-                    PathExecutor.destroy();
                 }
                 return;
             }
@@ -363,7 +361,6 @@ class Finder {
             }
             this.callCallback(false);
             this.resetPath();
-            PathExecutor.destroy();
             return;
         }
 
@@ -520,7 +517,6 @@ class Finder {
         showNotification('Path Complete', 'Destination reached!', 'SUCCESS', 2000);
         this.callCallback(true);
         this.resetPath();
-        PathExecutor.destroy();
     }
 
     callCallback(success) {
@@ -766,7 +762,6 @@ class Finder {
         showNotification('Pathfinding Failed', `Warp ${warpName} failed after ${this.MAX_WARP_RETRIES} retries.`, 'ERROR', 5000);
         this.callCallback(false);
         this.resetPath();
-        PathExecutor.destroy();
     }
 
     isPlayerAtWarpPoint(point) {
@@ -868,6 +863,7 @@ class Finder {
     resetPath(clearFlags = true) {
         this.destroyTick();
         this.destroyRender();
+        PathExecutor.destroy();
         Rotations.resetRotations();
         PathFlyer.reset();
         Spline.clearCache();

@@ -15,6 +15,8 @@ class Pingless extends ModuleBase {
         });
 
         this.mining = false;
+        this.tickDelay = 1;
+        this.tickCount = 0;
 
         this.on('packetSent', (packet) => {
             if (Utils.area() !== 'Crystal Hollows') return;
@@ -23,7 +25,8 @@ class Pingless extends ModuleBase {
             if (action === 'START_DESTROY_BLOCK') {
                 const pos = packet?.getPos();
                 if (!pos) return;
-                this.pos = pos;
+                this.mining = false;
+                this.pos = null;
                 const { x, y, z } = pos;
 
                 const player = Player.getPlayer();
@@ -37,9 +40,12 @@ class Pingless extends ModuleBase {
                 )
                     return; // tools only
 
-                let blockName = World.getBlockAt(x, y, z)?.type?.getRegistryName() || '';
-                if ((World.getBlockAt(x, y, z)?.type?.getID() !== 1 && !blockName.includes('ore')) || blockName.includes('redstone')) return;
+                const block = World.getBlockAt(x, y, z);
+                const blockName = block?.type?.getRegistryName() || '';
+                if ((block?.type?.getID() !== 1 && !blockName.includes('ore')) || blockName.includes('redstone')) return;
 
+                this.pos = pos;
+                this.tickCount = this.tickDelay;
                 this.mining = true;
             }
         }).setFilteredClass(ServerboundPlayerActionPacket);
@@ -57,8 +63,12 @@ class Pingless extends ModuleBase {
             }
         }).setFilteredClass(ServerboundSwingPacket);
 
-        this.tickCount = 1;
-        this.addSlider('Tick Delay', 0, 5, 1, (v) => (this.tickCount = v), 'How long to wait before removing hardstone.');
+        this.addSlider('Tick Delay', 0, 5, 1, (v) => (this.tickDelay = v), 'How long to wait before removing hardstone.');
+    }
+
+    onDisable() {
+        this.mining = false;
+        this.pos = null;
     }
 }
 

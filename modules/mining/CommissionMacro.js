@@ -65,14 +65,12 @@ class CommissionMacro extends ModuleBase {
         this.travelPurpose = null;
 
         this.drill = null;
-        this.blueCheese = null;
         this.pickaxe = null;
         this.weapon = null;
         this.isActualDrill = false;
         this.miningSpeed = 0;
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
-        this.lastCommissionAt = null;
         this.commissionClaimer = new CommissionClaimer({
             getLocations: () => this.getAvailableEmissaryLocations(),
             ensureToolEquipped: () => this.ensureDrillEquippedForEmissaryClaim(),
@@ -261,7 +259,6 @@ class CommissionMacro extends ModuleBase {
         const drills = MiningUtils.getDrills();
         this.drill = drills.drill;
         this.pickaxe = this.drill;
-        this.blueCheese = drills.blueCheese;
 
         if (!this.drill) {
             this.message('&cNo drill or pickaxe found in hotbar!');
@@ -309,7 +306,6 @@ class CommissionMacro extends ModuleBase {
         this.lastCommissionSyncSource = null;
         this.lastCompletedCommissionName = null;
         this.lastCommissionName = null;
-        this.lastCommissionAt = null;
         this.commissionClaimer.cancelNpcRotation();
         this.areaCheckTime = null;
         this.pathingAvoidanceBreachAt = null;
@@ -912,7 +908,6 @@ class CommissionMacro extends ModuleBase {
         this.currentPathWaypoints = [];
         this.lastCompletedCommissionName = this.currentCommission?.name || null;
         this.lastCommissionName = this.currentCommission?.name || null;
-        this.lastCommissionAt = Date.now();
         this.awaitingTabUpdate = true;
         this.setState(STATES.CLAIMING);
     }
@@ -946,7 +941,6 @@ class CommissionMacro extends ModuleBase {
             this.message('&aRefueling successful!');
             const drills = MiningUtils.getDrills();
             this.drill = drills.drill;
-            this.blueCheese = drills.blueCheese; // unused rn
 
             if (this.drill) {
                 const itemName = ChatLib.removeFormatting(this.drill.item.getName());
@@ -964,14 +958,6 @@ class CommissionMacro extends ModuleBase {
 
         const name = ChatLib.removeFormatting(item.getName());
         return name.includes('Mithril') || name.includes('Titanium') || name === '' ? null : { slot, name };
-    }
-
-    getClosestMob(mobs) {
-        return mobs.reduce((closest, current) => {
-            const closestDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), closest.getX(), closest.getY(), closest.getZ());
-            const currentDist = this.getDistance(Player.getX(), Player.getY(), Player.getZ(), current.getX(), current.getY(), current.getZ());
-            return currentDist < closestDist ? current : closest;
-        }, mobs[0]);
     }
 
     commissionsEqual(a, b) {

@@ -1,4 +1,3 @@
-import { Chat } from '../../utils/Chat';
 import { File, V5ConfigFile, Vec3d } from '../../utils/Constants';
 import { getEtherwarpEyeCoords } from '../../utils/Etherwarp';
 import { MathUtils } from '../../utils/Math';

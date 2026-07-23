@@ -9,6 +9,7 @@ import {
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
     drawText,
+    getTypedCharacter,
     getTextWidth,
     isInside,
     playClickSound,
@@ -233,8 +234,6 @@ export class TextInput {
         }
 
         const ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-        const shiftDown = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-
         if (ctrlDown && keyCode === KEY_V) {
             try {
                 const clipboard = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
@@ -280,22 +279,7 @@ export class TextInput {
         }
 
         if (char && char.length === 1) {
-            let charToAppend = char;
-            //prettier-ignore
-            const SHIFT_MAP = {
-                '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
-                '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
-                '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|',
-                ';': ':', "'": '"', ',': '<', '.': '>', '/': '?'
-            };
-
-            if (shiftDown) {
-                if (SHIFT_MAP[char]) {
-                    charToAppend = SHIFT_MAP[char];
-                } else {
-                    charToAppend = char.toUpperCase();
-                }
-            }
+            const charToAppend = getTypedCharacter(char);
 
             this.text = this.text.slice(0, this.cursorIndex) + charToAppend + this.text.slice(this.cursorIndex);
             this.cursorIndex += 1;

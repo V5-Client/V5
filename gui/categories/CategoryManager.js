@@ -1,8 +1,9 @@
-import { drawRoundedRectangle, drawRoundedRectangleWithBorder, isInside, PADDING, playClickSound, resetScissor, scissor } from '../Utils';
+import { isInside, PADDING, playClickSound, resetScissor, scissor } from '../Utils';
 import { Button } from '../components/Button';
 import { ColorPicker } from '../components/ColorPicker';
 import { MultiToggle } from '../components/Dropdown';
 import { Popup } from '../components/Popup';
+import { Slider } from '../components/Slider';
 import { TextInput } from '../components/TextInput';
 import { Separator } from '../components/Separator';
 import { getComponentLayoutHeight, isComponentVisible, layoutDirectComponents } from '../components/layout';
@@ -536,7 +537,9 @@ export const createCategoriesManager = (deps) => {
         }
 
         const panel = deps.rectangles.RightPanel;
-        const rightPanelScrollY = currentRightPanelScrollY;
+        const isMouseInsidePanel = isInside(mouseX, mouseY, panel);
+        const contentMouseX = isMouseInsidePanel ? mouseX : NaN;
+        const contentMouseY = isMouseInsidePanel ? mouseY : NaN;
         scissor(panel.x, panel.y, panel.width, panel.height);
 
         if (shouldDrawItems) {
@@ -549,16 +552,16 @@ export const createCategoriesManager = (deps) => {
                 if (!cat) return;
                 let yOffset = panel.y + PADDING - currentRightPanelScrollY;
                 if (cat.name === 'Dashboard') {
-                    drawDashboard(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, currentRightPanelScrollY);
+                    drawDashboard(panel, currentPanelX, panel.y + PADDING, contentMouseX, contentMouseY, currentRightPanelScrollY);
                     return;
                 }
                 if (cat.directComponents && cat.directComponents.length > 0) {
-                    drawDirectComponents(panel, currentPanelX, panel.y + PADDING, mouseX, mouseY, currentRightPanelScrollY, catName);
+                    drawDirectComponents(panel, currentPanelX, panel.y + PADDING, contentMouseX, contentMouseY, currentRightPanelScrollY, catName);
                     return;
                 }
                 if (cat.subcategories.length > 0) {
-                    cat.isHoverBlocked = catName === 'Modules' ? SearchBar.isHoverBlocked(mouseX, mouseY) : false;
-                    yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, mouseX, mouseY);
+                    cat.isHoverBlocked = catName === 'Modules' ? SearchBar.isHoverBlocked(contentMouseX, contentMouseY) : false;
+                    yOffset = drawSubcategoryButtons(cat, currentPanelX, yOffset, contentMouseX, contentMouseY);
                 }
                 const itemsToDisplay = getFilteredItems(cat, query);
                 if (catName === 'Modules' && query.length > 0) {
@@ -574,8 +577,8 @@ export const createCategoriesManager = (deps) => {
                     panel,
                     currentPanelX,
                     yOffset,
-                    mouseX,
-                    mouseY,
+                    contentMouseX,
+                    contentMouseY,
                     itemsToDisplay,
                     cachedItemLayouts,
                     isLayoutCacheValid || !isNewCategory,
@@ -587,16 +590,16 @@ export const createCategoriesManager = (deps) => {
                 const progress = Categories.transitionProgress;
                 const dir = Categories.transitionDirection;
 
-                let incomingX = panel.x + (dir === 1 ? panel.width * (1 - progress) : -panel.width * (1 - progress));
+                const incomingX = panel.x + (dir === 1 ? panel.width * (1 - progress) : -panel.width * (1 - progress));
                 drawSingleCategory(Categories.selected, incomingX, true);
                 if (Categories.selected === 'Modules') {
-                    SearchBar.draw(mouseX, mouseY, { ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
+                    SearchBar.draw(contentMouseX, contentMouseY, { ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
                     SearchBar.updateHoverBlock({ ...panel, x: incomingX }, panel.y + 11 - currentRightPanelScrollY);
                 }
-                let outgoingX = panel.x + (dir === 1 ? -panel.width * progress : panel.width * progress);
+                const outgoingX = panel.x + (dir === 1 ? -panel.width * progress : panel.width * progress);
                 drawSingleCategory(Categories.previousSelected, outgoingX, false);
                 if (Categories.previousSelected === 'Modules') {
-                    SearchBar.draw(mouseX, mouseY, { ...panel, x: outgoingX }, panel.y + 11 - currentRightPanelScrollY);
+                    SearchBar.draw(contentMouseX, contentMouseY, { ...panel, x: outgoingX }, panel.y + 11 - currentRightPanelScrollY);
                     SearchBar.updateHoverBlock({ ...panel, x: outgoingX }, panel.y + 11 - currentRightPanelScrollY);
                 }
             } else {
@@ -612,7 +615,7 @@ export const createCategoriesManager = (deps) => {
                         : Categories.selected;
                 drawSingleCategory(transitionCategory, panelX, true);
                 if (transitionCategory === 'Modules') {
-                    SearchBar.draw(mouseX, mouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
+                    SearchBar.draw(contentMouseX, contentMouseY, { ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
                     SearchBar.updateHoverBlock({ ...panel, x: panelX }, panel.y + 11 - currentRightPanelScrollY);
                 }
                 if (!isLayoutCacheValid && !transitionActive) isLayoutCacheValid = true;
@@ -624,12 +627,14 @@ export const createCategoriesManager = (deps) => {
             macroToggleButton.setButtonText(toggleModule.enabled ? 'Disable' : 'Enable');
         }
 
-        if (shouldDrawOptions) drawOptionsPanel(panel, mouseX, mouseY, toggleModule ? macroToggleButton : null);
+        if (shouldDrawOptions) drawOptionsPanel(panel, contentMouseX, contentMouseY, toggleModule ? macroToggleButton : null);
         resetScissor();
     };
 
     const handleClick = (mouseX, mouseY) => {
-        if (TextInput.handleGlobalClick(mouseX, mouseY)) return;
+        const finishedTextInput = TextInput.handleGlobalClick(mouseX, mouseY);
+        const finishedSlider = Slider.handleGlobalClick(mouseX, mouseY);
+        if (finishedTextInput || finishedSlider) return;
 
         const panel = deps.rectangles.RightPanel;
         const activeCat = Categories.categories.find((c) => c.name === Categories.selected);
@@ -656,7 +661,12 @@ export const createCategoriesManager = (deps) => {
             return;
         }
 
-        if (Categories.selected === 'Dashboard' && Categories.currentPage === 'categories' && Categories.transitionDirection === 0) {
+        if (
+            Categories.selected === 'Dashboard' &&
+            Categories.currentPage === 'categories' &&
+            Categories.transitionDirection === 0 &&
+            isInside(mouseX, mouseY, panel)
+        ) {
             const moduleName = getDashboardModuleAt(mouseX, mouseY);
             const moduleItem = moduleName ? Categories.findItem('Modules', moduleName) : null;
             if (moduleItem) {
@@ -686,7 +696,7 @@ export const createCategoriesManager = (deps) => {
             }
         }
 
-        const canUseCachedLayouts = Categories.currentPage === 'categories' && Categories.transitionDirection === 0;
+        const canUseCachedLayouts = Categories.currentPage === 'categories' && Categories.transitionDirection === 0 && isInside(mouseX, mouseY, panel);
         if (canUseCachedLayouts) {
             const directMatch = cachedItemLayouts.find((layout) => layout?.item?.type === 'direct-component' && isInside(mouseX, mouseY, layout.rect));
             if (directMatch) {
@@ -788,7 +798,4 @@ export const createCategoriesManager = (deps) => {
 
 export const categoryManager = createCategoriesManager({
     rectangles: GuiRectangles,
-    draw: { drawRoundedRectangle, drawRoundedRectangleWithBorder },
-    utils: {},
-    colors: {},
 });

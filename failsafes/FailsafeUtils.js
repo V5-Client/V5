@@ -17,7 +17,6 @@ class FailsafeUtils {
             expiresAt: 0,
             lastModified: -1,
             config: {},
-            hasConfig: false,
             normalized: null,
         };
         this._utils = null;
@@ -37,7 +36,6 @@ class FailsafeUtils {
         this._cache.expiresAt = now + 250;
         this._cache.lastModified = lastModified;
         this._cache.config = config;
-        this._cache.hasConfig = !!config && Object.keys(config).length > 0;
         this._cache.normalized = null;
 
         return config;
@@ -110,7 +108,7 @@ class FailsafeUtils {
             : (config['Failsafes'][`${name} Failsafe`] ?? DEFAULT_FAILSAFE_SETTINGS.isEnabled);
 
         return {
-            isEnabled: isEnabled,
+            isEnabled,
             FailsafeReactionTime: reactionTime,
             playerProximityDistance: normalized.playerProximityDistance,
             pingOnCheck: normalized.pingOnCheck,
@@ -129,7 +127,7 @@ class FailsafeUtils {
                     {
                         title: `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
                         description: `${description}`,
-                        color: color,
+                        color,
                         footer: { text: `V5 Failsafes` },
                         timestamp: new Date().toISOString(),
                     },

@@ -135,7 +135,6 @@ class PeltMacro extends ModuleBase {
         this.areaTravelToken = 0;
         this.areaPathRequestToken = 0;
         this.mobKillTimeoutMs = MOB_KILL_TIMEOUT_DEFAULT_SECONDS * 1000;
-        this.targetHandleToken = 0;
         this.pendingTrevorTarget = null;
         this.useEtherwarpPathfinder = false;
         this.etherwarpLandingBlacklist = new Set();
@@ -203,7 +202,6 @@ class PeltMacro extends ModuleBase {
             this.trackPelts(message);
             const target = this.getTrevorTarget(message);
             if (!target || !this.enabled) return;
-            this.targetHandleToken++;
             this.pendingTrevorTarget = target;
         });
     }
@@ -215,7 +213,6 @@ class PeltMacro extends ModuleBase {
         this.resetMobTracking();
         this.resetAreaTravelState();
         this.lastShotAt = 0;
-        this.targetHandleToken++;
         this.pendingTrevorTarget = null;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
@@ -293,7 +290,6 @@ class PeltMacro extends ModuleBase {
         const pelts = parseInt(match[1].replace(/,/g, ''), 10);
         if (!Number.isFinite(pelts) || pelts <= 0) return;
         OverlayManager.incrementTrackedValue(this.oid, 'pelts', pelts);
-        this.targetHandleToken++;
         this.pendingTrevorTarget = null;
         this.cancelTravelSequence();
         this.cancelRestartSequence();
@@ -382,9 +378,7 @@ class PeltMacro extends ModuleBase {
                 const ez = Number(ep.z());
                 if ([ex, ey, ez].every(Number.isFinite)) return { ex, ey, ez };
             }
-        } catch (e) {
-            /* fall through */
-        }
+        } catch (e) {}
         try {
             const eh = Number(PathManager.getCurrentEtherwarpEyeHeight?.());
             const add = Number.isFinite(eh) ? eh : ETHERWARP_LOS_HEAD_ABOVE_FEET;
@@ -392,9 +386,7 @@ class PeltMacro extends ModuleBase {
             const ey = Number(Player.getY()) + add;
             const ez = Number(Player.getZ());
             if ([ex, ey, ez].every(Number.isFinite)) return { ex, ey, ez };
-        } catch (e2) {
-            /* ignore */
-        }
+        } catch (e) {}
         return null;
     }
 
@@ -559,11 +551,7 @@ class PeltMacro extends ModuleBase {
         if (this.useEtherwarpPathfinder) {
             const goalCoords = this.getClosestGoalToPlayer(availableGoals);
             if (goalCoords) {
-                const goal =
-                    this.resolveEtherwarpLandingGoal(goalCoords[0], goalCoords[1], goalCoords[2], {
-                        horizontalRefX: goalCoords[0],
-                        horizontalRefZ: goalCoords[2],
-                    }) || null;
+                const goal = this.resolveEtherwarpLandingGoal(goalCoords[0], goalCoords[1], goalCoords[2]);
                 if (!goal) {
                     this.startAreaPathWithWalkfinder(stateToken, pathToken, availableGoals);
                     return true;
@@ -854,14 +842,7 @@ class PeltMacro extends ModuleBase {
 
     resolvePeltMobEtherwarpGoal(mob) {
         if (!mob) return null;
-        const mx = mob.getX();
-        const my = mob.getY();
-        const mz = mob.getZ();
-
-        return this.resolveEtherwarpLandingGoal(mx, my, mz, {
-            horizontalRefX: mx,
-            horizontalRefZ: mz,
-        });
+        return this.resolveEtherwarpLandingGoal(mob.getX(), mob.getY(), mob.getZ());
     }
 
     resetAreaTravelState() {
@@ -943,17 +924,6 @@ class PeltMacro extends ModuleBase {
         this.restartToken++;
     }
 
-    queueCommand(command, delay = 0, token = this.restartToken) {
-        const normalized = `${command || ''}`.trim().replace(/^\//, '');
-        if (!normalized) return;
-
-        ScheduleTask(delay, () => {
-            if (!this.enabled || token !== this.restartToken) return;
-            this.stopMovement();
-            ChatLib.command(normalized);
-        });
-    }
-
     restartTrevorHunt() {
         if (this.restartActive) return;
 
@@ -962,7 +932,6 @@ class PeltMacro extends ModuleBase {
         const token = this.restartToken;
 
         this.stopMovement();
-        this.targetHandleToken++;
         this.pendingTrevorTarget = null;
         this.cancelTravelSequence();
         this.resetAreaTravelState();
@@ -1146,7 +1115,6 @@ class PeltMacro extends ModuleBase {
     onDisable() {
         this.status = 'Idle';
         this.lastShotAt = 0;
-        this.targetHandleToken++;
         this.pendingTrevorTarget = null;
         this.syncMobJumpHold(false);
         this.cancelTravelSequence();

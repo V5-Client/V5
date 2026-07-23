@@ -90,8 +90,6 @@ const SUN_GECKO_COMBAT_ORIGIN = {
     z: 181.7,
 };
 
-const WARP_WIZARD_DELAY_TICKS = 40;
-
 class SunGecko extends ModuleBase {
     constructor() {
         super({
@@ -103,10 +101,12 @@ class SunGecko extends ModuleBase {
         });
         this.bindToggleKey();
         this.state = States.WAITING;
+        this.stateScheduleToken = 0;
         this.pathRequestActive = false;
         this.rotationToken = 0;
         this.actionCooldownUntil = 0;
         this.terracottaClickCooldownUntil = 0;
+        this.minimumRiftTime = 300;
 
         this.addSlider('Minimum Rift Time (s)', 240, 600, 300, (seconds) => {
             this.minimumRiftTime = seconds;
@@ -183,8 +183,9 @@ class SunGecko extends ModuleBase {
 
     scheduleState(nextState, delay = 1) {
         this.setState(States.WAITING);
+        const token = this.stateScheduleToken;
         ScheduleTask(delay, () => {
-            this.setState(nextState);
+            if (this.enabled && token === this.stateScheduleToken) this.setState(nextState);
         });
     }
 
@@ -393,7 +394,7 @@ class SunGecko extends ModuleBase {
         }
 
         const mobs = CombatBot.findMob(SUN_GECKO_TARGET_CONFIG);
-        CombatBot.setExternalTargets(mobs || []);
+        CombatBot.setExternalTargets(mobs);
 
         if (!CombatBot.enabled) {
             const holyIceSlot = Guis.findItemInHotbar('Holy Ice');
@@ -430,6 +431,7 @@ class SunGecko extends ModuleBase {
     }
 
     setState(newState) {
+        this.stateScheduleToken++;
         this.state = newState;
     }
 

@@ -176,6 +176,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         this.pendingMiningStart = false;
         this.lastTunnelRestartAt = 0;
         this.noSupportedMessageAt = 0;
+        this.areaCheckTime = null;
         this.commissionClaimer.cancelNpcRotation();
         this.stopTunnelMiner();
         EtherwarpPathfinder.cancel(true);

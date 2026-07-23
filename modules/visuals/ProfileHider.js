@@ -11,7 +11,7 @@ class ProfileHider extends ModuleBase {
         });
 
         this.defaultName = null;
-        this.HIDE_USERNAME = false;
+        this.HIDE_USERNAME = true;
         this.USERNAME = null;
 
         this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);

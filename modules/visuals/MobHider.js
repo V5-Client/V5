@@ -10,7 +10,6 @@ class MobHider extends ModuleBase {
             tooltip: 'Prevents seeing mobs or hitting them',
         });
 
-        this.mobsToHide = [];
         this.enabledMobNames = [];
         this.jerryRegex = /^(Green|Blue|Purple|Golden) Jerry$/;
 
@@ -60,8 +59,6 @@ class MobHider extends ModuleBase {
     }
 
     handleMobToggleUpdate(allMobOptions) {
-        this.mobsToHide = allMobOptions;
-
         this.enabledMobNames = allMobOptions.filter((mobObject) => mobObject.enabled).map((mobObject) => mobObject.name);
     }
 }

@@ -32,23 +32,12 @@ import { Categories } from './CategorySystem';
 import { globalAssetsDir } from '../../utils/Constants';
 import { getDiscordPfpPath } from '../../utils/NetworkUtils';
 
-const ASSETS_PATHS = [globalAssetsDir.getPath() + '/'];
-
-const getAssetPath = (filename) => {
-    for (const basePath of ASSETS_PATHS) {
-        const fullPath = basePath + filename;
-        if (new java.io.File(fullPath).exists()) {
-            return fullPath;
-        }
-    }
-    return ASSETS_PATHS[0] + filename;
-};
-
-const Module_icon_path = getAssetPath('folder.svg');
-const Theme_icon_path = getAssetPath('colorpalette.svg');
-const Setting_icon_path = getAssetPath('settings.svg');
-const Dashboard_icon_path = getAssetPath('dashboard.svg');
-const Edit_icon_path = getAssetPath('edit.svg');
+const ASSETS_PATH = globalAssetsDir.getPath() + '/';
+const MODULE_ICON_PATH = ASSETS_PATH + 'folder.svg';
+const THEME_ICON_PATH = ASSETS_PATH + 'colorpalette.svg';
+const SETTINGS_ICON_PATH = ASSETS_PATH + 'settings.svg';
+const DASHBOARD_ICON_PATH = ASSETS_PATH + 'dashboard.svg';
+const EDIT_ICON_PATH = ASSETS_PATH + 'edit.svg';
 
 export const getCategoryRect = (index) => {
     const visibleCategories = Categories.getVisibleCategories();
@@ -440,10 +429,10 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
         const moduleSize = 17;
         const iconX = rect.x + (rect.width - moduleSize) / 2;
         const iconY = rect.y + (rect.height - moduleSize) / 2;
-        let iconPath = Setting_icon_path;
-        if (cat.name === 'Dashboard') iconPath = Dashboard_icon_path;
-        else if (cat.name === 'Modules') iconPath = Module_icon_path;
-        else if (cat.name === 'Theme') iconPath = Theme_icon_path;
+        let iconPath = SETTINGS_ICON_PATH;
+        if (cat.name === 'Dashboard') iconPath = DASHBOARD_ICON_PATH;
+        else if (cat.name === 'Modules') iconPath = MODULE_ICON_PATH;
+        else if (cat.name === 'Theme') iconPath = THEME_ICON_PATH;
         drawImage(iconPath, iconX, iconY, moduleSize, moduleSize);
     });
 
@@ -454,7 +443,7 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
     const editIconX = leftPanel.x + (leftPanel.width - editIconSize) / 2;
     const editIconY = pfpRect.y - editIconSize - 15;
 
-    drawImage(Edit_icon_path, editIconX, editIconY, editIconSize, editIconSize);
+    drawImage(EDIT_ICON_PATH, editIconX, editIconY, editIconSize, editIconSize);
 
     const discordPfpPath = getDiscordPfpPath();
     if (discordPfpPath) {

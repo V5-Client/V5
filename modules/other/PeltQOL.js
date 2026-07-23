@@ -58,6 +58,7 @@ class PeltQOL extends ModuleBase {
         this.abiphoneWait = 0;
         this.abiphoneSlot = -1;
         this.trevorSlot = -1;
+        this.actionToken = 0;
 
         this.addToggle('Auto Accept Quest', (value) => (this.autoAcceptQuest = !!value), "Automatically clicks Trevor's YES prompt to start a hunt.", true);
         this.addMultiToggle(
@@ -101,6 +102,7 @@ class PeltQOL extends ModuleBase {
     }
 
     reset() {
+        this.actionToken++;
         this.animals = [];
         this.huntCompleted = false;
         this.rarityRgb = WHITE;
@@ -112,7 +114,10 @@ class PeltQOL extends ModuleBase {
         command = `${command || ''}`.trim().replace(/^\//, '');
         if (!command) return;
         if (delay > 0) {
-            ScheduleTask(delay, () => ChatLib.command(command));
+            const token = this.actionToken;
+            ScheduleTask(delay, () => {
+                if (this.enabled && token === this.actionToken) ChatLib.command(command);
+            });
             return;
         }
         ChatLib.command(command);
@@ -131,7 +136,12 @@ class PeltQOL extends ModuleBase {
     callTrevor(delay = 0, scheduleAbiphone = false) {
         if (this.callMode === '/call') return this.run('call trevor', delay);
         if (this.callMode === 'Abiphone') {
-            if (scheduleAbiphone) return ScheduleTask(delay - 20, () => this.startAbiphoneCall());
+            if (scheduleAbiphone) {
+                const token = this.actionToken;
+                return ScheduleTask(delay - 20, () => {
+                    if (this.enabled && token === this.actionToken && this.callMode === 'Abiphone') this.startAbiphoneCall();
+                });
+            }
             this.startAbiphoneCall();
         }
     }

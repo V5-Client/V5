@@ -136,7 +136,7 @@ export class Popup {
         if (this.animationState === 'closed') return;
 
         const elapsed = Date.now() - this.animationStart;
-        let progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
+        const progress = clamp(elapsed / ANIMATION_DURATION, 0, 1);
 
         if (this.animationState === 'opening' && progress >= 1) {
             this.animationState = 'open';
@@ -227,7 +227,7 @@ export class Popup {
 
         NVG.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
 
-        const maxScroll = Math.max(0, this.getContentHeight() - contentHeight - this.windowPadding);
+        const maxScroll = Math.max(0, this.getContentHeight() - contentHeight);
         this.contentScrollY = Math.max(0, Math.min(this.contentScrollY, maxScroll));
 
         let currentY = contentY;
@@ -396,7 +396,7 @@ export class Popup {
         if (!isInside(mouseX, mouseY, this.windowRect)) return true;
 
         const contentHeight = this.windowRect.height - this.headerHeight - this.windowPadding * 2;
-        const maxScroll = Math.max(0, this.getContentHeight() - contentHeight - this.windowPadding);
+        const maxScroll = Math.max(0, this.getContentHeight() - contentHeight);
         const scrollSpeed = 25;
 
         this.contentScrollY = Math.max(0, Math.min(this.contentScrollY + (dir > 0 ? -1 : 1) * scrollSpeed, maxScroll));

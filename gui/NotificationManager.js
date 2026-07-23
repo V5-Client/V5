@@ -11,7 +11,6 @@ const ANIMATION_DURATION = 300;
 const CORNER_RADIUS = 8;
 const TEXT_TOP_PADDING = 21;
 const TEXT_LINE_HEIGHT = 15;
-const DESC_SCALE = 0.8;
 const DESC_LINE_SPACING = 7;
 
 const drawCheckIcon = (centerX, centerY, alpha) => {
@@ -109,7 +108,6 @@ class Notification {
         if (text instanceof Error) text = text.message;
         if (!text) return [''];
         const words = text.split(' ');
-        if (!words.length) return [''];
         const lines = [];
         let currentLine = words[0];
 
@@ -188,7 +186,7 @@ class Notification {
         }
     }
 
-    draw(mouseX, mouseY) {
+    draw() {
         if (this.state === 'removed') return;
 
         const alpha = this.opacity;
@@ -257,7 +255,7 @@ class Notification {
 
         const closeX = this.x + this.closeXOffset;
         const closeY = this.y + this.closeYOffset;
-        const closeColor = (Math.floor(alpha * 255) << 24) | THEME.NOTIF_CLOSE;
+        const closeColor = (Math.floor(alpha * 255) << 24) | (THEME.NOTIF_CLOSE & 0xffffff);
         NVG.save();
         NVG.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
         NVG.rotate(45);
@@ -342,15 +340,19 @@ class NotificationManager {
         this.updatePositions();
     }
     update() {
+        this.updatePositions();
         this.notifications.forEach((n) => n.update());
         const beforeCount = this.notifications.length;
         this.notifications = this.notifications.filter((n) => n.state !== 'removed');
         if (this.notifications.length !== beforeCount) this.updatePositions();
     }
     updatePositions() {
+        const screenWidth = Renderer.screen.getWidth();
+        const screenHeight = Renderer.screen.getHeight();
         let yOffset = 0;
         this.notifications.forEach((notification) => {
-            const targetY = Renderer.screen.getHeight() - NOTIFICATION_MARGIN - notification.height - yOffset;
+            notification.targetX = screenWidth - NOTIFICATION_WIDTH - NOTIFICATION_MARGIN;
+            const targetY = screenHeight - NOTIFICATION_MARGIN - notification.height - yOffset;
             notification.targetY = targetY;
             yOffset += notification.height + NOTIFICATION_SPACING;
         });
@@ -359,12 +361,9 @@ class NotificationManager {
         if (this.notifications.length === 0) return;
 
         try {
-            const mouseX = Client.getMouseX();
-            const mouseY = Client.getMouseY();
-
             NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
             for (let i = this.notifications.length - 1; i >= 0; i--) {
-                this.notifications[i].draw(mouseX, mouseY);
+                this.notifications[i].draw();
             }
         } catch (e) {
             console.error('V5 Caught error' + e + e.stack);

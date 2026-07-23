@@ -102,6 +102,7 @@ export const handleCategoryClick = (
 ) => {
     if (Categories.transitionDirection !== 0) return;
 
+    const isInsidePanel = isInside(mouseX, mouseY, panel);
     const leftPanel = GuiRectangles.LeftPanel;
     const editButtonRect = getEditButtonRect();
     const pfpRect = getDiscordPfpRect();
@@ -109,7 +110,7 @@ export const handleCategoryClick = (
 
     if (Categories.currentPage === 'categories') {
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);
-        if (directCat?.directComponents && isInside(mouseX, mouseY, panel)) {
+        if (directCat?.directComponents && isInsidePanel) {
             if (handleDirectComponentsClick(mouseX, mouseY, panel, scrollY, Categories.selected)) {
                 return;
             }
@@ -136,7 +137,7 @@ export const handleCategoryClick = (
             width: backButtonWidth,
             height: 10,
         };
-        if (isInside(mouseX, mouseY, backButtonRect)) {
+        if (isInsidePanel && isInside(mouseX, mouseY, backButtonRect)) {
             if (Categories.optionsReturnCategory && Categories.optionsReturnCategory !== Categories.selected) {
                 const oldRect = getCategorySelectionRect(Categories.selected);
                 const newRect = getCategorySelectionRect(Categories.optionsReturnCategory);
@@ -174,14 +175,14 @@ export const handleCategoryClick = (
 
                 const componentHeight = getComponentLayoutHeight(component, true);
 
-                let clickableArea = {
+                const clickableArea = {
                     x: optionX,
                     y: drawnCompY,
                     width: panel.width - 2 * PADDING,
                     height: componentHeight,
                 };
 
-                if (isInside(mouseX, mouseY, clickableArea)) {
+                if (isInsidePanel && isInside(mouseX, mouseY, clickableArea)) {
                     component.y = drawnCompY;
                     component.optionPanelWidth = panel.width;
                     component.optionPanelHeight = panel.height;
@@ -209,14 +210,14 @@ export const handleCategoryClick = (
 
             const componentHeight = getComponentLayoutHeight(component, true);
 
-            let clickableArea = {
+            const clickableArea = {
                 x: optionX,
                 y: drawnCompY,
                 width: panel.width - 2 * PADDING,
                 height: componentHeight,
             };
 
-            if (isInside(mouseX, mouseY, clickableArea)) {
+            if (isInsidePanel && isInside(mouseX, mouseY, clickableArea)) {
                 component.y = drawnCompY;
                 component.optionPanelWidth = panel.width;
                 component.optionPanelHeight = panel.height;
@@ -296,7 +297,7 @@ export const handleCategoryClick = (
         }
     }
 
-    if (Categories.selected && Categories.currentPage === 'categories' && isInside(mouseX, mouseY, panel)) {
+    if (Categories.selected && Categories.currentPage === 'categories' && isInsidePanel) {
         const cat = Categories.categories.find((c) => c.name === Categories.selected);
         if (cat && Categories.selected !== 'Settings' && Categories.selected !== 'Theme') {
             if (cat.subcategories.length > 0 && SearchBar.query.trim().length === 0 && !SearchBar.isHoverBlocked(mouseX, mouseY)) {
@@ -360,7 +361,7 @@ export const handleCategoryClick = (
         }
     }
 
-    if (Categories.currentPage === 'options' && !isInside(mouseX, mouseY, GuiRectangles.RightPanel) && !isInside(mouseX, mouseY, leftPanel)) {
+    if (Categories.currentPage === 'options' && !isInsidePanel && !isInside(mouseX, mouseY, leftPanel)) {
         if (Categories.optionsReturnCategory && Categories.optionsReturnCategory !== Categories.selected) {
             const oldRect = getCategorySelectionRect(Categories.selected);
             const newRect = getCategorySelectionRect(Categories.optionsReturnCategory);
@@ -453,6 +454,7 @@ export const handleCategoryScroll = (
             openPopup.handleScroll(mouseX, mouseY, dir);
             return;
         }
+        if (!isInside(mouseX, mouseY, panel)) return;
 
         let scrollHandled = false;
         let componentY = optionY + 78;
@@ -474,7 +476,7 @@ export const handleCategoryScroll = (
             });
         }
 
-        if (!scrollHandled && isInside(mouseX, mouseY, panel)) {
+        if (!scrollHandled) {
             const maxScroll = Math.max(0, optionsContentHeight - panel.height);
             const newScroll = optionsScrollY + (dir > 0 ? -1 : 1) * SCROLL_SPEED;
             setOptionsScrollY(Math.max(0, Math.min(newScroll, maxScroll)));

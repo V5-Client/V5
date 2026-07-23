@@ -476,7 +476,7 @@ class UtilsClass {
                         java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
                         return;
                     }
-                } catch (e) {}
+                } catch (ignored) {}
 
                 if (isWindows) {
                     java.lang.Runtime.getRuntime().exec(['rundll32', 'url.dll,FileProtocolHandler', url]);

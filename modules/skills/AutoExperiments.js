@@ -175,7 +175,7 @@ class AutoExperiments extends ModuleBase {
      * @param {items} items
      */
     handleUltrasequencer(items) {
-        const maxDepth = this.getMaxDepth(7, 9);
+        const maxDepth = this.getMaxDepth(7, 9, 20);
         const control = this.getControlState(items);
         if (!control) return;
 
@@ -199,7 +199,7 @@ class AutoExperiments extends ModuleBase {
      * @param {items} items
      */
     handleChronomatron(items) {
-        const maxDepth = this.getMaxDepth(9, 12);
+        const maxDepth = this.getMaxDepth(9, 12, 15);
         const control = this.getControlState(items);
         if (!control) return;
 
@@ -238,29 +238,9 @@ class AutoExperiments extends ModuleBase {
         // idk pls help
     }
 
-    getMaxDepth(normalDepth, maxEnchantingDepth) {
-        if (this.getMaxXpEnabled) return 20;
+    getMaxDepth(normalDepth, maxEnchantingDepth, maxXpDepth) {
+        if (this.getMaxXpEnabled) return maxXpDepth;
         return (this.maxEnchanting ? maxEnchantingDepth : normalDepth) - this.serumCountValue;
-    }
-
-    /**
-     * @param {items} items
-     */
-    isSuperpairsComplete(items) {
-        let hasItems = false;
-        for (let i = 9; i <= 44; i++) {
-            const item = items[i];
-            if (!item) continue;
-            hasItems = true;
-
-            const lore = item.getLore();
-            if (!lore) return false;
-            const loreText = lore.join(' ');
-            if (!loreText.includes('Click any to proceed!')) {
-                return false;
-            }
-        }
-        return hasItems;
     }
 
     /**

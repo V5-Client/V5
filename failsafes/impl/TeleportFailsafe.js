@@ -1,4 +1,5 @@
 import { Chat } from '../../utils/Chat';
+import { MathUtils } from '../../utils/Math';
 import { ServerboundUseItemPacket, ClientboundPlayerPositionPacket, ServerboundChatCommandPacket } from '../../utils/Packets';
 import PathConfig from '../../utils/pathfinder/PathConfig';
 import { Failsafe } from '../Failsafe';
@@ -78,7 +79,7 @@ class TeleportFailsafe extends Failsafe {
         const { yaw, pitch, currYaw, currPitch } = data;
         if (yaw === undefined || pitch === undefined) return false;
 
-        const yawDiff = Math.abs(yaw - currYaw);
+        const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, yaw));
         const pitchDiff = Math.abs(pitch - currPitch);
         return yawDiff < 30 && pitchDiff < 30;
     }

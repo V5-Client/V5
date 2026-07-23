@@ -119,7 +119,7 @@ class RewarpSettings extends ModuleBase {
         const vacuum = Player.getInventory()
             ?.getItems?.()
             .find((item) => String(Guis.stripFormatting(item?.getName?.() || '')).includes('Vacuum'));
-        const vacuumLine = String(Guis.stripFormatting(vacuum?.getLore?.().find((line) => String(line).includes('Vacuum Bag:')) || ''));
+        const vacuumLine = String(vacuum?.getLore?.().find((line) => String(line).includes('Vacuum Bag:')) || '');
         return (Number.parseInt(Guis.stripFormatting(vacuumLine).replace(/[^\d]/g, ''), 10) || 0) >= 40;
     }
 }

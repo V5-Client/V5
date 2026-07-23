@@ -37,7 +37,7 @@ class MixinStorage {
 
     getMethod(name) {
         const fn = V5MixinStorage.get(`method_${name}`, null);
-        return typeof fn === 'function' ? fn : (...args) => {};
+        return typeof fn === 'function' ? fn : () => {};
     }
 
     exists(key) {

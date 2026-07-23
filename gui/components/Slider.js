@@ -8,6 +8,7 @@ import {
     drawRoundedRectangle,
     drawRoundedRectangleWithBorder,
     drawText,
+    getTypedCharacter,
     getTextWidth,
     isInside,
     playClickSound,
@@ -338,13 +339,14 @@ export class Slider {
             return true;
         }
 
-        if (/[0-9.\-]/.test(char)) {
-            let nextInputValue = this.inputValue + char;
+        const typedChar = char ? getTypedCharacter(char) : char;
+        if (/[0-9.\-]/.test(typedChar)) {
+            let nextInputValue = this.inputValue + typedChar;
 
-            if (char === '.' && this.inputValue.includes('.')) return true;
-            if (char === '-' && this.inputValue.length > 0) return true;
+            if (typedChar === '.' && this.inputValue.includes('.')) return true;
+            if (typedChar === '-' && this.inputValue.length > 0) return true;
 
-            if (this.precision > 0 && char !== '.') {
+            if (this.precision > 0 && typedChar !== '.') {
                 const parts = nextInputValue.split('.');
                 if (parts.length === 2 && parts[1].length > this.precision) return true;
             }
@@ -365,7 +367,7 @@ export class Slider {
         return true;
     }
 
-    handleInputFinish() {
+    handleInputFinish({ playSound = true } = {}) {
         if (!this.isTyping) return;
 
         let typedValue = Number.parseFloat(this.inputValue);
@@ -394,7 +396,7 @@ export class Slider {
         this.isTyping = false;
         this.typingHandle = null;
         TypingState.isTyping = false;
-        playClickSound();
+        if (playSound) playClickSound();
     }
 
     updateValue(mouseX) {
@@ -406,9 +408,9 @@ export class Slider {
 
         const progress = clamp((mouseX - sliderX) / sliderWidth, 0, 1);
 
-        let rawValue = this.min + this.getRangeSpan() * progress;
-        let steppedValue = Math.round(rawValue / this.step) * this.step;
-        let finalValue = Number.parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
+        const rawValue = this.min + this.getRangeSpan() * progress;
+        const steppedValue = Math.round(rawValue / this.step) * this.step;
+        const finalValue = Number.parseFloat(clamp(steppedValue, this.min, this.max).toFixed(this.precision));
 
         if (this.isRange) {
             if (this.draggingHandle === null) {
@@ -504,11 +506,22 @@ export class Slider {
         return Math.pow(10, -maxPrecision);
     }
 
-    static finalizeAllTyping() {
+    static finalizeAllTyping(options = undefined) {
         allSliders.forEach((slider) => {
             if (slider.isTyping) {
-                slider.handleInputFinish();
+                slider.handleInputFinish(options);
             }
         });
+    }
+
+    static handleGlobalClick(mouseX, mouseY) {
+        const activeSlider = allSliders.find((slider) => slider.isTyping);
+        if (!activeSlider) return false;
+
+        const inputRect = activeSlider.valueRects[activeSlider.typingHandle];
+        if (inputRect && isInside(mouseX, mouseY, inputRect)) return false;
+
+        Slider.finalizeAllTyping({ playSound: false });
+        return true;
     }
 }

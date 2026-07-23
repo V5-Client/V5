@@ -115,7 +115,7 @@ class Combat extends ModuleBase {
     }
 
     renderTargets() {
-        if (!this.targets || this.targets.length === 0) return;
+        if (this.targets.length === 0 && this.activeBlackholes.length === 0) return;
 
         if (this.target) {
             const targetUuid = this.getTargetUuid(this.target);
@@ -204,7 +204,7 @@ class Combat extends ModuleBase {
     }
 
     scanBlackholes() {
-        this.scanTicker = (this.scanTicker || 0) + 1;
+        this.scanTicker++;
         if (this.scanTicker % BLACKHOLE_SCAN_INTERVAL !== 0) return;
 
         const stands = World.getAllEntitiesOfType(ArmorStandEntity);

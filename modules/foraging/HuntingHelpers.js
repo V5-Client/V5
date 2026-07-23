@@ -14,20 +14,17 @@ class HuntingHelper extends ModuleBase {
         this.reeled = false;
 
         this.on('tick', () => {
-            if (this.autoLassoReel) {
-                if (!Player.getHeldItem()?.getName()?.includes('Lasso')) {
-                    this.reeled = false;
-                    return;
-                }
-                let stand = World.getAllEntitiesOfType(ArmorStandEntity);
-                const reelStand = stand.some((element) => element.getName() === 'REEL');
-                if (!reelStand) return (this.reeled = false);
-                if (!this.reeled) {
-                    Client.rightClick();
-                    this.reeled = true;
-                    return;
-                }
+            if (!this.autoLassoReel) return;
+            if (
+                !Player.getHeldItem()?.getName()?.includes('Lasso') ||
+                !World.getAllEntitiesOfType(ArmorStandEntity).some((entity) => entity.getName() === 'REEL')
+            ) {
+                this.reeled = false;
+                return;
             }
+            if (this.reeled) return;
+            Client.rightClick();
+            this.reeled = true;
         });
 
         this.addToggle('Auto Lasso Reel', (v) => {

@@ -27,7 +27,6 @@ const PATH_COLORS = {
     end: new RenderColor(255, 90, 90, 180),
 };
 
-const MAX_RETRIES = 7;
 const MINIMUM_MANA = 100;
 
 const readPathPoints = (pathArr) => {
@@ -111,9 +110,8 @@ class EtherwarpPathHandler {
     }
 
     resolveClosestGoal(goal, radius = 0) {
-        if (!Array.isArray(goal)) return goal;
-
-        const candidates = Array.isArray(goal[0]) || typeof goal[0] === 'object' ? goal : [goal];
+        if (!Array.isArray(goal) && radius <= 0) return goal;
+        const candidates = Array.isArray(goal) && (Array.isArray(goal[0]) || typeof goal[0] === 'object') ? goal : [goal];
         const sortOrigin = this.getPlayerSupportBlock() || { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
         const closest = candidates.reduce((best, candidate) => {
             const values = Array.isArray(candidate) ? candidate : [candidate?.x, candidate?.y, candidate?.z];
@@ -327,9 +325,7 @@ class EtherwarpPathHandler {
         if (this.startSearch(goal, true)) return true;
         if (!this.currentRun) return false;
         const retryReason = PathManager.getLastError() || 'Unknown error';
-        this.retryPath('Etherpath failed to start: ' + retryReason);
-
-        return true;
+        return this.retryPath('Etherpath failed to start: ' + retryReason);
     }
 
     preparePlayer(slot) {

@@ -32,7 +32,7 @@ class ExampleScript extends ModuleBase {
         // Registers a command under /v5 example
         v5Command('example', () => {
             // Rotates the player to look at yaw 50, pitch -20, with the specificed options (not required.)
-            Rotations.lookAtAngles(50, -20, { Precision: 0.25, speedMultiplier: 1.5 });
+            Rotations.lookAtAngles(50, -20, { precision: 0.25, speedMultiplier: 1.5 });
         });
     }
 }
@@ -41,7 +41,7 @@ new ExampleScript();`;
 
 if (!USER_SCRIPTS_DIR.exists()) USER_SCRIPTS_DIR.mkdirs();
 
-if (!new File(USER_SCRIPTS_DIR, 'Example.js').exists()) {
+if (!new File(USER_SCRIPTS_DIR, 'Example.js').exists() && !new File(USER_SCRIPTS_DIR, 'Example.js.disabled').exists()) {
     FileLib.write('V5Config', 'UserScripts/Example.js.disabled', EXAMPLE_SCRIPT);
 }
 

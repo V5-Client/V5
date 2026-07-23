@@ -9,16 +9,12 @@ import './mining/Nuker';
 import './mining/OreMacro';
 import './mining/PinglessMining';
 import './mining/GlowingMushroomMacro';
-//import './mining/PowderMacro';
-//import './mining/ScathaMacro';
 import './mining/TunnelsMiner';
-//import './mining/VeinDetectorTest';
 
 /* FORAGING */
 import './foraging/AutoHarp';
 import './foraging/HideonLeafESP';
 import './foraging/HuntingHelpers';
-//import './foraging/SeaLumieMacro';
 
 /* FARMING */
 import './farming/CocoaBeansMacro';

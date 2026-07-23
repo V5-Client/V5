@@ -12,7 +12,7 @@ class ESP extends ModuleBase {
 
         this.rgba = new RenderColor(255, 0, 0, 255);
 
-        this.showNames = false;
+        this.showNames = true;
         this.disableEspWithinDistance = 2;
 
         this.addToggle(
@@ -45,7 +45,7 @@ class ESP extends ModuleBase {
         );
 
         this.on('postRenderWorld', () => {
-            let players = World.getAllPlayers();
+            const players = World.getAllPlayers();
             const self = Player.getPlayer();
             const disableEspWithinDistanceSq = this.disableEspWithinDistance * this.disableEspWithinDistance;
 
@@ -68,7 +68,7 @@ class ESP extends ModuleBase {
 
                 if (distanceSq <= maxDefaultNametagDistanceSq) continue;
 
-                let vec = new Vec3d(player.x, player.y + 2.3, player.z);
+                const vec = new Vec3d(player.x, player.y + 2.3, player.z);
                 RenderUtils.drawText(player.getName(), vec, 1.2, true, false, true);
             }
         });

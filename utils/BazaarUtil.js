@@ -52,8 +52,7 @@ class BazaarUtil {
             case 'buy instantly':
                 return this.clickNamed('Buy Instantly', 'custom amount');
             case 'custom amount':
-                if (!this.clickNamed('Custom Amount', 'sign')) return;
-                return;
+                return this.clickNamed('Custom Amount', 'sign');
             case 'sign':
                 if (!this.isSignOpen()) return;
                 Sign.setLine(1, this.amount);
@@ -63,7 +62,8 @@ class BazaarUtil {
             case 'confirm amount': {
                 const slot = this.findSlot('Custom Amount');
                 if (slot === -1) return;
-                if (this.getSlotPrice(slot) > this.maxPrice) return this.finish(false);
+                const price = this.getSlotPrice(slot);
+                if (!Number.isFinite(price) || !Number.isFinite(this.maxPrice) || price > this.maxPrice) return this.finish(false);
                 this.confirmSlot = slot;
                 if (!Guis.clickSlot(slot)) return this.finish(false);
                 this.setState('warning', 500);

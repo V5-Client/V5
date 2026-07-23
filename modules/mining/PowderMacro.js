@@ -43,6 +43,7 @@ class PowderMacro extends ModuleBase {
         });
 
         this.bindToggleKey();
+        this.loopToken = 0;
         this.initSettings();
         this.resetState();
         this.registerSkyblockEvents();
@@ -115,11 +116,6 @@ class PowderMacro extends ModuleBase {
         this.state = newState;
     }
 
-    setMiningKeys(active) {
-        Client.setKey('leftclick', active);
-        Client.setKey('shift', active);
-    }
-
     onEnable() {
         const player = Player.getPlayer();
         if (!player) {
@@ -139,10 +135,11 @@ class PowderMacro extends ModuleBase {
         this.message('&aPowder Macro Enabled!');
 
         this.setState(State.MINING);
-        this.rotateLoop();
+        this.rotateLoop(++this.loopToken);
     }
 
     onDisable() {
+        this.loopToken++;
         Client.setKey('leftclick', false);
         Client.setKey('shift', false);
         Rotations.stop();
@@ -151,11 +148,11 @@ class PowderMacro extends ModuleBase {
         this.message('&cPowder Macro Disabled!');
     }
 
-    rotateLoop() {
-        if (!this.enabled) return;
+    rotateLoop(token) {
+        if (!this.enabled || token !== this.loopToken) return;
         const player = Player.getPlayer();
         if (!player) {
-            setTimeout(() => this.rotateLoop(), TICK_INTERVAL_MS);
+            setTimeout(() => this.rotateLoop(token), TICK_INTERVAL_MS);
             return;
         }
 
@@ -175,7 +172,7 @@ class PowderMacro extends ModuleBase {
             console.error('V5 Caught error' + e + e.stack);
         }
 
-        setTimeout(() => this.rotateLoop(), TICK_INTERVAL_MS);
+        setTimeout(() => this.rotateLoop(token), TICK_INTERVAL_MS);
     }
 
     tickMining() {

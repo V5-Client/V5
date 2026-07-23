@@ -10,7 +10,7 @@ class RouteState {
         this.route = route;
         this.macroName = macroName;
         this.currentIndex = 0;
-        this.isActive = route && route.length > 0;
+        this.isActive = !!route?.length;
     }
 
     clearRoute() {

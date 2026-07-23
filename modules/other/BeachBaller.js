@@ -51,6 +51,7 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.lastVelocityY = 0;
         this.ballDescending = false;
+        this.trajectoryToken = 0;
         this.holdShift = true;
 
         this.addToggle(
@@ -151,7 +152,9 @@ class Beachballer extends ModuleBase {
             this.trailHistory = [];
             this.predictedPath = [];
             this.landingPoint = null;
+            this.lastVelocityY = 0;
             this.ballDescending = false;
+            this.trajectoryToken++;
             return;
         }
 
@@ -168,11 +171,14 @@ class Beachballer extends ModuleBase {
         };
 
         if (this.lastVelocityY > 0 && velocity.y <= 0) {
+            const trackedBall = this.trackedBall;
+            const token = ++this.trajectoryToken;
             ScheduleTask(5, () => {
-                this.ballDescending = true;
+                if (this.enabled && token === this.trajectoryToken && this.trackedBall === trackedBall && !trackedBall.isDead()) this.ballDescending = true;
             });
         }
         if (velocity.y > 0.1) {
+            this.trajectoryToken++;
             this.ballDescending = false;
         }
         this.lastVelocityY = velocity.y;
@@ -304,7 +310,7 @@ class Beachballer extends ModuleBase {
             this.hasActiveRun = true;
         }
 
-        if (this.bounceCount > 40) {
+        if (this.bounceCount >= 40) {
             const validCompletion = hasTrackedBall && this.hasActiveRun && hasRecentBounceUpdate;
 
             if (validCompletion) {
@@ -461,6 +467,7 @@ class Beachballer extends ModuleBase {
     }
 
     onDisable() {
+        this.trajectoryToken++;
         Client.unpressKeys();
         this.trackedBall = null;
         this.state = States.WAITING;

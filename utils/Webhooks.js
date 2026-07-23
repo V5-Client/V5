@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { CLIENT_VERSION, Consumer, DataOutputStream, ScreenshotRecorder, URL } from './Constants';
+import { CLIENT_VERSION, Consumer, ScreenshotRecorder, URL } from './Constants';
 import { Executor } from './ThreadExecutor';
 import { Utils } from './Utils';
 
@@ -70,7 +70,7 @@ class DiscordNotifier {
                 gameDir,
                 buffer,
                 new Consumer({
-                    accept: (message) => {
+                    accept: () => {
                         Client.scheduleTask(2, () => {
                             const screenshotDir = new java.io.File(gameDir, 'screenshots');
                             const files = screenshotDir.listFiles();
@@ -118,12 +118,11 @@ class DiscordNotifier {
                     body.content = '<@' + this.mentionId + '>';
                 }
 
-                const stream = new DataOutputStream(connection.getOutputStream());
-                stream.writeBytes(JSON.stringify(body));
-                stream.flush();
-                stream.close();
+                const writer = new java.io.OutputStreamWriter(connection.getOutputStream(), 'UTF-8');
+                writer.write(JSON.stringify(body));
+                writer.close();
 
-                connection.getInputStream();
+                connection.getInputStream().close();
             } catch (e) {
                 console.error('V5 Caught error' + e + e.stack);
                 Chat.messageDebug('Webhook transmission failed: ' + e);
@@ -179,7 +178,7 @@ class DiscordNotifier {
         Executor.execute(() => {
             try {
                 const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
-                const connection = new java.net.URL(this.endpoint).openConnection();
+                const connection = new URL(this.endpoint).openConnection();
                 connection.setDoOutput(true);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'multipart/form-data; boundary=' + boundary);
@@ -231,7 +230,7 @@ class DiscordNotifier {
                     .append('--' + boundary + '--')
                     .append('\r\n');
                 writer.close();
-                connection.getInputStream();
+                connection.getInputStream().close();
             } catch (e) {
                 console.error('Webhook upload failed: ' + e);
             }

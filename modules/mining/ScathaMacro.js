@@ -78,21 +78,15 @@ class ScathaMacro extends ModuleBase {
         this.isWarping = false;
         this.travelledToCH = false;
         this.goingToCH = false;
-        this.requiredItems = null;
-        this.items = { aspect: null, drill: null, daedalus: null, rod: null, shuriken: null, bobomb: null };
+        this.items = { aspect: null, drill: null };
         this.triedPath = false;
         this.handleAOTV = { rotated: false, usedAOTV: false };
-        this.HOTMState = { opened: false, switchedPage: false };
-        this.actionQueue = [];
+        this.HOTMState = { opened: false };
         this.lastActionTime = 0;
 
         this.CHBounds = {
             minX: 202,
             maxX: 823,
-            minY: 31,
-            maxY: 189,
-            minZ: 202,
-            maxZ: 823,
         };
 
         this.bindToggleKey();
@@ -199,7 +193,7 @@ class ScathaMacro extends ModuleBase {
     handlePrepare() {
         if (!this.HOTMState.completed) {
             if (this.togglePerks(false)) {
-                this.HOTMState = { opened: false, switchedPage: false, completed: true };
+                this.HOTMState = { opened: false, completed: true };
                 this.lastActionTime = Date.now();
                 ChatLib.command('wardrobe');
             }
@@ -256,7 +250,7 @@ class ScathaMacro extends ModuleBase {
     togglePerks(isEnabling) {
         const container = Player.getContainer();
 
-        if (!Guis.guiName('Heart of the Mountain') || !container) {
+        if (Guis.guiName() !== 'Heart of the Mountain' || !container) {
             if (!this.HOTMState.opened) {
                 ChatLib.command('hotm');
                 this.HOTMState.opened = true;
@@ -271,8 +265,7 @@ class ScathaMacro extends ModuleBase {
         const ignoreID = 'minecraft:redstone_block';
         const isPageOne = container.getStackInSlot(0)?.getName()?.includes('Tier 5');
 
-        let currentSlots = [];
-        isPageOne ? (currentSlots = [13, 22, 8]) : (currentSlots = [42, 40]);
+        const currentSlots = isPageOne ? [13, 22, 8] : [42, 40];
 
         for (let slot of currentSlots) {
             const item = container.getStackInSlot(slot);
@@ -303,33 +296,6 @@ class ScathaMacro extends ModuleBase {
         return false;
     }
 
-    removeArmor() {
-        if (Guis.guiName() !== 'Wardrobe (1/3)') return false;
-
-        const container = Player.getContainer();
-        if (!container) return false;
-
-        const now = Date.now();
-        if (now - this.lastActionTime < this.CLICK_DELAY) return false;
-
-        const slotsToCheck = [36, 37, 38, 39, 40, 41, 42, 43];
-
-        for (let slot of slotsToCheck) {
-            const item = container.getStackInSlot(slot);
-            if (!item) continue;
-
-            const itemID = item.type.getRegistryName().toString();
-
-            if (itemID.includes('lime_dye')) {
-                Guis.clickSlot(slot, false, 'LEFT');
-                this.lastActionTime = now;
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     applySet(slot) {
         if (Guis.guiName() !== 'Wardrobe (1/3)') return false;
 
@@ -356,36 +322,15 @@ class ScathaMacro extends ModuleBase {
         return true;
     }
 
-    getMostSuitableDig() {}
-
     getAllRequiredItems() {
-        let items = {
-            'Aspect of the Void': { slot: -1, include: true },
-            'Mining Tool': { slot: -1, include: null },
-            //Rod: { slot: -1, include: true },
-            //Daedalus: { slot: -1, include: true },
-            // shuriken
-            // bobomb
+        const items = {
+            'Aspect of the Void': { slot: Guis.findItemInHotbar('Aspect of the Void'), include: true },
+            'Mining Tool': { slot: MiningUtils.getDrills().drill?.slot ?? -1, include: null },
         };
-
-        items['Aspect of the Void'].slot = Guis.findItemInHotbar('Aspect of the Void');
-        items['Mining Tool'].slot = MiningUtils.getDrills().drill?.slot ?? -1;
-        //items['Rod'].slot = Guis.findItemInHotbar('Rod')
-        //items['Daedalus'].slot = Guis.findItemInHotbar('Daedalus')
 
         this.items.aspect = items['Aspect of the Void'].slot;
         this.items.drill = items['Mining Tool'].slot;
-        //this.items.daedalus = items['Daedalus Axe'].slot;
-        //this.items.rod = items['Rod'].slot;
-        //this.items.shuriken = items['Shuriken'].slot;
-        //this.items.bobomb = items['Bobomb'].slot;
-
-        let missingItems = [];
-        for (let itemName in items) {
-            if (items[itemName].slot === -1) {
-                missingItems.push(itemName);
-            }
-        }
+        const missingItems = Object.keys(items).filter((itemName) => items[itemName].slot === -1);
 
         if (missingItems.length > 0) {
             this.message('Missing required items: ' + missingItems.join(', '));
@@ -397,11 +342,7 @@ class ScathaMacro extends ModuleBase {
     }
 
     hasMaxGE() {
-        let ge = null;
-        this.file = Utils.getConfigFile('miningstats.json');
-        if (this.file) ge = this.file.maxge;
-
-        if (ge === null) {
+        if (Utils.getConfigFile('miningstats.json')?.maxge !== true) {
             this.message("&cYou don't have max GE!");
             this.toggle(false);
             return false;
@@ -418,8 +359,6 @@ class ScathaMacro extends ModuleBase {
         this.message('&aEnabled');
         if (!this.handleAllRequirements()) return;
         this.state = this.STATES.WARPING;
-        this.usedAOTV = false;
-        this.rotated = false;
         this.triedPath = false;
     }
 
@@ -430,17 +369,18 @@ class ScathaMacro extends ModuleBase {
         this.isWarping = false;
         this.travelledToCH = false;
         this.goingToCH = false;
-        this.requiredItems = null;
 
-        this.items = { aspect: null, drill: null, daedalus: null, rod: null, shuriken: null, bobomb: null };
+        this.items = { aspect: null, drill: null };
 
         this.triedPath = false;
 
         this.handleAOTV = { rotated: false, usedAOTV: false };
-        this.HOTMState = { opened: false, switchedPage: false };
+        this.HOTMState = { opened: false };
 
-        this.actionQueue = [];
         this.lastActionTime = 0;
+        Pathfinder.resetPath();
+        Rotations.stop();
+        Client.stopMovement();
         Client.setKey('leftclick', false);
     }
 }

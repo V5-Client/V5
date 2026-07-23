@@ -54,9 +54,6 @@ class AlertUtilsClass {
         const line2Start = 'PRESS ';
         const line2End = ' TO DISABLE THE REACTION';
 
-        const screenW = Renderer.screen.getWidth();
-        const screenH = Renderer.screen.getHeight();
-
         const fontSize = 20;
         const lineSpacing = 8;
         const yOffset = 100;
@@ -64,25 +61,40 @@ class AlertUtilsClass {
         const highlightColor = Math.trunc(0xffffffff); // this too
 
         this.render = register('renderOverlay', () => {
-            const scale = fontSize / 10;
-            const x1 = screenW / 2 - (Renderer.getStringWidth(line1) * scale) / 2;
-            const totalLine2Width = (Renderer.getStringWidth(line2Start) + Renderer.getStringWidth(key) + Renderer.getStringWidth(line2End)) * scale;
-            let currentX2 = screenW / 2 - totalLine2Width / 2;
+            const screenW = Renderer.screen.getWidth();
+            const screenH = Renderer.screen.getHeight();
+            try {
+                NVG.beginFrame(screenW, screenH);
+                NVG.save();
+                this._renderAlertScreen(screenW, screenH);
 
-            const totalBlockHeight = fontSize * 2 + lineSpacing;
-            const startY = screenH / 2 - totalBlockHeight / 2 - yOffset;
-            const y2 = startY + fontSize + lineSpacing;
+                const scale = fontSize / 10;
+                const x1 = screenW / 2 - (Renderer.getStringWidth(line1) * scale) / 2;
+                const totalLine2Width = (Renderer.getStringWidth(line2Start) + Renderer.getStringWidth(key) + Renderer.getStringWidth(line2End)) * scale;
+                let currentX2 = screenW / 2 - totalLine2Width / 2;
 
-            drawText(line1, x1, startY, fontSize, redColor);
-            drawText(line2Start, currentX2, y2, fontSize, redColor);
+                const totalBlockHeight = fontSize * 2 + lineSpacing;
+                const startY = screenH / 2 - totalBlockHeight / 2 - yOffset;
+                const y2 = startY + fontSize + lineSpacing;
 
-            currentX2 += Renderer.getStringWidth(line2Start) * scale;
-            drawText(key, currentX2, y2, fontSize, highlightColor);
+                drawText(line1, x1, startY, fontSize, redColor);
+                drawText(line2Start, currentX2, y2, fontSize, redColor);
 
-            currentX2 += Renderer.getStringWidth(key) * scale;
-            drawText(line2End, currentX2, y2, fontSize, redColor);
+                currentX2 += Renderer.getStringWidth(line2Start) * scale;
+                drawText(key, currentX2, y2, fontSize, highlightColor);
 
-            this._renderAlertScreen();
+                currentX2 += Renderer.getStringWidth(key) * scale;
+                drawText(line2End, currentX2, y2, fontSize, redColor);
+                NVG.restore();
+            } catch (e) {
+                console.error('V5 Caught error' + e + e.stack);
+            } finally {
+                try {
+                    NVG.endFrame();
+                } catch (e) {
+                    console.error('V5 Caught error' + e + e.stack);
+                }
+            }
         });
     }
 
@@ -134,6 +146,28 @@ class AlertUtilsClass {
      * Loads a sound file using Java methods
      */
     _loadsoundFile() {
+        this._closeSound();
+
+        const currentSound = failsafeSound;
+        this.savedSound = !currentSound || currentSound.includes('undefined') ? 'Tave Check.wav' : currentSound;
+
+        this.soundFile = new File(globalAssetsDir, `failsafes/sounds/${this.savedSound}`);
+        if (!this.soundFile.exists()) return;
+
+        try {
+            this.audioStream = AudioSystem.getAudioInputStream(this.soundFile);
+            this.clip = AudioSystem.getClip();
+            this.clip.open(this.audioStream);
+            if (this.clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                this.gainControl = this.clip.getControl(FloatControl.Type.MASTER_GAIN);
+            }
+        } catch (e) {
+            this._closeSound();
+            console.error('V5 Caught error' + e + e.stack);
+        }
+    }
+
+    _closeSound() {
         if (this.clip) {
             try {
                 this.clip.stop();
@@ -152,54 +186,21 @@ class AlertUtilsClass {
             }
             this.audioStream = null;
         }
-
-        const currentSound = failsafeSound;
-        this.savedSound = currentSound || 'Tave Check.wav';
-        if ((currentSound || '').includes('undefined')) this.savedSound = 'Tave Check.wav';
-
-        this.soundFile = new File(globalAssetsDir, `failsafes/sounds/${this.savedSound}`);
-        if (!this.soundFile.exists()) return;
-
-        try {
-            this.audioStream = AudioSystem.getAudioInputStream(this.soundFile);
-            this.clip = AudioSystem.getClip();
-            this.clip.open(this.audioStream);
-            if (this.clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-                this.gainControl = this.clip.getControl(FloatControl.Type.MASTER_GAIN);
-            }
-        } catch (e) {
-            this.clip = null;
-            console.error('V5 Caught error' + e + e.stack);
-        }
+        this.gainControl = null;
     }
 
     /**
      * Uses NVG to draw a overlay over the whole screen
      */
-    _renderAlertScreen() {
+    _renderAlertScreen(screenW, screenH) {
         if (Client.isInChat()) return;
-        try {
-            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-            NVG.save();
-
-            drawRect({
-                x: 0,
-                y: 0,
-                width: Renderer.screen.getWidth(),
-                height: Renderer.screen.getHeight(),
-                color: Math.trunc((120 << 24) | (255 << 16) | (0 << 8)), // change this too pls
-            });
-
-            NVG.restore();
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-            }
-        }
+        drawRect({
+            x: 0,
+            y: 0,
+            width: screenW,
+            height: screenH,
+            color: Math.trunc((120 << 24) | (255 << 16) | (0 << 8)), // change this too pls
+        });
     }
 
     /**
@@ -223,7 +224,8 @@ class AlertUtilsClass {
 
         register('gameUnload', () => {
             this.disableReaction();
-            let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+            this._closeSound();
+            const allKeybinds = Utils.getConfigFile('keybinds.json') || {};
             allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
             Utils.writeConfigFile('keybinds.json', allKeybinds);
         });

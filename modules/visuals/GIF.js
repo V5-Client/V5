@@ -8,7 +8,6 @@ if (!GIF_SOURCE_DIR.exists()) GIF_SOURCE_DIR.mkdirs();
 
 class GifInstance {
     constructor(file, savedConfig) {
-        this.file = file;
         this.name = file.getName();
         this.absPath = file.getAbsolutePath();
 
@@ -83,11 +82,12 @@ class GifInstance {
         this.lastTimestamp = now;
 
         this.accMs += dt;
-        const currentDelay = this.delaysMs[this.frameIndex] || 100;
+        let currentDelay = this.delaysMs[this.frameIndex] || 100;
 
         while (this.accMs >= currentDelay) {
             this.accMs -= currentDelay;
             this.frameIndex = (this.frameIndex + 1) % this.frameCount;
+            currentDelay = this.delaysMs[this.frameIndex] || 100;
         }
 
         const drawW = this.baseWidth * this.scale;
@@ -327,8 +327,6 @@ class GIFOverlay extends ModuleBase {
     }
 
     savePositions() {
-        if (!this.instances) return;
-
         const data = {};
         this.instances.forEach((inst) => {
             data[inst.name] = inst.getSaveData();
@@ -342,9 +340,7 @@ class GIFOverlay extends ModuleBase {
 
     resetAll() {
         this.toggle(false);
-        if (this.instances && this.instances.length > 0) {
-            this.instances.forEach((inst) => inst.unload());
-        }
+        this.instances.forEach((inst) => inst.unload());
         this.instances = [];
     }
 }

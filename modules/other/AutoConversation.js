@@ -10,6 +10,7 @@ class AutoConversation extends ModuleBase {
         });
 
         this.autoSelect = true;
+        this.actionToken = 0;
 
         this.on('chat', (event) => {
             if (!this.enabled) return;
@@ -46,7 +47,10 @@ class AutoConversation extends ModuleBase {
             if (commands.length === 0) return;
 
             if (commands.length === 1 || this.autoSelect) {
-                ScheduleTask(1, () => ChatLib.command(commands[0].replace(/^\//, '')));
+                const token = this.actionToken;
+                ScheduleTask(1, () => {
+                    if (this.enabled && token === this.actionToken) ChatLib.command(commands[0].replace(/^\//, ''));
+                });
             }
         });
 
@@ -56,6 +60,10 @@ class AutoConversation extends ModuleBase {
             'Automatically select the first option if multiple are present',
             this.autoSelect
         );
+    }
+
+    onDisable() {
+        this.actionToken++;
     }
 }
 

@@ -17,7 +17,6 @@ class TunnelsMiner extends ModuleBase {
             developerMode: true,
             description: 'Pathfind to recorded tunnels veins and hand off to MiningBot',
             tooltip: 'Select an ore type, find the closest vein edge, path, then mine.',
-            autoDisableOnWorldUnload: true,
             isMacro: true,
         });
 

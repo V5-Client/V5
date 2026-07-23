@@ -9,10 +9,8 @@ import { clamp, isInside } from '../Utils';
 import { drawGUI } from './GuiRenderer';
 import { GuiRectangles, GuiState } from './GuiState';
 
-let GUIKey = null;
-let GUIKeyBind = null;
-
 const handleClick = (mouseX, mouseY) => {
+    if (GuiState.isOpening) return;
     if (
         isInside(mouseX, mouseY, GuiRectangles.Background) &&
         !isInside(mouseX, mouseY, GuiRectangles.LeftPanel) &&
@@ -27,9 +25,10 @@ const handleClick = (mouseX, mouseY) => {
 };
 
 const handleMouseDrag = (mouseX, mouseY) => {
+    if (GuiState.isOpening) return;
     if (GuiState.dragging) {
-        let newX = mouseX - GuiRectangles.Background.dx;
-        let newY = mouseY - GuiRectangles.Background.dy;
+        const newX = mouseX - GuiRectangles.Background.dx;
+        const newY = mouseY - GuiRectangles.Background.dy;
 
         const screenWidth = Renderer.screen.getWidth();
         const screenHeight = Renderer.screen.getHeight();
@@ -42,6 +41,7 @@ const handleMouseDrag = (mouseX, mouseY) => {
 };
 
 const handleScroll = (mouseX, mouseY, dir) => {
+    if (GuiState.isOpening) return;
     categoryManager?.handleScroll(mouseX, mouseY, dir);
 };
 
@@ -51,6 +51,8 @@ const handleMouseRelease = () => {
 };
 
 const handleGuiClosed = () => {
+    GuiState.dragging = false;
+    categoryManager?.handleMouseRelease();
     TextInput.finalizeAllTyping({ playSound: false });
     Slider.finalizeAllTyping();
     SearchBar.resetSearch();
@@ -93,11 +95,10 @@ const handleKeybind = () => {
 
     if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1) savedKeycode = Keyboard.KEY_NONE;
 
-    GUIKey = Keyboard.getKeyName(savedKeycode);
-    GUIKeyBind = new KeyBind(keyName, savedKeycode, 'v5_core');
+    const GUIKeyBind = new KeyBind(keyName, savedKeycode, 'v5_core');
 
     register('gameUnload', () => {
-        let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const allKeybinds = Utils.getConfigFile('keybinds.json') || {};
         allKeybinds[keyName] = GUIKeyBind.getKeyCode();
         Utils.writeConfigFile('keybinds.json', allKeybinds);
     });

@@ -98,6 +98,7 @@ class RatMacro extends ModuleBase {
         this.lastSwapActionAt = 0;
         this.lastWorldUnloadAt = 0;
         this.vipRotationToken = 0;
+        this.vipRotationPending = false;
 
         this.createOverlay(
             [
@@ -308,7 +309,7 @@ class RatMacro extends ModuleBase {
         this.setState(STATES.PATHING, `pathing to rat ${this.formatRatRef()}`);
 
         const started = EtherwarpPathfinder.findPath(goal, {
-            silent: !this.isEtherwarpPathfinderDebugEnabled(),
+            silent: !PathConfig.PATHFINDING_DEBUG,
             restoreSlot: true,
             onSuccess: (resolvedGoal) => {
                 if (!this.enabled || token !== this.currentPathRequestToken || this.currentPathMode !== PATH_MODES.RAT) return;
@@ -457,11 +458,7 @@ class RatMacro extends ModuleBase {
     }
 
     getLiveRats() {
-        return getHubRats().filter((entity) => {
-            if (!entity) return false;
-            if (this.isBlacklistedRat(entity)) return false;
-            return !entity.isDead();
-        });
+        return getHubRats().filter((entity) => !this.isBlacklistedRat(entity));
     }
 
     findRatById(id) {
@@ -717,26 +714,6 @@ class RatMacro extends ModuleBase {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    getClosestRatToPlayer(rats = this.getLiveRats()) {
-        let closestRat = null;
-        let closestDistanceSq = Number.MAX_VALUE;
-
-        rats.forEach((entity) => {
-            const position = this.getRatPosition(entity);
-            const distanceSq = this.getDistanceSq(position, {
-                x: Player.getX(),
-                y: Player.getY(),
-                z: Player.getZ(),
-            });
-
-            if (distanceSq >= closestDistanceSq) return;
-            closestRat = entity;
-            closestDistanceSq = distanceSq;
-        });
-
-        return closestRat;
-    }
-
     getPathSortOrigin() {
         return EtherwarpPathfinder.getPlayerSupportBlock() || { x: Player.getX(), y: Player.getY(), z: Player.getZ() };
     }
@@ -897,7 +874,7 @@ class RatMacro extends ModuleBase {
         this.swapStage = SWAP_STAGES.NONE;
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
-        this.vipRotationToken++;
+        this.invalidateVipRotation();
         this.debug(`detected ${candidateCount} rat candidate${candidateCount === 1 ? '' : 's'} during ${this.swapMode} swap, resuming normal rat hunt`);
         this.setState(STATES.WAITING, reason);
         return shouldWaitForGuiClose;
@@ -961,7 +938,7 @@ class RatMacro extends ModuleBase {
                 this.swapStage = SWAP_STAGES.WAIT_VIP_TRANSFER;
                 this.swapUntil = Date.now() + VIP_SWAP_TRANSFER_TIMEOUT_MS;
                 this.lastSwapActionAt = Date.now();
-                this.vipRotationToken++;
+                this.invalidateVipRotation();
                 this.debug('VIP selector opened, clicking transfer slot');
                 this.setState('Switching VIP Hub', 'clicked VIP transfer slot');
                 return true;
@@ -977,7 +954,7 @@ class RatMacro extends ModuleBase {
             this.swapStage = SWAP_STAGES.NONE;
             this.swapUntil = 0;
             this.lastSwapActionAt = 0;
-            this.vipRotationToken++;
+            this.invalidateVipRotation();
             this.debug('VIP selector timed out, aborting swap flow');
             this.setState(STATES.WAITING, 'VIP selector timed out');
             return false;
@@ -995,7 +972,7 @@ class RatMacro extends ModuleBase {
                 this.swapStage = SWAP_STAGES.WAIT_VIP_MENU;
                 this.swapUntil = Date.now() + VIP_SWAP_TIMEOUT_MS;
                 this.lastSwapActionAt = 0;
-                this.vipRotationToken++;
+                this.invalidateVipRotation();
                 this.debug(`VIP transfer did not change worlds within ${VIP_TRANSFER_WORLD_CHANGE_WAIT_MS}ms, retrying VIP selector`);
                 this.setState('Changing Lobby', 'retrying VIP selector after no world change');
                 return true;
@@ -1008,7 +985,7 @@ class RatMacro extends ModuleBase {
                 this.swapStage = SWAP_STAGES.NONE;
                 this.swapUntil = 0;
                 this.lastSwapActionAt = 0;
-                this.vipRotationToken++;
+                this.invalidateVipRotation();
                 this.debug('VIP transfer timed out without leaving hub');
                 this.setState(STATES.WAITING, 'VIP transfer timed out');
                 return false;
@@ -1027,13 +1004,18 @@ class RatMacro extends ModuleBase {
         this.swapStage = SWAP_STAGES.NONE;
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
-        this.vipRotationToken++;
+        this.invalidateVipRotation();
         this.debug(`swap flow fell through unexpected stage ${unexpectedStage}`);
         return false;
     }
 
     isHandlingSwapGui() {
         return this.swapStage === SWAP_STAGES.WAIT_VIP_MENU;
+    }
+
+    invalidateVipRotation() {
+        this.vipRotationToken++;
+        this.vipRotationPending = false;
     }
 
     tryHandleVipSwapMenu() {
@@ -1047,14 +1029,23 @@ class RatMacro extends ModuleBase {
         }
 
         this.cancelPathing();
-        this.vipRotationToken++;
+        if (Client.isInGui()) return true;
+        if (this.vipRotationPending && Rotations.active) return true;
+        this.vipRotationPending = false;
+
+        const token = ++this.vipRotationToken;
         this.debug('in range of VIP NPC, rotating to interact');
         this.setState('Facing VIP NPC', 'rotating to VIP selector NPC');
         const aimPoint = { x: VIP_NPC_POSITION.x, y: VIP_NPC_POSITION.y + 1.5, z: VIP_NPC_POSITION.z };
-        Rotations.lookAtVector(aimPoint);
-        if (Client.isInGui()) return;
-        this.debug('right clicking VIP NPC to open selector');
-        Client.rightClick();
+        if (!Rotations.lookAtVector(aimPoint)) return true;
+        this.vipRotationPending = true;
+        Rotations.onComplete(() => {
+            if (token !== this.vipRotationToken) return;
+            this.vipRotationPending = false;
+            if (!this.enabled || this.swapStage !== SWAP_STAGES.WAIT_VIP_MENU || Client.isInGui()) return;
+            this.debug('right clicking VIP NPC to open selector');
+            Client.rightClick();
+        }, 'rat_macro_vip');
 
         return true;
     }
@@ -1071,7 +1062,7 @@ class RatMacro extends ModuleBase {
         this.setState('Etherwarping to VIP NPC', 'pathing to VIP selector NPC');
 
         const started = EtherwarpPathfinder.findPath(goal, {
-            silent: !this.isEtherwarpPathfinderDebugEnabled(),
+            silent: !PathConfig.PATHFINDING_DEBUG,
             restoreSlot: true,
             onSuccess: () => {
                 if (!this.enabled || token !== this.currentPathRequestToken || this.currentPathMode !== PATH_MODES.VIP) return;
@@ -1114,10 +1105,6 @@ class RatMacro extends ModuleBase {
         return `Rat ${this.currentTargetId.slice(0, 6)}`;
     }
 
-    isEtherwarpPathfinderDebugEnabled() {
-        return PathConfig.PATHFINDING_DEBUG;
-    }
-
     onWorldUnload() {
         this.lastWorldUnloadAt = Date.now();
         this.blacklistedRatIds.clear();
@@ -1136,7 +1123,7 @@ class RatMacro extends ModuleBase {
         if (this.swapStage === SWAP_STAGES.NONE) {
             this.lastSwapActionAt = 0;
         }
-        this.vipRotationToken++;
+        this.invalidateVipRotation();
         this.cancelPathing();
         Client.stopMovement();
         Rotations.stop();
@@ -1166,7 +1153,7 @@ class RatMacro extends ModuleBase {
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
         this.lastWorldUnloadAt = 0;
-        this.vipRotationToken = 0;
+        this.invalidateVipRotation();
         this.setState(STATES.WAITING);
         Mouse.ungrab();
         this.debug(`enabled with swap mode &e${this.swapMode}&f and weapon slot &e${this.weaponSlot + 1}`);
@@ -1190,7 +1177,7 @@ class RatMacro extends ModuleBase {
         this.swapUntil = 0;
         this.lastSwapActionAt = 0;
         this.lastWorldUnloadAt = 0;
-        this.vipRotationToken++;
+        this.invalidateVipRotation();
         Client.stopMovement();
         Client.unpressKeys();
         Rotations.stop();

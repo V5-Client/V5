@@ -21,19 +21,19 @@ class FishingMacro extends ModuleBase {
         this.rodSlot = 0;
         this.petSwap = false;
         this.petSlot = 10;
-        this.cooldown = 3;
-        this.randomCooldown = 1;
+        this.cooldown = 5;
+        this.randomCooldown = 2;
 
         this.hypeClicksRemaining = 2;
-        this.hypeClickAmount = 2;
-        this.hypeClickAmountThunder = 15;
+        this.hypeClickAmount = 1;
+        this.hypeClickAmountThunder = 1;
 
         this.thunderSpawn = false;
         this.eelSpawn = false;
 
         this.deployableUsageTime = 0;
         this.deployableCooldown = 180;
-        this.deployableSlot = 0;
+        this.deployableSlot = 2;
         this.useDeployable = false;
 
         this.on('tick', () => {
@@ -41,8 +41,7 @@ class FishingMacro extends ModuleBase {
         });
 
         this.on('chat', (event) => {
-            let msg = event.message.getString();
-            // holy jewish pls fix
+            const msg = event.message.getString();
             if (msg.includes('Thunder') || msg.includes('thunder')) {
                 this.thunderSpawn = true;
             }
@@ -91,7 +90,7 @@ class FishingMacro extends ModuleBase {
                 this.step++;
                 break;
             case 0: // detect fish bobber pull ready thing
-                let stand = World.getAllEntitiesOfType(ArmorStandEntity);
+                const stand = World.getAllEntitiesOfType(ArmorStandEntity);
                 const target = stand.find((element) => element.getName() === '!!!');
                 if (!target) return;
                 Client.rightClick();

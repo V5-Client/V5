@@ -40,6 +40,16 @@ export const TypingState = {
     isTyping: false,
 };
 
+const UNSHIFTED_CHARACTERS = "`1234567890-=[]\\;',./";
+const SHIFTED_CHARACTERS = '~!@#$%^&*()_+{}|:"<>?';
+
+export const getTypedCharacter = (char) => {
+    const shiftDown = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+    if (!shiftDown) return char;
+    const index = UNSHIFTED_CHARACTERS.indexOf(char);
+    return index === -1 ? char.toUpperCase() : SHIFTED_CHARACTERS[index];
+};
+
 export const THEME = {
     BG_WINDOW: new Color(0.09, 0.1, 0.13, 1),
     BG_OVERLAY: new Color(0.06, 0.07, 0.09, 0.85),

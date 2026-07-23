@@ -1,6 +1,7 @@
 import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { MathUtils } from '../../utils/Math';
+import { MacroState } from '../../utils/MacroState';
 import { Mouse } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
@@ -26,6 +27,8 @@ class Freelook extends ModuleBase {
     onEnable() {
         const player = Player.getPlayer();
         if (!World.isLoaded() || !player) return this.toggle(false);
+
+        MacroState.getModule('Freecam')?.toggle(false);
 
         this.message('&aEnabled');
         this.savedPerspective = mc.options.getCameraType();

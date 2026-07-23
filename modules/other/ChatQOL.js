@@ -102,9 +102,7 @@ class ChatQOL extends ModuleBase {
                 const bypassedMessage = this.bypassChat(blockedMessage);
 
                 if (this.lastMessage.startsWith('/')) {
-                    const parts = this.lastMessage.split(' ');
-                    const command = parts[0].substring(1);
-                    ChatLib.command(`${command} ${bypassedMessage}`);
+                    ChatLib.command(this.lastMessage.slice(1).replace(blockedMessage, bypassedMessage));
                 } else {
                     ChatLib.say(bypassedMessage);
                 }

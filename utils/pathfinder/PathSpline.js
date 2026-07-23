@@ -67,7 +67,6 @@ class PathSpline {
             const numSteps = Math.ceil(distance / interpolationStep);
 
             for (let j = 0; j < numSteps; j++) {
-                if (i > 0 && j === 0) continue;
                 finalPath.push({ x: p1.x + (dx * j) / numSteps, y: p1.y + (dy * j) / numSteps, z: p1.z + (dz * j) / numSteps });
             }
         }

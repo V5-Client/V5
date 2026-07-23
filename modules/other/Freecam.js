@@ -3,6 +3,7 @@ import { Camera } from '../../utils/Camera';
 import { Mixin } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { MathUtils } from '../../utils/Math';
+import { MacroState } from '../../utils/MacroState';
 import { Mouse } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
@@ -24,7 +25,7 @@ class Freecam extends ModuleBase {
 
         this.bindToggleKey();
 
-        this.moveSpeed = 10;
+        this.moveSpeed = 0.8;
         this.cameraPos = null;
         this.velocity = new Vec3d(0, 0, 0);
         this.savedPerspective = null;
@@ -37,16 +38,9 @@ class Freecam extends ModuleBase {
 
     onEnable() {
         const player = Player.getPlayer();
-        if (!World.isLoaded() || !player) {
-            this.cameraPos = null;
-            this.velocity = new Vec3d(0, 0, 0);
-            this.savedPerspective = null;
-            Mixin.set('freecamEnabled', false);
-            Camera.clearCameraPosition();
-            Mixin.delete('cameraOverrideYaw');
-            Mixin.delete('cameraOverridePitch');
-            return;
-        }
+        if (!World.isLoaded() || !player) return this.toggle(false);
+
+        MacroState.getModule('Freelook')?.toggle(false);
 
         this.message('&aEnabled');
         this.cameraPos = this.getInitialCameraPos(player, MathUtils.wrapTo180(player.getYRot()), player.getXRot());

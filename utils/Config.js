@@ -1,5 +1,5 @@
 import { Chat } from './Chat';
-import { File, globalAssetsDir } from './Constants';
+import { File, Files, StandardCopyOption, globalAssetsDir } from './Constants';
 
 const SOURCE_SOUNDS_DIR = new File('./config/ChatTriggers/modules/V5/failsafes/sounds');
 const DEST_SOUNDS_DIR = new File(globalAssetsDir, 'failsafes/sounds');
@@ -10,9 +10,6 @@ function organizeFailsafeSounds() {
 
     const soundFiles = SOURCE_SOUNDS_DIR.listFiles();
     if (!soundFiles) return;
-
-    const Files = Java.type('java.nio.file.Files');
-    const StandardCopyOption = Java.type('java.nio.file.StandardCopyOption');
 
     for (const file of soundFiles) {
         if (file.isDirectory() || !file.getName().endsWith('.wav')) continue;

@@ -2,6 +2,7 @@ import { TimeUtils } from '../utils/TimeUtils';
 import { Utils } from '../utils/Utils';
 import {
     BORDER_WIDTH,
+    clamp,
     colorWithAlpha,
     CORNER_RADIUS,
     drawRoundedRectangle,
@@ -88,7 +89,7 @@ class OverlayUtils {
 
     getScaleProps(scale) {
         return {
-            boxPadding: (PADDING || 12) * scale,
+            boxPadding: PADDING * scale,
             minBoxHeight: 35 * scale,
             fontSize: FontSizes.LARGE * scale,
             argFontSize: FontSizes.MEDIUM * scale,
@@ -112,9 +113,9 @@ class OverlayUtils {
         if (this.stepTrigger) return;
         this.stepTrigger = register('step', () => {
             let animating = false;
-            for (let name in this.animations) {
-                let anim = this.animations[name];
-                let diff = anim.target - anim.progress;
+            for (const name in this.animations) {
+                const anim = this.animations[name];
+                const diff = anim.target - anim.progress;
                 if (Math.abs(diff) > 0.001) {
                     animating = true;
                     anim.progress += diff * 0.12;
@@ -231,6 +232,7 @@ class OverlayUtils {
 
     initTriggers() {
         Overlays.Gui.registerClosed(() => {
+            this.handleMouseRelease();
             if (this.pendingSave) {
                 this.saveSettings();
                 this.pendingSave = false;
@@ -442,42 +444,15 @@ class OverlayUtils {
             const box = this.editorBoxes[target];
             if (!box || !isInside(mouseX, mouseY, box)) continue;
 
-            if (target === 'scheduler') {
-                this.schedulerSettings.scale = Math.max(0.5, Math.min(3.0, this.schedulerSettings.scale + (dir > 0 ? 0.1 : -0.1)));
-                this.updateScaleProps('scheduler');
-                this.pendingSave = true;
-                this.saveSettings();
-                return;
-            }
+            const settings = this.getTargetSettings(target);
+            if (!settings) continue;
 
-            if (target === 'default') {
-                this.settings.scale = Math.max(0.5, Math.min(3.0, this.settings.scale + (dir > 0 ? 0.1 : -0.1)));
-                this.updateScaleProps('default');
-                this.pendingSave = true;
-                this.saveSettings();
-                return;
-            }
-
-            if (target === 'hudStats') {
-                this.hudSettings.stats.scale = Math.max(0.5, Math.min(3.0, this.hudSettings.stats.scale + (dir > 0 ? 0.1 : -0.1)));
-                this.pendingSave = true;
-                this.saveSettings();
-                return;
-            }
-
-            if (target === 'hudInventory') {
-                this.hudSettings.inventory.scale = Math.max(0.5, Math.min(3.0, this.hudSettings.inventory.scale + (dir > 0 ? 0.1 : -0.1)));
-                this.pendingSave = true;
-                this.saveSettings();
-                return;
-            }
-
-            if (target === 'music') {
-                this.musicSettings.scale = Math.max(0.5, Math.min(3.0, (this.musicSettings.scale || 1.0) + (dir > 0 ? 0.1 : -0.1)));
-                this.pendingSave = true;
-                this.saveSettings();
-                return;
-            }
+            const scale = target === 'music' ? settings.scale || 1 : settings.scale;
+            settings.scale = clamp(scale + (dir > 0 ? 0.1 : -0.1), 0.5, 3);
+            if (target === 'default' || target === 'scheduler') this.updateScaleProps(target);
+            this.pendingSave = true;
+            this.saveSettings();
+            return;
         }
     }
 
@@ -579,7 +554,7 @@ class OverlayUtils {
                 const valueWidth = getTextWidth(uptimeVal, argFontSize);
                 const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
                 contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
-                sectionLines.push({ label, value: uptimeVal, isUptime: true, labelWidth });
+                sectionLines.push({ label, value: uptimeVal, isUptime: true });
             }
 
             Object.entries(sectionData).forEach(([k, v]) => {
@@ -589,7 +564,7 @@ class OverlayUtils {
                 const valueWidth = getTextWidth(String(displayVal), argFontSize);
                 const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
                 contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
-                sectionLines.push({ label, value: displayVal, isUptime: false, labelWidth });
+                sectionLines.push({ label, value: displayVal, isUptime: false });
             });
 
             const lineCount = sectionLines.length;
@@ -617,6 +592,10 @@ class OverlayUtils {
             const clamped = this.clampToScreen(x, y, id.width, id.height, sw, sh);
             x = clamped.x;
             y = clamped.y;
+            if (forceGUI) {
+                settings.x = x;
+                settings.y = y;
+            }
         }
 
         const currentHeight = id.height * progress;
@@ -643,7 +622,7 @@ class OverlayUtils {
                 const titleX = x + id.width / 2 - getTextWidth(id.name, fontSize) / 2;
                 const titleAlign = 16;
 
-                drawText(id.name, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0x000000, 0.35 * contentAlpha), titleAlign);
+                drawText(id.name, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0xff000000, 0.35 * contentAlpha), titleAlign);
                 drawText(id.name, titleX, titleY, fontSize, colorWithAlpha(0xffffff, contentAlpha), titleAlign);
 
                 let contentY = titleY + 10 * scale;
@@ -688,7 +667,7 @@ class OverlayUtils {
     drawGUI() {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
-        if (sw === 0) return;
+        if (sw === 0 || sh === 0) return;
         Client.getMinecraft().gameRenderer.processBlurEffect();
         this.editorBoxes = {};
         this.drawingGUI = true;
@@ -738,7 +717,7 @@ class OverlayUtils {
     drawAllOverlays() {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
-        if (sw === 0) return;
+        if (sw === 0 || sh === 0) return;
 
         const visibleIds = this.ids.filter((id) => {
             const anim = this.animations[id.name];
@@ -966,7 +945,7 @@ class OverlayUtils {
             width: imageSize,
             height: imageSize,
             radius: CORNER_RADIUS * 0.5 * s,
-            color: colorWithAlpha(0x000000, 0.3),
+            color: colorWithAlpha(0xff000000, 0.3),
             borderWidth: 0,
             borderColor: 0,
         });
@@ -1028,7 +1007,7 @@ class OverlayUtils {
 export const OverlayManager = new OverlayUtils();
 
 const openModuleGui = () => {
-    let waitTrigger = register('tick', () => {
+    const waitTrigger = register('tick', () => {
         OverlayManager.closePositionsGUI();
         waitTrigger.unregister();
     });

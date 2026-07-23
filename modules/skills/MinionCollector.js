@@ -13,7 +13,6 @@ class MinionCollector extends ModuleBase {
             tooltip: 'Auto Collects Minions using Aura - Caution!',
         });
 
-        this.unopenedMinions = [];
         this.collectedMinions = new Set();
         this.interactionQueue = [];
         this.inMinion = false;
@@ -31,10 +30,16 @@ class MinionCollector extends ModuleBase {
                 if (!Client.isInGui()) this.processQueue();
             }
         );
+
+        register('worldUnload', () => {
+            this.collectedMinions.clear();
+            this.interactionQueue = [];
+            this.inMinion = false;
+            this.lastCollection = 0;
+        });
     }
 
     scanAndQueue() {
-        let targets = [];
         const player = Player.getPlayer();
         if (!player) return;
         const entities = World.getAllEntitiesOfType(ArmorStandEntity);
@@ -62,11 +67,8 @@ class MinionCollector extends ModuleBase {
                 if (!this.interactionQueue.some((e) => e.toMC().getId() === id)) {
                     this.interactionQueue.push(entity);
                 }
-            } else {
-                targets.push({ x, y, z });
             }
         }
-        this.unopenedMinions = targets;
     }
 
     processQueue() {
@@ -108,6 +110,12 @@ class MinionCollector extends ModuleBase {
         const vec = new Vec3d(0.0, 0.5, 0.0);
         const packet = new ServerboundInteractPacket(ent.getId(), MCHand.MAIN_HAND, vec, false);
         Client.sendPacket(packet);
+        this.lastCollection = 0;
+    }
+
+    onDisable() {
+        this.interactionQueue = [];
+        this.inMinion = false;
         this.lastCollection = 0;
     }
 }

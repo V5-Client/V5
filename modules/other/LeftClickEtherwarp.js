@@ -39,7 +39,8 @@ class LeftClickEtherwarp extends ModuleBase {
     }
 
     hasAspectHeld() {
-        return Player.getHeldItem()?.getName()?.includes('Aspect of the ');
+        const name = Player.getHeldItem()?.getName();
+        return name?.includes('Aspect of the Void') || name?.includes('Aspect of the End');
     }
 
     onDisable() {

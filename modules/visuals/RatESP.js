@@ -43,13 +43,12 @@ class RatESP extends ModuleBase {
         this.rats = [];
         this.lastWorldTickAt = 0;
         this.fillColor = new RenderColor(255, 255, 0, 80);
-        this.outlineColor = new RenderColor(255, 255, 0, 255);
         this.tracerColor = new RenderColor(255, 255, 0, 255);
 
         this.on('tick', () => {
             this.lastWorldTickAt = Date.now();
+            this.scanRats();
         });
-        this.on('tick', () => this.scanRats());
 
         this.when(
             () => this.enabled && World.isLoaded() && Utils.area() === 'Hub' && this.rats.length > 0,

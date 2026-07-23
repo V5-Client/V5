@@ -178,7 +178,6 @@ class MiningStatsCollector {
     timeout() {
         Chat.message('Failed to get mining stats.');
         Guis.closeInv();
-        this.isCollecting = false;
         return false;
     }
 
@@ -207,14 +206,13 @@ class MiningStatsCollector {
         let storedDrillName = this.stats?.drill || null;
 
         if (storedDrillName !== currentDrillName) {
-            return this.beginCollection('Drill changed');
+            return this.beginCollection();
         }
 
         if (!this.checkedThisSession) {
-            return this.beginCollection('First check this session');
+            return this.beginCollection();
         }
 
-        this.checkedThisSession = true;
         return false;
     }
 
@@ -302,7 +300,7 @@ class ToolFinder {
 
         let foundTools = [];
 
-        for (var slot = 0; slot <= 7; slot++) {
+        for (var slot = 0; slot < 9; slot++) {
             let item = inventory.getStackInSlot(slot);
             if (!item) continue;
 
@@ -371,7 +369,7 @@ class SpeedCalculations {
             base = base + stats.professional;
         }
 
-        let flowBonus = Flowstate.CurrentFlowstate ? Flowstate.CurrentFlowstate() : 0;
+        const flowBonus = Flowstate.CurrentFlowstate();
         this.lastCalculated = base + flowBonus;
 
         return this.lastCalculated;
@@ -424,7 +422,7 @@ class MineTimeCalculations {
         let data = BLOCK_HARDNESS_DATA[blockName];
         let hardness = data ? data.hardness : 20000;
 
-        let effectiveSpeed = speed + (Flowstate.CurrentFlowstate ? Flowstate.CurrentFlowstate() : 0);
+        let effectiveSpeed = speed + Flowstate.CurrentFlowstate();
 
         if (boosted) {
             let stats = this.collector.getStoredStats();
@@ -635,14 +633,18 @@ class RefuelService {
                 break;
 
             case this.STATES.SELECT_CONTACT:
-                if (Guis.guiName()?.includes('Abiphone')) {
-                    this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
-                    if (!Player.getContainer()?.getStackInSlot(this.contactSlot)) {
-                        if (this.handleTimeout('No jotraeline contact detected!')) return;
-                    }
-                    if (this.contactSlot === -1) return;
-                    this.setState(this.STATES.CLICK_CONTACT, 5);
+                if (!Guis.guiName()?.includes('Abiphone')) {
+                    this.handleTimeout('Abiphone never opened!');
+                    break;
                 }
+
+                this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                if (this.contactSlot === -1 || !Player.getContainer()?.getStackInSlot(this.contactSlot)) {
+                    this.handleTimeout('No jotraeline contact detected!');
+                    break;
+                }
+
+                this.setState(this.STATES.CLICK_CONTACT, 5);
                 break;
 
             case this.STATES.CLICK_CONTACT:
@@ -821,10 +823,12 @@ class ExplorerUpgrade {
                 return callback(false);
             }
 
+            let failed = false;
             let chatWatcher = register('chat', function (event) {
                 let msg = event.message.getString();
 
                 if (msg.includes('You must first unlock')) {
+                    failed = true;
                     Thread.sleep(300);
                     Chat.message("great explorer can't be unlocked!");
                     Guis.closeInv();
@@ -833,6 +837,7 @@ class ExplorerUpgrade {
                 }
 
                 if (msg.includes("You don't have enough Gemstone Powder!")) {
+                    failed = true;
                     Thread.sleep(300);
                     Chat.message('insufficient powder!');
                     Guis.closeInv();
@@ -853,7 +858,7 @@ class ExplorerUpgrade {
             Guis.clickSlot(8, false, 'RIGHT');
             Thread.sleep(1000);
 
-            while (Guis.guiName() === 'Heart of the Mountain') {
+            while (!failed && Guis.guiName() === 'Heart of the Mountain') {
                 Thread.sleep(500);
 
                 let slot = Player.getContainer()?.getStackInSlot(42);
@@ -871,7 +876,7 @@ class ExplorerUpgrade {
             }
 
             chatWatcher.unregister();
-            callback(true);
+            if (!failed) callback(true);
         });
         t.setDaemon(true);
         t.start();
@@ -908,10 +913,6 @@ class ScoreboardDebuffReader {
 }
 
 class CommissionParser {
-    static parse() {
-        return this.parseTab();
-    }
-
     static parseTab() {
         return TabListUtils.readCommissions();
     }
@@ -1028,8 +1029,7 @@ export const MiningUtils = {
     },
     refreshMiningStatsIfNeeded: function (callback = null) {
         Executor.execute(() => {
-            let refreshed = false;
-            refreshed = miningStatsCollector.refreshIfNeeded();
+            const refreshed = miningStatsCollector.refreshIfNeeded();
             if (callback) Client.scheduleTask(0, () => callback(refreshed));
         });
     },

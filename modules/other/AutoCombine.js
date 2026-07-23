@@ -28,10 +28,8 @@ class AutoCombine extends ModuleBase {
         };
 
         this.state = this.STATES.OPEN_ANVIL;
-        this.pendingPair = null;
         this.first = null;
         this.second = null;
-        this.lastCombineSlots = [];
         this.timeoutFlags = 0;
         this.enableLevelTenBooks = false;
         this.tickCounter = 0;
@@ -84,19 +82,21 @@ class AutoCombine extends ModuleBase {
     searchForNextPair() {
         const container = Player.getContainer();
         if (!container) return this.timeout();
-        this.findNextCombinePair();
-        if (!this.pendingPair) {
-            this.message('No combineable pair found');
-            Guis.closeInv();
-            this.toggle(false);
-            return;
-        }
 
         if (container.getName() != '§rAnvil') {
             this.setState(this.STATES.OPEN_ANVIL);
             return;
         }
 
+        const pair = this.findNextCombinePair();
+        if (!pair) {
+            this.message('No combineable pair found');
+            Guis.closeInv();
+            this.toggle(false);
+            return;
+        }
+
+        [this.first, this.second] = pair;
         this.setState(this.STATES.FIRST_BOOK);
     }
 
@@ -168,35 +168,9 @@ class AutoCombine extends ModuleBase {
             booksByTypeAndLevel.get(key).books.push({ item, slot });
         }
 
-        const blacklist = new Set(this.lastCombineSlots || []);
-        let chosenPair = null;
-        let fallbackPair = null;
         const bookGroups = Array.from(booksByTypeAndLevel.values()).sort((a, b) => a.level - b.level || a.type.localeCompare(b.type));
         const maxPairLevel = this.enableLevelTenBooks ? 9 : 4;
-
-        for (const group of bookGroups) {
-            if (group.level > maxPairLevel) continue;
-            if (group.books.length < 2) continue;
-
-            if (!fallbackPair) fallbackPair = { type: group.type, level: group.level, books: group.books.slice(0, 2) };
-
-            const candidate = group.books.filter((book) => !blacklist.has(book.slot)).slice(0, 2);
-
-            if (candidate.length === 2) {
-                chosenPair = { type: group.type, level: group.level, books: candidate };
-                break;
-            }
-        }
-
-        const pair = chosenPair || fallbackPair;
-        this.pendingPair = pair ? { type: pair.type, level: pair.level, books: pair.books } : null;
-        this.first = null;
-        this.second = null;
-
-        if (!this.pendingPair) return;
-
-        [this.first, this.second] = this.pendingPair.books;
-        this.lastCombineSlots = [this.first.slot, this.second.slot];
+        return bookGroups.find((group) => group.level <= maxPairLevel && group.books.length >= 2)?.books.slice(0, 2) || null;
     }
 
     getBookData(line) {
@@ -236,10 +210,8 @@ class AutoCombine extends ModuleBase {
     }
 
     reset(close = false) {
-        this.pendingPair = null;
         this.first = null;
         this.second = null;
-        this.lastCombineSlots = [];
         this.tickCounter = 0;
         this.setState(this.STATES.OPEN_ANVIL);
         if (close) Guis.closeInv();

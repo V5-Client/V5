@@ -103,7 +103,7 @@ class MacroScheduler extends ModuleBase {
 
     onEnable() {
         const now = Date.now();
-        if (this.state !== STATE.IDLE && this.getSchedulableMacros().length === 0) {
+        if (this.state !== STATE.IDLE && this.trackedMacros.length === 0) {
             this.state = STATE.IDLE;
             this.timerEnd = 0;
             this.returnStep = 0;

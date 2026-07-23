@@ -15,7 +15,7 @@ class ChatMentionFailsafe extends Failsafe {
     }
 
     registerChatListeners() {
-        register('packetReceived', (packet, event) => {
+        register('packetReceived', (packet) => {
             if (!this.isActive() || this.disabled) return;
             if (packet.overlay()) return; // action bar
 

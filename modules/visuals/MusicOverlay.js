@@ -218,7 +218,7 @@ class Music extends ModuleBase {
                     width: imageSize,
                     height: imageSize,
                     radius: CORNER_RADIUS * 0.5 * s,
-                    color: colorWithAlpha(0x000000, 0.3),
+                    color: colorWithAlpha(0xff000000, 0.3),
                     borderWidth: 0,
                     borderColor: 0,
                 });

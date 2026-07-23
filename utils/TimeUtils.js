@@ -30,7 +30,7 @@ export class Timer {
     }
 
     hasPassed(duration) {
-        return Date.now() - this.epoch >= duration;
+        return this.getTimePassed() >= duration;
     }
 
     getTimePassed() {

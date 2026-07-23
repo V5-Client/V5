@@ -5,7 +5,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundDisconnectPacket, ClientboundLoginDisconnectPacket } from '../../utils/Packets';
 import { MacroState } from '../../utils/MacroState';
 import { TimeUtils } from '../../utils/TimeUtils';
-//import Clipping from '../../utils/Clipping';
 const JURL = Java.type('java.net.URL');
 const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
 
@@ -37,13 +36,7 @@ class Failsafes extends ModuleBase {
             const fullText = reason?.getString?.() || reason?.toString?.();
             const lowerText = fullText?.toLowerCase();
 
-            if (this.isBanReason(lowerText)) {
-                this.postBanLog(fullText);
-
-                if (this.clipOnBan) {
-                    //Client.scheduleTask(40, () => Clipping.saveClip());
-                }
-            }
+            if (this.isBanReason(lowerText)) this.postBanLog(fullText);
         }).setFilteredClasses([ClientboundLoginDisconnectPacket, ClientboundDisconnectPacket]);
 
         const sectionName = 'Failsafes';
@@ -168,7 +161,7 @@ class Failsafes extends ModuleBase {
                 const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
 
                 const body = JSON.stringify({
-                    reason: reason,
+                    reason,
                     lastMacro: lastMacros.join(', ') || 'None',
                     currentlyMacroing: MacroState.isMacroRunning() || within5Minutes,
                     macroRuntime: MacroState.isMacroRunning() ? TimeUtils.formatUptime(MacroState.getStartTime()) : null,
@@ -211,20 +204,12 @@ class Failsafes extends ModuleBase {
 
         const fileArray = targetPath.listFiles();
         const fileNames = [];
-        const seen = new Set();
 
         if (!fileArray) return [];
 
         for (const file of fileArray) {
-            let name = file.getName();
-
-            if (name.endsWith('.wav')) {
-                name = name.slice(0, -4);
-                if (!seen.has(name)) {
-                    seen.add(name);
-                    fileNames.push(name);
-                }
-            }
+            const name = file.getName();
+            if (name.endsWith('.wav')) fileNames.push(name.slice(0, -4));
         }
 
         return fileNames.sort((a, b) => a.localeCompare(b));

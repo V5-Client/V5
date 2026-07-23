@@ -1,6 +1,5 @@
 import { BP, Direction, MCHand, Vec3d } from './Constants';
 import { MathUtils } from './Math';
-import { Mixin } from './MixinManager';
 import { ServerboundSwingPacket, ServerboundPlayerActionPacket, ServerboundPlayerActionPacket$Action } from './Packets';
 import { ScheduleTask } from './ScheduleTask';
 

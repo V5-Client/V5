@@ -49,6 +49,7 @@ class FishOnMCMacro extends ModuleBase {
 
         this.lastFishAt = 0;
         this.lastCastAt = 0;
+        this.castToken = 0;
         this.state = STATES.FISHING;
         this.start = null;
         this.merchant = null;
@@ -149,6 +150,7 @@ class FishOnMCMacro extends ModuleBase {
     }
 
     onDisable() {
+        this.castToken++;
         this.message('&cDisabled');
         Client.setKey('shift', false);
         Pathfinder.resetPath();
@@ -275,7 +277,7 @@ class FishOnMCMacro extends ModuleBase {
         this.message('&eOpening quests...');
         if (this.hasFishingHook()) Client.rightClick();
         ScheduleTask(3, () => {
-            if (this.enabled && this.state >= STATES.QUEST_OPENING) ChatLib.command('quests');
+            if (this.enabled && this.state === STATES.QUEST_OPENING) ChatLib.command('quests');
         });
     }
 
@@ -346,8 +348,9 @@ class FishOnMCMacro extends ModuleBase {
         }
 
         Client.rightClick();
+        const token = ++this.castToken;
         ScheduleTask(4, () => {
-            if (this.enabled) {
+            if (this.enabled && token === this.castToken && this.state === STATES.FISHING) {
                 this.lastCastAt = Date.now();
                 Client.rightClick();
             }

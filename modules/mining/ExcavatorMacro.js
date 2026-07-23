@@ -1,5 +1,4 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MacroState } from '../../utils/MacroState';
 import { MathUtils } from '../../utils/Math';
 import { Guis } from '../../utils/player/Inventory';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -48,8 +47,6 @@ class ExcavatorMacro extends ModuleBase {
             OPENING: 1,
             SETUP: 2,
             EXCAVATING: 3,
-            AUTO_COMBINING: 4,
-            REFILLING_SCRAP: 5,
         };
 
         this.state = this.STATES.OPENING;
@@ -57,9 +54,6 @@ class ExcavatorMacro extends ModuleBase {
         this.inExcavator = false;
         this.tickCount = this.TICKDELAY || 0;
         this.blacklistedSlots = new Map();
-        this.noScrapMisses = 0;
-        this.refillCommandSent = false;
-        this.refillDelayTicks = 0;
         this.warpCooldownTicks = 0;
 
         this.createOverlay([
@@ -149,40 +143,6 @@ class ExcavatorMacro extends ModuleBase {
                         return;
                     }
                     break;
-                case this.STATES.AUTO_COMBINING: {
-                    const autoCombine = this.getAutoCombineModule();
-                    if (autoCombine?.enabled) return;
-
-                    this.refillCommandSent = false;
-                    this.refillDelayTicks = 0;
-                    this.state = this.STATES.REFILLING_SCRAP;
-                    return;
-                }
-                case this.STATES.REFILLING_SCRAP:
-                    if (Player.getContainer()) {
-                        Guis.closeInv();
-                        return;
-                    }
-
-                    if (!this.refillCommandSent) {
-                        ChatLib.command('gfs SUSPICIOUS_SCRAP 2240');
-                        this.refillCommandSent = true;
-                        this.refillDelayTicks = 40;
-                        return;
-                    }
-
-                    if (this.hasSuspiciousScrap()) {
-                        this.resumeExcavatorLoop();
-                        return;
-                    }
-
-                    if (this.refillDelayTicks > 0) {
-                        this.refillDelayTicks--;
-                        return;
-                    }
-
-                    this.resumeExcavatorLoop();
-                    return;
             }
         });
     }
@@ -222,39 +182,6 @@ class ExcavatorMacro extends ModuleBase {
         }
 
         return false;
-    }
-
-    handleNoScrap() {
-        this.message('&cNo scrap! Running Auto Combine and refilling.');
-        this.inExcavator = false;
-        this.noScrapMisses = 0;
-        this.refillCommandSent = false;
-        this.refillDelayTicks = 0;
-
-        if (Player.getContainer()) Guis.closeInv();
-
-        const autoCombine = this.getAutoCombineModule();
-        if (autoCombine && !autoCombine.enabled) {
-            autoCombine.toggle(true, true);
-        }
-
-        this.state = this.STATES.AUTO_COMBINING;
-    }
-
-    getAutoCombineModule() {
-        return MacroState.getModule('Auto Combine');
-    }
-
-    hasSuspiciousScrap() {
-        return Guis.findItemInInventory('Suspicious Scrap') !== -1;
-    }
-
-    resumeExcavatorLoop() {
-        this.refillCommandSent = false;
-        this.refillDelayTicks = 0;
-        this.inExcavator = false;
-        this.noScrapMisses = 0;
-        this.state = this.STATES.OPENING;
     }
 
     updateBlacklistedSlots() {
@@ -299,9 +226,6 @@ class ExcavatorMacro extends ModuleBase {
         this.state = this.STATES.WAITING;
         this.inExcavator = false;
         this.blacklistedSlots.clear();
-        this.noScrapMisses = 0;
-        this.refillCommandSent = false;
-        this.refillDelayTicks = 0;
         this.warpCooldownTicks = 0;
         Pathfinder.resetPath();
         Rotations.stop();

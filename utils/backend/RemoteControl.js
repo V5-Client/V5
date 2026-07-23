@@ -1,3 +1,1 @@
-export function handleRemoteMessage(data) {
-    //todo
-}
+export function handleRemoteMessage() {}

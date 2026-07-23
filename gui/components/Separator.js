@@ -13,19 +13,12 @@ export class Separator {
     }
 
     draw(mouseX, mouseY) {
-        let width;
-        if (this.fullWidth) {
-            width = this.optionPanelWidth - PADDING * 2;
-        } else {
-            width = this.optionPanelWidth - PADDING * 2 - 20;
-        }
-
-        const separatorY = this.y;
+        const width = this.optionPanelWidth - PADDING * 2 - (this.fullWidth ? 0 : 20);
 
         drawRoundedRectangle({
             x: this.x,
-            y: separatorY + 8,
-            width: width,
+            y: this.y + 8,
+            width,
             height: 1,
             radius: 1,
             color: THEME.BG_INSET,
@@ -36,13 +29,13 @@ export class Separator {
 
         drawRoundedRectangle({
             x: this.x,
-            y: separatorY,
+            y: this.y,
             width: bgWidth,
             height: 16,
             radius: 6,
             color: THEME.BG_WINDOW,
         });
 
-        drawText(this.title, this.x + 8, separatorY + 8, FontSizes.REGULAR, THEME.TEXT);
+        drawText(this.title, this.x + 8, this.y + 8, FontSizes.REGULAR, THEME.TEXT);
     }
 }

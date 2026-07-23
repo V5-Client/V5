@@ -15,6 +15,7 @@ class InventoryWalk extends ModuleBase {
         this.clicked = false;
         this.time = 0;
         this.lastPacketTime = Date.now();
+        this.actionToken = 0;
         this.keybinds = [
             new KeyBind(Client.getMinecraft().options.keyUp),
             new KeyBind(Client.getMinecraft().options.keyLeft),
@@ -28,11 +29,13 @@ class InventoryWalk extends ModuleBase {
         this.on('tick', () => {
             if (!Client.isInGui()) this.clicked = false;
             if (Client.isInChat() || (Client.isInGui() && TypingState.isTyping)) return;
-            let sincePing = Date.now() - this.lastPacketTime;
+            const sincePing = Date.now() - this.lastPacketTime;
             if ((!this.clicked && sincePing < 100) || Date.now() > this.time + 350 + sincePing) {
+                const token = this.actionToken;
                 ScheduleTask(0, () => {
+                    if (!this.enabled || token !== this.actionToken) return;
                     this.keybinds.forEach((keybind) => {
-                        let down = Keyboard.isKeyDown(keybind.getKeyCode());
+                        const down = Keyboard.isKeyDown(keybind.getKeyCode());
                         if (down) keybind.setState(down);
                     });
                 });
@@ -43,7 +46,7 @@ class InventoryWalk extends ModuleBase {
             }
         });
 
-        this.on('packetSent', (packet) => {
+        this.on('packetSent', () => {
             this.clicked = true;
             this.time = Date.now();
             this.keybinds.forEach((keybind) => {
@@ -51,22 +54,25 @@ class InventoryWalk extends ModuleBase {
             });
         }).setFilteredClass(ServerboundContainerClickPacket);
 
-        this.on('packetReceived', (packet) => {
+        this.on('packetReceived', () => {
             this.clicked = false;
+            const token = this.actionToken;
             ScheduleTask(0, () => {
+                if (!this.enabled || token !== this.actionToken) return;
                 this.keybinds.forEach((keybind) => {
-                    let down = Keyboard.isKeyDown(keybind.getKeyCode()) && !Client.isInChat();
+                    const down = Keyboard.isKeyDown(keybind.getKeyCode()) && !Client.isInChat();
                     keybind.setState(down);
                 });
             });
         }).setFilteredClass(ClientboundOpenScreenPacket);
 
-        this.on('packetReceived', (packet) => {
+        this.on('packetReceived', () => {
             this.lastPacketTime = Date.now();
         });
     }
 
     onDisable() {
+        this.actionToken++;
         this.clicked = false;
         this.time = 0;
         this.keybinds.forEach((keybind) => keybind.setState(false));

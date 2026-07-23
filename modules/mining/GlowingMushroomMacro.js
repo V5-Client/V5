@@ -440,7 +440,7 @@ class GlowingMushroomMacro extends ModuleBase {
                 totalClicks++;
 
                 ScheduleTask(() => {
-                    // Retry the same tiny-hitbox mushroom a few times before skipping.
+                    if (!this.enabled || token !== this.loopToken) return;
                     if (isGlowingMushroomBlock(target.x, target.y, target.z) && retryCount < MAX_TARGET_CLICK_RETRIES) {
                         this.clickMushroomChain(targets, currentIndex, token, totalClicks, onDone, retryCount + 1);
                         return;
@@ -449,11 +449,12 @@ class GlowingMushroomMacro extends ModuleBase {
                     if (isGlowingMushroomBlock(target.x, target.y, target.z) && retryCount >= MAX_TARGET_CLICK_RETRIES) {
                         this.blacklistMushroom(target.x, target.y, target.z);
                     }
+                    this.clickMushroomChain(targets, currentIndex + 1, token, totalClicks, onDone, 0);
                 });
-            } else {
-                this.blacklistMushroom(target.x, target.y, target.z);
+                return;
             }
 
+            this.blacklistMushroom(target.x, target.y, target.z);
             this.clickMushroomChain(targets, currentIndex + 1, token, totalClicks, onDone, 0);
         });
     }

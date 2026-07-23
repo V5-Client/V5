@@ -6,7 +6,6 @@ import { ServerboundChatPacket } from '../Packets';
 import { ScheduleTask } from '../ScheduleTask';
 import { v5Command } from '../V5Commands';
 import { handleIRCMessage, isAutoMeowEnabled, isIrcEnabled, isRandomChoiceMeowEnabled } from './IRC';
-import { handleRemoteMessage } from './RemoteControl';
 
 let reconnectAttempts = 0;
 let gameUnload = false;
@@ -64,7 +63,6 @@ function handleIncomingMessage(raw) {
                 V5Auth.shutDownHard();
                 return true;
             }
-            handleRemoteMessage(data);
             return;
         }
 
@@ -112,8 +110,7 @@ function connectWebSocket() {
         return Chat.messageIrc('&cLoader has not authenticated. IRC is unavailable.');
     }
     returnDiscord(token);
-    const wsUrl = `${Links.WEBSOCKET_URL}`;
-    const socket = new WebSocket(wsUrl);
+    const socket = new WebSocket(Links.WEBSOCKET_URL);
     ws = socket;
     connectedAtMs = 0;
     socket.socket?.addHeader?.('Authorization', `Bearer ${token}`);

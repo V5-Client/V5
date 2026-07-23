@@ -536,7 +536,7 @@ class PathRotations {
         const motionX = Player.getMotionX();
         const motionZ = Player.getMotionZ();
         const speedXZ = Math.hypot(motionX, motionZ);
-        const onGround = !!player?.isOnGround?.();
+        const onGround = player.onGround();
 
         if (onGround && speedXZ < this.PREDICTION_MIN_SPEED_XZ) return;
 

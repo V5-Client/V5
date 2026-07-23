@@ -235,7 +235,7 @@ class StridersurferMacro extends ModuleBase {
 
                 Rotations.lookAtVector(aimPoint);
                 Rotations.onComplete(() => {
-                    Client.leftClick();
+                    if (this.enabled && this.step === STEPS.RESTORE_ROTATION) Client.leftClick();
                 });
                 this.transitionTo(STEPS.RESTORE_ROTATION);
                 break;
@@ -483,6 +483,7 @@ class StridersurferMacro extends ModuleBase {
     onDisable() {
         this.message('&cDisabled');
         Client.setKey('shift', false);
+        Rotations.stop();
         this.lastStriderCount = null;
         this.biteWaitStartedAt = 0;
         Mouse.regrab();

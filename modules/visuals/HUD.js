@@ -50,7 +50,6 @@ class HUD extends ModuleBase {
         const scale = this.clamp(rawScale, 0.5, 3.0);
 
         return {
-            key,
             x,
             y,
             scale,
@@ -100,10 +99,6 @@ class HUD extends ModuleBase {
 
     clamp(v, min, max) {
         return Math.max(min, Math.min(max, v));
-    }
-
-    isInside(mx, my, x, y, w, h) {
-        return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
     clampOverlayToScreen(overlay) {
@@ -164,11 +159,6 @@ class HUD extends ModuleBase {
         o.height = pad * 2 + mainRows * slot + gap + slot;
 
         this.clampOverlayToScreen(o);
-    }
-
-    recalcAllBounds() {
-        if (this.STATS_HUD) this.recalcStatsBounds();
-        if (this.INVENTORY_HUD) this.recalcInventoryBounds();
     }
 
     prepareOverlay(enabled, recalc) {

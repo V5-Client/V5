@@ -56,7 +56,8 @@ class BlockVisual extends ModuleBase {
             this.currentBlock = lookingAt;
 
             const item = Player.getHeldItem();
-            const isEtherwarping = Player.isSneaking() && item?.getName()?.toLowerCase()?.includes('aspect of the void');
+            const itemName = item?.getName()?.toLowerCase();
+            const isEtherwarping = Player.isSneaking() && (itemName?.includes('aspect of the void') || itemName?.includes('aspect of the end'));
 
             const currentAlpha = this.RGBA ? this.RGBA.a : 255;
 

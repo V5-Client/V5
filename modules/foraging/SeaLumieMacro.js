@@ -125,7 +125,6 @@ class SeaLumie extends ModuleBase {
                                             neighborBlock?.type?.getRegistryName()?.includes('air') ||
                                             neighborBlock?.type?.getRegistryName()?.includes('pickle')
                                         ) {
-                                            // allow pathing through pickles
                                             queue.push(neighbor);
                                         }
                                     }
