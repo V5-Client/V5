@@ -170,7 +170,8 @@ class AutoCombine extends ModuleBase {
 
         const bookGroups = Array.from(booksByTypeAndLevel.values()).sort((a, b) => a.level - b.level || a.type.localeCompare(b.type));
         const maxPairLevel = this.enableLevelTenBooks ? 9 : 4;
-        return bookGroups.find((group) => group.level <= maxPairLevel && group.books.length >= 2)?.books.slice(0, 2) || null;
+        const group = bookGroups.find((group) => group.level <= maxPairLevel && group.books.length >= 2);
+        return group ? group.books.slice(0, 2) : null;
     }
 
     getBookData(line) {

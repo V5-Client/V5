@@ -108,8 +108,9 @@ class BazaarUtil {
 
     getSlotPrice(slot) {
         const lore = Player.getContainer()?.getStackInSlot(slot)?.getLore?.() || [];
-        const line = lore.find((value) => /^Price: [\d,]+ coins$/.test(ChatLib.removeFormatting(String(value)).trim()));
-        return Number(line?.match(/[\d,]+/)?.[0]?.replace(/,/g, ''));
+        const line = lore.map((value) => ChatLib.removeFormatting(String(value)).trim()).find((value) => value.toLowerCase().startsWith('price:'));
+        if (!line) return NaN;
+        return Number(line.replace(/[^\d,.]/g, '').replace(/,/g, ''));
     }
 
     isSignOpen() {
