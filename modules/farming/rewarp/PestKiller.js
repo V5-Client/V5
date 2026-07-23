@@ -59,7 +59,7 @@ class PestKiller {
         this.goDirectlyToPlots = false;
         if (this.state === STATES.KILLING) {
             const target = pests.find((pest) => this.id(pest) === this.targetId);
-            if (target) return this.kill(target);
+            if (target && this.distanceSq(target) <= PEST_RANGE_SQ) return this.kill(target);
             this.stopKilling();
             if (!pests.length) {
                 if (TabListUtils.readPests().alivePestCount <= 1) {

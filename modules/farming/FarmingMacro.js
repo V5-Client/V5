@@ -11,6 +11,7 @@ import { farmingDelays } from './FarmingDelays';
 import { rewarpHandler } from './rewarp/RewarpHandler';
 import { rewarpSettings } from './rewarp/RewarpSettings';
 import { getNearbyPest } from '../visuals/PestESP';
+import { loadoutHandler } from './LoadoutHandler';
 
 const MAX_PEST_TRACK_DISTANCE = 14;
 const PEST_STALL_GRACE_TICKS = 20;
@@ -80,6 +81,7 @@ export class FarmingMacro extends ModuleBase {
         if (!player) return;
 
         this.farmingSlot = Player.getHeldItemIndex();
+        loadoutHandler.select(loadoutHandler.farmingSlot);
         this.startFarming(player);
     }
 
@@ -144,6 +146,12 @@ export class FarmingMacro extends ModuleBase {
         if (looping && this.shouldRunBarnTasks()) {
             ChatLib.command('sethome');
             return this.beginRewarp({ x: player.getX(), y: player.getY(), z: player.getZ() });
+        }
+
+        if (Date.now() >= this.nextTabCheckAt) {
+            loadoutHandler.select(
+                TabListUtils.getPestCooldown() <= loadoutHandler.pestSpawnSwapCooldown ? loadoutHandler.pestSpawningSlot : loadoutHandler.farmingSlot
+            );
         }
 
         if (this.trySprayonator()) return;
@@ -214,6 +222,7 @@ export class FarmingMacro extends ModuleBase {
 
     finishRewarp(player) {
         this.mode = FARMING;
+        loadoutHandler.select(loadoutHandler.farmingSlot);
         this.startFarming(player);
     }
 

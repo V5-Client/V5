@@ -5,6 +5,7 @@ import { rewarpSettings } from './RewarpSettings';
 import { Utils } from '../../../utils/Utils';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { pestKiller } from './PestKiller';
+import { loadoutHandler } from '../LoadoutHandler';
 
 const PHASES = {
     BARN: 'Warping to barn',
@@ -27,6 +28,7 @@ class RewarpHandler {
         this.returnResult = null;
 
         const runVisitor = rewarpSettings.shouldRunVisitorMacro();
+        this.runVisitor = runVisitor;
         const runPhilip = rewarpSettings.shouldRunPhilipBonus();
         this.tasks = runVisitor ? [autoSell, visitorMacro] : [];
         if (runPhilip) this.tasks.push(philipMacro);
@@ -48,6 +50,7 @@ class RewarpHandler {
         if (this.phase !== PHASES.REWARP && Date.now() < this.nextActionAt) return;
 
         if (this.phase === PHASES.BARN) {
+            if (this.runVisitor && !loadoutHandler.select(loadoutHandler.visitorSlot)) return;
             ChatLib.command('tptoplot barn');
             this.phase = PHASES.DECIDING;
             this.nextActionAt = Date.now() + 2000;
@@ -57,6 +60,11 @@ class RewarpHandler {
         if (this.phase === PHASES.DECIDING) {
             while ((this.task = this.tasks.shift())) {
                 if (this.task === autoSell && !autoSell.shouldRun()) continue;
+                if (this.task === pestKiller && !loadoutHandler.select(loadoutHandler.pestKillingSlot)) {
+                    this.tasks.unshift(this.task);
+                    this.task = null;
+                    return;
+                }
                 if (this.task.start(this.macro, this.task === pestKiller && this.skipPestInitialLocation) !== false) {
                     this.phase = PHASES.RUNNING;
                     break;

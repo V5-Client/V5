@@ -184,6 +184,24 @@ class TabListUtilsClass {
         }
     }
 
+    getPestCooldown() {
+        try {
+            const tabNames = this.getNames();
+            const startIdx = tabNames.findIndex((line) => this.stripFormatting(line?.getName?.() ?? line).includes('Pests:'));
+            if (startIdx === -1) return 0;
+
+            for (let i = startIdx + 1; i < tabNames.length; i++) {
+                const text = this.stripFormatting(tabNames[i]?.getName?.() ?? tabNames[i]).trim();
+                const match = text.match(/^Cooldown:\s*(?:(\d+)m\s*)?(?:(\d+)s)?$/);
+                if (match) return Number(match[1] ?? 0) * 60 + Number(match[2] ?? 0);
+            }
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
+
+        return 0;
+    }
+
     findIndex(items, target, start = 0) {
         for (let i = start; i < items.length; i++) {
             const cleaned = this.stripFormatting(items[i]).trim();
