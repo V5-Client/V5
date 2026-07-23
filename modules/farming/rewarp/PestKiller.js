@@ -62,6 +62,10 @@ class PestKiller {
             if (target) return this.kill(target);
             this.stopKilling();
             if (!pests.length) {
+                if (TabListUtils.readPests().alivePestCount <= 1) {
+                    this.stop();
+                    return true;
+                }
                 this.finishArea();
                 this.tabGraceEndsAt = Date.now() + LAST_PEST_KILL_GRACE_MS;
             }
