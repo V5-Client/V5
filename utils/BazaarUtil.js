@@ -63,7 +63,8 @@ class BazaarUtil {
                 const slot = this.findSlot('Custom Amount');
                 if (slot === -1) return;
                 const price = this.getSlotPrice(slot);
-                if (!Number.isFinite(price) || !Number.isFinite(this.maxPrice) || price > this.maxPrice) return this.finish(false);
+                if (!Number.isFinite(price)) return;
+                if (!Number.isFinite(this.maxPrice) || price > this.maxPrice) return this.finish(false);
                 this.confirmSlot = slot;
                 if (!Guis.clickSlot(slot)) return this.finish(false);
                 this.setState('warning', 500);
@@ -108,9 +109,8 @@ class BazaarUtil {
 
     getSlotPrice(slot) {
         const lore = Player.getContainer()?.getStackInSlot(slot)?.getLore?.() || [];
-        const line = lore.map((value) => ChatLib.removeFormatting(String(value)).trim()).find((value) => value.toLowerCase().startsWith('price:'));
-        if (!line) return NaN;
-        return Number(line.replace(/[^\d,.]/g, '').replace(/,/g, ''));
+        const line = lore.map((value) => ChatLib.removeFormatting(String(value)).trim()).find((value) => value.match(/^price:\s*[\d,.]+/i));
+        return Number(line?.match(/[\d,.]+/)?.[0]?.replace(/,/g, ''));
     }
 
     isSignOpen() {
