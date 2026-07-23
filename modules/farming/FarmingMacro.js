@@ -131,7 +131,7 @@ export class FarmingMacro extends ModuleBase {
 
     handleFarming(player) {
         if (this.sprayonatorAction) return;
-        if (farmingSettings.killNearbyPests && this.handlePest(player)) return;
+        if (farmingSettings.killNearbyPests && !rewarpSettings.pestKiller && this.handlePest(player)) return;
 
         const looping = rewarpSettings.looping;
         if (rewarpSettings.pestKiller && Date.now() >= this.nextTabCheckAt && TabListUtils.readPests().alivePestCount >= rewarpSettings.pestThreshold) {
