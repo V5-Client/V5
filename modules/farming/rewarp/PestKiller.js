@@ -230,7 +230,9 @@ class PestKiller {
     }
 
     verticalGoals(x, z) {
-        return Array.from({ length: 12 }, (_, y) => [Math.floor(x), y + 66, Math.floor(z)]);
+        const goals = [];
+        for (let y = 66; y < 78; y++) goals.push([Math.floor(x), y, Math.floor(z)]);
+        return goals;
     }
 
     distanceSq(entity) {
