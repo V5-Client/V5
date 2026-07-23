@@ -12,6 +12,7 @@ const PLOT_PATH_DELAY_MS = 2_000;
 const PLOT_WARP_MS = 3_000;
 const PLOT_TIMEOUT_MS = 30_000;
 const PATH_RETRY_MS = 1_000;
+const TAB_REFRESH_MS = 5_000;
 const MAX_SEARCH_FAILURES = 3;
 const STATES = {
     SEARCHING: 'Searching',
@@ -31,12 +32,12 @@ class PestKiller {
         this.macro = macro;
         this.running = true;
         this.state = STATES.SEARCHING;
-        this.initialSearchPending = !skipInitialLocation;
         this.goDirectlyToPlots = skipInitialLocation;
         this.currentPlot = null;
         this.visitedPlots = new Set();
         this.pathToken = 0;
         this.pathRetryAt = 0;
+        this.tabRefreshAt = 0;
         this.targetId = null;
         this.trackedTargetId = null;
         farmingSettings.originalSlot = Player.getHeldItemIndex();
@@ -60,7 +61,14 @@ class PestKiller {
             const target = pests.find((pest) => this.id(pest) === this.targetId);
             if (target) return this.kill(target);
             this.stopKilling();
-            if (!pests.length) this.finishArea();
+            if (!pests.length) {
+                if (TabListUtils.readPests().alivePestCount <= 1) {
+                    this.stop();
+                    return true;
+                }
+                this.finishArea();
+                this.tabRefreshAt = Date.now() + TAB_REFRESH_MS;
+            }
         }
 
         if (pests.length) {
@@ -70,6 +78,7 @@ class PestKiller {
             return false;
         }
 
+        if (Date.now() < this.tabRefreshAt) return false;
         const infestedPlots = TabListUtils.readPests().infestedPlots;
         if (this.state === STATES.PATHING_PESTS) {
             this.stopPath();
@@ -84,8 +93,8 @@ class PestKiller {
             if (Date.now() >= this.nextActionAt) this.startParticleSearch();
             return false;
         }
-        if (this.initialSearchPending || this.currentPlot !== null) {
-            if (this.startParticleSearch()) this.initialSearchPending = false;
+        if (this.currentPlot !== null) {
+            this.startParticleSearch();
             return false;
         }
 
