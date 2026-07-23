@@ -13,6 +13,7 @@ class AuctionHelper extends ModuleBase {
         this.auto2Day = false;
         this.quickCreate = false;
         this.selectingDuration = false;
+        this.lastBinConfirmAt = 0;
 
         this.addToggle('Auto 2 Day', (value) => {
             this.auto2Day = !!value;
@@ -35,8 +36,11 @@ class AuctionHelper extends ModuleBase {
         }
 
         if (!this.quickCreate) return;
-        if (guiName === 'Confirm BIN Auction') Guis.clickItem('Confirm BIN Auction', false, 'LEFT', true, true);
-        else if (guiName === 'BIN Auction View') Guis.clickItem('Go Back', false, 'LEFT', true, true);
+        if (guiName === 'Confirm BIN Auction') {
+            if (Guis.clickItem('Confirm BIN Auction', false, 'LEFT', true, true)) this.lastBinConfirmAt = Date.now();
+        } else if (guiName === 'BIN Auction View' && Date.now() - this.lastBinConfirmAt < 1000) {
+            Guis.clickItem('Go Back', false, 'LEFT', true, true);
+        }
     }
 }
 
