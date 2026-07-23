@@ -41,7 +41,7 @@ function setKeysForStraightLine(yaw, shouldJump, ignoreBottomSlab) {
         }
     }
 
-    Client.setKey('space', shouldJump && Utils.playerIsCollided(!!ignoreBottomSlab));
+    Client.setKey('space', !!shouldJump && Utils.playerIsCollided(!!ignoreBottomSlab));
 }
 
 function setKeysForStraightLineCoords(x, y, z, shouldJump, ignoreBottomSlab) {
