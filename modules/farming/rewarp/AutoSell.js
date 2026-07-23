@@ -80,19 +80,27 @@ class AutoSell {
                 return this.finish();
             }
             case 'bazaar':
-                if (!Guis.guiName()?.toLowerCase().includes('bazaar')) {
+                if (
+                    !String(Guis.guiName() || '')
+                        .toLowerCase()
+                        .includes('bazaar')
+                ) {
                     ChatLib.command('bz');
                     this.nextActionAt = Date.now() + 1000;
                     return;
                 }
 
                 if (!Guis.clickItem('Sell Inventory Now')) return;
-                this.state = 'sell whole inventory';
+                this.state = 'selling whole inventory';
                 this.nextActionAt = Date.now() + Utils.randomInt(farmingDelays.bazaarActionDelayMin, farmingDelays.bazaarActionDelayMax);
                 return;
-            case 'sell whole inventory':
-                if (!Guis.clickItem('Sell whole inventory')) return;
+            case 'selling whole inventory':
+                if (!Guis.clickItem('Selling whole inventory')) return;
 
+                this.state = 'closing inventory';
+                this.nextActionAt = Date.now() + 10 * 50;
+                return;
+            case 'closing inventory':
                 return this.finish();
         }
     }
