@@ -2,8 +2,8 @@ import { ZombieEntity, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
 
-const RAT_WIDTH = 0.3;
-const RAT_HEIGHT = 0.975;
+const RAT_WIDTH = 0.49;
+const RAT_HEIGHT = 0.99;
 const EPSILON = 0.01;
 const WORLD_TICK_MS = 50;
 
