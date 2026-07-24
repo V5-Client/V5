@@ -11,7 +11,6 @@ const PARTICLE_SEARCH_MS = 2_000;
 const PLOT_PATH_DELAY_MS = 2_000;
 const PLOT_WARP_MS = 3_000;
 const PLOT_TIMEOUT_MS = 30_000;
-const PATH_RETRY_MS = 1_000;
 const LAST_PEST_KILL_GRACE_MS = 5_000;
 const MAX_SEARCH_FAILURES = 3;
 const STATES = {
@@ -21,11 +20,13 @@ const STATES = {
     WAITING_FOR_PLOT: 'Waiting for plot',
     CAPTURING_PARTICLES: 'Capturing particles',
     PATHING_PARTICLES: 'Pathing to particles',
+    PATHING_FORWARD: 'Pathing forward',
 };
 
 class PestKiller {
     constructor() {
         register('packetReceived', (packet) => this.onParticle(packet)).setFilteredClass(ClientboundLevelParticlesPacket);
+        register('chat', (event) => this.onChat(event));
     }
 
     start(macro, skipInitialLocation = false) {
@@ -84,6 +85,10 @@ class PestKiller {
             this.stopPath();
             this.finishArea();
         }
+        if (this.state === STATES.PATHING_FORWARD) {
+            if (Date.now() >= this.pathRetryAt) this.pathToForward();
+            return false;
+        }
         if (this.state === STATES.PATHING_PARTICLES) return false;
         if (this.state === STATES.CAPTURING_PARTICLES) {
             if (Date.now() >= this.particleSearchEndsAt) this.finishParticleCapture();
@@ -126,8 +131,36 @@ class PestKiller {
         });
         this.startPath(goals, (success) => {
             this.state = STATES.SEARCHING;
-            if (!success) this.pathRetryAt = Date.now() + PATH_RETRY_MS;
+            if (!success) this.pathRetryAt = Date.now();
             if (!getLoadedPests().length) this.finishArea();
+        });
+    }
+
+    onChat(event) {
+        if (!this.running || this.currentPlot === null) return;
+        const message = event.message?.getUnformattedText?.() || '';
+        const match = message.match(/Teleported you to Plot - (\d+)!/);
+        if (!match || Number(match[1]) !== this.currentPlot) return;
+
+        this.plotTimeoutAt = Number.POSITIVE_INFINITY;
+        this.pathfindAfter = 0;
+        this.nextActionAt = 0;
+        this.pathToForward();
+    }
+
+    pathToForward() {
+        const yaw = (Number(Player.getYaw()) * Math.PI) / 180;
+        const x = Player.getX() - Math.sin(yaw) * 64;
+        const z = Player.getZ() + Math.cos(yaw) * 64;
+        this.state = STATES.PATHING_FORWARD;
+        this.startPath(this.verticalGoals(x, z), (success) => {
+            if (!success) {
+                this.pathRetryAt = Date.now();
+                return;
+            }
+            this.state = STATES.SEARCHING;
+            if (getLoadedPests().length) return;
+            this.startParticleSearch();
         });
     }
 
@@ -149,7 +182,7 @@ class PestKiller {
         Client.unpressKeys();
         if (!farmingSettings.selectVacuum()) return false;
         if (this.trackedTargetId !== this.targetId) {
-            Rotations.trackEntity(pest);
+            Rotations.lookAtVector(pest, { precision: 15 });
             this.trackedTargetId = this.targetId;
         }
         Client.setKey('rightclick', true);

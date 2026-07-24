@@ -165,7 +165,6 @@ class RotationController {
         const distance = Math.hypot(deltaYaw, deltaPitch);
 
         if (distance <= this.getPrecision()) {
-            RotationGCD.applyToPlayer(targetYaw, targetPitch);
             this.onReachedTarget();
             return;
         }
