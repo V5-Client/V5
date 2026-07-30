@@ -78,8 +78,9 @@ class Bot extends ModuleBase {
         this.miningStatsRefreshToken = 0;
         this.FOVPenalty = true;
         this.abilityFromChat = false;
-        this.lastUse = 0;
+        this.lastUse = Date.now();
         this.ABILITY_COOLDOWN_MS = 200000;
+        this._pendingAbilityActivation = false;
         this.fakeLookModeName = 'Off';
         this.selectedTypeName = 'Mithril';
         this._renderPalette = {
@@ -257,19 +258,32 @@ class Bot extends ModuleBase {
             this.resetTickCounters();
             this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] abilityready → state=ABILITY, abilityFromChat=true`);
         });
 
         manager.subscribe('abilityused', () => {
             if (!this.enabled) return;
             if (this.ability === 'SpeedBoost') this.speedBoost = true;
+            this.abilityFromChat = false;
+            this.lastUse = Date.now();
             this.resetTickCounters();
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilityused → abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
         manager.subscribe('abilitygone', () => {
             if (!this.enabled) return;
             this.speedBoost = false;
+            this.abilityFromChat = false;
             this.lastUse = Date.now();
             this.resetTickCounters();
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilitygone → abilityFromChat=false, lastUse=${this.lastUse}`);
+        });
+
+        manager.subscribe('abilitycooldown', () => {
+            if (!this.enabled) return;
+            this.lastUse = Date.now();
+            this.state = this.STATES.MINING;
+            if (this.DEBUG_MODE) this.message(`&c[DEBUG] abilitycooldown → lastUse=${this.lastUse}, state=MINING`);
         });
     }
 
@@ -346,14 +360,14 @@ class Bot extends ModuleBase {
             'Targets specified block type.',
             'Mithril'
         );
-        // this.addToggle(
-        //     'Debug Mode',
-        //     (value) => {
-        //         this.DEBUG_MODE = value;
-        //         value ? this.debug.register() : this.debug.unregister();
-        //     },
-        //     'Debugging - not recommended for average use.'
-        // );
+        this.addToggle(
+            'Debug Mode',
+            (value) => {
+                this.DEBUG_MODE = value;
+                value ? this.debug.register() : this.debug.unregister();
+            },
+            'Debugging - not recommended for average use.'
+        );
         // this.addToggle(
         //     'Scan Mode',
         //     (value) => {
@@ -579,23 +593,33 @@ class Bot extends ModuleBase {
 
         const now = Date.now();
         const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
-        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < now) {
-            if (this.ensureDrillEquipped(this.drill)) return;
 
-            const fakeLookMode = this.getFakeLookMode();
+        if (this.DEBUG_MODE) {
+            this.message(
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
+            );
+        }
 
-            if (Player.getPlayer().handSwinging && fakeLookMode === 'Off') {
-                return Client.setKey('leftclick', false);
-            }
-
+        if (this._pendingAbilityActivation) {
+            this._pendingAbilityActivation = false;
             Client.rightClick();
-
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] RIGHT-CLICKED status="${abilityStatus}"`);
             this.lastUse = now;
             this.abilityFromChat = false;
             this.state = this.STATES.MINING;
             return;
         }
 
+        if (abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < now) {
+            if (this.ensureDrillEquipped(this.drill)) return;
+
+            Client.setKey('leftclick', false);
+            this._pendingAbilityActivation = true;
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().handSwinging})`);
+            return;
+        }
+
+        if (this.DEBUG_MODE) this.message(`&c[DEBUG] No condition met, going MINING`);
         this.state = this.STATES.MINING;
     }
 
@@ -677,7 +701,7 @@ class Bot extends ModuleBase {
         if (!this.currentTarget) return;
 
         const tunnelMode = this.isTunnelMode();
-        this.miningspeed = tunnelMode ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed();
+        this.miningspeed = (tunnelMode ? MiningUtils.getSpeedWithCold() : MiningUtils.getMiningSpeed()) || 1;
         this.totalTicks = MiningUtils.getMineTime(this.currentTarget, this.miningspeed, this.speedBoost) + this.glideDelay();
 
         this.handleBreaking(blockName, fakeLookMode);
@@ -1419,6 +1443,7 @@ class Bot extends ModuleBase {
         }
 
         this.state = this.STATES.WAITING;
+        this._pendingAbilityActivation = false;
         Client.stopMovement();
         Client.setKey('space', false);
         this.setSneak(false, true);
