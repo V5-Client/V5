@@ -360,14 +360,14 @@ class Bot extends ModuleBase {
             'Targets specified block type.',
             'Mithril'
         );
-        this.addToggle(
-            'Debug Mode',
-            (value) => {
-                this.DEBUG_MODE = value;
-                value ? this.debug.register() : this.debug.unregister();
-            },
-            'Debugging - not recommended for average use.'
-        );
+       // this.addToggle(
+       //     'Debug Mode',
+       //     (value) => {
+       //         this.DEBUG_MODE = value;
+       //         value ? this.debug.register() : this.debug.unregister();
+       //     },
+       //     'Debugging - not recommended for average use.'
+       // );
         // this.addToggle(
         //     'Scan Mode',
         //     (value) => {
