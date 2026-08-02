@@ -1,6 +1,6 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { CombatBot } from '../combat/CombatBot';
-import { getModuleElapsedMs } from '../../utils/MacroState';
+import { getModuleActiveHours } from '../../utils/MacroState';
 import { fastDistance, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -424,9 +424,7 @@ class SunGecko extends ModuleBase {
     }
 
     getActiveHours() {
-        const elapsedMs = getModuleElapsedMs(this.name);
-        if (elapsedMs <= 0) return 0;
-        return elapsedMs / 3600000;
+        return getModuleActiveHours(this.name);
     }
 
     setState(newState) {

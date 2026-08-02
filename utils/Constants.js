@@ -23,7 +23,6 @@ export const URL = java.net.URL;
 const os = System.getProperty('os.name').toLowerCase();
 export const isWindows = os.includes('win');
 export const isLinux = os.includes('nux') || os.includes('nix');
-export const isMac = os.includes('mac');
 
 export const globalAssetsDir = new File('./config/ChatTriggers/assets');
 

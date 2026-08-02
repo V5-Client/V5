@@ -1,6 +1,6 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ClipContext, MCHand, Vec3d } from '../../utils/Constants';
-import { getModuleElapsedMs } from '../../utils/MacroState';
+import { getModuleActiveHours } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -307,9 +307,7 @@ class PeltMacro extends ModuleBase {
     }
 
     getActiveHours() {
-        const elapsedMs = getModuleElapsedMs(this.name);
-        if (elapsedMs <= 0) return 0;
-        return elapsedMs / 3600000;
+        return getModuleActiveHours(this.name);
     }
 
     findPeltMob() {
