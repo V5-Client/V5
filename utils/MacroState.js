@@ -88,6 +88,8 @@ export function getModuleElapsedMs(moduleName) {
     return moduleStart ? Date.now() - moduleStart : getLastDisableMeta(moduleName)?.durationMs || 0;
 }
 
+export const getModuleActiveHours = (moduleName) => getModuleElapsedMs(moduleName) / 3600000;
+
 function toggleLastUsedMacroFromUser() {
     const macroName = getLastActiveMacro();
     if (!macroName) {

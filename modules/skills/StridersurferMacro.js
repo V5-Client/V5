@@ -1,6 +1,6 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ArmorStandEntity } from '../../utils/Constants';
-import { getModuleElapsedMs } from '../../utils/MacroState';
+import { getModuleActiveHours } from '../../utils/MacroState';
 import { formatRoundedNumber, wrapTo180 } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { clickItem, closeInventory, setItemSlot } from '../../utils/player/Inventory';
@@ -427,9 +427,7 @@ class StridersurferMacro extends ModuleBase {
     }
 
     getActiveHours() {
-        const elapsedMs = getModuleElapsedMs(this.name);
-        if (elapsedMs <= 0) return 0;
-        return elapsedMs / 3600000;
+        return getModuleActiveHours(this.name);
     }
 
     getStepDescription() {
