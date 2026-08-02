@@ -1,7 +1,7 @@
 import requestV2 from 'requestV2';
 import { BORDER_WIDTH, CORNER_RADIUS, drawImageFromURL, drawRoundedRectangleWithBorder, drawText, FontSizes, getTextWidth, THEME } from '../../gui/Utils';
 import { File, InputStreamReader, isWindows, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
-import { Chat } from '../../utils/Chat';
+import { chat } from '../../utils/Chat';
 import { streamDownloadToFile } from '../../utils/FileUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Executor } from '../../utils/ThreadExecutor';
@@ -314,17 +314,17 @@ class Music extends ModuleBase {
 
         Executor.execute(() => {
             try {
-                Chat.message('&7WindowsMusicHelper.exe not found. Downloading...');
+                chat('&7WindowsMusicHelper.exe not found. Downloading...');
                 let lastUpdate = -25;
                 streamDownloadToFile(this.windowsExeDownloadUrl, this.exePath, (percent) => {
                     if (percent >= lastUpdate + 25) {
-                        Chat.message(`&7Music helper download: &b${percent}%`);
+                        chat(`&7Music helper download: &b${percent}%`);
                         lastUpdate = percent;
                     }
                 });
-                Chat.message('&aWindows music helper installed.');
+                chat('&aWindows music helper installed.');
             } catch (e) {
-                Chat.message(`&cWindows music helper download failed: ${e}`);
+                chat(`&cWindows music helper download failed: ${e}`);
                 console.error(`[Music] Download error: ${e}`);
                 try {
                     if (this.exePath.exists() && this.exePath.length() <= 0) this.exePath.delete();

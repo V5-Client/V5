@@ -28,11 +28,7 @@ export const CORNER_RADIUS = 12;
 
 export const CATEGORY_HEIGHT = 30;
 export const CATEGORY_PADDING = 4;
-export const LEFT_PANEL_TEXT_HEIGHT = 8;
-
-export const CATEGORY_BOX_PADDING = 8;
 export const ITEM_SPACING = 6;
-export const SEPARATOR_HEIGHT = 24;
 export const SUBCATEGORY_BUTTON_HEIGHT = 24;
 export const SUBCATEGORY_BUTTON_SPACING = 4;
 
@@ -195,10 +191,6 @@ export const scissor = (x, y, w, h) => {
 
 export const resetScissor = () => {
     NVG.resetScissor();
-};
-
-export const composite = (op) => {
-    NVG.setGlobalCompositeOperation(op);
 };
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);

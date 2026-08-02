@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
-import { Mouse } from '../../utils/Ungrab';
+import { clickSlot, findItemInHotbar, getGuiName, setItemSlot } from '../../utils/player/Inventory';
+import { regrab, ungrab } from '../../utils/Ungrab';
 class JerryBoxMacro extends ModuleBase {
     constructor() {
         super({
@@ -46,21 +46,21 @@ class JerryBoxMacro extends ModuleBase {
                         const isHoldingJerry = held?.getName()?.toString()?.includes('Jerry Box');
 
                         if (!isHoldingJerry) {
-                            const slot = Guis.findItemInHotbar('Jerry Box');
+                            const slot = findItemInHotbar('Jerry Box');
                             if (slot === -1) {
                                 this.message('&cOut of Jerry Boxes. Disabling.');
                                 this.toggle(false);
                                 return;
                             }
 
-                            Guis.setItemSlot(slot);
+                            setItemSlot(slot);
                             this.setState(this.STATES.RIGHT_CLICK);
                             return;
                         }
                     }
                     // If a GUI is open, handle Jerry Box GUI or close others
                     if (Client.isInGui() && !Client.isInChat()) {
-                        if (Guis.guiName()?.includes('Open a Jerry Box')) {
+                        if (getGuiName()?.includes('Open a Jerry Box')) {
                             this.waitLeft = this.guiWaitMax;
                             return this.setState(this.STATES.CLICK_BUTTON);
                         }
@@ -77,7 +77,7 @@ class JerryBoxMacro extends ModuleBase {
                 case this.STATES.CLICK_BUTTON: {
                     const container = Player.getContainer();
                     // Check container exists, GUI is jerry box, and Open button exists
-                    if (!container || !container.getStackInSlot(22) || !Guis.guiName()?.includes('Open a Jerry Box')) {
+                    if (!container || !container.getStackInSlot(22) || !getGuiName()?.includes('Open a Jerry Box')) {
                         if (this.waitLeft > 0) {
                             this.waitLeft--;
                         } else {
@@ -86,7 +86,7 @@ class JerryBoxMacro extends ModuleBase {
                         break;
                     }
                     // Center slot (22) is the Open button
-                    Guis.clickSlot(22, false, 'MIDDLE');
+                    clickSlot(22, false, 'MIDDLE');
                     this.setState(this.STATES.CLOSE_GUI);
                     break;
                 }
@@ -105,14 +105,14 @@ class JerryBoxMacro extends ModuleBase {
         this.message('&aEnabled');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
-        Mouse.ungrab();
+        ungrab();
     }
 
     onDisable() {
         this.message('&cDisabled');
         this.state = this.STATES.IDLE;
         this.cooldown = 0;
-        Mouse.regrab();
+        regrab();
     }
 
     setState(newState, waitTicks = this.delay) {

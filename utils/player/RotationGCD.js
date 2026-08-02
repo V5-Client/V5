@@ -1,109 +1,70 @@
-class SharedRotationGCD {
-    constructor() {
-        this.lastYaw = 0;
-        this.lastPitch = 0;
-        this.initialized = false;
-        this.lastApplyAt = 0;
-        this.DRIFT_RESYNC_MS = 120;
-    }
+const DRIFT_RESYNC_MS = 120;
+let lastYaw = 0;
+let lastPitch = 0;
+let initialized = false;
+let lastApplyAt = 0;
 
-    calculateGCD() {
-        const sensitivity = Client.getMinecraft().options.sensitivity().get();
-        const f = sensitivity * 0.6 + 0.2;
-        return f * f * f * 1.2;
-    }
-
-    normalizeAngle(angle) {
-        return (((angle % 360) + 540) % 360) - 180;
-    }
-
-    clampPitch(pitch) {
-        return Math.max(-90, Math.min(90, pitch));
-    }
-
-    angleDifference(a, b) {
-        return this.normalizeAngle(a - b);
-    }
-
-    aimModulo360(currentYaw, targetYaw) {
-        if (!Number.isFinite(currentYaw)) return targetYaw;
-        if (!Number.isFinite(targetYaw)) return currentYaw;
-        return currentYaw + this.angleDifference(targetYaw, currentYaw);
-    }
-
-    applyGCD(delta, prevRotation, gcd, min = null, max = null) {
-        if (!Number.isFinite(delta) || !Number.isFinite(gcd) || gcd <= 0) return prevRotation;
-        const roundedDelta = Math.round(delta / gcd) * gcd;
-        let result = prevRotation + roundedDelta;
-
-        if (max !== null && result > max) result -= gcd;
-        if (min !== null && result < min) result += gcd;
-
-        return result;
-    }
-
-    syncFromPlayer(yaw = null, pitch = null, player = Player.getPlayer()) {
-        if (!player) return false;
-
-        const playerYaw = player.getYRot();
-
-        this.lastYaw = Number.isFinite(yaw) ? this.aimModulo360(playerYaw, yaw) : playerYaw;
-        this.lastPitch = Number.isFinite(pitch) ? this.clampPitch(pitch) : this.clampPitch(player.getXRot());
-        this.initialized = true;
-        return true;
-    }
-
-    resyncIfDrifted(player, gcd) {
-        const playerYaw = player.getYRot();
-        const playerPitch = player.getXRot();
-        const yawDrift = Math.abs(this.angleDifference(this.lastYaw, playerYaw));
-        const pitchDrift = Math.abs(playerPitch - this.lastPitch);
-
-        if (yawDrift > gcd * 2 || Math.abs(playerYaw - this.lastYaw) > 180 || pitchDrift > gcd * 2) {
-            this.lastYaw = playerYaw;
-            this.lastPitch = playerPitch;
-        }
-    }
-
-    getCurrentRotation(player = Player.getPlayer()) {
-        if (!player) return null;
-
-        if (this.initialized) {
-            this.resyncIfDrifted(player, this.calculateGCD());
-        }
-
-        return {
-            yaw: this.initialized ? this.lastYaw : player.getYRot(),
-            pitch: this.initialized ? this.lastPitch : player.getXRot(),
-        };
-    }
-
-    applyToPlayer(yaw, pitch) {
-        const player = Player.getPlayer();
-        if (!player) return null;
-        if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return null;
-
-        const now = Date.now();
-        const gcd = this.calculateGCD();
-
-        if (!this.initialized) {
-            this.syncFromPlayer();
-        } else if (now - this.lastApplyAt > this.DRIFT_RESYNC_MS) {
-            this.resyncIfDrifted(player, gcd);
-        }
-
-        const gcdYaw = this.applyGCD(this.angleDifference(yaw, this.lastYaw), this.lastYaw, gcd);
-        const gcdPitch = this.applyGCD(this.clampPitch(pitch) - this.clampPitch(this.lastPitch), this.clampPitch(this.lastPitch), gcd, -90, 90);
-
-        this.lastYaw = gcdYaw;
-        this.lastPitch = gcdPitch;
-        this.lastApplyAt = now;
-
-        player.setYRot(gcdYaw);
-        player.setXRot(gcdPitch);
-
-        return { yaw: gcdYaw, pitch: gcdPitch };
-    }
+export function calculateGCD() {
+    const sensitivity = Client.getMinecraft().options.sensitivity().get();
+    const scaled = sensitivity * 0.6 + 0.2;
+    return scaled ** 3 * 1.2;
 }
 
-export const RotationGCD = new SharedRotationGCD();
+const normalizeAngle = (angle) => (((angle % 360) + 540) % 360) - 180;
+export const clampPitch = (pitch) => Math.max(-90, Math.min(90, pitch));
+export const angleDifference = (a, b) => normalizeAngle(a - b);
+
+export function aimModulo360(currentYaw, targetYaw) {
+    if (!Number.isFinite(currentYaw)) return targetYaw;
+    if (!Number.isFinite(targetYaw)) return currentYaw;
+    return currentYaw + angleDifference(targetYaw, currentYaw);
+}
+
+const applyGCD = (delta, previous, gcd, min = null, max = null) => {
+    if (!Number.isFinite(delta) || !Number.isFinite(gcd) || gcd <= 0) return previous;
+    let result = previous + Math.round(delta / gcd) * gcd;
+    if (max !== null && result > max) result -= gcd;
+    if (min !== null && result < min) result += gcd;
+    return result;
+};
+
+export function syncFromPlayer(yaw = null, pitch = null, player = Player.getPlayer()) {
+    if (!player) return false;
+    const playerYaw = player.getYRot();
+    lastYaw = Number.isFinite(yaw) ? aimModulo360(playerYaw, yaw) : playerYaw;
+    lastPitch = Number.isFinite(pitch) ? clampPitch(pitch) : clampPitch(player.getXRot());
+    initialized = true;
+    return true;
+}
+
+const resyncIfDrifted = (player, gcd) => {
+    const playerYaw = player.getYRot();
+    const playerPitch = player.getXRot();
+    if (Math.abs(angleDifference(lastYaw, playerYaw)) > gcd * 2 || Math.abs(playerYaw - lastYaw) > 180 || Math.abs(playerPitch - lastPitch) > gcd * 2) {
+        lastYaw = playerYaw;
+        lastPitch = playerPitch;
+    }
+};
+
+export function getCurrentRotation(player = Player.getPlayer()) {
+    if (!player) return null;
+    if (initialized) resyncIfDrifted(player, calculateGCD());
+    return { yaw: initialized ? lastYaw : player.getYRot(), pitch: initialized ? lastPitch : player.getXRot() };
+}
+
+export function applyToPlayer(yaw, pitch) {
+    const player = Player.getPlayer();
+    if (!player || !Number.isFinite(yaw) || !Number.isFinite(pitch)) return null;
+
+    const now = Date.now();
+    const gcd = calculateGCD();
+    if (!initialized) syncFromPlayer();
+    else if (now - lastApplyAt > DRIFT_RESYNC_MS) resyncIfDrifted(player, gcd);
+
+    lastYaw = applyGCD(angleDifference(yaw, lastYaw), lastYaw, gcd);
+    lastPitch = applyGCD(clampPitch(pitch) - clampPitch(lastPitch), clampPitch(lastPitch), gcd, -90, 90);
+    lastApplyAt = now;
+    player.setYRot(lastYaw);
+    player.setXRot(lastPitch);
+    return { yaw: lastYaw, pitch: lastPitch };
+}

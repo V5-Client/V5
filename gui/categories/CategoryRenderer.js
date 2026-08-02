@@ -4,7 +4,6 @@ import {
     FontSizes,
     ITEM_SPACING,
     PADDING,
-    SUBCATEGORY_BUTTON_HEIGHT,
     SUBCATEGORY_BUTTON_SPACING,
     THEME,
     colorWithAlpha,

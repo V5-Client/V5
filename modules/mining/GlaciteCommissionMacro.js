@@ -1,19 +1,19 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { CommissionClaimer } from '../../utils/CommissionUtils';
-import { MacroState } from '../../utils/MacroState';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { getModuleElapsedMs } from '../../utils/MacroState';
+import { getDebuff, getDrills, readCommissionsFromGui } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { finiteNumber } from '../../utils/NumberUtils';
 import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Guis } from '../../utils/player/Inventory';
-import { manager } from '../../utils/SkyblockEvents';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { Mouse } from '../../utils/Ungrab';
+import { closeInventory, setItemSlot } from '../../utils/player/Inventory';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { readCommissions } from '../../utils/TabListUtils';
+import { regrab, ungrab } from '../../utils/Ungrab';
 import { MiningBot } from './MiningBot';
 import { tunnelsMiner } from './TunnelsMiner';
-import { Utils } from '../../utils/Utils';
+import { area, subArea } from '../../utils/Utils';
 
 const STATES = {
     IDLE: 'Idle',
@@ -65,7 +65,7 @@ class GlaciteCommissionMacro extends ModuleBase {
             delay: (ticks) => this.delay(ticks),
             onClaimsExhausted: (container) => {
                 this.updateCommissionsFromGui(container);
-                Guis.closeInv();
+                closeInventory();
                 this.setState(STATES.WAITING_GUI_CLOSE);
             },
             onPathFailed: () => {
@@ -117,23 +117,23 @@ class GlaciteCommissionMacro extends ModuleBase {
 
         this.on('step', () => {
             if (!this.enabled) return;
-            const newCommissions = TabListUtils.readCommissions();
+            const newCommissions = readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
         }).setDelay(1);
 
         this.on('tick', () => this.runLogic());
 
-        manager.subscribe('commissioncomplete', () => {
+        registerSkyblockEvent('commissioncomplete', () => {
             if (!this.enabled) return;
             OverlayManager.incrementTrackedValue(this.oid, 'commissionsCompleted');
             this.onCommissionComplete();
         });
 
-        manager.subscribe('death', () => {
+        registerSkyblockEvent('death', () => {
             if (this.enabled) this.delayedReset(10);
         });
 
-        manager.subscribe('serverchange', () => {
+        registerSkyblockEvent('serverchange', () => {
             if (this.enabled) this.delayedReset(40);
         });
 
@@ -144,7 +144,7 @@ class GlaciteCommissionMacro extends ModuleBase {
 
     onEnable() {
         this.message('&aEnabled');
-        Mouse.ungrab();
+        ungrab();
         this.resetState();
         this.refreshDrillReference();
 
@@ -158,7 +158,7 @@ class GlaciteCommissionMacro extends ModuleBase {
     onDisable() {
         this.message('&cDisabled');
         this.resetState();
-        Mouse.regrab();
+        regrab();
     }
 
     resetState() {
@@ -192,7 +192,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         if (!this.enabled) return;
         if (!Player.getPlayer()) return;
 
-        const cold = MiningUtils.getDebuff('cold');
+        const cold = getDebuff('cold');
         if (this.currentState === STATES.WAITING_COLD) {
             if (cold > 0) return;
             this.setState(STATES.CHOOSING);
@@ -234,11 +234,11 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
-        const area = Utils.area();
-        const subarea = Utils.subArea();
+        const areaName = area();
+        const subarea = subArea();
         const now = Date.now();
         const validSubareas = ['Glacite Tunnels', 'Fossil Research Center', 'Dwarven Base Camp'];
-        if (area !== 'Dwarven Mines' || !validSubareas.includes(subarea)) {
+        if (areaName !== 'Dwarven Mines' || !validSubareas.includes(subarea)) {
             if (!this.areaCheckTime) {
                 this.message('&eNot in the Glacite area, warping to camp...');
                 ChatLib.command('warp camp');
@@ -252,7 +252,7 @@ class GlaciteCommissionMacro extends ModuleBase {
             return;
         }
         this.areaCheckTime = null;
-        const newCommissions = TabListUtils.readCommissions();
+        const newCommissions = readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
         if (this.shouldWaitForLastCompleted()) return;
@@ -279,7 +279,7 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     handleMining() {
-        const newCommissions = TabListUtils.readCommissions();
+        const newCommissions = readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
         if (this.shouldWaitForLastCompleted()) return;
@@ -341,7 +341,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         this.noSupportedMessageAt = 0;
         if (Client.isInGui()) {
             this.pendingMiningStart = true;
-            Guis.closeInv();
+            closeInventory();
             this.setState(STATES.WAITING_GUI_CLOSE);
             return;
         }
@@ -377,7 +377,7 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     updateCommissionsFromGui(container) {
-        const newCommissions = MiningUtils.readCommissionsFromGui(container, (name) => this.isSupportedCommissionName(name));
+        const newCommissions = readCommissionsFromGui(container, (name) => this.isSupportedCommissionName(name));
         if (!newCommissions.length) return;
 
         this.commissions = newCommissions;
@@ -393,9 +393,9 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     refreshDrillReference() {
-        const drills = MiningUtils.getDrills();
+        const drills = getDrills();
         this.drill = drills.drill;
-        if (this.drill) Guis.setItemSlot(this.drill.slot);
+        if (this.drill) setItemSlot(this.drill.slot);
     }
 
     ensureDrillEquippedForClaim() {
@@ -403,7 +403,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         if (!this.drill) return true;
 
         if (Player.getHeldItemIndex() !== this.drill.slot) {
-            Guis.setItemSlot(this.drill.slot);
+            setItemSlot(this.drill.slot);
             this.delay(3);
             return false;
         }
@@ -516,7 +516,7 @@ class GlaciteCommissionMacro extends ModuleBase {
     }
 
     getCommissionsPerHourDisplay() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         if (elapsedMs <= 0) return '0.00';
 
         const hours = elapsedMs / 3600000;

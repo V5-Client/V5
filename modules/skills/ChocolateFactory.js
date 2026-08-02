@@ -1,7 +1,7 @@
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { fastDistance } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, getGuiName } from '../../utils/player/Inventory';
 
 const COOKIE_SLOT = 13;
 const MAX_TRACKED_EGGS = 6;
@@ -134,7 +134,7 @@ class ChocolateFactory extends ModuleBase {
     onTick() {
         const container = Player.getContainer();
         if (!container) return;
-        if (Guis.guiName() !== 'Chocolate Factory') return;
+        if (getGuiName() !== 'Chocolate Factory') return;
 
         const now = Date.now();
         if ((this.clickFactory || this.claimStrays) && now - this.lastActionAt >= this.actionDelayMs) {
@@ -145,7 +145,7 @@ class ChocolateFactory extends ModuleBase {
 
     performFactoryActions(container) {
         if (this.clickFactory) {
-            Guis.clickSlot(COOKIE_SLOT, false, 'RIGHT');
+            clickSlot(COOKIE_SLOT, false, 'RIGHT');
         }
 
         if (!this.claimStrays) return;
@@ -159,7 +159,7 @@ class ChocolateFactory extends ModuleBase {
             if (!name) continue;
 
             if (name.includes('CLICK ME!') || name.includes('Golden Rabbit')) {
-                Guis.clickSlot(slot, false, 'LEFT');
+                clickSlot(slot, false, 'LEFT');
                 return;
             }
         }
@@ -210,7 +210,7 @@ class ChocolateFactory extends ModuleBase {
 
             return EGG_TYPES.find((egg) => profileString.includes(egg.texture)) || null;
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return null;
         }
     }
@@ -255,7 +255,7 @@ class ChocolateFactory extends ModuleBase {
         this.detectedEggs.forEach((egg) => {
             if (!egg || egg.isFound || !egg.entity) return;
 
-            const distance = MathUtils.fastDistance(player.getX(), player.getY(), player.getZ(), egg.entity.getX(), egg.entity.getY(), egg.entity.getZ());
+            const distance = fastDistance(player.getX(), player.getY(), player.getZ(), egg.entity.getX(), egg.entity.getY(), egg.entity.getZ());
             const priority = `${egg.eggType}`.toLowerCase() === targetType ? 0 : 1;
             if (priority < closestPriority || (priority === closestPriority && distance < closestDistance)) {
                 closest = egg;
@@ -270,7 +270,7 @@ class ChocolateFactory extends ModuleBase {
     }
 
     onSoundPlay(_pos, name, _volume, _pitch, _category, event) {
-        if (Guis.guiName() !== 'Chocolate Factory' || !name) return;
+        if (getGuiName() !== 'Chocolate Factory' || !name) return;
         if (!this.cancelSound) return;
 
         const soundName = `${name}`.toLowerCase();

@@ -17,14 +17,13 @@ register('packetSent', (packet, event) => {
 }).setFilteredClass(ServerboundCommandSuggestionPacket);
 
 /* Utils */
-import { MacroState } from './utils/MacroState';
+import { setupLastMacroToggleKey } from './utils/MacroState';
 import './modules/other/MacroScheduler';
 import './modules/other/MacroControllers';
 import './modules/other/DiscordIntegration';
 import './utils/pathfinder/PathFinder';
 import './utils/FastEtherwarp';
 import './utils/Misc';
-import './utils/SkyblockItemUtil';
 import './failsafes/FailsafeManager';
 import './utils/SkyblockEvents';
 
@@ -34,7 +33,7 @@ import './utils/UserScripts';
 
 import { loadSettings } from './gui/GuiSave';
 registerV5Commands();
-MacroState.setupLastMacroToggleKey();
+setupLastMacroToggleKey();
 loadSettings();
 
 import './utils/DeveloperModeState';

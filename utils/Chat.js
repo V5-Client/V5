@@ -1,124 +1,30 @@
 import FailsafeUtils from '../failsafes/FailsafeUtils';
 import { isDeveloperModeEnabled } from './DeveloperModeState';
 
-class ChatClass {
-    message(msg) {
-        this._sendGradient('V5 »', msg);
-    }
+const sendGradient = (prefix, ...args) => {
+    if (!args.length) return;
+    Client.getMinecraft().execute(() => GradientChat.sendGradientMsg(prefix, 0x05b9f9, 0x0539f9, ...args));
+};
 
-    messageDebug(msg) {
-        if (!isDeveloperModeEnabled()) return;
+export const chat = (message) => sendGradient('V5 »', message);
 
-        this._sendGradient(`V5 Debug »`, msg);
-    }
-
-    messageClip(msg) {
-        this._sendGradient('V5 Clipping »', msg);
-    }
-
-    messageIrc(msg) {
-        this._sendGradient('IRC »', msg);
-    }
-
-    sendAnnouncement(msg) {
-        if (!msg) return;
-        Client.getMinecraft().execute(() => {
-            GradientChat.sendGradientMsg('V5 Announcement »', 0xf4a261, 0xe76f51, msg);
-        });
-    }
-
-    messageFailsafe(msg, sendIntensity = true) {
-        this._sendGradient('V5 Failsafes »', msg);
-        if (sendIntensity) this._sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
-    }
-
-    messagePathfinder(msg) {
-        this._sendGradient('V5 Pathfinding »', msg);
-    }
-
-    messageScheduler(msg) {
-        this._sendGradient('V5 Scheduler »', msg);
-    }
-
-    _sendGradient(prefix, ...args) {
-        if (args.length === 0) return;
-
-        Client.getMinecraft().execute(() => {
-            GradientChat.sendGradientMsg(prefix, 0x05b9f9, 0x0539f9, ...args);
-        });
-    }
-
-    log(msg) {
-        if (!msg) return;
-        console.log('V5 » ' + msg);
-    }
-
-    /**
-     * Formats a message with clickable links.
-     * @param {string[]} args
-     * @returns {TextComponent} The formatted message
-     */
-    formatLink(...args) {
-        if (args.length === 3 && typeof args[2] === 'string' && args[2].includes('http')) {
-            const [message, label, url] = args;
-
-            return new TextComponent(
-                `${message} `,
-                new TextComponent({
-                    text: `§9§n${label}§r`,
-                    clickEvent: {
-                        action: 'open_url',
-                        value: url,
-                    },
-                    hoverEvent: {
-                        action: 'show_text',
-                        value: `§7Click to open`,
-                    },
-                })
-            );
-        }
-
-        let components = [];
-        for (const [i, component] of args.entries()) {
-            if (typeof component === 'string' && !component.includes('http')) {
-                components.push(component);
-            } else {
-                components.push(
-                    new TextComponent({
-                        text: `§9§n${component}§r`,
-                        clickEvent: { action: 'open_url', value: component },
-                        hoverEvent: { action: 'show_text', value: '§7Click to open' },
-                    })
-                );
-            }
-            if (i < args.length - 1) components.push(' ');
-        }
-        return new TextComponent(...components);
-    }
-
-    /**
-     * Creates a clickable text component
-     * @param {string} actionText - The text shown in chat
-     * @param {string} actionValue - The path, URL, or command
-     * @param {string} hoverText - The tooltip shown on hover
-     * @param {string} actionType - Defaults to 'open_file', can be 'open_url' or 'run_command'
-     */
-    clickAction(message, actionText, actionValue, hoverText = '§7Click to open', actionType = 'open_file') {
-        return new TextComponent(
-            `${message} `,
-            new TextComponent({
-                text: `§9§n${actionText}§r`,
-                clickEvent: {
-                    action: actionType,
-                    value: actionValue,
-                },
-                hoverEvent: {
-                    action: 'show_text',
-                    value: hoverText,
-                },
-            })
-        );
-    }
+export function sendDebugMessage(message) {
+    if (isDeveloperModeEnabled()) sendGradient('V5 Debug »', message);
 }
 
-export const Chat = new ChatClass();
+export function sendFailsafeMessage(message, includeIntensity = true) {
+    sendGradient('V5 Failsafes »', message);
+    if (includeIntensity) sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
+}
+
+export const sendIrcMessage = (message) => sendGradient('IRC »', message);
+export const sendPathfinderMessage = (message) => sendGradient('V5 Pathfinding »', message);
+
+export function sendAnnouncement(message) {
+    if (!message) return;
+    Client.getMinecraft().execute(() => GradientChat.sendGradientMsg('V5 Announcement »', 0xf4a261, 0xe76f51, message));
+}
+
+export function logMessage(message) {
+    if (message) console.log('V5 » ' + message);
+}

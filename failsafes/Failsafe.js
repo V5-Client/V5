@@ -1,5 +1,5 @@
-import { manager } from '../utils/SkyblockEvents';
-import { MacroState } from '../utils/MacroState';
+import { registerSkyblockEvent } from '../utils/SkyblockEvents';
+import { isFailsafeMacroRunning } from '../utils/MacroState';
 import { finiteNumber } from '../utils/NumberUtils';
 export class Failsafe {
     registered = false;
@@ -15,7 +15,7 @@ export class Failsafe {
         return true;
     }
     isActive() {
-        return MacroState.isFailsafeMacroRunning();
+        return isFailsafeMacroRunning();
     }
     onTrigger() {}
     reset() {
@@ -52,7 +52,7 @@ export class Failsafe {
         register('worldLoad', () => {
             this._setDisabled(1000);
         });
-        ['serverchange', 'death', 'warp'].forEach((event) => manager.subscribe(event, () => this._setDisabled(1000)));
+        ['serverchange', 'death', 'warp'].forEach((event) => registerSkyblockEvent(event, () => this._setDisabled(1000)));
     }
 
     _getReactionDelay(settings) {

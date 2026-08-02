@@ -366,12 +366,12 @@ class NotificationManager {
                 this.notifications[i].draw();
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             try {
                 NVG.endFrame();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         }
     }

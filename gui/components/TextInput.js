@@ -232,7 +232,7 @@ export class TextInput {
                     }
                 }
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
             return true;
         }

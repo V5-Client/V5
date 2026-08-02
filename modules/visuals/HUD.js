@@ -1,7 +1,7 @@
 import { BORDER_WIDTH, CORNER_RADIUS, FontSizes, THEME, colorWithAlpha, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../../gui/Utils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
-import { ServerInfo } from '../../utils/player/ServerInfo';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
+import { getPing, getPingColor, getTPS, getTpsColor } from '../../utils/player/ServerInfo';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { GuiState } from '../../gui/core/GuiState';
 
@@ -22,7 +22,7 @@ class HUD extends ModuleBase {
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
 
-        this.positionConfig = Utils.getConfigFile('OverlayPositions/hud_positions.json') || {};
+        this.positionConfig = getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
         this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
 
@@ -75,7 +75,7 @@ class HUD extends ModuleBase {
     }
 
     syncFromOverlayEditor() {
-        const latest = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        const latest = getConfigFile('OverlayPositions/hud_positions.json');
         if (!latest || typeof latest !== 'object') return;
 
         if (latest.stats && typeof latest.stats === 'object') {
@@ -95,7 +95,7 @@ class HUD extends ModuleBase {
             stats: this.getSaveData(this.stats),
             inventory: this.getSaveData(this.inventory),
         };
-        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
+        writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
     }
 
     clamp(v, min, max) {
@@ -115,13 +115,13 @@ class HUD extends ModuleBase {
 
     getStatsLines() {
         const fps = Client.getFPS();
-        const ping = ServerInfo.getPing();
-        const tps = ServerInfo.getTPS();
+        const ping = getPing();
+        const tps = getTPS();
 
         return [
             { label: 'FPS', value: String(fps), color: THEME.TEXT },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
+            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
+            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
         ];
     }
 
@@ -180,12 +180,12 @@ class HUD extends ModuleBase {
             NVG.beginFrame(sw, sh);
             draw.call(this);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             try {
                 NVG.endFrame();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         }
     }
@@ -333,7 +333,7 @@ class HUD extends ModuleBase {
         try {
             this.drawInventoryHudItems();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 

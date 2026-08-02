@@ -1,6 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 const ShulkerEntity = net.minecraft.world.entity.monster.Shulker;
 
@@ -20,7 +20,7 @@ class HideonLeafESP extends ModuleBase {
         this.on('step', () => this.scanTargets()).setFps(5);
 
         this.when(
-            () => this.enabled && World.isLoaded() && Utils.area() === 'Galatea' && this.targets.length > 0,
+            () => this.enabled && World.isLoaded() && area() === 'Galatea' && this.targets.length > 0,
             'postRenderWorld',
             () => this.renderTargets()
         );
@@ -31,7 +31,7 @@ class HideonLeafESP extends ModuleBase {
     }
 
     scanTargets() {
-        if (!this.enabled || !World.isLoaded() || Utils.area() !== 'Galatea') {
+        if (!this.enabled || !World.isLoaded() || area() !== 'Galatea') {
             this.targets = [];
             return;
         }

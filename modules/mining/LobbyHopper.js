@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Timer } from '../../utils/TimeUtils';
-import { Utils } from '../../utils/Utils';
+import { area, getDay } from '../../utils/Utils';
 
 class LobbyHopper extends ModuleBase {
     constructor() {
@@ -23,7 +23,7 @@ class LobbyHopper extends ModuleBase {
 
         this.on('step', () => {
             if (!this.enabled) return;
-            let isInCh = Utils.area() === 'Crystal Hollows';
+            let isInCh = area() === 'Crystal Hollows';
 
             if (this.said && !this.cooldown.hasPassed(3000)) return;
 
@@ -33,7 +33,7 @@ class LobbyHopper extends ModuleBase {
 
                 this.reset();
             } else {
-                if (Utils.getDay() > this.maxDay) {
+                if (getDay() > this.maxDay) {
                     this.message('Crystal Hollows day is too high! Warping to new lobby.');
                     ChatLib.command('is');
 

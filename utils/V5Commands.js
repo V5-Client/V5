@@ -1,8 +1,8 @@
-import { Chat } from './Chat';
+import { chat } from './Chat';
 import { File } from './Constants';
 import { isDeveloperModeEnabled, setDeveloperModeEnabled } from './DeveloperModeState';
-import { ServerInfo } from './player/ServerInfo';
 import { togglePiP } from './PiP';
+import { getPingColor, getServerInfo, getTpsColor } from './player/ServerInfo';
 
 const commandRegistry = new Map();
 let developerModeEnableConfirmationPending = false;
@@ -15,7 +15,7 @@ const callCommand = function (name) {
         if (args.length === 1 && typeof args[0] === 'string') args = args[0].trim().split(/\s+/).filter(Boolean);
         handler(...args);
     } catch (error) {
-        Chat.message(`&cInternal command failed: &f${name}`);
+        chat(`&cInternal command failed: &f${name}`);
         console.error('V5 command execution failed:', name, error);
     }
 };
@@ -70,8 +70,8 @@ export const v5Command = (name, handler, argumentTypes = []) => {
 };
 
 v5Command('help', () => {
-    Chat.message('&bV5 Commands:');
-    for (const name of Array.from(commandRegistry.keys()).sort()) Chat.message(`&7/v5 ${name}`);
+    chat('&bV5 Commands:');
+    for (const name of Array.from(commandRegistry.keys()).sort()) chat(`&7/v5 ${name}`);
 });
 
 v5Command('config', () => {
@@ -79,12 +79,12 @@ v5Command('config', () => {
 });
 
 const showServerInfo = () => {
-    const { tps, ping } = ServerInfo.getServerInfo();
+    const { tps, ping } = getServerInfo();
     const toColor = (value) => {
         const hex = Number(value).toString(16).padStart(6, '0');
         return `§x§${hex[0]}§${hex[1]}§${hex[2]}§${hex[3]}§${hex[4]}§${hex[5]}`;
     };
-    Chat.message(`TPS ${toColor(ServerInfo.getTpsColor(tps))}${tps}&f | Ping ${toColor(ServerInfo.getPingColor(ping))}${ping}ms`);
+    chat(`TPS ${toColor(getTpsColor(tps))}${tps}&f | Ping ${toColor(getPingColor(ping))}${ping}ms`);
 };
 
 v5Command('tps', showServerInfo);
@@ -97,7 +97,7 @@ v5Command('pip', () => {
 v5Command(
     'mining gemstone',
     (...args) => {
-        if (!args.length) return Chat.message('&cUsage: &7/v5 mining gemstone <args>');
+        if (!args.length) return chat('&cUsage: &7/v5 mining gemstone <args>');
         ChatLib.command(`gemstone ${args.join(' ')}`);
     },
     ['greedyString']
@@ -107,7 +107,7 @@ v5Command('visuals gif list', () => ChatLib.command('gif list'));
 v5Command(
     'visuals gif pick',
     (index) => {
-        if (index === undefined) return Chat.message('&cUsage: &7/v5 visuals gif pick <index>');
+        if (index === undefined) return chat('&cUsage: &7/v5 visuals gif pick <index>');
         ChatLib.command(`gif pick ${index}`);
     },
     ['integer']
@@ -117,28 +117,26 @@ v5Command('visuals gif toggle', () => ChatLib.command('gif toggle'));
 const setDeveloperMode = (enabled) => {
     if (!enabled) {
         developerModeEnableConfirmationPending = false;
-        if (!isDeveloperModeEnabled()) return Chat.message('&cDeveloper Mode is already disabled.');
+        if (!isDeveloperModeEnabled()) return chat('&cDeveloper Mode is already disabled.');
 
         setDeveloperModeEnabled(false);
-        Chat.message('&aDeveloper Mode disabled.');
+        chat('&aDeveloper Mode disabled.');
         ChatLib.command('ct load', true);
         return;
     }
 
-    if (isDeveloperModeEnabled()) return Chat.message("&cDeveloper Mode enabled. Run '/V5 developerMode false' to disable.");
+    if (isDeveloperModeEnabled()) return chat("&cDeveloper Mode enabled. Run '/V5 developerMode false' to disable.");
 
     if (!developerModeEnableConfirmationPending) {
         developerModeEnableConfirmationPending = true;
-        Chat.message(
-            '&cDeveloper Mode should only be enabled if you know what your doing. It will disable auto updates, unlock WIP modules, and potentially ban you.'
-        );
-        Chat.message("&cRun '/V5 developerMode true' again to confirm.");
+        chat('&cDeveloper Mode should only be enabled if you know what your doing. It will disable auto updates, unlock WIP modules, and potentially ban you.');
+        chat("&cRun '/V5 developerMode true' again to confirm.");
         return;
     }
 
     developerModeEnableConfirmationPending = false;
     setDeveloperModeEnabled(true);
-    Chat.message('&cDeveloper Mode enabled. Auto updates are disabled and WIP modules are unlocked.');
+    chat('&cDeveloper Mode enabled. Auto updates are disabled and WIP modules are unlocked.');
     ChatLib.command('ct load', true);
 };
 

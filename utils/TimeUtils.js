@@ -58,42 +58,28 @@ export class Timer {
     }
 }
 
-export const TimeUtils = {
-    /**
-     * Formats a duration in ms into the good looking string
-     * Examples: 0.00s, 12.34s, 1m 2s, 3h 4m 5s, 2d 3h 4m 5s
-     */
-    formatDurationMs: (durationMs) => {
-        if (!durationMs || durationMs <= 0) return '0.00s';
+export function formatDurationMs(durationMs) {
+    if (!durationMs || durationMs <= 0) return '0.00s';
 
-        const totalSeconds = Math.floor(durationMs / 1000);
+    const totalSeconds = Math.floor(durationMs / 1000);
 
-        const s = totalSeconds % 60;
-        const m = Math.floor(totalSeconds / 60) % 60;
-        const h = Math.floor(totalSeconds / 3600) % 24;
-        const d = Math.floor(totalSeconds / 86400);
+    const seconds = totalSeconds % 60;
+    const minutes = Math.floor(totalSeconds / 60) % 60;
+    const hours = Math.floor(totalSeconds / 3600) % 24;
+    const days = Math.floor(totalSeconds / 86400);
 
-        const parts = [];
-        if (d > 0) parts.push(`${d}d`);
-        if (h > 0) parts.push(`${h}h`);
-        if (m > 0) parts.push(`${m}m`);
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours) parts.push(`${hours}h`);
+    if (minutes) parts.push(`${minutes}m`);
 
-        if (totalSeconds < 60) {
-            const cs = Math.floor((durationMs % 1000) / 10);
-            const csStr = String(cs).padStart(2, '0');
-            parts.push(`${s}.${csStr}s`);
-        } else {
-            parts.push(`${s}s`);
-        }
+    if (totalSeconds < 60) {
+        parts.push(`${seconds}.${String(Math.floor((durationMs % 1000) / 10)).padStart(2, '0')}s`);
+    } else {
+        parts.push(`${seconds}s`);
+    }
 
-        return parts.join(' ');
-    },
+    return parts.join(' ');
+}
 
-    /**
-     * Time since start timestamp
-     */
-    formatUptime: (startTimeMs) => {
-        if (!startTimeMs) return '0.00s';
-        return TimeUtils.formatDurationMs(Date.now() - startTimeMs);
-    },
-};
+export const formatUptime = (startTimeMs) => (startTimeMs ? formatDurationMs(Date.now() - startTimeMs) : '0.00s');

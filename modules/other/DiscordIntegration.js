@@ -1,7 +1,7 @@
 import { Categories } from '../../gui/categories/CategorySystem';
-import { MacroState } from '../../utils/MacroState';
+import { getEnabledMacros, getLastDisableMeta, getModule, getModuleDuration, getModuleStartTime } from '../../utils/MacroState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Webhook } from '../../utils/Webhooks';
+import { getWebhookData, sendScreenshot, setFailsafeEmbedsEnabled, setLoadEmbedsEnabled, setWebhook, setWebhookUserId } from '../../utils/Webhooks';
 
 class DiscordIntegration extends ModuleBase {
     constructor() {
@@ -17,7 +17,7 @@ class DiscordIntegration extends ModuleBase {
         this.lastSendTime = 0;
         this.lastActiveMacro = null;
 
-        const settings = Webhook.getData() || {};
+        const settings = getWebhookData() || {};
         this.URL = String(settings.url ?? '');
         this.ID = String(settings.userId ?? '').trim();
 
@@ -37,7 +37,7 @@ class DiscordIntegration extends ModuleBase {
 
         Categories.addSettingsToggle(
             'Send Embed on CT load',
-            (v) => Webhook.sendLoadEmbeds(!!v),
+            (v) => setLoadEmbedsEnabled(!!v),
             'Sends an embed to your webhook when CT loads',
             true,
             this.sectionName,
@@ -63,7 +63,7 @@ class DiscordIntegration extends ModuleBase {
             'Failsafe Embeds',
             (v) => {
                 this.FAILSAFE_EMBEDS = !!v;
-                Webhook.sendFailsafeEmbeds(this.FAILSAFE_EMBEDS);
+                setFailsafeEmbedsEnabled(this.FAILSAFE_EMBEDS);
             },
             'Sends failsafe embeds and screenshots to your webhook',
             true,
@@ -97,14 +97,14 @@ class DiscordIntegration extends ModuleBase {
 
         if (!currentMacro || !this.MACRO_EMBEDS) return (this.lastSendTime = 0);
         if (this.lastActiveMacro && this.lastActiveMacro !== currentMacro) {
-            const stillEnabled = MacroState.getEnabledMacros().includes(this.lastActiveMacro);
+            const stillEnabled = getEnabledMacros().includes(this.lastActiveMacro);
             if (!stillEnabled) this.trySendDisableEmbed(this.lastActiveMacro);
             this.lastSendTime = 0;
         }
 
         this.lastActiveMacro = currentMacro;
 
-        const startTime = MacroState.getModuleStartTime(currentMacro);
+        const startTime = getModuleStartTime(currentMacro);
         if (!startTime) return;
 
         const now = Date.now();
@@ -121,24 +121,24 @@ class DiscordIntegration extends ModuleBase {
     }
 
     trySendDisableEmbed(macroName) {
-        const meta = MacroState.getLastDisableMeta(macroName);
+        const meta = getLastDisableMeta(macroName);
         if (meta && meta.context === 'scheduler') return;
         this.sendDisableEmbed(macroName);
     }
 
     sendDisableEmbed(macroName) {
-        Webhook.sendScreenshot(`Disabled ${macroName}`, MacroState.getModuleDuration(macroName));
+        sendScreenshot(`Disabled ${macroName}`, getModuleDuration(macroName));
     }
 
     sendIntervalEmbed(macroName) {
         if (!macroName) return;
-        const duration = MacroState.getModuleDuration(macroName);
-        Webhook.sendScreenshot(`Update of ${macroName}`, duration ? `**Runtime:** ${duration}` : '');
+        const duration = getModuleDuration(macroName);
+        sendScreenshot(`Update of ${macroName}`, duration ? `**Runtime:** ${duration}` : '');
     }
 
     getActiveMacro() {
-        return MacroState.getEnabledMacros().find((name) => {
-            const mod = MacroState.getModule(name);
+        return getEnabledMacros().find((name) => {
+            const mod = getModule(name);
             return mod && !mod.isParentManaged;
         });
     }
@@ -152,7 +152,7 @@ class DiscordIntegration extends ModuleBase {
         if (!valid) return this.message('&cInvalid Discord webhook format.');
 
         this.URL = trimmed;
-        Webhook.setWebhook(trimmed);
+        setWebhook(trimmed);
         this.message('&aDiscord webhook endpoint updated.');
     }
 
@@ -160,7 +160,7 @@ class DiscordIntegration extends ModuleBase {
         const trimmed = String(id ?? '').trim();
         if (trimmed === String(this.ID ?? '').trim()) return;
         this.ID = trimmed;
-        Webhook.setUserId(trimmed);
+        setWebhookUserId(trimmed);
         this.message('&aDiscord webhook ID updated.');
     }
 }

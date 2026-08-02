@@ -19,7 +19,6 @@ class FailsafeUtils {
             config: {},
             normalized: null,
         };
-        this._utils = null;
     }
 
     _getConfig() {
@@ -30,8 +29,7 @@ class FailsafeUtils {
             return this._cache.config;
         }
 
-        if (!this._utils) this._utils = require('../utils/Utils').Utils;
-        const config = this._utils.getConfigFile('config.json');
+        const config = require('../utils/Utils').getConfigFile('config.json');
 
         this._cache.expiresAt = now + 250;
         this._cache.lastModified = lastModified;
@@ -117,12 +115,12 @@ class FailsafeUtils {
     }
 
     sendFailsafeEmbed(type, severity, description, color) {
-        const { Webhook } = require('../utils/Webhooks');
+        const { sendFailsafeEmbed, sendFailsafeScreenshot } = require('../utils/Webhooks');
 
         const pingOnCheckValue = this.getFailsafeSettings(type).pingOnCheck;
 
         if (pingOnCheckValue === 'Ping' || pingOnCheckValue === 'Embed Only') {
-            Webhook.sendFailsafeEmbed(
+            sendFailsafeEmbed(
                 [
                     {
                         title: `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
@@ -136,7 +134,7 @@ class FailsafeUtils {
             );
         } else if (pingOnCheckValue === 'Ping & Screenshot' || pingOnCheckValue === 'Screenshot Only') {
             Client.scheduleTask(5, () =>
-                Webhook.sendFailsafeScreenshot(
+                sendFailsafeScreenshot(
                     `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
                     description,
                     color,

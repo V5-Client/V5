@@ -1,10 +1,10 @@
 import { ArmorStandEntity, EndermanEntity, Vec3d, ZombieEntity } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { angleToPlayer, getDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Movement } from '../../utils/player/Movement';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
-import { Raytrace } from '../../utils/Raytrace';
+import { isLookingAtEntity } from '../../utils/Raytrace';
 
 const STATES = {
     IDLE: 'IDLE',
@@ -288,7 +288,7 @@ class Combat extends ModuleBase {
         this.trackTarget();
 
         if (distance.distanceFlat > 2.8) {
-            Movement.setKeysForStraightLineCoords(position.x, position.y, position.z, true, true);
+            setKeysForStraightLineCoords(position.x, position.y, position.z, true, true);
             Client.setKey('sprint', true);
         } else {
             Client.stopMovement();
@@ -301,7 +301,7 @@ class Combat extends ModuleBase {
     tryAttack(distance) {
         const now = Date.now();
         if (distance > this.attackRange + 0.35 || now < this.nextAttackAt) return;
-        if (!Raytrace.isLookingAtEntity(this.target, this.attackRange + 0.5)) return;
+        if (!isLookingAtEntity(this.target, this.attackRange + 0.5)) return;
 
         if (this.attackButton === 'Right Click') Client.rightClick();
         else Client.leftClick();
@@ -422,7 +422,7 @@ class Combat extends ModuleBase {
             if (!position) return;
 
             const distance = this.getDistanceToPlayer(position).distance;
-            const turn = MathUtils.angleToPlayer([position.x, position.y, position.z]).distance;
+            const turn = angleToPlayer([position.x, position.y, position.z]).distance;
             const score = distance + turn * 0.025;
             if (score < bestScore) {
                 best = target;
@@ -479,11 +479,11 @@ class Combat extends ModuleBase {
     }
 
     getDistanceToPlayer(position) {
-        return MathUtils.getDistanceToPlayer(position.x, position.y, position.z);
+        return getDistanceToPlayer(position.x, position.y, position.z);
     }
 
     getDistanceBetween(first, second) {
-        return MathUtils.getDistance(first.x, first.y, first.z, second.x, second.y, second.z);
+        return getDistance(first.x, first.y, first.z, second.x, second.y, second.z);
     }
 
     canSeeTarget(target) {

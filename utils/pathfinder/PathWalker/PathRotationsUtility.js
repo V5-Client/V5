@@ -1,7 +1,7 @@
 import { Vec3d } from '../../Constants';
-import { MathUtils } from '../../Math';
-import { RotationGCD } from '../../player/RotationGCD';
-import { Utils } from '../../Utils';
+import { calculateAngles, getAngleDifference, wrapTo180 } from '../../Math';
+import { applyToPlayer } from '../../player/RotationGCD';
+import { convertToVector } from '../../Utils';
 
 class PathRotsUtil {
     constructor() {
@@ -40,7 +40,7 @@ class PathRotsUtil {
     }
 
     applyRotationWithGCD(yaw, pitch) {
-        return RotationGCD.applyToPlayer(yaw, pitch);
+        return applyToPlayer(yaw, pitch);
     }
 
     wrapDegrees(degrees) {
@@ -51,7 +51,7 @@ class PathRotsUtil {
     }
 
     calculateSmoothedYaw(targetYaw, currentSmoothedYaw, maxAdjustment) {
-        const deltaYaw = MathUtils.getAngleDifference(currentSmoothedYaw, targetYaw);
+        const deltaYaw = getAngleDifference(currentSmoothedYaw, targetYaw);
         const adjustment = Math.min(Math.abs(deltaYaw), maxAdjustment) * Math.sign(deltaYaw);
         return currentSmoothedYaw + adjustment;
     }
@@ -74,7 +74,7 @@ class PathRotsUtil {
     }
 
     calculateRotationSpeed(targetPoint, minSpeed = 60, maxSpeed = 80, scalingFactor = 20) {
-        const { yaw: relYaw, pitch: relPitch } = MathUtils.calculateAngles(targetPoint);
+        const { yaw: relYaw, pitch: relPitch } = calculateAngles(targetPoint);
         const totalAngleDifference = Math.abs(relYaw) + Math.abs(relPitch);
 
         const range = maxSpeed - minSpeed;
@@ -105,7 +105,7 @@ class PathRotsUtil {
             return;
         }
 
-        this.initialYaw = MathUtils.wrapTo180(player.getYRot());
+        this.initialYaw = wrapTo180(player.getYRot());
         this.initialPitch = player.getXRot();
 
         this.yawDiff = this.wrapDegrees(yaw - this.initialYaw);
@@ -189,7 +189,7 @@ class PathRotsUtil {
     }
 
     rotateTo(vector, instant = false, durationMs = 500) {
-        let vec = Utils.convertToVector(vector);
+        let vec = convertToVector(vector);
         let player = Player.getPlayer();
         if (!player || !vec || !Number.isFinite(vec.x()) || !Number.isFinite(vec.y()) || !Number.isFinite(vec.z())) return;
 
@@ -213,7 +213,7 @@ class PathRotsUtil {
                 action.func();
             } catch (e) {
                 console.error(`Rotation ${action.name || 'callback'} error:`);
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         });
     }
@@ -240,7 +240,7 @@ class PathRotsUtil {
 
     getPlayerRotation() {
         const player = Player.getPlayer();
-        return player ? { yaw: MathUtils.wrapTo180(player.getYRot()), pitch: player.getXRot() } : null;
+        return player ? { yaw: wrapTo180(player.getYRot()), pitch: player.getXRot() } : null;
     }
 }
 

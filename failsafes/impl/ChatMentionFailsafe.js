@@ -1,4 +1,4 @@
-import { Chat } from '../../utils/Chat';
+import { sendFailsafeMessage } from '../../utils/Chat';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
 import { ClientboundSystemChatPacket } from '../../utils/Packets';
@@ -51,7 +51,7 @@ class ChatMentionFailsafe extends Failsafe {
         const severity = result.isHigh ? 'high' : 'medium';
         const embedColour = result.isHigh ? 16744448 : 16776960;
 
-        Chat.messageFailsafe(`&c&lDetected blacklisted word - "${result.blockedWord}"!`);
+        sendFailsafeMessage(`&c&lDetected blacklisted word - "${result.blockedWord}"!`);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
         FailsafeUtils.sendFailsafeEmbed(
             'Chat Mention',
@@ -62,4 +62,4 @@ class ChatMentionFailsafe extends Failsafe {
     }
 }
 
-export default new ChatMentionFailsafe();
+new ChatMentionFailsafe();

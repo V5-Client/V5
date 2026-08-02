@@ -1,10 +1,10 @@
 import { ClipContext, GLFW, Vec3d } from '../../utils/Constants';
-import { Camera } from '../../utils/Camera';
-import { Mixin } from '../../utils/MixinManager';
+import { clearCameraPosition, setCameraPosition } from '../../utils/Camera';
+import { deleteMixinValue, getMixinValue, setMixinValue } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MathUtils } from '../../utils/Math';
-import { MacroState } from '../../utils/MacroState';
-import { Mouse } from '../../utils/Ungrab';
+import { wrapTo180 } from '../../utils/Math';
+import { getModule } from '../../utils/MacroState';
+import { forceGrab, releaseForcedGrab } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
 const Perspective = net.minecraft.client.CameraType;
@@ -52,21 +52,21 @@ class Freecam extends ModuleBase {
             this.resetCameraState();
             return;
         }
-        MacroState.getModule('Freelook')?.toggle(false);
+        getModule('Freelook')?.toggle(false);
         this.message('&aEnabled &7(Right-click an entity to spectate)');
-        this.cameraPos = this.getInitialCameraPos(player, MathUtils.wrapTo180(player.getYRot()), player.getXRot());
+        this.cameraPos = this.getInitialCameraPos(player, wrapTo180(player.getYRot()), player.getXRot());
         this.velocity = new Vec3d(0, 0, 0);
         this.savedPerspective = mc.options.getCameraType();
         this.lastRenderAt = Date.now();
         this.possessedUUID = null;
         this.rightClickWasDown = this.isRightClickDown();
-        Mouse.forceGrab();
-        Mixin.set('cameraOverrideYaw', MathUtils.wrapTo180(player.getYRot()));
-        Mixin.set('cameraOverridePitch', player.getXRot());
-        Mixin.set('freecamEnabled', true);
+        forceGrab();
+        setMixinValue('cameraOverrideYaw', wrapTo180(player.getYRot()));
+        setMixinValue('cameraOverridePitch', player.getXRot());
+        setMixinValue('freecamEnabled', true);
         mc.setCameraEntity(player);
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
-        Camera.setCameraPosition(this.cameraPos);
+        setCameraPosition(this.cameraPos);
         mc.levelRenderer.allChanged();
     }
 
@@ -74,7 +74,7 @@ class Freecam extends ModuleBase {
         this.message('&cDisabled');
         this.resetCameraState();
         if (World.isLoaded()) mc.levelRenderer.allChanged();
-        Mouse.releaseForcedGrab();
+        releaseForcedGrab();
     }
 
     resetCameraState() {
@@ -85,12 +85,12 @@ class Freecam extends ModuleBase {
         this.velocity = new Vec3d(0, 0, 0);
         this.possessedUUID = null;
         this.rightClickWasDown = false;
-        Mixin.set('ungrabbed', false);
-        Mixin.set('freecamEnabled', false);
-        Mixin.delete('freecamSpectatedEntity');
-        Mixin.delete('cameraOverrideYaw');
-        Mixin.delete('cameraOverridePitch');
-        Camera.clearCameraPosition();
+        setMixinValue('ungrabbed', false);
+        setMixinValue('freecamEnabled', false);
+        deleteMixinValue('freecamSpectatedEntity');
+        deleteMixinValue('cameraOverrideYaw');
+        deleteMixinValue('cameraOverridePitch');
+        clearCameraPosition();
 
         if (this.savedPerspective) mc.options.setCameraType(this.savedPerspective);
         this.savedPerspective = null;
@@ -107,7 +107,7 @@ class Freecam extends ModuleBase {
         if (!player) return;
 
         if (!this.cameraPos) {
-            this.cameraPos = this.getInitialCameraPos(player, MathUtils.wrapTo180(player.getYRot()), player.getXRot());
+            this.cameraPos = this.getInitialCameraPos(player, wrapTo180(player.getYRot()), player.getXRot());
         }
 
         if (mc.options.getCameraType() !== Perspective.THIRD_PERSON_BACK) {
@@ -115,7 +115,7 @@ class Freecam extends ModuleBase {
         }
 
         const options = mc.options;
-        const yaw = (Number(Mixin.get('cameraOverrideYaw', player.getYRot())) * Math.PI) / 180;
+        const yaw = (Number(getMixinValue('cameraOverrideYaw', player.getYRot())) * Math.PI) / 180;
 
         let moveX = 0;
         let moveY = 0;
@@ -163,7 +163,7 @@ class Freecam extends ModuleBase {
 
         if (Math.hypot(this.velocity.x(), this.velocity.y(), this.velocity.z()) < 0.0005) {
             this.velocity = new Vec3d(0, 0, 0);
-            Camera.setCameraPosition(this.cameraPos);
+            setCameraPosition(this.cameraPos);
             return;
         }
 
@@ -172,7 +172,7 @@ class Freecam extends ModuleBase {
             this.cameraPos.y() + this.velocity.y() * frames,
             this.cameraPos.z() + this.velocity.z() * frames
         );
-        Camera.setCameraPosition(this.cameraPos);
+        setCameraPosition(this.cameraPos);
     }
 
     tryPossessPlayer() {
@@ -181,8 +181,8 @@ class Freecam extends ModuleBase {
 
         this.possessedUUID = target.getUUID();
         this.velocity = new Vec3d(0, 0, 0);
-        Mixin.set('ungrabbed', true);
-        Mixin.set('freecamSpectatedEntity', target.toMC());
+        setMixinValue('ungrabbed', true);
+        setMixinValue('freecamSpectatedEntity', target.toMC());
         this.syncPossessedCamera();
         this.message(`&aSpectating &f${target.getName()} &7(Right-click to release)`);
     }
@@ -192,18 +192,18 @@ class Freecam extends ModuleBase {
         if (entity) {
             const partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
             this.cameraPos = entity.getEyePosition(partialTicks);
-            Mixin.set('cameraOverrideYaw', entity.getViewYRot(partialTicks));
-            Mixin.set('cameraOverridePitch', entity.getViewXRot(partialTicks));
+            setMixinValue('cameraOverrideYaw', entity.getViewYRot(partialTicks));
+            setMixinValue('cameraOverridePitch', entity.getViewXRot(partialTicks));
         }
 
         this.possessedUUID = null;
         this.velocity = new Vec3d(0, 0, 0);
-        Mixin.set('ungrabbed', false);
-        Mixin.delete('freecamSpectatedEntity');
-        Mouse.forceGrab();
+        setMixinValue('ungrabbed', false);
+        deleteMixinValue('freecamSpectatedEntity');
+        forceGrab();
         mc.setCameraEntity(Player.getPlayer());
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
-        if (this.cameraPos) Camera.setCameraPosition(this.cameraPos);
+        if (this.cameraPos) setCameraPosition(this.cameraPos);
         if (!silent) this.message('&7Released spectating');
     }
 
@@ -218,9 +218,9 @@ class Freecam extends ModuleBase {
         const partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         this.cameraPos = entity.getEyePosition(partialTicks);
         mc.options.setCameraType(Perspective.FIRST_PERSON);
-        Camera.setCameraPosition(this.cameraPos);
-        Mixin.set('cameraOverrideYaw', entity.getViewYRot(partialTicks));
-        Mixin.set('cameraOverridePitch', entity.getViewXRot(partialTicks));
+        setCameraPosition(this.cameraPos);
+        setMixinValue('cameraOverrideYaw', entity.getViewYRot(partialTicks));
+        setMixinValue('cameraOverridePitch', entity.getViewXRot(partialTicks));
     }
 
     getPossessedPlayer() {
@@ -231,8 +231,8 @@ class Freecam extends ModuleBase {
     getPlayerUnderCrosshair() {
         if (!this.cameraPos) return null;
 
-        const yaw = Number(Mixin.get('cameraOverrideYaw', 0));
-        const pitch = Number(Mixin.get('cameraOverridePitch', 0));
+        const yaw = Number(getMixinValue('cameraOverrideYaw', 0));
+        const pitch = Number(getMixinValue('cameraOverridePitch', 0));
         const yawRad = (yaw * Math.PI) / 180;
         const pitchRad = (pitch * Math.PI) / 180;
         const cosPitch = Math.cos(pitchRad);

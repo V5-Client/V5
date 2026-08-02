@@ -1,6 +1,6 @@
 import { ModuleBase } from '../../../utils/ModuleBase';
-import { Guis } from '../../../utils/player/Inventory';
-import { TabListUtils } from '../../../utils/TabListUtils';
+import { stripItemFormatting } from '../../../utils/player/Inventory';
+import { findTabListIndex, getTabListNames, readVisitors } from '../../../utils/TabListUtils';
 
 class RewarpSettings extends ModuleBase {
     constructor() {
@@ -97,16 +97,16 @@ class RewarpSettings extends ModuleBase {
     }
 
     shouldRunVisitorMacro() {
-        return this.runVisitorMacro && TabListUtils.readVisitors().length >= this.minimumVisitors;
+        return this.runVisitorMacro && readVisitors().length >= this.minimumVisitors;
     }
 
     shouldRunPhilipBonus() {
-        if (!this.autoPhilipBonus || TabListUtils.findIndex(TabListUtils.getNames(), 'Bonus: INACTIVE') === -1) return false;
+        if (!this.autoPhilipBonus || findTabListIndex(getTabListNames(), 'Bonus: INACTIVE') === -1) return false;
         const vacuum = Player.getInventory()
             ?.getItems?.()
-            .find((item) => String(Guis.stripFormatting(item?.getName?.() || '')).includes('Vacuum'));
+            .find((item) => String(stripItemFormatting(item?.getName?.() || '')).includes('Vacuum'));
         const vacuumLine = String(vacuum?.getLore?.().find((line) => String(line).includes('Vacuum Bag:')) || '');
-        return (Number.parseInt(Guis.stripFormatting(vacuumLine).replace(/[^\d]/g, ''), 10) || 0) >= 40;
+        return (Number.parseInt(stripItemFormatting(vacuumLine).replace(/[^\d]/g, ''), 10) || 0) >= 40;
     }
 }
 

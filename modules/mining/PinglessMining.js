@@ -1,9 +1,9 @@
 // Credits: Kash - MiningModules
 
-import { MiningUtils } from '../../utils/MiningUtils';
+import { setGhostBlock } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundSwingPacket, ServerboundPlayerActionPacket } from '../../utils/Packets';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 class Pingless extends ModuleBase {
     constructor() {
@@ -19,7 +19,7 @@ class Pingless extends ModuleBase {
         this.tickCount = 0;
 
         this.on('packetSent', (packet) => {
-            if (Utils.area() !== 'Crystal Hollows') return;
+            if (area() !== 'Crystal Hollows') return;
 
             let action = packet?.getAction()?.toString();
             if (action === 'START_DESTROY_BLOCK') {
@@ -51,13 +51,13 @@ class Pingless extends ModuleBase {
         }).setFilteredClass(ServerboundPlayerActionPacket);
 
         this.on('packetSent', () => {
-            if (Utils.area() !== 'Crystal Hollows') return;
+            if (area() !== 'Crystal Hollows') return;
             if (!this.mining || !this.pos) return;
 
             if (this.tickCount > 0) {
                 this.tickCount--;
             } else {
-                MiningUtils.GhostBlock(this.pos);
+                setGhostBlock(this.pos);
                 this.mining = false;
                 this.pos = null;
             }

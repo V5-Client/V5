@@ -1,22 +1,4 @@
-import { Utils } from '../Utils';
-
-let lastActionTime = Date.now();
-
-function setKeysBasedOnYaw(yaw, shouldJump) {
-    Client.stopMovement();
-    if (Client.isInGui() && !Client.isInChat()) return;
-
-    if (yaw > -50 && yaw < 50) Client.setKey('w', true);
-    if (yaw > -135.5 && yaw < -7) Client.setKey('a', true);
-    if (yaw > 7 && yaw < 135.5) Client.setKey('d', true);
-    if (yaw > 135.5 || yaw < -135.5) Client.setKey('s', true);
-
-    const motionScale = Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ());
-    if (shouldJump && motionScale < 0.04 && Date.now() - lastActionTime > 500 && Utils.playerIsCollided()) {
-        Client.setKey('space', true);
-        lastActionTime = Date.now();
-    }
-}
+import { playerIsCollided } from '../Utils';
 
 function setKeysForStraightLine(yaw, shouldJump, ignoreBottomSlab) {
     Client.stopMovement();
@@ -41,10 +23,10 @@ function setKeysForStraightLine(yaw, shouldJump, ignoreBottomSlab) {
         }
     }
 
-    Client.setKey('space', !!shouldJump && Utils.playerIsCollided(!!ignoreBottomSlab));
+    Client.setKey('space', !!shouldJump && playerIsCollided(!!ignoreBottomSlab));
 }
 
-function setKeysForStraightLineCoords(x, y, z, shouldJump, ignoreBottomSlab) {
+export function setKeysForStraightLineCoords(x, y, z, shouldJump, ignoreBottomSlab) {
     if (Client.isInGui() && !Client.isInChat()) return;
 
     const dx = x - Player.getX();
@@ -56,5 +38,3 @@ function setKeysForStraightLineCoords(x, y, z, shouldJump, ignoreBottomSlab) {
 
     setKeysForStraightLine(angle, shouldJump, ignoreBottomSlab);
 }
-
-export const Movement = { setKeysBasedOnYaw, setKeysForStraightLine, setKeysForStraightLineCoords };

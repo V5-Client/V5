@@ -40,7 +40,7 @@ const getCategorySelectionRect = (name) => {
     return { ...rect, radius: 8 };
 };
 
-export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
+const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
     const directCat = Categories.categories.find((c) => c.name === categoryName);
     if (!directCat || !directCat.directComponents) return false;
     const contentTop = directCat.subcategories.length > 0 ? getCategoryContentY(directCat, panel) : panel.y;

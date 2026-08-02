@@ -1,12 +1,13 @@
-import { Chat } from './Chat';
+import { sendPathfinderMessage } from './Chat';
 import { MCHand, Vec3d } from './Constants';
-import { EtherwarpPathState, getEtherwarpBlockShape, isAtEtherwarpLanding } from './Etherwarp';
+import { getEtherwarpBlockShape, isAtEtherwarpLanding, setEtherwarpPathHandler } from './Etherwarp';
 import { finiteNumber } from './NumberUtils';
-import { ServerboundUseItemPacket } from './Packets';
-import { Guis } from './player/Inventory';
-import { RotationGCD } from './player/RotationGCD';
-import { ServerInfo } from './player/ServerInfo';
+import { ClientboundPingPacket, ServerboundUseItemPacket } from './Packets';
+import { findItemInHotbar, setItemSlot } from './player/Inventory';
+import { applyToPlayer } from './player/RotationGCD';
+import { getPing } from './player/ServerInfo';
 import { ScheduleTask } from './ScheduleTask';
+import { getCurrentMana } from './Utils';
 import { v5Command } from './V5Commands';
 
 const SEARCH_OPTIONS = {
@@ -25,6 +26,8 @@ const PATH_COLORS = {
     start: new RenderColor(80, 255, 140, 180),
     end: new RenderColor(255, 90, 90, 180),
 };
+
+const MINIMUM_MANA = 100;
 
 const readPathPoints = (pathArr) => {
     if (!pathArr || typeof pathArr.length !== 'number') return [];
@@ -56,7 +59,7 @@ const readAngles = (angleArr) => {
 class EtherwarpPathHandler {
     constructor() {
         this.resetState();
-        EtherwarpPathState.handler = this;
+        setEtherwarpPathHandler(this);
 
         v5Command('etherwarp', (x, y, z) => this.test(x, y, z), ['greedyString']);
 
@@ -96,7 +99,7 @@ class EtherwarpPathHandler {
         const y = Math.floor(Number(yArg));
         const z = Math.floor(Number(zArg));
         if (![x, y, z].every(Number.isFinite)) {
-            Chat.messagePathfinder('&cUsage: /v5 etherwarp <x> <y> <z>');
+            sendPathfinderMessage('&cUsage: /v5 etherwarp <x> <y> <z>');
             return;
         }
         const goal = { x, y, z };
@@ -134,7 +137,7 @@ class EtherwarpPathHandler {
     findPath(goal, options = {}) {
         goal = this.resolveClosestGoal(goal, Math.max(0, Math.floor(finiteNumber(options.goalRadius))));
         if (!goal || ![goal.x, goal.y, goal.z].every(Number.isFinite)) {
-            Chat.messagePathfinder('&cInvalid etherwarp coordinates.');
+            sendPathfinderMessage('&cInvalid etherwarp coordinates.');
             return false;
         }
         if (this.isAtNode(goal)) {
@@ -144,7 +147,7 @@ class EtherwarpPathHandler {
         }
         const slot = this.getEtherwarpSlot();
         if (slot < 0) {
-            Chat.messagePathfinder('&cNo Aspect of the Void/End found in your hotbar.');
+            sendPathfinderMessage('&cNo Aspect of the Void/End found in your hotbar.');
             return false;
         }
 
@@ -220,7 +223,7 @@ class EtherwarpPathHandler {
     }
 
     getPingDelayTicks() {
-        const pingMs = ServerInfo.getPing() || 0;
+        const pingMs = getPing() || 0;
         return Math.ceil(pingMs / 50) + 2;
     }
 
@@ -321,7 +324,7 @@ class EtherwarpPathHandler {
         this.stateVersion++;
         Client.stopMovement();
         Client.setKey('shift', true);
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
     }
 
     pollSearch() {
@@ -409,6 +412,12 @@ class EtherwarpPathHandler {
             return;
         }
 
+        const mana = getCurrentMana();
+        if (mana !== null && mana < MINIMUM_MANA) {
+            this.finishFailure('Not enough mana to continue etherwarping.', !this.currentRun || this.currentRun.restoreSlot !== false);
+            return;
+        }
+
         const angles = this.angles[index];
         if (!angles || !Number.isFinite(angles.yaw) || !Number.isFinite(angles.pitch)) {
             this.finishFailure('Etherpath execution encountered invalid hop angles.', !this.currentRun || this.currentRun.restoreSlot !== false);
@@ -416,7 +425,7 @@ class EtherwarpPathHandler {
         }
         if (!this.ensureEtherwarpHeld(token, () => this.executeHop(token, index))) return;
 
-        RotationGCD.applyToPlayer(angles.yaw, angles.pitch);
+        applyToPlayer(angles.yaw, angles.pitch);
         this.sendEtherwarpClick();
         if (index >= this.path.length - 1) {
             this.startAwaitingHop(token, index);
@@ -489,13 +498,14 @@ class EtherwarpPathHandler {
             Client.setKey('shift', false);
             Client.stopMovement();
 
-            if (slotToRestore !== -1) Guis.setItemSlot(slotToRestore);
+            if (slotToRestore !== -1) setItemSlot(slotToRestore);
         });
     }
 
     getEtherwarpSlot() {
-        const aotv = Guis.findItemInHotbar('Aspect of the Void');
-        return aotv !== -1 ? aotv : Guis.findItemInHotbar('Aspect of the End');
+        const aotv = findItemInHotbar('Aspect of the Void');
+        if (aotv !== -1) return aotv;
+        return findItemInHotbar('Aspect of the End');
     }
 
     ensureEtherwarpHeld(token, resumeTask) {
@@ -508,7 +518,7 @@ class EtherwarpPathHandler {
 
         if (Player.getHeldItemIndex() === slot) return true;
 
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
         ScheduleTask(1, continuation);
         return false;
     }
@@ -593,7 +603,7 @@ class EtherwarpPathHandler {
         this.currentRun = null;
         this.stopExecution(restoreSlot);
         if (!silent) {
-            Chat.messagePathfinder('&c' + failureReason);
+            sendPathfinderMessage('&c' + failureReason);
         }
 
         if (typeof onFail !== 'function') return;
@@ -603,7 +613,7 @@ class EtherwarpPathHandler {
     messagePathfinder(message) {
         const run = this.currentRun;
         if (run && run.silent === true) return;
-        Chat.messagePathfinder(message);
+        sendPathfinderMessage(message);
     }
 }
 
