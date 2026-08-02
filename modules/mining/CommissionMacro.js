@@ -1,11 +1,10 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { notificationManager } from '../../gui/NotificationManager';
 import { CommissionClaimer } from '../../utils/CommissionUtils';
-import { fastDistance } from '../../utils/Math';
+import { fastDistance, finiteNumber } from '../../utils/Math';
 import { getModuleElapsedMs } from '../../utils/MacroState';
 import { getDrills, getMiningSpeed, readCommissionsFromGui, refuel } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { finiteNumber } from '../../utils/NumberUtils';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { clickSlot, closeInventory, getGuiName, setItemSlot } from '../../utils/player/Inventory';

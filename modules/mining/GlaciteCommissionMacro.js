@@ -4,7 +4,7 @@ import { CommissionClaimer } from '../../utils/CommissionUtils';
 import { getModuleElapsedMs } from '../../utils/MacroState';
 import { getDebuff, getDrills, readCommissionsFromGui } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { finiteNumber } from '../../utils/NumberUtils';
+import { finiteNumber } from '../../utils/Math';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { closeInventory, setItemSlot } from '../../utils/player/Inventory';

@@ -1,6 +1,6 @@
 import { registerSkyblockEvent } from '../utils/SkyblockEvents';
 import { isFailsafeMacroRunning } from '../utils/MacroState';
-import { finiteNumber } from '../utils/NumberUtils';
+import { finiteNumber } from '../utils/Math';
 export class Failsafe {
     registered = false;
     disabled = false;

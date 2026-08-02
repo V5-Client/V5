@@ -1,5 +1,5 @@
 import { V5ConfigFile } from '../utils/Constants';
-import { finiteNumber } from '../utils/NumberUtils';
+import { finiteNumber } from '../utils/Math';
 
 const DEFAULT_FAILSAFE_SETTINGS = {
     isEnabled: true,

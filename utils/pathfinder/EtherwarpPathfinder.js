@@ -2,7 +2,7 @@ import { sendPathfinderMessage } from '../Chat';
 import { MCHand, Vec3d } from '../Constants';
 import { ClientboundPingPacket, ServerboundUseItemPacket } from '../Packets';
 import { findItemInHotbar, setItemSlot } from '../player/Inventory';
-import { finiteNumber } from '../NumberUtils';
+import { finiteNumber } from '../Math';
 import { applyToPlayer } from '../player/RotationGCD';
 import { getPing } from '../player/ServerInfo';
 import { ScheduleTask } from '../ScheduleTask';

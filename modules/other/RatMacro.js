@@ -3,7 +3,7 @@ import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { sendDebugMessage } from '../../utils/Chat';
 import { MCHand } from '../../utils/Constants';
-import { finiteNumber, formatRoundedNumber } from '../../utils/NumberUtils';
+import { finiteNumber, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';

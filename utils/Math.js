@@ -114,3 +114,13 @@ export function calculateAbsoluteAngles(vec) {
         pitch: Math.max(-90, Math.min(90, -Math.atan2(dy, Math.hypot(dx, dz)) * RAD_TO_DEG)),
     };
 }
+
+export const finiteNumber = (value, fallback = 0) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+};
+
+export const formatRoundedNumber = (value) => {
+    if (!Number.isFinite(value)) return '0';
+    return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};

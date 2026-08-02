@@ -1,4 +1,4 @@
-import { finiteNumber } from './NumberUtils';
+import { finiteNumber } from './Math';
 
 let currentTick = 0;
 let queuedTasks = [];
