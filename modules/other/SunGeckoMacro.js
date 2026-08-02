@@ -1,15 +1,15 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { CombatBot } from '../combat/CombatBot';
-import { MacroState } from '../../utils/MacroState';
-import { MathUtils } from '../../utils/Math';
+import { getModuleElapsedMs } from '../../utils/MacroState';
+import { fastDistance } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { formatRoundedNumber } from '../../utils/NumberUtils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Guis } from '../../utils/player/Inventory';
-import { Movement } from '../../utils/player/Movement';
+import { findItemInHotbar, getGuiName, setItemSlot } from '../../utils/player/Inventory';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Mouse } from '../../utils/Ungrab';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 // this module was completely ai coded
 // good luck anyone trying to maintain it in the future
@@ -241,7 +241,7 @@ class SunGecko extends ModuleBase {
         for (const entity of World.getAllEntities()) {
             if (ChatLib.removeFormatting(String(entity.getName?.() || '')).trim() !== name) continue;
 
-            const distance = MathUtils.fastDistance(entity.getX(), entity.getY(), entity.getZ(), x, y, z);
+            const distance = fastDistance(entity.getX(), entity.getY(), entity.getZ(), x, y, z);
             if (distance >= closestDistance) continue;
 
             closestDistance = distance;
@@ -278,7 +278,7 @@ class SunGecko extends ModuleBase {
         let closestDistance = Infinity;
 
         for (const point of Points) {
-            const distance = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), point.x, point.y, point.z);
+            const distance = fastDistance(Player.getX(), Player.getY(), Player.getZ(), point.x, point.y, point.z);
 
             if (distance < closestDistance) {
                 closestDistance = distance;
@@ -291,7 +291,7 @@ class SunGecko extends ModuleBase {
         } else if (closestPoint == 'Rift Spawn Exit') {
             this.handleRiftSpawnExit();
         } else if (closestPoint == 'Eye Teleporter') {
-            if (Guis.guiName() !== null) {
+            if (getGuiName() !== null) {
                 this.clickMenuItem(EYE_TELEPORTER.menuItem);
                 return;
             }
@@ -310,7 +310,7 @@ class SunGecko extends ModuleBase {
                 return;
             }
 
-            if (Guis.guiName() !== null) {
+            if (getGuiName() !== null) {
                 this.clickMenuItem(ORUO.menuItem);
                 return;
             }
@@ -333,13 +333,13 @@ class SunGecko extends ModuleBase {
         if (Pathfinder.isPathing()) Pathfinder.resetPath();
         this.pathRequestActive = false;
 
-        const distanceToLadder = MathUtils.fastDistance(Player.getX(), 0, Player.getZ(), RIFT_SPAWN_LADDER_WAYPOINT.x, 0, RIFT_SPAWN_LADDER_WAYPOINT.z);
+        const distanceToLadder = fastDistance(Player.getX(), 0, Player.getZ(), RIFT_SPAWN_LADDER_WAYPOINT.x, 0, RIFT_SPAWN_LADDER_WAYPOINT.z);
 
         if (distanceToLadder > 0.25) {
             Client.setKey('shift', true);
             Client.setKey('sprint', false);
             Rotations.lookAtVector(RIFT_SPAWN_LADDER_AIM_POINT);
-            Movement.setKeysForStraightLineCoords(RIFT_SPAWN_LADDER_WAYPOINT.x, RIFT_SPAWN_LADDER_WAYPOINT.y, RIFT_SPAWN_LADDER_WAYPOINT.z, false, true);
+            setKeysForStraightLineCoords(RIFT_SPAWN_LADDER_WAYPOINT.x, RIFT_SPAWN_LADDER_WAYPOINT.y, RIFT_SPAWN_LADDER_WAYPOINT.z, false, true);
             return;
         }
 
@@ -363,7 +363,7 @@ class SunGecko extends ModuleBase {
         if (distanceToExit > 1) {
             Client.setKey('shift', false);
             Client.setKey('sprint', false);
-            Movement.setKeysForStraightLineCoords(RIFT_SPAWN_EXIT_WAYPOINT.x, RIFT_SPAWN_EXIT_WAYPOINT.y, RIFT_SPAWN_EXIT_WAYPOINT.z, false, true);
+            setKeysForStraightLineCoords(RIFT_SPAWN_EXIT_WAYPOINT.x, RIFT_SPAWN_EXIT_WAYPOINT.y, RIFT_SPAWN_EXIT_WAYPOINT.z, false, true);
             return;
         }
 
@@ -397,9 +397,9 @@ class SunGecko extends ModuleBase {
         CombatBot.setExternalTargets(mobs);
 
         if (!CombatBot.enabled) {
-            const holyIceSlot = Guis.findItemInHotbar('Holy Ice');
+            const holyIceSlot = findItemInHotbar('Holy Ice');
             if (holyIceSlot !== -1) {
-                Guis.setItemSlot(holyIceSlot);
+                setItemSlot(holyIceSlot);
             }
             CombatBot.toggle(true, true);
         }
@@ -425,7 +425,7 @@ class SunGecko extends ModuleBase {
     }
 
     getActiveHours() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         if (elapsedMs <= 0) return 0;
         return elapsedMs / 3600000;
     }
@@ -441,7 +441,7 @@ class SunGecko extends ModuleBase {
         this.actionCooldownUntil = 0;
         this.terracottaClickCooldownUntil = 0;
         this.setState(States.DETERMIN);
-        Mouse.ungrab();
+        ungrab();
         this.message('&aEnabled');
     }
 
@@ -454,7 +454,7 @@ class SunGecko extends ModuleBase {
         CombatBot.clearExternalTargets();
         if (CombatBot.enabled) CombatBot.toggle(false, true);
         this.state = States.WAITING;
-        Mouse.regrab();
+        regrab();
         this.message('&cDisabled');
     }
 }

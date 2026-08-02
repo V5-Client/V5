@@ -1,8 +1,8 @@
-import { Chat } from './Chat';
+import { logMessage, chat } from './Chat';
 import { BufferedReader, File, InputStreamReader, Links, StandardCharsets, URL, globalAssetsDir } from './Constants';
 import { downloadFile } from './FileUtils';
 
-export const fetchURL = (url, headers = {}) => {
+const fetchURL = (url, headers = {}) => {
     try {
         const conn = new URL(url).openConnection();
         conn.setConnectTimeout(5000);
@@ -43,7 +43,7 @@ export const returnDiscord = (authToken) => {
                 });
 
                 if (!responseText || responseText.trim() === '') {
-                    Chat.message('Failed to get a valid response for Discord PFP.');
+                    chat('Failed to get a valid response for Discord PFP.');
                     return;
                 }
 
@@ -51,14 +51,14 @@ export const returnDiscord = (authToken) => {
                 try {
                     data = JSON.parse(responseText);
                 } catch (e) {
-                    Chat.message('Failed to parse Discord PFP data. Check console for error.');
-                    Chat.log('Invalid JSON received: ' + responseText);
+                    chat('Failed to parse Discord PFP data. Check console for error.');
+                    logMessage('Invalid JSON received: ' + responseText);
                     console.error('V5 Caught error' + e + e.stack);
                     return;
                 }
 
                 if (!data || !data.discord || !data.discord.avatar) {
-                    Chat.message('Failed to download your Discord pfp: Invalid data format.');
+                    chat('Failed to download your Discord pfp: Invalid data format.');
                     return;
                 }
 
@@ -67,7 +67,7 @@ export const returnDiscord = (authToken) => {
                         discordPfpPath = profilePath.getAbsolutePath();
                     },
                     onError: (e) => {
-                        Chat.message('Download failed: ' + e);
+                        chat('Download failed: ' + e);
                         console.error('V5 Caught error' + e + e.stack);
                     },
                 });
@@ -78,7 +78,7 @@ export const returnDiscord = (authToken) => {
             discordPfpPath = profilePath.getAbsolutePath();
         }
     } catch (e) {
-        Chat.message('An unexpected error occurred while fetching Discord PFP: ' + e);
+        chat('An unexpected error occurred while fetching Discord PFP: ' + e);
         console.error('V5 Caught error' + e + e.stack);
     }
 };

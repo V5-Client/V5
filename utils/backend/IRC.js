@@ -1,4 +1,4 @@
-import { Chat } from '../Chat';
+import { sendAnnouncement, sendIrcMessage } from '../Chat';
 import { Categories } from '../../gui/categories/CategorySystem';
 
 let ircEnabled = true;
@@ -24,34 +24,34 @@ export function handleIRCMessage(data) {
         if (!ircEnabled) return;
         const sender = data.user || 'Unknown';
         const message = `${data.msg ?? ''}`;
-        Chat.messageIrc(`&9${sender}&r: ${message}`);
+        sendIrcMessage(`&9${sender}&r: ${message}`);
         return true;
     }
 
     if (data.type === 'error') {
-        Chat.messageIrc(`Error: ${data.code || 'Unknown'}`);
+        sendIrcMessage(`Error: ${data.code || 'Unknown'}`);
         return true;
     }
 
     if (data.type === 'system') {
         if (data.code === 'PREFIX_UPDATED') {
-            Chat.messageIrc('Your prefix has been changed');
+            sendIrcMessage('Your prefix has been changed');
         } else if (data.code === 'MUTED') {
             const expiresAt = Number(data.mute_expires_at);
             if (Number.isFinite(expiresAt)) {
-                Chat.messageIrc('You have been muted until ' + new Date(expiresAt * 1000).toISOString());
+                sendIrcMessage('You have been muted until ' + new Date(expiresAt * 1000).toISOString());
             } else {
-                Chat.messageIrc('You have been muted');
+                sendIrcMessage('You have been muted');
             }
         } else {
-            Chat.messageIrc(`System: ${data.code || ''}`);
+            sendIrcMessage(`System: ${data.code || ''}`);
         }
         return true;
     }
 
     if (data.type === 'announcement') {
         if (!ircEnabled) return;
-        Chat.sendAnnouncement(`${data.msg ?? ''}`);
+        sendAnnouncement(`${data.msg ?? ''}`);
         return true;
     }
 

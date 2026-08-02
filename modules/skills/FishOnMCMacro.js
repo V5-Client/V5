@@ -1,11 +1,11 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundSetTitleTextPacket } from '../../utils/Packets';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { manager } from '../../utils/SkyblockEvents';
-import { Mouse } from '../../utils/Ungrab';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 const FISH_POSITIONS = [
     0xfa07, 0xfa12, 0xfa18, 0xfa36, 0xfa40, 0xfa51, 0xfa52, 0xfa59, 0xfa60, 0xfa63, 0xfa64, 0xfa77, 0xfa00, 0xfa15, 0xfa24, 0xfa35, 0xfa70, 0xfa79, 0xfa85,
@@ -80,7 +80,7 @@ class FishOnMCMacro extends ModuleBase {
             if (title === 'BITE!') Client.rightClick();
         }).setFilteredClass(ClientboundSetTitleTextPacket);
 
-        manager.subscribe('fishquestready', () => {
+        registerSkyblockEvent('fishquestready', () => {
             if (!this.enabled) return;
             this.questPending = true;
             this.message('&eQuest queued.');
@@ -124,7 +124,7 @@ class FishOnMCMacro extends ModuleBase {
             this.lastFishAt = 0;
         });
 
-        manager.subscribe('fullinventory', () => {
+        registerSkyblockEvent('fullinventory', () => {
             if (this.enabled && this.state === STATES.FISHING) this.sellInventory();
         });
     }
@@ -143,7 +143,7 @@ class FishOnMCMacro extends ModuleBase {
             pitch: Player.getPitch(),
         };
         Client.setKey('shift', false);
-        Mouse.ungrab();
+        ungrab();
         this.castRod();
     }
 
@@ -153,8 +153,8 @@ class FishOnMCMacro extends ModuleBase {
         Client.setKey('shift', false);
         Pathfinder.resetPath();
         Rotations.stop();
-        if (this.state === STATES.OPENING_MERCHANT || this.state === STATES.SELLING || this.state >= STATES.QUEST_OPENING) Guis.closeInv();
-        Mouse.regrab();
+        if (this.state === STATES.OPENING_MERCHANT || this.state === STATES.SELLING || this.state >= STATES.QUEST_OPENING) closeInventory();
+        regrab();
     }
 
     sellInventory() {
@@ -223,7 +223,7 @@ class FishOnMCMacro extends ModuleBase {
         for (let slot = items.length - 36; slot < items.length; slot++) {
             const item = items[slot];
             if (item?.getLore?.()?.some((line) => ChatLib.removeFormatting(String(line)).includes(VALUE_LORE))) {
-                Guis.clickSlot(slot, false, 'LEFT');
+                clickSlot(slot, false, 'LEFT');
                 return true;
             }
         }
@@ -231,7 +231,7 @@ class FishOnMCMacro extends ModuleBase {
     }
 
     returnToStart() {
-        Guis.closeInv();
+        closeInventory();
         if (!this.start) {
             this.state = STATES.FISHING;
             return;
@@ -298,7 +298,7 @@ class FishOnMCMacro extends ModuleBase {
                 return this.clickQuestSlot(typeSlots[0]);
             }
 
-            Guis.closeInv();
+            closeInventory();
             this.resumeFishing();
             return;
         }
@@ -330,7 +330,7 @@ class FishOnMCMacro extends ModuleBase {
     }
 
     clickQuestSlot(slot) {
-        if (Guis.clickSlot(slot, false, 'LEFT')) this.lastQuestActionAt = Date.now();
+        if (clickSlot(slot, false, 'LEFT')) this.lastQuestActionAt = Date.now();
     }
 
     castRod() {

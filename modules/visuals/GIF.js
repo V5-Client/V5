@@ -1,4 +1,4 @@
-import { Chat } from '../../utils/Chat';
+import { chat } from '../../utils/Chat';
 import { File } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { Utils } from '../../utils/Utils';
@@ -59,7 +59,7 @@ class GifInstance {
         const gifData = NVG.loadGif(this.absPath);
 
         if (!gifData) {
-            Chat.message(`&c[GIF] Failed to load ${this.name}. This is likely an invalid gif file.`);
+            chat(`&c[GIF] Failed to load ${this.name}. This is likely an invalid gif file.`);
             return;
         }
 

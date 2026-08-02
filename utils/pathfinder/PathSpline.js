@@ -1,221 +1,159 @@
 import { BP, Vec3d } from '../Constants';
 
-class PathSpline {
-    constructor() {
-        this.STRONG_SMOOTH_RADIUS = 5;
-        this.CURVE_DETECTION_RADIUS = 2;
-        this.SMOOTH_SAMPLES = 6;
-        this.MIN_LOOK_POINT_SPACING = 0.8;
-        this.MAX_ANGLE_CHANGE = Math.PI / 4;
-        this.MAX_GAP_DISTANCE = 12;
-        this.OUTWARD_OFFSET_STRENGTH = 1.2;
+const MIN_LOOK_POINT_SPACING_SQ = 0.8 ** 2;
+const MAX_GAP_DISTANCE = 12;
+const OUTWARD_OFFSET_STRENGTH = 1.2;
 
-        this.lastDataHash = null;
-        this.cachedBoxPositions = [];
+let lastDataHash = null;
+let cachedLookPoints = [];
+
+const buildPathHash = (points, prefix = 'path', sampleCount = 6) => {
+    if (!points?.length) return `${prefix}-empty`;
+    const first = points[0];
+    const last = points[points.length - 1];
+    const components = [prefix, points.length, first.x, first.y, first.z, last.x, last.y, last.z];
+    const samples = Math.min(sampleCount, points.length - 2);
+    for (let i = 1; i <= samples; i++) {
+        const index = Math.floor((i * (points.length - 1)) / (samples + 1));
+        const point = points[index];
+        components.push(index, point.x, point.y, point.z);
     }
+    return components.join('|');
+};
 
-    buildPathHash(points, prefix = 'path', sampleCount = 6) {
-        if (!points || points.length === 0) return `${prefix}-empty`;
+export function generateSpline(nodes, tolerance = 10) {
+    if (!nodes || nodes.length < 2) return [];
+    const raw = nodes.map((node) => ({ x: node.x ?? node[0], y: node.y ?? node[1], z: node.z ?? node[2] }));
+    const simplified = [raw[0]];
+    for (let i = 1; i < raw.length - 1; i++) {
+        const previous = simplified[simplified.length - 1];
+        const point = raw[i];
+        if (Math.hypot(point.x - previous.x, point.y - previous.y, point.z - previous.z) > tolerance) simplified.push(point);
+    }
+    simplified.push(raw[raw.length - 1]);
 
-        const first = points[0];
-        const last = points[points.length - 1];
-        const components = [prefix, points.length, first.x, first.y, first.z, last.x, last.y, last.z];
+    const path = [];
+    for (let i = 0; i < simplified.length - 1; i++) {
+        const start = simplified[i];
+        const end = simplified[i + 1];
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const dz = end.z - start.z;
+        const steps = Math.ceil(Math.hypot(dx, dy, dz) / 0.4);
+        for (let step = 0; step < steps; step++) {
+            path.push({ x: start.x + (dx * step) / steps, y: start.y + (dy * step) / steps, z: start.z + (dz * step) / steps });
+        }
+    }
+    path.push(simplified[simplified.length - 1]);
+    return path;
+}
 
-        if (points.length > 2) {
-            const maxSampleCount = Math.min(sampleCount, points.length - 2);
-            for (let i = 1; i <= maxSampleCount; i++) {
-                const idx = Math.floor((i * (points.length - 1)) / (maxSampleCount + 1));
-                const p = points[idx];
-                components.push(idx, p.x, p.y, p.z);
+const isPointInsideBlock = (point) => {
+    try {
+        const world = World.getWorld();
+        if (!world) return false;
+        const position = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
+        const state = world.getBlockState(position);
+        return !!state && !state.getCollisionShape(world, position).isEmpty();
+    } catch (_error) {
+        return false;
+    }
+};
+
+const adjustLookPoint = (point, node) => {
+    if (!isPointInsideBlock(point)) return point;
+    const unoffset = { x: node.x, y: point.y, z: node.z };
+    if (!isPointInsideBlock(unoffset)) return unoffset;
+    const lowered = { x: node.x, y: point.y - 0.5, z: node.z };
+    return isPointInsideBlock(lowered) ? unoffset : lowered;
+};
+
+const appendLookPoint = (points, point) => {
+    const last = points[points.length - 1];
+    if (!last) return points.push(point);
+    if ((point.x - last.x) ** 2 + (point.z - last.z) ** 2 < MIN_LOOK_POINT_SPACING_SQ) points[points.length - 1] = point;
+    else points.push(point);
+};
+
+export function createLookPoints(path, minInterval = 1.2, maxInterval = 8) {
+    if (!path || path.length < 2) return [];
+    const hash = buildPathHash(path, 'look');
+    if (hash === lastDataHash) return cachedLookPoints;
+    lastDataHash = hash;
+
+    const points = [{ x: path[0].x, y: path[0].y + 2.62, z: path[0].z }];
+    let lastPlaced = path[0];
+    let lastDirection = null;
+
+    for (let i = 1; i < path.length - 1; i++) {
+        const current = path[i];
+        const distance = Math.hypot(current.x - lastPlaced.x, current.y - lastPlaced.y, current.z - lastPlaced.z);
+        const previous = path[Math.max(0, i - 4)];
+        const next = path[Math.min(path.length - 1, i + 4)];
+        const before = { x: current.x - previous.x, z: current.z - previous.z };
+        const after = { x: next.x - current.x, z: next.z - current.z };
+        const beforeLength = Math.hypot(before.x, before.z);
+        const afterLength = Math.hypot(after.x, after.z);
+        let curvature = 0;
+        let offsetX = 0;
+        let offsetZ = 0;
+
+        if (beforeLength > 0.05 && afterLength > 0.05) {
+            const dot = (before.x * after.x + before.z * after.z) / (beforeLength * afterLength);
+            curvature = Math.min(Math.acos(Math.max(-1, Math.min(1, dot))) / (Math.PI / 2.5), 1);
+            const direction = before.x * after.z - before.z * after.x > 0 ? 1 : -1;
+            const forward = { x: before.x / beforeLength + after.x / afterLength, z: before.z / beforeLength + after.z / afterLength };
+            const forwardLength = Math.hypot(forward.x, forward.z);
+            if (forwardLength > 0.01) {
+                offsetX = -(forward.z / forwardLength) * direction * curvature * OUTWARD_OFFSET_STRENGTH;
+                offsetZ = (forward.x / forwardLength) * direction * curvature * OUTWARD_OFFSET_STRENGTH;
             }
         }
 
-        return components.join('|');
-    }
-
-    generateSpline(keyPathNodes, tolerance = 10) {
-        if (!keyPathNodes || keyPathNodes.length < 2) return [];
-
-        const rawPoints = keyPathNodes.map((n) => {
-            const x = n.x !== undefined ? n.x : n[0];
-            const y = n.y !== undefined ? n.y : n[1];
-            const z = n.z !== undefined ? n.z : n[2];
-            return { x, y, z };
-        });
-
-        const simplifiedPoints = [rawPoints[0]];
-        for (let i = 1; i < rawPoints.length - 1; i++) {
-            const p0 = simplifiedPoints[simplifiedPoints.length - 1];
-            const p1 = rawPoints[i];
-            const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
-            if (dist > tolerance) simplifiedPoints.push(p1);
-        }
-        simplifiedPoints.push(rawPoints[rawPoints.length - 1]);
-
-        if (simplifiedPoints.length < 2) return rawPoints;
-
-        const finalPath = [];
-        const interpolationStep = 0.4;
-
-        for (let i = 0; i < simplifiedPoints.length - 1; i++) {
-            const p1 = simplifiedPoints[i];
-            const p2 = simplifiedPoints[i + 1];
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const dz = p2.z - p1.z;
-            const distance = Math.hypot(dx, dy, dz);
-            const numSteps = Math.ceil(distance / interpolationStep);
-
-            for (let j = 0; j < numSteps; j++) {
-                finalPath.push({ x: p1.x + (dx * j) / numSteps, y: p1.y + (dy * j) / numSteps, z: p1.z + (dz * j) / numSteps });
-            }
-        }
-        finalPath.push(simplifiedPoints[simplifiedPoints.length - 1]);
-        return finalPath;
-    }
-
-    createLookPoints(smoothSplineData, minInterval = 1.2, maxInterval = 8) {
-        if (!smoothSplineData || smoothSplineData.length < 2) return [];
-
-        const currentHash = this.buildPathHash(smoothSplineData, 'look');
-        if (currentHash === this.lastDataHash) return this.cachedBoxPositions;
-        this.lastDataHash = currentHash;
-
-        const start = smoothSplineData[0];
-        const endPoint = smoothSplineData[smoothSplineData.length - 1];
-
-        const boxPositions = [];
-        let lastPlacedRaw = smoothSplineData[0];
-        let lastForwardDir = null;
-
-        boxPositions.push({ x: start.x, y: start.y + 2.62, z: start.z });
-
-        for (let i = 1; i < smoothSplineData.length - 1; i++) {
-            const curr = smoothSplineData[i];
-            const dist = Math.hypot(curr.x - lastPlacedRaw.x, curr.y - lastPlacedRaw.y, curr.z - lastPlacedRaw.z);
-
-            const lookWindow = 4;
-            const prev = smoothSplineData[Math.max(0, i - lookWindow)];
-            const next = smoothSplineData[Math.min(smoothSplineData.length - 1, i + lookWindow)];
-
-            const v1 = { x: curr.x - prev.x, z: curr.z - prev.z };
-            const v2 = { x: next.x - curr.x, z: next.z - curr.z };
-            const m1 = Math.hypot(v1.x, v1.z);
-            const m2 = Math.hypot(v2.x, v2.z);
-
-            let curvature = 0;
-            let offsetX = 0;
-            let offsetZ = 0;
-
-            if (m1 > 0.05 && m2 > 0.05) {
-                const dot = (v1.x * v2.x + v1.z * v2.z) / (m1 * m2);
-                const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-                curvature = Math.min(angle / (Math.PI / 2.5), 1);
-
-                const cross = v1.x * v2.z - v1.z * v2.x;
-                const dir = cross > 0 ? 1 : -1;
-                const forward = { x: v1.x / m1 + v2.x / m2, z: v1.z / m1 + v2.z / m2 };
-                const fMag = Math.hypot(forward.x, forward.z);
-
-                if (fMag > 0.01) {
-                    offsetX = -(forward.z / fMag) * dir * curvature * this.OUTWARD_OFFSET_STRENGTH;
-                    offsetZ = (forward.x / fMag) * dir * curvature * this.OUTWARD_OFFSET_STRENGTH;
-                }
-            }
-
-            const dynamicInterval = maxInterval - curvature * (maxInterval - minInterval);
-
-            if (dist >= dynamicInterval) {
-                const currentForward = { x: curr.x - lastPlacedRaw.x, z: curr.z - lastPlacedRaw.z };
-                const cfMag = Math.hypot(currentForward.x, currentForward.z);
-
-                if (lastForwardDir && cfMag > 0.1 && dist < this.MAX_GAP_DISTANCE) {
-                    const dot = (currentForward.x * lastForwardDir.x + currentForward.z * lastForwardDir.z) / cfMag;
-                    if (dot < 0.4) continue;
-                }
-
-                const targetPoint = { x: curr.x + offsetX, y: curr.y + 2.62, z: curr.z + offsetZ };
-                this.appendLookPoint(boxPositions, this.adjustLookPoint(targetPoint, curr));
-                lastPlacedRaw = curr;
-                if (cfMag > 0.1) lastForwardDir = { x: currentForward.x / cfMag, z: currentForward.z / cfMag };
-            }
+        if (distance < maxInterval - curvature * (maxInterval - minInterval)) continue;
+        const forward = { x: current.x - lastPlaced.x, z: current.z - lastPlaced.z };
+        const forwardLength = Math.hypot(forward.x, forward.z);
+        if (lastDirection && forwardLength > 0.1 && distance < MAX_GAP_DISTANCE) {
+            const dot = (forward.x * lastDirection.x + forward.z * lastDirection.z) / forwardLength;
+            if (dot < 0.4) continue;
         }
 
-        this.appendLookPoint(boxPositions, { x: endPoint.x, y: endPoint.y + 2.62, z: endPoint.z });
-        this.cachedBoxPositions = boxPositions;
-        return boxPositions;
+        appendLookPoint(points, adjustLookPoint({ x: current.x + offsetX, y: current.y + 2.62, z: current.z + offsetZ }, current));
+        lastPlaced = current;
+        if (forwardLength > 0.1) lastDirection = { x: forward.x / forwardLength, z: forward.z / forwardLength };
     }
 
-    isPointInsideBlock(point) {
-        try {
-            const world = World.getWorld();
-            if (!world) return false;
-            const pos = new BP(Math.floor(point.x), Math.floor(point.y), Math.floor(point.z));
-            const state = world.getBlockState(pos);
-            if (!state) return false;
-            return !state.getCollisionShape(world, pos).isEmpty();
-        } catch (e) {
-            return false;
+    const end = path[path.length - 1];
+    appendLookPoint(points, { x: end.x, y: end.y + 2.62, z: end.z });
+    cachedLookPoints = points;
+    return points;
+}
+
+export function drawLookPoints() {
+    if (!cachedLookPoints.length || !Player.getPlayer()) return;
+    const playerX = Player.getX();
+    const playerZ = Player.getZ();
+    for (const point of cachedLookPoints) {
+        if (Math.abs(point.x - playerX) < 64 && Math.abs(point.z - playerZ) < 64) {
+            RenderUtils.drawSizedBox(new Vec3d(point.x, point.y + 0.2, point.z), 0.4, 0.4, 0.4, new RenderColor(255, 0, 255, 180), true, 1, true);
         }
-    }
-
-    adjustLookPoint(point, rawNode) {
-        if (!this.isPointInsideBlock(point)) return point;
-        const unoffset = { x: rawNode.x, y: point.y, z: rawNode.z };
-        if (!this.isPointInsideBlock(unoffset)) return unoffset;
-        const lowered = { x: rawNode.x, y: point.y - 0.5, z: rawNode.z };
-        return this.isPointInsideBlock(lowered) ? unoffset : lowered;
-    }
-
-    appendLookPoint(boxPositions, point) {
-        if (boxPositions.length === 0) {
-            boxPositions.push(point);
-            return;
-        }
-        const last = boxPositions[boxPositions.length - 1];
-        if (Math.pow(point.x - last.x, 2) + Math.pow(point.z - last.z, 2) < Math.pow(this.MIN_LOOK_POINT_SPACING, 2)) {
-            boxPositions[boxPositions.length - 1] = point;
-        } else {
-            boxPositions.push(point);
-        }
-    }
-
-    drawLookPoints() {
-        if (!this.cachedBoxPositions?.length) return;
-
-        const player = Player.getPlayer();
-        if (!player) return;
-
-        const px = Player.getX();
-        const pz = Player.getZ();
-
-        const size = 0.4;
-
-        this.cachedBoxPositions.forEach((pos) => {
-            if (Math.abs(pos.x - px) < 64 && Math.abs(pos.z - pz) < 64) {
-                const renderPos = new Vec3d(pos.x, pos.y + 0.2, pos.z);
-                RenderUtils.drawSizedBox(renderPos, size, size, size, new RenderColor(255, 0, 255, 180), true, 1, true);
-            }
-        });
-    }
-
-    drawFloatingSpline(smoothSplineData) {
-        if (!smoothSplineData || smoothSplineData.length < 2) return;
-        for (let i = 0; i < smoothSplineData.length - 1; i++) {
-            RenderUtils.drawLine(
-                new Vec3d(smoothSplineData[i].x + 0.5, smoothSplineData[i].y + 2.62, smoothSplineData[i].z + 0.5),
-                new Vec3d(smoothSplineData[i + 1].x + 0.5, smoothSplineData[i + 1].y + 2.62, smoothSplineData[i + 1].z + 0.5),
-                new RenderColor(0, 255, 255, 255),
-                3,
-                true
-            );
-        }
-    }
-
-    clearCache() {
-        this.cachedBoxPositions = [];
-        this.lastDataHash = null;
     }
 }
 
-export const Spline = new PathSpline();
+export function drawFloatingSpline(path) {
+    if (!path || path.length < 2) return;
+    for (let i = 0; i < path.length - 1; i++) {
+        RenderUtils.drawLine(
+            new Vec3d(path[i].x + 0.5, path[i].y + 2.62, path[i].z + 0.5),
+            new Vec3d(path[i + 1].x + 0.5, path[i + 1].y + 2.62, path[i + 1].z + 0.5),
+            new RenderColor(0, 255, 255, 255),
+            3,
+            true
+        );
+    }
+}
+
+export function clearSplineCache() {
+    cachedLookPoints = [];
+    lastDataHash = null;
+}

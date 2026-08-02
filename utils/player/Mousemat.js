@@ -1,7 +1,7 @@
 import { ScheduleTask } from '../ScheduleTask';
-import { Sign } from '../Sign';
-import { Utils } from '../Utils';
-import { Guis } from './Inventory';
+import { setSignLine } from '../Sign';
+import { randomInt } from '../Utils';
+import { findItemInHotbar, setItemSlot } from './Inventory';
 import { farmingDelays } from '../../modules/farming/FarmingDelays';
 
 const CLICK_COOLDOWN_MS = 3_050;
@@ -45,7 +45,7 @@ class MousematController {
             return true;
         }
 
-        const slot = Guis.findItemInHotbar('Squeaky Mousemat');
+        const slot = findItemInHotbar('Squeaky Mousemat');
         if (slot < 0) return false;
 
         const rotation = (this.rotation = {
@@ -56,7 +56,7 @@ class MousematController {
             waitingForClose: false,
         });
 
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
         const selectedRotation = this.getSelectedRotation(slot);
         if (selectedRotation && selectedRotation.yaw === Number(rotation.yaw) && selectedRotation.pitch === Number(rotation.pitch)) {
             this.snap(rotation, this.getActionDelay());
@@ -73,14 +73,14 @@ class MousematController {
     }
 
     restore() {
-        const slot = Guis.findItemInHotbar('Squeaky Mousemat');
+        const slot = findItemInHotbar('Squeaky Mousemat');
         if (slot < 0) return false;
 
         this.stop();
         const selectedRotation = this.getSelectedRotation(slot);
         if (!selectedRotation) return false;
         const rotation = (this.rotation = { originalSlot: Player.getHeldItemIndex(), ...selectedRotation });
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
         this.snap(rotation, this.getActionDelay());
         return true;
     }
@@ -90,7 +90,7 @@ class MousematController {
     }
 
     getActionDelay() {
-        return Utils.randomInt(farmingDelays.mousematActionDelayMin, farmingDelays.mousematActionDelayMax);
+        return randomInt(farmingDelays.mousematActionDelayMin, farmingDelays.mousematActionDelayMax);
     }
 
     complete(rotation) {
@@ -99,12 +99,12 @@ class MousematController {
         const callbacks = this.callbacks;
         this.rotation = null;
         this.callbacks = [];
-        Guis.setItemSlot(rotation.originalSlot);
+        setItemSlot(rotation.originalSlot);
         callbacks.forEach((callback) => ScheduleTask(callback));
     }
 
     stop() {
-        if (this.rotation) Guis.setItemSlot(this.rotation.originalSlot);
+        if (this.rotation) setItemSlot(this.rotation.originalSlot);
         this.rotation = null;
         this.callbacks = [];
     }
@@ -122,8 +122,8 @@ class MousematController {
 
         rotation.waitingForSign = false;
         rotation.waitingForClose = true;
-        Sign.setLine(1, rotation.yaw);
-        Sign.setLine(4, rotation.pitch);
+        setSignLine(1, rotation.yaw);
+        setSignLine(4, rotation.pitch);
         Client.currentGui.close();
     }
 

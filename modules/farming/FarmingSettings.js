@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 
 class FarmingSettings extends ModuleBase {
     constructor() {
@@ -25,12 +25,12 @@ class FarmingSettings extends ModuleBase {
     }
 
     restoreSlot() {
-        if (this.originalSlot !== -1) Guis.setItemSlot(this.originalSlot);
+        if (this.originalSlot !== -1) setItemSlot(this.originalSlot);
         this.originalSlot = -1;
     }
 
     selectVacuum() {
-        const slot = Guis.findItemInHotbar('Vacuum');
+        const slot = findItemInHotbar('Vacuum');
         if (slot < 0) {
             if (!this.hasReportedMissingVacuum) this.message('&cNo Vacuum found in hotbar.');
             this.hasReportedMissingVacuum = true;
@@ -38,7 +38,7 @@ class FarmingSettings extends ModuleBase {
         }
         this.hasReportedMissingVacuum = false;
         if (Player.getHeldItemIndex() === slot) return true;
-        Guis.setItemSlot(slot);
+        setItemSlot(slot);
         return false;
     }
 }

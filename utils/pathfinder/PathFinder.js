@@ -1,17 +1,17 @@
 import { showNotification } from '../../gui/NotificationManager';
-import { Chat } from '../Chat';
+import { sendPathfinderMessage } from '../Chat';
 import { BP, Vec3d } from '../Constants';
 import { ScheduleTask } from '../ScheduleTask';
-import { MathUtils } from '../Math';
-import { Utils } from '../Utils';
+import { getDistanceToPlayer } from '../Math';
+import { area } from '../Utils';
 import { v5Command } from '../V5Commands';
 import PathConfig from './PathConfig';
-import { PathExecutor } from './PathExecutor';
+import { destroyPathExecutor, startPathExecutor } from './PathExecutor';
 import { PathFlyer } from './PathFlyer';
-import { Spline } from './PathSpline';
+import { clearSplineCache, drawFloatingSpline, drawLookPoints, generateSpline } from './PathSpline';
 import { Jump } from './PathWalker/PathJumps';
 import { Aote } from './PathWalker/PathAote';
-import { Movement } from './PathWalker/PathMovement';
+import { backup, beginMovement, forceJump, stopMovement } from './PathWalker/PathMovement';
 import { NonChangeRecovery, Recovery } from './PathWalker/PathRecovery';
 import { Rotations } from './PathWalker/PathRotations';
 import { Swift } from './SwiftIntegration';
@@ -87,7 +87,7 @@ class Finder {
 
     parseGoalCoordinates(args, usageText, isFly = false) {
         if (args.length < 3 || args.length % 3 !== 0) {
-            Chat.messagePathfinder(usageText);
+            sendPathfinderMessage(usageText);
             return null;
         }
 
@@ -143,7 +143,7 @@ class Finder {
 
         if (this.calledFromFile) {
             const endStr = end.length > 1 ? `Multiple Goals (${end.length})` : `${end[0][0]}, ${end[0][1]}, ${end[0][2]}`;
-            Chat.messagePathfinder(`Path from &a${start[0]}, ${start[1]}, ${start[2]}&f to &c${endStr}`);
+            sendPathfinderMessage(`Path from &a${start[0]}, ${start[1]}, ${start[2]}&f to &c${endStr}`);
         }
 
         if (!Swift.SwiftPath(starts, end, isFly, this.pathVariantSeed, PathConfig.PATHFINDER_MAX_COMPUTE)) {
@@ -154,7 +154,7 @@ class Finder {
         this.searchStartedAt = Date.now();
 
         if (this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
-            Chat.messagePathfinder('§eSearching for path...');
+            sendPathfinderMessage('§eSearching for path...');
         }
 
         this.startTick();
@@ -163,13 +163,13 @@ class Finder {
     startTick() {
         if (this.tick) return;
 
-        PathExecutor.execute();
+        startPathExecutor();
 
         this.tick = register('tick', () => {
             if (Swift.isSearching()) {
                 if (this.searchStartedAt > 0 && Date.now() - this.searchStartedAt > this.SEARCH_TIMEOUT_MS) {
                     if (PathConfig.PATHFINDING_DEBUG) {
-                        Chat.messagePathfinder('§6Path search timed out, recalculating');
+                        sendPathfinderMessage('§6Path search timed out, recalculating');
                     }
                     Swift.cancel();
                     Swift.clear();
@@ -197,7 +197,7 @@ class Finder {
                     }
 
                     const reason = Swift.getLastError();
-                    Chat.messagePathfinder('§cNo path found' + (reason ? ': ' + reason : ''));
+                    sendPathfinderMessage('§cNo path found' + (reason ? ': ' + reason : ''));
 
                     this.callCallback(false);
                     this.resetPath();
@@ -207,10 +207,10 @@ class Finder {
 
             if (!this.saidInfo && this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
                 const nodeCount = Array.isArray(result.path) ? result.path.length : result.keynodes.length;
-                Chat.messagePathfinder(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
+                sendPathfinderMessage(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
                 const nsPerNode = Number(result.nanoseconds_per_node);
                 if (Number.isFinite(nsPerNode) && nsPerNode > 0) {
-                    Chat.messagePathfinder(`Nanoseconds per node: ${Math.round(nsPerNode)}ns`);
+                    sendPathfinderMessage(`Nanoseconds per node: ${Math.round(nsPerNode)}ns`);
                 }
                 this.saidInfo = true;
             }
@@ -241,11 +241,11 @@ class Finder {
                 this.applyPathRuntimeHints(result);
                 Aote.onPathTick(Rotations);
                 Jump.detectJump(result.path_between_key_nodes, result.path_flags, result.path_flag_bits);
-                Movement.beginMovement();
+                beginMovement();
 
                 if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
                     if (PathConfig.PATHFINDING_DEBUG) {
-                        Chat.messagePathfinder('§aUnstuck!');
+                        sendPathfinderMessage('§aUnstuck!');
                     }
                     this.recalculateAttempts = 0;
                     Recovery.stop();
@@ -316,7 +316,7 @@ class Finder {
                     }
 
                     if (PathConfig.RENDER_FLOATING_SPLINE) {
-                        Spline.drawFloatingSpline(this.flySplinePath);
+                        drawFloatingSpline(this.flySplinePath);
                     }
 
                     if (PathConfig.RENDER_LOOK_POINTS) {
@@ -332,15 +332,15 @@ class Finder {
 
         switch (action) {
             case 'JUMP':
-                Movement.forceJump(4);
+                forceJump(4);
                 break;
             case 'CLOSE_LOOK':
                 Rotations.setTemporaryLookahead(Rotations.RECOVERY_MIN_LOOKAHEAD, 40);
-                //Movement.forceJump(4);
+                //forceJump(4);
                 break;
             case 'BACKUP_RECALC':
                 this.addTransientAvoidAtPlayer(2, 42, 2);
-                Movement.backup(15, () => this.recalculate('backup_recalc'));
+                backup(15, () => this.recalculate('backup_recalc'));
                 break;
         }
     }
@@ -359,7 +359,7 @@ class Finder {
 
         if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                Chat.messagePathfinder('§cMax recalculation attempts, failed!');
+                sendPathfinderMessage('§cMax recalculation attempts, failed!');
             }
             this.callCallback(false);
             this.resetPath();
@@ -367,7 +367,7 @@ class Finder {
         }
 
         if (PathConfig.PATHFINDING_DEBUG) {
-            Chat.messagePathfinder(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})`);
+            sendPathfinderMessage(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})`);
         }
 
         this.schedulePathRetry(3);
@@ -655,7 +655,7 @@ class Finder {
             return { points, metadata };
         }
 
-        PathConfig.getAreaWarpPoints(Utils.area()).forEach((warpPoint) => {
+        PathConfig.getAreaWarpPoints(area()).forEach((warpPoint) => {
             const point = [warpPoint.x, warpPoint.y, warpPoint.z];
             points.push(point);
             metadata.push({
@@ -760,7 +760,7 @@ class Finder {
 
     failWarpPathfinding() {
         const warpName = this.selectedStartCandidate?.warp || 'unknown';
-        Chat.messagePathfinder(`§cFailed to warp to ${warpName} after ${this.MAX_WARP_RETRIES} retries.`);
+        sendPathfinderMessage(`§cFailed to warp to ${warpName} after ${this.MAX_WARP_RETRIES} retries.`);
         showNotification('Pathfinding Failed', `Warp ${warpName} failed after ${this.MAX_WARP_RETRIES} retries.`, 'ERROR', 5000);
         this.callCallback(false);
         this.resetPath();
@@ -769,7 +769,7 @@ class Finder {
     isPlayerAtWarpPoint(point) {
         if (this.hasReachedWarpPoint) return true;
 
-        const dist = MathUtils.getDistanceToPlayer(point[0], point[1], point[2]);
+        const dist = getDistanceToPlayer(point[0], point[1], point[2]);
         if (dist.distance <= 9) {
             this.hasReachedWarpPoint = true;
             return true;
@@ -813,7 +813,7 @@ class Finder {
     createSplinePath(path) {
         if (!path) return null;
         const nodes = path.path_between_key_nodes?.length ? path.path_between_key_nodes : path.keynodes;
-        return nodes?.length ? Spline.generateSpline(nodes, 1) : null;
+        return nodes?.length ? generateSpline(nodes, 1) : null;
     }
 
     getCachedWalkSplinePath(result) {
@@ -843,8 +843,8 @@ class Finder {
                     RenderUtils.drawStyledBox(new Vec3d(node.x, node.y, node.z), new RenderColor(0, 100, 200, 120), new RenderColor(0, 100, 200, 255), 4, true);
                 });
             }
-            if (PathConfig.RENDER_FLOATING_SPLINE) Spline.drawFloatingSpline(splinePath);
-            if (PathConfig.RENDER_LOOK_POINTS) Spline.drawLookPoints();
+            if (PathConfig.RENDER_FLOATING_SPLINE) drawFloatingSpline(splinePath);
+            if (PathConfig.RENDER_LOOK_POINTS) drawLookPoints();
         });
     }
 
@@ -865,13 +865,13 @@ class Finder {
     resetPath(clearFlags = true) {
         this.destroyTick();
         this.destroyRender();
-        PathExecutor.destroy();
+        destroyPathExecutor();
         Rotations.resetRotations();
         PathFlyer.reset();
-        Spline.clearCache();
+        clearSplineCache();
         Jump.reset();
         Aote.stop(clearFlags);
-        Movement.stopMovement();
+        stopMovement();
         if (clearFlags) {
             Recovery.stop();
             NonChangeRecovery.stop();

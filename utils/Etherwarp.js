@@ -1,4 +1,4 @@
-import { Utils } from './Utils';
+import { area } from './Utils';
 
 const MODERN_ETHERWARP_AREAS = new Set([
     'Hub',
@@ -18,19 +18,18 @@ const ETHERWARP_PLAYER_EYE_HEIGHT = 1.62;
 const ETHERWARP_LEGACY_SNEAK_OFFSET = 0.08;
 const ETHERWARP_MODERN_SNEAK_OFFSET = 0.35;
 
-export const EtherwarpPathState = {
-    handler: null,
-};
+let pathHandler = null;
 
-export const isModernEtherwarpArea = (area = Utils.area()) => MODERN_ETHERWARP_AREAS.has(area || '');
+export const setEtherwarpPathHandler = (handler) => (pathHandler = handler);
+export const getEtherwarpPathHandler = () => pathHandler;
 
-export const getEtherwarpSneakOffset = (area = Utils.area()) => (isModernEtherwarpArea(area) ? ETHERWARP_MODERN_SNEAK_OFFSET : ETHERWARP_LEGACY_SNEAK_OFFSET);
+const isModernEtherwarpArea = (areaName = area()) => MODERN_ETHERWARP_AREAS.has(areaName || '');
 
-export const getEtherwarpEyeHeight = (player = Player.getPlayer(), area = Utils.area()) => 1 + ETHERWARP_PLAYER_EYE_HEIGHT - getEtherwarpSneakOffset(area);
+const getEtherwarpSneakOffset = (areaName = area()) => (isModernEtherwarpArea(areaName) ? ETHERWARP_MODERN_SNEAK_OFFSET : ETHERWARP_LEGACY_SNEAK_OFFSET);
 
-export const getEtherwarpEyeCoords = (forceSneak = false, player = Player.getPlayer(), area = Utils.area()) => {
+export const getEtherwarpEyeCoords = (forceSneak = false, player = Player.getPlayer(), areaName = area()) => {
     if (!player) return null;
 
-    const eyeY = forceSneak ? player.getY() + ETHERWARP_PLAYER_EYE_HEIGHT - getEtherwarpSneakOffset(area) : player.getEyePosition().y();
+    const eyeY = forceSneak ? player.getY() + ETHERWARP_PLAYER_EYE_HEIGHT - getEtherwarpSneakOffset(areaName) : player.getEyePosition().y();
     return [player.getX(), eyeY, player.getZ()];
 };

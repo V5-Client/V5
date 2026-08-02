@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory, getGuiName } from '../../utils/player/Inventory';
 import { ScheduleTask } from '../../utils/ScheduleTask';
 
 const LOADOUT_SLOTS = [14, 15, 16, 23, 24, 25, 32, 33, 34, 41, 42, 43];
@@ -44,19 +44,19 @@ class LoadoutHandler extends ModuleBase {
         if (slot === this.currentSlot && this.targetSlot === null) return true;
         if (this.targetSlot !== slot) {
             this.targetSlot = slot;
-            if (!Guis.guiName()?.includes('(1/3) Loadouts')) ChatLib.command('loadouts');
+            if (!getGuiName()?.includes('(1/3) Loadouts')) ChatLib.command('loadouts');
         }
         return false;
     }
 
     tick() {
-        if (this.targetSlot === null || !Guis.guiName()?.includes('(1/3) Loadouts')) return;
-        if (!Guis.clickSlot(LOADOUT_SLOTS[this.targetSlot - 1])) return;
+        if (this.targetSlot === null || !getGuiName()?.includes('(1/3) Loadouts')) return;
+        if (!clickSlot(LOADOUT_SLOTS[this.targetSlot - 1])) return;
         this.currentSlot = this.targetSlot;
         this.targetSlot = null;
         this.switching = true;
         ScheduleTask(5, () => {
-            if (Guis.guiName()?.includes('(1/3) Loadouts')) Guis.closeInv();
+            if (getGuiName()?.includes('(1/3) Loadouts')) closeInventory();
             ScheduleTask(4, () => (this.switching = false));
         });
     }

@@ -1,5 +1,5 @@
-import { TimeUtils } from '../utils/TimeUtils';
-import { Utils } from '../utils/Utils';
+import { formatDurationMs, formatUptime } from '../utils/TimeUtils';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import {
     BORDER_WIDTH,
     clamp,
@@ -15,7 +15,7 @@ import {
     THEME,
 } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
-import { ServerInfo } from '../utils/player/ServerInfo';
+import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
 
 const { loadSettings } = require('./GuiSave');
 
@@ -224,10 +224,10 @@ class OverlayUtils {
 
     getMacroDuration(macroName) {
         const saved = this.savedSessions && this.savedSessions[macroName];
-        if (saved && typeof saved.elapsedMs === 'number') return TimeUtils.formatDurationMs(saved.elapsedMs);
+        if (saved && typeof saved.elapsedMs === 'number') return formatDurationMs(saved.elapsedMs);
 
         const startTime = this.startTimes && this.startTimes[macroName];
-        return startTime ? TimeUtils.formatUptime(startTime) : '';
+        return startTime ? formatUptime(startTime) : '';
     }
 
     initTriggers() {
@@ -530,7 +530,7 @@ class OverlayUtils {
         const basePadding = boxPadding;
 
         const sections = this.ensureArray(id.sections);
-        const uptimeVal = forceGUI ? '0.00s' : TimeUtils.formatUptime(this.startTimes[id.name]);
+        const uptimeVal = forceGUI ? '0.00s' : formatUptime(this.startTimes[id.name]);
 
         let contentMaxWidth = getTextWidth(id.name, fontSize);
         let calculatedHeight = 30 * scale;
@@ -708,7 +708,7 @@ class OverlayUtils {
             const textWidth = getTextWidth(text, FontSizes.MEDIUM);
             drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 16);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             NVG.endFrame();
         }
@@ -736,23 +736,23 @@ class OverlayUtils {
                 this.renderID(id, false, { sw, sh });
             });
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             NVG.endFrame();
         }
     }
 
     saveSettings() {
-        Utils.writeConfigFile('OverlayPositions/overlays.json', {
+        writeConfigFile('OverlayPositions/overlays.json', {
             default: this.settings,
             scheduler: this.schedulerSettings,
         });
-        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
-        Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
+        writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
+        writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
     }
 
     loadSettings() {
-        const data = Utils.getConfigFile('OverlayPositions/overlays.json');
+        const data = getConfigFile('OverlayPositions/overlays.json');
         if (data) {
             if (data.default && typeof data.default.x === 'number') {
                 this.settings = {
@@ -780,7 +780,7 @@ class OverlayUtils {
             this.updateScaleProps('scheduler');
         }
 
-        const hudData = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        const hudData = getConfigFile('OverlayPositions/hud_positions.json');
         if (hudData && typeof hudData === 'object') {
             if (hudData.stats && typeof hudData.stats.x === 'number') {
                 this.hudSettings.stats = {
@@ -799,7 +799,7 @@ class OverlayUtils {
             }
         }
 
-        const musicData = Utils.getConfigFile('OverlayPositions/music_overlay.json');
+        const musicData = getConfigFile('OverlayPositions/music_overlay.json');
         if (musicData && typeof musicData === 'object' && typeof musicData.x === 'number' && typeof musicData.y === 'number') {
             this.musicSettings = {
                 x: musicData.x,
@@ -982,12 +982,12 @@ class OverlayUtils {
 
     getHudStatsLines() {
         const fps = Client.getFPS();
-        const ping = ServerInfo.getPing();
-        const tps = ServerInfo.getTPS();
+        const ping = getPing();
+        const tps = getTPS();
         return [
             { label: 'FPS', value: String(fps), color: THEME.TEXT },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
+            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
+            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
         ];
     }
 

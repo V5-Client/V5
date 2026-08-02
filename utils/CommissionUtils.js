@@ -1,7 +1,7 @@
-import { MathUtils } from './Math';
+import { distanceToPlayerPoint, fastDistance } from './Math';
 import { EtherwarpPathfinder } from './pathfinder/EtherwarpPathfinder';
 import Pathfinder from './pathfinder/PathFinder';
-import { Guis } from './player/Inventory';
+import { clickSlot, findItemInHotbar, getGuiName, setItemSlot } from './player/Inventory';
 import { Rotations } from './player/Rotations';
 
 export class CommissionClaimer {
@@ -22,7 +22,7 @@ export class CommissionClaimer {
     handle() {
         if (!Player.getPlayer()) return;
 
-        if (Guis.guiName() === 'Commissions') {
+        if (getGuiName() === 'Commissions') {
             const container = Player.getContainer();
             if (!container) return;
 
@@ -34,10 +34,10 @@ export class CommissionClaimer {
             return;
         }
 
-        const pigeonSlot = Guis.findItemInHotbar('Royal Pigeon');
+        const pigeonSlot = findItemInHotbar('Royal Pigeon');
         if (pigeonSlot !== -1) {
             if (Player.getHeldItemIndex() !== pigeonSlot) {
-                Guis.setItemSlot(pigeonSlot);
+                setItemSlot(pigeonSlot);
                 this.delay(3);
             } else {
                 Client.rightClick();
@@ -50,7 +50,7 @@ export class CommissionClaimer {
         if (!locations.length) return;
 
         const closest = this.getClosestLocation(locations);
-        const closestDist = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
+        const closestDist = fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
         const target = [closest[0] + 0.5, closest[1] + 1.8, closest[2] + 0.5];
 
         if (closest[1] - Player.getY() > 3 && closestDist < 10) {
@@ -58,7 +58,7 @@ export class CommissionClaimer {
             return;
         }
 
-        if (MathUtils.distanceToPlayerPoint(target) <= 3 && !this.isPathing()) {
+        if (distanceToPlayerPoint(target) <= 3 && !this.isPathing()) {
             if (!this.ensureToolEquipped()) return;
             if (Math.abs(Player.getMotionX()) + Math.abs(Player.getMotionZ()) >= 0.04) return;
 
@@ -117,8 +117,8 @@ export class CommissionClaimer {
 
     getClosestLocation(locations) {
         return locations.reduce((closest, location) => {
-            const closestDist = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
-            const locationDist = MathUtils.fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...location);
+            const closestDist = fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...closest);
+            const locationDist = fastDistance(Player.getX(), Player.getY(), Player.getZ(), ...location);
             return locationDist < closestDist ? location : closest;
         });
     }
@@ -142,7 +142,7 @@ function claimCompletedCommission(container) {
         if (!stack) continue;
         if (!(stack.getLore() || []).some((line) => String(line).includes('COMPLETED'))) continue;
 
-        Guis.clickSlot(i, false);
+        clickSlot(i, false);
         return true;
     }
     return false;

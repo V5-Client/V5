@@ -1,11 +1,11 @@
 import { GuiRectangles, GuiState } from './core/GuiState';
 import { FontSizes, PADDING, THEME, drawImage, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, getTextWidth, isInside } from './Utils';
 import { loadSettings } from './GuiSave';
-import { MacroState } from '../utils/MacroState';
+import { getEnabledMacros, getModule, modules as registeredModules } from '../utils/MacroState';
 import { globalAssetsDir } from '../utils/Constants';
 import { Categories } from './categories/CategorySystem';
 import { drawSubcategoryButtons, getModuleBorderColor, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './categories/CategoryRenderer';
-import { Utils } from '../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import { v5Command } from '../utils/V5Commands';
 
 const ROW_HEIGHT = 28;
@@ -31,14 +31,14 @@ const macroCategoryState = {
 };
 
 const loadFavorites = () => {
-    const saved = Utils.getConfigFile(FAVORITES_FILE);
+    const saved = getConfigFile(FAVORITES_FILE);
     favorites = new Set(Array.isArray(saved?.favorites) ? saved.favorites.filter((name) => typeof name === 'string') : []);
 };
 
-const saveFavorites = () => Utils.writeConfigFile(FAVORITES_FILE, { favorites: Array.from(favorites) });
+const saveFavorites = () => writeConfigFile(FAVORITES_FILE, { favorites: Array.from(favorites) });
 
 const getMacros = () =>
-    Array.from(MacroState.modules.values())
+    Array.from(registeredModules.values())
         .filter(
             (module) =>
                 module?.isMacro &&
@@ -248,16 +248,16 @@ register('guiKey', (char, keyCode, gui, event) => {
 });
 
 const keyName = 'Macro Toggle GUI';
-const savedKeycode = Utils.getConfigFile('keybinds.json')?.[keyName] ?? Keyboard.KEY_M;
+const savedKeycode = getConfigFile('keybinds.json')?.[keyName] ?? Keyboard.KEY_M;
 const keybind = new KeyBind(keyName, savedKeycode, 'v5_core');
 keybind.registerKeyPress(() => {
-    MacroState.getEnabledMacros().forEach((name) => MacroState.getModule(name)?.toggle(false));
+    getEnabledMacros().forEach((name) => getModule(name)?.toggle(false));
     macroToggleGui.open();
 });
 register('gameUnload', () => {
-    const keybinds = Utils.getConfigFile('keybinds.json') || {};
+    const keybinds = getConfigFile('keybinds.json') || {};
     keybinds[keyName] = keybind.getKeyCode();
-    Utils.writeConfigFile('keybinds.json', keybinds);
+    writeConfigFile('keybinds.json', keybinds);
 });
 
 v5Command('macro gui', () => macroToggleGui.open());

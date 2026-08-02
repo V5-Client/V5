@@ -1,8 +1,8 @@
 import { FontSizes, PADDING, THEME, colorWithAlpha, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, getTextWidth, isInside } from './Utils';
-import { MacroState } from '../utils/MacroState';
-import { TimeUtils } from '../utils/TimeUtils';
-import { Utils } from '../utils/Utils';
-import { ServerInfo } from '../utils/player/ServerInfo';
+import { modules as registeredModules } from '../utils/MacroState';
+import { formatUptime } from '../utils/TimeUtils';
+import { area, subArea } from '../utils/Utils';
+import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
 
 const clientStartedAt = Date.now();
 
@@ -23,18 +23,18 @@ const normalizeLocation = (value) => {
 };
 
 const getActiveModules = () => {
-    const modules = [];
+    const activeModules = [];
 
-    MacroState.modules.forEach((module, name) => {
+    registeredModules.forEach((module, name) => {
         if (!module?.enabled) return;
-        modules.push({
+        activeModules.push({
             name,
             subcategory: module.subcategory || 'Other',
             isMacro: module.isMacro === true,
         });
     });
 
-    return modules.sort((a, b) => {
+    return activeModules.sort((a, b) => {
         const categorySort = a.subcategory.localeCompare(b.subcategory);
         if (categorySort !== 0) return categorySort;
         return a.name.localeCompare(b.name);
@@ -43,16 +43,16 @@ const getActiveModules = () => {
 
 const getDebugRows = () => {
     const fps = Client.getFPS();
-    const ping = ServerInfo.getPing();
-    const tps = ServerInfo.getTPS();
+    const ping = getPing();
+    const tps = getTPS();
 
     return [
         { label: 'FPS', value: String(fps), color: getFpsColor(fps) },
-        { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-        { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
-        { label: 'Client Uptime', value: TimeUtils.formatUptime(clientStartedAt) },
-        { label: 'Area', value: normalizeLocation(Utils.area()) },
-        { label: 'Subarea', value: normalizeLocation(Utils.subArea()) },
+        { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
+        { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
+        { label: 'Client Uptime', value: formatUptime(clientStartedAt) },
+        { label: 'Area', value: normalizeLocation(area()) },
+        { label: 'Subarea', value: normalizeLocation(subArea()) },
     ];
 };
 

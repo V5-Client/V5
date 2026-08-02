@@ -1,9 +1,9 @@
 import { BP, Vec3d } from '../../Constants';
 import { raytraceBlocks } from '../../dependencies/BloomCore/RaytraceBlocks';
 import { Vector3 } from '../../dependencies/BloomCore/Vector3';
-import { MathUtils } from '../../Math';
-import { PathExecutor } from '../PathExecutor';
-import { Spline } from '../PathSpline';
+import { calculateAbsoluteAngles, getAngleDifference, wrapTo180 } from '../../Math';
+import { onPathTick } from '../PathExecutor';
+import { createLookPoints } from '../PathSpline';
 import { predictXZ } from './PathPrediction';
 import { PathRotationsUtility } from './PathRotationsUtility';
 
@@ -53,7 +53,7 @@ class PathRotations {
             PathRotationsUtility.applyRotationWithGCD(this.currentYaw, this.currentPitch);
         });
 
-        PathExecutor.onTick(() => {
+        onPathTick(() => {
             if (this.postTeleportResyncTicks > 0) {
                 this.postTeleportResyncTicks--;
             }
@@ -399,9 +399,9 @@ class PathRotations {
         }
 
         this.currentTargetPoint = targetPoint;
-        const angles = MathUtils.calculateAbsoluteAngles(this.currentTargetPoint);
-        const targetYaw = MathUtils.wrapTo180(angles.yaw);
-        const yawDelta = MathUtils.getAngleDifference(this.rawTargetYaw, targetYaw);
+        const angles = calculateAbsoluteAngles(this.currentTargetPoint);
+        const targetYaw = wrapTo180(angles.yaw);
+        const yawDelta = getAngleDifference(this.rawTargetYaw, targetYaw);
 
         const lastIndex = this.boxPositions.length - 1;
         const remainingPath = lastIndex - this.currentPathPosition;
@@ -412,7 +412,7 @@ class PathRotations {
         const dynamicYawDeadzone = (isStraight ? this.YAW_DEADZONE * 1.5 : this.YAW_DEADZONE) * finishFactor;
 
         if (Math.abs(yawDelta) > dynamicYawDeadzone) {
-            this.rawTargetYaw = MathUtils.wrapTo180(this.rawTargetYaw + yawDelta * Math.min(1.0, dynamicSmooth));
+            this.rawTargetYaw = wrapTo180(this.rawTargetYaw + yawDelta * Math.min(1.0, dynamicSmooth));
         }
 
         const pitchDelta = angles.pitch - this.rawTargetPitch;
@@ -421,7 +421,7 @@ class PathRotations {
         }
 
         if (this.initialTurnBoostTicks > 0) {
-            if (Math.abs(MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw)) <= Math.max(10.0, this.YAW_DEADZONE * 2)) {
+            if (Math.abs(getAngleDifference(this.currentYaw, this.rawTargetYaw)) <= Math.max(10.0, this.YAW_DEADZONE * 2)) {
                 this.initialTurnBoostTicks = 0;
             } else {
                 this.initialTurnBoostTicks -= timeScale;
@@ -441,8 +441,8 @@ class PathRotations {
     }
 
     applyHumanizedPhysics(timeScale = 1) {
-        this.currentYaw = MathUtils.wrapTo180(this.currentYaw);
-        const yawError = MathUtils.getAngleDifference(this.currentYaw, this.rawTargetYaw);
+        this.currentYaw = wrapTo180(this.currentYaw);
+        const yawError = getAngleDifference(this.currentYaw, this.rawTargetYaw);
         const pitchError = this.rawTargetPitch - this.currentPitch;
         const absYawError = Math.abs(yawError);
         const isStraight = this.currentPathCurvature < 0.2;
@@ -566,7 +566,7 @@ class PathRotations {
 
     pathRotations(splineData) {
         if (!this.boxPositions || this.boxPositions.length < 2) {
-            const lookPoints = Spline.createLookPoints(splineData, 0.25, 4.5);
+            const lookPoints = createLookPoints(splineData, 0.25, 4.5);
             if (!lookPoints || lookPoints.length < 2) {
                 this.boxPositions = null;
                 this.rotationActive = false;
@@ -576,7 +576,7 @@ class PathRotations {
         }
         const player = Player.getPlayer();
         if (player && !this.isInitialized) {
-            this.currentYaw = MathUtils.wrapTo180(player.getYRot());
+            this.currentYaw = wrapTo180(player.getYRot());
             this.currentPitch = player.getXRot();
             this.rawTargetYaw = this.currentYaw;
             this.rawTargetPitch = this.currentPitch;

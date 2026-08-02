@@ -1,86 +1,56 @@
 import { finiteNumber } from '../../NumberUtils';
-import { PathExecutor } from '../PathExecutor';
+import { onPathTick } from '../PathExecutor';
 
-class PathMovement {
-    constructor() {
-        this.forceJumpTicks = 0;
-        this.backupTicks = 0;
-        this.backupCallback = null;
-        this.isActive = false;
+let forceJumpTicks = 0;
+let backupTicks = 0;
+let backupCallback = null;
 
-        PathExecutor.onTick(() => {
-            if (this.forceJumpTicks > 0) {
-                Client.setKey('space', true);
-                this.forceJumpTicks--;
-                if (this.forceJumpTicks === 0) {
-                    Client.setKey('space', false);
-                }
-            }
-
-            if (this.backupTicks > 0) {
-                Client.setKey('w', false);
-                Client.setKey('s', true);
-                Client.setKey('sprint', false);
-                this.backupTicks--;
-
-                if (this.backupTicks === 0) {
-                    Client.setKey('s', false);
-
-                    if (this.backupCallback) {
-                        const cb = this.backupCallback;
-                        this.backupCallback = null;
-                        cb();
-                    }
-                }
-            }
-        });
+onPathTick(() => {
+    if (forceJumpTicks > 0) {
+        Client.setKey('space', true);
+        if (--forceJumpTicks === 0) Client.setKey('space', false);
     }
 
-    beginMovement() {
-        const player = Player.getPlayer();
-        if (!player) return;
-
-        this.isActive = true;
-
-        if (this.backupTicks <= 0) {
-            if (!player.isSprinting()) Client.setKey('sprint', true);
-            Client.setKey('w', true);
-        }
-    }
-
-    forceJump(ticks = 4) {
-        this.forceJumpTicks = Math.max(0, Math.floor(finiteNumber(ticks)));
-    }
-
-    backup(ticks, onComplete) {
-        this.backupTicks = Math.max(0, ticks | 0);
-        this.backupCallback = onComplete || null;
-        if (this.backupTicks === 0 && this.backupCallback) {
-            const cb = this.backupCallback;
-            this.backupCallback = null;
-            cb();
-        }
-    }
-
-    isRecovering() {
-        return this.forceJumpTicks > 0 || this.backupTicks > 0;
-    }
-
-    stopMovement() {
-        this.isActive = false;
-        this.forceJumpTicks = 0;
-        this.backupTicks = 0;
-        this.backupCallback = null;
-
-        Client.stopMovement();
+    if (backupTicks > 0) {
         Client.setKey('w', false);
-        Client.setKey('s', false);
-        Client.setKey('a', false);
-        Client.setKey('d', false);
-        Client.setKey('space', false);
-        Client.setKey('shift', false);
+        Client.setKey('s', true);
         Client.setKey('sprint', false);
+        if (--backupTicks === 0) {
+            Client.setKey('s', false);
+            const callback = backupCallback;
+            backupCallback = null;
+            callback?.();
+        }
+    }
+});
+
+export function beginMovement() {
+    const player = Player.getPlayer();
+    if (!player) return;
+    if (backupTicks <= 0) {
+        if (!player.isSprinting()) Client.setKey('sprint', true);
+        Client.setKey('w', true);
     }
 }
 
-export const Movement = new PathMovement();
+export const forceJump = (ticks = 4) => (forceJumpTicks = Math.max(0, Math.floor(finiteNumber(ticks))));
+
+export function backup(ticks, onComplete) {
+    backupTicks = Math.max(0, ticks | 0);
+    backupCallback = onComplete || null;
+    if (backupTicks === 0 && backupCallback) {
+        const callback = backupCallback;
+        backupCallback = null;
+        callback();
+    }
+}
+
+export const isRecovering = () => forceJumpTicks > 0 || backupTicks > 0;
+
+export function stopMovement() {
+    forceJumpTicks = 0;
+    backupTicks = 0;
+    backupCallback = null;
+    Client.stopMovement();
+    for (const key of ['w', 's', 'a', 'd', 'space', 'shift', 'sprint']) Client.setKey(key, false);
+}
