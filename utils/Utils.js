@@ -1,4 +1,3 @@
-import { chat } from './Chat';
 import { BP, Vec3d } from './Constants';
 import { ClientboundSystemChatPacket } from './Packets';
 import { getArea } from './TabListUtils';
@@ -18,7 +17,6 @@ const readConfig = (fileName) => {
     try {
         return JSON.parse(content);
     } catch (error) {
-        chat('Config read error for ' + fileName + ': ' + error.message);
         console.error('V5 Caught error' + error + error.stack);
         return {};
     }
@@ -40,7 +38,6 @@ export function writeConfigFile(fileName, data) {
         configCache.set(fileName, { data, timestamp: Date.now() });
         return true;
     } catch (error) {
-        chat('Config write error for ' + fileName + ': ' + error.message);
         console.error('V5 Caught error' + error + error.stack);
         return false;
     }

@@ -1,4 +1,4 @@
-import { finiteNumber } from '../../NumberUtils';
+import { finiteNumber } from '../../Math';
 
 function getCurrentMotion() {
     if (!Player.getPlayer()) {

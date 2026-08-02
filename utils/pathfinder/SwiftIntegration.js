@@ -1,4 +1,4 @@
-import { finiteNumber } from '../NumberUtils';
+import { finiteNumber } from '../Math';
 
 const readPointArray = (values) => {
     const points = [];

@@ -1,7 +1,7 @@
 import { sendPathfinderMessage } from './Chat';
 import { MCHand, Vec3d } from './Constants';
 import { getEtherwarpBlockShape, isAtEtherwarpLanding, setEtherwarpPathHandler } from './Etherwarp';
-import { finiteNumber } from './NumberUtils';
+import { finiteNumber } from './Math';
 import { ClientboundPingPacket, ServerboundUseItemPacket } from './Packets';
 import { findItemInHotbar, setItemSlot } from './player/Inventory';
 import { applyToPlayer } from './player/RotationGCD';

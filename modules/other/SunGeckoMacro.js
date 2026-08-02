@@ -1,9 +1,8 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { CombatBot } from '../combat/CombatBot';
 import { getModuleElapsedMs } from '../../utils/MacroState';
-import { fastDistance } from '../../utils/Math';
+import { fastDistance, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { formatRoundedNumber } from '../../utils/NumberUtils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { findItemInHotbar, getGuiName, setItemSlot } from '../../utils/player/Inventory';
 import { setKeysForStraightLineCoords } from '../../utils/player/Movement';

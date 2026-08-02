@@ -1,9 +1,8 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ArmorStandEntity } from '../../utils/Constants';
 import { getModuleElapsedMs } from '../../utils/MacroState';
-import { wrapTo180 } from '../../utils/Math';
+import { formatRoundedNumber, wrapTo180 } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { formatRoundedNumber } from '../../utils/NumberUtils';
 import { clickItem, closeInventory, setItemSlot } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
 import { regrab, ungrab } from '../../utils/Ungrab';

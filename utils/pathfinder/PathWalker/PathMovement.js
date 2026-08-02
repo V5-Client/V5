@@ -1,4 +1,4 @@
-import { finiteNumber } from '../../NumberUtils';
+import { finiteNumber } from '../../Math';
 import { onPathTick } from '../PathExecutor';
 
 let forceJumpTicks = 0;

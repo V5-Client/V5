@@ -1,5 +1,5 @@
 import { BufferedInputStream, FileOutputStream, URL } from './Constants';
-import { finiteNumber } from './NumberUtils';
+import { finiteNumber } from './Math';
 
 const DEFAULT_DOWNLOAD_BUFFER_SIZE = 8192;
 
