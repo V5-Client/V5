@@ -1,4 +1,4 @@
-import { sendDebugMessage, sendFailsafeMessage } from '../../utils/Chat';
+import { chatDebug, chatFailsafe } from '../../utils/Chat';
 import { getAngleDifference } from '../../utils/Math';
 import { ClientboundPlayerPositionPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
@@ -42,7 +42,7 @@ class RotationFailsafe extends Failsafe {
 
             // todo: this isnt what a null rotation packet is, which retard made these failsafes?
             if (yawDiff === 0 && pitchDiff === 0) {
-                sendDebugMessage('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
+                chatDebug('null rotation packet ignored (yawDiff=0, pitchDiff=0)', false);
                 return;
             }
 
@@ -68,10 +68,10 @@ class RotationFailsafe extends Failsafe {
 
         const { pressure, severity, color } = tiers.find((t) => totalRotation < t.limit);
 
-        sendFailsafeMessage(`&c&lYou were rotated by the server!`, false);
-        sendFailsafeMessage(`&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`, false);
-        sendFailsafeMessage(`&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`, false);
-        sendFailsafeMessage(`&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`, true);
+        chatFailsafe(`&c&lYou were rotated by the server!`, false);
+        chatFailsafe(`&c&lFrom: &r&7Yaw ${fromYaw.toFixed(2)} &f| &7Pitch ${fromPitch.toFixed(2)}`, false);
+        chatFailsafe(`&c&lTo: &r&7Yaw ${toYaw.toFixed(2)} &f| &7Pitch ${toPitch.toFixed(2)}`, false);
+        chatFailsafe(`&c&lTotal Rotation: &r&7${totalRotation.toFixed(2)}°`, true);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
 
         FailsafeUtils.sendFailsafeEmbed(

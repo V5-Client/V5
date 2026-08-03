@@ -1,4 +1,4 @@
-import { sendPathfinderMessage } from '../../Chat';
+import { chatPathfinder } from '../../Chat';
 import { BP, SnowBlock } from '../../Constants';
 import { wrapTo180 } from '../../Math';
 import { getCurrentMana } from '../../Utils';
@@ -56,7 +56,7 @@ class PathAote {
             const now = Date.now();
             if (PathConfig.PATHFINDING_DEBUG && now - this.lastMissingItemAt > 1500) {
                 this.lastMissingItemAt = now;
-                sendPathfinderMessage('§7AOTE: item missing');
+                chatPathfinder('§7AOTE: item missing');
             }
             return;
         }
@@ -105,7 +105,7 @@ class PathAote {
         this.lastUsedPathPosition = rotations.currentPathPosition;
 
         if (PathConfig.PATHFINDING_DEBUG) {
-            sendPathfinderMessage(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)}`);
+            chatPathfinder(`§bAOTE: used at pathPos ${rotations.currentPathPosition.toFixed(1)}`);
         }
     }
 
@@ -135,7 +135,7 @@ class PathAote {
         if (!this.hasSwappedToAote) {
             this.hasSwappedToAote = true;
             this.activeAoteSlot = slot;
-            if (PathConfig.PATHFINDING_DEBUG) sendPathfinderMessage(`§7AOTE: swapped to slot ${slot + 1}`);
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder(`§7AOTE: swapped to slot ${slot + 1}`);
         }
 
         if (Player.getHeldItemIndex() !== slot) {
@@ -433,7 +433,7 @@ class PathAote {
         if (!PathConfig.PATHFINDING_DEBUG) return;
         if (reason === this.lastSkipReason) return;
         this.lastSkipReason = reason;
-        sendPathfinderMessage(`§7AOTE: skipped (${reason})`);
+        chatPathfinder(`§7AOTE: skipped (${reason})`);
     }
 
     restoreOriginalSlot() {
@@ -442,7 +442,7 @@ class PathAote {
                 setItemSlot(this.originalSlot);
             }
             if (PathConfig.PATHFINDING_DEBUG) {
-                sendPathfinderMessage(`§7AOTE: restored original slot (${this.originalSlot + 1})`);
+                chatPathfinder(`§7AOTE: restored original slot (${this.originalSlot + 1})`);
             }
         }
 

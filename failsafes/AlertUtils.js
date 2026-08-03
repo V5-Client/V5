@@ -1,5 +1,5 @@
 import { drawRect, drawText } from '../gui/Utils';
-import { sendFailsafeMessage } from '../utils/Chat';
+import { chatFailsafe } from '../utils/Chat';
 import { File, globalAssetsDir } from '../utils/Constants';
 import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import FailsafeUtils from './FailsafeUtils';
@@ -42,8 +42,8 @@ class AlertUtilsClass {
     triggerReaction() {
         if (this.isAlerting) return;
 
-        sendFailsafeMessage('Suspicious activity detected, reaction occuring!');
-        sendFailsafeMessage(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
+        chatFailsafe('Suspicious activity detected, reaction occuring!');
+        chatFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
         this.isAlerting = true;
         this.playSound();
@@ -218,7 +218,7 @@ class AlertUtilsClass {
 
         this.cancelKeyBind.registerKeyPress(() => {
             if (!this.isAlerting) return;
-            sendFailsafeMessage('Reaction disabled due to keybind being pressed');
+            chatFailsafe('Reaction disabled due to keybind being pressed');
             this.disableReaction();
         });
 
@@ -256,7 +256,7 @@ class AlertUtilsClass {
             GLFW.glfwFocusWindow(windowHandle);
             GLFW.glfwRequestWindowAttention(windowHandle);
         } catch (e) {
-            sendFailsafeMessage('GLFW error occured! report this. ' + e);
+            chatFailsafe('GLFW error occured! report this. ' + e);
             console.error(e);
         }
     }

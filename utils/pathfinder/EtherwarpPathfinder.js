@@ -1,4 +1,4 @@
-import { sendPathfinderMessage } from '../Chat';
+import { chatPathfinder } from '../Chat';
 import { MCHand, Vec3d } from '../Constants';
 import { ClientboundPingPacket, ServerboundUseItemPacket } from '../Packets';
 import { findItemInHotbar, setItemSlot } from '../player/Inventory';
@@ -101,7 +101,7 @@ class EtherwarpPathHandler {
         const y = Math.floor(Number(yArg));
         const z = Math.floor(Number(zArg));
         if (![x, y, z].every(Number.isFinite)) {
-            sendPathfinderMessage('&cUsage: /v5 etherwarp <x> <y> <z>');
+            chatPathfinder('&cUsage: /v5 etherwarp <x> <y> <z>');
             return;
         }
         const goal = { x, y, z };
@@ -134,12 +134,12 @@ class EtherwarpPathHandler {
     findPath(goal, options = {}) {
         goal = this.resolveClosestGoal(goal, Math.max(0, Math.floor(finiteNumber(options.goalRadius))));
         if (!goal || ![goal.x, goal.y, goal.z].every(Number.isFinite)) {
-            sendPathfinderMessage('&cInvalid etherwarp coordinates.');
+            chatPathfinder('&cInvalid etherwarp coordinates.');
             return false;
         }
         const slot = this.getEtherwarpSlot();
         if (slot < 0) {
-            sendPathfinderMessage('&cNo Aspect of the Void/End found in your hotbar.');
+            chatPathfinder('&cNo Aspect of the Void/End found in your hotbar.');
             return false;
         }
 
@@ -616,7 +616,7 @@ class EtherwarpPathHandler {
         this.finalNode = null;
         this.stopExecution(restoreSlot);
         if (!silent) {
-            sendPathfinderMessage('&c' + failureReason);
+            chatPathfinder('&c' + failureReason);
         }
 
         if (typeof onFail !== 'function') return;
@@ -626,7 +626,7 @@ class EtherwarpPathHandler {
     messagePathfinder(message) {
         const run = this.currentRun;
         if (run && run.silent === true) return;
-        sendPathfinderMessage(message);
+        chatPathfinder(message);
     }
 }
 

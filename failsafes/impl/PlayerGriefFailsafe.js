@@ -1,4 +1,4 @@
-import { sendFailsafeMessage } from '../../utils/Chat';
+import { chatFailsafe } from '../../utils/Chat';
 import { File, globalAssetsDir } from '../../utils/Constants';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
@@ -69,7 +69,7 @@ class PlayerGriefFailsafe extends Failsafe {
         const lz = look.getZ();
 
         if (Math.trunc(lx) === Math.trunc(px) && Math.trunc(ly) === Math.trunc(py) && Math.trunc(lz) === Math.trunc(pz)) {
-            sendFailsafeMessage(`&c&l${lookedName} is standing inside you!`);
+            chatFailsafe(`&c&l${lookedName} is standing inside you!`);
             FailsafeUtils.incrementFailsafeIntensity(120);
             FailsafeUtils.sendFailsafeEmbed('Player Grief', 'very high', `${lookedName} is standing inside you!`, 16711680);
 
@@ -101,7 +101,7 @@ class PlayerGriefFailsafe extends Failsafe {
 
             if (distanceSq <= maxDistanceSq && distanceSq > 1) {
                 const distance = Math.sqrt(distanceSq);
-                sendFailsafeMessage(`&c&l${playerName} is ${distance.toFixed(1)} blocks away from you!`);
+                chatFailsafe(`&c&l${playerName} is ${distance.toFixed(1)} blocks away from you!`);
                 FailsafeUtils.incrementFailsafeIntensity(20);
                 FailsafeUtils.sendFailsafeEmbed('Player Grief', 'medium', `${playerName} is ${distance.toFixed(1)} blocks away!`, 16776960);
 

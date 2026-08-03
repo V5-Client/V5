@@ -1,4 +1,4 @@
-import { sendFailsafeMessage } from '../../utils/Chat';
+import { chatFailsafe } from '../../utils/Chat';
 import { ClientboundSetHeldSlotPacket } from '../../utils/Packets';
 import { Failsafe } from '../Failsafe';
 import FailsafeUtils from '../FailsafeUtils';
@@ -30,7 +30,7 @@ class SlotChangeFailsafe extends Failsafe {
     }
 
     onTrigger(fromSlot, toSlot) {
-        sendFailsafeMessage(`&c&lHeld slot has changed from ${fromSlot} to slot ${toSlot}!`);
+        chatFailsafe(`&c&lHeld slot has changed from ${fromSlot} to slot ${toSlot}!`);
         FailsafeUtils.incrementFailsafeIntensity(50);
         FailsafeUtils.sendFailsafeEmbed('Slot Change', 'high', `Slot changed from ${fromSlot} to ${toSlot}!`, 16744448);
     }

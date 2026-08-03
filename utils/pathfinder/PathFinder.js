@@ -1,5 +1,5 @@
 import { showNotification } from '../../gui/NotificationManager';
-import { sendPathfinderMessage } from '../Chat';
+import { chatPathfinder } from '../Chat';
 import { BP, Vec3d } from '../Constants';
 import { ScheduleTask } from '../ScheduleTask';
 import { getDistanceToPlayer } from '../Math';
@@ -87,7 +87,7 @@ class Finder {
 
     parseGoalCoordinates(args, usageText, isFly = false) {
         if (args.length < 3 || args.length % 3 !== 0) {
-            sendPathfinderMessage(usageText);
+            chatPathfinder(usageText);
             return null;
         }
 
@@ -143,7 +143,7 @@ class Finder {
 
         if (this.calledFromFile) {
             const endStr = end.length > 1 ? `Multiple Goals (${end.length})` : `${end[0][0]}, ${end[0][1]}, ${end[0][2]}`;
-            sendPathfinderMessage(`Path from &a${start[0]}, ${start[1]}, ${start[2]}&f to &c${endStr}`);
+            chatPathfinder(`Path from &a${start[0]}, ${start[1]}, ${start[2]}&f to &c${endStr}`);
         }
 
         if (!Swift.SwiftPath(starts, end, isFly, this.pathVariantSeed, PathConfig.PATHFINDER_MAX_COMPUTE)) {
@@ -154,7 +154,7 @@ class Finder {
         this.searchStartedAt = Date.now();
 
         if (this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
-            sendPathfinderMessage('§eSearching for path...');
+            chatPathfinder('§eSearching for path...');
         }
 
         this.startTick();
@@ -169,7 +169,7 @@ class Finder {
             if (Swift.isSearching()) {
                 if (this.searchStartedAt > 0 && Date.now() - this.searchStartedAt > this.SEARCH_TIMEOUT_MS) {
                     if (PathConfig.PATHFINDING_DEBUG) {
-                        sendPathfinderMessage('§6Path search timed out, recalculating');
+                        chatPathfinder('§6Path search timed out, recalculating');
                     }
                     Swift.cancel();
                     Swift.clear();
@@ -197,7 +197,7 @@ class Finder {
                     }
 
                     const reason = Swift.getLastError();
-                    sendPathfinderMessage('§cNo path found' + (reason ? ': ' + reason : ''));
+                    chatPathfinder('§cNo path found' + (reason ? ': ' + reason : ''));
 
                     this.callCallback(false);
                     this.resetPath();
@@ -207,10 +207,10 @@ class Finder {
 
             if (!this.saidInfo && this.calledFromFile && PathConfig.PATHFINDING_DEBUG) {
                 const nodeCount = Array.isArray(result.path) ? result.path.length : result.keynodes.length;
-                sendPathfinderMessage(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
+                chatPathfinder(`Path found: ${nodeCount} nodes in ${result.time_ms}ms`);
                 const nsPerNode = Number(result.nanoseconds_per_node);
                 if (Number.isFinite(nsPerNode) && nsPerNode > 0) {
-                    sendPathfinderMessage(`Nanoseconds per node: ${Math.round(nsPerNode)}ns`);
+                    chatPathfinder(`Nanoseconds per node: ${Math.round(nsPerNode)}ns`);
                 }
                 this.saidInfo = true;
             }
@@ -245,7 +245,7 @@ class Finder {
 
                 if (this.recalculateAttempts > 0 && Recovery.hasMadeProgress()) {
                     if (PathConfig.PATHFINDING_DEBUG) {
-                        sendPathfinderMessage('§aUnstuck!');
+                        chatPathfinder('§aUnstuck!');
                     }
                     this.recalculateAttempts = 0;
                     Recovery.stop();
@@ -359,7 +359,7 @@ class Finder {
 
         if (this.recalculateAttempts > this.MAX_RECALCULATE_ATTEMPTS) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                sendPathfinderMessage('§cMax recalculation attempts, failed!');
+                chatPathfinder('§cMax recalculation attempts, failed!');
             }
             this.callCallback(false);
             this.resetPath();
@@ -367,7 +367,7 @@ class Finder {
         }
 
         if (PathConfig.PATHFINDING_DEBUG) {
-            sendPathfinderMessage(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})`);
+            chatPathfinder(`§eRecalculating (${this.recalculateAttempts}/${this.MAX_RECALCULATE_ATTEMPTS})`);
         }
 
         this.schedulePathRetry(3);
@@ -760,7 +760,7 @@ class Finder {
 
     failWarpPathfinding() {
         const warpName = this.selectedStartCandidate?.warp || 'unknown';
-        sendPathfinderMessage(`§cFailed to warp to ${warpName} after ${this.MAX_WARP_RETRIES} retries.`);
+        chatPathfinder(`§cFailed to warp to ${warpName} after ${this.MAX_WARP_RETRIES} retries.`);
         showNotification('Pathfinding Failed', `Warp ${warpName} failed after ${this.MAX_WARP_RETRIES} retries.`, 'ERROR', 5000);
         this.callCallback(false);
         this.resetPath();

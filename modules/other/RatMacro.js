@@ -1,7 +1,7 @@
 //Vibecoded SLOP, STILL WORKS FINE :3
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { sendDebugMessage } from '../../utils/Chat';
+import { chatDebug } from '../../utils/Chat';
 import { MCHand } from '../../utils/Constants';
 import { finiteNumber, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
@@ -148,7 +148,7 @@ class RatMacro extends ModuleBase {
     }
 
     debug(message) {
-        sendDebugMessage(`&6Rat Macro:&f ${message}`);
+        chatDebug(`&6Rat Macro:&f ${message}`);
     }
 
     setState(nextState, reason = null) {

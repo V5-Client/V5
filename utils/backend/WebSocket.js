@@ -1,5 +1,5 @@
 import WebSocket from 'WebSocket';
-import { logMessage, sendIrcMessage } from '../Chat';
+import { chatIrc } from '../Chat';
 import { Links } from '../Constants';
 import { returnDiscord } from '../NetworkUtils';
 import { ServerboundChatPacket } from '../Packets';
@@ -41,9 +41,9 @@ function handleSocketDisconnect({ code, reason, exception }) {
 
     if (exception) {
         console.error('WebSocket error:', exception);
-        sendIrcMessage('Connection error: ' + exception);
+        chatIrc('Connection error: ' + exception);
     } else {
-        logMessage(`Disconnected from chat server (code ${code}, reason: ${reason})`);
+        console.log(`Disconnected from chat server (code ${code}, reason: ${reason})`);
     }
     attemptReconnect();
 }
@@ -74,7 +74,7 @@ function handleIncomingMessage(raw) {
             sendChatMessage(meows[Math.floor(Math.random() * meows.length)]);
         }
     } catch (e) {
-        sendIrcMessage('An error occurred parsing message:');
+        chatIrc('An error occurred parsing message:');
         console.error(e);
     }
 }
@@ -84,7 +84,7 @@ function sendChatMessage(content) {
     try {
         ws.send(content);
     } catch (e) {
-        sendIrcMessage('Failed to send message: ');
+        chatIrc('Failed to send message: ');
         console.error(e);
     }
 }
@@ -107,7 +107,7 @@ function connectWebSocket() {
 
     if (!token) {
         isConnected = false;
-        return sendIrcMessage('&cLoader has not authenticated. IRC is unavailable.');
+        return chatIrc('&cLoader has not authenticated. IRC is unavailable.');
     }
     returnDiscord(token);
     const socket = new WebSocket(Links.WEBSOCKET_URL);
@@ -153,7 +153,7 @@ function connectWebSocket() {
 
 function attemptReconnect() {
     if (gameUnload) return;
-    if (isConnected) return sendIrcMessage('Already connected to irc!');
+    if (isConnected) return chatIrc('Already connected to irc!');
     if (reconnectScheduled) return;
 
     reconnectAttempts++;
@@ -165,7 +165,7 @@ function attemptReconnect() {
     ScheduleTask(delay, () => {
         reconnectScheduled = false;
         if (gameUnload) return;
-        if (isConnected) return sendIrcMessage('Already connected to irc!');
+        if (isConnected) return chatIrc('Already connected to irc!');
         connectWebSocket();
     });
 }
