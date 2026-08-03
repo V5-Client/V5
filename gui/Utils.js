@@ -87,7 +87,7 @@ export const THEME = {
 
 export const drawRect = ({ x, y, width, height, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.drawRect(x, y, width, height, c);
+    Renderer.drawRect(x, y, width, height, c);
 };
 
 export const createHighlight = () => {
@@ -138,12 +138,12 @@ export const createHighlight = () => {
 
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.drawRoundedRect(x, y, width, height, radius, c);
+    Renderer.drawRoundedRect(x, y, width, height, radius, c);
 };
 
 export const drawRoundedRectangleVaried = ({ x, y, width, height, tl, tr, br, bl, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.drawRoundedRectVaried(x, y, width, height, c, tl, tr, br, bl);
+    Renderer.drawRoundedRectVaried(x, y, width, height, c, tl, tr, br, bl);
 };
 
 export const drawRoundedRectangleWithBorder = (r) => {
@@ -151,23 +151,23 @@ export const drawRoundedRectangleWithBorder = (r) => {
         const bw = r.borderWidth;
         const bc = (r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor) | 0;
         const outerRadius = r.radius + bw;
-        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
+        Renderer.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
     }
     const c = (r.color instanceof Color ? r.color.getRGB() : r.color) | 0;
-    NVG.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
+    Renderer.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
 };
 
 export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) => {
     const shadowColor = new Color(0, 0, 0, intensity).getRGB() | 0;
-    NVG.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
+    Renderer.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
 };
 
 export const drawText = (text, x, y, size, color, align = 17) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.text(text, x, y, size, c, NVG.getDefaultFont(), align);
+    Renderer.text(text, x, y, size, c, Renderer.getDefaultFont(), align);
 };
 
-export const getTextWidth = (text, size) => NVG.textWidth(text, size, NVG.getDefaultFont());
+export const getTextWidth = (text, size) => Renderer.textWidth(text, size, Renderer.getDefaultFont());
 
 export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
     drawText(text, x + (width - getTextWidth(text, fontSize)) / 2, yOffset, fontSize, color);
@@ -175,22 +175,25 @@ export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
 
 export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {
     if (!path) return;
-    NVG.drawImage(path, x, y, width, height, radius, alpha);
+    Renderer.drawImage(path, x, y, width, height, radius, alpha);
 };
 
-export const drawImageFromURL = drawImage;
+export const drawImageFromURL = (url, x, y, width, height, radius = 0, alpha = 1) => {
+    if (!url) return;
+    Renderer.drawImageFromUrl(url, x, y, width, height, radius, alpha);
+};
 
 export const drawCircularImage = (path, x, y, size, alpha = 1) => {
     if (!path) return;
-    NVG.drawImage(path, x, y, size, size, size / 2, alpha);
+    Renderer.drawImage(path, x, y, size, size, size / 2, alpha);
 };
 
 export const scissor = (x, y, w, h) => {
-    NVG.scissor(x, y, w, h);
+    Renderer.scissor(x, y, w, h);
 };
 
 export const resetScissor = () => {
-    NVG.resetScissor();
+    Renderer.resetScissor();
 };
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);

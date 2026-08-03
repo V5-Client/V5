@@ -15,17 +15,17 @@ const DESC_LINE_SPACING = 7;
 
 const drawCheckIcon = (centerX, centerY, alpha) => {
     const color = (alpha << 24) | THEME.NOTIF_ICON;
-    NVG.save();
-    NVG.translate(centerX - 2, centerY + 4);
-    NVG.rotate(-45);
-    NVG.drawRect(-1.5, -7, 3, 8.5, color);
-    NVG.drawRect(-1.5, -1.5, 14, 3, color);
-    NVG.restore();
+    Renderer.save();
+    Renderer.translate(centerX - 2, centerY + 4);
+    Renderer.rotate(-45);
+    Renderer.drawRect(-1.5, -7, 3, 8.5, color);
+    Renderer.drawRect(-1.5, -1.5, 14, 3, color);
+    Renderer.restore();
 };
 const drawAlertIcon = (centerX, centerY, alpha) => {
     const color = (alpha << 24) | THEME.NOTIF_ICON;
-    NVG.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
-    NVG.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
+    Renderer.drawRect(centerX - 1.5, centerY - 8, 3, 10, color);
+    Renderer.drawRect(centerX - 1.5, centerY + 4, 3, 3, color);
 };
 
 const NOTIFICATION_TYPES = {
@@ -41,12 +41,12 @@ const NOTIFICATION_TYPES = {
         },
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | THEME.NOTIF_ICON;
-            NVG.save();
-            NVG.translate(centerX, centerY);
-            NVG.rotate(45);
-            NVG.drawRect(-1.5, -7, 3, 14, color);
-            NVG.drawRect(-7, -1.5, 14, 3, color);
-            NVG.restore();
+            Renderer.save();
+            Renderer.translate(centerX, centerY);
+            Renderer.rotate(45);
+            Renderer.drawRect(-1.5, -7, 3, 14, color);
+            Renderer.drawRect(-7, -1.5, 14, 3, color);
+            Renderer.restore();
         },
     },
     DANGER: {
@@ -73,8 +73,8 @@ const NOTIFICATION_TYPES = {
         },
         iconDrawer: (centerX, centerY, alpha) => {
             const color = (alpha << 24) | THEME.NOTIF_ICON;
-            NVG.drawRect(centerX - 1.5, centerY - 8, 3, 3, color);
-            NVG.drawRect(centerX - 1.5, centerY - 3, 3, 10, color);
+            Renderer.drawRect(centerX - 1.5, centerY - 8, 3, 3, color);
+            Renderer.drawRect(centerX - 1.5, centerY - 3, 3, 10, color);
         },
     },
 };
@@ -114,7 +114,7 @@ class Notification {
         for (let i = 1; i < words.length; i++) {
             const word = words[i];
             const testLine = currentLine + ' ' + word;
-            if (NVG.textWidth(testLine, FontSizes.TINY, NVG.getDefaultFont()) > maxWidth) {
+            if (Renderer.textWidth(testLine, FontSizes.TINY, Renderer.getDefaultFont()) > maxWidth) {
                 lines.push(currentLine);
                 currentLine = word;
             } else {
@@ -256,12 +256,12 @@ class Notification {
         const closeX = this.x + this.closeXOffset;
         const closeY = this.y + this.closeYOffset;
         const closeColor = (Math.floor(alpha * 255) << 24) | (THEME.NOTIF_CLOSE & 0xffffff);
-        NVG.save();
-        NVG.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
-        NVG.rotate(45);
-        NVG.drawRect(-0.75, -5, 1.5, 10, closeColor);
-        NVG.drawRect(-5, -0.75, 10, 1.5, closeColor);
-        NVG.restore();
+        Renderer.save();
+        Renderer.translate(closeX + this.closeClickSize / 2, closeY + this.closeClickSize / 2);
+        Renderer.rotate(45);
+        Renderer.drawRect(-0.75, -5, 1.5, 10, closeColor);
+        Renderer.drawRect(-5, -0.75, 10, 1.5, closeColor);
+        Renderer.restore();
 
         if (this.state === 'active' && !this.isSticky) {
             const progress = 1 - (Date.now() - this.createdAt) / this.duration;
@@ -269,8 +269,8 @@ class Notification {
             const progressColor = colorWithAlpha(THEME.NOTIF_PROGRESS, alpha);
 
             if (progressBarWidth > 0.5) {
-                NVG.save();
-                NVG.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
+                Renderer.save();
+                Renderer.scissor(this.x, this.y + this.height - 4, progressBarWidth, 4);
 
                 drawRoundedRectangle({
                     x: this.x,
@@ -281,8 +281,8 @@ class Notification {
                     color: progressColor,
                 });
 
-                NVG.resetScissor();
-                NVG.restore();
+                Renderer.resetScissor();
+                Renderer.restore();
             }
         }
     }
@@ -319,7 +319,7 @@ class NotificationManager {
         if (this.registered) return;
         this.registered = true;
 
-        NVG.registerV5Render(() => {
+        Renderer.registerV5Render(() => {
             this.render();
         });
 
@@ -361,18 +361,11 @@ class NotificationManager {
         if (this.notifications.length === 0) return;
 
         try {
-            NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
             for (let i = this.notifications.length - 1; i >= 0; i--) {
                 this.notifications[i].draw();
             }
         } catch (e) {
             console.error(e);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error(e);
-            }
         }
     }
     handleClick(mouseX, mouseY) {

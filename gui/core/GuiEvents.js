@@ -89,7 +89,7 @@ GuiState.myGui.registerMouseReleased(handleMouseRelease);
 GuiState.myGui.registerClosed(handleGuiClosed);
 GuiState.myGui.registerScrolled(handleScroll);
 
-NVG.registerV5Render(() => {
+Renderer.registerV5Render(() => {
     if (GuiState.myGui.isOpen()) {
         const { x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(Client.getMouseX(), Client.getMouseY());
         drawGUI(mouseX, mouseY);

@@ -173,10 +173,10 @@ export class Popup {
         const centerX = windowRect.x + windowRect.width / 2;
         const centerY = windowRect.y + windowRect.height / 2;
 
-        NVG.save();
-        NVG.translate(centerX, centerY);
-        NVG.scale(animValue, animValue);
-        NVG.translate(-centerX, -centerY);
+        Renderer.save();
+        Renderer.translate(centerX, centerY);
+        Renderer.scale(animValue, animValue);
+        Renderer.translate(-centerX, -centerY);
 
         drawShadow(windowRect.x, windowRect.y, windowRect.width, windowRect.height, 20, 0.5);
 
@@ -206,7 +206,12 @@ export class Popup {
 
         const closeX = windowRect.x + windowRect.width - this.windowPadding - this.closeSize;
         const closeY = windowRect.y + (this.headerHeight - this.closeSize) / 2;
-        this.closeRect = { x: closeX, y: closeY, width: this.closeSize, height: this.closeSize };
+        this.closeRect = {
+            x: closeX,
+            y: closeY,
+            width: this.closeSize,
+            height: this.closeSize,
+        };
 
         drawRoundedRectangle({
             x: closeX,
@@ -226,7 +231,7 @@ export class Popup {
         const contentWidth = windowRect.width - this.windowPadding * 2;
         const contentHeight = windowRect.height - this.headerHeight - this.windowPadding * 2;
 
-        NVG.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
+        Renderer.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
 
         const maxScroll = Math.max(0, this.getContentHeight() - contentHeight);
         this.contentScrollY = Math.max(0, Math.min(this.contentScrollY, maxScroll));
@@ -297,8 +302,8 @@ export class Popup {
             currentY += getComponentLayoutHeight(component);
         });
 
-        NVG.resetScissor();
-        NVG.restore();
+        Renderer.resetScissor();
+        Renderer.restore();
     }
 
     handleButtonClick(mouseX, mouseY) {

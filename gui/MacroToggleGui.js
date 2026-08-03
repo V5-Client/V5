@@ -79,7 +79,11 @@ const setMacroKeybind = (module, keyCode) => {
 };
 
 const drawButton = (rect, text, active = false) => {
-    drawRoundedRectangle({ ...rect, radius: 6, color: active ? THEME.ACCENT_DIM : THEME.BG_INSET });
+    drawRoundedRectangle({
+        ...rect,
+        radius: 6,
+        color: active ? THEME.ACCENT_DIM : THEME.BG_INSET,
+    });
     drawText(
         text,
         rect.x + (rect.width - getTextWidth(text, FontSizes.SMALL)) / 2,
@@ -121,13 +125,29 @@ export const macroToggleGui = {
         layout = {
             nav,
             filter: { x, y: nav.y + nav.height + 8, width: 76, height: 24 },
-            search: { x: x + 82, y: nav.y + nav.height + 8, width: width - 82, height: 24 },
-            settings: { x: nav.x + nav.width - 26, y: nav.y + 1, width: 24, height: nav.height - 2 },
+            search: {
+                x: x + 82,
+                y: nav.y + nav.height + 8,
+                width: width - 82,
+                height: 24,
+            },
+            settings: {
+                x: nav.x + nav.width - 26,
+                y: nav.y + 1,
+                width: 24,
+                height: nav.height - 2,
+            },
             list: { x, y: listY, width, height: listHeight },
             rows: [],
         };
 
-        drawRoundedRectangleWithBorder({ ...panel, radius: panel.radius, color: THEME.BG_WINDOW, borderWidth: 1, borderColor: THEME.BORDER_ACCENT });
+        drawRoundedRectangleWithBorder({
+            ...panel,
+            radius: panel.radius,
+            color: THEME.BG_WINDOW,
+            borderWidth: 1,
+            borderColor: THEME.BORDER_ACCENT,
+        });
         drawSubcategoryButtons(macroCategory, mouseX, mouseY, 0, true, macroCategoryState);
         drawImage(SETTINGS_ICON_PATH, layout.settings.x + 5, layout.settings.y + 5, 14, 14);
         drawButton(layout.filter, favoritesOnly ? 'Favorites' : 'All', favoritesOnly);
@@ -140,8 +160,8 @@ export const macroToggleGui = {
         });
         drawText(query || 'Filter macros...', layout.search.x + 8, layout.search.y + 12, FontSizes.SMALL, query ? THEME.TEXT : THEME.TEXT_MUTED);
 
-        NVG.save();
-        NVG.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
+        Renderer.save();
+        Renderer.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
         let rowY = listY - scrollY;
         rows.forEach((entry) => {
             if (entry.subcategory) {
@@ -154,10 +174,19 @@ export const macroToggleGui = {
             const row = { x, y: rowY, width, height: ROW_HEIGHT, module };
             rowY += ROW_HEIGHT;
             const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
-            row.keybind = { x: row.x + row.width - 104, y: row.y, width: 104, height: row.height };
+            row.keybind = {
+                x: row.x + row.width - 104,
+                y: row.y,
+                width: 104,
+                height: row.height,
+            };
             layout.rows.push(row);
             if (isInside(mouseX, mouseY, row) || module.enabled) {
-                drawRoundedRectangle({ ...row, radius: 6, color: module.enabled ? THEME.ACCENT_DIM : THEME.BG_COMPONENT });
+                drawRoundedRectangle({
+                    ...row,
+                    radius: 6,
+                    color: module.enabled ? THEME.ACCENT_DIM : THEME.BG_COMPONENT,
+                });
             }
 
             drawText(
@@ -171,7 +200,7 @@ export const macroToggleGui = {
             drawText(module.name, row.x + 32, row.y + row.height / 2, FontSizes.REGULAR, moduleColor || (module.enabled ? THEME.TEXT : THEME.TEXT_MUTED));
             drawText(keyName, row.x + row.width - 8 - getTextWidth(keyName, FontSizes.SMALL), row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
         });
-        NVG.restore();
+        Renderer.restore();
 
         if (rows.length === 0) drawText('No macros found', x + 8, listY + 12, FontSizes.REGULAR, THEME.TEXT_MUTED);
     },
@@ -185,7 +214,10 @@ export const macroToggleGui = {
             const scrollX = getModuleNavScrollX(macroCategory, false, macroCategoryState);
             const subcategories = ['All', ...macroCategory.subcategories];
             const index = subcategories.findIndex((subcategory, i) =>
-                isInside(mouseX, mouseY, { ...getModuleNavButtonRect(macroCategory, i), x: getModuleNavButtonRect(macroCategory, i).x - scrollX })
+                isInside(mouseX, mouseY, {
+                    ...getModuleNavButtonRect(macroCategory, i),
+                    x: getModuleNavButtonRect(macroCategory, i).x - scrollX,
+                })
             );
             if (index !== -1) {
                 macroCategoryState.selectedSubcategory = index ? subcategories[index] : null;

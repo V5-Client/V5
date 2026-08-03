@@ -133,8 +133,8 @@ export const SearchBar = {
         const visibleTextWidth = Math.max(0, currentWidth - (this.alignLeft ? this.collapsedWidth + 10 : 35));
 
         if (visibleTextWidth > 0) {
-            NVG.save();
-            NVG.scissor(this.textX, y, visibleTextWidth, this.height);
+            Renderer.save();
+            Renderer.scissor(this.textX, y, visibleTextWidth, this.height);
 
             if (this.query === '') {
                 drawText('Search...', this.textX, textY, fontSize, THEME.TEXT_MUTED);
@@ -155,7 +155,7 @@ export const SearchBar = {
                 });
             }
 
-            NVG.restore();
+            Renderer.restore();
         }
     },
 
@@ -279,7 +279,10 @@ export const SearchBar = {
 
     insertText(text) {
         if (!text) return false;
-        const maxTextWidth = this.getTypingExpandedWidth({ width: this.lastPanelWidth || this.typingExpandedWidth }) - 35;
+        const maxTextWidth =
+            this.getTypingExpandedWidth({
+                width: this.lastPanelWidth || this.typingExpandedWidth,
+            }) - 35;
         let accepted = '';
 
         for (const char of text) {

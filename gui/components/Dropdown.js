@@ -191,10 +191,10 @@ export class MultiToggle {
 
         const selected = this.options.filter((option) => option.enabled);
         const selectedText = selected.length === 1 ? selected[0].name : selected.length > 1 ? '...' : 'None';
-        NVG.save();
-        NVG.scissor(selectX + 10, this.y + this.containerHeight / 2 - 9, arrowX - selectX - 12, 18);
+        Renderer.save();
+        Renderer.scissor(selectX + 10, this.y + this.containerHeight / 2 - 9, arrowX - selectX - 12, 18);
         drawText(selectedText, selectX + 10, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
-        NVG.restore();
+        Renderer.restore();
 
         drawRoundedRectangle({
             x: arrowX,
