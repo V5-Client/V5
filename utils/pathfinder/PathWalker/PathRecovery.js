@@ -1,4 +1,4 @@
-import { sendPathfinderMessage } from '../../Chat';
+import { chatPathfinder } from '../../Chat';
 import PathConfig from '../PathConfig';
 
 class PathRecovery {
@@ -64,7 +64,7 @@ class PathRecovery {
 
         if (this.stuckTicks >= this.STUCK_TICKS_BACKUP_RECALC && this.currentLevel < 3) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                sendPathfinderMessage('§6Recovery 3/3: Backup and Recalculate');
+                chatPathfinder('§6Recovery 3/3: Backup and Recalculate');
             }
             this.currentLevel = 3;
             return 'BACKUP_RECALC';
@@ -72,7 +72,7 @@ class PathRecovery {
 
         if (this.stuckTicks >= this.STUCK_TICKS_CLOSE_LOOK && this.currentLevel < 2) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                sendPathfinderMessage('§eRecovery 2/3: Reducing lookahead');
+                chatPathfinder('§eRecovery 2/3: Reducing lookahead');
             }
             this.currentLevel = 2;
             return 'CLOSE_LOOK';
@@ -80,7 +80,7 @@ class PathRecovery {
 
         if (this.stuckTicks >= this.STUCK_TICKS_JUMP && this.currentLevel < 1) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                sendPathfinderMessage('§eRecovery 1/3: Jump');
+                chatPathfinder('§eRecovery 1/3: Jump');
             }
             this.currentLevel = 1;
             return 'JUMP';
@@ -163,7 +163,7 @@ class PathNonChangeRecovery {
 
         if (this.nonChangeTicks >= this.NON_CHANGE_TICKS_RECALC) {
             if (PathConfig.PATHFINDING_DEBUG) {
-                sendPathfinderMessage('§6Recovery (nonchange): Recalculating');
+                chatPathfinder('§6Recovery (nonchange): Recalculating');
             }
             this.resetTracking();
             return true;

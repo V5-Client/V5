@@ -8,23 +8,19 @@ const sendGradient = (prefix, ...args) => {
 
 export const chat = (message) => sendGradient('V5 »', message);
 
-export function sendDebugMessage(message) {
+export function chatDebug(message) {
     if (isDeveloperModeEnabled()) sendGradient('V5 Debug »', message);
 }
 
-export function sendFailsafeMessage(message, includeIntensity = true) {
+export function chatFailsafe(message, includeIntensity = true) {
     sendGradient('V5 Failsafes »', message);
     if (includeIntensity) sendGradient('V5 Failsafes »', '&c&lCurrent intensity: ' + FailsafeUtils.getIntensity());
 }
 
-export const sendIrcMessage = (message) => sendGradient('IRC »', message);
-export const sendPathfinderMessage = (message) => sendGradient('V5 Pathfinding »', message);
+export const chatIrc = (message) => sendGradient('IRC »', message);
+export const chatPathfinder = (message) => sendGradient('V5 Pathfinding »', message);
 
-export function sendAnnouncement(message) {
+export function chatAnnoucement(message) {
     if (!message) return;
     Client.getMinecraft().execute(() => GradientChat.sendGradientMsg('V5 Announcement »', 0xf4a261, 0xe76f51, message));
-}
-
-export function logMessage(message) {
-    if (message) console.log('V5 » ' + message);
 }

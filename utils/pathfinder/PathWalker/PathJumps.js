@@ -1,4 +1,4 @@
-import { sendPathfinderMessage } from '../../Chat';
+import { chatPathfinder } from '../../Chat';
 import { BP, SnowBlock, Vec3d } from '../../Constants';
 import PathConfig from '../PathConfig';
 import { onPathTick } from '../PathExecutor';
@@ -180,7 +180,7 @@ class PathJumps {
         if (!this.isPlayerInFluid()) return false;
         Client.setKey('space', true);
         if (Date.now() - this.lastFluidMessage > 2000) {
-            if (PathConfig.PATHFINDING_DEBUG) sendPathfinderMessage('Fluid jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Fluid jump detected');
             this.lastFluidMessage = Date.now();
         }
         return true;
@@ -194,7 +194,7 @@ class PathJumps {
         if (layers === 0) return false;
         const diff = data.vec.y() - (8 - layers) * 0.125 - (Player.getY() - 1);
         if (diff > 0.75 && layers > 6) {
-            if (PathConfig.PATHFINDING_DEBUG) sendPathfinderMessage('Snow jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Snow jump detected');
             Client.setKey('space', true);
             return true;
         }
@@ -224,7 +224,7 @@ class PathJumps {
             }
         }
         if (needsJump && !canWalkInstead) {
-            if (PathConfig.PATHFINDING_DEBUG) sendPathfinderMessage('Standard jump detected');
+            if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Standard jump detected');
             Client.setKey('space', true);
             return true;
         }
@@ -254,7 +254,7 @@ class PathJumps {
         const rise = nextY - Math.floor(Player.getY() - 0.001);
         if (rise < 1 || rise > 2) return false;
 
-        if (PathConfig.PATHFINDING_DEBUG) sendPathfinderMessage('Predictive climb jump');
+        if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Predictive climb jump');
         Client.setKey('space', true);
         return true;
     }
@@ -297,7 +297,7 @@ class PathJumps {
                 const distToEdgeSq = Math.pow(pX - (dropStartNode.x + 0.5), 2) + Math.pow(pZ - (dropStartNode.z + 0.5), 2);
 
                 if (distToEdgeSq <= 1.35 * 1.35) {
-                    if (PathConfig.PATHFINDING_DEBUG) sendPathfinderMessage('Gap jump detected');
+                    if (PathConfig.PATHFINDING_DEBUG) chatPathfinder('Gap jump detected');
                     Client.setKey('space', true);
                     return true;
                 }

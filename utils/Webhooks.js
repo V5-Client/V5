@@ -1,4 +1,4 @@
-import { sendDebugMessage } from './Chat';
+import { chatDebug } from './Chat';
 import { CLIENT_VERSION, Consumer, ScreenshotRecorder, URL } from './Constants';
 import { executeAsync } from './ThreadExecutor';
 import { area, getConfigFile, subArea, writeConfigFile } from './Utils';
@@ -28,7 +28,7 @@ class DiscordNotifier {
             }
         } catch (e) {
             console.error(e);
-            sendDebugMessage('Failed to initialize webhook settings.');
+            chatDebug('Failed to initialize webhook settings.');
         }
     }
 
@@ -125,7 +125,7 @@ class DiscordNotifier {
                 connection.getInputStream().close();
             } catch (e) {
                 console.error(e);
-                sendDebugMessage('Webhook transmission failed: ' + e);
+                chatDebug('Webhook transmission failed: ' + e);
             }
         });
     }

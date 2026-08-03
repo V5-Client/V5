@@ -1,4 +1,4 @@
-import { logMessage, chat } from './Chat';
+import { chat } from './Chat';
 import { BufferedReader, File, InputStreamReader, Links, StandardCharsets, URL, globalAssetsDir } from './Constants';
 import { downloadFile } from './FileUtils';
 
@@ -52,7 +52,7 @@ export const returnDiscord = (authToken) => {
                     data = JSON.parse(responseText);
                 } catch (e) {
                     chat('Failed to parse Discord PFP data. Check console for error.');
-                    logMessage('Invalid JSON received: ' + responseText);
+                    console.log('Invalid JSON received: ' + responseText);
                     console.error('V5 Caught error' + e + e.stack);
                     return;
                 }
