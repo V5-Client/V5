@@ -1,4 +1,3 @@
-import { deleteMixinValue, setMixinValue } from './MixinManager';
 import { convertToVector } from './Utils';
 
 export function setCameraPosition(vec) {
@@ -10,8 +9,8 @@ export function setCameraPosition(vec) {
     const converted = convertToVector(vec);
     if (!converted) return false;
 
-    setMixinValue('cameraOverridePos', converted);
+    Client.setCameraPosition(converted);
     return true;
 }
 
-export const clearCameraPosition = () => deleteMixinValue('cameraOverridePos');
+export const clearCameraPosition = () => Client.setCameraPosition(null);

@@ -1,6 +1,5 @@
 import { GLFW, Vec3d } from '../../utils/Constants';
 import { clearCameraPosition, setCameraPosition } from '../../utils/Camera';
-import { deleteMixinValue, getMixinValue, setMixinValue } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { wrapTo180 } from '../../utils/Math';
 import { getModule } from '../../utils/MacroState';
@@ -63,9 +62,8 @@ class Freecam extends ModuleBase {
         this.possessedUUID = null;
         this.rightClickWasDown = this.isRightClickDown();
         forceGrab();
-        setMixinValue('cameraOverrideYaw', wrapTo180(player.getYRot()));
-        setMixinValue('cameraOverridePitch', player.getXRot());
-        setMixinValue('freecamEnabled', true);
+        Client.setCameraRotation(wrapTo180(player.getYRot()), player.getXRot());
+        Client.setFreecam(true);
         mc.setCameraEntity(player);
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
         setCameraPosition(this.cameraPos);
@@ -87,11 +85,10 @@ class Freecam extends ModuleBase {
         this.velocity = new Vec3d(0, 0, 0);
         this.possessedUUID = null;
         this.rightClickWasDown = false;
-        setMixinValue('ungrabbed', false);
-        setMixinValue('freecamEnabled', false);
-        deleteMixinValue('freecamSpectatedEntity');
-        deleteMixinValue('cameraOverrideYaw');
-        deleteMixinValue('cameraOverridePitch');
+        Client.setUngrabbed(false);
+        Client.setFreecam(false);
+        Client.setSpectatedEntity(null);
+        Client.clearCameraRotation();
         clearCameraPosition();
 
         if (this.savedPerspective) mc.options.setCameraType(this.savedPerspective);
@@ -117,7 +114,7 @@ class Freecam extends ModuleBase {
         }
 
         const options = mc.options;
-        const yaw = (Number(getMixinValue('cameraOverrideYaw', player.getYRot())) * Math.PI) / 180;
+        const yaw = (Number(Client.getCameraYaw() ?? player.getYRot()) * Math.PI) / 180;
 
         let moveX = 0;
         let moveY = 0;
@@ -183,8 +180,8 @@ class Freecam extends ModuleBase {
 
         this.possessedUUID = target.getUUID();
         this.velocity = new Vec3d(0, 0, 0);
-        setMixinValue('ungrabbed', true);
-        setMixinValue('freecamSpectatedEntity', target.toMC());
+        Client.setUngrabbed(true);
+        Client.setSpectatedEntity(target.toMC());
         this.syncPossessedCamera();
         this.message(`&aSpectating &f${target.getName()} &7(Right-click to release)`);
     }
@@ -194,14 +191,13 @@ class Freecam extends ModuleBase {
         if (entity) {
             const partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
             this.cameraPos = entity.getEyePosition(partialTicks);
-            setMixinValue('cameraOverrideYaw', entity.getViewYRot(partialTicks));
-            setMixinValue('cameraOverridePitch', entity.getViewXRot(partialTicks));
+            Client.setCameraRotation(entity.getViewYRot(partialTicks), entity.getViewXRot(partialTicks));
         }
 
         this.possessedUUID = null;
         this.velocity = new Vec3d(0, 0, 0);
-        setMixinValue('ungrabbed', false);
-        deleteMixinValue('freecamSpectatedEntity');
+        Client.setUngrabbed(false);
+        Client.setSpectatedEntity(null);
         forceGrab();
         mc.setCameraEntity(Player.getPlayer());
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
@@ -221,8 +217,7 @@ class Freecam extends ModuleBase {
         this.cameraPos = entity.getEyePosition(partialTicks);
         mc.options.setCameraType(Perspective.FIRST_PERSON);
         setCameraPosition(this.cameraPos);
-        setMixinValue('cameraOverrideYaw', entity.getViewYRot(partialTicks));
-        setMixinValue('cameraOverridePitch', entity.getViewXRot(partialTicks));
+        Client.setCameraRotation(entity.getViewYRot(partialTicks), entity.getViewXRot(partialTicks));
     }
 
     getPossessedPlayer() {
@@ -233,8 +228,8 @@ class Freecam extends ModuleBase {
     getPlayerUnderCrosshair() {
         if (!this.cameraPos) return null;
 
-        const yaw = Number(getMixinValue('cameraOverrideYaw', 0));
-        const pitch = Number(getMixinValue('cameraOverridePitch', 0));
+        const yaw = Number(Client.getCameraYaw() ?? 0);
+        const pitch = Number(Client.getCameraPitch() ?? 0);
         const yawRad = (yaw * Math.PI) / 180;
         const pitchRad = (pitch * Math.PI) / 180;
         const cosPitch = Math.cos(pitchRad);
