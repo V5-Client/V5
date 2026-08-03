@@ -64,8 +64,7 @@ class AlertUtilsClass {
             const screenW = Renderer.screen.getWidth();
             const screenH = Renderer.screen.getHeight();
             try {
-                NVG.beginFrame(screenW, screenH);
-                NVG.save();
+                Renderer.save();
                 this._renderAlertScreen(screenW, screenH);
 
                 const scale = fontSize / 10;
@@ -85,15 +84,9 @@ class AlertUtilsClass {
 
                 currentX2 += Renderer.getStringWidth(key) * scale;
                 drawText(line2End, currentX2, y2, fontSize, redColor);
-                NVG.restore();
+                Renderer.restore();
             } catch (e) {
                 console.error(e);
-            } finally {
-                try {
-                    NVG.endFrame();
-                } catch (e) {
-                    console.error(e);
-                }
             }
         });
     }
@@ -190,7 +183,7 @@ class AlertUtilsClass {
     }
 
     /**
-     * Uses NVG to draw a overlay over the whole screen
+     * Uses Renderer to draw a overlay over the whole screen
      */
     _renderAlertScreen(screenW, screenH) {
         if (Client.isInChat()) return;

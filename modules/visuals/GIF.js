@@ -56,7 +56,7 @@ class GifInstance {
     }
 
     load() {
-        const gifData = NVG.loadGif(this.absPath);
+        const gifData = Renderer.loadGif(this.absPath);
 
         if (!gifData) {
             chat(`&c[GIF] Failed to load ${this.name}. This is likely an invalid gif file.`);
@@ -71,6 +71,7 @@ class GifInstance {
     }
 
     unload() {
+        if (this.loaded) Renderer.unloadGif(this.absPath);
         this.loaded = false;
     }
 
@@ -93,7 +94,7 @@ class GifInstance {
         const drawW = this.baseWidth * this.scale;
         const drawH = this.baseHeight * this.scale;
 
-        NVG.drawGif(this.absPath, this.x, this.y, drawW, drawH, this.frameIndex);
+        Renderer.drawGif(this.absPath, this.x, this.y, drawW, drawH, this.frameIndex);
 
         if (isChatOpen) {
             this.drawMoveUI(this.x, this.y, drawW, drawH);
@@ -111,25 +112,25 @@ class GifInstance {
         const cornerSize = Math.max(minHandlePx * 0.5, 6 * this.scale);
         const lineThick = Math.max(minLinePx, 2 * this.scale);
 
-        NVG.drawRect(x - lineThick, y - lineThick, width + lineThick * 2, lineThick, borderColor); // Top
-        NVG.drawRect(x - lineThick, y + height, width + lineThick * 2, lineThick, borderColor); // Bottom
-        NVG.drawRect(x - lineThick, y, lineThick, height, borderColor); // Left
-        NVG.drawRect(x + width, y, lineThick, height, borderColor); // Right
+        Renderer.drawRect(x - lineThick, y - lineThick, width + lineThick * 2, lineThick, borderColor); // Top
+        Renderer.drawRect(x - lineThick, y + height, width + lineThick * 2, lineThick, borderColor); // Bottom
+        Renderer.drawRect(x - lineThick, y, lineThick, height, borderColor); // Left
+        Renderer.drawRect(x + width, y, lineThick, height, borderColor); // Right
 
-        NVG.drawRect(x - lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x + width - cornerSize + lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x + width - cornerSize + lineThick, y + height, cornerSize, lineThick, cornerColor);
-        NVG.drawRect(x - lineThick, y + height, cornerSize, lineThick, cornerColor);
+        Renderer.drawRect(x - lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
+        Renderer.drawRect(x + width - cornerSize + lineThick, y - lineThick, cornerSize, lineThick, cornerColor);
+        Renderer.drawRect(x + width - cornerSize + lineThick, y + height, cornerSize, lineThick, cornerColor);
+        Renderer.drawRect(x - lineThick, y + height, cornerSize, lineThick, cornerColor);
 
         const hx = x + width - handleSize;
         const hy = y + height - handleSize;
 
-        NVG.drawRect(hx, hy, handleSize, handleSize, handleColor);
+        Renderer.drawRect(hx, hy, handleSize, handleSize, handleColor);
 
         const innerPadding = handleSize * (4 / 14);
         const innerSize = handleSize - innerPadding * 2;
         if (innerSize > 0) {
-            NVG.drawRect(hx + innerPadding, hy + innerPadding, innerSize, innerSize, cornerColor);
+            Renderer.drawRect(hx + innerPadding, hy + innerPadding, innerSize, innerSize, cornerColor);
         }
     }
 
@@ -231,7 +232,7 @@ class GIFOverlay extends ModuleBase {
 
         this.addToggle('Render Over Everything', (value) => (this.renderOverEverything = !!value), 'Render GIFs above GUI and overlays', true);
 
-        NVG.registerV5Render(() => {
+        Renderer.registerV5Render(() => {
             if (!this.renderOverEverything || !this.enabled) return;
             this.render();
         });
@@ -292,9 +293,7 @@ class GIFOverlay extends ModuleBase {
 
         const chatOpen = this.isChatOpen();
 
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
         this.instances.forEach((inst) => inst.render(chatOpen));
-        NVG.endFrame();
     }
 
     handleClick(x, y, button, isPressed) {

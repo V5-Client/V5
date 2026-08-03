@@ -170,8 +170,6 @@ class Music extends ModuleBase {
         this.x = overlay.x;
 
         try {
-            NVG.beginFrame(sw, sh);
-
             drawMusicOverlay({
                 overlay,
                 songName,
@@ -181,10 +179,7 @@ class Music extends ModuleBase {
                 titleColor: isSkeleton ? THEME.TEXT_MUTED : THEME.TEXT,
                 drawArtwork: imageURL.length > 5 ? (x, y, size) => drawImageFromURL(imageURL, x, y, size, size, 6) : null,
             });
-        } catch (e) {
-        } finally {
-            NVG.endFrame();
-        }
+        } catch (e) {}
     }
 
     onDisable() {

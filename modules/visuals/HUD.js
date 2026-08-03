@@ -29,15 +29,19 @@ class HUD extends ModuleBase {
 
         this.positionConfig = getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
-        this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
+        this.inventory = this.loadOverlayState('inventory', {
+            x: 50,
+            y: 100,
+            scale: 1.0,
+        });
 
         this.when(
             () => this.INVENTORY_HUD,
             'renderOverlay',
             () => this.renderOverlay()
         );
-        NVG.registerV5PreRender(() => this.renderInventoryBackgroundOverlay());
-        NVG.registerV5Render(() => this.renderStatsOverlay());
+        Renderer.registerV5PreRender(() => this.renderInventoryBackgroundOverlay());
+        Renderer.registerV5Render(() => this.renderStatsOverlay());
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
@@ -147,16 +151,9 @@ class HUD extends ModuleBase {
 
     drawInFrame(sw, sh, draw) {
         try {
-            NVG.beginFrame(sw, sh);
             draw.call(this);
         } catch (e) {
             console.error(e);
-        } finally {
-            try {
-                NVG.endFrame();
-            } catch (e) {
-                console.error(e);
-            }
         }
     }
 

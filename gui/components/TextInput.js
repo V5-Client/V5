@@ -127,8 +127,8 @@ export class TextInput {
             this.scrollX = Math.max(0, Math.min(this.scrollX, maxScroll));
         }
 
-        NVG.save();
-        NVG.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
+        Renderer.save();
+        Renderer.scissor(boxX + valuePadding, boxY, visibleWidth, boxHeight);
 
         const textDrawX = boxX + valuePadding - this.scrollX;
         const textDrawY = boxY + boxHeight / 2;
@@ -154,7 +154,7 @@ export class TextInput {
             }
         }
 
-        NVG.restore();
+        Renderer.restore();
 
         const componentRect = {
             x: this.x,

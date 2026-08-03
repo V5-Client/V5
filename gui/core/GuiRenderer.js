@@ -23,26 +23,25 @@ export const drawGUI = (mouseX, mouseY) => {
     const centerX = targetBackground.x + targetBackground.width / 2;
     const centerY = targetBackground.y + targetBackground.height / 2;
 
-    Client.getMinecraft().gameRenderer.processBlurEffect();
+    Renderer.blurBackground();
 
     try {
-        NVG.beginFrame(Renderer.screen.getWidth(), Renderer.screen.getHeight());
-        NVG.save();
+        Renderer.save();
 
         const guiScale = GuiState.getEffectiveGuiScale();
-        NVG.scale(guiScale, guiScale);
+        Renderer.scale(guiScale, guiScale);
 
         drawRoundedRectangleWithBorder(targetBackground);
 
         GuiTooltip.reset();
 
         if (GuiState.macroToggleOpen) {
-            NVG.save();
-            NVG.translate(centerX, centerY);
-            NVG.scale(ease, ease);
-            NVG.translate(-centerX, -centerY);
+            Renderer.save();
+            Renderer.translate(centerX, centerY);
+            Renderer.scale(ease, ease);
+            Renderer.translate(-centerX, -centerY);
             macroToggleGui.draw(mouseX, mouseY);
-            NVG.restore();
+            Renderer.restore();
         } else {
             drawRoundedRectangleWithBorder(GuiRectangles.LeftPanel);
             drawRect({
@@ -57,10 +56,10 @@ export const drawGUI = (mouseX, mouseY) => {
 
             SearchBar.draw(mouseX, mouseY, GuiRectangles.ModuleSearch, GuiRectangles.LeftPanel.y + PADDING, true);
 
-            NVG.save();
-            NVG.translate(centerX, centerY);
-            NVG.scale(ease, ease);
-            NVG.translate(-centerX, -centerY);
+            Renderer.save();
+            Renderer.translate(centerX, centerY);
+            Renderer.scale(ease, ease);
+            Renderer.translate(-centerX, -centerY);
 
             const panel = GuiRectangles.RightPanel;
             const drawCategoryNav = (category, xOffset, drawBackground = true) => {
@@ -100,20 +99,14 @@ export const drawGUI = (mouseX, mouseY) => {
             resetScissor();
             categoryManager?.drawPopups?.(mouseX, mouseY);
 
-            NVG.restore();
+            Renderer.restore();
         }
 
         GuiTooltip.update();
         GuiTooltip.draw(mouseX, mouseY);
 
-        NVG.restore();
+        Renderer.restore();
     } catch (e) {
         console.error(e);
-    } finally {
-        try {
-            NVG.endFrame();
-        } catch (e) {
-            console.error(e);
-        }
     }
 };

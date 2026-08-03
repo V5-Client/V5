@@ -72,7 +72,7 @@ class OverlayUtils {
         this.renderActive = false;
         this.drawingGUI = false;
 
-        NVG.registerV5Render(() => {
+        Renderer.registerV5Render(() => {
             if (!Overlays.Gui.isOpen() && !this.renderActive) return;
             if (Overlays.Gui.isOpen()) {
                 this.drawGUI();
@@ -510,9 +510,9 @@ class OverlayUtils {
         const centerColor = colorWithAlpha(accentColor, 0.3 * progress);
         const edgeColor = colorWithAlpha(accentColor, 0);
         // left
-        NVG.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
+        Renderer.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
         // right
-        NVG.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
+        Renderer.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
     }
 
     renderID(id, forceGUI = false, screenSize = null) {
@@ -625,7 +625,7 @@ class OverlayUtils {
             const contentAlpha = Math.min(1, progress * 3);
 
             try {
-                NVG.scissor(x, y, id.width, currentHeight);
+                Renderer.scissor(x, y, id.width, currentHeight);
                 const titleY = y + 20 * scale;
                 const titleX = x + id.width / 2 - getTextWidth(id.name, fontSize) / 2;
                 const titleAlign = 16;
@@ -659,13 +659,18 @@ class OverlayUtils {
                     contentY += 4 * scale;
                 });
             } finally {
-                NVG.resetScissor();
+                Renderer.resetScissor();
             }
         }
 
         if (forceGUI) {
             if (isScheduler) {
-                this.currentSchedulerExampleBox = { x, y, width: id.width, height: id.height };
+                this.currentSchedulerExampleBox = {
+                    x,
+                    y,
+                    width: id.width,
+                    height: id.height,
+                };
             } else {
                 this.currentExampleBox = { x, y, width: id.width, height: id.height };
             }
@@ -676,12 +681,11 @@ class OverlayUtils {
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
         if (sw === 0 || sh === 0) return;
-        Client.getMinecraft().gameRenderer.processBlurEffect();
+        Renderer.blurBackground();
         this.editorBoxes = {};
         this.drawingGUI = true;
 
         try {
-            NVG.beginFrame(sw, sh);
             this.editorOrder.forEach((target) => {
                 if (target === 'default') {
                     const example = this.getExampleOverlay();
@@ -717,8 +721,6 @@ class OverlayUtils {
             drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 16);
         } catch (e) {
             console.error(e);
-        } finally {
-            NVG.endFrame();
         }
     }
 
@@ -739,14 +741,11 @@ class OverlayUtils {
         this.renderActive = true;
 
         try {
-            NVG.beginFrame(sw, sh);
             visibleIds.forEach((id) => {
                 this.renderID(id, false, { sw, sh });
             });
         } catch (e) {
             console.error(e);
-        } finally {
-            NVG.endFrame();
         }
     }
 
@@ -819,7 +818,10 @@ class OverlayUtils {
 
     drawHudStatsPreview(sw, sh) {
         const lines = getStatsHudLines();
-        const overlay = { ...this.hudSettings.stats, ...getStatsHudBounds(this.hudSettings.stats.scale, lines) };
+        const overlay = {
+            ...this.hudSettings.stats,
+            ...getStatsHudBounds(this.hudSettings.stats.scale, lines),
+        };
         Object.assign(this.hudSettings.stats, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
         Object.assign(overlay, this.hudSettings.stats);
         drawStatsHud(overlay, lines);
@@ -827,7 +829,10 @@ class OverlayUtils {
     }
 
     drawHudInventoryPreview(sw, sh) {
-        const overlay = { ...this.hudSettings.inventory, ...getInventoryHudBounds(this.hudSettings.inventory.scale) };
+        const overlay = {
+            ...this.hudSettings.inventory,
+            ...getInventoryHudBounds(this.hudSettings.inventory.scale),
+        };
         Object.assign(this.hudSettings.inventory, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
         Object.assign(overlay, this.hudSettings.inventory);
         drawInventoryHudBackground(overlay);
@@ -836,10 +841,18 @@ class OverlayUtils {
 
     drawMusicPreview(sw, sh) {
         const songName = 'Searching for Media...';
-        const overlay = { ...this.musicSettings, ...getMusicOverlayBounds(this.musicSettings.scale || 1, songName) };
+        const overlay = {
+            ...this.musicSettings,
+            ...getMusicOverlayBounds(this.musicSettings.scale || 1, songName),
+        };
         Object.assign(this.musicSettings, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
         Object.assign(overlay, this.musicSettings);
-        drawMusicOverlay({ overlay, songName, currentTime: '--:--', totalTime: '--:--' });
+        drawMusicOverlay({
+            overlay,
+            songName,
+            currentTime: '--:--',
+            totalTime: '--:--',
+        });
         return overlay;
     }
 

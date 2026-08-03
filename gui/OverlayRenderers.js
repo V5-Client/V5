@@ -15,8 +15,16 @@ export const getStatsHudLines = () => {
     const tps = getTPS();
     return [
         { label: 'FPS', value: String(fps), color: THEME.TEXT },
-        { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | getPingColor(ping)) >>> 0 },
-        { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | getTpsColor(tps)) >>> 0 },
+        {
+            label: 'Ping',
+            value: `${ping}ms`,
+            color: (0xff000000 | getPingColor(ping)) >>> 0,
+        },
+        {
+            label: 'TPS',
+            value: tps.toFixed(2),
+            color: (0xff000000 | getTpsColor(tps)) >>> 0,
+        },
     ];
 };
 
@@ -28,7 +36,10 @@ export function getStatsHudBounds(scale, lines = getStatsHudLines()) {
     const slotWidths = lines.map(
         (line, index) => getTextWidth(`${line.label}:`, fontSize) + gaps[index] + getTextWidth(['999', '999ms', '20.00'][index], fontSize)
     );
-    return { width: pad * 2 + slotWidths.reduce((total, width) => total + width, 0) + separatorWidth * (lines.length - 1), height: pad * 2 + fontSize };
+    return {
+        width: pad * 2 + slotWidths.reduce((total, width) => total + width, 0) + separatorWidth * (lines.length - 1),
+        height: pad * 2 + fontSize,
+    };
 }
 
 export function drawStatsHud(overlay, lines = getStatsHudLines()) {
@@ -93,14 +104,17 @@ export function drawInventoryHudBackground(overlay) {
         borderWidth: BORDER_WIDTH * scale,
         borderColor: THEME.BORDER,
     });
-    NVG.drawGradientRect(overlay.x + pad, separatorY, rowWidth / 2, Math.max(1, scale), edgeColor, centerColor, 'LeftToRight', 0);
-    NVG.drawGradientRect(overlay.x + pad + rowWidth / 2, separatorY, rowWidth / 2, Math.max(1, scale), centerColor, edgeColor, 'LeftToRight', 0);
+    Renderer.drawGradientRect(overlay.x + pad, separatorY, rowWidth / 2, Math.max(1, scale), edgeColor, centerColor, 'LeftToRight', 0);
+    Renderer.drawGradientRect(overlay.x + pad + rowWidth / 2, separatorY, rowWidth / 2, Math.max(1, scale), centerColor, edgeColor, 'LeftToRight', 0);
 }
 
 export function getMusicOverlayBounds(scale, songName) {
     const padding = 12 * scale;
     const imageSize = 55 * scale;
-    return { width: Math.max(200 * scale, getTextWidth(songName, FontSizes.MEDIUM * 1.3 * scale) + imageSize + padding * 4), height: 90 * scale };
+    return {
+        width: Math.max(200 * scale, getTextWidth(songName, FontSizes.MEDIUM * 1.3 * scale) + imageSize + padding * 4),
+        height: 90 * scale,
+    };
 }
 
 export function drawMusicOverlay({ overlay, songName, currentTime, totalTime, progress = 0, titleColor = THEME.TEXT_MUTED, drawArtwork }) {
