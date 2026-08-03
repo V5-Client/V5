@@ -3,7 +3,6 @@ import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
 import { chat } from './Chat';
 import { getActiveMacro, getModule, getStartTime, isMacroRunning, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
-import { setMixinValue } from './MixinManager';
 import { ScheduleTask } from './ScheduleTask';
 import { registerSkyblockEvent } from './SkyblockEvents';
 import { getConfigFile, writeConfigFile } from './Utils';
@@ -151,7 +150,7 @@ export class ModuleBase {
             this.isParentManaged = parentManaged;
 
             if (this.isMacro) {
-                setMixinValue('macroEnabled', true);
+                Client.setMacroEnabled(true);
                 onModuleEnabled(this.name, toggleContext);
             }
 
@@ -170,7 +169,7 @@ export class ModuleBase {
         } else {
             if (this.isMacro) {
                 onModuleDisabled(this.name, toggleContext);
-                setMixinValue('macroEnabled', isMacroRunning());
+                Client.setMacroEnabled(isMacroRunning());
             }
 
             if (this.oid) {

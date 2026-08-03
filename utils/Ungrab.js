@@ -1,15 +1,14 @@
 import { GLFW, isLinux } from './Constants';
-import { getMixinValue, setMixinValue } from './MixinManager';
 
 let requestedUngrab = false;
 let forcedGrab = false;
 
-setMixinValue('ungrabbed', false);
-setMixinValue('inputLocked', false);
+Client.setUngrabbed(false);
+Client.setInputLocked(false);
 
 const applyUngrab = () => {
-    setMixinValue('ungrabbed', true);
-    setMixinValue('inputLocked', true);
+    Client.setUngrabbed(true);
+    Client.setInputLocked(true);
     const mc = Client.getMinecraft();
     if (!mc.mouseHandler) return;
     mc.mouseHandler.releaseMouse();
@@ -17,8 +16,8 @@ const applyUngrab = () => {
 };
 
 const applyRegrab = () => {
-    setMixinValue('ungrabbed', false);
-    setMixinValue('inputLocked', false);
+    Client.setUngrabbed(false);
+    Client.setInputLocked(false);
     const mc = Client.getMinecraft();
     if (mc.screen != null) return;
     mc.mouseHandler.grabMouse();
@@ -27,12 +26,12 @@ const applyRegrab = () => {
 
 export function ungrab() {
     requestedUngrab = true;
-    if (!forcedGrab && !getMixinValue('ungrabbed')) applyUngrab();
+    if (!forcedGrab && !Client.isUngrabbed()) applyUngrab();
 }
 
 export function regrab() {
     requestedUngrab = false;
-    if (!forcedGrab && getMixinValue('ungrabbed')) applyRegrab();
+    if (!forcedGrab && Client.isUngrabbed()) applyRegrab();
 }
 
 export function forceGrab() {

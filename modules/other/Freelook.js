@@ -1,4 +1,3 @@
-import { deleteMixinValue, setMixinValue } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { wrapTo180 } from '../../utils/Math';
 import { getModule } from '../../utils/MacroState';
@@ -33,19 +32,16 @@ class Freelook extends ModuleBase {
         this.message('&aEnabled');
         this.savedPerspective = mc.options.getCameraType();
         forceGrab();
-        setMixinValue('cameraOverrideYaw', wrapTo180(player.getYRot()));
-        setMixinValue('cameraOverridePitch', player.getXRot());
-        setMixinValue('freelookCameraDistance', 4.0);
-        setMixinValue('freelookEnabled', true);
+        Client.setCameraRotation(wrapTo180(player.getYRot()), player.getXRot());
+        Client.setFreelookDistance(4.0);
+        Client.setFreelook(true);
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
     }
 
     onDisable() {
         this.message('&cDisabled');
-        setMixinValue('freelookEnabled', false);
-        deleteMixinValue('cameraOverrideYaw');
-        deleteMixinValue('cameraOverridePitch');
-        deleteMixinValue('freelookCameraDistance');
+        Client.setFreelook(false);
+        Client.clearCameraRotation();
 
         if (this.savedPerspective) mc.options.setCameraType(this.savedPerspective);
         this.savedPerspective = null;
