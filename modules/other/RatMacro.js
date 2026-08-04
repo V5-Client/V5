@@ -1,17 +1,17 @@
 //Vibecoded SLOP, STILL WORKS FINE :3
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { OverlayManager } from '../../gui/OverlayUtils';
-import { Chat } from '../../utils/Chat';
+import { chatDebug } from '../../utils/Chat';
 import { MCHand } from '../../utils/Constants';
-import { finiteNumber, formatRoundedNumber } from '../../utils/NumberUtils';
+import { finiteNumber, formatRoundedNumber } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ServerboundUseItemPacket } from '../../utils/Packets';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory, setItemSlot } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Mouse } from '../../utils/Ungrab';
-import { Utils } from '../../utils/Utils';
+import { regrab, ungrab } from '../../utils/Ungrab';
+import { area } from '../../utils/Utils';
 import PathConfig from '../../utils/pathfinder/PathConfig';
 import { getHubRats, getRatId, getRawHubRats } from '../visuals/RatESP';
 
@@ -148,7 +148,7 @@ class RatMacro extends ModuleBase {
     }
 
     debug(message) {
-        Chat.messageDebug(`&6Rat Macro:&f ${message}`);
+        chatDebug(`&6Rat Macro:&f ${message}`);
     }
 
     setState(nextState, reason = null) {
@@ -175,7 +175,7 @@ class RatMacro extends ModuleBase {
         if (!this.enabled) return;
         if (!Player.getPlayer() || !World.isLoaded()) return;
         if (!Client.isInChat() && Client.isInGui() && !this.isHandlingSwapGui()) {
-            Guis.closeInv();
+            closeInventory();
             return;
         }
 
@@ -183,10 +183,10 @@ class RatMacro extends ModuleBase {
 
         if (this.handleLobbySwap()) return;
 
-        if (Utils.area() !== 'Hub') {
+        if (area() !== 'Hub') {
             this.cancelPathing();
             Client.stopMovement();
-            this.setState(STATES.WAITING, `left hub for ${Utils.area() || 'unknown area'}`);
+            this.setState(STATES.WAITING, `left hub for ${area() || 'unknown area'}`);
             return;
         }
 
@@ -339,7 +339,7 @@ class RatMacro extends ModuleBase {
         this.setState(STATES.ENGAGING, `preparing shot for ${this.formatRatRef()}`);
         Client.stopMovement();
         Rotations.stop();
-        Guis.setItemSlot(this.weaponSlot);
+        setItemSlot(this.weaponSlot);
         this.debug(`queued attack on rat &e${this.formatRatRef()}&f using slot &e${this.weaponSlot + 1}`);
 
         const attackToken = ++this.pendingAttackToken;
@@ -833,7 +833,7 @@ class RatMacro extends ModuleBase {
         if (this.swapStage !== SWAP_STAGES.NONE) return;
 
         this.debug(`no rat candidates left, beginning ${this.swapMode} lobby swap`);
-        if (Utils.area() === 'Hub') {
+        if (area() === 'Hub') {
             if (this.swapMode === SWAP_MODES.VIP) {
                 this.swapStage = SWAP_STAGES.WAIT_VIP_MENU;
                 this.swapUntil = Date.now() + VIP_SWAP_TIMEOUT_MS;
@@ -867,7 +867,7 @@ class RatMacro extends ModuleBase {
 
         const shouldWaitForGuiClose = Client.isInGui() && this.isHandlingSwapGui();
         if (shouldWaitForGuiClose) {
-            Guis.closeInv();
+            closeInventory();
         }
 
         this.cancelPathing();
@@ -884,7 +884,7 @@ class RatMacro extends ModuleBase {
         if (this.swapStage === SWAP_STAGES.NONE) return false;
 
         if (this.swapStage === SWAP_STAGES.WAIT_HUB_SCAN) {
-            if (Utils.area() === 'Hub') {
+            if (area() === 'Hub') {
                 const shouldWaitForGuiClose = this.resumeNormalModeIfRatsExist('rats found after swap');
                 if (shouldWaitForGuiClose !== null) {
                     return shouldWaitForGuiClose;
@@ -934,7 +934,7 @@ class RatMacro extends ModuleBase {
 
             if (Client.isInGui()) {
                 this.cancelPathing();
-                Guis.clickSlot(VIP_SWAP_SLOT, false, 'RIGHT');
+                clickSlot(VIP_SWAP_SLOT, false, 'RIGHT');
                 this.swapStage = SWAP_STAGES.WAIT_VIP_TRANSFER;
                 this.swapUntil = Date.now() + VIP_SWAP_TRANSFER_TIMEOUT_MS;
                 this.lastSwapActionAt = Date.now();
@@ -978,7 +978,7 @@ class RatMacro extends ModuleBase {
                 return true;
             }
 
-            if (Utils.area() !== 'Hub') {
+            if (area() !== 'Hub') {
                 if (Date.now() < this.swapUntil) return true;
 
                 this.cancelPathing();
@@ -1155,7 +1155,7 @@ class RatMacro extends ModuleBase {
         this.lastWorldUnloadAt = 0;
         this.invalidateVipRotation();
         this.setState(STATES.WAITING);
-        Mouse.ungrab();
+        ungrab();
         this.debug(`enabled with swap mode &e${this.swapMode}&f and weapon slot &e${this.weaponSlot + 1}`);
         this.message('&aEnabled');
     }
@@ -1183,7 +1183,7 @@ class RatMacro extends ModuleBase {
         Rotations.stop();
         this.debug('disabled, cleared targeting/pathing state');
         this.setState(STATES.WAITING, 'module disabled');
-        Mouse.regrab();
+        regrab();
         this.message('&cDisabled');
     }
 }

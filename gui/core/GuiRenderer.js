@@ -108,12 +108,12 @@ export const drawGUI = (mouseX, mouseY) => {
 
         NVG.restore();
     } catch (e) {
-        console.error('V5 Caught error' + e + e.stack);
+        console.error(e);
     } finally {
         try {
             NVG.endFrame();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 };

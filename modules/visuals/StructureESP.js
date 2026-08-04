@@ -72,7 +72,7 @@ class StructureESP extends ModuleBase {
                 RenderUtils.drawText(name, pos.add(0, 8.5, 0), 7.5, true, false, true);
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 }

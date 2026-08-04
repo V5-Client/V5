@@ -1,9 +1,9 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
-import { Utils } from '../../utils/Utils';
-import { manager } from '../../utils/SkyblockEvents';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { clickSlot, closeInventory, findItemInHotbar, getGuiName, setItemSlot } from '../../utils/player/Inventory';
+import { area, getConfigFile } from '../../utils/Utils';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { getDrills } from '../../utils/MiningUtils';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
 import { Rotations } from '../../utils/player/Rotations';
 
@@ -102,12 +102,12 @@ class ScathaMacro extends ModuleBase {
 
         this.state = this.STATES.WAITING;
 
-        manager.subscribe('warp', () => {
+        registerSkyblockEvent('warp', () => {
             if (!this.enabled) return;
             this.isWarping = true;
         });
 
-        manager.subscribe('fasttravellocked', () => {
+        registerSkyblockEvent('fasttravellocked', () => {
             if (!this.enabled) return;
             if (this.goingToCH) {
                 this.message("&cCan't start macro outside CH because you dont have the warp!");
@@ -139,10 +139,10 @@ class ScathaMacro extends ModuleBase {
     }
 
     handleWarping() {
-        if (Utils.area() === 'Crystal Hollows') return (this.state = this.STATES.DIGGING);
+        if (area() === 'Crystal Hollows') return (this.state = this.STATES.DIGGING);
         if (this.isWarping && this.travelledToCH) return (this.goingToCH = true);
 
-        if (Utils.area() !== 'Crystal Hollows' && !this.travelledToCH) {
+        if (area() !== 'Crystal Hollows' && !this.travelledToCH) {
             ChatLib.command('warp ch');
             this.travelledToCH = true;
         }
@@ -167,7 +167,7 @@ class ScathaMacro extends ModuleBase {
         if (!this.handleAOTV.rotated) {
             this.handleAOTV.rotated = true;
 
-            Guis.setItemSlot(this.items.aspect);
+            setItemSlot(this.items.aspect);
 
             Rotations.lookAtAngles(Player.getYaw(), 90);
             Rotations.onComplete(() => {
@@ -178,7 +178,7 @@ class ScathaMacro extends ModuleBase {
 
         if (!this.handleAOTV.usedAOTV) return;
 
-        Guis.setItemSlot(this.items.drill);
+        setItemSlot(this.items.drill);
         Client.setKey('leftclick', true);
 
         // check for chests
@@ -197,7 +197,7 @@ class ScathaMacro extends ModuleBase {
         }
 
         if (this.applySet(this.MINING_SET)) {
-            Guis.closeInv();
+            closeInventory();
             this.state = this.STATES.DECIDEDIRECTION;
             return;
         }
@@ -246,7 +246,7 @@ class ScathaMacro extends ModuleBase {
     togglePerks(isEnabling) {
         const container = Player.getContainer();
 
-        if (Guis.guiName() !== 'Heart of the Mountain' || !container) {
+        if (getGuiName() !== 'Heart of the Mountain' || !container) {
             if (!this.HOTMState.opened) {
                 ChatLib.command('hotm');
                 this.HOTMState.opened = true;
@@ -268,7 +268,7 @@ class ScathaMacro extends ModuleBase {
             if (!item) continue;
 
             if (slot === 8) {
-                Guis.clickSlot(slot, false, 'RIGHT');
+                clickSlot(slot, false, 'RIGHT');
                 this.lastActionTime = now;
                 return false;
             }
@@ -278,7 +278,7 @@ class ScathaMacro extends ModuleBase {
             const shouldClick = isEnabling ? isRedstone : !isRedstone;
 
             if (shouldClick) {
-                Guis.clickSlot(slot, false, 'RIGHT');
+                clickSlot(slot, false, 'RIGHT');
                 this.lastActionTime = now;
                 return false;
             }
@@ -293,7 +293,7 @@ class ScathaMacro extends ModuleBase {
     }
 
     applySet(slot) {
-        if (Guis.guiName() !== 'Wardrobe (1/3)') return false;
+        if (getGuiName() !== 'Wardrobe (1/3)') return false;
 
         const now = Date.now();
         if (now - this.lastActionTime < this.CLICK_DELAY) return false;
@@ -313,15 +313,15 @@ class ScathaMacro extends ModuleBase {
             return true;
         }
 
-        Guis.clickSlot(targetSlot, false, 'LEFT');
+        clickSlot(targetSlot, false, 'LEFT');
         this.lastActionTime = now;
         return true;
     }
 
     getAllRequiredItems() {
         const items = {
-            'Aspect of the Void': { slot: Guis.findItemInHotbar('Aspect of the Void'), include: true },
-            'Mining Tool': { slot: MiningUtils.getDrills().drill?.slot ?? -1, include: null },
+            'Aspect of the Void': { slot: findItemInHotbar('Aspect of the Void'), include: true },
+            'Mining Tool': { slot: getDrills().drill?.slot ?? -1, include: null },
         };
 
         this.items.aspect = items['Aspect of the Void'].slot;
@@ -338,7 +338,7 @@ class ScathaMacro extends ModuleBase {
     }
 
     hasMaxGE() {
-        if (Utils.getConfigFile('miningstats.json')?.maxge !== true) {
+        if (getConfigFile('miningstats.json')?.maxge !== true) {
             this.message("&cYou don't have max GE!");
             this.toggle(false);
             return false;

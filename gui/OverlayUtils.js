@@ -1,5 +1,5 @@
-import { TimeUtils } from '../utils/TimeUtils';
-import { Utils } from '../utils/Utils';
+import { formatDurationMs, formatUptime } from '../utils/TimeUtils';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import {
     BORDER_WIDTH,
     clamp,
@@ -15,7 +15,16 @@ import {
     THEME,
 } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
-import { ServerInfo } from '../utils/player/ServerInfo';
+import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
+import {
+    drawInventoryHudBackground,
+    drawMusicOverlay,
+    drawStatsHud,
+    getInventoryHudBounds,
+    getMusicOverlayBounds,
+    getStatsHudBounds,
+    getStatsHudLines,
+} from './OverlayRenderers';
 
 const { loadSettings } = require('./GuiSave');
 
@@ -224,10 +233,10 @@ class OverlayUtils {
 
     getMacroDuration(macroName) {
         const saved = this.savedSessions && this.savedSessions[macroName];
-        if (saved && typeof saved.elapsedMs === 'number') return TimeUtils.formatDurationMs(saved.elapsedMs);
+        if (saved && typeof saved.elapsedMs === 'number') return formatDurationMs(saved.elapsedMs);
 
         const startTime = this.startTimes && this.startTimes[macroName];
-        return startTime ? TimeUtils.formatUptime(startTime) : '';
+        return startTime ? formatUptime(startTime) : '';
     }
 
     initTriggers() {
@@ -530,7 +539,7 @@ class OverlayUtils {
         const basePadding = boxPadding;
 
         const sections = this.ensureArray(id.sections);
-        const uptimeVal = forceGUI ? '0.00s' : TimeUtils.formatUptime(this.startTimes[id.name]);
+        const uptimeVal = forceGUI ? '0.00s' : formatUptime(this.startTimes[id.name]);
 
         let contentMaxWidth = getTextWidth(id.name, fontSize);
         let calculatedHeight = 30 * scale;
@@ -708,7 +717,7 @@ class OverlayUtils {
             const textWidth = getTextWidth(text, FontSizes.MEDIUM);
             drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 16);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             NVG.endFrame();
         }
@@ -736,23 +745,23 @@ class OverlayUtils {
                 this.renderID(id, false, { sw, sh });
             });
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             NVG.endFrame();
         }
     }
 
     saveSettings() {
-        Utils.writeConfigFile('OverlayPositions/overlays.json', {
+        writeConfigFile('OverlayPositions/overlays.json', {
             default: this.settings,
             scheduler: this.schedulerSettings,
         });
-        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
-        Utils.writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
+        writeConfigFile('OverlayPositions/hud_positions.json', this.hudSettings);
+        writeConfigFile('OverlayPositions/music_overlay.json', this.musicSettings);
     }
 
     loadSettings() {
-        const data = Utils.getConfigFile('OverlayPositions/overlays.json');
+        const data = getConfigFile('OverlayPositions/overlays.json');
         if (data) {
             if (data.default && typeof data.default.x === 'number') {
                 this.settings = {
@@ -780,7 +789,7 @@ class OverlayUtils {
             this.updateScaleProps('scheduler');
         }
 
-        const hudData = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        const hudData = getConfigFile('OverlayPositions/hud_positions.json');
         if (hudData && typeof hudData === 'object') {
             if (hudData.stats && typeof hudData.stats.x === 'number') {
                 this.hudSettings.stats = {
@@ -799,7 +808,7 @@ class OverlayUtils {
             }
         }
 
-        const musicData = Utils.getConfigFile('OverlayPositions/music_overlay.json');
+        const musicData = getConfigFile('OverlayPositions/music_overlay.json');
         if (musicData && typeof musicData === 'object' && typeof musicData.x === 'number' && typeof musicData.y === 'number') {
             this.musicSettings = {
                 x: musicData.x,
@@ -810,185 +819,33 @@ class OverlayUtils {
     }
 
     drawHudStatsPreview(sw, sh) {
-        const s = this.hudSettings.stats.scale;
-        const pad = 6 * s;
-        const fontSize = FontSizes.MEDIUM * 1.25 * s;
-        const lines = this.getHudStatsLines();
-        const separator = ' | ';
-        const separatorWidth = getTextWidth(separator, fontSize);
-        const gaps = [2 * s, s, 2 * s];
-        const valueSlots = ['999', '999ms', '20.00'];
-        const slotWidths = lines.map((l, index) => getTextWidth(`${l.label}:`, fontSize) + gaps[index] + getTextWidth(valueSlots[index], fontSize));
-        const totalWidth = slotWidths.reduce((total, width) => total + width, 0) + separatorWidth * (lines.length - 1);
-
-        const width = pad * 2 + totalWidth;
-        const height = pad * 2 + fontSize;
-
-        const clamped = this.clampToScreen(this.hudSettings.stats.x, this.hudSettings.stats.y, width, height, sw, sh);
-        this.hudSettings.stats.x = clamped.x;
-        this.hudSettings.stats.y = clamped.y;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-        drawRoundedRectangleWithBorder({
-            x: clamped.x,
-            y: clamped.y,
-            width,
-            height,
-            radius: CORNER_RADIUS * 0.6 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const labelColor = THEME.TEXT_MUTED;
-        const separatorColor = colorWithAlpha(THEME.TEXT_MUTED, 0.6);
-        const centerY = clamped.y + height / 2;
-        let x = clamped.x + pad;
-
-        lines.forEach((l, index) => {
-            const label = `${l.label}:`;
-            const value = String(l.value);
-
-            drawText(label, x, centerY, fontSize, labelColor, 17);
-            drawText(value, x + getTextWidth(label, fontSize) + gaps[index], centerY, fontSize, l.color, 17);
-
-            x += slotWidths[index];
-
-            if (index < lines.length - 1) {
-                drawText(separator, x, centerY, fontSize, separatorColor, 17);
-                x += separatorWidth;
-            }
-        });
-
-        return { x: clamped.x, y: clamped.y, width, height };
+        const lines = getStatsHudLines();
+        const overlay = { ...this.hudSettings.stats, ...getStatsHudBounds(this.hudSettings.stats.scale, lines) };
+        Object.assign(this.hudSettings.stats, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
+        Object.assign(overlay, this.hudSettings.stats);
+        drawStatsHud(overlay, lines);
+        return overlay;
     }
 
     drawHudInventoryPreview(sw, sh) {
-        const s = this.hudSettings.inventory.scale;
-        const cols = 9;
-        const mainRows = 3;
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-        const width = pad * 2 + cols * slot;
-        const height = pad * 2 + mainRows * slot + gap + slot;
-
-        const clamped = this.clampToScreen(this.hudSettings.inventory.x, this.hudSettings.inventory.y, width, height, sw, sh);
-        this.hudSettings.inventory.x = clamped.x;
-        this.hudSettings.inventory.y = clamped.y;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-        drawRoundedRectangleWithBorder({
-            x: clamped.x,
-            y: clamped.y,
-            width,
-            height,
-            radius: CORNER_RADIUS * 0.55 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const separatorThickness = Math.max(1, 1 * s);
-        const gridStartX = clamped.x + pad;
-        const mainStartY = clamped.y + pad;
-        const rowWidth = cols * slot;
-        const mainHotbarSeparatorY = mainStartY + mainRows * slot + gap / 2 - separatorThickness / 2;
-        const halfWidth = rowWidth / 2;
-        const centerColor = colorWithAlpha(THEME.ACCENT, 0.3);
-        const edgeColor = colorWithAlpha(THEME.ACCENT, 0);
-
-        NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
-        NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
-
-        return { x: clamped.x, y: clamped.y, width, height };
+        const overlay = { ...this.hudSettings.inventory, ...getInventoryHudBounds(this.hudSettings.inventory.scale) };
+        Object.assign(this.hudSettings.inventory, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
+        Object.assign(overlay, this.hudSettings.inventory);
+        drawInventoryHudBackground(overlay);
+        return overlay;
     }
 
     drawMusicPreview(sw, sh) {
-        const s = this.musicSettings.scale || 1.0;
         const songName = 'Searching for Media...';
-        const timeCur = '--:--';
-        const timeMax = '--:--';
-        const padding = 12 * s;
-        const imageSize = 55 * s;
-        const titleFontSize = FontSizes.MEDIUM * 1.3 * s;
-        const timerFontSize = FontSizes.MEDIUM * 0.85 * s;
-        const barHeight = 4 * s;
-        const nameWidth = getTextWidth(songName, titleFontSize);
-        const width = Math.max(200 * s, nameWidth + imageSize + padding * 4);
-        const height = 90 * s;
-        const clamped = this.clampToScreen(this.musicSettings.x, this.musicSettings.y, width, height, sw, sh);
-        this.musicSettings.x = clamped.x;
-        this.musicSettings.y = clamped.y;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-
-        drawRoundedRectangleWithBorder({
-            x: clamped.x,
-            y: clamped.y,
-            width,
-            height,
-            radius: CORNER_RADIUS * 0.6 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const imgX = clamped.x + width - imageSize - padding;
-        const imgY = clamped.y + padding;
-        drawRoundedRectangleWithBorder({
-            x: imgX,
-            y: imgY,
-            width: imageSize,
-            height: imageSize,
-            radius: CORNER_RADIUS * 0.5 * s,
-            color: THEME.BG_INSET,
-            borderWidth: 0,
-            borderColor: 0,
-        });
-
-        const qWidth = getTextWidth('...', titleFontSize);
-        drawText('...', imgX + imageSize / 2 - qWidth / 2, imgY + imageSize / 2 - titleFontSize / 2.5, titleFontSize, THEME.TEXT_MUTED, 16);
-        drawText(songName, clamped.x + padding, clamped.y + padding + titleFontSize, titleFontSize, THEME.TEXT_MUTED, 16);
-
-        const curTimeWidth = getTextWidth(timeCur, timerFontSize);
-        const maxTimeWidth = getTextWidth(timeMax, timerFontSize);
-        const textToBarGap = 4 * s;
-        const barStartX = clamped.x + padding + curTimeWidth + textToBarGap;
-        const barEndX = clamped.x + width - padding - maxTimeWidth - textToBarGap;
-        const barWidth = barEndX - barStartX;
-        const barY = clamped.y + height - padding - barHeight * 0.8;
-        const timerY = barY + barHeight / 2 - timerFontSize / 2.5;
-
-        drawText(timeCur, clamped.x + padding, timerY + timerFontSize / 2.5, timerFontSize, THEME.TEXT_MUTED, 16);
-        drawText(timeMax, clamped.x + width - padding - maxTimeWidth, timerY + timerFontSize / 2.5, timerFontSize, THEME.TEXT_MUTED, 16);
-
-        drawRoundedRectangleWithBorder({
-            x: barStartX,
-            y: barY,
-            width: barWidth,
-            height: barHeight,
-            radius: barHeight / 2,
-            color: THEME.BG_INSET,
-            borderWidth: 0,
-            borderColor: 0,
-        });
-
-        return { x: clamped.x, y: clamped.y, width, height };
+        const overlay = { ...this.musicSettings, ...getMusicOverlayBounds(this.musicSettings.scale || 1, songName) };
+        Object.assign(this.musicSettings, this.clampToScreen(overlay.x, overlay.y, overlay.width, overlay.height, sw, sh));
+        Object.assign(overlay, this.musicSettings);
+        drawMusicOverlay({ overlay, songName, currentTime: '--:--', totalTime: '--:--' });
+        return overlay;
     }
 
     getHudStatsLines() {
-        const fps = Client.getFPS();
-        const ping = ServerInfo.getPing();
-        const tps = ServerInfo.getTPS();
-        return [
-            { label: 'FPS', value: String(fps), color: THEME.TEXT },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
-        ];
+        return getStatsHudLines();
     }
 
     openPositionsGUI() {

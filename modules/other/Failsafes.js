@@ -3,8 +3,8 @@ import { getSetting } from '../../gui/GuiSave';
 import { File, globalAssetsDir } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundDisconnectPacket, ClientboundLoginDisconnectPacket } from '../../utils/Packets';
-import { MacroState } from '../../utils/MacroState';
-import { TimeUtils } from '../../utils/TimeUtils';
+import { getLastActiveMacros, getLastDisableMeta, getStartTime, isMacroRunning } from '../../utils/MacroState';
+import { formatUptime } from '../../utils/TimeUtils';
 const JURL = Java.type('java.net.URL');
 const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
 
@@ -155,16 +155,16 @@ class Failsafes extends ModuleBase {
                 conn.setRequestProperty('Authorization', `Bearer ${jwt}`);
                 conn.setRequestProperty('Content-Type', 'application/json; charset=UTF-8');
 
-                const lastMacros = MacroState.getLastActiveMacros();
-                const lastMacroMeta = MacroState.getLastDisableMeta(lastMacros[0]);
+                const lastMacros = getLastActiveMacros();
+                const lastMacroMeta = getLastDisableMeta(lastMacros[0]);
                 const lastDisableTimestamp = lastMacroMeta?.timestamp;
                 const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
 
                 const body = JSON.stringify({
                     reason,
                     lastMacro: lastMacros.join(', ') || 'None',
-                    currentlyMacroing: MacroState.isMacroRunning() || within5Minutes,
-                    macroRuntime: MacroState.isMacroRunning() ? TimeUtils.formatUptime(MacroState.getStartTime()) : null,
+                    currentlyMacroing: isMacroRunning() || within5Minutes,
+                    macroRuntime: isMacroRunning() ? formatUptime(getStartTime()) : null,
                     ingame_username: Player?.getName?.() || 'unknown',
                     config_contents: this.getConfigFileContents(),
                     installed_mods: new File('./mods').listFiles().join('\n'),
@@ -216,4 +216,4 @@ class Failsafes extends ModuleBase {
     }
 }
 
-export default new Failsafes();
+new Failsafes();

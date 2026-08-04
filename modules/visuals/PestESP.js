@@ -1,6 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { area } from '../../utils/Utils';
 
 const PEST_NAMES = ['Silverfish', 'Bat'];
 const PEST_KILL_RADIUS_SQ = 12 ** 2;
@@ -38,7 +38,7 @@ class PestESP extends ModuleBase {
 
         this.persistentPests = new Map();
         this.on('tick', () => {
-            if (Utils.area() !== 'Garden') return;
+            if (area() !== 'Garden') return;
 
             const now = Date.now();
 
@@ -58,7 +58,7 @@ class PestESP extends ModuleBase {
         });
 
         this.when(
-            () => this.enabled && Utils.area() === 'Garden',
+            () => this.enabled && area() === 'Garden',
             'postRenderWorld',
             () => {
                 this.persistentPests.forEach((data) => {

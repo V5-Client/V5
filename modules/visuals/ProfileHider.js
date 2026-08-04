@@ -1,6 +1,6 @@
-import { Mixin } from '../../utils/MixinManager';
+import { setMixinMethod } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
+import { getConfigFile } from '../../utils/Utils';
 
 class ProfileHider extends ModuleBase {
     constructor() {
@@ -17,7 +17,7 @@ class ProfileHider extends ModuleBase {
         this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);
         this.addTextInput('Username', ' ', (v) => (this.USERNAME = v), 'The username you want to use');
 
-        Mixin.setMethod('nameProcessor', (text) => this.getModifiedText(text));
+        setMixinMethod('nameProcessor', (text) => this.getModifiedText(text));
     }
 
     getModifiedText(originalTextComponent) {
@@ -38,7 +38,7 @@ class ProfileHider extends ModuleBase {
 
                     return Text.literal(nameText).styled((s) => s.withColor(colorInt));
                 } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
+                    console.error(e);
                     return Text.literal(rawCustomInput);
                 }
             }
@@ -87,10 +87,10 @@ class ProfileHider extends ModuleBase {
 
     getUsername() {
         try {
-            const saved = Utils.getConfigFile('AuthCache/do_not_share_this_file')?.username;
+            const saved = getConfigFile('AuthCache/do_not_share_this_file')?.username;
             if (saved) return saved;
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             console.error('Failed to load saved username');
         }
         return null;

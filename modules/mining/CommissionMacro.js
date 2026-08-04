@@ -1,18 +1,17 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { notificationManager } from '../../gui/NotificationManager';
 import { CommissionClaimer } from '../../utils/CommissionUtils';
-import { MathUtils } from '../../utils/Math';
-import { MacroState } from '../../utils/MacroState';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { fastDistance, finiteNumber } from '../../utils/Math';
+import { getModuleElapsedMs } from '../../utils/MacroState';
+import { getDrills, getMiningSpeed, readCommissionsFromGui, refuel } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { finiteNumber } from '../../utils/NumberUtils';
 import { EtherwarpPathfinder } from '../../utils/pathfinder/EtherwarpPathfinder';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Guis } from '../../utils/player/Inventory';
-import { manager } from '../../utils/SkyblockEvents';
-import { TabListUtils } from '../../utils/TabListUtils';
-import { Mouse } from '../../utils/Ungrab';
-import { Utils } from '../../utils/Utils';
+import { clickSlot, closeInventory, getGuiName, setItemSlot } from '../../utils/player/Inventory';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { readCommissions } from '../../utils/TabListUtils';
+import { regrab, ungrab } from '../../utils/Ungrab';
+import { area } from '../../utils/Utils';
 import { CombatBot } from '../combat/CombatBot';
 import { COMMISSION_DATA, EMISSARY_LOCATIONS, MOB_CONFIGS, TRASH_ITEMS } from './CommissionData';
 import { MiningBot } from './MiningBot';
@@ -78,7 +77,7 @@ class CommissionMacro extends ModuleBase {
             delay: (ticks) => this.delay(ticks),
             onClaimsExhausted: (container) => {
                 this.updateCommissionsFromGui(container);
-                Guis.closeInv();
+                closeInventory();
                 this.setState(STATES.WAITING_GUI_CLOSE);
             },
             onPathStart: () => {
@@ -129,31 +128,31 @@ class CommissionMacro extends ModuleBase {
         );
 
         this.on('step', () => {
-            const newCommissions = TabListUtils.readCommissions();
+            const newCommissions = readCommissions();
             this.updateCommissionsIfChanged(newCommissions);
         }).setDelay(1);
 
         this.on('tick', () => this.runLogic());
 
-        manager.subscribe('commissioncomplete', () => {
+        registerSkyblockEvent('commissioncomplete', () => {
             if (!this.enabled) return;
             OverlayManager.incrementTrackedValue(this.oid, 'commissionsCompleted');
             this.onCommissionComplete();
         });
 
-        manager.subscribe('fullinventory', () => {
+        registerSkyblockEvent('fullinventory', () => {
             if (this.enabled && this.currentState === STATES.MINING) this.onInventoryFull();
         });
 
-        manager.subscribe('emptydrill', () => {
+        registerSkyblockEvent('emptydrill', () => {
             if (this.enabled && (this.currentState === STATES.MINING || this.currentState === STATES.CLAIMING)) this.onDrillEmpty();
         });
 
-        manager.subscribe('death', () => {
+        registerSkyblockEvent('death', () => {
             if (this.enabled) this.delayedReset(10);
         });
 
-        manager.subscribe('serverchange', () => {
+        registerSkyblockEvent('serverchange', () => {
             if (this.enabled) this.delayedReset(67);
         });
 
@@ -200,7 +199,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     getCommissionsPerHourDisplay() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         if (elapsedMs <= 0) return '0.00';
         const hours = elapsedMs / 3600000;
         const rate = this.getCompletedCommissions() / hours;
@@ -254,7 +253,7 @@ class CommissionMacro extends ModuleBase {
         this.message('&aEnabled');
         this.emissariesUnlocked = true;
 
-        const drills = MiningUtils.getDrills();
+        const drills = getDrills();
         this.drill = drills.drill;
         this.pickaxe = this.drill;
 
@@ -272,14 +271,14 @@ class CommissionMacro extends ModuleBase {
             notificationManager.add(`No weapon found in slot ${this.goblinWeaponSlot}`, 'Goblin commissions will be skipped.', 'ERROR', '5000');
         }
 
-        this.miningSpeed = MiningUtils.getMiningSpeed('Dwarven Mines');
+        this.miningSpeed = getMiningSpeed('Dwarven Mines');
         if (!this.miningSpeed) {
             notificationManager.add('No mining speed saved!', "Run '/v5 mining stats' first.", 'ERROR', '5000');
             this.toggle(false);
             return;
         }
 
-        Mouse.ungrab();
+        ungrab();
         this.resetState();
     }
 
@@ -287,7 +286,7 @@ class CommissionMacro extends ModuleBase {
         this.message('&cDisabled');
         this.resetState();
 
-        Mouse.regrab();
+        regrab();
     }
 
     resetState() {
@@ -368,9 +367,9 @@ class CommissionMacro extends ModuleBase {
     }
 
     handleChoosing() {
-        const area = Utils.area();
+        const areaName = area();
         const now = Date.now();
-        if (area !== 'Dwarven Mines') {
+        if (areaName !== 'Dwarven Mines') {
             if (!this.areaCheckTime) {
                 this.message('&eNot in Dwarven Mines, warping...');
                 ChatLib.command('warpforge');
@@ -385,7 +384,7 @@ class CommissionMacro extends ModuleBase {
         }
         this.areaCheckTime = null;
 
-        const newCommissions = TabListUtils.readCommissions();
+        const newCommissions = readCommissions();
         this.updateCommissionsIfChanged(newCommissions);
 
         if (this.shouldWaitForLastCompleted()) return;
@@ -585,7 +584,7 @@ class CommissionMacro extends ModuleBase {
 
     handleSelling() {
         // COMPLETELY UNTESTED :)
-        if (Guis.guiName() !== 'Trades') {
+        if (getGuiName() !== 'Trades') {
             ChatLib.command('trades');
             this.delay(10);
             return;
@@ -595,7 +594,7 @@ class CommissionMacro extends ModuleBase {
         if (soldItem) return;
 
         // No more items to sell
-        Guis.closeInv();
+        closeInventory();
         this.restoreStateAfterSelling();
     }
 
@@ -615,7 +614,7 @@ class CommissionMacro extends ModuleBase {
             const isNotEquipment = !name.includes('Drill') && !name.includes('Pickaxe') && !name.includes('Minecart') && !name.includes('Tasty');
 
             if (isTrash && isNotEquipment) {
-                Guis.clickSlot(i, false);
+                clickSlot(i, false);
                 return true;
             }
         }
@@ -638,7 +637,7 @@ class CommissionMacro extends ModuleBase {
 
     ensureDrillEquippedForEmissaryClaim() {
         if (!this.drill) {
-            const drills = MiningUtils.getDrills();
+            const drills = getDrills();
             this.drill = drills.drill;
             this.pickaxe = this.drill;
         }
@@ -646,7 +645,7 @@ class CommissionMacro extends ModuleBase {
         if (!this.drill) return true;
 
         if (Player.getHeldItemIndex() !== this.drill.slot) {
-            Guis.setItemSlot(this.drill.slot);
+            setItemSlot(this.drill.slot);
             this.delay(3);
             return false;
         }
@@ -668,7 +667,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     updateCommissionsFromGui(container) {
-        const newCommissions = MiningUtils.readCommissionsFromGui(container, (name) => COMMISSION_DATA.some((d) => d.names.includes(name)));
+        const newCommissions = readCommissionsFromGui(container, (name) => COMMISSION_DATA.some((d) => d.names.includes(name)));
 
         if (newCommissions.length > 0) {
             this.commissions = newCommissions;
@@ -694,14 +693,14 @@ class CommissionMacro extends ModuleBase {
     }
 
     refreshDrillReference() {
-        const drills = MiningUtils.getDrills();
+        const drills = getDrills();
         this.drill = drills.drill;
         this.pickaxe = this.drill;
 
         if (this.drill) {
             const itemName = ChatLib.removeFormatting(this.drill.item.getName());
             this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
-            Guis.setItemSlot(this.drill.slot);
+            setItemSlot(this.drill.slot);
         }
     }
 
@@ -765,7 +764,7 @@ class CommissionMacro extends ModuleBase {
     }
 
     getDistance(x1, y1, z1, x2, y2, z2) {
-        return MathUtils.fastDistance(x1, y1, z1, x2, y2, z2);
+        return fastDistance(x1, y1, z1, x2, y2, z2);
     }
 
     updateCurrentPathWaypointFromResult() {
@@ -843,7 +842,7 @@ class CommissionMacro extends ModuleBase {
             return;
         }
 
-        const drills = MiningUtils.getDrills();
+        const drills = getDrills();
         this.drill = drills.drill;
 
         if (!this.drill) {
@@ -855,7 +854,7 @@ class CommissionMacro extends ModuleBase {
         const itemName = ChatLib.removeFormatting(this.drill.item.getName());
         this.isActualDrill = itemName.includes('Drill') || itemName.includes('Gauntlet');
 
-        Guis.setItemSlot(this.drill.slot);
+        setItemSlot(this.drill.slot);
 
         const isTitaniumCommission = this.currentCommission.name.includes('Titanium');
         MiningBot.setPrioritizeTitanium(isTitaniumCommission);
@@ -870,10 +869,10 @@ class CommissionMacro extends ModuleBase {
 
         if (name === 'Goblin Slayer') {
             mobType = 'goblin';
-            Guis.setItemSlot(this.weapon.slot);
+            setItemSlot(this.weapon.slot);
         } else if (name === 'Glacite Walker Slayer' || name === 'Mines Slayer' || name === 'Treasure Hoarder Puncher') {
             mobType = name === 'Glacite Walker Slayer' || name === 'Mines Slayer' ? 'icewalker' : 'treasure';
-            Guis.setItemSlot(this.pickaxe.slot);
+            setItemSlot(this.pickaxe.slot);
         } else {
             this.toggle(false);
             return;
@@ -929,7 +928,7 @@ class CommissionMacro extends ModuleBase {
         MiningBot.toggle(false, true);
         this.setState(STATES.REFUELING);
 
-        MiningUtils.doRefueling(true, (success) => {
+        refuel(true, (success) => {
             if (!success) {
                 this.message('&cRefueling failed!');
                 this.toggle(false);
@@ -937,7 +936,7 @@ class CommissionMacro extends ModuleBase {
             }
 
             this.message('&aRefueling successful!');
-            const drills = MiningUtils.getDrills();
+            const drills = getDrills();
             this.drill = drills.drill;
 
             if (this.drill) {

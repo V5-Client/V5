@@ -1,10 +1,10 @@
 import { ModuleBase } from '../ModuleBase';
-import { RotationGCD } from './RotationGCD';
-import { Utils } from '../Utils';
+import { aimModulo360, angleDifference, applyToPlayer, calculateGCD, clampPitch, getCurrentRotation, syncFromPlayer } from './RotationGCD';
+import { convertToVector } from '../Utils';
 import { v5Command } from '../V5Commands';
 import { Rotations as PathRotations } from '../pathfinder/PathWalker/PathRotations';
 import { PathFlyer } from '../pathfinder/PathFlyer';
-import { EtherwarpPathState } from '../Etherwarp';
+import { getEtherwarpPathHandler } from '../Etherwarp';
 
 class RotationConfig extends ModuleBase {
     constructor() {
@@ -47,7 +47,6 @@ class RotationConfig extends ModuleBase {
 }
 
 const RotationModule = new RotationConfig();
-export default RotationModule;
 
 const DEFAULT_PRECISION = 0.1;
 const ENTITY_PRECISION = 0.5;
@@ -82,11 +81,11 @@ class RotationController {
 
     lookAtAngles(yaw, pitch, options = {}) {
         if (!Number.isFinite(yaw) || !Number.isFinite(pitch)) return false;
-        return this.start({ type: 'angles', value: { yaw, pitch: RotationGCD.clampPitch(pitch) } }, options);
+        return this.start({ type: 'angles', value: { yaw, pitch: clampPitch(pitch) } }, options);
     }
 
     lookAtVector(vector, options = {}) {
-        const vec = Utils.convertToVector(vector);
+        const vec = convertToVector(vector);
         if (!vec) return false;
         return this.start({ type: 'vector', value: vec }, options);
     }
@@ -106,7 +105,7 @@ class RotationController {
     stop() {
         this.clearRequest();
         this.callbacks = [];
-        RotationGCD.syncFromPlayer();
+        syncFromPlayer();
     }
 
     getAimPoint(entity) {
@@ -134,7 +133,7 @@ class RotationController {
                 };
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
 
         return null;
@@ -144,7 +143,7 @@ class RotationController {
         if (!this.request) return;
         if (!this.refreshTarget()) return;
 
-        if (PathRotations.rotationActive || PathFlyer.rotationActive || EtherwarpPathState.handler?.isPathing?.()) return;
+        if (PathRotations.rotationActive || PathFlyer.rotationActive || getEtherwarpPathHandler()?.isPathing?.()) return;
 
         const player = Player.getPlayer();
         if (!player || !this.targetAngles) {
@@ -152,14 +151,14 @@ class RotationController {
             return;
         }
 
-        const current = RotationGCD.getCurrentRotation(player);
+        const current = getCurrentRotation(player);
         if (!current) {
             this.stop();
             return;
         }
 
-        const targetYaw = RotationGCD.aimModulo360(current.yaw, this.targetAngles.yaw);
-        const targetPitch = RotationGCD.clampPitch(this.targetAngles.pitch);
+        const targetYaw = aimModulo360(current.yaw, this.targetAngles.yaw);
+        const targetPitch = clampPitch(this.targetAngles.pitch);
         const deltaYaw = targetYaw - current.yaw;
         const deltaPitch = targetPitch - current.pitch;
         const distance = Math.hypot(deltaYaw, deltaPitch);
@@ -170,7 +169,7 @@ class RotationController {
         }
 
         if (RotationModule.rotationMode === 'Instant') {
-            RotationGCD.applyToPlayer(targetYaw, targetPitch);
+            applyToPlayer(targetYaw, targetPitch);
             this.onReachedTarget();
             return;
         }
@@ -191,10 +190,10 @@ class RotationController {
         const ratio = this.getStepRatio(distance, deltaTime);
         const curve = this.getCurveOffset(this.getProgress(distance));
         const nextYaw = current.yaw + deltaYaw * ratio + curve.x * ratio;
-        const nextPitch = RotationGCD.clampPitch(current.pitch + deltaPitch * ratio + curve.y * ratio);
+        const nextPitch = clampPitch(current.pitch + deltaPitch * ratio + curve.y * ratio);
 
         if (Number.isFinite(nextYaw) && Number.isFinite(nextPitch)) {
-            RotationGCD.applyToPlayer(nextYaw, nextPitch);
+            applyToPlayer(nextYaw, nextPitch);
         }
     }
 
@@ -209,7 +208,7 @@ class RotationController {
             !sameSource || !this.targetAngles || (nextRequest.type !== 'entity' && this.getTargetShift(nextTarget) > TARGET_SHIFT_RESET_DEGREES);
 
         if (!this.request || !sameSource) {
-            RotationGCD.syncFromPlayer();
+            syncFromPlayer();
         }
 
         this.request = nextRequest;
@@ -266,13 +265,13 @@ class RotationController {
             const mcEntity = entity.toMC ? entity.toMC() : entity;
             return !!mcEntity && !mcEntity.isDeadOrDying?.() && !mcEntity.isRemoved?.();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return false;
         }
     }
 
     getTargetShift(nextTarget) {
-        const dYaw = Math.abs(RotationGCD.angleDifference(nextTarget.yaw, this.targetAngles.yaw));
+        const dYaw = Math.abs(angleDifference(nextTarget.yaw, this.targetAngles.yaw));
         const dPitch = Math.abs(nextTarget.pitch - this.targetAngles.pitch);
         return Math.hypot(dYaw, dPitch);
     }
@@ -281,7 +280,7 @@ class RotationController {
         let precision = DEFAULT_PRECISION;
         if (Number.isFinite(this.request?.precision)) precision = this.request.precision;
         else if (this.request?.type === 'entity') precision = ENTITY_PRECISION;
-        return Math.max(precision, RotationGCD.calculateGCD() / Math.SQRT2);
+        return Math.max(precision, calculateGCD() / Math.SQRT2);
     }
 
     getStepRatio(distance, deltaTime) {
@@ -326,14 +325,14 @@ class RotationController {
     complete() {
         const callbacks = this.callbacks.splice(0);
         this.clearRequest();
-        RotationGCD.syncFromPlayer();
+        syncFromPlayer();
 
         for (const action of callbacks) {
             try {
                 action.callback();
             } catch (e) {
                 console.error(`Rotation ${action.name || 'callback'} error:`);
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         }
     }
@@ -354,7 +353,7 @@ class RotationController {
     }
 
     getAnglesFromVector(vector) {
-        const vec = Utils.convertToVector(vector);
+        const vec = convertToVector(vector);
         const player = Player.getPlayer();
         if (!vec || !player) return null;
 
@@ -364,7 +363,7 @@ class RotationController {
 
         return {
             yaw: Math.atan2(-dx, dz) * (180 / Math.PI),
-            pitch: RotationGCD.clampPitch(Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI)),
+            pitch: clampPitch(Math.atan2(-dy, Math.hypot(dx, dz)) * (180 / Math.PI)),
         };
     }
 }

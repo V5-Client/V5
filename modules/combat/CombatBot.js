@@ -1,10 +1,10 @@
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { angleToPlayer, getDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
-import { Movement } from '../../utils/player/Movement';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { Rotations } from '../../utils/player/Rotations';
-import { Raytrace } from '../../utils/Raytrace';
+import { isLookingAtEntity } from '../../utils/Raytrace';
 
 const BLACKHOLE_TEXTURES = new Set([
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjE4NDg2Nzc3MywKICAicHJvZmlsZUlkIiA6ICJjNmViMzdjNmE4YjM0MDI3OGJjN2FmZGE3ZjMxOWJmMyIsCiAgInByb2ZpbGVOYW1lIiA6ICJFbFJleUNhbGFiYXphbCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS81NWI3MGYwOTRlMDE2Nzk1MDhkZDViY2EzOTY0MGVkOWVjNWM2YzY3OTJmYmQ4ZjU3YzAzYjNhMTJmOWMwYTkyIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=',
@@ -154,7 +154,7 @@ class Combat extends ModuleBase {
         try {
             this.scanBlackholes();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
 
         const now = Date.now();
@@ -227,7 +227,7 @@ class Combat extends ModuleBase {
                     visibleBlackholes.push({ x: stand.getX(), y: stand.getY(), z: stand.getZ() });
                 }
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         }
 
@@ -268,7 +268,7 @@ class Combat extends ModuleBase {
                 if (profileString.includes(base64)) return true;
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
         return false;
     }
@@ -306,7 +306,7 @@ class Combat extends ModuleBase {
         try {
             visible = playerMP.canSeeEntity(entity);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return true;
         }
 
@@ -350,7 +350,7 @@ class Combat extends ModuleBase {
             const rad = (yaw * Math.PI) / 180;
             return { x: -Math.sin(rad), z: Math.cos(rad) };
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return { x: 0, z: 1 };
         }
     }
@@ -458,9 +458,9 @@ class Combat extends ModuleBase {
     isAimingAtTarget() {
         if (!this.target) return false;
         try {
-            return Raytrace.isLookingAtEntity(this.target, this.attackRange + 0.5);
+            return isLookingAtEntity(this.target, this.attackRange + 0.5);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return false;
         }
     }
@@ -553,7 +553,7 @@ class Combat extends ModuleBase {
             return;
         }
 
-        Movement.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
+        setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
         Client.setKey('sprint', true);
         this.startRotationToTarget();
     }
@@ -572,7 +572,7 @@ class Combat extends ModuleBase {
         if (distanceData) this.tryAttack();
         this.startRotationToTarget();
 
-        Movement.setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
+        setKeysForStraightLineCoords(pos.x, pos.y, pos.z, true, true);
         if (distanceData.distanceFlat <= 2) Client.stopMovement();
         if (distanceData.distanceY < -3) {
             Client.setKey('space', true);
@@ -645,7 +645,7 @@ class Combat extends ModuleBase {
             if (mcTarget?.getUUID) return mcTarget.getUUID().toString();
             return null;
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return null;
         }
     }
@@ -703,17 +703,17 @@ class Combat extends ModuleBase {
 
             return !this.targets.some((t) => this.getTargetUuid(t) === targetUUID);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return true;
         }
     }
 
     getDistanceToPlayer(pos) {
-        return MathUtils.getDistanceToPlayer(pos.x, pos.y, pos.z);
+        return getDistanceToPlayer(pos.x, pos.y, pos.z);
     }
 
     getDistanceBetween(pos1, pos2) {
-        return MathUtils.getDistance(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
+        return getDistance(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 
     getTargets() {
@@ -739,7 +739,7 @@ class Combat extends ModuleBase {
             const entity = target.toMC ? target.toMC() : target;
             if (entity && typeof entity.getX === 'function') return { x: entity.getX(), y: entity.getY(), z: entity.getZ() };
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
 
         return null;
@@ -763,7 +763,7 @@ class Combat extends ModuleBase {
             if (!this.isPositionSafe(pos.x, pos.y, pos.z)) return;
 
             const distanceData = this.getDistanceToPlayer(pos);
-            const angles = MathUtils.angleToPlayer([pos.x, pos.y, pos.z]);
+            const angles = angleToPlayer([pos.x, pos.y, pos.z]);
             const cost = distanceData.distance * 10 + angles.distance * 0.5;
 
             if (cost < lowestCost) {
@@ -806,7 +806,7 @@ class Combat extends ModuleBase {
 
                 mobs.push(entity);
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         });
 

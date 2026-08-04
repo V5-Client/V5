@@ -1,196 +1,124 @@
-import { Chat } from './Chat';
-import { TimeUtils } from './TimeUtils';
-import { Utils } from './Utils';
+import { chat } from './Chat';
+import { formatDurationMs, formatUptime } from './TimeUtils';
+import { getConfigFile, writeConfigFile } from './Utils';
 
-class MacroStateClass {
-    constructor() {
-        this.running = false;
-        this.activeMacro = null;
-        this.startTime = 0;
-        this.enabledMacros = new Set();
-        this.macroStartTimes = new Map();
-        this.sessionResumeWindowMs = 5 * 60 * 1000;
+const SESSION_RESUME_WINDOW_MS = 5 * 60 * 1000;
+const LAST_MACRO_TOGGLE_TITLE = 'Global Toggle Last Used Macro';
 
-        this.modules = new Map();
-        this.lastDisableMeta = new Map();
-        this.lastActiveMacros = [];
+export const modules = new Map();
+const enabledMacros = new Set();
+const macroStartTimes = new Map();
+const lastDisableMeta = new Map();
+let lastActiveMacros = [];
+let running = false;
+let activeMacro = null;
+let startTime = 0;
+let lastMacroToggleKey = null;
+let hasBoundLastMacroToggleKey = false;
 
-        this.lastMacroToggleKey = null;
-        this.hasBoundLastMacroToggleKey = false;
-        this.lastMacroToggleTitle = 'Global Toggle Last Used Macro';
+const getLastActiveMacro = () => lastActiveMacros[0] || null;
+export const getLastActiveMacros = () => lastActiveMacros;
+export const getModule = (name) => modules.get(name);
+export const isMacroRunning = () => running;
+export const getActiveMacro = () => activeMacro;
+export const getStartTime = () => startTime;
+export const getEnabledMacros = () => Array.from(enabledMacros);
+export const getLastDisableMeta = (name) => (name ? lastDisableMeta.get(name) || null : null);
+export const getModuleStartTime = (name) => (name ? macroStartTimes.get(name) || 0 : 0);
+
+export function registerModule(module) {
+    if (module.name) modules.set(module.name, module);
+}
+
+export function isFailsafeMacroRunning() {
+    for (const name of enabledMacros) {
+        const module = getModule(name);
+        if (module?.isMacro && module.ignoreFailsafes !== true) return true;
+    }
+    return false;
+}
+
+export function onModuleEnabled(moduleName) {
+    const module = getModule(moduleName);
+    if (!moduleName || !module?.isMacro) return;
+
+    const wasEmpty = enabledMacros.size === 0;
+    const now = Date.now();
+    enabledMacros.add(moduleName);
+    if (!macroStartTimes.has(moduleName)) {
+        const last = getLastDisableMeta(moduleName);
+        const canResume = last && typeof last.timestamp === 'number' && typeof last.durationMs === 'number' && now - last.timestamp <= SESSION_RESUME_WINDOW_MS;
+        macroStartTimes.set(moduleName, canResume ? now - last.durationMs : now);
     }
 
-    getLastActiveMacro() {
-        return this.lastActiveMacros[0] || null;
-    }
+    if (wasEmpty) startTime = getModuleStartTime(moduleName);
+    running = true;
+    activeMacro = moduleName;
+    lastActiveMacros = lastActiveMacros.filter((name) => name !== moduleName);
+    lastActiveMacros.unshift(moduleName);
+}
 
-    getLastActiveMacros() {
-        return this.lastActiveMacros;
-    }
+export function onModuleDisabled(moduleName, context = 'user') {
+    if (!moduleName || !enabledMacros.has(moduleName)) return;
 
-    registerModule(module) {
-        if (module.name) {
-            this.modules.set(module.name, module);
-        }
-    }
+    const now = Date.now();
+    const moduleStart = getModuleStartTime(moduleName);
+    lastDisableMeta.set(moduleName, { context: context || 'user', timestamp: now, durationMs: moduleStart ? now - moduleStart : 0 });
+    enabledMacros.delete(moduleName);
+    macroStartTimes.delete(moduleName);
 
-    getModule(name) {
-        return this.modules.get(name);
-    }
-
-    getMacroNames() {
-        const names = [];
-        this.modules.forEach((module, name) => {
-            if (module.isMacro) names.push(name);
-        });
-        return names;
-    }
-
-    isMacroRunning() {
-        return this.running;
-    }
-
-    getActiveMacro() {
-        return this.activeMacro;
-    }
-
-    getStartTime() {
-        return this.startTime;
-    }
-
-    getEnabledMacros() {
-        return Array.from(this.enabledMacros);
-    }
-
-    isFailsafeMacroRunning() {
-        for (const macroName of this.enabledMacros) {
-            const module = this.getModule(macroName);
-            if (!module?.isMacro) continue;
-            if (module.ignoreFailsafes === true) continue;
-            return true;
-        }
-        return false;
-    }
-
-    onModuleEnabled(moduleName) {
-        if (!moduleName) return;
-        const module = this.getModule(moduleName);
-        if (!module || !module.isMacro) return;
-
-        const wasEmpty = this.enabledMacros.size === 0;
-        const now = Date.now();
-        this.enabledMacros.add(moduleName);
-        if (!this.macroStartTimes.has(moduleName)) {
-            const lastMeta = this.getLastDisableMeta(moduleName);
-            const canResume =
-                lastMeta &&
-                typeof lastMeta.timestamp === 'number' &&
-                typeof lastMeta.durationMs === 'number' &&
-                now - lastMeta.timestamp <= this.sessionResumeWindowMs;
-            this.macroStartTimes.set(moduleName, canResume ? now - lastMeta.durationMs : now);
-        }
-
-        if (wasEmpty) {
-            this.startTime = this.getModuleStartTime(moduleName);
-        }
-
-        this.running = true;
-        this.activeMacro = moduleName;
-        this.trackLastActiveMacro(moduleName);
-    }
-
-    onModuleDisabled(moduleName, context = 'user') {
-        if (!moduleName) return;
-        if (!this.enabledMacros.has(moduleName)) return;
-
-        this.lastDisableMeta.set(moduleName, this.captureDisableMeta(moduleName, context));
-        this.enabledMacros.delete(moduleName);
-        this.macroStartTimes.delete(moduleName);
-
-        if (this.enabledMacros.size === 0) {
-            this.running = false;
-            this.activeMacro = null;
-            this.startTime = 0;
-        } else {
-            const remaining = Array.from(this.enabledMacros);
-            this.activeMacro = remaining[remaining.length - 1];
-        }
-    }
-
-    getLastDisableMeta(moduleName) {
-        return moduleName ? this.lastDisableMeta.get(moduleName) || null : null;
-    }
-
-    getModuleStartTime(moduleName) {
-        return moduleName ? this.macroStartTimes.get(moduleName) || 0 : 0;
-    }
-
-    getModuleDuration(moduleName) {
-        const startTime = this.getModuleStartTime(moduleName);
-        if (startTime) return TimeUtils.formatUptime(startTime);
-        const durationMs = this.getLastDisableMeta(moduleName)?.durationMs || 0;
-        return durationMs > 0 ? TimeUtils.formatDurationMs(durationMs) : '';
-    }
-
-    getModuleElapsedMs(moduleName) {
-        const startTime = this.getModuleStartTime(moduleName);
-        if (startTime) return Date.now() - startTime;
-        return this.getLastDisableMeta(moduleName)?.durationMs || 0;
-    }
-
-    captureDisableMeta(moduleName, context = 'user') {
-        const startTime = this.getModuleStartTime(moduleName);
-        const now = Date.now();
-        return {
-            context: context || 'user',
-            timestamp: now,
-            durationMs: startTime ? now - startTime : 0,
-        };
-    }
-
-    trackLastActiveMacro(moduleName) {
-        this.lastActiveMacros = this.lastActiveMacros.filter((name) => name !== moduleName);
-        this.lastActiveMacros.unshift(moduleName);
-    }
-
-    setupLastMacroToggleKey() {
-        if (this.hasBoundLastMacroToggleKey) return;
-        this.hasBoundLastMacroToggleKey = true;
-
-        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
-        const savedKeycode = existingKeybinds[this.lastMacroToggleTitle] || Keyboard.KEY_NONE;
-        this.lastMacroToggleKey = new KeyBind(this.lastMacroToggleTitle, savedKeycode, 'v5_core');
-
-        this.lastMacroToggleKey.registerKeyPress(() => {
-            this.toggleLastUsedMacroFromUser();
-        });
-
-        register('gameUnload', () => {
-            const keycode = this.lastMacroToggleKey?.getKeyCode();
-            if (typeof keycode !== 'number') return;
-
-            const allKeybinds = Utils.getConfigFile('keybinds.json') || {};
-            allKeybinds[this.lastMacroToggleTitle] = keycode;
-            Utils.writeConfigFile('keybinds.json', allKeybinds);
-        });
-    }
-
-    toggleLastUsedMacroFromUser() {
-        const macroName = this.getLastActiveMacro();
-        if (!macroName) {
-            Chat.message('&eNo recently used macro to toggle.');
-            return false;
-        }
-
-        const macroModule = this.getModule(macroName);
-        if (!macroModule || !macroModule.isMacro || typeof macroModule.requestToggleFromUser !== 'function') {
-            Chat.message(`&cUnable to toggle last macro: ${macroName}.`);
-            return false;
-        }
-
-        macroModule.requestToggleFromUser();
-        return true;
+    if (!enabledMacros.size) {
+        running = false;
+        activeMacro = null;
+        startTime = 0;
+    } else {
+        activeMacro = Array.from(enabledMacros).pop();
     }
 }
 
-export const MacroState = new MacroStateClass();
+export function getModuleDuration(moduleName) {
+    const moduleStart = getModuleStartTime(moduleName);
+    if (moduleStart) return formatUptime(moduleStart);
+    const duration = getLastDisableMeta(moduleName)?.durationMs || 0;
+    return duration > 0 ? formatDurationMs(duration) : '';
+}
+
+export function getModuleElapsedMs(moduleName) {
+    const moduleStart = getModuleStartTime(moduleName);
+    return moduleStart ? Date.now() - moduleStart : getLastDisableMeta(moduleName)?.durationMs || 0;
+}
+
+export const getModuleActiveHours = (moduleName) => getModuleElapsedMs(moduleName) / 3600000;
+
+function toggleLastUsedMacroFromUser() {
+    const macroName = getLastActiveMacro();
+    if (!macroName) {
+        chat('&eNo recently used macro to toggle.');
+        return false;
+    }
+
+    const module = getModule(macroName);
+    if (!module?.isMacro || typeof module.requestToggleFromUser !== 'function') {
+        chat(`&cUnable to toggle last macro: ${macroName}.`);
+        return false;
+    }
+    module.requestToggleFromUser();
+    return true;
+}
+
+export function setupLastMacroToggleKey() {
+    if (hasBoundLastMacroToggleKey) return;
+    hasBoundLastMacroToggleKey = true;
+
+    const keybinds = getConfigFile('keybinds.json') || {};
+    lastMacroToggleKey = new KeyBind(LAST_MACRO_TOGGLE_TITLE, keybinds[LAST_MACRO_TOGGLE_TITLE] || Keyboard.KEY_NONE, 'v5_core');
+    lastMacroToggleKey.registerKeyPress(toggleLastUsedMacroFromUser);
+
+    register('gameUnload', () => {
+        const keycode = lastMacroToggleKey?.getKeyCode();
+        if (typeof keycode !== 'number') return;
+        const savedKeybinds = getConfigFile('keybinds.json') || {};
+        savedKeybinds[LAST_MACRO_TOGGLE_TITLE] = keycode;
+        writeConfigFile('keybinds.json', savedKeybinds);
+    });
+}

@@ -4,16 +4,16 @@ import { MultiToggle } from './Dropdown';
 import { Separator } from './Separator';
 import { PADDING } from '../Utils';
 
-export const SEPARATOR_HEIGHT = 16;
-export const COMPONENT_HEIGHT = 26;
-export const BUTTON_ONLY_HEIGHT = 24;
-export const DIRECT_SECTION_GAP = 8;
-export const DIRECT_SECTION_HEADER_HEIGHT = 26;
-export const DIRECT_SECTION_PADDING = 8;
+const SEPARATOR_HEIGHT = 16;
+const COMPONENT_HEIGHT = 26;
+const BUTTON_ONLY_HEIGHT = 24;
+const DIRECT_SECTION_GAP = 8;
+const DIRECT_SECTION_HEADER_HEIGHT = 26;
+const DIRECT_SECTION_PADDING = 8;
 
 export const isComponentVisible = (component) => component.visible !== false;
 
-export const getComponentExpansionHeight = (component, useExpandedHeightWhenStatic = false) => {
+const getComponentExpansionHeight = (component, useExpandedHeightWhenStatic = false) => {
     if (!(component instanceof MultiToggle || component instanceof ColorPicker) || typeof component.getExpandedHeight !== 'function') {
         return 0;
     }

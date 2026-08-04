@@ -1,5 +1,5 @@
 import { bazaarUtil } from '../../../utils/BazaarUtil';
-import { Chat } from '../../../utils/Chat';
+import { chat } from '../../../utils/Chat';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { Guis } from '../../../utils/player/Inventory';
 import { Rotations } from '../../../utils/player/Rotations';
@@ -44,12 +44,12 @@ class VisitorMacro {
         this.running = true;
         this.visitors = TabListUtils.readVisitors();
         if (!this.visitors.length) {
-            Chat.message('&eNo visitors found.');
+            chat('&eNo visitors found.');
             this.running = false;
             return false;
         }
 
-        Chat.message(`&aFound ${this.visitors.length} visitors.`);
+        chat(`&aFound ${this.visitors.length} visitors.`);
         this.visitorIndex = 0;
         this.firstSeek = true;
         this.declineCurrentVisitor = false;
@@ -97,7 +97,7 @@ class VisitorMacro {
         this.declineCurrentVisitor = false;
         this.visitorStartedAt = Date.now();
         if (this.visitorIndex >= this.visitors.length) {
-            Chat.message('&aAll stored visitors completed.');
+            chat('&aAll stored visitors completed.');
             return this.stop();
         }
         this.transition(STATES.SEEKING);
@@ -223,7 +223,7 @@ class VisitorMacro {
         Rotations.stop();
         Client.stopMovement();
         Guis.closeInv();
-        Chat.message('&eVisitor timed out, skipping.');
+        chat('&eVisitor timed out, skipping.');
         bazaarUtil.cancel();
         this.advanceVisitor();
     }

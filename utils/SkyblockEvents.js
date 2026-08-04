@@ -48,9 +48,7 @@ const getEventName = (event) => {
  * @param {string} name
  * @param {function} callback
  */
-export const registerEventSB = (name, callback) =>
+export const registerSkyblockEvent = (name, callback) =>
     register('chat', (event) => {
         if (getEventName(event) === name.toLowerCase()) callback(event);
     });
-
-export const manager = { subscribe: registerEventSB };

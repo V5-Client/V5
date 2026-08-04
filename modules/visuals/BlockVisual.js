@@ -1,6 +1,6 @@
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Raytrace } from '../../utils/Raytrace';
+import { getLookingAt } from '../../utils/Raytrace';
 
 class BlockVisual extends ModuleBase {
     constructor() {
@@ -50,7 +50,7 @@ class BlockVisual extends ModuleBase {
             if (lookingAt instanceof Entity) lookingAt = null;
 
             if (!lookingAt || lookingAt?.type?.id === 0) {
-                lookingAt = Raytrace.getLookingAt(this.getDistance());
+                lookingAt = getLookingAt(this.getDistance());
             }
 
             this.currentBlock = lookingAt;

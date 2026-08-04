@@ -1,7 +1,12 @@
-import { BORDER_WIDTH, CORNER_RADIUS, FontSizes, THEME, colorWithAlpha, drawRoundedRectangleWithBorder, drawText, getTextWidth } from '../../gui/Utils';
+import {
+    drawInventoryHudBackground as renderInventoryHudBackground,
+    drawStatsHud as renderStatsHud,
+    getInventoryHudBounds,
+    getStatsHudBounds,
+    getStatsHudLines,
+} from '../../gui/OverlayRenderers';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Utils } from '../../utils/Utils';
-import { ServerInfo } from '../../utils/player/ServerInfo';
+import { getConfigFile, writeConfigFile } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { GuiState } from '../../gui/core/GuiState';
 
@@ -22,7 +27,7 @@ class HUD extends ModuleBase {
         this.addToggle('Stats Hud', (v) => (this.STATS_HUD = !!v), 'Shows FPS, TPS, Ping etc.', true);
         this.addToggle('Inventory Hud', (v) => (this.INVENTORY_HUD = !!v), 'Turns on the inventory Hud', true);
 
-        this.positionConfig = Utils.getConfigFile('OverlayPositions/hud_positions.json') || {};
+        this.positionConfig = getConfigFile('OverlayPositions/hud_positions.json') || {};
         this.stats = this.loadOverlayState('stats', { x: 10, y: 10, scale: 1.0 });
         this.inventory = this.loadOverlayState('inventory', { x: 50, y: 100, scale: 1.0 });
 
@@ -75,7 +80,7 @@ class HUD extends ModuleBase {
     }
 
     syncFromOverlayEditor() {
-        const latest = Utils.getConfigFile('OverlayPositions/hud_positions.json');
+        const latest = getConfigFile('OverlayPositions/hud_positions.json');
         if (!latest || typeof latest !== 'object') return;
 
         if (latest.stats && typeof latest.stats === 'object') {
@@ -95,7 +100,7 @@ class HUD extends ModuleBase {
             stats: this.getSaveData(this.stats),
             inventory: this.getSaveData(this.inventory),
         };
-        Utils.writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
+        writeConfigFile('OverlayPositions/hud_positions.json', this.positionConfig);
     }
 
     clamp(v, min, max) {
@@ -109,55 +114,20 @@ class HUD extends ModuleBase {
 
         const maxX = Math.max(0, sw - overlay.width);
         const maxY = Math.max(0, sh - overlay.height);
-        overlay.x = this.clamp(overlay.x, 0, maxX);
-        overlay.y = this.clamp(overlay.y, 0, maxY);
-    }
-
-    getStatsLines() {
-        const fps = Client.getFPS();
-        const ping = ServerInfo.getPing();
-        const tps = ServerInfo.getTPS();
-
-        return [
-            { label: 'FPS', value: String(fps), color: THEME.TEXT },
-            { label: 'Ping', value: `${ping}ms`, color: (0xff000000 | ServerInfo.getPingColor(ping)) >>> 0 },
-            { label: 'TPS', value: tps.toFixed(2), color: (0xff000000 | ServerInfo.getTpsColor(tps)) >>> 0 },
-        ];
+        overlay.x = Math.max(0, Math.min(maxX, overlay.x));
+        overlay.y = Math.max(0, Math.min(maxY, overlay.y));
     }
 
     recalcStatsBounds() {
         const o = this.stats;
-        const s = o.scale;
-        const pad = 6 * s;
-        const fontSize = FontSizes.MEDIUM * 1.25 * s;
-
-        const lines = this.getStatsLines();
-        const separator = ' | ';
-        const separatorWidth = getTextWidth(separator, fontSize);
-        const gaps = [2 * s, s, 2 * s];
-        const valueSlots = ['999', '999ms', '20.00'];
-        const slotWidths = lines.map((l, index) => getTextWidth(`${l.label}:`, fontSize) + gaps[index] + getTextWidth(valueSlots[index], fontSize));
-        const totalWidth = slotWidths.reduce((total, width) => total + width, 0) + separatorWidth * (lines.length - 1);
-
-        o.width = pad * 2 + totalWidth;
-        o.height = pad * 2 + fontSize;
+        Object.assign(o, getStatsHudBounds(o.scale));
 
         this.clampOverlayToScreen(o);
     }
 
     recalcInventoryBounds() {
         const o = this.inventory;
-        const s = o.scale;
-
-        const cols = 9;
-        const mainRows = 3;
-
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-
-        o.width = pad * 2 + cols * slot;
-        o.height = pad * 2 + mainRows * slot + gap + slot;
+        Object.assign(o, getInventoryHudBounds(o.scale));
 
         this.clampOverlayToScreen(o);
     }
@@ -180,101 +150,22 @@ class HUD extends ModuleBase {
             NVG.beginFrame(sw, sh);
             draw.call(this);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         } finally {
             try {
                 NVG.endFrame();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
         }
     }
 
     drawStatsHud() {
-        const o = this.stats;
-        const s = o.scale;
-        const pad = 6 * s;
-        const fontSize = FontSizes.MEDIUM * 1.25 * s;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-
-        drawRoundedRectangleWithBorder({
-            x: o.x,
-            y: o.y,
-            width: o.width,
-            height: o.height,
-            radius: CORNER_RADIUS * 0.6 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const labelColor = THEME.TEXT_MUTED;
-        const separatorColor = colorWithAlpha(THEME.TEXT_MUTED, 0.6);
-        const lines = this.getStatsLines();
-
-        const centerY = o.y + o.height / 2;
-        let x = o.x + pad;
-
-        const separator = ' | ';
-        const separatorWidth = getTextWidth(separator, fontSize);
-        const gaps = [2 * s, s, 2 * s];
-        const valueSlots = ['999', '999ms', '20.00'];
-        const slotWidths = lines.map((l, index) => getTextWidth(`${l.label}:`, fontSize) + gaps[index] + getTextWidth(valueSlots[index], fontSize));
-
-        lines.forEach((l, index) => {
-            const label = `${l.label}:`;
-            const value = String(l.value);
-
-            drawText(label, x, centerY, fontSize, labelColor, 17);
-            drawText(value, x + getTextWidth(label, fontSize) + gaps[index], centerY, fontSize, l.color, 17);
-
-            x += slotWidths[index];
-
-            if (index < lines.length - 1) {
-                drawText(separator, x, centerY, fontSize, separatorColor, 17);
-                x += separatorWidth;
-            }
-        });
+        renderStatsHud(this.stats, getStatsHudLines());
     }
 
     drawInventoryHudBackground() {
-        const o = this.inventory;
-        const s = o.scale;
-
-        const bg = THEME.BG_COMPONENT;
-        const border = THEME.BORDER;
-
-        drawRoundedRectangleWithBorder({
-            x: o.x,
-            y: o.y,
-            width: o.width,
-            height: o.height,
-            radius: CORNER_RADIUS * 0.55 * s,
-            color: bg,
-            borderWidth: BORDER_WIDTH * s,
-            borderColor: border,
-        });
-
-        const cols = 9;
-        const mainRows = 3;
-        const pad = 6 * s;
-        const slot = 18 * s;
-        const gap = 4 * s;
-        const separatorThickness = Math.max(1, 1 * s);
-
-        const gridStartX = o.x + pad;
-        const mainStartY = o.y + pad;
-        const rowWidth = cols * slot;
-
-        const mainHotbarSeparatorY = mainStartY + mainRows * slot + gap / 2 - separatorThickness / 2;
-        const halfWidth = rowWidth / 2;
-        const centerColor = colorWithAlpha(THEME.ACCENT, 0.3);
-        const edgeColor = colorWithAlpha(THEME.ACCENT, 0);
-
-        NVG.drawGradientRect(gridStartX, mainHotbarSeparatorY, halfWidth, separatorThickness, edgeColor, centerColor, 'LeftToRight', 0);
-        NVG.drawGradientRect(gridStartX + halfWidth, mainHotbarSeparatorY, halfWidth, separatorThickness, centerColor, edgeColor, 'LeftToRight', 0);
+        renderInventoryHudBackground(this.inventory);
     }
 
     drawInventoryHudItems() {
@@ -333,7 +224,7 @@ class HUD extends ModuleBase {
         try {
             this.drawInventoryHudItems();
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 

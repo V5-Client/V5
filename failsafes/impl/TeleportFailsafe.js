@@ -1,5 +1,5 @@
-import { Chat } from '../../utils/Chat';
-import { MathUtils } from '../../utils/Math';
+import { chatDebug, chatFailsafe } from '../../utils/Chat';
+import { getAngleDifference } from '../../utils/Math';
 import { ServerboundUseItemPacket, ClientboundPlayerPositionPacket, ServerboundChatCommandPacket } from '../../utils/Packets';
 import PathConfig from '../../utils/pathfinder/PathConfig';
 import { Failsafe } from '../Failsafe';
@@ -39,7 +39,7 @@ class TeleportFailsafe extends Failsafe {
             const command = packet.command().toLowerCase();
             if (command.includes('warp')) {
                 lastCommandTime = Date.now();
-                Chat.messageDebug(`warp command used, awaiting warp-point teleport ignore`, false);
+                chatDebug(`warp command used, awaiting warp-point teleport ignore`, false);
                 pendingWarpIgnore = true;
                 if (pendingWarpIgnoreTimer) clearTimeout(pendingWarpIgnoreTimer);
                 pendingWarpIgnoreTimer = setTimeout(() => {
@@ -79,7 +79,7 @@ class TeleportFailsafe extends Failsafe {
         const { yaw, pitch, currYaw, currPitch } = data;
         if (yaw === undefined || pitch === undefined) return false;
 
-        const yawDiff = Math.abs(MathUtils.getAngleDifference(currYaw, yaw));
+        const yawDiff = Math.abs(getAngleDifference(currYaw, yaw));
         const pitchDiff = Math.abs(pitch - currPitch);
         return yawDiff < 30 && pitchDiff < 30;
     }
@@ -184,17 +184,17 @@ class TeleportFailsafe extends Failsafe {
     }
 
     handleNullPacket(x, y, z) {
-        Chat.messageFailsafe('&c&lNULL PACKET DETECTED, DO NOT REACT!', false);
+        chatFailsafe('&c&lNULL PACKET DETECTED, DO NOT REACT!', false);
         FailsafeUtils.sendFailsafeEmbed('TP', 'very high - null packet', `You just recieved a null packet to ${x}, ${y}, ${z}!`, 16711680);
     }
 
     onTrigger(fX, fY, fZ, nX, nY, nZ, dist) {
         const { pressure, severity, color } = TELEPORT_TIERS.find((t) => dist < t.threshold);
 
-        Chat.messageFailsafe(`&l&cTeleport Detected!`, false);
-        Chat.messageFailsafe(`&c&lFrom: &r&7${fX.toFixed(2)}&f, &7${fY.toFixed(2)}&f, &7${fZ.toFixed(2)}&f`, false);
-        Chat.messageFailsafe(`&c&lTo: &r&7${nX.toFixed(2)}&f, &7${nY.toFixed(2)}&f, &7${nZ.toFixed(2)}&f`, false);
-        Chat.messageFailsafe(`&c&lTotal Blocks: &r&7${dist.toFixed(0)}`, true);
+        chatFailsafe(`&l&cTeleport Detected!`, false);
+        chatFailsafe(`&c&lFrom: &r&7${fX.toFixed(2)}&f, &7${fY.toFixed(2)}&f, &7${fZ.toFixed(2)}&f`, false);
+        chatFailsafe(`&c&lTo: &r&7${nX.toFixed(2)}&f, &7${nY.toFixed(2)}&f, &7${nZ.toFixed(2)}&f`, false);
+        chatFailsafe(`&c&lTotal Blocks: &r&7${dist.toFixed(0)}`, true);
         FailsafeUtils.incrementFailsafeIntensity(pressure);
 
         FailsafeUtils.sendFailsafeEmbed(
@@ -208,4 +208,4 @@ class TeleportFailsafe extends Failsafe {
     }
 }
 
-export default new TeleportFailsafe();
+new TeleportFailsafe();

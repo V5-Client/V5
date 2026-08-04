@@ -1,6 +1,6 @@
 import { ArmorStandEntity } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
 
 const ACTION = {
     IDLE: 'idle',
@@ -135,7 +135,7 @@ class VoidgloomHelper extends ModuleBase {
             return;
         }
 
-        const katanaSlot = Guis.findItemInHotbar('Katana');
+        const katanaSlot = findItemInHotbar('Katana');
         if (this.enableSoulcry && (!this.soulcryBossOnly || this.bossActive) && katanaSlot !== -1 && this.canSoulcry(katanaSlot)) {
             this.beginAction(FEATURE.SOULCRY, katanaSlot);
         }
@@ -160,7 +160,7 @@ class VoidgloomHelper extends ModuleBase {
         switch (this.actionPhase) {
             case ACTION.USE:
                 if (Player.getHeldItemIndex() !== this.targetSlot) {
-                    Guis.setItemSlot(this.targetSlot);
+                    setItemSlot(this.targetSlot);
                     return;
                 }
                 if (this.currentFeature === FEATURE.SOULCRY) this.lastSoulcry = Date.now();
@@ -171,7 +171,7 @@ class VoidgloomHelper extends ModuleBase {
                 break;
             case ACTION.RETURN:
                 if (this.swapBackSlot !== -1 && this.swapBackSlot !== Player.getHeldItemIndex()) {
-                    Guis.setItemSlot(this.swapBackSlot);
+                    setItemSlot(this.swapBackSlot);
                     return;
                 }
                 this.resetAction();
@@ -212,7 +212,7 @@ class VoidgloomHelper extends ModuleBase {
     findDeployableSlot() {
         const targets = ['Power Orb', 'Flare'];
         for (const target of targets) {
-            const slot = Guis.findItemInHotbar(target);
+            const slot = findItemInHotbar(target);
             if (slot !== -1) return slot;
         }
         return -1;

@@ -1,4 +1,4 @@
-import { Chat } from './Chat';
+import { chat } from './Chat';
 import { Blocks, BP } from './Constants';
 import { Flowstate } from './Flowstate';
 import { Executor } from './ThreadExecutor';
@@ -80,13 +80,13 @@ class MiningStatsCollector {
 
     beginCollection() {
         if (this.isCollecting) {
-            Chat.message('Already collecting stats. Wait a moment.');
+            chat('Already collecting stats. Wait a moment.');
             return false;
         }
 
         let toolData = ToolFinder.findBest();
         if (!toolData) {
-            Chat.message('No mining tool found!');
+            chat('No mining tool found!');
             return false;
         }
 
@@ -143,7 +143,7 @@ class MiningStatsCollector {
             this.finishCollection();
             return true;
         } catch (e) {
-            Chat.message('Error collecting stats: ' + e);
+            chat('Error collecting stats: ' + e);
             console.error('V5 Caught error' + e + e.stack);
             return false;
         } finally {
@@ -176,7 +176,7 @@ class MiningStatsCollector {
     }
 
     timeout() {
-        Chat.message('Failed to get mining stats.');
+        chat('Failed to get mining stats.');
         Guis.closeInv();
         return false;
     }
@@ -233,15 +233,15 @@ class MiningStatsCollector {
         this.stats = finalStats;
         this.checkedThisSession = true;
 
-        Chat.message('Drill: &e' + (finalStats.drill || 'Unknown'));
-        Chat.message('Speed: &6' + finalStats.speed + ' Mining Speed');
-        Chat.message('Lapidary: &6+' + finalStats.lapidary + ' Mining Speed');
-        Chat.message('Professional: &6+' + finalStats.professional + ' Mining Speed');
-        Chat.message('Strong Arm: &6+' + finalStats.strongarm + ' Mining Speed');
-        Chat.message('Ability: &e' + finalStats.ability);
-        Chat.message('Cold Resistance: &b' + finalStats.coldres);
-        Chat.message('COTM Level: &e' + finalStats.cotm);
-        Chat.message('Max Great Explorer: ' + (finalStats.maxge ? '&aYes' : '&cNo'));
+        chat('Drill: &e' + (finalStats.drill || 'Unknown'));
+        chat('Speed: &6' + finalStats.speed + ' Mining Speed');
+        chat('Lapidary: &6+' + finalStats.lapidary + ' Mining Speed');
+        chat('Professional: &6+' + finalStats.professional + ' Mining Speed');
+        chat('Strong Arm: &6+' + finalStats.strongarm + ' Mining Speed');
+        chat('Ability: &e' + finalStats.ability);
+        chat('Cold Resistance: &b' + finalStats.coldres);
+        chat('COTM Level: &e' + finalStats.cotm);
+        chat('Max Great Explorer: ' + (finalStats.maxge ? '&aYes' : '&cNo'));
     }
 
     extractNumericFromSlot(slot, pattern) {
@@ -502,7 +502,7 @@ class RefuelService {
 
     refuel(callback) {
         if (this.state !== this.STATES.IDLE) {
-            Chat.message('Refuel already running!');
+            chat('Refuel already running!');
             if (callback) callback(false);
             return;
         }
@@ -587,7 +587,7 @@ class RefuelService {
                     this.targetHotbarSlot = targetSlot;
                     this.setState(this.STATES.OPEN_PLAYER_INV_SWAP, 0);
                 } else {
-                    Chat.message('Abiphone not found. Walking to Drill Mechanic...');
+                    chat('Abiphone not found. Walking to Drill Mechanic...');
                     this.setState(this.STATES.WALK_TO_MECHANIC);
                 }
                 break;
@@ -670,7 +670,7 @@ class RefuelService {
 
             case this.STATES.ADD_FUEL:
                 if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
-                    Chat.message('No fuel detected!');
+                    chat('No fuel detected!');
                     this.setState(this.STATES.FAIL_CLEANUP, 10);
                     return;
                 }
@@ -782,7 +782,7 @@ class RefuelService {
     }
 
     fail(message) {
-        if (message) Chat.message(message);
+        if (message) chat(message);
         this.finish(false);
     }
 
@@ -814,12 +814,12 @@ class ExplorerUpgrade {
             let stats = self.collector.getStoredStats();
 
             if (stats?.maxge) {
-                Chat.message('Great Explorer already maxed!');
+                chat('Great Explorer already maxed!');
                 return callback(true);
             }
 
             if (stats?.maxge === undefined) {
-                Chat.message('Run /getminingstats first!');
+                chat('Run /getminingstats first!');
                 return callback(false);
             }
 
@@ -830,7 +830,7 @@ class ExplorerUpgrade {
                 if (msg.includes('You must first unlock')) {
                     failed = true;
                     Thread.sleep(300);
-                    Chat.message("great explorer can't be unlocked!");
+                    chat("great explorer can't be unlocked!");
                     Guis.closeInv();
                     chatWatcher.unregister();
                     return callback(false);
@@ -839,7 +839,7 @@ class ExplorerUpgrade {
                 if (msg.includes("You don't have enough Gemstone Powder!")) {
                     failed = true;
                     Thread.sleep(300);
-                    Chat.message('insufficient powder!');
+                    chat('insufficient powder!');
                     Guis.closeInv();
                     chatWatcher.unregister();
                     return callback(false);
@@ -850,7 +850,7 @@ class ExplorerUpgrade {
             Thread.sleep(1000);
 
             if (Guis.guiName() !== 'Heart of the Mountain') {
-                Chat.message('HOTM failed to open!');
+                chat('HOTM failed to open!');
                 chatWatcher.unregister();
                 return callback(false);
             }
@@ -993,7 +993,7 @@ class BlockUtils {
             let blockPos = new BP(x, y, z);
             Client.getMinecraft().level.setBlockAndUpdate(blockPos, Blocks.AIR.defaultBlockState());
         } catch (e) {
-            Chat.message('error setting ghost block');
+            chat('error setting ghost block');
             console.error('V5 Caught error' + e + e.stack);
         }
     }
@@ -1007,9 +1007,9 @@ const explorer = new ExplorerUpgrade(miningStatsCollector);
 v5Command('mining refuel', () => {
     refueler.refuel((success) => {
         if (success) {
-            Chat.message('Refueling completed');
+            chat('Refueling completed');
         } else {
-            Chat.message('Refueling failed');
+            chat('Refueling failed');
         }
     });
 });
@@ -1066,12 +1066,23 @@ export const MiningUtils = {
     },
 };
 
+export const getMiningSpeed = (...args) => MiningUtils.getMiningSpeed(...args);
+export const getSpeedWithCold = (...args) => MiningUtils.getSpeedWithCold(...args);
+export const getMineTime = (...args) => MiningUtils.getMineTime(...args);
+export const getBlockInfo = (...args) => MiningUtils.getBlockInfo(...args);
+export const refreshMiningStatsIfNeeded = (...args) => MiningUtils.refreshMiningStatsIfNeeded(...args);
+export const getDrills = (...args) => MiningUtils.getDrills(...args);
+export const refuel = (...args) => MiningUtils.doRefueling(...args);
+export const getDebuff = (...args) => MiningUtils.getDebuff(...args);
+export const setGhostBlock = (...args) => MiningUtils.GhostBlock(...args);
+export const readCommissionsFromGui = (...args) => MiningUtils.readCommissionsFromGui(...args);
+
 v5Command('mining maxge', () => {
     MiningUtils.MaxGreatExplorer((success) => {
         if (success) {
-            Chat.message('Great Explorer upgrade completed');
+            chat('Great Explorer upgrade completed');
         } else {
-            Chat.message('Great Explorer upgrade failed');
+            chat('Great Explorer upgrade failed');
         }
     });
 });

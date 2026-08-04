@@ -1,7 +1,7 @@
 import { drawRect, drawText } from '../gui/Utils';
-import { Chat } from '../utils/Chat';
+import { chatFailsafe } from '../utils/Chat';
 import { File, globalAssetsDir } from '../utils/Constants';
-import { Utils } from '../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import FailsafeUtils from './FailsafeUtils';
 
 let failsafeSound = 'Tave Check.wav';
@@ -42,8 +42,8 @@ class AlertUtilsClass {
     triggerReaction() {
         if (this.isAlerting) return;
 
-        Chat.messageFailsafe('Suspicious activity detected, reaction occuring!');
-        Chat.messageFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
+        chatFailsafe('Suspicious activity detected, reaction occuring!');
+        chatFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
         this.isAlerting = true;
         this.playSound();
@@ -87,12 +87,12 @@ class AlertUtilsClass {
                 drawText(line2End, currentX2, y2, fontSize, redColor);
                 NVG.restore();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             } finally {
                 try {
                     NVG.endFrame();
                 } catch (e) {
-                    console.error('V5 Caught error' + e + e.stack);
+                    console.error(e);
                 }
             }
         });
@@ -163,7 +163,7 @@ class AlertUtilsClass {
             }
         } catch (e) {
             this._closeSound();
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 
@@ -173,7 +173,7 @@ class AlertUtilsClass {
                 this.clip.stop();
                 this.clip.close();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
             this.clip = null;
         }
@@ -182,7 +182,7 @@ class AlertUtilsClass {
             try {
                 this.audioStream.close();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
+                console.error(e);
             }
             this.audioStream = null;
         }
@@ -208,7 +208,7 @@ class AlertUtilsClass {
      */
     _makeFailsafeKeybind() {
         const keyName = 'Cancel Reaction';
-        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const existingKeybinds = getConfigFile('keybinds.json') || {};
         let savedKeycode = existingKeybinds[keyName];
 
         if (savedKeycode === undefined || savedKeycode === 0 || savedKeycode === -1 || savedKeycode === 75) savedKeycode = Keyboard.KEY_K;
@@ -218,16 +218,16 @@ class AlertUtilsClass {
 
         this.cancelKeyBind.registerKeyPress(() => {
             if (!this.isAlerting) return;
-            Chat.messageFailsafe('Reaction disabled due to keybind being pressed');
+            chatFailsafe('Reaction disabled due to keybind being pressed');
             this.disableReaction();
         });
 
         register('gameUnload', () => {
             this.disableReaction();
             this._closeSound();
-            const allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+            const allKeybinds = getConfigFile('keybinds.json') || {};
             allKeybinds[keyName] = this.cancelKeyBind.getKeyCode();
-            Utils.writeConfigFile('keybinds.json', allKeybinds);
+            writeConfigFile('keybinds.json', allKeybinds);
         });
     }
 
@@ -256,8 +256,8 @@ class AlertUtilsClass {
             GLFW.glfwFocusWindow(windowHandle);
             GLFW.glfwRequestWindowAttention(windowHandle);
         } catch (e) {
-            Chat.messageFailsafe('GLFW error occured! report this. ' + e);
-            console.error('V5 Caught error' + e + e.stack);
+            chatFailsafe('GLFW error occured! report this. ' + e);
+            console.error(e);
         }
     }
 }

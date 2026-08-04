@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 
 /**
  * @typedef {com.chattriggers.ctjs.api.inventory.Item} item
@@ -155,7 +155,7 @@ class AutoExperiments extends ModuleBase {
         if (this.buyXpTargetLevel > 0) return this.clickSlot(SLOTS.BOTTLE_MENU);
 
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
-            Guis.closeInv();
+            closeInventory();
             this.reset();
             return this.message('Experiments complete');
         }
@@ -183,7 +183,7 @@ class AutoExperiments extends ModuleBase {
             this.captureUltrasequencerOrder(items);
             this.ultraPatternCaptured = true;
             this.clicks = 0;
-            if (this.ultrasequencerOrder.size > maxDepth) Guis.closeInv();
+            if (this.ultrasequencerOrder.size > maxDepth) closeInventory();
         }
 
         if (control.isClock && this.ultraPatternCaptured && this.canClick() && this.ultrasequencerOrder.has(this.clicks)) {
@@ -206,7 +206,7 @@ class AutoExperiments extends ModuleBase {
         const guiRound = this.getChronomatronRound(items);
         const expectedLen = Math.min(maxDepth, guiRound || this.chronomatronOrder.length + 1);
 
-        if (guiRound && guiRound - 1 === maxDepth) Guis.closeInv();
+        if (guiRound && guiRound - 1 === maxDepth) closeInventory();
 
         if (control.isClock && this.chronomatronOrder.length < expectedLen) {
             this.clicks = 0;
@@ -277,7 +277,7 @@ class AutoExperiments extends ModuleBase {
                 this.boughtXP = false;
                 return this.startReopenSequence();
             }
-            Guis.closeInv();
+            closeInventory();
             return this.message('Not enough bits!');
         }
 
@@ -295,7 +295,7 @@ class AutoExperiments extends ModuleBase {
         if (!this.canClick()) return;
 
         if (!this.reopeningStarted) {
-            Guis.closeInv();
+            closeInventory();
             this.reopeningStarted = true;
             this.lastClickTime = Date.now();
         } else {
@@ -420,7 +420,7 @@ class AutoExperiments extends ModuleBase {
     }
 
     clickSlot(slot, clickType = 'MIDDLE') {
-        if (Guis.clickSlot(slot, false, clickType)) {
+        if (clickSlot(slot, false, clickType)) {
             this.lastClickTime = Date.now();
             return true;
         }

@@ -1,8 +1,8 @@
-import { Mixin } from '../../utils/MixinManager';
+import { deleteMixinValue, setMixinValue } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MathUtils } from '../../utils/Math';
-import { MacroState } from '../../utils/MacroState';
-import { Mouse } from '../../utils/Ungrab';
+import { wrapTo180 } from '../../utils/Math';
+import { getModule } from '../../utils/MacroState';
+import { forceGrab, releaseForcedGrab } from '../../utils/Ungrab';
 import { mc } from '../../utils/Utils';
 
 const Perspective = net.minecraft.client.CameraType;
@@ -28,28 +28,28 @@ class Freelook extends ModuleBase {
         const player = Player.getPlayer();
         if (!World.isLoaded() || !player) return this.toggle(false);
 
-        MacroState.getModule('Freecam')?.toggle(false);
+        getModule('Freecam')?.toggle(false);
 
         this.message('&aEnabled');
         this.savedPerspective = mc.options.getCameraType();
-        Mouse.forceGrab();
-        Mixin.set('cameraOverrideYaw', MathUtils.wrapTo180(player.getYRot()));
-        Mixin.set('cameraOverridePitch', player.getXRot());
-        Mixin.set('freelookCameraDistance', 4.0);
-        Mixin.set('freelookEnabled', true);
+        forceGrab();
+        setMixinValue('cameraOverrideYaw', wrapTo180(player.getYRot()));
+        setMixinValue('cameraOverridePitch', player.getXRot());
+        setMixinValue('freelookCameraDistance', 4.0);
+        setMixinValue('freelookEnabled', true);
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
     }
 
     onDisable() {
         this.message('&cDisabled');
-        Mixin.set('freelookEnabled', false);
-        Mixin.delete('cameraOverrideYaw');
-        Mixin.delete('cameraOverridePitch');
-        Mixin.delete('freelookCameraDistance');
+        setMixinValue('freelookEnabled', false);
+        deleteMixinValue('cameraOverrideYaw');
+        deleteMixinValue('cameraOverridePitch');
+        deleteMixinValue('freelookCameraDistance');
 
         if (this.savedPerspective) mc.options.setCameraType(this.savedPerspective);
         this.savedPerspective = null;
-        Mouse.releaseForcedGrab();
+        releaseForcedGrab();
     }
 
     updateCamera() {
