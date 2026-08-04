@@ -1,4 +1,3 @@
-import { setMixinMethod } from '../../utils/MixinManager';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { getConfigFile } from '../../utils/Utils';
 
@@ -17,7 +16,7 @@ class ProfileHider extends ModuleBase {
         this.addToggle('Custom Username', (v) => (this.HIDE_USERNAME = v), 'Allows for custom usernames', true);
         this.addTextInput('Username', ' ', (v) => (this.USERNAME = v), 'The username you want to use');
 
-        setMixinMethod('nameProcessor', (text) => this.getModifiedText(text));
+        Client.setNameProcessor((text) => this.getModifiedText(text));
     }
 
     getModifiedText(originalTextComponent) {
