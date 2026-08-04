@@ -71,7 +71,7 @@ const handleGuiClosed = () => {
 export const openGui = () => {
     GuiState.isOpening = true;
     GuiState.openStartTime = Date.now();
-    loadSettings();
+    loadSettings(false);
     categoryManager?.invalidateLayoutCache();
     categoryManager?.invalidateContentHeightCache();
     GuiState.myGui.open();

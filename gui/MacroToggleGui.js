@@ -101,7 +101,7 @@ export const macroToggleGui = {
         GuiState.macroToggleOpen = true;
         GuiState.isOpening = true;
         GuiState.openStartTime = Date.now();
-        loadSettings();
+        loadSettings(false);
         GuiState.myGui.open();
     },
 

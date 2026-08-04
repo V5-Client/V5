@@ -998,7 +998,7 @@ class OverlayUtils {
 
     closePositionsGUI() {
         GuiState.isOpening = true;
-        loadSettings();
+        loadSettings(false);
         GuiState.myGui.open();
         this.drawingGUI = false;
     }

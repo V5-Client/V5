@@ -20,7 +20,7 @@ let activeTextInput = null;
 const allTextInputs = [];
 
 export class TextInput {
-    constructor(title, x, y, width, height, defaultValue = '', callback = null) {
+    constructor(title, x, y, width, height, defaultValue = '', callback = null, onBoxClick = null) {
         this.title = title;
         this.x = x;
         this.y = y;
@@ -28,6 +28,7 @@ export class TextInput {
         this.height = height;
         this.value = defaultValue;
         this.callback = callback;
+        this.onBoxClick = onBoxClick;
 
         this.isTyping = false;
         this.text = String(defaultValue);
@@ -185,6 +186,11 @@ export class TextInput {
 
     handleClick(mouseX, mouseY) {
         if (isInside(mouseX, mouseY, this.inputRect)) {
+            if (this.onBoxClick) {
+                if (this.isTyping) this.handleInputFinish();
+                this.onBoxClick(this);
+                return true;
+            }
             if (activeTextInput && activeTextInput !== this) {
                 activeTextInput.handleInputFinish({ playSound: false });
             }

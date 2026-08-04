@@ -22,6 +22,8 @@ class ExcavatorMacro extends ModuleBase {
 
         this.NODELAY = false;
         this.TICKDELAY = 0;
+        this.PLACEDELAY = 0;
+        this.REOPENDELAY = 0;
 
         this.addToggle(
             'No delay',
@@ -32,14 +34,36 @@ class ExcavatorMacro extends ModuleBase {
         );
 
         this.addSlider(
-            'Tick delay',
+            'Click delay',
             1,
             10,
             5,
             (v) => {
                 this.TICKDELAY = v;
             },
-            'Amount of ticks until the player can click again'
+            'Amount of ticks between clicks'
+        );
+
+        this.addSlider(
+            'Item placement delay',
+            1,
+            10,
+            3,
+            (v) => {
+                this.PLACEDELAY = v;
+            },
+            'Amount of ticks to wait after placing an item'
+        );
+
+        this.addSlider(
+            'Reopen delay',
+            1,
+            20,
+            6,
+            (v) => {
+                this.REOPENDELAY = v;
+            },
+            'Amount of ticks to wait before reopening the excavator'
         );
 
         this.STATES = {
@@ -53,6 +77,8 @@ class ExcavatorMacro extends ModuleBase {
 
         this.inExcavator = false;
         this.tickCount = this.TICKDELAY || 0;
+        this.placeTickCount = 0;
+        this.reopenTickCount = 0;
         this.blacklistedSlots = new Map();
         this.warpCooldownTicks = 0;
 
@@ -83,6 +109,7 @@ class ExcavatorMacro extends ModuleBase {
             switch (this.state) {
                 case this.STATES.OPENING:
                     if (Player.lookingAt() instanceof Entity && !this.inExcavator) {
+                        if (!this.reopenDelay()) return;
                         Client.rightClick();
                         this.state = this.STATES.SETUP;
                     } else {
@@ -101,6 +128,11 @@ class ExcavatorMacro extends ModuleBase {
                     break;
                 case this.STATES.EXCAVATING:
                     if (Guis.guiName() !== 'Fossil Excavator') return;
+
+                    if (this.placeTickCount > 0) {
+                        this.placeTickCount--;
+                        return;
+                    }
 
                     const brownSlots = [];
                     const container = Player.getContainer();
@@ -125,6 +157,7 @@ class ExcavatorMacro extends ModuleBase {
                         if (slot?.type?.getRegistryName()?.includes('lime_stained')) {
                             if (!this.clickDelay()) return;
                             Guis.clickSlot(i);
+                            this.placeDelay();
                             this.blacklistSlot(i, 10);
                             return;
                         }
@@ -139,6 +172,7 @@ class ExcavatorMacro extends ModuleBase {
                         if (!this.clickDelay()) return;
 
                         Guis.clickSlot(randomBrownSlot);
+                        this.placeDelay();
                         this.blacklistSlot(randomBrownSlot, 10);
                         return;
                     }
@@ -212,6 +246,22 @@ class ExcavatorMacro extends ModuleBase {
         }
 
         this.tickCount = this.TICKDELAY;
+        return true;
+    }
+
+    placeDelay() {
+        this.placeTickCount = this.PLACEDELAY || 0;
+    }
+
+    reopenDelay() {
+        if (this.NODELAY) return true;
+
+        if (this.reopenTickCount > 0) {
+            this.reopenTickCount--;
+            return false;
+        }
+
+        this.reopenTickCount = this.REOPENDELAY;
         return true;
     }
 

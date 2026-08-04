@@ -98,6 +98,27 @@ class Combat extends ModuleBase {
             'Attacks per second'
         );
 
+        this.targetName = '';
+        this.skyblockName = '';
+
+        this.addTextInput(
+            'Target Name',
+            '',
+            (value) => {
+                this.targetName = value;
+            },
+            'Targets mobs whose entity display name contains this text. Separate multiple names with a comma or |.'
+        );
+
+        this.addTextInput(
+            'Skyblock Name',
+            '',
+            (value) => {
+                this.skyblockName = value;
+            },
+            'Targets mobs whose internal/Skyblock name contains this text. Separate multiple names with a comma or |.'
+        );
+
         this.createOverlay([
             {
                 title: 'Status',
@@ -785,6 +806,9 @@ class Combat extends ModuleBase {
             return [];
         }
 
+        const targetNames = this.splitNames(this.targetName);
+        const skyblockNames = this.splitNames(this.skyblockName);
+
         const mobs = [];
 
         World.getAllEntities().forEach((entity) => {
@@ -792,10 +816,24 @@ class Combat extends ModuleBase {
                 const nameObj = entity.getName();
                 if (!nameObj) return;
 
-                const name = ChatLib.removeFormatting(String(nameObj?.getString?.() ?? nameObj)).toLowerCase();
+                const displayName = ChatLib.removeFormatting(String(nameObj?.getString?.() ?? nameObj)).toLowerCase();
                 const uuid = entity.getUUID();
                 if (whitelist && whitelist.has(uuid)) return;
-                if (!config.names.some((mobName) => name.includes(mobName.toLowerCase()))) return;
+
+                const matchesConfig = config.names.some((mobName) => displayName.includes(mobName.toLowerCase()));
+
+                let matchesTargetName = false;
+                let matchesSkyblockName = false;
+                if (targetNames.length > 0) {
+                    matchesTargetName = targetNames.some((name) => displayName.includes(name));
+                }
+                if (skyblockNames.length > 0) {
+                    const rawName = String(nameObj?.getString?.() ?? nameObj ?? '').toLowerCase();
+                    const typeName = String(entity.getType?.()?.getRegistryName?.() ?? '').toLowerCase();
+                    matchesSkyblockName = skyblockNames.some((name) => rawName.includes(name) || typeName.includes(name));
+                }
+
+                if (!matchesConfig && !matchesTargetName && !matchesSkyblockName) return;
                 if (entity.isSpectator?.() || entity.isInvisible() || entity.isDead()) return;
                 if (!this.isVisibleOrRecent(entity, config.checkVisibility)) return;
 
@@ -811,6 +849,14 @@ class Combat extends ModuleBase {
         });
 
         return mobs;
+    }
+
+    splitNames(input) {
+        if (typeof input !== 'string' || !input.trim()) return [];
+        return input
+            .split(/[,|]/)
+            .map((name) => name.trim().toLowerCase())
+            .filter((name) => name.length > 0);
     }
 
     onEnable() {

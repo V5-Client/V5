@@ -35,6 +35,7 @@ import './visuals/ProfileHider';
 import './visuals/RatESP';
 import './visuals/StructureESP';
 import './visuals/GlowingMushroomESP';
+import './visuals/PiP';
 
 /* SKILLS */
 import './skills/AutoExperiments';

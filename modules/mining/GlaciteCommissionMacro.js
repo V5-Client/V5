@@ -47,6 +47,7 @@ class GlaciteCommissionMacro extends ModuleBase {
         this.travelMode = TRAVEL_MODES[0];
         this.coldThreshold = 20;
         this.pauseTicks = 0;
+        this.rodSwapEnabled = false;
         this.commissions = [];
         this.currentCommission = null;
         this.activeOreTypes = [];
@@ -74,6 +75,8 @@ class GlaciteCommissionMacro extends ModuleBase {
                 this.delay(20);
             },
             useEtherwarp: () => this.travelMode === 'Etherwarp',
+            rodSlot: () => this.getRodSwapSlot(),
+            getToolSlot: () => (this.drill ? this.drill.slot : -1),
         });
 
         this.addMultiToggle(
@@ -89,6 +92,14 @@ class GlaciteCommissionMacro extends ModuleBase {
         );
 
         this.addSlider('Cold Warp Threshold', 10, 90, this.coldThreshold, (value) => (this.coldThreshold = value));
+
+        this.addToggle(
+            'Rod Swap on Commission Claim',
+            (value) => {
+                this.rodSwapEnabled = value;
+            },
+            'Swaps to a rod in the hotbar and right-clicks the emissary to claim commissions.'
+        );
 
         this.createOverlay(
             [
@@ -316,6 +327,11 @@ class GlaciteCommissionMacro extends ModuleBase {
 
     handleClaiming() {
         this.commissionClaimer.handle();
+    }
+
+    getRodSwapSlot() {
+        if (!this.rodSwapEnabled) return -1;
+        return Guis.findItemInHotbar('Rod');
     }
 
     handleWaitingGuiClose() {

@@ -15,11 +15,19 @@ class LobbyHopper extends ModuleBase {
         this.maxDay = 0;
         this.said = false;
         this.cooldown = new Timer();
+        this.useNucleus = false;
         this.bindToggleKey();
 
         this.addSlider('Max Lobby Day', 0, 18, 5, (v) => {
             this.maxDay = v;
         });
+        this.addToggle(
+            'Warp to Nucleus Instead of Hollows',
+            (v) => {
+                this.useNucleus = v;
+            },
+            'Warps to the Glacite Nucleus instead of Crystal Hollows when a lobby is too old.'
+        );
 
         this.on('step', () => {
             if (!this.enabled) return;
@@ -29,7 +37,11 @@ class LobbyHopper extends ModuleBase {
 
             if (!isInCh) {
                 this.message('Not in Crystal Hollows, Warping.');
-                ChatLib.command('warp ch');
+                if (this.useNucleus) {
+                    ChatLib.command('warp nucleus');
+                } else {
+                    ChatLib.command('warp ch');
+                }
 
                 this.reset();
             } else {

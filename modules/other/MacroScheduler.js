@@ -10,6 +10,7 @@ const STATE = {
     RUNNING: 'Running',
     RESTING: 'Resting',
     RETURNING: 'Returning',
+    MINIBREAK: 'Mini Break',
 };
 
 class MacroScheduler extends ModuleBase {
@@ -26,6 +27,12 @@ class MacroScheduler extends ModuleBase {
         this.macroTimeMax = 140;
         this.breakTimeMin = 50;
         this.breakTimeMax = 100;
+        this.disconnectOnBreak = true;
+        this.randomBreakDuration = true;
+        this.waitOnIsland = false;
+        this.miniBreaksEnabled = false;
+        this.miniBreakIntervalMin = 15;
+        this.miniBreakDurationSec = 30;
 
         this.configPath = 'scheduler_data.json';
         this.state = STATE.IDLE;
@@ -34,6 +41,10 @@ class MacroScheduler extends ModuleBase {
         this.breakDurationMs = 0;
         this.returnStep = 0;
         this.overlayShown = false;
+        this.miniBreakEnd = 0;
+        this.nextMiniBreakAt = 0;
+        this.paused = false;
+        this.pausedRemainingMs = 0;
 
         this.worldUnloadTimer = new Timer();
 
@@ -63,12 +74,58 @@ class MacroScheduler extends ModuleBase {
             'Minimum break duration.',
             sectionName
         );
+        this.addDirectToggle(
+            'Disconnect During Break',
+            (v) => (this.disconnectOnBreak = !!v),
+            'Disconnects from the server while resting. Disable to stay in game with macros stopped.',
+            true,
+            sectionName
+        );
+        this.addDirectToggle(
+            'Random Break Duration',
+            (v) => (this.randomBreakDuration = !!v),
+            'Picks a random break length within the range. Disable to always use the minimum break duration.',
+            true,
+            sectionName
+        );
+        this.addDirectToggle(
+            'Wait on Island',
+            (v) => (this.waitOnIsland = !!v),
+            'Stays connected and waits on the island during breaks instead of disconnecting. Overrides Disconnect During Break.',
+            false,
+            sectionName
+        );
+        this.addDirectToggle(
+            'Enable Mini Breaks',
+            (v) => (this.miniBreaksEnabled = !!v),
+            'Takes short AFK pauses at your current location while macroing.',
+            false,
+            sectionName
+        );
+        this.addDirectSlider(
+            'Mini Break Every (m)',
+            1,
+            120,
+            this.miniBreakIntervalMin,
+            (v) => (this.miniBreakIntervalMin = v),
+            'How often a mini break is taken.',
+            sectionName
+        );
+        this.addDirectSlider(
+            'Mini Break Duration (s)',
+            5,
+            300,
+            this.miniBreakDurationSec,
+            (v) => (this.miniBreakDurationSec = v),
+            'How long each mini break lasts.',
+            sectionName
+        );
 
         this.createSchedulerOverlay([
             {
                 title: 'Scheduler',
                 data: {
-                    Status: () => this.state,
+                    Status: () => (this.paused ? 'Paused' : this.state),
                     'Time Left': () => this.formatTimeLeft(),
                     Active: () => this.getActiveMacroDisplay(),
                 },
@@ -89,6 +146,10 @@ class MacroScheduler extends ModuleBase {
         this.timerEnd = Number.isFinite(data.timerEnd) ? data.timerEnd : 0;
         this.breakDurationMs = Number.isFinite(data.breakDurationMs) ? data.breakDurationMs : 0;
         this.returnStep = Number.isFinite(data.returnStep) ? Math.max(0, Math.min(3, data.returnStep)) : 0;
+        this.miniBreakEnd = Number.isFinite(data.miniBreakEnd) ? data.miniBreakEnd : 0;
+        this.nextMiniBreakAt = Number.isFinite(data.nextMiniBreakAt) ? data.nextMiniBreakAt : 0;
+        this.paused = data.paused === true;
+        this.pausedRemainingMs = Number.isFinite(data.pausedRemainingMs) ? Math.max(0, data.pausedRemainingMs) : 0;
     }
 
     saveState() {
@@ -98,6 +159,10 @@ class MacroScheduler extends ModuleBase {
             timerEnd: this.timerEnd,
             breakDurationMs: this.breakDurationMs,
             returnStep: this.returnStep,
+            miniBreakEnd: this.miniBreakEnd,
+            nextMiniBreakAt: this.nextMiniBreakAt,
+            paused: this.paused,
+            pausedRemainingMs: this.pausedRemainingMs,
         });
     }
 
@@ -109,7 +174,7 @@ class MacroScheduler extends ModuleBase {
             this.returnStep = 0;
         }
 
-        if (this.state === STATE.RUNNING && now >= this.timerEnd) {
+        if (this.state === STATE.RUNNING && !this.paused && now >= this.timerEnd) {
             this.endSession();
         } else if (this.state === STATE.RESTING && now >= this.timerEnd) {
             this.beginReturn();
@@ -148,6 +213,9 @@ class MacroScheduler extends ModuleBase {
             case STATE.RETURNING:
                 this.handleReturning();
                 break;
+            case STATE.MINIBREAK:
+                this.handleMiniBreak();
+                break;
         }
     }
 
@@ -175,12 +243,21 @@ class MacroScheduler extends ModuleBase {
         const now = Date.now();
         const enabled = this.getSchedulableMacros();
 
-        if (enabled.length === 0) {
-            this.state = STATE.IDLE;
-            this.timerEnd = 0;
-            this.trackedMacros = [];
-            this.saveState();
+        if (this.paused) {
+            if (enabled.length > 0) {
+                this.timerEnd = now + this.pausedRemainingMs;
+                this.paused = false;
+                this.pausedRemainingMs = 0;
+                this.nextMiniBreakAt = this.miniBreaksEnabled ? now + this._nextMiniBreakDelayMs() : 0;
+                this.saveState();
+                this.message('&aSession resumed.');
+            }
             this.updateOverlay();
+            return;
+        }
+
+        if (enabled.length === 0) {
+            this.pauseSession();
             return;
         }
 
@@ -192,6 +269,12 @@ class MacroScheduler extends ModuleBase {
 
         if (now >= this.timerEnd) {
             this.endSession();
+            return;
+        }
+
+        if (this.miniBreaksEnabled && this.nextMiniBreakAt === 0) this._scheduleNextMiniBreak();
+        if (this.miniBreaksEnabled && now >= this.nextMiniBreakAt) {
+            this.startMiniBreak();
             return;
         }
 
@@ -208,6 +291,15 @@ class MacroScheduler extends ModuleBase {
         }
     }
 
+    pauseSession() {
+        this.pausedRemainingMs = Math.max(0, this.timerEnd - Date.now());
+        this.timerEnd = 0;
+        this.paused = true;
+        this.saveState();
+        this.updateOverlay();
+        this.message('&eSession paused. Resume by re-enabling the macro.');
+    }
+
     handleResting() {
         if (Date.now() >= this.timerEnd) {
             if (this.trackedMacros.length === 0) {
@@ -217,8 +309,47 @@ class MacroScheduler extends ModuleBase {
                 this.updateOverlay();
                 return;
             }
+            if (this.waitOnIsland) {
+                this.message('&aBreak over, resuming macros.');
+                this.startTrackedMacros();
+                this.sendSchedulerConnectEmbed();
+                this.beginSession();
+                return;
+            }
             this.beginReturn();
         }
+    }
+
+    startMiniBreak() {
+        this.stopTrackedMacros();
+        this.state = STATE.MINIBREAK;
+        this.miniBreakEnd = Date.now() + Math.max(1, this.miniBreakDurationSec) * 1000;
+        this.message(`&eMini break started, AFKing in place for ${this.miniBreakDurationSec}s.`);
+        this.saveState();
+        this.updateOverlay();
+    }
+
+    handleMiniBreak() {
+        Client.stopMovement();
+
+        if (Date.now() >= this.miniBreakEnd) {
+            this.message('&aMini break over, resuming macros.');
+            this.startTrackedMacros();
+            this.state = STATE.RUNNING;
+            this.nextMiniBreakAt = Date.now() + this._nextMiniBreakDelayMs();
+            this.saveState();
+            this.updateOverlay();
+        }
+    }
+
+    _scheduleNextMiniBreak() {
+        this.nextMiniBreakAt = Date.now() + this._nextMiniBreakDelayMs();
+        this.saveState();
+    }
+
+    _nextMiniBreakDelayMs() {
+        const baseMs = Math.max(1, this.miniBreakIntervalMin) * 60000;
+        return baseMs * (0.8 + Math.random() * 0.4);
     }
 
     handleReturning() {
@@ -275,23 +406,30 @@ class MacroScheduler extends ModuleBase {
 
     beginSession() {
         this.state = STATE.RUNNING;
+        this.paused = false;
+        this.pausedRemainingMs = 0;
         const duration = this.randomDuration(this.macroTimeMin, this.macroTimeMax);
         this.timerEnd = Date.now() + duration;
         this.returnStep = 0;
+        this.nextMiniBreakAt = this.miniBreaksEnabled ? Date.now() + this._nextMiniBreakDelayMs() : 0;
         this.saveState();
         this.updateOverlay();
     }
 
     endSession() {
-        this.breakDurationMs = this.randomDuration(this.breakTimeMin, this.breakTimeMax);
+        this.breakDurationMs = this.randomBreakDuration
+            ? this.randomDuration(this.breakTimeMin, this.breakTimeMax)
+            : Math.min(this.breakTimeMin, this.breakTimeMax) * 60000;
         const breakTime = TimeUtils.formatDurationMs(this.breakDurationMs);
         const cleanBreakTime = breakTime.includes(' ') ? breakTime.replace(/ (?=[^ ]+$)/, ' and ') : breakTime;
 
         this.stopTrackedMacros();
         this.sendSchedulerDisconnectEmbed(cleanBreakTime);
 
-        const reason = `Scheduler: Resting for ${cleanBreakTime}`;
-        this.disconnect(reason);
+        if (this.disconnectOnBreak && !this.waitOnIsland) {
+            const reason = `Scheduler: Resting for ${cleanBreakTime}`;
+            this.disconnect(reason);
+        }
 
         this.state = STATE.RESTING;
         this.timerEnd = Date.now() + this.breakDurationMs;
@@ -308,7 +446,7 @@ class MacroScheduler extends ModuleBase {
 
     cancelScheduledMacro(macroName) {
         if (!macroName || !this.enabled) return false;
-        if (this.state !== STATE.RESTING && this.state !== STATE.RETURNING) return false;
+        if (this.state !== STATE.RESTING && this.state !== STATE.RETURNING && this.state !== STATE.MINIBREAK) return false;
 
         const index = this.trackedMacros.indexOf(macroName);
         if (index === -1) return false;
@@ -322,6 +460,8 @@ class MacroScheduler extends ModuleBase {
             this.timerEnd = 0;
             this.breakDurationMs = 0;
             this.returnStep = 0;
+            this.miniBreakEnd = 0;
+            this.nextMiniBreakAt = 0;
             this.message(`&e${macroName} disabled.`);
         } else {
             this.message(`&e${macroName} disabled, ${this.trackedMacros.length} others remaining.`);
@@ -442,10 +582,17 @@ class MacroScheduler extends ModuleBase {
     formatTimeLeft() {
         if (this.state === STATE.IDLE) return 'Waiting';
 
-        const remaining = Math.max(0, this.timerEnd - Date.now());
+        const remaining = this.paused
+            ? Math.max(0, this.pausedRemainingMs)
+            : this.state === STATE.MINIBREAK
+              ? Math.max(0, this.miniBreakEnd - Date.now())
+              : Math.max(0, this.timerEnd - Date.now());
         const timeStr = TimeUtils.formatDurationMs(remaining);
 
-        return this.state === STATE.RETURNING ? `Returning (${timeStr})` : timeStr;
+        if (this.state === STATE.RETURNING) return `Returning (${timeStr})`;
+        if (this.state === STATE.MINIBREAK) return `Mini Break (${timeStr})`;
+        if (this.paused) return `Paused (${timeStr})`;
+        return timeStr;
     }
 
     getActiveMacroDisplay() {

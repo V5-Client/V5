@@ -79,10 +79,10 @@ export const saveSettings = () => {
     Utils.writeConfigFile('config.json', settings);
 };
 
-export const applySettings = () => {
+export const applySettings = (applyModuleStates = true) => {
     Categories.categories.forEach((category) => {
         getCategoryItems(category).forEach((item) => {
-            if (category.name === 'Modules') {
+            if (applyModuleStates && category.name === 'Modules') {
                 const enabled = getSetting(item.title, 'Enabled');
                 applyModuleEnabled(item.title, enabled);
             }
@@ -92,7 +92,7 @@ export const applySettings = () => {
             });
         });
 
-        if (category.directComponents) {
+        if (applyModuleStates && category.directComponents) {
             category.directComponents.forEach((component) => {
                 const parentName = getDirectComponentParentName(category, component);
                 triggerComponentCallback(parentName, component);
@@ -123,7 +123,7 @@ function triggerComponentCallback(parentName, component) {
     }
 }
 
-export const loadSettings = () => {
+export const loadSettings = (applyModuleStates = true) => {
     const settings = Utils.getConfigFile('config.json');
 
     if (!settings || Object.keys(settings).length === 0) {
@@ -155,7 +155,7 @@ export const loadSettings = () => {
 
         buildSettingsMapFromComponents();
         mergeSavedModuleEnabledStates(settings);
-        applySettings();
+        applySettings(applyModuleStates);
     } catch (e) {
         Chat.message(`Error loading settings: ${e}`);
         console.error('V5 Caught error' + e + e.stack);

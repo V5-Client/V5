@@ -49,6 +49,7 @@ class CommissionMacro extends ModuleBase {
         this.goblinWeaponSlot = 1;
         this.emissariesUnlocked = true;
         this.pauseTicks = 0;
+        this.rodSwapEnabled = false;
         this.pathingAvoidanceBreachAt = null;
         this.lastAvoidanceRepathAt = 0;
         this.currentPathWaypoint = null;
@@ -87,6 +88,8 @@ class CommissionMacro extends ModuleBase {
             onPathFailed: () => this.setState(STATES.CHOOSING),
             canInteract: () => !this.emissariesUnlocked || this.checkEmissaryUnlocked(),
             useEtherwarp: () => this.travelMode === 'Etherwarp',
+            rodSlot: () => this.getRodSwapSlot(),
+            getToolSlot: () => (this.drill ? this.drill.slot : -1),
         });
 
         this.addMultiToggle(
@@ -181,6 +184,14 @@ class CommissionMacro extends ModuleBase {
                 this.goblinWeaponSlot = value;
             },
             'Hotbar slot with weapon for Goblin Slayer (1-8)'
+        );
+
+        this.addToggle(
+            'Rod Swap on Commission Claim',
+            (value) => {
+                this.rodSwapEnabled = value;
+            },
+            'Swaps to a rod in the hotbar and right-clicks the emissary to claim commissions.'
         );
     }
 
@@ -634,6 +645,11 @@ class CommissionMacro extends ModuleBase {
 
     handleClaiming() {
         this.commissionClaimer.handle();
+    }
+
+    getRodSwapSlot() {
+        if (!this.rodSwapEnabled) return -1;
+        return Guis.findItemInHotbar('Rod');
     }
 
     ensureDrillEquippedForEmissaryClaim() {

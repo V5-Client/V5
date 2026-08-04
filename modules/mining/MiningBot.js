@@ -47,6 +47,7 @@ class Bot extends ModuleBase {
 
         this.PRIORITIZE_TITANIUM = true;
         this.PRIORITIZE_GRAY_MITHRIL = false;
+        this.PRIORITIZE_BLUE_WOOL = false;
         this.TICKGLIDE = true;
         this.FAKELOOK = false;
         this.MOVEMENT = false;
@@ -81,6 +82,10 @@ class Bot extends ModuleBase {
         this.lastUse = Date.now();
         this.ABILITY_COOLDOWN_MS = 200000;
         this._pendingAbilityActivation = false;
+        this.abilityRodSwapEnabled = false;
+        this._abilityStage = null;
+        this._abilityStageTicks = 0;
+        this._rodSlot = null;
         this.fakeLookModeName = 'Off';
         this.selectedTypeName = 'Mithril';
         this._renderPalette = {
@@ -213,7 +218,7 @@ class Bot extends ModuleBase {
     }
 
     updateMithrilCosts() {
-        const lightBlueCost = this.PRIORITIZE_GRAY_MITHRIL ? 20 : 3;
+        const lightBlueCost = this.PRIORITIZE_BLUE_WOOL ? 1 : this.PRIORITIZE_GRAY_MITHRIL ? 20 : 3;
         const prismarineCost = 10;
         const grayCost = this.PRIORITIZE_GRAY_MITHRIL ? 1 : 20;
 
@@ -255,10 +260,12 @@ class Bot extends ModuleBase {
 
         manager.subscribe('abilityready', () => {
             if (!this.enabled || this.refreshingMiningStats) return;
+            this._abilityStage = null;
+            this._abilityStageTicks = 0;
             this.resetTickCounters();
             this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
-            if (this.DEBUG_MODE) this.message(`&a[DEBUG] abilityready → state=ABILITY, abilityFromChat=true`);
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] abilityready �?state=ABILITY, abilityFromChat=true`);
         });
 
         manager.subscribe('abilityused', () => {
@@ -267,23 +274,27 @@ class Bot extends ModuleBase {
             this.abilityFromChat = false;
             this.lastUse = Date.now();
             this.resetTickCounters();
-            if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilityused → abilityFromChat=false, lastUse=${this.lastUse}`);
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilityused �?abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
         manager.subscribe('abilitygone', () => {
             if (!this.enabled) return;
             this.speedBoost = false;
             this.abilityFromChat = false;
+            this._abilityStage = null;
+            this._abilityStageTicks = 0;
             this.lastUse = Date.now();
             this.resetTickCounters();
-            if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilitygone → abilityFromChat=false, lastUse=${this.lastUse}`);
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] abilitygone �?abilityFromChat=false, lastUse=${this.lastUse}`);
         });
 
         manager.subscribe('abilitycooldown', () => {
             if (!this.enabled) return;
+            this._abilityStage = null;
+            this._abilityStageTicks = 0;
             this.lastUse = Date.now();
             this.state = this.STATES.MINING;
-            if (this.DEBUG_MODE) this.message(`&c[DEBUG] abilitycooldown → lastUse=${this.lastUse}, state=MINING`);
+            if (this.DEBUG_MODE) this.message(`&c[DEBUG] abilitycooldown �?lastUse=${this.lastUse}, state=MINING`);
         });
     }
 
@@ -337,6 +348,13 @@ class Bot extends ModuleBase {
             },
             'Reverses mithril block targeting costs to prioritise gray mithril.'
         );
+        this.addToggle(
+            'Prioritise Blue Wool',
+            (value) => {
+                this.setPrioritizeBlueWool(value);
+            },
+            'Reverses mithril block targeting costs to prioritise blue wool.'
+        );
         this.addMultiToggle(
             'Fakelook',
             ['Off', 'Queued'],
@@ -359,6 +377,13 @@ class Bot extends ModuleBase {
             },
             'Targets specified block type.',
             'Mithril'
+        );
+        this.addToggle(
+            'Ability Rod Swap',
+            (value) => {
+                this.abilityRodSwapEnabled = value;
+            },
+            'Swaps to a rod in the hotbar and right-clicks first, then releases the drill pickaxe ability, then returns to the drill and resumes mining.'
         );
         // this.addToggle(
         //     'Debug Mode',
@@ -384,6 +409,11 @@ class Bot extends ModuleBase {
 
     setPrioritizeGrayMithril(value) {
         this.PRIORITIZE_GRAY_MITHRIL = value;
+        this.updateMithrilCosts();
+    }
+
+    setPrioritizeBlueWool(value) {
+        this.PRIORITIZE_BLUE_WOOL = value;
         this.updateMithrilCosts();
     }
 
@@ -596,17 +626,18 @@ class Bot extends ModuleBase {
 
         if (this.DEBUG_MODE) {
             this.message(
-                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} stage=${this._abilityStage} handSwinging=${Player.getPlayer().handSwinging}`
             );
+        }
+
+        if (this._abilityStage) {
+            this._advanceAbilitySequence();
+            return;
         }
 
         if (this._pendingAbilityActivation) {
             this._pendingAbilityActivation = false;
-            Client.rightClick();
-            if (this.DEBUG_MODE) this.message(`&a[DEBUG] RIGHT-CLICKED status="${abilityStatus}"`);
-            this.lastUse = now;
-            this.abilityFromChat = false;
-            this.state = this.STATES.MINING;
+            this._startAbilitySequence();
             return;
         }
 
@@ -615,11 +646,76 @@ class Bot extends ModuleBase {
 
             Client.setKey('leftclick', false);
             this._pendingAbilityActivation = true;
-            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().handSwinging})`);
+            if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, starting ability sequence next tick (swing=${Player.getPlayer().handSwinging})`);
             return;
         }
 
         if (this.DEBUG_MODE) this.message(`&c[DEBUG] No condition met, going MINING`);
+        this.state = this.STATES.MINING;
+    }
+
+    _startAbilitySequence() {
+        if (this.abilityRodSwapEnabled) {
+            const rodSlot = Guis.findItemInHotbar('Rod');
+            if (rodSlot >= 0) {
+                this._rodSlot = rodSlot;
+                this._abilityStage = 'SWAP_TO_ROD';
+                this._abilityStageTicks = 2;
+                if (this.DEBUG_MODE) this.message(`&a[DEBUG] Swapping to rod first, then releasing drill ability (slot ${rodSlot})`);
+                return;
+            }
+        }
+
+        Client.rightClick();
+        this._finishAbilitySequence();
+    }
+
+    _advanceAbilitySequence() {
+        if (this._abilityStageTicks > 0) {
+            this._abilityStageTicks--;
+            return;
+        }
+
+        if (this._abilityStage === 'SWAP_TO_ROD') {
+            if (this._rodSlot !== null) Guis.setItemSlot(this._rodSlot);
+            this._abilityStage = 'ROD_CLICK';
+            this._abilityStageTicks = 3;
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] Swapped to rod, right-clicking in 3 ticks`);
+            return;
+        }
+
+        if (this._abilityStage === 'ROD_CLICK') {
+            Client.rightClick();
+            this._abilityStage = 'CAST_ABILITY';
+            this._abilityStageTicks = 2;
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] RIGHT-CLICKED rod, swapping to drill to release ability`);
+            return;
+        }
+
+        if (this._abilityStage === 'CAST_ABILITY') {
+            this.ensureDrillEquipped(this.drill);
+            this._abilityStage = 'ABILITY_CLICK';
+            this._abilityStageTicks = 2;
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] Drill equipped, releasing ability in 2 ticks`);
+            return;
+        }
+
+        if (this._abilityStage === 'ABILITY_CLICK') {
+            Client.rightClick();
+            if (this.DEBUG_MODE) this.message(`&a[DEBUG] Released drill ability`);
+            this._finishAbilitySequence();
+            return;
+        }
+
+        this._finishAbilitySequence();
+    }
+
+    _finishAbilitySequence() {
+        this._abilityStage = null;
+        this._abilityStageTicks = 0;
+        this._rodSlot = null;
+        this.lastUse = Date.now();
+        this.abilityFromChat = false;
         this.state = this.STATES.MINING;
     }
 
@@ -1444,6 +1540,9 @@ class Bot extends ModuleBase {
 
         this.state = this.STATES.WAITING;
         this._pendingAbilityActivation = false;
+        this._abilityStage = null;
+        this._abilityStageTicks = 0;
+        this._rodSlot = null;
         Client.stopMovement();
         Client.setKey('space', false);
         this.setSneak(false, true);

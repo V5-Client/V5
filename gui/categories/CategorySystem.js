@@ -240,9 +240,9 @@ export const Categories = {
         return Categories.attachSettingsComponent(new ColorPicker(title, 0, 0, defaultColor, callback), sectionName, categoryName, description);
     },
 
-    addSettingsTextInput(title, defaultValue, callback = null, description = null, sectionName = null, categoryName = 'Settings') {
+    addSettingsTextInput(title, defaultValue, callback = null, description = null, sectionName = null, onBoxClick = null, categoryName = 'Settings') {
         return Categories.attachSettingsComponent(
-            new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback),
+            new TextInput(title, 0, 0, undefined, undefined, defaultValue, callback, onBoxClick),
             sectionName,
             categoryName,
             description

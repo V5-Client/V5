@@ -110,6 +110,21 @@ class Failsafes extends ModuleBase {
             sectionName
         );
         this.addDirectMultiToggle(
+            'Failsafe Actions',
+            ['Desktop Alerts', 'Grab Game Window'],
+            false,
+            (value) => {
+                const enabled = Array.isArray(value)
+                    ? value.filter((opt) => opt && opt.name && opt.enabled).map((opt) => opt.name)
+                    : [];
+                this.desktopAlertsEnabled = enabled.includes('Desktop Alerts');
+                this.grabWindowEnabled = enabled.includes('Grab Game Window');
+            },
+            'Actions to perform when a failsafe triggers.',
+            ['Desktop Alerts'],
+            sectionName
+        );
+        this.addDirectMultiToggle(
             'Failsafe sound',
             this.getFilesInDir(),
             true,
@@ -127,11 +142,61 @@ class Failsafes extends ModuleBase {
             false,
             sectionName
         );
+        this.addDirectSlider(
+            'Failsafe Sound Volume',
+            0,
+            100,
+            100,
+            (value) => {
+                AlertUtils.setFailsafeVolume(value);
+            },
+            'Volume of the failsafe alert sound.',
+            sectionName
+        );
+        this.addDirectTextInput(
+            'Custom Failsafe Sound',
+            '',
+            (value) => {
+                AlertUtils.setCustomFailsafeSound(value);
+            },
+            'Optional .wav file name (placed in failsafes/sounds) or a full path to use instead of the built-in sounds. Click the box to browse for a .wav file.',
+            sectionName,
+            (input) => this._browseForCustomSound(input)
+        );
+        this.addDirectButton(
+            'Preview Alert',
+            () => {
+                AlertUtils.previewAlert();
+            },
+            'Plays the selected failsafe sound as a preview.',
+            sectionName
+        );
     }
 
     isBanReason(text) {
         if (!text) return false;
         return text.includes('banned') || text.includes('cheating') || text.includes('boosting') || text.includes('security');
+    }
+
+    _browseForCustomSound(input) {
+        try {
+            const JFileChooser = Java.type('javax.swing.JFileChooser');
+            const FileNameExtensionFilter = Java.type('javax.swing.filechooser.FileNameExtensionFilter');
+            const chooser = new JFileChooser();
+            chooser.setDialogTitle('Select a .wav failsafe sound');
+            chooser.setFileFilter(new FileNameExtensionFilter('WAV audio files', 'wav'));
+            chooser.setAcceptAllFileFilterUsed(false);
+
+            const result = chooser.showOpenDialog(null);
+            if (result !== JFileChooser.APPROVE_OPTION) return;
+
+            const path = String(chooser.getSelectedFile().getAbsolutePath());
+            input.text = path;
+            input.value = path;
+            if (typeof input.callback === 'function') input.callback(path);
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 
     postBanLog(reason) {
