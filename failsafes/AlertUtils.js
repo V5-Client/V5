@@ -1,6 +1,7 @@
 import { drawRect, drawText } from '../gui/Utils';
 import { Chat } from '../utils/Chat';
 import { File, globalAssetsDir } from '../utils/Constants';
+import { Notifications } from '../utils/Notifications';
 import { Utils } from '../utils/Utils';
 import FailsafeUtils from './FailsafeUtils';
 
@@ -22,6 +23,9 @@ class AlertUtilsClass {
         this.gainControl = null;
         this.savedSound = null;
         this.isAlerting = false;
+        this.failsafeVolume = 100;
+        this.customFailsafeSound = '';
+        this.grabWindowOnCheck = false;
 
         this.cancelKeyBind = null;
         this.cancelKey = null;
@@ -46,8 +50,10 @@ class AlertUtilsClass {
         Chat.messageFailsafe(`Press &c&l${this.cancelKey}&r &fto disable the reaction`);
 
         this.isAlerting = true;
+        this._refreshSettings();
         this.playSound();
-        this._grabWindowOnFailsafe();
+        this.sendDesktopAlert();
+        if (this.grabWindowOnCheck) this._grabWindowOnFailsafe();
 
         const line1 = 'V5 BELIEVES YOU HAVE BEEN MACRO CHECKED!';
         const key = this.cancelKey;
@@ -121,8 +127,25 @@ class AlertUtilsClass {
      */
     playSound() {
         if (!FailsafeUtils.getFailsafeSettings('Play sound on check').playSoundOnCheck) return;
-        const currentSound = failsafeSound;
+        this._playCurrentSound();
+    }
+
+    /**
+     * Plays the currently selected failsafe sound, ignoring the sound toggle
+     */
+    previewAlert() {
+        this._refreshSettings();
+        this._playCurrentSound();
+        Chat.messageFailsafe(`&aPreviewing failsafe sound at ${Math.max(0, Math.min(100, this.failsafeVolume))}% volume.`);
+    }
+
+    /**
+     * Loads and plays the current sound at the configured volume
+     */
+    _playCurrentSound() {
+        const currentSound = this._resolveSoundName();
         if (!this.clip || this.savedSound !== currentSound) this._loadsoundFile();
+        this._applyVolume();
 
         if (this.clip) {
             this.clip.stop();
@@ -138,8 +161,67 @@ class AlertUtilsClass {
         if (this.clip && this.clip.isRunning()) this.clip.stop();
     }
 
+    /**
+     * Sends a native desktop notification if the player has the setting toggled
+     */
+    sendDesktopAlert() {
+        try {
+            if (!FailsafeUtils.getFailsafeSettings('Desktop Notification on Check').desktopNotificationOnCheck) return;
+            Notifications.sendAlert('V5 believes you have been macro checked!');
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
+    }
+
     setFailsafeSound(fileName) {
         failsafeSound = fileName;
+    }
+
+    setFailsafeVolume(volume) {
+        this.failsafeVolume = volume;
+        this._applyVolume();
+    }
+
+    setCustomFailsafeSound(value) {
+        this.customFailsafeSound = typeof value === 'string' ? value.trim() : '';
+        this.savedSound = null;
+    }
+
+    /**
+     * Pulls the latest sound related settings from the failsafe config
+     */
+    _refreshSettings() {
+        try {
+            const settings = FailsafeUtils.getFailsafeSettings('Failsafe Actions');
+            this.failsafeVolume = typeof settings.failsafeVolume === 'number' ? settings.failsafeVolume : 100;
+            this.customFailsafeSound = typeof settings.customFailsafeSound === 'string' ? settings.customFailsafeSound.trim() : '';
+            this.grabWindowOnCheck = !!settings.grabWindowOnCheck;
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
+    }
+
+    /**
+     * Resolves the sound to use, preferring a custom sound if one is set
+     */
+    _resolveSoundName() {
+        if (this.customFailsafeSound) return this.customFailsafeSound;
+        return !failsafeSound || failsafeSound.includes('undefined') ? 'Tave Check.wav' : failsafeSound;
+    }
+
+    /**
+     * Applies the configured volume to the current gain control
+     */
+    _applyVolume() {
+        try {
+            if (!this.gainControl) return;
+            const volume = Math.max(0, Math.min(100, Number(this.failsafeVolume) || 100)) / 100;
+            const min = this.gainControl.getMinimum();
+            const max = this.gainControl.getMaximum();
+            this.gainControl.setValue(min + (max - min) * volume);
+        } catch (e) {
+            console.error('V5 Caught error' + e + e.stack);
+        }
     }
 
     /**
@@ -148,10 +230,11 @@ class AlertUtilsClass {
     _loadsoundFile() {
         this._closeSound();
 
-        const currentSound = failsafeSound;
-        this.savedSound = !currentSound || currentSound.includes('undefined') ? 'Tave Check.wav' : currentSound;
+        const currentSound = this._resolveSoundName();
+        this.savedSound = currentSound;
 
-        this.soundFile = new File(globalAssetsDir, `failsafes/sounds/${this.savedSound}`);
+        const hasSeparator = currentSound.includes('/') || currentSound.includes('\\');
+        this.soundFile = hasSeparator ? new File(currentSound) : new File(globalAssetsDir, `failsafes/sounds/${currentSound}`);
         if (!this.soundFile.exists()) return;
 
         try {
@@ -161,6 +244,7 @@ class AlertUtilsClass {
             if (this.clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 this.gainControl = this.clip.getControl(FloatControl.Type.MASTER_GAIN);
             }
+            this._applyVolume();
         } catch (e) {
             this._closeSound();
             console.error('V5 Caught error' + e + e.stack);

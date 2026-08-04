@@ -7,6 +7,10 @@ const DEFAULT_FAILSAFE_SETTINGS = {
     playerProximityDistance: 3,
     pingOnCheck: 'Ping',
     playSoundOnCheck: true,
+    desktopNotificationOnCheck: true,
+    grabWindowOnCheck: false,
+    failsafeVolume: 100,
+    customFailsafeSound: '',
 };
 
 class FailsafeUtils {
@@ -69,12 +73,25 @@ class FailsafeUtils {
             pingOnCheckValue = pingConfig ?? DEFAULT_FAILSAFE_SETTINGS.pingOnCheck;
         }
 
+        const actionsConfig = failsafesConfig['Failsafe Actions'];
+        let desktopNotificationOnCheck = failsafesConfig['Desktop Notification on Check'] ?? DEFAULT_FAILSAFE_SETTINGS.desktopNotificationOnCheck;
+        let grabWindowOnCheck = DEFAULT_FAILSAFE_SETTINGS.grabWindowOnCheck;
+        if (Array.isArray(actionsConfig)) {
+            const enabledActions = actionsConfig.filter((option) => option?.enabled).map((option) => option?.name);
+            desktopNotificationOnCheck = enabledActions.includes('Desktop Alerts');
+            grabWindowOnCheck = enabledActions.includes('Grab Game Window');
+        }
+
         const normalized = {
             enabledMap,
             rawEnabledList: enabledList,
             reactionInput: failsafesConfig['Failsafe Detection Delay (ms)'] ?? DEFAULT_FAILSAFE_SETTINGS.FailsafeReactionTime,
             playerProximityDistance: failsafesConfig['Player Proximity Distance'] ?? DEFAULT_FAILSAFE_SETTINGS.playerProximityDistance,
             playSoundOnCheck: failsafesConfig['Play sound on check'] ?? DEFAULT_FAILSAFE_SETTINGS.playSoundOnCheck,
+            desktopNotificationOnCheck,
+            grabWindowOnCheck,
+            failsafeVolume: failsafesConfig['Failsafe Sound Volume'] ?? DEFAULT_FAILSAFE_SETTINGS.failsafeVolume,
+            customFailsafeSound: failsafesConfig['Custom Failsafe Sound'] ?? DEFAULT_FAILSAFE_SETTINGS.customFailsafeSound,
             pingOnCheck: pingOnCheckValue,
         };
 
@@ -113,6 +130,10 @@ class FailsafeUtils {
             playerProximityDistance: normalized.playerProximityDistance,
             pingOnCheck: normalized.pingOnCheck,
             playSoundOnCheck: normalized.playSoundOnCheck,
+            desktopNotificationOnCheck: normalized.desktopNotificationOnCheck,
+            grabWindowOnCheck: normalized.grabWindowOnCheck,
+            failsafeVolume: normalized.failsafeVolume,
+            customFailsafeSound: normalized.customFailsafeSound,
         };
     }
 
