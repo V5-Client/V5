@@ -19,15 +19,18 @@ class RotationConfig extends ModuleBase {
         this.ROTATION_SPEED = 400;
         this.rotationMode = 'Non-linear';
         this.DAMPING_DIST = 60;
+        this.RANDOMNESS = 1;
+        this.ETHERWARP_OVERSHOOT = 0;
+        this.ETHERWARP_PING_ADJUSTMENT = 0;
 
         this.addDirectMultiToggle(
             'Rotation Mode',
-            ['Linear', 'Non-linear (recommended)', 'Instant'],
+            ['Linear', 'Non-linear (recommended)', 'Instant', 'Bezier'],
             true,
             (value) => {
                 this.rotationMode = value?.find((opt) => opt.enabled)?.name;
             },
-            '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise\n• Instant rotations snap to the target immediately.',
+            '• Non-linear rotations have offsets making them more human-like\n• Linear rotations are smoother and more precise\n• Instant rotations snap to the target immediately.\n• Bezier rotations follow a smooth ease-in-out cubic bezier curve.',
             'Non-linear (recommended)',
             'Rotations'
         );
@@ -41,6 +44,42 @@ class RotationConfig extends ModuleBase {
                 this.ROTATION_SPEED = v * 10;
             },
             'Degrees per second',
+            'Rotations'
+        );
+
+        this.addDirectSlider(
+            'Randomness',
+            0,
+            100,
+            100,
+            (v) => {
+                this.RANDOMNESS = v / 100;
+            },
+            'How strong the random curve offset is on non-linear/bezier rotations.',
+            'Rotations'
+        );
+
+        this.addDirectSlider(
+            'Etherwarp Overshoot',
+            0,
+            5,
+            0,
+            (v) => {
+                this.ETHERWARP_OVERSHOOT = v;
+            },
+            'Extra blocks the etherwarp aims past the waypoint to compensate for teleports landing short.',
+            'Rotations'
+        );
+
+        this.addDirectSlider(
+            'Etherwarp Ping Adjustment',
+            -10,
+            10,
+            0,
+            (v) => {
+                this.ETHERWARP_PING_ADJUSTMENT = Math.round(v);
+            },
+            'Added tick delay to compensate for network latency on etherwarp arrival.',
             'Rotations'
         );
     }
@@ -291,9 +330,23 @@ class RotationController {
         const warmup = this.request?.type === 'angles' ? 1 : Math.min(timeAlive * 4, 1);
         const damping = Math.min(distance / RotationModule.DAMPING_DIST, 1);
         const speed = RotationModule.ROTATION_SPEED * (this.request?.speedMultiplier ?? 1) * Math.sqrt(damping);
-        const step = (speed * warmup + 10) * deltaTime;
+
+        let step = (speed * warmup + 10) * deltaTime;
+
+        if (RotationModule.rotationMode === 'Bezier') {
+            const progress = this.getProgress(distance);
+            const eased = this.getBezierVelocity(progress);
+            step = (speed * (0.25 + 0.75 * eased) * warmup + 10) * deltaTime;
+        }
 
         return Math.min(distance, step) / distance;
+    }
+
+    // Velocity follows the derivative of the cubic ease-in-out curve, giving a smooth
+    // bell shape: gentle start, peak mid-rotation, gentle stop (no end-of-rotation snap).
+    getBezierVelocity(t) {
+        const p = Math.max(0, Math.min(1, t));
+        return p < 0.5 ? 12 * p * p : 12 * (1 - p) * (1 - p);
     }
 
     getProgress(distance) {
@@ -306,7 +359,8 @@ class RotationController {
 
         const ease = Math.sin(progress * Math.PI);
         const fade = 1 - progress;
-        const strength = this.initialDistance * 0.18 * ease * fade;
+        let strength = this.initialDistance * 0.18 * ease * fade * RotationModule.RANDOMNESS;
+        if (RotationModule.rotationMode === 'Bezier') strength *= 0.5;
 
         return {
             x: Math.cos(this.curveSeed) * strength,

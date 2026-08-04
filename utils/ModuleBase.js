@@ -438,9 +438,10 @@ export class ModuleBase {
      * @param {function} callback - Callback function when text changes
      * @param {string} [description=null] - Description/tooltip
      * @param {string} [sectionName=null] - Optional: Section header within Settings
+     * @param {function} [onBoxClick=null] - Optional: Called with the TextInput when its box is clicked instead of starting to type
      */
-    addDirectTextInput(title, defaultValue, callback, description = null, sectionName = null) {
-        return Categories.addSettingsTextInput(title, defaultValue, callback, description, sectionName, 'Settings');
+    addDirectTextInput(title, defaultValue, callback, description = null, sectionName = null, onBoxClick = null) {
+        return Categories.addSettingsTextInput(title, defaultValue, callback, description, sectionName, onBoxClick);
     }
 
     /**

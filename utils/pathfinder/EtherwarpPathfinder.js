@@ -4,6 +4,7 @@ import { ClientboundPingPacket, ServerboundUseItemPacket } from '../Packets';
 import { Guis } from '../player/Inventory';
 import { finiteNumber } from '../NumberUtils';
 import { RotationGCD } from '../player/RotationGCD';
+import RotationModule from '../player/Rotations';
 import { ServerInfo } from '../player/ServerInfo';
 import { ScheduleTask } from '../ScheduleTask';
 import { Utils } from '../Utils';
@@ -217,7 +218,7 @@ class EtherwarpPathHandler {
 
     getPingDelayTicks() {
         const pingMs = ServerInfo.getPing() || 0;
-        return Math.ceil(pingMs / 50) + 2;
+        return Math.max(1, Math.ceil(pingMs / 50) + 2 + (RotationModule.ETHERWARP_PING_ADJUSTMENT ?? 0));
     }
 
     isExecutionContextValid(token) {
@@ -435,7 +436,31 @@ class EtherwarpPathHandler {
         }
         if (!this.ensureEtherwarpHeld(token, () => this.executeHop(token, index))) return;
 
-        RotationGCD.applyToPlayer(angles.yaw, angles.pitch);
+        let yaw = angles.yaw;
+        let pitch = angles.pitch;
+        const overshoot = Number(RotationModule.ETHERWARP_OVERSHOOT ?? 0);
+        if (overshoot > 0) {
+            const node = this.path[index];
+            if (this.isNodeValid(node)) {
+                const px = Number(Player.getX());
+                const py = Player.getEyePosition?.().y?.() ?? Number(Player.getY()) + Player.getPlayer().getEyeHeight();
+                const pz = Number(Player.getZ());
+                if ([px, py, pz].every(Number.isFinite)) {
+                    const dx = Number(node.x) - px;
+                    const dy = Number(node.y) - py;
+                    const dz = Number(node.z) - pz;
+                    const dist = Math.hypot(dx, dy, dz) || 1;
+                    const scale = (dist + overshoot) / dist;
+                    const tx = px + dx * scale;
+                    const ty = py + dy * scale;
+                    const tz = pz + dz * scale;
+                    yaw = (Math.atan2(-(tx - px), tz - pz) * 180) / Math.PI;
+                    pitch = (Math.atan2(-(ty - py), Math.hypot(tx - px, tz - pz)) * 180) / Math.PI;
+                }
+            }
+        }
+
+        RotationGCD.applyToPlayer(yaw, pitch);
         this.sendEtherwarpClick();
         if (index >= this.path.length - 1) {
             this.startAwaitingFinalArrival(token);
