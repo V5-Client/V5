@@ -1,40 +1,71 @@
-Config.setAutoUpdateModules(false);
-Config.setOpenConsoleOnError(true);
+/* MINING */
+import './mining/CommissionMacro';
+import './mining/ExcavatorMacro';
+import './mining/GlaciteCommissionMacro';
+import './mining/JasperDrillExploit';
+import './mining/LobbyHopper';
+import './foraging/MudwormMacro';
+import './foraging/LushLilacEtherwarpNuker';
+import './mining/Nuker';
+import './mining/OreMacro';
+import './mining/PinglessMining';
+import './mining/GlowingMushroomMacro';
+import './mining/TunnelsMiner';
 
-/* COMMANDS */
-import { registerV5Commands } from './utils/V5Commands';
+/* FORAGING */
+import './foraging/AutoHarp';
+import './foraging/HideonLeafESP';
+import './foraging/HuntingHelpers';
 
-/* GUI */
-import './gui/GUI';
+/* FARMING */
+import './farming/CocoaBeansMacro';
+import './farming/ADRotatingMelonMacro';
+import './farming/SShapeCropMacro';
+import './farming/WSRowMacros';
 
-/* CORE */
-import './utils/Config';
-import './utils/backend/WebSocket';
-import { ServerboundCommandSuggestionPacket } from './utils/Packets';
+/* VISUALS */
+import './visuals/BlockVisual';
+import './visuals/ESP';
+import './visuals/GIF';
+import './visuals/HUD';
+import './visuals/MobHider';
+import './visuals/MusicOverlay';
+import './visuals/PestESP';
+import './visuals/ProfileHider';
+import './visuals/RatESP';
+import './visuals/StructureESP';
+import './visuals/GlowingMushroomESP';
+import './visuals/PiP';
 
-register('packetSent', (packet, event) => {
-    if (packet.getCommand().toLowerCase().startsWith('/v5')) cancel(event);
-}).setFilteredClass(ServerboundCommandSuggestionPacket);
+/* SKILLS */
+import './skills/AutoExperiments';
+import './skills/ChocolateFactory';
+import './skills/FishingHelper';
+import './skills/FishOnMCMacro';
+import './skills/StridersurferMacro';
+import './skills/JerryBoxMacro';
+import './skills/MinionCollector';
+import './skills/RouteWalker';
+import './skills/WynnProfessionMacro';
 
-/* Utils */
-import { MacroState } from './utils/MacroState';
-import './modules/other/MacroScheduler';
-import './modules/other/MacroControllers';
-import './modules/other/DiscordIntegration';
-import './utils/pathfinder/PathFinder';
-import './utils/pathfinder/EtherwarpPathfinder';
-import './utils/Misc';
-import './utils/SkyblockItemUtil';
-import './failsafes/FailsafeManager';
-import './utils/SkyblockEvents';
-
-/* Modules */
-import './modules/loader';
-import './utils/UserScripts';
-
-import { loadSettings } from './gui/GuiSave';
-registerV5Commands();
-MacroState.setupLastMacroToggleKey();
-loadSettings();
-
-import './utils/DeveloperModeState';
+/* OTHER */
+import './other/AutoBeg';
+import './other/AutoConversation';
+import './other/AuctionHelper';
+import './other/BeachBaller';
+import './other/CancelInteract';
+import './other/ChatQOL';
+import './other/DiscordRPC';
+import './other/Failsafes';
+import './other/Freecam';
+import './other/Freelook';
+import './other/InventoryWalk';
+import './other/LeftClickEtherwarp';
+import './other/RatProtection';
+import './other/VoidgloomHelper';
+import './other/AutoCombine';
+import './other/AutoFusionRepeat';
+import './other/SunGeckoMacro';
+import './other/RatMacro';
+import './other/PeltMacro';
+import './other/PeltQOL';
