@@ -21,6 +21,16 @@ class MudwormMacro extends ModuleBase {
         });
         this.bindToggleKey();
 
+        this.autoRewarp = 'Warp Galatea';
+        this.addMultiToggle(
+            'Auto Rewarp',
+            ['Disabled', 'Warp Galatea', 'Warp Torrhus'],
+            true,
+            (options) => (this.autoRewarp = options.find((option) => option.enabled)?.name || 'Disabled'),
+            null,
+            this.autoRewarp
+        );
+
         this.processedTargets = new Set();
         this.busy = false;
         this.rewarping = false;
@@ -171,6 +181,7 @@ class MudwormMacro extends ModuleBase {
 
     failFallback(token) {
         if (!this.isCurrentAction(token)) return;
+        if (this.autoRewarp === 'Disabled') return this.finishFallback(token);
         this.rewarp('Fallback etherwarp failed.');
     }
 
@@ -215,6 +226,8 @@ class MudwormMacro extends ModuleBase {
     }
 
     rewarp(reason = 'Not enough mana.') {
+        if (this.autoRewarp === 'Disabled') return;
+
         this.rewarping = true;
         this.waitingForEntities = false;
         this.waitingForGalateaWorld = false;
@@ -224,6 +237,7 @@ class MudwormMacro extends ModuleBase {
         this.checkingFallback = false;
         this.stopCurrentAction();
         const token = ++this.rewarpToken;
+        const destination = this.autoRewarp === 'Warp Torrhus' ? 'torrhus' : 'galatea';
 
         this.message(`&e${reason} Rewarping...`);
         const runHubWarp = () => {
@@ -237,7 +251,7 @@ class MudwormMacro extends ModuleBase {
                 if (!this.enabled || token !== this.rewarpToken) return;
                 this.waitingForGalateaWorld = true;
                 this.lastGalateaWarpAt = Date.now();
-                ChatLib.command('warp galatea');
+                ChatLib.command(`warp ${destination}`);
             });
         };
         runHubWarp();
