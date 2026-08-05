@@ -310,6 +310,7 @@ class NotificationManager {
     constructor() {
         this.notifications = [];
         this.registered = false;
+        this.renderCallback = () => this.render();
         this.clickTrigger = null;
         this.tickTrigger = null;
         register('gameUnload', () => this.resetAll());
@@ -319,18 +320,23 @@ class NotificationManager {
         if (this.registered) return;
         this.registered = true;
 
-        Renderer.registerV5Render(() => {
-            this.render();
-        });
+        Renderer.registerV5Render(this.renderCallback);
 
         if (!this.clickTrigger) {
             this.clickTrigger = register('guiMouseClick', (mouseX, mouseY, button) => {
                 if (button === 0) this.handleClick(mouseX, mouseY);
             });
-        }
+        } else this.clickTrigger.register();
         if (!this.tickTrigger) {
             this.tickTrigger = register('tick', () => this.update());
-        }
+        } else this.tickTrigger.register();
+    }
+    unregisterEvents() {
+        if (!this.registered) return;
+        this.registered = false;
+        Renderer.unregisterV5Render(this.renderCallback);
+        this.clickTrigger?.unregister();
+        this.tickTrigger?.unregister();
     }
 
     add(title, description, type = 'SUCCESS', duration = DEFAULT_NOTIFICATION_DURATION) {
@@ -345,6 +351,7 @@ class NotificationManager {
         const beforeCount = this.notifications.length;
         this.notifications = this.notifications.filter((n) => n.state !== 'removed');
         if (this.notifications.length !== beforeCount) this.updatePositions();
+        if (this.notifications.length === 0) this.unregisterEvents();
     }
     updatePositions() {
         const screenWidth = Renderer.screen.getWidth();
@@ -374,6 +381,7 @@ class NotificationManager {
 
     resetAll() {
         this.notifications = [];
+        this.unregisterEvents();
     }
 }
 

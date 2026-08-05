@@ -34,7 +34,7 @@ export function getConfigFile(fileName) {
 
 export function writeConfigFile(fileName, data) {
     try {
-        FileLib.write(CONFIG_DIR_NAME, fileName, JSON.stringify(data, null, 2));
+        FileLib.write(CONFIG_DIR_NAME, fileName, JSON.stringify(data, null, 2), true);
         configCache.set(fileName, { data, timestamp: Date.now() });
         return true;
     } catch (error) {
