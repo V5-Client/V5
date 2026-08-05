@@ -163,9 +163,12 @@ export const macroToggleGui = {
         Renderer.save();
         Renderer.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
         let rowY = listY - scrollY;
+        const listBottom = listY + listHeight;
         rows.forEach((entry) => {
             if (entry.subcategory) {
-                drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
+                if (rowY + 20 >= listY && rowY <= listBottom) {
+                    drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
+                }
                 rowY += 20;
                 return;
             }
@@ -173,7 +176,6 @@ export const macroToggleGui = {
             const { module } = entry;
             const row = { x, y: rowY, width, height: ROW_HEIGHT, module };
             rowY += ROW_HEIGHT;
-            const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
             row.keybind = {
                 x: row.x + row.width - 104,
                 y: row.y,
@@ -181,6 +183,9 @@ export const macroToggleGui = {
                 height: row.height,
             };
             layout.rows.push(row);
+            if (row.y + row.height < listY || row.y > listBottom) return;
+
+            const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
             if (isInside(mouseX, mouseY, row) || module.enabled) {
                 drawRoundedRectangle({
                     ...row,
