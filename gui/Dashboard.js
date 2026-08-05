@@ -100,7 +100,7 @@ const drawDebugCard = (x, y, width) => {
     return height;
 };
 
-const drawModulesCard = (x, y, width, mouseX, mouseY) => {
+const drawModulesCard = (panel, x, y, width, mouseX, mouseY) => {
     const modules = getActiveModules();
     const rowCount = modules.length > 0 ? modules.length : 1;
     const height = getCardHeight(rowCount, modules.length > 0 ? MODULE_ROW_HEIGHT : EMPTY_STATE_HEIGHT);
@@ -115,24 +115,26 @@ const drawModulesCard = (x, y, width, mouseX, mouseY) => {
     }
 
     modules.forEach((module) => {
-        const meta = module.isMacro ? `${module.subcategory} macro` : module.subcategory;
+        const textY = rowY;
         const rowHitPaddingY = 1;
         const rowRect = {
             x: x + CARD_PADDING - 4,
-            y: rowY - MODULE_ROW_HEIGHT / 2 + rowHitPaddingY,
+            y: textY - MODULE_ROW_HEIGHT / 2 + rowHitPaddingY,
             width: width - CARD_PADDING * 2 + 8,
             height: MODULE_ROW_HEIGHT - rowHitPaddingY * 2,
         };
-        const isHovered = isInside(mouseX, mouseY, rowRect);
         lastModuleLayouts.push({ name: module.name, rect: rowRect });
+        rowY += MODULE_ROW_HEIGHT;
+        if (rowRect.y + rowRect.height < panel.y || rowRect.y > panel.y + panel.height) return;
 
+        const meta = module.isMacro ? `${module.subcategory} macro` : module.subcategory;
+        const isHovered = isInside(mouseX, mouseY, rowRect);
         if (isHovered) {
             drawRoundedRectangle({ ...rowRect, radius: 6, color: colorWithAlpha(THEME.BG_INSET, 0.7) });
         }
 
-        drawText(module.name, x + CARD_PADDING, rowY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
-        drawText(meta, x + width - CARD_PADDING - getTextWidth(meta, FontSizes.SMALL), rowY, FontSizes.SMALL, THEME.TEXT_MUTED);
-        rowY += MODULE_ROW_HEIGHT;
+        drawText(module.name, x + CARD_PADDING, textY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
+        drawText(meta, x + width - CARD_PADDING - getTextWidth(meta, FontSizes.SMALL), textY, FontSizes.SMALL, THEME.TEXT_MUTED);
     });
 
     return height;
@@ -152,7 +154,7 @@ export const drawDashboard = (panel, panelX, yOffset, mouseX, mouseY, scrollY) =
 
     const debugHeight = drawDebugCard(x, y, width);
     y += debugHeight + CARD_GAP;
-    drawModulesCard(x, y, width, mouseX, mouseY);
+    drawModulesCard(panel, x, y, width, mouseX, mouseY);
 };
 
 export const getDashboardModuleAt = (mouseX, mouseY) => {

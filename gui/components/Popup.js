@@ -230,6 +230,8 @@ export class Popup {
         const contentY = windowRect.y + this.headerHeight + this.windowPadding - this.contentScrollY;
         const contentWidth = windowRect.width - this.windowPadding * 2;
         const contentHeight = windowRect.height - this.headerHeight - this.windowPadding * 2;
+        const visibleTop = windowRect.y + this.headerHeight;
+        const visibleBottom = windowRect.y + windowRect.height - this.windowPadding;
 
         Renderer.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
 
@@ -258,6 +260,11 @@ export class Popup {
 
                 if (typeof component.updateHoverPress === 'function') {
                     component.updateHoverPress();
+                }
+
+                if (currentY + btnHeight < visibleTop || currentY > visibleBottom) {
+                    currentY += btnHeight + 10;
+                    return;
                 }
 
                 drawRoundedRectangle({
@@ -293,13 +300,20 @@ export class Popup {
                 return;
             }
 
+            const componentHeight = getComponentLayoutHeight(component);
+            if (currentY + componentHeight < visibleTop || currentY > visibleBottom) {
+                component.updateAnimation?.();
+                currentY += componentHeight;
+                return;
+            }
+
             component.x = contentX;
             component.y = currentY;
             component.optionPanelWidth = contentWidth + this.windowPadding * 2;
             component.optionPanelHeight = contentHeight;
             component.draw(mouseX, mouseY);
 
-            currentY += getComponentLayoutHeight(component);
+            currentY += componentHeight;
         });
 
         Renderer.resetScissor();

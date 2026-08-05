@@ -231,6 +231,8 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
     }
 
     layout.sections.forEach((section) => {
+        if (section.y + section.height < panel.y || section.y > panel.y + panel.height) return;
+
         const separator = new Separator(section.name, true);
         separator.x = panelX + PADDING;
         separator.y = section.y;
@@ -238,7 +240,12 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
         separator.draw(mouseX, mouseY);
     });
 
-    layout.rows.forEach(({ component, y }) => {
+    layout.rows.forEach(({ component, y, height }) => {
+        if (y + height < panel.y || y > panel.y + panel.height) {
+            component.updateAnimation?.();
+            return;
+        }
+
         const isPopup = component instanceof Popup;
         if (typeof component.draw === 'function' || isPopup) {
             component.x = getDirectComponentX(panel, panelX);
@@ -300,6 +307,13 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
         if (!isComponentVisible(component)) return;
         const isPopup = component instanceof Popup;
         if (!isPopup && typeof component.draw !== 'function') return;
+        const componentHeight = getComponentLayoutHeight(component);
+
+        if (drawnCompY + componentHeight < panel.y || drawnCompY > panel.y + panel.height) {
+            component.updateAnimation?.();
+            drawnCompY += componentHeight;
+            return;
+        }
 
         component.x = optionX;
         component.y = drawnCompY;
@@ -310,7 +324,7 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
         } else {
             component.draw(mouseX, mouseY);
         }
-        drawnCompY += getComponentLayoutHeight(component);
+        drawnCompY += componentHeight;
     });
 };
 
@@ -484,6 +498,10 @@ export const drawLeftPanelIcons = (mouseX, mouseY) => {
 };
 
 const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, cachedItemLayouts, isLayoutCacheValid, centerText = false) => {
+    if (itemY + itemHeight < GuiRectangles.RightPanel.y || itemY > GuiRectangles.RightPanel.y + GuiRectangles.RightPanel.height) {
+        return;
+    }
+
     const isDirectComponent = item && item.type === 'direct-component';
     const isModuleComponent = item && item.type === 'module-component';
     const isThemeComponent = item && item.type === 'theme-component';
