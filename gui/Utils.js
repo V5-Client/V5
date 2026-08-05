@@ -1,5 +1,7 @@
 import { Color, Identifier, SoundCategory, SoundEvent } from '../utils/Constants';
 
+const DEFAULT_FONT = Renderer.getDefaultFont();
+
 export const colorWithAlpha = (baseColor, alpha) => {
     let r, g, b, a;
 
@@ -158,16 +160,16 @@ export const drawRoundedRectangleWithBorder = (r) => {
 };
 
 export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) => {
-    const shadowColor = new Color(0, 0, 0, intensity).getRGB() | 0;
+    const shadowColor = (Math.floor(255 * intensity) << 24) | 0;
     Renderer.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
 };
 
 export const drawText = (text, x, y, size, color, align = 17) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    Renderer.text(text, x, y, size, c, Renderer.getDefaultFont(), align);
+    Renderer.text(text, x, y, size, c, DEFAULT_FONT, align);
 };
 
-export const getTextWidth = (text, size) => Renderer.textWidth(text, size, Renderer.getDefaultFont());
+export const getTextWidth = (text, size) => Renderer.textWidth(text, size, DEFAULT_FONT);
 
 export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
     drawText(text, x + (width - getTextWidth(text, fontSize)) / 2, yOffset, fontSize, color);

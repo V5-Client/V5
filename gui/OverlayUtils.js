@@ -72,14 +72,15 @@ class OverlayUtils {
         this.renderActive = false;
         this.drawingGUI = false;
 
-        Renderer.registerV5Render(() => {
+        this.renderCallback = () => {
             if (!Overlays.Gui.isOpen() && !this.renderActive) return;
             if (Overlays.Gui.isOpen()) {
                 this.drawGUI();
             } else {
                 this.drawAllOverlays();
             }
-        });
+        };
+        this.renderRegistration = null;
 
         register('gameUnload', () => this.resetAll());
 
@@ -114,7 +115,16 @@ class OverlayUtils {
 
     updateRenderActive() {
         this.renderActive = Object.values(this.animations).some((animation) => animation.target > 0 || animation.progress > 0.01);
+        this.updateRenderRegistration();
         return this.renderActive;
+    }
+
+    updateRenderRegistration(active = this.renderActive || Overlays.Gui.isOpen()) {
+        if (active && !this.renderRegistration) this.renderRegistration = Renderer.registerV5Render(this.renderCallback);
+        else if (!active && this.renderRegistration) {
+            Renderer.unregisterV5Render(this.renderRegistration);
+            this.renderRegistration = null;
+        }
     }
 
     startAnimationLoop() {
@@ -174,6 +184,7 @@ class OverlayUtils {
             this.animations[idName].target = 1;
         }
         this.renderActive = true;
+        this.updateRenderRegistration();
         this.startAnimationLoop();
     }
 
@@ -224,6 +235,7 @@ class OverlayUtils {
         this.dragging = false;
         this.pendingSave = false;
         this.renderActive = false;
+        this.updateRenderRegistration(false);
         if (this.stepTrigger) {
             this.stepTrigger.unregister();
             this.stepTrigger = null;
@@ -239,12 +251,14 @@ class OverlayUtils {
     }
 
     initTriggers() {
+        Overlays.Gui.registerOpened(() => this.updateRenderRegistration(true));
         Overlays.Gui.registerClosed(() => {
             this.handleMouseRelease();
             if (this.pendingSave) {
                 this.saveSettings();
                 this.pendingSave = false;
             }
+            this.updateRenderRegistration(this.renderActive);
             openModuleGui();
         });
         Overlays.Gui.registerClicked((x, y, b) => b === 0 && this.handleMouseClick(x, y));
@@ -434,7 +448,6 @@ class OverlayUtils {
         settings.x = Math.max(0, Math.min(mouseX - this.dragOffset.x, sw - boxWidth));
         settings.y = Math.max(0, Math.min(mouseY - this.dragOffset.y, sh - boxHeight));
         this.pendingSave = true;
-        this.saveSettings();
     }
 
     handleMouseRelease() {
@@ -459,7 +472,6 @@ class OverlayUtils {
             settings.scale = clamp(scale + (dir > 0 ? 0.1 : -0.1), 0.5, 3);
             if (target === 'default' || target === 'scheduler') this.updateScaleProps(target);
             this.pendingSave = true;
-            this.saveSettings();
             return;
         }
     }
@@ -736,6 +748,7 @@ class OverlayUtils {
 
         if (visibleIds.length === 0) {
             this.renderActive = false;
+            this.updateRenderRegistration(false);
             return;
         }
         this.renderActive = true;

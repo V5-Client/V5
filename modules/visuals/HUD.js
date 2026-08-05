@@ -40,12 +40,18 @@ class HUD extends ModuleBase {
             'renderOverlay',
             () => this.renderOverlay()
         );
-        Renderer.registerV5PreRender(() => this.renderInventoryBackgroundOverlay());
-        Renderer.registerV5Render(() => this.renderStatsOverlay());
+        this.inventoryBackgroundCallback = () => this.renderInventoryBackgroundOverlay();
+        this.statsCallback = () => this.renderStatsOverlay();
+        this.inventoryBackgroundRegistration = null;
+        this.statsRegistration = null;
 
         register('gameUnload', () => this.savePositions());
         register('guiClosed', () => this.savePositions());
-        register('tick', () => (this.worldLoaded = World.isLoaded()));
+        register('tick', () => {
+            this.worldLoaded = World.isLoaded();
+            this.updateRenderRegistrations();
+        });
+        this.updateRenderRegistrations();
     }
 
     onDisable() {
@@ -84,7 +90,7 @@ class HUD extends ModuleBase {
     }
 
     syncFromOverlayEditor() {
-        const latest = getConfigFile('OverlayPositions/hud_positions.json');
+        const latest = OverlayManager?.hudSettings;
         if (!latest || typeof latest !== 'object') return;
 
         if (latest.stats && typeof latest.stats === 'object') {
@@ -139,14 +145,28 @@ class HUD extends ModuleBase {
     prepareOverlay(enabled, recalc) {
         if (GuiState.myGui.isOpen() || OverlayManager.drawingGUI || !enabled || !this.worldLoaded) return false;
 
-        this.syncFromOverlayEditor();
-
         const sw = Renderer.screen.getWidth();
         const sh = Renderer.screen.getHeight();
         if (sw <= 0 || sh <= 0) return false;
 
         recalc.call(this);
         return { sw, sh };
+    }
+
+    updateRenderRegistrations() {
+        const visible = this.worldLoaded && !GuiState.myGui.isOpen() && !OverlayManager.drawingGUI;
+        if (visible && this.INVENTORY_HUD && !this.inventoryBackgroundRegistration) {
+            this.inventoryBackgroundRegistration = Renderer.registerV5PreRender(this.inventoryBackgroundCallback);
+        } else if ((!visible || !this.INVENTORY_HUD) && this.inventoryBackgroundRegistration) {
+            Renderer.unregisterV5PreRender(this.inventoryBackgroundRegistration);
+            this.inventoryBackgroundRegistration = null;
+        }
+        if (visible && this.STATS_HUD && !this.statsRegistration) {
+            this.statsRegistration = Renderer.registerV5Render(this.statsCallback);
+        } else if ((!visible || !this.STATS_HUD) && this.statsRegistration) {
+            Renderer.unregisterV5Render(this.statsRegistration);
+            this.statsRegistration = null;
+        }
     }
 
     drawInFrame(sw, sh, draw) {
