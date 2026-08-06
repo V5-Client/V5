@@ -1460,8 +1460,7 @@ class OreMiner extends ModuleBase {
             const dz = candidate.z + 0.5 - eyePos.z();
             const horizontalDistance = Math.hypot(dx, dz);
             const lookDot = lookLength && horizontalDistance ? (dx * lookVec.x() + dz * lookVec.z()) / (horizontalDistance * lookLength) : 1;
-            if (this.typeMineFov < 360 && lookDot < minimumFovDot)
-                continue;
+            if (this.typeMineFov < 360 && lookDot < minimumFovDot) continue;
             const aim = this.getMineAim(candidate);
             if (this.typeMineIgnored[this.mineBlockKey(candidate)] || !aim || !this.hasMinimumTypeMineVisibility(candidate, aim, eyePos)) continue;
             targets.push(candidate);
