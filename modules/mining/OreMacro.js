@@ -968,7 +968,12 @@ class OreMiner extends ModuleBase {
                 };
             }
 
-            if (this.typeMineEnabled) continue;
+            if (this.typeMineEnabled) {
+                return {
+                    vector: MathUtils.blockCenter(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z),
+                    walkGuide: true,
+                };
+            }
 
             const block = (waypoint.minableBlocks || []).find((candidate) => !this.shouldSkipBlock(candidate));
             const deepDrop = Player.getY() - waypoint.pos.y >= 5;
