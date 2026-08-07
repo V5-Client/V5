@@ -1447,11 +1447,8 @@ class OreMiner extends ModuleBase {
 
         const lookVec = Player.asPlayerMP()?.getLookVector?.();
         const candidates = MiningBot.collectScanTargets(costs, eyePos, lookVec, MiningBot.mineReach, null, true, false).reachableCandidates;
-        candidates.sort((a, b) => {
-            if (this.typeMinePriority === 'High' && a.y !== b.y) return b.y - a.y;
-            if (this.typeMinePriority === 'Low' && a.y !== b.y) return a.y - b.y;
-            return a.cheapCost - b.cheapCost;
-        });
+        const heightCostPerBlock = this.typeMinePriority === 'High' ? -10 : this.typeMinePriority === 'Low' ? 10 : 0;
+        candidates.sort((a, b) => a.cheapCost - b.cheapCost + (a.y - b.y) * heightCostPerBlock);
         const targets = [];
         const lookLength = lookVec ? Math.hypot(lookVec.x(), lookVec.z()) : 0;
         const minimumFovDot = Math.cos((this.typeMineFov * Math.PI) / 360);
