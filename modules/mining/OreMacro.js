@@ -194,7 +194,6 @@ class OreMiner extends ModuleBase {
             'Mine nearest targets normally, or prefer higher/lower targets first.',
             'Nearest'
         );
-
         this.addSeparator('Rotations');
         this.addSlider('Ore Mining Rotation Speed', 1, 100, 48, (value) => (this.oreMineSpeed = value / 100), 'Rotation speed for mining targets.');
         this.addSlider(
@@ -220,7 +219,7 @@ class OreMiner extends ModuleBase {
             'Sneak While Mining',
             (value) => {
                 this.sneakWhileMining = value;
-                if (!value && this.state.startsWith('MINE')) Client.setKey('shift', false);
+                if (!value && this.state.startsWith('MINE') && this.state !== 'MINE_STRAFE') Client.setKey('shift', false);
             },
             'Allow Ore Macro to sneak while mining.',
             true
@@ -1065,7 +1064,7 @@ class OreMiner extends ModuleBase {
             return;
         }
 
-        this.setMiningSneak();
+        this.ensureShiftHeld();
         OreRotations.trackVector(MathUtils.blockCenter(block.x, block.y, block.z), this.oreMineSpeed);
         const aim = this.getMineAim(block);
         if (aim) {
@@ -1086,9 +1085,9 @@ class OreMiner extends ModuleBase {
             return;
         }
 
-        if (this.sneakWhileMining && !Player.isSneaking()) return;
+        if (!Player.isSneaking()) return;
         Keybind.setKeysForStraightLineCoords(this.mineStrafeTarget.x, Player.getY(), this.mineStrafeTarget.z, false);
-        this.setMiningSneak();
+        this.ensureShiftHeld();
     }
 
     handleUnreachableBlock(block) {
@@ -1103,7 +1102,7 @@ class OreMiner extends ModuleBase {
         Client.setKey('leftclick', false);
         this.mineStrafeTarget = target;
         this.strafedForBlock = true;
-        this.setMiningSneak();
+        this.ensureShiftHeld();
         OreRotations.trackVector(MathUtils.blockCenter(block.x, block.y, block.z), this.oreMineSpeed);
         this.enterState('MINE_STRAFE');
         return true;
@@ -1545,11 +1544,6 @@ class OreMiner extends ModuleBase {
 
     ensureShiftHeld() {
         if (!Client.isKeyDown('shift')) Client.setKey('shift', true);
-    }
-
-    setMiningSneak() {
-        if (this.sneakWhileMining) this.ensureShiftHeld();
-        else Client.setKey('shift', false);
     }
 
     stopStrafing(releaseSneak = true) {
