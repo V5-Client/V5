@@ -29,7 +29,7 @@ class UngrabManager {
             mc.mouseHandler.releaseMouse();
 
             if (isLinux) {
-                GLFW.glfwSetInputMode(mc.getWindow().handle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+                GLFW.glfwSetInputMode(GLFW.glfwGetCurrentContext(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
             }
         }
     }
@@ -62,7 +62,7 @@ class UngrabManager {
         const mc = Client.getMinecraft();
         if (mc.screen == null) {
             mc.mouseHandler.grabMouse();
-            GLFW.glfwSetInputMode(mc.getWindow().handle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+            GLFW.glfwSetInputMode(GLFW.glfwGetCurrentContext(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
         }
     }
 }
