@@ -124,7 +124,10 @@ class Bot extends ModuleBase {
                 title: 'Status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    Target: () => (this.currentTarget ? `${Math.floor(this.currentTarget.x)}, ${Math.floor(this.currentTarget.y)}, ${Math.floor(this.currentTarget.z)}` : 'None'),
+                    Target: () =>
+                        this.currentTarget
+                            ? `${Math.floor(this.currentTarget.x)}, ${Math.floor(this.currentTarget.y)}, ${Math.floor(this.currentTarget.z)}`
+                            : 'None',
                     Ticks: () => `${this.mineTickCount}/${this.totalTicks}`,
                 },
             },
@@ -301,7 +304,7 @@ class Bot extends ModuleBase {
                 if (!value) Client.stopMovement();
             },
             'Moves around vein while mining.',
-            true,
+            true
         );
         let additionalLagCompensation;
         this.addToggle(
@@ -311,7 +314,7 @@ class Bot extends ModuleBase {
                 additionalLagCompensation.visible = value;
             },
             'Predicts when blocks are broken to begin mining the next block early.',
-            true,
+            true
         );
         additionalLagCompensation = this.addSlider(
             'Additional lag compensation',
@@ -321,7 +324,7 @@ class Bot extends ModuleBase {
             (value) => {
                 this.ADDITIONAL_LAG_COMP = value;
             },
-            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)',
+            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)'
         );
         additionalLagCompensation.visible = this.TICKGLIDE;
         this.addToggle(
@@ -329,14 +332,14 @@ class Bot extends ModuleBase {
             (value) => {
                 this.setPrioritizeTitanium(value);
             },
-            'Whenever Titanium is in range it will be targeted the most',
+            'Whenever Titanium is in range it will be targeted the most'
         );
         this.addToggle(
             'Prioritise Gray Mithril',
             (value) => {
                 this.setPrioritizeGrayMithril(value);
             },
-            'Reverses mithril block targeting costs to prioritise gray mithril.',
+            'Reverses mithril block targeting costs to prioritise gray mithril.'
         );
         this.addMultiToggle(
             'Fakelook',
@@ -347,7 +350,7 @@ class Bot extends ModuleBase {
                 this.fakeLookModeName = this.getEnabledOptionName(value, 'Off');
             },
             'Fakelook begins to mine blocks before the player looks at them.',
-            'Off',
+            'Off'
         );
         this.addMultiToggle(
             'Types',
@@ -935,7 +938,7 @@ class Bot extends ModuleBase {
                 this.insertSortedCandidate(
                     approachTargets,
                     { x, y, z, cost: this.calculateApproachCost(targetCost, distToCenter), blockName, dist: distToCenter, targetMode: TARGET_MODES.APPROACH },
-                    this.approachTargetBudget,
+                    this.approachTargetBudget
                 );
             }
         }
@@ -1000,7 +1003,7 @@ class Bot extends ModuleBase {
                     visibilityStability,
                     targetMode: TARGET_MODES.REACHABLE,
                 },
-                this.reachableVisibleTargetBudget,
+                this.reachableVisibleTargetBudget
             );
         }
 
@@ -1402,7 +1405,11 @@ class Bot extends ModuleBase {
         let moveForward = values.distanceFlat > cfg.moveInMax;
         let moveBack = values.distanceFlat < cfg.moveInMin;
 
-        const isAligned = yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold && values.distance <= 4 && !(tunnelMode && isHighTarget && values.distanceFlat < cfg.moveInMin);
+        const isAligned =
+            yaw >= -cfg.stopYawThreshold &&
+            yaw <= cfg.stopYawThreshold &&
+            values.distance <= 4 &&
+            !(tunnelMode && isHighTarget && values.distanceFlat < cfg.moveInMin);
         const inDistanceBand = values.distanceFlat >= 2.5 && values.distanceFlat <= 3.25;
         if (isAligned || inDistanceBand) {
             moveRight = false;
@@ -1435,7 +1442,15 @@ class Bot extends ModuleBase {
 
         const eyePos = Player.getPlayer().getEyePosition();
         const lookVec = Player.asPlayerMP().getLookVector();
-        const hit = this.findVisibleAimPoint(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z, eyePos, lookVec, this.faceReach * this.faceReach, false);
+        const hit = this.findVisibleAimPoint(
+            this.currentTarget.x,
+            this.currentTarget.y,
+            this.currentTarget.z,
+            eyePos,
+            lookVec,
+            this.faceReach * this.faceReach,
+            false
+        );
 
         if (!hit) return false;
 
@@ -1696,7 +1711,13 @@ class Bot extends ModuleBase {
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
         const palette = isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
 
-        RenderUtils.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), palette.currentFill, palette.currentWire, 6, false);
+        RenderUtils.drawStyledBox(
+            new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z),
+            palette.currentFill,
+            palette.currentWire,
+            6,
+            false
+        );
 
         if (this.lastAimPos) {
             const d = 0.08;
