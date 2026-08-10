@@ -222,7 +222,7 @@ class Combat extends ModuleBase {
             const position = this.getTargetPosition(this.target);
             if (!position) this.setState(STATES.IDLE);
             else {
-                const distance = this.getDistanceToPlayer(position);
+                const distance = this._getDistanceToPlayer(position);
                 if (distance.distance <= this.attackRange && this.canSeeTarget(this.target)) this.engage(position, distance);
                 else this.startPath(position);
             }
@@ -235,7 +235,7 @@ class Combat extends ModuleBase {
             return;
         }
 
-        const distance = this.getDistanceToPlayer(position);
+        const distance = this._getDistanceToPlayer(position);
 
         if (this.state === STATES.PATHING) {
             if (
@@ -421,7 +421,7 @@ class Combat extends ModuleBase {
             const position = this.getTargetPosition(target);
             if (!position) return;
 
-            const distance = this.getDistanceToPlayer(position).distance;
+            const distance = this._getDistanceToPlayer(position).distance;
             const turn = angleToPlayer([position.x, position.y, position.z]).distance;
             const score = distance + turn * 0.025;
             if (score < bestScore) {
@@ -478,7 +478,7 @@ class Combat extends ModuleBase {
         }
     }
 
-    getDistanceToPlayer(position) {
+    _getDistanceToPlayer(position) {
         return getDistanceToPlayer(position.x, position.y, position.z);
     }
 

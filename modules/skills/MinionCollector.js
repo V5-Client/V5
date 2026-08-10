@@ -22,7 +22,7 @@ class MinionCollector extends ModuleBase {
             () => this.enabled && area() === 'Private Island',
             'tick',
             () => {
-                this.clickSlot();
+                this._clickSlot();
 
                 if (this.inMinion) return;
                 this.scanAndQueue();
@@ -82,7 +82,7 @@ class MinionCollector extends ModuleBase {
         this.rightClickMinion(entity);
     }
 
-    clickSlot() {
+    _clickSlot() {
         if (!this.inMinion) return;
 
         const name = getGuiName();
