@@ -362,7 +362,7 @@ class Bot extends ModuleBase {
                 this.setCost();
             },
             'Targets specified block type.',
-            'Mithril',
+            'Mithril'
         );
         this.addToggle(
             'Pickobulus Aim',
@@ -496,8 +496,12 @@ class Bot extends ModuleBase {
     }
 
     updateBlockTracking(lowestCostBlock, blockName) {
-        const isSameAsLast = this.lastBlockPos && this.lastBlockPos.x === lowestCostBlock.x && this.lastBlockPos.y === lowestCostBlock.y && this.lastBlockPos.z === lowestCostBlock.z;
-
+        const isSameAsLast =
+            this.lastBlockPos &&
+            this.lastBlockPos.x === lowestCostBlock.x &&
+            this.lastBlockPos.y === lowestCostBlock.y &&
+            this.lastBlockPos.z === lowestCostBlock.z;
+        
         if (isSameAsLast && this.lastBlockType && this.lastBlockType !== blockName) {
             if (!this.isAirOrBedrock(blockName)) {
                 this.lastBlockType = blockName;
@@ -522,7 +526,12 @@ class Bot extends ModuleBase {
             this.mineTickCount++;
         } else {
             const lookingAt = Player.lookingAt();
-            if (lookingAt && lookingAt.getX() === this.currentTarget?.x && lookingAt.getY() === this.currentTarget?.y && lookingAt.getZ() === this.currentTarget?.z) {
+            if (
+                lookingAt &&
+                lookingAt.getX() === this.currentTarget?.x &&
+                lookingAt.getY() === this.currentTarget?.y &&
+                lookingAt.getZ() === this.currentTarget?.z
+            ) {
                 this.mineTickCount++;
             }
         }
@@ -574,7 +583,9 @@ class Bot extends ModuleBase {
             this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
             return;
         }
-        const currentName = this.currentTarget ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z)?.type?.getRegistryName() || '' : '';
+        const currentName = this.currentTarget
+            ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z)?.type?.getRegistryName() || ''
+            : '';
         if (allowStickyTarget && this.currentTarget && !this.isAirOrBedrock(currentName) && this.refreshCurrentTargetAimPoint()) return;
 
         this.scanForBlock(this.COSTTYPE, this.currentTarget);
@@ -602,7 +613,7 @@ class Bot extends ModuleBase {
 
         if (this.DEBUG_MODE) {
             this.message(
-                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`,
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
             );
         }
 
