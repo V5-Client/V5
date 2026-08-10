@@ -1,4 +1,4 @@
-import { Chat } from './Chat';
+import { chat } from './Chat';
 import { GLFW } from './Constants';
 
 let pipWindowState = null;
@@ -25,7 +25,7 @@ export function togglePiP() {
         }
 
         pipWindowState = null;
-        return Chat.message('&cPicture-in-picture disabled.');
+        return chat('&cPicture-in-picture disabled.');
     }
 
     const monitor = window.findBestMonitor();
@@ -58,5 +58,5 @@ export function togglePiP() {
     GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_FLOATING, GLFW.GLFW_TRUE);
     GLFW.glfwSetWindowSize(handle, width, height);
     GLFW.glfwSetWindowPos(handle, workX.get(0) + workWidth.get(0) - width - 16, workY.get(0) + workHeight.get(0) - height - 16);
-    Chat.message('&aPicture-in-picture enabled.');
+    chat('&aPicture-in-picture enabled.');
 }
