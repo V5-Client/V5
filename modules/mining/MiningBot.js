@@ -8,6 +8,7 @@ import { manager } from '../../utils/SkyblockEvents';
 import { Utils } from '../../utils/Utils';
 import { Guis } from '../../utils/player/Inventory';
 import { Rotations } from '../../utils/player/Rotations';
+import { RotationGCD } from '../../utils/player/RotationGCD';
 import { ServerInfo } from '../../utils/player/ServerInfo';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { Mouse } from '../../utils/Ungrab';
@@ -81,6 +82,8 @@ class Bot extends ModuleBase {
         this.lastUse = Date.now();
         this.ABILITY_COOLDOWN_MS = 200000;
         this._pendingAbilityActivation = false;
+        this.PICKOBULUS_AIM = false;
+        this._pickobulusPhase = null;
         this.fakeLookModeName = 'Off';
         this.selectedTypeName = 'Mithril';
         this._renderPalette = {
@@ -121,10 +124,7 @@ class Bot extends ModuleBase {
                 title: 'Status',
                 data: {
                     State: () => Object.keys(this.STATES).find((key) => this.STATES[key] === this.state) || 'Unknown',
-                    Target: () =>
-                        this.currentTarget
-                            ? `${Math.floor(this.currentTarget.x)}, ${Math.floor(this.currentTarget.y)}, ${Math.floor(this.currentTarget.z)}`
-                            : 'None',
+                    Target: () => (this.currentTarget ? `${Math.floor(this.currentTarget.x)}, ${Math.floor(this.currentTarget.y)}, ${Math.floor(this.currentTarget.z)}` : 'None'),
                     Ticks: () => `${this.mineTickCount}/${this.totalTicks}`,
                 },
             },
@@ -231,6 +231,7 @@ class Bot extends ModuleBase {
     initEventHandlers() {
         this.debug = register('postRenderWorld', () => this.renderDebug()).unregister();
         this.normalRender = register('postRenderWorld', () => this.renderNormal()).unregister();
+        this.pickobulusRender = register('postRenderWorld', () => this.tickPickobulusRenderFrame()).unregister();
 
         this.on('tick', () => {
             if (!this.enabled) return;
@@ -300,7 +301,7 @@ class Bot extends ModuleBase {
                 if (!value) Client.stopMovement();
             },
             'Moves around vein while mining.',
-            true
+            true,
         );
         let additionalLagCompensation;
         this.addToggle(
@@ -310,7 +311,7 @@ class Bot extends ModuleBase {
                 additionalLagCompensation.visible = value;
             },
             'Predicts when blocks are broken to begin mining the next block early.',
-            true
+            true,
         );
         additionalLagCompensation = this.addSlider(
             'Additional lag compensation',
@@ -320,7 +321,7 @@ class Bot extends ModuleBase {
             (value) => {
                 this.ADDITIONAL_LAG_COMP = value;
             },
-            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)'
+            'Adds extra ticks to glide delay on top of TPS compensation. (Tick Gliding)',
         );
         additionalLagCompensation.visible = this.TICKGLIDE;
         this.addToggle(
@@ -328,14 +329,14 @@ class Bot extends ModuleBase {
             (value) => {
                 this.setPrioritizeTitanium(value);
             },
-            'Whenever Titanium is in range it will be targeted the most'
+            'Whenever Titanium is in range it will be targeted the most',
         );
         this.addToggle(
             'Prioritise Gray Mithril',
             (value) => {
                 this.setPrioritizeGrayMithril(value);
             },
-            'Reverses mithril block targeting costs to prioritise gray mithril.'
+            'Reverses mithril block targeting costs to prioritise gray mithril.',
         );
         this.addMultiToggle(
             'Fakelook',
@@ -346,7 +347,7 @@ class Bot extends ModuleBase {
                 this.fakeLookModeName = this.getEnabledOptionName(value, 'Off');
             },
             'Fakelook begins to mine blocks before the player looks at them.',
-            'Off'
+            'Off',
         );
         this.addMultiToggle(
             'Types',
@@ -358,7 +359,14 @@ class Bot extends ModuleBase {
                 this.setCost();
             },
             'Targets specified block type.',
-            'Mithril'
+            'Mithril',
+        );
+        this.addToggle(
+            'Pickobulus Aim',
+            (value) => {
+                this.PICKOBULUS_AIM = value;
+            },
+            'Aims at the position with the most ore blocks before casting Pickobulus.',
         );
         // this.addToggle(
         //     'Debug Mode',
@@ -485,11 +493,7 @@ class Bot extends ModuleBase {
     }
 
     updateBlockTracking(lowestCostBlock, blockName) {
-        const isSameAsLast =
-            this.lastBlockPos &&
-            this.lastBlockPos.x === lowestCostBlock.x &&
-            this.lastBlockPos.y === lowestCostBlock.y &&
-            this.lastBlockPos.z === lowestCostBlock.z;
+        const isSameAsLast = this.lastBlockPos && this.lastBlockPos.x === lowestCostBlock.x && this.lastBlockPos.y === lowestCostBlock.y && this.lastBlockPos.z === lowestCostBlock.z;
 
         if (isSameAsLast && this.lastBlockType && this.lastBlockType !== blockName) {
             if (!this.isAirOrBedrock(blockName)) {
@@ -515,12 +519,7 @@ class Bot extends ModuleBase {
             this.mineTickCount++;
         } else {
             const lookingAt = Player.lookingAt();
-            if (
-                lookingAt &&
-                lookingAt.getX() === this.currentTarget?.x &&
-                lookingAt.getY() === this.currentTarget?.y &&
-                lookingAt.getZ() === this.currentTarget?.z
-            ) {
+            if (lookingAt && lookingAt.getX() === this.currentTarget?.x && lookingAt.getY() === this.currentTarget?.y && lookingAt.getZ() === this.currentTarget?.z) {
                 this.mineTickCount++;
             }
         }
@@ -572,9 +571,7 @@ class Bot extends ModuleBase {
             this.currentTarget = this.foundLocations[this.lowestCostBlockIndex];
             return;
         }
-        const currentName = this.currentTarget
-            ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z)?.type?.getRegistryName() || ''
-            : '';
+        const currentName = this.currentTarget ? World.getBlockAt(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z)?.type?.getRegistryName() || '' : '';
         if (allowStickyTarget && this.currentTarget && !this.isAirOrBedrock(currentName) && this.refreshCurrentTargetAimPoint()) return;
 
         this.scanForBlock(this.COSTTYPE, this.currentTarget);
@@ -591,17 +588,31 @@ class Bot extends ModuleBase {
     handleAbilityState() {
         if (this.SCAN_ONLY) return (this.state = this.STATES.MINING);
 
+        if (this._pickobulusPhase) {
+            if (this._pickobulusPhase.step === 'hold') this._pickobulusPhase.holdTicks++;
+            if (this._pickobulusPhase.step === 'cast') this.tickPickobulusRenderFrame();
+            return;
+        }
+
         const now = Date.now();
         const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
 
         if (this.DEBUG_MODE) {
             this.message(
-                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`
+                `&7[DEBUG] handleAbilityState status="${abilityStatus}" chat=${this.abilityFromChat} lastUse=${this.lastUse} pending=${this._pendingAbilityActivation} handSwinging=${Player.getPlayer().handSwinging}`,
             );
         }
 
         if (this._pendingAbilityActivation) {
             this._pendingAbilityActivation = false;
+            this._pickobulusPhase = null;
+            if (this.PICKOBULUS_AIM && this.isPickobulusEquipped()) {
+                const target = this.findBestPickobulusTarget();
+                if (target) {
+                    this.startPickobulusAim(target);
+                    return;
+                }
+            }
             Client.rightClick();
             if (this.DEBUG_MODE) this.message(`&a[DEBUG] RIGHT-CLICKED status="${abilityStatus}"`);
             this.lastUse = now;
@@ -614,6 +625,16 @@ class Bot extends ModuleBase {
             if (this.ensureDrillEquipped(this.drill)) return;
 
             Client.setKey('leftclick', false);
+
+            if (this.PICKOBULUS_AIM && this.isPickobulusEquipped()) {
+                const target = this.findBestPickobulusTarget();
+                if (target) {
+                    this.startPickobulusAim(target);
+                    return;
+                }
+                if (this.DEBUG_MODE) this.message('&b[DEBUG] Pickobulus aim: no good target found');
+            }
+
             this._pendingAbilityActivation = true;
             if (this.DEBUG_MODE) this.message(`&e[DEBUG] Released left-click, will right-click next tick (swing=${Player.getPlayer().handSwinging})`);
             return;
@@ -621,6 +642,124 @@ class Bot extends ModuleBase {
 
         if (this.DEBUG_MODE) this.message(`&c[DEBUG] No condition met, going MINING`);
         this.state = this.STATES.MINING;
+    }
+
+    isPickobulusEquipped() {
+        if (this.ability === 'Pickobulus') return true;
+        const held = Player.getHeldItem();
+        if (!held) return false;
+        try {
+            return (held.getLore() || []).some((line) => String(line).includes('Pickobulus'));
+        } catch (e) {
+            return false;
+        }
+    }
+
+    findBestPickobulusTarget() {
+        const costs = this.COSTTYPE;
+        if (!costs) return null;
+        const ex = Player.getX();
+        const ey = Player.getY();
+        const ez = Player.getZ();
+        const reach = Math.ceil(this.mineReach) + 2;
+        const blockTypes = Object.keys(costs).map((name) => new BlockType(name));
+        const blocks = World.getBlocksInBox(Math.floor(ex - reach), Math.floor(ey - reach), Math.floor(ez - reach), Math.floor(ex + reach), Math.floor(ey + reach), Math.floor(ez + reach), blockTypes);
+        if (!blocks || !blocks.length) return null;
+        const oreSet = new Set();
+        for (const b of blocks) oreSet.add(b.x + ',' + b.y + ',' + b.z);
+        let best = null;
+        let bestCount = 0;
+        for (const b of blocks) {
+            let count = 0;
+            for (let dx = -2; dx <= 2; dx++) {
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dz = -2; dz <= 2; dz++) {
+                        if (oreSet.has(b.x + dx + ',' + (b.y + dy) + ',' + (b.z + dz))) count++;
+                    }
+                }
+            }
+            if (count > bestCount) {
+                bestCount = count;
+                best = { x: b.x, y: b.y, z: b.z, count };
+            }
+        }
+        return bestCount >= 3 ? best : null;
+    }
+
+    startPickobulusAim(target) {
+        Rotations.stop();
+        const current = RotationGCD.getCurrentRotation() || { yaw: Player.getYaw(), pitch: Player.getPitch() };
+        const targetPoint = { x: target.x + 0.5, y: target.y + 0.5, z: target.z + 0.5 };
+        const angles = MathUtils.calculateAbsoluteAngles(targetPoint);
+        const yawDelta = Math.abs(RotationGCD.angleDifference(MathUtils.wrapTo180(angles.yaw), current.yaw));
+        const aimDurationMs = Math.max(300, Math.min(1000, yawDelta * 5));
+        this._pickobulusPhase = {
+            step: 'aim',
+            startYaw: current.yaw,
+            startPitch: current.pitch,
+            targetYaw: MathUtils.wrapTo180(angles.yaw),
+            targetPitch: angles.pitch,
+            aimDurationMs,
+            aimElapsedMs: 0,
+            holdTicks: 0,
+            lastFrameTime: 0,
+        };
+        this.pickobulusRender.register();
+        if (this.DEBUG_MODE) this.message('&b[DEBUG] Pickobulus aim: ' + target.x + ',' + target.y + ',' + target.z + ' (' + target.count + ' blocks, ' + aimDurationMs + 'ms)');
+    }
+
+    tickPickobulusRenderFrame() {
+        const phase = this._pickobulusPhase;
+        if (!phase) {
+            this.pickobulusRender.unregister();
+            return;
+        }
+        if (phase.step === 'aim') {
+            const now = Date.now();
+            if (phase.lastFrameTime === 0) {
+                phase.lastFrameTime = now;
+                return;
+            }
+            phase.aimElapsedMs += now - phase.lastFrameTime;
+            phase.lastFrameTime = now;
+            const player = Player.getPlayer();
+            if (player) {
+                const t = Math.min(1, phase.aimElapsedMs / phase.aimDurationMs);
+                const easeT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                const yawDelta = RotationGCD.angleDifference(phase.targetYaw, phase.startYaw);
+                const pitchDelta = phase.targetPitch - phase.startPitch;
+                const gcd = RotationGCD.calculateGCD();
+                const gcdYaw = phase.startYaw + Math.round((yawDelta * easeT) / gcd) * gcd;
+                const gcdPitch = RotationGCD.clampPitch(phase.startPitch + Math.round((pitchDelta * easeT) / gcd) * gcd);
+                player.setYRot(gcdYaw);
+                player.setXRot(gcdPitch);
+                RotationGCD.lastYaw = gcdYaw;
+                RotationGCD.lastPitch = gcdPitch;
+                RotationGCD.lastApplyAt = now;
+            }
+            if (phase.aimElapsedMs >= phase.aimDurationMs) {
+                RotationGCD.applyToPlayer(phase.targetYaw, phase.targetPitch);
+                phase.step = 'hold';
+                phase.holdTicks = 0;
+            }
+            return;
+        }
+        if (phase.step === 'hold') {
+            phase.holdTicks++;
+            if (phase.holdTicks >= 3) phase.step = 'cast';
+            return;
+        }
+        if (phase.step === 'cast') {
+            Client.rightClick();
+            this._pickobulusPhase = null;
+            this.lastUse = Date.now();
+            this.abilityFromChat = false;
+            this.resetTickCounters();
+            Rotations.stop();
+            this.pickobulusRender.unregister();
+            this.state = this.STATES.MINING;
+            if (this.DEBUG_MODE) this.message('&b[DEBUG] Pickobulus: ability cast');
+        }
     }
 
     handleMiningState() {
@@ -796,7 +935,7 @@ class Bot extends ModuleBase {
                 this.insertSortedCandidate(
                     approachTargets,
                     { x, y, z, cost: this.calculateApproachCost(targetCost, distToCenter), blockName, dist: distToCenter, targetMode: TARGET_MODES.APPROACH },
-                    this.approachTargetBudget
+                    this.approachTargetBudget,
                 );
             }
         }
@@ -861,7 +1000,7 @@ class Bot extends ModuleBase {
                     visibilityStability,
                     targetMode: TARGET_MODES.REACHABLE,
                 },
-                this.reachableVisibleTargetBudget
+                this.reachableVisibleTargetBudget,
             );
         }
 
@@ -1263,11 +1402,7 @@ class Bot extends ModuleBase {
         let moveForward = values.distanceFlat > cfg.moveInMax;
         let moveBack = values.distanceFlat < cfg.moveInMin;
 
-        const isAligned =
-            yaw >= -cfg.stopYawThreshold &&
-            yaw <= cfg.stopYawThreshold &&
-            values.distance <= 4 &&
-            !(tunnelMode && isHighTarget && values.distanceFlat < cfg.moveInMin);
+        const isAligned = yaw >= -cfg.stopYawThreshold && yaw <= cfg.stopYawThreshold && values.distance <= 4 && !(tunnelMode && isHighTarget && values.distanceFlat < cfg.moveInMin);
         const inDistanceBand = values.distanceFlat >= 2.5 && values.distanceFlat <= 3.25;
         if (isAligned || inDistanceBand) {
             moveRight = false;
@@ -1300,15 +1435,7 @@ class Bot extends ModuleBase {
 
         const eyePos = Player.getPlayer().getEyePosition();
         const lookVec = Player.asPlayerMP().getLookVector();
-        const hit = this.findVisibleAimPoint(
-            this.currentTarget.x,
-            this.currentTarget.y,
-            this.currentTarget.z,
-            eyePos,
-            lookVec,
-            this.faceReach * this.faceReach,
-            false
-        );
+        const hit = this.findVisibleAimPoint(this.currentTarget.x, this.currentTarget.y, this.currentTarget.z, eyePos, lookVec, this.faceReach * this.faceReach, false);
 
         if (!hit) return false;
 
@@ -1469,6 +1596,7 @@ class Bot extends ModuleBase {
         this.lastNextPos = null;
         Rotations.stop();
         this.normalRender.unregister();
+        this.pickobulusRender.unregister();
     }
 
     renderNormal() {
@@ -1568,13 +1696,7 @@ class Bot extends ModuleBase {
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
         const palette = isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
 
-        RenderUtils.drawStyledBox(
-            new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z),
-            palette.currentFill,
-            palette.currentWire,
-            6,
-            false
-        );
+        RenderUtils.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), palette.currentFill, palette.currentWire, 6, false);
 
         if (this.lastAimPos) {
             const d = 0.08;
