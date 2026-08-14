@@ -16,6 +16,7 @@ import './mining/TunnelsMiner';
 import './foraging/AutoHarp';
 import './foraging/HideonLeafESP';
 import './foraging/HuntingHelpers';
+import './foraging/TreeESP';
 
 /* FARMING */
 import './farming/CocoaBeansMacro';
@@ -35,6 +36,7 @@ import './visuals/ProfileHider';
 import './visuals/RatESP';
 import './visuals/StructureESP';
 import './visuals/GlowingMushroomESP';
+import './visuals/RendererBenchmark';
 
 /* SKILLS */
 import './skills/AutoExperiments';
