@@ -80,12 +80,3 @@ export function getGuiName() {
     const container = Player.getContainer();
     return container ? ChatLib.removeFormatting(String(container.getName())) : null;
 }
-
-export const Guis = {
-    clickItems,
-    clickSlot,
-    closeInv: closeInventory,
-    findFirst: findFirstItem,
-    guiName: getGuiName,
-    setItemSlot,
-};

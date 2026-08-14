@@ -5,7 +5,7 @@ import { Executor } from './ThreadExecutor';
 import { Utils } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
-import { Guis } from './player/Inventory';
+import { clickItems, clickSlot, closeInventory, findFirstItem, getGuiName, setItemSlot } from './player/Inventory';
 import { Rotations } from './player/Rotations';
 import { TabListUtils } from './TabListUtils';
 
@@ -92,7 +92,7 @@ class MiningStatsCollector {
 
         this.isCollecting = true;
         try {
-            Guis.setItemSlot(toolData.slot);
+            setItemSlot(toolData.slot);
             Thread.sleep(500);
 
             ChatLib.command('stats');
@@ -108,7 +108,7 @@ class MiningStatsCollector {
             let hotmPage = this.waitForItem(['Tier 5', 'Tier 10']);
             if (!hotmPage) return this.timeout();
             if (hotmPage === 'Tier 10') {
-                Guis.clickSlot(53, false, 'RIGHT');
+                clickSlot(53, false, 'RIGHT');
                 if (!this.waitForItem('Tier 5')) return this.timeout();
             }
             Thread.sleep(100);
@@ -122,7 +122,7 @@ class MiningStatsCollector {
             if (this.checkSlotForBlock(container, 29, activeMarker)) ability = 'SpeedBoost';
             else if (this.checkSlotForBlock(container, 33, activeMarker)) ability = 'Pickobulus';
 
-            Guis.clickSlot(8, false, 'RIGHT');
+            clickSlot(8, false, 'RIGHT');
             if (!this.waitForItem('Tier 10')) return this.timeout();
             if (ability === 'None') {
                 container = Player.getContainer();
@@ -139,7 +139,7 @@ class MiningStatsCollector {
             let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/);
             this.collectedData.maxge = Number.parseInt(explorerLevel) >= 96;
 
-            Guis.closeInv();
+            closeInventory();
             this.finishCollection();
             return true;
         } catch (e) {
@@ -154,7 +154,7 @@ class MiningStatsCollector {
     waitForGui(name, timeoutMs = 4000) {
         let waited = 0;
         while (waited < timeoutMs) {
-            let current = Guis.guiName();
+            let current = getGuiName();
             if (current && current.includes(name)) return true;
             Thread.sleep(50);
             waited += 50;
@@ -167,7 +167,7 @@ class MiningStatsCollector {
         let waited = 0;
         while (waited < timeoutMs) {
             let inventory = Player.getContainer();
-            let found = itemNames.find((name) => Guis.findFirst(inventory, name) != -1);
+            let found = itemNames.find((name) => findFirstItem(inventory, name) != -1);
             if (found) return found;
             Thread.sleep(50);
             waited += 50;
@@ -177,7 +177,7 @@ class MiningStatsCollector {
 
     timeout() {
         chat('Failed to get mining stats.');
-        Guis.closeInv();
+        closeInventory();
         return false;
     }
 
@@ -533,7 +533,7 @@ class RefuelService {
                 }
 
                 if (hotbarSlot !== -1) {
-                    Guis.setItemSlot(hotbarSlot);
+                    setItemSlot(hotbarSlot);
                     this.setState(this.STATES.OPEN_ABIPHONE, 5);
                     return;
                 }
@@ -607,23 +607,23 @@ class RefuelService {
                 break;
 
             case this.STATES.SWAP_ABIPHONE_1:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.SWAP_ABIPHONE_2, 5);
                 break;
 
             case this.STATES.SWAP_ABIPHONE_2:
-                Guis.clickSlot(36 + this.targetHotbarSlot);
+                clickSlot(36 + this.targetHotbarSlot);
                 this.setState(this.STATES.SWAP_ABIPHONE_3, 5);
                 break;
 
             case this.STATES.SWAP_ABIPHONE_3:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.CLOSE_PLAYER_INV_SWAP, 5);
                 break;
 
             case this.STATES.CLOSE_PLAYER_INV_SWAP:
-                Guis.closeInv();
-                Guis.setItemSlot(this.targetHotbarSlot);
+                closeInventory();
+                setItemSlot(this.targetHotbarSlot);
                 this.setState(this.STATES.OPEN_ABIPHONE, 10);
                 break;
 
@@ -633,12 +633,12 @@ class RefuelService {
                 break;
 
             case this.STATES.SELECT_CONTACT:
-                if (!Guis.guiName()?.includes('Abiphone')) {
+                if (!getGuiName()?.includes('Abiphone')) {
                     this.handleTimeout('Abiphone never opened!');
                     break;
                 }
 
-                this.contactSlot = Guis.findFirst(Player.getContainer(), 'Jotraeline Greatforge');
+                this.contactSlot = findFirstItem(Player.getContainer(), 'Jotraeline Greatforge');
                 if (this.contactSlot === -1 || !Player.getContainer()?.getStackInSlot(this.contactSlot)) {
                     this.handleTimeout('No jotraeline contact detected!');
                     break;
@@ -648,12 +648,12 @@ class RefuelService {
                 break;
 
             case this.STATES.CLICK_CONTACT:
-                Guis.clickSlot(this.contactSlot, false, 'LEFT');
+                clickSlot(this.contactSlot, false, 'LEFT');
                 this.setState(this.STATES.WAIT_FOR_ANVIL, 0, 200);
                 break;
 
             case this.STATES.WAIT_FOR_ANVIL:
-                if (Guis.guiName() === 'Drill Anvil') {
+                if (getGuiName() === 'Drill Anvil') {
                     this.setState(this.STATES.WAIT_ANVIL_READY, 20);
                     break;
                 }
@@ -664,12 +664,12 @@ class RefuelService {
                 let tool = ToolFinder.findBest();
                 if (!tool) return this.fail('No drill found!');
 
-                Guis.clickSlot(tool.slot + 81, true);
+                clickSlot(tool.slot + 81, true);
                 this.setState(this.STATES.ADD_FUEL, 10);
                 break;
 
             case this.STATES.ADD_FUEL:
-                if (!Guis.clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
+                if (!clickItems(['Volta', 'Oil Barrel', 'Biofuel', 'Sunflower Oil', 'Goblin Egg'], true)) {
                     chat('No fuel detected!');
                     this.setState(this.STATES.FAIL_CLEANUP, 10);
                     return;
@@ -678,22 +678,22 @@ class RefuelService {
                 break;
 
             case this.STATES.CONFIRM_FUEL:
-                Guis.clickSlot(22, false);
+                clickSlot(22, false);
                 this.setState(this.STATES.TAKE_TOOL, 10);
                 break;
 
             case this.STATES.TAKE_TOOL:
-                Guis.clickSlot(13, true);
+                clickSlot(13, true);
                 this.setState(this.STATES.CLOSE, 10);
                 break;
 
             case this.STATES.CLOSE:
-                Guis.closeInv();
+                closeInventory();
                 this.finish(true);
                 break;
 
             case this.STATES.FAIL_CLEANUP:
-                Guis.closeInv();
+                closeInventory();
                 this.finish(false);
                 break;
 
@@ -751,22 +751,22 @@ class RefuelService {
                 break;
 
             case this.STATES.RESTORE_ABIPHONE_1:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.RESTORE_ABIPHONE_2, 5);
                 break;
 
             case this.STATES.RESTORE_ABIPHONE_2:
-                Guis.clickSlot(36 + this.targetHotbarSlot);
+                clickSlot(36 + this.targetHotbarSlot);
                 this.setState(this.STATES.RESTORE_ABIPHONE_3, 5);
                 break;
 
             case this.STATES.RESTORE_ABIPHONE_3:
-                Guis.clickSlot(this.originalAbiphoneSlot);
+                clickSlot(this.originalAbiphoneSlot);
                 this.setState(this.STATES.CLOSE_PLAYER_INV_RESTORE, 5);
                 break;
 
             case this.STATES.CLOSE_PLAYER_INV_RESTORE:
-                Guis.closeInv();
+                closeInventory();
                 this.finalCallback(this.finalSuccess);
                 break;
         }
@@ -831,7 +831,7 @@ class ExplorerUpgrade {
                     failed = true;
                     Thread.sleep(300);
                     chat("great explorer can't be unlocked!");
-                    Guis.closeInv();
+                    closeInventory();
                     chatWatcher.unregister();
                     return callback(false);
                 }
@@ -840,7 +840,7 @@ class ExplorerUpgrade {
                     failed = true;
                     Thread.sleep(300);
                     chat('insufficient powder!');
-                    Guis.closeInv();
+                    closeInventory();
                     chatWatcher.unregister();
                     return callback(false);
                 }
@@ -849,16 +849,16 @@ class ExplorerUpgrade {
             ChatLib.command('hotm');
             Thread.sleep(1000);
 
-            if (Guis.guiName() !== 'Heart of the Mountain') {
+            if (getGuiName() !== 'Heart of the Mountain') {
                 chat('HOTM failed to open!');
                 chatWatcher.unregister();
                 return callback(false);
             }
 
-            Guis.clickSlot(8, false, 'RIGHT');
+            clickSlot(8, false, 'RIGHT');
             Thread.sleep(1000);
 
-            while (!failed && Guis.guiName() === 'Heart of the Mountain') {
+            while (!failed && getGuiName() === 'Heart of the Mountain') {
                 Thread.sleep(500);
 
                 let slot = Player.getContainer()?.getStackInSlot(42);
@@ -867,9 +867,9 @@ class ExplorerUpgrade {
                 let nbtString = slot.getNBT().toString();
 
                 if (nbtString.includes('item.minecraft.coal')) {
-                    Guis.clickSlot(42, false);
+                    clickSlot(42, false);
                 } else if (nbtString.includes('item.minecraft.emerald')) {
-                    Guis.clickSlot(42, true);
+                    clickSlot(42, true);
                 } else {
                     break;
                 }

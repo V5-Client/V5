@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
+import { findItemInHotbar, setItemSlot, stripItemFormatting } from '../../utils/player/Inventory';
 
 class FarmingSettings extends ModuleBase {
     constructor() {
@@ -37,7 +37,7 @@ class FarmingSettings extends ModuleBase {
             return false;
         }
         this.hasReportedMissingVacuum = false;
-        if (!Guis.stripFormatting(Player.getInventory()?.getStackInSlot(slot)?.getName?.() || '').includes('Hooverius')) {
+        if (!stripItemFormatting(Player.getInventory()?.getStackInSlot(slot)?.getName?.() || '').includes('Hooverius')) {
             this.message('&cOnly the maxed InfiniVacuum Hooverius is supported; you will not have enough reach to kill pests.');
         }
         if (Player.getHeldItemIndex() === slot) return true;
