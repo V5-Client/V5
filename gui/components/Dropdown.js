@@ -191,10 +191,10 @@ export class MultiToggle {
             borderColor: THEME.BORDER,
         });
 
-        Renderer.save();
-        Renderer.scissor(selectX + 10, this.y + this.containerHeight / 2 - 9, arrowX - selectX - 12, 18);
+        Render2D.save();
+        Render2D.scissor(selectX + 10, this.y + this.containerHeight / 2 - 9, arrowX - selectX - 12, 18);
         drawText(selectedText, selectX + 10, this.y + this.containerHeight / 2, FontSizes.REGULAR, textColor);
-        Renderer.restore();
+        Render2D.restore();
 
         drawRoundedRectangle({
             x: arrowX,

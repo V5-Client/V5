@@ -135,7 +135,7 @@ export function drawLookPoints() {
     const playerZ = Player.getZ();
     for (const point of cachedLookPoints) {
         if (Math.abs(point.x - playerX) < 64 && Math.abs(point.z - playerZ) < 64) {
-            RenderUtils.drawSizedBox(new Vec3d(point.x, point.y + 0.2, point.z), 0.4, 0.4, 0.4, new RenderColor(255, 0, 255, 180), true, 1, true);
+            Render3D.drawSizedBox(new Vec3d(point.x, point.y + 0.2, point.z), 0.4, 0.4, 0.4, new RenderColor(255, 0, 255, 180), true, 1, true);
         }
     }
 }
@@ -143,7 +143,7 @@ export function drawLookPoints() {
 export function drawFloatingSpline(path) {
     if (!path || path.length < 2) return;
     for (let i = 0; i < path.length - 1; i++) {
-        RenderUtils.drawLine(
+        Render3D.drawLine(
             new Vec3d(path[i].x + 0.5, path[i].y + 2.62, path[i].z + 0.5),
             new Vec3d(path[i + 1].x + 0.5, path[i + 1].y + 2.62, path[i + 1].z + 0.5),
             new RenderColor(0, 255, 255, 255),

@@ -112,12 +112,12 @@ class RouteWalkerer extends ModuleBase {
 
                     const pointColor = getColor(point.movements);
 
-                    RenderUtils.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
+                    Render3D.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
 
                     if (i < route.length - 1) {
                         const nextPoint = route[i + 1];
                         if (!this.checkPoint(nextPoint)) return;
-                        RenderUtils.drawLine(
+                        Render3D.drawLine(
                             new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
                             new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
                             getColor(nextPoint.movements),
@@ -132,7 +132,7 @@ class RouteWalkerer extends ModuleBase {
 
                 if (route.length < 1 || !this.checkPoint(firstPoint) || !this.checkPoint(lastPoint)) return;
 
-                RenderUtils.drawLine(
+                Render3D.drawLine(
                     new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
                     new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
                     getColor(firstPoint.movements),

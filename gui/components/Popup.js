@@ -173,10 +173,10 @@ export class Popup {
         const centerX = windowRect.x + windowRect.width / 2;
         const centerY = windowRect.y + windowRect.height / 2;
 
-        Renderer.save();
-        Renderer.translate(centerX, centerY);
-        Renderer.scale(animValue, animValue);
-        Renderer.translate(-centerX, -centerY);
+        Render2D.save();
+        Render2D.translate(centerX, centerY);
+        Render2D.scale(animValue, animValue);
+        Render2D.translate(-centerX, -centerY);
 
         drawShadow(windowRect.x, windowRect.y, windowRect.width, windowRect.height, 20, 0.5);
 
@@ -233,7 +233,7 @@ export class Popup {
         const visibleTop = windowRect.y + this.headerHeight;
         const visibleBottom = windowRect.y + windowRect.height - this.windowPadding;
 
-        Renderer.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
+        Render2D.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
 
         const maxScroll = Math.max(0, this.getContentHeight() - contentHeight);
         this.contentScrollY = Math.max(0, Math.min(this.contentScrollY, maxScroll));
@@ -316,8 +316,8 @@ export class Popup {
             currentY += componentHeight;
         });
 
-        Renderer.resetScissor();
-        Renderer.restore();
+        Render2D.resetScissor();
+        Render2D.restore();
     }
 
     handleButtonClick(mouseX, mouseY) {

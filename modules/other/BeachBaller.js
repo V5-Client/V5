@@ -274,7 +274,7 @@ class Beachballer extends ModuleBase {
                 const alpha = Math.floor(80 + (120 * i) / this.trailHistory.length);
                 const fadedColor = new RenderColor(TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha);
 
-                RenderUtils.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                Render3D.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
         }
 
@@ -286,7 +286,7 @@ class Beachballer extends ModuleBase {
                 const alpha = Math.floor(200 * (1 - i / this.predictedPath.length));
                 const fadedColor = new RenderColor(PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha);
 
-                RenderUtils.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                Render3D.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
         }
 
@@ -294,11 +294,11 @@ class Beachballer extends ModuleBase {
             const markerSize = 0.3;
             const lp = this.landingPoint;
 
-            RenderUtils.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
-            RenderUtils.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
+            Render3D.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
+            Render3D.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
 
             const groundVec = new Vec3d(Math.floor(lp.x), Math.floor(Player.getY()), Math.floor(lp.z));
-            RenderUtils.drawWireFrameBox(groundVec, landingColor, 2, true);
+            Render3D.drawWireFrameBox(groundVec, landingColor, 2, true);
         }
     }
 

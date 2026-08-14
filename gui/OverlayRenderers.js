@@ -113,8 +113,8 @@ export function drawInventoryHudBackground(overlay) {
         borderWidth: BORDER_WIDTH * scale,
         borderColor: THEME.BORDER,
     });
-    Renderer.drawGradientRect(overlay.x + pad, separatorY, rowWidth / 2, Math.max(1, scale), edgeColor, centerColor, 'LeftToRight', 0);
-    Renderer.drawGradientRect(overlay.x + pad + rowWidth / 2, separatorY, rowWidth / 2, Math.max(1, scale), centerColor, edgeColor, 'LeftToRight', 0);
+    Render2D.drawGradientRect(overlay.x + pad, separatorY, rowWidth / 2, Math.max(1, scale), edgeColor, centerColor, 'LeftToRight', 0);
+    Render2D.drawGradientRect(overlay.x + pad + rowWidth / 2, separatorY, rowWidth / 2, Math.max(1, scale), centerColor, edgeColor, 'LeftToRight', 0);
 }
 
 export function getMusicOverlayBounds(scale, songName) {

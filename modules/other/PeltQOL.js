@@ -264,8 +264,8 @@ class PeltQOL extends ModuleBase {
             const x = e.getX();
             const y = e.getY();
             const z = e.getZ();
-            RenderUtils.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
-            RenderUtils.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
+            Render3D.drawSizedBox(new Vec3d(x, y, z), w, h, w, fill, true, 1, false);
+            Render3D.drawTracer(new Vec3d(x, y + h / 2, z), line, 2, false);
         });
     }
 }

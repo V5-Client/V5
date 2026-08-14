@@ -151,8 +151,8 @@ class Music extends ModuleBase {
 
         this.syncFromOverlayEditor();
 
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
 
         const isSkeleton = !this.data;
         const songName = isSkeleton ? 'Searching for Media...' : this.data.song || 'Unknown Title';

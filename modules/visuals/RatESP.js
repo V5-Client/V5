@@ -81,8 +81,8 @@ class RatESP extends ModuleBase {
             const cubeSize = 0.7;
             const cubePos = new Vec3d(position.x, position.y, position.z);
 
-            RenderUtils.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
-            RenderUtils.drawTracer(cubePos, this.tracerColor, 2, false);
+            Render3D.drawSizedBox(cubePos, cubeSize, cubeSize, cubeSize, this.fillColor, true, 4, false);
+            Render3D.drawTracer(cubePos, this.tracerColor, 2, false);
         });
     }
 

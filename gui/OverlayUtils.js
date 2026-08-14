@@ -120,9 +120,9 @@ class OverlayUtils {
     }
 
     updateRenderRegistration(active = this.renderActive || Overlays.Gui.isOpen()) {
-        if (active && !this.renderRegistration) this.renderRegistration = Renderer.registerV5Render(this.renderCallback);
+        if (active && !this.renderRegistration) this.renderRegistration = Render2D.registerV5Render(this.renderCallback);
         else if (!active && this.renderRegistration) {
-            Renderer.unregisterV5Render(this.renderRegistration);
+            Render2D.unregisterV5Render(this.renderRegistration);
             this.renderRegistration = null;
         }
     }
@@ -436,8 +436,8 @@ class OverlayUtils {
 
     handleMouseDrag(mouseX, mouseY) {
         if (!this.dragging || !this.dragTarget) return;
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         const settings = this.getTargetSettings(this.dragTarget);
         if (!settings) return;
 
@@ -486,8 +486,8 @@ class OverlayUtils {
     }
 
     clampToScreen(x, y, w, h, swOverride = null, shOverride = null) {
-        const sw = swOverride !== null ? swOverride : Renderer.screen.getWidth();
-        const sh = shOverride !== null ? shOverride : Renderer.screen.getHeight();
+        const sw = swOverride !== null ? swOverride : Render2D.screen.getWidth();
+        const sh = shOverride !== null ? shOverride : Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return { x, y };
 
         return {
@@ -522,9 +522,9 @@ class OverlayUtils {
         const centerColor = colorWithAlpha(accentColor, 0.3 * progress);
         const edgeColor = colorWithAlpha(accentColor, 0);
         // left
-        Renderer.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
+        Render2D.drawGradientRect(x, y, halfWidth, dividerHeight, edgeColor, centerColor, 'LeftToRight', 0);
         // right
-        Renderer.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
+        Render2D.drawGradientRect(x + halfWidth, y, halfWidth, dividerHeight, centerColor, edgeColor, 'LeftToRight', 0);
     }
 
     renderID(id, forceGUI = false, screenSize = null) {
@@ -637,7 +637,7 @@ class OverlayUtils {
             const contentAlpha = Math.min(1, progress * 3);
 
             try {
-                Renderer.scissor(x, y, id.width, currentHeight);
+                Render2D.scissor(x, y, id.width, currentHeight);
                 const titleY = y + 20 * scale;
                 const titleX = x + id.width / 2 - getTextWidth(id.name, fontSize) / 2;
                 const titleAlign = 16;
@@ -671,7 +671,7 @@ class OverlayUtils {
                     contentY += 4 * scale;
                 });
             } finally {
-                Renderer.resetScissor();
+                Render2D.resetScissor();
             }
         }
 
@@ -690,10 +690,10 @@ class OverlayUtils {
     }
 
     drawGUI() {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return;
-        Renderer.blurBackground();
+        Render2D.blurBackground();
         this.editorBoxes = {};
         this.drawingGUI = true;
 
@@ -737,8 +737,8 @@ class OverlayUtils {
     }
 
     drawAllOverlays() {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw === 0 || sh === 0) return;
 
         const visibleIds = this.ids.filter((id) => {

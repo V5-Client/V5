@@ -24,7 +24,7 @@ export const GuiState = {
 GuiState.getMaxGuiScale = () =>
     Math.max(
         0.5,
-        Math.min(MAX_GUI_SCALE, Math.floor(Math.min(Renderer.screen.getWidth() / MIN_GUI_WIDTH, Renderer.screen.getHeight() / MIN_GUI_HEIGHT) * 10) / 10)
+        Math.min(MAX_GUI_SCALE, Math.floor(Math.min(Render2D.screen.getWidth() / MIN_GUI_WIDTH, Render2D.screen.getHeight() / MIN_GUI_HEIGHT) * 10) / 10)
     );
 
 GuiState.setGuiScale = (value) => {
@@ -39,8 +39,8 @@ GuiState.applyPendingGuiScale = () => {
     GuiState.pendingGuiScale = null;
 };
 
-GuiState.getGuiWidth = () => Renderer.screen.getWidth() / GuiState.getEffectiveGuiScale();
-GuiState.getGuiHeight = () => Renderer.screen.getHeight() / GuiState.getEffectiveGuiScale();
+GuiState.getGuiWidth = () => Render2D.screen.getWidth() / GuiState.getEffectiveGuiScale();
+GuiState.getGuiHeight = () => Render2D.screen.getHeight() / GuiState.getEffectiveGuiScale();
 
 GuiState.toGuiCoordinates = (x, y) => {
     const guiScale = GuiState.getEffectiveGuiScale();

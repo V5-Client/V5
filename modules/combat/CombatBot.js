@@ -629,11 +629,11 @@ class Combat extends ModuleBase {
             const entity = target.toMC ? target.toMC() : target;
             const selected = this.sameTarget(target, this.target);
             const color = blacklisted ? new RenderColor(0, 0, 0, 150) : selected ? new RenderColor(255, 0, 0, 100) : new RenderColor(0, 70, 200, 100);
-            RenderUtils.drawHitbox(entity, color, selected ? 7 : 3, false);
+            Render3D.drawHitbox(entity, color, selected ? 7 : 3, false);
         });
 
         this.activeBlackholes.forEach((blackhole) => {
-            RenderUtils.drawFilledBox(new Vec3d(blackhole.x - 0.5, blackhole.y + 0.5, blackhole.z - 0.5), new RenderColor(0, 0, 0, 150), false);
+            Render3D.drawFilledBox(new Vec3d(blackhole.x - 0.5, blackhole.y + 0.5, blackhole.z - 0.5), new RenderColor(0, 0, 0, 150), false);
         });
     }
 

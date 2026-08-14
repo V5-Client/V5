@@ -474,7 +474,7 @@ class WynnProfessionMacro extends ModuleBase {
             if (!this.isValidPoint(point)) continue;
 
             const color = i === this.currentIndex ? new RenderColor(85, 255, 85, 120) : new RenderColor(63, 191, 127, 80);
-            RenderUtils.drawStyledBox(
+            Render3D.drawStyledBox(
                 new Vec3d(Math.floor(point.x), Math.floor(point.y) - 1, Math.floor(point.z)),
                 color,
                 new RenderColor(63, 191, 127, 255),
@@ -484,7 +484,7 @@ class WynnProfessionMacro extends ModuleBase {
 
             const next = this.route[(i + 1) % this.route.length];
             if (!this.isValidPoint(next)) continue;
-            RenderUtils.drawLine(new Vec3d(point.x, point.y, point.z), new Vec3d(next.x, next.y, next.z), new RenderColor(63, 191, 127, 180), 2, false);
+            Render3D.drawLine(new Vec3d(point.x, point.y, point.z), new Vec3d(next.x, next.y, next.z), new RenderColor(63, 191, 127, 180), 2, false);
         }
     }
 

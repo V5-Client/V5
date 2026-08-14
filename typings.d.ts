@@ -160,16 +160,16 @@ declare global {
   interface Image extends com.chattriggers.ctjs.api.render.Image {}
   const Rectangle: typeof com.chattriggers.ctjs.api.render.Rectangle;
   interface Rectangle extends com.chattriggers.ctjs.api.render.Rectangle {}
-  const Renderer: typeof com.chattriggers.ctjs.api.render.Renderer;
-  interface Renderer extends com.chattriggers.ctjs.api.render.Renderer {}
+  const Render2D: typeof com.chattriggers.ctjs.api.render.Render2D;
+  interface Render2D extends com.chattriggers.ctjs.api.render.Render2D {}
   const Text: typeof com.chattriggers.ctjs.api.render.Text;
   interface Text extends com.chattriggers.ctjs.api.render.Text {}
   const Toast: typeof com.chattriggers.ctjs.api.render.Toast;
   interface Toast extends com.chattriggers.ctjs.api.render.Toast {}
-  const RenderUtils: typeof com.chattriggers.ctjs.api.render.RenderUtils;
-  interface RenderUtils extends com.chattriggers.ctjs.api.render.RenderUtils {}
-  const RenderColor: typeof com.chattriggers.ctjs.api.render.RenderUtils.Color;
-  interface RenderColor extends com.chattriggers.ctjs.api.render.RenderUtils.Color {}
+  const Render3D: typeof com.chattriggers.ctjs.api.render.Render3D;
+  interface Render3D extends com.chattriggers.ctjs.api.render.Render3D {}
+  const RenderColor: typeof com.chattriggers.ctjs.api.render.Render3D.Color;
+  interface RenderColor extends com.chattriggers.ctjs.api.render.Render3D.Color {}
   const CancellableEvent: typeof com.chattriggers.ctjs.api.triggers.CancellableEvent;
   interface CancellableEvent extends com.chattriggers.ctjs.api.triggers.CancellableEvent {}
   const Vec2f: typeof com.chattriggers.ctjs.api.vec.Vec2f;
@@ -48352,10 +48352,10 @@ declare global {
 							 */
               setNametagName(textComponent: com.chattriggers.ctjs.api.message.TextComponent): void;
 							/**
-							 * Draws the player in the GUI. Takes the same parameters as [Renderer.drawPlayer]
+							 * Draws the player in the GUI. Takes the same parameters as [Render2D.drawPlayer]
 							 *  minus `player`.
 							 *
-							 *  @see Renderer.drawPlayer
+							 *  @see Render2D.drawPlayer
 							 */
               draw(obj: org.mozilla.javascript.NativeObject): com.chattriggers.ctjs.api.entity.PlayerMP;
             }
@@ -50490,10 +50490,10 @@ declare global {
 							 */
               getContainer(): com.chattriggers.ctjs.api.inventory.Inventory | null | undefined;
 							/**
-							 * Draws the player in the GUI. Takes the same parameters as [Renderer.drawPlayer]
+							 * Draws the player in the GUI. Takes the same parameters as [Render2D.drawPlayer]
 							 *  minus `player`.
 							 *
-							 *  @see Renderer.drawPlayer
+							 *  @see Render2D.drawPlayer
 							 */
               draw(obj: org.mozilla.javascript.NativeObject): com.chattriggers.ctjs.api.client.Player;
               new(): com.chattriggers.ctjs.api.client.Player;
@@ -50668,10 +50668,10 @@ declare global {
 							 */
               getContainer(): com.chattriggers.ctjs.api.inventory.Inventory | null | undefined;
 							/**
-							 * Draws the player in the GUI. Takes the same parameters as [Renderer.drawPlayer]
+							 * Draws the player in the GUI. Takes the same parameters as [Render2D.drawPlayer]
 							 *  minus `player`.
 							 *
-							 *  @see Renderer.drawPlayer
+							 *  @see Render2D.drawPlayer
 							 */
               draw(obj: org.mozilla.javascript.NativeObject): com.chattriggers.ctjs.api.client.Player;
               new(): com.chattriggers.ctjs.api.client.Player;
@@ -51070,9 +51070,9 @@ declare global {
               setThickness(thickness: number): com.chattriggers.ctjs.api.render.Rectangle;
               draw(): com.chattriggers.ctjs.api.render.Rectangle;
             }
-            const Renderer: {
-              ScreenWrapper: typeof com.chattriggers.ctjs.api.render.Renderer$ScreenWrapper;
-              screen: com.chattriggers.ctjs.api.render.Renderer$ScreenWrapper;
+            const Render2D: {
+              ScreenWrapper: typeof com.chattriggers.ctjs.api.render.Render2D$ScreenWrapper;
+              screen: com.chattriggers.ctjs.api.render.Render2D$ScreenWrapper;
               getPartialTicks(): number;
               BLACK: number;
               DARK_BLUE: number;
@@ -51100,20 +51100,20 @@ declare global {
               getRainbow(step: number, speed: number): number;
               getRainbowColors(step: number): Array<number>;
               getRainbowColors(step: number, speed: number): Array<number>;
-              deleteTexture(texture: com.chattriggers.ctjs.api.render.Image): com.chattriggers.ctjs.api.render.Renderer;
-              pushMatrix(): com.chattriggers.ctjs.api.render.Renderer;
-              pushMatrix(stack: gg.essential.universal.UMatrixStack): com.chattriggers.ctjs.api.render.Renderer;
-              popMatrix(): com.chattriggers.ctjs.api.render.Renderer;
-              translate(x: number, y: number): com.chattriggers.ctjs.api.render.Renderer;
-              translate(x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Renderer;
-              scale(scaleX: number): com.chattriggers.ctjs.api.render.Renderer;
-              scale(scaleX: number, scaleY: number): com.chattriggers.ctjs.api.render.Renderer;
-              scale(scaleX: number, scaleY: number, scaleZ: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number, x: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number, x: number, y: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number, x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Renderer;
-              multiply(quaternion: org.joml.Quaternionf): com.chattriggers.ctjs.api.render.Renderer;
+              deleteTexture(texture: com.chattriggers.ctjs.api.render.Image): com.chattriggers.ctjs.api.render.Render2D;
+              pushMatrix(): com.chattriggers.ctjs.api.render.Render2D;
+              pushMatrix(stack: gg.essential.universal.UMatrixStack): com.chattriggers.ctjs.api.render.Render2D;
+              popMatrix(): com.chattriggers.ctjs.api.render.Render2D;
+              translate(x: number, y: number): com.chattriggers.ctjs.api.render.Render2D;
+              translate(x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Render2D;
+              scale(scaleX: number): com.chattriggers.ctjs.api.render.Render2D;
+              scale(scaleX: number, scaleY: number): com.chattriggers.ctjs.api.render.Render2D;
+              scale(scaleX: number, scaleY: number, scaleZ: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number, x: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number, x: number, y: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number, x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Render2D;
+              multiply(quaternion: org.joml.Quaternionf): com.chattriggers.ctjs.api.render.Render2D;
               fixAlpha(color: number): number;
 							/**
 							 * Gets a fixed render position from x, y, and z inputs adjusted with partial ticks
@@ -51153,10 +51153,10 @@ declare global {
 							 *  @param obj An options bag
 							 */
               drawPlayer(obj: org.mozilla.javascript.NativeObject): void;
-              new(): com.chattriggers.ctjs.api.render.Renderer;
+              new(): com.chattriggers.ctjs.api.render.Render2D;
             }
-            interface Renderer extends com.chattriggers.ctjs.api.render.GuiRendererBackend {
-              screen: com.chattriggers.ctjs.api.render.Renderer$ScreenWrapper;
+            interface Render2D extends com.chattriggers.ctjs.api.render.GuiRendererBackend {
+              screen: com.chattriggers.ctjs.api.render.Render2D$ScreenWrapper;
               getPartialTicks(): number;
               BLACK: number;
               DARK_BLUE: number;
@@ -51184,20 +51184,20 @@ declare global {
               getRainbow(step: number, speed: number): number;
               getRainbowColors(step: number): Array<number>;
               getRainbowColors(step: number, speed: number): Array<number>;
-              deleteTexture(texture: com.chattriggers.ctjs.api.render.Image): com.chattriggers.ctjs.api.render.Renderer;
-              pushMatrix(): com.chattriggers.ctjs.api.render.Renderer;
-              pushMatrix(stack: gg.essential.universal.UMatrixStack): com.chattriggers.ctjs.api.render.Renderer;
-              popMatrix(): com.chattriggers.ctjs.api.render.Renderer;
-              translate(x: number, y: number): com.chattriggers.ctjs.api.render.Renderer;
-              translate(x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Renderer;
-              scale(scaleX: number): com.chattriggers.ctjs.api.render.Renderer;
-              scale(scaleX: number, scaleY: number): com.chattriggers.ctjs.api.render.Renderer;
-              scale(scaleX: number, scaleY: number, scaleZ: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number, x: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number, x: number, y: number): com.chattriggers.ctjs.api.render.Renderer;
-              rotate(angle: number, x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Renderer;
-              multiply(quaternion: org.joml.Quaternionf): com.chattriggers.ctjs.api.render.Renderer;
+              deleteTexture(texture: com.chattriggers.ctjs.api.render.Image): com.chattriggers.ctjs.api.render.Render2D;
+              pushMatrix(): com.chattriggers.ctjs.api.render.Render2D;
+              pushMatrix(stack: gg.essential.universal.UMatrixStack): com.chattriggers.ctjs.api.render.Render2D;
+              popMatrix(): com.chattriggers.ctjs.api.render.Render2D;
+              translate(x: number, y: number): com.chattriggers.ctjs.api.render.Render2D;
+              translate(x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Render2D;
+              scale(scaleX: number): com.chattriggers.ctjs.api.render.Render2D;
+              scale(scaleX: number, scaleY: number): com.chattriggers.ctjs.api.render.Render2D;
+              scale(scaleX: number, scaleY: number, scaleZ: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number, x: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number, x: number, y: number): com.chattriggers.ctjs.api.render.Render2D;
+              rotate(angle: number, x: number, y: number, z: number): com.chattriggers.ctjs.api.render.Render2D;
+              multiply(quaternion: org.joml.Quaternionf): com.chattriggers.ctjs.api.render.Render2D;
               fixAlpha(color: number): number;
 							/**
 							 * Gets a fixed render position from x, y, and z inputs adjusted with partial ticks
@@ -51237,7 +51237,7 @@ declare global {
 							 *  @param obj An options bag
 							 */
               drawPlayer(obj: org.mozilla.javascript.NativeObject): void;
-              new(): com.chattriggers.ctjs.api.render.Renderer;
+              new(): com.chattriggers.ctjs.api.render.Render2D;
             }
             const GuiRendererBackend: {
               GifData: typeof com.chattriggers.ctjs.api.render.GuiRendererBackend$GifData;
@@ -51245,7 +51245,7 @@ declare global {
               ALIGN_CENTER: number;
               ALIGN_MIDDLE: number;
 							/**
-							 * Minecraft GUI extraction and GPU resource implementation for [Renderer].
+							 * Minecraft GUI extraction and GPU resource implementation for [Render2D].
 							 */
               new(): com.chattriggers.ctjs.api.render.GuiRendererBackend;
             }
@@ -51317,10 +51317,10 @@ declare global {
               component4(): Array<number>;
               copy(width: number, height: number, frameCount: number, delays: Array<number>): com.chattriggers.ctjs.api.render.GuiRendererBackend$GifData;
             }
-            const Renderer$ScreenWrapper: {
-              new(): com.chattriggers.ctjs.api.render.Renderer$ScreenWrapper;
+            const Render2D$ScreenWrapper: {
+              new(): com.chattriggers.ctjs.api.render.Render2D$ScreenWrapper;
             }
-            interface Renderer$ScreenWrapper {
+            interface Render2D$ScreenWrapper {
               getWidth(): number;
               getHeight(): number;
               getScale(): number;
@@ -51711,87 +51711,87 @@ declare global {
               setDisplayTime(value: number): void;
               show(): com.chattriggers.ctjs.api.render.Toast;
             }
-            const RenderUtils: {
-              Color: typeof com.chattriggers.ctjs.api.render.RenderUtils$Color;
-              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, depth: boolean): void;
-              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, depth: boolean): void;
-              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.RenderUtils$Color, color2: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.RenderUtils$Color, color2: com.chattriggers.ctjs.api.render.RenderUtils$Color, wireThickness: number): void;
-              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.RenderUtils$Color, color2: com.chattriggers.ctjs.api.render.RenderUtils$Color, wireThickness: number, depth: boolean): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, filled: boolean): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, filled: boolean, thickness: number): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, filled: boolean, thickness: number, depth: boolean): void;
-              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
+            const Render3D: {
+              Color: typeof com.chattriggers.ctjs.api.render.Render3D$Color;
+              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number): void;
+              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number, depth: boolean): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number, depth: boolean): void;
+              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean, translate: boolean): void;
-              new(): com.chattriggers.ctjs.api.render.RenderUtils;
+              new(): com.chattriggers.ctjs.api.render.Render3D;
             }
-            interface RenderUtils {
-              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, depth: boolean): void;
-              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, depth: boolean): void;
-              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.RenderUtils$Color, color2: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.RenderUtils$Color, color2: com.chattriggers.ctjs.api.render.RenderUtils$Color, wireThickness: number): void;
-              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.RenderUtils$Color, color2: com.chattriggers.ctjs.api.render.RenderUtils$Color, wireThickness: number, depth: boolean): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, filled: boolean): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, filled: boolean, thickness: number): void;
-              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, filled: boolean, thickness: number, depth: boolean): void;
-              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
-              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color): void;
-              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number): void;
-              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.RenderUtils$Color, thickness: number, depth: boolean): void;
+            interface Render3D {
+              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number): void;
+              drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number, depth: boolean): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number): void;
+              drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number, depth: boolean): void;
+              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean, translate: boolean): void;
-              new(): com.chattriggers.ctjs.api.render.RenderUtils;
+              new(): com.chattriggers.ctjs.api.render.Render3D;
             }
-            const RenderUtils$Color: {
-              new(r: number, g: number, b: number, a: number): com.chattriggers.ctjs.api.render.RenderUtils$Color;
+            const Render3D$Color: {
+              new(r: number, g: number, b: number, a: number): com.chattriggers.ctjs.api.render.Render3D$Color;
             }
-            interface RenderUtils$Color {
+            interface Render3D$Color {
               getR(): number;
               getG(): number;
               getB(): number;
@@ -51805,7 +51805,7 @@ declare global {
               component2(): number;
               component3(): number;
               component4(): number;
-              copy(r: number, g: number, b: number, a: number): com.chattriggers.ctjs.api.render.RenderUtils$Color;
+              copy(r: number, g: number, b: number, a: number): com.chattriggers.ctjs.api.render.Render3D$Color;
             }
           }
           const Config$ConsoleSettings: {

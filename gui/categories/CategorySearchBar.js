@@ -133,8 +133,8 @@ export const SearchBar = {
         const visibleTextWidth = Math.max(0, currentWidth - (this.alignLeft ? this.collapsedWidth + 10 : 35));
 
         if (visibleTextWidth > 0) {
-            Renderer.save();
-            Renderer.scissor(this.textX, y, visibleTextWidth, this.height);
+            Render2D.save();
+            Render2D.scissor(this.textX, y, visibleTextWidth, this.height);
 
             if (this.query === '') {
                 drawText('Search...', this.textX, textY, fontSize, THEME.TEXT_MUTED);
@@ -155,7 +155,7 @@ export const SearchBar = {
                 });
             }
 
-            Renderer.restore();
+            Render2D.restore();
         }
     },
 

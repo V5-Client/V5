@@ -43,8 +43,8 @@ class HideonLeafESP extends ModuleBase {
         this.targets = this.targets.filter((entity) => entity && !entity.isDead());
 
         this.targets.forEach((entity) => {
-            RenderUtils.drawHitbox(entity.toMC(), this.fillColor, 2, false);
-            RenderUtils.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
+            Render3D.drawHitbox(entity.toMC(), this.fillColor, 2, false);
+            Render3D.drawTracer(new Vec3d(entity.getX(), entity.getY() + 1, entity.getZ()), this.tracerColor, 2, false);
         });
     }
 

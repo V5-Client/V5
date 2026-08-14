@@ -58,7 +58,7 @@ class ESP extends ModuleBase {
 
                 if (distanceSq <= disableEspWithinDistanceSq) continue;
 
-                RenderUtils.drawHitbox(entity, this.rgba, 4, false);
+                Render3D.drawHitbox(entity, this.rgba, 4, false);
 
                 if (!this.showNames) continue;
 
@@ -69,7 +69,7 @@ class ESP extends ModuleBase {
                 if (distanceSq <= maxDefaultNametagDistanceSq) continue;
 
                 const vec = new Vec3d(player.x, player.y + 2.3, player.z);
-                RenderUtils.drawText(player.getName(), vec, 1.2, true, false, true);
+                Render3D.drawText(player.getName(), vec, 1.2, true, false, true);
             }
         });
     }

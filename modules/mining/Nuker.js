@@ -163,7 +163,7 @@ class NukerClass extends ModuleBase {
         this.on('postRenderWorld', () => {
             if (this.target) this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
             if (this.chestPos && this.autoChest && this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance <= 8) {
-                RenderUtils.drawFilledBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), new RenderColor(100, 100, 255, 150), false);
+                Render3D.drawFilledBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), new RenderColor(100, 100, 255, 150), false);
             }
         });
 
@@ -323,7 +323,7 @@ class NukerClass extends ModuleBase {
         let r = Math.sin(time) * 127 + 128,
             g = Math.sin(time + 2) * 127 + 128,
             b = Math.sin(time + 4) * 127 + 128;
-        RenderUtils.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
+        Render3D.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
     }
 
     rightClickBlock(xyz) {

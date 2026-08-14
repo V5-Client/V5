@@ -76,7 +76,7 @@ class BlockVisual extends ModuleBase {
 
             const pos = new Vec3d(this.currentBlock.x, this.currentBlock.y, this.currentBlock.z);
 
-            this.DRAWLINES ? RenderUtils.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : RenderUtils.drawFilledBox(pos, this.RGBA);
+            this.DRAWLINES ? Render3D.drawStyledBox(pos, this.RGBA, this.RGBA, 4) : Render3D.drawFilledBox(pos, this.RGBA);
         });
     }
 

@@ -112,15 +112,15 @@ class GemstoneMacro extends ModuleBase {
 
                     const pos = new Vec3d(current.x, current.y, current.z);
 
-                    RenderUtils.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
-                    RenderUtils.drawStyledBox(pos, new RenderColor(...amethyst, 80), new RenderColor(...amethyst, 255), 2, false);
+                    Render3D.drawText(`#${i + 1}`, pos.add(0.5, 1.3, 0.5), 1.2, true, false, true);
+                    Render3D.drawStyledBox(pos, new RenderColor(...amethyst, 80), new RenderColor(...amethyst, 255), 2, false);
 
                     const nextIndex = (i + 1) % this.route.length;
 
                     if (this.route.length > 1) {
                         const next = this.route[nextIndex];
                         if (next && typeof next.x === 'number') {
-                            RenderUtils.drawLine(
+                            Render3D.drawLine(
                                 new Vec3d(current.x + 0.5, current.y + 0.5, current.z + 0.5),
                                 new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5),
                                 new RenderColor(...amethyst, 255),

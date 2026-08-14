@@ -61,15 +61,15 @@ class AlertUtilsClass {
         const highlightColor = Math.trunc(0xffffffff); // this too
 
         this.render = register('renderOverlay', () => {
-            const screenW = Renderer.screen.getWidth();
-            const screenH = Renderer.screen.getHeight();
+            const screenW = Render2D.screen.getWidth();
+            const screenH = Render2D.screen.getHeight();
             try {
-                Renderer.save();
+                Render2D.save();
                 this._renderAlertScreen(screenW, screenH);
 
                 const scale = fontSize / 10;
-                const x1 = screenW / 2 - (Renderer.getStringWidth(line1) * scale) / 2;
-                const totalLine2Width = (Renderer.getStringWidth(line2Start) + Renderer.getStringWidth(key) + Renderer.getStringWidth(line2End)) * scale;
+                const x1 = screenW / 2 - (Render2D.getStringWidth(line1) * scale) / 2;
+                const totalLine2Width = (Render2D.getStringWidth(line2Start) + Render2D.getStringWidth(key) + Render2D.getStringWidth(line2End)) * scale;
                 let currentX2 = screenW / 2 - totalLine2Width / 2;
 
                 const totalBlockHeight = fontSize * 2 + lineSpacing;
@@ -79,12 +79,12 @@ class AlertUtilsClass {
                 drawText(line1, x1, startY, fontSize, redColor);
                 drawText(line2Start, currentX2, y2, fontSize, redColor);
 
-                currentX2 += Renderer.getStringWidth(line2Start) * scale;
+                currentX2 += Render2D.getStringWidth(line2Start) * scale;
                 drawText(key, currentX2, y2, fontSize, highlightColor);
 
-                currentX2 += Renderer.getStringWidth(key) * scale;
+                currentX2 += Render2D.getStringWidth(key) * scale;
                 drawText(line2End, currentX2, y2, fontSize, redColor);
-                Renderer.restore();
+                Render2D.restore();
             } catch (e) {
                 console.error(e);
             }
@@ -183,7 +183,7 @@ class AlertUtilsClass {
     }
 
     /**
-     * Uses Renderer to draw a overlay over the whole screen
+     * Uses Render2D to draw a overlay over the whole screen
      */
     _renderAlertScreen(screenW, screenH) {
         if (Client.isInChat()) return;

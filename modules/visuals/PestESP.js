@@ -63,9 +63,9 @@ class PestESP extends ModuleBase {
             () => {
                 this.persistentPests.forEach((data) => {
                     if (!data.entity || data.entity.isDead()) return;
-                    RenderUtils.drawHitbox(data.entity.toMC(), new RenderColor(255, 0, 0, 100), 5, false);
+                    Render3D.drawHitbox(data.entity.toMC(), new RenderColor(255, 0, 0, 100), 5, false);
 
-                    RenderUtils.drawTracer(new Vec3d(data.x, data.y, data.z), new RenderColor(255, 0, 0, 255), 2, false);
+                    Render3D.drawTracer(new Vec3d(data.x, data.y, data.z), new RenderColor(255, 0, 0, 255), 2, false);
                 });
             }
         );

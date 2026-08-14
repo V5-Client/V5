@@ -23,25 +23,25 @@ export const drawGUI = (mouseX, mouseY) => {
     const centerX = targetBackground.x + targetBackground.width / 2;
     const centerY = targetBackground.y + targetBackground.height / 2;
 
-    Renderer.blurBackground();
+    Render2D.blurBackground();
 
     try {
-        Renderer.save();
+        Render2D.save();
 
         const guiScale = GuiState.getEffectiveGuiScale();
-        Renderer.scale(guiScale, guiScale);
+        Render2D.scale(guiScale, guiScale);
 
         drawRoundedRectangleWithBorder(targetBackground);
 
         GuiTooltip.reset();
 
         if (GuiState.macroToggleOpen) {
-            Renderer.save();
-            Renderer.translate(centerX, centerY);
-            Renderer.scale(ease, ease);
-            Renderer.translate(-centerX, -centerY);
+            Render2D.save();
+            Render2D.translate(centerX, centerY);
+            Render2D.scale(ease, ease);
+            Render2D.translate(-centerX, -centerY);
             macroToggleGui.draw(mouseX, mouseY);
-            Renderer.restore();
+            Render2D.restore();
         } else {
             drawRoundedRectangleWithBorder(GuiRectangles.LeftPanel);
             drawRect({
@@ -56,10 +56,10 @@ export const drawGUI = (mouseX, mouseY) => {
 
             SearchBar.draw(mouseX, mouseY, GuiRectangles.ModuleSearch, GuiRectangles.LeftPanel.y + PADDING, true);
 
-            Renderer.save();
-            Renderer.translate(centerX, centerY);
-            Renderer.scale(ease, ease);
-            Renderer.translate(-centerX, -centerY);
+            Render2D.save();
+            Render2D.translate(centerX, centerY);
+            Render2D.scale(ease, ease);
+            Render2D.translate(-centerX, -centerY);
 
             const panel = GuiRectangles.RightPanel;
             const drawCategoryNav = (category, xOffset, drawBackground = true) => {
@@ -99,13 +99,13 @@ export const drawGUI = (mouseX, mouseY) => {
             resetScissor();
             categoryManager?.drawPopups?.(mouseX, mouseY);
 
-            Renderer.restore();
+            Render2D.restore();
         }
 
         GuiTooltip.update();
         GuiTooltip.draw(mouseX, mouseY);
 
-        Renderer.restore();
+        Render2D.restore();
     } catch (e) {
         console.error(e);
     }

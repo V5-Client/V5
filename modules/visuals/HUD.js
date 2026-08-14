@@ -118,8 +118,8 @@ class HUD extends ModuleBase {
     }
 
     clampOverlayToScreen(overlay) {
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw <= 0 || sh <= 0) return;
 
         const maxX = Math.max(0, sw - overlay.width);
@@ -145,8 +145,8 @@ class HUD extends ModuleBase {
     prepareOverlay(enabled, recalc) {
         if (GuiState.myGui.isOpen() || OverlayManager.drawingGUI || !enabled || !this.worldLoaded) return false;
 
-        const sw = Renderer.screen.getWidth();
-        const sh = Renderer.screen.getHeight();
+        const sw = Render2D.screen.getWidth();
+        const sh = Render2D.screen.getHeight();
         if (sw <= 0 || sh <= 0) return false;
 
         recalc.call(this);
@@ -156,15 +156,15 @@ class HUD extends ModuleBase {
     updateRenderRegistrations() {
         const visible = this.worldLoaded && !GuiState.myGui.isOpen() && !OverlayManager.drawingGUI;
         if (visible && this.INVENTORY_HUD && !this.inventoryBackgroundRegistration) {
-            this.inventoryBackgroundRegistration = Renderer.registerV5PreRender(this.inventoryBackgroundCallback);
+            this.inventoryBackgroundRegistration = Render2D.registerV5PreRender(this.inventoryBackgroundCallback);
         } else if ((!visible || !this.INVENTORY_HUD) && this.inventoryBackgroundRegistration) {
-            Renderer.unregisterV5PreRender(this.inventoryBackgroundRegistration);
+            Render2D.unregisterV5PreRender(this.inventoryBackgroundRegistration);
             this.inventoryBackgroundRegistration = null;
         }
         if (visible && this.STATS_HUD && !this.statsRegistration) {
-            this.statsRegistration = Renderer.registerV5Render(this.statsCallback);
+            this.statsRegistration = Render2D.registerV5Render(this.statsCallback);
         } else if ((!visible || !this.STATS_HUD) && this.statsRegistration) {
-            Renderer.unregisterV5Render(this.statsRegistration);
+            Render2D.unregisterV5Render(this.statsRegistration);
             this.statsRegistration = null;
         }
     }

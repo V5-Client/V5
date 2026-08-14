@@ -202,7 +202,7 @@ class SeaLumie extends ModuleBase {
             if (this.closestPickle) {
                 let waypointPos = new Vec3d(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                RenderUtils.drawFilledBox(waypointPos, new RenderColor(255, 0, 0, 255));
+                Render3D.drawFilledBox(waypointPos, new RenderColor(255, 0, 0, 255));
             }
         });
     }

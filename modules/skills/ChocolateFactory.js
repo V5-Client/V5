@@ -225,8 +225,8 @@ class ChocolateFactory extends ModuleBase {
             const tracerPos = new Vec3d(x, y + 1.75, z);
             const boxPos = new Vec3d(x, y + 1.45, z);
 
-            RenderUtils.drawSizedBox(boxPos, 0.6, 0.6, 0.6, egg.color.fill, true, 2, false);
-            RenderUtils.drawTracer(tracerPos, egg.color.line, 2, false);
+            Render3D.drawSizedBox(boxPos, 0.6, 0.6, 0.6, egg.color.fill, true, 2, false);
+            Render3D.drawTracer(tracerPos, egg.color.line, 2, false);
         });
     }
 

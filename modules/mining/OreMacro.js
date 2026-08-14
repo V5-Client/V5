@@ -1583,22 +1583,22 @@ class OreMiner extends ModuleBase {
                       : waypoint.type === 'Walk'
                         ? [COLORS.walkFill, COLORS.walkWire]
                         : [COLORS.teleportFill, COLORS.teleportWire];
-            RenderUtils.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
+            Render3D.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
             if (this.editing) {
                 waypoint.minableBlocks.forEach((block) => {
                     const mineColors =
                         index === this.selectedWaypoint ? [COLORS.selectedMineFill, COLORS.selectedMineWire] : [COLORS.mineFill, COLORS.mineWire];
-                    RenderUtils.drawStyledBox(new Vec3d(block.x, block.y, block.z), mineColors[0], mineColors[1], 2, false);
+                    Render3D.drawStyledBox(new Vec3d(block.x, block.y, block.z), mineColors[0], mineColors[1], 2, false);
                 });
             }
         });
         if (this.currentRenderTarget) {
             const { x, y, z } = this.currentRenderTarget;
-            RenderUtils.drawStyledBox(new Vec3d(x, y, z), COLORS.currentFill, COLORS.currentWire, 3, false);
+            Render3D.drawStyledBox(new Vec3d(x, y, z), COLORS.currentFill, COLORS.currentWire, 3, false);
         }
         if (this.nextRenderTarget) {
             const { x, y, z } = this.nextRenderTarget;
-            RenderUtils.drawStyledBox(new Vec3d(x, y, z), COLORS.nextFill, COLORS.nextWire, 3, false);
+            Render3D.drawStyledBox(new Vec3d(x, y, z), COLORS.nextFill, COLORS.nextWire, 3, false);
         }
     }
 }

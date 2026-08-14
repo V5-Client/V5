@@ -540,11 +540,11 @@ class EtherwarpPathHandler {
             if (boxes?.size?.()) {
                 for (let boxIndex = 0; boxIndex < boxes.size(); boxIndex++) {
                     const box = boxes.get(boxIndex).move(point.x, point.y, point.z);
-                    RenderUtils.drawFilledBox(box, boxColor, false);
-                    RenderUtils.drawWireFrameBox(box, boxColor, 3, false);
+                    Render3D.drawFilledBox(box, boxColor, false);
+                    Render3D.drawWireFrameBox(box, boxColor, 3, false);
                 }
             } else {
-                RenderUtils.drawStyledBox(new Vec3d(point.x, point.y, point.z), boxColor, boxColor, 3, false);
+                Render3D.drawStyledBox(new Vec3d(point.x, point.y, point.z), boxColor, boxColor, 3, false);
             }
 
             if (i >= this.path.length - 1) continue;
@@ -558,7 +558,7 @@ class EtherwarpPathHandler {
                       next.z + (nextBounds.minZ + nextBounds.maxZ) / 2
                   )
                 : new Vec3d(next.x + 0.5, next.y + 0.5, next.z + 0.5);
-            RenderUtils.drawLine(centerVec, nextCenter, PATH_COLORS.pending, 3, false);
+            Render3D.drawLine(centerVec, nextCenter, PATH_COLORS.pending, 3, false);
         }
     }
 

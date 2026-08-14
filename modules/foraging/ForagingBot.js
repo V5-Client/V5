@@ -346,7 +346,7 @@ class ForagingBot extends ModuleBase {
 
         this.connectedBlocks.forEach((location) => {
             const blockVec = new Vec3d(location.x, location.y, location.z);
-            RenderUtils.drawWireFrameBox(blockVec, new RenderColor(205, 133, 63, 255));
+            Render3D.drawWireFrameBox(blockVec, new RenderColor(205, 133, 63, 255));
         });
     }
 }

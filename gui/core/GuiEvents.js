@@ -59,7 +59,7 @@ const handleMouseRelease = () => {
 };
 
 const handleGuiClosed = () => {
-    Renderer.unregisterV5Render(renderGui);
+    Render2D.unregisterV5Render(renderGui);
     GuiState.dragging = false;
     categoryManager?.handleMouseRelease();
     TextInput.finalizeAllTyping({ playSound: false });
@@ -94,7 +94,7 @@ const renderGui = () => {
     const { x: mouseX, y: mouseY } = GuiState.toGuiCoordinates(Client.getMouseX(), Client.getMouseY());
     drawGUI(mouseX, mouseY);
 };
-GuiState.myGui.registerOpened(() => Renderer.registerV5Render(renderGui));
+GuiState.myGui.registerOpened(() => Render2D.registerV5Render(renderGui));
 
 const handleKeybind = () => {
     const keyName = 'GUI';
