@@ -1650,13 +1650,7 @@ class Bot extends ModuleBase {
         const isFakelook = fakeLookMode && fakeLookMode !== 'Off';
         const palette = isFakelook ? this._renderPalette.fake : this._renderPalette.normal;
 
-        Render3D.drawStyledBox(
-            new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z),
-            palette.currentFill,
-            palette.currentWire,
-            6,
-            false
-        );
+        Render3D.drawStyledBox(new Vec3d(this.lastRenderPos.x, this.lastRenderPos.y, this.lastRenderPos.z), palette.currentFill, palette.currentWire, 6, false);
 
         if (this.lastAimPos) {
             const d = 0.08;
