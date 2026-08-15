@@ -16,6 +16,7 @@ import {
 } from './Utils';
 import { GuiState, Overlays } from './core/GuiState';
 import { getPing, getPingColor, getTPS, getTpsColor } from '../utils/player/ServerInfo';
+import { loadSettings } from './GuiSave';
 import {
     drawInventoryHudBackground,
     drawMusicOverlay,
@@ -25,8 +26,6 @@ import {
     getStatsHudBounds,
     getStatsHudLines,
 } from './OverlayRenderers';
-
-const { loadSettings } = require('./GuiSave');
 
 class OverlayUtils {
     constructor() {

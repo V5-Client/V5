@@ -1,5 +1,7 @@
 import { V5ConfigFile } from '../utils/Constants';
 import { finiteNumber } from '../utils/Math';
+import { getConfigFile } from '../utils/Utils';
+import { sendFailsafeEmbed, sendFailsafeScreenshot } from '../utils/Webhooks';
 
 const DEFAULT_FAILSAFE_SETTINGS = {
     isEnabled: true,
@@ -29,7 +31,7 @@ class FailsafeUtils {
             return this._cache.config;
         }
 
-        const config = require('../utils/Utils').getConfigFile('config.json');
+        const config = getConfigFile('config.json');
 
         this._cache.expiresAt = now + 250;
         this._cache.lastModified = lastModified;
@@ -115,8 +117,6 @@ class FailsafeUtils {
     }
 
     sendFailsafeEmbed(type, severity, description, color) {
-        const { sendFailsafeEmbed, sendFailsafeScreenshot } = require('../utils/Webhooks');
-
         const pingOnCheckValue = this.getFailsafeSettings(type).pingOnCheck;
 
         if (pingOnCheckValue === 'Ping' || pingOnCheckValue === 'Embed Only') {
