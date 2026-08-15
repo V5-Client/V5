@@ -482,7 +482,7 @@ class RefuelService {
         this.state = this.STATES.IDLE;
         this.waitTicks = 0;
         this.timeoutTicks = null;
-        this.callback = null;
+        this.callbacks = [];
         this.contactSlot = -1;
         this.npcRotationToken = 0;
         this.npcRotationPending = false;
@@ -501,13 +501,9 @@ class RefuelService {
     }
 
     refuel(callback) {
-        if (this.state !== this.STATES.IDLE) {
-            chat('Refuel already running!');
-            if (callback) callback(false);
-            return;
-        }
+        if (typeof callback === 'function') this.callbacks.push(callback);
+        if (this.state !== this.STATES.IDLE) return;
 
-        this.callback = callback;
         this.setState(this.STATES.FIND_ABIPHONE);
     }
 
@@ -796,9 +792,15 @@ class RefuelService {
     }
 
     finalCallback(success) {
-        const cb = this.callback;
+        const callbacks = this.callbacks.slice();
         this.reset();
-        if (cb) cb(success);
+        callbacks.forEach((callback) => {
+            try {
+                callback(success);
+            } catch (error) {
+                console.error('V5 refuel callback error:', error);
+            }
+        });
     }
 }
 
@@ -1043,7 +1045,7 @@ export const MiningUtils = {
             drill: bestTool,
         };
     },
-    doRefueling: function (isComm, callback) {
+    doRefueling: function (callback) {
         refueler.refuel(callback);
     },
     MaxGreatExplorer: function (callback) {
@@ -1072,7 +1074,7 @@ export const getMineTime = (...args) => MiningUtils.getMineTime(...args);
 export const getBlockInfo = (...args) => MiningUtils.getBlockInfo(...args);
 export const refreshMiningStatsIfNeeded = (...args) => MiningUtils.refreshMiningStatsIfNeeded(...args);
 export const getDrills = (...args) => MiningUtils.getDrills(...args);
-export const refuel = (...args) => MiningUtils.doRefueling(...args);
+export const refuel = (callback) => MiningUtils.doRefueling(callback);
 export const getDebuff = (...args) => MiningUtils.getDebuff(...args);
 export const setGhostBlock = (...args) => MiningUtils.GhostBlock(...args);
 export const readCommissionsFromGui = (...args) => MiningUtils.readCommissionsFromGui(...args);

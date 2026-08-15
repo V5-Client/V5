@@ -1,6 +1,6 @@
 import { BP, ClipContext, CritParticle, HappyVillagerParticle, MCHand, Vec3d } from '../../utils/Constants';
 import { calculateAbsoluteAngles, calculateAngles, getDistanceToPlayerEyes } from '../../utils/Math';
-import { getDrills, getMineTime, getMiningSpeed, getSpeedWithCold, refreshMiningStatsIfNeeded } from '../../utils/MiningUtils';
+import { getDrills, getMineTime, getMiningSpeed, getSpeedWithCold, refuel, refreshMiningStatsIfNeeded } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { nuke, queueNuke } from '../../utils/NukerUtils';
 import { ClientboundLevelParticlesPacket } from '../../utils/Packets';
@@ -258,7 +258,7 @@ class Bot extends ModuleBase {
         });
 
         registerSkyblockEvent('abilityready', () => {
-            if (!this.enabled || this.refreshingMiningStats) return;
+            if (!this.enabled || this.refreshingMiningStats || this.state === this.STATES.REFUEL) return;
             this.resetTickCounters();
             this.abilityFromChat = true;
             this.state = this.STATES.ABILITY;
@@ -284,10 +284,52 @@ class Bot extends ModuleBase {
         });
 
         registerSkyblockEvent('abilitycooldown', () => {
-            if (!this.enabled) return;
+            if (!this.enabled || this.state === this.STATES.REFUEL) return;
             this.lastUse = Date.now();
             this.state = this.STATES.MINING;
             if (this.DEBUG_MODE) this.message(`&c[DEBUG] abilitycooldown → lastUse=${this.lastUse}, state=MINING`);
+        });
+
+        registerSkyblockEvent('emptydrill', () => {
+            if (!this.enabled || this.isParentManaged || this.state === this.STATES.REFUEL) return;
+            this.onDrillEmpty();
+        });
+    }
+
+    onDrillEmpty() {
+        this.message('&eDrill empty! Refueling...');
+        this.stopMiningControls(true);
+        this.setSneak(false, true);
+        Rotations.stop();
+        this.state = this.STATES.REFUEL;
+        this._pendingAbilityActivation = false;
+        this.currentTarget = null;
+        this.foundLocations = [];
+        this.lastBlockPos = null;
+        this.lastBlockType = null;
+        this.lowestCostBlockIndex = 0;
+        this.allowScan = true;
+        this.resetTickCounters();
+
+        refuel((success) => {
+            if (!this.enabled || this.state !== this.STATES.REFUEL) return;
+            if (!success) {
+                this.message('&cRefueling failed! Disabling Mining Bot.');
+                this.toggle(false);
+                return;
+            }
+
+            this.drill = getDrills()?.drill;
+            if (!this.drill) {
+                this.message('&cNo drill found after refueling! Disabling Mining Bot.');
+                this.toggle(false);
+                return;
+            }
+
+            this.ensureDrillEquipped(this.drill);
+            this.nukedBlock = false;
+            this.state = this.STATES.ABILITY;
+            this.message('&aRefueling successful!');
         });
     }
 

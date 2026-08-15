@@ -1,6 +1,7 @@
 import { File, V5ConfigFile, Vec3d } from '../../utils/Constants';
 import { getEtherwarpEyeCoords } from '../../utils/Etherwarp';
 import { angleToPlayer, blockCenter, distanceToPlayerPoint } from '../../utils/Math';
+import { getDrills, refuel } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { getLookingAt, getPlayerEyePosition, testPointVisibility } from '../../utils/Raytrace';
 import { getFilesInDir } from '../../utils/Router';
@@ -264,6 +265,11 @@ class OreMiner extends ModuleBase {
             this.abilityUseReadyAt = 0;
         });
 
+        registerSkyblockEvent('emptydrill', () => {
+            if (!this.routeActive || this.state === 'REFUEL') return;
+            this.onDrillEmpty();
+        });
+
         v5Command('mining ore', () => this.printHelp());
         v5Command('mining ore list', () => this.listRoutes());
         v5Command('mining ore load', (...parts) => this.loadRoute(parts.join(' '), this.enabled), ['greedyString']);
@@ -280,6 +286,31 @@ class OreMiner extends ModuleBase {
 
     onDisable() {
         this.stopRoute();
+    }
+
+    onDrillEmpty() {
+        this.message('&eDrill empty! Refueling...');
+        this.releaseControls();
+        OreRotations.stop();
+        this.enterState('REFUEL');
+
+        refuel((success) => {
+            if (!this.enabled || !this.routeActive || this.state !== 'REFUEL') return;
+            if (!success) {
+                this.message('&cRefueling failed! Disabling Ore Macro.');
+                this.toggle(false);
+                return;
+            }
+            if (!getDrills()?.drill) {
+                this.message('&cNo drill found after refueling! Disabling Ore Macro.');
+                this.toggle(false);
+                return;
+            }
+
+            setItemSlot(this.drillSlot);
+            this.message('&aRefueling successful!');
+            this.startRoute();
+        });
     }
 
     printHelp() {
@@ -601,6 +632,9 @@ class OreMiner extends ModuleBase {
         const waypoint = this.loadedWaypoints[this.waypointIndex];
 
         switch (this.state) {
+            case 'REFUEL':
+                return;
+
             case 'WAYPOINT':
                 if (waypoint.type === 'Walk') {
                     this.updateWalkWaypointLookAhead();

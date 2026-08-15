@@ -929,7 +929,8 @@ class CommissionMacro extends ModuleBase {
         MiningBot.toggle(false, true);
         this.setState(STATES.REFUELING);
 
-        refuel(true, (success) => {
+        refuel((success) => {
+            if (!this.enabled || this.currentState !== STATES.REFUELING) return;
             if (!success) {
                 this.message('&cRefueling failed!');
                 this.toggle(false);
