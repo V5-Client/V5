@@ -1,7 +1,7 @@
 import { V5ConfigFile } from '../utils/Constants';
 import { finiteNumber } from '../utils/Math';
 import { getConfigFile } from '../utils/Utils';
-import { sendFailsafeEmbed, sendFailsafeScreenshot } from '../utils/Webhooks';
+import { sendFailsafeEmbed as sendWebhookFailsafeEmbed, sendFailsafeScreenshot } from '../utils/Webhooks';
 
 const DEFAULT_FAILSAFE_SETTINGS = {
     isEnabled: true,
@@ -120,7 +120,7 @@ class FailsafeUtils {
         const pingOnCheckValue = this.getFailsafeSettings(type).pingOnCheck;
 
         if (pingOnCheckValue === 'Ping' || pingOnCheckValue === 'Embed Only') {
-            sendFailsafeEmbed(
+            sendWebhookFailsafeEmbed(
                 [
                     {
                         title: `**[${severity.toUpperCase()}]** ${type} Failsafe Triggered!`,
