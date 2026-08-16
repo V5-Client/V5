@@ -55,42 +55,41 @@ class TreeESP extends ModuleBase {
     }
 
     scan() {
-        //executeAsync(() => {
-        if (!this.enabled || !World.isLoaded()) return (this.trees = []);
+        executeAsync(() => {
+            if (!this.enabled || !World.isLoaded()) return (this.trees = []);
 
-        const treeType = this.treeType;
-        const { block, bounds } = treeType;
-        const blocks = World.getBlocksInBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ, [block]);
-        return;
-        const remaining = new java.util.HashMap();
-        for (const block of blocks) remaining.put(new BP(block.x, block.y, block.z), block);
+            const treeType = this.treeType;
+            const { block, bounds } = treeType;
+            const blocks = World.getBlocksInBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ, [block]);
+            const remaining = new java.util.HashMap();
+            for (const block of blocks) remaining.put(new BP(block.x, block.y, block.z), block);
 
-        const trees = [];
+            const trees = [];
 
-        while (!remaining.isEmpty()) {
-            const entry = remaining.entrySet().iterator().next();
-            const startPos = entry.getKey();
-            const startBlock = entry.getValue();
-            const tree = [startBlock];
-            const positions = [startPos];
-            remaining.remove(startPos);
+            while (!remaining.isEmpty()) {
+                const entry = remaining.entrySet().iterator().next();
+                const startPos = entry.getKey();
+                const startBlock = entry.getValue();
+                const tree = [startBlock];
+                const positions = [startPos];
+                remaining.remove(startPos);
 
-            for (let i = 0; i < tree.length; i++) {
-                const pos = positions[i];
-                for (const [dx, dy, dz] of NEIGHBOR_OFFSETS) {
-                    const neighborPos = pos.offset(dx, dy, dz);
-                    const neighbor = remaining.remove(neighborPos);
-                    if (!neighbor) continue;
-                    tree.push(neighbor);
-                    positions.push(neighborPos);
+                for (let i = 0; i < tree.length; i++) {
+                    const pos = positions[i];
+                    for (const [dx, dy, dz] of NEIGHBOR_OFFSETS) {
+                        const neighborPos = pos.offset(dx, dy, dz);
+                        const neighbor = remaining.remove(neighborPos);
+                        if (!neighbor) continue;
+                        tree.push(neighbor);
+                        positions.push(neighborPos);
+                    }
                 }
+
+                trees.push(tree);
             }
 
-            trees.push(tree);
-        }
-
-        if (this.enabled && World.isLoaded() && this.treeType === treeType) this.trees = trees;
-        //});
+            if (this.enabled && World.isLoaded() && this.treeType === treeType) this.trees = trees;
+        });
     }
 
     render() {
