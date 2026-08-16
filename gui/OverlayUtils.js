@@ -274,6 +274,7 @@ class OverlayUtils {
 
         if (existing) {
             existing.sections = sectionsArray;
+            delete existing.renderLayout;
             if (options.isScheduler !== undefined) {
                 existing.isScheduler = options.isScheduler === true;
             }
@@ -349,7 +350,7 @@ class OverlayUtils {
     }
 
     getExampleOverlay() {
-        return {
+        return (this.exampleOverlay ||= {
             name: 'Example Module',
             x: this.settings.x,
             y: this.settings.y,
@@ -390,11 +391,11 @@ class OverlayUtils {
                     },
                 },
             ],
-        };
+        });
     }
 
     getSchedulerExampleOverlay() {
-        return {
+        return (this.schedulerExampleOverlay ||= {
             name: 'Scheduler',
             x: this.schedulerSettings.x,
             y: this.schedulerSettings.y,
@@ -411,7 +412,7 @@ class OverlayUtils {
                     },
                 },
             ],
-        };
+        });
     }
 
     handleMouseClick(mouseX, mouseY) {
@@ -552,48 +553,67 @@ class OverlayUtils {
         const sections = this.ensureArray(id.sections);
         const uptimeVal = forceGUI ? '0.00s' : formatUptime(this.startTimes[id.name]);
 
-        let contentMaxWidth = getTextWidth(id.name, fontSize);
-        let calculatedHeight = 30 * scale;
-        const renderSections = [];
+        let layout = id.renderLayout;
+        if (!layout || layout.sections !== sections || layout.scale !== scale || layout.showUptime !== showUptime) {
+            let contentBaseWidth = getTextWidth(id.name, fontSize);
+            let calculatedHeight = 30 * scale;
+            const renderSections = [];
 
-        sections.forEach((section, sIdx) => {
-            if (!section || typeof section !== 'object') return;
-            const sectionLines = [];
-            const sectionData = section.data || {};
+            sections.forEach((section, sIdx) => {
+                if (!section || typeof section !== 'object') return;
+                const sectionLines = [];
+                const title = section.title ? section.title.toUpperCase() : null;
 
-            if (section.title) {
-                const titleWidth = getTextWidth(section.title.toUpperCase(), argFontSize * 0.85);
-                contentMaxWidth = Math.max(contentMaxWidth, titleWidth + 10 * scale);
-                calculatedHeight += headerHeight - 4 * scale;
-            }
-            calculatedHeight += sectionGap;
+                if (title) {
+                    contentBaseWidth = Math.max(contentBaseWidth, getTextWidth(title, argFontSize * 0.85) + 10 * scale);
+                    calculatedHeight += headerHeight - 4 * scale;
+                }
+                calculatedHeight += sectionGap;
 
-            if (sIdx === 0 && showUptime) {
-                const label = 'Uptime:';
-                const labelWidth = getTextWidth(label, argFontSize);
-                const valueWidth = getTextWidth(uptimeVal, argFontSize);
-                const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
-                contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
-                sectionLines.push({ label, value: uptimeVal, isUptime: true });
-            }
+                if (sIdx === 0 && showUptime) {
+                    sectionLines.push({
+                        label: 'Uptime:',
+                        labelWidth: getTextWidth('Uptime:', argFontSize),
+                        source: null,
+                        value: null,
+                        valueWidth: 0,
+                        isUptime: true,
+                    });
+                }
 
-            Object.entries(sectionData).forEach(([k, v]) => {
-                const displayVal = typeof v === 'function' ? v() : v;
-                const label = `${k}:`;
-                const labelWidth = getTextWidth(label, argFontSize);
-                const valueWidth = getTextWidth(String(displayVal), argFontSize);
-                const lineTotalWidth = labelWidth + valueWidth + 25 * scale;
-                contentMaxWidth = Math.max(contentMaxWidth, lineTotalWidth);
-                sectionLines.push({ label, value: displayVal, isUptime: false });
+                Object.entries(section.data || {}).forEach(([key, source]) => {
+                    const label = `${key}:`;
+                    sectionLines.push({
+                        label,
+                        labelWidth: getTextWidth(label, argFontSize),
+                        source,
+                        value: null,
+                        valueWidth: 0,
+                        isUptime: false,
+                    });
+                });
+
+                calculatedHeight += sectionLines.length * rowHeight + 2 * scale;
+                renderSections.push({ title, lines: sectionLines });
             });
+            calculatedHeight += 6 * scale;
+            layout = { sections, scale, showUptime, contentBaseWidth, calculatedHeight, renderSections };
+            id.renderLayout = layout;
+        }
 
-            const lineCount = sectionLines.length;
-            calculatedHeight += lineCount * rowHeight;
-            calculatedHeight += 2 * scale;
-
-            renderSections.push({ title: section.title, lines: sectionLines });
-        });
-        calculatedHeight += 6 * scale;
+        let contentMaxWidth = layout.contentBaseWidth;
+        layout.renderSections.forEach((section) =>
+            section.lines.forEach((line) => {
+                const value = String(line.isUptime ? uptimeVal : typeof line.source === 'function' ? line.source() : line.source);
+                if (value !== line.value) {
+                    line.value = value;
+                    line.valueWidth = getTextWidth(value, argFontSize);
+                }
+                contentMaxWidth = Math.max(contentMaxWidth, line.labelWidth + line.valueWidth + 25 * scale);
+            })
+        );
+        const calculatedHeight = layout.calculatedHeight;
+        const renderSections = layout.renderSections;
 
         const totalWidth = contentMaxWidth + basePadding * 2;
 
@@ -639,8 +659,8 @@ class OverlayUtils {
             try {
                 Render2D.scissor(x, y, id.width, currentHeight);
                 const titleY = y + 20 * scale;
-                const titleX = x + id.width / 2 - getTextWidth(id.name, fontSize) / 2;
-                const titleAlign = 16;
+                const titleX = x + id.width / 2;
+                const titleAlign = 18;
 
                 drawText(id.name, titleX + 1, titleY + 1, fontSize, colorWithAlpha(0xff000000, 0.35 * contentAlpha), titleAlign);
                 drawText(id.name, titleX, titleY, fontSize, colorWithAlpha(THEME.TEXT, contentAlpha), titleAlign);
@@ -654,7 +674,7 @@ class OverlayUtils {
                     const leftAlignX = x + basePadding;
 
                     if (section.title) {
-                        drawText(section.title.toUpperCase(), leftAlignX, contentY, argFontSize * 0.8, colorWithAlpha(accentColor, contentAlpha), 17);
+                        drawText(section.title, leftAlignX, contentY, argFontSize * 0.8, colorWithAlpha(accentColor, contentAlpha), 17);
                         contentY += headerHeight - 6 * scale;
                     }
 
@@ -664,7 +684,7 @@ class OverlayUtils {
                         const valueX = x + id.width - basePadding;
                         const valueColor = line.isUptime ? colorWithAlpha(accentColor, contentAlpha) : colorWithAlpha(THEME.TEXT, contentAlpha);
 
-                        drawText(String(line.value), valueX, contentY, argFontSize, valueColor, 20);
+                        drawText(line.value, valueX, contentY, argFontSize, valueColor, 20);
 
                         contentY += rowHeight;
                     });
@@ -729,8 +749,7 @@ class OverlayUtils {
             });
 
             const text = 'Drag overlays to reposition. Scroll over module/scheduler/HUD previews to resize.';
-            const textWidth = getTextWidth(text, FontSizes.MEDIUM);
-            drawText(text, (sw - textWidth) / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 16);
+            drawText(text, sw / 2, 30, FontSizes.MEDIUM, THEME.TEXT, 18);
         } catch (e) {
             console.error(e);
         }

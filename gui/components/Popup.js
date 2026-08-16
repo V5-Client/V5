@@ -8,7 +8,6 @@ import {
     easeInBack,
     easeOutBack,
     FontSizes,
-    getTextWidth,
     isInside,
     playClickSound,
     THEME,
@@ -221,10 +220,8 @@ export class Popup {
             radius: 6,
             color: THEME.BG_INSET,
         });
-        const closeTextWidth = getTextWidth(CLOSE_TEXT, FontSizes.LARGE);
-        const closeTextX = closeX + this.closeSize / 2 - closeTextWidth / 2;
         const closeTextY = closeY + this.closeSize / 2;
-        drawText(CLOSE_TEXT, closeTextX, closeTextY, FontSizes.LARGE, THEME.TEXT);
+        drawText(CLOSE_TEXT, closeX + this.closeSize / 2, closeTextY, FontSizes.LARGE, THEME.TEXT, 18);
 
         const contentX = windowRect.x + this.windowPadding;
         const contentY = windowRect.y + this.headerHeight + this.windowPadding - this.contentScrollY;
@@ -287,13 +284,13 @@ export class Popup {
                     });
                 }
 
-                const txtW = getTextWidth(component.buttonText, FontSizes.REGULAR);
                 drawText(
                     component.buttonText,
-                    contentX + btnWidth / 2 - txtW / 2,
+                    contentX + btnWidth / 2,
                     currentY + btnHeight / 2 + (pressProgress > 0 ? 1 : 0),
                     FontSizes.REGULAR,
-                    THEME.TEXT
+                    THEME.TEXT,
+                    18
                 );
 
                 currentY += btnHeight + 10;

@@ -39,6 +39,8 @@ const SETTINGS_ICON_PATH = ASSETS_PATH + 'settings.svg';
 const DASHBOARD_ICON_PATH = ASSETS_PATH + 'dashboard.svg';
 const EDIT_ICON_PATH = ASSETS_PATH + 'edit.svg';
 const SCRIPT_VERSION = JSON.parse(FileLib.read('V5', 'metadata.json')).version;
+const moduleNavLayouts = new WeakMap();
+const titleLayouts = new WeakMap();
 
 export const getModuleBorderColor = (moduleType) =>
     moduleType === 'developer' ? colorWithAlpha(THEME.NOTIF_WARNING, 0.75) : moduleType === 'user' ? colorWithAlpha(THEME.NOTIF_ERROR, 0.75) : null;
@@ -86,10 +88,23 @@ export const getCategoryContentY = (catObj, panel) =>
 
 export const getModuleNavButtonRect = (catObj, index, xOffset = 0) => {
     const navRect = getModuleNavRect(xOffset);
-    const subcategories = ['All', ...catObj.subcategories];
-    let x = navRect.x + 4;
-    for (let i = 0; i < index; i++) x += getTextWidth(subcategories[i], FontSizes.MEDIUM) + 16 + SUBCATEGORY_BUTTON_SPACING;
-    return { x, y: navRect.y + 1, width: getTextWidth(subcategories[index], FontSizes.MEDIUM) + 16, height: navRect.height - 2 };
+    let layout = moduleNavLayouts.get(catObj);
+    if (!layout || layout.revision !== Categories.dataRevision || layout.subcategories !== catObj.subcategories) {
+        let x = 4;
+        layout = {
+            revision: Categories.dataRevision,
+            subcategories: catObj.subcategories,
+            buttons: ['All', ...catObj.subcategories].map((label) => {
+                const width = getTextWidth(label, FontSizes.MEDIUM) + 16;
+                const button = { x, width };
+                x += width + SUBCATEGORY_BUTTON_SPACING;
+                return button;
+            }),
+        };
+        moduleNavLayouts.set(catObj, layout);
+    }
+    const button = layout.buttons[index];
+    return { x: navRect.x + button.x, y: navRect.y + 1, width: button.width, height: navRect.height - 2 };
 };
 
 const getModuleNavScrollTarget = (catObj, state = Categories) => {
@@ -184,13 +199,7 @@ export const drawSubcategoryButtons = (catObj, mouseX, mouseY, xOffset = 0, draw
         }
 
         const textColor = isSelected ? THEME.TEXT : THEME.TEXT_MUTED;
-        drawText(
-            subcat,
-            buttonRect.x + (buttonRect.width - getTextWidth(subcat, FontSizes.MEDIUM)) / 2,
-            buttonRect.y + buttonRect.height / 2,
-            FontSizes.MEDIUM,
-            textColor
-        );
+        drawText(subcat, buttonRect.x + buttonRect.width / 2, buttonRect.y + buttonRect.height / 2, FontSizes.MEDIUM, textColor, 18);
     });
 };
 
@@ -540,21 +549,26 @@ const drawItemBox = (item, itemX, itemY, itemWidth, itemHeight, mouseX, mouseY, 
             drawText(sectionText, itemX + 12, subtitleY, FontSizes.SMALL, THEME.TEXT_MUTED);
         }
     } else {
-        const words = item.title.split(' ');
-        const lines = words.reduce(
-            (lines, word) => {
-                const line = lines[lines.length - 1];
-                if (line && getTextWidth(`${line} ${word}`, FontSizes.REGULAR) > itemWidth - 16) lines.push(word);
-                else lines[lines.length - 1] = line ? `${line} ${word}` : word;
-                return lines;
-            },
-            ['']
-        );
+        const maxWidth = itemWidth - 16;
+        let layout = titleLayouts.get(item);
+        if (!layout || layout.title !== item.title || layout.maxWidth !== maxWidth) {
+            const lines = item.title.split(' ').reduce(
+                (lines, word) => {
+                    const line = lines[lines.length - 1];
+                    if (line && getTextWidth(`${line} ${word}`, FontSizes.REGULAR) > maxWidth) lines.push(word);
+                    else lines[lines.length - 1] = line ? `${line} ${word}` : word;
+                    return lines;
+                },
+                ['']
+            );
+            layout = { title: item.title, maxWidth, lines };
+            titleLayouts.set(item, layout);
+        }
+        const lines = layout.lines;
         const lineHeight = 12;
         const textY = itemY + itemHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
         lines.forEach((line, index) => {
-            const textX = centerText ? itemX + (itemWidth - getTextWidth(line, FontSizes.REGULAR)) / 2 : itemX + 12;
-            drawText(line, textX, textY + index * lineHeight, FontSizes.REGULAR, THEME.TEXT);
+            drawText(line, centerText ? itemX + itemWidth / 2 : itemX + 12, textY + index * lineHeight, FontSizes.REGULAR, THEME.TEXT, centerText ? 18 : 17);
         });
     }
 };

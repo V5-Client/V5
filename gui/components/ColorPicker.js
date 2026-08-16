@@ -216,12 +216,9 @@ export class ColorPicker {
 
         const arrow = this.expanded ? '▼' : '▶';
         const arrowFontSize = FontSizes.SMALL;
-        const arrowWidth = getTextWidth(arrow, arrowFontSize);
-
-        const centeredArrowX = arrowX + (arrowSize - arrowWidth) / 2;
         const centeredArrowY = arrowY + arrowSize / 2 + arrowFontSize / 2 - 3;
 
-        drawText(arrow, centeredArrowX, centeredArrowY, arrowFontSize, THEME.TEXT);
+        drawText(arrow, arrowX + arrowSize / 2, centeredArrowY, arrowFontSize, THEME.TEXT, 18);
 
         const componentRect = {
             x: this.x,

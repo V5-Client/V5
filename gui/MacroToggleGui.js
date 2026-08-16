@@ -1,5 +1,5 @@
 import { GuiRectangles, GuiState } from './core/GuiState';
-import { FontSizes, PADDING, THEME, drawImage, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, getTextWidth, isInside } from './Utils';
+import { FontSizes, PADDING, THEME, drawImage, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, isInside } from './Utils';
 import { loadSettings } from './GuiSave';
 import { getEnabledMacros, getModule, modules as registeredModules } from '../utils/MacroState';
 import { globalAssetsDir } from '../utils/Constants';
@@ -84,13 +84,7 @@ const drawButton = (rect, text, active = false) => {
         radius: 6,
         color: active ? THEME.ACCENT_DIM : THEME.BG_INSET,
     });
-    drawText(
-        text,
-        rect.x + (rect.width - getTextWidth(text, FontSizes.SMALL)) / 2,
-        rect.y + rect.height / 2,
-        FontSizes.SMALL,
-        active ? THEME.TEXT : THEME.TEXT_MUTED
-    );
+    drawText(text, rect.x + rect.width / 2, rect.y + rect.height / 2, FontSizes.SMALL, active ? THEME.TEXT : THEME.TEXT_MUTED, 18);
 };
 
 export const macroToggleGui = {
@@ -203,7 +197,7 @@ export const macroToggleGui = {
             );
             const moduleColor = getModuleBorderColor(Categories.findItem('Modules', module.name)?.moduleType);
             drawText(module.name, row.x + 32, row.y + row.height / 2, FontSizes.REGULAR, moduleColor || (module.enabled ? THEME.TEXT : THEME.TEXT_MUTED));
-            drawText(keyName, row.x + row.width - 8 - getTextWidth(keyName, FontSizes.SMALL), row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
+            drawText(keyName, row.x + row.width - 8, row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
         });
         Render2D.restore();
 

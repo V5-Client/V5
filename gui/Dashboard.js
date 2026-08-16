@@ -1,4 +1,4 @@
-import { FontSizes, PADDING, THEME, colorWithAlpha, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, getTextWidth, isInside } from './Utils';
+import { FontSizes, PADDING, THEME, colorWithAlpha, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, isInside } from './Utils';
 import { modules as registeredModules } from '../utils/MacroState';
 import { formatUptime } from '../utils/TimeUtils';
 import { area, subArea } from '../utils/Utils';
@@ -93,7 +93,7 @@ const drawDebugCard = (x, y, width) => {
     rows.forEach((row) => {
         const value = String(row.value);
         drawText(row.label, labelX, rowY, FontSizes.REGULAR, THEME.TEXT_MUTED);
-        drawText(value, valueRightX - getTextWidth(value, FontSizes.REGULAR), rowY, FontSizes.REGULAR, row.color || THEME.TEXT);
+        drawText(value, valueRightX, rowY, FontSizes.REGULAR, row.color || THEME.TEXT, 20);
         rowY += ROW_HEIGHT;
     });
 
@@ -134,7 +134,7 @@ const drawModulesCard = (panel, x, y, width, mouseX, mouseY) => {
         }
 
         drawText(module.name, x + CARD_PADDING, textY, FontSizes.REGULAR, isHovered ? THEME.TEXT_LINK : THEME.TEXT);
-        drawText(meta, x + width - CARD_PADDING - getTextWidth(meta, FontSizes.SMALL), textY, FontSizes.SMALL, THEME.TEXT_MUTED);
+        drawText(meta, x + width - CARD_PADDING, textY, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
     });
 
     return height;

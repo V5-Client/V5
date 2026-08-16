@@ -172,7 +172,7 @@ export const drawText = (text, x, y, size, color, align = 17) => {
 export const getTextWidth = (text, size) => Render2D.textWidth(text, size, DEFAULT_FONT);
 
 export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
-    drawText(text, x + (width - getTextWidth(text, fontSize)) / 2, yOffset, fontSize, color);
+    drawText(text, x + width / 2, yOffset, fontSize, color, 18);
 };
 
 export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {

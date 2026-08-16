@@ -33,6 +33,11 @@ let autoScrollRightActive = false;
 let autoScrollOptionsActive = false;
 let pendingHighlightComponent = null;
 let lastDrawTime = Date.now();
+let searchCacheRevision = -1;
+let searchCacheQuery = null;
+let searchRegexes = [];
+const filteredItemsCache = new Map();
+const searchMatchesCache = new Map();
 const macroToggleButton = new Button(
     '',
     0,
@@ -144,8 +149,24 @@ const beginModuleOptionsSwap = (moduleItem, returnCategory = null) => {
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const getSearchRegexes = (query) => {
-    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    return tokens.map((token) => new RegExp(`\\b${escapeRegExp(token)}`));
+    if (searchCacheRevision !== Categories.dataRevision) {
+        searchCacheRevision = Categories.dataRevision;
+        searchCacheQuery = null;
+        filteredItemsCache.clear();
+        searchMatchesCache.clear();
+    }
+    if (query !== searchCacheQuery) {
+        searchCacheQuery = query;
+        searchRegexes = query
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((token) => new RegExp(`\\b${escapeRegExp(token)}`));
+        filteredItemsCache.clear();
+        searchMatchesCache.clear();
+    }
+    return searchRegexes;
 };
 const matchesSearch = (value, searchRegexes) => {
     if (!value || searchRegexes.length === 0) return false;
@@ -155,20 +176,24 @@ const matchesSearch = (value, searchRegexes) => {
 
 const getFilteredItems = (cat, query) => {
     const searchRegexes = getSearchRegexes(query);
+    const cacheKey = `${cat.name}\0${Categories.selectedSubcategory || ''}`;
+    if (filteredItemsCache.has(cacheKey)) return filteredItemsCache.get(cacheKey);
 
     if (searchRegexes.length === 0) {
-        return cat.items.filter((group) => {
+        const items = cat.items.filter((group) => {
             if (group.type === 'separator') {
                 return Categories.selectedSubcategory === null || group.title === Categories.selectedSubcategory;
             }
             return true;
         });
+        filteredItemsCache.set(cacheKey, items);
+        return items;
     }
 
     const categoryMatches = matchesSearch(cat.name, searchRegexes);
     const allowComponentMatch = cat.name !== 'Modules';
 
-    return cat.items.reduce((acc, group) => {
+    const items = cat.items.reduce((acc, group) => {
         if (group.type === 'separator') {
             const subcategoryMatches = matchesSearch(group.title, searchRegexes);
 
@@ -195,11 +220,14 @@ const getFilteredItems = (cat, query) => {
         }
         return acc;
     }, []);
+    filteredItemsCache.set(cacheKey, items);
+    return items;
 };
 
 const getDirectComponentMatches = (categoryName, resultTitle, resultType, query) => {
     const searchRegexes = getSearchRegexes(query);
     if (searchRegexes.length === 0) return [];
+    if (searchMatchesCache.has(categoryName)) return searchMatchesCache.get(categoryName);
 
     const directCategory = Categories.categories.find((c) => c.name === categoryName);
     if (!directCategory || !directCategory.directComponents) return [];
@@ -212,7 +240,10 @@ const getDirectComponentMatches = (categoryName, resultTitle, resultType, query)
         return titleMatch || descMatch || sectionMatch;
     });
 
-    if (matches.length === 0) return [];
+    if (matches.length === 0) {
+        searchMatchesCache.set(categoryName, []);
+        return [];
+    }
 
     const resultGroup = new Separator(resultTitle, true);
     resultGroup.items = matches.map((component) => ({
@@ -224,7 +255,9 @@ const getDirectComponentMatches = (categoryName, resultTitle, resultType, query)
         tooltip: component.description || null,
     }));
 
-    return [resultGroup];
+    const results = [resultGroup];
+    searchMatchesCache.set(categoryName, results);
+    return results;
 };
 
 const getSettingsDirectMatches = (query) => getDirectComponentMatches('Settings', 'Settings Results', 'direct-component', query);
@@ -233,6 +266,7 @@ const getThemeDirectMatches = (query) => getDirectComponentMatches('Theme', 'The
 const getModuleComponentMatches = (cat, query) => {
     const searchRegexes = getSearchRegexes(query);
     if (searchRegexes.length === 0 || !cat) return [];
+    if (searchMatchesCache.has('module-components')) return searchMatchesCache.get('module-components');
 
     const matches = [];
     const pushMatch = (item, component) => {
@@ -265,11 +299,16 @@ const getModuleComponentMatches = (cat, query) => {
         }
     });
 
-    if (matches.length === 0) return [];
+    if (matches.length === 0) {
+        searchMatchesCache.set('module-components', []);
+        return [];
+    }
 
     const resultGroup = new Separator('Module Settings', true);
     resultGroup.items = matches;
-    return [resultGroup];
+    const results = [resultGroup];
+    searchMatchesCache.set('module-components', results);
+    return results;
 };
 
 const calculateDirectComponentsHeight = (categoryName) => {
@@ -559,14 +598,12 @@ const draw = (mouseX, mouseY) => {
                 drawDirectComponents(contentPanel, currentPanelX, contentY, contentMouseX, contentMouseY, currentRightPanelScrollY, catName);
                 return;
             }
-            const itemsToDisplay = getFilteredItems(cat, query);
+            let itemsToDisplay = getFilteredItems(cat, query);
             if (catName === 'Modules' && query.length > 0) {
                 const moduleMatches = getModuleComponentMatches(cat, query);
                 const settingsMatches = getSettingsDirectMatches(query);
                 const themeMatches = getThemeDirectMatches(query);
-                if (moduleMatches.length > 0) itemsToDisplay.push(...moduleMatches);
-                if (settingsMatches.length > 0) itemsToDisplay.push(...settingsMatches);
-                if (themeMatches.length > 0) itemsToDisplay.push(...themeMatches);
+                itemsToDisplay = itemsToDisplay.concat(moduleMatches, settingsMatches, themeMatches);
             }
             drawCategoryItems(
                 cat,
@@ -618,7 +655,10 @@ const draw = (mouseX, mouseY) => {
 const handleClick = (mouseX, mouseY) => {
     const finishedTextInput = TextInput.handleGlobalClick(mouseX, mouseY);
     const finishedSlider = Slider.handleGlobalClick(mouseX, mouseY);
-    if (finishedTextInput || finishedSlider) return;
+    if (finishedTextInput || finishedSlider) {
+        Categories.dataRevision++;
+        return;
+    }
 
     const panel = GuiRectangles.RightPanel;
     const components = Categories.currentPage === 'categories' ? getVisibleDirectComponents(Categories.selected) : Categories.selectedItem?.components;

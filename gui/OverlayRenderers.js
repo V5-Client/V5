@@ -159,14 +159,7 @@ export function drawMusicOverlay({ overlay, songName, currentTime, totalTime, pr
             borderColor: 0,
         });
         const placeholder = songName === 'Searching for Media...' ? '...' : '?';
-        drawText(
-            placeholder,
-            imageX + imageSize / 2 - getTextWidth(placeholder, titleFontSize) / 2,
-            imageY + imageSize / 2 - titleFontSize / 2.5,
-            titleFontSize,
-            THEME.TEXT_MUTED,
-            16
-        );
+        drawText(placeholder, imageX + imageSize / 2, imageY + imageSize / 2 - titleFontSize / 2.5, titleFontSize, THEME.TEXT_MUTED, 18);
     }
 
     drawText(songName, overlay.x + padding, overlay.y + padding + titleFontSize, titleFontSize, titleColor, 16);
@@ -176,7 +169,7 @@ export function drawMusicOverlay({ overlay, songName, currentTime, totalTime, pr
     const barY = overlay.y + overlay.height - padding - barHeight * 0.8;
     const timerY = barY + barHeight / 2;
     drawText(currentTime, overlay.x + padding, timerY, timerFontSize, THEME.TEXT_MUTED, 16);
-    drawText(totalTime, overlay.x + overlay.width - padding - getTextWidth(totalTime, timerFontSize), timerY, timerFontSize, THEME.TEXT_MUTED, 16);
+    drawText(totalTime, overlay.x + overlay.width - padding, timerY, timerFontSize, THEME.TEXT_MUTED, 20);
     drawRoundedRectangleWithBorder({
         x: barStartX,
         y: barY,

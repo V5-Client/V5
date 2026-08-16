@@ -65,6 +65,7 @@ export const Categories = {
 
     hoverStates: {},
     guiScrollSpeed: 25,
+    dataRevision: 0,
 
     getVisibleCategories() {
         return Categories.categories.filter((category) => !category.hiddenInSidebar);
@@ -98,6 +99,7 @@ export const Categories = {
         } else {
             category.items.push(newItem);
         }
+        Categories.dataRevision++;
     },
 
     findItem(categoryName, itemName) {
@@ -121,6 +123,7 @@ export const Categories = {
 
         if (description !== undefined) component.description = description;
         item.components.push(component);
+        Categories.dataRevision++;
         return component;
     },
 
@@ -184,6 +187,7 @@ export const Categories = {
         component.sectionName = sectionName;
         if (description !== undefined) component.description = description;
         settingsCat.directComponents.push(component);
+        Categories.dataRevision++;
         return component;
     },
 
