@@ -23,6 +23,11 @@ class SeaLumie extends ModuleBase {
         this.state = this.STATES.WAITING;
         this.closestPickle = null;
         this.startedScan = false;
+        this.scanQueue = [];
+        this.scanHead = 0;
+        this.scanVisited = new Set();
+        this.scanCenter = null;
+        this.scanIterations = 0;
 
         this.createOverlay([
             {
@@ -37,109 +42,8 @@ class SeaLumie extends ModuleBase {
         this.on('tick', () => {
             switch (this.state) {
                 case this.STATES.SCANNING:
-                    if (!this.startedScan) {
-                        this.startedScan = true;
-
-                        const scanThread = new java.lang.Thread(() => {
-                            let queue = [
-                                {
-                                    x: Math.floor(Player.getX()),
-                                    y: Math.floor(Player.getY()),
-                                    z: Math.floor(Player.getZ()),
-                                },
-                            ];
-
-                            let visited = new Set();
-                            let radius = 64;
-
-                            let playerX = Math.floor(Player.getX());
-                            let playerY = Math.floor(Player.getY());
-                            let playerZ = Math.floor(Player.getZ());
-
-                            let count = 0;
-                            let maxIterations = radius * radius * radius * 8;
-
-                            while (queue.length > 0 && count < maxIterations) {
-                                let currentBlock = queue.shift();
-                                count++;
-
-                                let distance = Math.hypot(currentBlock.x - playerX, currentBlock.y - playerY, currentBlock.z - playerZ);
-                                if (distance > radius) continue;
-
-                                let key = `${currentBlock.x},${currentBlock.y},${currentBlock.z}`;
-                                if (visited.has(key)) continue;
-                                visited.add(key);
-
-                                let block = World.getBlockAt(currentBlock.x, currentBlock.y, currentBlock.z);
-
-                                if (block?.type?.getRegistryName()?.includes('pickle')) {
-                                    let blockAbove = World.getBlockAt(currentBlock.x, currentBlock.y + 1, currentBlock.z);
-                                    if (blockAbove?.type?.getRegistryName()?.includes('water')) {
-                                        this.closestPickle = currentBlock;
-                                        this.message(
-                                            `Found the closest pickle using BFS at x=${this.closestPickle.x}, y=${this.closestPickle.y}, z=${this.closestPickle.z}`
-                                        );
-                                        this.state = this.STATES.GOINGTO;
-                                        return;
-                                    }
-                                }
-
-                                let neighbors = [
-                                    {
-                                        x: currentBlock.x + 1,
-                                        y: currentBlock.y,
-                                        z: currentBlock.z,
-                                    },
-                                    {
-                                        x: currentBlock.x - 1,
-                                        y: currentBlock.y,
-                                        z: currentBlock.z,
-                                    },
-                                    {
-                                        x: currentBlock.x,
-                                        y: currentBlock.y + 1,
-                                        z: currentBlock.z,
-                                    },
-                                    {
-                                        x: currentBlock.x,
-                                        y: currentBlock.y - 1,
-                                        z: currentBlock.z,
-                                    },
-                                    {
-                                        x: currentBlock.x,
-                                        y: currentBlock.y,
-                                        z: currentBlock.z + 1,
-                                    },
-                                    {
-                                        x: currentBlock.x,
-                                        y: currentBlock.y,
-                                        z: currentBlock.z - 1,
-                                    },
-                                ];
-
-                                neighbors.forEach((neighbor) => {
-                                    let neighborKey = `${neighbor.x},${neighbor.y},${neighbor.z}`;
-                                    if (!visited.has(neighborKey)) {
-                                        let neighborBlock = World.getBlockAt(neighbor.x, neighbor.y, neighbor.z);
-                                        if (
-                                            neighborBlock?.type?.getRegistryName()?.includes('water') ||
-                                            neighborBlock?.type?.getRegistryName()?.includes('air') ||
-                                            neighborBlock?.type?.getRegistryName()?.includes('pickle')
-                                        ) {
-                                            queue.push(neighbor);
-                                        }
-                                    }
-                                });
-                            }
-
-                            this.closestPickle = null;
-                            this.message('Failed to find a pickle!');
-                            this.startedScan = false;
-                            this.state = this.STATES.SCANNING;
-                        });
-                        scanThread.setDaemon(true);
-                        scanThread.start();
-                    }
+                    if (!this.startedScan) this.beginScan();
+                    this.scanStep();
                     break;
                 case this.STATES.GOINGTO:
                     if (Player.getAirLevel() <= 0) {
@@ -207,6 +111,73 @@ class SeaLumie extends ModuleBase {
         });
     }
 
+    beginScan() {
+        this.startedScan = true;
+        this.scanCenter = {
+            x: Math.floor(Player.getX()),
+            y: Math.floor(Player.getY()),
+            z: Math.floor(Player.getZ()),
+        };
+        this.scanQueue = [this.scanCenter];
+        this.scanHead = 0;
+        this.scanVisited = new Set();
+        this.scanIterations = 0;
+    }
+
+    scanStep() {
+        const radius = 64;
+        const maxIterations = radius * radius * radius * 8;
+        const offsets = [
+            [1, 0, 0],
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, -1],
+        ];
+
+        // ponytail: bounded main-thread scan; snapshot chunks if this developer macro needs faster searches.
+        for (let budget = 100; budget > 0 && this.scanHead < this.scanQueue.length && this.scanIterations < maxIterations; budget--) {
+            const current = this.scanQueue[this.scanHead++];
+            this.scanIterations++;
+            if (Math.hypot(current.x - this.scanCenter.x, current.y - this.scanCenter.y, current.z - this.scanCenter.z) > radius) continue;
+
+            const key = `${current.x},${current.y},${current.z}`;
+            if (this.scanVisited.has(key)) continue;
+            this.scanVisited.add(key);
+
+            const registryName = World.getBlockAt(current.x, current.y, current.z)?.type?.getRegistryName();
+            if (
+                registryName?.includes('pickle') &&
+                World.getBlockAt(current.x, current.y + 1, current.z)
+                    ?.type?.getRegistryName()
+                    ?.includes('water')
+            ) {
+                this.closestPickle = current;
+                this.message(`Found the closest pickle using BFS at x=${current.x}, y=${current.y}, z=${current.z}`);
+                this.state = this.STATES.GOINGTO;
+                return;
+            }
+
+            for (const [dx, dy, dz] of offsets) {
+                const neighbor = {
+                    x: current.x + dx,
+                    y: current.y + dy,
+                    z: current.z + dz,
+                };
+                const neighborKey = `${neighbor.x},${neighbor.y},${neighbor.z}`;
+                if (this.scanVisited.has(neighborKey)) continue;
+                const neighborName = World.getBlockAt(neighbor.x, neighbor.y, neighbor.z)?.type?.getRegistryName();
+                if (neighborName?.includes('water') || neighborName?.includes('air') || neighborName?.includes('pickle')) this.scanQueue.push(neighbor);
+            }
+        }
+
+        if (this.scanHead < this.scanQueue.length && this.scanIterations < maxIterations) return;
+        this.closestPickle = null;
+        this.message('Failed to find a pickle!');
+        this.startedScan = false;
+    }
+
     onEnable() {
         this.closestPickle = null;
         this.startedScan = false;
@@ -216,6 +187,8 @@ class SeaLumie extends ModuleBase {
     onDisable() {
         this.closestPickle = null;
         this.startedScan = false;
+        this.scanQueue = [];
+        this.scanVisited.clear();
         this.state = this.STATES.WAITING;
     }
 }

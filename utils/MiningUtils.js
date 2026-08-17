@@ -1,7 +1,7 @@
 import { chat } from './Chat';
 import { Blocks, BP } from './Constants';
 import { Flowstate } from './Flowstate';
-import { Executor } from './ThreadExecutor';
+import { ScheduleTask } from './ScheduleTask';
 import { Utils } from './Utils';
 import { v5Command } from './V5Commands';
 import Pathfinder from './pathfinder/PathFinder';
@@ -20,19 +20,40 @@ const BLOCK_HARDNESS_DATA = {
     'minecraft:packed_ice': { hardness: 6000, name: 'Glacite' },
     'minecraft:clay': { hardness: 5600, name: 'Tungsten Clay' },
     'minecraft:infested_cobblestone': { hardness: 5600, name: 'Tungsten Cobble' },
-    'minecraft:brown_terracotta': { hardness: 5600, name: 'Umber Brown Terracotta' },
-    'minecraft:smooth_red_sandstone': { hardness: 5600, name: 'Umber Smooth Red Sandstone' },
+    'minecraft:brown_terracotta': {
+        hardness: 5600,
+        name: 'Umber Brown Terracotta',
+    },
+    'minecraft:smooth_red_sandstone': {
+        hardness: 5600,
+        name: 'Umber Smooth Red Sandstone',
+    },
     'minecraft:terracotta': { hardness: 5600, name: 'Umber Terracotta' },
-    'minecraft:blue_stained_glass_pane': { hardness: 5200, name: 'Aquamarine Pane' },
-    'minecraft:brown_stained_glass_pane': { hardness: 5200, name: 'Citrine Pane' },
+    'minecraft:blue_stained_glass_pane': {
+        hardness: 5200,
+        name: 'Aquamarine Pane',
+    },
+    'minecraft:brown_stained_glass_pane': {
+        hardness: 5200,
+        name: 'Citrine Pane',
+    },
     'minecraft:lime_stained_glass_pane': { hardness: 3000, name: 'Jade Pane' },
     'minecraft:black_stained_glass_pane': { hardness: 5200, name: 'Onyx Pane' },
     'minecraft:pink_stained_glass_pane': { hardness: 4800, name: 'Jasper Pane' },
     'minecraft:yellow_stained_glass_pane': { hardness: 3800, name: 'Topaz Pane' },
     'minecraft:orange_stained_glass_pane': { hardness: 3000, name: 'Amber Pane' },
-    'minecraft:purple_stained_glass_pane': { hardness: 3000, name: 'Amethyst Pane' },
-    'minecraft:green_stained_glass_pane': { hardness: 5200, name: 'Peridot Pane' },
-    'minecraft:light_blue_stained_glass_pane': { hardness: 3000, name: 'Sapphire Pane' },
+    'minecraft:purple_stained_glass_pane': {
+        hardness: 3000,
+        name: 'Amethyst Pane',
+    },
+    'minecraft:green_stained_glass_pane': {
+        hardness: 5200,
+        name: 'Peridot Pane',
+    },
+    'minecraft:light_blue_stained_glass_pane': {
+        hardness: 3000,
+        name: 'Sapphire Pane',
+    },
     'minecraft:red_stained_glass_pane': { hardness: 2300, name: 'Ruby Pane' },
     'minecraft:blue_stained_glass': { hardness: 5200, name: 'Aquamarine Block' },
     'minecraft:brown_stained_glass': { hardness: 5200, name: 'Citrine Block' },
@@ -43,7 +64,10 @@ const BLOCK_HARDNESS_DATA = {
     'minecraft:orange_stained_glass': { hardness: 3000, name: 'Amber Block' },
     'minecraft:purple_stained_glass': { hardness: 3000, name: 'Amethyst Block' },
     'minecraft:green_stained_glass': { hardness: 5200, name: 'Peridot Block' },
-    'minecraft:light_blue_stained_glass': { hardness: 3000, name: 'Sapphire Block' },
+    'minecraft:light_blue_stained_glass': {
+        hardness: 3000,
+        name: 'Sapphire Block',
+    },
     'minecraft:red_stained_glass': { hardness: 2300, name: 'Ruby Block' },
     'minecraft:coal_block': { hardness: 600, name: 'Coal Block' },
     'minecraft:gold_block': { hardness: 600, name: 'Gold Block' },
@@ -76,43 +100,61 @@ class MiningStatsCollector {
         this.checkedThisSession = false;
         this.statsFile = 'miningstats.json';
         this.collectedData = {};
+        this.completionCallbacks = [];
     }
 
-    beginCollection() {
+    beginCollection(callback = null) {
+        if (callback) this.completionCallbacks.push(callback);
         if (this.isCollecting) {
             chat('Already collecting stats. Wait a moment.');
-            return false;
+            return true;
         }
 
         let toolData = ToolFinder.findBest();
         if (!toolData) {
             chat('No mining tool found!');
+            this.complete(false);
             return false;
         }
 
         this.isCollecting = true;
-        try {
-            setItemSlot(toolData.slot);
-            Thread.sleep(500);
-
+        setItemSlot(toolData.slot);
+        ScheduleTask(10, () => {
+            if (!this.isCollecting) return;
             ChatLib.command('stats');
-            if (!this.waitForGui('Stats & Equipment')) return this.timeout();
-            if (!this.waitForItem('Mining Stats')) return this.timeout();
-            Thread.sleep(100);
+            this.waitForGui('Stats & Equipment', () =>
+                this.waitForItem('Mining Stats', () => {
+                    this.collectStatsPage(toolData);
+                })
+            );
+        });
+        return true;
+    }
+
+    collectStatsPage(toolData) {
+        try {
             this.collectedData = {};
             this.collectedData.drill = this.getToolName(toolData);
             this.collectedData.speed = this.extractNumericFromSlot(15, /Mining\s+Speed[:\s]*([\d,]+)/i);
 
             ChatLib.command('hotm');
-            if (!this.waitForGui('Heart of the Mountain')) return this.timeout();
-            let hotmPage = this.waitForItem(['Tier 5', 'Tier 10']);
-            if (!hotmPage) return this.timeout();
-            if (hotmPage === 'Tier 10') {
-                clickSlot(53, false, 'RIGHT');
-                if (!this.waitForItem('Tier 5')) return this.timeout();
-            }
-            Thread.sleep(100);
+            this.waitForGui('Heart of the Mountain', () =>
+                this.waitForItem(['Tier 5', 'Tier 10'], (hotmPage) => {
+                    if (hotmPage === 'Tier 10') {
+                        clickSlot(53, false, 'RIGHT');
+                        this.waitForItem('Tier 5', () => this.collectHotmPage());
+                    } else {
+                        this.collectHotmPage();
+                    }
+                })
+            );
+        } catch (e) {
+            this.fail(e);
+        }
+    }
 
+    collectHotmPage() {
+        try {
             this.collectedData.cotm = this.extractNumericFromSlot(4, /Level[:\s]*(\d+)/i);
             this.collectedData.professional = this.extractNumericFromSlot(12, /\+(\d+(\.\d+)?)/);
 
@@ -123,62 +165,72 @@ class MiningStatsCollector {
             else if (this.checkSlotForBlock(container, 33, activeMarker)) ability = 'Pickobulus';
 
             clickSlot(8, false, 'RIGHT');
-            if (!this.waitForItem('Tier 10')) return this.timeout();
-            if (ability === 'None') {
-                container = Player.getContainer();
-                if (this.checkSlotForBlock(container, 1, activeMarker)) ability = 'GemstoneInfusion';
-                else if (this.checkSlotForBlock(container, 7, activeMarker)) ability = 'SheerForce';
-                else if (this.checkSlotForBlock(container, 37, activeMarker)) ability = 'AnomalousDesire';
-                else if (this.checkSlotForBlock(container, 43, activeMarker)) ability = 'ManiacMiner';
-            }
-            this.collectedData.ability = ability;
-
-            this.collectedData.strongarm = this.extractNumericFromSlot(21, /\+(\d+(\.\d+)?)/);
-            this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+(\.\d+)?)/);
-
-            let explorerLevel = this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/);
-            this.collectedData.maxge = Number.parseInt(explorerLevel) >= 96;
-
-            closeInventory();
-            this.finishCollection();
-            return true;
+            this.waitForItem('Tier 10', () => {
+                try {
+                    if (ability === 'None') {
+                        container = Player.getContainer();
+                        if (this.checkSlotForBlock(container, 1, activeMarker)) ability = 'GemstoneInfusion';
+                        else if (this.checkSlotForBlock(container, 7, activeMarker)) ability = 'SheerForce';
+                        else if (this.checkSlotForBlock(container, 37, activeMarker)) ability = 'AnomalousDesire';
+                        else if (this.checkSlotForBlock(container, 43, activeMarker)) ability = 'ManiacMiner';
+                    }
+                    this.collectedData.ability = ability;
+                    this.collectedData.strongarm = this.extractNumericFromSlot(21, /\+(\d+(\.\d+)?)/);
+                    this.collectedData.coldres = this.extractNumericFromSlot(23, /\+(\d+(\.\d+)?)/);
+                    this.collectedData.maxge = Number.parseInt(this.extractNumericFromSlot(42, /\+(\d+(\.\d+)?)/)) >= 96;
+                    closeInventory();
+                    this.finishCollection();
+                } catch (e) {
+                    this.fail(e);
+                }
+            });
         } catch (e) {
-            chat('Error collecting stats: ' + e);
-            console.error('V5 Caught error' + e + e.stack);
-            return false;
-        } finally {
-            this.isCollecting = false;
+            this.fail(e);
         }
     }
 
-    waitForGui(name, timeoutMs = 4000) {
-        let waited = 0;
-        while (waited < timeoutMs) {
-            let current = getGuiName();
-            if (current && current.includes(name)) return true;
-            Thread.sleep(50);
-            waited += 50;
-        }
-        return false;
+    waitForGui(name, callback) {
+        this.waitFor(() => (getGuiName()?.includes(name) ? true : null), callback);
     }
 
-    waitForItem(itemName, timeoutMs = 4000) {
-        let itemNames = Array.isArray(itemName) ? itemName : [itemName];
-        let waited = 0;
-        while (waited < timeoutMs) {
-            let inventory = Player.getContainer();
-            let found = itemNames.find((name) => findFirstItem(inventory, name) != -1);
-            if (found) return found;
-            Thread.sleep(50);
-            waited += 50;
-        }
-        return false;
+    waitForItem(itemName, callback) {
+        const itemNames = Array.isArray(itemName) ? itemName : [itemName];
+        this.waitFor(() => itemNames.find((name) => findFirstItem(Player.getContainer(), name) !== -1), callback);
+    }
+
+    waitFor(check, callback, ticksLeft = 80) {
+        const poll = () => {
+            if (!this.isCollecting) return;
+            try {
+                const result = check();
+                if (result) return callback(result);
+                if (--ticksLeft <= 0) return this.timeout();
+                ScheduleTask(poll);
+            } catch (e) {
+                this.fail(e);
+            }
+        };
+        poll();
     }
 
     timeout() {
         chat('Failed to get mining stats.');
         closeInventory();
+        this.complete(false);
         return false;
+    }
+
+    fail(error) {
+        chat('Error collecting stats: ' + error);
+        console.error('V5 Caught error' + error + error.stack);
+        closeInventory();
+        this.complete(false);
+    }
+
+    complete(success) {
+        this.isCollecting = false;
+        const callbacks = this.completionCallbacks.splice(0);
+        callbacks.forEach((callback) => callback(success));
     }
 
     finishCollection() {
@@ -196,23 +248,28 @@ class MiningStatsCollector {
         }
 
         this.saveAndDisplay();
+        this.complete(true);
     }
 
-    refreshIfNeeded() {
+    refreshIfNeeded(callback = null) {
         let toolData = ToolFinder.findBest();
-        if (!toolData) return;
+        if (!toolData) {
+            if (callback) callback(false);
+            return false;
+        }
 
         let currentDrillName = this.getToolName(toolData);
         let storedDrillName = this.stats?.drill || null;
 
         if (storedDrillName !== currentDrillName) {
-            return this.beginCollection();
+            return this.beginCollection(callback);
         }
 
         if (!this.checkedThisSession) {
-            return this.beginCollection();
+            return this.beginCollection(callback);
         }
 
+        if (callback) callback(false);
         return false;
     }
 
@@ -291,7 +348,7 @@ class MiningStatsCollector {
 
 const miningStatsCollector = new MiningStatsCollector();
 
-v5Command('mining stats', () => Executor.execute(() => miningStatsCollector.beginCollection()));
+v5Command('mining stats', () => miningStatsCollector.beginCollection());
 
 class ToolFinder {
     static findBest() {
@@ -810,78 +867,51 @@ class ExplorerUpgrade {
     }
 
     upgrade(callback) {
-        let self = this;
+        const stats = this.collector.getStoredStats();
+        if (stats?.maxge) {
+            chat('Great Explorer already maxed!');
+            return callback(true);
+        }
+        if (stats?.maxge === undefined) {
+            chat('Run /getminingstats first!');
+            return callback(false);
+        }
 
-        const t = new java.lang.Thread(function () {
-            let stats = self.collector.getStoredStats();
-
-            if (stats?.maxge) {
-                chat('Great Explorer already maxed!');
-                return callback(true);
-            }
-
-            if (stats?.maxge === undefined) {
-                chat('Run /getminingstats first!');
-                return callback(false);
-            }
-
-            let failed = false;
-            let chatWatcher = register('chat', function (event) {
-                let msg = event.message.getString();
-
-                if (msg.includes('You must first unlock')) {
-                    failed = true;
-                    Thread.sleep(300);
-                    chat("great explorer can't be unlocked!");
-                    closeInventory();
-                    chatWatcher.unregister();
-                    return callback(false);
-                }
-
-                if (msg.includes("You don't have enough Gemstone Powder!")) {
-                    failed = true;
-                    Thread.sleep(300);
-                    chat('insufficient powder!');
-                    closeInventory();
-                    chatWatcher.unregister();
-                    return callback(false);
-                }
-            });
-
-            ChatLib.command('hotm');
-            Thread.sleep(1000);
-
-            if (getGuiName() !== 'Heart of the Mountain') {
-                chat('HOTM failed to open!');
-                chatWatcher.unregister();
-                return callback(false);
-            }
-
-            clickSlot(8, false, 'RIGHT');
-            Thread.sleep(1000);
-
-            while (!failed && getGuiName() === 'Heart of the Mountain') {
-                Thread.sleep(500);
-
-                let slot = Player.getContainer()?.getStackInSlot(42);
-                if (!slot) continue;
-
-                let nbtString = slot.getNBT().toString();
-
-                if (nbtString.includes('item.minecraft.coal')) {
-                    clickSlot(42, false);
-                } else if (nbtString.includes('item.minecraft.emerald')) {
-                    clickSlot(42, true);
-                } else {
-                    break;
-                }
-            }
-
+        let finished = false;
+        const finish = (success, message = null) => {
+            if (finished) return;
+            finished = true;
             chatWatcher.unregister();
-            if (!failed) callback(true);
+            if (message) chat(message);
+            if (!success) closeInventory();
+            callback(success);
+        };
+        const chatWatcher = register('chat', (event) => {
+            const msg = event.message.getString();
+            if (msg.includes('You must first unlock')) ScheduleTask(6, () => finish(false, "great explorer can't be unlocked!"));
+            if (msg.includes("You don't have enough Gemstone Powder!")) ScheduleTask(6, () => finish(false, 'insufficient powder!'));
         });
-        t.setDaemon(true);
-        t.start();
+
+        const upgradeNext = () => {
+            if (finished) return;
+            if (getGuiName() !== 'Heart of the Mountain') return finish(true);
+
+            const slot = Player.getContainer()?.getStackInSlot(42);
+            if (!slot) return ScheduleTask(10, upgradeNext);
+
+            const nbtString = slot.getNBT().toString();
+            if (nbtString.includes('item.minecraft.coal')) clickSlot(42, false);
+            else if (nbtString.includes('item.minecraft.emerald')) clickSlot(42, true);
+            else return finish(true);
+            ScheduleTask(10, upgradeNext);
+        };
+
+        ChatLib.command('hotm');
+        ScheduleTask(20, () => {
+            if (getGuiName() !== 'Heart of the Mountain') return finish(false, 'HOTM failed to open!');
+            clickSlot(8, false, 'RIGHT');
+            ScheduleTask(20, upgradeNext);
+        });
     }
 }
 
@@ -1030,10 +1060,7 @@ export const MiningUtils = {
         return lookupBlock(registryName);
     },
     refreshMiningStatsIfNeeded: function (callback = null) {
-        Executor.execute(() => {
-            const refreshed = miningStatsCollector.refreshIfNeeded();
-            if (callback) Client.scheduleTask(0, () => callback(refreshed));
-        });
+        return miningStatsCollector.refreshIfNeeded(callback);
     },
     getDrills: function () {
         let bestTool = ToolFinder.findBest();

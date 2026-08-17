@@ -5,6 +5,7 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundDisconnectPacket, ClientboundLoginDisconnectPacket } from '../../utils/Packets';
 import { getLastActiveMacros, getLastDisableMeta, getStartTime, isMacroRunning } from '../../utils/MacroState';
 import { formatUptime } from '../../utils/TimeUtils';
+import { executeAsync } from '../../utils/ThreadExecutor';
 const JURL = Java.type('java.net.URL');
 const JOutputStreamWriter = Java.type('java.io.OutputStreamWriter');
 
@@ -141,7 +142,15 @@ class Failsafes extends ModuleBase {
         if (now - this.lastBanLogTime < 60000) return;
         this.lastBanLogTime = now;
 
-        new Thread(() => {
+        const lastMacros = getLastActiveMacros();
+        const lastMacroMeta = getLastDisableMeta(lastMacros[0]);
+        const lastDisableTimestamp = lastMacroMeta?.timestamp;
+        const macroRunning = isMacroRunning();
+        const macroRuntime = macroRunning ? formatUptime(getStartTime()) : null;
+        const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
+        const playerName = Player?.getName?.() || 'unknown';
+
+        executeAsync(() => {
             try {
                 const jwt = V5Auth.getFreshJwtToken();
                 if (!jwt) {
@@ -150,22 +159,19 @@ class Failsafes extends ModuleBase {
                 }
                 const url = new JURL('https://backend.rdbt.top/api/logs/bans');
                 const conn = url.openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
                 conn.setRequestMethod('POST');
                 conn.setDoOutput(true);
                 conn.setRequestProperty('Authorization', `Bearer ${jwt}`);
                 conn.setRequestProperty('Content-Type', 'application/json; charset=UTF-8');
 
-                const lastMacros = getLastActiveMacros();
-                const lastMacroMeta = getLastDisableMeta(lastMacros[0]);
-                const lastDisableTimestamp = lastMacroMeta?.timestamp;
-                const within5Minutes = typeof lastDisableTimestamp === 'number' && Date.now() - lastDisableTimestamp <= 5 * 60 * 1000;
-
                 const body = JSON.stringify({
                     reason,
                     lastMacro: lastMacros.join(', ') || 'None',
-                    currentlyMacroing: isMacroRunning() || within5Minutes,
-                    macroRuntime: isMacroRunning() ? formatUptime(getStartTime()) : null,
-                    ingame_username: Player?.getName?.() || 'unknown',
+                    currentlyMacroing: macroRunning || within5Minutes,
+                    macroRuntime,
+                    ingame_username: playerName,
                     config_contents: this.getConfigFileContents(),
                     installed_mods: new File('./mods').listFiles().join('\n'),
                 });
@@ -182,7 +188,7 @@ class Failsafes extends ModuleBase {
             } catch (e) {
                 console.error(`Exception sending ban log: ${e}`);
             }
-        }).start();
+        });
     }
 
     getConfigFileContents() {

@@ -3,7 +3,6 @@ import { ModuleBase } from '../../utils/ModuleBase';
 import { nukeQueue, queueNuke } from '../../utils/NukerUtils';
 import { ServerboundUseItemOnPacket } from '../../utils/Packets';
 import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
-import { executeAsync } from '../../utils/ThreadExecutor';
 import { getPickaxeAbilityStatus, stripTabFormatting } from '../../utils/TabListUtils';
 import { v5Command } from '../../utils/V5Commands';
 
@@ -48,7 +47,10 @@ class NukerClass extends ModuleBase {
         v5Command('nuker add', () => {
             let block = Player.lookingAt();
             if (block?.getClass() === Block) {
-                const newBlock = { name: block.type.getName(), registryName: block.type.getRegistryName() };
+                const newBlock = {
+                    name: block.type.getName(),
+                    registryName: block.type.getRegistryName(),
+                };
                 if (!this.customBlockList.some((b) => b.registryName === newBlock.registryName)) {
                     this.customBlockList.push(newBlock);
                     this.message('Added ' + block.type.getName() + ' to Nuker list.');
@@ -126,27 +128,25 @@ class NukerClass extends ModuleBase {
                 }
             }
 
-            executeAsync(() => {
-                const target = this.scanForBlock();
+            const target = this.scanForBlock();
 
-                if (target) {
-                    const posArr = [target.getX(), target.getY(), target.getZ()];
-                    queueNuke(posArr, delay);
-                    this.target = target;
-                    this.minedBlocks.set(this.posToString(target), this.tickCounter);
+            if (target) {
+                const posArr = [target.getX(), target.getY(), target.getZ()];
+                queueNuke(posArr, delay);
+                this.target = target;
+                this.minedBlocks.set(this.posToString(target), this.tickCounter);
 
-                    if (['Random', 'Lowest', 'Highest'].includes(this.targetMode)) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            for (let dy = -1; dy <= 1; dy++) {
-                                for (let dz = -1; dz <= 1; dz++) {
-                                    const spreadPos = new BP(target.getX() + dx, target.getY() + dy, target.getZ() + dz);
-                                    this.minedBlocks.set(this.posToString(spreadPos), this.tickCounter);
-                                }
+                if (['Random', 'Lowest', 'Highest'].includes(this.targetMode)) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dz = -1; dz <= 1; dz++) {
+                                const spreadPos = new BP(target.getX() + dx, target.getY() + dy, target.getZ() + dz);
+                                this.minedBlocks.set(this.posToString(spreadPos), this.tickCounter);
                             }
                         }
                     }
                 }
-            });
+            }
         });
 
         registerSkyblockEvent('abilityready', () => {

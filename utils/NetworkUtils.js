@@ -1,6 +1,7 @@
 import { chat } from './Chat';
 import { BufferedReader, File, InputStreamReader, Links, StandardCharsets, URL, globalAssetsDir } from './Constants';
-import { downloadFile } from './FileUtils';
+import { streamDownloadToFile } from './FileUtils';
+import { executeAsync, scheduleClient } from './ThreadExecutor';
 
 const fetchURL = (url, headers = {}) => {
     try {
@@ -35,7 +36,7 @@ export const getDiscordPfpPath = () => discordPfpPath;
 export const returnDiscord = (authToken) => {
     try {
         if (!profilePath.exists()) {
-            const t = new java.lang.Thread(() => {
+            executeAsync((generation) => {
                 if (!profilePath.getParentFile().exists()) profilePath.getParentFile().mkdirs();
 
                 const responseText = fetchURL(`${Links.BASE_API_URL}/api/me`, {
@@ -43,7 +44,7 @@ export const returnDiscord = (authToken) => {
                 });
 
                 if (!responseText || responseText.trim() === '') {
-                    chat('Failed to get a valid response for Discord PFP.');
+                    scheduleClient(() => chat('Failed to get a valid response for Discord PFP.'), 0, generation);
                     return;
                 }
 
@@ -51,29 +52,37 @@ export const returnDiscord = (authToken) => {
                 try {
                     data = JSON.parse(responseText);
                 } catch (e) {
-                    chat('Failed to parse Discord PFP data. Check console for error.');
+                    scheduleClient(() => chat('Failed to parse Discord PFP data. Check console for error.'), 0, generation);
                     console.log('Invalid JSON received: ' + responseText);
                     console.error('V5 Caught error' + e + e.stack);
                     return;
                 }
 
                 if (!data || !data.discord || !data.discord.avatar) {
-                    chat('Failed to download your Discord pfp: Invalid data format.');
+                    scheduleClient(() => chat('Failed to download your Discord pfp: Invalid data format.'), 0, generation);
                     return;
                 }
 
-                downloadFile(data.discord.avatar, profilePath.getAbsolutePath(), {
-                    onComplete: () => {
-                        discordPfpPath = profilePath.getAbsolutePath();
-                    },
-                    onError: (e) => {
-                        chat('Download failed: ' + e);
-                        console.error('V5 Caught error' + e + e.stack);
-                    },
-                });
+                try {
+                    streamDownloadToFile(data.discord.avatar, profilePath.getAbsolutePath());
+                    scheduleClient(
+                        () => {
+                            discordPfpPath = profilePath.getAbsolutePath();
+                        },
+                        0,
+                        generation
+                    );
+                } catch (e) {
+                    scheduleClient(
+                        () => {
+                            chat('Download failed: ' + e);
+                            console.error('V5 Caught error' + e + e.stack);
+                        },
+                        0,
+                        generation
+                    );
+                }
             });
-            t.setDaemon(true);
-            t.start();
         } else {
             discordPfpPath = profilePath.getAbsolutePath();
         }
