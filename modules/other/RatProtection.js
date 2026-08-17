@@ -1,6 +1,5 @@
 import requestV2 from 'requestV2';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { getExecutorGeneration, scheduleClient } from '../../utils/ThreadExecutor';
 
 class RatProtection extends ModuleBase {
     constructor() {
@@ -18,7 +17,6 @@ class RatProtection extends ModuleBase {
 
     postMojangServer() {
         if (!World.isLoaded()) return;
-        const generation = getExecutorGeneration();
         requestV2({
             url: 'https://sessionserver.mojang.com/session/minecraft/join',
             method: 'POST',
@@ -27,10 +25,8 @@ class RatProtection extends ModuleBase {
                 selectedProfile: Player.getUUID().toString().replace(/-/g, ''),
                 serverId: java.util.UUID.randomUUID().toString().replace(/-/g, ''),
             },
-            connectTimeout: 5000,
-            readTimeout: 5000,
             resolveWithFullResponse: true,
-        }).catch((e) => scheduleClient(() => console.error('Rat Protection request failed:', e), 0, generation));
+        }).then(() => {});
     }
 }
 

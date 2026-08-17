@@ -1,6 +1,5 @@
 import { BufferedInputStream, FileOutputStream, URL } from './Constants';
 import { finiteNumber } from './Math';
-import { executeAsync, scheduleClient } from './ThreadExecutor';
 
 const DEFAULT_DOWNLOAD_BUFFER_SIZE = 8192;
 
@@ -42,8 +41,6 @@ export function streamDownloadToFile(url, destination, onProgress = null, buffer
 
     try {
         const connection = new URL(normalizeUrl(url)).openConnection();
-        connection.setConnectTimeout(5000);
-        connection.setReadTimeout(5000);
         connection.connect();
 
         const expectedSize = connection.getContentLength();
@@ -83,13 +80,17 @@ export function downloadFile(url, destination, options = {}) {
     options = options || {};
     const { onProgress = null, onError = null, onComplete = null, bufferSize = DEFAULT_DOWNLOAD_BUFFER_SIZE } = options;
 
-    return executeAsync((generation) => {
+    const t = new java.lang.Thread(() => {
         try {
-            streamDownloadToFile(url, destination, onProgress ? (percent) => scheduleClient(() => onProgress(percent), 0, generation) : null, bufferSize);
-            if (onComplete) scheduleClient(onComplete, 0, generation);
+            streamDownloadToFile(url, destination, onProgress, bufferSize);
+            if (onComplete) onComplete();
         } catch (e) {
-            if (onError) scheduleClient(() => onError(e), 0, generation);
+            if (onError) onError(e);
             else console.error(e);
         }
     });
+
+    t.setDaemon(true);
+    t.start();
+    return t;
 }

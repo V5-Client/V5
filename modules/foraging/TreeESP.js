@@ -1,29 +1,15 @@
-import { Vec3d } from '../../utils/Constants';
+import { BP, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { executeAsync, scheduleClient } from '../../utils/ThreadExecutor';
+import { executeAsync } from '../../utils/ThreadExecutor';
 
 const TREE_TYPES = {
     Fig: {
         block: new BlockType('minecraft:stripped_spruce_wood'),
-        bounds: {
-            minX: -769,
-            minY: 110,
-            minZ: -92,
-            maxX: -531,
-            maxY: 151,
-            maxZ: 100,
-        },
+        bounds: { minX: -769, minY: 110, minZ: -92, maxX: -531, maxY: 151, maxZ: 100 },
     },
     Mangrove: {
         block: new BlockType('minecraft:mangrove_wood'),
-        bounds: {
-            minX: -739,
-            minY: 84,
-            minZ: -88,
-            maxX: -583,
-            maxY: 117,
-            maxZ: 105,
-        },
+        bounds: { minX: -739, minY: 84, minZ: -88, maxX: -583, maxY: 117, maxZ: 105 },
     },
 };
 const NEIGHBOR_OFFSETS = [];
@@ -45,8 +31,6 @@ class TreeESP extends ModuleBase {
         });
 
         this.trees = [];
-        this.scanActive = false;
-        this.scanToken = 0;
         this.treeType = TREE_TYPES.Fig;
         this.addMultiToggle(
             'Tree Type',
@@ -71,56 +55,41 @@ class TreeESP extends ModuleBase {
     }
 
     scan() {
-        if (!this.enabled || !World.isLoaded()) {
-            this.trees = [];
-            return;
-        }
-        if (this.scanActive) return;
+        executeAsync(() => {
+            if (!this.enabled || !World.isLoaded()) return (this.trees = []);
 
-        this.scanActive = true;
-        const token = ++this.scanToken;
-        const treeType = this.treeType;
-        const { block, bounds } = treeType;
-        const blocks = World.getBlocksInBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ, [block]).map(({ x, y, z }) => ({
-            x,
-            y,
-            z,
-        }));
-
-        const submitted = executeAsync((generation) => {
-            const remaining = new Map(blocks.map((entry) => [`${entry.x},${entry.y},${entry.z}`, entry]));
+            const treeType = this.treeType;
+            const { block, bounds } = treeType;
+            const blocks = World.getBlocksInBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ, [block]);
+            const remaining = new java.util.HashMap();
+            for (const block of blocks) remaining.put(new BP(block.x, block.y, block.z), block);
 
             const trees = [];
 
-            while (remaining.size) {
-                const startBlock = remaining.values().next().value;
+            while (!remaining.isEmpty()) {
+                const entry = remaining.entrySet().iterator().next();
+                const startPos = entry.getKey();
+                const startBlock = entry.getValue();
                 const tree = [startBlock];
-                remaining.delete(`${startBlock.x},${startBlock.y},${startBlock.z}`);
+                const positions = [startPos];
+                remaining.remove(startPos);
 
                 for (let i = 0; i < tree.length; i++) {
-                    const pos = tree[i];
+                    const pos = positions[i];
                     for (const [dx, dy, dz] of NEIGHBOR_OFFSETS) {
-                        const key = `${pos.x + dx},${pos.y + dy},${pos.z + dz}`;
-                        const neighbor = remaining.get(key);
+                        const neighborPos = pos.offset(dx, dy, dz);
+                        const neighbor = remaining.remove(neighborPos);
                         if (!neighbor) continue;
-                        remaining.delete(key);
                         tree.push(neighbor);
+                        positions.push(neighborPos);
                     }
                 }
 
                 trees.push(tree);
             }
 
-            scheduleClient(
-                () => {
-                    if (this.enabled && World.isLoaded() && token === this.scanToken && this.treeType === treeType) this.trees = trees;
-                    if (token === this.scanToken) this.scanActive = false;
-                },
-                0,
-                generation
-            );
+            if (this.enabled && World.isLoaded() && this.treeType === treeType) this.trees = trees;
         });
-        if (!submitted) this.scanActive = false;
     }
 
     render() {
@@ -137,8 +106,6 @@ class TreeESP extends ModuleBase {
     }
 
     onDisable() {
-        this.scanToken++;
-        this.scanActive = false;
         this.trees = [];
     }
 }

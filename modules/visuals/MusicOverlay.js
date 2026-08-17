@@ -1,10 +1,10 @@
 import requestV2 from 'requestV2';
 import { BORDER_WIDTH, CORNER_RADIUS, drawImageFromURL, drawRoundedRectangleWithBorder, drawText, FontSizes, getTextWidth, THEME } from '../../gui/Utils';
-import { File, isWindows, ProcessBuilder, globalAssetsDir } from '../../utils/Constants';
+import { File, InputStreamReader, isWindows, ProcessBuilder, Runtime, Scanner, globalAssetsDir } from '../../utils/Constants';
 import { chat } from '../../utils/Chat';
 import { streamDownloadToFile } from '../../utils/FileUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Executor, getExecutorGeneration, isExecutorGenerationCurrent, scheduleClient } from '../../utils/ThreadExecutor';
+import { Executor } from '../../utils/ThreadExecutor';
 import { Utils } from '../../utils/Utils';
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { clamp, drawMusicOverlay, getMusicOverlayBounds } from '../../gui/OverlayRenderers';
@@ -19,7 +19,6 @@ class Music extends ModuleBase {
         this.windowsExePath = 'WindowsMusicHelper.exe';
         this.exePath = this.resolveExePath();
         this.isDownloadingHelper = false;
-        this.isStartingHelper = false;
 
         this.data = null;
         this.lastDataReceivedAt = 0;
@@ -49,11 +48,9 @@ class Music extends ModuleBase {
         });
 
         register('worldUnload', () => this.stopWindowsProgram());
-        register('gameUnload', () => {
-            this.savePosition();
-            this.stopWindowsProgram();
-        });
+        register('gameUnload', () => this.savePosition());
         register('guiClosed', () => this.savePosition());
+        Runtime.getRuntime().addShutdownHook(new java.lang.Thread(() => this.stopWindowsProgram()));
     }
 
     parseTimeToSeconds(timeStr) {
@@ -166,12 +163,7 @@ class Music extends ModuleBase {
         const timeMax = playback.totalText;
         const progress = playback.progress;
 
-        const overlay = {
-            x: this.x,
-            y: this.y,
-            scale: this.scale || 1.0,
-            ...getMusicOverlayBounds(this.scale || 1.0, songName),
-        };
+        const overlay = { x: this.x, y: this.y, scale: this.scale || 1.0, ...getMusicOverlayBounds(this.scale || 1.0, songName) };
         this.dynamicWidth = overlay.width;
         this.baseHeight = overlay.height;
         overlay.x = clamp(overlay.x, 0, Math.max(0, sw - overlay.width));
@@ -196,38 +188,24 @@ class Music extends ModuleBase {
     }
 
     fetchWindowsData() {
-        const generation = getExecutorGeneration();
         requestV2({
             url: 'http://127.0.0.1:61942/',
             method: 'GET',
-            connectTimeout: 750,
-            readTimeout: 750,
+            timeout: 750,
             json: true,
         })
             .then((res) => {
-                scheduleClient(
-                    () => {
-                        this.data = res;
-                        this.lastDataReceivedAt = Date.now();
-                    },
-                    0,
-                    generation
-                );
+                this.data = res;
+                this.lastDataReceivedAt = Date.now();
             })
             .catch((e) => {
-                scheduleClient(
-                    () => {
-                        // would only really happen if it wasn't running.
-                        this.data = null;
-                        if (this.checkWindowsProgram()) return;
-                        const now = Date.now();
-                        if (now - this.lastRestartAttempt < 2000) return;
-                        this.lastRestartAttempt = now;
-                        this.runWindowsProgram();
-                    },
-                    0,
-                    generation
-                );
+                // would only really happen if it wasn't running.
+                this.data = null;
+                if (this.checkWindowsProgram()) return;
+                const now = Date.now();
+                if (now - this.lastRestartAttempt < 2000) return;
+                this.lastRestartAttempt = now;
+                this.runWindowsProgram();
             });
     }
 
@@ -252,28 +230,27 @@ class Music extends ModuleBase {
         if (!isWindows || this.isDownloadingHelper) return;
         this.isDownloadingHelper = true;
 
-        const submitted = Executor.execute((generation) => {
+        Executor.execute(() => {
             try {
-                scheduleClient(() => chat('&7WindowsMusicHelper.exe not found. Downloading...'), 0, generation);
+                chat('&7WindowsMusicHelper.exe not found. Downloading...');
                 let lastUpdate = -25;
                 streamDownloadToFile(this.windowsExeDownloadUrl, this.exePath, (percent) => {
                     if (percent >= lastUpdate + 25) {
-                        scheduleClient(() => chat(`&7Music helper download: &b${percent}%`), 0, generation);
+                        chat(`&7Music helper download: &b${percent}%`);
                         lastUpdate = percent;
                     }
                 });
-                scheduleClient(() => chat('&aWindows music helper installed.'), 0, generation);
+                chat('&aWindows music helper installed.');
             } catch (e) {
-                scheduleClient(() => chat(`&cWindows music helper download failed: ${e}`), 0, generation);
+                chat(`&cWindows music helper download failed: ${e}`);
                 console.error(`[Music] Download error: ${e}`);
                 try {
                     if (this.exePath.exists() && this.exePath.length() <= 0) this.exePath.delete();
                 } catch (deleteError) {}
             } finally {
-                scheduleClient(() => (this.isDownloadingHelper = false), 0, generation);
+                this.isDownloadingHelper = false;
             }
         });
-        if (!submitted) this.isDownloadingHelper = false;
     }
 
     runWindowsProgram() {
@@ -281,31 +258,31 @@ class Music extends ModuleBase {
             this.downloadWindowsProgram();
             return;
         }
-        if (this.checkWindowsProgram() || this.isStartingHelper) return;
-        this.isStartingHelper = true;
+        if (this.checkWindowsProgram()) return;
 
-        const submitted = Executor.execute((generation) => {
+        try {
+            const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
+            pb.directory(this.assetsDir);
+            this.musicProcess = pb.start();
+        } catch (e) {
+            console.error(`[Music] Start error: ${e}`);
+            return;
+        }
+
+        new Thread(() => {
+            let sc = null;
             try {
-                const pb = new ProcessBuilder(this.exePath.getAbsolutePath());
-                pb.directory(this.assetsDir);
-                pb.redirectErrorStream(true);
-                pb.redirectOutput(java.lang.ProcessBuilder.Redirect.DISCARD);
-                const process = pb.start();
-                if (!isExecutorGenerationCurrent(generation)) return process.destroyForcibly();
-                scheduleClient(
-                    () => {
-                        this.musicProcess = process;
-                        this.isStartingHelper = false;
-                    },
-                    0,
-                    generation
-                );
+                sc = new Scanner(new InputStreamReader(this.musicProcess.getInputStream()));
+                while (this.musicProcess !== null && this.musicProcess.isAlive()) {
+                    if (sc.hasNextLine()) sc.nextLine();
+                    else Thread.sleep(100);
+                }
             } catch (e) {
-                scheduleClient(() => (this.isStartingHelper = false), 0, generation);
-                console.error(`[Music] Start error: ${e}`);
+            } finally {
+                if (sc) sc.close();
+                if (this.musicProcess !== null && !this.musicProcess.isAlive()) this.musicProcess = null;
             }
-        });
-        if (!submitted) this.isStartingHelper = false;
+        }).start();
     }
 
     stopWindowsProgram() {

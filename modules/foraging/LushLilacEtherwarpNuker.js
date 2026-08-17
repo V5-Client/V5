@@ -4,6 +4,7 @@ import { getModuleElapsedMs } from '../../utils/MacroState';
 import { closestDirection, createBlockPosition, isBlockInRange, sendBreakPackets } from '../../utils/NukerUtils';
 import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
 import { ScheduleTask } from '../../utils/ScheduleTask';
+import { executeAsync } from '../../utils/ThreadExecutor';
 import { getCurrentMana } from '../../utils/Utils';
 
 const TARGET_TYPE = new BlockType('minecraft:flowering_azalea');
@@ -117,11 +118,14 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         this.scanActive = true;
         this.lastScanAt = now;
         const token = ++this.scanToken;
-        try {
-            this.targets = World.getBlocksInBox(-535, 150, 110, -760, 80, -90, [TARGET_TYPE]).map(({ x, y, z }) => ({ x, y, z }));
-        } finally {
-            if (token === this.scanToken) this.scanActive = false;
-        }
+        executeAsync(() => {
+            try {
+                const targets = World.getBlocksInBox(-535, 150, 110, -760, 80, -90, [TARGET_TYPE]).map(({ x, y, z }) => ({ x, y, z }));
+                if (this.enabled && token === this.scanToken) this.targets = targets;
+            } finally {
+                if (token === this.scanToken) this.scanActive = false;
+            }
+        });
     }
 
     closest(targets) {

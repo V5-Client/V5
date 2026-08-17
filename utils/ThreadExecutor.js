@@ -1,12 +1,16 @@
-const service = Java.type('com.chattriggers.ctjs.api.V5Executor');
+const threadNumber = new java.util.concurrent.atomic.AtomicInteger(1);
+const service = java.util.concurrent.Executors.newCachedThreadPool((runnable) => {
+    const thread = new java.lang.Thread(runnable);
+    thread.setDaemon(true);
+    thread.setName(`V5-Executor-${threadNumber.getAndIncrement()}`);
+    return thread;
+});
 
 export function executeAsync(task) {
-    if (typeof task !== 'function') return false;
-    const generation = service.generation();
-    return service.tryExecute(() => {
-        if (!service.isCurrent(generation)) return;
+    if (service.isShutdown() || typeof task !== 'function') return;
+    service.execute(() => {
         try {
-            task(generation);
+            task();
         } catch (error) {
             console.error('[V5 Thread Error]:');
             console.error(error);
@@ -14,14 +18,8 @@ export function executeAsync(task) {
     });
 }
 
-export function scheduleClient(task, delay = 0, generation = service.generation()) {
-    if (typeof task !== 'function') return;
-    Client.scheduleTask(delay, () => {
-        if (service.isCurrent(generation)) task();
-    });
-}
-
-export const getExecutorGeneration = () => service.generation();
-export const isExecutorGenerationCurrent = (generation) => service.isCurrent(generation);
-
 export const Executor = { execute: executeAsync };
+
+const shutdownExecutor = () => service.shutdownNow();
+
+register('gameUnload', shutdownExecutor);

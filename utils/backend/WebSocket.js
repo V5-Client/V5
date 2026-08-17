@@ -17,7 +17,6 @@ let nextSocketGeneration = 0;
 let activeSocketGeneration = 0;
 const connectionKey = java.util.UUID.randomUUID().toString().replace(/-/g, '');
 const STABLE_CONNECTION_MS = 10000;
-const CONNECT_TIMEOUT_MS = 5000;
 const MAX_RECONNECT_DELAY_TICKS = 20 * 60;
 
 function isCurrentSocket(socket, generation) {
@@ -116,12 +115,7 @@ function connectWebSocket() {
     connectedAtMs = 0;
     socket.socket?.addHeader?.('Authorization', `Bearer ${token}`);
     socket.socket?.addHeader?.('X-Connection-Key', connectionKey);
-    socket.socket?.setConnectionLostTimeout?.(15);
     let disconnectHandled = false;
-    const onClient = (callback) =>
-        Client.scheduleTask(0, () => {
-            if (isCurrentSocket(socket, socketGeneration)) callback();
-        });
     const handleDisconnectOnce = (payload) => {
         if (!isCurrentSocket(socket, socketGeneration)) return;
         if (disconnectHandled) return;
@@ -130,33 +124,31 @@ function connectWebSocket() {
     };
 
     socket.onOpen = () => {
-        onClient(() => {
-            reconnectScheduled = false;
-            isConnected = true;
-            connectedAtMs = Date.now();
-        });
+        if (!isCurrentSocket(socket, socketGeneration)) return;
+        reconnectScheduled = false;
+        isConnected = true;
+        connectedAtMs = Date.now();
     };
 
     socket.onMessage = (message) => {
-        onClient(() => handleIncomingMessage(message));
+        if (!isCurrentSocket(socket, socketGeneration)) return;
+        handleIncomingMessage(message);
     };
 
     socket.onError = (exception) => {
-        onClient(() => handleDisconnectOnce({ exception }));
+        handleDisconnectOnce({
+            exception,
+        });
     };
 
     socket.onClose = (code, reason) => {
-        onClient(() => handleDisconnectOnce({ code, reason }));
+        handleDisconnectOnce({
+            code,
+            reason,
+        });
     };
 
     socket.connect();
-    setTimeout(() => {
-        if (!isCurrentSocket(socket, socketGeneration) || isConnected) return;
-        handleDisconnectOnce({
-            exception: `Connection timed out after ${CONNECT_TIMEOUT_MS}ms`,
-        });
-        socket.close();
-    }, CONNECT_TIMEOUT_MS);
 }
 
 function attemptReconnect() {

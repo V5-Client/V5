@@ -101,8 +101,6 @@ class DiscordNotifier {
         executeAsync(() => {
             try {
                 const connection = new URL(this.endpoint).openConnection();
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'application/json');
                 connection.setRequestProperty('User-Agent', 'V5-Client/' + this.clientVersion);
@@ -178,8 +176,6 @@ class DiscordNotifier {
             try {
                 const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
                 const connection = new URL(this.endpoint).openConnection();
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
                 connection.setDoOutput(true);
                 connection.setRequestMethod('POST');
                 connection.setRequestProperty('Content-Type', 'multipart/form-data; boundary=' + boundary);
