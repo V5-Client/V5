@@ -68,11 +68,11 @@ class StructureESP extends ModuleBase {
                 const pos = new Vec3d(playerX + dx * scale, playerY + dy * scale, playerZ + dz * scale);
                 const color = name === 'Fairy Grotto' ? new RenderColor(180, 70, 255, 110) : new RenderColor(0, 255, 200, 100);
 
-                RenderUtils.drawSizedBox(pos, 8, 8, 8, color, true, 1, false);
-                RenderUtils.drawText(name, pos.add(0, 8.5, 0), 7.5, true, false, true);
+                Render3D.drawSizedBox(pos, 8, 8, 8, color, true, 1, false);
+                Render3D.drawText(name, pos.add(0, 8.5, 0), 7.5, true, false, true);
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 }

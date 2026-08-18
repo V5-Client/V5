@@ -1,5 +1,7 @@
 import { Color, Identifier, SoundCategory, SoundEvent } from '../utils/Constants';
 
+const DEFAULT_FONT = Render2D.getDefaultFont();
+
 export const colorWithAlpha = (baseColor, alpha) => {
     let r, g, b, a;
 
@@ -28,11 +30,7 @@ export const CORNER_RADIUS = 12;
 
 export const CATEGORY_HEIGHT = 30;
 export const CATEGORY_PADDING = 4;
-export const LEFT_PANEL_TEXT_HEIGHT = 8;
-
-export const CATEGORY_BOX_PADDING = 8;
 export const ITEM_SPACING = 6;
-export const SEPARATOR_HEIGHT = 24;
 export const SUBCATEGORY_BUTTON_HEIGHT = 24;
 export const SUBCATEGORY_BUTTON_SPACING = 4;
 
@@ -91,7 +89,7 @@ export const THEME = {
 
 export const drawRect = ({ x, y, width, height, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.drawRect(x, y, width, height, c);
+    Render2D.drawRect(x, y, width, height, c);
 };
 
 export const createHighlight = () => {
@@ -142,12 +140,12 @@ export const createHighlight = () => {
 
 export const drawRoundedRectangle = ({ x, y, width, height, radius, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.drawRoundedRect(x, y, width, height, radius, c);
+    Render2D.drawRoundedRect(x, y, width, height, radius, c);
 };
 
 export const drawRoundedRectangleVaried = ({ x, y, width, height, tl, tr, br, bl, color }) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.drawRoundedRectVaried(x, y, width, height, c, tl, tr, br, bl);
+    Render2D.drawRoundedRectVaried(x, y, width, height, c, tl, tr, br, bl);
 };
 
 export const drawRoundedRectangleWithBorder = (r) => {
@@ -155,50 +153,49 @@ export const drawRoundedRectangleWithBorder = (r) => {
         const bw = r.borderWidth;
         const bc = (r.borderColor instanceof Color ? r.borderColor.getRGB() : r.borderColor) | 0;
         const outerRadius = r.radius + bw;
-        NVG.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
+        Render2D.drawRoundedRect(r.x - bw, r.y - bw, r.width + bw * 2, r.height + bw * 2, outerRadius, bc);
     }
     const c = (r.color instanceof Color ? r.color.getRGB() : r.color) | 0;
-    NVG.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
+    Render2D.drawRoundedRect(r.x, r.y, r.width, r.height, r.radius, c);
 };
 
 export const drawShadow = (x, y, width, height, radius = 8, intensity = 0.15) => {
-    const shadowColor = new Color(0, 0, 0, intensity).getRGB() | 0;
-    NVG.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
+    const shadowColor = (Math.floor(255 * intensity) << 24) | 0;
+    Render2D.drawDropShadow(x, y, width, height, radius, 10, 0, shadowColor);
 };
 
 export const drawText = (text, x, y, size, color, align = 17) => {
     const c = (color instanceof Color ? color.getRGB() : color) | 0;
-    NVG.text(text, x, y, size, c, NVG.getDefaultFont(), align);
+    Render2D.text(text, x, y, size, c, DEFAULT_FONT, align);
 };
 
-export const getTextWidth = (text, size) => NVG.textWidth(text, size, NVG.getDefaultFont());
+export const getTextWidth = (text, size) => Render2D.textWidth(text, size, DEFAULT_FONT);
 
 export const drawCenteredText = (text, x, width, fontSize, color, yOffset) => {
-    drawText(text, x + (width - getTextWidth(text, fontSize)) / 2, yOffset, fontSize, color);
+    drawText(text, x + width / 2, yOffset, fontSize, color, 18);
 };
 
 export const drawImage = (path, x, y, width, height, radius = 0, alpha = 1) => {
     if (!path) return;
-    NVG.drawImage(path, x, y, width, height, radius, alpha);
+    Render2D.drawImage(path, x, y, width, height, radius, alpha);
 };
 
-export const drawImageFromURL = drawImage;
+export const drawImageFromURL = (url, x, y, width, height, radius = 0, alpha = 1) => {
+    if (!url) return;
+    Render2D.drawImageFromUrl(url, x, y, width, height, radius, alpha);
+};
 
 export const drawCircularImage = (path, x, y, size, alpha = 1) => {
     if (!path) return;
-    NVG.drawImage(path, x, y, size, size, size / 2, alpha);
+    Render2D.drawImage(path, x, y, size, size, size / 2, alpha);
 };
 
 export const scissor = (x, y, w, h) => {
-    NVG.scissor(x, y, w, h);
+    Render2D.scissor(x, y, w, h);
 };
 
 export const resetScissor = () => {
-    NVG.resetScissor();
-};
-
-export const composite = (op) => {
-    NVG.setGlobalCompositeOperation(op);
+    Render2D.resetScissor();
 };
 
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);

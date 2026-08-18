@@ -2,12 +2,12 @@ import { autoSell } from './AutoSell';
 import { philipMacro } from './PhilipMacro';
 import { visitorMacro } from './VisitorMacro';
 import { rewarpSettings } from './RewarpSettings';
-import { Utils } from '../../../utils/Utils';
+import { randomInt } from '../../../utils/Utils';
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
 import { pestKiller } from './PestKiller';
 import { loadoutHandler } from '../LoadoutHandler';
 import { farmingDelays } from '../FarmingDelays';
-import { manager } from '../../../utils/SkyblockEvents';
+import { registerSkyblockEvent } from '../../../utils/SkyblockEvents';
 
 const PHASES = {
     BARN: 'Warping to barn',
@@ -24,7 +24,7 @@ const BARN_SETTLE_MS = 250;
 
 class RewarpHandler {
     constructor() {
-        manager.subscribe('barnteleport', () => {
+        registerSkyblockEvent('barnteleport', () => {
             if (this.phase !== PHASES.WAITING_FOR_BARN) return;
             this.phase = PHASES.LANDING_AT_BARN;
             this.nextActionAt = Date.now() + BARN_SETTLE_MS;
@@ -47,7 +47,7 @@ class RewarpHandler {
         const hasBarnTasks = this.tasks.length > 0;
         if (runPestKiller) this.tasks.push(pestKiller, autoSell);
         this.phase = hasBarnTasks ? PHASES.BARN : this.tasks.length ? PHASES.DECIDING : PHASES.REWARP;
-        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + Utils.randomInt(farmingDelays.rewarpDelayMin, farmingDelays.rewarpDelayMax);
+        this.nextActionAt = runPestKiller && !hasBarnTasks ? 0 : Date.now() + randomInt(farmingDelays.rewarpDelayMin, farmingDelays.rewarpDelayMax);
     }
 
     stop() {

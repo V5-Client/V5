@@ -1,11 +1,11 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ArmorStandEntity, Vec3d } from '../../utils/Constants';
-import { MathUtils } from '../../utils/Math';
+import { calculateDistance, getDistanceToPlayer } from '../../utils/Math';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
-import { Movement } from '../../utils/player/Movement';
+import { findItemInHotbar, setItemSlot } from '../../utils/player/Inventory';
+import { setKeysForStraightLineCoords } from '../../utils/player/Movement';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Mouse } from '../../utils/Ungrab';
+import { regrab, ungrab } from '../../utils/Ungrab';
 
 const SMALL_BEACHBALL_BASE64 =
     'ewogICJ0aW1lc3RhbXAiIDogMTczNjQyNzQ4ODAwNCwKICAicHJvZmlsZUlkIiA6ICIzN2JhNjRkYzkxOTg0OGI4YjZhNDdiYTg0ZDgwNDM3MCIsCiAgInByb2ZpbGVOYW1lIiA6ICJTb3lLb3NhIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzJhZGY5ZDcxMzY3Y2Q2ZTUwNWZiNDhjYWFhNWFjZGNkZmYyYTA5ZjY2YzQ4OGRhZjA0ZDA0NWVlMGJmNTI4ZTEiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==';
@@ -274,7 +274,7 @@ class Beachballer extends ModuleBase {
                 const alpha = Math.floor(80 + (120 * i) / this.trailHistory.length);
                 const fadedColor = new RenderColor(TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha);
 
-                RenderUtils.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                Render3D.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
         }
 
@@ -286,7 +286,7 @@ class Beachballer extends ModuleBase {
                 const alpha = Math.floor(200 * (1 - i / this.predictedPath.length));
                 const fadedColor = new RenderColor(PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha);
 
-                RenderUtils.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                Render3D.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
             }
         }
 
@@ -294,11 +294,11 @@ class Beachballer extends ModuleBase {
             const markerSize = 0.3;
             const lp = this.landingPoint;
 
-            RenderUtils.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
-            RenderUtils.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
+            Render3D.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
+            Render3D.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
 
             const groundVec = new Vec3d(Math.floor(lp.x), Math.floor(Player.getY()), Math.floor(lp.z));
-            RenderUtils.drawWireFrameBox(groundVec, landingColor, 2, true);
+            Render3D.drawWireFrameBox(groundVec, landingColor, 2, true);
         }
     }
 
@@ -332,12 +332,12 @@ class Beachballer extends ModuleBase {
             const ballY = this.trackedBall.getY();
 
             const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-            const distance = MathUtils.calculateDistance(playerPos, [dx, ballY, dz]);
+            const distance = calculateDistance(playerPos, [dx, ballY, dz]);
 
             Client.setKey('shift', this.holdShift);
 
             if (distance.distanceFlat > 0.5) {
-                Movement.setKeysForStraightLineCoords(dx, ballY, dz);
+                setKeysForStraightLineCoords(dx, ballY, dz);
             }
             if (distance.distanceFlat < 0.2) {
                 Client.stopMovement();
@@ -356,7 +356,7 @@ class Beachballer extends ModuleBase {
         this.trackedBall = null;
 
         const playerPos = [Player.getX(), Player.getY(), Player.getZ()];
-        const distanceToStart = MathUtils.calculateDistance(playerPos, this.startPos);
+        const distanceToStart = calculateDistance(playerPos, this.startPos);
 
         if (distanceToStart.distance < 2) {
             Client.rightClick();
@@ -364,7 +364,7 @@ class Beachballer extends ModuleBase {
             return;
         }
 
-        Movement.setKeysForStraightLineCoords(this.startPos[0], this.startPos[1], this.startPos[2]);
+        setKeysForStraightLineCoords(this.startPos[0], this.startPos[1], this.startPos[2]);
     }
 
     handlePlaceState() {
@@ -380,14 +380,14 @@ class Beachballer extends ModuleBase {
             }
         }
 
-        const ballSlot = Guis.findItemInHotbar('Bouncy Beach Ball');
+        const ballSlot = findItemInHotbar('Bouncy Beach Ball');
         if (ballSlot === -1) {
             this.message('&cNo bouncy balls in hotbar!');
             this.toggle(false);
             return;
         }
 
-        Guis.setItemSlot(ballSlot);
+        setItemSlot(ballSlot);
 
         this.tickCounter++;
         if (this.tickCounter % 10 === 0) {
@@ -404,7 +404,7 @@ class Beachballer extends ModuleBase {
             const ey = element.getY();
             const ez = element.getZ();
 
-            const distance = MathUtils.getDistanceToPlayer(ex, ey, ez).distance;
+            const distance = getDistanceToPlayer(ex, ey, ez).distance;
             if (distance > radius) continue;
 
             const headItem = element.getStackInSlot(5);
@@ -427,7 +427,7 @@ class Beachballer extends ModuleBase {
 
             return data.includes(SMALL_BEACHBALL_BASE64) || data.includes(LARGE_BEACHBALL_BASE64);
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
             return false;
         }
     }
@@ -462,7 +462,7 @@ class Beachballer extends ModuleBase {
         this.ballDescending = false;
         this.lastVelocityY = 0;
         this.hasActiveRun = false;
-        Mouse.ungrab();
+        ungrab();
         this.message('&aEnabled');
     }
 
@@ -475,7 +475,7 @@ class Beachballer extends ModuleBase {
         this.predictedPath = [];
         this.landingPoint = null;
         this.ballDescending = false;
-        Mouse.regrab();
+        regrab();
         this.message('&cDisabled');
     }
 }

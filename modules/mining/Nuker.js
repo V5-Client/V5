@@ -1,10 +1,10 @@
 import { BP, BlockHitResult, Direction, MCHand, Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { NukerUtils } from '../../utils/NukerUtils';
+import { nukeQueue, queueNuke } from '../../utils/NukerUtils';
 import { ServerboundUseItemOnPacket } from '../../utils/Packets';
-import { manager } from '../../utils/SkyblockEvents';
-import { Executor } from '../../utils/ThreadExecutor';
-import { TabListUtils } from '../../utils/TabListUtils';
+import { registerSkyblockEvent } from '../../utils/SkyblockEvents';
+import { executeAsync } from '../../utils/ThreadExecutor';
+import { getPickaxeAbilityStatus, stripTabFormatting } from '../../utils/TabListUtils';
 import { v5Command } from '../../utils/V5Commands';
 
 class NukerClass extends ModuleBase {
@@ -126,12 +126,12 @@ class NukerClass extends ModuleBase {
                 }
             }
 
-            Executor.execute(() => {
+            executeAsync(() => {
                 const target = this.scanForBlock();
 
                 if (target) {
                     const posArr = [target.getX(), target.getY(), target.getZ()];
-                    NukerUtils.nukeQueueAdd(posArr, delay);
+                    queueNuke(posArr, delay);
                     this.target = target;
                     this.minedBlocks.set(this.posToString(target), this.tickCounter);
 
@@ -149,12 +149,12 @@ class NukerClass extends ModuleBase {
             });
         });
 
-        manager.subscribe('abilityready', () => {
+        registerSkyblockEvent('abilityready', () => {
             if (!this.enabled || !this.usePickaxeAbility) return;
             this.abilityFromChat = true;
         });
 
-        manager.subscribe('abilityused', () => {
+        registerSkyblockEvent('abilityused', () => {
             if (!this.enabled || !this.usePickaxeAbility) return;
             this.lastUse = Date.now();
             this.abilityFromChat = false;
@@ -163,7 +163,7 @@ class NukerClass extends ModuleBase {
         this.on('postRenderWorld', () => {
             if (this.target) this.renderRGB([this.target.getX(), this.target.getY(), this.target.getZ()]);
             if (this.chestPos && this.autoChest && this.distance(this.cords(), [this.chestPos.x, this.chestPos.y, this.chestPos.z]).distance <= 8) {
-                RenderUtils.drawFilledBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), new RenderColor(100, 100, 255, 150), false);
+                Render3D.drawFilledBox(new Vec3d(this.chestPos.x, this.chestPos.y, this.chestPos.z), new RenderColor(100, 100, 255, 150), false);
             }
         });
 
@@ -203,7 +203,7 @@ class NukerClass extends ModuleBase {
                 title: 'Status',
                 data: {
                     'Target Mode': () => this.targetMode,
-                    'Blocks Queued': () => NukerUtils.nukeQueue.length,
+                    'Blocks Queued': () => nukeQueue.length,
                 },
             },
         ]);
@@ -278,7 +278,7 @@ class NukerClass extends ModuleBase {
     }
 
     isHoldingMiningTool() {
-        const heldName = TabListUtils.stripFormatting(Player.getHeldItem()?.getName?.() ?? '');
+        const heldName = stripTabFormatting(Player.getHeldItem()?.getName?.() ?? '');
         return this.REQUIRED_ITEMS.some((name) => heldName.includes(name));
     }
 
@@ -287,7 +287,7 @@ class NukerClass extends ModuleBase {
         if (!this.isHoldingMiningTool()) return false;
 
         const now = Date.now();
-        const abilityStatus = TabListUtils.getPickaxeAbilityStatus();
+        const abilityStatus = getPickaxeAbilityStatus();
         return abilityStatus.includes('Available') || this.abilityFromChat || this.lastUse + this.ABILITY_COOLDOWN_MS < now;
     }
 
@@ -323,7 +323,7 @@ class NukerClass extends ModuleBase {
         let r = Math.sin(time) * 127 + 128,
             g = Math.sin(time + 2) * 127 + 128,
             b = Math.sin(time + 4) * 127 + 128;
-        RenderUtils.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
+        Render3D.drawWireFrameBox(new Vec3d(loc[0], loc[1], loc[2]), new RenderColor(r, g, b, 255), 5, true);
     }
 
     rightClickBlock(xyz) {
@@ -350,4 +350,4 @@ class NukerClass extends ModuleBase {
     }
 }
 
-export const Nuker = new NukerClass();
+new NukerClass();

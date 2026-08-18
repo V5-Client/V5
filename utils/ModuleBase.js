@@ -1,12 +1,11 @@
 import { notificationManager } from '../gui/NotificationManager';
 import { OverlayManager } from '../gui/OverlayUtils';
 import { Categories } from '../gui/categories/CategorySystem';
-import { Chat } from './Chat';
-import { MacroState } from './MacroState';
-import { Mixin } from './MixinManager';
+import { chat } from './Chat';
+import { getActiveMacro, getModule, getStartTime, isMacroRunning, onModuleDisabled, onModuleEnabled, registerModule } from './MacroState';
 import { ScheduleTask } from './ScheduleTask';
-import { manager } from './SkyblockEvents';
-import { Utils } from './Utils';
+import { registerSkyblockEvent } from './SkyblockEvents';
+import { getConfigFile, writeConfigFile } from './Utils';
 
 export class ModuleBase {
     static conditions = [];
@@ -50,7 +49,7 @@ export class ModuleBase {
 
         this.ignoreFailsafes = opts.ignoreFailsafes === true;
 
-        MacroState.registerModule(this);
+        registerModule(this);
 
         this._registers = [];
 
@@ -65,17 +64,17 @@ export class ModuleBase {
         }
 
         if (opts.isMacro) {
-            manager.subscribe('limbo', () => {
+            registerSkyblockEvent('limbo', () => {
                 if (!this.enabled) return;
                 this.toggle(false);
-                Chat.message('&cYou were spawned in limbo! Attempting to recover...');
+                chat('&cYou were spawned in limbo! Attempting to recover...');
                 ChatLib.command('leave');
                 ScheduleTask(20, () => {
                     ChatLib.command('play skyblock');
                 });
                 ScheduleTask(60, () => {
                     this.toggle(true);
-                    Chat.message('&aRecovered from limbo?');
+                    chat('&aRecovered from limbo?');
                 });
             });
         }
@@ -151,8 +150,8 @@ export class ModuleBase {
             this.isParentManaged = parentManaged;
 
             if (this.isMacro) {
-                Mixin.set('macroEnabled', true);
-                MacroState.onModuleEnabled(this.name, toggleContext);
+                Client.setMacroEnabled(true);
+                onModuleEnabled(this.name, toggleContext);
             }
 
             if (this.oid && !this.isParentManaged) {
@@ -169,8 +168,8 @@ export class ModuleBase {
             this._registers.forEach((h) => h.register());
         } else {
             if (this.isMacro) {
-                MacroState.onModuleDisabled(this.name, toggleContext);
-                Mixin.set('macroEnabled', MacroState.isMacroRunning());
+                onModuleDisabled(this.name, toggleContext);
+                Client.setMacroEnabled(isMacroRunning());
             }
 
             if (this.oid) {
@@ -209,15 +208,15 @@ export class ModuleBase {
     }
 
     message(message) {
-        if (!this.name) return Chat.message('&cModule message error!');
+        if (!this.name) return chat('&cModule message error!');
         const theme = this.hexCode || `&${ModuleBase.getDefaultTheme(this.subcategory)}`;
         if (theme.startsWith('&#')) {
-            return Chat.message(new TextComponent({ text: `${this.name}: `, color: `#${theme.slice(2)}` }, `&f${message}`));
+            return chat(new TextComponent({ text: `${this.name}: `, color: `#${theme.slice(2)}` }, `&f${message}`));
         }
         if (theme.startsWith('#')) {
-            return Chat.message(new TextComponent({ text: `${this.name}: `, color: theme }, `&f${message}`));
+            return chat(new TextComponent({ text: `${this.name}: `, color: theme }, `&f${message}`));
         }
-        Chat.message(`${theme}${this.name}: &f${message}`);
+        chat(`${theme}${this.name}: &f${message}`);
     }
 
     /**
@@ -225,7 +224,7 @@ export class ModuleBase {
      * @returns {boolean}
      */
     isAnyMacroRunning() {
-        return MacroState.isMacroRunning();
+        return isMacroRunning();
     }
 
     /**
@@ -233,7 +232,7 @@ export class ModuleBase {
      * @returns {string|null}
      */
     getActiveMacroName() {
-        return MacroState.getActiveMacro();
+        return getActiveMacro();
     }
 
     /**
@@ -241,11 +240,11 @@ export class ModuleBase {
      * @returns {number}
      */
     getMacroStartTime() {
-        return MacroState.getStartTime();
+        return getStartTime();
     }
 
     bindToggleKey(title = `Toggle ${this.name}`) {
-        const existingKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        const existingKeybinds = getConfigFile('keybinds.json') || {};
         const savedKeycode = existingKeybinds[title] || Keyboard.KEY_NONE;
         this._wrappedKeyTitle = title;
         this._wrappedKey = new KeyBind(title, savedKeycode, `v5_${this.subcategory.toLowerCase()}`);
@@ -267,7 +266,7 @@ export class ModuleBase {
      */
     requestToggleFromUser() {
         if (this.isMacro && !this.enabled) {
-            const scheduler = MacroState.getModule('Scheduler');
+            const scheduler = getModule('Scheduler');
             if (scheduler && typeof scheduler.cancelScheduledMacro === 'function') {
                 if (scheduler.cancelScheduledMacro(this.name)) return false;
             }
@@ -512,8 +511,8 @@ export class ModuleBase {
      * Saves a specific keybind description and keycode.
      */
     _saveKey(description, keycode) {
-        let allKeybinds = Utils.getConfigFile('keybinds.json') || {};
+        let allKeybinds = getConfigFile('keybinds.json') || {};
         allKeybinds[description] = keycode;
-        Utils.writeConfigFile('keybinds.json', allKeybinds);
+        writeConfigFile('keybinds.json', allKeybinds);
     }
 }

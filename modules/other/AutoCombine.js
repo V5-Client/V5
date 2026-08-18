@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 
 const BASE_BOOK_LEVELS = ['I', 'II', 'III', 'IV'];
 const EXTENDED_BOOK_LEVELS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
@@ -91,7 +91,7 @@ class AutoCombine extends ModuleBase {
         const pair = this.findNextCombinePair();
         if (!pair) {
             this.message('No combineable pair found');
-            Guis.closeInv();
+            closeInventory();
             this.toggle(false);
             return;
         }
@@ -109,7 +109,7 @@ class AutoCombine extends ModuleBase {
             return;
         }
 
-        Guis.clickSlot(firstSlot, true);
+        clickSlot(firstSlot, true);
         this.setState(this.STATES.SECOND_BOOK);
     }
 
@@ -122,7 +122,7 @@ class AutoCombine extends ModuleBase {
             return;
         }
 
-        Guis.clickSlot(secondSlot, true);
+        clickSlot(secondSlot, true);
         this.setState(this.STATES.COMBINE_BOOKS);
     }
 
@@ -133,7 +133,7 @@ class AutoCombine extends ModuleBase {
         const combineItem = items[22];
         if (!combineItem?.getLore()?.join('')?.includes('Cost')) return this.timeout();
 
-        Guis.clickSlot(22);
+        clickSlot(22);
         this.setState(this.STATES.EXTRACT_BOOK);
     }
 
@@ -145,7 +145,7 @@ class AutoCombine extends ModuleBase {
         if (!extractItem) return this.timeout();
         if (!items[22]?.getLore()?.join('')?.includes('Claim the result')) return this.timeout();
 
-        Guis.clickSlot(13, true);
+        clickSlot(13, true);
         this.reset();
     }
 
@@ -215,7 +215,7 @@ class AutoCombine extends ModuleBase {
         this.second = null;
         this.tickCounter = 0;
         this.setState(this.STATES.OPEN_ANVIL);
-        if (close) Guis.closeInv();
+        if (close) closeInventory();
     }
 
     onEnable() {

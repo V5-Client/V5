@@ -1,7 +1,7 @@
-import { Chat } from '../utils/Chat';
+import { chat } from '../utils/Chat';
 import { Color } from '../utils/Constants';
-import { MacroState } from '../utils/MacroState';
-import { Utils } from '../utils/Utils';
+import { getModule } from '../utils/MacroState';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import { Categories } from './categories/CategorySystem';
 import { Button } from './components/Button';
 import { ColorPicker } from './components/ColorPicker';
@@ -44,7 +44,7 @@ function buildSettingsMapFromComponents() {
 }
 
 function storeModuleEnabledValue(moduleName) {
-    const module = MacroState.getModule(moduleName);
+    const module = getModule(moduleName);
     if (!module || module.showEnabledToggle === false) return;
     SettingsMap.set(`${moduleName}.Enabled`, !!module.enabled);
 }
@@ -76,7 +76,7 @@ export const saveSettings = () => {
         settings[itemTitle][componentTitle] = value;
     }
 
-    Utils.writeConfigFile('config.json', settings);
+    writeConfigFile('config.json', settings);
 };
 
 export const applySettings = () => {
@@ -104,7 +104,7 @@ export const applySettings = () => {
 function applyModuleEnabled(moduleName, savedValue) {
     if (savedValue === undefined) return;
 
-    const module = MacroState.getModule(moduleName);
+    const module = getModule(moduleName);
     if (!module || module.showEnabledToggle === false) return;
 
     module.toggle(!!savedValue);
@@ -124,7 +124,7 @@ function triggerComponentCallback(parentName, component) {
 }
 
 export const loadSettings = () => {
-    const settings = Utils.getConfigFile('config.json');
+    const settings = getConfigFile('config.json');
 
     if (!settings || Object.keys(settings).length === 0) {
         buildSettingsMapFromComponents();
@@ -157,7 +157,7 @@ export const loadSettings = () => {
         mergeSavedModuleEnabledStates(settings);
         applySettings();
     } catch (e) {
-        Chat.message(`Error loading settings: ${e}`);
+        chat(`Error loading settings: ${e}`);
         console.error('V5 Caught error' + e + e.stack);
         buildSettingsMapFromComponents();
     }

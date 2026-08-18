@@ -1,7 +1,6 @@
-import { Chat } from './Chat';
 import { CLIENT_VERSION, Consumer, ScreenshotRecorder, URL } from './Constants';
-import { Executor } from './ThreadExecutor';
-import { Utils } from './Utils';
+import { executeAsync } from './ThreadExecutor';
+import { area, getConfigFile, subArea, writeConfigFile } from './Utils';
 
 class DiscordNotifier {
     constructor() {
@@ -18,7 +17,7 @@ class DiscordNotifier {
 
     loadSettings() {
         try {
-            const cfg = Utils.getConfigFile('webhook.json');
+            const cfg = getConfigFile('webhook.json');
             if (cfg) {
                 this.endpoint = cfg.url || null;
                 this.mentionId = cfg.userId || null;
@@ -27,19 +26,18 @@ class DiscordNotifier {
                 if (this.active) return { url: this.endpoint, userId: this.mentionId };
             }
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            Chat.messageDebug('Failed to initialize webhook settings.');
+            console.error(e);
         }
     }
 
     persistSettings() {
         try {
-            Utils.writeConfigFile('webhook.json', {
+            writeConfigFile('webhook.json', {
                 url: this.endpoint,
                 userId: this.mentionId,
             });
         } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+            console.error(e);
         }
     }
 
@@ -62,7 +60,7 @@ class DiscordNotifier {
 
     takeScreenshot(title = null, description = null, color, footer, ping = false) {
         const mc = Client.getMinecraft();
-        const buffer = mc.getMainRenderTarget();
+        const buffer = Client.getMainRenderTarget();
         const gameDir = mc.gameDirectory;
 
         try {
@@ -82,7 +80,7 @@ class DiscordNotifier {
                                 .orElse(null);
                             if (!latestFile) return;
 
-                            const finalTitle = title || 'Screenshot captured from ' + Utils.area();
+                            const finalTitle = title || 'Screenshot captured from ' + area();
 
                             this.uploadScreenshot(latestFile, finalTitle, description, color, footer, ping);
                         });
@@ -100,7 +98,7 @@ class DiscordNotifier {
         const playerName = Player.getName ? Player.getName() : 'V5';
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
 
-        Executor.execute(() => {
+        executeAsync(() => {
             try {
                 const connection = new URL(this.endpoint).openConnection();
                 connection.setRequestMethod('POST');
@@ -124,16 +122,15 @@ class DiscordNotifier {
 
                 connection.getInputStream().close();
             } catch (e) {
-                console.error('V5 Caught error' + e + e.stack);
-                Chat.messageDebug('Webhook transmission failed: ' + e);
+                console.error(e);
             }
         });
     }
 
     onStartup() {
         if (!this.sendLoadEmbeds) return;
-        const areaName = Utils.area();
-        const subAreaName = Utils.subArea();
+        const areaName = area();
+        const subAreaName = subArea();
 
         const embed = {
             title: areaName ? '**Client Initialized**' : '**Environment Loaded**',
@@ -175,7 +172,7 @@ class DiscordNotifier {
         const playerName = Player.getName ? Player.getName() : 'V5';
         const playerUuid = Player.getUUID ? Player.getUUID().toString().replace(/-/g, '') : '';
 
-        Executor.execute(() => {
+        executeAsync(() => {
             try {
                 const boundary = '----------' + java.lang.Long.toString(java.lang.System.currentTimeMillis(), 16);
                 const connection = new URL(this.endpoint).openConnection();
@@ -238,16 +235,14 @@ class DiscordNotifier {
     }
 }
 
-export const notifier = new DiscordNotifier();
+const notifier = new DiscordNotifier();
 
-export const Webhook = {
-    setWebhook: (url) => notifier.updateEndpoint(url),
-    setUserId: (id) => notifier.updateMention(id),
-    sendEmbed: (e, p) => notifier.publish(e, p),
-    sendFailsafeEmbed: (e, p) => notifier.publishFailsafe(e, p),
-    getData: () => notifier.loadSettings(),
-    sendLoadEmbeds: (v) => notifier.setLoadEmbeds(v),
-    sendFailsafeEmbeds: (v) => notifier.setFailsafeEmbeds(v),
-    sendScreenshot: (t, d, c, f, p) => notifier.takeScreenshot(t, d, c, f, p),
-    sendFailsafeScreenshot: (t, d, c, f, p) => notifier.takeFailsafeScreenshot(t, d, c, f, p),
-};
+export const setWebhook = (url) => notifier.updateEndpoint(url);
+export const setWebhookUserId = (id) => notifier.updateMention(id);
+export const sendEmbed = (embeds, shouldMention) => notifier.publish(embeds, shouldMention);
+export const sendFailsafeEmbed = (embeds, shouldMention) => notifier.publishFailsafe(embeds, shouldMention);
+export const getWebhookData = () => notifier.loadSettings();
+export const setLoadEmbedsEnabled = (enabled) => notifier.setLoadEmbeds(enabled);
+export const setFailsafeEmbedsEnabled = (enabled) => notifier.setFailsafeEmbeds(enabled);
+export const sendScreenshot = (...args) => notifier.takeScreenshot(...args);
+export const sendFailsafeScreenshot = (...args) => notifier.takeFailsafeScreenshot(...args);

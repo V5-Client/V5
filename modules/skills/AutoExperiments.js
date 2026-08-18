@@ -1,5 +1,5 @@
 import { ModuleBase } from '../../utils/ModuleBase';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 
 /**
  * @typedef {com.chattriggers.ctjs.api.inventory.Item} item
@@ -152,10 +152,10 @@ class AutoExperiments extends ModuleBase {
 
         if (this.renewRequired(items)) return this.renewExperiments(items);
 
-        if (this.buyXpTargetLevel > 0) return this.clickSlot(SLOTS.BOTTLE_MENU);
+        if (this.buyXpTargetLevel > 0) return this._clickSlot(SLOTS.BOTTLE_MENU);
 
         if (this.onCooldown(items[SLOTS.SUPERPAIRS])) {
-            Guis.closeInv();
+            closeInventory();
             this.reset();
             return this.message('Experiments complete');
         }
@@ -164,10 +164,10 @@ class AutoExperiments extends ModuleBase {
         if (this.isStakeSelection('Ultrasequencer', containerName)) return this.selectHighestStake(items, [23, 22, 21]);
         if (this.isStakeSelection('Superpairs', containerName)) return this.selectSuperpairsStake(items);
 
-        if (!this.isCompleted(items[21])) return this.clickSlot(SLOTS.CHRONOMATRON);
-        if (!this.isCompleted(items[23])) return this.clickSlot(SLOTS.ULTRASEQUENCER);
+        if (!this.isCompleted(items[21])) return this._clickSlot(SLOTS.CHRONOMATRON);
+        if (!this.isCompleted(items[23])) return this._clickSlot(SLOTS.ULTRASEQUENCER);
 
-        this.clickSlot(SLOTS.SUPERPAIRS);
+        this._clickSlot(SLOTS.SUPERPAIRS);
         this.message('Superpairs ready');
     }
 
@@ -183,11 +183,11 @@ class AutoExperiments extends ModuleBase {
             this.captureUltrasequencerOrder(items);
             this.ultraPatternCaptured = true;
             this.clicks = 0;
-            if (this.ultrasequencerOrder.size > maxDepth) Guis.closeInv();
+            if (this.ultrasequencerOrder.size > maxDepth) closeInventory();
         }
 
         if (control.isClock && this.ultraPatternCaptured && this.canClick() && this.ultrasequencerOrder.has(this.clicks)) {
-            if (this.clickSlot(this.ultrasequencerOrder.get(this.clicks))) this.clicks++;
+            if (this._clickSlot(this.ultrasequencerOrder.get(this.clicks))) this.clicks++;
         }
 
         if (control.isGlow && control.wasClockLastFrame) this.ultraPatternCaptured = false;
@@ -206,7 +206,7 @@ class AutoExperiments extends ModuleBase {
         const guiRound = this.getChronomatronRound(items);
         const expectedLen = Math.min(maxDepth, guiRound || this.chronomatronOrder.length + 1);
 
-        if (guiRound && guiRound - 1 === maxDepth) Guis.closeInv();
+        if (guiRound && guiRound - 1 === maxDepth) closeInventory();
 
         if (control.isClock && this.chronomatronOrder.length < expectedLen) {
             this.clicks = 0;
@@ -221,7 +221,7 @@ class AutoExperiments extends ModuleBase {
                 }
             }
         } else if (control.isClock && this.chronomatronOrder.length > this.clicks && this.canClick()) {
-            if (this.clickSlot(this.chronomatronOrder[this.clicks], 'LEFT')) this.clicks++;
+            if (this._clickSlot(this.chronomatronOrder[this.clicks], 'LEFT')) this.clicks++;
         }
 
         if (control.isGlow && this.clicks >= this.chronomatronOrder.length && this.chronomatronOrder.length > 0) {
@@ -259,7 +259,7 @@ class AutoExperiments extends ModuleBase {
         const lore = rewardItem.getLore();
         if (this.canClick() && lore && lore.join(' ').includes('Click to claim rewards')) {
             this.message('&a[Superpairs] Claiming rewards...');
-            this.clickSlot(13, 'LEFT');
+            this._clickSlot(13, 'LEFT');
             this.superpairsRewardsClaimed = true;
         }
     }
@@ -277,12 +277,12 @@ class AutoExperiments extends ModuleBase {
                 this.boughtXP = false;
                 return this.startReopenSequence();
             }
-            Guis.closeInv();
+            closeInventory();
             return this.message('Not enough bits!');
         }
 
         const slot = this.buyXpTargetLevel <= 100 ? SLOTS.GRAND_BOTTLE : SLOTS.TITANIC_BOTTLE;
-        if (items[slot] && this.canClick() && this.clickSlot(slot)) this.boughtXP = true;
+        if (items[slot] && this.canClick() && this._clickSlot(slot)) this.boughtXP = true;
     }
 
     startReopenSequence() {
@@ -295,7 +295,7 @@ class AutoExperiments extends ModuleBase {
         if (!this.canClick()) return;
 
         if (!this.reopeningStarted) {
-            Guis.closeInv();
+            closeInventory();
             this.reopeningStarted = true;
             this.lastClickTime = Date.now();
         } else {
@@ -347,7 +347,7 @@ class AutoExperiments extends ModuleBase {
         for (const slot of slots) {
             if (items[slot] && !this.isLocked(items[slot])) {
                 if (slot === 24) this.maxEnchanting = true;
-                return this.clickSlot(slot);
+                return this._clickSlot(slot);
             }
         }
         return false;
@@ -367,7 +367,7 @@ class AutoExperiments extends ModuleBase {
             const lastLine = loreLines[loreLines.length - 1];
 
             if (lastLine && lastLine.includes('Click to play!')) {
-                return this.clickSlot(slot);
+                return this._clickSlot(slot);
             }
 
             if (lastLine && lastLine.includes('Not enough experience!')) {
@@ -411,16 +411,16 @@ class AutoExperiments extends ModuleBase {
     renewExperiments(items) {
         for (const line of this.getLoreLines(items[SLOTS.RENEW])) {
             const lower = line.toLowerCase();
-            if (lower.includes('click to purchase')) return this.clickSlot(SLOTS.RENEW);
+            if (lower.includes('click to purchase')) return this._clickSlot(SLOTS.RENEW);
             if (lower.includes('cannot afford this!')) {
                 this.buyXpTargetLevel = this.extractRenewCost(items[SLOTS.RENEW]);
-                return this.clickSlot(SLOTS.BOTTLE_MENU);
+                return this._clickSlot(SLOTS.BOTTLE_MENU);
             }
         }
     }
 
-    clickSlot(slot, clickType = 'MIDDLE') {
-        if (Guis.clickSlot(slot, false, clickType)) {
+    _clickSlot(slot, clickType = 'MIDDLE') {
+        if (clickSlot(slot, false, clickType)) {
             this.lastClickTime = Date.now();
             return true;
         }

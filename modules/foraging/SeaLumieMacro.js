@@ -1,6 +1,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
+import { calculateDistance } from '../../utils/Math';
 
 class SeaLumie extends ModuleBase {
     constructor() {
@@ -169,7 +170,7 @@ class SeaLumie extends ModuleBase {
           if (block?.type?.getRegistryName()?.includes("pickle")) {
             // get if the block iss still there
             if (
-              MathUtils.calculateDistance(
+              calculateDistance(
                 [Player.getX(), Player.getY(), Player.getZ()],
                 [
                   this.closestPickle.x,
@@ -201,7 +202,7 @@ class SeaLumie extends ModuleBase {
             if (this.closestPickle) {
                 let waypointPos = new Vec3d(this.closestPickle.x, this.closestPickle.y, this.closestPickle.z);
 
-                RenderUtils.drawFilledBox(waypointPos, new RenderColor(255, 0, 0, 255));
+                Render3D.drawFilledBox(waypointPos, new RenderColor(255, 0, 0, 255));
             }
         });
     }

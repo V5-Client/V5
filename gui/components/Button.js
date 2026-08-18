@@ -126,9 +126,8 @@ export class Button {
         }
 
         const pressOffset = this.pressProgress > 0 ? 1 : 0;
-        const textX = buttonX + buttonWidth / 2 - buttonTextWidth / 2;
         const textY = buttonY + buttonHeight / 2 + pressOffset;
-        drawText(this.buttonText, textX, textY, FontSizes.REGULAR, THEME.TEXT);
+        drawText(this.buttonText, buttonX + buttonWidth / 2, textY, FontSizes.REGULAR, THEME.TEXT, 18);
 
         const tooltipRect = this.showContainer
             ? {

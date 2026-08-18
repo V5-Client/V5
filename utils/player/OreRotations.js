@@ -1,5 +1,5 @@
-import { Utils } from '../Utils';
-import { RotationGCD } from './RotationGCD';
+import { convertToVector } from '../Utils';
+import { aimModulo360, angleDifference, calculateGCD, clampPitch } from './RotationGCD';
 
 class OreRotationController {
     constructor() {
@@ -31,16 +31,16 @@ class OreRotationController {
         const currentYaw = player.getYRot();
         const currentPitch = player.getXRot();
 
-        this.targetYaw = RotationGCD.aimModulo360(currentYaw, angles.yaw);
-        this.targetPitch = RotationGCD.clampPitch(angles.pitch);
-        this.initialYawDistance = Math.abs(RotationGCD.angleDifference(this.targetYaw, currentYaw));
+        this.targetYaw = aimModulo360(currentYaw, angles.yaw);
+        this.targetPitch = clampPitch(angles.pitch);
+        this.initialYawDistance = Math.abs(angleDifference(this.targetYaw, currentYaw));
         this.initialPitchDistance = Math.abs(this.targetPitch - currentPitch);
 
         const distance = Math.hypot(this.initialYawDistance, this.initialPitchDistance);
         this.warmupSteps = distance > 60 ? 1 : distance > 20 ? 3 : 5;
         this.step = 0;
         this.speed = speed;
-        this.gcd = RotationGCD.calculateGCD();
+        this.gcd = calculateGCD();
         this.lastUpdateAt = Date.now();
         this.yawRemainder = 0;
         this.pitchRemainder = 0;
@@ -80,7 +80,7 @@ class OreRotationController {
 
         const currentYaw = player.getYRot();
         const currentPitch = player.getXRot();
-        const deltaYaw = RotationGCD.angleDifference(this.targetYaw, currentYaw);
+        const deltaYaw = angleDifference(this.targetYaw, currentYaw);
         const deltaPitch = this.targetPitch - currentPitch;
         const distance = Math.hypot(deltaYaw, deltaPitch);
 
@@ -110,7 +110,7 @@ class OreRotationController {
         this.pitchRemainder = rawPitchStep - pitchStep;
 
         player.setYRot(currentYaw + yawStep);
-        player.setXRot(RotationGCD.clampPitch(currentPitch + pitchStep));
+        player.setXRot(clampPitch(currentPitch + pitchStep));
     }
 
     refreshTrackedTarget(player, vector) {
@@ -118,13 +118,13 @@ class OreRotationController {
         if (!angles) return false;
 
         const currentYaw = player.getYRot();
-        this.targetYaw = RotationGCD.aimModulo360(currentYaw, angles.yaw);
-        this.targetPitch = RotationGCD.clampPitch(angles.pitch);
+        this.targetYaw = aimModulo360(currentYaw, angles.yaw);
+        this.targetPitch = clampPitch(angles.pitch);
         return true;
     }
 
     getTargetAngles(player, vector) {
-        const target = Utils.convertToVector(vector);
+        const target = convertToVector(vector);
         if (!target) return false;
 
         const eyes = player.getEyePosition();

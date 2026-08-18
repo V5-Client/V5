@@ -1,7 +1,7 @@
 import { isDeveloperModeEnabled } from '../../utils/DeveloperModeState';
 import { Vec3d } from '../../utils/Constants';
 import { isAtEtherwarpLanding } from '../../utils/Etherwarp';
-import { MiningUtils } from '../../utils/MiningUtils';
+import { getDebuff } from '../../utils/MiningUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { FastEtherwarp } from '../../utils/FastEtherwarp';
 import Pathfinder from '../../utils/pathfinder/PathFinder';
@@ -149,7 +149,7 @@ class TunnelsMiner extends ModuleBase {
     }
 
     handleCold() {
-        const cold = MiningUtils.getDebuff('cold');
+        const cold = getDebuff('cold');
         if (!this.waitingForCold && cold <= this.coldThreshold) return false;
         if (cold === 0) {
             this.waitingForCold = false;

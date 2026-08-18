@@ -214,7 +214,6 @@ export class Slider {
         let currentValueX = valueStringX;
         valueKeys.forEach((key, index) => {
             const displayValue = displayValues[index];
-            const valueStringWidth = getTextWidth(displayValue, FontSizes.REGULAR);
             const valueBoxWidth = valueBoxWidths[index];
             const isActive = this.isTyping && this.typingHandle === key;
 
@@ -234,8 +233,7 @@ export class Slider {
                 color: isActive ? THEME.ACCENT : THEME.BG_INSET,
             });
 
-            const textCenteredX = currentValueX + valueBoxWidth / 2 - valueStringWidth / 2;
-            drawText(displayValue, textCenteredX, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM);
+            drawText(displayValue, currentValueX + valueBoxWidth / 2, valueStringY + valueBoxHeight / 2, FontSizes.REGULAR, THEME.TEXT_DIM, 18);
 
             currentValueX += valueBoxWidth + valueBoxGap;
         });

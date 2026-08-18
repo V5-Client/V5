@@ -8,7 +8,6 @@ import {
     easeInBack,
     easeOutBack,
     FontSizes,
-    getTextWidth,
     isInside,
     playClickSound,
     THEME,
@@ -173,10 +172,10 @@ export class Popup {
         const centerX = windowRect.x + windowRect.width / 2;
         const centerY = windowRect.y + windowRect.height / 2;
 
-        NVG.save();
-        NVG.translate(centerX, centerY);
-        NVG.scale(animValue, animValue);
-        NVG.translate(-centerX, -centerY);
+        Render2D.save();
+        Render2D.translate(centerX, centerY);
+        Render2D.scale(animValue, animValue);
+        Render2D.translate(-centerX, -centerY);
 
         drawShadow(windowRect.x, windowRect.y, windowRect.width, windowRect.height, 20, 0.5);
 
@@ -206,7 +205,12 @@ export class Popup {
 
         const closeX = windowRect.x + windowRect.width - this.windowPadding - this.closeSize;
         const closeY = windowRect.y + (this.headerHeight - this.closeSize) / 2;
-        this.closeRect = { x: closeX, y: closeY, width: this.closeSize, height: this.closeSize };
+        this.closeRect = {
+            x: closeX,
+            y: closeY,
+            width: this.closeSize,
+            height: this.closeSize,
+        };
 
         drawRoundedRectangle({
             x: closeX,
@@ -216,17 +220,17 @@ export class Popup {
             radius: 6,
             color: THEME.BG_INSET,
         });
-        const closeTextWidth = getTextWidth(CLOSE_TEXT, FontSizes.LARGE);
-        const closeTextX = closeX + this.closeSize / 2 - closeTextWidth / 2;
         const closeTextY = closeY + this.closeSize / 2;
-        drawText(CLOSE_TEXT, closeTextX, closeTextY, FontSizes.LARGE, THEME.TEXT);
+        drawText(CLOSE_TEXT, closeX + this.closeSize / 2, closeTextY, FontSizes.LARGE, THEME.TEXT, 18);
 
         const contentX = windowRect.x + this.windowPadding;
         const contentY = windowRect.y + this.headerHeight + this.windowPadding - this.contentScrollY;
         const contentWidth = windowRect.width - this.windowPadding * 2;
         const contentHeight = windowRect.height - this.headerHeight - this.windowPadding * 2;
+        const visibleTop = windowRect.y + this.headerHeight;
+        const visibleBottom = windowRect.y + windowRect.height - this.windowPadding;
 
-        NVG.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
+        Render2D.scissor(windowRect.x, windowRect.y + this.headerHeight + 1, windowRect.width, contentHeight + this.windowPadding);
 
         const maxScroll = Math.max(0, this.getContentHeight() - contentHeight);
         this.contentScrollY = Math.max(0, Math.min(this.contentScrollY, maxScroll));
@@ -255,6 +259,11 @@ export class Popup {
                     component.updateHoverPress();
                 }
 
+                if (currentY + btnHeight < visibleTop || currentY > visibleBottom) {
+                    currentY += btnHeight + 10;
+                    return;
+                }
+
                 drawRoundedRectangle({
                     x: contentX,
                     y: currentY,
@@ -275,16 +284,23 @@ export class Popup {
                     });
                 }
 
-                const txtW = getTextWidth(component.buttonText, FontSizes.REGULAR);
                 drawText(
                     component.buttonText,
-                    contentX + btnWidth / 2 - txtW / 2,
+                    contentX + btnWidth / 2,
                     currentY + btnHeight / 2 + (pressProgress > 0 ? 1 : 0),
                     FontSizes.REGULAR,
-                    THEME.TEXT
+                    THEME.TEXT,
+                    18
                 );
 
                 currentY += btnHeight + 10;
+                return;
+            }
+
+            const componentHeight = getComponentLayoutHeight(component);
+            if (currentY + componentHeight < visibleTop || currentY > visibleBottom) {
+                component.updateAnimation?.();
+                currentY += componentHeight;
                 return;
             }
 
@@ -294,11 +310,11 @@ export class Popup {
             component.optionPanelHeight = contentHeight;
             component.draw(mouseX, mouseY);
 
-            currentY += getComponentLayoutHeight(component);
+            currentY += componentHeight;
         });
 
-        NVG.resetScissor();
-        NVG.restore();
+        Render2D.resetScissor();
+        Render2D.restore();
     }
 
     handleButtonClick(mouseX, mouseY) {

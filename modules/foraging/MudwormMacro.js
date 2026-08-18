@@ -1,6 +1,6 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MacroState } from '../../utils/MacroState';
+import { getModuleElapsedMs } from '../../utils/MacroState';
 import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
 import { Rotations } from '../../utils/player/Rotations';
 import { ScheduleTask } from '../../utils/ScheduleTask';
@@ -187,7 +187,7 @@ class MudwormMacro extends ModuleBase {
     }
 
     getHourlyRate(key) {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         if (elapsedMs <= 0) return 0;
         return Math.round((OverlayManager.getTrackedValue(this.oid, key, 0) * 3600000) / elapsedMs);
     }

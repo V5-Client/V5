@@ -1,10 +1,11 @@
 import { OverlayManager } from '../../gui/OverlayUtils';
 import { ModuleBase } from '../../utils/ModuleBase';
-import { MacroState } from '../../utils/MacroState';
-import { NukerUtils } from '../../utils/NukerUtils';
+import { getModuleElapsedMs } from '../../utils/MacroState';
+import { closestDirection, createBlockPosition, isBlockInRange, sendBreakPackets } from '../../utils/NukerUtils';
 import { EtherwarpPathfinder } from '../../utils/FastEtherwarp';
 import { ScheduleTask } from '../../utils/ScheduleTask';
-import { Executor } from '../../utils/ThreadExecutor';
+import { executeAsync } from '../../utils/ThreadExecutor';
+import { getCurrentMana } from '../../utils/Utils';
 
 const TARGET_TYPE = new BlockType('minecraft:flowering_azalea');
 const TARGET_BLACKLIST_MS = 5000;
@@ -58,16 +59,19 @@ class LushLilacEtherwarpNuker extends ModuleBase {
     tick() {
         if (this.rewarping || !World.isLoaded()) return;
 
+        const mana = getCurrentMana();
+        if (mana !== null && mana < 100) return this.rewarp();
+
         this.refreshTargets();
         if (this.pathing || EtherwarpPathfinder.isPathing()) return;
 
         const now = Date.now();
         const targets = this.targets.filter((target) => (this.blacklistedTargets.get(this.key(target)) || 0) <= now);
-        const inRange = targets.filter((target) => NukerUtils.isBlockInRange([target.x, target.y, target.z]));
+        const inRange = targets.filter((target) => isBlockInRange([target.x, target.y, target.z]));
         if (inRange.length) {
             const target = this.closest(inRange);
-            const blockPos = NukerUtils.createBlockPosition([target.x, target.y, target.z]);
-            NukerUtils.sendBreakPackets(blockPos, NukerUtils.closestDirection(blockPos));
+            const blockPos = createBlockPosition([target.x, target.y, target.z]);
+            sendBreakPackets(blockPos, closestDirection(blockPos));
             OverlayManager.incrementTrackedValue(this.oid, 'blocksNuked');
             this.blacklistedTargets.set(this.key(target), now + TARGET_BLACKLIST_MS);
             this.startPath(this.closest(targets.filter((candidate) => this.key(candidate) !== this.key(target))), now);
@@ -114,7 +118,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
         this.scanActive = true;
         this.lastScanAt = now;
         const token = ++this.scanToken;
-        Executor.execute(() => {
+        executeAsync(() => {
             try {
                 const targets = World.getBlocksInBox(-535, 150, 110, -760, 80, -90, [TARGET_TYPE]).map(({ x, y, z }) => ({ x, y, z }));
                 if (this.enabled && token === this.scanToken) this.targets = targets;
@@ -137,7 +141,7 @@ class LushLilacEtherwarpNuker extends ModuleBase {
     }
 
     getHourlyForestWhispers() {
-        const elapsedMs = MacroState.getModuleElapsedMs(this.name);
+        const elapsedMs = getModuleElapsedMs(this.name);
         return elapsedMs > 0 ? Math.round((OverlayManager.getTrackedValue(this.oid, 'blocksNuked', 0) * 100 * 3600000) / elapsedMs) : 0;
     }
 

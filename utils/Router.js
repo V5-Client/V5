@@ -1,4 +1,4 @@
-import { Chat } from './Chat';
+import { chat } from './Chat';
 import { File } from './Constants';
 import { Utils } from './Utils';
 
@@ -49,7 +49,7 @@ class Routes {
         let configPath = new File(mcDir, 'config/ChatTriggers/modules/V5Config/' + folder);
 
         if (!configPath.exists() || !configPath.isDirectory()) {
-            Chat.message(`&cError: Directory not found.`);
+            chat(`&cError: Directory not found.`);
             return [];
         }
 
@@ -109,7 +109,7 @@ class Routes {
      */
     saveRouteToFile(fileName, routeData) {
         if (!this._canSaveRoute(fileName)) {
-            Chat.message('&cNo route file selected. Select a route before editing.');
+            chat('&cNo route file selected. Select a route before editing.');
             return false;
         }
 
@@ -140,13 +140,13 @@ class Routes {
         }
 
         if (!this._canSaveRoute(file)) {
-            Chat.message('&cNo route file selected. Select one in the settings first.');
+            chat('&cNo route file selected. Select one in the settings first.');
             return this._normalizeRoute(route);
         }
 
         let normalizedRoute = this._normalizeRoute(route);
         if (route !== null && route !== undefined && !Array.isArray(route)) {
-            Chat.message('Invalid route data. Resetting to an empty route.');
+            chat('Invalid route data. Resetting to an empty route.');
         }
 
         let routeModified = false;
@@ -159,7 +159,7 @@ class Routes {
                 if (addPoinToLook) {
                     let looking = Player.lookingAt();
                     if (!looking) {
-                        Chat.message('You are not looking at anything');
+                        chat('You are not looking at anything');
                         return normalizedRoute;
                     }
                     point.x = Math.floor(looking.x);
@@ -177,7 +177,7 @@ class Routes {
                     let movementToVerify = Array.isArray(userMovementInput) ? userMovementInput[0] : userMovementInput;
 
                     if (!movementToVerify) {
-                        Chat.message('ERROR: Movement type required. Waypoint not added.');
+                        chat('ERROR: Movement type required. Waypoint not added.');
                         return normalizedRoute;
                     }
 
@@ -186,7 +186,7 @@ class Routes {
                     if (allowedMovementsSet.has(userMovementUpper)) {
                         point.movements = userMovementUpper;
                     } else {
-                        Chat.message(`ERROR: Movement type '${movementToVerify}' not supported.`);
+                        chat(`ERROR: Movement type '${movementToVerify}' not supported.`);
                         return normalizedRoute;
                     }
                 }
@@ -197,16 +197,16 @@ class Routes {
                     if (arrayIndex >= 0 && arrayIndex <= normalizedRoute.length) {
                         normalizedRoute.splice(arrayIndex, 0, point);
                         routeModified = true;
-                        Chat.message(`Added waypoint ${indexToUse}`);
+                        chat(`Added waypoint ${indexToUse}`);
                     } else {
                         normalizedRoute.push(point);
                         routeModified = true;
-                        Chat.message(`Invalid waypoint position, adding to the end.`);
+                        chat(`Invalid waypoint position, adding to the end.`);
                     }
                 } else {
                     normalizedRoute.push(point);
                     routeModified = true;
-                    Chat.message(`Added waypoint to the end of the route.`);
+                    chat(`Added waypoint to the end of the route.`);
                 }
                 break;
 
@@ -217,23 +217,23 @@ class Routes {
                     if (arrayIndex >= 0 && arrayIndex < normalizedRoute.length) {
                         normalizedRoute.splice(arrayIndex, 1);
                         routeModified = true;
-                        Chat.message(`Removed waypoint ${indexToUse}`);
+                        chat(`Removed waypoint ${indexToUse}`);
                     } else {
                         if (normalizedRoute.length > 0) {
                             normalizedRoute.pop();
                             routeModified = true;
-                            Chat.message(`Invalid waypoint position, removing the last waypoint.`);
+                            chat(`Invalid waypoint position, removing the last waypoint.`);
                         } else {
-                            Chat.message('Route is already empty!');
+                            chat('Route is already empty!');
                         }
                     }
                 } else {
                     if (normalizedRoute.length > 0) {
                         normalizedRoute.pop();
                         routeModified = true;
-                        Chat.message(`Removed the last waypoint.`);
+                        chat(`Removed the last waypoint.`);
                     } else {
-                        Chat.message('Route is already empty!');
+                        chat('Route is already empty!');
                     }
                 }
                 break;
@@ -244,14 +244,14 @@ class Routes {
                     routeModified = true;
                     const filename = this._toDisplayFileName(file);
 
-                    Chat.message(`Cleared all waypoints from the route ${filename}`);
+                    chat(`Cleared all waypoints from the route ${filename}`);
                 } else {
-                    Chat.message('Route is already empty!');
+                    chat('Route is already empty!');
                 }
                 break;
 
             default:
-                Chat.message('You did not state an action!');
+                chat('You did not state an action!');
                 return normalizedRoute;
         }
 
@@ -262,3 +262,8 @@ class Routes {
 }
 
 export const Router = new Routes();
+export const getFilesInDir = (...args) => Router.getFilesInDir(...args);
+export const getFileFromCallback = (...args) => Router.getFilefromCallback(...args);
+export const loadRouteFromFile = (...args) => Router.loadRouteFromFile(...args);
+export const saveRouteToFile = (...args) => Router.saveRouteToFile(...args);
+export const editRoute = (...args) => Router.Edit(...args);

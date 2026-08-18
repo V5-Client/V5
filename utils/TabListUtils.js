@@ -1,214 +1,134 @@
-const FORMATTING_CODE_REGEX = /§[0-9a-fk-or]/gi;
+const AREA_CACHE_MS = 1000;
+const PICKAXE_ABILITY_CACHE_MS = 200;
 
-class TabListUtilsClass {
-    constructor() {
-        this.currentArea = 'unknown';
-        this.areaLastChecked = 0;
-        this.hasCookieBuff = false;
-        this.cookieLastChecked = 0;
-        this.pickaxeAbilityCache = { expiresAt: 0, value: '' };
-        this.AREA_CACHE_MS = 1000;
-        this.COOKIE_CACHE_MS = 2000;
-        this.PICKAXE_ABILITY_CACHE_MS = 200;
-    }
+let currentArea = 'unknown';
+let areaLastChecked = 0;
+let pickaxeAbility = '';
+let pickaxeAbilityExpiresAt = 0;
 
-    stripFormatting(text) {
-        if (text == null) return '';
-        return String(text).replace(FORMATTING_CODE_REGEX, '');
-    }
+export const stripTabFormatting = (text) => ChatLib.removeFormatting(String(text ?? ''));
+export const getTabListNames = () => TabList.getNames() || [];
 
-    getNames() {
-        return TabList.getNames() || [];
-    }
+export function getArea() {
+    const now = Date.now();
+    if (now - areaLastChecked < AREA_CACHE_MS) return currentArea;
 
-    getArea() {
-        const now = Date.now();
-        if (now - this.areaLastChecked < this.AREA_CACHE_MS) return this.currentArea;
+    areaLastChecked = now;
+    currentArea = 'unknown';
 
-        this.areaLastChecked = now;
-        this.currentArea = 'unknown';
-
-        try {
-            const tabLines = this.getNames();
-            for (const line of tabLines) {
-                const cleanLine = this.stripFormatting(line).trim();
-                if (!cleanLine.includes('Area:')) continue;
-
-                const parts = cleanLine.split('Area:');
-                if (parts.length <= 1) continue;
-
-                const detectedArea = parts[1].trim();
-                if (!detectedArea) continue;
-
-                this.currentArea = detectedArea;
-                return this.currentArea;
-            }
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
+    try {
+        for (const line of getTabListNames()) {
+            const [, area] = stripTabFormatting(line).split('Area:');
+            if (area?.trim()) return (currentArea = area.trim());
         }
-
-        return this.currentArea;
+    } catch (error) {
+        console.error(error);
     }
 
-    resetAreaCache() {
-        this.currentArea = 'unknown';
-        this.areaLastChecked = 0;
+    return currentArea;
+}
+
+export function getPickaxeAbilityStatus() {
+    const now = Date.now();
+    if (now < pickaxeAbilityExpiresAt) return pickaxeAbility;
+
+    const names = getTabListNames();
+    pickaxeAbility = '';
+    for (let i = 0; i < names.length - 1; i++) {
+        const line = stripTabFormatting(names[i]?.getName?.() ?? names[i]).trim();
+        if (!line.includes('Pickaxe Ability')) continue;
+        pickaxeAbility = stripTabFormatting(names[i + 1]?.getName?.() ?? names[i + 1]).trim();
+        break;
     }
+    pickaxeAbilityExpiresAt = now + PICKAXE_ABILITY_CACHE_MS;
+    return pickaxeAbility;
+}
 
-    hasCookie() {
-        const now = Date.now();
-        if (now - this.cookieLastChecked < this.COOKIE_CACHE_MS) return this.hasCookieBuff;
-        this.cookieLastChecked = now;
+export function findTabListIndex(items, target, start = 0) {
+    for (let i = start; i < items.length; i++) {
+        if (stripTabFormatting(items[i]).trim() === target) return i;
+    }
+    return -1;
+}
 
-        try {
-            const footer = TabList.getFooter();
-            if (!footer) return this.hasCookieBuff;
+export function readCommissions() {
+    try {
+        const names = getTabListNames();
+        const start = findTabListIndex(names, 'Commissions:');
+        if (start === -1) return [];
+        const powderIndex = findTabListIndex(names, 'Powders:', start + 1);
+        const commissions = [];
 
-            const raw = ChatLib.removeFormatting(footer);
-            if (raw.includes('Cookie Buff') && raw.includes('Not active! Obtain booster cookies')) {
-                this.hasCookieBuff = false;
-            } else if (raw.includes('Cookie Buff')) {
-                this.hasCookieBuff = true;
-            }
-        } catch (e) {
-            console.error('V5 Caught error checking cookie: ' + e);
+        for (let i = start + 1; i < (powderIndex === -1 ? names.length : powderIndex); i++) {
+            const [name, progressText = ''] = stripTabFormatting(names[i]).split(':');
+            if (!name?.trim()) continue;
+            const progress = progressText.includes('DONE') ? 1 : progressText.includes('%') ? Number.parseFloat(progressText.replace(/[ %]/g, '')) / 100 : NaN;
+            if (Number.isFinite(progress)) commissions.push({ name: name.trim(), progress });
         }
-
-        return this.hasCookieBuff;
-    }
-
-    getPickaxeAbilityStatus() {
-        const now = Date.now();
-        if (now < this.pickaxeAbilityCache.expiresAt) return this.pickaxeAbilityCache.value;
-
-        const tabNames = this.getNames();
-        for (const [i, tabName] of tabNames.entries()) {
-            const line = this.stripFormatting(tabName?.getName?.() ?? tabName).trim();
-            if (!line.includes('Pickaxe Ability') || !tabNames[i + 1]) continue;
-
-            const ability = this.stripFormatting(tabNames[i + 1]?.getName?.() ?? tabNames[i + 1]).trim();
-            this.pickaxeAbilityCache.expiresAt = now + this.PICKAXE_ABILITY_CACHE_MS;
-            this.pickaxeAbilityCache.value = ability;
-            return ability;
-        }
-
-        this.pickaxeAbilityCache.expiresAt = now + this.PICKAXE_ABILITY_CACHE_MS;
-        this.pickaxeAbilityCache.value = '';
-        return '';
-    }
-
-    readCommissions() {
-        try {
-            const tabNames = this.getNames();
-            const startIdx = this.findIndex(tabNames, 'Commissions:');
-            if (startIdx === -1) return [];
-
-            let endIdx = this.findIndex(tabNames, 'Powders:', startIdx + 1);
-            if (endIdx === -1) endIdx = tabNames.length;
-
-            const commissions = [];
-
-            for (let i = startIdx + 1; i < endIdx; i++) {
-                const text = this.stripFormatting(tabNames[i]).trim();
-                if (!text.includes(':')) continue;
-
-                const parts = text.split(':');
-                const name = parts[0]?.trim();
-                const progressText = parts[1]?.trim() || '';
-
-                if (!name) continue;
-
-                let progress = null;
-                if (progressText.includes('DONE')) {
-                    progress = 1;
-                } else if (progressText.includes('%')) {
-                    progress = Number.parseFloat(progressText.replace(/[ %]/g, '')) / 100;
-                }
-
-                if (progress == null || !Number.isFinite(progress)) continue;
-                commissions.push({ name: name, progress: progress });
-            }
-
-            return commissions;
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            return [];
-        }
-    }
-
-    readVisitors() {
-        try {
-            const tabNames = this.getNames();
-            const startIdx = tabNames.findIndex((line) => this.stripFormatting(line?.getName?.() ?? line).includes('Visitors:'));
-            if (startIdx === -1) return [];
-
-            const visitors = [];
-            for (let i = startIdx + 1; i < tabNames.length && visitors.length < 5; i++) {
-                const text = this.stripFormatting(tabNames[i]?.getName?.() ?? tabNames[i]).trim();
-                if (!text || text.includes('Next Visitor')) break;
-
-                const name = text.replace(/\s*NEW!$/i, '').trim();
-                if (name) visitors.push(name);
-            }
-
-            return visitors.reverse();
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            return [];
-        }
-    }
-
-    readPests() {
-        try {
-            const tabNames = this.getNames();
-            const startIdx = tabNames.findIndex((line) => this.stripFormatting(line?.getName?.() ?? line).includes('Pests:'));
-            if (startIdx === -1) return { alivePestCount: 0, infestedPlots: [] };
-
-            let alivePestCount = 0;
-            let infestedPlots = [];
-            for (let i = startIdx + 1; i < tabNames.length; i++) {
-                const text = this.stripFormatting(tabNames[i]?.getName?.() ?? tabNames[i]).trim();
-                if (text.includes('Pest Traps:')) break;
-
-                const aliveMatch = text.match(/^Alive:\s*(\d+)/);
-                if (aliveMatch) alivePestCount = Number(aliveMatch[1]);
-
-                const plotsMatch = text.match(/^Plots:\s*(.*)/);
-                if (plotsMatch) infestedPlots = plotsMatch[1].match(/\d+/g)?.map(Number) ?? [];
-            }
-
-            return { alivePestCount: alivePestCount, infestedPlots: infestedPlots };
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-            return { alivePestCount: 0, infestedPlots: [] };
-        }
-    }
-
-    getPestCooldown() {
-        try {
-            const tabNames = this.getNames();
-            const startIdx = tabNames.findIndex((line) => this.stripFormatting(line?.getName?.() ?? line).includes('Pests:'));
-            if (startIdx === -1) return 0;
-
-            for (let i = startIdx + 1; i < tabNames.length; i++) {
-                const text = this.stripFormatting(tabNames[i]?.getName?.() ?? tabNames[i]).trim();
-                const match = text.match(/^Cooldown:\s*(?:(\d+)m\s*)?(?:(\d+)s)?$/);
-                if (match) return Number(match[1] ?? 0) * 60 + Number(match[2] ?? 0);
-            }
-        } catch (e) {
-            console.error('V5 Caught error' + e + e.stack);
-        }
-
-        return 0;
-    }
-
-    findIndex(items, target, start = 0) {
-        for (let i = start; i < items.length; i++) {
-            const cleaned = this.stripFormatting(items[i]).trim();
-            if (cleaned === target) return i;
-        }
-        return -1;
+        return commissions;
+    } catch (error) {
+        console.error(error);
+        return [];
     }
 }
 
-export const TabListUtils = new TabListUtilsClass();
+export function readVisitors() {
+    try {
+        const names = getTabListNames();
+        const start = names.findIndex((line) => stripTabFormatting(line?.getName?.() ?? line).includes('Visitors:'));
+        if (start === -1) return [];
+
+        const visitors = [];
+        for (let i = start + 1; i < names.length && visitors.length < 5; i++) {
+            const text = stripTabFormatting(names[i]?.getName?.() ?? names[i]).trim();
+            if (!text || text.includes('Next Visitor')) break;
+            const name = text.replace(/\s*NEW!$/i, '').trim();
+            if (name) visitors.push(name);
+        }
+        return visitors.reverse();
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+}
+
+export function readPests() {
+    try {
+        const names = getTabListNames();
+        const start = names.findIndex((line) => stripTabFormatting(line?.getName?.() ?? line).includes('Pests:'));
+        if (start === -1) return { alivePestCount: 0, infestedPlots: [] };
+
+        let alivePestCount = 0;
+        let infestedPlots = [];
+        for (let i = start + 1; i < names.length; i++) {
+            const text = stripTabFormatting(names[i]?.getName?.() ?? names[i]).trim();
+            if (text.includes('Pest Traps:')) break;
+            const alive = text.match(/^Alive:\s*(\d+)/);
+            const plots = text.match(/^Plots:\s*(.*)/);
+            if (alive) alivePestCount = Number(alive[1]);
+            if (plots) infestedPlots = plots[1].match(/\d+/g)?.map(Number) ?? [];
+        }
+        return { alivePestCount, infestedPlots };
+    } catch (error) {
+        console.error(error);
+        return { alivePestCount: 0, infestedPlots: [] };
+    }
+}
+
+export function getPestCooldown() {
+    try {
+        const names = getTabListNames();
+        const start = names.findIndex((line) => stripTabFormatting(line?.getName?.() ?? line).includes('Pests:'));
+        for (let i = start + 1; start !== -1 && i < names.length; i++) {
+            const match = stripTabFormatting(names[i]?.getName?.() ?? names[i])
+                .trim()
+                .match(/^Cooldown:\s*(?:(\d+)m\s*)?(?:(\d+)s)?$/);
+            if (match) return Number(match[1] ?? 0) * 60 + Number(match[2] ?? 0);
+        }
+    } catch (error) {
+        console.error(error);
+    }
+    return 0;
+}
+
+export const TabListUtils = { readCommissions, readVisitors };

@@ -1,8 +1,8 @@
 import Pathfinder from '../../../utils/pathfinder/PathFinder';
-import { Guis } from '../../../utils/player/Inventory';
+import { clickItem, closeInventory } from '../../../utils/player/Inventory';
 import { Rotations } from '../../../utils/player/Rotations';
 import { ScheduleTask } from '../../../utils/ScheduleTask';
-import { Utils } from '../../../utils/Utils';
+import { randomInt } from '../../../utils/Utils';
 import { farmingDelays } from '../FarmingDelays';
 
 const STATES = {
@@ -112,12 +112,12 @@ class PhilipMacro {
     }
 
     emptyVacuum() {
-        if (!Client.isInGui() || !Guis.clickItem('Empty Vacuum Bag', false, 'LEFT')) return this.retry();
+        if (!Client.isInGui() || !clickItem('Empty Vacuum Bag', false, 'LEFT')) return this.retry();
 
         this.nextActionAt = Infinity;
         ScheduleTask(1, () => {
             if (!this.running || this.state !== STATES.EMPTYING) return;
-            Guis.closeInv();
+            closeInventory();
             this.stop();
         });
     }
@@ -129,7 +129,7 @@ class PhilipMacro {
 
     retry() {
         Client.stopMovement();
-        this.transition(STATES.SEEKING, Utils.randomInt(farmingDelays.visitorRetryDelayMin, farmingDelays.visitorRetryDelayMax));
+        this.transition(STATES.SEEKING, randomInt(farmingDelays.visitorRetryDelayMin, farmingDelays.visitorRetryDelayMax));
     }
 
     stop() {

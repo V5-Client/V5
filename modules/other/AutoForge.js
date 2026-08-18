@@ -1,7 +1,7 @@
 import { ModuleBase } from '../../utils/ModuleBase';
 import { TabListUtils } from '../../utils/TabListUtils';
 import { Utils } from '../../utils/Utils';
-import { Guis } from '../../utils/player/Inventory';
+import { clickSlot, closeInventory } from '../../utils/player/Inventory';
 
 const FORGE_SLOTS = [10, 11, 12, 13, 14, 15, 16];
 const GUI_TIMEOUT_TICKS = 120;
@@ -134,7 +134,7 @@ class AutoForge extends ModuleBase {
                   container,
                   (item) => item?.type?.getRegistryName?.() === 'minecraft:nether_star' && clean(item.getName()).toLowerCase() === 'other'
               );
-        if (slot !== -1) Guis.clickSlot(slot);
+        if (slot !== -1) clickSlot(slot);
         if (slot !== -1 || !forging) this.setState(this.item, true);
         else this.timeout();
     }
@@ -157,7 +157,7 @@ class AutoForge extends ModuleBase {
         if (slot === -1) return this.timeout();
 
         if (!this.isConfirmAvailable(container.getStackInSlot(slot))) {
-            Guis.closeInv();
+            closeInventory();
             if (this.itemMode === 'Tungber Keys' && this.activeItem === 'Tungsten Key') {
                 this.activeItem = 'Umber Key';
                 this.message('&eOut of Tungsten materials, switching to Umber Keys.');
@@ -188,7 +188,7 @@ class AutoForge extends ModuleBase {
     }
 
     click(slot, state) {
-        Guis.clickSlot(slot);
+        clickSlot(slot);
         if (state) this.setState(state, true);
         else this.delay();
     }
@@ -207,7 +207,7 @@ class AutoForge extends ModuleBase {
 
     finish(message) {
         if (message) this.message(message);
-        Guis.closeInv();
+        closeInventory();
         this.setState(this.waitForReady);
         this.idleUntil = Date.now() + 2000;
     }

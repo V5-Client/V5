@@ -1,11 +1,11 @@
 import { GuiRectangles, GuiState } from './core/GuiState';
-import { FontSizes, PADDING, THEME, drawImage, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, getTextWidth, isInside } from './Utils';
+import { FontSizes, PADDING, THEME, drawImage, drawRoundedRectangle, drawRoundedRectangleWithBorder, drawText, isInside } from './Utils';
 import { loadSettings } from './GuiSave';
-import { MacroState } from '../utils/MacroState';
+import { getEnabledMacros, getModule, modules as registeredModules } from '../utils/MacroState';
 import { globalAssetsDir } from '../utils/Constants';
 import { Categories } from './categories/CategorySystem';
 import { drawSubcategoryButtons, getModuleBorderColor, getModuleNavButtonRect, getModuleNavRect, getModuleNavScrollX } from './categories/CategoryRenderer';
-import { Utils } from '../utils/Utils';
+import { getConfigFile, writeConfigFile } from '../utils/Utils';
 import { v5Command } from '../utils/V5Commands';
 
 const ROW_HEIGHT = 28;
@@ -31,14 +31,14 @@ const macroCategoryState = {
 };
 
 const loadFavorites = () => {
-    const saved = Utils.getConfigFile(FAVORITES_FILE);
+    const saved = getConfigFile(FAVORITES_FILE);
     favorites = new Set(Array.isArray(saved?.favorites) ? saved.favorites.filter((name) => typeof name === 'string') : []);
 };
 
-const saveFavorites = () => Utils.writeConfigFile(FAVORITES_FILE, { favorites: Array.from(favorites) });
+const saveFavorites = () => writeConfigFile(FAVORITES_FILE, { favorites: Array.from(favorites) });
 
 const getMacros = () =>
-    Array.from(MacroState.modules.values())
+    Array.from(registeredModules.values())
         .filter(
             (module) =>
                 module?.isMacro &&
@@ -79,14 +79,12 @@ const setMacroKeybind = (module, keyCode) => {
 };
 
 const drawButton = (rect, text, active = false) => {
-    drawRoundedRectangle({ ...rect, radius: 6, color: active ? THEME.ACCENT_DIM : THEME.BG_INSET });
-    drawText(
-        text,
-        rect.x + (rect.width - getTextWidth(text, FontSizes.SMALL)) / 2,
-        rect.y + rect.height / 2,
-        FontSizes.SMALL,
-        active ? THEME.TEXT : THEME.TEXT_MUTED
-    );
+    drawRoundedRectangle({
+        ...rect,
+        radius: 6,
+        color: active ? THEME.ACCENT_DIM : THEME.BG_INSET,
+    });
+    drawText(text, rect.x + rect.width / 2, rect.y + rect.height / 2, FontSizes.SMALL, active ? THEME.TEXT : THEME.TEXT_MUTED, 18);
 };
 
 export const macroToggleGui = {
@@ -121,13 +119,29 @@ export const macroToggleGui = {
         layout = {
             nav,
             filter: { x, y: nav.y + nav.height + 8, width: 76, height: 24 },
-            search: { x: x + 82, y: nav.y + nav.height + 8, width: width - 82, height: 24 },
-            settings: { x: nav.x + nav.width - 26, y: nav.y + 1, width: 24, height: nav.height - 2 },
+            search: {
+                x: x + 82,
+                y: nav.y + nav.height + 8,
+                width: width - 82,
+                height: 24,
+            },
+            settings: {
+                x: nav.x + nav.width - 26,
+                y: nav.y + 1,
+                width: 24,
+                height: nav.height - 2,
+            },
             list: { x, y: listY, width, height: listHeight },
             rows: [],
         };
 
-        drawRoundedRectangleWithBorder({ ...panel, radius: panel.radius, color: THEME.BG_WINDOW, borderWidth: 1, borderColor: THEME.BORDER_ACCENT });
+        drawRoundedRectangleWithBorder({
+            ...panel,
+            radius: panel.radius,
+            color: THEME.BG_WINDOW,
+            borderWidth: 1,
+            borderColor: THEME.BORDER_ACCENT,
+        });
         drawSubcategoryButtons(macroCategory, mouseX, mouseY, 0, true, macroCategoryState);
         drawImage(SETTINGS_ICON_PATH, layout.settings.x + 5, layout.settings.y + 5, 14, 14);
         drawButton(layout.filter, favoritesOnly ? 'Favorites' : 'All', favoritesOnly);
@@ -140,12 +154,15 @@ export const macroToggleGui = {
         });
         drawText(query || 'Filter macros...', layout.search.x + 8, layout.search.y + 12, FontSizes.SMALL, query ? THEME.TEXT : THEME.TEXT_MUTED);
 
-        NVG.save();
-        NVG.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
+        Render2D.save();
+        Render2D.scissor(layout.list.x, layout.list.y, layout.list.width, layout.list.height);
         let rowY = listY - scrollY;
+        const listBottom = listY + listHeight;
         rows.forEach((entry) => {
             if (entry.subcategory) {
-                drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
+                if (rowY + 20 >= listY && rowY <= listBottom) {
+                    drawText(entry.subcategory, x + 8, rowY + 10, FontSizes.SMALL, THEME.TEXT_MUTED);
+                }
                 rowY += 20;
                 return;
             }
@@ -153,11 +170,22 @@ export const macroToggleGui = {
             const { module } = entry;
             const row = { x, y: rowY, width, height: ROW_HEIGHT, module };
             rowY += ROW_HEIGHT;
-            const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
-            row.keybind = { x: row.x + row.width - 104, y: row.y, width: 104, height: row.height };
+            row.keybind = {
+                x: row.x + row.width - 104,
+                y: row.y,
+                width: 104,
+                height: row.height,
+            };
             layout.rows.push(row);
+            if (row.y + row.height < listY || row.y > listBottom) return;
+
+            const keyName = bindingModule === module ? 'Press a key...' : getKeyName(module._wrappedKey);
             if (isInside(mouseX, mouseY, row) || module.enabled) {
-                drawRoundedRectangle({ ...row, radius: 6, color: module.enabled ? THEME.ACCENT_DIM : THEME.BG_COMPONENT });
+                drawRoundedRectangle({
+                    ...row,
+                    radius: 6,
+                    color: module.enabled ? THEME.ACCENT_DIM : THEME.BG_COMPONENT,
+                });
             }
 
             drawText(
@@ -169,9 +197,9 @@ export const macroToggleGui = {
             );
             const moduleColor = getModuleBorderColor(Categories.findItem('Modules', module.name)?.moduleType);
             drawText(module.name, row.x + 32, row.y + row.height / 2, FontSizes.REGULAR, moduleColor || (module.enabled ? THEME.TEXT : THEME.TEXT_MUTED));
-            drawText(keyName, row.x + row.width - 8 - getTextWidth(keyName, FontSizes.SMALL), row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED);
+            drawText(keyName, row.x + row.width - 8, row.y + row.height / 2, FontSizes.SMALL, THEME.TEXT_MUTED, 20);
         });
-        NVG.restore();
+        Render2D.restore();
 
         if (rows.length === 0) drawText('No macros found', x + 8, listY + 12, FontSizes.REGULAR, THEME.TEXT_MUTED);
     },
@@ -185,7 +213,10 @@ export const macroToggleGui = {
             const scrollX = getModuleNavScrollX(macroCategory, false, macroCategoryState);
             const subcategories = ['All', ...macroCategory.subcategories];
             const index = subcategories.findIndex((subcategory, i) =>
-                isInside(mouseX, mouseY, { ...getModuleNavButtonRect(macroCategory, i), x: getModuleNavButtonRect(macroCategory, i).x - scrollX })
+                isInside(mouseX, mouseY, {
+                    ...getModuleNavButtonRect(macroCategory, i),
+                    x: getModuleNavButtonRect(macroCategory, i).x - scrollX,
+                })
             );
             if (index !== -1) {
                 macroCategoryState.selectedSubcategory = index ? subcategories[index] : null;
@@ -248,16 +279,16 @@ register('guiKey', (char, keyCode, gui, event) => {
 });
 
 const keyName = 'Macro Toggle GUI';
-const savedKeycode = Utils.getConfigFile('keybinds.json')?.[keyName] ?? Keyboard.KEY_M;
+const savedKeycode = getConfigFile('keybinds.json')?.[keyName] ?? Keyboard.KEY_M;
 const keybind = new KeyBind(keyName, savedKeycode, 'v5_core');
 keybind.registerKeyPress(() => {
-    MacroState.getEnabledMacros().forEach((name) => MacroState.getModule(name)?.toggle(false));
+    getEnabledMacros().forEach((name) => getModule(name)?.toggle(false));
     macroToggleGui.open();
 });
 register('gameUnload', () => {
-    const keybinds = Utils.getConfigFile('keybinds.json') || {};
+    const keybinds = getConfigFile('keybinds.json') || {};
     keybinds[keyName] = keybind.getKeyCode();
-    Utils.writeConfigFile('keybinds.json', keybinds);
+    writeConfigFile('keybinds.json', keybinds);
 });
 
 v5Command('macro gui', () => macroToggleGui.open());

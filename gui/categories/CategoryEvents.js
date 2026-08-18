@@ -40,7 +40,7 @@ const getCategorySelectionRect = (name) => {
     return { ...rect, radius: 8 };
 };
 
-export const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
+const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryName) => {
     const directCat = Categories.categories.find((c) => c.name === categoryName);
     if (!directCat || !directCat.directComponents) return false;
     const contentTop = directCat.subcategories.length > 0 ? getCategoryContentY(directCat, panel) : panel.y;
@@ -110,6 +110,7 @@ export const handleCategoryClick = (
         const directCat = Categories.categories.find((c) => c.name === Categories.selected);
         if (directCat?.directComponents && isInsidePanel) {
             if (handleDirectComponentsClick(mouseX, mouseY, panel, scrollY, Categories.selected)) {
+                Categories.dataRevision++;
                 return;
             }
         }
@@ -190,7 +191,10 @@ export const handleCategoryClick = (
                     }
                 }
 
-                if (handled) return;
+                if (handled) {
+                    Categories.dataRevision++;
+                    return;
+                }
 
                 currentDrawnCompY += componentHeight;
                 continue;
@@ -225,7 +229,10 @@ export const handleCategoryClick = (
                 }
             }
 
-            if (handled) return;
+            if (handled) {
+                Categories.dataRevision++;
+                return;
+            }
 
             currentDrawnCompY += getComponentLayoutHeight(component, true);
         }
