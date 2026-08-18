@@ -65,13 +65,13 @@ class Freecam extends ModuleBase {
         mc.setCameraEntity(player);
         mc.options.setCameraType(Perspective.THIRD_PERSON_BACK);
         setCameraPosition(this.cameraPos);
-        mc.levelRenderer.allChanged();
+        Client.reloadWorldRenderer();
     }
 
     onDisable() {
         this.message('&cDisabled');
         this.resetCameraState();
-        if (World.isLoaded()) mc.levelRenderer.allChanged();
+        if (World.isLoaded()) Client.reloadWorldRenderer();
         releaseForcedGrab();
     }
 

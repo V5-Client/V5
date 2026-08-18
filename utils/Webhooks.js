@@ -60,7 +60,7 @@ class DiscordNotifier {
 
     takeScreenshot(title = null, description = null, color, footer, ping = false) {
         const mc = Client.getMinecraft();
-        const buffer = mc.getMainRenderTarget();
+        const buffer = Client.getMainRenderTarget();
         const gameDir = mc.gameDirectory;
 
         try {
