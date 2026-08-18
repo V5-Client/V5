@@ -13,6 +13,7 @@ import { MiningBot } from './MiningBot';
 import { Guis } from '../../utils/player/Inventory';
 import { Keybind } from '../../utils/player/Keybinding';
 import { OreRotations } from '../../utils/player/OreRotations';
+import { oreRouteEditor } from '../../gui/OreRouteEditor';
 
 const MINE_REACH_SQ = 4.49 * 4.49;
 const ETHERWARP_EDGE_INSET = 0.1;
@@ -273,6 +274,7 @@ class OreMiner extends ModuleBase {
         v5Command('mining ore start', () => (this.enabled ? this.startRoute() : this.toggle(true, false, 'user')));
         v5Command('mining ore stop', () => this.toggle(false));
         v5Command('mining ore status', () => this.printStatus());
+        v5Command('mining ore editor', () => oreRouteEditor.open(this));
         v5Command('mining ore edit', (...parts) => this.editRoute(parts), ['greedyString']);
     }
 
@@ -289,6 +291,7 @@ class OreMiner extends ModuleBase {
         this.message('  &fload <name> &7- load a route');
         this.message('  &fsave <name> &7- save the current route');
         this.message('  &flist | start | stop | status');
+        this.message('  &feditor &7- open the visual route editor');
         this.message('  &fedit add <tp|walk> [index] &7- append, or insert and shift later waypoints');
         this.message('  &fedit add warp <destination> [index] &7- append, or insert and shift later waypoints');
         this.message('  &fedit add <mine|onetap|ronetap> [waypoint] &7- add the block under your crosshair');
@@ -480,9 +483,13 @@ class OreMiner extends ModuleBase {
     }
 
     listRoutes() {
-        const files = Router.getFilesInDir(ROUTE_DIR_RELATIVE);
+        const files = this.getRouteNames();
         this.message(`&bOre Miner Routes &7(${files.length})`);
         files.forEach((name) => this.message(`  &f${name} &7- /v5 mining ore load ${name}`));
+    }
+
+    getRouteNames() {
+        return Router.getFilesInDir(ROUTE_DIR_RELATIVE);
     }
 
     loadRoute(path, startAfterLoad = false) {
@@ -1675,6 +1682,7 @@ class OreMiner extends ModuleBase {
 
     render() {
         if ((!this.enabled && !this.editing) || !this.showOverlay || !this.loadedWaypoints) return;
+        const closestWaypoint = this.loadedWaypoints.length ? this.findNearestWaypoint() : -1;
         this.loadedWaypoints.forEach((waypoint, index) => {
             const colors =
                 this.editing && index === this.selectedWaypoint
@@ -1687,6 +1695,12 @@ class OreMiner extends ModuleBase {
                           ? [COLORS.walkFill, COLORS.walkWire]
                           : [COLORS.teleportFill, COLORS.teleportWire];
             RenderUtils.drawStyledBox(new Vec3d(waypoint.pos.x, waypoint.pos.y, waypoint.pos.z), colors[0], colors[1], 2, false);
+            RenderUtils.drawText(`[${index}]`, new Vec3d(waypoint.pos.x + 0.5, waypoint.pos.y + 1.3, waypoint.pos.z + 0.5), 1.2, true, false, false);
+            if (index === closestWaypoint) {
+                waypoint.minableBlocks.forEach((block, mineIndex) => {
+                    RenderUtils.drawText(`M[${mineIndex}]`, new Vec3d(block.x + 0.5, block.y + 1.1, block.z + 0.5), 1, true, false, true);
+                });
+            }
             if (this.editing) {
                 waypoint.minableBlocks.forEach((block) => {
                     const mineColors =
