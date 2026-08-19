@@ -281,21 +281,11 @@ class Beachballer extends ModuleBase {
         const LINE_THICKNESS = 3;
 
         if (this.trailHistory.length >= 2) {
-            for (let i = 0; i < this.trailHistory.length - 1; i++) {
-                const start = this.trailHistory[i];
-                const end = this.trailHistory[i + 1];
-
-                Render3D.drawLine(start, end, this.trailColors[i], LINE_THICKNESS, true);
-            }
+            Render3D.drawLines(this.trailHistory, this.trailColors, LINE_THICKNESS, true);
         }
 
         if (this.predictedPath.length >= 2) {
-            for (let i = 0; i < this.predictedPath.length - 1; i++) {
-                const start = this.predictedPath[i];
-                const end = this.predictedPath[i + 1];
-
-                Render3D.drawLine(start, end, this.predictionColors[i], LINE_THICKNESS, true);
-            }
+            Render3D.drawLines(this.predictedPath, this.predictionColors, LINE_THICKNESS, true);
         }
 
         if (this.landingPoint) {

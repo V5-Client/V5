@@ -46,6 +46,8 @@ class RouteWalkerer extends ModuleBase {
 
         this.action = this.ACTIONS.WALK;
         this.renderRoute = [];
+        this.renderLinePoints = [];
+        this.renderLineColors = [];
 
         this.updateRenderRoute = () => {
             const route = this.route || [];
@@ -68,6 +70,16 @@ class RouteWalkerer extends ModuleBase {
                     color: getColor(point.movements),
                 };
             });
+            const validEntries = this.renderRoute.filter((entry) => entry.endpoint);
+            if (validEntries.length === this.renderRoute.length && validEntries.length > 1) {
+                this.renderLinePoints = validEntries.map((entry) => entry.endpoint);
+                this.renderLinePoints.push(validEntries[0].endpoint);
+                this.renderLineColors = validEntries.slice(1).map((entry) => entry.color);
+                this.renderLineColors.push(validEntries[0].color);
+            } else {
+                this.renderLinePoints = [];
+                this.renderLineColors = [];
+            }
         };
 
         v5Command(
@@ -125,12 +137,17 @@ class RouteWalkerer extends ModuleBase {
                     if (!entry.position || !entry.endpoint) return;
                     Render3D.drawStyledBox(entry.position, entry.color, entry.color, 4, false);
 
-                    if (i < route.length - 1) {
+                    if (!this.renderLinePoints.length && i < route.length - 1) {
                         const next = route[i + 1];
                         if (!next.endpoint) return;
                         Render3D.drawLine(entry.endpoint, next.endpoint, next.color, 3, false);
                     }
                 });
+
+                if (this.renderLinePoints.length) {
+                    Render3D.drawLines(this.renderLinePoints, this.renderLineColors, 3, false);
+                    return;
+                }
 
                 const firstPoint = route[0];
                 const lastPoint = route[route.length - 1];

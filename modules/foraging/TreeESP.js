@@ -101,7 +101,7 @@ class TreeESP extends ModuleBase {
                 128 + 127 * Math.sin(((hue + 240) * Math.PI) / 180),
                 100
             );
-            tree.forEach((block) => Render3D.drawSizedBox(new Vec3d(block.x + 0.5, block.y, block.z + 0.5), 1, 1, 1, color, true, 1, true));
+            Render3D.drawFilledBoxes(tree.map((block) => new Vec3d(block.x, block.y, block.z)), color, true);
         });
     }
 
