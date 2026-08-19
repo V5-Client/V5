@@ -3608,11 +3608,14 @@ declare global {
       }
       const Reader: {
         nullReader(): java.io.Reader;
+        of(p0: kotlin.CharSequence): java.io.Reader;
       }
       interface Reader extends java.lang.Readable, java.io.Closeable { 
         read(): number;
         read(p0: Array<number>): number;
         read(p0: Array<number>, p1: number, p2: number): number;
+        readAllLines(): Array<string>;
+        readAllAsString(): string;
         skip(p0: number): number;
         ready(): boolean;
         markSupported(): boolean;
@@ -3757,6 +3760,7 @@ declare global {
           reduce(p0: T, p1: unknown): T;
           reduce(p0: unknown): java.util.Optional<T>;
           reduce<U>(p0: U, p1: unknown, p2: unknown): U;
+          gather<R>(p0: java.util.stream.Gatherer<T, any, R>): java.util.stream.Stream<R>;
           collect<R>(p0: unknown, p1: unknown, p2: unknown): R;
           collect<R, A>(p0: java.util.stream.Collector<T, A, R>): R;
           toList(): Array<T>;
@@ -3940,6 +3944,40 @@ declare global {
         interface IntStream$Builder { 
           add(p0: number): java.util.stream.IntStream$Builder;
           build(): java.util.stream.IntStream;
+        }
+        const Gatherer: {
+          defaultInitializer<A>(): unknown;
+          defaultCombiner<A>(): unknown;
+          defaultFinisher<A, R>(): unknown;
+          ofSequential<T, R>(p0: java.util.stream.Gatherer$Integrator<java.lang.Void, T, R>): java.util.stream.Gatherer<T, java.lang.Void, R>;
+          ofSequential<T, R>(p0: java.util.stream.Gatherer$Integrator<java.lang.Void, T, R>, p1: unknown): java.util.stream.Gatherer<T, java.lang.Void, R>;
+          ofSequential<T, A, R>(p0: unknown, p1: java.util.stream.Gatherer$Integrator<A, T, R>): java.util.stream.Gatherer<T, A, R>;
+          ofSequential<T, A, R>(p0: unknown, p1: java.util.stream.Gatherer$Integrator<A, T, R>, p2: unknown): java.util.stream.Gatherer<T, A, R>;
+          of<T, R>(p0: java.util.stream.Gatherer$Integrator<java.lang.Void, T, R>): java.util.stream.Gatherer<T, java.lang.Void, R>;
+          of<T, R>(p0: java.util.stream.Gatherer$Integrator<java.lang.Void, T, R>, p1: unknown): java.util.stream.Gatherer<T, java.lang.Void, R>;
+          of<T, A, R>(p0: unknown, p1: java.util.stream.Gatherer$Integrator<A, T, R>, p2: unknown, p3: unknown): java.util.stream.Gatherer<T, A, R>;
+        }
+        interface Gatherer<T, A, R> { 
+          initializer(): unknown;
+          integrator(): java.util.stream.Gatherer$Integrator<A, T, R>;
+          combiner(): unknown;
+          finisher(): unknown;
+          andThen<RR>(p0: java.util.stream.Gatherer<R, any, RR>): java.util.stream.Gatherer<T, any, RR>;
+        }
+        const Gatherer$Integrator: {
+          of<A, T, R>(p0: java.util.stream.Gatherer$Integrator<A, T, R>): java.util.stream.Gatherer$Integrator<A, T, R>;
+          ofGreedy<A, T, R>(p0: unknown): unknown;
+        }
+        interface Gatherer$Integrator<A, T, R> { 
+          integrate(p0: A, p1: T, p2: java.util.stream.Gatherer$Downstream<R>): boolean;
+          (p0: A, p1: T, p2: java.util.stream.Gatherer$Downstream<R>): boolean;
+        }
+        interface Gatherer$Downstream<T> { 
+          push(p0: T): boolean;
+          isRejecting(): boolean;
+          (p0: T): boolean;
+        }
+        interface Gatherer$Integrator$Greedy<A, T, R> extends java.util.stream.Gatherer$Integrator<A, T, R> { 
         }
         const Collector: {
           Characteristics: typeof java.util.stream.Collector$Characteristics;
@@ -4270,6 +4308,7 @@ declare global {
           doubles(p0: number, p1: number): java.util.stream.DoubleStream;
           doubles(p0: number): java.util.stream.DoubleStream;
           doubles(p0: number, p1: number, p2: number): java.util.stream.DoubleStream;
+          equiDoubles(p0: number, p1: number, p2: boolean, p3: boolean): java.util.stream.DoubleStream;
           ints(): java.util.stream.IntStream;
           ints(p0: number, p1: number): java.util.stream.IntStream;
           ints(p0: number): java.util.stream.IntStream;
@@ -4835,10 +4874,42 @@ declare global {
         nextElement(): E;
         asIterator(): kotlin.collections.MutableIterator<E>;
       }
+      interface SortedMap<K, V> extends java.util.SequencedMap<K, V> { 
+        comparator(): java.util.Comparator<K>;
+        subMap(p0: K, p1: K): java.util.SortedMap<K, V>;
+        headMap(p0: K): java.util.SortedMap<K, V>;
+        tailMap(p0: K): java.util.SortedMap<K, V>;
+        firstKey(): K;
+        lastKey(): K;
+      }
+      interface SequencedMap<K, V> extends Map<K, V> { 
+        reversed(): java.util.SequencedMap<K, V>;
+        firstEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
+        lastEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
+        pollFirstEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
+        pollLastEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
+        putFirst(p0: K, p1: V): V;
+        putLast(p0: K, p1: V): V;
+        sequencedKeySet(): java.util.SequencedSet<K>;
+        sequencedValues(): java.util.SequencedCollection<V>;
+        sequencedEntrySet(): java.util.SequencedSet<kotlin.collections.MutableMap$MutableEntry<K, V>>;
+      }
+      interface SequencedSet<E> extends java.util.SequencedCollection<E>, Set<E> { 
+      }
+      interface SequencedCollection<E> extends Array<E> { 
+        reversed(): java.util.SequencedCollection<E>;
+        addFirst(p0: E): void;
+        addLast(p0: E): void;
+        getFirst(): E;
+        getLast(): E;
+        removeFirst(): E;
+        removeLast(): E;
+      }
       const Currency: {
         getInstance(p0: string): java.util.Currency;
         getInstance(p0: java.util.Locale): java.util.Currency;
         getAvailableCurrencies(): Set<java.util.Currency>;
+        availableCurrencies(): java.util.stream.Stream<java.util.Currency>;
       }
       interface Currency extends java.io.Serializable { 
         getCurrencyCode(): string;
@@ -4890,37 +4961,6 @@ declare global {
       }
       interface Random extends java.util.random.RandomGenerator, java.io.Serializable { 
         setSeed(p0: number): void;
-      }
-      interface SortedMap<K, V> extends java.util.SequencedMap<K, V> { 
-        comparator(): java.util.Comparator<K>;
-        subMap(p0: K, p1: K): java.util.SortedMap<K, V>;
-        headMap(p0: K): java.util.SortedMap<K, V>;
-        tailMap(p0: K): java.util.SortedMap<K, V>;
-        firstKey(): K;
-        lastKey(): K;
-      }
-      interface SequencedMap<K, V> extends Map<K, V> { 
-        reversed(): java.util.SequencedMap<K, V>;
-        firstEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
-        lastEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
-        pollFirstEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
-        pollLastEntry(): kotlin.collections.MutableMap$MutableEntry<K, V>;
-        putFirst(p0: K, p1: V): V;
-        putLast(p0: K, p1: V): V;
-        sequencedKeySet(): java.util.SequencedSet<K>;
-        sequencedValues(): java.util.SequencedCollection<V>;
-        sequencedEntrySet(): java.util.SequencedSet<kotlin.collections.MutableMap$MutableEntry<K, V>>;
-      }
-      interface SequencedSet<E> extends java.util.SequencedCollection<E>, Set<E> { 
-      }
-      interface SequencedCollection<E> extends Array<E> { 
-        reversed(): java.util.SequencedCollection<E>;
-        addFirst(p0: E): void;
-        addLast(p0: E): void;
-        getFirst(): E;
-        getLast(): E;
-        removeFirst(): E;
-        removeLast(): E;
       }
       const BitSet: {
         new(): java.util.BitSet;
@@ -5108,6 +5148,8 @@ declare global {
         getTimeZone(p0: java.time.ZoneId): java.util.TimeZone;
         getAvailableIDs(p0: number): Array<string>;
         getAvailableIDs(): Array<string>;
+        availableIDs(p0: number): java.util.stream.Stream<string>;
+        availableIDs(): java.util.stream.Stream<string>;
         getDefault(): java.util.TimeZone;
         setDefault(p0: java.util.TimeZone): void;
       }
@@ -5147,8 +5189,6 @@ declare global {
         setLocale(p0: java.util.Locale): java.util.Calendar$Builder;
         setWeekDefinition(p0: number, p1: number): java.util.Calendar$Builder;
         build(): java.util.Calendar;
-      }
-      interface EventListener { 
       }
       const Properties: {
         new(): java.util.Properties;
@@ -5193,6 +5233,8 @@ declare global {
         get(p0: any): V;
         put(p0: K, p1: V): V;
         remove(p0: any): V;
+      }
+      interface EventListener { 
       }
       const EnumMap: {
         new<K, V>(p0: java.lang.Class<K>): java.util.EnumMap<any, any>;
@@ -5909,26 +5951,28 @@ declare global {
           prefixAllocator(p0: java.lang.foreign.MemorySegment): java.lang.foreign.SegmentAllocator;
         }
         interface SegmentAllocator { 
-          allocateUtf8String(p0: string): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfByte, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfChar, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfShort, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfInt, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfFloat, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfLong, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.ValueLayout$OfDouble, p1: number): java.lang.foreign.MemorySegment;
-          allocate(p0: java.lang.foreign.AddressLayout, p1: java.lang.foreign.MemorySegment): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: string): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: string, p1: java.nio.charset.Charset): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfByte, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfChar, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfShort, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfInt, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfFloat, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfLong, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfDouble, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.AddressLayout, p1: java.lang.foreign.MemorySegment): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout, p1: java.lang.foreign.MemorySegment, p2: java.lang.foreign.ValueLayout, p3: number, p4: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfByte, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfShort, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfChar, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfInt, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfFloat, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfLong, p1: number): java.lang.foreign.MemorySegment;
+          allocateFrom(p0: java.lang.foreign.ValueLayout$OfDouble, p1: number): java.lang.foreign.MemorySegment;
           allocate(p0: java.lang.foreign.MemoryLayout): java.lang.foreign.MemorySegment;
+          allocate(p0: java.lang.foreign.MemoryLayout, p1: number): java.lang.foreign.MemorySegment;
           allocate(p0: number): java.lang.foreign.MemorySegment;
           allocate(p0: number, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfByte, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfShort, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfChar, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfInt, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfFloat, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfLong, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.ValueLayout$OfDouble, p1: number): java.lang.foreign.MemorySegment;
-          allocateArray(p0: java.lang.foreign.MemoryLayout, p1: number): java.lang.foreign.MemorySegment;
           (p0: number, p1: number): java.lang.foreign.MemorySegment;
         }
         const MemorySegment: {
@@ -5956,6 +6000,7 @@ declare global {
           scope(): java.lang.foreign.MemorySegment$Scope;
           isAccessibleBy(p0: java.lang.Thread): boolean;
           byteSize(): number;
+          maxByteAlignment(): number;
           asSlice(p0: number, p1: number): java.lang.foreign.MemorySegment;
           asSlice(p0: number, p1: number, p2: number): java.lang.foreign.MemorySegment;
           asSlice(p0: number, p1: java.lang.foreign.MemoryLayout): java.lang.foreign.MemorySegment;
@@ -5968,7 +6013,6 @@ declare global {
           isNative(): boolean;
           isMapped(): boolean;
           asOverlappingSlice(p0: java.lang.foreign.MemorySegment): java.util.Optional<java.lang.foreign.MemorySegment>;
-          segmentOffset(p0: java.lang.foreign.MemorySegment): number;
           fill(p0: number): java.lang.foreign.MemorySegment;
           copyFrom(p0: java.lang.foreign.MemorySegment): java.lang.foreign.MemorySegment;
           mismatch(p0: java.lang.foreign.MemorySegment): number;
@@ -5984,8 +6028,10 @@ declare global {
           toArray(p0: java.lang.foreign.ValueLayout$OfFloat): kotlin.FloatArray;
           toArray(p0: java.lang.foreign.ValueLayout$OfLong): Array<number>;
           toArray(p0: java.lang.foreign.ValueLayout$OfDouble): kotlin.DoubleArray;
-          getUtf8String(p0: number): string;
-          setUtf8String(p0: number, p1: string): void;
+          getString(p0: number): string;
+          getString(p0: number, p1: java.nio.charset.Charset): string;
+          setString(p0: number, p1: string): void;
+          setString(p0: number, p1: string, p2: java.nio.charset.Charset): void;
           get(p0: java.lang.foreign.ValueLayout$OfByte, p1: number): number;
           get(p0: java.lang.foreign.ValueLayout$OfBoolean, p1: number): boolean;
           get(p0: java.lang.foreign.ValueLayout$OfChar, p1: number): number;
@@ -6026,7 +6072,6 @@ declare global {
         const MemoryLayout: {
           paddingLayout(p0: number): java.lang.foreign.PaddingLayout;
           sequenceLayout(p0: number, p1: java.lang.foreign.MemoryLayout): java.lang.foreign.SequenceLayout;
-          sequenceLayout(p0: java.lang.foreign.MemoryLayout): java.lang.foreign.SequenceLayout;
           structLayout(p0: java.lang.foreign.MemoryLayout): java.lang.foreign.StructLayout;
           unionLayout(p0: java.lang.foreign.MemoryLayout): java.lang.foreign.UnionLayout;
         }
@@ -6037,9 +6082,12 @@ declare global {
           withoutName(): java.lang.foreign.MemoryLayout;
           byteAlignment(): number;
           withByteAlignment(p0: number): java.lang.foreign.MemoryLayout;
+          scale(p0: number, p1: number): number;
+          scaleHandle(): java.lang.invoke.MethodHandle;
           byteOffset(p0: java.lang.foreign.MemoryLayout$PathElement): number;
           byteOffsetHandle(p0: java.lang.foreign.MemoryLayout$PathElement): java.lang.invoke.MethodHandle;
           varHandle(p0: java.lang.foreign.MemoryLayout$PathElement): java.lang.invoke.VarHandle;
+          arrayElementVarHandle(p0: java.lang.foreign.MemoryLayout$PathElement): java.lang.invoke.VarHandle;
           sliceHandle(p0: java.lang.foreign.MemoryLayout$PathElement): java.lang.invoke.MethodHandle;
           select(p0: java.lang.foreign.MemoryLayout$PathElement): java.lang.foreign.MemoryLayout;
         }
@@ -6095,8 +6143,8 @@ declare global {
         interface ValueLayout extends java.lang.foreign.MemoryLayout { 
           order(): java.nio.ByteOrder;
           withOrder(p0: java.nio.ByteOrder): java.lang.foreign.ValueLayout;
-          arrayElementVarHandle(p0: number): java.lang.invoke.VarHandle;
           carrier(): java.lang.Class<any>;
+          varHandle(): java.lang.invoke.VarHandle;
         }
         interface AddressLayout extends java.lang.foreign.ValueLayout { 
           withTargetLayout(p0: java.lang.foreign.MemoryLayout): java.lang.foreign.AddressLayout;
@@ -6174,14 +6222,11 @@ declare global {
         interrupt(): void;
         isInterrupted(): boolean;
         isAlive(): boolean;
-        suspend(): void;
-        resume(): void;
         setPriority(p0: number): void;
         getPriority(): number;
         setName(p0: string): void;
         getName(): string;
         getThreadGroup(): java.lang.ThreadGroup;
-        countStackFrames(): number;
         join(p0: number): void;
         join(p0: number, p1: number): void;
         join(): void;
@@ -6218,10 +6263,7 @@ declare global {
         enumerate(p0: Array<java.lang.ThreadGroup>): number;
         enumerate(p0: Array<java.lang.ThreadGroup>, p1: boolean): number;
         activeGroupCount(): number;
-        stop(): void;
         interrupt(): void;
-        suspend(): void;
-        resume(): void;
         destroy(): void;
         list(): void;
       }
@@ -6257,6 +6299,7 @@ declare global {
         forName(p0: string): java.lang.Class<any>;
         forName(p0: string, p1: boolean, p2: java.lang.ClassLoader): java.lang.Class<any>;
         forName(p0: java.lang.Module, p1: string): java.lang.Class<any>;
+        forPrimitiveName(p0: string): java.lang.Class<any>;
       }
       interface Class<T> extends java.io.Serializable, java.lang.reflect.GenericDeclaration, java.lang.reflect.Type, java.lang.reflect.AnnotatedElement, java.lang.invoke.TypeDescriptor$OfField<java.lang.Class<any>>, java.lang.constant.Constable { 
         toGenericString(): string;
@@ -6285,7 +6328,6 @@ declare global {
         getEnclosingClass(): java.lang.Class<any>;
         getSimpleName(): string;
         getCanonicalName(): string;
-        isUnnamedClass(): boolean;
         isAnonymousClass(): boolean;
         isLocalClass(): boolean;
         isMemberClass(): boolean;
@@ -6555,6 +6597,8 @@ declare global {
           normalize(): java.nio.file.Path;
           resolve(p0: java.nio.file.Path): java.nio.file.Path;
           resolve(p0: string): java.nio.file.Path;
+          resolve(p0: java.nio.file.Path, p1: java.nio.file.Path): java.nio.file.Path;
+          resolve(p0: string, p1: string): java.nio.file.Path;
           resolveSibling(p0: java.nio.file.Path): java.nio.file.Path;
           resolveSibling(p0: string): java.nio.file.Path;
           relativize(p0: java.nio.file.Path): java.nio.file.Path;
@@ -7547,6 +7591,7 @@ declare global {
         minusSeconds(p0: number): java.time.Instant;
         minusMillis(p0: number): java.time.Instant;
         minusNanos(p0: number): java.time.Instant;
+        until(p0: java.time.Instant): java.time.Duration;
         atOffset(p0: java.time.ZoneOffset): java.time.OffsetDateTime;
         atZone(p0: java.time.ZoneId): java.time.ZonedDateTime;
         toEpochMilli(): number;
@@ -8165,6 +8210,7 @@ declare global {
         getByName(p0: string): java.net.InetAddress;
         getAllByName(p0: string): Array<java.net.InetAddress>;
         getLoopbackAddress(): java.net.InetAddress;
+        ofLiteral(p0: string): java.net.InetAddress;
         getLocalHost(): java.net.InetAddress;
       }
       interface InetAddress extends java.io.Serializable { 
@@ -8230,6 +8276,22 @@ declare global {
     namespace security {
       namespace spec {
         interface AlgorithmParameterSpec { 
+        }
+        const PKCS8EncodedKeySpec: {
+          new(p0: Array<number>): java.security.spec.PKCS8EncodedKeySpec;
+          new(p0: Array<number>, p1: string): java.security.spec.PKCS8EncodedKeySpec;
+        }
+        interface PKCS8EncodedKeySpec extends java.security.spec.EncodedKeySpec, java.security.DEREncodable { 
+        }
+        const EncodedKeySpec: {
+          new(p0: Array<number>): java.security.spec.EncodedKeySpec;
+        }
+        interface EncodedKeySpec extends java.security.spec.KeySpec { 
+          getAlgorithm(): string;
+          getEncoded(): Array<number>;
+          getFormat(): string;
+        }
+        interface KeySpec { 
         }
       }
       namespace cert {
@@ -8313,7 +8375,10 @@ declare global {
       const PublicKey: {
         serialVersionUID: number;
       }
-      interface PublicKey extends java.security.Key { 
+      interface PublicKey extends java.security.AsymmetricKey { 
+      }
+      interface AsymmetricKey extends java.security.Key, java.security.DEREncodable { 
+        getParams(): java.security.spec.AlgorithmParameterSpec;
       }
       const Key: {
         serialVersionUID: number;
@@ -8323,17 +8388,7 @@ declare global {
         getFormat(): string;
         getEncoded(): Array<number>;
       }
-      const KeyPair: {
-        new(p0: java.security.PublicKey, p1: java.security.PrivateKey): java.security.KeyPair;
-      }
-      interface KeyPair extends java.io.Serializable { 
-        getPublic(): java.security.PublicKey;
-        getPrivate(): java.security.PrivateKey;
-      }
-      const PrivateKey: {
-        serialVersionUID: number;
-      }
-      interface PrivateKey extends java.security.Key, javax.security.auth.Destroyable { 
+      interface DEREncodable { 
       }
       const Provider: {
         Service: typeof java.security.Provider$Service;
@@ -8409,6 +8464,151 @@ declare global {
       }
       interface SecureRandomSpi extends java.io.Serializable { 
       }
+      interface AlgorithmConstraints { 
+        permits(p0: Set<unknown>, p1: string, p2: java.security.AlgorithmParameters): boolean;
+        permits(p0: Set<unknown>, p1: java.security.Key): boolean;
+        permits(p0: Set<unknown>, p1: string, p2: java.security.Key, p3: java.security.AlgorithmParameters): boolean;
+      }
+      const KeyStore: {
+        Builder: typeof java.security.KeyStore$Builder;
+        TrustedCertificateEntry: typeof java.security.KeyStore$TrustedCertificateEntry;
+        SecretKeyEntry: typeof java.security.KeyStore$SecretKeyEntry;
+        PrivateKeyEntry: typeof java.security.KeyStore$PrivateKeyEntry;
+        CallbackHandlerProtection: typeof java.security.KeyStore$CallbackHandlerProtection;
+        PasswordProtection: typeof java.security.KeyStore$PasswordProtection;
+        getInstance(p0: string): java.security.KeyStore;
+        getInstance(p0: string, p1: string): java.security.KeyStore;
+        getInstance(p0: string, p1: java.security.Provider): java.security.KeyStore;
+        getInstance(p0: java.io.File, p1: Array<number>): java.security.KeyStore;
+        getInstance(p0: java.io.File, p1: java.security.KeyStore$LoadStoreParameter): java.security.KeyStore;
+        getDefaultType(): string;
+      }
+      interface KeyStore { 
+        getProvider(): java.security.Provider;
+        getType(): string;
+        getAttributes(p0: string): Set<unknown>;
+        getKey(p0: string, p1: Array<number>): java.security.Key;
+        getCertificateChain(p0: string): Array<java.security.cert.Certificate>;
+        getCertificate(p0: string): java.security.cert.Certificate;
+        getCreationDate(p0: string): java.util.Date;
+        setKeyEntry(p0: string, p1: java.security.Key, p2: Array<number>, p3: Array<java.security.cert.Certificate>): void;
+        setKeyEntry(p0: string, p1: Array<number>, p2: Array<java.security.cert.Certificate>): void;
+        setCertificateEntry(p0: string, p1: java.security.cert.Certificate): void;
+        deleteEntry(p0: string): void;
+        aliases(): java.util.Enumeration<string>;
+        containsAlias(p0: string): boolean;
+        size(): number;
+        isKeyEntry(p0: string): boolean;
+        isCertificateEntry(p0: string): boolean;
+        getCertificateAlias(p0: java.security.cert.Certificate): string;
+        store(p0: java.io.OutputStream, p1: Array<number>): void;
+        store(p0: java.security.KeyStore$LoadStoreParameter): void;
+        load(p0: java.io.InputStream, p1: Array<number>): void;
+        load(p0: java.security.KeyStore$LoadStoreParameter): void;
+        getEntry(p0: string, p1: java.security.KeyStore$ProtectionParameter): java.security.KeyStore$Entry;
+        setEntry(p0: string, p1: java.security.KeyStore$Entry, p2: java.security.KeyStore$ProtectionParameter): void;
+        entryInstanceOf(p0: string, p1: java.lang.Class<java.security.KeyStore$Entry>): boolean;
+      }
+      interface KeyStore$LoadStoreParameter { 
+        getProtectionParameter(): java.security.KeyStore$ProtectionParameter;
+      }
+      interface KeyStore$ProtectionParameter { 
+      }
+      interface KeyStore$Entry { 
+        getAttributes(): Set<unknown>;
+      }
+      interface KeyStore$Entry$Attribute { 
+        getName(): string;
+        getValue(): string;
+      }
+      const KeyStoreSpi: {
+        new(): java.security.KeyStoreSpi;
+      }
+      interface KeyStoreSpi { 
+        engineGetKey(p0: string, p1: Array<number>): java.security.Key;
+        engineGetCertificateChain(p0: string): Array<java.security.cert.Certificate>;
+        engineGetCertificate(p0: string): java.security.cert.Certificate;
+        engineGetCreationDate(p0: string): java.util.Date;
+        engineSetKeyEntry(p0: string, p1: java.security.Key, p2: Array<number>, p3: Array<java.security.cert.Certificate>): void;
+        engineSetKeyEntry(p0: string, p1: Array<number>, p2: Array<java.security.cert.Certificate>): void;
+        engineSetCertificateEntry(p0: string, p1: java.security.cert.Certificate): void;
+        engineDeleteEntry(p0: string): void;
+        engineAliases(): java.util.Enumeration<string>;
+        engineContainsAlias(p0: string): boolean;
+        engineSize(): number;
+        engineIsKeyEntry(p0: string): boolean;
+        engineIsCertificateEntry(p0: string): boolean;
+        engineGetCertificateAlias(p0: java.security.cert.Certificate): string;
+        engineStore(p0: java.io.OutputStream, p1: Array<number>): void;
+        engineStore(p0: java.security.KeyStore$LoadStoreParameter): void;
+        engineLoad(p0: java.io.InputStream, p1: Array<number>): void;
+        engineLoad(p0: java.security.KeyStore$LoadStoreParameter): void;
+        engineGetAttributes(p0: string): Set<unknown>;
+        engineGetEntry(p0: string, p1: java.security.KeyStore$ProtectionParameter): java.security.KeyStore$Entry;
+        engineSetEntry(p0: string, p1: java.security.KeyStore$Entry, p2: java.security.KeyStore$ProtectionParameter): void;
+        engineEntryInstanceOf(p0: string, p1: java.lang.Class<java.security.KeyStore$Entry>): boolean;
+        engineProbe(p0: java.io.InputStream): boolean;
+      }
+      const KeyStore$Builder: {
+        newInstance(p0: java.security.KeyStore, p1: java.security.KeyStore$ProtectionParameter): java.security.KeyStore$Builder;
+        newInstance(p0: string, p1: java.security.Provider, p2: java.io.File, p3: java.security.KeyStore$ProtectionParameter): java.security.KeyStore$Builder;
+        newInstance(p0: java.io.File, p1: java.security.KeyStore$ProtectionParameter): java.security.KeyStore$Builder;
+        newInstance(p0: string, p1: java.security.Provider, p2: java.security.KeyStore$ProtectionParameter): java.security.KeyStore$Builder;
+      }
+      interface KeyStore$Builder { 
+        getKeyStore(): java.security.KeyStore;
+        getProtectionParameter(p0: string): java.security.KeyStore$ProtectionParameter;
+      }
+      const KeyStore$TrustedCertificateEntry: {
+        new(p0: java.security.cert.Certificate): java.security.KeyStore$TrustedCertificateEntry;
+        new(p0: java.security.cert.Certificate, p1: Set<unknown>): java.security.KeyStore$TrustedCertificateEntry;
+      }
+      interface KeyStore$TrustedCertificateEntry extends java.security.KeyStore$Entry { 
+        getTrustedCertificate(): java.security.cert.Certificate;
+      }
+      const KeyStore$SecretKeyEntry: {
+        new(p0: javax.crypto.SecretKey): java.security.KeyStore$SecretKeyEntry;
+        new(p0: javax.crypto.SecretKey, p1: Set<unknown>): java.security.KeyStore$SecretKeyEntry;
+      }
+      interface KeyStore$SecretKeyEntry extends java.security.KeyStore$Entry { 
+        getSecretKey(): javax.crypto.SecretKey;
+      }
+      const KeyStore$PrivateKeyEntry: {
+        new(p0: java.security.PrivateKey, p1: Array<java.security.cert.Certificate>): java.security.KeyStore$PrivateKeyEntry;
+        new(p0: java.security.PrivateKey, p1: Array<java.security.cert.Certificate>, p2: Set<unknown>): java.security.KeyStore$PrivateKeyEntry;
+      }
+      interface KeyStore$PrivateKeyEntry extends java.security.KeyStore$Entry { 
+        getPrivateKey(): java.security.PrivateKey;
+        getCertificateChain(): Array<java.security.cert.Certificate>;
+        getCertificate(): java.security.cert.Certificate;
+      }
+      const PrivateKey: {
+        serialVersionUID: number;
+      }
+      interface PrivateKey extends java.security.AsymmetricKey, javax.security.auth.Destroyable { 
+      }
+      const KeyStore$CallbackHandlerProtection: {
+        new(p0: javax.security.auth.callback.CallbackHandler): java.security.KeyStore$CallbackHandlerProtection;
+      }
+      interface KeyStore$CallbackHandlerProtection extends java.security.KeyStore$ProtectionParameter { 
+        getCallbackHandler(): javax.security.auth.callback.CallbackHandler;
+      }
+      const KeyStore$PasswordProtection: {
+        new(p0: Array<number>): java.security.KeyStore$PasswordProtection;
+        new(p0: Array<number>, p1: string, p2: java.security.spec.AlgorithmParameterSpec): java.security.KeyStore$PasswordProtection;
+      }
+      interface KeyStore$PasswordProtection extends java.security.KeyStore$ProtectionParameter, javax.security.auth.Destroyable { 
+        getProtectionAlgorithm(): string;
+        getProtectionParameters(): java.security.spec.AlgorithmParameterSpec;
+        getPassword(): Array<number>;
+      }
+      const KeyPair: {
+        new(p0: java.security.PublicKey, p1: java.security.PrivateKey): java.security.KeyPair;
+      }
+      interface KeyPair extends java.io.Serializable, java.security.DEREncodable { 
+        getPublic(): java.security.PublicKey;
+        getPrivate(): java.security.PrivateKey;
+      }
     }
     namespace text {
       const NumberFormat: {
@@ -8439,6 +8639,8 @@ declare global {
         parse(p0: string): number;
         isParseIntegerOnly(): boolean;
         setParseIntegerOnly(p0: boolean): void;
+        isStrict(): boolean;
+        setStrict(p0: boolean): void;
         isGroupingUsed(): boolean;
         setGroupingUsed(p0: boolean): void;
         getMaximumIntegerDigits(): number;
@@ -8882,7 +9084,6 @@ declare global {
         sqrt(): java.math.BigInteger;
         sqrtAndRemainder(): Array<java.math.BigInteger>;
         gcd(p0: java.math.BigInteger): java.math.BigInteger;
-        bitLength(): number;
         abs(): java.math.BigInteger;
         negate(): java.math.BigInteger;
         mod(p0: java.math.BigInteger): java.math.BigInteger;
@@ -8900,6 +9101,7 @@ declare global {
         clearBit(p0: number): java.math.BigInteger;
         flipBit(p0: number): java.math.BigInteger;
         getLowestSetBit(): number;
+        bitLength(): number;
         bitCount(): number;
         isProbablePrime(p0: number): boolean;
         min(p0: java.math.BigInteger): java.math.BigInteger;
@@ -11016,20 +11218,18 @@ declare global {
               interface AbstractContainerScreen<T> extends net.minecraft.client.gui.screens.Screen, net.minecraft.client.gui.screens.inventory.MenuAccess<T> { 
                 extractContents(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, mouseX: number, mouseY: number, a: number): void;
                 extractCarriedItem(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, mouseX: number, mouseY: number): void;
-                extractSnapbackItem(graphics: net.minecraft.client.gui.GuiGraphicsExtractor): void;
-                clearDraggingState(): void;
               }
               interface MenuAccess<T> { 
                 getMenu(): T;
               }
             }
-            namespace options {
-              const OptionsSubScreen: {
-                new(lastScreen: net.minecraft.client.gui.screens.Screen, options: net.minecraft.client.Options, title: net.minecraft.network.chat.Component): net.minecraft.client.gui.screens.options.OptionsSubScreen;
-              }
-              interface OptionsSubScreen extends net.minecraft.client.gui.screens.Screen { 
-                layout: net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
-                resetOption(option: net.minecraft.client.OptionInstance<any>): void;
+            namespace dialog {
+              interface DialogConnectionAccess { 
+                disconnect(message: net.minecraft.network.chat.Component): void;
+                runCommand(command: string, activeScreen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
+                openDialog(dialog: net.minecraft.core.Holder<unknown>, activeScreen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
+                sendCustomAction(id: net.minecraft.resources.Identifier, payload: java.util.Optional<net.minecraft.nbt.Tag>): void;
+                serverLinks(): net.minecraft.server.ServerLinks;
               }
             }
             namespace worldselection {
@@ -11159,9 +11359,16 @@ declare global {
             }
             namespace social {
               const PlayerSocialManager: {
-                new(minecraft: net.minecraft.client.Minecraft, service: com.mojang.authlib.minecraft.UserApiService): net.minecraft.client.gui.screens.social.PlayerSocialManager;
+                PlayerData: typeof net.minecraft.client.gui.screens.social.PlayerSocialManager$PlayerData;
+                new(minecraft: net.minecraft.client.Minecraft, service: com.mojang.authlib.minecraft.UserApiService, friendsService: com.mojang.authlib.yggdrasil.FriendsService, remoteFriendListUpdateHandler: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler): net.minecraft.client.gui.screens.social.PlayerSocialManager;
               }
               interface PlayerSocialManager { 
+                addFriendListUpdateListener(listener: java.lang.Runnable): void;
+                removeFriendListUpdateListener(listener: java.lang.Runnable): void;
+                getFriends(): Array<net.minecraft.client.gui.screens.social.PlayerSocialManager$PlayerData>;
+                getIncomingRequests(): Array<net.minecraft.client.gui.screens.social.PlayerSocialManager$PlayerData>;
+                getOutgoingRequests(): Array<net.minecraft.client.gui.screens.social.PlayerSocialManager$PlayerData>;
+                getFriendListState(): net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
                 hidePlayer(id: java.util.UUID): void;
                 showPlayer(id: java.util.UUID): void;
                 shouldHideMessageFrom(id: java.util.UUID): boolean;
@@ -11172,16 +11379,63 @@ declare global {
                 getHiddenPlayers(): Set<java.util.UUID>;
                 getDiscoveredUUID(name: string): java.util.UUID;
                 addPlayer(info: net.minecraft.client.multiplayer.PlayerInfo): void;
+                sendFriendRequest(name: string): java.util.concurrent.CompletableFuture<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
                 removePlayer(id: java.util.UUID): void;
+                removeFriend(id: java.util.UUID): java.util.concurrent.CompletableFuture<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+                acceptIncomingFriendRequest(id: java.util.UUID): java.util.concurrent.CompletableFuture<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+                declineIncomingFriendRequest(id: java.util.UUID): java.util.concurrent.CompletableFuture<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+                revokeOutgoingFriendRequest(id: java.util.UUID): java.util.concurrent.CompletableFuture<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+                updateFriendSettings(friendsListEnabled: boolean, allowInvites: boolean): java.util.concurrent.CompletableFuture<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+                isFriendListEnabled(): boolean;
+                setFriendListEnabled(friendListEnabled: boolean): void;
+                isAllowFriendRequests(): boolean;
+                setAllowFriendRequests(allowFriendRequests: boolean): void;
+                getPresenceHandler(): net.minecraft.client.gui.screens.social.PresenceHandler;
+                isFriend(uuid: java.util.UUID): boolean;
               }
-            }
-            namespace dialog {
-              interface DialogConnectionAccess { 
-                disconnect(message: net.minecraft.network.chat.Component): void;
-                runCommand(command: string, activeScreen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
-                openDialog(dialog: net.minecraft.core.Holder<unknown>, activeScreen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
-                sendCustomAction(id: net.minecraft.resources.Identifier, payload: java.util.Optional<net.minecraft.nbt.Tag>): void;
-                serverLinks(): net.minecraft.server.ServerLinks;
+              const RemoteFriendListUpdateHandler$State: {
+                LOADING: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                UPGRADE_NEEDED: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                CONNECTION_ISSUE: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                USER_MAY_LACK_ACTIVE_PROFILE: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                UNAUTHORIZED: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                TEMPORARY_UNAVAILABLE: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                GENERIC_ERROR: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                SUCCESS: net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                entries: kotlin.enums.EnumEntries<net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State>;
+                values(): Array<net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State>;
+                valueOf(value: string): net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+              }
+              interface RemoteFriendListUpdateHandler$State extends kotlin.Enum<net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State> { 
+              }
+              const PresenceHandler: {
+                new(minecraft: net.minecraft.client.Minecraft, friendsService: com.mojang.authlib.yggdrasil.FriendsService): net.minecraft.client.gui.screens.social.PresenceHandler;
+              }
+              interface PresenceHandler { 
+                tick(): void;
+                tryUpdatePresence(): void;
+                getLatestPresence(): com.mojang.authlib.yggdrasil.response.PresenceResponse;
+              }
+              const RemoteFriendListUpdateHandler: {
+                State: typeof net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                new(friendsService: com.mojang.authlib.yggdrasil.FriendsService, minecraft: net.minecraft.client.Minecraft): net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler;
+              }
+              interface RemoteFriendListUpdateHandler { 
+                getLatestFriendData(): com.mojang.authlib.yggdrasil.response.FriendData;
+                getState(): net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler$State;
+                addUpdateListener(listener: java.lang.Runnable): void;
+                removeUpdateListener(listener: java.lang.Runnable): void;
+                forceUpdate(): java.util.concurrent.CompletableFuture<java.lang.Void>;
+                start(): void;
+                stop(): void;
+                close(): void;
+              }
+              const PlayerSocialManager$PlayerData: {
+                new(id: java.util.UUID, name: string): net.minecraft.client.gui.screens.social.PlayerSocialManager$PlayerData;
+              }
+              interface PlayerSocialManager$PlayerData extends java.lang.Record { 
+                id(): java.util.UUID;
+                name(): string;
               }
             }
             const Screen: {
@@ -11246,7 +11500,7 @@ declare global {
               new(): net.minecraft.client.gui.screens.Overlay;
             }
             interface Overlay extends net.minecraft.client.gui.components.Renderable { 
-              isPauseScreen(): boolean;
+              isPausing(): boolean;
               tick(): void;
             }
             const Screen$NarratableSearchResult: {
@@ -11319,49 +11573,6 @@ declare global {
                 profilerPieChartKeyPress(key: number): void;
               }
             }
-            namespace debug {
-              const DebugScreenEntryList: {
-                new(workingDirectory: java.io.File, dataFixer: com.mojang.datafixers.DataFixer): net.minecraft.client.gui.components.debug.DebugScreenEntryList;
-              }
-              interface DebugScreenEntryList { 
-                isOverlayVisible(): boolean;
-                load(): void;
-                loadProfile(profile: net.minecraft.client.gui.components.debug.DebugScreenProfile): void;
-                getStatus(location: net.minecraft.resources.Identifier): net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-                isCurrentlyEnabled(location: net.minecraft.resources.Identifier): boolean;
-                setStatus(location: net.minecraft.resources.Identifier, status: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus): void;
-                toggleStatus(location: net.minecraft.resources.Identifier): boolean;
-                getCurrentlyEnabled(): Array<net.minecraft.resources.Identifier>;
-                toggleDebugOverlay(): void;
-                setOverlayVisible(visible: boolean): void;
-                rebuildCurrentList(): void;
-                getCurrentlyEnabledVersion(): number;
-                isUsingProfile(profile: net.minecraft.client.gui.components.debug.DebugScreenProfile): boolean;
-                save(): void;
-              }
-              const DebugScreenProfile: {
-                DEFAULT: net.minecraft.client.gui.components.debug.DebugScreenProfile;
-                PERFORMANCE: net.minecraft.client.gui.components.debug.DebugScreenProfile;
-                CODEC: net.minecraft.util.StringRepresentable$EnumCodec<net.minecraft.client.gui.components.debug.DebugScreenProfile>;
-                entries: kotlin.enums.EnumEntries<net.minecraft.client.gui.components.debug.DebugScreenProfile>;
-                values(): Array<net.minecraft.client.gui.components.debug.DebugScreenProfile>;
-                valueOf(value: string): net.minecraft.client.gui.components.debug.DebugScreenProfile;
-              }
-              interface DebugScreenProfile extends kotlin.Enum<net.minecraft.client.gui.components.debug.DebugScreenProfile>, net.minecraft.util.StringRepresentable { 
-                translationKey(): string;
-              }
-              const DebugScreenEntryStatus: {
-                ALWAYS_ON: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-                IN_OVERLAY: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-                NEVER: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-                CODEC: com.mojang.serialization.Codec<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>;
-                entries: kotlin.enums.EnumEntries<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>;
-                values(): Array<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>;
-                valueOf(value: string): net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-              }
-              interface DebugScreenEntryStatus extends kotlin.Enum<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>, net.minecraft.util.StringRepresentable { 
-              }
-            }
             namespace toasts {
               const ToastManager: {
                 new(minecraft: net.minecraft.client.Minecraft, options: net.minecraft.client.Options): net.minecraft.client.gui.components.toasts.ToastManager;
@@ -11406,6 +11617,49 @@ declare global {
               }
               interface Toast$Visibility extends kotlin.Enum<net.minecraft.client.gui.components.toasts.Toast$Visibility> { 
                 playSound(manager: net.minecraft.client.sounds.SoundManager): void;
+              }
+            }
+            namespace debug {
+              const DebugScreenEntryList: {
+                new(workingDirectory: java.io.File, dataFixer: com.mojang.datafixers.DataFixer): net.minecraft.client.gui.components.debug.DebugScreenEntryList;
+              }
+              interface DebugScreenEntryList { 
+                isOverlayVisible(): boolean;
+                load(): void;
+                loadProfile(profile: net.minecraft.client.gui.components.debug.DebugScreenProfile): void;
+                getStatus(location: net.minecraft.resources.Identifier): net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
+                isCurrentlyEnabled(location: net.minecraft.resources.Identifier): boolean;
+                setStatus(location: net.minecraft.resources.Identifier, status: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus): void;
+                toggleStatus(location: net.minecraft.resources.Identifier): boolean;
+                getCurrentlyEnabled(): Array<net.minecraft.resources.Identifier>;
+                toggleDebugOverlay(): void;
+                setOverlayVisible(visible: boolean): void;
+                rebuildCurrentList(): void;
+                getCurrentlyEnabledVersion(): number;
+                isUsingProfile(profile: net.minecraft.client.gui.components.debug.DebugScreenProfile): boolean;
+                save(): void;
+              }
+              const DebugScreenProfile: {
+                DEFAULT: net.minecraft.client.gui.components.debug.DebugScreenProfile;
+                PERFORMANCE: net.minecraft.client.gui.components.debug.DebugScreenProfile;
+                CODEC: net.minecraft.util.StringRepresentable$EnumCodec<net.minecraft.client.gui.components.debug.DebugScreenProfile>;
+                entries: kotlin.enums.EnumEntries<net.minecraft.client.gui.components.debug.DebugScreenProfile>;
+                values(): Array<net.minecraft.client.gui.components.debug.DebugScreenProfile>;
+                valueOf(value: string): net.minecraft.client.gui.components.debug.DebugScreenProfile;
+              }
+              interface DebugScreenProfile extends kotlin.Enum<net.minecraft.client.gui.components.debug.DebugScreenProfile>, net.minecraft.util.StringRepresentable { 
+                translationKey(): string;
+              }
+              const DebugScreenEntryStatus: {
+                ALWAYS_ON: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
+                IN_OVERLAY: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
+                NEVER: net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
+                CODEC: com.mojang.serialization.Codec<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>;
+                entries: kotlin.enums.EnumEntries<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>;
+                values(): Array<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>;
+                valueOf(value: string): net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
+              }
+              interface DebugScreenEntryStatus extends kotlin.Enum<net.minecraft.client.gui.components.debug.DebugScreenEntryStatus>, net.minecraft.util.StringRepresentable { 
               }
             }
             interface TabOrderedElement { 
@@ -11453,11 +11707,10 @@ declare global {
               component(): java.util.Optional<unknown>;
               toCharSequence(minecraft: net.minecraft.client.Minecraft): Array<net.minecraft.util.FormattedCharSequence>;
             }
-            const AbstractWidget$WithInactiveMessage: {
-              new(x: number, y: number, width: number, height: number, message: net.minecraft.network.chat.Component): net.minecraft.client.gui.components.AbstractWidget$WithInactiveMessage;
-              defaultInactiveMessage(activeMessage: net.minecraft.network.chat.Component): net.minecraft.network.chat.Component;
+            const ChatComponent$State: {
+              new(messages: Array<net.minecraft.client.multiplayer.chat.GuiMessage>, history: Array<string>, delayedMessageDeletions: Array<unknown>): net.minecraft.client.gui.components.ChatComponent$State;
             }
-            interface AbstractWidget$WithInactiveMessage extends net.minecraft.client.gui.components.AbstractWidget { 
+            interface ChatComponent$State { 
             }
             const CycleButton$ValueListSupplier: {
               create<T>(values: Array<T>): net.minecraft.client.gui.components.CycleButton$ValueListSupplier<T>;
@@ -11475,93 +11728,14 @@ declare global {
             }
             interface AbstractSliderButton extends net.minecraft.client.gui.components.AbstractWidget$WithInactiveMessage { 
             }
+            const AbstractWidget$WithInactiveMessage: {
+              new(x: number, y: number, width: number, height: number, message: net.minecraft.network.chat.Component): net.minecraft.client.gui.components.AbstractWidget$WithInactiveMessage;
+              defaultInactiveMessage(activeMessage: net.minecraft.network.chat.Component): net.minecraft.network.chat.Component;
+            }
+            interface AbstractWidget$WithInactiveMessage extends net.minecraft.client.gui.components.AbstractWidget { 
+            }
             interface ResettableOptionWidget { 
               resetValue(): void;
-            }
-            const OptionsList: {
-              OptionInstanceWidget: typeof net.minecraft.client.gui.components.OptionsList$OptionInstanceWidget;
-              new(minecraft: net.minecraft.client.Minecraft, width: number, screen: net.minecraft.client.gui.screens.options.OptionsSubScreen): net.minecraft.client.gui.components.OptionsList;
-            }
-            interface OptionsList extends net.minecraft.client.gui.components.ContainerObjectSelectionList<unknown> { 
-              addBig(option: net.minecraft.client.OptionInstance<any>): void;
-              addSmall(options: net.minecraft.client.OptionInstance<any>): void;
-              addSmall(widgets: Array<net.minecraft.client.gui.components.AbstractWidget>): void;
-              addSmall(firstOption: net.minecraft.client.gui.components.AbstractWidget, secondOption: net.minecraft.client.gui.components.AbstractWidget | null | undefined): void;
-              addSmall(firstOption: net.minecraft.client.gui.components.AbstractWidget, firstOptionInstance: net.minecraft.client.OptionInstance<any>, secondOption: net.minecraft.client.gui.components.AbstractWidget | null | undefined): void;
-              addHeader(text: net.minecraft.network.chat.Component): void;
-              findOption(option: net.minecraft.client.OptionInstance<any>): net.minecraft.client.gui.components.AbstractWidget | null | undefined;
-              applyUnsavedChanges(): void;
-              resetOption(option: net.minecraft.client.OptionInstance<any>): void;
-            }
-            const ContainerObjectSelectionList: {
-              Entry: typeof net.minecraft.client.gui.components.ContainerObjectSelectionList$Entry;
-              new<E>(minecraft: net.minecraft.client.Minecraft, width: number, height: number, y: number, itemHeight: number): net.minecraft.client.gui.components.ContainerObjectSelectionList<any>;
-            }
-            interface ContainerObjectSelectionList<E> extends net.minecraft.client.gui.components.AbstractSelectionList<E> { 
-            }
-            const AbstractSelectionList: {
-              new<E>(minecraft: net.minecraft.client.Minecraft, width: number, height: number, y: number, defaultEntryHeight: number): net.minecraft.client.gui.components.AbstractSelectionList<any>;
-            }
-            interface AbstractSelectionList<E> extends net.minecraft.client.gui.components.AbstractContainerWidget { 
-              getSelected(): E;
-              setSelected(selected: E): void;
-              replaceEntries(newChildren: Array<E>): void;
-              getNextY(): number;
-              updateSize(width: number, layout: net.minecraft.client.gui.layouts.HeaderAndFooterLayout): void;
-              updateSizeAndPosition(width: number, height: number, y: number): void;
-              updateSizeAndPosition(width: number, height: number, x: number, y: number): void;
-              getRowLeft(): number;
-              getRowRight(): number;
-              getRowTop(row: number): number;
-              getRowBottom(row: number): number;
-              getRowWidth(): number;
-            }
-            const AbstractContainerWidget: {
-              new(x: number, y: number, width: number, height: number, message: net.minecraft.network.chat.Component, scrollbarSettings: net.minecraft.client.gui.components.AbstractScrollArea$ScrollbarSettings): net.minecraft.client.gui.components.AbstractContainerWidget;
-            }
-            interface AbstractContainerWidget extends net.minecraft.client.gui.components.AbstractScrollArea, net.minecraft.client.gui.components.events.ContainerEventHandler { 
-            }
-            const AbstractScrollArea: {
-              ScrollbarSettings: typeof net.minecraft.client.gui.components.AbstractScrollArea$ScrollbarSettings;
-              SCROLLBAR_WIDTH: number;
-              new(x: number, y: number, width: number, height: number, message: net.minecraft.network.chat.Component, scrollbarSettings: net.minecraft.client.gui.components.AbstractScrollArea$ScrollbarSettings): net.minecraft.client.gui.components.AbstractScrollArea;
-              defaultSettings(scrollRate: number): net.minecraft.client.gui.components.AbstractScrollArea$ScrollbarSettings;
-            }
-            interface AbstractScrollArea extends net.minecraft.client.gui.components.AbstractWidget { 
-              scrollAmount(): number;
-              setScrollAmount(scrollAmount: number): void;
-              updateScrolling(event: net.minecraft.client.input.MouseButtonEvent): boolean;
-              refreshScrollAmount(): void;
-              maxScrollAmount(): number;
-              scrollbarWidth(): number;
-              scrollBarY(): number;
-            }
-            const AbstractScrollArea$ScrollbarSettings: {
-              new(scrollerSprite: net.minecraft.resources.Identifier, disabledScrollerSprite: net.minecraft.resources.Identifier | null | undefined, backgroundSprite: net.minecraft.resources.Identifier, scrollbarWidth: number, scrollbarMinHeight: number, scrollRate: number, resizingScrollbar: boolean): net.minecraft.client.gui.components.AbstractScrollArea$ScrollbarSettings;
-            }
-            interface AbstractScrollArea$ScrollbarSettings extends java.lang.Record { 
-              scrollerSprite(): net.minecraft.resources.Identifier;
-              disabledScrollerSprite(): net.minecraft.resources.Identifier | null | undefined;
-              backgroundSprite(): net.minecraft.resources.Identifier;
-              scrollbarWidth(): number;
-              scrollbarMinHeight(): number;
-              scrollRate(): number;
-              resizingScrollbar(): boolean;
-            }
-            const ContainerObjectSelectionList$Entry: {
-              new<E>(): net.minecraft.client.gui.components.ContainerObjectSelectionList$Entry<any>;
-            }
-            interface ContainerObjectSelectionList$Entry<E> extends net.minecraft.client.gui.components.events.ContainerEventHandler { 
-              focusPathAtIndex(navigationEvent: net.minecraft.client.gui.navigation.FocusNavigationEvent, currentIndex: number): net.minecraft.client.gui.ComponentPath | null | undefined;
-              narratables(): Array<net.minecraft.client.gui.narration.NarratableEntry>;
-            }
-            const OptionsList$OptionInstanceWidget: {
-              new(widget: net.minecraft.client.gui.components.AbstractWidget): net.minecraft.client.gui.components.OptionsList$OptionInstanceWidget;
-              new(widget: net.minecraft.client.gui.components.AbstractWidget, optionInstance: net.minecraft.client.OptionInstance<any> | null | undefined): net.minecraft.client.gui.components.OptionsList$OptionInstanceWidget;
-            }
-            interface OptionsList$OptionInstanceWidget extends java.lang.Record { 
-              widget(): net.minecraft.client.gui.components.AbstractWidget;
-              optionInstance(): net.minecraft.client.OptionInstance<any> | null | undefined;
             }
             const ChatComponent: {
               DisplayMode: typeof net.minecraft.client.gui.components.ChatComponent$DisplayMode;
@@ -11638,6 +11812,7 @@ declare global {
               DEFAULT_TEXT_COLOR: number;
               DEFAULT_HINT_STYLE: net.minecraft.network.chat.Style;
               SEARCH_HINT_STYLE: net.minecraft.network.chat.Style;
+              new(font: net.minecraft.client.gui.Font, narration: net.minecraft.network.chat.Component): net.minecraft.client.gui.components.EditBox;
               new(font: net.minecraft.client.gui.Font, width: number, height: number, narration: net.minecraft.network.chat.Component): net.minecraft.client.gui.components.EditBox;
               new(font: net.minecraft.client.gui.Font, x: number, y: number, width: number, height: number, narration: net.minecraft.network.chat.Component): net.minecraft.client.gui.components.EditBox;
               new(font: net.minecraft.client.gui.Font, x: number, y: number, width: number, height: number, oldBox: net.minecraft.client.gui.components.EditBox | null | undefined, narration: net.minecraft.network.chat.Component): net.minecraft.client.gui.components.EditBox;
@@ -11682,11 +11857,6 @@ declare global {
               format(text: string, offset: number): net.minecraft.util.FormattedCharSequence | null | undefined;
               (text: string, offset: number): net.minecraft.util.FormattedCharSequence | null | undefined;
             }
-            const ChatComponent$State: {
-              new(messages: Array<net.minecraft.client.multiplayer.chat.GuiMessage>, history: Array<string>, delayedMessageDeletions: Array<unknown>): net.minecraft.client.gui.components.ChatComponent$State;
-            }
-            interface ChatComponent$State { 
-            }
             interface ChatComponent$ChatGraphicsAccess { 
               updatePose(updater: unknown): void;
               fill(x0: number, y0: number, x1: number, y1: number, color: number): void;
@@ -11696,7 +11866,7 @@ declare global {
             }
             const PlayerTabOverlay: {
               MAX_ROWS_PER_COL: number;
-              new(minecraft: net.minecraft.client.Minecraft, gui: net.minecraft.client.gui.Gui): net.minecraft.client.gui.components.PlayerTabOverlay;
+              new(minecraft: net.minecraft.client.Minecraft, hud: net.minecraft.client.gui.Hud): net.minecraft.client.gui.components.PlayerTabOverlay;
             }
             interface PlayerTabOverlay { 
               getNameForDisplay(info: net.minecraft.client.multiplayer.PlayerInfo): net.minecraft.network.chat.Component;
@@ -11739,7 +11909,6 @@ declare global {
               getProfilerPieChart(): net.minecraft.client.gui.components.debugchart.ProfilerPieChart;
               logRemoteSample(sample: Array<number>, type: net.minecraft.util.debugchart.RemoteDebugSampleType): void;
               reset(): void;
-              render3dCrosshair(cameraState: net.minecraft.client.renderer.state.level.CameraRenderState, guiScale: number): void;
             }
             const SplashRenderer: {
               CHRISTMAS: net.minecraft.client.gui.components.SplashRenderer;
@@ -11954,7 +12123,7 @@ declare global {
             }
             const GlyphRenderTypes: {
               new(normal: net.minecraft.client.renderer.rendertype.RenderType, seeThrough: net.minecraft.client.renderer.rendertype.RenderType, polygonOffset: net.minecraft.client.renderer.rendertype.RenderType, guiPipeline: com.mojang.blaze3d.pipeline.RenderPipeline): net.minecraft.client.gui.font.GlyphRenderTypes;
-              createForIntensityTexture(name: net.minecraft.resources.Identifier): net.minecraft.client.gui.font.GlyphRenderTypes;
+              createForGrayscaleTexture(name: net.minecraft.resources.Identifier): net.minecraft.client.gui.font.GlyphRenderTypes;
               createForColorTexture(name: net.minecraft.resources.Identifier): net.minecraft.client.gui.font.GlyphRenderTypes;
             }
             interface GlyphRenderTypes extends java.lang.Record { 
@@ -12026,31 +12195,6 @@ declare global {
               getRectangle(): net.minecraft.client.gui.navigation.ScreenRectangle;
               setPosition(x: number, y: number): void;
               visitWidgets(widgetVisitor: unknown): void;
-            }
-            const HeaderAndFooterLayout: {
-              MAGIC_PADDING: number;
-              DEFAULT_HEADER_AND_FOOTER_HEIGHT: number;
-              new(screen: net.minecraft.client.gui.screens.Screen): net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
-              new(screen: net.minecraft.client.gui.screens.Screen, headerAndFooterHeight: number): net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
-              new(screen: net.minecraft.client.gui.screens.Screen, headerHeight: number, footerHeight: number): net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
-            }
-            interface HeaderAndFooterLayout extends net.minecraft.client.gui.layouts.Layout { 
-              getFooterHeight(): number;
-              setFooterHeight(footerHeight: number): void;
-              setHeaderHeight(headerHeight: number): void;
-              getHeaderHeight(): number;
-              getContentHeight(): number;
-              addToHeader<T>(child: T): T;
-              addToHeader<T>(child: T, layoutSettingsAdjustments: unknown): T;
-              addTitleHeader(component: net.minecraft.network.chat.Component, font: net.minecraft.client.gui.Font): void;
-              addToFooter<T>(child: T): T;
-              addToFooter<T>(child: T, layoutSettingsAdjustments: unknown): T;
-              addToContents<T>(child: T): T;
-              addToContents<T>(child: T, layoutSettingsAdjustments: unknown): T;
-            }
-            interface Layout extends net.minecraft.client.gui.layouts.LayoutElement { 
-              visitChildren(layoutElementVisitor: unknown): void;
-              arrangeElements(): void;
             }
           }
           namespace narration {
@@ -12154,6 +12298,7 @@ declare global {
           interface ComponentPath { 
             component(): net.minecraft.client.gui.components.events.GuiEventListener;
             applyFocus(focused: boolean): void;
+            leafComponent(): net.minecraft.client.gui.components.events.GuiEventListener;
           }
           const ComponentPath$Leaf: {
             new(component: net.minecraft.client.gui.components.events.GuiEventListener): net.minecraft.client.gui.ComponentPath$Leaf;
@@ -12225,11 +12370,10 @@ declare global {
             itemDecorations(font: net.minecraft.client.gui.Font, itemStack: net.minecraft.world.item.ItemStack, x: number, y: number): void;
             itemDecorations(font: net.minecraft.client.gui.Font, itemStack: net.minecraft.world.item.ItemStack, x: number, y: number, countText: string | null | undefined): void;
             map(mapRenderState: net.minecraft.client.renderer.state.MapRenderState): void;
-            entity(renderState: net.minecraft.client.renderer.entity.state.EntityRenderState, scale: number, translation: org.joml.Vector3f, rotation: org.joml.Quaternionf, overrideCameraAngle: org.joml.Quaternionf | null | undefined, x0: number, y0: number, x1: number, y1: number): void;
-            skin(playerModel: net.minecraft.client.model.player.PlayerModel, texture: net.minecraft.resources.Identifier, scale: number, rotationX: number, rotationY: number, pivotY: number, x0: number, y0: number, x1: number, y1: number): void;
+            entity(renderState: net.minecraft.client.renderer.entity.state.EntityRenderState, scale: number, translation: org.joml.Vector3fc, rotation: org.joml.Quaternionfc, overrideCameraAngle: org.joml.Quaternionfc | null | undefined, x0: number, y0: number, x1: number, y1: number): void;
+            skin(playerModel: net.minecraft.client.model.Model$Simple, texture: net.minecraft.resources.Identifier, scale: number, rotationX: number, rotationY: number, pivotY: number, x0: number, y0: number, x1: number, y1: number): void;
             book(bookModel: net.minecraft.client.model.object.book.BookModel, texture: net.minecraft.resources.Identifier, scale: number, open: number, flip: number, x0: number, y0: number, x1: number, y1: number): void;
             bannerPattern(flag: net.minecraft.client.model.object.banner.BannerFlagModel, baseColor: net.minecraft.world.item.DyeColor, resultBannerPatterns: net.minecraft.world.level.block.entity.BannerPatternLayers, x0: number, y0: number, x1: number, y1: number): void;
-            sign(signModel: net.minecraft.client.model.Model$Simple, scale: number, woodType: net.minecraft.world.level.block.state.properties.WoodType, x0: number, y0: number, x1: number, y1: number): void;
             profilerChart(chartData: Array<unknown>, x0: number, y0: number, x1: number, y1: number): void;
             setTooltipForNextFrame(component: net.minecraft.network.chat.Component, x: number, y: number): void;
             setTooltipForNextFrame(formattedCharSequences: Array<net.minecraft.util.FormattedCharSequence>, x: number, y: number): void;
@@ -12254,8 +12398,8 @@ declare global {
             textRenderer(hoveredTextEffects: net.minecraft.client.gui.GuiGraphicsExtractor$HoveredTextEffects, additionalHoverStyleConsumer: unknown): net.minecraft.client.gui.ActiveTextCollector;
           }
           interface GuiGraphicsExtractor$ScissorStack { 
-            push(rectangle: net.minecraft.client.gui.navigation.ScreenRectangle): net.minecraft.client.gui.navigation.ScreenRectangle;
-            pop(): net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
+            push(rectangle: net.minecraft.client.gui.navigation.ScreenRectangle): void;
+            pop(): void;
             peek(): net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
             containsPoint(x: number, y: number): boolean;
           }
@@ -12269,6 +12413,16 @@ declare global {
           }
           interface Font$DisplayMode extends kotlin.Enum<net.minecraft.client.gui.Font$DisplayMode> { 
           }
+          interface Font$PreparedText { 
+            visit(visitor: net.minecraft.client.gui.Font$GlyphVisitor): void;
+            bounds(): net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
+          }
+          interface Font$GlyphVisitor { 
+            acceptGlyph(glyph: net.minecraft.client.gui.font.TextRenderable$Styled): void;
+            acceptEffect(effect: net.minecraft.client.gui.font.TextRenderable): void;
+            acceptRenderable(renderable: net.minecraft.client.gui.font.TextRenderable): void;
+            acceptEmptyArea(empty: net.minecraft.client.gui.font.EmptyArea): void;
+          }
           const Font: {
             DisplayMode: typeof net.minecraft.client.gui.Font$DisplayMode;
             SHADOW_DEPTH: number;
@@ -12277,10 +12431,7 @@ declare global {
           interface Font { 
             lineHeight: number;
             bidirectionalShaping(text: string): string;
-            drawInBatch(str: string, x: number, y: number, color: number, dropShadow: boolean, pose: org.joml.Matrix4fc, bufferSource: net.minecraft.client.renderer.MultiBufferSource, displayMode: net.minecraft.client.gui.Font$DisplayMode, backgroundColor: number, packedLightCoords: number): void;
-            drawInBatch(str: net.minecraft.network.chat.Component, x: number, y: number, color: number, dropShadow: boolean, pose: org.joml.Matrix4fc, bufferSource: net.minecraft.client.renderer.MultiBufferSource, displayMode: net.minecraft.client.gui.Font$DisplayMode, backgroundColor: number, packedLightCoords: number): void;
-            drawInBatch(str: net.minecraft.util.FormattedCharSequence, x: number, y: number, color: number, dropShadow: boolean, pose: org.joml.Matrix4fc, bufferSource: net.minecraft.client.renderer.MultiBufferSource, displayMode: net.minecraft.client.gui.Font$DisplayMode, backgroundColor: number, packedLightCoords: number): void;
-            drawInBatch8xOutline(str: net.minecraft.util.FormattedCharSequence, x: number, y: number, color: number, outlineColor: number, pose: org.joml.Matrix4fc, bufferSource: net.minecraft.client.renderer.MultiBufferSource, packedLightCoords: number): void;
+            prepare8xTextOutline(str: net.minecraft.util.FormattedCharSequence, x: number, y: number, outlineColor: number): net.minecraft.client.gui.Font$PreparedText;
             prepareText(text: string, x: number, y: number, originalColor: number, drawShadow: boolean, backgroundColor: number): net.minecraft.client.gui.Font$PreparedText;
             prepareText(text: net.minecraft.util.FormattedCharSequence, x: number, y: number, originalColor: number, drawShadow: boolean, includeEmpty: boolean, backgroundColor: number): net.minecraft.client.gui.Font$PreparedText;
             width(str: string): number;
@@ -12295,18 +12446,6 @@ declare global {
             isBidirectional(): boolean;
             getSplitter(): net.minecraft.client.StringSplitter;
           }
-          interface Font$PreparedText { 
-            visit(visitor: net.minecraft.client.gui.Font$GlyphVisitor): void;
-            bounds(): net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
-          }
-          const Font$GlyphVisitor: {
-            forMultiBufferSource(bufferSource: net.minecraft.client.renderer.MultiBufferSource, pose: org.joml.Matrix4fc, displayMode: net.minecraft.client.gui.Font$DisplayMode, lightCoords: number): net.minecraft.client.gui.Font$GlyphVisitor;
-          }
-          interface Font$GlyphVisitor { 
-            acceptGlyph(glyph: net.minecraft.client.gui.font.TextRenderable$Styled): void;
-            acceptEffect(effect: net.minecraft.client.gui.font.TextRenderable): void;
-            acceptEmptyArea(empty: net.minecraft.client.gui.font.EmptyArea): void;
-          }
           interface Font$Provider { 
             glyphs(font: net.minecraft.network.chat.FontDescription): net.minecraft.client.gui.GlyphSource;
             effect(): net.minecraft.client.gui.font.glyphs.EffectGlyph;
@@ -12314,6 +12453,66 @@ declare global {
           interface GlyphSource { 
             getGlyph(codepoint: number): net.minecraft.client.gui.font.glyphs.BakedGlyph;
             getRandomGlyph(random: net.minecraft.util.RandomSource, width: number): net.minecraft.client.gui.font.glyphs.BakedGlyph;
+          }
+          const Gui: {
+            SAVING_LEVEL: net.minecraft.network.chat.Component;
+            new(minecraft: net.minecraft.client.Minecraft, hud: net.minecraft.client.gui.Hud, guiRenderState: net.minecraft.client.renderer.state.gui.GuiRenderState): net.minecraft.client.gui.Gui;
+          }
+          interface Gui { 
+            hud: net.minecraft.client.gui.Hud;
+            screen(): net.minecraft.client.gui.screens.Screen | null | undefined;
+            overlay(): net.minecraft.client.gui.screens.Overlay | null | undefined;
+            splashManager(): net.minecraft.client.resources.SplashManager;
+            toastManager(): net.minecraft.client.gui.components.toasts.ToastManager;
+            chatListener(): net.minecraft.client.multiplayer.chat.ChatListener;
+            registerReloadListeners(resourceManager: net.minecraft.server.packs.resources.ReloadableResourceManager): void;
+            tick(): void;
+            update(): void;
+            extractRenderState(deltaTracker: net.minecraft.client.DeltaTracker, shouldRenderLevel: boolean, resourcesLoaded: boolean): void;
+            setScreen(screen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
+            setOverlay(overlay: net.minecraft.client.gui.screens.Overlay | null | undefined): void;
+            isPausing(): boolean;
+            addSocialInteractionsToast(): void;
+            setPauseScreen(suppressPauseMenuIfWeReallyArePausing: boolean, canGameReallyBePaused: boolean): void;
+            handleKeybinds(): void;
+            openChatScreen(chatMethod: net.minecraft.client.gui.components.ChatComponent$ChatMethod): void;
+            openChatAndAddText(chatMethod: net.minecraft.client.gui.components.ChatComponent$ChatMethod, text: string): void;
+            buildInitialScreens(cookie: net.minecraft.client.GameLoadCookie | null | undefined): java.lang.Runnable;
+            canInterruptScreen(): boolean;
+            setClientLevelTeardownInProgress(clientLevelTeardownInProgress: boolean): void;
+          }
+          const Hud: {
+            NAUSEA_LOCATION: net.minecraft.resources.Identifier;
+            new(minecraft: net.minecraft.client.Minecraft): net.minecraft.client.gui.Hud;
+            getMobEffectSprite(effect: net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>): net.minecraft.resources.Identifier;
+          }
+          interface Hud { 
+            vignetteBrightness: number;
+            isHidden(): boolean;
+            registerReloadListeners(resourceManager: net.minecraft.server.packs.resources.ReloadableResourceManager): void;
+            toggle(): void;
+            resetTitleTimes(): void;
+            extractRenderState(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, deltaTracker: net.minecraft.client.DeltaTracker): void;
+            extractDebugOverlay(graphics: net.minecraft.client.gui.GuiGraphicsExtractor): void;
+            extractDeferredSubtitles(): void;
+            tick(pause: boolean): void;
+            setNowPlaying(string: net.minecraft.network.chat.Component): void;
+            setOverlayMessage(string: net.minecraft.network.chat.Component, animate: boolean): void;
+            setTimes(fadeInTime: number, stayTime: number, fadeOutTime: number): void;
+            setSubtitle(subtitle: net.minecraft.network.chat.Component): void;
+            setTitle(title: net.minecraft.network.chat.Component): void;
+            clearTitles(): void;
+            getChat(): net.minecraft.client.gui.components.ChatComponent;
+            getWaypointStyles(): net.minecraft.client.resources.WaypointStyleManager;
+            getGuiTicks(): number;
+            getFont(): net.minecraft.client.gui.Font;
+            getSpectatorGui(): net.minecraft.client.gui.components.spectator.SpectatorGui;
+            getTabList(): net.minecraft.client.gui.components.PlayerTabOverlay;
+            onDisconnected(): void;
+            getBossOverlay(): net.minecraft.client.gui.components.BossHealthOverlay;
+            getDebugOverlay(): net.minecraft.client.gui.components.DebugScreenOverlay;
+            clearCache(): void;
+            extractSavingIndicator(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, deltaTracker: net.minecraft.client.DeltaTracker): void;
           }
           const ActiveTextCollector: {
             Parameters: typeof net.minecraft.client.gui.ActiveTextCollector$Parameters;
@@ -12370,35 +12569,6 @@ declare global {
             includeInsertions(flag: boolean): net.minecraft.client.gui.ActiveTextCollector$ClickableStyleFinder;
             result(): net.minecraft.network.chat.Style | null | undefined;
           }
-          const Gui: {
-            NAUSEA_LOCATION: net.minecraft.resources.Identifier;
-            new(minecraft: net.minecraft.client.Minecraft): net.minecraft.client.gui.Gui;
-            getMobEffectSprite(effect: net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>): net.minecraft.resources.Identifier;
-          }
-          interface Gui { 
-            vignetteBrightness: number;
-            resetTitleTimes(): void;
-            extractRenderState(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, deltaTracker: net.minecraft.client.DeltaTracker): void;
-            extractDebugOverlay(graphics: net.minecraft.client.gui.GuiGraphicsExtractor): void;
-            extractDeferredSubtitles(): void;
-            tick(pause: boolean): void;
-            setNowPlaying(string: net.minecraft.network.chat.Component): void;
-            setOverlayMessage(string: net.minecraft.network.chat.Component, animate: boolean): void;
-            setTimes(fadeInTime: number, stayTime: number, fadeOutTime: number): void;
-            setSubtitle(subtitle: net.minecraft.network.chat.Component): void;
-            setTitle(title: net.minecraft.network.chat.Component): void;
-            clearTitles(): void;
-            getChat(): net.minecraft.client.gui.components.ChatComponent;
-            getGuiTicks(): number;
-            getFont(): net.minecraft.client.gui.Font;
-            getSpectatorGui(): net.minecraft.client.gui.components.spectator.SpectatorGui;
-            getTabList(): net.minecraft.client.gui.components.PlayerTabOverlay;
-            onDisconnected(): void;
-            getBossOverlay(): net.minecraft.client.gui.components.BossHealthOverlay;
-            getDebugOverlay(): net.minecraft.client.gui.components.DebugScreenOverlay;
-            clearCache(): void;
-            extractSavingIndicator(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, deltaTracker: net.minecraft.client.DeltaTracker): void;
-          }
           const GuiGraphicsExtractor$HoveredTextEffects: {
             NONE: net.minecraft.client.gui.GuiGraphicsExtractor$HoveredTextEffects;
             TOOLTIP_ONLY: net.minecraft.client.gui.GuiGraphicsExtractor$HoveredTextEffects;
@@ -12424,7 +12594,7 @@ declare global {
             namespace gui {
               namespace pip {
                 const PictureInPictureRenderState: {
-                  IDENTITY_POSE: org.joml.Matrix3x2f;
+                  IDENTITY_POSE: org.joml.Matrix3x2fc;
                   getBounds(x0: number, y0: number, x1: number, y1: number, scissorArea: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined): net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
                 }
                 interface PictureInPictureRenderState extends net.minecraft.client.renderer.state.gui.ScreenArea { 
@@ -12433,7 +12603,7 @@ declare global {
                   y0(): number;
                   y1(): number;
                   scale(): number;
-                  pose(): org.joml.Matrix3x2f;
+                  pose(): org.joml.Matrix3x2fc;
                   scissorArea(): net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
                 }
               }
@@ -12443,7 +12613,8 @@ declare global {
               }
               interface GuiRenderState extends net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState { 
                 panoramaRenderState: net.minecraft.client.renderer.state.gui.PanoramaRenderState | null | undefined;
-                clearColorOverride: number;
+                clearColorOverride: org.joml.Vector4f;
+                isHudHidden: boolean;
                 nextStratum(): void;
                 blurBeforeThisStratum(): void;
                 up(): void;
@@ -12485,14 +12656,7 @@ declare global {
                 new(font: net.minecraft.client.gui.Font, text: net.minecraft.util.FormattedCharSequence, pose: org.joml.Matrix3x2fc, x: number, y: number, color: number, backgroundColor: number, dropShadow: boolean, includeEmpty: boolean, scissor: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined): net.minecraft.client.renderer.state.gui.GuiTextRenderState;
               }
               interface GuiTextRenderState extends net.minecraft.client.renderer.state.gui.ScreenArea { 
-                font: net.minecraft.client.gui.Font;
-                text: net.minecraft.util.FormattedCharSequence;
                 pose: org.joml.Matrix3x2fc;
-                x: number;
-                y: number;
-                color: number;
-                backgroundColor: number;
-                dropShadow: boolean;
                 scissor: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined;
                 ensurePrepared(): net.minecraft.client.gui.Font$PreparedText;
               }
@@ -12504,10 +12668,10 @@ declare global {
               }
               const BlitRenderState: {
                 new(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline, textureSetup: net.minecraft.client.gui.render.TextureSetup, pose: org.joml.Matrix3x2f, x0: number, y0: number, x1: number, y1: number, u0: number, u1: number, v0: number, v1: number, color: number, scissorArea: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined): net.minecraft.client.renderer.state.gui.BlitRenderState;
-                new(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline, textureSetup: net.minecraft.client.gui.render.TextureSetup, pose: org.joml.Matrix3x2f, x0: number, y0: number, x1: number, y1: number, u0: number, u1: number, v0: number, v1: number, color: number, scissorArea: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined, bounds: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined): net.minecraft.client.renderer.state.gui.BlitRenderState;
+                new(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline, textureSetup: net.minecraft.client.gui.render.TextureSetup, pose: org.joml.Matrix3x2fc, x0: number, y0: number, x1: number, y1: number, u0: number, u1: number, v0: number, v1: number, color: number, scissorArea: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined, bounds: net.minecraft.client.gui.navigation.ScreenRectangle | null | undefined): net.minecraft.client.renderer.state.gui.BlitRenderState;
               }
               interface BlitRenderState extends java.lang.Record, net.minecraft.client.renderer.state.gui.GuiElementRenderState { 
-                pose(): org.joml.Matrix3x2f;
+                pose(): org.joml.Matrix3x2fc;
                 x0(): number;
                 y0(): number;
                 x1(): number;
@@ -12540,6 +12704,8 @@ declare global {
                 yRot: number;
                 initialized: boolean;
                 isPanoramicMode: boolean;
+                isFrustumCaptured: boolean;
+                smartCull: boolean;
                 orientation: org.joml.Quaternionf;
                 cullFrustum: net.minecraft.client.renderer.culling.Frustum;
                 fogType: net.minecraft.world.level.material.FogType;
@@ -12566,22 +12732,31 @@ declare global {
                 backwardsInterpolatedWalkDistance: number;
                 bob: number;
               }
-              const QuadParticleRenderState$PreparedBuffers: {
-                new(indexCount: number, dynamicTransforms: com.mojang.blaze3d.buffers.GpuBufferSlice, layers: Map<unknown, unknown>): net.minecraft.client.renderer.state.level.QuadParticleRenderState$PreparedBuffers;
+              const QuadParticleRenderState: {
+                new(): net.minecraft.client.renderer.state.level.QuadParticleRenderState;
               }
-              interface QuadParticleRenderState$PreparedBuffers extends java.lang.Record { 
-                indexCount(): number;
-                dynamicTransforms(): com.mojang.blaze3d.buffers.GpuBufferSlice;
-                layers(): Map<unknown, unknown>;
+              interface QuadParticleRenderState extends net.minecraft.client.renderer.state.level.ParticleGroupRenderState { 
+                add(layer: net.minecraft.client.particle.SingleQuadParticle$Layer, x: number, y: number, z: number, xRot: number, yRot: number, zRot: number, wRot: number, scale: number, u0: number, u1: number, v0: number, v1: number, color: number, lightCoords: number): void;
+                isEmpty(): boolean;
+                buildLayer(layer: net.minecraft.client.particle.SingleQuadParticle$Layer, bufferBuilder: com.mojang.blaze3d.vertex.VertexConsumer): void;
+                layers(): Set<net.minecraft.client.particle.SingleQuadParticle$Layer>;
+              }
+              interface ParticleGroupRenderState { 
+                submit(submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
+                clear(): void;
+              }
+              interface QuadParticleRenderState$ParticleConsumer { 
+                consume(x: number, y: number, z: number, xRot: number, yRot: number, zRot: number, wRot: number, scale: number, u0: number, u1: number, v0: number, v1: number, color: number, lightCoords: number): void;
+                (x: number, y: number, z: number, xRot: number, yRot: number, zRot: number, wRot: number, scale: number, u0: number, u1: number, v0: number, v1: number, color: number, lightCoords: number): void;
               }
               const LevelRenderState: {
                 new(): net.minecraft.client.renderer.state.level.LevelRenderState;
               }
               interface LevelRenderState extends net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState { 
                 cameraRenderState: net.minecraft.client.renderer.state.level.CameraRenderState;
+                sectionUpdateRenderStates: Array<unknown>;
                 entityRenderStates: Array<net.minecraft.client.renderer.entity.state.EntityRenderState>;
                 blockEntityRenderStates: Array<unknown>;
-                haveGlowingEntities: boolean;
                 blockOutlineRenderState: net.minecraft.client.renderer.state.level.BlockOutlineRenderState | null | undefined;
                 blockBreakingRenderStates: Array<unknown>;
                 weatherRenderState: net.minecraft.client.renderer.state.level.WeatherRenderState;
@@ -12592,7 +12767,12 @@ declare global {
                 lastEntityRenderStateCount: number;
                 cloudColor: number;
                 cloudHeight: number;
-                chunkSectionsToRender: net.minecraft.client.renderer.chunk.ChunkSectionsToRender | null | undefined;
+                render3dCrosshair: boolean;
+                playerCompiledSectionCallback: java.lang.Runnable | null | undefined;
+                chunkLoadingRenderState: net.minecraft.client.renderer.state.level.ChunkLoadingRenderState;
+                shouldResetChunkLayerSampler: boolean;
+                shouldShowEntityOutlines: boolean;
+                shouldResetSkyRenderer: boolean;
                 reset(): void;
               }
               const BlockOutlineRenderState: {
@@ -12612,8 +12792,8 @@ declare global {
                 new(): net.minecraft.client.renderer.state.level.WeatherRenderState;
               }
               interface WeatherRenderState extends net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState { 
-                rainColumns: Array<unknown>;
-                snowColumns: Array<unknown>;
+                rainColumns: Array<net.minecraft.client.renderer.WeatherEffectRenderer$ColumnInstance>;
+                snowColumns: Array<net.minecraft.client.renderer.WeatherEffectRenderer$ColumnInstance>;
                 intensity: number;
                 radius: number;
                 reset(): void;
@@ -12665,11 +12845,18 @@ declare global {
                 particles: Array<net.minecraft.client.renderer.state.level.ParticleGroupRenderState>;
                 reset(): void;
                 add(state: net.minecraft.client.renderer.state.level.ParticleGroupRenderState): void;
-                submit(submitNodeStorage: net.minecraft.client.renderer.SubmitNodeStorage, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
-              }
-              interface ParticleGroupRenderState { 
                 submit(submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
-                clear(): void;
+              }
+              const ChunkLoadingRenderState: {
+                new(): net.minecraft.client.renderer.state.level.ChunkLoadingRenderState;
+              }
+              interface ChunkLoadingRenderState { 
+                addedEmptySections: it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+                removedEmptySections: it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+                addedLoadedChunks: it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+                removedLoadedChunks: it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+                loadedExpectedChunks: it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+                reset(): void;
               }
             }
             const MapRenderState: {
@@ -12701,6 +12888,7 @@ declare global {
               optionsRenderState: net.minecraft.client.renderer.state.OptionsRenderState;
               windowRenderState: net.minecraft.client.renderer.state.WindowRenderState;
               framerateLimit: number;
+              useShaderTransparency(): boolean;
             }
             const LightmapRenderState: {
               new(): net.minecraft.client.renderer.state.LightmapRenderState;
@@ -12731,7 +12919,6 @@ declare global {
               maxAnisotropyValue: number;
               textureFiltering: net.minecraft.client.TextureFilteringMethod;
               bobView: boolean;
-              hideGui: boolean;
               screenEffectScale: number;
               glintSpeed: number;
               glintStrength: number;
@@ -12741,6 +12928,9 @@ declare global {
               cloudStatus: net.minecraft.client.CloudStatus;
               cameraType: net.minecraft.client.CameraType;
               renderDistance: number;
+              chunkSectionFadeInTime: number;
+              prioritizeChunkUpdates: net.minecraft.client.PrioritizeChunkUpdates;
+              fov: number;
               getBackgroundOpacity(defaultOpacity: number): number;
             }
             const WindowRenderState: {
@@ -12752,7 +12942,6 @@ declare global {
               guiScale: number;
               appropriateLineWidth: number;
               isMinimized: boolean;
-              isResized: boolean;
             }
           }
           namespace item {
@@ -12810,6 +12999,12 @@ declare global {
             }
             interface ItemStackRenderState$FoilType extends kotlin.Enum<net.minecraft.client.renderer.item.ItemStackRenderState$FoilType> { 
             }
+            const ItemModel: {
+              BakingContext: typeof net.minecraft.client.renderer.item.ItemModel$BakingContext;
+            }
+            interface ItemModel { 
+              update(output: net.minecraft.client.renderer.item.ItemStackRenderState, item: net.minecraft.world.item.ItemStack, resolver: net.minecraft.client.renderer.item.ItemModelResolver, displayContext: net.minecraft.world.item.ItemDisplayContext, level: net.minecraft.client.multiplayer.ClientLevel | null | undefined, owner: net.minecraft.world.entity.ItemOwner | null | undefined, seed: number): void;
+            }
             const ItemModelResolver: {
               new(modelManager: net.minecraft.client.resources.model.ModelManager): net.minecraft.client.renderer.item.ItemModelResolver;
             }
@@ -12820,12 +13015,6 @@ declare global {
               appendItemLayers(output: net.minecraft.client.renderer.item.ItemStackRenderState, item: net.minecraft.world.item.ItemStack, displayContext: net.minecraft.world.item.ItemDisplayContext, level: net.minecraft.world.level.Level | null | undefined, owner: net.minecraft.world.entity.ItemOwner | null | undefined, seed: number): void;
               shouldPlaySwapAnimation(stack: net.minecraft.world.item.ItemStack): boolean;
               swapAnimationScale(stack: net.minecraft.world.item.ItemStack): number;
-            }
-            const ItemModel: {
-              BakingContext: typeof net.minecraft.client.renderer.item.ItemModel$BakingContext;
-            }
-            interface ItemModel { 
-              update(output: net.minecraft.client.renderer.item.ItemStackRenderState, item: net.minecraft.world.item.ItemStack, resolver: net.minecraft.client.renderer.item.ItemModelResolver, displayContext: net.minecraft.world.item.ItemDisplayContext, level: net.minecraft.client.multiplayer.ClientLevel | null | undefined, owner: net.minecraft.world.entity.ItemOwner | null | undefined, seed: number): void;
             }
             const ItemModel$BakingContext: {
               new(blockModelBaker: net.minecraft.client.resources.model.ModelBaker, entityModelSet: net.minecraft.client.model.geom.EntityModelSet, sprites: net.minecraft.client.resources.model.sprite.SpriteGetter, playerSkinRenderCache: net.minecraft.client.renderer.PlayerSkinRenderCache, missingItemModel: net.minecraft.client.renderer.item.MissingItemModel, contextSwapper: net.minecraft.util.RegistryContextSwapper | null | undefined): net.minecraft.client.renderer.item.ItemModel$BakingContext;
@@ -12884,59 +13073,27 @@ declare global {
               label(): string;
               vertexFormat(): com.mojang.blaze3d.vertex.VertexFormat;
             }
-            const SectionRenderDispatcher: {
-              RenderSection: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection;
-              RenderSectionBufferSlice: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSectionBufferSlice;
-              new(level: net.minecraft.client.multiplayer.ClientLevel, renderer: net.minecraft.client.renderer.LevelRenderer, executor: net.minecraft.TracingExecutor, renderBuffers: net.minecraft.client.renderer.RenderBuffers, sectionCompiler: net.minecraft.client.renderer.chunk.SectionCompiler): net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
+            const SectionRenderDispatcher$RenderSection: {
+              SectionTask: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher.SectionRenderDispatcher$RenderSection$SectionTask;
+              new(index: number, sectionNode: number): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection;
             }
-            interface SectionRenderDispatcher { 
-              setLevel(level: net.minecraft.client.multiplayer.ClientLevel, sectionCompiler: net.minecraft.client.renderer.chunk.SectionCompiler): void;
-              setCameraPosition(cameraPosition: net.minecraft.world.phys.Vec3): void;
-              getRenderSectionSlice(sectionMesh: net.minecraft.client.renderer.chunk.SectionMesh, layer: net.minecraft.client.renderer.chunk.ChunkSectionLayer): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSectionBufferSlice | null | undefined;
-              lock(): void;
-              unlock(): void;
-              uploadGlobalGeomBuffersToGPU(): void;
-              rebuildSectionSync(section: net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection, cache: net.minecraft.client.renderer.chunk.RenderRegionCache): void;
-              schedule(task: unknown): void;
-              clearCompileQueue(): void;
-              isQueueEmpty(): boolean;
-              dispose(): void;
-              getStats(): string;
-              getCompileQueueSize(): number;
-              getFreeBufferCount(): number;
-            }
-            const SectionCompiler: {
-              Results: typeof net.minecraft.client.renderer.chunk.SectionCompiler$Results;
-              new(ambientOcclusion: boolean, cutoutLeaves: boolean, blockModelSet: net.minecraft.client.renderer.block.BlockStateModelSet, fluidModelSet: net.minecraft.client.renderer.block.FluidStateModelSet, blockColors: net.minecraft.client.color.block.BlockColors, blockEntityRenderer: net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher): net.minecraft.client.renderer.chunk.SectionCompiler;
-            }
-            interface SectionCompiler { 
-              compile(sectionPos: net.minecraft.core.SectionPos, region: net.minecraft.client.renderer.chunk.RenderSectionRegion, vertexSorting: com.mojang.blaze3d.vertex.VertexSorting, builders: net.minecraft.client.renderer.SectionBufferBuilderPack): net.minecraft.client.renderer.chunk.SectionCompiler$Results;
-            }
-            const RenderSectionRegion: {
-              RADIUS: number;
-              SIZE: number;
-              index(minSectionX: number, minSectionY: number, minSectionZ: number, sectionX: number, sectionY: number, sectionZ: number): number;
-            }
-            interface RenderSectionRegion extends net.minecraft.client.renderer.block.BlockAndTintGetter { 
-            }
-            const SectionCompiler$Results: {
-              new(): net.minecraft.client.renderer.chunk.SectionCompiler$Results;
-            }
-            interface SectionCompiler$Results { 
-              blockEntities: Array<net.minecraft.world.level.block.entity.BlockEntity>;
-              renderedLayers: Map<net.minecraft.client.renderer.chunk.ChunkSectionLayer, com.mojang.blaze3d.vertex.MeshData>;
-              visibilitySet: net.minecraft.client.renderer.chunk.VisibilitySet;
-              transparencyState: com.mojang.blaze3d.vertex.MeshData$SortState | null | undefined;
-              release(): void;
-            }
-            const VisibilitySet: {
-              new(): net.minecraft.client.renderer.chunk.VisibilitySet;
-            }
-            interface VisibilitySet { 
-              add(directions: Set<net.minecraft.core.Direction>): void;
-              set(direction1: net.minecraft.core.Direction, direction2: net.minecraft.core.Direction, value: boolean): void;
-              setAll(visible: boolean): void;
-              visibilityBetween(direction1: net.minecraft.core.Direction, direction2: net.minecraft.core.Direction): boolean;
+            interface SectionRenderDispatcher$RenderSection extends net.minecraft.client.RotatingSectionStorage$Value { 
+              index: number;
+              sectionMesh: java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.chunk.SectionMesh>;
+              wasPreviouslyEmpty(): boolean;
+              getVisibility(now: number): number;
+              setFadeDuration(fadeDuration: number): void;
+              setWasPreviouslyEmpty(wasPreviouslyEmpty: boolean): void;
+              getBoundingBox(): net.minecraft.world.phys.AABB;
+              getSectionMesh(): net.minecraft.client.renderer.chunk.SectionMesh;
+              reset(): void;
+              getRenderOrigin(): net.minecraft.core.BlockPos;
+              getNeighborSectionNode(direction: net.minecraft.core.Direction): number;
+              resortTransparency(): void;
+              hasTranslucentGeometry(): boolean;
+              transparencyResortingScheduled(): boolean;
+              compileAsync(region: net.minecraft.client.renderer.chunk.RenderSectionRegion): void;
+              compileSync(region: net.minecraft.client.renderer.chunk.RenderSectionRegion): void;
             }
             const SectionMesh: {
               SectionDraw: typeof net.minecraft.client.renderer.chunk.SectionMesh$SectionDraw;
@@ -12959,12 +13116,85 @@ declare global {
               isAxisAligned(): boolean;
             }
             const SectionMesh$SectionDraw: {
-              new(indexCount: number, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType, hasCustomIndexBuffer: boolean): net.minecraft.client.renderer.chunk.SectionMesh$SectionDraw;
+              new(indexCount: number, indexType: com.mojang.blaze3d.IndexType, hasCustomIndexBuffer: boolean): net.minecraft.client.renderer.chunk.SectionMesh$SectionDraw;
             }
             interface SectionMesh$SectionDraw extends java.lang.Record { 
               indexCount(): number;
-              indexType(): com.mojang.blaze3d.vertex.VertexFormat$IndexType;
+              indexType(): com.mojang.blaze3d.IndexType;
               hasCustomIndexBuffer(): boolean;
+            }
+            const RenderSectionRegion: {
+              RADIUS: number;
+              SIZE: number;
+              new(level: net.minecraft.client.multiplayer.ClientLevel, minSectionX: number, minSectionY: number, minSectionZ: number, sections: Array<unknown>): net.minecraft.client.renderer.chunk.RenderSectionRegion;
+              index(minSectionX: number, minSectionY: number, minSectionZ: number, sectionX: number, sectionY: number, sectionZ: number): number;
+            }
+            interface RenderSectionRegion extends net.minecraft.client.renderer.block.BlockAndTintGetter { 
+            }
+            const SectionRenderDispatcher$RenderSection$SectionTask: {
+              SectionTaskResult: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher.RenderSection.SectionRenderDispatcher$RenderSection$SectionTask$SectionTaskResult;
+              new(isRecompile: boolean): unknown;
+            }
+            interface SectionRenderDispatcher$RenderSection$SectionTask { 
+              isRecompile(): boolean;
+              doTask(buffers: net.minecraft.client.renderer.SectionBufferBuilderPack): unknown;
+              cancel(): void;
+              getRenderOrigin(): net.minecraft.core.BlockPos;
+            }
+            const SectionRenderDispatcher$RenderSection$SectionTask$SectionTaskResult: {
+              SUCCESSFUL: net.minecraft.client.renderer.chunk.SectionRenderDispatcher.RenderSection.SectionRenderDispatcher$RenderSection$SectionTask$SectionTaskResult;
+              CANCELLED: net.minecraft.client.renderer.chunk.SectionRenderDispatcher.RenderSection.SectionRenderDispatcher$RenderSection$SectionTask$SectionTaskResult;
+              entries: kotlin.enums.EnumEntries<unknown>;
+              values(): Array<unknown>;
+              valueOf(value: string): unknown;
+            }
+            interface SectionRenderDispatcher$RenderSection$SectionTask$SectionTaskResult extends kotlin.Enum<unknown> { 
+            }
+            const SectionRenderDispatcher: {
+              RenderSection: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection;
+              RenderSectionBufferSlice: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSectionBufferSlice;
+              NEARBY_SECTION_DISTANCE_IN_BLOCKS: number;
+              new(executor: net.minecraft.TracingExecutor, renderBuffers: net.minecraft.client.renderer.RenderBuffers, sectionCompiler: net.minecraft.client.renderer.chunk.SectionCompiler, onSectionMeshUpdate: unknown): net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
+            }
+            interface SectionRenderDispatcher { 
+              setCompiler(sectionCompiler: net.minecraft.client.renderer.chunk.SectionCompiler): void;
+              setCameraPosition(cameraPosition: net.minecraft.world.phys.Vec3): void;
+              getRenderSectionSlice(sectionMesh: net.minecraft.client.renderer.chunk.SectionMesh, layer: net.minecraft.client.renderer.chunk.ChunkSectionLayer): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSectionBufferSlice | null | undefined;
+              lock(): void;
+              unlock(): void;
+              uploadTerrainBuffersToGpu(): void;
+              clearCompileQueue(): void;
+              isQueueEmpty(): boolean;
+              dispose(): void;
+              getStats(): string;
+              getCompileQueueSize(): number;
+              getFreeBufferCount(): number;
+            }
+            const SectionCompiler: {
+              Results: typeof net.minecraft.client.renderer.chunk.SectionCompiler$Results;
+              new(ambientOcclusion: boolean, cutoutLeaves: boolean, blockModelSet: net.minecraft.client.renderer.block.BlockStateModelSet, fluidModelSet: net.minecraft.client.renderer.block.FluidStateModelSet, blockColors: net.minecraft.client.color.block.BlockColors): net.minecraft.client.renderer.chunk.SectionCompiler;
+            }
+            interface SectionCompiler { 
+              compile(sectionPos: net.minecraft.core.SectionPos, region: net.minecraft.client.renderer.chunk.RenderSectionRegion, vertexSorting: com.mojang.blaze3d.vertex.VertexSorting, builders: net.minecraft.client.renderer.SectionBufferBuilderPack): net.minecraft.client.renderer.chunk.SectionCompiler$Results;
+            }
+            const SectionCompiler$Results: {
+              new(): net.minecraft.client.renderer.chunk.SectionCompiler$Results;
+            }
+            interface SectionCompiler$Results { 
+              blockEntities: Array<net.minecraft.world.level.block.entity.BlockEntity>;
+              renderedLayers: Map<net.minecraft.client.renderer.chunk.ChunkSectionLayer, unknown>;
+              visibilitySet: net.minecraft.client.renderer.chunk.VisibilitySet;
+              transparencyState: com.mojang.blaze3d.vertex.MeshData$SortState | null | undefined;
+              release(): void;
+            }
+            const VisibilitySet: {
+              new(): net.minecraft.client.renderer.chunk.VisibilitySet;
+            }
+            interface VisibilitySet { 
+              add(directions: Set<net.minecraft.core.Direction>): void;
+              set(direction1: net.minecraft.core.Direction, direction2: net.minecraft.core.Direction, value: boolean): void;
+              setAll(visible: boolean): void;
+              visibilityBetween(direction1: net.minecraft.core.Direction, direction2: net.minecraft.core.Direction): boolean;
             }
             const SectionRenderDispatcher$RenderSectionBufferSlice: {
               new(vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, vertexBufferOffset: number, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, indexBufferOffset: number): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSectionBufferSlice;
@@ -12974,62 +13204,6 @@ declare global {
               vertexBufferOffset(): number;
               indexBuffer(): com.mojang.blaze3d.buffers.GpuBuffer | null | undefined;
               indexBufferOffset(): number;
-            }
-            const SectionRenderDispatcher$RenderSection: {
-              CompileTask: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher.SectionRenderDispatcher$RenderSection$CompileTask;
-              SIZE: number;
-              new(index: number, sectionNode: number): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection;
-            }
-            interface SectionRenderDispatcher$RenderSection { 
-              index: number;
-              sectionMesh: java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.chunk.SectionMesh>;
-              wasPreviouslyEmpty(): boolean;
-              getVisibility(now: number): number;
-              setFadeDuration(fadeDuration: number): void;
-              setWasPreviouslyEmpty(wasPreviouslyEmpty: boolean): void;
-              hasAllNeighbors(): boolean;
-              getBoundingBox(): net.minecraft.world.phys.AABB;
-              setSectionNode(sectionNode: number): void;
-              getSectionMesh(): net.minecraft.client.renderer.chunk.SectionMesh;
-              reset(): void;
-              getRenderOrigin(): net.minecraft.core.BlockPos;
-              getSectionNode(): number;
-              setDirty(fromPlayer: boolean): void;
-              setNotDirty(): void;
-              isDirty(): boolean;
-              isDirtyFromPlayer(): boolean;
-              getNeighborSectionNode(direction: net.minecraft.core.Direction): number;
-              resortTransparency(dispatcher: net.minecraft.client.renderer.chunk.SectionRenderDispatcher): void;
-              hasTranslucentGeometry(): boolean;
-              transparencyResortingScheduled(): boolean;
-              createCompileTask(cache: net.minecraft.client.renderer.chunk.RenderRegionCache): unknown;
-              rebuildSectionAsync(cache: net.minecraft.client.renderer.chunk.RenderRegionCache): void;
-              compileSync(cache: net.minecraft.client.renderer.chunk.RenderRegionCache): void;
-            }
-            const RenderRegionCache: {
-              new(): net.minecraft.client.renderer.chunk.RenderRegionCache;
-            }
-            interface RenderRegionCache { 
-              createRegion(level: net.minecraft.client.multiplayer.ClientLevel, sectionNode: number): net.minecraft.client.renderer.chunk.RenderSectionRegion;
-            }
-            const SectionRenderDispatcher$RenderSection$CompileTask: {
-              SectionTaskResult: typeof net.minecraft.client.renderer.chunk.SectionRenderDispatcher.RenderSection.SectionRenderDispatcher$RenderSection$CompileTask$SectionTaskResult;
-              new(isRecompile: boolean): unknown;
-            }
-            interface SectionRenderDispatcher$RenderSection$CompileTask { 
-              isRecompile(): boolean;
-              doTask(buffers: net.minecraft.client.renderer.SectionBufferBuilderPack): unknown;
-              cancel(): void;
-              getRenderOrigin(): net.minecraft.core.BlockPos;
-            }
-            const SectionRenderDispatcher$RenderSection$CompileTask$SectionTaskResult: {
-              SUCCESSFUL: net.minecraft.client.renderer.chunk.SectionRenderDispatcher.RenderSection.SectionRenderDispatcher$RenderSection$CompileTask$SectionTaskResult;
-              CANCELLED: net.minecraft.client.renderer.chunk.SectionRenderDispatcher.RenderSection.SectionRenderDispatcher$RenderSection$CompileTask$SectionTaskResult;
-              entries: kotlin.enums.EnumEntries<unknown>;
-              values(): Array<unknown>;
-              valueOf(value: string): unknown;
-            }
-            interface SectionRenderDispatcher$RenderSection$CompileTask$SectionTaskResult extends kotlin.Enum<unknown> { 
             }
             const ChunkSectionsToRender: {
               new(textureView: com.mojang.blaze3d.textures.GpuTextureView, drawGroupsPerLayer: java.util.EnumMap<net.minecraft.client.renderer.chunk.ChunkSectionLayer, unknown>, maxIndicesRequired: number, chunkSectionInfos: Array<com.mojang.blaze3d.buffers.GpuBufferSlice>): net.minecraft.client.renderer.chunk.ChunkSectionsToRender;
@@ -13065,10 +13239,9 @@ declare global {
               outline(): java.util.Optional<net.minecraft.client.renderer.rendertype.RenderType>;
               hasBlending(): boolean;
               outputTarget(): net.minecraft.client.renderer.rendertype.OutputTarget;
-              draw(mesh: com.mojang.blaze3d.vertex.MeshData): void;
-              bufferSize(): number;
+              prepare(): net.minecraft.client.renderer.rendertype.PreparedRenderType;
               format(): com.mojang.blaze3d.vertex.VertexFormat;
-              mode(): com.mojang.blaze3d.vertex.VertexFormat$Mode;
+              primitiveTopology(): com.mojang.blaze3d.PrimitiveTopology;
               isOutline(): boolean;
               pipeline(): com.mojang.blaze3d.pipeline.RenderPipeline;
               affectsCrumbling(): boolean;
@@ -13085,21 +13258,40 @@ declare global {
             interface OutputTarget { 
               getRenderTarget(): com.mojang.blaze3d.pipeline.RenderTarget;
             }
+            const PreparedRenderType: {
+              Texture: typeof net.minecraft.client.renderer.rendertype.PreparedRenderType$Texture;
+              new(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline, outputTarget: net.minecraft.client.renderer.rendertype.OutputTarget, dynamicTransforms: com.mojang.blaze3d.buffers.GpuBufferSlice, scissorState: com.mojang.blaze3d.systems.ScissorState, textures: Array<net.minecraft.client.renderer.rendertype.PreparedRenderType$Texture>): net.minecraft.client.renderer.rendertype.PreparedRenderType;
+            }
+            interface PreparedRenderType extends java.lang.Record { 
+              drawFromBuffer(info: net.minecraft.client.renderer.StagedVertexBuffer$ExecuteInfo): void;
+              drawFromBuffer(vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.IndexType, baseVertex: number, firstIndex: number, indexCount: number): void;
+              pipeline(): com.mojang.blaze3d.pipeline.RenderPipeline;
+              outputTarget(): net.minecraft.client.renderer.rendertype.OutputTarget;
+              dynamicTransforms(): com.mojang.blaze3d.buffers.GpuBufferSlice;
+              scissorState(): com.mojang.blaze3d.systems.ScissorState;
+              textures(): Array<net.minecraft.client.renderer.rendertype.PreparedRenderType$Texture>;
+            }
+            const PreparedRenderType$Texture: {
+              new(name: string, textureView: com.mojang.blaze3d.textures.GpuTextureView, sampler: com.mojang.blaze3d.textures.GpuSampler): net.minecraft.client.renderer.rendertype.PreparedRenderType$Texture;
+            }
+            interface PreparedRenderType$Texture extends java.lang.Record { 
+              name(): string;
+              textureView(): com.mojang.blaze3d.textures.GpuTextureView;
+              sampler(): com.mojang.blaze3d.textures.GpuSampler;
+            }
             const RenderSetup: {
               OutlineProperty: typeof net.minecraft.client.renderer.rendertype.RenderSetup$OutlineProperty;
               RenderSetupBuilder: typeof net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
-              TextureAndSampler: typeof net.minecraft.client.renderer.rendertype.RenderSetup$TextureAndSampler;
               builder(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
             }
             interface RenderSetup { 
-              getTextures(): Map<string, net.minecraft.client.renderer.rendertype.RenderSetup$TextureAndSampler>;
+              prepareTextures(textureManager: net.minecraft.client.renderer.texture.TextureManager, samplerCache: com.mojang.blaze3d.systems.SamplerCache, overlayTexture: com.mojang.blaze3d.textures.GpuTextureView, lightmapTexture: com.mojang.blaze3d.textures.GpuTextureView): Array<net.minecraft.client.renderer.rendertype.PreparedRenderType$Texture>;
             }
             interface RenderSetup$RenderSetupBuilder { 
               useLightmap(): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
               useOverlay(): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
               affectsCrumbling(): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
               sortOnUpload(): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
-              bufferSize(bufferSize: number): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
               withTexture(name: string, texture: net.minecraft.resources.Identifier): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
               withTexture(name: string, texture: net.minecraft.resources.Identifier, sampler: unknown): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
               setLayeringTransform(layeringTransform: net.minecraft.client.renderer.rendertype.LayeringTransform): net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder;
@@ -13127,7 +13319,7 @@ declare global {
               new(name: string, matrix: unknown): net.minecraft.client.renderer.rendertype.TextureTransform;
             }
             interface TextureTransform { 
-              getMatrix(): org.joml.Matrix4f;
+              createMatrix(): org.joml.Matrix4f;
             }
             const TextureTransform$OffsetTextureTransform: {
               new(uOffset: number, vOffset: number): net.minecraft.client.renderer.rendertype.TextureTransform$OffsetTextureTransform;
@@ -13144,60 +13336,8 @@ declare global {
             }
             interface RenderSetup$OutlineProperty extends kotlin.Enum<net.minecraft.client.renderer.rendertype.RenderSetup$OutlineProperty> { 
             }
-            const RenderSetup$TextureAndSampler: {
-              new(textureView: com.mojang.blaze3d.textures.GpuTextureView, sampler: com.mojang.blaze3d.textures.GpuSampler): net.minecraft.client.renderer.rendertype.RenderSetup$TextureAndSampler;
-            }
-            interface RenderSetup$TextureAndSampler extends java.lang.Record { 
-              textureView(): com.mojang.blaze3d.textures.GpuTextureView;
-              sampler(): com.mojang.blaze3d.textures.GpuSampler;
-            }
           }
           namespace texture {
-            interface TextureAtlasSprite extends java.lang.AutoCloseable { 
-              atlasLocation(): net.minecraft.resources.Identifier;
-              contents(): net.minecraft.client.renderer.texture.SpriteContents;
-              getX(): number;
-              getY(): number;
-              getU0(): number;
-              getU1(): number;
-              createAnimationState(uboSlice: com.mojang.blaze3d.buffers.GpuBufferSlice, spriteUboSize: number): net.minecraft.client.renderer.texture.SpriteContents$AnimationState | null | undefined;
-              transparency(): com.mojang.blaze3d.platform.Transparency;
-              getU(offset: number): number;
-              getV0(): number;
-              getV1(): number;
-              getV(offset: number): number;
-              uploadFirstFrame(destination: com.mojang.blaze3d.textures.GpuTexture, level: number): void;
-              wrap(buffer: com.mojang.blaze3d.vertex.VertexConsumer): com.mojang.blaze3d.vertex.VertexConsumer;
-              uploadSpriteUbo(uboBuffer: java.nio.ByteBuffer, startOffset: number, maxMipLevel: number, atlasWidth: number, atlasHeight: number, spriteUboSize: number): void;
-            }
-            const SpriteContents: {
-              AnimationState: typeof net.minecraft.client.renderer.texture.SpriteContents$AnimationState;
-              UBO_SIZE: number;
-              new(name: net.minecraft.resources.Identifier, frameSize: net.minecraft.client.resources.metadata.animation.FrameSize, image: com.mojang.blaze3d.platform.NativeImage): net.minecraft.client.renderer.texture.SpriteContents;
-              new(name: net.minecraft.resources.Identifier, frameSize: net.minecraft.client.resources.metadata.animation.FrameSize, image: com.mojang.blaze3d.platform.NativeImage, animationInfo: java.util.Optional<unknown>, additionalMetadata: Array<net.minecraft.server.packs.metadata.MetadataSectionType$WithValue<any>>, textureInfo: java.util.Optional<net.minecraft.client.resources.metadata.texture.TextureMetadataSection>): net.minecraft.client.renderer.texture.SpriteContents;
-            }
-            interface SpriteContents extends java.lang.AutoCloseable, net.minecraft.client.renderer.texture.Stitcher$Entry { 
-              transparency(): com.mojang.blaze3d.platform.Transparency;
-              increaseMipLevel(mipLevel: number): void;
-              isAnimated(): boolean;
-              getUniqueFrames(): it.unimi.dsi.fastutil.ints.IntList;
-              createAnimationState(uboSlice: com.mojang.blaze3d.buffers.GpuBufferSlice, spriteUboSize: number): net.minecraft.client.renderer.texture.SpriteContents$AnimationState | null | undefined;
-              getAdditionalMetadata<T>(type: net.minecraft.server.packs.metadata.MetadataSectionType<T>): java.util.Optional<T>;
-              isTransparent(frame: number, x: number, y: number): boolean;
-              computeTransparency(u0: number, v0: number, u1: number, v1: number): com.mojang.blaze3d.platform.Transparency;
-              uploadFirstFrame(destination: com.mojang.blaze3d.textures.GpuTexture, level: number): void;
-            }
-            interface Stitcher$Entry { 
-              width(): number;
-              height(): number;
-              name(): net.minecraft.resources.Identifier;
-            }
-            interface SpriteContents$AnimationState extends java.lang.AutoCloseable { 
-              tick(): void;
-              getDrawUbo(level: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
-              needsToDraw(): boolean;
-              drawToAtlas(renderPass: com.mojang.blaze3d.systems.RenderPass, ubo: com.mojang.blaze3d.buffers.GpuBufferSlice): void;
-            }
             const TextureManager: {
               INTENTIONAL_MISSING_TEXTURE: net.minecraft.resources.Identifier;
               new(resourceManager: net.minecraft.server.packs.resources.ResourceManager): net.minecraft.client.renderer.texture.TextureManager;
@@ -13251,11 +13391,69 @@ declare global {
             }
             interface MipmapStrategy extends kotlin.Enum<net.minecraft.client.renderer.texture.MipmapStrategy>, net.minecraft.util.StringRepresentable { 
             }
+            interface TextureAtlasSprite extends java.lang.AutoCloseable { 
+              atlasLocation(): net.minecraft.resources.Identifier;
+              contents(): net.minecraft.client.renderer.texture.SpriteContents;
+              getX(): number;
+              getY(): number;
+              getU0(): number;
+              getU1(): number;
+              createAnimationState(uboSlice: com.mojang.blaze3d.buffers.GpuBufferSlice, spriteUboSize: number): net.minecraft.client.renderer.texture.SpriteContents$AnimationState | null | undefined;
+              transparency(): com.mojang.blaze3d.platform.Transparency;
+              getU(offset: number): number;
+              getV0(): number;
+              getV1(): number;
+              getV(offset: number): number;
+              uploadFirstFrame(destination: com.mojang.blaze3d.textures.GpuTexture, level: number): void;
+              wrap(buffer: com.mojang.blaze3d.vertex.VertexConsumer): com.mojang.blaze3d.vertex.VertexConsumer;
+              isAnimated(): boolean;
+              uploadSpriteUbo(uboBuffer: java.nio.ByteBuffer, startOffset: number, maxMipLevel: number, atlasWidth: number, atlasHeight: number, spriteUboSize: number): void;
+            }
+            const SpriteContents: {
+              AnimationState: typeof net.minecraft.client.renderer.texture.SpriteContents$AnimationState;
+              UBO_SIZE: number;
+              new(name: net.minecraft.resources.Identifier, frameSize: net.minecraft.client.resources.metadata.animation.FrameSize, image: com.mojang.blaze3d.platform.NativeImage): net.minecraft.client.renderer.texture.SpriteContents;
+              new(name: net.minecraft.resources.Identifier, frameSize: net.minecraft.client.resources.metadata.animation.FrameSize, image: com.mojang.blaze3d.platform.NativeImage, animationInfo: java.util.Optional<unknown>, additionalMetadata: Array<net.minecraft.server.packs.metadata.MetadataSectionType$WithValue<any>>, textureInfo: java.util.Optional<net.minecraft.client.resources.metadata.texture.TextureMetadataSection>): net.minecraft.client.renderer.texture.SpriteContents;
+            }
+            interface SpriteContents extends java.lang.AutoCloseable, net.minecraft.client.renderer.texture.Stitcher$Entry { 
+              transparency(): com.mojang.blaze3d.platform.Transparency;
+              increaseMipLevel(mipLevel: number): void;
+              isAnimated(): boolean;
+              getUniqueFrames(): it.unimi.dsi.fastutil.ints.IntList;
+              createAnimationState(uboSlice: com.mojang.blaze3d.buffers.GpuBufferSlice, spriteUboSize: number): net.minecraft.client.renderer.texture.SpriteContents$AnimationState | null | undefined;
+              getAdditionalMetadata<T>(type: net.minecraft.server.packs.metadata.MetadataSectionType<T>): java.util.Optional<T>;
+              isTransparent(frame: number, x: number, y: number): boolean;
+              computeTransparency(u0: number, v0: number, u1: number, v1: number): com.mojang.blaze3d.platform.Transparency;
+              uploadFirstFrame(destination: com.mojang.blaze3d.textures.GpuTexture, level: number): void;
+            }
+            interface Stitcher$Entry { 
+              width(): number;
+              height(): number;
+              name(): net.minecraft.resources.Identifier;
+            }
+            interface SpriteContents$AnimationState extends java.lang.AutoCloseable { 
+              tick(): void;
+              getDrawUbo(level: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+              needsToDraw(): boolean;
+              drawToAtlas(renderPass: com.mojang.blaze3d.systems.RenderPass, ubo: com.mojang.blaze3d.buffers.GpuBufferSlice): void;
+            }
             const SkinTextureDownloader: {
               new(proxy: java.net.Proxy, textureManager: net.minecraft.client.renderer.texture.TextureManager, mainThreadExecutor: java.util.concurrent.Executor): net.minecraft.client.renderer.texture.SkinTextureDownloader;
             }
             interface SkinTextureDownloader { 
               downloadAndRegisterSkin(textureId: net.minecraft.resources.Identifier, localCopy: java.nio.file.Path, url: string, processLegacySkin: boolean): java.util.concurrent.CompletableFuture<net.minecraft.core.ClientAsset$Texture>;
+            }
+            const SpriteLoader$Preparations: {
+              new(width: number, height: number, mipLevel: number, missing: net.minecraft.client.renderer.texture.TextureAtlasSprite, regions: Map<net.minecraft.resources.Identifier, net.minecraft.client.renderer.texture.TextureAtlasSprite>, readyForUpload: java.util.concurrent.CompletableFuture<java.lang.Void>): net.minecraft.client.renderer.texture.SpriteLoader$Preparations;
+            }
+            interface SpriteLoader$Preparations extends java.lang.Record, net.fabricmc.fabric.api.client.renderer.v1.sprite.FabricPreparations { 
+              getSprite(id: net.minecraft.resources.Identifier): net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined;
+              width(): number;
+              height(): number;
+              mipLevel(): number;
+              missing(): net.minecraft.client.renderer.texture.TextureAtlasSprite;
+              regions(): Map<net.minecraft.resources.Identifier, net.minecraft.client.renderer.texture.TextureAtlasSprite>;
+              readyForUpload(): java.util.concurrent.CompletableFuture<java.lang.Void>;
             }
             const TextureAtlas: {
               LOCATION_BLOCKS: net.minecraft.resources.Identifier;
@@ -13277,18 +13475,6 @@ declare global {
             }
             interface Dumpable { 
               dumpContents(selfId: net.minecraft.resources.Identifier, dir: java.nio.file.Path): void;
-            }
-            const SpriteLoader$Preparations: {
-              new(width: number, height: number, mipLevel: number, missing: net.minecraft.client.renderer.texture.TextureAtlasSprite, regions: Map<net.minecraft.resources.Identifier, net.minecraft.client.renderer.texture.TextureAtlasSprite>, readyForUpload: java.util.concurrent.CompletableFuture<java.lang.Void>): net.minecraft.client.renderer.texture.SpriteLoader$Preparations;
-            }
-            interface SpriteLoader$Preparations extends java.lang.Record, net.fabricmc.fabric.api.client.renderer.v1.sprite.FabricPreparations { 
-              getSprite(id: net.minecraft.resources.Identifier): net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined;
-              width(): number;
-              height(): number;
-              mipLevel(): number;
-              missing(): net.minecraft.client.renderer.texture.TextureAtlasSprite;
-              regions(): Map<net.minecraft.resources.Identifier, net.minecraft.client.renderer.texture.TextureAtlasSprite>;
-              readyForUpload(): java.util.concurrent.CompletableFuture<java.lang.Void>;
             }
             const OverlayTexture: {
               NO_WHITE_U: number;
@@ -13329,6 +13515,78 @@ declare global {
             interface SpecialModelRenderer$Unbaked<T> { 
               bake(context: net.minecraft.client.renderer.special.SpecialModelRenderer$BakingContext): net.minecraft.client.renderer.special.SpecialModelRenderer<T> | null | undefined;
               type(): com.mojang.serialization.MapCodec<net.minecraft.client.renderer.special.SpecialModelRenderer$Unbaked<T>>;
+            }
+          }
+          namespace feature {
+            namespace phase {
+              const SimpleFeatureRenderPhase: {
+                new(): net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+              }
+              interface SimpleFeatureRenderPhase extends net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<net.minecraft.client.renderer.feature.submit.SubmitNode> { 
+                clear(): void;
+              }
+              interface FeatureRenderPhase<Submit> { 
+                submit(submit: Submit): void;
+                sortInto(output: net.minecraft.client.renderer.feature.phase.FeatureRenderPhase$Output): void;
+                isEmpty(): boolean;
+              }
+              interface FeatureRenderPhase$Output { 
+                accept(submit: net.minecraft.client.renderer.feature.submit.SubmitNode, strictlyOrdered: boolean): void;
+                acceptFeatureGroup<Submit>(featureType: net.minecraft.client.renderer.feature.FeatureRendererType<Submit>, submits: Array<Submit>, strictlyOrdered: boolean): void;
+                (submit: net.minecraft.client.renderer.feature.submit.SubmitNode, strictlyOrdered: boolean): void;
+              }
+              const TranslucentFeatureRenderPhase: {
+                new(): net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase;
+              }
+              interface TranslucentFeatureRenderPhase extends net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<net.minecraft.client.renderer.feature.submit.TranslucentSubmit> { 
+              }
+            }
+            namespace submit {
+              interface SubmitNode { 
+                featureType(): net.minecraft.client.renderer.feature.FeatureRendererType<net.minecraft.client.renderer.feature.submit.SubmitNode>;
+              }
+              const TranslucentSubmit: {
+                computeDistanceToCameraSq(pose: org.joml.Matrix4fc): number;
+                computeDistanceToCameraSq(pose: org.joml.Matrix4fc, originX: number, originY: number, originZ: number): number;
+              }
+              interface TranslucentSubmit extends net.minecraft.client.renderer.feature.submit.SubmitNode { 
+                distanceToCameraSq(): number;
+              }
+            }
+            const FeatureRendererType: {
+              new<Submit>(id: number, name: string): net.minecraft.client.renderer.feature.FeatureRendererType<any>;
+              create<Submit>(name: string): net.minecraft.client.renderer.feature.FeatureRendererType<Submit>;
+            }
+            interface FeatureRendererType<Submit> extends java.lang.Record { 
+              id(): number;
+              name(): string;
+            }
+            const ModelFeatureRenderer$CrumblingOverlay: {
+              new(progress: number, cameraPose: com.mojang.blaze3d.vertex.PoseStack$Pose): net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay;
+            }
+            interface ModelFeatureRenderer$CrumblingOverlay extends java.lang.Record { 
+              progress(): number;
+              cameraPose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
+            }
+            const FeatureRenderDispatcher: {
+              PreparedFrame: typeof net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame;
+              new(renderBuffers: net.minecraft.client.renderer.RenderBuffers, modelManager: net.minecraft.client.resources.model.ModelManager, atlasManager: net.minecraft.client.resources.model.sprite.AtlasManager, font: net.minecraft.client.gui.Font, gameRenderState: net.minecraft.client.renderer.state.GameRenderState): net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+            }
+            interface FeatureRenderDispatcher extends java.lang.AutoCloseable { 
+              prepareFrame(submitNodeStorage: net.minecraft.client.renderer.SubmitNodeStorage): net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame;
+              renderAllFeatures(submitNodeStorage: net.minecraft.client.renderer.SubmitNodeStorage): void;
+            }
+            const FeatureRenderDispatcher$PreparedFrame: {
+              new(): net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame;
+            }
+            interface FeatureRenderDispatcher$PreparedFrame extends java.lang.AutoCloseable { 
+              executeSolid(): void;
+              executeTranslucent(): void;
+              executeOutline(): void;
+              executeTranslucentAfterTerrain(): void;
+              executeAlwaysOnTop(): void;
+              hasAnyAlwaysOnTop(): boolean;
+              hasAnyOutline(): boolean;
             }
           }
           namespace culling {
@@ -13421,48 +13679,6 @@ declare global {
                 endSkyLight: number;
                 slack: boolean;
               }
-              const HumanoidRenderState: {
-                new(): net.minecraft.client.renderer.entity.state.HumanoidRenderState;
-              }
-              interface HumanoidRenderState extends net.minecraft.client.renderer.entity.state.ArmedEntityRenderState { 
-                swimAmount: number;
-                speedValue: number;
-                maxCrossbowChargeDuration: number;
-                ticksUsingItem: number;
-                useItemHand: net.minecraft.world.InteractionHand;
-                isCrouching: boolean;
-                isFallFlying: boolean;
-                isVisuallySwimming: boolean;
-                isPassenger: boolean;
-                isUsingItem: boolean;
-                elytraRotX: number;
-                elytraRotY: number;
-                elytraRotZ: number;
-                headEquipment: net.minecraft.world.item.ItemStack;
-                chestEquipment: net.minecraft.world.item.ItemStack;
-                legsEquipment: net.minecraft.world.item.ItemStack;
-                feetEquipment: net.minecraft.world.item.ItemStack;
-              }
-              const ArmedEntityRenderState: {
-                new(): net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
-                extractArmedEntityRenderState(entity: net.minecraft.world.entity.LivingEntity, state: net.minecraft.client.renderer.entity.state.ArmedEntityRenderState, itemModelResolver: net.minecraft.client.renderer.item.ItemModelResolver, partialTicks: number): void;
-              }
-              interface ArmedEntityRenderState extends net.minecraft.client.renderer.entity.state.LivingEntityRenderState { 
-                mainArm: net.minecraft.world.entity.HumanoidArm;
-                attackArm: net.minecraft.world.entity.HumanoidArm;
-                rightArmPose: net.minecraft.client.model.HumanoidModel$ArmPose;
-                rightHandItemState: net.minecraft.client.renderer.item.ItemStackRenderState;
-                rightHandItemStack: net.minecraft.world.item.ItemStack;
-                leftArmPose: net.minecraft.client.model.HumanoidModel$ArmPose;
-                leftHandItemState: net.minecraft.client.renderer.item.ItemStackRenderState;
-                leftHandItemStack: net.minecraft.world.item.ItemStack;
-                swingAnimationType: net.minecraft.world.item.SwingAnimationType;
-                attackTime: number;
-                getMainHandItemState(): net.minecraft.client.renderer.item.ItemStackRenderState;
-                getMainHandItemStack(): net.minecraft.world.item.ItemStack;
-                getUseItemStackForArm(arm: net.minecraft.world.entity.HumanoidArm): net.minecraft.world.item.ItemStack;
-                ticksUsingItem(arm: net.minecraft.world.entity.HumanoidArm): number;
-              }
               const LivingEntityRenderState: {
                 new(): net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
               }
@@ -13519,6 +13735,48 @@ declare global {
                 heldOnHead: net.minecraft.client.renderer.item.ItemStackRenderState;
                 fallFlyingScale(): number;
               }
+              const HumanoidRenderState: {
+                new(): net.minecraft.client.renderer.entity.state.HumanoidRenderState;
+              }
+              interface HumanoidRenderState extends net.minecraft.client.renderer.entity.state.ArmedEntityRenderState { 
+                swimAmount: number;
+                speedValue: number;
+                maxCrossbowChargeDuration: number;
+                ticksUsingItem: number;
+                useItemHand: net.minecraft.world.InteractionHand;
+                isCrouching: boolean;
+                isFallFlying: boolean;
+                isVisuallySwimming: boolean;
+                isPassenger: boolean;
+                isUsingItem: boolean;
+                elytraRotX: number;
+                elytraRotY: number;
+                elytraRotZ: number;
+                headEquipment: net.minecraft.world.item.ItemStack;
+                chestEquipment: net.minecraft.world.item.ItemStack;
+                legsEquipment: net.minecraft.world.item.ItemStack;
+                feetEquipment: net.minecraft.world.item.ItemStack;
+              }
+              const ArmedEntityRenderState: {
+                new(): net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
+                extractArmedEntityRenderState(entity: net.minecraft.world.entity.LivingEntity, state: net.minecraft.client.renderer.entity.state.ArmedEntityRenderState, itemModelResolver: net.minecraft.client.renderer.item.ItemModelResolver, partialTicks: number): void;
+              }
+              interface ArmedEntityRenderState extends net.minecraft.client.renderer.entity.state.LivingEntityRenderState { 
+                mainArm: net.minecraft.world.entity.HumanoidArm;
+                attackArm: net.minecraft.world.entity.HumanoidArm;
+                rightArmPose: net.minecraft.client.model.HumanoidModel$ArmPose;
+                rightHandItemState: net.minecraft.client.renderer.item.ItemStackRenderState;
+                rightHandItemStack: net.minecraft.world.item.ItemStack;
+                leftArmPose: net.minecraft.client.model.HumanoidModel$ArmPose;
+                leftHandItemState: net.minecraft.client.renderer.item.ItemStackRenderState;
+                leftHandItemStack: net.minecraft.world.item.ItemStack;
+                swingAnimationType: net.minecraft.world.item.SwingAnimationType;
+                attackTime: number;
+                getMainHandItemState(): net.minecraft.client.renderer.item.ItemStackRenderState;
+                getMainHandItemStack(): net.minecraft.world.item.ItemStack;
+                getUseItemStackForArm(arm: net.minecraft.world.entity.HumanoidArm): net.minecraft.world.item.ItemStack;
+                ticksUsingItem(arm: net.minecraft.world.entity.HumanoidArm): number;
+              }
             }
             namespace layers {
               const EquipmentLayerRenderer: {
@@ -13541,7 +13799,7 @@ declare global {
                 new<AvatarlikeEntity>(context: net.minecraft.client.renderer.entity.EntityRendererProvider$Context, slimSteve: boolean): net.minecraft.client.renderer.entity.player.AvatarRenderer<any>;
                 isPlayerUpsideDown(player: net.minecraft.world.entity.player.Player): boolean;
               }
-              interface AvatarRenderer<AvatarlikeEntity> extends net.minecraft.client.renderer.entity.LivingEntityRenderer<AvatarlikeEntity, net.minecraft.client.renderer.entity.state.AvatarRenderState, net.minecraft.client.model.player.PlayerModel> { 
+              interface AvatarRenderer<AvatarlikeEntity> extends net.minecraft.client.renderer.entity.LivingEntityRenderer<AvatarlikeEntity, net.minecraft.client.renderer.entity.state.AvatarRenderState, unknown> { 
                 renderRightHand(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, skinTexture: net.minecraft.resources.Identifier, hasSleeve: boolean): void;
                 renderLeftHand(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, skinTexture: net.minecraft.resources.Identifier, hasSleeve: boolean): void;
               }
@@ -13608,126 +13866,8 @@ declare global {
             interface RenderLayerParent<S, M> { 
               getModel(): M;
             }
-            const ArmorModelSet: {
-              new<T>(head: T, chest: T, legs: T, feet: T): net.minecraft.client.renderer.entity.ArmorModelSet<any>;
-              bake<M>(locations: net.minecraft.client.renderer.entity.ArmorModelSet<net.minecraft.client.model.geom.ModelLayerLocation>, modelSet: net.minecraft.client.model.geom.EntityModelSet, factory: unknown): net.minecraft.client.renderer.entity.ArmorModelSet<M>;
-            }
-            interface ArmorModelSet<T> extends java.lang.Record { 
-              get(slot: net.minecraft.world.entity.EquipmentSlot): T;
-              map<U>(mapper: unknown): net.minecraft.client.renderer.entity.ArmorModelSet<U>;
-              putFrom(values: net.minecraft.client.renderer.entity.ArmorModelSet<net.minecraft.client.model.geom.builders.LayerDefinition>, output: com.google.common.collect.ImmutableMap$Builder<T, net.minecraft.client.model.geom.builders.LayerDefinition>): void;
-              head(): T;
-              chest(): T;
-              legs(): T;
-              feet(): T;
-            }
-          }
-          namespace feature {
-            const ModelFeatureRenderer$CrumblingOverlay: {
-              new(progress: number, cameraPose: com.mojang.blaze3d.vertex.PoseStack$Pose): net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay;
-            }
-            interface ModelFeatureRenderer$CrumblingOverlay extends java.lang.Record { 
-              progress(): number;
-              cameraPose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            }
-            const ParticleFeatureRenderer$ParticleBufferCache: {
-              new(): net.minecraft.client.renderer.feature.ParticleFeatureRenderer$ParticleBufferCache;
-            }
-            interface ParticleFeatureRenderer$ParticleBufferCache extends java.lang.AutoCloseable { 
-              write(byteBuffer: java.nio.ByteBuffer): void;
-              get(): com.mojang.blaze3d.buffers.GpuBuffer;
-            }
-            const NameTagFeatureRenderer$Storage: {
-              new(): net.minecraft.client.renderer.feature.NameTagFeatureRenderer$Storage;
-            }
-            interface NameTagFeatureRenderer$Storage { 
-              add(poseStack: com.mojang.blaze3d.vertex.PoseStack, nameTagAttachment: net.minecraft.world.phys.Vec3 | null | undefined, offset: number, name: net.minecraft.network.chat.Component, seeThrough: boolean, lightCoords: number, distanceToCameraSq: number, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
-              clear(): void;
-            }
-            const ModelPartFeatureRenderer$Storage: {
-              new(): net.minecraft.client.renderer.feature.ModelPartFeatureRenderer$Storage;
-            }
-            interface ModelPartFeatureRenderer$Storage { 
-              add(renderType: net.minecraft.client.renderer.rendertype.RenderType, submit: net.minecraft.client.renderer.SubmitNodeStorage$ModelPartSubmit): void;
-              clear(): void;
-              endFrame(): void;
-            }
-            const ModelFeatureRenderer$Storage: {
-              new(): net.minecraft.client.renderer.feature.ModelFeatureRenderer$Storage;
-            }
-            interface ModelFeatureRenderer$Storage { 
-              add(renderType: net.minecraft.client.renderer.rendertype.RenderType, modelSubmit: net.minecraft.client.renderer.SubmitNodeStorage$ModelSubmit<any>): void;
-              clear(): void;
-              endFrame(): void;
-            }
-            const CustomFeatureRenderer$Storage: {
-              new(): net.minecraft.client.renderer.feature.CustomFeatureRenderer$Storage;
-            }
-            interface CustomFeatureRenderer$Storage { 
-              add(poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, customGeometryRenderer: net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer): void;
-              clear(): void;
-              endFrame(): void;
-            }
-            const FeatureRenderDispatcher: {
-              new(submitNodeStorage: net.minecraft.client.renderer.SubmitNodeStorage, modelManager: net.minecraft.client.resources.model.ModelManager, bufferSource: net.minecraft.client.renderer.MultiBufferSource$BufferSource, atlasManager: net.minecraft.client.resources.model.sprite.AtlasManager, outlineBufferSource: net.minecraft.client.renderer.OutlineBufferSource, crumblingBufferSource: net.minecraft.client.renderer.MultiBufferSource$BufferSource, font: net.minecraft.client.gui.Font, gameRenderState: net.minecraft.client.renderer.state.GameRenderState): net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
-            }
-            interface FeatureRenderDispatcher extends java.lang.AutoCloseable { 
-              renderSolidFeatures(): void;
-              renderTranslucentFeatures(): void;
-              renderTranslucentParticles(): void;
-              clearSubmitNodes(): void;
-              renderAllFeatures(): void;
-              endFrame(): void;
-              getSubmitNodeStorage(): net.minecraft.client.renderer.SubmitNodeStorage;
-            }
           }
           namespace block {
-            namespace dispatch {
-              const BlockStateModel: {
-                SimpleCachedUnbakedRoot: typeof net.minecraft.client.renderer.block.dispatch.BlockStateModel$SimpleCachedUnbakedRoot;
-              }
-              interface BlockStateModel extends net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel { 
-                collectParts(random: net.minecraft.util.RandomSource, output: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>): void;
-                particleMaterial(): net.minecraft.client.resources.model.sprite.Material$Baked;
-                materialFlags(): number;
-                hasMaterialFlag(flag: number): boolean;
-              }
-              const BlockStateModel$SimpleCachedUnbakedRoot: {
-                new(contents: net.minecraft.client.renderer.block.dispatch.BlockStateModel$Unbaked): net.minecraft.client.renderer.block.dispatch.BlockStateModel$SimpleCachedUnbakedRoot;
-              }
-              interface BlockStateModel$SimpleCachedUnbakedRoot extends net.minecraft.client.renderer.block.dispatch.BlockStateModel$UnbakedRoot { 
-              }
-              interface BlockStateModel$UnbakedRoot extends net.minecraft.client.resources.model.ResolvableModel { 
-                bake(blockState: net.minecraft.world.level.block.state.BlockState, modelBakery: net.minecraft.client.resources.model.ModelBaker): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-                visualEqualityGroup(blockState: net.minecraft.world.level.block.state.BlockState): any;
-              }
-              const ModelState: {
-                NO_TRANSFORM: org.joml.Matrix4fc;
-              }
-              interface ModelState { 
-                transformation(): com.mojang.math.Transformation;
-                faceTransformation(face: net.minecraft.core.Direction): org.joml.Matrix4fc;
-                inverseFaceTransformation(face: net.minecraft.core.Direction): org.joml.Matrix4fc;
-              }
-              interface BlockStateModelPart extends net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart { 
-                getQuads(direction: net.minecraft.core.Direction | null | undefined): Array<net.minecraft.client.resources.model.geometry.BakedQuad>;
-                useAmbientOcclusion(): boolean;
-                particleMaterial(): net.minecraft.client.resources.model.sprite.Material$Baked;
-                materialFlags(): number;
-              }
-              interface BlockStateModelPart$Unbaked extends net.minecraft.client.resources.model.ResolvableModel { 
-                bake(modelBakery: net.minecraft.client.resources.model.ModelBaker): net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-              }
-              const BlockStateModel$Unbaked: {
-                ELEMENT_CODEC: com.mojang.serialization.Codec<net.minecraft.util.random.Weighted<unknown>>;
-                HARDCODED_WEIGHTED_CODEC: com.mojang.serialization.Codec<unknown>;
-                CODEC: com.mojang.serialization.Codec<net.minecraft.client.renderer.block.dispatch.BlockStateModel$Unbaked>;
-              }
-              interface BlockStateModel$Unbaked extends net.minecraft.client.resources.model.ResolvableModel { 
-                bake(modelBakery: net.minecraft.client.resources.model.ModelBaker): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-                asRoot(): net.minecraft.client.renderer.block.dispatch.BlockStateModel$UnbakedRoot;
-              }
-            }
             namespace model {
               const BlockDisplayContext: {
                 create(): net.minecraft.client.renderer.block.model.BlockDisplayContext;
@@ -13751,6 +13891,52 @@ declare global {
                 bake(context: net.minecraft.client.renderer.block.model.BlockModel$BakingContext, transformation: org.joml.Matrix4fc): net.minecraft.client.renderer.block.model.BlockModel;
               }
             }
+            namespace dispatch {
+              const ModelState: {
+                NO_TRANSFORM: org.joml.Matrix4fc;
+              }
+              interface ModelState { 
+                transformation(): com.mojang.math.Transformation;
+                faceTransformation(face: net.minecraft.core.Direction): org.joml.Matrix4fc;
+                inverseFaceTransformation(face: net.minecraft.core.Direction): org.joml.Matrix4fc;
+              }
+              interface BlockStateModelPart extends net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModelPart { 
+                getQuads(direction: net.minecraft.core.Direction | null | undefined): Array<net.minecraft.client.resources.model.geometry.BakedQuad>;
+                useAmbientOcclusion(): boolean;
+                particleMaterial(): net.minecraft.client.resources.model.sprite.Material$Baked;
+                materialFlags(): number;
+              }
+              interface BlockStateModelPart$Unbaked extends net.minecraft.client.resources.model.ResolvableModel { 
+                bake(modelBakery: net.minecraft.client.resources.model.ModelBaker): net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+              }
+              const BlockStateModel: {
+                SimpleCachedUnbakedRoot: typeof net.minecraft.client.renderer.block.dispatch.BlockStateModel$SimpleCachedUnbakedRoot;
+              }
+              interface BlockStateModel extends net.fabricmc.fabric.api.client.renderer.v1.model.FabricBlockStateModel { 
+                collectParts(random: net.minecraft.util.RandomSource, output: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>): void;
+                particleMaterial(): net.minecraft.client.resources.model.sprite.Material$Baked;
+                materialFlags(): number;
+                hasMaterialFlag(flag: number): boolean;
+              }
+              const BlockStateModel$SimpleCachedUnbakedRoot: {
+                new(contents: net.minecraft.client.renderer.block.dispatch.BlockStateModel$Unbaked): net.minecraft.client.renderer.block.dispatch.BlockStateModel$SimpleCachedUnbakedRoot;
+              }
+              interface BlockStateModel$SimpleCachedUnbakedRoot extends net.minecraft.client.renderer.block.dispatch.BlockStateModel$UnbakedRoot { 
+              }
+              interface BlockStateModel$UnbakedRoot extends net.minecraft.client.resources.model.ResolvableModel { 
+                bake(blockState: net.minecraft.world.level.block.state.BlockState, modelBakery: net.minecraft.client.resources.model.ModelBaker): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+                visualEqualityGroup(blockState: net.minecraft.world.level.block.state.BlockState): any;
+              }
+              const BlockStateModel$Unbaked: {
+                ELEMENT_CODEC: com.mojang.serialization.Codec<net.minecraft.util.random.Weighted<unknown>>;
+                HARDCODED_WEIGHTED_CODEC: com.mojang.serialization.Codec<unknown>;
+                CODEC: com.mojang.serialization.Codec<net.minecraft.client.renderer.block.dispatch.BlockStateModel$Unbaked>;
+              }
+              interface BlockStateModel$Unbaked extends net.minecraft.client.resources.model.ResolvableModel { 
+                bake(modelBakery: net.minecraft.client.resources.model.ModelBaker): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+                asRoot(): net.minecraft.client.renderer.block.dispatch.BlockStateModel$UnbakedRoot;
+              }
+            }
             const MovingBlockRenderState: {
               new(): net.minecraft.client.renderer.block.MovingBlockRenderState;
             }
@@ -13769,6 +13955,29 @@ declare global {
               cardinalLighting(): net.minecraft.world.level.CardinalLighting;
               getBlockTint(pos: net.minecraft.core.BlockPos, color: net.minecraft.world.level.ColorResolver): number;
             }
+            const BlockModelResolver: {
+              new(modelManager: net.minecraft.client.resources.model.ModelManager): net.minecraft.client.renderer.block.BlockModelResolver;
+            }
+            interface BlockModelResolver { 
+              update(renderState: net.minecraft.client.renderer.block.BlockModelRenderState, blockState: net.minecraft.world.level.block.state.BlockState, displayContext: net.minecraft.client.renderer.block.model.BlockDisplayContext): void;
+              updateForItemFrame(renderState: net.minecraft.client.renderer.block.BlockModelRenderState, isGlowing: boolean, map: boolean): void;
+            }
+            const BlockModelRenderState: {
+              EMPTY_TINTS: Array<number>;
+              new(): net.minecraft.client.renderer.block.BlockModelRenderState;
+            }
+            interface BlockModelRenderState extends net.fabricmc.fabric.api.client.renderer.v1.render.FabricBlockModelRenderState, net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState { 
+              blockLightCoords: number;
+              tintLayers(): it.unimi.dsi.fastutil.ints.IntList;
+              clear(): void;
+              setupSpecialModel<T>(renderer: net.minecraft.client.renderer.special.SpecialModelRenderer<T>, transformation: org.joml.Matrix4fc): void;
+              setupModel(transformation: org.joml.Matrix4fc, hasTranslucency: boolean): Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>;
+              submit(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, externalLightCoords: number, overlayCoords: number, outlineColor: number): void;
+              submitOnlyOutline(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, overlayCoords: number, outlineColor: number): void;
+              submitWithZOffset(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, overlayCoords: number, outlineColor: number): void;
+              isEmpty(): boolean;
+              scratchRandomSource(seed: number): net.minecraft.util.RandomSource;
+            }
             const BlockStateModelSet: {
               new(modelByState: Map<net.minecraft.world.level.block.state.BlockState, net.minecraft.client.renderer.block.dispatch.BlockStateModel>, missingModel: net.minecraft.client.renderer.block.dispatch.BlockStateModel): net.minecraft.client.renderer.block.BlockStateModelSet;
             }
@@ -13776,6 +13985,12 @@ declare global {
               missingModel(): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
               get(state: net.minecraft.world.level.block.state.BlockState): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
               getParticleMaterial(blockState: net.minecraft.world.level.block.state.BlockState): net.minecraft.client.resources.model.sprite.Material$Baked;
+            }
+            const BlockModelSet: {
+              new(fallback: net.minecraft.client.renderer.block.BlockStateModelSet, blockModelByState: Map<net.minecraft.world.level.block.state.BlockState, net.minecraft.client.renderer.block.model.BlockModel>, blockColors: net.minecraft.client.color.block.BlockColors): net.minecraft.client.renderer.block.BlockModelSet;
+            }
+            interface BlockModelSet { 
+              get(blockState: net.minecraft.world.level.block.state.BlockState): net.minecraft.client.renderer.block.model.BlockModel;
             }
             const FluidStateModelSet: {
               new(modelByFluid: Map<net.minecraft.world.level.material.Fluid, net.minecraft.client.renderer.block.FluidModel>, missingModel: net.minecraft.client.renderer.block.FluidModel): net.minecraft.client.renderer.block.FluidStateModelSet;
@@ -13805,33 +14020,44 @@ declare global {
               overlayMaterial(): net.minecraft.client.resources.model.sprite.Material | null | undefined;
               tintSource(): net.minecraft.client.color.block.BlockTintSource | null | undefined;
             }
-            const BlockModelResolver: {
-              new(modelManager: net.minecraft.client.resources.model.ModelManager): net.minecraft.client.renderer.block.BlockModelResolver;
+          }
+          namespace gizmos {
+            const DrawableGizmoPrimitives$Group: {
+              new(opaque: boolean, lines: Array<unknown>, quads: Array<unknown>, triangleFans: Array<unknown>, texts: Array<unknown>, points: Array<unknown>): net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives$Group;
             }
-            interface BlockModelResolver { 
-              update(renderState: net.minecraft.client.renderer.block.BlockModelRenderState, blockState: net.minecraft.world.level.block.state.BlockState, displayContext: net.minecraft.client.renderer.block.model.BlockDisplayContext): void;
-              updateForItemFrame(renderState: net.minecraft.client.renderer.block.BlockModelRenderState, isGlowing: boolean, map: boolean): void;
+            interface DrawableGizmoPrimitives$Group extends java.lang.Record { 
+              opaque(): boolean;
+              lines(): Array<unknown>;
+              quads(): Array<unknown>;
+              triangleFans(): Array<unknown>;
+              texts(): Array<unknown>;
+              points(): Array<unknown>;
             }
-            const BlockModelRenderState: {
-              EMPTY_TINTS: Array<number>;
-              new(): net.minecraft.client.renderer.block.BlockModelRenderState;
+          }
+          namespace extract {
+            const LevelExtractor: {
+              new(minecraft: net.minecraft.client.Minecraft, levelRenderState: net.minecraft.client.renderer.state.level.LevelRenderState, levelRenderer: net.minecraft.client.renderer.LevelRenderer): net.minecraft.client.renderer.extract.LevelExtractor;
             }
-            interface BlockModelRenderState extends net.fabricmc.fabric.api.client.renderer.v1.render.FabricBlockModelRenderState, net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState { 
-              tintLayers(): it.unimi.dsi.fastutil.ints.IntList;
-              clear(): void;
-              setupSpecialModel<T>(renderer: net.minecraft.client.renderer.special.SpecialModelRenderer<T>, transformation: org.joml.Matrix4fc): void;
-              setupModel(transformation: org.joml.Matrix4fc, hasTranslucency: boolean): Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>;
-              submit(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, overlayCoords: number, outlineColor: number): void;
-              submitOnlyOutline(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, overlayCoords: number, outlineColor: number): void;
-              submitWithZOffset(poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number, overlayCoords: number, outlineColor: number): void;
-              isEmpty(): boolean;
-              scratchRandomSource(seed: number): net.minecraft.util.RandomSource;
-            }
-            const BlockModelSet: {
-              new(fallback: net.minecraft.client.renderer.block.BlockStateModelSet, blockModelByState: Map<net.minecraft.world.level.block.state.BlockState, net.minecraft.client.renderer.block.model.BlockModel>, blockColors: net.minecraft.client.color.block.BlockColors): net.minecraft.client.renderer.block.BlockModelSet;
-            }
-            interface BlockModelSet { 
-              get(blockState: net.minecraft.world.level.block.state.BlockState): net.minecraft.client.renderer.block.model.BlockModel;
+            interface LevelExtractor extends net.minecraft.server.packs.resources.ResourceManagerReloadListener { 
+              debugRenderer: net.minecraft.client.renderer.debug.DebugRenderer;
+              gameTestBlockHighlightRenderer: net.minecraft.client.renderer.debug.GameTestBlockHighlightRenderer;
+              lastViewDistance(): number;
+              extract(deltaTracker: net.minecraft.client.DeltaTracker, camera: net.minecraft.client.Camera, deltaPartialTick: number): void;
+              isEntityVisible(entity: net.minecraft.world.entity.Entity, frustum: net.minecraft.client.renderer.culling.Frustum, camX: number, camY: number, camZ: number): boolean;
+              setLevel(level: net.minecraft.client.multiplayer.ClientLevel | null | undefined): void;
+              allChanged(): void;
+              resetSampler(): void;
+              blockChanged(pos: net.minecraft.core.BlockPos, updateFlags: number): void;
+              setBlockDirty(pos: net.minecraft.core.BlockPos, oldState: net.minecraft.world.level.block.state.BlockState, newState: net.minecraft.world.level.block.state.BlockState): void;
+              setBlocksDirty(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): void;
+              setSectionDirtyWithNeighbors(sectionX: number, sectionY: number, sectionZ: number): void;
+              setSectionRangeDirty(minSectionX: number, minSectionY: number, minSectionZ: number, maxSectionX: number, maxSectionY: number, maxSectionZ: number): void;
+              setSectionDirty(sectionX: number, sectionY: number, sectionZ: number): void;
+              collectPerFrameMainThreadGizmos(): net.minecraft.gizmos.Gizmos$TemporaryCollection;
+              countRenderedSections(): number;
+              sectionStatistics(): string | null | undefined;
+              entityStatistics(): string | null | undefined;
+              totalSections(): number;
             }
           }
           namespace debug {
@@ -13863,7 +14089,7 @@ declare global {
               getRenderer<E, S>(blockEntity: E): net.minecraft.client.renderer.blockentity.BlockEntityRenderer<E, S> | null | undefined;
               getRenderer<E, S>(state: S): net.minecraft.client.renderer.blockentity.BlockEntityRenderer<E, S> | null | undefined;
               prepare(cameraPos: net.minecraft.world.phys.Vec3): void;
-              tryExtractRenderState<E, S>(blockEntity: E, partialTicks: number, breakProgress: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined): S;
+              tryExtractRenderState<E, S>(blockEntity: E, partialTicks: number, breakProgress: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined, isGloballyRendered: boolean): S;
               submit<S>(state: S, poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
             }
             interface BlockEntityRenderer<T, S> { 
@@ -13896,12 +14122,23 @@ declare global {
             define(key: string): net.minecraft.client.renderer.ShaderDefines$Builder;
             build(): net.minecraft.client.renderer.ShaderDefines;
           }
+          const StagedVertexBuffer$ExecuteInfo: {
+            new(vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.IndexType, baseVertex: number, firstIndex: number, indexCount: number): net.minecraft.client.renderer.StagedVertexBuffer$ExecuteInfo;
+          }
+          interface StagedVertexBuffer$ExecuteInfo extends java.lang.Record { 
+            vertexBuffer(): com.mojang.blaze3d.buffers.GpuBuffer;
+            indexBuffer(): com.mojang.blaze3d.buffers.GpuBuffer;
+            indexType(): com.mojang.blaze3d.IndexType;
+            baseVertex(): number;
+            firstIndex(): number;
+            indexCount(): number;
+          }
           interface SubmitNodeCollector extends net.minecraft.client.renderer.OrderedSubmitNodeCollector { 
             order(order: number): net.minecraft.client.renderer.OrderedSubmitNodeCollector;
           }
-          interface OrderedSubmitNodeCollector extends net.fabricmc.fabric.api.client.renderer.v1.render.FabricOrderedSubmitNodeCollector { 
+          interface OrderedSubmitNodeCollector extends net.fabricmc.fabric.api.client.renderer.v1.render.FabricOrderedSubmitNodeCollector, net.fabricmc.fabric.api.client.rendering.v1.FabricOrderedSubmitNodeCollector { 
             submitShadow(poseStack: com.mojang.blaze3d.vertex.PoseStack, radius: number, pieces: Array<net.minecraft.client.renderer.entity.state.EntityRenderState$ShadowPiece>): void;
-            submitNameTag(poseStack: com.mojang.blaze3d.vertex.PoseStack, nameTagAttachment: net.minecraft.world.phys.Vec3 | null | undefined, offset: number, name: net.minecraft.network.chat.Component, seeThrough: boolean, lightCoords: number, distanceToCameraSq: number, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
+            submitNameTag(poseStack: com.mojang.blaze3d.vertex.PoseStack, nameTagAttachment: net.minecraft.world.phys.Vec3 | null | undefined, offset: number, name: net.minecraft.network.chat.Component, seeThrough: boolean, lightCoords: number, camera: net.minecraft.client.renderer.state.level.CameraRenderState): void;
             submitText(poseStack: com.mojang.blaze3d.vertex.PoseStack, x: number, y: number, string: net.minecraft.util.FormattedCharSequence, dropShadow: boolean, displayMode: net.minecraft.client.gui.Font$DisplayMode, lightCoords: number, color: number, backgroundColor: number, outlineColor: number): void;
             submitFlame(poseStack: com.mojang.blaze3d.vertex.PoseStack, renderState: net.minecraft.client.renderer.entity.state.EntityRenderState, rotation: org.joml.Quaternionf): void;
             submitLeash(poseStack: com.mojang.blaze3d.vertex.PoseStack, leashState: net.minecraft.client.renderer.entity.state.EntityRenderState$LeashState): void;
@@ -13911,35 +14148,39 @@ declare global {
             submitModel<S>(model: net.minecraft.client.model.Model<S>, state: S, poseStack: com.mojang.blaze3d.vertex.PoseStack, lightCoords: number, overlayCoords: number, tintedColor: number, sprite: net.minecraft.client.resources.model.sprite.SpriteId, sprites: net.minecraft.client.resources.model.sprite.SpriteGetter, outlineColor: number, crumblingOverlay: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined): void;
             submitModelPart(modelPart: net.minecraft.client.model.geom.ModelPart, poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, lightCoords: number, overlayCoords: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined): void;
             submitModelPart(modelPart: net.minecraft.client.model.geom.ModelPart, poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, lightCoords: number, overlayCoords: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined, tintedColor: number, crumblingOverlay: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined): void;
-            submitModelPart(modelPart: net.minecraft.client.model.geom.ModelPart, poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, lightCoords: number, overlayCoords: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined, sheeted: boolean, hasFoil: boolean): void;
-            submitModelPart(modelPart: net.minecraft.client.model.geom.ModelPart, poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, lightCoords: number, overlayCoords: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined, sheeted: boolean, hasFoil: boolean, tintedColor: number, crumblingOverlay: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined, outlineColor: number): void;
-            submitMovingBlock(poseStack: com.mojang.blaze3d.vertex.PoseStack, movingBlockRenderState: net.minecraft.client.renderer.block.MovingBlockRenderState): void;
+            submitModelPart(modelPart: net.minecraft.client.model.geom.ModelPart, poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, lightCoords: number, overlayCoords: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined, tintedColor: number, crumblingOverlay: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined, outlineColor: number): void;
+            submitMovingBlock(poseStack: com.mojang.blaze3d.vertex.PoseStack, movingBlockRenderState: net.minecraft.client.renderer.block.MovingBlockRenderState, outlineColor: number): void;
             submitBlockModel(poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, parts: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, tintLayers: Array<number>, lightCoords: number, overlayCoords: number, outlineColor: number): void;
-            submitBreakingBlockModel(poseStack: com.mojang.blaze3d.vertex.PoseStack, model: net.minecraft.client.renderer.block.dispatch.BlockStateModel, seed: number, progress: number): void;
+            submitBreakingBlockModel(poseStack: com.mojang.blaze3d.vertex.PoseStack, parts: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, progress: number): void;
+            submitShapeOutline(poseStack: com.mojang.blaze3d.vertex.PoseStack, shape: net.minecraft.world.phys.shapes.VoxelShape, renderType: net.minecraft.client.renderer.rendertype.RenderType, color: number, width: number, afterTerrain: boolean): void;
             submitItem(poseStack: com.mojang.blaze3d.vertex.PoseStack, displayContext: net.minecraft.world.item.ItemDisplayContext, lightCoords: number, overlayCoords: number, outlineColor: number, tintLayers: Array<number>, quads: Array<net.minecraft.client.resources.model.geometry.BakedQuad>, foilType: net.minecraft.client.renderer.item.ItemStackRenderState$FoilType): void;
             submitCustomGeometry(poseStack: com.mojang.blaze3d.vertex.PoseStack, renderType: net.minecraft.client.renderer.rendertype.RenderType, customGeometryRenderer: net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer): void;
-            submitParticleGroup(particleGroupRenderer: net.minecraft.client.renderer.SubmitNodeCollector$ParticleGroupRenderer): void;
+            submitQuadParticleGroup(particles: net.minecraft.client.renderer.state.level.QuadParticleRenderState): void;
+            submitGizmoPrimitives(group: net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives$Group, camera: net.minecraft.client.renderer.state.level.CameraRenderState, onTop: boolean): void;
           }
-          const MultiBufferSource: {
-            BufferSource: typeof net.minecraft.client.renderer.MultiBufferSource$BufferSource;
-            immediate(buffer: com.mojang.blaze3d.vertex.ByteBufferBuilder): net.minecraft.client.renderer.MultiBufferSource$BufferSource;
-            immediateWithBuffers(fixedBuffers: java.util.SequencedMap<net.minecraft.client.renderer.rendertype.RenderType, com.mojang.blaze3d.vertex.ByteBufferBuilder>, sharedBuffer: com.mojang.blaze3d.vertex.ByteBufferBuilder): net.minecraft.client.renderer.MultiBufferSource$BufferSource;
+          const SubmitNodeCollection: {
+            new(): net.minecraft.client.renderer.SubmitNodeCollection;
           }
-          interface MultiBufferSource { 
-            getBuffer(renderType: net.minecraft.client.renderer.rendertype.RenderType): com.mojang.blaze3d.vertex.VertexConsumer;
-          }
-          interface MultiBufferSource$BufferSource extends net.minecraft.client.renderer.MultiBufferSource { 
-            endLastBatch(): void;
-            endBatch(): void;
-            endBatch(type: net.minecraft.client.renderer.rendertype.RenderType): void;
+          interface SubmitNodeCollection extends net.minecraft.client.renderer.OrderedSubmitNodeCollector { 
+            solid: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            shadows: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            nameTags: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            seeThroughNameTags: net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase;
+            texts: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            shapeOutlines: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            translucentBlocksAndItems: net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase;
+            translucentModels: net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase;
+            translucentCustomGeometry: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            gizmos: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            breakingOverlay: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            waterMask: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            afterTerrain: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            alwaysOnTop: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            outline: net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+            allPhases(): Array<net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<any>>;
           }
           interface SubmitNodeCollector$CustomGeometryRenderer { 
             render(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, buffer: com.mojang.blaze3d.vertex.VertexConsumer): void;
-          }
-          interface SubmitNodeCollector$ParticleGroupRenderer { 
-            isEmpty(): boolean;
-            prepare(buffer: net.minecraft.client.renderer.feature.ParticleFeatureRenderer$ParticleBufferCache, translucent: boolean): net.minecraft.client.renderer.state.level.QuadParticleRenderState$PreparedBuffers | null | undefined;
-            render(buffers: net.minecraft.client.renderer.state.level.QuadParticleRenderState$PreparedBuffers, bufferCache: net.minecraft.client.renderer.feature.ParticleFeatureRenderer$ParticleBufferCache, renderPass: com.mojang.blaze3d.systems.RenderPass, textureManager: net.minecraft.client.renderer.texture.TextureManager): void;
           }
           const PlayerSkinRenderCache: {
             RenderInfo: typeof net.minecraft.client.renderer.PlayerSkinRenderCache$RenderInfo;
@@ -13973,94 +14214,40 @@ declare global {
             getIntensity(partialTicks: number): number;
             flashStartedThisTick(): boolean;
           }
-          const RenderBuffers: {
-            new(maxSectionBuilders: number): net.minecraft.client.renderer.RenderBuffers;
-          }
-          interface RenderBuffers { 
-            fixedBufferPack(): net.minecraft.client.renderer.SectionBufferBuilderPack;
-            sectionBufferPool(): net.minecraft.client.renderer.SectionBufferBuilderPool;
-            bufferSource(): net.minecraft.client.renderer.MultiBufferSource$BufferSource;
-            crumblingBufferSource(): net.minecraft.client.renderer.MultiBufferSource$BufferSource;
-            outlineBufferSource(): net.minecraft.client.renderer.OutlineBufferSource;
-          }
-          const SectionBufferBuilderPack: {
-            TOTAL_BUFFERS_SIZE: number;
-            new(): net.minecraft.client.renderer.SectionBufferBuilderPack;
-          }
-          interface SectionBufferBuilderPack extends java.lang.AutoCloseable { 
-            buffer(layer: net.minecraft.client.renderer.chunk.ChunkSectionLayer): com.mojang.blaze3d.vertex.ByteBufferBuilder;
-            clearAll(): void;
-            discardAll(): void;
-          }
-          const SectionBufferBuilderPool: {
-            allocate(maxWorkers: number): net.minecraft.client.renderer.SectionBufferBuilderPool;
-          }
-          interface SectionBufferBuilderPool { 
-            acquire(): net.minecraft.client.renderer.SectionBufferBuilderPack | null | undefined;
-            release(buffer: net.minecraft.client.renderer.SectionBufferBuilderPack): void;
-            isEmpty(): boolean;
-            getFreeBufferCount(): number;
-          }
-          const OutlineBufferSource: {
-            new(): net.minecraft.client.renderer.OutlineBufferSource;
-          }
-          interface OutlineBufferSource extends net.minecraft.client.renderer.MultiBufferSource { 
-            setColor(color: number): void;
-            endOutlineBatch(): void;
-          }
           const LevelRenderer: {
-            SECTION_SIZE: number;
-            HALF_SECTION_SIZE: number;
-            NEARBY_SECTION_DISTANCE_IN_BLOCKS: number;
-            new(minecraft: net.minecraft.client.Minecraft, entityRenderDispatcher: net.minecraft.client.renderer.entity.EntityRenderDispatcher, blockEntityRenderDispatcher: net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher, renderBuffers: net.minecraft.client.renderer.RenderBuffers, gameRenderState: net.minecraft.client.renderer.state.GameRenderState, featureRenderDispatcher: net.minecraft.client.renderer.feature.FeatureRenderDispatcher): net.minecraft.client.renderer.LevelRenderer;
-            offsetFrustum(frustum: net.minecraft.client.renderer.culling.Frustum): net.minecraft.client.renderer.culling.Frustum;
-            getLightCoords(level: net.minecraft.world.level.BlockAndLightGetter, pos: net.minecraft.core.BlockPos): number;
-            getLightCoords(brightnessGetter: net.minecraft.client.renderer.LevelRenderer$BrightnessGetter, level: net.minecraft.world.level.BlockAndLightGetter, state: net.minecraft.world.level.block.state.BlockState, pos: net.minecraft.core.BlockPos): number;
+            new(entityRenderDispatcher: net.minecraft.client.renderer.entity.EntityRenderDispatcher, blockEntityRenderDispatcher: net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher, modelManager: net.minecraft.client.resources.model.ModelManager, textureManager: net.minecraft.client.renderer.texture.TextureManager, atlasManager: net.minecraft.client.resources.model.sprite.AtlasManager, shaderManager: net.minecraft.client.renderer.ShaderManager, gameRenderer: net.minecraft.client.renderer.GameRenderer, width: number, height: number): net.minecraft.client.renderer.LevelRenderer;
           }
-          interface LevelRenderer extends net.minecraft.server.packs.resources.ResourceManagerReloadListener, java.lang.AutoCloseable { 
-            debugRenderer: net.minecraft.client.renderer.debug.DebugRenderer;
-            gameTestBlockHighlightRenderer: net.minecraft.client.renderer.debug.GameTestBlockHighlightRenderer;
+          interface LevelRenderer extends java.lang.AutoCloseable { 
+            entityRenderDispatcher(): net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+            blockEntityRenderDispatcher(): net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+            skyRenderer(): net.minecraft.client.renderer.SkyRenderer | null | undefined;
+            cloudRenderer(): net.minecraft.client.renderer.CloudRenderer;
+            worldBorderRenderer(): net.minecraft.client.renderer.WorldBorderRenderer;
+            weatherEffectRenderer(): net.minecraft.client.renderer.WeatherEffectRenderer;
+            sectionOcclusionGraph(): net.minecraft.client.renderer.SectionOcclusionGraph;
+            visibleSections(): it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>;
+            nearbyVisibleSections(): it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>;
+            viewArea(): net.minecraft.client.renderer.ViewArea | null | undefined;
             entityOutlineTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
-            initOutline(): void;
-            doEntityOutline(): void;
-            setLevel(level: net.minecraft.client.multiplayer.ClientLevel | null | undefined): void;
-            allChanged(): void;
-            resize(width: number, height: number): void;
-            getSectionStatistics(): string | null | undefined;
-            getSectionRenderDispatcher(): net.minecraft.client.renderer.chunk.SectionRenderDispatcher | null | undefined;
-            getTotalSections(): number;
-            getLastViewDistance(): number;
-            countRenderedSections(): number;
-            resetSampler(): void;
-            getEntityStatistics(): string | null | undefined;
-            addRecentlyCompiledSection(section: net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection): void;
-            update(camera: net.minecraft.client.Camera): void;
-            renderLevel(resourceAllocator: com.mojang.blaze3d.resource.GraphicsResourceAllocator, deltaTracker: net.minecraft.client.DeltaTracker, renderOutline: boolean, cameraState: net.minecraft.client.renderer.state.level.CameraRenderState, modelViewMatrix: org.joml.Matrix4fc, terrainFog: com.mojang.blaze3d.buffers.GpuBufferSlice, fogColor: org.joml.Vector4f, shouldRenderSky: boolean, chunkSectionsToRender: net.minecraft.client.renderer.chunk.ChunkSectionsToRender): void;
-            extractLevel(deltaTracker: net.minecraft.client.DeltaTracker, camera: net.minecraft.client.Camera, deltaPartialTick: number): void;
+            sectionRenderDispatcher(): net.minecraft.client.renderer.chunk.SectionRenderDispatcher | null | undefined;
+            render(resourceAllocator: com.mojang.blaze3d.resource.GraphicsResourceAllocator, deltaTracker: net.minecraft.client.DeltaTracker, renderOutline: boolean, cameraState: net.minecraft.client.renderer.state.level.CameraRenderState, modelViewMatrix: org.joml.Matrix4fc, terrainFog: com.mojang.blaze3d.buffers.GpuBufferSlice, fogColor: org.joml.Vector4f, shouldRenderSky: boolean): void;
             prepareChunkRenders(modelViewMatrix: org.joml.Matrix4fc): net.minecraft.client.renderer.chunk.ChunkSectionsToRender;
+            resize(width: number, height: number): void;
             endFrame(): void;
-            tick(camera: net.minecraft.client.Camera): void;
-            blockChanged(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos, old: net.minecraft.world.level.block.state.BlockState, current: net.minecraft.world.level.block.state.BlockState, updateFlags: number): void;
-            setBlockDirty(pos: net.minecraft.core.BlockPos, oldState: net.minecraft.world.level.block.state.BlockState, newState: net.minecraft.world.level.block.state.BlockState): void;
-            setBlocksDirty(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): void;
-            setSectionDirtyWithNeighbors(sectionX: number, sectionY: number, sectionZ: number): void;
-            setSectionRangeDirty(minSectionX: number, minSectionY: number, minSectionZ: number, maxSectionX: number, maxSectionY: number, maxSectionZ: number): void;
-            setSectionDirty(sectionX: number, sectionY: number, sectionZ: number): void;
-            onSectionBecomingNonEmpty(sectionNode: number): void;
-            destroyBlockProgress(id: number, pos: net.minecraft.core.BlockPos, progress: number): void;
+            doEntityOutline(): void;
+            invalidateCompiledGeometry(level: net.minecraft.client.multiplayer.ClientLevel, options: net.minecraft.client.Options, camera: net.minecraft.client.Camera, blockColors: net.minecraft.client.color.block.BlockColors): void;
+            clearVisibleSections(): void;
+            resetLevelRenderData(): void;
             hasRenderedAllSections(): boolean;
-            onChunkReadyToRender(pos: net.minecraft.world.level.ChunkPos): void;
-            needsUpdate(): void;
             isSectionCompiledAndVisible(blockPos: net.minecraft.core.BlockPos): boolean;
-            getTranslucentTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
-            getItemEntityTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
-            getParticlesTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
-            getWeatherTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
-            getCloudsTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
-            getVisibleSections(): it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>;
-            getSectionOcclusionGraph(): net.minecraft.client.renderer.SectionOcclusionGraph;
-            getCloudRenderer(): net.minecraft.client.renderer.CloudRenderer;
-            collectPerFrameGizmos(): net.minecraft.gizmos.Gizmos$TemporaryCollection;
+            translucentTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
+            itemEntityTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
+            particlesTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
+            weatherTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
+            cloudsTarget(): com.mojang.blaze3d.pipeline.RenderTarget | null | undefined;
+            expectedChunks(): it.unimi.dsi.fastutil.longs.LongCollection;
+            collectPerFrameRenderThreadGizmos(): net.minecraft.gizmos.Gizmos$TemporaryCollection;
+            addMainThreadGizmos(mainThreadGizmos: Array<unknown>): void;
           }
           const MapRenderer: {
             WIDTH: number;
@@ -14076,9 +14263,67 @@ declare global {
           }
           interface ItemInHandRenderer { 
             renderItem(mob: net.minecraft.world.entity.LivingEntity, itemStack: net.minecraft.world.item.ItemStack, type: net.minecraft.world.item.ItemDisplayContext, poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, lightCoords: number): void;
-            renderHandsWithItems(frameInterp: number, poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, player: net.minecraft.client.player.LocalPlayer, lightCoords: number): void;
+            submitHandsWithItems(frameInterp: number, poseStack: com.mojang.blaze3d.vertex.PoseStack, submitNodeCollector: net.minecraft.client.renderer.SubmitNodeCollector, player: net.minecraft.client.player.LocalPlayer, lightCoords: number): void;
             tick(): void;
             itemUsed(hand: net.minecraft.world.InteractionHand): void;
+          }
+          const SkyRenderer: {
+            new(textureManager: net.minecraft.client.renderer.texture.TextureManager, atlasManager: net.minecraft.client.resources.model.sprite.AtlasManager, renderTarget: com.mojang.blaze3d.pipeline.RenderTarget): net.minecraft.client.renderer.SkyRenderer;
+          }
+          interface SkyRenderer extends java.lang.AutoCloseable { 
+            renderSkyDisc(skyColor: number): void;
+            extractRenderState(level: net.minecraft.client.multiplayer.ClientLevel, partialTicks: number, camera: net.minecraft.client.Camera, state: net.minecraft.client.renderer.state.level.SkyRenderState): void;
+            renderDarkDisc(): void;
+            renderSunMoonAndStars(poseStack: com.mojang.blaze3d.vertex.PoseStack, sunAngle: number, moonAngle: number, starAngle: number, moonPhase: net.minecraft.world.level.MoonPhase, rainBrightness: number, starBrightness: number): void;
+            renderSunriseAndSunset(poseStack: com.mojang.blaze3d.vertex.PoseStack, sunAngle: number, sunriseAndSunsetColor: number): void;
+            renderEndSky(): void;
+            renderEndFlash(poseStack: com.mojang.blaze3d.vertex.PoseStack, intensity: number, xAngle: number, yAngle: number): void;
+          }
+          const CloudRenderer: {
+            TextureData: typeof net.minecraft.client.renderer.CloudRenderer$TextureData;
+            new(): net.minecraft.client.renderer.CloudRenderer;
+          }
+          interface CloudRenderer extends net.minecraft.server.packs.resources.SimplePreparableReloadListener<java.util.Optional<net.minecraft.client.renderer.CloudRenderer$TextureData>>, java.lang.AutoCloseable { 
+            render(color: number, cloudStatus: net.minecraft.client.CloudStatus, bottomY: number, range: number, cameraPosition: net.minecraft.world.phys.Vec3, gameTime: number, partialTicks: number): void;
+            markForRebuild(): void;
+            endFrame(): void;
+          }
+          const CloudRenderer$TextureData: {
+            new(cells: Array<number>, width: number, height: number): net.minecraft.client.renderer.CloudRenderer$TextureData;
+          }
+          interface CloudRenderer$TextureData extends java.lang.Record { 
+            cells(): Array<number>;
+            width(): number;
+            height(): number;
+          }
+          const WorldBorderRenderer: {
+            FORCEFIELD_LOCATION: net.minecraft.resources.Identifier;
+            new(): net.minecraft.client.renderer.WorldBorderRenderer;
+          }
+          interface WorldBorderRenderer extends java.lang.AutoCloseable { 
+            extract(border: net.minecraft.world.level.border.WorldBorder, deltaPartialTick: number, cameraPos: net.minecraft.world.phys.Vec3, renderDistance: number, state: net.minecraft.client.renderer.state.level.WorldBorderRenderState): void;
+            render(state: net.minecraft.client.renderer.state.level.WorldBorderRenderState, cameraPos: net.minecraft.world.phys.Vec3, renderDistance: number, depthFar: number): void;
+            invalidate(): void;
+          }
+          const WeatherEffectRenderer: {
+            ColumnInstance: typeof net.minecraft.client.renderer.WeatherEffectRenderer$ColumnInstance;
+            new(): net.minecraft.client.renderer.WeatherEffectRenderer;
+          }
+          interface WeatherEffectRenderer extends java.lang.AutoCloseable { 
+            extractRenderState(level: net.minecraft.client.multiplayer.ClientLevel, partialTicks: number, cameraPos: net.minecraft.world.phys.Vec3, renderState: net.minecraft.client.renderer.state.level.WeatherRenderState): void;
+            render(cameraPos: net.minecraft.world.phys.Vec3, renderState: net.minecraft.client.renderer.state.level.WeatherRenderState): void;
+          }
+          const WeatherEffectRenderer$ColumnInstance: {
+            new(x: number, z: number, bottomY: number, topY: number, uOffset: number, vOffset: number, lightCoords: number): net.minecraft.client.renderer.WeatherEffectRenderer$ColumnInstance;
+          }
+          interface WeatherEffectRenderer$ColumnInstance extends java.lang.Record { 
+            x(): number;
+            z(): number;
+            bottomY(): number;
+            topY(): number;
+            uOffset(): number;
+            vOffset(): number;
+            lightCoords(): number;
           }
           const SectionOcclusionGraph: {
             Node: typeof net.minecraft.client.renderer.SectionOcclusionGraph$Node;
@@ -14086,26 +14331,77 @@ declare global {
           }
           interface SectionOcclusionGraph { 
             waitAndReset(viewArea: net.minecraft.client.renderer.ViewArea | null | undefined): void;
+            expectedChunks(): it.unimi.dsi.fastutil.longs.LongCollection;
             invalidate(): void;
+            invalidateIfNeeded(camera: net.minecraft.client.renderer.state.level.CameraRenderState, fov: number): void;
             addSectionsInFrustum(frustum: net.minecraft.client.renderer.culling.Frustum, visibleSections: Array<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>, nearbyVisibleSection: Array<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>): void;
             consumeFrustumUpdate(): boolean;
-            onChunkReadyToRender(pos: net.minecraft.world.level.ChunkPos): void;
             schedulePropagationFrom(section: net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection): void;
-            update(smartCull: boolean, camera: net.minecraft.client.Camera, frustum: net.minecraft.client.renderer.culling.Frustum, visibleSections: Array<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>, loadedEmptySections: it.unimi.dsi.fastutil.longs.LongOpenHashSet): void;
+            update(camera: net.minecraft.client.renderer.state.level.CameraRenderState, fov: number, chunkLoadingRenderState: net.minecraft.client.renderer.state.level.ChunkLoadingRenderState): void;
             getNode(section: net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection): net.minecraft.client.renderer.SectionOcclusionGraph$Node | null | undefined;
+            updateEmptySections(added: it.unimi.dsi.fastutil.longs.LongOpenHashSet, removed: it.unimi.dsi.fastutil.longs.LongOpenHashSet): void;
+            updateLoadedChunks(added: it.unimi.dsi.fastutil.longs.LongOpenHashSet, removed: it.unimi.dsi.fastutil.longs.LongOpenHashSet): void;
             getOctree(): net.minecraft.client.renderer.Octree;
           }
           const ViewArea: {
-            new(sectionRenderDispatcher: net.minecraft.client.renderer.chunk.SectionRenderDispatcher, level: net.minecraft.world.level.Level, renderDistance: number, levelRenderer: net.minecraft.client.renderer.LevelRenderer): net.minecraft.client.renderer.ViewArea;
+            new(sectionRenderDispatcher: net.minecraft.client.renderer.chunk.SectionRenderDispatcher, minY: number, maxY: number, minSectionY: number, maxSectionY: number, renderDistance: number, sectionOcclusionGraph: net.minecraft.client.renderer.SectionOcclusionGraph): net.minecraft.client.renderer.ViewArea;
           }
           interface ViewArea { 
-            sections: Array<net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection>;
+            minY(): number;
+            maxY(): number;
             releaseAllBuffers(): void;
+            size(): number;
+            minSectionY(): number;
+            maxSectionY(): number;
+            sectionCount(): number;
             getViewDistance(): number;
-            getLevelHeightAccessor(): net.minecraft.world.level.LevelHeightAccessor;
-            repositionCamera(cameraSectionPos: net.minecraft.core.SectionPos): void;
+            repositionCamera(cameraSectionPos: net.minecraft.core.SectionPos): boolean;
             getCameraSectionPos(): net.minecraft.core.SectionPos;
-            setDirty(sectionX: number, sectionY: number, sectionZ: number, playerChanged: boolean): void;
+            getRenderSectionAt(pos: net.minecraft.core.BlockPos): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection | null | undefined;
+          }
+          const SectionBufferBuilderPack: {
+            TOTAL_BUFFERS_SIZE: number;
+            new(): net.minecraft.client.renderer.SectionBufferBuilderPack;
+          }
+          interface SectionBufferBuilderPack extends java.lang.AutoCloseable { 
+            buffer(layer: net.minecraft.client.renderer.chunk.ChunkSectionLayer): com.mojang.blaze3d.vertex.ByteBufferBuilder;
+            clearAll(): void;
+            discardAll(): void;
+          }
+          const RenderBuffers: {
+            new(maxSectionBuilders: number): net.minecraft.client.renderer.RenderBuffers;
+          }
+          interface RenderBuffers extends java.lang.AutoCloseable { 
+            fixedBufferPack(): net.minecraft.client.renderer.SectionBufferBuilderPack;
+            sectionBufferPool(): net.minecraft.client.renderer.SectionBufferBuilderPool;
+            stagedVertexBuffer(): net.minecraft.client.renderer.StagedVertexBuffer;
+            endFrame(): void;
+          }
+          const SectionBufferBuilderPool: {
+            allocate(maxWorkers: number): net.minecraft.client.renderer.SectionBufferBuilderPool;
+          }
+          interface SectionBufferBuilderPool extends java.lang.AutoCloseable { 
+            acquire(): net.minecraft.client.renderer.SectionBufferBuilderPack | null | undefined;
+            release(buffer: net.minecraft.client.renderer.SectionBufferBuilderPack): void;
+            isEmpty(): boolean;
+            getFreeBufferCount(): number;
+          }
+          const StagedVertexBuffer: {
+            Draw: typeof net.minecraft.client.renderer.StagedVertexBuffer$Draw;
+            ExecuteInfo: typeof net.minecraft.client.renderer.StagedVertexBuffer$ExecuteInfo;
+            new(label: unknown, initialCapacity: number): net.minecraft.client.renderer.StagedVertexBuffer;
+          }
+          interface StagedVertexBuffer extends java.lang.AutoCloseable { 
+            appendDraw(format: com.mojang.blaze3d.vertex.VertexFormat, primitiveTopology: com.mojang.blaze3d.PrimitiveTopology): net.minecraft.client.renderer.StagedVertexBuffer$Draw;
+            appendDraw(format: com.mojang.blaze3d.vertex.VertexFormat, primitiveTopology: com.mojang.blaze3d.PrimitiveTopology, quadSorting: com.mojang.blaze3d.vertex.VertexSorting | null | undefined): net.minecraft.client.renderer.StagedVertexBuffer$Draw;
+            getVertexBuilder(draw: net.minecraft.client.renderer.StagedVertexBuffer$Draw): com.mojang.blaze3d.vertex.VertexConsumer;
+            upload(): void;
+            getExecuteInfo(draw: net.minecraft.client.renderer.StagedVertexBuffer$Draw): net.minecraft.client.renderer.StagedVertexBuffer$ExecuteInfo | null | undefined;
+            endDraw(): void;
+            endFrame(): void;
+          }
+          interface StagedVertexBuffer$Draw { 
+            isEmpty(): boolean;
           }
           interface SectionOcclusionGraph$Node { 
             step: number;
@@ -14126,260 +14422,6 @@ declare global {
             visitNodes(visitor: net.minecraft.client.renderer.Octree$OctreeVisitor, skipFrustumCheck: boolean, frustum: net.minecraft.client.renderer.culling.Frustum, depth: number, closeDistance: number, isClose: boolean): void;
             getSection(): net.minecraft.client.renderer.chunk.SectionRenderDispatcher$RenderSection | null | undefined;
             getAABB(): net.minecraft.world.phys.AABB;
-          }
-          const CloudRenderer: {
-            TextureData: typeof net.minecraft.client.renderer.CloudRenderer$TextureData;
-            new(): net.minecraft.client.renderer.CloudRenderer;
-          }
-          interface CloudRenderer extends net.minecraft.server.packs.resources.SimplePreparableReloadListener<java.util.Optional<net.minecraft.client.renderer.CloudRenderer$TextureData>>, java.lang.AutoCloseable { 
-            render(color: number, cloudStatus: net.minecraft.client.CloudStatus, bottomY: number, range: number, cameraPosition: net.minecraft.world.phys.Vec3, gameTime: number, partialTicks: number): void;
-            markForRebuild(): void;
-            endFrame(): void;
-          }
-          const CloudRenderer$TextureData: {
-            new(cells: Array<number>, width: number, height: number): net.minecraft.client.renderer.CloudRenderer$TextureData;
-          }
-          interface CloudRenderer$TextureData extends java.lang.Record { 
-            cells(): Array<number>;
-            width(): number;
-            height(): number;
-          }
-          const SubmitNodeStorage: {
-            BreakingBlockModelSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$BreakingBlockModelSubmit;
-            CustomGeometrySubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$CustomGeometrySubmit;
-            ItemSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$ItemSubmit;
-            BlockModelSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$BlockModelSubmit;
-            MovingBlockSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$MovingBlockSubmit;
-            TranslucentModelSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$TranslucentModelSubmit;
-            ModelPartSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$ModelPartSubmit;
-            ModelSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$ModelSubmit;
-            LeashSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$LeashSubmit;
-            TextSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$TextSubmit;
-            NameTagSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$NameTagSubmit;
-            FlameSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$FlameSubmit;
-            ShadowSubmit: typeof net.minecraft.client.renderer.SubmitNodeStorage$ShadowSubmit;
-            new(): net.minecraft.client.renderer.SubmitNodeStorage;
-          }
-          interface SubmitNodeStorage extends net.minecraft.client.renderer.SubmitNodeCollector { 
-            clear(): void;
-            endFrame(): void;
-            getSubmitsPerOrder(): it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap<net.minecraft.client.renderer.SubmitNodeCollection>;
-          }
-          const SubmitNodeCollection: {
-            new(submitNodeStorage: net.minecraft.client.renderer.SubmitNodeStorage): net.minecraft.client.renderer.SubmitNodeCollection;
-          }
-          interface SubmitNodeCollection extends net.minecraft.client.renderer.OrderedSubmitNodeCollector, net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection { 
-            wasUsed(): boolean;
-            getShadowSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$ShadowSubmit>;
-            getFlameSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$FlameSubmit>;
-            getNameTagSubmits(): net.minecraft.client.renderer.feature.NameTagFeatureRenderer$Storage;
-            getTextSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$TextSubmit>;
-            getLeashSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$LeashSubmit>;
-            getMovingBlockSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$MovingBlockSubmit>;
-            getBlockModelSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$BlockModelSubmit>;
-            getBreakingBlockModelSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$BreakingBlockModelSubmit>;
-            getModelPartSubmits(): net.minecraft.client.renderer.feature.ModelPartFeatureRenderer$Storage;
-            getItemSubmits(): Array<net.minecraft.client.renderer.SubmitNodeStorage$ItemSubmit>;
-            getParticleGroupRenderers(): Array<net.minecraft.client.renderer.SubmitNodeCollector$ParticleGroupRenderer>;
-            getModelSubmits(): net.minecraft.client.renderer.feature.ModelFeatureRenderer$Storage;
-            getCustomGeometrySubmits(): net.minecraft.client.renderer.feature.CustomFeatureRenderer$Storage;
-            clear(): void;
-            endFrame(): void;
-          }
-          const SubmitNodeStorage$ModelPartSubmit: {
-            new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, modelPart: net.minecraft.client.model.geom.ModelPart, lightCoords: number, overlayCoords: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined, sheeted: boolean, hasFoil: boolean, tintedColor: number, crumblingOverlay: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined, outlineColor: number): net.minecraft.client.renderer.SubmitNodeStorage$ModelPartSubmit;
-          }
-          interface SubmitNodeStorage$ModelPartSubmit extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            modelPart(): net.minecraft.client.model.geom.ModelPart;
-            lightCoords(): number;
-            overlayCoords(): number;
-            sprite(): net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined;
-            sheeted(): boolean;
-            hasFoil(): boolean;
-            tintedColor(): number;
-            crumblingOverlay(): net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined;
-            outlineColor(): number;
-          }
-          const SubmitNodeStorage$ModelSubmit: {
-            new<S>(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, model: net.minecraft.client.model.Model<S>, state: S, lightCoords: number, overlayCoords: number, tintedColor: number, sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined, outlineColor: number, crumblingOverlay: net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined): net.minecraft.client.renderer.SubmitNodeStorage$ModelSubmit<any>;
-          }
-          interface SubmitNodeStorage$ModelSubmit<S> extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            model(): net.minecraft.client.model.Model<S>;
-            state(): S;
-            lightCoords(): number;
-            overlayCoords(): number;
-            tintedColor(): number;
-            sprite(): net.minecraft.client.renderer.texture.TextureAtlasSprite | null | undefined;
-            outlineColor(): number;
-            crumblingOverlay(): net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay | null | undefined;
-          }
-          const SubmitNodeStorage$BreakingBlockModelSubmit: {
-            new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, model: net.minecraft.client.renderer.block.dispatch.BlockStateModel, seed: number, progress: number): net.minecraft.client.renderer.SubmitNodeStorage$BreakingBlockModelSubmit;
-          }
-          interface SubmitNodeStorage$BreakingBlockModelSubmit extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            model(): net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-            seed(): number;
-            progress(): number;
-          }
-          const SubmitNodeStorage$CustomGeometrySubmit: {
-            new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, customGeometryRenderer: net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer): net.minecraft.client.renderer.SubmitNodeStorage$CustomGeometrySubmit;
-          }
-          interface SubmitNodeStorage$CustomGeometrySubmit extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            customGeometryRenderer(): net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer;
-          }
-          const SubmitNodeStorage$ItemSubmit: {
-            new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, displayContext: net.minecraft.world.item.ItemDisplayContext, lightCoords: number, overlayCoords: number, outlineColor: number, tintLayers: Array<number>, quads: Array<net.minecraft.client.resources.model.geometry.BakedQuad>, foilType: net.minecraft.client.renderer.item.ItemStackRenderState$FoilType): net.minecraft.client.renderer.SubmitNodeStorage$ItemSubmit;
-          }
-          interface SubmitNodeStorage$ItemSubmit extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            displayContext(): net.minecraft.world.item.ItemDisplayContext;
-            lightCoords(): number;
-            overlayCoords(): number;
-            outlineColor(): number;
-            tintLayers(): Array<number>;
-            quads(): Array<net.minecraft.client.resources.model.geometry.BakedQuad>;
-            foilType(): net.minecraft.client.renderer.item.ItemStackRenderState$FoilType;
-          }
-          const SubmitNodeStorage$BlockModelSubmit: {
-            new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, renderType: net.minecraft.client.renderer.rendertype.RenderType, modelParts: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, tintLayers: Array<number>, lightCoords: number, overlayCoords: number, outlineColor: number): net.minecraft.client.renderer.SubmitNodeStorage$BlockModelSubmit;
-          }
-          interface SubmitNodeStorage$BlockModelSubmit extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            renderType(): net.minecraft.client.renderer.rendertype.RenderType;
-            modelParts(): Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>;
-            tintLayers(): Array<number>;
-            lightCoords(): number;
-            overlayCoords(): number;
-            outlineColor(): number;
-          }
-          const SubmitNodeStorage$MovingBlockSubmit: {
-            new(pose: org.joml.Matrix4fc, movingBlockRenderState: net.minecraft.client.renderer.block.MovingBlockRenderState): net.minecraft.client.renderer.SubmitNodeStorage$MovingBlockSubmit;
-          }
-          interface SubmitNodeStorage$MovingBlockSubmit extends java.lang.Record { 
-            pose(): org.joml.Matrix4fc;
-            movingBlockRenderState(): net.minecraft.client.renderer.block.MovingBlockRenderState;
-          }
-          const SubmitNodeStorage$TranslucentModelSubmit: {
-            new<S>(modelSubmit: net.minecraft.client.renderer.SubmitNodeStorage$ModelSubmit<S>, renderType: net.minecraft.client.renderer.rendertype.RenderType, position: org.joml.Vector3f): net.minecraft.client.renderer.SubmitNodeStorage$TranslucentModelSubmit<any>;
-          }
-          interface SubmitNodeStorage$TranslucentModelSubmit<S> extends java.lang.Record { 
-            modelSubmit(): net.minecraft.client.renderer.SubmitNodeStorage$ModelSubmit<S>;
-            renderType(): net.minecraft.client.renderer.rendertype.RenderType;
-            position(): org.joml.Vector3f;
-          }
-          const SubmitNodeStorage$LeashSubmit: {
-            new(pose: org.joml.Matrix4f, leashState: net.minecraft.client.renderer.entity.state.EntityRenderState$LeashState): net.minecraft.client.renderer.SubmitNodeStorage$LeashSubmit;
-          }
-          interface SubmitNodeStorage$LeashSubmit extends java.lang.Record { 
-            pose(): org.joml.Matrix4f;
-            leashState(): net.minecraft.client.renderer.entity.state.EntityRenderState$LeashState;
-          }
-          const SubmitNodeStorage$TextSubmit: {
-            new(pose: org.joml.Matrix4fc, x: number, y: number, string: net.minecraft.util.FormattedCharSequence, dropShadow: boolean, displayMode: net.minecraft.client.gui.Font$DisplayMode, lightCoords: number, color: number, backgroundColor: number, outlineColor: number): net.minecraft.client.renderer.SubmitNodeStorage$TextSubmit;
-          }
-          interface SubmitNodeStorage$TextSubmit extends java.lang.Record { 
-            pose(): org.joml.Matrix4fc;
-            x(): number;
-            y(): number;
-            string(): net.minecraft.util.FormattedCharSequence;
-            dropShadow(): boolean;
-            displayMode(): net.minecraft.client.gui.Font$DisplayMode;
-            lightCoords(): number;
-            color(): number;
-            backgroundColor(): number;
-            outlineColor(): number;
-          }
-          const SubmitNodeStorage$NameTagSubmit: {
-            new(pose: org.joml.Matrix4fc, x: number, y: number, text: net.minecraft.network.chat.Component, lightCoords: number, color: number, backgroundColor: number, distanceToCameraSq: number): net.minecraft.client.renderer.SubmitNodeStorage$NameTagSubmit;
-          }
-          interface SubmitNodeStorage$NameTagSubmit extends java.lang.Record { 
-            pose(): org.joml.Matrix4fc;
-            x(): number;
-            y(): number;
-            text(): net.minecraft.network.chat.Component;
-            lightCoords(): number;
-            color(): number;
-            backgroundColor(): number;
-            distanceToCameraSq(): number;
-          }
-          const SubmitNodeStorage$FlameSubmit: {
-            new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, entityRenderState: net.minecraft.client.renderer.entity.state.EntityRenderState, rotation: org.joml.Quaternionf): net.minecraft.client.renderer.SubmitNodeStorage$FlameSubmit;
-          }
-          interface SubmitNodeStorage$FlameSubmit extends java.lang.Record { 
-            pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-            entityRenderState(): net.minecraft.client.renderer.entity.state.EntityRenderState;
-            rotation(): org.joml.Quaternionf;
-          }
-          const SubmitNodeStorage$ShadowSubmit: {
-            new(pose: org.joml.Matrix4fc, radius: number, pieces: Array<net.minecraft.client.renderer.entity.state.EntityRenderState$ShadowPiece>): net.minecraft.client.renderer.SubmitNodeStorage$ShadowSubmit;
-          }
-          interface SubmitNodeStorage$ShadowSubmit extends java.lang.Record { 
-            pose(): org.joml.Matrix4fc;
-            radius(): number;
-            pieces(): Array<net.minecraft.client.renderer.entity.state.EntityRenderState$ShadowPiece>;
-          }
-          const LevelRenderer$BrightnessGetter: {
-            DEFAULT: net.minecraft.client.renderer.LevelRenderer$BrightnessGetter;
-          }
-          interface LevelRenderer$BrightnessGetter { 
-            packedBrightness(level: net.minecraft.world.level.BlockAndLightGetter, pos: net.minecraft.core.BlockPos): number;
-            (level: net.minecraft.world.level.BlockAndLightGetter, pos: net.minecraft.core.BlockPos): number;
-          }
-          const GameRenderer: {
-            MAX_BLUR_RADIUS: number;
-            PROJECTION_3D_HUD_Z_FAR: number;
-            new(minecraft: net.minecraft.client.Minecraft, itemInHandRenderer: net.minecraft.client.renderer.ItemInHandRenderer, renderBuffers: net.minecraft.client.renderer.RenderBuffers, modelManager: net.minecraft.client.resources.model.ModelManager): net.minecraft.client.renderer.GameRenderer;
-            getNightVisionScale(camera: net.minecraft.world.entity.LivingEntity, a: number): number;
-          }
-          interface GameRenderer extends java.lang.AutoCloseable, net.minecraft.world.waypoints.TrackedWaypoint$Projector { 
-            itemInHandRenderer: net.minecraft.client.renderer.ItemInHandRenderer;
-            lightmap(): com.mojang.blaze3d.textures.GpuTextureView;
-            overlayTexture(): net.minecraft.client.renderer.texture.OverlayTexture;
-            getSubmitNodeStorage(): net.minecraft.client.renderer.SubmitNodeStorage;
-            getFeatureRenderDispatcher(): net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
-            getGameRenderState(): net.minecraft.client.renderer.state.GameRenderState;
-            setRenderBlockOutline(renderBlockOutline: boolean): void;
-            clearPostEffect(): void;
-            togglePostEffect(): void;
-            checkEntityPostEffect(cameraEntity: net.minecraft.world.entity.Entity | null | undefined): void;
-            processBlurEffect(): void;
-            preloadUiShader(resourceProvider: net.minecraft.server.packs.resources.ResourceProvider): void;
-            tick(): void;
-            currentPostEffect(): net.minecraft.resources.Identifier | null | undefined;
-            resize(width: number, height: number): void;
-            update(deltaTracker: net.minecraft.client.DeltaTracker, advanceGameTime: boolean): void;
-            extract(deltaTracker: net.minecraft.client.DeltaTracker, advanceGameTime: boolean): void;
-            render(deltaTracker: net.minecraft.client.DeltaTracker, advanceGameTime: boolean): void;
-            renderLevel(deltaTracker: net.minecraft.client.DeltaTracker): void;
-            resetData(): void;
-            displayItemActivation(itemStack: net.minecraft.world.item.ItemStack): void;
-            getMinecraft(): net.minecraft.client.Minecraft;
-            getBossOverlayWorldDarkening(a: number): number;
-            getMainCamera(): net.minecraft.client.Camera;
-            levelLightmap(): com.mojang.blaze3d.textures.GpuTextureView;
-            getGlobalSettingsUniform(): net.minecraft.client.renderer.GlobalSettingsUniform;
-            getLighting(): com.mojang.blaze3d.platform.Lighting;
-            setLevel(level: net.minecraft.client.multiplayer.ClientLevel | null | undefined): void;
-            getPanorama(): net.minecraft.client.renderer.Panorama;
-            registerPanoramaTextures(textureManager: net.minecraft.client.renderer.texture.TextureManager): void;
-          }
-          const Panorama: {
-            PANORAMA_OVERLAY: net.minecraft.resources.Identifier;
-            new(): net.minecraft.client.renderer.Panorama;
-          }
-          interface Panorama { 
-            extractRenderState(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, width: number, height: number, shouldSpin: boolean): void;
-          }
-          const GlobalSettingsUniform: {
-            UBO_SIZE: number;
-            new(): net.minecraft.client.renderer.GlobalSettingsUniform;
-          }
-          interface GlobalSettingsUniform extends java.lang.AutoCloseable { 
-            update(width: number, height: number, glintAlpha: number, gameTime: number, deltaTracker: net.minecraft.client.DeltaTracker, menuBlurRadius: number, cameraPos: net.minecraft.world.phys.Vec3, useRgss: boolean): void;
           }
           const ShaderManager: {
             Configs: typeof net.minecraft.client.renderer.ShaderManager$Configs;
@@ -14504,6 +14546,59 @@ declare global {
           }
           interface ShaderManager$CompilationException extends java.lang.Exception { 
           }
+          const GameRenderer: {
+            MAX_BLUR_RADIUS: number;
+            PROJECTION_3D_HUD_Z_FAR: number;
+            new(minecraft: net.minecraft.client.Minecraft, itemInHandRenderer: net.minecraft.client.renderer.ItemInHandRenderer, modelManager: net.minecraft.client.resources.model.ModelManager): net.minecraft.client.renderer.GameRenderer;
+            nightVisionScale(camera: net.minecraft.world.entity.LivingEntity, a: number): number;
+          }
+          interface GameRenderer extends java.lang.AutoCloseable, net.minecraft.world.waypoints.TrackedWaypoint$Projector { 
+            itemInHandRenderer: net.minecraft.client.renderer.ItemInHandRenderer;
+            gameRenderState(): net.minecraft.client.renderer.state.GameRenderState;
+            renderBuffers(): net.minecraft.client.renderer.RenderBuffers;
+            mainRenderTarget(): com.mojang.blaze3d.pipeline.RenderTarget;
+            bossOverlayWorldDarkening(a: number): number;
+            lightmap(): com.mojang.blaze3d.textures.GpuTextureView;
+            overlayTexture(): net.minecraft.client.renderer.texture.OverlayTexture;
+            panorama(): net.minecraft.client.renderer.Panorama;
+            featureRenderDispatcher(): net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+            mainCamera(): net.minecraft.client.Camera;
+            lighting(): com.mojang.blaze3d.platform.Lighting;
+            setRenderBlockOutline(renderBlockOutline: boolean): void;
+            clearPostEffect(): void;
+            togglePostEffect(): void;
+            checkEntityPostEffect(cameraEntity: net.minecraft.world.entity.Entity | null | undefined): void;
+            processBlurEffect(): void;
+            preloadUiShader(resourceProvider: net.minecraft.server.packs.resources.ResourceProvider): void;
+            tick(): void;
+            currentPostEffect(): net.minecraft.resources.Identifier | null | undefined;
+            resize(width: number, height: number): void;
+            update(deltaTracker: net.minecraft.client.DeltaTracker): void;
+            extract(deltaTracker: net.minecraft.client.DeltaTracker, advanceGameTime: boolean): void;
+            render(deltaTracker: net.minecraft.client.DeltaTracker, advanceGameTime: boolean): void;
+            renderLevel(deltaTracker: net.minecraft.client.DeltaTracker): void;
+            resetData(): void;
+            displayItemActivation(itemStack: net.minecraft.world.item.ItemStack): void;
+            levelLightmap(): com.mojang.blaze3d.textures.GpuTextureView;
+            setLevel(level: net.minecraft.client.multiplayer.ClientLevel | null | undefined): void;
+            registerPanoramaTextures(textureManager: net.minecraft.client.renderer.texture.TextureManager): void;
+          }
+          const Panorama: {
+            PANORAMA_OVERLAY: net.minecraft.resources.Identifier;
+            new(): net.minecraft.client.renderer.Panorama;
+          }
+          interface Panorama { 
+            startSpin(): void;
+            holdSpin(): void;
+            extractRenderState(graphics: net.minecraft.client.gui.GuiGraphicsExtractor, width: number, height: number): void;
+          }
+          const SubmitNodeStorage: {
+            new(): net.minecraft.client.renderer.SubmitNodeStorage;
+          }
+          interface SubmitNodeStorage extends net.minecraft.client.renderer.SubmitNodeCollector { 
+            getSubmitsPerOrder(): it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap<net.minecraft.client.renderer.SubmitNodeCollection>;
+            drainPhases(consumer: unknown): void;
+          }
           const GpuWarnlistManager: {
             new(): net.minecraft.client.renderer.GpuWarnlistManager;
           }
@@ -14522,15 +14617,6 @@ declare global {
         }
         namespace resources {
           namespace metadata {
-            namespace animation {
-              const FrameSize: {
-                new(width: number, height: number): net.minecraft.client.resources.metadata.animation.FrameSize;
-              }
-              interface FrameSize extends java.lang.Record { 
-                width(): number;
-                height(): number;
-              }
-            }
             namespace texture {
               const TextureMetadataSection: {
                 DEFAULT_BLUR: boolean;
@@ -14545,6 +14631,15 @@ declare global {
                 clamp(): boolean;
                 mipmapStrategy(): net.minecraft.client.renderer.texture.MipmapStrategy;
                 alphaCutoffBias(): number;
+              }
+            }
+            namespace animation {
+              const FrameSize: {
+                new(width: number, height: number): net.minecraft.client.resources.metadata.animation.FrameSize;
+              }
+              interface FrameSize extends java.lang.Record { 
+                width(): number;
+                height(): number;
               }
             }
           }
@@ -14630,8 +14725,6 @@ declare global {
               }
               interface SpriteId extends java.lang.Record { 
                 renderType(renderType: unknown): net.minecraft.client.renderer.rendertype.RenderType;
-                buffer(sprites: net.minecraft.client.resources.model.sprite.SpriteGetter, bufferSource: net.minecraft.client.renderer.MultiBufferSource, renderType: unknown): com.mojang.blaze3d.vertex.VertexConsumer;
-                buffer(sprites: net.minecraft.client.resources.model.sprite.SpriteGetter, bufferSource: net.minecraft.client.renderer.MultiBufferSource, renderType: unknown, sheeted: boolean, hasFoil: boolean): com.mojang.blaze3d.vertex.VertexConsumer;
                 atlasLocation(): net.minecraft.resources.Identifier;
                 texture(): net.minecraft.resources.Identifier;
               }
@@ -14684,10 +14777,15 @@ declare global {
               }
               interface TextureSlots$SlotContents { 
               }
+              const MaterialBaker: {
+                new(missingSprite: net.minecraft.client.renderer.texture.TextureAtlasSprite): net.minecraft.client.resources.model.sprite.MaterialBaker;
+              }
               interface MaterialBaker extends net.fabricmc.fabric.api.client.renderer.v1.sprite.FabricMaterialBaker { 
+                replacementForMissingMaterial(material: net.minecraft.client.resources.model.sprite.Material): net.minecraft.client.resources.model.sprite.Material$Baked;
                 get(material: net.minecraft.client.resources.model.sprite.Material, name: net.minecraft.client.resources.model.ModelDebugName): net.minecraft.client.resources.model.sprite.Material$Baked;
-                reportMissingReference(reference: string, name: net.minecraft.client.resources.model.ModelDebugName): net.minecraft.client.resources.model.sprite.Material$Baked;
                 resolveSlot(slots: net.minecraft.client.resources.model.sprite.TextureSlots, id: string, name: net.minecraft.client.resources.model.ModelDebugName): net.minecraft.client.resources.model.sprite.Material$Baked;
+                reportMissingReference(reference: string, responsibleModel: net.minecraft.client.resources.model.ModelDebugName): net.minecraft.client.resources.model.sprite.Material$Baked;
+                logMissingTextures(): void;
               }
               const AtlasManager: {
                 AtlasConfig: typeof net.minecraft.client.resources.model.sprite.AtlasManager$AtlasConfig;
@@ -14743,11 +14841,17 @@ declare global {
                 fixedFromBottom(): net.minecraft.client.resources.model.cuboid.ItemTransform;
               }
             }
-            interface ResolvableModel { 
-              resolveDependencies(resolver: net.minecraft.client.resources.model.ResolvableModel$Resolver): void;
+            const ModelManager: {
+              new(blockColors: net.minecraft.client.color.block.BlockColors, atlasManager: net.minecraft.client.resources.model.sprite.AtlasManager, playerSkinRenderCache: net.minecraft.client.renderer.PlayerSkinRenderCache): net.minecraft.client.resources.model.ModelManager;
             }
-            interface ResolvableModel$Resolver { 
-              markDependency(id: net.minecraft.resources.Identifier): void;
+            interface ModelManager extends net.minecraft.server.packs.resources.PreparableReloadListener, net.fabricmc.fabric.api.client.model.loading.v1.FabricModelManager { 
+              getItemModel(id: net.minecraft.resources.Identifier): net.minecraft.client.renderer.item.ItemModel;
+              getItemProperties(id: net.minecraft.resources.Identifier): net.minecraft.client.renderer.item.ClientItem$Properties;
+              getBlockStateModelSet(): net.minecraft.client.renderer.block.BlockStateModelSet;
+              getBlockModelSet(): net.minecraft.client.renderer.block.BlockModelSet;
+              getFluidStateModelSet(): net.minecraft.client.renderer.block.FluidStateModelSet;
+              requiresRender(oldState: net.minecraft.world.level.block.state.BlockState, newState: net.minecraft.world.level.block.state.BlockState): boolean;
+              entityModels(): unknown;
             }
             interface ModelBaker { 
               getModel(location: net.minecraft.resources.Identifier): net.minecraft.client.resources.model.ResolvedModel;
@@ -14805,6 +14909,12 @@ declare global {
             interface UnbakedModel$GuiLight extends kotlin.Enum<net.minecraft.client.resources.model.UnbakedModel$GuiLight> { 
               lightLikeBlock(): boolean;
             }
+            interface ResolvableModel { 
+              resolveDependencies(resolver: net.minecraft.client.resources.model.ResolvableModel$Resolver): void;
+            }
+            interface ResolvableModel$Resolver { 
+              markDependency(id: net.minecraft.resources.Identifier): void;
+            }
             interface ModelBaker$Interner { 
               vector(vector: org.joml.Vector3fc): org.joml.Vector3fc;
               materialInfo(material: net.minecraft.client.resources.model.geometry.BakedQuad$MaterialInfo): net.minecraft.client.resources.model.geometry.BakedQuad$MaterialInfo;
@@ -14812,18 +14922,6 @@ declare global {
             interface ModelBaker$SharedOperationKey<T> { 
               compute(modelBakery: net.minecraft.client.resources.model.ModelBaker): T;
               (modelBakery: net.minecraft.client.resources.model.ModelBaker): T;
-            }
-            const ModelManager: {
-              new(blockColors: net.minecraft.client.color.block.BlockColors, atlasManager: net.minecraft.client.resources.model.sprite.AtlasManager, playerSkinRenderCache: net.minecraft.client.renderer.PlayerSkinRenderCache): net.minecraft.client.resources.model.ModelManager;
-            }
-            interface ModelManager extends net.minecraft.server.packs.resources.PreparableReloadListener, net.fabricmc.fabric.api.client.model.loading.v1.FabricModelManager { 
-              getItemModel(id: net.minecraft.resources.Identifier): net.minecraft.client.renderer.item.ItemModel;
-              getItemProperties(id: net.minecraft.resources.Identifier): net.minecraft.client.renderer.item.ClientItem$Properties;
-              getBlockStateModelSet(): net.minecraft.client.renderer.block.BlockStateModelSet;
-              getBlockModelSet(): net.minecraft.client.renderer.block.BlockModelSet;
-              getFluidStateModelSet(): net.minecraft.client.renderer.block.FluidStateModelSet;
-              requiresRender(oldState: net.minecraft.world.level.block.state.BlockState, newState: net.minecraft.world.level.block.state.BlockState): boolean;
-              entityModels(): unknown;
             }
             const EquipmentAssetManager: {
               MISSING: net.minecraft.client.resources.model.EquipmentClientInfo;
@@ -15064,6 +15162,13 @@ declare global {
         namespace model {
           namespace geom {
             namespace builders {
+              const LayerDefinition: {
+                create(mesh: net.minecraft.client.model.geom.builders.MeshDefinition, xTexSize: number, yTexSize: number): net.minecraft.client.model.geom.builders.LayerDefinition;
+              }
+              interface LayerDefinition { 
+                apply(transformer: net.minecraft.client.model.geom.builders.MeshTransformer): net.minecraft.client.model.geom.builders.LayerDefinition;
+                bakeRoot(): net.minecraft.client.model.geom.ModelPart;
+              }
               const MeshTransformer: {
                 IDENTITY: net.minecraft.client.model.geom.builders.MeshTransformer;
                 scaling(factor: number): net.minecraft.client.model.geom.builders.MeshTransformer;
@@ -15119,13 +15224,6 @@ declare global {
               interface CubeDeformation { 
                 extend(factor: number): net.minecraft.client.model.geom.builders.CubeDeformation;
                 extend(factorX: number, factorY: number, factorZ: number): net.minecraft.client.model.geom.builders.CubeDeformation;
-              }
-              const LayerDefinition: {
-                create(mesh: net.minecraft.client.model.geom.builders.MeshDefinition, xTexSize: number, yTexSize: number): net.minecraft.client.model.geom.builders.LayerDefinition;
-              }
-              interface LayerDefinition { 
-                apply(transformer: net.minecraft.client.model.geom.builders.MeshTransformer): net.minecraft.client.model.geom.builders.LayerDefinition;
-                bakeRoot(): net.minecraft.client.model.geom.ModelPart;
               }
             }
             const ModelPart: {
@@ -15248,22 +15346,6 @@ declare global {
               layer(): string;
             }
           }
-          namespace player {
-            const PlayerModel: {
-              new(root: net.minecraft.client.model.geom.ModelPart, slim: boolean): net.minecraft.client.model.player.PlayerModel;
-              createMesh(scale: net.minecraft.client.model.geom.builders.CubeDeformation, slim: boolean): net.minecraft.client.model.geom.builders.MeshDefinition;
-              createArmorMeshSet(innerDeformation: net.minecraft.client.model.geom.builders.CubeDeformation, outerDeformation: net.minecraft.client.model.geom.builders.CubeDeformation): net.minecraft.client.renderer.entity.ArmorModelSet<net.minecraft.client.model.geom.builders.MeshDefinition>;
-            }
-            interface PlayerModel extends net.minecraft.client.model.HumanoidModel<net.minecraft.client.renderer.entity.state.AvatarRenderState> { 
-              leftSleeve: net.minecraft.client.model.geom.ModelPart;
-              rightSleeve: net.minecraft.client.model.geom.ModelPart;
-              leftPants: net.minecraft.client.model.geom.ModelPart;
-              rightPants: net.minecraft.client.model.geom.ModelPart;
-              jacket: net.minecraft.client.model.geom.ModelPart;
-              translateToHand(state: net.minecraft.client.renderer.entity.state.AvatarRenderState, arm: net.minecraft.world.entity.HumanoidArm, poseStack: com.mojang.blaze3d.vertex.PoseStack): void;
-              getRandomBodyPart(random: net.minecraft.util.RandomSource): net.minecraft.client.model.geom.ModelPart;
-            }
-          }
           namespace object {
             namespace book {
               const BookModel: {
@@ -15302,7 +15384,6 @@ declare global {
             renderType(texture: net.minecraft.resources.Identifier): net.minecraft.client.renderer.rendertype.RenderType;
             allParts(): Array<net.minecraft.client.model.geom.ModelPart>;
             renderToBuffer(poseStack: com.mojang.blaze3d.vertex.PoseStack, buffer: com.mojang.blaze3d.vertex.VertexConsumer, lightCoords: number, overlayCoords: number, color: number): void;
-            renderToBuffer(poseStack: com.mojang.blaze3d.vertex.PoseStack, buffer: com.mojang.blaze3d.vertex.VertexConsumer, lightCoords: number, overlayCoords: number): void;
             setupAnim(state: S): void;
             resetPose(): void;
           }
@@ -15310,42 +15391,6 @@ declare global {
             new(root: net.minecraft.client.model.geom.ModelPart, renderType: unknown): net.minecraft.client.model.Model$Simple;
           }
           interface Model$Simple extends net.minecraft.client.model.Model<net.minecraft.util.Unit> { 
-          }
-          const HumanoidModel: {
-            ArmPose: typeof net.minecraft.client.model.HumanoidModel$ArmPose;
-            BABY_TRANSFORMER: net.minecraft.client.model.geom.builders.MeshTransformer;
-            OVERLAY_SCALE: number;
-            HAT_OVERLAY_SCALE: number;
-            LEGGINGS_OVERLAY_SCALE: number;
-            TOOT_HORN_XROT_BASE: number;
-            TOOT_HORN_YROT_BASE: number;
-            new<T>(root: net.minecraft.client.model.geom.ModelPart): net.minecraft.client.model.HumanoidModel<any>;
-            new<T>(root: net.minecraft.client.model.geom.ModelPart, renderType: unknown): net.minecraft.client.model.HumanoidModel<any>;
-            createMesh(g: net.minecraft.client.model.geom.builders.CubeDeformation, yOffset: number): net.minecraft.client.model.geom.builders.MeshDefinition;
-            createArmorMeshSet(innerDeformation: net.minecraft.client.model.geom.builders.CubeDeformation, outerDeformation: net.minecraft.client.model.geom.builders.CubeDeformation): net.minecraft.client.renderer.entity.ArmorModelSet<net.minecraft.client.model.geom.builders.MeshDefinition>;
-            createBabyArmorMeshSet(innerDeformation: net.minecraft.client.model.geom.builders.CubeDeformation, outerDeformation: net.minecraft.client.model.geom.builders.CubeDeformation, armOffset: net.minecraft.client.model.geom.PartPose): net.minecraft.client.renderer.entity.ArmorModelSet<net.minecraft.client.model.geom.builders.MeshDefinition>;
-          }
-          interface HumanoidModel<T> extends net.minecraft.client.model.EntityModel<T>, net.minecraft.client.model.ArmedModel<T>, net.minecraft.client.model.HeadedModel { 
-            head: net.minecraft.client.model.geom.ModelPart;
-            hat: net.minecraft.client.model.geom.ModelPart;
-            body: net.minecraft.client.model.geom.ModelPart;
-            rightArm: net.minecraft.client.model.geom.ModelPart;
-            leftArm: net.minecraft.client.model.geom.ModelPart;
-            rightLeg: net.minecraft.client.model.geom.ModelPart;
-            leftLeg: net.minecraft.client.model.geom.ModelPart;
-            getArm(arm: net.minecraft.world.entity.HumanoidArm): net.minecraft.client.model.geom.ModelPart;
-          }
-          const EntityModel: {
-            MODEL_Y_OFFSET: number;
-          }
-          interface EntityModel<T> extends net.minecraft.client.model.Model<T> { 
-          }
-          interface ArmedModel<T> { 
-            translateToHand(state: T, arm: net.minecraft.world.entity.HumanoidArm, poseStack: com.mojang.blaze3d.vertex.PoseStack): void;
-          }
-          interface HeadedModel { 
-            getHead(): net.minecraft.client.model.geom.ModelPart;
-            translateToHead(poseStack: com.mojang.blaze3d.vertex.PoseStack): void;
           }
           const HumanoidModel$ArmPose: {
             EMPTY: net.minecraft.client.model.HumanoidModel$ArmPose;
@@ -15369,12 +15414,108 @@ declare global {
             animateUseItem<S>(state: S, poseStack: com.mojang.blaze3d.vertex.PoseStack, ticksUsingItem: number, arm: net.minecraft.world.entity.HumanoidArm, actualItem: net.minecraft.world.item.ItemStack): void;
           }
         }
+        namespace particle {
+          const SingleQuadParticle$Layer: {
+            OPAQUE_TERRAIN: net.minecraft.client.particle.SingleQuadParticle$Layer;
+            TRANSLUCENT_TERRAIN: net.minecraft.client.particle.SingleQuadParticle$Layer;
+            OPAQUE_ITEMS: net.minecraft.client.particle.SingleQuadParticle$Layer;
+            TRANSLUCENT_ITEMS: net.minecraft.client.particle.SingleQuadParticle$Layer;
+            OPAQUE: net.minecraft.client.particle.SingleQuadParticle$Layer;
+            TRANSLUCENT: net.minecraft.client.particle.SingleQuadParticle$Layer;
+            new(translucent: boolean, textureAtlasLocation: net.minecraft.resources.Identifier, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): net.minecraft.client.particle.SingleQuadParticle$Layer;
+            bySprite(sprite: net.minecraft.client.renderer.texture.TextureAtlasSprite): net.minecraft.client.particle.SingleQuadParticle$Layer;
+          }
+          interface SingleQuadParticle$Layer extends java.lang.Record { 
+            translucent(): boolean;
+            textureAtlasLocation(): net.minecraft.resources.Identifier;
+            pipeline(): com.mojang.blaze3d.pipeline.RenderPipeline;
+          }
+          const ParticleEngine: {
+            new(level: net.minecraft.client.multiplayer.ClientLevel, resourceManager: net.minecraft.client.particle.ParticleResources): net.minecraft.client.particle.ParticleEngine;
+          }
+          interface ParticleEngine { 
+            createTrackingEmitter(entity: net.minecraft.world.entity.Entity, particle: net.minecraft.core.particles.ParticleOptions): void;
+            createTrackingEmitter(entity: net.minecraft.world.entity.Entity, particle: net.minecraft.core.particles.ParticleOptions, lifeTime: number): void;
+            createParticle(options: net.minecraft.core.particles.ParticleOptions, x: number, y: number, z: number, xa: number, ya: number, za: number): net.minecraft.client.particle.Particle | null | undefined;
+            add(p: net.minecraft.client.particle.Particle): void;
+            tick(): void;
+            extract(particlesRenderState: net.minecraft.client.renderer.state.level.ParticlesRenderState, frustum: net.minecraft.client.renderer.culling.Frustum, camera: net.minecraft.client.Camera, partialTickTime: number): void;
+            setLevel(level: net.minecraft.client.multiplayer.ClientLevel | null | undefined): void;
+            countParticles(): string;
+            clearParticles(): void;
+            getRandom(): net.minecraft.util.RandomSource;
+          }
+          const Particle: {
+            LifetimeAlpha: typeof net.minecraft.client.particle.Particle$LifetimeAlpha;
+            new(level: net.minecraft.client.multiplayer.ClientLevel, x: number, y: number, z: number, xa: number, ya: number, za: number): net.minecraft.client.particle.Particle;
+          }
+          interface Particle { 
+            setPower(power: number): net.minecraft.client.particle.Particle;
+            setParticleSpeed(xd: number, yd: number, zd: number): void;
+            scale(scale: number): net.minecraft.client.particle.Particle;
+            setLifetime(lifetime: number): void;
+            getLifetime(): number;
+            tick(): void;
+            getGroup(): net.minecraft.client.particle.ParticleRenderType;
+            remove(): void;
+            setPos(x: number, y: number, z: number): void;
+            move(xa: number, ya: number, za: number): void;
+            isAlive(): boolean;
+            getBoundingBox(): net.minecraft.world.phys.AABB;
+            setBoundingBox(bb: net.minecraft.world.phys.AABB): void;
+            getParticleLimit(): java.util.Optional<net.minecraft.core.particles.ParticleLimit>;
+          }
+          const ParticleRenderType: {
+            SINGLE_QUADS: net.minecraft.client.particle.ParticleRenderType;
+            ITEM_PICKUP: net.minecraft.client.particle.ParticleRenderType;
+            ELDER_GUARDIANS: net.minecraft.client.particle.ParticleRenderType;
+            NO_RENDER: net.minecraft.client.particle.ParticleRenderType;
+            new(name: string, shorthand: string): net.minecraft.client.particle.ParticleRenderType;
+          }
+          interface ParticleRenderType extends java.lang.Record { 
+            name(): string;
+            shorthand(): string;
+          }
+          const Particle$LifetimeAlpha: {
+            ALWAYS_OPAQUE: net.minecraft.client.particle.Particle$LifetimeAlpha;
+            new(startAlpha: number, endAlpha: number, startAtNormalizedAge: number, endAtNormalizedAge: number): net.minecraft.client.particle.Particle$LifetimeAlpha;
+          }
+          interface Particle$LifetimeAlpha extends java.lang.Record { 
+            isOpaque(): boolean;
+            currentAlphaForAge(age: number, lifetime: number, partialTickTime: number): number;
+            startAlpha(): number;
+            endAlpha(): number;
+            startAtNormalizedAge(): number;
+            endAtNormalizedAge(): number;
+          }
+          const ParticleResources: {
+            new(): net.minecraft.client.particle.ParticleResources;
+          }
+          interface ParticleResources extends net.minecraft.server.packs.resources.PreparableReloadListener { 
+            onReload(onReload: java.lang.Runnable): void;
+            getProviders(): it.unimi.dsi.fastutil.ints.Int2ObjectMap<unknown>;
+          }
+        }
         namespace main {
           const SilentInitException: {
             new(message: string): net.minecraft.client.main.SilentInitException;
             new(message: string, cause: kotlin.Throwable): net.minecraft.client.main.SilentInitException;
           }
           interface SilentInitException extends java.lang.RuntimeException { 
+          }
+          const GameConfig$QuickPlayData: {
+            new(logPath: string | null | undefined, variant: net.minecraft.client.main.GameConfig$QuickPlayVariant): net.minecraft.client.main.GameConfig$QuickPlayData;
+          }
+          interface GameConfig$QuickPlayData extends java.lang.Record { 
+            isEnabled(): boolean;
+            logPath(): string | null | undefined;
+            variant(): net.minecraft.client.main.GameConfig$QuickPlayVariant;
+          }
+          const GameConfig$QuickPlayVariant: {
+            DISABLED: net.minecraft.client.main.GameConfig$QuickPlayVariant;
+          }
+          interface GameConfig$QuickPlayVariant { 
+            isEnabled(): boolean;
           }
           const GameConfig$UserData: {
             new(user: net.minecraft.client.User, proxy: java.net.Proxy): net.minecraft.client.main.GameConfig$UserData;
@@ -15412,7 +15553,7 @@ declare global {
             getExternalAssetSource(): java.nio.file.Path;
           }
           const GameConfig$GameData: {
-            new(demo: boolean, launchVersion: string, versionType: string, disableMultiplayer: boolean, disableChat: boolean, captureTracyImages: boolean, renderDebugLabels: boolean, offlineDeveloperMode: boolean): net.minecraft.client.main.GameConfig$GameData;
+            new(demo: boolean, launchVersion: string, versionType: string, disableMultiplayer: boolean, disableChat: boolean, captureTracyImages: boolean, vulkanValidation: boolean, renderDebugLabels: boolean, forcedGraphicsApi: net.minecraft.client.PreferredGraphicsApi | null | undefined, offlineDeveloperMode: boolean): net.minecraft.client.main.GameConfig$GameData;
           }
           interface GameConfig$GameData { 
             demo: boolean;
@@ -15422,21 +15563,9 @@ declare global {
             disableChat: boolean;
             captureTracyImages: boolean;
             renderDebugLabels: boolean;
+            vulkanValidation: boolean;
+            forcedGraphicsApi: net.minecraft.client.PreferredGraphicsApi | null | undefined;
             offlineDeveloperMode: boolean;
-          }
-          const GameConfig$QuickPlayData: {
-            new(logPath: string | null | undefined, variant: net.minecraft.client.main.GameConfig$QuickPlayVariant): net.minecraft.client.main.GameConfig$QuickPlayData;
-          }
-          interface GameConfig$QuickPlayData extends java.lang.Record { 
-            isEnabled(): boolean;
-            logPath(): string | null | undefined;
-            variant(): net.minecraft.client.main.GameConfig$QuickPlayVariant;
-          }
-          const GameConfig$QuickPlayVariant: {
-            DISABLED: net.minecraft.client.main.GameConfig$QuickPlayVariant;
-          }
-          interface GameConfig$QuickPlayVariant { 
-            isEnabled(): boolean;
           }
           const GameConfig$QuickPlayDisabled: {
             new(): net.minecraft.client.main.GameConfig$QuickPlayDisabled;
@@ -15763,10 +15892,11 @@ declare global {
           const ClientLevel: {
             ClientLevelData: typeof net.minecraft.client.multiplayer.ClientLevel$ClientLevelData;
             DEFAULT_QUIT_MESSAGE: net.minecraft.network.chat.Component;
-            new(connection: net.minecraft.client.multiplayer.ClientPacketListener, levelData: net.minecraft.client.multiplayer.ClientLevel$ClientLevelData, dimension: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, dimensionType: net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>, serverChunkRadius: number, serverSimulationDistance: number, levelRenderer: net.minecraft.client.renderer.LevelRenderer, isDebug: boolean, biomeZoomSeed: number, seaLevel: number): net.minecraft.client.multiplayer.ClientLevel;
+            new(connection: net.minecraft.client.multiplayer.ClientPacketListener, levelData: net.minecraft.client.multiplayer.ClientLevel$ClientLevelData, dimension: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, dimensionType: net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>, serverChunkRadius: number, serverSimulationDistance: number, levelExtractor: net.minecraft.client.renderer.extract.LevelExtractor, isDebug: boolean, biomeZoomSeed: number, seaLevel: number): net.minecraft.client.multiplayer.ClientLevel;
           }
           interface ClientLevel extends net.minecraft.world.level.Level, net.minecraft.client.renderer.block.BlockAndTintGetter, net.minecraft.client.multiplayer.CacheSlot$Cleaner<net.minecraft.client.multiplayer.ClientLevel> { 
             endFlashState(): net.minecraft.client.renderer.EndFlashState | null | undefined;
+            destructionProgress(): it.unimi.dsi.fastutil.longs.Long2ObjectMap<java.util.SortedSet<unknown>>;
             handleBlockChangedAck(sequence: number): void;
             getGloballyRenderedBlockEntities(): Set<net.minecraft.world.level.block.entity.BlockEntity>;
             setServerVerifiedBlockState(pos: net.minecraft.core.BlockPos, blockState: net.minecraft.world.level.block.state.BlockState, updateFlag: number): void;
@@ -15774,6 +15904,8 @@ declare global {
             queueLightUpdate(update: java.lang.Runnable): void;
             pollLightUpdates(): void;
             tick(haveTime: unknown): void;
+            tickWeatherEffects(): void;
+            getPrecipitationAt(pos: net.minecraft.core.BlockPos): net.minecraft.world.level.biome.Biome$Precipitation;
             setTimeFromServer(gameTime: number): void;
             entitiesForRendering(): kotlin.collections.MutableIterable<net.minecraft.world.entity.Entity>;
             tickEntities(): void;
@@ -15782,7 +15914,6 @@ declare global {
             update(): void;
             unload(levelChunk: net.minecraft.world.level.chunk.LevelChunk): void;
             onChunkLoaded(pos: net.minecraft.world.level.ChunkPos): void;
-            onSectionBecomingNonEmpty(sectionNode: number): void;
             clearTintCaches(): void;
             getEntityCount(): number;
             addEntity(entity: net.minecraft.world.entity.Entity): void;
@@ -15820,10 +15951,15 @@ declare global {
             replaceWithPacketData(chunkX: number, chunkZ: number, readBuffer: net.minecraft.network.FriendlyByteBuf, heightmaps: Map<net.minecraft.world.level.levelgen.Heightmap$Types, Array<number>>, blockEntities: unknown): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
             updateViewCenter(x: number, z: number): void;
             updateViewRadius(viewRange: number): void;
-            getLoadedEmptySections(): it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+            addedEmptySections(): it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+            removedEmptySections(): it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+            addedLoadedChunks(): it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+            removedLoadedChunks(): it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+            flipUpdateTrackingSets(): void;
           }
           interface ClientChunkCache$Storage { 
             onSectionEmptinessChanged(sectionX: number, sectionY: number, sectionZ: number, empty: boolean): void;
+            getChunk(index: number): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
           }
           const ClientLevel$ClientLevelData: {
             new(difficulty: net.minecraft.world.Difficulty, hardcore: boolean, isFlat: boolean): net.minecraft.client.multiplayer.ClientLevel$ClientLevelData;
@@ -15846,6 +15982,7 @@ declare global {
             enabledFeatures(): net.minecraft.world.flag.FeatureFlagSet;
             potionBrewing(): net.minecraft.world.item.alchemy.PotionBrewing;
             fuelValues(): net.minecraft.world.level.block.entity.FuelValues;
+            onlineMode(): boolean;
             scoreboard(): net.minecraft.world.scores.Scoreboard;
             clockManager(): net.minecraft.client.ClientClockManager;
             searchTrees(): net.minecraft.client.multiplayer.SessionSearchTrees;
@@ -15870,6 +16007,7 @@ declare global {
             sendCommand(command: string): void;
             sendUnattendedCommand(command: string, screenAfterCommand: net.minecraft.client.gui.screens.Screen | null | undefined): void;
             broadcastClientInformation(information: net.minecraft.server.level.ClientInformation): void;
+            getPlayerCompiledSectionCallback(): java.lang.Runnable | null | undefined;
             prepareKeyPair(): void;
             getServerData(): net.minecraft.client.multiplayer.ServerData | null | undefined;
             isFeatureEnabled(requiredFlags: net.minecraft.world.flag.FeatureFlagSet): boolean;
@@ -15886,25 +16024,6 @@ declare global {
             showDialog(dialog: net.minecraft.core.Holder<unknown>, activeScreen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
             clearDialog(): void;
             send(packet: net.minecraft.network.protocol.Packet<any>): void;
-          }
-          const PlayerInfo: {
-            new(profile: com.mojang.authlib.GameProfile, enforcesSecureChat: boolean): net.minecraft.client.multiplayer.PlayerInfo;
-          }
-          interface PlayerInfo { 
-            showHat(): boolean;
-            getProfile(): com.mojang.authlib.GameProfile;
-            getChatSession(): net.minecraft.network.chat.RemoteChatSession | null | undefined;
-            getMessageValidator(): net.minecraft.network.chat.SignedMessageValidator;
-            hasVerifiableChat(): boolean;
-            getGameMode(): net.minecraft.world.level.GameType;
-            getLatency(): number;
-            getSkin(): net.minecraft.world.entity.player.PlayerSkin;
-            getTeam(): net.minecraft.world.scores.PlayerTeam | null | undefined;
-            setTabListDisplayName(tabListDisplayName: net.minecraft.network.chat.Component | null | undefined): void;
-            getTabListDisplayName(): net.minecraft.network.chat.Component | null | undefined;
-            setShowHat(showHat: boolean): void;
-            setTabListOrder(tabListOrder: number): void;
-            getTabListOrder(): number;
           }
           const ServerData: {
             ServerPackStatus: typeof net.minecraft.client.multiplayer.ServerData$ServerPackStatus;
@@ -15974,53 +16093,6 @@ declare global {
           interface ServerData$ServerPackStatus extends kotlin.Enum<net.minecraft.client.multiplayer.ServerData$ServerPackStatus> { 
             getName(): net.minecraft.network.chat.Component;
           }
-          const MultiPlayerGameMode: {
-            new(minecraft: net.minecraft.client.Minecraft, connection: net.minecraft.client.multiplayer.ClientPacketListener): net.minecraft.client.multiplayer.MultiPlayerGameMode;
-          }
-          interface MultiPlayerGameMode { 
-            isDestroying(): boolean;
-            adjustPlayer(player: net.minecraft.world.entity.player.Player): void;
-            setLocalMode(mode: net.minecraft.world.level.GameType, previousMode: net.minecraft.world.level.GameType | null | undefined): void;
-            setLocalMode(mode: net.minecraft.world.level.GameType): void;
-            canHurtPlayer(): boolean;
-            destroyBlock(pos: net.minecraft.core.BlockPos): boolean;
-            startDestroyBlock(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): boolean;
-            stopDestroyBlock(): void;
-            continueDestroyBlock(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): boolean;
-            tick(): void;
-            useItemOn(player: net.minecraft.client.player.LocalPlayer, hand: net.minecraft.world.InteractionHand, blockHit: net.minecraft.world.phys.BlockHitResult): net.minecraft.world.InteractionResult;
-            useItem(player: net.minecraft.world.entity.player.Player, hand: net.minecraft.world.InteractionHand): net.minecraft.world.InteractionResult;
-            createPlayer(level: net.minecraft.client.multiplayer.ClientLevel, stats: net.minecraft.stats.StatsCounter, recipeBook: net.minecraft.client.ClientRecipeBook): net.minecraft.client.player.LocalPlayer;
-            createPlayer(level: net.minecraft.client.multiplayer.ClientLevel, stats: net.minecraft.stats.StatsCounter, recipeBook: net.minecraft.client.ClientRecipeBook, lastSentInput: net.minecraft.world.entity.player.Input, wasSprinting: boolean): net.minecraft.client.player.LocalPlayer;
-            attack(player: net.minecraft.world.entity.player.Player, entity: net.minecraft.world.entity.Entity): void;
-            spectate(entity: net.minecraft.world.entity.Entity): void;
-            interact(player: net.minecraft.world.entity.player.Player, entity: net.minecraft.world.entity.Entity, hitResult: net.minecraft.world.phys.EntityHitResult, hand: net.minecraft.world.InteractionHand): net.minecraft.world.InteractionResult;
-            handleContainerInput(containerId: number, slotNum: number, buttonNum: number, containerInput: net.minecraft.world.inventory.ContainerInput, player: net.minecraft.world.entity.player.Player): void;
-            handlePlaceRecipe(containerId: number, recipe: net.minecraft.world.item.crafting.display.RecipeDisplayId, useMaxItems: boolean): void;
-            handleInventoryButtonClick(containerId: number, buttonId: number): void;
-            handleCreativeModeItemAdd(clicked: net.minecraft.world.item.ItemStack, slot: number): void;
-            handleCreativeModeItemDrop(clicked: net.minecraft.world.item.ItemStack): void;
-            releaseUsingItem(player: net.minecraft.world.entity.player.Player): void;
-            piercingAttack(weapon: net.minecraft.world.item.component.PiercingWeapon): void;
-            hasExperience(): boolean;
-            hasMissTime(): boolean;
-            isServerControlledInventory(): boolean;
-            isSpectator(): boolean;
-            getPreviousPlayerMode(): net.minecraft.world.level.GameType | null | undefined;
-            getPlayerMode(): net.minecraft.world.level.GameType;
-            getDestroyStage(): number;
-            handlePickItemFromBlock(pos: net.minecraft.core.BlockPos, includeData: boolean): void;
-            handlePickItemFromEntity(entity: net.minecraft.world.entity.Entity, includeData: boolean): void;
-            handleSlotStateChanged(slotId: number, containerId: number, newState: boolean): void;
-          }
-          const ProfileKeyPairManager: {
-            EMPTY_KEY_MANAGER: net.minecraft.client.multiplayer.ProfileKeyPairManager;
-            create(userApiService: com.mojang.authlib.minecraft.UserApiService, user: net.minecraft.client.User, gameDirectory: java.nio.file.Path): net.minecraft.client.multiplayer.ProfileKeyPairManager;
-          }
-          interface ProfileKeyPairManager { 
-            prepareKeyPair(): java.util.concurrent.CompletableFuture<java.util.Optional<unknown>>;
-            shouldRefreshKeyPair(): boolean;
-          }
           const CommonListenerCookie: {
             new(levelLoadTracker: net.minecraft.client.multiplayer.LevelLoadTracker, localGameProfile: com.mojang.authlib.GameProfile, telemetryManager: net.minecraft.client.telemetry.WorldSessionTelemetryManager, receivedRegistries: net.minecraft.core.RegistryAccess$Frozen, enabledFeatures: net.minecraft.world.flag.FeatureFlagSet, serverBrand: string | null | undefined, serverData: net.minecraft.client.multiplayer.ServerData | null | undefined, postDisconnectScreen: net.minecraft.client.gui.screens.Screen | null | undefined, serverCookies: Map<net.minecraft.resources.Identifier, Array<number>>, chatState: net.minecraft.client.gui.components.ChatComponent$State | null | undefined, customReportDetails: Map<string, string>, serverLinks: net.minecraft.server.ServerLinks, seenPlayers: Map<java.util.UUID, net.minecraft.client.multiplayer.PlayerInfo>, seenInsecureChatWarning: boolean): net.minecraft.client.multiplayer.CommonListenerCookie;
           }
@@ -16047,13 +16119,33 @@ declare global {
           }
           interface LevelLoadTracker extends net.minecraft.server.level.progress.LevelLoadListener { 
             setServerChunkStatusView(serverChunkStatusView: net.minecraft.server.level.progress.ChunkLoadStatusView): void;
-            startClientLoad(player: net.minecraft.client.player.LocalPlayer, level: net.minecraft.client.multiplayer.ClientLevel, levelRenderer: net.minecraft.client.renderer.LevelRenderer): void;
+            startClientLoad(player: net.minecraft.client.player.LocalPlayer, level: net.minecraft.client.multiplayer.ClientLevel): void;
             tickClientLoad(): void;
             isLevelReady(): boolean;
             loadingPacketsReceived(): void;
             statusView(): net.minecraft.server.level.progress.ChunkLoadStatusView | null | undefined;
             serverProgress(): number;
             hasProgress(): boolean;
+            getPlayerCompiledSectionCallback(): java.lang.Runnable | null | undefined;
+          }
+          const PlayerInfo: {
+            new(profile: com.mojang.authlib.GameProfile, enforcesSecureChat: boolean): net.minecraft.client.multiplayer.PlayerInfo;
+          }
+          interface PlayerInfo { 
+            showHat(): boolean;
+            getProfile(): com.mojang.authlib.GameProfile;
+            getChatSession(): net.minecraft.network.chat.RemoteChatSession | null | undefined;
+            getMessageValidator(): net.minecraft.network.chat.SignedMessageValidator;
+            hasVerifiableChat(): boolean;
+            getGameMode(): net.minecraft.world.level.GameType;
+            getLatency(): number;
+            getSkin(): net.minecraft.world.entity.player.PlayerSkin;
+            getTeam(): net.minecraft.world.scores.PlayerTeam | null | undefined;
+            setTabListDisplayName(tabListDisplayName: net.minecraft.network.chat.Component | null | undefined): void;
+            getTabListDisplayName(): net.minecraft.network.chat.Component | null | undefined;
+            setShowHat(showHat: boolean): void;
+            setTabListOrder(tabListOrder: number): void;
+            getTabListOrder(): number;
           }
           const SessionSearchTrees: {
             new(): net.minecraft.client.multiplayer.SessionSearchTrees;
@@ -16088,27 +16180,327 @@ declare global {
             onUpdateAdvancementProgress(advancement: net.minecraft.advancements.AdvancementNode, progress: net.minecraft.advancements.AdvancementProgress): void;
             onSelectedTabChanged(selectedTab: net.minecraft.advancements.AdvancementHolder | null | undefined): void;
           }
+          const MultiPlayerGameMode: {
+            new(minecraft: net.minecraft.client.Minecraft, connection: net.minecraft.client.multiplayer.ClientPacketListener): net.minecraft.client.multiplayer.MultiPlayerGameMode;
+          }
+          interface MultiPlayerGameMode { 
+            isDestroying(): boolean;
+            adjustPlayer(player: net.minecraft.world.entity.player.Player): void;
+            setLocalMode(mode: net.minecraft.world.level.GameType, previousMode: net.minecraft.world.level.GameType | null | undefined): void;
+            setLocalMode(mode: net.minecraft.world.level.GameType): void;
+            canHurtPlayer(): boolean;
+            destroyBlock(pos: net.minecraft.core.BlockPos): boolean;
+            startDestroyBlock(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): boolean;
+            stopDestroyBlock(): void;
+            continueDestroyBlock(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): boolean;
+            tick(): void;
+            useItemOn(player: net.minecraft.client.player.LocalPlayer, hand: net.minecraft.world.InteractionHand, blockHit: net.minecraft.world.phys.BlockHitResult): net.minecraft.world.InteractionResult;
+            useItem(player: net.minecraft.world.entity.player.Player, hand: net.minecraft.world.InteractionHand): net.minecraft.world.InteractionResult;
+            createPlayer(level: net.minecraft.client.multiplayer.ClientLevel, stats: net.minecraft.stats.StatsCounter, recipeBook: net.minecraft.client.ClientRecipeBook): net.minecraft.client.player.LocalPlayer;
+            createPlayer(level: net.minecraft.client.multiplayer.ClientLevel, stats: net.minecraft.stats.StatsCounter, recipeBook: net.minecraft.client.ClientRecipeBook, lastSentInput: net.minecraft.world.entity.player.Input, wasSprinting: boolean): net.minecraft.client.player.LocalPlayer;
+            attack(player: net.minecraft.world.entity.player.Player, entity: net.minecraft.world.entity.Entity): void;
+            spectate(entity: net.minecraft.world.entity.Entity): void;
+            spectatorNoAction(): void;
+            interact(player: net.minecraft.world.entity.player.Player, entity: net.minecraft.world.entity.Entity, hitResult: net.minecraft.world.phys.EntityHitResult, hand: net.minecraft.world.InteractionHand): net.minecraft.world.InteractionResult;
+            handleContainerInput(containerId: number, slotNum: number, buttonNum: number, containerInput: net.minecraft.world.inventory.ContainerInput, player: net.minecraft.world.entity.player.Player): void;
+            handlePlaceRecipe(containerId: number, recipe: net.minecraft.world.item.crafting.display.RecipeDisplayId, useMaxItems: boolean): void;
+            handleInventoryButtonClick(containerId: number, buttonId: number): void;
+            handleCreativeModeItemAdd(clicked: net.minecraft.world.item.ItemStack, slot: number): void;
+            handleCreativeModeItemDrop(clicked: net.minecraft.world.item.ItemStack): void;
+            releaseUsingItem(player: net.minecraft.world.entity.player.Player): void;
+            piercingAttack(weapon: net.minecraft.world.item.component.PiercingWeapon): void;
+            hasExperience(): boolean;
+            hasMissTime(): boolean;
+            isServerControlledInventory(): boolean;
+            isSpectator(): boolean;
+            getPreviousPlayerMode(): net.minecraft.world.level.GameType | null | undefined;
+            getPlayerMode(): net.minecraft.world.level.GameType;
+            getDestroyStage(): number;
+            handlePickItemFromBlock(pos: net.minecraft.core.BlockPos, includeData: boolean): void;
+            handlePickItemFromEntity(entity: net.minecraft.world.entity.Entity, includeData: boolean): void;
+            handleSlotStateChanged(slotId: number, containerId: number, newState: boolean): void;
+          }
+          const ProfileKeyPairManager: {
+            EMPTY_KEY_MANAGER: net.minecraft.client.multiplayer.ProfileKeyPairManager;
+            create(userApiService: com.mojang.authlib.minecraft.UserApiService, user: net.minecraft.client.User, gameDirectory: java.nio.file.Path): net.minecraft.client.multiplayer.ProfileKeyPairManager;
+          }
+          interface ProfileKeyPairManager { 
+            prepareKeyPair(): java.util.concurrent.CompletableFuture<java.util.Optional<unknown>>;
+            shouldRefreshKeyPair(): boolean;
+          }
         }
-        namespace color {
-          namespace block {
-            interface BlockTintSource { 
-              color(state: net.minecraft.world.level.block.state.BlockState): number;
-              colorInWorld(state: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.client.renderer.block.BlockAndTintGetter, pos: net.minecraft.core.BlockPos): number;
-              colorAsTerrainParticle(state: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.client.renderer.block.BlockAndTintGetter, pos: net.minecraft.core.BlockPos): number;
-              relevantProperties(): Set<net.minecraft.world.level.block.state.properties.Property<any>>;
+        namespace telemetry {
+          const WorldSessionTelemetryManager: {
+            new(eventSender: net.minecraft.client.telemetry.TelemetryEventSender, newWorld: boolean, worldLoadDuration: java.time.Duration | null | undefined, minigameName: string | null | undefined, sessionId: java.util.UUID): net.minecraft.client.telemetry.WorldSessionTelemetryManager;
+          }
+          interface WorldSessionTelemetryManager { 
+            tick(): void;
+            onPlayerInfoReceived(type: net.minecraft.world.level.GameType, hardcore: boolean): void;
+            onServerBrandReceived(serverBrand: string): void;
+            setTime(gameTime: number): void;
+            worldSessionStart(): void;
+            onDisconnect(): void;
+            onAdvancementDone(level: net.minecraft.world.level.Level, holder: net.minecraft.advancements.AdvancementHolder): void;
+          }
+          const TelemetryEventSender: {
+            DISABLED: net.minecraft.client.telemetry.TelemetryEventSender;
+          }
+          interface TelemetryEventSender { 
+            decorate(decorator: unknown): net.minecraft.client.telemetry.TelemetryEventSender;
+            send(type: net.minecraft.client.telemetry.TelemetryEventType, buildFunction: unknown): void;
+            (type: net.minecraft.client.telemetry.TelemetryEventType, buildFunction: unknown): void;
+          }
+          const TelemetryEventType: {
+            Builder: typeof net.minecraft.client.telemetry.TelemetryEventType$Builder;
+            CODEC: com.mojang.serialization.Codec<net.minecraft.client.telemetry.TelemetryEventType>;
+            GRAPHICS_CAPABILITIES: net.minecraft.client.telemetry.TelemetryEventType;
+            WORLD_LOADED: net.minecraft.client.telemetry.TelemetryEventType;
+            PERFORMANCE_METRICS: net.minecraft.client.telemetry.TelemetryEventType;
+            WORLD_LOAD_TIMES: net.minecraft.client.telemetry.TelemetryEventType;
+            WORLD_UNLOADED: net.minecraft.client.telemetry.TelemetryEventType;
+            ADVANCEMENT_MADE: net.minecraft.client.telemetry.TelemetryEventType;
+            GAME_LOAD_TIMES: net.minecraft.client.telemetry.TelemetryEventType;
+            builder(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryEventType$Builder;
+            values(): Array<net.minecraft.client.telemetry.TelemetryEventType>;
+            selfTest(): boolean;
+          }
+          interface TelemetryEventType { 
+            id(): string;
+            properties(): Array<net.minecraft.client.telemetry.TelemetryProperty<any>>;
+            isOptIn(): boolean;
+            codec(): com.mojang.serialization.MapCodec<unknown>;
+            contains<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>): boolean;
+            title(): net.minecraft.network.chat.MutableComponent;
+            description(): net.minecraft.network.chat.MutableComponent;
+          }
+          const TelemetryPropertyMap: {
+            Builder: typeof net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
+            builder(): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
+            createCodec(properties: Array<net.minecraft.client.telemetry.TelemetryProperty<any>>): com.mojang.serialization.MapCodec<net.minecraft.client.telemetry.TelemetryPropertyMap>;
+          }
+          interface TelemetryPropertyMap { 
+            get<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>): T;
+            propertySet(): Set<net.minecraft.client.telemetry.TelemetryProperty<any>>;
+          }
+          const TelemetryProperty: {
+            GameMode: typeof net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+            ServerType: typeof net.minecraft.client.telemetry.TelemetryProperty$ServerType;
+            USER_ID: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            CLIENT_ID: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            MINECRAFT_SESSION_ID: net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
+            GAME_VERSION: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            OPERATING_SYSTEM: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            PLATFORM: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            CLIENT_MODDED: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
+            LAUNCHER_NAME: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            BACKEND_NAME: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            BACKEND_FAILURE_MESSAGE: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            BACKEND_FAILURE_REASON: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            BACKEND_FAILURE_MISSING_CAPABILITIES: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            WORLD_SESSION_ID: net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
+            SERVER_SESSION_ID: net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
+            SERVER_MODDED: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
+            SERVER_TYPE: net.minecraft.client.telemetry.TelemetryProperty<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
+            OPT_IN: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
+            EVENT_TIMESTAMP_UTC: net.minecraft.client.telemetry.TelemetryProperty<java.time.Instant>;
+            GAME_MODE: net.minecraft.client.telemetry.TelemetryProperty<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
+            REALMS_MAP_CONTENT: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            SECONDS_SINCE_LOAD: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            TICKS_SINCE_LOAD: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            FRAME_RATE_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            RENDER_TIME_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            USED_MEMORY_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            NUMBER_OF_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            RENDER_DISTANCE: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            DEDICATED_MEMORY_KB: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            WORLD_LOAD_TIME_MS: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            NEW_WORLD: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
+            LOAD_TIME_TOTAL_TIME_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            LOAD_TIME_PRE_WINDOW_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            LOAD_TIME_BOOTSTRAP_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            LOAD_TIME_LOADING_OVERLAY_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            ADVANCEMENT_ID: net.minecraft.client.telemetry.TelemetryProperty<string>;
+            ADVANCEMENT_GAME_TIME: net.minecraft.client.telemetry.TelemetryProperty<number>;
+            new<T>(id: string, exportKey: string, codec: com.mojang.serialization.Codec<T>, exporter: net.minecraft.client.telemetry.TelemetryProperty$Exporter<T>): net.minecraft.client.telemetry.TelemetryProperty<any>;
+            create<T>(id: string, exportKey: string, codec: com.mojang.serialization.Codec<T>, exporter: net.minecraft.client.telemetry.TelemetryProperty$Exporter<T>): net.minecraft.client.telemetry.TelemetryProperty<T>;
+            bool(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<boolean>;
+            string(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<string>;
+            integer(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<number>;
+            makeLong(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<number>;
+            uuid(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
+            gameLoadMeasurement(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+            longSamples(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<unknown>;
+          }
+          interface TelemetryProperty<T> extends java.lang.Record { 
+            title(): net.minecraft.network.chat.MutableComponent;
+            id(): string;
+            exportKey(): string;
+            codec(): com.mojang.serialization.Codec<T>;
+            exporter(): net.minecraft.client.telemetry.TelemetryProperty$Exporter<T>;
+          }
+          interface TelemetryProperty$Exporter<T> { 
+            apply(output: com.mojang.authlib.minecraft.TelemetryPropertyContainer, key: string, value: T): void;
+          }
+          const TelemetryProperty$GameMode: {
+            SURVIVAL: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+            CREATIVE: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+            ADVENTURE: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+            SPECTATOR: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+            HARDCORE: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+            CODEC: com.mojang.serialization.Codec<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
+            entries: kotlin.enums.EnumEntries<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
+            values(): Array<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
+            valueOf(value: string): net.minecraft.client.telemetry.TelemetryProperty$GameMode;
+          }
+          interface TelemetryProperty$GameMode extends kotlin.Enum<net.minecraft.client.telemetry.TelemetryProperty$GameMode>, net.minecraft.util.StringRepresentable { 
+            id(): number;
+          }
+          const TelemetryProperty$ServerType: {
+            REALM: net.minecraft.client.telemetry.TelemetryProperty$ServerType;
+            LOCAL: net.minecraft.client.telemetry.TelemetryProperty$ServerType;
+            OTHER: net.minecraft.client.telemetry.TelemetryProperty$ServerType;
+            CODEC: com.mojang.serialization.Codec<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
+            entries: kotlin.enums.EnumEntries<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
+            values(): Array<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
+            valueOf(value: string): net.minecraft.client.telemetry.TelemetryProperty$ServerType;
+          }
+          interface TelemetryProperty$ServerType extends kotlin.Enum<net.minecraft.client.telemetry.TelemetryProperty$ServerType>, net.minecraft.util.StringRepresentable { 
+          }
+          interface TelemetryPropertyMap$Builder { 
+            put<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>, value: T): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
+            putIfNotNull<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>, value: T): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
+            putAll(properties: net.minecraft.client.telemetry.TelemetryPropertyMap): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
+            build(): net.minecraft.client.telemetry.TelemetryPropertyMap;
+          }
+          interface TelemetryEventType$Builder { 
+            defineAll(properties: Array<net.minecraft.client.telemetry.TelemetryProperty<any>>): net.minecraft.client.telemetry.TelemetryEventType$Builder;
+            define<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>): net.minecraft.client.telemetry.TelemetryEventType$Builder;
+            optIn(): net.minecraft.client.telemetry.TelemetryEventType$Builder;
+            register(): net.minecraft.client.telemetry.TelemetryEventType;
+          }
+          const ClientTelemetryManager: {
+            new(minecraft: net.minecraft.client.Minecraft, userApiService: com.mojang.authlib.minecraft.UserApiService, user: net.minecraft.client.User): net.minecraft.client.telemetry.ClientTelemetryManager;
+          }
+          interface ClientTelemetryManager extends java.lang.AutoCloseable { 
+            createWorldSessionManager(newWorld: boolean, worldLoadDuration: java.time.Duration | null | undefined, minigameName: string | null | undefined, sessionId: java.util.UUID): net.minecraft.client.telemetry.WorldSessionTelemetryManager;
+            getOutsideSessionSender(): net.minecraft.client.telemetry.TelemetryEventSender;
+            getLogDirectory(): java.nio.file.Path;
+          }
+        }
+        namespace player {
+          namespace inventory {
+            const Hotbar: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.client.player.inventory.Hotbar>;
+              new(): net.minecraft.client.player.inventory.Hotbar;
             }
-            const BlockColors: {
-              LILY_PAD_IN_WORLD: number;
-              LILY_PAD_DEFAULT: number;
-              new(): net.minecraft.client.color.block.BlockColors;
-              createDefault(): net.minecraft.client.color.block.BlockColors;
+            interface Hotbar { 
+              load(registries: net.minecraft.core.HolderLookup$Provider): Array<net.minecraft.world.item.ItemStack>;
+              storeFrom(inventory: net.minecraft.world.entity.player.Inventory, lookupProvider: net.minecraft.core.RegistryAccess): void;
+              isEmpty(): boolean;
             }
-            interface BlockColors { 
-              getTintSources(state: net.minecraft.world.level.block.state.BlockState): Array<net.minecraft.client.color.block.BlockTintSource>;
-              getTintSource(state: net.minecraft.world.level.block.state.BlockState, layer: number): net.minecraft.client.color.block.BlockTintSource | null | undefined;
-              register(layers: Array<net.minecraft.client.color.block.BlockTintSource>, blocks: net.minecraft.world.level.block.Block): void;
-              getColoringProperties(block: net.minecraft.world.level.block.Block): Set<net.minecraft.world.level.block.state.properties.Property<any>>;
-            }
+          }
+          const LocalPlayer: {
+            LOGGER: org.slf4j.Logger;
+            new(minecraft: net.minecraft.client.Minecraft, level: net.minecraft.client.multiplayer.ClientLevel, connection: net.minecraft.client.multiplayer.ClientPacketListener, stats: net.minecraft.stats.StatsCounter, recipeBook: net.minecraft.client.ClientRecipeBook, lastSentInput: net.minecraft.world.entity.player.Input, wasSprinting: boolean, chatAbilities: net.minecraft.client.multiplayer.chat.ChatAbilities): net.minecraft.client.player.LocalPlayer;
+          }
+          interface LocalPlayer extends net.minecraft.client.player.AbstractClientPlayer, net.fabricmc.fabric.api.networking.v1.context.PacketContextProvider { 
+            connection: net.minecraft.client.multiplayer.ClientPacketListener;
+            input: net.minecraft.client.player.ClientInput;
+            experienceDisplayStartTick: number;
+            yBob: number;
+            xBob: number;
+            yBobO: number;
+            xBobO: number;
+            portalEffectIntensity: number;
+            oPortalEffectIntensity: number;
+            chatAbilities(): net.minecraft.client.multiplayer.chat.ChatAbilities;
+            getCurrentMood(): number;
+            drop(all: boolean): boolean;
+            respawn(): void;
+            clientSideCloseContainer(): void;
+            hurtTo(newHealth: number): void;
+            sendOpenInventory(): void;
+            getStats(): net.minecraft.stats.StatsCounter;
+            getRecipeBook(): net.minecraft.client.ClientRecipeBook;
+            removeRecipeHighlight(recipe: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
+            setPermissions(newPermissions: net.minecraft.server.permissions.PermissionSet): void;
+            refreshChatAbilities(): void;
+            setExperienceValues(experienceProgress: number, totalExp: number, experienceLevel: number): void;
+            setShowDeathScreen(show: boolean): void;
+            shouldShowDeathScreen(): boolean;
+            setDoLimitedCrafting(value: boolean): void;
+            getDoLimitedCrafting(): boolean;
+            jumpableVehicle(): net.minecraft.world.entity.PlayerRideableJumping | null | undefined;
+            getJumpRidingScale(): number;
+            isMovingSlowly(): boolean;
+            resetPos(): void;
+            getActivePortalLocalTransition(): net.minecraft.world.level.block.Portal$Transition;
+            isHandsBusy(): boolean;
+            isAutoJumpEnabled(): boolean;
+            getWaterVision(): number;
+            onGameModeChanged(gameType: net.minecraft.world.level.GameType): void;
+            getDropSpamThrottler(): net.minecraft.util.TickThrottler;
+            getLastSentInput(): net.minecraft.world.entity.player.Input;
+            raycastHitResult(a: number, cameraEntity: net.minecraft.world.entity.Entity): net.minecraft.world.phys.HitResult;
+          }
+          const AbstractClientPlayer: {
+            new(level: net.minecraft.client.multiplayer.ClientLevel, gameProfile: com.mojang.authlib.GameProfile): net.minecraft.client.player.AbstractClientPlayer;
+          }
+          interface AbstractClientPlayer extends net.minecraft.world.entity.player.Player, net.minecraft.client.entity.ClientAvatarEntity { 
+            getFieldOfViewModifier(firstPerson: boolean, effectScale: number): number;
+          }
+          const ClientInput: {
+            new(): net.minecraft.client.player.ClientInput;
+          }
+          interface ClientInput { 
+            keyPresses: net.minecraft.world.entity.player.Input;
+            tick(): void;
+            getMoveVector(): net.minecraft.world.phys.Vec2;
+            hasForwardImpulse(): boolean;
+            makeJump(): void;
+          }
+        }
+        namespace entity {
+          interface ClientAvatarEntity { 
+            avatarState(): net.minecraft.client.entity.ClientAvatarState;
+            getSkin(): net.minecraft.world.entity.player.PlayerSkin;
+            getParrotVariantOnShoulder(left: boolean): net.minecraft.world.entity.animal.parrot.Parrot$Variant | null | undefined;
+            showExtraEars(): boolean;
+          }
+          const ClientAvatarState: {
+            new(): net.minecraft.client.entity.ClientAvatarState;
+          }
+          interface ClientAvatarState { 
+            deltaMovementOnPreviousTick(): net.minecraft.world.phys.Vec3;
+            tick(position: net.minecraft.world.phys.Vec3, deltaMovement: net.minecraft.world.phys.Vec3): void;
+            addWalkDistance(added: number): void;
+            getInterpolatedCloakX(partialTicks: number): number;
+            getInterpolatedCloakY(partialTicks: number): number;
+            getInterpolatedCloakZ(partialTicks: number): number;
+            updateBob(tBob: number): void;
+            resetBob(): void;
+            getInterpolatedBob(partialTicks: number): number;
+            getBackwardsInterpolatedWalkDistance(partialTicks: number): number;
+            getInterpolatedWalkDistance(partialTicks: number): number;
+          }
+        }
+        namespace searchtree {
+          const SearchTree: {
+            empty<T>(): net.minecraft.client.searchtree.SearchTree<T>;
+            plainText<T>(elements: Array<T>, idGetter: unknown): net.minecraft.client.searchtree.SearchTree<T>;
+          }
+          interface SearchTree<T> { 
+            search(text: string): Array<T>;
+            (text: string): Array<T>;
+          }
+        }
+        namespace waypoints {
+          const ClientWaypointManager: {
+            new(): net.minecraft.client.waypoints.ClientWaypointManager;
+          }
+          interface ClientWaypointManager extends net.minecraft.world.waypoints.TrackedWaypointManager { 
+            hasWaypoints(): boolean;
+            forEachWaypoint(fromEntity: net.minecraft.world.entity.Entity, consumer: unknown): void;
           }
         }
         namespace sounds {
@@ -16300,166 +16692,26 @@ declare global {
             onGetItem(itemStack: net.minecraft.world.item.ItemStack): void;
           }
         }
-        namespace player {
-          namespace inventory {
-            const Hotbar: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.client.player.inventory.Hotbar>;
-              new(): net.minecraft.client.player.inventory.Hotbar;
+        namespace color {
+          namespace block {
+            const BlockColors: {
+              LILY_PAD_IN_WORLD: number;
+              LILY_PAD_DEFAULT: number;
+              new(): net.minecraft.client.color.block.BlockColors;
+              createDefault(): net.minecraft.client.color.block.BlockColors;
             }
-            interface Hotbar { 
-              load(registries: net.minecraft.core.HolderLookup$Provider): Array<net.minecraft.world.item.ItemStack>;
-              storeFrom(inventory: net.minecraft.world.entity.player.Inventory, lookupProvider: net.minecraft.core.RegistryAccess): void;
-              isEmpty(): boolean;
+            interface BlockColors { 
+              getTintSources(state: net.minecraft.world.level.block.state.BlockState): Array<net.minecraft.client.color.block.BlockTintSource>;
+              getTintSource(state: net.minecraft.world.level.block.state.BlockState, layer: number): net.minecraft.client.color.block.BlockTintSource | null | undefined;
+              register(layers: Array<net.minecraft.client.color.block.BlockTintSource>, blocks: net.minecraft.world.level.block.Block): void;
+              getColoringProperties(block: net.minecraft.world.level.block.Block): Set<net.minecraft.world.level.block.state.properties.Property<any>>;
             }
-          }
-          const ClientInput: {
-            new(): net.minecraft.client.player.ClientInput;
-          }
-          interface ClientInput { 
-            keyPresses: net.minecraft.world.entity.player.Input;
-            tick(): void;
-            getMoveVector(): net.minecraft.world.phys.Vec2;
-            hasForwardImpulse(): boolean;
-            makeJump(): void;
-          }
-          const AbstractClientPlayer: {
-            new(level: net.minecraft.client.multiplayer.ClientLevel, gameProfile: com.mojang.authlib.GameProfile): net.minecraft.client.player.AbstractClientPlayer;
-          }
-          interface AbstractClientPlayer extends net.minecraft.world.entity.player.Player, net.minecraft.client.entity.ClientAvatarEntity { 
-            getFieldOfViewModifier(firstPerson: boolean, effectScale: number): number;
-          }
-          const LocalPlayer: {
-            LOGGER: org.slf4j.Logger;
-            new(minecraft: net.minecraft.client.Minecraft, level: net.minecraft.client.multiplayer.ClientLevel, connection: net.minecraft.client.multiplayer.ClientPacketListener, stats: net.minecraft.stats.StatsCounter, recipeBook: net.minecraft.client.ClientRecipeBook, lastSentInput: net.minecraft.world.entity.player.Input, wasSprinting: boolean, chatAbilities: net.minecraft.client.multiplayer.chat.ChatAbilities): net.minecraft.client.player.LocalPlayer;
-          }
-          interface LocalPlayer extends net.minecraft.client.player.AbstractClientPlayer, net.fabricmc.fabric.api.networking.v1.context.PacketContextProvider { 
-            connection: net.minecraft.client.multiplayer.ClientPacketListener;
-            input: net.minecraft.client.player.ClientInput;
-            experienceDisplayStartTick: number;
-            yBob: number;
-            xBob: number;
-            yBobO: number;
-            xBobO: number;
-            portalEffectIntensity: number;
-            oPortalEffectIntensity: number;
-            chatAbilities(): net.minecraft.client.multiplayer.chat.ChatAbilities;
-            getCurrentMood(): number;
-            drop(all: boolean): boolean;
-            respawn(): void;
-            clientSideCloseContainer(): void;
-            hurtTo(newHealth: number): void;
-            sendOpenInventory(): void;
-            getStats(): net.minecraft.stats.StatsCounter;
-            getRecipeBook(): net.minecraft.client.ClientRecipeBook;
-            removeRecipeHighlight(recipe: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
-            setPermissions(newPermissions: net.minecraft.server.permissions.PermissionSet): void;
-            refreshChatAbilities(): void;
-            setExperienceValues(experienceProgress: number, totalExp: number, experienceLevel: number): void;
-            setShowDeathScreen(show: boolean): void;
-            shouldShowDeathScreen(): boolean;
-            setDoLimitedCrafting(value: boolean): void;
-            getDoLimitedCrafting(): boolean;
-            jumpableVehicle(): net.minecraft.world.entity.PlayerRideableJumping | null | undefined;
-            getJumpRidingScale(): number;
-            isMovingSlowly(): boolean;
-            resetPos(): void;
-            getActivePortalLocalTransition(): net.minecraft.world.level.block.Portal$Transition;
-            isHandsBusy(): boolean;
-            isAutoJumpEnabled(): boolean;
-            getWaterVision(): number;
-            onGameModeChanged(gameType: net.minecraft.world.level.GameType): void;
-            getDropSpamThrottler(): net.minecraft.util.TickThrottler;
-            getLastSentInput(): net.minecraft.world.entity.player.Input;
-            raycastHitResult(a: number, cameraEntity: net.minecraft.world.entity.Entity): net.minecraft.world.phys.HitResult;
-          }
-        }
-        namespace entity {
-          interface ClientAvatarEntity { 
-            avatarState(): net.minecraft.client.entity.ClientAvatarState;
-            getSkin(): net.minecraft.world.entity.player.PlayerSkin;
-            getParrotVariantOnShoulder(left: boolean): net.minecraft.world.entity.animal.parrot.Parrot$Variant | null | undefined;
-            showExtraEars(): boolean;
-          }
-          const ClientAvatarState: {
-            new(): net.minecraft.client.entity.ClientAvatarState;
-          }
-          interface ClientAvatarState { 
-            deltaMovementOnPreviousTick(): net.minecraft.world.phys.Vec3;
-            tick(position: net.minecraft.world.phys.Vec3, deltaMovement: net.minecraft.world.phys.Vec3): void;
-            addWalkDistance(added: number): void;
-            getInterpolatedCloakX(partialTicks: number): number;
-            getInterpolatedCloakY(partialTicks: number): number;
-            getInterpolatedCloakZ(partialTicks: number): number;
-            updateBob(tBob: number): void;
-            resetBob(): void;
-            getInterpolatedBob(partialTicks: number): number;
-            getBackwardsInterpolatedWalkDistance(partialTicks: number): number;
-            getInterpolatedWalkDistance(partialTicks: number): number;
-          }
-        }
-        namespace particle {
-          const ParticleEngine: {
-            new(level: net.minecraft.client.multiplayer.ClientLevel, resourceManager: net.minecraft.client.particle.ParticleResources): net.minecraft.client.particle.ParticleEngine;
-          }
-          interface ParticleEngine { 
-            createTrackingEmitter(entity: net.minecraft.world.entity.Entity, particle: net.minecraft.core.particles.ParticleOptions): void;
-            createTrackingEmitter(entity: net.minecraft.world.entity.Entity, particle: net.minecraft.core.particles.ParticleOptions, lifeTime: number): void;
-            createParticle(options: net.minecraft.core.particles.ParticleOptions, x: number, y: number, z: number, xa: number, ya: number, za: number): net.minecraft.client.particle.Particle | null | undefined;
-            add(p: net.minecraft.client.particle.Particle): void;
-            tick(): void;
-            extract(particlesRenderState: net.minecraft.client.renderer.state.level.ParticlesRenderState, frustum: net.minecraft.client.renderer.culling.Frustum, camera: net.minecraft.client.Camera, partialTickTime: number): void;
-            setLevel(level: net.minecraft.client.multiplayer.ClientLevel | null | undefined): void;
-            countParticles(): string;
-            clearParticles(): void;
-          }
-          const Particle: {
-            LifetimeAlpha: typeof net.minecraft.client.particle.Particle$LifetimeAlpha;
-            new(level: net.minecraft.client.multiplayer.ClientLevel, x: number, y: number, z: number, xa: number, ya: number, za: number): net.minecraft.client.particle.Particle;
-          }
-          interface Particle { 
-            setPower(power: number): net.minecraft.client.particle.Particle;
-            setParticleSpeed(xd: number, yd: number, zd: number): void;
-            scale(scale: number): net.minecraft.client.particle.Particle;
-            setLifetime(lifetime: number): void;
-            getLifetime(): number;
-            tick(): void;
-            getGroup(): net.minecraft.client.particle.ParticleRenderType;
-            remove(): void;
-            setPos(x: number, y: number, z: number): void;
-            move(xa: number, ya: number, za: number): void;
-            isAlive(): boolean;
-            getBoundingBox(): net.minecraft.world.phys.AABB;
-            setBoundingBox(bb: net.minecraft.world.phys.AABB): void;
-            getParticleLimit(): java.util.Optional<net.minecraft.core.particles.ParticleLimit>;
-          }
-          const ParticleRenderType: {
-            SINGLE_QUADS: net.minecraft.client.particle.ParticleRenderType;
-            ITEM_PICKUP: net.minecraft.client.particle.ParticleRenderType;
-            ELDER_GUARDIANS: net.minecraft.client.particle.ParticleRenderType;
-            NO_RENDER: net.minecraft.client.particle.ParticleRenderType;
-            new(name: string): net.minecraft.client.particle.ParticleRenderType;
-          }
-          interface ParticleRenderType extends java.lang.Record { 
-            name(): string;
-          }
-          const Particle$LifetimeAlpha: {
-            ALWAYS_OPAQUE: net.minecraft.client.particle.Particle$LifetimeAlpha;
-            new(startAlpha: number, endAlpha: number, startAtNormalizedAge: number, endAtNormalizedAge: number): net.minecraft.client.particle.Particle$LifetimeAlpha;
-          }
-          interface Particle$LifetimeAlpha extends java.lang.Record { 
-            isOpaque(): boolean;
-            currentAlphaForAge(age: number, lifetime: number, partialTickTime: number): number;
-            startAlpha(): number;
-            endAlpha(): number;
-            startAtNormalizedAge(): number;
-            endAtNormalizedAge(): number;
-          }
-          const ParticleResources: {
-            new(): net.minecraft.client.particle.ParticleResources;
-          }
-          interface ParticleResources extends net.minecraft.server.packs.resources.PreparableReloadListener { 
-            onReload(onReload: java.lang.Runnable): void;
-            getProviders(): it.unimi.dsi.fastutil.ints.Int2ObjectMap<unknown>;
+            interface BlockTintSource { 
+              color(state: net.minecraft.world.level.block.state.BlockState): number;
+              colorInWorld(state: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.client.renderer.block.BlockAndTintGetter, pos: net.minecraft.core.BlockPos): number;
+              colorAsTerrainParticle(state: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.client.renderer.block.BlockAndTintGetter, pos: net.minecraft.core.BlockPos): number;
+              relevantProperties(): Set<net.minecraft.world.level.block.state.properties.Property<any>>;
+            }
           }
         }
         namespace quickplay {
@@ -16482,184 +16734,22 @@ declare global {
           interface QuickPlayLog$Type extends kotlin.Enum<net.minecraft.client.quickplay.QuickPlayLog$Type>, net.minecraft.util.StringRepresentable { 
           }
         }
-        namespace telemetry {
-          const ClientTelemetryManager: {
-            new(minecraft: net.minecraft.client.Minecraft, userApiService: com.mojang.authlib.minecraft.UserApiService, user: net.minecraft.client.User): net.minecraft.client.telemetry.ClientTelemetryManager;
-          }
-          interface ClientTelemetryManager extends java.lang.AutoCloseable { 
-            createWorldSessionManager(newWorld: boolean, worldLoadDuration: java.time.Duration | null | undefined, minigameName: string | null | undefined): net.minecraft.client.telemetry.WorldSessionTelemetryManager;
-            getOutsideSessionSender(): net.minecraft.client.telemetry.TelemetryEventSender;
-            getLogDirectory(): java.nio.file.Path;
-          }
-          const WorldSessionTelemetryManager: {
-            new(eventSender: net.minecraft.client.telemetry.TelemetryEventSender, newWorld: boolean, worldLoadDuration: java.time.Duration | null | undefined, minigameName: string | null | undefined): net.minecraft.client.telemetry.WorldSessionTelemetryManager;
-          }
-          interface WorldSessionTelemetryManager { 
-            tick(): void;
-            onPlayerInfoReceived(type: net.minecraft.world.level.GameType, hardcore: boolean): void;
-            onServerBrandReceived(serverBrand: string): void;
-            setTime(gameTime: number): void;
-            worldSessionStart(): void;
-            onDisconnect(): void;
-            onAdvancementDone(level: net.minecraft.world.level.Level, holder: net.minecraft.advancements.AdvancementHolder): void;
-          }
-          const TelemetryEventSender: {
-            DISABLED: net.minecraft.client.telemetry.TelemetryEventSender;
-          }
-          interface TelemetryEventSender { 
-            decorate(decorator: unknown): net.minecraft.client.telemetry.TelemetryEventSender;
-            send(type: net.minecraft.client.telemetry.TelemetryEventType, buildFunction: unknown): void;
-            (type: net.minecraft.client.telemetry.TelemetryEventType, buildFunction: unknown): void;
-          }
-          const TelemetryEventType: {
-            Builder: typeof net.minecraft.client.telemetry.TelemetryEventType$Builder;
-            CODEC: com.mojang.serialization.Codec<net.minecraft.client.telemetry.TelemetryEventType>;
-            WORLD_LOADED: net.minecraft.client.telemetry.TelemetryEventType;
-            PERFORMANCE_METRICS: net.minecraft.client.telemetry.TelemetryEventType;
-            WORLD_LOAD_TIMES: net.minecraft.client.telemetry.TelemetryEventType;
-            WORLD_UNLOADED: net.minecraft.client.telemetry.TelemetryEventType;
-            ADVANCEMENT_MADE: net.minecraft.client.telemetry.TelemetryEventType;
-            GAME_LOAD_TIMES: net.minecraft.client.telemetry.TelemetryEventType;
-            builder(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryEventType$Builder;
-            values(): Array<net.minecraft.client.telemetry.TelemetryEventType>;
-          }
-          interface TelemetryEventType { 
-            id(): string;
-            properties(): Array<net.minecraft.client.telemetry.TelemetryProperty<any>>;
-            isOptIn(): boolean;
-            codec(): com.mojang.serialization.MapCodec<unknown>;
-            contains<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>): boolean;
-            title(): net.minecraft.network.chat.MutableComponent;
-            description(): net.minecraft.network.chat.MutableComponent;
-          }
-          const TelemetryPropertyMap: {
-            Builder: typeof net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
-            builder(): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
-            createCodec(properties: Array<net.minecraft.client.telemetry.TelemetryProperty<any>>): com.mojang.serialization.MapCodec<net.minecraft.client.telemetry.TelemetryPropertyMap>;
-          }
-          interface TelemetryPropertyMap { 
-            get<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>): T;
-            propertySet(): Set<net.minecraft.client.telemetry.TelemetryProperty<any>>;
-          }
-          const TelemetryProperty: {
-            GameMode: typeof net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-            ServerType: typeof net.minecraft.client.telemetry.TelemetryProperty$ServerType;
-            USER_ID: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            CLIENT_ID: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            MINECRAFT_SESSION_ID: net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
-            GAME_VERSION: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            OPERATING_SYSTEM: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            PLATFORM: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            CLIENT_MODDED: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
-            LAUNCHER_NAME: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            WORLD_SESSION_ID: net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
-            SERVER_MODDED: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
-            SERVER_TYPE: net.minecraft.client.telemetry.TelemetryProperty<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
-            OPT_IN: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
-            EVENT_TIMESTAMP_UTC: net.minecraft.client.telemetry.TelemetryProperty<java.time.Instant>;
-            GAME_MODE: net.minecraft.client.telemetry.TelemetryProperty<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
-            REALMS_MAP_CONTENT: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            SECONDS_SINCE_LOAD: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            TICKS_SINCE_LOAD: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            FRAME_RATE_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            RENDER_TIME_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            USED_MEMORY_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            NUMBER_OF_SAMPLES: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            RENDER_DISTANCE: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            DEDICATED_MEMORY_KB: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            WORLD_LOAD_TIME_MS: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            NEW_WORLD: net.minecraft.client.telemetry.TelemetryProperty<boolean>;
-            LOAD_TIME_TOTAL_TIME_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            LOAD_TIME_PRE_WINDOW_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            LOAD_TIME_BOOTSTRAP_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            LOAD_TIME_LOADING_OVERLAY_MS: net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            ADVANCEMENT_ID: net.minecraft.client.telemetry.TelemetryProperty<string>;
-            ADVANCEMENT_GAME_TIME: net.minecraft.client.telemetry.TelemetryProperty<number>;
-            new<T>(id: string, exportKey: string, codec: com.mojang.serialization.Codec<T>, exporter: net.minecraft.client.telemetry.TelemetryProperty$Exporter<T>): net.minecraft.client.telemetry.TelemetryProperty<any>;
-            create<T>(id: string, exportKey: string, codec: com.mojang.serialization.Codec<T>, exporter: net.minecraft.client.telemetry.TelemetryProperty$Exporter<T>): net.minecraft.client.telemetry.TelemetryProperty<T>;
-            bool(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<boolean>;
-            string(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<string>;
-            integer(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<number>;
-            makeLong(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<number>;
-            uuid(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<java.util.UUID>;
-            gameLoadMeasurement(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-            longSamples(id: string, exportKey: string): net.minecraft.client.telemetry.TelemetryProperty<unknown>;
-          }
-          interface TelemetryProperty<T> extends java.lang.Record { 
-            title(): net.minecraft.network.chat.MutableComponent;
-            id(): string;
-            exportKey(): string;
-            codec(): com.mojang.serialization.Codec<T>;
-            exporter(): net.minecraft.client.telemetry.TelemetryProperty$Exporter<T>;
-          }
-          interface TelemetryProperty$Exporter<T> { 
-            apply(output: com.mojang.authlib.minecraft.TelemetryPropertyContainer, key: string, value: T): void;
-          }
-          const TelemetryProperty$GameMode: {
-            SURVIVAL: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-            CREATIVE: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-            ADVENTURE: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-            SPECTATOR: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-            HARDCORE: net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-            CODEC: com.mojang.serialization.Codec<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
-            entries: kotlin.enums.EnumEntries<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
-            values(): Array<net.minecraft.client.telemetry.TelemetryProperty$GameMode>;
-            valueOf(value: string): net.minecraft.client.telemetry.TelemetryProperty$GameMode;
-          }
-          interface TelemetryProperty$GameMode extends kotlin.Enum<net.minecraft.client.telemetry.TelemetryProperty$GameMode>, net.minecraft.util.StringRepresentable { 
-            id(): number;
-          }
-          const TelemetryProperty$ServerType: {
-            REALM: net.minecraft.client.telemetry.TelemetryProperty$ServerType;
-            LOCAL: net.minecraft.client.telemetry.TelemetryProperty$ServerType;
-            OTHER: net.minecraft.client.telemetry.TelemetryProperty$ServerType;
-            CODEC: com.mojang.serialization.Codec<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
-            entries: kotlin.enums.EnumEntries<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
-            values(): Array<net.minecraft.client.telemetry.TelemetryProperty$ServerType>;
-            valueOf(value: string): net.minecraft.client.telemetry.TelemetryProperty$ServerType;
-          }
-          interface TelemetryProperty$ServerType extends kotlin.Enum<net.minecraft.client.telemetry.TelemetryProperty$ServerType>, net.minecraft.util.StringRepresentable { 
-          }
-          interface TelemetryPropertyMap$Builder { 
-            put<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>, value: T): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
-            putIfNotNull<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>, value: T): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
-            putAll(properties: net.minecraft.client.telemetry.TelemetryPropertyMap): net.minecraft.client.telemetry.TelemetryPropertyMap$Builder;
-            build(): net.minecraft.client.telemetry.TelemetryPropertyMap;
-          }
-          interface TelemetryEventType$Builder { 
-            defineAll(properties: Array<net.minecraft.client.telemetry.TelemetryProperty<any>>): net.minecraft.client.telemetry.TelemetryEventType$Builder;
-            define<T>(property: net.minecraft.client.telemetry.TelemetryProperty<T>): net.minecraft.client.telemetry.TelemetryEventType$Builder;
-            optIn(): net.minecraft.client.telemetry.TelemetryEventType$Builder;
-            register(): net.minecraft.client.telemetry.TelemetryEventType;
-          }
-        }
         namespace server {
           const IntegratedServer: {
             MAX_PLAYERS: number;
             new(serverThread: java.lang.Thread, minecraft: net.minecraft.client.Minecraft, levelStorageAccess: net.minecraft.world.level.storage.LevelStorageSource$LevelStorageAccess, packRepository: net.minecraft.server.packs.repository.PackRepository, worldStem: net.minecraft.server.WorldStem, gameRules: java.util.Optional<net.minecraft.world.level.gamerules.GameRules>, services: net.minecraft.server.Services, levelLoadListener: net.minecraft.server.level.progress.LevelLoadListener): net.minecraft.client.server.IntegratedServer;
           }
           interface IntegratedServer extends net.minecraft.server.MinecraftServer { 
+            commandsAllowedForOtherPlayers(): boolean;
+            publishServer(scope: net.minecraft.server.MinecraftServer$MultiplayerScope, port: number): boolean;
+            setWorldGameType(gameMode: net.minecraft.world.level.GameType): void;
+            getGameTypeForOtherPlayers(): net.minecraft.world.level.GameType;
+            setGameTypeForOtherPlayers(gameMode: net.minecraft.world.level.GameType): void;
+            setWorldAllowCommands(allowCommands: boolean): void;
+            setCommandsAllowedForOtherPlayers(allowCommands: boolean): void;
             setUUID(uuid: java.util.UUID): void;
             getPerTickGizmos(): Array<unknown>;
-          }
-        }
-        namespace searchtree {
-          const SearchTree: {
-            empty<T>(): net.minecraft.client.searchtree.SearchTree<T>;
-            plainText<T>(elements: Array<T>, idGetter: unknown): net.minecraft.client.searchtree.SearchTree<T>;
-          }
-          interface SearchTree<T> { 
-            search(text: string): Array<T>;
-            (text: string): Array<T>;
-          }
-        }
-        namespace waypoints {
-          const ClientWaypointManager: {
-            new(): net.minecraft.client.waypoints.ClientWaypointManager;
-          }
-          interface ClientWaypointManager extends net.minecraft.world.waypoints.TrackedWaypointManager { 
-            hasWaypoints(): boolean;
-            forEachWaypoint(fromEntity: net.minecraft.world.entity.Entity, consumer: unknown): void;
+            getMultiplayerScope(): net.minecraft.server.MinecraftServer$MultiplayerScope;
           }
         }
         const KeyMapping: {
@@ -16687,6 +16777,7 @@ declare global {
           same(that: net.minecraft.client.KeyMapping): boolean;
           isUnbound(): boolean;
           matches(event: net.minecraft.client.input.KeyEvent): boolean;
+          matches(key: com.mojang.blaze3d.platform.InputConstants$Key): boolean;
           matchesMouse(event: net.minecraft.client.input.MouseButtonEvent): boolean;
           getTranslatedKeyMessage(): net.minecraft.network.chat.Component;
           isDefault(): boolean;
@@ -16735,31 +16826,22 @@ declare global {
           getWidth(codepoint: number, style: net.minecraft.network.chat.Style): number;
           (codepoint: number, style: net.minecraft.network.chat.Style): number;
         }
-        const ClientClockManager: {
-          new(): net.minecraft.client.ClientClockManager;
-        }
-        interface ClientClockManager extends net.minecraft.world.clock.ClockManager { 
-          tick(gameTime: number): void;
-          handleUpdates(gameTime: number, updates: Map<net.minecraft.core.Holder<unknown>, unknown>): void;
-        }
         const Minecraft: {
           DEFAULT_FONT: net.minecraft.resources.Identifier;
-          UNIFORM_FONT: net.minecraft.resources.Identifier;
-          ALT_FONT: net.minecraft.resources.Identifier;
           UPDATE_DRIVERS_ADVICE: string;
           new(gameConfig: net.minecraft.client.main.GameConfig): net.minecraft.client.Minecraft;
           checkModStatus(): net.minecraft.util.ModCheck;
-          saveReport(gameDirectory: java.io.File, crash: net.minecraft.CrashReport): number;
-          crash(minecraft: net.minecraft.client.Minecraft | null | undefined, gameDirectory: java.io.File, crash: net.minecraft.CrashReport): void;
-          renderNames(): boolean;
-          useShaderTransparency(): boolean;
-          fillReport(minecraft: net.minecraft.client.Minecraft | null | undefined, languageManager: net.minecraft.client.resources.language.LanguageManager | null | undefined, launchedVersion: string, options: net.minecraft.client.Options | null | undefined, report: net.minecraft.CrashReport): void;
+          saveReport(gameDirectory: java.io.File, crash: net.minecraft.CrashReport): void;
+          saveReport(gameDirectory: java.io.File, crash: net.minecraft.CrashReport, reportExitCode: number): number;
+          crash(minecraft: net.minecraft.client.Minecraft | null | undefined, gameDirectory: java.io.File, crash: net.minecraft.CrashReport, exitCode: number): void;
+          saveReportAndShutdownSoundManager(minecraft: net.minecraft.client.Minecraft | null | undefined, gameDirectory: java.io.File, crash: net.minecraft.CrashReport, exitCode: number): number;
+          fillReport(minecraft: net.minecraft.client.Minecraft | null | undefined, languageManager: net.minecraft.client.resources.language.LanguageManager | null | undefined, launchedVersion: string | null | undefined, options: net.minecraft.client.Options | null | undefined, report: net.minecraft.CrashReport): void;
           getInstance(): net.minecraft.client.Minecraft;
           getLauncherBrand(): string | null | undefined;
         }
         interface Minecraft extends net.minecraft.util.thread.ReentrantBlockableEventLoop<java.lang.Runnable>, com.mojang.blaze3d.platform.WindowEventHandler { 
+          levelExtractor: net.minecraft.client.renderer.extract.LevelExtractor;
           levelRenderer: net.minecraft.client.renderer.LevelRenderer;
-          blockModelResolver: net.minecraft.client.renderer.block.BlockModelResolver;
           particleEngine: net.minecraft.client.particle.ParticleEngine;
           font: net.minecraft.client.gui.Font;
           fontFilterFishy: net.minecraft.client.gui.Font;
@@ -16776,18 +16858,16 @@ declare global {
           crosshairPickEntity: net.minecraft.world.entity.Entity | null | undefined;
           hitResult: net.minecraft.world.phys.HitResult | null | undefined;
           missTime: number;
-          screen: net.minecraft.client.gui.screens.Screen | null | undefined;
           wireframe: boolean;
           smartCull: boolean;
+          windowSurface(): com.mojang.blaze3d.systems.GpuSurface;
           textInputManager(): com.mojang.blaze3d.platform.TextInputManager;
-          renderBuffers(): net.minecraft.client.renderer.RenderBuffers;
           allowsMultiplayer(): boolean;
           realmsDataFetcher(): com.mojang.realmsclient.gui.RealmsDataFetcher;
           quickPlayLog(): net.minecraft.client.quickplay.QuickPlayLog;
           services(): net.minecraft.server.Services;
           playerSkinRenderCache(): net.minecraft.client.renderer.PlayerSkinRenderCache;
           isLocalServer(): boolean;
-          commandHistory(): net.minecraft.client.CommandHistory;
           directoryValidator(): net.minecraft.world.level.validation.DirectoryValidator;
           packetProcessor(): net.minecraft.network.PacketProcessor;
           hasShiftDown(): boolean;
@@ -16796,20 +16876,16 @@ declare global {
           isGameLoadFinished(): boolean;
           updateTitle(): void;
           isOfflineDeveloperMode(): boolean;
-          clearResourcePacksOnError(t: kotlin.Throwable, message: net.minecraft.network.chat.Component | null | undefined, loadCookie: unknown): void;
+          clearResourcePacksOnError(t: kotlin.Throwable, message: net.minecraft.network.chat.Component | null | undefined, loadCookie: net.minecraft.client.GameLoadCookie | null | undefined): void;
           triggerResourcePackRecovery(exception: java.lang.Exception): void;
           run(): void;
-          getMainRenderTarget(): com.mojang.blaze3d.pipeline.RenderTarget;
           getLaunchedVersion(): string;
-          getVersionType(): string;
           emergencySaveAndCrash(partialReport: net.minecraft.CrashReport): void;
           isEnforceUnicode(): boolean;
           reloadResourcePacks(): java.util.concurrent.CompletableFuture<java.lang.Void>;
           getLevelSource(): net.minecraft.world.level.storage.LevelStorageSource;
-          openChatScreen(chatMethod: net.minecraft.client.gui.components.ChatComponent$ChatMethod): void;
-          setScreen(screen: net.minecraft.client.gui.screens.Screen | null | undefined): void;
-          setOverlay(overlay: net.minecraft.client.gui.screens.Overlay | null | undefined): void;
-          destroy(): void;
+          exitWorldAndClose(): void;
+          renderFrame(advanceGameTime: boolean): void;
           getFps(): number;
           getFrameTimeNs(): number;
           sendLowDiskSpaceWarning(): void;
@@ -16819,7 +16895,9 @@ declare global {
           pauseGame(suppressPauseMenuIfWeReallyArePausing: boolean): void;
           getMusicManager(): net.minecraft.client.sounds.MusicManager;
           tick(): void;
+          isMultiplayerServer(): boolean;
           getTelemetryManager(): net.minecraft.client.telemetry.ClientTelemetryManager;
+          getMetricsRecorder(): net.minecraft.util.profiling.metrics.profiling.MetricsRecorder;
           getGpuUtilization(): number;
           getProfileKeyPairManager(): net.minecraft.client.multiplayer.ProfileKeyPairManager;
           createWorldOpenFlows(): net.minecraft.client.gui.screens.worldselection.WorldOpenFlows;
@@ -16838,9 +16916,14 @@ declare global {
           extraTelemetryAvailable(): boolean;
           allowsTelemetry(): boolean;
           allowsRealms(): boolean;
+          friendsEnabled(): boolean;
+          handleGlobalKeyPress(key: com.mojang.blaze3d.platform.InputConstants$Key, controlDown: boolean): boolean;
+          allowFriendRequests(): boolean;
+          allowChatOnlyWithFriend(): boolean;
           multiplayerBan(): com.mojang.authlib.minecraft.BanDetails | null | undefined;
           isNameBanned(): boolean;
           isBlocked(uuid: java.util.UUID): boolean;
+          isFriendOnlyRestricted(uuid: java.util.UUID): boolean;
           computeChatAbilities(): net.minecraft.client.multiplayer.chat.ChatAbilities;
           isDemo(): boolean;
           canSwitchGameMode(): boolean;
@@ -16851,9 +16934,9 @@ declare global {
           getCurrentServer(): net.minecraft.client.multiplayer.ServerData | null | undefined;
           hasSingleplayerServer(): boolean;
           getSingleplayerServer(): net.minecraft.client.server.IntegratedServer | null | undefined;
-          isSingleplayer(): boolean;
           isLocalPlayer(profileId: java.util.UUID): boolean;
           getUser(): net.minecraft.client.User;
+          getProfileResult(): com.mojang.authlib.yggdrasil.ProfileResult | null | undefined;
           getGameProfile(): com.mojang.authlib.GameProfile;
           getProxy(): java.net.Proxy;
           getTextureManager(): net.minecraft.client.renderer.texture.TextureManager;
@@ -16880,17 +16963,13 @@ declare global {
           getDeltaTracker(): net.minecraft.client.DeltaTracker;
           getBlockColors(): net.minecraft.client.color.block.BlockColors;
           showOnlyReducedInfo(): boolean;
-          getToastManager(): net.minecraft.client.gui.components.toasts.ToastManager;
           getTutorial(): net.minecraft.client.tutorial.Tutorial;
           isWindowActive(): boolean;
           getHotbarManager(): net.minecraft.client.HotbarManager;
           getModelManager(): net.minecraft.client.resources.model.ModelManager;
           getAtlasManager(): net.minecraft.client.resources.model.sprite.AtlasManager;
           getMapTextureManager(): net.minecraft.client.resources.MapTextureManager;
-          getWaypointStyles(): net.minecraft.client.resources.WaypointStyleManager;
           grabPanoramixScreenshot(folder: java.io.File): net.minecraft.network.chat.Component;
-          getSplashManager(): net.minecraft.client.resources.SplashManager;
-          getOverlay(): net.minecraft.client.gui.screens.Overlay | null | undefined;
           getPlayerSocialManager(): net.minecraft.client.gui.screens.social.PlayerSocialManager;
           getWindow(): com.mojang.blaze3d.platform.Window;
           onTextInputFocusChange(element: net.minecraft.client.gui.components.events.GuiEventListener, isFocused: boolean): void;
@@ -16903,12 +16982,35 @@ declare global {
           getLastInputType(): net.minecraft.client.InputType;
           setLastInputType(lastInputType: net.minecraft.client.InputType): void;
           getNarrator(): net.minecraft.client.GameNarrator;
-          getChatListener(): net.minecraft.client.multiplayer.chat.ChatListener;
           getReportingContext(): net.minecraft.client.multiplayer.chat.report.ReportingContext;
           getItemModelResolver(): net.minecraft.client.renderer.item.ItemModelResolver;
           canInterruptScreen(): boolean;
+          invalidateSurfaceConfiguration(): void;
           collectPerTickGizmos(): net.minecraft.gizmos.Gizmos$TemporaryCollection;
           getPerTickGizmos(): Array<unknown>;
+          showDebugChat(message: net.minecraft.network.chat.Component): void;
+        }
+        const DeltaTracker: {
+          DefaultValue: typeof net.minecraft.client.DeltaTracker$DefaultValue;
+          Timer: typeof net.minecraft.client.DeltaTracker$Timer;
+          ZERO: net.minecraft.client.DeltaTracker;
+          ONE: net.minecraft.client.DeltaTracker;
+        }
+        interface DeltaTracker { 
+          getGameTimeDeltaTicks(): number;
+          getGameTimeDeltaPartialTick(ignoreFrozenGame: boolean): number;
+          getRealtimeDeltaTicks(): number;
+        }
+        interface DeltaTracker$DefaultValue extends net.minecraft.client.DeltaTracker { 
+        }
+        const DeltaTracker$Timer: {
+          new(ticksPerSecond: number, currentMs: number, targetMsptProvider: it.unimi.dsi.fastutil.floats.FloatUnaryOperator): net.minecraft.client.DeltaTracker$Timer;
+        }
+        interface DeltaTracker$Timer extends net.minecraft.client.DeltaTracker { 
+          advanceGameTime(currentMs: number): number;
+          advanceRealTime(currentMs: number): void;
+          updatePauseState(pauseState: boolean): void;
+          updateFrozenState(frozen: boolean): void;
         }
         const Camera: {
           NearPlane: typeof net.minecraft.client.Camera$NearPlane;
@@ -16949,34 +17051,41 @@ declare global {
           enablePanoramicMode(): void;
           disablePanoramicMode(): void;
         }
-        const DeltaTracker: {
-          DefaultValue: typeof net.minecraft.client.DeltaTracker$DefaultValue;
-          Timer: typeof net.minecraft.client.DeltaTracker$Timer;
-          ZERO: net.minecraft.client.DeltaTracker;
-          ONE: net.minecraft.client.DeltaTracker;
-        }
-        interface DeltaTracker { 
-          getGameTimeDeltaTicks(): number;
-          getGameTimeDeltaPartialTick(ignoreFrozenGame: boolean): number;
-          getRealtimeDeltaTicks(): number;
-        }
-        interface DeltaTracker$DefaultValue extends net.minecraft.client.DeltaTracker { 
-        }
-        const DeltaTracker$Timer: {
-          new(ticksPerSecond: number, currentMs: number, targetMsptProvider: it.unimi.dsi.fastutil.floats.FloatUnaryOperator): net.minecraft.client.DeltaTracker$Timer;
-        }
-        interface DeltaTracker$Timer extends net.minecraft.client.DeltaTracker { 
-          advanceGameTime(currentMs: number): number;
-          advanceRealTime(currentMs: number): void;
-          updatePauseState(pauseState: boolean): void;
-          updateFrozenState(frozen: boolean): void;
-        }
         interface Camera$NearPlane { 
           getTopLeft(): net.minecraft.world.phys.Vec3;
           getTopRight(): net.minecraft.world.phys.Vec3;
           getBottomLeft(): net.minecraft.world.phys.Vec3;
           getBottomRight(): net.minecraft.world.phys.Vec3;
           getPointOnPlane(x: number, y: number): net.minecraft.world.phys.Vec3;
+        }
+        const ClientClockManager: {
+          new(): net.minecraft.client.ClientClockManager;
+        }
+        interface ClientClockManager extends net.minecraft.world.clock.ClockManager { 
+          tick(gameTime: number): void;
+          handleUpdates(gameTime: number, updates: Map<net.minecraft.core.Holder<unknown>, unknown>): void;
+        }
+        const ClientRecipeBook: {
+          new(): net.minecraft.client.ClientRecipeBook;
+        }
+        interface ClientRecipeBook extends net.minecraft.stats.RecipeBook { 
+          add(display: net.minecraft.world.item.crafting.display.RecipeDisplayEntry): void;
+          remove(id: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
+          clear(): void;
+          willHighlight(recipe: net.minecraft.world.item.crafting.display.RecipeDisplayId): boolean;
+          removeHighlight(id: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
+          addHighlight(id: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
+          rebuildCollections(): void;
+          getCollections(): Array<unknown>;
+          getCollection(category: net.minecraft.world.item.crafting.ExtendedRecipeBookCategory): Array<unknown>;
+        }
+        const DebugQueryHandler: {
+          new(connection: net.minecraft.client.multiplayer.ClientPacketListener): net.minecraft.client.DebugQueryHandler;
+        }
+        interface DebugQueryHandler { 
+          handleResponse(transactionId: number, tag: net.minecraft.nbt.CompoundTag | null | undefined): boolean;
+          queryEntityTag(entityId: number, callback: unknown): void;
+          queryBlockEntityTag(blockPos: net.minecraft.core.BlockPos, callback: unknown): void;
         }
         const Options: {
           RENDER_DISTANCE_SHORT: number;
@@ -17020,6 +17129,7 @@ declare global {
           keyChat: net.minecraft.client.KeyMapping;
           keyPlayerList: net.minecraft.client.KeyMapping;
           keyCommand: net.minecraft.client.KeyMapping;
+          keyFriends: net.minecraft.client.KeyMapping;
           keySocialInteractions: net.minecraft.client.KeyMapping;
           keyScreenshot: net.minecraft.client.KeyMapping;
           keyTogglePerspective: net.minecraft.client.KeyMapping;
@@ -17058,7 +17168,6 @@ declare global {
           keyDebugLightmapTexture: net.minecraft.client.KeyMapping;
           debugKeys: Array<net.minecraft.client.KeyMapping>;
           keyMappings: Array<net.minecraft.client.KeyMapping>;
-          hideGui: boolean;
           lastMpIp: string;
           smoothCamera: boolean;
           languageCode: string;
@@ -17073,6 +17182,7 @@ declare global {
           simulationDistance(): net.minecraft.client.OptionInstance<number>;
           entityDistanceScaling(): net.minecraft.client.OptionInstance<number>;
           framerateLimit(): net.minecraft.client.OptionInstance<number>;
+          preferredGraphicsBackend(): net.minecraft.client.OptionInstance<net.minecraft.client.PreferredGraphicsApi>;
           graphicsPreset(): net.minecraft.client.OptionInstance<net.minecraft.client.GraphicsPreset>;
           inactivityFpsLimit(): net.minecraft.client.OptionInstance<unknown>;
           cloudStatus(): net.minecraft.client.OptionInstance<net.minecraft.client.CloudStatus>;
@@ -17083,7 +17193,7 @@ declare global {
           improvedTransparency(): net.minecraft.client.OptionInstance<boolean>;
           ambientOcclusion(): net.minecraft.client.OptionInstance<boolean>;
           chunkSectionFadeInTime(): net.minecraft.client.OptionInstance<number>;
-          prioritizeChunkUpdates(): net.minecraft.client.OptionInstance<unknown>;
+          prioritizeChunkUpdates(): net.minecraft.client.OptionInstance<net.minecraft.client.PrioritizeChunkUpdates>;
           chatVisibility(): net.minecraft.client.OptionInstance<net.minecraft.world.entity.player.ChatVisiblity>;
           chatOpacity(): net.minecraft.client.OptionInstance<number>;
           chatLineSpacing(): net.minecraft.client.OptionInstance<number>;
@@ -17124,10 +17234,11 @@ declare global {
           realmsNotifications(): net.minecraft.client.OptionInstance<boolean>;
           allowServerListing(): net.minecraft.client.OptionInstance<boolean>;
           reducedDebugInfo(): net.minecraft.client.OptionInstance<boolean>;
+          inGameNotification(): net.minecraft.client.OptionInstance<boolean>;
+          sharePresence(): net.minecraft.client.OptionInstance<unknown>;
           showSubtitles(): net.minecraft.client.OptionInstance<boolean>;
           directionalAudio(): net.minecraft.client.OptionInstance<boolean>;
           backgroundForChatOnly(): net.minecraft.client.OptionInstance<boolean>;
-          touchscreen(): net.minecraft.client.OptionInstance<boolean>;
           fullscreen(): net.minecraft.client.OptionInstance<boolean>;
           exclusiveFullscreen(): net.minecraft.client.OptionInstance<boolean>;
           bobView(): net.minecraft.client.OptionInstance<boolean>;
@@ -17155,6 +17266,7 @@ declare global {
           soundDevice(): net.minecraft.client.OptionInstance<string>;
           musicFrequency(): net.minecraft.client.OptionInstance<net.minecraft.client.sounds.MusicManager$MusicFrequency>;
           musicToast(): net.minecraft.client.OptionInstance<net.minecraft.client.MusicToastDisplayState>;
+          isRestartRequiredToApplyVideoSettings(): boolean;
           applyGraphicsPreset(value: net.minecraft.client.GraphicsPreset): void;
           updateResourcePacks(packRepository: net.minecraft.server.packs.repository.PackRepository): void;
           getMenuBackgroundBlurriness(): number;
@@ -17194,36 +17306,54 @@ declare global {
           AltEnum: typeof net.minecraft.client.OptionInstance$AltEnum;
           BOOLEAN_VALUES: net.minecraft.client.OptionInstance$Enum<boolean>;
           BOOLEAN_TO_STRING: net.minecraft.client.OptionInstance$CaptionBasedToString<boolean>;
-          new<T>(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<T>, toString: net.minecraft.client.OptionInstance$CaptionBasedToString<T>, values: unknown, initialValue: T, onValueUpdate: unknown): net.minecraft.client.OptionInstance<any>;
-          new<T>(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<T>, toString: net.minecraft.client.OptionInstance$CaptionBasedToString<T>, values: unknown, codec: com.mojang.serialization.Codec<T>, initialValue: T, onValueUpdate: unknown): net.minecraft.client.OptionInstance<any>;
-          createBoolean(captionId: string, initialValue: boolean, onValueUpdate: unknown): net.minecraft.client.OptionInstance<boolean>;
+          NO_ACTION: net.minecraft.client.OptionInstance$ValueUpdateListener<any>;
+          new<T>(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<T>, toString: net.minecraft.client.OptionInstance$CaptionBasedToString<T>, values: net.minecraft.client.OptionInstance$ValueSet<T>, initialValue: T, onValueUpdate: net.minecraft.client.OptionInstance$ValueUpdateListener<T>): net.minecraft.client.OptionInstance<any>;
+          new<T>(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<T>, toString: net.minecraft.client.OptionInstance$CaptionBasedToString<T>, values: net.minecraft.client.OptionInstance$ValueSet<T>, codec: com.mojang.serialization.Codec<T>, initialValue: T, onValueUpdate: net.minecraft.client.OptionInstance$ValueUpdateListener<T>): net.minecraft.client.OptionInstance<any>;
+          createBoolean(captionId: string, initialValue: boolean, onValueUpdate: net.minecraft.client.OptionInstance$ValueUpdateListener<boolean>): net.minecraft.client.OptionInstance<boolean>;
           createBoolean(captionId: string, initialValue: boolean): net.minecraft.client.OptionInstance<boolean>;
           createBoolean(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<boolean>, initialValue: boolean): net.minecraft.client.OptionInstance<boolean>;
-          createBoolean(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<boolean>, initialValue: boolean, onValueUpdate: unknown): net.minecraft.client.OptionInstance<boolean>;
-          createBoolean(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<boolean>, toString: net.minecraft.client.OptionInstance$CaptionBasedToString<boolean>, initialValue: boolean, onValueUpdate: unknown): net.minecraft.client.OptionInstance<boolean>;
+          createBoolean(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<boolean>, initialValue: boolean, onValueUpdate: net.minecraft.client.OptionInstance$ValueUpdateListener<boolean>): net.minecraft.client.OptionInstance<boolean>;
+          createBoolean(captionId: string, tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<boolean>, toString: net.minecraft.client.OptionInstance$CaptionBasedToString<boolean>, initialValue: boolean, onValueUpdate: net.minecraft.client.OptionInstance$ValueUpdateListener<boolean>): net.minecraft.client.OptionInstance<boolean>;
           noTooltip<T>(): net.minecraft.client.OptionInstance$TooltipSupplier<T>;
           cachedConstantTooltip<T>(tooltipComponent: net.minecraft.network.chat.Component): net.minecraft.client.OptionInstance$TooltipSupplier<T>;
         }
         interface OptionInstance<T> { 
-          values(): unknown;
+          values(): net.minecraft.client.OptionInstance$ValueSet<T>;
           codec(): com.mojang.serialization.Codec<T>;
           createButton(options: net.minecraft.client.Options): net.minecraft.client.gui.components.AbstractWidget;
           createButton(options: net.minecraft.client.Options, x: number, y: number, width: number): net.minecraft.client.gui.components.AbstractWidget;
-          createButton(options: net.minecraft.client.Options, x: number, y: number, width: number, onValueChanged: unknown): net.minecraft.client.gui.components.AbstractWidget;
+          createButton(options: net.minecraft.client.Options, x: number, y: number, width: number, onValueChanged: net.minecraft.client.OptionInstance$ValueUpdateListener<T>): net.minecraft.client.gui.components.AbstractWidget;
           get(): T;
           set(value: T): void;
+        }
+        interface OptionInstance$ValueSet<T> { 
+          createButton(tooltip: net.minecraft.client.OptionInstance$TooltipSupplier<T>, options: net.minecraft.client.Options, x: number, y: number, width: number, onValueChanged: net.minecraft.client.OptionInstance$ValueUpdateListener<T>): unknown;
+          validateValue(value: T): java.util.Optional<T>;
+          codec(): com.mojang.serialization.Codec<T>;
         }
         interface OptionInstance$TooltipSupplier<T> { 
           apply(value: T): net.minecraft.client.gui.components.Tooltip | null | undefined;
           (value: T): net.minecraft.client.gui.components.Tooltip | null | undefined;
         }
+        interface OptionInstance$ValueUpdateListener<T> { 
+          valueChanged(newValue: T): void;
+          (newValue: T): void;
+        }
         interface OptionInstance$CaptionBasedToString<T> { 
+          (caption: net.minecraft.network.chat.Component, value: T): net.minecraft.network.chat.Component;
         }
         const OptionInstance$Enum: {
           new<T>(values: Array<T>, codec: com.mojang.serialization.Codec<T>): net.minecraft.client.OptionInstance$Enum<any>;
         }
-        interface OptionInstance$Enum<T> extends java.lang.Record { 
+        interface OptionInstance$Enum<T> extends java.lang.Record, net.minecraft.client.OptionInstance$CycleableValueSet<T> { 
           values(): Array<T>;
+        }
+        interface OptionInstance$CycleableValueSet<T> extends net.minecraft.client.OptionInstance$ValueSet<T> { 
+          valueListSupplier(): net.minecraft.client.gui.components.CycleButton$ValueListSupplier<T>;
+          valueSetter(): unknown;
+        }
+        interface OptionInstance$CycleableValueSet$ValueSetter<T> { 
+          set(instance: net.minecraft.client.OptionInstance<T>, value: T): void;
         }
         const OptionInstance$UnitDouble: {
           INSTANCE: net.minecraft.client.OptionInstance$UnitDouble;
@@ -17231,27 +17361,42 @@ declare global {
           values(): Array<net.minecraft.client.OptionInstance$UnitDouble>;
           valueOf(value: string): net.minecraft.client.OptionInstance$UnitDouble;
         }
-        interface OptionInstance$UnitDouble extends kotlin.Enum<net.minecraft.client.OptionInstance$UnitDouble> { 
-          xmap<R>(to: unknown, from: unknown): unknown;
+        interface OptionInstance$UnitDouble extends kotlin.Enum<net.minecraft.client.OptionInstance$UnitDouble>, net.minecraft.client.OptionInstance$SliderableValueSet<number> { 
+          xmap<R>(to: unknown, from: unknown): net.minecraft.client.OptionInstance$SliderableValueSet<R>;
+        }
+        interface OptionInstance$SliderableValueSet<T> extends net.minecraft.client.OptionInstance$ValueSet<T> { 
+          toSliderValue(value: T): number;
+          next(current: T): java.util.Optional<T>;
+          previous(current: T): java.util.Optional<T>;
+          fromSliderValue(slider: number): T;
+          applyValueImmediately(): boolean;
         }
         const OptionInstance$SliderableEnum: {
           new<T>(values: Array<T>, codec: com.mojang.serialization.Codec<T>): net.minecraft.client.OptionInstance$SliderableEnum<any>;
         }
-        interface OptionInstance$SliderableEnum<T> extends java.lang.Record { 
+        interface OptionInstance$SliderableEnum<T> extends java.lang.Record, net.minecraft.client.OptionInstance$SliderableValueSet<T> { 
           values(): Array<T>;
         }
         const OptionInstance$ClampingLazyMaxIntRange: {
           new(minInclusive: number, maxSupplier: unknown, encodableMaxInclusive: number): net.minecraft.client.OptionInstance$ClampingLazyMaxIntRange;
         }
-        interface OptionInstance$ClampingLazyMaxIntRange extends java.lang.Record { 
+        interface OptionInstance$ClampingLazyMaxIntRange extends java.lang.Record, net.minecraft.client.OptionInstance$IntRangeBase, net.minecraft.client.OptionInstance$SliderableOrCyclableValueSet<number> { 
           maxSupplier(): unknown;
           encodableMaxInclusive(): number;
+        }
+        interface OptionInstance$IntRangeBase extends net.minecraft.client.OptionInstance$SliderableValueSet<number> { 
+          minInclusive(): number;
+          maxInclusive(): number;
+          xmap<R>(to: unknown, from: unknown, discrete: boolean): net.minecraft.client.OptionInstance$SliderableValueSet<R>;
+        }
+        interface OptionInstance$SliderableOrCyclableValueSet<T> extends net.minecraft.client.OptionInstance$SliderableValueSet<T>, net.minecraft.client.OptionInstance$CycleableValueSet<T> { 
+          createCycleButton(): boolean;
         }
         const OptionInstance$IntRange: {
           new(minInclusive: number, maxInclusive: number): net.minecraft.client.OptionInstance$IntRange;
           new(minInclusive: number, maxInclusive: number, applyValueImmediately: boolean): net.minecraft.client.OptionInstance$IntRange;
         }
-        interface OptionInstance$IntRange extends java.lang.Record { 
+        interface OptionInstance$IntRange extends java.lang.Record, net.minecraft.client.OptionInstance$IntRangeBase { 
         }
         interface OptionInstance$OptionInstanceSliderButton<N> extends net.minecraft.client.gui.components.AbstractOptionSliderButton, net.minecraft.client.gui.components.ResettableOptionWidget { 
           applyUnsavedValue(): void;
@@ -17259,20 +17404,17 @@ declare global {
         const OptionInstance$LazyEnum: {
           new<T>(values: unknown, validateValue: unknown, codec: com.mojang.serialization.Codec<T>): net.minecraft.client.OptionInstance$LazyEnum<any>;
         }
-        interface OptionInstance$LazyEnum<T> extends java.lang.Record { 
+        interface OptionInstance$LazyEnum<T> extends java.lang.Record, net.minecraft.client.OptionInstance$CycleableValueSet<T> { 
           validateValue(): unknown;
           values(): unknown;
         }
         const OptionInstance$AltEnum: {
           new<T>(values: Array<T>, altValues: Array<T>, altCondition: unknown, valueSetter: unknown, codec: com.mojang.serialization.Codec<T>): net.minecraft.client.OptionInstance$AltEnum<any>;
         }
-        interface OptionInstance$AltEnum<T> extends java.lang.Record { 
+        interface OptionInstance$AltEnum<T> extends java.lang.Record, net.minecraft.client.OptionInstance$CycleableValueSet<T> { 
           values(): Array<T>;
           altValues(): Array<T>;
           altCondition(): unknown;
-        }
-        interface OptionInstance$CycleableValueSet$ValueSetter<T> { 
-          set(instance: net.minecraft.client.OptionInstance<T>, value: T): void;
         }
         const GraphicsPreset: {
           FAST: net.minecraft.client.GraphicsPreset;
@@ -17287,7 +17429,6 @@ declare global {
         interface GraphicsPreset extends kotlin.Enum<net.minecraft.client.GraphicsPreset>, net.minecraft.util.StringRepresentable { 
           getKey(): string;
           apply(minecraft: net.minecraft.client.Minecraft): void;
-          set<T>(screen: net.minecraft.client.gui.screens.options.OptionsSubScreen | null | undefined, option: net.minecraft.client.OptionInstance<T>, value: T): void;
         }
         const CloudStatus: {
           OFF: net.minecraft.client.CloudStatus;
@@ -17321,19 +17462,9 @@ declare global {
           process(name: string, value: number): number;
           process<T>(name: string, value: T, reader: unknown, writer: unknown): T;
         }
-        const ClientRecipeBook: {
-          new(): net.minecraft.client.ClientRecipeBook;
-        }
-        interface ClientRecipeBook extends net.minecraft.stats.RecipeBook { 
-          add(display: net.minecraft.world.item.crafting.display.RecipeDisplayEntry): void;
-          remove(id: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
-          clear(): void;
-          willHighlight(recipe: net.minecraft.world.item.crafting.display.RecipeDisplayId): boolean;
-          removeHighlight(id: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
-          addHighlight(id: net.minecraft.world.item.crafting.display.RecipeDisplayId): void;
-          rebuildCollections(): void;
-          getCollections(): Array<unknown>;
-          getCollection(category: net.minecraft.world.item.crafting.ExtendedRecipeBookCategory): Array<unknown>;
+        interface RotatingSectionStorage$Value { 
+          setSectionNode(sectionNode: number): void;
+          getSectionNode(): number;
         }
         const TextureFilteringMethod: {
           NONE: net.minecraft.client.TextureFilteringMethod;
@@ -17346,6 +17477,51 @@ declare global {
         }
         interface TextureFilteringMethod extends kotlin.Enum<net.minecraft.client.TextureFilteringMethod> { 
           caption(): net.minecraft.network.chat.Component;
+        }
+        const PrioritizeChunkUpdates: {
+          NONE: net.minecraft.client.PrioritizeChunkUpdates;
+          PLAYER_AFFECTED: net.minecraft.client.PrioritizeChunkUpdates;
+          NEARBY: net.minecraft.client.PrioritizeChunkUpdates;
+          LEGACY_CODEC: com.mojang.serialization.Codec<net.minecraft.client.PrioritizeChunkUpdates>;
+          entries: kotlin.enums.EnumEntries<net.minecraft.client.PrioritizeChunkUpdates>;
+          values(): Array<net.minecraft.client.PrioritizeChunkUpdates>;
+          valueOf(value: string): net.minecraft.client.PrioritizeChunkUpdates;
+        }
+        interface PrioritizeChunkUpdates extends kotlin.Enum<net.minecraft.client.PrioritizeChunkUpdates> { 
+          caption(): net.minecraft.network.chat.Component;
+        }
+        const User: {
+          new(name: string, uuid: java.util.UUID, accessToken: string, xuid: java.util.Optional<string>, clientId: java.util.Optional<string>): net.minecraft.client.User;
+        }
+        interface User { 
+          getSessionId(): string;
+          getProfileId(): java.util.UUID;
+          getName(): string;
+          getAccessToken(): string;
+          getClientId(): java.util.Optional<string>;
+          getXuid(): java.util.Optional<string>;
+        }
+        const MusicToastDisplayState: {
+          NEVER: net.minecraft.client.MusicToastDisplayState;
+          PAUSE: net.minecraft.client.MusicToastDisplayState;
+          PAUSE_AND_TOAST: net.minecraft.client.MusicToastDisplayState;
+          CODEC: com.mojang.serialization.Codec<net.minecraft.client.MusicToastDisplayState>;
+          entries: kotlin.enums.EnumEntries<net.minecraft.client.MusicToastDisplayState>;
+          values(): Array<net.minecraft.client.MusicToastDisplayState>;
+          valueOf(value: string): net.minecraft.client.MusicToastDisplayState;
+        }
+        interface MusicToastDisplayState extends kotlin.Enum<net.minecraft.client.MusicToastDisplayState>, net.minecraft.util.StringRepresentable { 
+          text(): net.minecraft.network.chat.Component;
+          tooltip(): net.minecraft.network.chat.Component;
+          renderInPauseScreen(): boolean;
+          renderToast(): boolean;
+        }
+        const GameLoadCookie: {
+          new(realmsClient: com.mojang.realmsclient.client.RealmsClient, quickPlayData: net.minecraft.client.main.GameConfig$QuickPlayData): net.minecraft.client.GameLoadCookie;
+        }
+        interface GameLoadCookie extends java.lang.Record { 
+          realmsClient(): com.mojang.realmsclient.client.RealmsClient;
+          quickPlayData(): net.minecraft.client.main.GameConfig$QuickPlayData;
         }
         const MouseHandler: {
           DOUBLE_CLICK_THRESHOLD_MS: number;
@@ -17382,39 +17558,6 @@ declare global {
           getClipboard(): string;
           setClipboard(clipboard: string): void;
           tick(): void;
-        }
-        const CommandHistory: {
-          new(gameFolder: java.nio.file.Path): net.minecraft.client.CommandHistory;
-        }
-        interface CommandHistory { 
-          addCommand(command: string): void;
-          history(): Array<string>;
-        }
-        const User: {
-          new(name: string, uuid: java.util.UUID, accessToken: string, xuid: java.util.Optional<string>, clientId: java.util.Optional<string>): net.minecraft.client.User;
-        }
-        interface User { 
-          getSessionId(): string;
-          getProfileId(): java.util.UUID;
-          getName(): string;
-          getAccessToken(): string;
-          getClientId(): java.util.Optional<string>;
-          getXuid(): java.util.Optional<string>;
-        }
-        const MusicToastDisplayState: {
-          NEVER: net.minecraft.client.MusicToastDisplayState;
-          PAUSE: net.minecraft.client.MusicToastDisplayState;
-          PAUSE_AND_TOAST: net.minecraft.client.MusicToastDisplayState;
-          CODEC: com.mojang.serialization.Codec<net.minecraft.client.MusicToastDisplayState>;
-          entries: kotlin.enums.EnumEntries<net.minecraft.client.MusicToastDisplayState>;
-          values(): Array<net.minecraft.client.MusicToastDisplayState>;
-          valueOf(value: string): net.minecraft.client.MusicToastDisplayState;
-        }
-        interface MusicToastDisplayState extends kotlin.Enum<net.minecraft.client.MusicToastDisplayState>, net.minecraft.util.StringRepresentable { 
-          text(): net.minecraft.network.chat.Component;
-          tooltip(): net.minecraft.network.chat.Component;
-          renderInPauseScreen(): boolean;
-          renderToast(): boolean;
         }
         const HotbarManager: {
           NUM_HOTBAR_GROUPS: number;
@@ -17477,13 +17620,18 @@ declare global {
         }
         interface GameNarrator$NarratorInitException extends net.minecraft.client.main.SilentInitException { 
         }
-        const DebugQueryHandler: {
-          new(connection: net.minecraft.client.multiplayer.ClientPacketListener): net.minecraft.client.DebugQueryHandler;
+        const PreferredGraphicsApi: {
+          DEFAULT: net.minecraft.client.PreferredGraphicsApi;
+          OPENGL: net.minecraft.client.PreferredGraphicsApi;
+          VULKAN: net.minecraft.client.PreferredGraphicsApi;
+          CODEC: com.mojang.serialization.Codec<net.minecraft.client.PreferredGraphicsApi>;
+          entries: kotlin.enums.EnumEntries<net.minecraft.client.PreferredGraphicsApi>;
+          values(): Array<net.minecraft.client.PreferredGraphicsApi>;
+          valueOf(value: string): net.minecraft.client.PreferredGraphicsApi;
         }
-        interface DebugQueryHandler { 
-          handleResponse(transactionId: number, tag: net.minecraft.nbt.CompoundTag | null | undefined): boolean;
-          queryEntityTag(entityId: number, callback: unknown): void;
-          queryBlockEntityTag(blockPos: net.minecraft.core.BlockPos, callback: unknown): void;
+        interface PreferredGraphicsApi extends kotlin.Enum<net.minecraft.client.PreferredGraphicsApi>, net.minecraft.util.StringRepresentable { 
+          caption(): net.minecraft.network.chat.Component;
+          getBackendsToTry(): Array<com.mojang.blaze3d.systems.GpuBackend>;
         }
       }
       namespace network {
@@ -17607,6 +17755,22 @@ declare global {
           }
           const TextColor: {
             CODEC: com.mojang.serialization.Codec<net.minecraft.network.chat.TextColor>;
+            BLACK: net.minecraft.network.chat.TextColor;
+            DARK_BLUE: net.minecraft.network.chat.TextColor;
+            DARK_GREEN: net.minecraft.network.chat.TextColor;
+            DARK_AQUA: net.minecraft.network.chat.TextColor;
+            DARK_RED: net.minecraft.network.chat.TextColor;
+            DARK_PURPLE: net.minecraft.network.chat.TextColor;
+            GOLD: net.minecraft.network.chat.TextColor;
+            GRAY: net.minecraft.network.chat.TextColor;
+            DARK_GRAY: net.minecraft.network.chat.TextColor;
+            BLUE: net.minecraft.network.chat.TextColor;
+            GREEN: net.minecraft.network.chat.TextColor;
+            AQUA: net.minecraft.network.chat.TextColor;
+            RED: net.minecraft.network.chat.TextColor;
+            LIGHT_PURPLE: net.minecraft.network.chat.TextColor;
+            YELLOW: net.minecraft.network.chat.TextColor;
+            WHITE: net.minecraft.network.chat.TextColor;
             fromLegacyFormat(format: net.minecraft.ChatFormatting): net.minecraft.network.chat.TextColor | null | undefined;
             fromRgb(rgb: number): net.minecraft.network.chat.TextColor;
             parseColor(color: string): com.mojang.serialization.DataResult<net.minecraft.network.chat.TextColor>;
@@ -17758,6 +17922,7 @@ declare global {
             withStyle(formats: net.minecraft.ChatFormatting): net.minecraft.network.chat.MutableComponent;
             withStyle(format: net.minecraft.ChatFormatting): net.minecraft.network.chat.MutableComponent;
             withColor(color: number): net.minecraft.network.chat.MutableComponent;
+            withColor(color: net.minecraft.network.chat.TextColor): net.minecraft.network.chat.MutableComponent;
             withoutShadow(): net.minecraft.network.chat.MutableComponent;
           }
           interface ComponentContents { 
@@ -19041,7 +19206,7 @@ declare global {
             }
             const ClientboundLoginPacket: {
               STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.network.protocol.game.ClientboundLoginPacket>;
-              new(playerId: number, hardcore: boolean, levels: Set<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>>, maxPlayers: number, chunkRadius: number, simulationDistance: number, reducedDebugInfo: boolean, showDeathScreen: boolean, doLimitedCrafting: boolean, commonPlayerSpawnInfo: net.minecraft.network.protocol.game.CommonPlayerSpawnInfo, enforcesSecureChat: boolean): net.minecraft.network.protocol.game.ClientboundLoginPacket;
+              new(playerId: number, hardcore: boolean, levels: Set<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>>, maxPlayers: number, chunkRadius: number, simulationDistance: number, reducedDebugInfo: boolean, showDeathScreen: boolean, doLimitedCrafting: boolean, commonPlayerSpawnInfo: net.minecraft.network.protocol.game.CommonPlayerSpawnInfo, onlineMode: boolean, enforcesSecureChat: boolean): net.minecraft.network.protocol.game.ClientboundLoginPacket;
             }
             interface ClientboundLoginPacket extends java.lang.Record, net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> { 
               playerId(): number;
@@ -19054,6 +19219,7 @@ declare global {
               showDeathScreen(): boolean;
               doLimitedCrafting(): boolean;
               commonPlayerSpawnInfo(): net.minecraft.network.protocol.game.CommonPlayerSpawnInfo;
+              onlineMode(): boolean;
               enforcesSecureChat(): boolean;
             }
             const CommonPlayerSpawnInfo: {
@@ -19348,18 +19514,18 @@ declare global {
             interface ClientboundSetPlayerTeamPacket$Action extends kotlin.Enum<net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket$Action> { 
             }
             const ClientboundSetPlayerTeamPacket$Parameters: {
+              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket$Parameters>;
               new(team: net.minecraft.world.scores.PlayerTeam): net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket$Parameters;
-              new(input: net.minecraft.network.RegistryFriendlyByteBuf): net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket$Parameters;
+              new(displayName: net.minecraft.network.chat.Component, playerPrefix: net.minecraft.network.chat.Component, playerSuffix: net.minecraft.network.chat.Component, nameTagVisibility: net.minecraft.world.scores.Team$Visibility, collisionRule: net.minecraft.world.scores.Team$CollisionRule, color: java.util.Optional<unknown>, options: number): net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket$Parameters;
             }
-            interface ClientboundSetPlayerTeamPacket$Parameters { 
-              getDisplayName(): net.minecraft.network.chat.Component;
-              getOptions(): number;
-              getColor(): net.minecraft.ChatFormatting;
-              getNametagVisibility(): net.minecraft.world.scores.Team$Visibility;
-              getCollisionRule(): net.minecraft.world.scores.Team$CollisionRule;
-              getPlayerPrefix(): net.minecraft.network.chat.Component;
-              getPlayerSuffix(): net.minecraft.network.chat.Component;
-              write(output: net.minecraft.network.RegistryFriendlyByteBuf): void;
+            interface ClientboundSetPlayerTeamPacket$Parameters extends java.lang.Record { 
+              displayName(): net.minecraft.network.chat.Component;
+              playerPrefix(): net.minecraft.network.chat.Component;
+              playerSuffix(): net.minecraft.network.chat.Component;
+              nameTagVisibility(): net.minecraft.world.scores.Team$Visibility;
+              collisionRule(): net.minecraft.world.scores.Team$CollisionRule;
+              color(): java.util.Optional<unknown>;
+              options(): number;
             }
             const ClientboundSetScorePacket: {
               STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.network.protocol.game.ClientboundSetScorePacket>;
@@ -19997,7 +20163,7 @@ declare global {
               handleContainerClose(packet: net.minecraft.network.protocol.game.ServerboundContainerClosePacket): void;
               handleAttack(packet: net.minecraft.network.protocol.game.ServerboundAttackPacket): void;
               handleInteract(packet: net.minecraft.network.protocol.game.ServerboundInteractPacket): void;
-              handleSpectateEntity(packet: net.minecraft.network.protocol.game.ServerboundSpectateEntityPacket): void;
+              handleSpectatorAction(packet: net.minecraft.network.protocol.game.ServerboundSpectatorActionPacket): void;
               handleMovePlayer(packet: net.minecraft.network.protocol.game.ServerboundMovePlayerPacket): void;
               handlePlayerAbilities(packet: net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacket): void;
               handlePlayerAction(packet: net.minecraft.network.protocol.game.ServerboundPlayerActionPacket): void;
@@ -20159,12 +20325,12 @@ declare global {
               location(): net.minecraft.world.phys.Vec3;
               usingSecondaryAction(): boolean;
             }
-            const ServerboundSpectateEntityPacket: {
-              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.network.protocol.game.ServerboundSpectateEntityPacket>;
-              new(entityId: number): net.minecraft.network.protocol.game.ServerboundSpectateEntityPacket;
+            const ServerboundSpectatorActionPacket: {
+              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.network.protocol.game.ServerboundSpectatorActionPacket>;
+              new(spectateEntityId: java.util.OptionalInt): net.minecraft.network.protocol.game.ServerboundSpectatorActionPacket;
             }
-            interface ServerboundSpectateEntityPacket extends java.lang.Record, net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ServerGamePacketListener> { 
-              entityId(): number;
+            interface ServerboundSpectatorActionPacket extends java.lang.Record, net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ServerGamePacketListener> { 
+              spectateEntityId(): java.util.OptionalInt;
             }
             const ServerboundMovePlayerPacket: {
               StatusOnly: typeof net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$StatusOnly;
@@ -20753,10 +20919,11 @@ declare global {
             }
             const ClientboundLoginFinishedPacket: {
               STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket>;
-              new(gameProfile: com.mojang.authlib.GameProfile): net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket;
+              new(gameProfile: com.mojang.authlib.GameProfile, sessionId: java.util.UUID): net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket;
             }
             interface ClientboundLoginFinishedPacket extends java.lang.Record, net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.login.ClientLoginPacketListener> { 
               gameProfile(): com.mojang.authlib.GameProfile;
+              sessionId(): java.util.UUID;
             }
             const ClientboundLoginDisconnectPacket: {
               STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket>;
@@ -20980,14 +21147,6 @@ declare global {
         }
         interface ClientboundPacketListener extends net.minecraft.network.PacketListener { 
         }
-        const PacketProcessor: {
-          new(runningThread: java.lang.Thread): net.minecraft.network.PacketProcessor;
-        }
-        interface PacketProcessor extends java.lang.AutoCloseable { 
-          isSameThread(): boolean;
-          scheduleIfPossible<T>(listener: T, packet: net.minecraft.network.protocol.Packet<T>): void;
-          processQueuedPackets(): void;
-        }
         const Connection: {
           ROOT_MARKER: org.slf4j.Marker;
           PACKET_MARKER: org.slf4j.Marker;
@@ -20999,6 +21158,7 @@ declare global {
           configureSerialization(pipeline: io.netty.channel.ChannelPipeline, inboundDirection: net.minecraft.network.protocol.PacketFlow, local: boolean, monitor: net.minecraft.network.BandwidthDebugMonitor | null | undefined): void;
           configureInMemoryPipeline(pipeline: io.netty.channel.ChannelPipeline, packetFlow: net.minecraft.network.protocol.PacketFlow): void;
           connectToLocalServer(address: java.net.SocketAddress): net.minecraft.network.Connection;
+          fromChannel(channel: io.netty.channel.Channel, flow: net.minecraft.network.protocol.PacketFlow, bandwidthLogger: net.minecraft.util.debugchart.LocalSampleLogger | null | undefined): net.minecraft.network.Connection;
         }
         interface Connection extends io.netty.channel.SimpleChannelInboundHandler<net.minecraft.network.protocol.Packet<any>>, net.fabricmc.fabric.api.networking.v1.context.PacketContextProvider { 
           setupInboundProtocol<T>(protocol: net.minecraft.network.ProtocolInfo<T>, packetListener: T): void;
@@ -21022,7 +21182,6 @@ declare global {
           getSending(): net.minecraft.network.protocol.PacketFlow;
           configurePacketHandler(pipeline: io.netty.channel.ChannelPipeline): void;
           setEncryptionKey(decryptCipher: javax.crypto.Cipher, encryptCipher: javax.crypto.Cipher): void;
-          isEncrypted(): boolean;
           isConnected(): boolean;
           isConnecting(): boolean;
           getPacketListener(): net.minecraft.network.PacketListener | null | undefined;
@@ -21033,6 +21192,8 @@ declare global {
           getAverageReceivedPackets(): number;
           getAverageSentPackets(): number;
           setBandwidthLogger(bandwidthLogger: net.minecraft.util.debugchart.LocalSampleLogger): void;
+          setIntendedProfileId(profileId: java.util.UUID): void;
+          getIntendedProfileId(): java.util.UUID | null | undefined;
         }
         interface ProtocolInfo<T> { 
           id(): net.minecraft.network.ConnectionProtocol;
@@ -21058,6 +21219,14 @@ declare global {
         interface BandwidthDebugMonitor { 
           onReceive(bytes: number): void;
           tick(): void;
+        }
+        const PacketProcessor: {
+          new(runningThread: java.lang.Thread): net.minecraft.network.PacketProcessor;
+        }
+        interface PacketProcessor extends java.lang.AutoCloseable { 
+          isSameThread(): boolean;
+          scheduleIfPossible<T>(listener: T, packet: net.minecraft.network.protocol.Packet<T>): void;
+          processQueuedPackets(): void;
         }
         const HashedStack: {
           ActualItem: typeof net.minecraft.network.HashedStack$ActualItem;
@@ -21308,6 +21477,17 @@ declare global {
         }
         namespace profiling {
           namespace metrics {
+            namespace profiling {
+              interface MetricsRecorder { 
+                end(): void;
+                cancel(): void;
+                startTick(): void;
+                sampleDuringExtract(): void;
+                isRecording(): boolean;
+                getProfiler(): net.minecraft.util.profiling.ProfilerFiller;
+                endTick(): void;
+              }
+            }
             interface ProfilerMeasured { 
               profiledMetrics(): Array<unknown>;
             }
@@ -21445,6 +21625,7 @@ declare global {
             Builder: typeof net.minecraft.util.random.WeightedList$Builder;
             of<E>(): net.minecraft.util.random.WeightedList<E>;
             of<E>(value: E): net.minecraft.util.random.WeightedList<E>;
+            of<E>(items: E): net.minecraft.util.random.WeightedList<E>;
             of<E>(items: net.minecraft.util.random.Weighted<E>): net.minecraft.util.random.WeightedList<E>;
             of<E>(items: Array<net.minecraft.util.random.Weighted<E>>): net.minecraft.util.random.WeightedList<E>;
             builder<E>(): net.minecraft.util.random.WeightedList$Builder<E>;
@@ -21483,11 +21664,6 @@ declare global {
           }
         }
         namespace debugchart {
-          interface SampleLogger { 
-            logFullSample(sample: Array<number>): void;
-            logSample(sample: number): void;
-            logPartialSample(sample: number, dimension: number): void;
-          }
           const LocalSampleLogger: {
             CAPACITY: number;
             new(dimensions: number): net.minecraft.util.debugchart.LocalSampleLogger;
@@ -21496,6 +21672,11 @@ declare global {
           interface LocalSampleLogger extends net.minecraft.util.debugchart.AbstractSampleLogger, net.minecraft.util.debugchart.SampleStorage { 
           }
           interface AbstractSampleLogger extends net.minecraft.util.debugchart.SampleLogger { 
+          }
+          interface SampleLogger { 
+            logFullSample(sample: Array<number>): void;
+            logSample(sample: number): void;
+            logPartialSample(sample: number, dimension: number): void;
           }
           interface SampleStorage { 
             capacity(): number;
@@ -21585,16 +21766,16 @@ declare global {
           minInclusive(): T;
           maxInclusive(): T;
         }
-        interface ToFloatFunction<T> { 
-          applyAsFloat(value: T): number;
-          (value: T): number;
-        }
         const KeyDispatchDataCodec: {
           new<A>(codec: com.mojang.serialization.MapCodec<A>): net.minecraft.util.KeyDispatchDataCodec<any>;
           of<A>(codec: com.mojang.serialization.MapCodec<A>): net.minecraft.util.KeyDispatchDataCodec<A>;
         }
         interface KeyDispatchDataCodec<A> extends java.lang.Record { 
           codec(): com.mojang.serialization.MapCodec<A>;
+        }
+        interface ToFloatFunction<T> { 
+          applyAsFloat(value: T): number;
+          (value: T): number;
         }
         const ProblemReporter: {
           ScopedCollector: typeof net.minecraft.util.ProblemReporter$ScopedCollector;
@@ -21838,6 +22019,9 @@ declare global {
           tick(): void;
           isUnderThreshold(): boolean;
         }
+        interface RegistryContextSwapper { 
+          swapTo<T>(codec: com.mojang.serialization.Codec<T>, value: T, newContext: net.minecraft.core.HolderLookup$Provider): com.mojang.serialization.DataResult<T>;
+        }
         const ArrayListDeque: {
           new<T>(): net.minecraft.util.ArrayListDeque<any>;
           new<T>(capacity: number): net.minecraft.util.ArrayListDeque<any>;
@@ -21847,14 +22031,14 @@ declare global {
         }
         interface ListAndDeque<T> extends Array<T>, java.util.RandomAccess, kotlin.Cloneable, java.io.Serializable, java.util.Deque<T> { 
         }
+        const TimeSource: {
+          constant(value: number): net.minecraft.util.TimeSource$NanoTimeSource;
+        }
         interface TimeSource { 
           get(timeUnit: java.util.concurrent.TimeUnit): number;
           (timeUnit: java.util.concurrent.TimeUnit): number;
         }
         interface TimeSource$NanoTimeSource extends net.minecraft.util.TimeSource { 
-        }
-        interface RegistryContextSwapper { 
-          swapTo<T>(codec: com.mojang.serialization.Codec<T>, value: T, newContext: net.minecraft.core.HolderLookup$Provider): com.mojang.serialization.DataResult<T>;
         }
       }
       namespace resources {
@@ -21906,6 +22090,8 @@ declare global {
           identifier(): net.minecraft.resources.Identifier;
           isFor(registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<any>>): boolean;
           cast<E>(registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<E>>): java.util.Optional<net.minecraft.resources.ResourceKey<E>>;
+          dependent<E>(registryKey: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<E>>, suffix: string): net.minecraft.resources.ResourceKey<E>;
+          dependent<E>(registryKey: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<E>>, decoration: unknown): net.minecraft.resources.ResourceKey<E>;
           registry(): net.minecraft.resources.Identifier;
           registryKey(): net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>;
         }
@@ -22213,6 +22399,7 @@ declare global {
           betweenClosedStream(boundingBox: net.minecraft.world.level.levelgen.structure.BoundingBox): java.util.stream.Stream<net.minecraft.core.BlockPos>;
           betweenClosedStream(box: net.minecraft.world.phys.AABB): java.util.stream.Stream<net.minecraft.core.BlockPos>;
           betweenClosedStream(minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): java.util.stream.Stream<net.minecraft.core.BlockPos>;
+          neighborColumn(startX: number, startY: number, startZ: number, endY: number): kotlin.collections.MutableIterable<net.minecraft.core.BlockPos>;
           spiralAround(center: net.minecraft.core.BlockPos, radius: number, firstDirection: net.minecraft.core.Direction, secondDirection: net.minecraft.core.Direction): kotlin.collections.MutableIterable<net.minecraft.core.BlockPos$MutableBlockPos>;
           breadthFirstTraversal(startPos: net.minecraft.core.BlockPos, maxDepth: number, maxCount: number, neighbourProvider: unknown, nodeProcessor: unknown): number;
           betweenCornersInDirection(aabb: net.minecraft.world.phys.AABB, direction: net.minecraft.world.phys.Vec3): kotlin.collections.MutableIterable<net.minecraft.core.BlockPos>;
@@ -22221,8 +22408,6 @@ declare global {
         }
         interface BlockPos extends net.minecraft.core.Vec3i { 
           asLong(): number;
-          getCenter(): net.minecraft.world.phys.Vec3;
-          getBottomCenter(): net.minecraft.world.phys.Vec3;
           rotate(rotation: net.minecraft.world.level.block.Rotation): net.minecraft.core.BlockPos;
           atY(y: number): net.minecraft.core.BlockPos;
           immutable(): net.minecraft.core.BlockPos;
@@ -22620,6 +22805,7 @@ declare global {
         const SectionPos: {
           SECTION_BITS: number;
           SECTION_SIZE: number;
+          SECTION_BLOCK_COUNT: number;
           SECTION_MASK: number;
           SECTION_HALF_SIZE: number;
           SECTION_MAX_INDEX: number;
@@ -22977,9 +23163,9 @@ declare global {
               const MoveControl: {
                 MIN_SPEED: number;
                 MIN_SPEED_SQR: number;
-                new(mob: net.minecraft.world.entity.Mob): net.minecraft.world.entity.ai.control.MoveControl;
+                new<T>(mob: T): net.minecraft.world.entity.ai.control.MoveControl<any>;
               }
-              interface MoveControl extends net.minecraft.world.entity.ai.control.Control { 
+              interface MoveControl<T> extends net.minecraft.world.entity.ai.control.Control { 
                 hasWanted(): boolean;
                 getSpeedModifier(): number;
                 setWantedPosition(x: number, y: number, z: number, speedModifier: number): void;
@@ -23039,6 +23225,7 @@ declare global {
                 canFloat(): boolean;
                 shouldRecomputePath(pos: net.minecraft.core.BlockPos): boolean;
                 getMaxDistanceToWaypoint(): number;
+                getMaxVerticalDistanceToWaypoint(): number;
                 canNavigateGround(): boolean;
                 setCanOpenDoors(canOpenDoors: boolean): void;
               }
@@ -23572,10 +23759,6 @@ declare global {
               flyingSpeed(): number;
               walkingSpeed(): number;
             }
-            interface StackedContents$IngredientInfo<T> { 
-              acceptsItem(item: T): boolean;
-              (item: T): boolean;
-            }
             const ChatVisiblity: {
               FULL: net.minecraft.world.entity.player.ChatVisiblity;
               SYSTEM: net.minecraft.world.entity.player.ChatVisiblity;
@@ -23601,6 +23784,10 @@ declare global {
               getBiggestCraftableStack(recipe: net.minecraft.world.item.crafting.Recipe<any>, output: net.minecraft.world.entity.player.StackedContents$Output<net.minecraft.core.Holder<net.minecraft.world.item.Item>> | null | undefined): number;
               getBiggestCraftableStack(recipe: net.minecraft.world.item.crafting.Recipe<any>, maxSize: number, output: net.minecraft.world.entity.player.StackedContents$Output<net.minecraft.core.Holder<net.minecraft.world.item.Item>> | null | undefined): number;
               clear(): void;
+            }
+            interface StackedContents$IngredientInfo<T> { 
+              acceptsItem(item: T): boolean;
+              (item: T): boolean;
             }
             interface StackedContents$Output<T> { 
               accept(item: T): void;
@@ -23873,6 +24060,7 @@ declare global {
                 BREEDING_CROSS_FACTOR: number;
                 INVENTORY_ROWS: number;
                 createBaseHorseAttributes(): net.minecraft.world.entity.ai.attributes.AttributeSupplier$Builder;
+                createOffspringAttribute(parentAValue: number, parentBValue: number, attributeRangeMin: number, attributeRangeMax: number, random: net.minecraft.util.RandomSource): number;
               }
               interface AbstractHorse extends net.minecraft.world.entity.animal.Animal, net.minecraft.world.entity.PlayerRideableJumping, net.minecraft.world.entity.HasCustomInventoryScreen, net.minecraft.world.entity.OwnableEntity { 
                 tailCounter: number;
@@ -24187,6 +24375,9 @@ declare global {
             }
             interface Raider$ObtainRaidLeaderBannerGoal<T> extends net.minecraft.world.entity.ai.goal.Goal { 
             }
+            const Raider$RaiderCelebration: {
+              new(mob: net.minecraft.world.entity.raid.Raider): net.minecraft.world.entity.raid.Raider$RaiderCelebration;
+            }
             interface Raider$RaiderCelebration extends net.minecraft.world.entity.ai.goal.Goal { 
             }
           }
@@ -24344,177 +24535,20 @@ declare global {
             Builder: typeof net.minecraft.world.entity.EntityType$Builder;
             CODEC: com.mojang.serialization.Codec<net.minecraft.world.entity.EntityType<any>>;
             STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.entity.EntityType<any>>;
-            ACACIA_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            ACACIA_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            ALLAY: net.minecraft.world.entity.EntityType<unknown>;
-            AREA_EFFECT_CLOUD: net.minecraft.world.entity.EntityType<unknown>;
-            ARMADILLO: net.minecraft.world.entity.EntityType<unknown>;
-            ARMOR_STAND: net.minecraft.world.entity.EntityType<unknown>;
-            ARROW: net.minecraft.world.entity.EntityType<unknown>;
-            AXOLOTL: net.minecraft.world.entity.EntityType<unknown>;
-            BAMBOO_CHEST_RAFT: net.minecraft.world.entity.EntityType<unknown>;
-            BAMBOO_RAFT: net.minecraft.world.entity.EntityType<unknown>;
-            BAT: net.minecraft.world.entity.EntityType<unknown>;
-            BEE: net.minecraft.world.entity.EntityType<unknown>;
-            BIRCH_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            BIRCH_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            BLAZE: net.minecraft.world.entity.EntityType<unknown>;
-            BLOCK_DISPLAY: net.minecraft.world.entity.EntityType<unknown>;
-            BOGGED: net.minecraft.world.entity.EntityType<unknown>;
-            BREEZE: net.minecraft.world.entity.EntityType<unknown>;
-            BREEZE_WIND_CHARGE: net.minecraft.world.entity.EntityType<unknown>;
-            CAMEL: net.minecraft.world.entity.EntityType<unknown>;
-            CAMEL_HUSK: net.minecraft.world.entity.EntityType<unknown>;
-            CAT: net.minecraft.world.entity.EntityType<unknown>;
-            CAVE_SPIDER: net.minecraft.world.entity.EntityType<unknown>;
-            CHERRY_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            CHERRY_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            CHEST_MINECART: net.minecraft.world.entity.EntityType<unknown>;
-            CHICKEN: net.minecraft.world.entity.EntityType<unknown>;
-            COD: net.minecraft.world.entity.EntityType<unknown>;
-            COPPER_GOLEM: net.minecraft.world.entity.EntityType<unknown>;
-            COMMAND_BLOCK_MINECART: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.vehicle.minecart.MinecartCommandBlock>;
-            COW: net.minecraft.world.entity.EntityType<unknown>;
-            CREAKING: net.minecraft.world.entity.EntityType<unknown>;
-            CREEPER: net.minecraft.world.entity.EntityType<unknown>;
-            DARK_OAK_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            DARK_OAK_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            DOLPHIN: net.minecraft.world.entity.EntityType<unknown>;
-            DONKEY: net.minecraft.world.entity.EntityType<unknown>;
-            DRAGON_FIREBALL: net.minecraft.world.entity.EntityType<unknown>;
-            DROWNED: net.minecraft.world.entity.EntityType<unknown>;
-            EGG: net.minecraft.world.entity.EntityType<unknown>;
-            ELDER_GUARDIAN: net.minecraft.world.entity.EntityType<unknown>;
-            ENDERMAN: net.minecraft.world.entity.EntityType<unknown>;
-            ENDERMITE: net.minecraft.world.entity.EntityType<unknown>;
-            ENDER_DRAGON: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.boss.enderdragon.EnderDragon>;
-            ENDER_PEARL: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl>;
-            END_CRYSTAL: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.boss.enderdragon.EndCrystal>;
-            EVOKER: net.minecraft.world.entity.EntityType<unknown>;
-            EVOKER_FANGS: net.minecraft.world.entity.EntityType<unknown>;
-            EXPERIENCE_BOTTLE: net.minecraft.world.entity.EntityType<unknown>;
-            EXPERIENCE_ORB: net.minecraft.world.entity.EntityType<unknown>;
-            EYE_OF_ENDER: net.minecraft.world.entity.EntityType<unknown>;
-            FALLING_BLOCK: net.minecraft.world.entity.EntityType<unknown>;
-            FIREBALL: net.minecraft.world.entity.EntityType<unknown>;
-            FIREWORK_ROCKET: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.projectile.FireworkRocketEntity>;
-            FOX: net.minecraft.world.entity.EntityType<unknown>;
-            FROG: net.minecraft.world.entity.EntityType<unknown>;
-            FURNACE_MINECART: net.minecraft.world.entity.EntityType<unknown>;
-            GHAST: net.minecraft.world.entity.EntityType<unknown>;
-            HAPPY_GHAST: net.minecraft.world.entity.EntityType<unknown>;
-            GIANT: net.minecraft.world.entity.EntityType<unknown>;
-            GLOW_ITEM_FRAME: net.minecraft.world.entity.EntityType<unknown>;
-            GLOW_SQUID: net.minecraft.world.entity.EntityType<unknown>;
-            GOAT: net.minecraft.world.entity.EntityType<unknown>;
-            GUARDIAN: net.minecraft.world.entity.EntityType<unknown>;
-            HOGLIN: net.minecraft.world.entity.EntityType<unknown>;
-            HOPPER_MINECART: net.minecraft.world.entity.EntityType<unknown>;
-            HORSE: net.minecraft.world.entity.EntityType<unknown>;
-            HUSK: net.minecraft.world.entity.EntityType<unknown>;
-            ILLUSIONER: net.minecraft.world.entity.EntityType<unknown>;
-            INTERACTION: net.minecraft.world.entity.EntityType<unknown>;
-            IRON_GOLEM: net.minecraft.world.entity.EntityType<unknown>;
-            ITEM: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.item.ItemEntity>;
-            ITEM_DISPLAY: net.minecraft.world.entity.EntityType<unknown>;
-            ITEM_FRAME: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.decoration.ItemFrame>;
-            JUNGLE_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            JUNGLE_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            LEASH_KNOT: net.minecraft.world.entity.EntityType<unknown>;
-            LIGHTNING_BOLT: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.LightningBolt>;
-            LLAMA: net.minecraft.world.entity.EntityType<unknown>;
-            LLAMA_SPIT: net.minecraft.world.entity.EntityType<unknown>;
-            MAGMA_CUBE: net.minecraft.world.entity.EntityType<unknown>;
-            MANGROVE_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            MANGROVE_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            MANNEQUIN: net.minecraft.world.entity.EntityType<unknown>;
-            MARKER: net.minecraft.world.entity.EntityType<unknown>;
-            MINECART: net.minecraft.world.entity.EntityType<unknown>;
-            MOOSHROOM: net.minecraft.world.entity.EntityType<unknown>;
-            MULE: net.minecraft.world.entity.EntityType<unknown>;
-            NAUTILUS: net.minecraft.world.entity.EntityType<unknown>;
-            OAK_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            OAK_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            OCELOT: net.minecraft.world.entity.EntityType<unknown>;
-            OMINOUS_ITEM_SPAWNER: net.minecraft.world.entity.EntityType<unknown>;
-            PAINTING: net.minecraft.world.entity.EntityType<unknown>;
-            PALE_OAK_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            PALE_OAK_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            PANDA: net.minecraft.world.entity.EntityType<unknown>;
-            PARCHED: net.minecraft.world.entity.EntityType<unknown>;
-            PARROT: net.minecraft.world.entity.EntityType<unknown>;
-            PHANTOM: net.minecraft.world.entity.EntityType<unknown>;
-            PIG: net.minecraft.world.entity.EntityType<unknown>;
-            PIGLIN: net.minecraft.world.entity.EntityType<unknown>;
-            PIGLIN_BRUTE: net.minecraft.world.entity.EntityType<unknown>;
-            PILLAGER: net.minecraft.world.entity.EntityType<unknown>;
-            POLAR_BEAR: net.minecraft.world.entity.EntityType<unknown>;
-            SPLASH_POTION: net.minecraft.world.entity.EntityType<unknown>;
-            LINGERING_POTION: net.minecraft.world.entity.EntityType<unknown>;
-            PUFFERFISH: net.minecraft.world.entity.EntityType<unknown>;
-            RABBIT: net.minecraft.world.entity.EntityType<unknown>;
-            RAVAGER: net.minecraft.world.entity.EntityType<unknown>;
-            SALMON: net.minecraft.world.entity.EntityType<unknown>;
-            SHEEP: net.minecraft.world.entity.EntityType<unknown>;
-            SHULKER: net.minecraft.world.entity.EntityType<unknown>;
-            SHULKER_BULLET: net.minecraft.world.entity.EntityType<unknown>;
-            SILVERFISH: net.minecraft.world.entity.EntityType<unknown>;
-            SKELETON: net.minecraft.world.entity.EntityType<unknown>;
-            SKELETON_HORSE: net.minecraft.world.entity.EntityType<unknown>;
-            SLIME: net.minecraft.world.entity.EntityType<unknown>;
-            SMALL_FIREBALL: net.minecraft.world.entity.EntityType<unknown>;
-            SNIFFER: net.minecraft.world.entity.EntityType<unknown>;
-            SNOWBALL: net.minecraft.world.entity.EntityType<unknown>;
-            SNOW_GOLEM: net.minecraft.world.entity.EntityType<unknown>;
-            SPAWNER_MINECART: net.minecraft.world.entity.EntityType<unknown>;
-            SPECTRAL_ARROW: net.minecraft.world.entity.EntityType<unknown>;
-            SPIDER: net.minecraft.world.entity.EntityType<unknown>;
-            SPRUCE_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            SPRUCE_CHEST_BOAT: net.minecraft.world.entity.EntityType<unknown>;
-            SQUID: net.minecraft.world.entity.EntityType<unknown>;
-            STRAY: net.minecraft.world.entity.EntityType<unknown>;
-            STRIDER: net.minecraft.world.entity.EntityType<unknown>;
-            TADPOLE: net.minecraft.world.entity.EntityType<unknown>;
-            TEXT_DISPLAY: net.minecraft.world.entity.EntityType<unknown>;
-            TNT: net.minecraft.world.entity.EntityType<unknown>;
-            TNT_MINECART: net.minecraft.world.entity.EntityType<unknown>;
-            TRADER_LLAMA: net.minecraft.world.entity.EntityType<unknown>;
-            TRIDENT: net.minecraft.world.entity.EntityType<unknown>;
-            TROPICAL_FISH: net.minecraft.world.entity.EntityType<unknown>;
-            TURTLE: net.minecraft.world.entity.EntityType<unknown>;
-            VEX: net.minecraft.world.entity.EntityType<unknown>;
-            VILLAGER: net.minecraft.world.entity.EntityType<unknown>;
-            VINDICATOR: net.minecraft.world.entity.EntityType<unknown>;
-            WANDERING_TRADER: net.minecraft.world.entity.EntityType<unknown>;
-            WARDEN: net.minecraft.world.entity.EntityType<unknown>;
-            WIND_CHARGE: net.minecraft.world.entity.EntityType<unknown>;
-            WITCH: net.minecraft.world.entity.EntityType<unknown>;
-            WITHER: net.minecraft.world.entity.EntityType<unknown>;
-            WITHER_SKELETON: net.minecraft.world.entity.EntityType<unknown>;
-            WITHER_SKULL: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull>;
-            WOLF: net.minecraft.world.entity.EntityType<unknown>;
-            ZOGLIN: net.minecraft.world.entity.EntityType<unknown>;
-            ZOMBIE: net.minecraft.world.entity.EntityType<unknown>;
-            ZOMBIE_HORSE: net.minecraft.world.entity.EntityType<unknown>;
-            ZOMBIE_NAUTILUS: net.minecraft.world.entity.EntityType<unknown>;
-            ZOMBIE_VILLAGER: net.minecraft.world.entity.EntityType<unknown>;
-            ZOMBIFIED_PIGLIN: net.minecraft.world.entity.EntityType<unknown>;
-            PLAYER: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.player.Player>;
-            FISHING_BOBBER: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.projectile.FishingHook>;
-            new<T>(factory: net.minecraft.world.entity.EntityType$EntityFactory<T>, category: net.minecraft.world.entity.MobCategory, serialize: boolean, summon: boolean, fireImmune: boolean, canSpawnFarFromPlayer: boolean, immuneTo: com.google.common.collect.ImmutableSet<net.minecraft.world.level.block.Block>, dimensions: net.minecraft.world.entity.EntityDimensions, spawnDimensionsScale: number, clientTrackingRange: number, updateInterval: number, descriptionId: string, lootTable: java.util.Optional<net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>>, requiredFeatures: net.minecraft.world.flag.FeatureFlagSet, allowedInPeaceful: boolean): net.minecraft.world.entity.EntityType<any>;
+            new<T>(factory: net.minecraft.world.entity.EntityType$EntityFactory<T>, category: net.minecraft.world.entity.MobCategory, serialize: boolean, summon: boolean, fireImmune: boolean, canSpawnFarFromPlayer: boolean, immuneTo: net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>, dimensions: net.minecraft.world.entity.EntityDimensions, spawnDimensionsScale: number, clientTrackingRange: number, updateInterval: number, descriptionId: string, lootTable: java.util.Optional<net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>>, requiredFeatures: net.minecraft.world.flag.FeatureFlagSet, allowedInPeaceful: boolean): net.minecraft.world.entity.EntityType<any>;
             getKey(type: net.minecraft.world.entity.EntityType<any>): net.minecraft.resources.Identifier;
-            byString(id: string): java.util.Optional<net.minecraft.world.entity.EntityType<any>>;
-            createDefaultStackConfig<T>(level: net.minecraft.world.level.Level, itemStack: net.minecraft.world.item.ItemStack, user: net.minecraft.world.entity.LivingEntity | null | undefined): unknown;
-            appendDefaultStackConfig<T>(initialConfig: unknown, level: net.minecraft.world.level.Level, itemStack: net.minecraft.world.item.ItemStack, user: net.minecraft.world.entity.LivingEntity | null | undefined): unknown;
-            appendComponentsConfig<T>(initialConfig: unknown, itemStack: net.minecraft.world.item.ItemStack): unknown;
-            appendCustomEntityStackConfig<T>(initialConfig: unknown, level: net.minecraft.world.level.Level, itemStack: net.minecraft.world.item.ItemStack, user: net.minecraft.world.entity.LivingEntity | null | undefined): unknown;
-            create(input: net.minecraft.world.level.storage.ValueInput, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason): java.util.Optional<net.minecraft.world.entity.Entity>;
+            createDefaultStackConfig<T>(level: net.minecraft.world.level.Level, itemStack: net.minecraft.world.item.ItemStack, user: net.minecraft.world.entity.LivingEntity | null | undefined): net.minecraft.world.entity.PostSpawnProcessor<T>;
+            appendDefaultStackConfig<T>(initialConfig: net.minecraft.world.entity.PostSpawnProcessor<T>, level: net.minecraft.world.level.Level, itemStack: net.minecraft.world.item.ItemStack, user: net.minecraft.world.entity.LivingEntity | null | undefined): net.minecraft.world.entity.PostSpawnProcessor<T>;
+            appendComponentsConfig<T>(initialConfig: net.minecraft.world.entity.PostSpawnProcessor<T>, itemStack: net.minecraft.world.item.ItemStack): net.minecraft.world.entity.PostSpawnProcessor<T>;
+            appendCustomEntityStackConfig<T>(initialConfig: net.minecraft.world.entity.PostSpawnProcessor<T>, level: net.minecraft.world.level.Level, itemStack: net.minecraft.world.item.ItemStack, user: net.minecraft.world.entity.LivingEntity | null | undefined): net.minecraft.world.entity.PostSpawnProcessor<T>;
+            create(input: net.minecraft.world.level.storage.ValueInput, level: net.minecraft.world.level.Level, request: net.minecraft.world.entity.EntitySpawnRequest): java.util.Optional<net.minecraft.world.entity.Entity>;
             create(type: net.minecraft.world.entity.EntityType<any>, input: net.minecraft.world.level.storage.ValueInput, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason): java.util.Optional<net.minecraft.world.entity.Entity>;
             updateCustomEntityTag(level: net.minecraft.world.level.Level, user: net.minecraft.world.entity.LivingEntity | null | undefined, entity: net.minecraft.world.entity.Entity | null | undefined, entityData: net.minecraft.world.item.component.TypedEntityData<net.minecraft.world.entity.EntityType<any>>): void;
             by(input: net.minecraft.world.level.storage.ValueInput): java.util.Optional<net.minecraft.world.entity.EntityType<any>>;
-            loadEntityRecursive(tag: net.minecraft.nbt.CompoundTag, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason, postLoad: net.minecraft.world.entity.EntityProcessor): net.minecraft.world.entity.Entity | null | undefined;
+            loadEntityRecursive(tag: net.minecraft.nbt.CompoundTag, level: net.minecraft.world.level.Level, request: net.minecraft.world.entity.EntitySpawnRequest, postLoad: net.minecraft.world.entity.EntityProcessor): net.minecraft.world.entity.Entity | null | undefined;
             loadEntityRecursive(type: net.minecraft.world.entity.EntityType<any>, tag: net.minecraft.nbt.CompoundTag, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason, postLoad: net.minecraft.world.entity.EntityProcessor): net.minecraft.world.entity.Entity | null | undefined;
             loadEntityRecursive(input: net.minecraft.world.level.storage.ValueInput, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason, postLoad: net.minecraft.world.entity.EntityProcessor): net.minecraft.world.entity.Entity | null | undefined;
+            loadEntityRecursive(input: net.minecraft.world.level.storage.ValueInput, level: net.minecraft.world.level.Level, request: net.minecraft.world.entity.EntitySpawnRequest, postLoad: net.minecraft.world.entity.EntityProcessor): net.minecraft.world.entity.Entity | null | undefined;
             loadEntityRecursive(type: net.minecraft.world.entity.EntityType<any>, input: net.minecraft.world.level.storage.ValueInput, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason, postLoad: net.minecraft.world.entity.EntityProcessor): net.minecraft.world.entity.Entity | null | undefined;
             loadEntitiesRecursive(entities: net.minecraft.world.level.storage.ValueInput$ValueInputList, level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason): java.util.stream.Stream<net.minecraft.world.entity.Entity>;
           }
@@ -24526,9 +24560,10 @@ declare global {
             updateInterval(): number;
             spawn(level: net.minecraft.server.level.ServerLevel, itemStack: net.minecraft.world.item.ItemStack | null | undefined, user: net.minecraft.world.entity.LivingEntity | null | undefined, spawnPos: net.minecraft.core.BlockPos, spawnReason: net.minecraft.world.entity.EntitySpawnReason, tryMoveDown: boolean, movedUp: boolean): T;
             spawn(level: net.minecraft.server.level.ServerLevel, spawnPos: net.minecraft.core.BlockPos, spawnReason: net.minecraft.world.entity.EntitySpawnReason): T;
-            spawn(level: net.minecraft.server.level.ServerLevel, postSpawnConfig: unknown, spawnPos: net.minecraft.core.BlockPos, spawnReason: net.minecraft.world.entity.EntitySpawnReason, tryMoveDown: boolean, movedUp: boolean): T;
-            create(level: net.minecraft.server.level.ServerLevel, postSpawnConfig: unknown, spawnPos: net.minecraft.core.BlockPos, spawnReason: net.minecraft.world.entity.EntitySpawnReason, tryMoveDown: boolean, movedUp: boolean): T;
+            spawn(level: net.minecraft.server.level.ServerLevel, postSpawnConfig: net.minecraft.world.entity.PostSpawnProcessor<T> | null | undefined, spawnPos: net.minecraft.core.BlockPos, spawnReason: net.minecraft.world.entity.EntitySpawnReason, tryMoveDown: boolean, movedUp: boolean): T;
+            create(level: net.minecraft.server.level.ServerLevel, postSpawnConfig: net.minecraft.world.entity.PostSpawnProcessor<T> | null | undefined, spawnPos: net.minecraft.core.BlockPos, spawnReason: net.minecraft.world.entity.EntitySpawnReason, tryMoveDown: boolean, movedUp: boolean): T;
             create(level: net.minecraft.world.level.Level, reason: net.minecraft.world.entity.EntitySpawnReason): T;
+            create(level: net.minecraft.world.level.Level, request: net.minecraft.world.entity.EntitySpawnRequest): T;
             canSerialize(): boolean;
             canSummon(): boolean;
             getCategory(): net.minecraft.world.entity.MobCategory;
@@ -24538,6 +24573,7 @@ declare global {
             getDefaultLootTable(): java.util.Optional<net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>>;
             getWidth(): number;
             getHeight(): number;
+            canSpawn(level: net.minecraft.world.level.Level): boolean;
             getSpawnAABB(x: number, y: number, z: number): net.minecraft.world.phys.AABB;
             isBlockDangerous(state: net.minecraft.world.level.block.state.BlockState): boolean;
             getDimensions(): net.minecraft.world.entity.EntityDimensions;
@@ -24565,10 +24601,14 @@ declare global {
             TAG_GLOWING: string;
             TAG_INVULNERABLE: string;
             TAG_CUSTOM_NAME: string;
+            INVALID_ENTITY_ID: number;
             CONTENTS_SLOT_INDEX: number;
             BOARDING_COOLDOWN: number;
             TOTAL_AIR_SUPPLY: number;
             MAX_ENTITY_TAG_COUNT: number;
+            DEFAULT_NAME_TAG_DISTANCE: number;
+            DEFAULT_BELOW_NAME_DISTANCE: number;
+            MAX_NAME_TAG_DISTANCE: number;
             DELTA_AFFECTED_BY_BLOCKS_BELOW_0_2: number;
             DELTA_AFFECTED_BY_BLOCKS_BELOW_0_5: number;
             DELTA_AFFECTED_BY_BLOCKS_BELOW_1_0: number;
@@ -24579,7 +24619,8 @@ declare global {
             DEFAULT_BB_HEIGHT: number;
             MAX_MOVEMENTS_HANDELED_PER_TICK: number;
             new(type: net.minecraft.world.entity.EntityType<any>, level: net.minecraft.world.level.Level): net.minecraft.world.entity.Entity;
-            collideBoundingBox(source: net.minecraft.world.entity.Entity | null | undefined, movement: net.minecraft.world.phys.Vec3, boundingBox: net.minecraft.world.phys.AABB, level: net.minecraft.world.level.Level, entityColliders: Array<net.minecraft.world.phys.shapes.VoxelShape>): net.minecraft.world.phys.Vec3;
+            collideBoundingBox(source: net.minecraft.world.entity.Entity, movement: net.minecraft.world.phys.Vec3, boundingBox: net.minecraft.world.phys.AABB, level: net.minecraft.world.level.Level, entityColliders: Array<net.minecraft.world.phys.shapes.VoxelShape>): net.minecraft.world.phys.Vec3;
+            collideBoundingBox(source: net.minecraft.world.phys.shapes.CollisionContext, movement: net.minecraft.world.phys.Vec3, boundingBox: net.minecraft.world.phys.AABB, level: net.minecraft.world.level.Level, entityColliders: Array<net.minecraft.world.phys.shapes.VoxelShape>): net.minecraft.world.phys.Vec3;
             collectAllColliders(source: net.minecraft.world.entity.Entity | null | undefined, level: net.minecraft.world.level.Level, boundingBox: net.minecraft.world.phys.AABB): Array<net.minecraft.world.phys.shapes.VoxelShape>;
             getViewScale(): number;
             setViewScale(viewScale: number): void;
@@ -24606,6 +24647,7 @@ declare global {
             tickCount: number;
             invulnerableTime: number;
             needsSync: boolean;
+            syncPosition: boolean;
             portalProcess: net.minecraft.world.entity.PortalProcessor | null | undefined;
             isInPowderSnow: boolean;
             wasInPowderSnow: boolean;
@@ -24741,6 +24783,7 @@ declare global {
             pick(range: number, a: number, withLiquids: boolean): net.minecraft.world.phys.HitResult;
             canBeHitByProjectile(): boolean;
             isPickable(): boolean;
+            canBePickedFromInside(): boolean;
             isPushable(): boolean;
             awardKillScore(victim: net.minecraft.world.entity.Entity, killingBlow: net.minecraft.world.damagesource.DamageSource): void;
             shouldRender(camX: number, camY: number, camZ: number): boolean;
@@ -24841,6 +24884,7 @@ declare global {
             isAttackable(): boolean;
             skipAttackInteraction(source: net.minecraft.world.entity.Entity): boolean;
             isInvulnerable(): boolean;
+            isInvulnerableToPiercingWeapon(): boolean;
             setInvulnerable(invulnerable: boolean): void;
             copyPosition(target: net.minecraft.world.entity.Entity): void;
             restoreFrom(oldEntity: net.minecraft.world.entity.Entity): void;
@@ -25001,7 +25045,6 @@ declare global {
             TAG_FALL_FLYING: string;
             TAG_HURT_TIME: string;
             TAG_DEATH_TIME: string;
-            TAG_HURT_BY_TIMESTAMP: string;
             TAG_HEALTH: string;
             EQUIPMENT_SLOT_OFFSET: number;
             ARMOR_SLOT_OFFSET: number;
@@ -25014,6 +25057,20 @@ declare global {
             BASE_JUMP_POWER: number;
             EXTRA_RENDER_CULLING_SIZE_WITH_BIG_HAT: number;
             DEFAULT_BABY_SCALE: number;
+            BASE_HORIZONTAL_AIR_DRAG: number;
+            BASE_VERTICAL_AIR_DRAG: number;
+            WATER_DRAG: number;
+            SPRINTING_WATER_DRAG: number;
+            LAVA_DRAG: number;
+            LAVA_SHALLOW_VERTICAL_DRAG: number;
+            DOLPHINS_GRACE_WATER_DRAG: number;
+            FLYING_AIR_DRAG: number;
+            FLYING_VERTICAL_AIR_DRAG: number;
+            FLYING_LAVA_DRAG: number;
+            FLYING_WATER_DRAG: number;
+            ELYTRA_HORIZONTAL_AIR_DRAG: number;
+            ELYTRA_VERTICAL_AIR_DRAG: number;
+            BASE_SWIM_SPEED: number;
             PLAYER_NOT_WEARING_DISGUISE_ITEM: unknown;
             createLivingAttributes(): net.minecraft.world.entity.ai.attributes.AttributeSupplier$Builder;
             areAllEffectsAmbient(effects: Array<net.minecraft.world.effect.MobEffectInstance>): boolean;
@@ -25041,7 +25098,6 @@ declare global {
             yya: number;
             zza: number;
             currentImpulseImpactPos: net.minecraft.world.phys.Vec3 | null | undefined;
-            currentExplosionCause: net.minecraft.world.entity.Entity | null | undefined;
             skipDropExperience(): void;
             activeLocationDependentEnchantments(slot: net.minecraft.world.entity.EquipmentSlot): Map<unknown, Set<unknown>>;
             getBrain(): net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.LivingEntity>;
@@ -25092,6 +25148,7 @@ declare global {
             getHealth(): number;
             setHealth(health: number): void;
             isDeadOrDying(): boolean;
+            dealDefaultKnockback(source: net.minecraft.world.damagesource.DamageSource, damage: number, blocked: boolean): void;
             applyItemBlocking(level: net.minecraft.server.level.ServerLevel, source: net.minecraft.world.damagesource.DamageSource, damage: number): number;
             getLastDamageSource(): net.minecraft.world.damagesource.DamageSource | null | undefined;
             makeSound(sound: net.minecraft.sounds.SoundEvent | null | undefined): void;
@@ -25101,7 +25158,8 @@ declare global {
             dropFromLootTable(level: net.minecraft.server.level.ServerLevel, source: net.minecraft.world.damagesource.DamageSource, playerKilled: boolean, lootTable: net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>, itemStackConsumer: unknown): void;
             dropFromEntityInteractLootTable(level: net.minecraft.server.level.ServerLevel, key: net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>, interactingEntity: net.minecraft.world.entity.Entity | null | undefined, tool: net.minecraft.world.item.ItemInstance, consumer: unknown): boolean;
             dropFromGiftLootTable(level: net.minecraft.server.level.ServerLevel, key: net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>, consumer: unknown): boolean;
-            knockback(power: number, xd: number, zd: number): void;
+            knockback(power: number, xd: number, zd: number, source: net.minecraft.world.damagesource.DamageSource, damage: number, comesFromEffect: boolean): void;
+            knockback(power: number, xd: number, zd: number, source: net.minecraft.world.damagesource.DamageSource, damage: number): void;
             indicateDamage(xd: number, zd: number): void;
             wasExperienceConsumed(): boolean;
             getHurtDir(): number;
@@ -25161,7 +25219,7 @@ declare global {
             getSpeed(): number;
             setSpeed(speed: number): void;
             doHurtTarget(level: net.minecraft.server.level.ServerLevel, target: net.minecraft.world.entity.Entity): boolean;
-            causeExtraKnockback(target: net.minecraft.world.entity.Entity, knockback: number, oldMovement: net.minecraft.world.phys.Vec3): void;
+            causeExtraKnockback(target: net.minecraft.world.entity.Entity, knockback: number, oldMovement: net.minecraft.world.phys.Vec3, damageSource: net.minecraft.world.damagesource.DamageSource, damage: number, comesFromEffect: boolean): void;
             wasRecentlyStabbed(target: net.minecraft.world.entity.Entity, allowedTime: number): boolean;
             rememberStabbedEntity(target: net.minecraft.world.entity.Entity): void;
             stabbedEntities(filter: unknown): number;
@@ -25222,6 +25280,7 @@ declare global {
             hasInfiniteMaterials(): boolean;
             isInvulnerableTo(level: net.minecraft.server.level.ServerLevel, source: net.minecraft.world.damagesource.DamageSource): boolean;
             getLastHurtByPlayerMemoryTime(): number;
+            createDamageSource(): net.minecraft.world.damagesource.DamageSource;
           }
           interface Attackable { 
             getLastAttacker(): net.minecraft.world.entity.LivingEntity | null | undefined;
@@ -25467,6 +25526,7 @@ declare global {
             isFriendly(): boolean;
             isPersistent(): boolean;
             getName(): string;
+            getDebugAbbreviation(): string;
             getMaxInstancesPerChunk(): number;
             getDespawnDistance(): number;
             getNoDespawnDistance(): number;
@@ -25561,6 +25621,7 @@ declare global {
             TAG_LEFT_HANDED: string;
             TAG_CAN_PICK_UP_LOOT: string;
             TAG_NO_AI: string;
+            TAG_PERSISTENCE_REQUIRED: string;
             createMobAttributes(): net.minecraft.world.entity.ai.attributes.AttributeSupplier$Builder;
             checkMobSpawnRules(type: net.minecraft.world.entity.EntityType<net.minecraft.world.entity.Mob>, level: net.minecraft.world.level.LevelAccessor, spawnReason: net.minecraft.world.entity.EntitySpawnReason, pos: net.minecraft.core.BlockPos, random: net.minecraft.util.RandomSource): boolean;
             getEquipmentForSlot(slot: net.minecraft.world.entity.EquipmentSlot, type: number): net.minecraft.world.item.Item | null | undefined;
@@ -25572,7 +25633,7 @@ declare global {
             onPathfindingStart(): void;
             onPathfindingDone(): void;
             getLookControl(): net.minecraft.world.entity.ai.control.LookControl;
-            getMoveControl(): net.minecraft.world.entity.ai.control.MoveControl;
+            getMoveControl(): net.minecraft.world.entity.ai.control.MoveControl<net.minecraft.world.entity.Mob>;
             getJumpControl(): net.minecraft.world.entity.ai.control.JumpControl;
             getNavigation(): net.minecraft.world.entity.ai.navigation.PathNavigation;
             getSensing(): net.minecraft.world.entity.ai.sensing.Sensing;
@@ -25606,7 +25667,6 @@ declare global {
             getBodyArmorItem(): net.minecraft.world.item.ItemStack;
             isSaddled(): boolean;
             isWearingBodyArmor(): boolean;
-            setBodyArmorItem(item: net.minecraft.world.item.ItemStack): void;
             createEquipmentSlotContainer(slot: net.minecraft.world.entity.EquipmentSlot): net.minecraft.world.Container;
             getDropChances(): net.minecraft.world.entity.DropChances;
             dropPreservedEquipment(level: net.minecraft.server.level.ServerLevel): void;
@@ -25636,6 +25696,7 @@ declare global {
             setBaby(baby: boolean): void;
             isWithinMeleeAttackRange(target: net.minecraft.world.entity.LivingEntity): boolean;
             removeFreeWill(): void;
+            getGoalSelector(): net.minecraft.world.entity.ai.goal.GoalSelector;
             removeAllGoals(predicate: unknown): void;
             chargeSpeedModifier(): number;
           }
@@ -25720,7 +25781,10 @@ declare global {
             setLeashHolder(leashHolder: net.minecraft.world.entity.Entity): void;
           }
           const Leashable$Wrench: {
+            ZERO: net.minecraft.world.entity.Leashable$Wrench;
             new(force: net.minecraft.world.phys.Vec3, torque: number): net.minecraft.world.entity.Leashable$Wrench;
+            torqueFromForce(leverArm: net.minecraft.world.phys.Vec3, force: net.minecraft.world.phys.Vec3): number;
+            accumulate(wrenches: Array<net.minecraft.world.entity.Leashable$Wrench>): net.minecraft.world.entity.Leashable$Wrench;
           }
           interface Leashable$Wrench extends java.lang.Record { 
             scale(scale: number): net.minecraft.world.entity.Leashable$Wrench;
@@ -25805,6 +25869,7 @@ declare global {
           }
           interface ConversionType extends kotlin.Enum<net.minecraft.world.entity.ConversionType> { 
             shouldDiscardAfterConversion(): boolean;
+            convert(from: net.minecraft.world.entity.Mob, to: net.minecraft.world.entity.Mob, params: net.minecraft.world.entity.ConversionParams): void;
           }
           interface ConversionParams$AfterConversion<T> { 
             finalizeConversion(mob: T): void;
@@ -25974,6 +26039,20 @@ declare global {
           interface ReputationEventHandler { 
             onReputationEventFrom(type: net.minecraft.world.entity.ai.village.ReputationEventType, source: net.minecraft.world.entity.Entity): void;
           }
+          const PostSpawnProcessor: {
+            nop<T>(): net.minecraft.world.entity.PostSpawnProcessor<T>;
+          }
+          interface PostSpawnProcessor<T> { 
+            apply(target: T): void;
+            andThen(after: net.minecraft.world.entity.PostSpawnProcessor<T>): net.minecraft.world.entity.PostSpawnProcessor<T>;
+          }
+          const EntitySpawnRequest: {
+            new(reason: net.minecraft.world.entity.EntitySpawnReason, ignoreChecks: boolean): net.minecraft.world.entity.EntitySpawnRequest;
+          }
+          interface EntitySpawnRequest extends java.lang.Record { 
+            reason(): net.minecraft.world.entity.EntitySpawnReason;
+            ignoreChecks(): boolean;
+          }
           interface EntityType$EntityFactory<T> { 
             create(entityType: net.minecraft.world.entity.EntityType<T>, level: net.minecraft.world.level.Level): T;
             (entityType: net.minecraft.world.entity.EntityType<T>, level: net.minecraft.world.level.Level): T;
@@ -25990,7 +26069,7 @@ declare global {
             createNothing<T>(category: net.minecraft.world.entity.MobCategory): net.minecraft.world.entity.EntityType$Builder<T>;
           }
           interface EntityType$Builder<T> extends net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType$Builder<T> { 
-            immuneTo(blocks: net.minecraft.world.level.block.Block): net.minecraft.world.entity.EntityType$Builder<T>;
+            immuneTo(tag: net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>): net.minecraft.world.entity.EntityType$Builder<T>;
             fireImmune(): net.minecraft.world.entity.EntityType$Builder<T>;
             canSpawnFarFromPlayer(): net.minecraft.world.entity.EntityType$Builder<T>;
             clientTrackingRange(clientChunkRange: number): net.minecraft.world.entity.EntityType$Builder<T>;
@@ -26067,107 +26146,6 @@ declare global {
           }
           namespace levelgen {
             namespace structure {
-              namespace pieces {
-                const StructurePieceSerializationContext: {
-                  new(resourceManager: net.minecraft.server.packs.resources.ResourceManager, registryAccess: net.minecraft.core.RegistryAccess, structureTemplateManager: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager): net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-                  fromLevel(level: net.minecraft.server.level.ServerLevel): net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-                }
-                interface StructurePieceSerializationContext extends java.lang.Record { 
-                  resourceManager(): net.minecraft.server.packs.resources.ResourceManager;
-                  registryAccess(): net.minecraft.core.RegistryAccess;
-                  structureTemplateManager(): net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-                }
-                const PiecesContainer: {
-                  new(pieces: Array<net.minecraft.world.level.levelgen.structure.StructurePiece>): net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
-                  load(children: net.minecraft.nbt.ListTag, context: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext): net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
-                }
-                interface PiecesContainer extends java.lang.Record { 
-                  isEmpty(): boolean;
-                  isInsidePiece(startPos: net.minecraft.core.BlockPos): boolean;
-                  save(context: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext): net.minecraft.nbt.Tag;
-                  calculateBoundingBox(): net.minecraft.world.level.levelgen.structure.BoundingBox;
-                  pieces(): Array<net.minecraft.world.level.levelgen.structure.StructurePiece>;
-                }
-                const StructurePiecesBuilder: {
-                  new(): net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
-                }
-                interface StructurePiecesBuilder extends net.minecraft.world.level.levelgen.structure.StructurePieceAccessor { 
-                  offsetPiecesVertically(dy: number): void;
-                  moveBelowSeaLevel(seaLevel: number, minY: number, random: net.minecraft.util.RandomSource, offset: number): number;
-                  moveInsideHeights(random: net.minecraft.util.RandomSource, lowestAllowed: number, highestAllowed: number): void;
-                  build(): net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
-                  clear(): void;
-                  isEmpty(): boolean;
-                  getBoundingBox(): net.minecraft.world.level.levelgen.structure.BoundingBox;
-                }
-                const StructurePieceType: {
-                  MINE_SHAFT_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  MINE_SHAFT_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  MINE_SHAFT_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  MINE_SHAFT_STAIRS: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_BRIDGE_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_BRIDGE_END_FILLER: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_BRIDGE_STRAIGHT: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_CORRIDOR_STAIRS: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_CORRIDOR_T_BALCONY: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_ENTRANCE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR_LEFT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR_RIGHT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_CASTLE_STALK_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_MONSTER_THRONE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_ROOM_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_STAIRS_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FORTRESS_START: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_CHEST_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_FILLER_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_FIVE_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_LEFT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_LIBRARY: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_PORTAL_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_PRISON_HALL: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_RIGHT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_ROOM_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_STAIRS_DOWN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_START: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_STRAIGHT: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  STRONGHOLD_STRAIGHT_STAIRS_DOWN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  JUNGLE_PYRAMID_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_RUIN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  IGLOO: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  RUINED_PORTAL: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  SWAMPLAND_HUT: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  DESERT_PYRAMID_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_BUILDING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_CORE_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_DOUBLE_X_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_DOUBLE_XY_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_DOUBLE_Y_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_DOUBLE_YZ_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_DOUBLE_Z_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_ENTRY_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_PENTHOUSE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_SIMPLE_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_SIMPLE_TOP_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  OCEAN_MONUMENT_WING_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  END_CITY_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  WOODLAND_MANSION_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  BURIED_TREASURE_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  SHIPWRECK_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  NETHER_FOSSIL: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                  JIGSAW: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-                }
-                interface StructurePieceType { 
-                  load(context: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.level.levelgen.structure.StructurePiece;
-                }
-                interface StructurePieceType$ContextlessType extends net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType { 
-                  load(tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.level.levelgen.structure.StructurePiece;
-                }
-                interface StructurePieceType$StructureTemplateType extends net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType { 
-                  load(structureTemplateManager: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.level.levelgen.structure.StructurePiece;
-                }
-              }
               namespace templatesystem {
                 namespace loader {
                   const TemplatePathFactory: {
@@ -26279,12 +26257,11 @@ declare global {
                 }
                 interface LiquidSettings extends kotlin.Enum<net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings>, net.minecraft.util.StringRepresentable { 
                 }
-                const StructureProcessor: {
-                  new(): net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor;
-                }
                 interface StructureProcessor { 
-                  processBlock(level: net.minecraft.world.level.LevelReader, targetPosition: net.minecraft.core.BlockPos, referencePos: net.minecraft.core.BlockPos, originalBlockInfo: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo, processedBlockInfo: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo, settings: net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings): net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo | null | undefined;
+                  processBlock(level: net.minecraft.world.level.LevelReader, targetPosition: net.minecraft.core.BlockPos, referencePos: net.minecraft.core.BlockPos, templateRelativePos: net.minecraft.core.BlockPos, processedBlockInfo: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo, settings: net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings): net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo | null | undefined;
+                  codec(): com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor>;
                   finalizeProcessing(level: net.minecraft.world.level.ServerLevelAccessor, position: net.minecraft.core.BlockPos, referencePos: net.minecraft.core.BlockPos, originalBlockInfoList: Array<net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo>, processedBlockInfoList: Array<net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo>, settings: net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings): Array<net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo>;
+                  evaluatesEntirePieceState(): boolean;
                 }
                 const StructureTemplate$StructureBlockInfo: {
                   new(pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState, nbt: net.minecraft.nbt.CompoundTag | null | undefined): net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo;
@@ -26293,27 +26270,6 @@ declare global {
                   pos(): net.minecraft.core.BlockPos;
                   state(): net.minecraft.world.level.block.state.BlockState;
                   nbt(): net.minecraft.nbt.CompoundTag | null | undefined;
-                }
-                const StructureProcessorType: {
-                  SINGLE_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor>;
-                  LIST_OBJECT_CODEC: com.mojang.serialization.Codec<unknown>;
-                  DIRECT_CODEC: com.mojang.serialization.Codec<unknown>;
-                  LIST_CODEC: com.mojang.serialization.Codec<net.minecraft.core.Holder<unknown>>;
-                  BLOCK_IGNORE: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  BLOCK_ROT: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  GRAVITY: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  JIGSAW_REPLACEMENT: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  RULE: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  NOP: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  BLOCK_AGE: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  BLACKSTONE_REPLACE: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  LAVA_SUBMERGED_BLOCK: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  PROTECTED_BLOCKS: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  CAPPED: net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<unknown>;
-                  register<P>(id: string, codec: com.mojang.serialization.MapCodec<P>): net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType<P>;
-                }
-                interface StructureProcessorType<P> { 
-                  codec(): com.mojang.serialization.MapCodec<P>;
                 }
                 interface StructureTemplate$Palette { 
                   blocks(): Array<net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate$StructureBlockInfo>;
@@ -26344,6 +26300,17 @@ declare global {
                 }
               }
               namespace placement {
+                const ConcentricRingsStructurePlacement: {
+                  CODEC: com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement>;
+                  new(locateOffset: net.minecraft.core.Vec3i, frequencyReductionMethod: net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$FrequencyReductionMethod, frequency: number, salt: number, exclusionZone: java.util.Optional<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$ExclusionZone>, distance: number, spread: number, count: number, preferredBiomes: net.minecraft.core.HolderSet<net.minecraft.world.level.biome.Biome>): net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
+                  new(distance: number, spread: number, count: number, preferredBiomes: net.minecraft.core.HolderSet<net.minecraft.world.level.biome.Biome>): net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
+                }
+                interface ConcentricRingsStructurePlacement extends net.minecraft.world.level.levelgen.structure.placement.StructurePlacement { 
+                  distance(): number;
+                  spread(): number;
+                  count(): number;
+                  preferredBiomes(): net.minecraft.core.HolderSet<net.minecraft.world.level.biome.Biome>;
+                }
                 const StructurePlacement: {
                   FrequencyReductionMethod: typeof net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$FrequencyReductionMethod;
                   ExclusionZone: typeof net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$ExclusionZone;
@@ -26369,17 +26336,6 @@ declare global {
                 interface StructurePlacement$FrequencyReductionMethod extends kotlin.Enum<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$FrequencyReductionMethod>, net.minecraft.util.StringRepresentable { 
                   shouldGenerate(seed: number, salt: number, sourceX: number, sourceZ: number, probability: number): boolean;
                 }
-                const ConcentricRingsStructurePlacement: {
-                  CODEC: com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement>;
-                  new(locateOffset: net.minecraft.core.Vec3i, frequencyReductionMethod: net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$FrequencyReductionMethod, frequency: number, salt: number, exclusionZone: java.util.Optional<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement$ExclusionZone>, distance: number, spread: number, count: number, preferredBiomes: net.minecraft.core.HolderSet<net.minecraft.world.level.biome.Biome>): net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
-                  new(distance: number, spread: number, count: number, preferredBiomes: net.minecraft.core.HolderSet<net.minecraft.world.level.biome.Biome>): net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
-                }
-                interface ConcentricRingsStructurePlacement extends net.minecraft.world.level.levelgen.structure.placement.StructurePlacement { 
-                  distance(): number;
-                  spread(): number;
-                  count(): number;
-                  preferredBiomes(): net.minecraft.core.HolderSet<net.minecraft.world.level.biome.Biome>;
-                }
                 const StructurePlacementType: {
                   RANDOM_SPREAD: net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType<unknown>;
                   CONCENTRIC_RINGS: net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType<net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement>;
@@ -26398,6 +26354,107 @@ declare global {
                 interface StructurePlacement$FrequencyReducer { 
                   shouldGenerate(seed: number, salt: number, sourceX: number, sourceZ: number, probability: number): boolean;
                   (seed: number, salt: number, sourceX: number, sourceZ: number, probability: number): boolean;
+                }
+              }
+              namespace pieces {
+                const StructurePieceSerializationContext: {
+                  new(resourceManager: net.minecraft.server.packs.resources.ResourceManager, registryAccess: net.minecraft.core.RegistryAccess, structureTemplateManager: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager): net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+                  fromLevel(level: net.minecraft.server.level.ServerLevel): net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+                }
+                interface StructurePieceSerializationContext extends java.lang.Record { 
+                  resourceManager(): net.minecraft.server.packs.resources.ResourceManager;
+                  registryAccess(): net.minecraft.core.RegistryAccess;
+                  structureTemplateManager(): net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+                }
+                const PiecesContainer: {
+                  new(pieces: Array<net.minecraft.world.level.levelgen.structure.StructurePiece>): net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
+                  load(children: net.minecraft.nbt.ListTag, context: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext): net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
+                }
+                interface PiecesContainer extends java.lang.Record { 
+                  isEmpty(): boolean;
+                  isInsidePiece(startPos: net.minecraft.core.BlockPos): boolean;
+                  save(context: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext): net.minecraft.nbt.Tag;
+                  calculateBoundingBox(): net.minecraft.world.level.levelgen.structure.BoundingBox;
+                  pieces(): Array<net.minecraft.world.level.levelgen.structure.StructurePiece>;
+                }
+                const StructurePiecesBuilder: {
+                  new(): net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+                }
+                interface StructurePiecesBuilder extends net.minecraft.world.level.levelgen.structure.StructurePieceAccessor { 
+                  offsetPiecesVertically(dy: number): void;
+                  moveBelowSeaLevel(seaLevel: number, minY: number, random: net.minecraft.util.RandomSource, offset: number): number;
+                  moveInsideHeights(random: net.minecraft.util.RandomSource, lowestAllowed: number, highestAllowed: number): void;
+                  build(): net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
+                  clear(): void;
+                  isEmpty(): boolean;
+                  getBoundingBox(): net.minecraft.world.level.levelgen.structure.BoundingBox;
+                }
+                const StructurePieceType: {
+                  MINE_SHAFT_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  MINE_SHAFT_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  MINE_SHAFT_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  MINE_SHAFT_STAIRS: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_BRIDGE_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_BRIDGE_END_FILLER: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_BRIDGE_STRAIGHT: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_CORRIDOR_STAIRS: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_CORRIDOR_T_BALCONY: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_ENTRANCE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR_LEFT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_SMALL_CORRIDOR_RIGHT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_CASTLE_STALK_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_MONSTER_THRONE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_ROOM_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_STAIRS_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FORTRESS_START: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_CHEST_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_FILLER_CORRIDOR: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_FIVE_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_LEFT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_LIBRARY: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_PORTAL_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_PRISON_HALL: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_RIGHT_TURN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_ROOM_CROSSING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_STAIRS_DOWN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_START: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_STRAIGHT: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  STRONGHOLD_STRAIGHT_STAIRS_DOWN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  JUNGLE_PYRAMID_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_RUIN: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  IGLOO: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  RUINED_PORTAL: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  SWAMPLAND_HUT: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  DESERT_PYRAMID_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_BUILDING: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_CORE_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_DOUBLE_X_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_DOUBLE_XY_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_DOUBLE_Y_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_DOUBLE_YZ_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_DOUBLE_Z_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_ENTRY_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_PENTHOUSE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_SIMPLE_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_SIMPLE_TOP_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  OCEAN_MONUMENT_WING_ROOM: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  END_CITY_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  WOODLAND_MANSION_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  BURIED_TREASURE_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  SHIPWRECK_PIECE: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  NETHER_FOSSIL: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                  JIGSAW: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+                }
+                interface StructurePieceType { 
+                  load(context: net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.level.levelgen.structure.StructurePiece;
+                }
+                interface StructurePieceType$ContextlessType extends net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType { 
+                  load(tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.level.levelgen.structure.StructurePiece;
+                }
+                interface StructurePieceType$StructureTemplateType extends net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType { 
+                  load(structureTemplateManager: net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.level.levelgen.structure.StructurePiece;
                 }
               }
               const BoundingBox: {
@@ -26610,51 +26667,6 @@ declare global {
                 getNext(): net.minecraft.world.level.block.state.BlockState;
               }
             }
-            namespace blending {
-              const Blender: {
-                BlendingOutput: typeof net.minecraft.world.level.levelgen.blending.Blender$BlendingOutput;
-                empty(): net.minecraft.world.level.levelgen.blending.Blender;
-                of(region: net.minecraft.server.level.WorldGenRegion | null | undefined): net.minecraft.world.level.levelgen.blending.Blender;
-                generateBorderTicks(region: net.minecraft.server.level.WorldGenRegion, chunk: net.minecraft.world.level.chunk.ChunkAccess): void;
-                addAroundOldChunksCarvingMaskFilter(region: net.minecraft.world.level.WorldGenLevel, chunk: net.minecraft.world.level.chunk.ProtoChunk): void;
-                makeOldChunkDistanceGetter(centerBlendingData: net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined, oldSidesBlendingData: Map<unknown, net.minecraft.world.level.levelgen.blending.BlendingData>): net.minecraft.world.level.levelgen.blending.Blender$DistanceGetter;
-              }
-              interface Blender { 
-                isEmpty(): boolean;
-                blendOffsetAndFactor(blockX: number, blockZ: number): net.minecraft.world.level.levelgen.blending.Blender$BlendingOutput;
-                blendDensity(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext, noiseValue: number): number;
-                getBiomeResolver(biomeResolver: net.minecraft.world.level.biome.BiomeResolver): net.minecraft.world.level.biome.BiomeResolver;
-              }
-              const Blender$BlendingOutput: {
-                new(alpha: number, blendingOffset: number): net.minecraft.world.level.levelgen.blending.Blender$BlendingOutput;
-              }
-              interface Blender$BlendingOutput extends java.lang.Record { 
-                alpha(): number;
-                blendingOffset(): number;
-              }
-              const BlendingData: {
-                Packed: typeof net.minecraft.world.level.levelgen.blending.BlendingData$Packed;
-                unpack(packed: net.minecraft.world.level.levelgen.blending.BlendingData$Packed | null | undefined): net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined;
-                getOrUpdateBlendingData(region: net.minecraft.server.level.WorldGenRegion, chunkX: number, chunkZ: number): net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined;
-                sideByGenerationAge(region: net.minecraft.world.level.WorldGenLevel, chunkX: number, chunkZ: number, wantedOldGen: boolean): Set<unknown>;
-              }
-              interface BlendingData { 
-                pack(): net.minecraft.world.level.levelgen.blending.BlendingData$Packed;
-                getAreaWithOldGeneration(): net.minecraft.world.level.LevelHeightAccessor;
-              }
-              const BlendingData$Packed: {
-                CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.blending.BlendingData$Packed>;
-                new(minSection: number, maxSection: number, heights: java.util.Optional<kotlin.DoubleArray>): net.minecraft.world.level.levelgen.blending.BlendingData$Packed;
-              }
-              interface BlendingData$Packed extends java.lang.Record { 
-                minSection(): number;
-                maxSection(): number;
-                heights(): java.util.Optional<kotlin.DoubleArray>;
-              }
-              interface Blender$DistanceGetter { 
-                getDistance(x: number, y: number, z: number): number;
-              }
-            }
             namespace synth {
               const NormalNoise: {
                 NoiseParameters: typeof net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters;
@@ -26686,14 +26698,49 @@ declare global {
                 getValue(x: number, y: number, useNoiseStart: boolean): number;
               }
             }
-            namespace carver {
-              const CarvingContext: {
-                new(generator: net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator, registryAccess: net.minecraft.core.RegistryAccess, heightAccessor: net.minecraft.world.level.LevelHeightAccessor, noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, randomState: net.minecraft.world.level.levelgen.RandomState, surfaceRule: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource): net.minecraft.world.level.levelgen.carver.CarvingContext;
+            namespace blending {
+              const BlendingData: {
+                Packed: typeof net.minecraft.world.level.levelgen.blending.BlendingData$Packed;
+                unpack(packed: net.minecraft.world.level.levelgen.blending.BlendingData$Packed | null | undefined): net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined;
+                getOrUpdateBlendingData(region: net.minecraft.server.level.WorldGenRegion, chunkX: number, chunkZ: number): net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined;
+                sideByGenerationAge(region: net.minecraft.world.level.WorldGenLevel, chunkX: number, chunkZ: number, wantedOldGen: boolean): Set<unknown>;
               }
-              interface CarvingContext extends net.minecraft.world.level.levelgen.WorldGenerationContext { 
-                registryAccess(): net.minecraft.core.RegistryAccess;
-                randomState(): net.minecraft.world.level.levelgen.RandomState;
-                topMaterial(biomeGetter: unknown, chunk: net.minecraft.world.level.chunk.ChunkAccess, pos: net.minecraft.core.BlockPos, underFluid: boolean): java.util.Optional<net.minecraft.world.level.block.state.BlockState>;
+              interface BlendingData { 
+                pack(): net.minecraft.world.level.levelgen.blending.BlendingData$Packed;
+                getAreaWithOldGeneration(): net.minecraft.world.level.LevelHeightAccessor;
+              }
+              const BlendingData$Packed: {
+                CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.blending.BlendingData$Packed>;
+                new(minSection: number, maxSection: number, heights: java.util.Optional<kotlin.DoubleArray>): net.minecraft.world.level.levelgen.blending.BlendingData$Packed;
+              }
+              interface BlendingData$Packed extends java.lang.Record { 
+                minSection(): number;
+                maxSection(): number;
+                heights(): java.util.Optional<kotlin.DoubleArray>;
+              }
+              const Blender: {
+                BlendingOutput: typeof net.minecraft.world.level.levelgen.blending.Blender$BlendingOutput;
+                empty(): net.minecraft.world.level.levelgen.blending.Blender;
+                of(region: net.minecraft.server.level.WorldGenRegion | null | undefined): net.minecraft.world.level.levelgen.blending.Blender;
+                generateBorderTicks(region: net.minecraft.server.level.WorldGenRegion, chunk: net.minecraft.world.level.chunk.ChunkAccess): void;
+                addAroundOldChunksCarvingMaskFilter(region: net.minecraft.world.level.WorldGenLevel, chunk: net.minecraft.world.level.chunk.ProtoChunk): void;
+                makeOldChunkDistanceGetter(centerBlendingData: net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined, oldSidesBlendingData: Map<unknown, net.minecraft.world.level.levelgen.blending.BlendingData>): net.minecraft.world.level.levelgen.blending.Blender$DistanceGetter;
+              }
+              interface Blender { 
+                isEmpty(): boolean;
+                blendOffsetAndFactor(blockX: number, blockZ: number): net.minecraft.world.level.levelgen.blending.Blender$BlendingOutput;
+                blendDensity(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext, noiseValue: number): number;
+                getBiomeResolver(biomeResolver: net.minecraft.world.level.biome.BiomeResolver): net.minecraft.world.level.biome.BiomeResolver;
+              }
+              const Blender$BlendingOutput: {
+                new(alpha: number, blendingOffset: number): net.minecraft.world.level.levelgen.blending.Blender$BlendingOutput;
+              }
+              interface Blender$BlendingOutput extends java.lang.Record { 
+                alpha(): number;
+                blendingOffset(): number;
+              }
+              interface Blender$DistanceGetter { 
+                getDistance(x: number, y: number, z: number): number;
               }
             }
             namespace placement {
@@ -26710,6 +26757,16 @@ declare global {
                 getFeatures(): java.util.stream.Stream<net.minecraft.core.Holder<unknown>>;
                 feature(): net.minecraft.core.Holder<unknown>;
                 placement(): Array<unknown>;
+              }
+            }
+            namespace carver {
+              const CarvingContext: {
+                new(generator: net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator, registryAccess: net.minecraft.core.RegistryAccess, heightAccessor: net.minecraft.world.level.LevelHeightAccessor, noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, randomState: net.minecraft.world.level.levelgen.RandomState, surfaceRule: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource): net.minecraft.world.level.levelgen.carver.CarvingContext;
+              }
+              interface CarvingContext extends net.minecraft.world.level.levelgen.WorldGenerationContext { 
+                registryAccess(): net.minecraft.core.RegistryAccess;
+                randomState(): net.minecraft.world.level.levelgen.RandomState;
+                topMaterial(biomeGetter: unknown, chunk: net.minecraft.world.level.chunk.ChunkAccess, pos: net.minecraft.core.BlockPos, underFluid: boolean): java.util.Optional<net.minecraft.world.level.block.state.BlockState>;
               }
             }
             namespace flat {
@@ -26789,13 +26846,12 @@ declare global {
             const DensityFunction: {
               SinglePointContext: typeof net.minecraft.world.level.levelgen.DensityFunction$SinglePointContext;
               NoiseHolder: typeof net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
-              DIRECT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.DensityFunction>;
-              CODEC: com.mojang.serialization.Codec<net.minecraft.core.Holder<net.minecraft.world.level.levelgen.DensityFunction>>;
-              HOLDER_HELPER_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.DensityFunction>;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.DensityFunction>;
             }
             interface DensityFunction { 
               compute(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): number;
               fillArray(output: kotlin.DoubleArray, contextProvider: net.minecraft.world.level.levelgen.DensityFunction$ContextProvider): void;
+              mapChildren(visitor: net.minecraft.world.level.levelgen.DensityFunction$Visitor): net.minecraft.world.level.levelgen.DensityFunction;
               mapAll(visitor: net.minecraft.world.level.levelgen.DensityFunction$Visitor): net.minecraft.world.level.levelgen.DensityFunction;
               minValue(): number;
               maxValue(): number;
@@ -26813,27 +26869,32 @@ declare global {
               blockX(): number;
               blockY(): number;
               blockZ(): number;
-              getBlender(): net.minecraft.world.level.levelgen.blending.Blender;
             }
-            const GenerationStep$Decoration: {
-              RAW_GENERATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              LAKES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              LOCAL_MODIFICATIONS: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              UNDERGROUND_STRUCTURES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              SURFACE_STRUCTURES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              STRONGHOLDS: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              UNDERGROUND_ORES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              UNDERGROUND_DECORATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              FLUID_SPRINGS: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              VEGETAL_DECORATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              TOP_LAYER_MODIFICATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.GenerationStep$Decoration>;
-              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.levelgen.GenerationStep$Decoration>;
-              values(): Array<net.minecraft.world.level.levelgen.GenerationStep$Decoration>;
-              valueOf(value: string): net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+            interface DensityFunction$ContextProvider { 
+              forIndex(index: number): net.minecraft.world.level.levelgen.DensityFunction$FunctionContext;
+              fillAllDirectly(output: kotlin.DoubleArray, function_: net.minecraft.world.level.levelgen.DensityFunction): void;
             }
-            interface GenerationStep$Decoration extends kotlin.Enum<net.minecraft.world.level.levelgen.GenerationStep$Decoration>, net.minecraft.util.StringRepresentable { 
-              getName(): string;
+            interface DensityFunction$Visitor { 
+              apply(input: net.minecraft.world.level.levelgen.DensityFunction): net.minecraft.world.level.levelgen.DensityFunction;
+              visitNoise(noise: net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder): net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
+            }
+            const DensityFunction$NoiseHolder: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder>;
+              new(noiseData: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters>): net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
+              new(noiseData: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters>, noise: net.minecraft.world.level.levelgen.synth.NormalNoise | null | undefined): net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
+            }
+            interface DensityFunction$NoiseHolder extends java.lang.Record { 
+              getValue(x: number, y: number, z: number): number;
+              maxValue(): number;
+              noiseData(): net.minecraft.core.Holder<net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters>;
+              noise(): net.minecraft.world.level.levelgen.synth.NormalNoise | null | undefined;
+            }
+            const DensityFunction$SinglePointContext: {
+              new(blockX: number, blockY: number, blockZ: number): net.minecraft.world.level.levelgen.DensityFunction$SinglePointContext;
+            }
+            interface DensityFunction$SinglePointContext extends java.lang.Record, net.minecraft.world.level.levelgen.DensityFunction$FunctionContext { 
+            }
+            interface DensityFunction$SimpleFunction extends net.minecraft.world.level.levelgen.DensityFunction { 
             }
             const RandomState: {
               create(holders: net.minecraft.core.HolderGetter$Provider, noiseSettings: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>, seed: number): net.minecraft.world.level.levelgen.RandomState;
@@ -26870,26 +26931,11 @@ declare global {
               veinRidged(): net.minecraft.world.level.levelgen.DensityFunction;
               veinGap(): net.minecraft.world.level.levelgen.DensityFunction;
             }
-            interface DensityFunction$Visitor { 
-              apply(input: net.minecraft.world.level.levelgen.DensityFunction): net.minecraft.world.level.levelgen.DensityFunction;
-              visitNoise(noise: net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder): net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
-            }
-            const DensityFunction$NoiseHolder: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder>;
-              new(noiseData: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters>): net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
-              new(noiseData: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters>, noise: net.minecraft.world.level.levelgen.synth.NormalNoise | null | undefined): net.minecraft.world.level.levelgen.DensityFunction$NoiseHolder;
-            }
-            interface DensityFunction$NoiseHolder extends java.lang.Record { 
-              getValue(x: number, y: number, z: number): number;
-              maxValue(): number;
-              noiseData(): net.minecraft.core.Holder<net.minecraft.world.level.levelgen.synth.NormalNoise$NoiseParameters>;
-              noise(): net.minecraft.world.level.levelgen.synth.NormalNoise | null | undefined;
-            }
             const SurfaceSystem: {
               new(randomState: net.minecraft.world.level.levelgen.RandomState, defaultBlock: net.minecraft.world.level.block.state.BlockState, seaLevel: number, noiseRandom: net.minecraft.world.level.levelgen.PositionalRandomFactory): net.minecraft.world.level.levelgen.SurfaceSystem;
             }
             interface SurfaceSystem { 
-              buildSurface(randomState: net.minecraft.world.level.levelgen.RandomState, biomeManager: net.minecraft.world.level.biome.BiomeManager, biomes: net.minecraft.core.Registry<net.minecraft.world.level.biome.Biome>, useLegacyRandom: boolean, generationContext: net.minecraft.world.level.levelgen.WorldGenerationContext, protoChunk: net.minecraft.world.level.chunk.ChunkAccess, noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, ruleSource: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource): void;
+              buildSurface(randomState: net.minecraft.world.level.levelgen.RandomState, biomeManager: net.minecraft.world.level.biome.BiomeManager, useLegacyRandom: boolean, generationContext: net.minecraft.world.level.levelgen.WorldGenerationContext, protoChunk: net.minecraft.world.level.chunk.ChunkAccess, noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, ruleSource: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource, possibleBiomes: Set<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>> | null | undefined): void;
               getSeaLevel(): number;
               topMaterial(ruleSource: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource, carvingContext: net.minecraft.world.level.levelgen.carver.CarvingContext, biomeGetter: unknown, chunk: net.minecraft.world.level.chunk.ChunkAccess, noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, pos: net.minecraft.core.BlockPos, underFluid: boolean): java.util.Optional<net.minecraft.world.level.block.state.BlockState>;
             }
@@ -26900,137 +26946,37 @@ declare global {
               getMinGenY(): number;
               getGenDepth(): number;
             }
-            const NoiseChunk: {
-              NoiseInterpolator: typeof net.minecraft.world.level.levelgen.NoiseChunk$NoiseInterpolator;
-              new(cellCountXZ: number, randomState: net.minecraft.world.level.levelgen.RandomState, chunkMinBlockX: number, chunkMinBlockZ: number, noiseSettings: net.minecraft.world.level.levelgen.NoiseSettings, beardifier: net.minecraft.world.level.levelgen.DensityFunctions$BeardifierOrMarker, settings: net.minecraft.world.level.levelgen.NoiseGeneratorSettings, globalFluidPicker: net.minecraft.world.level.levelgen.Aquifer$FluidPicker, blender: net.minecraft.world.level.levelgen.blending.Blender): net.minecraft.world.level.levelgen.NoiseChunk;
-              forChunk(chunk: net.minecraft.world.level.chunk.ChunkAccess, randomState: net.minecraft.world.level.levelgen.RandomState, beardifier: net.minecraft.world.level.levelgen.DensityFunctions$BeardifierOrMarker, settings: net.minecraft.world.level.levelgen.NoiseGeneratorSettings, globalFluidPicker: net.minecraft.world.level.levelgen.Aquifer$FluidPicker, blender: net.minecraft.world.level.levelgen.blending.Blender): net.minecraft.world.level.levelgen.NoiseChunk;
+            const GenerationStep$Decoration: {
+              RAW_GENERATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              LAKES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              LOCAL_MODIFICATIONS: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              UNDERGROUND_STRUCTURES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              SURFACE_STRUCTURES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              STRONGHOLDS: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              UNDERGROUND_ORES: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              UNDERGROUND_DECORATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              FLUID_SPRINGS: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              VEGETAL_DECORATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              TOP_LAYER_MODIFICATION: net.minecraft.world.level.levelgen.GenerationStep$Decoration;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.GenerationStep$Decoration>;
+              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.levelgen.GenerationStep$Decoration>;
+              values(): Array<net.minecraft.world.level.levelgen.GenerationStep$Decoration>;
+              valueOf(value: string): net.minecraft.world.level.levelgen.GenerationStep$Decoration;
             }
-            interface NoiseChunk extends net.minecraft.world.level.levelgen.DensityFunction$FunctionContext, net.minecraft.world.level.levelgen.DensityFunction$ContextProvider { 
-              aquifer(): net.minecraft.world.level.levelgen.Aquifer;
-              preliminarySurfaceLevel(sampleX: number, sampleZ: number): number;
-              maxPreliminarySurfaceLevel(minBlockX: number, minBlockZ: number, maxBlockX: number, maxBlockZ: number): number;
-              initializeForFirstCellX(): void;
-              advanceCellX(cellXIndex: number): void;
-              selectCellYZ(cellYIndex: number, cellZIndex: number): void;
-              updateForY(posY: number, factorY: number): void;
-              updateForX(posX: number, factorX: number): void;
-              updateForZ(posZ: number, factorZ: number): void;
-              stopInterpolation(): void;
-              swapSlices(): void;
+            interface GenerationStep$Decoration extends kotlin.Enum<net.minecraft.world.level.levelgen.GenerationStep$Decoration>, net.minecraft.util.StringRepresentable { 
+              getName(): string;
             }
-            interface DensityFunction$ContextProvider { 
-              forIndex(index: number): net.minecraft.world.level.levelgen.DensityFunction$FunctionContext;
-              fillAllDirectly(output: kotlin.DoubleArray, function_: net.minecraft.world.level.levelgen.DensityFunction): void;
+            const BelowZeroRetrogen: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.BelowZeroRetrogen>;
+              UPGRADE_HEIGHT_ACCESSOR: net.minecraft.world.level.LevelHeightAccessor;
+              replaceOldBedrock(chunk: net.minecraft.world.level.chunk.ProtoChunk): void;
+              getBiomeResolver(biomeResolver: net.minecraft.world.level.biome.BiomeResolver, protoChunk: net.minecraft.world.level.chunk.ChunkAccess): net.minecraft.world.level.biome.BiomeResolver;
             }
-            const Aquifer: {
-              NoiseBasedAquifer: typeof net.minecraft.world.level.levelgen.Aquifer$NoiseBasedAquifer;
-              FluidStatus: typeof net.minecraft.world.level.levelgen.Aquifer$FluidStatus;
-              create(noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, pos: net.minecraft.world.level.ChunkPos, router: net.minecraft.world.level.levelgen.NoiseRouter, positionalRandomFactory: net.minecraft.world.level.levelgen.PositionalRandomFactory, minBlockY: number, yBlockSize: number, fluidRule: net.minecraft.world.level.levelgen.Aquifer$FluidPicker): net.minecraft.world.level.levelgen.Aquifer;
-              createDisabled(fluidRule: net.minecraft.world.level.levelgen.Aquifer$FluidPicker): net.minecraft.world.level.levelgen.Aquifer;
-            }
-            interface Aquifer { 
-              computeSubstance(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext, density: number): net.minecraft.world.level.block.state.BlockState | null | undefined;
-              shouldScheduleFluidUpdate(): boolean;
-            }
-            interface Aquifer$FluidPicker { 
-              computeFluid(blockX: number, blockY: number, blockZ: number): net.minecraft.world.level.levelgen.Aquifer$FluidStatus;
-            }
-            const Aquifer$FluidStatus: {
-              new(fluidLevel: number, fluidType: net.minecraft.world.level.block.state.BlockState): net.minecraft.world.level.levelgen.Aquifer$FluidStatus;
-            }
-            interface Aquifer$FluidStatus extends java.lang.Record { 
-              at(blockY: number): net.minecraft.world.level.block.state.BlockState;
-              fluidLevel(): number;
-              fluidType(): net.minecraft.world.level.block.state.BlockState;
-            }
-            interface Aquifer$NoiseBasedAquifer extends net.minecraft.world.level.levelgen.Aquifer { 
-            }
-            interface NoiseChunk$NoiseInterpolator extends net.minecraft.world.level.levelgen.DensityFunctions$MarkerOrMarked { 
-            }
-            interface DensityFunctions$MarkerOrMarked extends net.minecraft.world.level.levelgen.DensityFunction { 
-              type(): unknown;
-              wrapped(): net.minecraft.world.level.levelgen.DensityFunction;
-            }
-            const NoiseSettings: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.NoiseSettings>;
-              new(minY: number, height: number, noiseSizeHorizontal: number, noiseSizeVertical: number): net.minecraft.world.level.levelgen.NoiseSettings;
-              create(minY: number, height: number, noiseSizeHorizontal: number, noiseSizeVertical: number): net.minecraft.world.level.levelgen.NoiseSettings;
-            }
-            interface NoiseSettings extends java.lang.Record { 
-              getCellHeight(): number;
-              getCellWidth(): number;
-              clampToHeightAccessor(heightAccessor: net.minecraft.world.level.LevelHeightAccessor): net.minecraft.world.level.levelgen.NoiseSettings;
-              minY(): number;
-              height(): number;
-              noiseSizeHorizontal(): number;
-              noiseSizeVertical(): number;
-            }
-            const DensityFunctions$BeardifierOrMarker: {
-              CODEC: net.minecraft.util.KeyDispatchDataCodec<net.minecraft.world.level.levelgen.DensityFunction>;
-            }
-            interface DensityFunctions$BeardifierOrMarker extends net.minecraft.world.level.levelgen.DensityFunction$SimpleFunction { 
-            }
-            interface DensityFunction$SimpleFunction extends net.minecraft.world.level.levelgen.DensityFunction { 
-            }
-            const NoiseGeneratorSettings: {
-              DIRECT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              CODEC: com.mojang.serialization.Codec<net.minecraft.core.Holder<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>>;
-              OVERWORLD: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              LARGE_BIOMES: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              AMPLIFIED: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              NETHER: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              END: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              CAVES: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              FLOATING_ISLANDS: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              new(noiseSettings: net.minecraft.world.level.levelgen.NoiseSettings, defaultBlock: net.minecraft.world.level.block.state.BlockState, defaultFluid: net.minecraft.world.level.block.state.BlockState, noiseRouter: net.minecraft.world.level.levelgen.NoiseRouter, surfaceRule: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource, spawnTarget: Array<unknown>, seaLevel: number, disableMobGeneration: boolean, aquifersEnabled: boolean, oreVeinsEnabled: boolean, useLegacyRandomSource: boolean): net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
-              bootstrap(context: net.minecraft.data.worldgen.BootstrapContext<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>): void;
-              dummy(): net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
-            }
-            interface NoiseGeneratorSettings extends java.lang.Record { 
-              disableMobGeneration(): boolean;
-              isAquifersEnabled(): boolean;
-              oreVeinsEnabled(): boolean;
-              getRandomSource(): net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
-              noiseSettings(): net.minecraft.world.level.levelgen.NoiseSettings;
-              defaultBlock(): net.minecraft.world.level.block.state.BlockState;
-              defaultFluid(): net.minecraft.world.level.block.state.BlockState;
-              noiseRouter(): net.minecraft.world.level.levelgen.NoiseRouter;
-              surfaceRule(): net.minecraft.world.level.levelgen.SurfaceRules$RuleSource;
-              spawnTarget(): Array<unknown>;
-              seaLevel(): number;
-              aquifersEnabled(): boolean;
-              useLegacyRandomSource(): boolean;
-            }
-            const WorldgenRandom$Algorithm: {
-              LEGACY: net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
-              XOROSHIRO: net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
-              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm>;
-              values(): Array<net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm>;
-              valueOf(value: string): net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
-            }
-            interface WorldgenRandom$Algorithm extends kotlin.Enum<net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm> { 
-              newInstance(seed: number): net.minecraft.util.RandomSource;
-            }
-            const SurfaceRules$RuleSource: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>;
-              bootstrap(registry: net.minecraft.core.Registry<com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>>): com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>;
-            }
-            interface SurfaceRules$RuleSource { 
-              codec(): net.minecraft.util.KeyDispatchDataCodec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>;
-            }
-            interface NoiseChunk$BlockStateFiller { 
-              calculate(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): net.minecraft.world.level.block.state.BlockState | null | undefined;
-              (context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): net.minecraft.world.level.block.state.BlockState | null | undefined;
-            }
-            const NoiseBasedChunkGenerator: {
-              CODEC: com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator>;
-              new(biomeSource: net.minecraft.world.level.biome.BiomeSource, settings: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>): net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
-            }
-            interface NoiseBasedChunkGenerator extends net.minecraft.world.level.chunk.ChunkGenerator { 
-              generatorSettings(): net.minecraft.core.Holder<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
-              stable(expectedPreset: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>): boolean;
-              getInterpolatedNoiseValue(randomState: net.minecraft.world.level.levelgen.RandomState, context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): number;
-              buildSurface(protoChunk: net.minecraft.world.level.chunk.ChunkAccess, context: net.minecraft.world.level.levelgen.WorldGenerationContext, randomState: net.minecraft.world.level.levelgen.RandomState, structureManager: net.minecraft.world.level.StructureManager, biomeManager: net.minecraft.world.level.biome.BiomeManager, biomeRegistry: net.minecraft.core.Registry<net.minecraft.world.level.biome.Biome>, blender: net.minecraft.world.level.levelgen.blending.Blender): void;
+            interface BelowZeroRetrogen { 
+              targetStatus(): net.minecraft.world.level.chunk.status.ChunkStatus;
+              applyBedrockMask(chunk: net.minecraft.world.level.chunk.ProtoChunk): void;
+              hasBedrockHoles(): boolean;
+              hasBedrockHole(x: number, z: number): boolean;
             }
             const Heightmap$Types: {
               WORLD_SURFACE_WG: net.minecraft.world.level.levelgen.Heightmap$Types;
@@ -27050,6 +26996,29 @@ declare global {
               getSerializationKey(): string;
               sendToClient(): boolean;
               keepAfterWorldgen(): boolean;
+            }
+            const Heightmap: {
+              Types: typeof net.minecraft.world.level.levelgen.Heightmap$Types;
+              Usage: typeof net.minecraft.world.level.levelgen.Heightmap$Usage;
+              new(chunk: net.minecraft.world.level.chunk.ChunkAccess, heightmapType: net.minecraft.world.level.levelgen.Heightmap$Types): net.minecraft.world.level.levelgen.Heightmap;
+              primeHeightmaps(chunk: net.minecraft.world.level.chunk.ChunkAccess, types: Set<net.minecraft.world.level.levelgen.Heightmap$Types>): void;
+            }
+            interface Heightmap { 
+              update(localX: number, localY: number, localZ: number, state: net.minecraft.world.level.block.state.BlockState): boolean;
+              getFirstAvailable(x: number, z: number): number;
+              getHighestTaken(x: number, z: number): number;
+              setRawData(chunk: net.minecraft.world.level.chunk.ChunkAccess, type: net.minecraft.world.level.levelgen.Heightmap$Types, data: Array<number>): void;
+              getRawData(): Array<number>;
+            }
+            const Heightmap$Usage: {
+              WORLDGEN: net.minecraft.world.level.levelgen.Heightmap$Usage;
+              LIVE_WORLD: net.minecraft.world.level.levelgen.Heightmap$Usage;
+              CLIENT: net.minecraft.world.level.levelgen.Heightmap$Usage;
+              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.levelgen.Heightmap$Usage>;
+              values(): Array<net.minecraft.world.level.levelgen.Heightmap$Usage>;
+              valueOf(value: string): net.minecraft.world.level.levelgen.Heightmap$Usage;
+            }
+            interface Heightmap$Usage extends kotlin.Enum<net.minecraft.world.level.levelgen.Heightmap$Usage> { 
             }
             const WorldgenRandom: {
               Algorithm: typeof net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
@@ -27081,45 +27050,144 @@ declare global {
             }
             interface LegacyRandomSource$LegacyPositionalRandomFactory extends net.minecraft.world.level.levelgen.PositionalRandomFactory { 
             }
-            const BelowZeroRetrogen: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.BelowZeroRetrogen>;
-              UPGRADE_HEIGHT_ACCESSOR: net.minecraft.world.level.LevelHeightAccessor;
-              replaceOldBedrock(chunk: net.minecraft.world.level.chunk.ProtoChunk): void;
-              getBiomeResolver(biomeResolver: net.minecraft.world.level.biome.BiomeResolver, protoChunk: net.minecraft.world.level.chunk.ChunkAccess): net.minecraft.world.level.biome.BiomeResolver;
+            const WorldgenRandom$Algorithm: {
+              LEGACY: net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
+              XOROSHIRO: net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
+              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm>;
+              values(): Array<net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm>;
+              valueOf(value: string): net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
             }
-            interface BelowZeroRetrogen { 
-              targetStatus(): net.minecraft.world.level.chunk.status.ChunkStatus;
-              applyBedrockMask(chunk: net.minecraft.world.level.chunk.ProtoChunk): void;
-              hasBedrockHoles(): boolean;
-              hasBedrockHole(x: number, z: number): boolean;
+            interface WorldgenRandom$Algorithm extends kotlin.Enum<net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm> { 
+              newInstance(seed: number): net.minecraft.util.RandomSource;
             }
-            const Heightmap: {
-              Types: typeof net.minecraft.world.level.levelgen.Heightmap$Types;
-              Usage: typeof net.minecraft.world.level.levelgen.Heightmap$Usage;
-              new(chunk: net.minecraft.world.level.chunk.ChunkAccess, heightmapType: net.minecraft.world.level.levelgen.Heightmap$Types): net.minecraft.world.level.levelgen.Heightmap;
-              primeHeightmaps(chunk: net.minecraft.world.level.chunk.ChunkAccess, types: Set<net.minecraft.world.level.levelgen.Heightmap$Types>): void;
+            const NoiseChunk: {
+              NoiseInterpolator: typeof net.minecraft.world.level.levelgen.NoiseChunk$NoiseInterpolator;
+              new(cellCountXZ: number, randomState: net.minecraft.world.level.levelgen.RandomState, chunkMinBlockX: number, chunkMinBlockZ: number, noiseSettings: net.minecraft.world.level.levelgen.NoiseSettings, beardifier: net.minecraft.world.level.levelgen.DensityFunctions$BeardifierOrMarker, settings: net.minecraft.world.level.levelgen.NoiseGeneratorSettings, globalFluidPicker: net.minecraft.world.level.levelgen.Aquifer$FluidPicker, blender: net.minecraft.world.level.levelgen.blending.Blender): net.minecraft.world.level.levelgen.NoiseChunk;
+              forChunk(chunk: net.minecraft.world.level.chunk.ChunkAccess, randomState: net.minecraft.world.level.levelgen.RandomState, beardifier: net.minecraft.world.level.levelgen.DensityFunctions$BeardifierOrMarker, settings: net.minecraft.world.level.levelgen.NoiseGeneratorSettings, globalFluidPicker: net.minecraft.world.level.levelgen.Aquifer$FluidPicker, blender: net.minecraft.world.level.levelgen.blending.Blender): net.minecraft.world.level.levelgen.NoiseChunk;
             }
-            interface Heightmap { 
-              update(localX: number, localY: number, localZ: number, state: net.minecraft.world.level.block.state.BlockState): boolean;
-              getFirstAvailable(x: number, z: number): number;
-              getHighestTaken(x: number, z: number): number;
-              setRawData(chunk: net.minecraft.world.level.chunk.ChunkAccess, type: net.minecraft.world.level.levelgen.Heightmap$Types, data: Array<number>): void;
-              getRawData(): Array<number>;
+            interface NoiseChunk extends net.minecraft.world.level.levelgen.DensityFunction$FunctionContext, net.minecraft.world.level.levelgen.DensityFunction$ContextProvider { 
+              aquifer(): net.minecraft.world.level.levelgen.Aquifer;
+              preliminarySurfaceLevel(sampleX: number, sampleZ: number): number;
+              maxPreliminarySurfaceLevel(minBlockX: number, minBlockZ: number, maxBlockX: number, maxBlockZ: number): number;
+              initializeForFirstCellX(): void;
+              advanceCellX(cellXIndex: number): void;
+              selectCellYZ(cellYIndex: number, cellZIndex: number): void;
+              updateForY(posY: number, factorY: number): void;
+              updateForX(posX: number, factorX: number): void;
+              updateForZ(posZ: number, factorZ: number): void;
+              stopInterpolation(): void;
+              swapSlices(): void;
             }
-            const Heightmap$Usage: {
-              WORLDGEN: net.minecraft.world.level.levelgen.Heightmap$Usage;
-              LIVE_WORLD: net.minecraft.world.level.levelgen.Heightmap$Usage;
-              CLIENT: net.minecraft.world.level.levelgen.Heightmap$Usage;
-              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.levelgen.Heightmap$Usage>;
-              values(): Array<net.minecraft.world.level.levelgen.Heightmap$Usage>;
-              valueOf(value: string): net.minecraft.world.level.levelgen.Heightmap$Usage;
+            const Aquifer: {
+              NoiseBasedAquifer: typeof net.minecraft.world.level.levelgen.Aquifer$NoiseBasedAquifer;
+              FluidStatus: typeof net.minecraft.world.level.levelgen.Aquifer$FluidStatus;
+              create(noiseChunk: net.minecraft.world.level.levelgen.NoiseChunk, pos: net.minecraft.world.level.ChunkPos, router: net.minecraft.world.level.levelgen.NoiseRouter, positionalRandomFactory: net.minecraft.world.level.levelgen.PositionalRandomFactory, minBlockY: number, yBlockSize: number, fluidRule: net.minecraft.world.level.levelgen.Aquifer$FluidPicker): net.minecraft.world.level.levelgen.Aquifer;
+              createDisabled(fluidRule: net.minecraft.world.level.levelgen.Aquifer$FluidPicker): net.minecraft.world.level.levelgen.Aquifer;
             }
-            interface Heightmap$Usage extends kotlin.Enum<net.minecraft.world.level.levelgen.Heightmap$Usage> { 
+            interface Aquifer { 
+              computeSubstance(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext, density: number): net.minecraft.world.level.block.state.BlockState | null | undefined;
+              shouldScheduleFluidUpdate(): boolean;
             }
-            const DensityFunction$SinglePointContext: {
-              new(blockX: number, blockY: number, blockZ: number): net.minecraft.world.level.levelgen.DensityFunction$SinglePointContext;
+            interface Aquifer$FluidPicker { 
+              computeFluid(blockX: number, blockY: number, blockZ: number): net.minecraft.world.level.levelgen.Aquifer$FluidStatus;
             }
-            interface DensityFunction$SinglePointContext extends java.lang.Record, net.minecraft.world.level.levelgen.DensityFunction$FunctionContext { 
+            const Aquifer$FluidStatus: {
+              new(fluidLevel: number, fluidType: net.minecraft.world.level.block.state.BlockState): net.minecraft.world.level.levelgen.Aquifer$FluidStatus;
+            }
+            interface Aquifer$FluidStatus extends java.lang.Record { 
+              at(blockY: number): net.minecraft.world.level.block.state.BlockState;
+              fluidLevel(): number;
+              fluidType(): net.minecraft.world.level.block.state.BlockState;
+            }
+            interface Aquifer$NoiseBasedAquifer extends net.minecraft.world.level.levelgen.Aquifer { 
+            }
+            interface NoiseChunk$NoiseInterpolator extends net.minecraft.world.level.levelgen.DensityFunctions$MarkerOrMarked { 
+            }
+            interface DensityFunctions$MarkerOrMarked extends net.minecraft.world.level.levelgen.DensityFunction { 
+              type(): unknown;
+              wrapped(): net.minecraft.world.level.levelgen.DensityFunction;
+            }
+            const DensityFunctions$Marker$Type: {
+              Interpolated: net.minecraft.world.level.levelgen.DensityFunctions.DensityFunctions$Marker$Type;
+              FlatCache: net.minecraft.world.level.levelgen.DensityFunctions.DensityFunctions$Marker$Type;
+              Cache2D: net.minecraft.world.level.levelgen.DensityFunctions.DensityFunctions$Marker$Type;
+              CacheOnce: net.minecraft.world.level.levelgen.DensityFunctions.DensityFunctions$Marker$Type;
+              CacheAllInCell: net.minecraft.world.level.levelgen.DensityFunctions.DensityFunctions$Marker$Type;
+              BlendDensity: net.minecraft.world.level.levelgen.DensityFunctions.DensityFunctions$Marker$Type;
+              entries: kotlin.enums.EnumEntries<unknown>;
+              values(): Array<unknown>;
+              valueOf(value: string): unknown;
+            }
+            interface DensityFunctions$Marker$Type extends kotlin.Enum<unknown>, net.minecraft.util.StringRepresentable { 
+            }
+            const NoiseSettings: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.NoiseSettings>;
+              new(minY: number, height: number, noiseSizeHorizontal: number, noiseSizeVertical: number): net.minecraft.world.level.levelgen.NoiseSettings;
+              create(minY: number, height: number, noiseSizeHorizontal: number, noiseSizeVertical: number): net.minecraft.world.level.levelgen.NoiseSettings;
+            }
+            interface NoiseSettings extends java.lang.Record { 
+              getCellHeight(): number;
+              getCellWidth(): number;
+              clampToHeightAccessor(heightAccessor: net.minecraft.world.level.LevelHeightAccessor): net.minecraft.world.level.levelgen.NoiseSettings;
+              minY(): number;
+              height(): number;
+              noiseSizeHorizontal(): number;
+              noiseSizeVertical(): number;
+            }
+            const DensityFunctions$BeardifierOrMarker: {
+              CODEC: net.minecraft.util.KeyDispatchDataCodec<net.minecraft.world.level.levelgen.DensityFunction>;
+            }
+            interface DensityFunctions$BeardifierOrMarker extends net.minecraft.world.level.levelgen.DensityFunction$SimpleFunction { 
+            }
+            const NoiseGeneratorSettings: {
+              DIRECT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.core.Holder<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>>;
+              OVERWORLD: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              LARGE_BIOMES: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              AMPLIFIED: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              NETHER: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              END: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              CAVES: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              FLOATING_ISLANDS: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              new(noiseSettings: net.minecraft.world.level.levelgen.NoiseSettings, defaultBlock: net.minecraft.world.level.block.state.BlockState, defaultFluid: net.minecraft.world.level.block.state.BlockState, noiseRouter: net.minecraft.world.level.levelgen.NoiseRouter, surfaceRule: net.minecraft.world.level.levelgen.SurfaceRules$RuleSource, spawnTarget: Array<unknown>, seaLevel: number, disableMobGeneration: boolean, aquifersEnabled: boolean, oreVeinsEnabled: boolean, useLegacyRandomSource: boolean): net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+              bootstrap(context: net.minecraft.data.worldgen.BootstrapContext<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>): void;
+              dummy(): net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+            }
+            interface NoiseGeneratorSettings extends java.lang.Record { 
+              disableMobGeneration(): boolean;
+              isAquifersEnabled(): boolean;
+              oreVeinsEnabled(): boolean;
+              getRandomSource(): net.minecraft.world.level.levelgen.WorldgenRandom$Algorithm;
+              noiseSettings(): net.minecraft.world.level.levelgen.NoiseSettings;
+              defaultBlock(): net.minecraft.world.level.block.state.BlockState;
+              defaultFluid(): net.minecraft.world.level.block.state.BlockState;
+              noiseRouter(): net.minecraft.world.level.levelgen.NoiseRouter;
+              surfaceRule(): net.minecraft.world.level.levelgen.SurfaceRules$RuleSource;
+              spawnTarget(): Array<unknown>;
+              seaLevel(): number;
+              aquifersEnabled(): boolean;
+              useLegacyRandomSource(): boolean;
+            }
+            const SurfaceRules$RuleSource: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>;
+              bootstrap(registry: net.minecraft.core.Registry<com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>>): com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>;
+            }
+            interface SurfaceRules$RuleSource { 
+              codec(): com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.SurfaceRules$RuleSource>;
+            }
+            interface NoiseChunk$BlockStateFiller { 
+              calculate(context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): net.minecraft.world.level.block.state.BlockState | null | undefined;
+              (context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): net.minecraft.world.level.block.state.BlockState | null | undefined;
+            }
+            const NoiseBasedChunkGenerator: {
+              CODEC: com.mojang.serialization.MapCodec<net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator>;
+              new(biomeSource: net.minecraft.world.level.biome.BiomeSource, settings: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>): net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+            }
+            interface NoiseBasedChunkGenerator extends net.minecraft.world.level.chunk.ChunkGenerator { 
+              generatorSettings(): net.minecraft.core.Holder<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>;
+              stable(expectedPreset: net.minecraft.resources.ResourceKey<net.minecraft.world.level.levelgen.NoiseGeneratorSettings>): boolean;
+              getInterpolatedNoiseValue(randomState: net.minecraft.world.level.levelgen.RandomState, context: net.minecraft.world.level.levelgen.DensityFunction$FunctionContext): number;
+              buildSurface(protoChunk: net.minecraft.world.level.chunk.ChunkAccess, context: net.minecraft.world.level.levelgen.WorldGenerationContext, randomState: net.minecraft.world.level.levelgen.RandomState, structureManager: net.minecraft.world.level.StructureManager, biomeManager: net.minecraft.world.level.biome.BiomeManager, blender: net.minecraft.world.level.levelgen.blending.Blender, possibleBiomes: Set<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>> | null | undefined): void;
             }
             const WorldDimensions$Complete: {
               new(dimensions: net.minecraft.core.Registry<net.minecraft.world.level.dimension.LevelStem>, specialWorldProperty: net.minecraft.world.level.storage.PrimaryLevelData$SpecialWorldProperty): net.minecraft.world.level.levelgen.WorldDimensions$Complete;
@@ -27294,8 +27362,18 @@ declare global {
                 const LootPoolEntryContainer: {
                   Builder: typeof net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer$Builder;
                 }
-                interface LootPoolEntryContainer extends net.minecraft.world.level.storage.loot.Validatable { 
+                interface LootPoolEntryContainer extends net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer, net.minecraft.world.level.storage.loot.Validatable { 
                   codec(): com.mojang.serialization.MapCodec<net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer>;
+                }
+                const ComposableEntryContainer: {
+                  ALWAYS_FALSE: net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer;
+                  ALWAYS_TRUE: net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer;
+                }
+                interface ComposableEntryContainer { 
+                  expand(context: net.minecraft.world.level.storage.loot.LootContext, output: unknown): boolean;
+                  and(other: net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer): net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer;
+                  or(other: net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer): net.minecraft.world.level.storage.loot.entries.ComposableEntryContainer;
+                  (context: net.minecraft.world.level.storage.loot.LootContext, output: unknown): boolean;
                 }
                 const LootPoolEntryContainer$Builder: {
                   new<T>(): net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer$Builder<any>;
@@ -27519,6 +27597,7 @@ declare global {
                 setRolls(rolls: net.minecraft.world.level.storage.loot.providers.number.NumberProvider): net.minecraft.world.level.storage.loot.LootPool$Builder;
                 setBonusRolls(bonusRolls: net.minecraft.world.level.storage.loot.providers.number.NumberProvider): net.minecraft.world.level.storage.loot.LootPool$Builder;
                 add(entry: net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer$Builder<any>): net.minecraft.world.level.storage.loot.LootPool$Builder;
+                addAll(entries: Array<unknown>): net.minecraft.world.level.storage.loot.LootPool$Builder;
                 build(): net.minecraft.world.level.storage.loot.LootPool;
               }
               const LootContext$ItemStackTarget: {
@@ -27746,6 +27825,7 @@ declare global {
               getGameType(): net.minecraft.world.level.GameType;
               setGameType(gameType: net.minecraft.world.level.GameType): void;
               isAllowCommands(): boolean;
+              setAllowCommands(allowCommands: boolean): void;
               getDifficulty(): net.minecraft.world.Difficulty;
               setDifficulty(difficulty: net.minecraft.world.Difficulty): void;
               isDifficultyLocked(): boolean;
@@ -27762,6 +27842,7 @@ declare global {
               isInitialized(): boolean;
               setInitialized(initialized: boolean): void;
               isAllowCommands(): boolean;
+              setAllowCommands(allowCommands: boolean): void;
               setGameType(gameType: net.minecraft.world.level.GameType): void;
               setGameTime(time: number): void;
             }
@@ -28058,81 +28139,6 @@ declare global {
                   getName(): string;
                   isSlope(): boolean;
                 }
-                const WoodType: {
-                  CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.block.state.properties.WoodType>;
-                  OAK: net.minecraft.world.level.block.state.properties.WoodType;
-                  SPRUCE: net.minecraft.world.level.block.state.properties.WoodType;
-                  BIRCH: net.minecraft.world.level.block.state.properties.WoodType;
-                  ACACIA: net.minecraft.world.level.block.state.properties.WoodType;
-                  CHERRY: net.minecraft.world.level.block.state.properties.WoodType;
-                  JUNGLE: net.minecraft.world.level.block.state.properties.WoodType;
-                  DARK_OAK: net.minecraft.world.level.block.state.properties.WoodType;
-                  PALE_OAK: net.minecraft.world.level.block.state.properties.WoodType;
-                  CRIMSON: net.minecraft.world.level.block.state.properties.WoodType;
-                  WARPED: net.minecraft.world.level.block.state.properties.WoodType;
-                  MANGROVE: net.minecraft.world.level.block.state.properties.WoodType;
-                  BAMBOO: net.minecraft.world.level.block.state.properties.WoodType;
-                  new(name: string, setType: net.minecraft.world.level.block.state.properties.BlockSetType): net.minecraft.world.level.block.state.properties.WoodType;
-                  new(name: string, setType: net.minecraft.world.level.block.state.properties.BlockSetType, soundType: net.minecraft.world.level.block.SoundType, hangingSignSoundType: net.minecraft.world.level.block.SoundType, fenceGateClose: net.minecraft.sounds.SoundEvent, fenceGateOpen: net.minecraft.sounds.SoundEvent): net.minecraft.world.level.block.state.properties.WoodType;
-                  values(): java.util.stream.Stream<net.minecraft.world.level.block.state.properties.WoodType>;
-                }
-                interface WoodType extends java.lang.Record { 
-                  name(): string;
-                  setType(): net.minecraft.world.level.block.state.properties.BlockSetType;
-                  soundType(): net.minecraft.world.level.block.SoundType;
-                  hangingSignSoundType(): net.minecraft.world.level.block.SoundType;
-                  fenceGateClose(): net.minecraft.sounds.SoundEvent;
-                  fenceGateOpen(): net.minecraft.sounds.SoundEvent;
-                }
-                const BlockSetType: {
-                  PressurePlateSensitivity: typeof net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity;
-                  CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.block.state.properties.BlockSetType>;
-                  IRON: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  COPPER: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  GOLD: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  STONE: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  POLISHED_BLACKSTONE: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  OAK: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  SPRUCE: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  BIRCH: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  ACACIA: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  CHERRY: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  JUNGLE: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  DARK_OAK: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  PALE_OAK: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  CRIMSON: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  WARPED: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  MANGROVE: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  BAMBOO: net.minecraft.world.level.block.state.properties.BlockSetType;
-                  new(name: string): net.minecraft.world.level.block.state.properties.BlockSetType;
-                  new(name: string, canOpenByHand: boolean, canOpenByWindCharge: boolean, canButtonBeActivatedByArrows: boolean, pressurePlateSensitivity: net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity, soundType: net.minecraft.world.level.block.SoundType, doorClose: net.minecraft.sounds.SoundEvent, doorOpen: net.minecraft.sounds.SoundEvent, trapdoorClose: net.minecraft.sounds.SoundEvent, trapdoorOpen: net.minecraft.sounds.SoundEvent, pressurePlateClickOff: net.minecraft.sounds.SoundEvent, pressurePlateClickOn: net.minecraft.sounds.SoundEvent, buttonClickOff: net.minecraft.sounds.SoundEvent, buttonClickOn: net.minecraft.sounds.SoundEvent): net.minecraft.world.level.block.state.properties.BlockSetType;
-                  values(): java.util.stream.Stream<net.minecraft.world.level.block.state.properties.BlockSetType>;
-                }
-                interface BlockSetType extends java.lang.Record { 
-                  name(): string;
-                  canOpenByHand(): boolean;
-                  canOpenByWindCharge(): boolean;
-                  canButtonBeActivatedByArrows(): boolean;
-                  pressurePlateSensitivity(): net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity;
-                  soundType(): net.minecraft.world.level.block.SoundType;
-                  doorClose(): net.minecraft.sounds.SoundEvent;
-                  doorOpen(): net.minecraft.sounds.SoundEvent;
-                  trapdoorClose(): net.minecraft.sounds.SoundEvent;
-                  trapdoorOpen(): net.minecraft.sounds.SoundEvent;
-                  pressurePlateClickOff(): net.minecraft.sounds.SoundEvent;
-                  pressurePlateClickOn(): net.minecraft.sounds.SoundEvent;
-                  buttonClickOff(): net.minecraft.sounds.SoundEvent;
-                  buttonClickOn(): net.minecraft.sounds.SoundEvent;
-                }
-                const BlockSetType$PressurePlateSensitivity: {
-                  EVERYTHING: net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity;
-                  MOBS: net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity;
-                  entries: kotlin.enums.EnumEntries<net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity>;
-                  values(): Array<net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity>;
-                  valueOf(value: string): net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity;
-                }
-                interface BlockSetType$PressurePlateSensitivity extends kotlin.Enum<net.minecraft.world.level.block.state.properties.BlockSetType$PressurePlateSensitivity> { 
-                }
               }
               namespace pattern {
                 const BlockInWorld: {
@@ -28162,7 +28168,7 @@ declare global {
                 isRedstoneConductor(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): boolean;
                 isSuffocating(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): boolean;
                 isViewBlocking(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): boolean;
-                emissiveRendering(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): boolean;
+                emissiveRendering(): boolean;
                 instrument(): net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
                 isRandomlyTicking(): boolean;
                 propagatesSkylightDown(): boolean;
@@ -28182,6 +28188,7 @@ declare global {
                 getRenderShape(): net.minecraft.world.level.block.RenderShape;
                 getShadeBrightness(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): number;
                 isSignalSource(): boolean;
+                getOwnSignal(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): number;
                 getSignal(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): number;
                 hasAnalogOutputSignal(): boolean;
                 getAnalogOutputSignal(level: net.minecraft.world.level.Level, pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): number;
@@ -28289,6 +28296,7 @@ declare global {
                 friction(friction: number): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 speedFactor(speedFactor: number): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 jumpFactor(jumpFactor: number): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
+                bounceRestitution(bounceRestitution: number): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 ignitedByLava(): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 liquid(): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 forceSolidOff(): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
@@ -28301,7 +28309,7 @@ declare global {
                 isSuffocating(isSuffocating: net.minecraft.world.level.block.state.BlockBehaviour$StatePredicate): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 isViewBlocking(isViewBlocking: net.minecraft.world.level.block.state.BlockBehaviour$StatePredicate): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 postProcess(postProcess: net.minecraft.world.level.block.state.BlockBehaviour$PostProcess): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
-                emissiveRendering(emissiveRendering: net.minecraft.world.level.block.state.BlockBehaviour$StatePredicate): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
+                emissiveRendering(emissiveRendering: unknown): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 dynamicShape(): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 requiredFeatures(flags: net.minecraft.world.flag.FeatureFlag): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
                 noCollision(): net.minecraft.world.level.block.state.BlockBehaviour$Properties;
@@ -28425,55 +28433,7 @@ declare global {
                 problemPath(): net.minecraft.util.ProblemReporter$PathElement;
               }
               const BlockEntityType: {
-                FURNACE: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                CHEST: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                TRAPPED_CHEST: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                ENDER_CHEST: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.EnderChestBlockEntity>;
-                JUKEBOX: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                DISPENSER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                DROPPER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SIGN: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.SignBlockEntity>;
-                HANGING_SIGN: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                MOB_SPAWNER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                CREAKING_HEART: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                PISTON: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BREWING_STAND: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                ENCHANTING_TABLE: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                END_PORTAL: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BEACON: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SKULL: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                DAYLIGHT_DETECTOR: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                HOPPER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                COMPARATOR: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BANNER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                STRUCTURE_BLOCK: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.StructureBlockEntity>;
-                END_GATEWAY: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                COMMAND_BLOCK: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.CommandBlockEntity>;
-                SHULKER_BOX: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BED: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                CONDUIT: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BARREL: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SMOKER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BLAST_FURNACE: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                LECTERN: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BELL: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                JIGSAW: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.JigsawBlockEntity>;
-                CAMPFIRE: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BEEHIVE: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SCULK_SENSOR: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                CALIBRATED_SCULK_SENSOR: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SCULK_CATALYST: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SCULK_SHRIEKER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                CHISELED_BOOKSHELF: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                SHELF: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                BRUSHABLE_BLOCK: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                DECORATED_POT: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                CRAFTER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                TRIAL_SPAWNER: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                VAULT: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
-                TEST_BLOCK: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.TestBlockEntity>;
-                TEST_INSTANCE_BLOCK: net.minecraft.world.level.block.entity.BlockEntityType<net.minecraft.world.level.block.entity.TestInstanceBlockEntity>;
-                COPPER_GOLEM_STATUE: net.minecraft.world.level.block.entity.BlockEntityType<unknown>;
+                new<T>(factory: net.minecraft.world.level.block.entity.BlockEntityType$BlockEntitySupplier<T>, validBlocks: Set<net.minecraft.world.level.block.Block>): net.minecraft.world.level.block.entity.BlockEntityType<any>;
               }
               interface BlockEntityType<T> extends net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityType { 
                 builtInRegistryHolder(): net.minecraft.core.Holder$Reference<net.minecraft.world.level.block.entity.BlockEntityType<any>>;
@@ -28481,6 +28441,10 @@ declare global {
                 isValid(state: net.minecraft.world.level.block.state.BlockState): boolean;
                 getBlockEntity(level: net.minecraft.world.level.BlockGetter, pos: net.minecraft.core.BlockPos): T;
                 onlyOpCanSetNbt(): boolean;
+              }
+              interface BlockEntityType$BlockEntitySupplier<T> { 
+                create(worldPosition: net.minecraft.core.BlockPos, blockState: net.minecraft.world.level.block.state.BlockState): T;
+                (worldPosition: net.minecraft.core.BlockPos, blockState: net.minecraft.world.level.block.state.BlockState): T;
               }
               const JigsawBlockEntity$JointType: {
                 ROLLABLE: net.minecraft.world.level.block.entity.JigsawBlockEntity$JointType;
@@ -28514,6 +28478,7 @@ declare global {
               }
               interface BlockEntityTicker<T> { 
                 tick(level: net.minecraft.world.level.Level, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState, entity: T): void;
+                andThen(after: net.minecraft.world.level.block.entity.BlockEntityTicker<T>): net.minecraft.world.level.block.entity.BlockEntityTicker<T>;
                 (level: net.minecraft.world.level.Level, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState, entity: T): void;
               }
               const CommandBlockEntity$Mode: {
@@ -28925,7 +28890,7 @@ declare global {
               isPossibleToRespawnInThis(state: net.minecraft.world.level.block.state.BlockState): boolean;
               getName(): net.minecraft.network.chat.MutableComponent;
               fallOn(level: net.minecraft.world.level.Level, state: net.minecraft.world.level.block.state.BlockState, pos: net.minecraft.core.BlockPos, entity: net.minecraft.world.entity.Entity, fallDistance: number): void;
-              updateEntityMovementAfterFallOn(level: net.minecraft.world.level.BlockGetter, entity: net.minecraft.world.entity.Entity): void;
+              getBounceRestitution(): number;
               getFriction(): number;
               getSpeedFactor(): number;
               getJumpFactor(): number;
@@ -29060,6 +29025,10 @@ declare global {
               RESIN_BRICKS: net.minecraft.world.level.block.SoundType;
               IRON: net.minecraft.world.level.block.SoundType;
               DRIED_GHAST: net.minecraft.world.level.block.SoundType;
+              SULFUR: net.minecraft.world.level.block.SoundType;
+              POTENT_SULFUR: net.minecraft.world.level.block.SoundType;
+              SULFUR_SPIKE: net.minecraft.world.level.block.SoundType;
+              CINNABAR: net.minecraft.world.level.block.SoundType;
               new(volume: number, pitch: number, breakSound: net.minecraft.sounds.SoundEvent, stepSound: net.minecraft.sounds.SoundEvent, placeSound: net.minecraft.sounds.SoundEvent, hitSound: net.minecraft.sounds.SoundEvent, fallSound: net.minecraft.sounds.SoundEvent): net.minecraft.world.level.block.SoundType;
             }
             interface SoundType { 
@@ -29569,9 +29538,6 @@ declare global {
                 dimension(): net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>;
                 type(): string;
               }
-              interface ChunkScanAccess { 
-                scanChunk(pos: net.minecraft.world.level.ChunkPos, visitor: net.minecraft.nbt.StreamTagVisitor): java.util.concurrent.CompletableFuture<java.lang.Void>;
-              }
               const SimpleRegionStorage: {
                 new(info: net.minecraft.world.level.chunk.storage.RegionStorageInfo, folder: java.nio.file.Path, fixerUpper: com.mojang.datafixers.DataFixer, syncWrites: boolean, dataFixType: net.minecraft.util.datafix.DataFixTypes): net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
                 injectDatafixingContext(chunkTag: net.minecraft.nbt.CompoundTag, contextTag: net.minecraft.nbt.CompoundTag | null | undefined): void;
@@ -29587,6 +29553,9 @@ declare global {
                 synchronize(flush: boolean): java.util.concurrent.CompletableFuture<java.lang.Void>;
                 chunkScanner(): net.minecraft.world.level.chunk.storage.ChunkScanAccess;
                 storageInfo(): net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+              }
+              interface ChunkScanAccess { 
+                scanChunk(pos: net.minecraft.world.level.ChunkPos, visitor: net.minecraft.nbt.StreamTagVisitor): java.util.concurrent.CompletableFuture<java.lang.Void>;
               }
               const SectionStorage: {
                 new<R, P>(simpleRegionStorage: net.minecraft.world.level.chunk.storage.SimpleRegionStorage, codec: com.mojang.serialization.Codec<P>, packer: unknown, unpacker: unknown, factory: unknown, registryAccess: net.minecraft.core.RegistryAccess, errorReporter: net.minecraft.world.level.chunk.storage.ChunkIOErrorReporter, levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor): net.minecraft.world.level.chunk.storage.SectionStorage<any, any>;
@@ -29750,7 +29719,7 @@ declare global {
               getPersistedStatus(): net.minecraft.world.level.chunk.status.ChunkStatus;
               getHighestGeneratedStatus(): net.minecraft.world.level.chunk.status.ChunkStatus;
               removeBlockEntity(pos: net.minecraft.core.BlockPos): void;
-              markPosForPostprocessing(blockPos: net.minecraft.core.BlockPos): void;
+              markPosForPostProcessing(blockPos: net.minecraft.core.BlockPos): void;
               getPostProcessing(): Array<it.unimi.dsi.fastutil.shorts.ShortList | null | undefined>;
               addPackedPostProcess(packedOffsets: it.unimi.dsi.fastutil.shorts.ShortList, sectionIndex: number): void;
               setBlockEntityNbt(entityTag: net.minecraft.nbt.CompoundTag): void;
@@ -29759,6 +29728,7 @@ declare global {
               findBlocks(predicate: unknown, consumer: unknown): void;
               getBlockTicks(): net.minecraft.world.ticks.TickContainerAccess<net.minecraft.world.level.block.Block>;
               getFluidTicks(): net.minecraft.world.ticks.TickContainerAccess<net.minecraft.world.level.material.Fluid>;
+              collectBiomesInPalette(output: Set<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>>): void;
               canBeSerialized(): boolean;
               getTicksForSerialization(currentTick: number): net.minecraft.world.level.chunk.ChunkAccess$PackedTicks;
               getUpgradeData(): net.minecraft.world.level.chunk.UpgradeData;
@@ -29790,32 +29760,48 @@ declare global {
               getAllReferences(): Map<net.minecraft.world.level.levelgen.structure.Structure, it.unimi.dsi.fastutil.longs.LongSet>;
               setAllReferences(data: Map<net.minecraft.world.level.levelgen.structure.Structure, it.unimi.dsi.fastutil.longs.LongSet>): void;
             }
-            const ChunkGeneratorStructureState: {
-              createForFlat(randomState: net.minecraft.world.level.levelgen.RandomState, levelSeed: number, biomeSource: net.minecraft.world.level.biome.BiomeSource, structureOverrides: java.util.stream.Stream<net.minecraft.core.Holder<unknown>>): net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-              createForNormal(randomState: net.minecraft.world.level.levelgen.RandomState, levelSeed: number, biomeSource: net.minecraft.world.level.biome.BiomeSource, allStructures: net.minecraft.core.HolderLookup<unknown>): net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+            const DataLayer: {
+              LAYER_COUNT: number;
+              LAYER_SIZE: number;
+              SIZE: number;
+              new(): net.minecraft.world.level.chunk.DataLayer;
+              new(defaultValue: number): net.minecraft.world.level.chunk.DataLayer;
+              new(data: Array<number>): net.minecraft.world.level.chunk.DataLayer;
             }
-            interface ChunkGeneratorStructureState { 
-              randomState(): net.minecraft.world.level.levelgen.RandomState;
-              possibleStructureSets(): Array<net.minecraft.core.Holder<unknown>>;
-              ensureStructuresGenerated(): void;
-              getRingPositionsFor(placement: net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement): Array<net.minecraft.world.level.ChunkPos> | null | undefined;
-              getPlacementsForStructure(structure: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.structure.Structure>): Array<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement>;
-              hasStructureChunkInRange(structureSet: net.minecraft.core.Holder<unknown>, sourceX: number, sourceZ: number, range: number): boolean;
-              getLevelSeed(): number;
-            }
-            interface BlockColumn { 
-              getBlock(blockY: number): net.minecraft.world.level.block.state.BlockState;
-              setBlock(blockY: number, state: net.minecraft.world.level.block.state.BlockState): void;
-            }
-            const UpgradeData: {
-              EMPTY: net.minecraft.world.level.chunk.UpgradeData;
-              new(tag: net.minecraft.nbt.CompoundTag, levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor): net.minecraft.world.level.chunk.UpgradeData;
-            }
-            interface UpgradeData { 
-              upgrade(chunk: net.minecraft.world.level.chunk.LevelChunk): void;
+            interface DataLayer { 
+              get(x: number, y: number, z: number): number;
+              get(index: number): number;
+              set(x: number, y: number, z: number, val: number): void;
+              set(index: number, val: number): void;
+              fill(value: number): void;
+              getData(): Array<number>;
+              copy(): net.minecraft.world.level.chunk.DataLayer;
+              layerToString(layer: number): string;
+              isDefinitelyHomogenous(): boolean;
+              isDefinitelyFilledWith(value: number): boolean;
               isEmpty(): boolean;
-              write(): net.minecraft.nbt.CompoundTag;
-              copy(): net.minecraft.world.level.chunk.UpgradeData;
+            }
+            interface LightChunkGetter { 
+              getChunkForLighting(x: number, z: number): net.minecraft.world.level.chunk.LightChunk | null | undefined;
+              onLightUpdate(layer: net.minecraft.world.level.LightLayer, pos: net.minecraft.core.SectionPos): void;
+              getLevel(): net.minecraft.world.level.BlockGetter;
+            }
+            const ChunkSource: {
+              new(): net.minecraft.world.level.chunk.ChunkSource;
+            }
+            interface ChunkSource extends java.lang.AutoCloseable, net.minecraft.world.level.chunk.LightChunkGetter { 
+              getChunk(x: number, z: number, loadOrGenerate: boolean): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
+              getChunk(x: number, z: number, targetStatus: net.minecraft.world.level.chunk.status.ChunkStatus, loadOrGenerate: boolean): net.minecraft.world.level.chunk.ChunkAccess | null | undefined;
+              getChunkNow(x: number, z: number): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
+              hasChunk(x: number, z: number): boolean;
+              tick(haveTime: unknown, tickChunks: boolean): void;
+              onSectionEmptinessChanged(sectionX: number, sectionY: number, sectionZ: number, empty: boolean): void;
+              gatherStats(): string;
+              getLoadedChunksCount(): number;
+              getLightEngine(): net.minecraft.world.level.lighting.LevelLightEngine;
+              setSpawnSettings(spawnEnemies: boolean): void;
+              updateChunkForced(pos: net.minecraft.world.level.ChunkPos, forced: boolean): boolean;
+              getForceLoadedChunks(): it.unimi.dsi.fastutil.longs.LongSet;
             }
             const LevelChunk: {
               EntityCreationType: typeof net.minecraft.world.level.chunk.LevelChunk$EntityCreationType;
@@ -29865,6 +29851,20 @@ declare global {
             }
             interface LevelChunk$EntityCreationType extends kotlin.Enum<net.minecraft.world.level.chunk.LevelChunk$EntityCreationType> { 
             }
+            const UpgradeData: {
+              EMPTY: net.minecraft.world.level.chunk.UpgradeData;
+              new(tag: net.minecraft.nbt.CompoundTag, levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor): net.minecraft.world.level.chunk.UpgradeData;
+            }
+            interface UpgradeData { 
+              upgrade(chunk: net.minecraft.world.level.chunk.LevelChunk): void;
+              isEmpty(): boolean;
+              write(): net.minecraft.nbt.CompoundTag;
+              copy(): net.minecraft.world.level.chunk.UpgradeData;
+            }
+            interface UpgradeData$BlockFixer { 
+              updateShape(state: net.minecraft.world.level.block.state.BlockState, direction: net.minecraft.core.Direction, neighbour: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.world.level.LevelAccessor, pos: net.minecraft.core.BlockPos, neighbourPos: net.minecraft.core.BlockPos): net.minecraft.world.level.block.state.BlockState;
+              processChunk(level: net.minecraft.world.level.LevelAccessor): void;
+            }
             interface LevelChunk$PostLoadProcessor { 
               run(levelChunk: net.minecraft.world.level.chunk.LevelChunk): void;
               (levelChunk: net.minecraft.world.level.chunk.LevelChunk): void;
@@ -29872,8 +29872,8 @@ declare global {
             const ProtoChunk: {
               new(chunkPos: net.minecraft.world.level.ChunkPos, upgradeData: net.minecraft.world.level.chunk.UpgradeData, levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor, containerFactory: net.minecraft.world.level.chunk.PalettedContainerFactory, blendingData: net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined): net.minecraft.world.level.chunk.ProtoChunk;
               new(chunkPos: net.minecraft.world.level.ChunkPos, upgradeData: net.minecraft.world.level.chunk.UpgradeData, sections: Array<net.minecraft.world.level.chunk.LevelChunkSection> | null | undefined, blockTicks: net.minecraft.world.ticks.ProtoChunkTicks<net.minecraft.world.level.block.Block>, fluidTicks: net.minecraft.world.ticks.ProtoChunkTicks<net.minecraft.world.level.material.Fluid>, levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor, containerFactory: net.minecraft.world.level.chunk.PalettedContainerFactory, blendingData: net.minecraft.world.level.levelgen.blending.BlendingData | null | undefined): net.minecraft.world.level.chunk.ProtoChunk;
-              packOffsetCoordinates(blockPos: net.minecraft.core.BlockPos): number;
-              unpackOffsetCoordinates(packedCoord: number, sectionY: number, chunkPos: net.minecraft.world.level.ChunkPos): net.minecraft.core.BlockPos;
+              packOffsetCoordinates(pos: net.minecraft.core.BlockPos): number;
+              unpackOffsetCoordinates(packedData: number, sectionY: number, chunkPos: net.minecraft.world.level.ChunkPos): net.minecraft.core.BlockPos;
             }
             interface ProtoChunk extends net.minecraft.world.level.chunk.ChunkAccess { 
               getBlockEntities(): Map<net.minecraft.core.BlockPos, net.minecraft.world.level.block.entity.BlockEntity>;
@@ -29902,32 +29902,6 @@ declare global {
             }
             interface CarvingMask$Mask { 
               test(x: number, y: number, z: number): boolean;
-            }
-            const DataLayer: {
-              LAYER_COUNT: number;
-              LAYER_SIZE: number;
-              SIZE: number;
-              new(): net.minecraft.world.level.chunk.DataLayer;
-              new(defaultValue: number): net.minecraft.world.level.chunk.DataLayer;
-              new(data: Array<number>): net.minecraft.world.level.chunk.DataLayer;
-            }
-            interface DataLayer { 
-              get(x: number, y: number, z: number): number;
-              get(index: number): number;
-              set(x: number, y: number, z: number, val: number): void;
-              set(index: number, val: number): void;
-              fill(value: number): void;
-              getData(): Array<number>;
-              copy(): net.minecraft.world.level.chunk.DataLayer;
-              layerToString(layer: number): string;
-              isDefinitelyHomogenous(): boolean;
-              isDefinitelyFilledWith(value: number): boolean;
-              isEmpty(): boolean;
-            }
-            interface LightChunkGetter { 
-              getChunkForLighting(x: number, z: number): net.minecraft.world.level.chunk.LightChunk | null | undefined;
-              onLightUpdate(layer: net.minecraft.world.level.LightLayer, pos: net.minecraft.core.SectionPos): void;
-              getLevel(): net.minecraft.world.level.BlockGetter;
             }
             const PalettedContainerFactory: {
               new(blockStatesStrategy: net.minecraft.world.level.chunk.Strategy<net.minecraft.world.level.block.state.BlockState>, defaultBlockState: net.minecraft.world.level.block.state.BlockState, blockStatesContainerCodec: com.mojang.serialization.Codec<net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState>>, biomeStrategy: net.minecraft.world.level.chunk.Strategy<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>>, defaultBiome: net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>, biomeContainerCodec: com.mojang.serialization.Codec<net.minecraft.world.level.chunk.PalettedContainerRO<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>>>): net.minecraft.world.level.chunk.PalettedContainerFactory;
@@ -29975,6 +29949,7 @@ declare global {
               getSerializedSize(): number;
               bitsPerEntry(): number;
               maybeHas(predicate: unknown): boolean;
+              forEachInPalette(consumer: unknown): void;
               count(output: net.minecraft.world.level.chunk.PalettedContainer$CountConsumer<T>): void;
               copy(): net.minecraft.world.level.chunk.PalettedContainer<T>;
               recreate(): net.minecraft.world.level.chunk.PalettedContainer<T>;
@@ -30047,14 +30022,13 @@ declare global {
             interface PalettedContainerRO$Unpacker<T, C> { 
               read(strategy: net.minecraft.world.level.chunk.Strategy<T>, discData: net.minecraft.world.level.chunk.PalettedContainerRO$PackedData<T>): com.mojang.serialization.DataResult<C>;
             }
-            interface UpgradeData$BlockFixer { 
-              updateShape(state: net.minecraft.world.level.block.state.BlockState, direction: net.minecraft.core.Direction, neighbour: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.world.level.LevelAccessor, pos: net.minecraft.core.BlockPos, neighbourPos: net.minecraft.core.BlockPos): net.minecraft.world.level.block.state.BlockState;
-              processChunk(level: net.minecraft.world.level.LevelAccessor): void;
+            const ImposterProtoChunk: {
+              new(wrapped: net.minecraft.world.level.chunk.LevelChunk, allowWrites: boolean): net.minecraft.world.level.chunk.ImposterProtoChunk;
+            }
+            interface ImposterProtoChunk extends net.minecraft.world.level.chunk.ProtoChunk { 
+              getWrapped(): net.minecraft.world.level.chunk.LevelChunk;
             }
             const LevelChunkSection: {
-              SECTION_WIDTH: number;
-              SECTION_HEIGHT: number;
-              SECTION_SIZE: number;
               BIOME_CONTAINER_BITS: number;
               new(states: net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState>, biomes: net.minecraft.world.level.chunk.PalettedContainerRO<net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome>>): net.minecraft.world.level.chunk.LevelChunkSection;
               new(containerFactory: net.minecraft.world.level.chunk.PalettedContainerFactory): net.minecraft.world.level.chunk.LevelChunkSection;
@@ -30083,28 +30057,22 @@ declare global {
               fillBiomesFromNoise(biomeResolver: net.minecraft.world.level.biome.BiomeResolver, sampler: net.minecraft.world.level.biome.Climate$Sampler, quartMinX: number, quartMinY: number, quartMinZ: number): void;
               copy(): net.minecraft.world.level.chunk.LevelChunkSection;
             }
-            const ChunkSource: {
-              new(): net.minecraft.world.level.chunk.ChunkSource;
+            const ChunkGeneratorStructureState: {
+              createForFlat(randomState: net.minecraft.world.level.levelgen.RandomState, levelSeed: number, biomeSource: net.minecraft.world.level.biome.BiomeSource, structureOverrides: java.util.stream.Stream<net.minecraft.core.Holder<unknown>>): net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+              createForNormal(randomState: net.minecraft.world.level.levelgen.RandomState, levelSeed: number, biomeSource: net.minecraft.world.level.biome.BiomeSource, allStructures: net.minecraft.core.HolderLookup<unknown>): net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
             }
-            interface ChunkSource extends java.lang.AutoCloseable, net.minecraft.world.level.chunk.LightChunkGetter { 
-              getChunk(x: number, z: number, loadOrGenerate: boolean): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
-              getChunk(x: number, z: number, targetStatus: net.minecraft.world.level.chunk.status.ChunkStatus, loadOrGenerate: boolean): net.minecraft.world.level.chunk.ChunkAccess | null | undefined;
-              getChunkNow(x: number, z: number): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
-              hasChunk(x: number, z: number): boolean;
-              tick(haveTime: unknown, tickChunks: boolean): void;
-              onSectionEmptinessChanged(sectionX: number, sectionY: number, sectionZ: number, empty: boolean): void;
-              gatherStats(): string;
-              getLoadedChunksCount(): number;
-              getLightEngine(): net.minecraft.world.level.lighting.LevelLightEngine;
-              setSpawnSettings(spawnEnemies: boolean): void;
-              updateChunkForced(pos: net.minecraft.world.level.ChunkPos, forced: boolean): boolean;
-              getForceLoadedChunks(): it.unimi.dsi.fastutil.longs.LongSet;
+            interface ChunkGeneratorStructureState { 
+              randomState(): net.minecraft.world.level.levelgen.RandomState;
+              possibleStructureSets(): Array<net.minecraft.core.Holder<unknown>>;
+              ensureStructuresGenerated(): void;
+              getRingPositionsFor(placement: net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement): Array<net.minecraft.world.level.ChunkPos> | null | undefined;
+              getPlacementsForStructure(structure: net.minecraft.core.Holder<net.minecraft.world.level.levelgen.structure.Structure>): Array<net.minecraft.world.level.levelgen.structure.placement.StructurePlacement>;
+              hasStructureChunkInRange(structureSet: net.minecraft.core.Holder<unknown>, sourceX: number, sourceZ: number, range: number): boolean;
+              getLevelSeed(): number;
             }
-            const ImposterProtoChunk: {
-              new(wrapped: net.minecraft.world.level.chunk.LevelChunk, allowWrites: boolean): net.minecraft.world.level.chunk.ImposterProtoChunk;
-            }
-            interface ImposterProtoChunk extends net.minecraft.world.level.chunk.ProtoChunk { 
-              getWrapped(): net.minecraft.world.level.chunk.LevelChunk;
+            interface BlockColumn { 
+              getBlock(blockY: number): net.minecraft.world.level.block.state.BlockState;
+              setBlock(blockY: number, state: net.minecraft.world.level.block.state.BlockState): void;
             }
           }
           namespace validation {
@@ -30347,117 +30315,6 @@ declare global {
               build(): net.minecraft.world.level.biome.Biome;
             }
           }
-          namespace dimension {
-            namespace end {
-              const EnderDragonFight: {
-                TIME_BETWEEN_PLAYER_SCANS: number;
-                ARENA_TICKET_LEVEL: number;
-                DRAGON_SPAWN_Y: number;
-                CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.end.EnderDragonFight>;
-                TYPE: net.minecraft.world.level.saveddata.SavedDataType<net.minecraft.world.level.dimension.end.EnderDragonFight>;
-                new(needsStateScanning: boolean, dragonKilled: boolean, previouslyKilled: boolean, respawnStage: java.util.Optional<net.minecraft.world.level.dimension.end.DragonRespawnStage>, respawnTime: number, dragonUUID: java.util.Optional<java.util.UUID>, exitPortalLocation: java.util.Optional<net.minecraft.core.BlockPos>, gateways: Array<number>, respawnCrystals: Array<net.minecraft.world.entity.EntityReference<net.minecraft.world.entity.boss.enderdragon.EndCrystal>>): net.minecraft.world.level.dimension.end.EnderDragonFight;
-                createDefault(): net.minecraft.world.level.dimension.end.EnderDragonFight;
-              }
-              interface EnderDragonFight extends net.minecraft.world.level.saveddata.SavedData { 
-                aliveCrystals(): number;
-                hasPreviouslyKilledDragon(): boolean;
-                skipArenaLoadedCheck(): void;
-                dragonUUID(): java.util.UUID | null | undefined;
-                init(level: net.minecraft.server.level.ServerLevel, seed: number, origin: net.minecraft.core.BlockPos): void;
-                tick(): void;
-                setDragonKilled(dragon: net.minecraft.world.entity.boss.enderdragon.EnderDragon): void;
-                removeAllGateways(): void;
-                updateDragon(dragon: net.minecraft.world.entity.boss.enderdragon.EnderDragon): void;
-                onCrystalDestroyed(crystal: net.minecraft.world.entity.boss.enderdragon.EndCrystal, source: net.minecraft.world.damagesource.DamageSource): void;
-                tryRespawn(): void;
-                resetSpikeCrystals(): void;
-              }
-              const DragonRespawnStage: {
-                START: net.minecraft.world.level.dimension.end.DragonRespawnStage;
-                PREPARING_TO_SUMMON_PILLARS: net.minecraft.world.level.dimension.end.DragonRespawnStage;
-                SUMMONING_PILLARS: net.minecraft.world.level.dimension.end.DragonRespawnStage;
-                SUMMONING_DRAGON: net.minecraft.world.level.dimension.end.DragonRespawnStage;
-                END: net.minecraft.world.level.dimension.end.DragonRespawnStage;
-                CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.end.DragonRespawnStage>;
-                entries: kotlin.enums.EnumEntries<net.minecraft.world.level.dimension.end.DragonRespawnStage>;
-                values(): Array<net.minecraft.world.level.dimension.end.DragonRespawnStage>;
-                valueOf(value: string): net.minecraft.world.level.dimension.end.DragonRespawnStage;
-              }
-              interface DragonRespawnStage extends kotlin.Enum<net.minecraft.world.level.dimension.end.DragonRespawnStage>, net.minecraft.util.StringRepresentable { 
-                tick(level: net.minecraft.server.level.ServerLevel, fight: net.minecraft.world.level.dimension.end.EnderDragonFight, crystals: Array<net.minecraft.world.entity.boss.enderdragon.EndCrystal>, time: number): void;
-              }
-            }
-            const DimensionType: {
-              MonsterSettings: typeof net.minecraft.world.level.dimension.DimensionType$MonsterSettings;
-              Skybox: typeof net.minecraft.world.level.dimension.DimensionType$Skybox;
-              BITS_FOR_Y: number;
-              MIN_HEIGHT: number;
-              Y_SIZE: number;
-              MAX_Y: number;
-              MIN_Y: number;
-              WAY_ABOVE_MAX_Y: number;
-              WAY_BELOW_MIN_Y: number;
-              DIRECT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.DimensionType>;
-              NETWORK_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.DimensionType>;
-              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>>;
-              MOON_BRIGHTNESS_PER_PHASE: kotlin.FloatArray;
-              CODEC: com.mojang.serialization.Codec<net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>>;
-              new(hasFixedTime: boolean, hasSkyLight: boolean, hasCeiling: boolean, hasEnderDragonFight: boolean, coordinateScale: number, minY: number, height: number, logicalHeight: number, infiniburn: net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>, ambientLight: number, monsterSettings: net.minecraft.world.level.dimension.DimensionType$MonsterSettings, skybox: net.minecraft.world.level.dimension.DimensionType$Skybox, cardinalLightType: net.minecraft.world.level.CardinalLighting$Type, attributes: net.minecraft.world.attribute.EnvironmentAttributeMap, timelines: net.minecraft.core.HolderSet<unknown>, defaultClock: java.util.Optional<net.minecraft.core.Holder<unknown>>): net.minecraft.world.level.dimension.DimensionType;
-              getTeleportationScale(lastDimensionType: net.minecraft.world.level.dimension.DimensionType, newDimensionType: net.minecraft.world.level.dimension.DimensionType): number;
-              getStorageFolder(name: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, baseFolder: java.nio.file.Path): java.nio.file.Path;
-            }
-            interface DimensionType extends java.lang.Record { 
-              monsterSpawnLightTest(): net.minecraft.util.valueproviders.IntProvider;
-              monsterSpawnBlockLightLimit(): number;
-              hasEndFlashes(): boolean;
-              hasFixedTime(): boolean;
-              hasSkyLight(): boolean;
-              hasCeiling(): boolean;
-              hasEnderDragonFight(): boolean;
-              coordinateScale(): number;
-              minY(): number;
-              height(): number;
-              logicalHeight(): number;
-              infiniburn(): net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>;
-              ambientLight(): number;
-              monsterSettings(): net.minecraft.world.level.dimension.DimensionType$MonsterSettings;
-              skybox(): net.minecraft.world.level.dimension.DimensionType$Skybox;
-              cardinalLightType(): net.minecraft.world.level.CardinalLighting$Type;
-              attributes(): net.minecraft.world.attribute.EnvironmentAttributeMap;
-              timelines(): net.minecraft.core.HolderSet<unknown>;
-              defaultClock(): java.util.Optional<net.minecraft.core.Holder<unknown>>;
-            }
-            const DimensionType$MonsterSettings: {
-              CODEC: com.mojang.serialization.MapCodec<net.minecraft.world.level.dimension.DimensionType$MonsterSettings>;
-              new(monsterSpawnLightTest: net.minecraft.util.valueproviders.IntProvider, monsterSpawnBlockLightLimit: number): net.minecraft.world.level.dimension.DimensionType$MonsterSettings;
-            }
-            interface DimensionType$MonsterSettings extends java.lang.Record { 
-              monsterSpawnLightTest(): net.minecraft.util.valueproviders.IntProvider;
-              monsterSpawnBlockLightLimit(): number;
-            }
-            const DimensionType$Skybox: {
-              NONE: net.minecraft.world.level.dimension.DimensionType$Skybox;
-              OVERWORLD: net.minecraft.world.level.dimension.DimensionType$Skybox;
-              END: net.minecraft.world.level.dimension.DimensionType$Skybox;
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.DimensionType$Skybox>;
-              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.dimension.DimensionType$Skybox>;
-              values(): Array<net.minecraft.world.level.dimension.DimensionType$Skybox>;
-              valueOf(value: string): net.minecraft.world.level.dimension.DimensionType$Skybox;
-            }
-            interface DimensionType$Skybox extends kotlin.Enum<net.minecraft.world.level.dimension.DimensionType$Skybox>, net.minecraft.util.StringRepresentable { 
-            }
-            const LevelStem: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.LevelStem>;
-              OVERWORLD: net.minecraft.resources.ResourceKey<net.minecraft.world.level.dimension.LevelStem>;
-              NETHER: net.minecraft.resources.ResourceKey<net.minecraft.world.level.dimension.LevelStem>;
-              END: net.minecraft.resources.ResourceKey<net.minecraft.world.level.dimension.LevelStem>;
-              new(type: net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>, generator: net.minecraft.world.level.chunk.ChunkGenerator): net.minecraft.world.level.dimension.LevelStem;
-            }
-            interface LevelStem extends java.lang.Record { 
-              type(): net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>;
-              generator(): net.minecraft.world.level.chunk.ChunkGenerator;
-            }
-          }
           namespace lighting {
             const ChunkSkyLightSources: {
               NEGATIVE_INFINITY: number;
@@ -30524,67 +30381,115 @@ declare global {
               display(): string;
             }
           }
-          namespace gameevent {
-            const GameEventListenerRegistry: {
-              NOOP: net.minecraft.world.level.gameevent.GameEventListenerRegistry;
+          namespace dimension {
+            namespace end {
+              const EnderDragonFight: {
+                TIME_BETWEEN_PLAYER_SCANS: number;
+                ARENA_TICKET_LEVEL: number;
+                DRAGON_SPAWN_Y: number;
+                CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.end.EnderDragonFight>;
+                TYPE: net.minecraft.world.level.saveddata.SavedDataType<net.minecraft.world.level.dimension.end.EnderDragonFight>;
+                new(needsStateScanning: boolean, dragonKilled: boolean, previouslyKilled: boolean, respawnStage: java.util.Optional<net.minecraft.world.level.dimension.end.DragonRespawnStage>, respawnTime: number, dragonUUID: java.util.Optional<java.util.UUID>, exitPortalLocation: java.util.Optional<net.minecraft.core.BlockPos>, gateways: Array<number>, respawnCrystals: Array<net.minecraft.world.entity.EntityReference<net.minecraft.world.entity.boss.enderdragon.EndCrystal>>): net.minecraft.world.level.dimension.end.EnderDragonFight;
+                createDefault(): net.minecraft.world.level.dimension.end.EnderDragonFight;
+              }
+              interface EnderDragonFight extends net.minecraft.world.level.saveddata.SavedData { 
+                aliveCrystals(): number;
+                hasPreviouslyKilledDragon(): boolean;
+                skipArenaLoadedCheck(): void;
+                dragonUUID(): java.util.UUID | null | undefined;
+                init(level: net.minecraft.server.level.ServerLevel, seed: number, origin: net.minecraft.core.BlockPos): void;
+                tick(): void;
+                setDragonKilled(dragon: net.minecraft.world.entity.boss.enderdragon.EnderDragon): void;
+                removeAllGateways(): void;
+                updateDragon(dragon: net.minecraft.world.entity.boss.enderdragon.EnderDragon): void;
+                onCrystalDestroyed(crystal: net.minecraft.world.entity.boss.enderdragon.EndCrystal, source: net.minecraft.world.damagesource.DamageSource): void;
+                tryRespawn(): void;
+                resetSpikeCrystals(): void;
+              }
+              const DragonRespawnStage: {
+                START: net.minecraft.world.level.dimension.end.DragonRespawnStage;
+                PREPARING_TO_SUMMON_PILLARS: net.minecraft.world.level.dimension.end.DragonRespawnStage;
+                SUMMONING_PILLARS: net.minecraft.world.level.dimension.end.DragonRespawnStage;
+                SUMMONING_DRAGON: net.minecraft.world.level.dimension.end.DragonRespawnStage;
+                END: net.minecraft.world.level.dimension.end.DragonRespawnStage;
+                CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.end.DragonRespawnStage>;
+                entries: kotlin.enums.EnumEntries<net.minecraft.world.level.dimension.end.DragonRespawnStage>;
+                values(): Array<net.minecraft.world.level.dimension.end.DragonRespawnStage>;
+                valueOf(value: string): net.minecraft.world.level.dimension.end.DragonRespawnStage;
+              }
+              interface DragonRespawnStage extends kotlin.Enum<net.minecraft.world.level.dimension.end.DragonRespawnStage>, net.minecraft.util.StringRepresentable { 
+                tick(level: net.minecraft.server.level.ServerLevel, fight: net.minecraft.world.level.dimension.end.EnderDragonFight, crystals: Array<net.minecraft.world.entity.boss.enderdragon.EndCrystal>, time: number): void;
+              }
             }
-            interface GameEventListenerRegistry { 
-              isEmpty(): boolean;
-              register(listener: net.minecraft.world.level.gameevent.GameEventListener): void;
-              unregister(listener: net.minecraft.world.level.gameevent.GameEventListener): void;
-              visitInRangeListeners(event: net.minecraft.core.Holder<unknown>, sourcePosition: net.minecraft.world.phys.Vec3, context: net.minecraft.world.level.gameevent.GameEvent$Context, action: net.minecraft.world.level.gameevent.GameEventListenerRegistry$ListenerVisitor): boolean;
+            const DimensionType: {
+              MonsterSettings: typeof net.minecraft.world.level.dimension.DimensionType$MonsterSettings;
+              Skybox: typeof net.minecraft.world.level.dimension.DimensionType$Skybox;
+              BITS_FOR_Y: number;
+              MIN_HEIGHT: number;
+              Y_SIZE: number;
+              MAX_Y: number;
+              MIN_Y: number;
+              WAY_ABOVE_MAX_Y: number;
+              WAY_BELOW_MIN_Y: number;
+              DIRECT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.DimensionType>;
+              NETWORK_CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.DimensionType>;
+              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>>;
+              MOON_BRIGHTNESS_PER_PHASE: kotlin.FloatArray;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>>;
+              new(hasFixedTime: boolean, hasSkyLight: boolean, hasCeiling: boolean, hasEnderDragonFight: boolean, coordinateScale: number, minY: number, height: number, logicalHeight: number, infiniburn: net.minecraft.core.HolderSet<net.minecraft.world.level.block.Block>, ambientLight: number, monsterSettings: net.minecraft.world.level.dimension.DimensionType$MonsterSettings, skybox: net.minecraft.world.level.dimension.DimensionType$Skybox, cardinalLightType: net.minecraft.world.level.CardinalLighting$Type, attributes: net.minecraft.world.attribute.EnvironmentAttributeMap, timelines: net.minecraft.core.HolderSet<unknown>, defaultClock: java.util.Optional<net.minecraft.core.Holder<unknown>>): net.minecraft.world.level.dimension.DimensionType;
+              getTeleportationScale(lastDimensionType: net.minecraft.world.level.dimension.DimensionType, newDimensionType: net.minecraft.world.level.dimension.DimensionType): number;
+              getStorageFolder(name: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, baseFolder: java.nio.file.Path): java.nio.file.Path;
             }
-            const GameEventListener: {
-              DeliveryMode: typeof net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+            interface DimensionType extends java.lang.Record { 
+              monsterSpawnLightTest(): net.minecraft.util.valueproviders.IntProvider;
+              monsterSpawnBlockLightLimit(): number;
+              hasEndFlashes(): boolean;
+              hasFixedTime(): boolean;
+              hasSkyLight(): boolean;
+              hasCeiling(): boolean;
+              hasEnderDragonFight(): boolean;
+              coordinateScale(): number;
+              minY(): number;
+              height(): number;
+              logicalHeight(): number;
+              infiniburn(): net.minecraft.core.HolderSet<net.minecraft.world.level.block.Block>;
+              ambientLight(): number;
+              monsterSettings(): net.minecraft.world.level.dimension.DimensionType$MonsterSettings;
+              skybox(): net.minecraft.world.level.dimension.DimensionType$Skybox;
+              cardinalLightType(): net.minecraft.world.level.CardinalLighting$Type;
+              attributes(): net.minecraft.world.attribute.EnvironmentAttributeMap;
+              timelines(): net.minecraft.core.HolderSet<unknown>;
+              defaultClock(): java.util.Optional<net.minecraft.core.Holder<unknown>>;
             }
-            interface GameEventListener { 
-              getListenerSource(): net.minecraft.world.level.gameevent.PositionSource;
-              getListenerRadius(): number;
-              handleGameEvent(level: net.minecraft.server.level.ServerLevel, event: net.minecraft.core.Holder<unknown>, context: net.minecraft.world.level.gameevent.GameEvent$Context, sourcePosition: net.minecraft.world.phys.Vec3): boolean;
-              getDeliveryMode(): net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+            const DimensionType$MonsterSettings: {
+              CODEC: com.mojang.serialization.MapCodec<net.minecraft.world.level.dimension.DimensionType$MonsterSettings>;
+              new(monsterSpawnLightTest: net.minecraft.util.valueproviders.IntProvider, monsterSpawnBlockLightLimit: number): net.minecraft.world.level.dimension.DimensionType$MonsterSettings;
             }
-            const PositionSource: {
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.gameevent.PositionSource>;
-              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.level.gameevent.PositionSource>;
+            interface DimensionType$MonsterSettings extends java.lang.Record { 
+              monsterSpawnLightTest(): net.minecraft.util.valueproviders.IntProvider;
+              monsterSpawnBlockLightLimit(): number;
             }
-            interface PositionSource { 
-              getPosition(level: net.minecraft.world.level.Level): java.util.Optional<net.minecraft.world.phys.Vec3>;
-              getType(): net.minecraft.world.level.gameevent.PositionSourceType<net.minecraft.world.level.gameevent.PositionSource>;
+            const DimensionType$Skybox: {
+              NONE: net.minecraft.world.level.dimension.DimensionType$Skybox;
+              OVERWORLD: net.minecraft.world.level.dimension.DimensionType$Skybox;
+              END: net.minecraft.world.level.dimension.DimensionType$Skybox;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.DimensionType$Skybox>;
+              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.dimension.DimensionType$Skybox>;
+              values(): Array<net.minecraft.world.level.dimension.DimensionType$Skybox>;
+              valueOf(value: string): net.minecraft.world.level.dimension.DimensionType$Skybox;
             }
-            const PositionSourceType: {
-              BLOCK: net.minecraft.world.level.gameevent.PositionSourceType<unknown>;
-              ENTITY: net.minecraft.world.level.gameevent.PositionSourceType<unknown>;
-              register<S, T>(name: string, serializer: S): S;
+            interface DimensionType$Skybox extends kotlin.Enum<net.minecraft.world.level.dimension.DimensionType$Skybox>, net.minecraft.util.StringRepresentable { 
             }
-            interface PositionSourceType<T> { 
-              codec(): com.mojang.serialization.MapCodec<T>;
-              streamCodec(): net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, T>;
+            const LevelStem: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.dimension.LevelStem>;
+              OVERWORLD: net.minecraft.resources.ResourceKey<net.minecraft.world.level.dimension.LevelStem>;
+              NETHER: net.minecraft.resources.ResourceKey<net.minecraft.world.level.dimension.LevelStem>;
+              END: net.minecraft.resources.ResourceKey<net.minecraft.world.level.dimension.LevelStem>;
+              new(type: net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>, generator: net.minecraft.world.level.chunk.ChunkGenerator): net.minecraft.world.level.dimension.LevelStem;
             }
-            const GameEvent$Context: {
-              new(sourceEntity: net.minecraft.world.entity.Entity | null | undefined, affectedState: net.minecraft.world.level.block.state.BlockState | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
-              of(sourceEntity: net.minecraft.world.entity.Entity | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
-              of(state: net.minecraft.world.level.block.state.BlockState | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
-              of(sourceEntity: net.minecraft.world.entity.Entity | null | undefined, state: net.minecraft.world.level.block.state.BlockState | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
-            }
-            interface GameEvent$Context extends java.lang.Record { 
-              sourceEntity(): net.minecraft.world.entity.Entity | null | undefined;
-              affectedState(): net.minecraft.world.level.block.state.BlockState | null | undefined;
-            }
-            const GameEventListener$DeliveryMode: {
-              UNSPECIFIED: net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
-              BY_DISTANCE: net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
-              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode>;
-              values(): Array<net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode>;
-              valueOf(value: string): net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
-            }
-            interface GameEventListener$DeliveryMode extends kotlin.Enum<net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode> { 
-            }
-            interface GameEventListener$Provider<T> { 
-              getListener(): T;
-            }
-            interface GameEventListenerRegistry$ListenerVisitor { 
-              visit(listener: net.minecraft.world.level.gameevent.GameEventListener, position: net.minecraft.world.phys.Vec3): void;
-              (listener: net.minecraft.world.level.gameevent.GameEventListener, position: net.minecraft.world.phys.Vec3): void;
+            interface LevelStem extends java.lang.Record { 
+              type(): net.minecraft.core.Holder<net.minecraft.world.level.dimension.DimensionType>;
+              generator(): net.minecraft.world.level.chunk.ChunkGenerator;
             }
           }
           namespace border {
@@ -30682,6 +30587,69 @@ declare global {
               size(): number;
               lerpTime(): number;
               lerpTarget(): number;
+            }
+          }
+          namespace gameevent {
+            const GameEventListenerRegistry: {
+              NOOP: net.minecraft.world.level.gameevent.GameEventListenerRegistry;
+            }
+            interface GameEventListenerRegistry { 
+              isEmpty(): boolean;
+              register(listener: net.minecraft.world.level.gameevent.GameEventListener): void;
+              unregister(listener: net.minecraft.world.level.gameevent.GameEventListener): void;
+              visitInRangeListeners(event: net.minecraft.core.Holder<unknown>, sourcePosition: net.minecraft.world.phys.Vec3, context: net.minecraft.world.level.gameevent.GameEvent$Context, action: net.minecraft.world.level.gameevent.GameEventListenerRegistry$ListenerVisitor): boolean;
+            }
+            const GameEventListener: {
+              DeliveryMode: typeof net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+            }
+            interface GameEventListener { 
+              getListenerSource(): net.minecraft.world.level.gameevent.PositionSource;
+              getListenerRadius(): number;
+              handleGameEvent(level: net.minecraft.server.level.ServerLevel, event: net.minecraft.core.Holder<unknown>, context: net.minecraft.world.level.gameevent.GameEvent$Context, sourcePosition: net.minecraft.world.phys.Vec3): boolean;
+              getDeliveryMode(): net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+            }
+            const PositionSource: {
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.gameevent.PositionSource>;
+              STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.level.gameevent.PositionSource>;
+            }
+            interface PositionSource { 
+              getPosition(level: net.minecraft.world.level.Level): java.util.Optional<net.minecraft.world.phys.Vec3>;
+              getType(): net.minecraft.world.level.gameevent.PositionSourceType<net.minecraft.world.level.gameevent.PositionSource>;
+            }
+            const PositionSourceType: {
+              BLOCK: net.minecraft.world.level.gameevent.PositionSourceType<unknown>;
+              ENTITY: net.minecraft.world.level.gameevent.PositionSourceType<unknown>;
+              register<S, T>(name: string, serializer: S): S;
+            }
+            interface PositionSourceType<T> { 
+              codec(): com.mojang.serialization.MapCodec<T>;
+              streamCodec(): net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, T>;
+            }
+            const GameEvent$Context: {
+              new(sourceEntity: net.minecraft.world.entity.Entity | null | undefined, affectedState: net.minecraft.world.level.block.state.BlockState | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
+              of(sourceEntity: net.minecraft.world.entity.Entity | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
+              of(state: net.minecraft.world.level.block.state.BlockState | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
+              of(sourceEntity: net.minecraft.world.entity.Entity | null | undefined, state: net.minecraft.world.level.block.state.BlockState | null | undefined): net.minecraft.world.level.gameevent.GameEvent$Context;
+            }
+            interface GameEvent$Context extends java.lang.Record { 
+              sourceEntity(): net.minecraft.world.entity.Entity | null | undefined;
+              affectedState(): net.minecraft.world.level.block.state.BlockState | null | undefined;
+            }
+            const GameEventListener$DeliveryMode: {
+              UNSPECIFIED: net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+              BY_DISTANCE: net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+              entries: kotlin.enums.EnumEntries<net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode>;
+              values(): Array<net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode>;
+              valueOf(value: string): net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode;
+            }
+            interface GameEventListener$DeliveryMode extends kotlin.Enum<net.minecraft.world.level.gameevent.GameEventListener$DeliveryMode> { 
+            }
+            interface GameEventListener$Provider<T> { 
+              getListener(): T;
+            }
+            interface GameEventListenerRegistry$ListenerVisitor { 
+              visit(listener: net.minecraft.world.level.gameevent.GameEventListener, position: net.minecraft.world.phys.Vec3): void;
+              (listener: net.minecraft.world.level.gameevent.GameEventListener, position: net.minecraft.world.phys.Vec3): void;
             }
           }
           namespace gamerules {
@@ -30940,6 +30908,7 @@ declare global {
             NETHER: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>;
             END: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>;
             MAX_LEVEL_SIZE: number;
+            ACROSS_THE_WHOLE_WORLD: number;
             LONG_PARTICLE_CLIP_RANGE: number;
             SHORT_PARTICLE_CLIP_RANGE: number;
             MAX_BRIGHTNESS: number;
@@ -30953,6 +30922,7 @@ declare global {
             dimension(): net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>;
             damageSources(): net.minecraft.world.damagesource.DamageSources;
             palettedContainerFactory(): net.minecraft.world.level.chunk.PalettedContainerFactory;
+            getNextEntityId(): number;
             isInWorldBounds(pos: net.minecraft.core.BlockPos): boolean;
             isInValidBounds(pos: net.minecraft.core.BlockPos): boolean;
             getChunkAt(pos: net.minecraft.core.BlockPos): net.minecraft.world.level.chunk.LevelChunk;
@@ -31154,7 +31124,6 @@ declare global {
             CODEC: com.mojang.serialization.Codec<net.minecraft.world.level.ChunkPos>;
             STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.world.level.ChunkPos>;
             INVALID_CHUNK_POS: number;
-            MAX_COORDINATE_VALUE: number;
             ZERO: net.minecraft.world.level.ChunkPos;
             REGION_SIZE: number;
             REGION_MAX_INDEX: number;
@@ -31166,6 +31135,7 @@ declare global {
             isValid(x: number, z: number): boolean;
             pack(x: number, z: number): number;
             pack(pos: net.minecraft.core.BlockPos): number;
+            fromSectionNode(sectionNode: number): number;
             getX(pos: number): number;
             getZ(pos: number): number;
             hash(x: number, z: number): number;
@@ -31294,6 +31264,7 @@ declare global {
           }
           interface LevelSettings extends java.lang.Record { 
             withGameType(gameType: net.minecraft.world.level.GameType): net.minecraft.world.level.LevelSettings;
+            withAllowCommands(allowCommands: boolean): net.minecraft.world.level.LevelSettings;
             withDifficulty(difficulty: net.minecraft.world.Difficulty): net.minecraft.world.level.LevelSettings;
             withDifficultyLock(locked: boolean): net.minecraft.world.level.LevelSettings;
             withDataConfiguration(dataConfiguration: net.minecraft.world.level.WorldDataConfiguration): net.minecraft.world.level.LevelSettings;
@@ -31314,15 +31285,39 @@ declare global {
             hardcore(): boolean;
             locked(): boolean;
           }
+          interface ServerLevelAccessor extends net.minecraft.world.level.LevelAccessor { 
+            getLevel(): net.minecraft.server.level.ServerLevel;
+            getCurrentDifficultyAt(pos: net.minecraft.core.BlockPos): net.minecraft.world.DifficultyInstance;
+            addFreshEntityWithPassengers(entity: net.minecraft.world.entity.Entity): void;
+          }
           interface WorldGenLevel extends net.minecraft.world.level.ServerLevelAccessor { 
             getSeed(): number;
             ensureCanWrite(pos: net.minecraft.core.BlockPos): boolean;
             setCurrentlyGenerating(currentlyGenerating: unknown): void;
           }
-          interface ServerLevelAccessor extends net.minecraft.world.level.LevelAccessor { 
-            getLevel(): net.minecraft.server.level.ServerLevel;
-            getCurrentDifficultyAt(pos: net.minecraft.core.BlockPos): net.minecraft.world.DifficultyInstance;
-            addFreshEntityWithPassengers(entity: net.minecraft.world.entity.Entity): void;
+          const StructureManager: {
+            new(level: net.minecraft.world.level.LevelAccessor, worldOptions: net.minecraft.world.level.levelgen.WorldOptions, structureCheck: net.minecraft.world.level.levelgen.structure.StructureCheck): net.minecraft.world.level.StructureManager;
+          }
+          interface StructureManager { 
+            forWorldGenRegion(region: net.minecraft.server.level.WorldGenRegion): net.minecraft.world.level.StructureManager;
+            startsForStructure(pos: net.minecraft.world.level.ChunkPos, matcher: unknown): Array<net.minecraft.world.level.levelgen.structure.StructureStart>;
+            startsForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure): Array<net.minecraft.world.level.levelgen.structure.StructureStart>;
+            fillStartsForStructure(structure: net.minecraft.world.level.levelgen.structure.Structure, referencesForStructure: it.unimi.dsi.fastutil.longs.LongSet, consumer: unknown): void;
+            getStartForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure, chunk: net.minecraft.world.level.chunk.StructureAccess): net.minecraft.world.level.levelgen.structure.StructureStart | null | undefined;
+            setStartForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure, start: net.minecraft.world.level.levelgen.structure.StructureStart, chunk: net.minecraft.world.level.chunk.StructureAccess): void;
+            addReferenceForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure, reference: number, chunk: net.minecraft.world.level.chunk.StructureAccess): void;
+            shouldGenerateStructures(): boolean;
+            getStructureAt(blockPos: net.minecraft.core.BlockPos, structure: net.minecraft.world.level.levelgen.structure.Structure): net.minecraft.world.level.levelgen.structure.StructureStart;
+            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, structureTag: net.minecraft.tags.TagKey<net.minecraft.world.level.levelgen.structure.Structure>): net.minecraft.world.level.levelgen.structure.StructureStart;
+            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, structures: net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.structure.Structure>): net.minecraft.world.level.levelgen.structure.StructureStart;
+            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, predicate: unknown): net.minecraft.world.level.levelgen.structure.StructureStart;
+            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, structure: net.minecraft.world.level.levelgen.structure.Structure): net.minecraft.world.level.levelgen.structure.StructureStart;
+            structureHasPieceAt(blockPos: net.minecraft.core.BlockPos, structureStart: net.minecraft.world.level.levelgen.structure.StructureStart): boolean;
+            hasAnyStructureAt(pos: net.minecraft.core.BlockPos): boolean;
+            getAllStructuresAt(pos: net.minecraft.core.BlockPos): Map<net.minecraft.world.level.levelgen.structure.Structure, it.unimi.dsi.fastutil.longs.LongSet>;
+            checkStructurePresence(pos: net.minecraft.world.level.ChunkPos, structure: net.minecraft.world.level.levelgen.structure.Structure, placement: net.minecraft.world.level.levelgen.structure.placement.StructurePlacement, createReference: boolean): net.minecraft.world.level.levelgen.structure.StructureCheckResult;
+            addReference(start: net.minecraft.world.level.levelgen.structure.StructureStart): void;
+            registryAccess(): net.minecraft.core.RegistryAccess;
           }
           const CardinalLighting$Type: {
             DEFAULT: net.minecraft.world.level.CardinalLighting$Type;
@@ -31349,35 +31344,6 @@ declare global {
             south(): number;
             west(): number;
             east(): number;
-          }
-          const StructureManager: {
-            new(level: net.minecraft.world.level.LevelAccessor, worldOptions: net.minecraft.world.level.levelgen.WorldOptions, structureCheck: net.minecraft.world.level.levelgen.structure.StructureCheck): net.minecraft.world.level.StructureManager;
-          }
-          interface StructureManager { 
-            forWorldGenRegion(region: net.minecraft.server.level.WorldGenRegion): net.minecraft.world.level.StructureManager;
-            startsForStructure(pos: net.minecraft.world.level.ChunkPos, matcher: unknown): Array<net.minecraft.world.level.levelgen.structure.StructureStart>;
-            startsForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure): Array<net.minecraft.world.level.levelgen.structure.StructureStart>;
-            fillStartsForStructure(structure: net.minecraft.world.level.levelgen.structure.Structure, referencesForStructure: it.unimi.dsi.fastutil.longs.LongSet, consumer: unknown): void;
-            getStartForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure, chunk: net.minecraft.world.level.chunk.StructureAccess): net.minecraft.world.level.levelgen.structure.StructureStart | null | undefined;
-            setStartForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure, start: net.minecraft.world.level.levelgen.structure.StructureStart, chunk: net.minecraft.world.level.chunk.StructureAccess): void;
-            addReferenceForStructure(pos: net.minecraft.core.SectionPos, structure: net.minecraft.world.level.levelgen.structure.Structure, reference: number, chunk: net.minecraft.world.level.chunk.StructureAccess): void;
-            shouldGenerateStructures(): boolean;
-            getStructureAt(blockPos: net.minecraft.core.BlockPos, structure: net.minecraft.world.level.levelgen.structure.Structure): net.minecraft.world.level.levelgen.structure.StructureStart;
-            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, structureTag: net.minecraft.tags.TagKey<net.minecraft.world.level.levelgen.structure.Structure>): net.minecraft.world.level.levelgen.structure.StructureStart;
-            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, structures: net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.structure.Structure>): net.minecraft.world.level.levelgen.structure.StructureStart;
-            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, predicate: unknown): net.minecraft.world.level.levelgen.structure.StructureStart;
-            getStructureWithPieceAt(blockPos: net.minecraft.core.BlockPos, structure: net.minecraft.world.level.levelgen.structure.Structure): net.minecraft.world.level.levelgen.structure.StructureStart;
-            structureHasPieceAt(blockPos: net.minecraft.core.BlockPos, structureStart: net.minecraft.world.level.levelgen.structure.StructureStart): boolean;
-            hasAnyStructureAt(pos: net.minecraft.core.BlockPos): boolean;
-            getAllStructuresAt(pos: net.minecraft.core.BlockPos): Map<net.minecraft.world.level.levelgen.structure.Structure, it.unimi.dsi.fastutil.longs.LongSet>;
-            checkStructurePresence(pos: net.minecraft.world.level.ChunkPos, structure: net.minecraft.world.level.levelgen.structure.Structure, placement: net.minecraft.world.level.levelgen.structure.placement.StructurePlacement, createReference: boolean): net.minecraft.world.level.levelgen.structure.StructureCheckResult;
-            addReference(start: net.minecraft.world.level.levelgen.structure.StructureStart): void;
-            registryAccess(): net.minecraft.core.RegistryAccess;
-          }
-          const NoiseColumn: {
-            new(minY: number, column: Array<net.minecraft.world.level.block.state.BlockState>): net.minecraft.world.level.NoiseColumn;
-          }
-          interface NoiseColumn extends net.minecraft.world.level.chunk.BlockColumn { 
           }
           const LightLayer: {
             SKY: net.minecraft.world.level.LightLayer;
@@ -31422,6 +31388,11 @@ declare global {
           interface TicketStorage$TicketPredicate { 
             test(ticket: net.minecraft.server.level.Ticket, chunkPos: number): boolean;
           }
+          const NoiseColumn: {
+            new(minY: number, column: Array<net.minecraft.world.level.block.state.BlockState>): net.minecraft.world.level.NoiseColumn;
+          }
+          interface NoiseColumn extends net.minecraft.world.level.chunk.BlockColumn { 
+          }
           interface CollisionGetter extends net.minecraft.world.level.BlockGetter { 
             getWorldBorder(): net.minecraft.world.level.border.WorldBorder;
             getChunkForCollisions(chunkX: number, chunkZ: number): net.minecraft.world.level.BlockGetter | null | undefined;
@@ -31441,6 +31412,7 @@ declare global {
             getPreMoveCollisions(source: net.minecraft.world.entity.Entity | null | undefined, box: net.minecraft.world.phys.AABB, oldPos: net.minecraft.world.phys.Vec3): kotlin.collections.MutableIterable<net.minecraft.world.phys.shapes.VoxelShape>;
             getBlockCollisions(source: net.minecraft.world.entity.Entity | null | undefined, box: net.minecraft.world.phys.AABB): kotlin.collections.MutableIterable<net.minecraft.world.phys.shapes.VoxelShape>;
             getBlockAndLiquidCollisions(source: net.minecraft.world.entity.Entity | null | undefined, box: net.minecraft.world.phys.AABB): kotlin.collections.MutableIterable<net.minecraft.world.phys.shapes.VoxelShape>;
+            getBlockCollisionsFromContext(source: net.minecraft.world.phys.shapes.CollisionContext, box: net.minecraft.world.phys.AABB): kotlin.collections.MutableIterable<net.minecraft.world.phys.shapes.VoxelShape>;
             clipIncludingBorder(c: net.minecraft.world.level.ClipContext): net.minecraft.world.phys.BlockHitResult;
             collidesWithSuffocatingBlock(source: net.minecraft.world.entity.Entity | null | undefined, box: net.minecraft.world.phys.AABB): boolean;
             findSupportingBlock(source: net.minecraft.world.entity.Entity, box: net.minecraft.world.phys.AABB): java.util.Optional<net.minecraft.core.BlockPos>;
@@ -31532,6 +31504,7 @@ declare global {
             getControlInputSignal(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction, onlyDiodes: boolean): number;
             hasSignal(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): boolean;
             getSignal(pos: net.minecraft.core.BlockPos, direction: net.minecraft.core.Direction): number;
+            getBestOwnOrNeighbourSignal(pos: net.minecraft.core.BlockPos): number;
             hasNeighborSignal(blockPos: net.minecraft.core.BlockPos): boolean;
             getBestNeighborSignal(pos: net.minecraft.core.BlockPos): number;
           }
@@ -31702,6 +31675,7 @@ declare global {
               emptyWithFluidCollisions(): net.minecraft.world.phys.shapes.CollisionContext;
               of(entity: net.minecraft.world.entity.Entity): net.minecraft.world.phys.shapes.CollisionContext;
               of(entity: net.minecraft.world.entity.Entity, alwaysCollideWithFluid: boolean): net.minecraft.world.phys.shapes.CollisionContext;
+              positionContext(y: number): net.minecraft.world.phys.shapes.CollisionContext;
               placementContext(player: net.minecraft.world.entity.player.Player | null | undefined): net.minecraft.world.phys.shapes.CollisionContext;
               withPosition(entity: net.minecraft.world.entity.Entity | null | undefined, position: number): net.minecraft.world.phys.shapes.CollisionContext;
             }
@@ -31803,6 +31777,7 @@ declare global {
             lengthSquared(): number;
             distanceToSqr(p: net.minecraft.world.phys.Vec2): number;
             negated(): net.minecraft.world.phys.Vec2;
+            rotate(angleRadians: number): net.minecraft.world.phys.Vec2;
           }
           const AABB: {
             Builder: typeof net.minecraft.world.phys.AABB$Builder;
@@ -31940,8 +31915,8 @@ declare global {
               ARMOR: net.minecraft.world.scores.criteria.ObjectiveCriteria;
               EXPERIENCE: net.minecraft.world.scores.criteria.ObjectiveCriteria;
               LEVEL: net.minecraft.world.scores.criteria.ObjectiveCriteria;
-              TEAM_KILL: Array<net.minecraft.world.scores.criteria.ObjectiveCriteria>;
-              KILLED_BY_TEAM: Array<net.minecraft.world.scores.criteria.ObjectiveCriteria>;
+              TEAM_KILL: Map<unknown, net.minecraft.world.scores.criteria.ObjectiveCriteria>;
+              KILLED_BY_TEAM: Map<unknown, net.minecraft.world.scores.criteria.ObjectiveCriteria>;
               registerCustom(name: string, readOnly: boolean, renderType: net.minecraft.world.scores.criteria.ObjectiveCriteria$RenderType): net.minecraft.world.scores.criteria.ObjectiveCriteria;
               registerCustom(name: string): net.minecraft.world.scores.criteria.ObjectiveCriteria;
               getCustomCriteriaNames(): Set<string>;
@@ -32038,9 +32013,6 @@ declare global {
             display(display: net.minecraft.network.chat.Component | null | undefined): void;
             numberFormatOverride(numberFormat: net.minecraft.network.chat.numbers.NumberFormat | null | undefined): void;
           }
-          const ReadOnlyScoreInfo: {
-            safeFormatValue(scoreInfo: net.minecraft.world.scores.ReadOnlyScoreInfo | null | undefined, defaultFormat: net.minecraft.network.chat.numbers.NumberFormat): net.minecraft.network.chat.MutableComponent;
-          }
           interface ReadOnlyScoreInfo { 
             value(): number;
             isLocked(): boolean;
@@ -32070,7 +32042,6 @@ declare global {
             CODEC: net.minecraft.util.StringRepresentable$EnumCodec<net.minecraft.world.scores.DisplaySlot>;
             BY_ID: unknown;
             entries: kotlin.enums.EnumEntries<net.minecraft.world.scores.DisplaySlot>;
-            teamColorToSlot(color: net.minecraft.ChatFormatting): net.minecraft.world.scores.DisplaySlot | null | undefined;
             values(): Array<net.minecraft.world.scores.DisplaySlot>;
             valueOf(value: string): net.minecraft.world.scores.DisplaySlot;
           }
@@ -32099,7 +32070,7 @@ declare global {
             setCollisionRule(collisionRule: net.minecraft.world.scores.Team$CollisionRule): void;
             packOptions(): number;
             unpackOptions(options: number): void;
-            setColor(color: net.minecraft.ChatFormatting): void;
+            setColor(color: java.util.Optional<unknown>): void;
           }
           const Team: {
             CollisionRule: typeof net.minecraft.world.scores.Team$CollisionRule;
@@ -32113,7 +32084,7 @@ declare global {
             canSeeFriendlyInvisibles(): boolean;
             isAllowFriendlyFire(): boolean;
             getNameTagVisibility(): net.minecraft.world.scores.Team$Visibility;
-            getColor(): net.minecraft.ChatFormatting;
+            getColor(): java.util.Optional<unknown>;
             getPlayers(): Array<string>;
             getDeathMessageVisibility(): net.minecraft.world.scores.Team$Visibility;
             getCollisionRule(): net.minecraft.world.scores.Team$CollisionRule;
@@ -32152,12 +32123,12 @@ declare global {
           }
           const PlayerTeam$Packed: {
             CODEC: com.mojang.serialization.Codec<net.minecraft.world.scores.PlayerTeam$Packed>;
-            new(name: string, displayName: java.util.Optional<net.minecraft.network.chat.Component>, color: java.util.Optional<net.minecraft.ChatFormatting>, allowFriendlyFire: boolean, seeFriendlyInvisibles: boolean, memberNamePrefix: net.minecraft.network.chat.Component, memberNameSuffix: net.minecraft.network.chat.Component, nameTagVisibility: net.minecraft.world.scores.Team$Visibility, deathMessageVisibility: net.minecraft.world.scores.Team$Visibility, collisionRule: net.minecraft.world.scores.Team$CollisionRule, players: Array<string>): net.minecraft.world.scores.PlayerTeam$Packed;
+            new(name: string, displayName: java.util.Optional<net.minecraft.network.chat.Component>, color: java.util.Optional<unknown>, allowFriendlyFire: boolean, seeFriendlyInvisibles: boolean, memberNamePrefix: net.minecraft.network.chat.Component, memberNameSuffix: net.minecraft.network.chat.Component, nameTagVisibility: net.minecraft.world.scores.Team$Visibility, deathMessageVisibility: net.minecraft.world.scores.Team$Visibility, collisionRule: net.minecraft.world.scores.Team$CollisionRule, players: Array<string>): net.minecraft.world.scores.PlayerTeam$Packed;
           }
           interface PlayerTeam$Packed extends java.lang.Record { 
             name(): string;
             displayName(): java.util.Optional<net.minecraft.network.chat.Component>;
-            color(): java.util.Optional<net.minecraft.ChatFormatting>;
+            color(): java.util.Optional<unknown>;
             allowFriendlyFire(): boolean;
             seeFriendlyInvisibles(): boolean;
             memberNamePrefix(): net.minecraft.network.chat.Component;
@@ -32166,6 +32137,11 @@ declare global {
             deathMessageVisibility(): net.minecraft.world.scores.Team$Visibility;
             collisionRule(): net.minecraft.world.scores.Team$CollisionRule;
             players(): Array<string>;
+          }
+          const PlayerTeam$OptionFlags: {
+            new(): net.minecraft.world.scores.PlayerTeam$OptionFlags;
+          }
+          interface PlayerTeam$OptionFlags extends kotlin.Annotation { 
           }
           const Score: {
             Packed: typeof net.minecraft.world.scores.Score$Packed;
@@ -32249,7 +32225,6 @@ declare global {
           }
           const Waypoint: {
             Icon: typeof net.minecraft.world.waypoints.Waypoint$Icon;
-            MAX_RANGE: number;
             WAYPOINT_TRANSMIT_RANGE_HIDE_MODIFIER: net.minecraft.world.entity.ai.attributes.AttributeModifier;
             addHideAttribute(properties: net.minecraft.world.item.Item$Properties): net.minecraft.world.item.Item$Properties;
           }
@@ -32624,37 +32599,28 @@ declare global {
               slots(): net.minecraft.world.item.slot.SlotCollection;
             }
           }
-          namespace alchemy {
-            const PotionBrewing: {
-              Builder: typeof net.minecraft.world.item.alchemy.PotionBrewing$Builder;
-              BREWING_TIME_SECONDS: number;
-              EMPTY: net.minecraft.world.item.alchemy.PotionBrewing;
-              bootstrap(enabledFeatures: net.minecraft.world.flag.FeatureFlagSet): net.minecraft.world.item.alchemy.PotionBrewing;
-              addVanillaMixes(builder: net.minecraft.world.item.alchemy.PotionBrewing$Builder): void;
-            }
-            interface PotionBrewing { 
-              isIngredient(ingredient: net.minecraft.world.item.ItemStack): boolean;
-              isContainerIngredient(ingredient: net.minecraft.world.item.ItemStack): boolean;
-              isPotionIngredient(ingredient: net.minecraft.world.item.ItemStack): boolean;
-              isBrewablePotion(potion: net.minecraft.core.Holder<unknown>): boolean;
-              hasMix(source: net.minecraft.world.item.ItemStack, ingredient: net.minecraft.world.item.ItemStack): boolean;
-              hasContainerMix(source: net.minecraft.world.item.ItemStack, ingredient: net.minecraft.world.item.ItemStack): boolean;
-              hasPotionMix(source: net.minecraft.world.item.ItemStack, ingredient: net.minecraft.world.item.ItemStack): boolean;
-              mix(ingredient: net.minecraft.world.item.ItemStack, source: net.minecraft.world.item.ItemStack): net.minecraft.world.item.ItemStack;
-            }
-            const PotionBrewing$Builder: {
-              new(enabledFeatures: net.minecraft.world.flag.FeatureFlagSet): net.minecraft.world.item.alchemy.PotionBrewing$Builder;
-            }
-            interface PotionBrewing$Builder extends net.fabricmc.fabric.api.registry.FabricPotionBrewingBuilder { 
-              addContainerRecipe(from: net.minecraft.world.item.Item, ingredient: net.minecraft.world.item.Item, to: net.minecraft.world.item.Item): void;
-              addContainer(item: net.minecraft.world.item.Item): void;
-              addMix(from: net.minecraft.core.Holder<unknown>, ingredient: net.minecraft.world.item.Item, to: net.minecraft.core.Holder<unknown>): void;
-              addStartMix(ingredient: net.minecraft.world.item.Item, potion: net.minecraft.core.Holder<unknown>): void;
-              build(): net.minecraft.world.item.alchemy.PotionBrewing;
-            }
-          }
           namespace crafting {
             namespace display {
+              const RecipeDisplayId: {
+                STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.world.item.crafting.display.RecipeDisplayId>;
+                new(index: number): net.minecraft.world.item.crafting.display.RecipeDisplayId;
+              }
+              interface RecipeDisplayId extends java.lang.Record { 
+                index(): number;
+              }
+              const RecipeDisplayEntry: {
+                STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.item.crafting.display.RecipeDisplayEntry>;
+                new(id: net.minecraft.world.item.crafting.display.RecipeDisplayId, display: net.minecraft.world.item.crafting.display.RecipeDisplay, group: java.util.OptionalInt, category: net.minecraft.world.item.crafting.RecipeBookCategory, craftingRequirements: java.util.Optional<Array<net.minecraft.world.item.crafting.Ingredient>>): net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
+              }
+              interface RecipeDisplayEntry extends java.lang.Record { 
+                resultItems(context: net.minecraft.util.context.ContextMap): Array<net.minecraft.world.item.ItemStack>;
+                canCraft(providedContents: net.minecraft.world.entity.player.StackedItemContents): boolean;
+                id(): net.minecraft.world.item.crafting.display.RecipeDisplayId;
+                display(): net.minecraft.world.item.crafting.display.RecipeDisplay;
+                group(): java.util.OptionalInt;
+                category(): net.minecraft.world.item.crafting.RecipeBookCategory;
+                craftingRequirements(): java.util.Optional<Array<net.minecraft.world.item.crafting.Ingredient>>;
+              }
               const SlotDisplay: {
                 ItemStackContentsFactory: typeof net.minecraft.world.item.crafting.display.SlotDisplay$ItemStackContentsFactory;
                 WithRemainder: typeof net.minecraft.world.item.crafting.display.SlotDisplay$WithRemainder;
@@ -32805,26 +32771,6 @@ declare global {
               }
               interface SlotDisplay$Empty extends net.minecraft.world.item.crafting.display.SlotDisplay { 
               }
-              const RecipeDisplayId: {
-                STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.world.item.crafting.display.RecipeDisplayId>;
-                new(index: number): net.minecraft.world.item.crafting.display.RecipeDisplayId;
-              }
-              interface RecipeDisplayId extends java.lang.Record { 
-                index(): number;
-              }
-              const RecipeDisplayEntry: {
-                STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.item.crafting.display.RecipeDisplayEntry>;
-                new(id: net.minecraft.world.item.crafting.display.RecipeDisplayId, display: net.minecraft.world.item.crafting.display.RecipeDisplay, group: java.util.OptionalInt, category: net.minecraft.world.item.crafting.RecipeBookCategory, craftingRequirements: java.util.Optional<Array<net.minecraft.world.item.crafting.Ingredient>>): net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
-              }
-              interface RecipeDisplayEntry extends java.lang.Record { 
-                resultItems(context: net.minecraft.util.context.ContextMap): Array<net.minecraft.world.item.ItemStack>;
-                canCraft(providedContents: net.minecraft.world.entity.player.StackedItemContents): boolean;
-                id(): net.minecraft.world.item.crafting.display.RecipeDisplayId;
-                display(): net.minecraft.world.item.crafting.display.RecipeDisplay;
-                group(): java.util.OptionalInt;
-                category(): net.minecraft.world.item.crafting.RecipeBookCategory;
-                craftingRequirements(): java.util.Optional<Array<net.minecraft.world.item.crafting.Ingredient>>;
-              }
               const RecipeDisplay: {
                 Type: typeof net.minecraft.world.item.crafting.display.RecipeDisplay$Type;
                 CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.display.RecipeDisplay>;
@@ -32843,23 +32789,6 @@ declare global {
                 codec(): com.mojang.serialization.MapCodec<T>;
                 streamCodec(): net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, T>;
               }
-            }
-            const Ingredient: {
-              CONTENTS_STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.item.crafting.Ingredient>;
-              OPTIONAL_CONTENTS_STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, java.util.Optional<net.minecraft.world.item.crafting.Ingredient>>;
-              NON_AIR_HOLDER_SET_CODEC: com.mojang.serialization.Codec<net.minecraft.core.HolderSet<net.minecraft.world.item.Item>>;
-              CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient>;
-              testOptionalIngredient(ingredient: java.util.Optional<net.minecraft.world.item.crafting.Ingredient>, stack: net.minecraft.world.item.ItemStack): boolean;
-              of(itemLike: net.minecraft.world.level.ItemLike): net.minecraft.world.item.crafting.Ingredient;
-              of(items: net.minecraft.world.level.ItemLike): net.minecraft.world.item.crafting.Ingredient;
-              of(stream: java.util.stream.Stream<net.minecraft.world.level.ItemLike>): net.minecraft.world.item.crafting.Ingredient;
-              of(tag: net.minecraft.core.HolderSet<net.minecraft.world.item.Item>): net.minecraft.world.item.crafting.Ingredient;
-              optionalIngredientToDisplay(ingredient: java.util.Optional<net.minecraft.world.item.crafting.Ingredient>): net.minecraft.world.item.crafting.display.SlotDisplay;
-            }
-            interface Ingredient extends net.minecraft.world.entity.player.StackedContents$IngredientInfo<net.minecraft.core.Holder<net.minecraft.world.item.Item>>, net.fabricmc.fabric.api.recipe.v1.ingredient.FabricIngredient { 
-              items(): java.util.stream.Stream<net.minecraft.core.Holder<net.minecraft.world.item.Item>>;
-              isEmpty(): boolean;
-              display(): net.minecraft.world.item.crafting.display.SlotDisplay;
             }
             const RecipeManager: {
               ServerDisplayInfo: typeof net.minecraft.world.item.crafting.RecipeManager$ServerDisplayInfo;
@@ -32914,6 +32843,7 @@ declare global {
               CAMPFIRE_INPUT: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.RecipePropertySet>;
               STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.item.crafting.RecipePropertySet>;
               EMPTY: net.minecraft.world.item.crafting.RecipePropertySet;
+              create(ingredients: Array<net.minecraft.world.item.crafting.Ingredient>): net.minecraft.world.item.crafting.RecipePropertySet;
             }
             interface RecipePropertySet { 
               test(itemStack: net.minecraft.world.item.ItemStack): boolean;
@@ -32984,6 +32914,23 @@ declare global {
               slotsToIngredientIndex(): it.unimi.dsi.fastutil.ints.IntList;
               isImpossibleToPlace(): boolean;
             }
+            const Ingredient: {
+              CONTENTS_STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.world.item.crafting.Ingredient>;
+              OPTIONAL_CONTENTS_STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, java.util.Optional<net.minecraft.world.item.crafting.Ingredient>>;
+              NON_AIR_HOLDER_SET_CODEC: com.mojang.serialization.Codec<net.minecraft.core.HolderSet<net.minecraft.world.item.Item>>;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient>;
+              testOptionalIngredient(ingredient: java.util.Optional<net.minecraft.world.item.crafting.Ingredient>, stack: net.minecraft.world.item.ItemStack): boolean;
+              of(itemLike: net.minecraft.world.level.ItemLike): net.minecraft.world.item.crafting.Ingredient;
+              of(items: net.minecraft.world.level.ItemLike): net.minecraft.world.item.crafting.Ingredient;
+              of(stream: java.util.stream.Stream<net.minecraft.world.level.ItemLike>): net.minecraft.world.item.crafting.Ingredient;
+              of(tag: net.minecraft.core.HolderSet<net.minecraft.world.item.Item>): net.minecraft.world.item.crafting.Ingredient;
+              optionalIngredientToDisplay(ingredient: java.util.Optional<net.minecraft.world.item.crafting.Ingredient>): net.minecraft.world.item.crafting.display.SlotDisplay;
+            }
+            interface Ingredient extends net.minecraft.world.entity.player.StackedContents$IngredientInfo<net.minecraft.core.Holder<net.minecraft.world.item.Item>>, net.fabricmc.fabric.api.recipe.v1.ingredient.FabricIngredient { 
+              items(): java.util.stream.Stream<net.minecraft.core.Holder<net.minecraft.world.item.Item>>;
+              isEmpty(): boolean;
+              display(): net.minecraft.world.item.crafting.display.SlotDisplay;
+            }
             const RecipeBookCategory: {
               new(): net.minecraft.world.item.crafting.RecipeBookCategory;
             }
@@ -33046,6 +32993,35 @@ declare global {
               input(): net.minecraft.world.item.crafting.CraftingInput;
               left(): number;
               top(): number;
+            }
+          }
+          namespace alchemy {
+            const PotionBrewing: {
+              Builder: typeof net.minecraft.world.item.alchemy.PotionBrewing$Builder;
+              BREWING_TIME_SECONDS: number;
+              EMPTY: net.minecraft.world.item.alchemy.PotionBrewing;
+              bootstrap(enabledFeatures: net.minecraft.world.flag.FeatureFlagSet): net.minecraft.world.item.alchemy.PotionBrewing;
+              addVanillaMixes(builder: net.minecraft.world.item.alchemy.PotionBrewing$Builder): void;
+            }
+            interface PotionBrewing { 
+              isIngredient(ingredient: net.minecraft.world.item.ItemStack): boolean;
+              isContainerIngredient(ingredient: net.minecraft.world.item.ItemStack): boolean;
+              isPotionIngredient(ingredient: net.minecraft.world.item.ItemStack): boolean;
+              isBrewablePotion(potion: net.minecraft.core.Holder<unknown>): boolean;
+              hasMix(source: net.minecraft.world.item.ItemStack, ingredient: net.minecraft.world.item.ItemStack): boolean;
+              hasContainerMix(source: net.minecraft.world.item.ItemStack, ingredient: net.minecraft.world.item.ItemStack): boolean;
+              hasPotionMix(source: net.minecraft.world.item.ItemStack, ingredient: net.minecraft.world.item.ItemStack): boolean;
+              mix(ingredient: net.minecraft.world.item.ItemStack, source: net.minecraft.world.item.ItemStack): net.minecraft.world.item.ItemStack;
+            }
+            const PotionBrewing$Builder: {
+              new(enabledFeatures: net.minecraft.world.flag.FeatureFlagSet): net.minecraft.world.item.alchemy.PotionBrewing$Builder;
+            }
+            interface PotionBrewing$Builder extends net.fabricmc.fabric.api.registry.FabricPotionBrewingBuilder { 
+              addContainerRecipe(from: net.minecraft.world.item.Item, ingredient: net.minecraft.world.item.Item, to: net.minecraft.world.item.Item): void;
+              addContainer(item: net.minecraft.world.item.Item): void;
+              addMix(from: net.minecraft.core.Holder<unknown>, ingredient: net.minecraft.world.item.Item, to: net.minecraft.core.Holder<unknown>): void;
+              addStartMix(ingredient: net.minecraft.world.item.Item, potion: net.minecraft.core.Holder<unknown>): void;
+              build(): net.minecraft.world.item.alchemy.PotionBrewing;
             }
           }
           namespace trading {
@@ -33398,7 +33374,7 @@ declare global {
             canBeHurtBy(source: net.minecraft.world.damagesource.DamageSource): boolean;
             isValidRepairItem(repairItem: net.minecraft.world.item.ItemStack): boolean;
             canDestroyBlock(state: net.minecraft.world.level.block.state.BlockState, level: net.minecraft.world.level.Level, pos: net.minecraft.core.BlockPos, player: net.minecraft.world.entity.player.Player): boolean;
-            getDamageSource(attacker: net.minecraft.world.entity.LivingEntity, defaultSource: unknown): net.minecraft.world.damagesource.DamageSource;
+            getDamageSource(attacker: net.minecraft.world.entity.LivingEntity): net.minecraft.world.damagesource.DamageSource;
           }
           const ItemInstance: {
             FIELD_ID: string;
@@ -33418,6 +33394,7 @@ declare global {
             new(item: net.minecraft.world.item.Item, patch: net.minecraft.core.component.DataComponentPatch): net.minecraft.world.item.ItemStackTemplate;
             new(item: net.minecraft.core.Holder<net.minecraft.world.item.Item>, count: number, components: net.minecraft.core.component.DataComponentPatch): net.minecraft.world.item.ItemStackTemplate;
             fromNonEmptyStack(itemStack: net.minecraft.world.item.ItemStack): net.minecraft.world.item.ItemStackTemplate;
+            fromStack(itemStack: net.minecraft.world.item.ItemStack): net.minecraft.world.item.ItemStackTemplate;
           }
           interface ItemStackTemplate extends java.lang.Record, net.minecraft.world.item.ItemInstance { 
             withCount(count: number): net.minecraft.world.item.ItemStackTemplate;
@@ -33545,6 +33522,7 @@ declare global {
             getName(): string;
             getTextureDiffuseColor(): number;
             getMapColor(): net.minecraft.world.level.material.MapColor;
+            getTerracottaColor(): net.minecraft.world.level.material.MapColor;
             getFireworkColor(): number;
             getTextColor(): number;
           }
@@ -34025,6 +34003,7 @@ declare global {
             isActive(): boolean;
             tryRemove(amount: number, maxAmount: number, player: net.minecraft.world.entity.player.Player): java.util.Optional<net.minecraft.world.item.ItemStack>;
             safeTake(amount: number, maxAmount: number, player: net.minecraft.world.entity.player.Player): net.minecraft.world.item.ItemStack;
+            safeClone(player: net.minecraft.world.entity.player.Player): net.minecraft.world.item.ItemStack;
             safeInsert(stack: net.minecraft.world.item.ItemStack): net.minecraft.world.item.ItemStack;
             safeInsert(inputStack: net.minecraft.world.item.ItemStack, inputAmount: number): net.minecraft.world.item.ItemStack;
             allowModification(player: net.minecraft.world.entity.player.Player): boolean;
@@ -34286,6 +34265,7 @@ declare global {
             partialTickLerp(): net.minecraft.world.attribute.LerpFunction<Value>;
           }
           const LerpFunction: {
+            CONSTANT: net.minecraft.world.attribute.LerpFunction<any>;
             ofFloat(): net.minecraft.world.attribute.LerpFunction<number>;
             ofInteger(): net.minecraft.world.attribute.LerpFunction<number>;
             ofDegrees(maxDelta: number): net.minecraft.world.attribute.LerpFunction<number>;
@@ -34467,13 +34447,13 @@ declare global {
             getBlendOutDurationTicks(): number;
             getBlendOutAdvanceTicks(): number;
             applyEffectTick(serverLevel: net.minecraft.server.level.ServerLevel, mob: net.minecraft.world.entity.LivingEntity, amplification: number): boolean;
-            applyInstantenousEffect(level: net.minecraft.server.level.ServerLevel, source: net.minecraft.world.entity.Entity | null | undefined, owner: net.minecraft.world.entity.Entity | null | undefined, mob: net.minecraft.world.entity.LivingEntity, amplification: number, scale: number): void;
+            applyInstantaneousEffect(level: net.minecraft.server.level.ServerLevel, source: net.minecraft.world.entity.Entity | null | undefined, owner: net.minecraft.world.entity.Entity | null | undefined, mob: net.minecraft.world.entity.LivingEntity, amplification: number, scale: number): void;
             shouldApplyEffectTickThisTick(tickCount: number, amplification: number): boolean;
             onEffectStarted(mob: net.minecraft.world.entity.LivingEntity, amplifier: number): void;
             onEffectAdded(mob: net.minecraft.world.entity.LivingEntity, amplifier: number): void;
             onMobRemoved(level: net.minecraft.server.level.ServerLevel, mob: net.minecraft.world.entity.LivingEntity, amplifier: number, reason: net.minecraft.world.entity.Entity$RemovalReason): void;
             onMobHurt(level: net.minecraft.server.level.ServerLevel, mob: net.minecraft.world.entity.LivingEntity, amplifier: number, source: net.minecraft.world.damagesource.DamageSource, damage: number): void;
-            isInstantenous(): boolean;
+            isInstantaneous(): boolean;
             getDescriptionId(): string;
             getDisplayName(): net.minecraft.network.chat.Component;
             getCategory(): net.minecraft.world.effect.MobEffectCategory;
@@ -34585,6 +34565,8 @@ declare global {
         interface InteractionResult$SwingSource extends kotlin.Enum<net.minecraft.world.InteractionResult$SwingSource> { 
         }
         const InteractionResult$ItemContext: {
+          NONE: net.minecraft.world.InteractionResult$ItemContext;
+          DEFAULT: net.minecraft.world.InteractionResult$ItemContext;
           new(wasItemInteraction: boolean, heldItemTransformedTo: net.minecraft.world.item.ItemStack | null | undefined): net.minecraft.world.InteractionResult$ItemContext;
         }
         interface InteractionResult$ItemContext extends java.lang.Record { 
@@ -35045,6 +35027,7 @@ declare global {
           interface WorldGenRegion extends net.minecraft.world.level.WorldGenLevel { 
             isOldChunkAround(pos: net.minecraft.world.level.ChunkPos, range: number): boolean;
             getCenter(): net.minecraft.world.level.ChunkPos;
+            isWithinWriteZone(pos: net.minecraft.core.BlockPos): boolean;
           }
           const FullChunkStatus: {
             INACCESSIBLE: net.minecraft.server.level.FullChunkStatus;
@@ -35088,8 +35071,13 @@ declare global {
             getChunkToSend(key: number): net.minecraft.world.level.chunk.LevelChunk | null | undefined;
             size(): number;
             getDistanceManager(): net.minecraft.server.level.DistanceManager;
+            collectSpawningChunks(output: Array<net.minecraft.world.level.chunk.LevelChunk>): void;
+            forEachBlockTickingChunk(tickingChunkConsumer: unknown): void;
+            anyPlayerCloseEnoughForSpawning(pos: net.minecraft.world.level.ChunkPos): boolean;
+            anyPlayerCloseEnoughTo(pos: net.minecraft.core.BlockPos, maxDistance: number): boolean;
             getPlayersCloseForSpawning(pos: net.minecraft.world.level.ChunkPos): Array<net.minecraft.server.level.ServerPlayer>;
             move(player: net.minecraft.server.level.ServerPlayer): void;
+            hasEntityWithId(id: number): boolean;
             sendToTrackingPlayers(entity: net.minecraft.world.entity.Entity, packet: net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener>): void;
             sendToTrackingPlayersFiltered(entity: net.minecraft.world.entity.Entity, packet: net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener>, targetPredicate: unknown): void;
             isTrackedByAnyPlayer(entity: net.minecraft.world.entity.Entity): boolean;
@@ -35374,6 +35362,7 @@ declare global {
             getNearestPlayer(targetConditions: net.minecraft.world.entity.ai.targeting.TargetingConditions, x: number, y: number, z: number): net.minecraft.world.entity.player.Player | null | undefined;
             getNearestEntity<T>(type: java.lang.Class<T>, targetConditions: net.minecraft.world.entity.ai.targeting.TargetingConditions, source: net.minecraft.world.entity.LivingEntity | null | undefined, x: number, y: number, z: number, bb: net.minecraft.world.phys.AABB): T;
             getNearestEntity(tag: net.minecraft.tags.TagKey<net.minecraft.world.entity.EntityType<any>>, targetConditions: net.minecraft.world.entity.ai.targeting.TargetingConditions, source: net.minecraft.world.entity.LivingEntity | null | undefined, x: number, y: number, z: number, bb: net.minecraft.world.phys.AABB): net.minecraft.world.entity.LivingEntity | null | undefined;
+            getNearestEntity<T>(entities: Array<T>, x: number, y: number, z: number): T;
             getNearestEntity<T>(entities: Array<T>, targetConditions: net.minecraft.world.entity.ai.targeting.TargetingConditions, source: net.minecraft.world.entity.LivingEntity | null | undefined, x: number, y: number, z: number): T;
             getNearbyPlayers(targetConditions: net.minecraft.world.entity.ai.targeting.TargetingConditions, source: net.minecraft.world.entity.LivingEntity, bb: net.minecraft.world.phys.AABB): Array<net.minecraft.world.entity.player.Player>;
             getNearbyEntities<T>(type: java.lang.Class<T>, targetConditions: net.minecraft.world.entity.ai.targeting.TargetingConditions, source: net.minecraft.world.entity.LivingEntity, bb: net.minecraft.world.phys.AABB): Array<T>;
@@ -35398,6 +35387,7 @@ declare global {
             addTicketWithRadius(type: net.minecraft.server.level.TicketType, pos: net.minecraft.world.level.ChunkPos, radius: number): void;
             removeTicketWithRadius(type: net.minecraft.server.level.TicketType, pos: net.minecraft.world.level.ChunkPos, radius: number): void;
             move(player: net.minecraft.server.level.ServerPlayer): void;
+            hasEntityWithId(id: number): boolean;
             removeEntity(entity: net.minecraft.world.entity.Entity): void;
             addEntity(entity: net.minecraft.world.entity.Entity): void;
             sendToTrackingPlayersAndSelf(entity: net.minecraft.world.entity.Entity, packet: net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener>): void;
@@ -35467,18 +35457,6 @@ declare global {
             clientInformation(): net.minecraft.server.level.ClientInformation;
             transferred(): boolean;
           }
-          const ServerConnectionListener: {
-            new(server: net.minecraft.server.MinecraftServer): net.minecraft.server.network.ServerConnectionListener;
-          }
-          interface ServerConnectionListener { 
-            running: boolean;
-            startTcpServerListener(address: java.net.InetAddress | null | undefined, port: number): void;
-            startMemoryChannel(): java.net.SocketAddress;
-            stop(): void;
-            tick(): void;
-            getServer(): net.minecraft.server.MinecraftServer;
-            getConnections(): Array<net.minecraft.network.Connection>;
-          }
           const TextFilter: {
             DUMMY: net.minecraft.server.network.TextFilter;
           }
@@ -35487,6 +35465,21 @@ declare global {
             leave(): void;
             processStreamMessage(message: string): java.util.concurrent.CompletableFuture<unknown>;
             processMessageBundle(messages: Array<string>): java.util.concurrent.CompletableFuture<Array<unknown>>;
+          }
+          const ServerConnectionListener: {
+            new(server: net.minecraft.server.MinecraftServer): net.minecraft.server.network.ServerConnectionListener;
+          }
+          interface ServerConnectionListener { 
+            running: boolean;
+            startTcpServerListener(address: java.net.InetAddress | null | undefined, port: number): void;
+            startMemoryChannel(): java.net.SocketAddress;
+            acceptChannel(channel: io.netty.channel.Channel, profileId: java.util.UUID): void;
+            stop(): void;
+            stopTcpServerListener(): void;
+            tick(): void;
+            getServer(): net.minecraft.server.MinecraftServer;
+            getConnections(): Array<net.minecraft.network.Connection>;
+            getSessionId(): java.util.UUID;
           }
           interface ServerPlayerConnection { 
             getPlayer(): net.minecraft.server.level.ServerPlayer;
@@ -35861,6 +35854,19 @@ declare global {
             interface ResourceManagerReloadListener extends net.minecraft.server.packs.resources.PreparableReloadListener { 
               onResourceManagerReload(resourceManager: net.minecraft.server.packs.resources.ResourceManager): void;
             }
+            const ReloadableResourceManager: {
+              new(type: net.minecraft.server.packs.PackType): net.minecraft.server.packs.resources.ReloadableResourceManager;
+            }
+            interface ReloadableResourceManager extends java.lang.AutoCloseable, net.minecraft.server.packs.resources.ResourceManager { 
+              registerReloadListener(listener: net.minecraft.server.packs.resources.PreparableReloadListener): void;
+              createReload(backgroundExecutor: java.util.concurrent.Executor, mainThreadExecutor: java.util.concurrent.Executor, initialTask: java.util.concurrent.CompletableFuture<net.minecraft.util.Unit>, resourcePacks: Array<net.minecraft.server.packs.PackResources>): net.minecraft.server.packs.resources.ReloadInstance;
+            }
+            interface ReloadInstance { 
+              done(): java.util.concurrent.CompletableFuture<any>;
+              getActualProgress(): number;
+              isDone(): boolean;
+              checkExceptions(): void;
+            }
           }
           const PackLocationInfo: {
             new(id: string, title: net.minecraft.network.chat.Component, source: net.minecraft.server.packs.repository.PackSource, knownPackInfo: java.util.Optional<unknown>): net.minecraft.server.packs.PackLocationInfo;
@@ -35958,6 +35964,7 @@ declare global {
           }
           interface StoredUserEntry<T> { 
             getUser(): T;
+            hasExpired(): boolean;
           }
           const IpBanListEntry: {
             new(address: string): net.minecraft.server.players.IpBanListEntry;
@@ -36047,6 +36054,7 @@ declare global {
             setViewDistance(viewDistance: number): void;
             setSimulationDistance(simulationDistance: number): void;
             getPlayers(): Array<net.minecraft.server.level.ServerPlayer>;
+            getPlayersByUUID(): Map<java.util.UUID, net.minecraft.server.level.ServerPlayer>;
             getPlayer(uuid: java.util.UUID): net.minecraft.server.level.ServerPlayer | null | undefined;
             getPlayer(playerName: string): net.minecraft.server.level.ServerPlayer | null | undefined;
             canBypassPlayerLimit(nameAndId: net.minecraft.server.players.NameAndId): boolean;
@@ -36108,7 +36116,9 @@ declare global {
             new(): net.minecraft.server.notifications.NotificationManager;
           }
           interface NotificationManager extends net.minecraft.server.notifications.NotificationService { 
+            server(): net.minecraft.server.dedicated.DedicatedServer | null | undefined;
             registerService(notificationService: net.minecraft.server.notifications.NotificationService): void;
+            setServer(server: net.minecraft.server.dedicated.DedicatedServer): void;
           }
           interface NotificationService { 
             playerJoined(player: net.minecraft.server.level.ServerPlayer): void;
@@ -36135,6 +36145,327 @@ declare global {
           interface ServerActivityMonitor { 
             tick(): void;
             reportLoginActivity(): void;
+          }
+        }
+        namespace dedicated {
+          const DedicatedServer: {
+            new(serverThread: java.lang.Thread, levelStorageSource: net.minecraft.world.level.storage.LevelStorageSource$LevelStorageAccess, packRepository: net.minecraft.server.packs.repository.PackRepository, worldStem: net.minecraft.server.WorldStem, gameRules: java.util.Optional<net.minecraft.world.level.gamerules.GameRules>, settings: net.minecraft.server.dedicated.DedicatedServerSettings, fixerUpper: com.mojang.datafixers.DataFixer, services: net.minecraft.server.Services, jsonRpcServer: net.minecraft.server.jsonrpc.ManagementServer | null | undefined, notificationManager: net.minecraft.server.notifications.NotificationManager): net.minecraft.server.dedicated.DedicatedServer;
+          }
+          interface DedicatedServer extends net.minecraft.server.MinecraftServer, net.minecraft.server.ServerInterface { 
+            setAllowFlight(allowed: boolean): void;
+            setDifficulty(difficulty: net.minecraft.world.Difficulty): void;
+            viewDistance(): number;
+            setViewDistance(viewDistance: number): void;
+            simulationDistance(): number;
+            setSimulationDistance(simulationDistance: number): void;
+            handleConsoleInput(msg: string, source: net.minecraft.commands.CommandSourceStack): void;
+            handleConsoleInputs(): void;
+            setMaxPlayers(maxPlayers: number): void;
+            showGui(): void;
+            spawnProtectionRadius(): number;
+            setSpawnProtectionRadius(spawnProtectionRadius: number): void;
+            setRepliesToStatus(enable: boolean): void;
+            setHidesOnlinePlayers(hide: boolean): void;
+            setOperatorUserPermissions(permissions: net.minecraft.server.permissions.LevelBasedPermissionSet): void;
+            statusHeartbeatInterval(): number;
+            setStatusHeartbeatInterval(statusHeartbeatInterval: number): boolean;
+            getMaxTickLength(): number;
+            entityBroadcastRangePercentage(): number;
+            setEntityBroadcastRangePercentage(range: number): void;
+            forceGameMode(): boolean;
+            setForceGameMode(forceGameMode: boolean): void;
+            gameMode(): net.minecraft.world.level.GameType;
+            setGameMode(gameMode: net.minecraft.world.level.GameType): void;
+            setAcceptsTransfers(acceptTransfers: boolean): void;
+            setPauseWhenEmptySeconds(seconds: number): void;
+          }
+          const DedicatedServerProperties: {
+            MANAGEMENT_SERVER_TLS_ENABLED_KEY: string;
+            MANAGEMENT_SERVER_TLS_KEYSTORE_KEY: string;
+            MANAGEMENT_SERVER_TLS_KEYSTORE_PASSWORD_KEY: string;
+            new(settings: java.util.Properties): net.minecraft.server.dedicated.DedicatedServerProperties;
+            fromFile(file: java.nio.file.Path): net.minecraft.server.dedicated.DedicatedServerProperties;
+            deserializePermission(value: string): net.minecraft.server.permissions.LevelBasedPermissionSet | null | undefined;
+            serializePermission(permission: net.minecraft.server.permissions.LevelBasedPermissionSet): string;
+          }
+          interface DedicatedServerProperties extends net.minecraft.server.dedicated.Settings<net.minecraft.server.dedicated.DedicatedServerProperties> { 
+            onlineMode: boolean;
+            preventProxyConnections: boolean;
+            serverIp: string;
+            allowFlight: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            motd: net.minecraft.server.dedicated.Settings$MutableValue<string>;
+            codeOfConduct: boolean;
+            bugReportLink: string;
+            forceGameMode: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            enforceWhitelist: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            difficulty: net.minecraft.server.dedicated.Settings$MutableValue<net.minecraft.world.Difficulty>;
+            gameMode: net.minecraft.server.dedicated.Settings$MutableValue<net.minecraft.world.level.GameType>;
+            levelName: string;
+            serverPort: number;
+            managementServerEnabled: boolean;
+            managementServerHost: string;
+            managementServerPort: number;
+            managementServerSecret: string;
+            managementServerTlsEnabled: boolean;
+            managementServerTlsKeystore: string;
+            managementServerTlsKeystorePassword: string;
+            managementServerAllowedOrigins: string;
+            announcePlayerAchievements: boolean | null | undefined;
+            enableQuery: boolean;
+            queryPort: number;
+            enableRcon: boolean;
+            rconPort: number;
+            rconPassword: string;
+            hardcore: boolean;
+            useNativeTransport: boolean;
+            spawnProtection: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            opPermissions: net.minecraft.server.dedicated.Settings$MutableValue<net.minecraft.server.permissions.LevelBasedPermissionSet>;
+            functionPermissions: net.minecraft.server.permissions.LevelBasedPermissionSet;
+            maxTickTime: number;
+            maxChainedNeighborUpdates: number;
+            rateLimitPacketsPerSecond: number;
+            commandSpamThresholdSeconds: number;
+            chatSpamThresholdSeconds: number;
+            viewDistance: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            simulationDistance: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            maxPlayers: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            networkCompressionThreshold: number;
+            broadcastRconToOps: boolean;
+            broadcastConsoleToOps: boolean;
+            maxWorldSize: number;
+            syncChunkWrites: boolean;
+            regionFileComression: string;
+            enableJmxMonitoring: boolean;
+            enableStatus: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            hideOnlinePlayers: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            entityBroadcastRangePercentage: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            textFilteringConfig: string;
+            textFilteringVersion: number;
+            serverResourcePackInfo: java.util.Optional<net.minecraft.server.MinecraftServer$ServerResourcePackInfo>;
+            initialDataPackConfiguration: net.minecraft.world.level.DataPackConfig;
+            playerIdleTimeout: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            statusHeartbeatInterval: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            whiteList: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            enforceSecureProfile: boolean;
+            logIPs: boolean;
+            pauseWhenEmptySeconds: net.minecraft.server.dedicated.Settings$MutableValue<number>;
+            worldOptions: net.minecraft.world.level.levelgen.WorldOptions;
+            acceptsTransfers: net.minecraft.server.dedicated.Settings$MutableValue<boolean>;
+            createDimensions(registries: net.minecraft.core.HolderLookup$Provider): net.minecraft.world.level.levelgen.WorldDimensions;
+          }
+          const Settings: {
+            MutableValue: typeof net.minecraft.server.dedicated.Settings$MutableValue;
+            new<T>(properties: java.util.Properties): net.minecraft.server.dedicated.Settings<any>;
+            loadFromFile(file: java.nio.file.Path): java.util.Properties;
+          }
+          interface Settings<T> { 
+            store(output: java.nio.file.Path): void;
+            get<V>(key: string, deserializer: unknown, serializer: unknown, defaultValue: V): V;
+            get<V>(key: string, deserializer: unknown, validator: unknown, serializer: unknown, defaultValue: V): V;
+            get<V>(key: string, deserializer: unknown, defaultValue: V): V;
+            get(key: string, defaultValue: string): string;
+            get(key: string, defaultValue: number): number;
+            get(key: string, validator: unknown, defaultValue: number): number;
+            get(key: string, defaultValue: number): number;
+            get(key: string, defaultValue: boolean): boolean;
+          }
+          interface Settings$MutableValue<V> { 
+            update(registryAccess: net.minecraft.core.RegistryAccess, value: V): T;
+          }
+          const DedicatedPlayerList: {
+            new(server: net.minecraft.server.dedicated.DedicatedServer, registries: net.minecraft.core.LayeredRegistryAccess<unknown>, playerDataStorage: net.minecraft.world.level.storage.PlayerDataStorage): net.minecraft.server.dedicated.DedicatedPlayerList;
+          }
+          interface DedicatedPlayerList extends net.minecraft.server.players.PlayerList { 
+          }
+          const DedicatedServerSettings: {
+            new(source: java.nio.file.Path): net.minecraft.server.dedicated.DedicatedServerSettings;
+          }
+          interface DedicatedServerSettings { 
+            getProperties(): net.minecraft.server.dedicated.DedicatedServerProperties;
+            forceSave(): void;
+            update(mutator: unknown): net.minecraft.server.dedicated.DedicatedServerSettings;
+          }
+        }
+        namespace jsonrpc {
+          namespace internalapi {
+            const MinecraftApi: {
+              new(notificationManager: net.minecraft.server.notifications.NotificationManager, allowListService: net.minecraft.server.jsonrpc.internalapi.MinecraftAllowListService, banListService: net.minecraft.server.jsonrpc.internalapi.MinecraftBanListService, minecraftPlayerListService: net.minecraft.server.jsonrpc.internalapi.MinecraftPlayerListService, gameRuleService: net.minecraft.server.jsonrpc.internalapi.MinecraftGameRuleService, minecraftOperatorListService: net.minecraft.server.jsonrpc.internalapi.MinecraftOperatorListService, minecraftServerSettingsService: net.minecraft.server.jsonrpc.internalapi.MinecraftServerSettingsService, minecraftServerStateService: net.minecraft.server.jsonrpc.internalapi.MinecraftServerStateService, executorService: net.minecraft.server.jsonrpc.internalapi.MinecraftExecutorService): net.minecraft.server.jsonrpc.internalapi.MinecraftApi;
+              of(notificationManager: net.minecraft.server.notifications.NotificationManager): net.minecraft.server.jsonrpc.internalapi.MinecraftApi;
+            }
+            interface MinecraftApi { 
+              notificationManager(): net.minecraft.server.notifications.NotificationManager;
+              allowListService(): net.minecraft.server.jsonrpc.internalapi.MinecraftAllowListService;
+              banListService(): net.minecraft.server.jsonrpc.internalapi.MinecraftBanListService;
+              gameRuleService(): net.minecraft.server.jsonrpc.internalapi.MinecraftGameRuleService;
+              submit<V>(supplier: unknown): java.util.concurrent.CompletableFuture<V>;
+              submit(runnable: java.lang.Runnable): java.util.concurrent.CompletableFuture<java.lang.Void>;
+              playerListService(): net.minecraft.server.jsonrpc.internalapi.MinecraftPlayerListService;
+              operatorListService(): net.minecraft.server.jsonrpc.internalapi.MinecraftOperatorListService;
+              serverSettingsService(): net.minecraft.server.jsonrpc.internalapi.MinecraftServerSettingsService;
+              serverStateService(): net.minecraft.server.jsonrpc.internalapi.MinecraftServerStateService;
+            }
+            interface MinecraftAllowListService { 
+              getEntries(): Array<net.minecraft.server.players.UserWhiteListEntry>;
+              add(infos: net.minecraft.server.players.UserWhiteListEntry, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              clear(clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              remove(nameAndId: net.minecraft.server.players.NameAndId, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              kickUnlistedPlayers(clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+            }
+            interface MinecraftBanListService { 
+              addUserBan(ban: net.minecraft.server.players.UserBanListEntry, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              removeUserBan(nameAndId: net.minecraft.server.players.NameAndId, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              getUserBanEntries(): Array<net.minecraft.server.players.UserBanListEntry>;
+              getIpBanEntries(): Array<net.minecraft.server.players.IpBanListEntry>;
+              addIpBan(ipBanEntry: net.minecraft.server.players.IpBanListEntry, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              clearIpBans(clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              removeIpBan(ip: string, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              clearUserBans(clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+            }
+            interface MinecraftGameRuleService { 
+              updateGameRule<T>(update: net.minecraft.server.jsonrpc.methods.GameRulesService$GameRuleUpdate<T>, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): net.minecraft.server.jsonrpc.methods.GameRulesService$GameRuleUpdate<T>;
+              getRuleValue<T>(gameRule: net.minecraft.world.level.gamerules.GameRule<T>): T;
+              getTypedRule<T>(gameRule: net.minecraft.world.level.gamerules.GameRule<T>, value: T): net.minecraft.server.jsonrpc.methods.GameRulesService$GameRuleUpdate<T>;
+              getAvailableGameRules(): java.util.stream.Stream<net.minecraft.world.level.gamerules.GameRule<any>>;
+            }
+            interface MinecraftPlayerListService { 
+              getPlayers(): Array<net.minecraft.server.level.ServerPlayer>;
+              getPlayer(uuid: java.util.UUID): net.minecraft.server.level.ServerPlayer | null | undefined;
+              getPlayer(id: java.util.Optional<java.util.UUID>, name: java.util.Optional<string>): java.util.Optional<net.minecraft.server.level.ServerPlayer>;
+              getUser(id: java.util.Optional<java.util.UUID>, name: java.util.Optional<string>): java.util.concurrent.CompletableFuture<java.util.Optional<net.minecraft.server.players.NameAndId>>;
+              fetchUserByName(name: string): java.util.Optional<net.minecraft.server.players.NameAndId>;
+              fetchUserById(id: java.util.UUID): java.util.Optional<net.minecraft.server.players.NameAndId>;
+              getCachedUserById(id: java.util.UUID): java.util.Optional<net.minecraft.server.players.NameAndId>;
+              getPlayersWithAddress(ip: string): Array<net.minecraft.server.level.ServerPlayer>;
+              getPlayerByName(name: string): net.minecraft.server.level.ServerPlayer | null | undefined;
+              remove(player: net.minecraft.server.level.ServerPlayer, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+            }
+            interface MinecraftOperatorListService { 
+              getEntries(): Array<net.minecraft.server.players.ServerOpListEntry>;
+              op(nameAndId: net.minecraft.server.players.NameAndId, permissionLevel: java.util.Optional<net.minecraft.server.permissions.PermissionLevel>, canBypassPlayerLimit: java.util.Optional<boolean>, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              op(nameAndId: net.minecraft.server.players.NameAndId, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              deop(nameAndId: net.minecraft.server.players.NameAndId, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              clear(clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+            }
+            interface MinecraftServerSettingsService { 
+              isAutoSave(): boolean;
+              setAutoSave(enabled: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              getDifficulty(): net.minecraft.world.Difficulty;
+              setDifficulty(difficulty: net.minecraft.world.Difficulty, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): net.minecraft.world.Difficulty;
+              isEnforceWhitelist(): boolean;
+              setEnforceWhitelist(enforce: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              isUsingWhitelist(): boolean;
+              setUsingWhitelist(use: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              getMaxPlayers(): number;
+              setMaxPlayers(maxPlayers: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              getPauseWhenEmptySeconds(): number;
+              setPauseWhenEmptySeconds(emptySeconds: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              getPlayerIdleTimeout(): number;
+              setPlayerIdleTimeout(idleTime: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              allowFlight(): boolean;
+              setAllowFlight(allow: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              getSpawnProtectionRadius(): number;
+              setSpawnProtectionRadius(spawnProtection: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              getMotd(): string;
+              setMotd(motd: string, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): string;
+              forceGameMode(): boolean;
+              setForceGameMode(force: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              getGameMode(): net.minecraft.world.level.GameType;
+              setGameMode(gameMode: net.minecraft.world.level.GameType, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): net.minecraft.world.level.GameType;
+              getViewDistance(): number;
+              setViewDistance(viewDistance: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              getSimulationDistance(): number;
+              setSimulationDistance(simulationDistance: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              acceptsTransfers(): boolean;
+              setAcceptsTransfers(accept: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              getStatusHeartbeatInterval(): number;
+              setStatusHeartbeatInterval(statusHeartbeatInterval: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+              getOperatorUserPermissions(): net.minecraft.server.permissions.LevelBasedPermissionSet;
+              setOperatorUserPermissions(level: net.minecraft.server.permissions.LevelBasedPermissionSet, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): net.minecraft.server.permissions.LevelBasedPermissionSet;
+              hidesOnlinePlayers(): boolean;
+              setHidesOnlinePlayers(hide: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              repliesToStatus(): boolean;
+              setRepliesToStatus(enable: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              getEntityBroadcastRangePercentage(): number;
+              setEntityBroadcastRangePercentage(percentage: number, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): number;
+            }
+            interface MinecraftServerStateService { 
+              isReady(): boolean;
+              saveEverything(suppressLogs: boolean, flush: boolean, force: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): boolean;
+              halt(waitForShutdown: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              sendSystemMessage(message: net.minecraft.network.chat.Component, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              sendSystemMessage(message: net.minecraft.network.chat.Component, overlay: boolean, players: Array<net.minecraft.server.level.ServerPlayer>, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+              broadcastSystemMessage(message: net.minecraft.network.chat.Component, overlay: boolean, clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo): void;
+            }
+            interface MinecraftExecutorService { 
+              submit<V>(supplier: unknown): java.util.concurrent.CompletableFuture<V>;
+              submit(runnable: java.lang.Runnable): java.util.concurrent.CompletableFuture<java.lang.Void>;
+            }
+          }
+          namespace methods {
+            const ClientInfo: {
+              new(connectionId: number): net.minecraft.server.jsonrpc.methods.ClientInfo;
+              of(connectionId: number): net.minecraft.server.jsonrpc.methods.ClientInfo;
+            }
+            interface ClientInfo extends java.lang.Record { 
+              connectionId(): number;
+            }
+            const GameRulesService$GameRuleUpdate: {
+              TYPED_CODEC: com.mojang.serialization.Codec<net.minecraft.server.jsonrpc.methods.GameRulesService$GameRuleUpdate<any>>;
+              CODEC: com.mojang.serialization.Codec<net.minecraft.server.jsonrpc.methods.GameRulesService$GameRuleUpdate<any>>;
+              new<T>(gameRule: net.minecraft.world.level.gamerules.GameRule<T>, value: T): net.minecraft.server.jsonrpc.methods.GameRulesService$GameRuleUpdate<any>;
+            }
+            interface GameRulesService$GameRuleUpdate<T> extends java.lang.Record { 
+              gameRule(): net.minecraft.world.level.gamerules.GameRule<T>;
+              value(): T;
+            }
+          }
+          namespace security {
+            const AuthenticationHandler: {
+              BEARER_PREFIX: string;
+              new(securityConfig: net.minecraft.server.jsonrpc.security.SecurityConfig, allowedOrigins: string): net.minecraft.server.jsonrpc.security.AuthenticationHandler;
+            }
+            interface AuthenticationHandler extends io.netty.channel.ChannelDuplexHandler { 
+              isValidApiKey(suppliedKey: string): boolean;
+            }
+            const SecurityConfig: {
+              new(secretKey: string): net.minecraft.server.jsonrpc.security.SecurityConfig;
+              isValid(secretKey: string): boolean;
+              generateSecretKey(): string;
+            }
+            interface SecurityConfig extends java.lang.Record { 
+              secretKey(): string;
+            }
+          }
+          const ManagementServer: {
+            new(hostAndPort: com.google.common.net.HostAndPort, authenticationHandler: net.minecraft.server.jsonrpc.security.AuthenticationHandler): net.minecraft.server.jsonrpc.ManagementServer;
+            new(hostAndPort: com.google.common.net.HostAndPort, authenticationHandler: net.minecraft.server.jsonrpc.security.AuthenticationHandler, eventLoopGroup: io.netty.channel.EventLoopGroup): net.minecraft.server.jsonrpc.ManagementServer;
+          }
+          interface ManagementServer { 
+            scheduleHeartbeat(notificationManager: net.minecraft.server.notifications.NotificationManager, period: number): boolean;
+            onConnected(connection: net.minecraft.server.jsonrpc.Connection): void;
+            onDisconnected(connection: net.minecraft.server.jsonrpc.Connection): void;
+            startWithoutTls(minecraftApi: net.minecraft.server.jsonrpc.internalapi.MinecraftApi): void;
+            startWithTls(minecraftApi: net.minecraft.server.jsonrpc.internalapi.MinecraftApi, sslContext: io.netty.handler.ssl.SslContext): void;
+            stop(closeNioEventLoopGroup: boolean): void;
+            tick(): void;
+            getPort(): number;
+          }
+          const Connection: {
+            new(channel: io.netty.channel.Channel, managementServer: net.minecraft.server.jsonrpc.ManagementServer, minecraftApi: net.minecraft.server.jsonrpc.internalapi.MinecraftApi, jsonrpcLogger: net.minecraft.server.jsonrpc.JsonRpcLogger): net.minecraft.server.jsonrpc.Connection;
+          }
+          interface Connection extends io.netty.channel.SimpleChannelInboundHandler<com.google.gson.JsonElement> { 
+            tick(): void;
+            sendNotification(method: net.minecraft.core.Holder$Reference<unknown>): void;
+            sendNotification<Params>(method: net.minecraft.core.Holder$Reference<unknown>, params: Params): void;
+            sendRequest<Result>(method: net.minecraft.core.Holder$Reference<unknown>): java.util.concurrent.CompletableFuture<Result>;
+            sendRequest<Params, Result>(method: net.minecraft.core.Holder$Reference<unknown>, params: Params): java.util.concurrent.CompletableFuture<Result>;
+            dispatchIncomingRequest(method: string, params: com.google.gson.JsonElement | null | undefined): com.google.gson.JsonElement | null | undefined;
+          }
+          const JsonRpcLogger: {
+            new(): net.minecraft.server.jsonrpc.JsonRpcLogger;
+          }
+          interface JsonRpcLogger { 
+            log(clientInfo: net.minecraft.server.jsonrpc.methods.ClientInfo, message: string, args: any): void;
           }
         }
         namespace bossevents {
@@ -36200,13 +36531,15 @@ declare global {
         }
         const MinecraftServer: {
           ServerResourcePackInfo: typeof net.minecraft.server.MinecraftServer$ServerResourcePackInfo;
+          MultiplayerScope: typeof net.minecraft.server.MinecraftServer$MultiplayerScope;
           VANILLA_BRAND: string;
           SPAWN_POSITION_SEARCH_RADIUS: number;
           ABSOLUTE_MAX_WORLD_SIZE: number;
           DEMO_SETTINGS: net.minecraft.world.level.LevelSettings;
           DEFAULT_GAME_RULES: unknown;
           ANONYMOUS_PLAYER_PROFILE: net.minecraft.server.players.NameAndId;
-          new(serverThread: java.lang.Thread, storageSource: net.minecraft.world.level.storage.LevelStorageSource$LevelStorageAccess, packRepository: net.minecraft.server.packs.repository.PackRepository, worldStem: net.minecraft.server.WorldStem, gameRules: java.util.Optional<net.minecraft.world.level.gamerules.GameRules>, proxy: java.net.Proxy, fixerUpper: com.mojang.datafixers.DataFixer, services: net.minecraft.server.Services, levelLoadListener: net.minecraft.server.level.progress.LevelLoadListener, propagatesCrashes: boolean): net.minecraft.server.MinecraftServer;
+          SERVER_THREAD_NAME: string;
+          new(serverThread: java.lang.Thread, storageSource: net.minecraft.world.level.storage.LevelStorageSource$LevelStorageAccess, packRepository: net.minecraft.server.packs.repository.PackRepository, worldStem: net.minecraft.server.WorldStem, gameRules: java.util.Optional<net.minecraft.world.level.gamerules.GameRules>, proxy: java.net.Proxy, fixerUpper: com.mojang.datafixers.DataFixer, services: net.minecraft.server.Services, levelLoadListener: net.minecraft.server.level.progress.LevelLoadListener, propagatesCrashes: boolean, notificationManager: net.minecraft.server.notifications.NotificationManager): net.minecraft.server.MinecraftServer;
           spin<S>(factory: unknown): S;
           configurePackRepository(packRepository: net.minecraft.server.packs.repository.PackRepository, initialDataConfig: net.minecraft.world.level.WorldDataConfiguration, initMode: boolean, safeMode: boolean): net.minecraft.world.level.WorldDataConfiguration;
         }
@@ -36270,6 +36603,8 @@ declare global {
           isResourcePackRequired(): boolean;
           isDedicatedServer(): boolean;
           getRateLimitPacketsPerSecond(): number;
+          getCommandSpamThresholdSeconds(): number;
+          getChatSpamThresholdSeconds(): number;
           usesAuthentication(): boolean;
           setUsesAuthentication(onlineMode: boolean): void;
           getPreventProxyConnections(): boolean;
@@ -36284,7 +36619,8 @@ declare global {
           setDefaultGameType(gameType: net.minecraft.world.level.GameType): void;
           enforceGameTypeForPlayers(gameType: net.minecraft.world.level.GameType | null | undefined): number;
           getConnection(): net.minecraft.server.network.ServerConnectionListener;
-          publishServer(gameMode: net.minecraft.world.level.GameType | null | undefined, allowCommands: boolean, port: number): boolean;
+          publishServer(scope: net.minecraft.server.MinecraftServer$MultiplayerScope, gameMode: net.minecraft.world.level.GameType | null | undefined, allowCommands: boolean, port: number): boolean;
+          unpublishServer(): boolean;
           getTickCount(): number;
           isUnderSpawnProtection(level: net.minecraft.server.level.ServerLevel, pos: net.minecraft.core.BlockPos, player: net.minecraft.world.entity.player.Player): boolean;
           repliesToStatus(): boolean;
@@ -36394,89 +36730,15 @@ declare global {
           nameToIdCache(): net.minecraft.server.players.UserNameToIdResolver;
           profileResolver(): net.minecraft.server.players.ProfileResolver;
         }
-        const ServerTickRateManager: {
-          new(server: net.minecraft.server.MinecraftServer): net.minecraft.server.ServerTickRateManager;
-        }
-        interface ServerTickRateManager extends net.minecraft.world.TickRateManager { 
-          isSprinting(): boolean;
-          stepGameIfPaused(ticks: number): boolean;
-          stopStepping(): boolean;
-          stopSprinting(): boolean;
-          requestGameToSprint(time: number): boolean;
-          checkShouldSprintThisTick(): boolean;
-          endTickWork(): void;
-          updateJoiningPlayer(player: net.minecraft.server.level.ServerPlayer): void;
-        }
-        const TickTask: {
-          new(tick: number, runnable: java.lang.Runnable): net.minecraft.server.TickTask;
-        }
-        interface TickTask extends java.lang.Runnable { 
-          getTick(): number;
-        }
-        const ServerScoreboard: {
-          new(server: net.minecraft.server.MinecraftServer): net.minecraft.server.ServerScoreboard;
-        }
-        interface ServerScoreboard extends net.minecraft.world.scores.Scoreboard { 
-          load(data: net.minecraft.world.scores.ScoreboardSaveData$Packed): void;
-          storeToSaveDataIfDirty(saveData: net.minecraft.world.scores.ScoreboardSaveData): void;
-          getStartTrackingPackets(objective: net.minecraft.world.scores.Objective): Array<net.minecraft.network.protocol.Packet<any>>;
-          startTrackingObjective(objective: net.minecraft.world.scores.Objective): void;
-          getStopTrackingPackets(objective: net.minecraft.world.scores.Objective): Array<net.minecraft.network.protocol.Packet<any>>;
-          stopTrackingObjective(objective: net.minecraft.world.scores.Objective): void;
-          getObjectiveDisplaySlotCount(objective: net.minecraft.world.scores.Objective): number;
-        }
-        const PlayerAdvancements: {
-          new(dataFixer: com.mojang.datafixers.DataFixer, playerList: net.minecraft.server.players.PlayerList, manager: net.minecraft.server.ServerAdvancementManager, playerSavePath: java.nio.file.Path, player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.PlayerAdvancements;
-        }
-        interface PlayerAdvancements { 
-          setPlayer(player: net.minecraft.server.level.ServerPlayer): void;
-          stopListening(): void;
-          reload(manager: net.minecraft.server.ServerAdvancementManager): void;
-          save(): void;
-          award(holder: net.minecraft.advancements.AdvancementHolder, criterion: string): boolean;
-          revoke(advancement: net.minecraft.advancements.AdvancementHolder, criterion: string): boolean;
-          flushDirty(player: net.minecraft.server.level.ServerPlayer, showAdvancements: boolean): void;
-          setSelectedTab(holder: net.minecraft.advancements.AdvancementHolder | null | undefined): void;
-          getOrStartProgress(advancement: net.minecraft.advancements.AdvancementHolder): net.minecraft.advancements.AdvancementProgress;
-        }
-        const ServerAdvancementManager: {
-          new(registries: net.minecraft.core.HolderLookup$Provider): net.minecraft.server.ServerAdvancementManager;
-        }
-        interface ServerAdvancementManager extends net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener<net.minecraft.advancements.Advancement> { 
-          tree(): net.minecraft.advancements.AdvancementTree;
-          get(id: net.minecraft.resources.Identifier): net.minecraft.advancements.AdvancementHolder | null | undefined;
-          getAllAdvancements(): Array<net.minecraft.advancements.AdvancementHolder>;
-        }
-        const ServerFunctionManager: {
-          new(server: net.minecraft.server.MinecraftServer, library: net.minecraft.server.ServerFunctionLibrary): net.minecraft.server.ServerFunctionManager;
-        }
-        interface ServerFunctionManager { 
-          getDispatcher(): com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack>;
-          tick(): void;
-          execute(functionIn: net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>, sender: net.minecraft.commands.CommandSourceStack): void;
-          replaceLibrary(library: net.minecraft.server.ServerFunctionLibrary): void;
-          getGameLoopSender(): net.minecraft.commands.CommandSourceStack;
-          get(id: net.minecraft.resources.Identifier): java.util.Optional<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
-          getTag(id: net.minecraft.resources.Identifier): Array<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
-          getFunctionNames(): kotlin.collections.MutableIterable<net.minecraft.resources.Identifier>;
-          getTagNames(): kotlin.collections.MutableIterable<net.minecraft.resources.Identifier>;
-        }
-        const ServerFunctionLibrary: {
-          TYPE_KEY: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>>;
-          new(functionCompilationPermissions: net.minecraft.server.permissions.PermissionSet, dispatcher: com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack>): net.minecraft.server.ServerFunctionLibrary;
-        }
-        interface ServerFunctionLibrary extends net.minecraft.server.packs.resources.PreparableReloadListener { 
-          getFunction(id: net.minecraft.resources.Identifier): java.util.Optional<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
-          getFunctions(): Map<net.minecraft.resources.Identifier, net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
-          getTag(tag: net.minecraft.resources.Identifier): Array<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
-          getAvailableTags(): kotlin.collections.MutableIterable<net.minecraft.resources.Identifier>;
-        }
-        const ReloadableServerRegistries$Holder: {
-          new(registries: net.minecraft.core.HolderLookup$Provider): net.minecraft.server.ReloadableServerRegistries$Holder;
-        }
-        interface ReloadableServerRegistries$Holder { 
-          lookup(): net.minecraft.core.HolderLookup$Provider;
-          getLootTable(id: net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>): net.minecraft.world.level.storage.loot.LootTable;
+        interface ServerInterface extends net.minecraft.server.ServerInfo { 
+          getProperties(): net.minecraft.server.dedicated.DedicatedServerProperties;
+          getServerIp(): string;
+          getServerPort(): number;
+          getServerName(): string;
+          getPlayerNames(): Array<string>;
+          getLevelIdName(): string;
+          getPluginNames(): string;
+          runCommand(command: string): string;
         }
         const ServerLinks: {
           KnownLinkType: typeof net.minecraft.server.ServerLinks$KnownLinkType;
@@ -36530,6 +36792,49 @@ declare global {
           type(): com.mojang.datafixers.util.Either<net.minecraft.server.ServerLinks$KnownLinkType, net.minecraft.network.chat.Component>;
           link(): string;
         }
+        const ServerScoreboard: {
+          new(server: net.minecraft.server.MinecraftServer): net.minecraft.server.ServerScoreboard;
+        }
+        interface ServerScoreboard extends net.minecraft.world.scores.Scoreboard { 
+          load(data: net.minecraft.world.scores.ScoreboardSaveData$Packed): void;
+          storeToSaveDataIfDirty(saveData: net.minecraft.world.scores.ScoreboardSaveData): void;
+          getStartTrackingPackets(objective: net.minecraft.world.scores.Objective): Array<net.minecraft.network.protocol.Packet<any>>;
+          startTrackingObjective(objective: net.minecraft.world.scores.Objective): void;
+          getStopTrackingPackets(objective: net.minecraft.world.scores.Objective): Array<net.minecraft.network.protocol.Packet<any>>;
+          stopTrackingObjective(objective: net.minecraft.world.scores.Objective): void;
+          getObjectiveDisplaySlotCount(objective: net.minecraft.world.scores.Objective): number;
+        }
+        const PlayerAdvancements: {
+          TriggerInstanceKey: typeof net.minecraft.server.PlayerAdvancements$TriggerInstanceKey;
+          new(dataFixer: com.mojang.datafixers.DataFixer, playerList: net.minecraft.server.players.PlayerList, manager: net.minecraft.server.ServerAdvancementManager, playerSavePath: java.nio.file.Path, player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.PlayerAdvancements;
+        }
+        interface PlayerAdvancements { 
+          setPlayer(player: net.minecraft.server.level.ServerPlayer): void;
+          clearTriggers(): void;
+          reload(manager: net.minecraft.server.ServerAdvancementManager): void;
+          save(): void;
+          award(holder: net.minecraft.advancements.AdvancementHolder, criterion: string): boolean;
+          revoke(advancement: net.minecraft.advancements.AdvancementHolder, criterion: string): boolean;
+          flushDirty(player: net.minecraft.server.level.ServerPlayer, showAdvancements: boolean): void;
+          setSelectedTab(holder: net.minecraft.advancements.AdvancementHolder | null | undefined): void;
+          getOrStartProgress(advancement: net.minecraft.advancements.AdvancementHolder): net.minecraft.advancements.AdvancementProgress;
+          getTriggerMapForType<T>(type: net.minecraft.advancements.triggers.CriterionTrigger<T>): Map<net.minecraft.server.PlayerAdvancements$TriggerInstanceKey, T> | null | undefined;
+        }
+        const ServerAdvancementManager: {
+          new(registries: net.minecraft.core.HolderLookup$Provider): net.minecraft.server.ServerAdvancementManager;
+        }
+        interface ServerAdvancementManager extends net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener<net.minecraft.advancements.Advancement> { 
+          tree(): net.minecraft.advancements.AdvancementTree;
+          get(id: net.minecraft.resources.Identifier): net.minecraft.advancements.AdvancementHolder | null | undefined;
+          getAllAdvancements(): Array<net.minecraft.advancements.AdvancementHolder>;
+        }
+        const PlayerAdvancements$TriggerInstanceKey: {
+          new(advancement: net.minecraft.advancements.AdvancementHolder, criterion: string): net.minecraft.server.PlayerAdvancements$TriggerInstanceKey;
+        }
+        interface PlayerAdvancements$TriggerInstanceKey extends java.lang.Record { 
+          advancement(): net.minecraft.advancements.AdvancementHolder;
+          criterion(): string;
+        }
         const WorldStem: {
           new(resourceManager: net.minecraft.server.packs.resources.CloseableResourceManager, dataPackResources: net.minecraft.server.ReloadableServerResources, registries: net.minecraft.core.LayeredRegistryAccess<unknown>, worldDataAndGenSettings: net.minecraft.world.level.storage.LevelDataAndDimensions$WorldDataAndGenSettings): net.minecraft.server.WorldStem;
         }
@@ -36550,6 +36855,67 @@ declare global {
           getAdvancements(): net.minecraft.server.ServerAdvancementManager;
           listeners(): Array<net.minecraft.server.packs.resources.PreparableReloadListener>;
           updateComponentsAndStaticRegistryTags(): void;
+        }
+        const ServerFunctionLibrary: {
+          TYPE_KEY: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>>;
+          new(functionCompilationPermissions: net.minecraft.server.permissions.PermissionSet, dispatcher: com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack>): net.minecraft.server.ServerFunctionLibrary;
+        }
+        interface ServerFunctionLibrary extends net.minecraft.server.packs.resources.PreparableReloadListener { 
+          getFunction(id: net.minecraft.resources.Identifier): java.util.Optional<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
+          getFunctions(): Map<net.minecraft.resources.Identifier, net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
+          getTag(tag: net.minecraft.resources.Identifier): Array<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
+          getAvailableTags(): kotlin.collections.MutableIterable<net.minecraft.resources.Identifier>;
+        }
+        const ReloadableServerRegistries$Holder: {
+          new(registries: net.minecraft.core.HolderLookup$Provider): net.minecraft.server.ReloadableServerRegistries$Holder;
+        }
+        interface ReloadableServerRegistries$Holder { 
+          lookup(): net.minecraft.core.HolderLookup$Provider;
+          getLootTable(id: net.minecraft.resources.ResourceKey<net.minecraft.world.level.storage.loot.LootTable>): net.minecraft.world.level.storage.loot.LootTable;
+        }
+        const ServerTickRateManager: {
+          new(server: net.minecraft.server.MinecraftServer): net.minecraft.server.ServerTickRateManager;
+        }
+        interface ServerTickRateManager extends net.minecraft.world.TickRateManager { 
+          isSprinting(): boolean;
+          stepGameIfPaused(ticks: number): boolean;
+          stopStepping(): boolean;
+          stopSprinting(): boolean;
+          requestGameToSprint(time: number): boolean;
+          checkShouldSprintThisTick(): boolean;
+          endTickWork(): void;
+          updateJoiningPlayer(player: net.minecraft.server.level.ServerPlayer): void;
+        }
+        const TickTask: {
+          new(tick: number, runnable: java.lang.Runnable): net.minecraft.server.TickTask;
+        }
+        interface TickTask extends java.lang.Runnable { 
+          getTick(): number;
+        }
+        const MinecraftServer$MultiplayerScope: {
+          OFF: net.minecraft.server.MinecraftServer$MultiplayerScope;
+          LAN: net.minecraft.server.MinecraftServer$MultiplayerScope;
+          entries: kotlin.enums.EnumEntries<net.minecraft.server.MinecraftServer$MultiplayerScope>;
+          values(): Array<net.minecraft.server.MinecraftServer$MultiplayerScope>;
+          valueOf(value: string): net.minecraft.server.MinecraftServer$MultiplayerScope;
+        }
+        interface MinecraftServer$MultiplayerScope extends kotlin.Enum<net.minecraft.server.MinecraftServer$MultiplayerScope> { 
+          getDisplayName(): net.minecraft.network.chat.Component;
+          getTooltip(): net.minecraft.network.chat.Component;
+        }
+        const ServerFunctionManager: {
+          new(server: net.minecraft.server.MinecraftServer, library: net.minecraft.server.ServerFunctionLibrary): net.minecraft.server.ServerFunctionManager;
+        }
+        interface ServerFunctionManager { 
+          getDispatcher(): com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack>;
+          tick(): void;
+          execute(functionIn: net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>, sender: net.minecraft.commands.CommandSourceStack): void;
+          replaceLibrary(library: net.minecraft.server.ServerFunctionLibrary): void;
+          getGameLoopSender(): net.minecraft.commands.CommandSourceStack;
+          get(id: net.minecraft.resources.Identifier): java.util.Optional<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
+          getTag(id: net.minecraft.resources.Identifier): Array<net.minecraft.commands.functions.CommandFunction<net.minecraft.commands.CommandSourceStack>>;
+          getFunctionNames(): kotlin.collections.MutableIterable<net.minecraft.resources.Identifier>;
+          getTagNames(): kotlin.collections.MutableIterable<net.minecraft.resources.Identifier>;
         }
         const MinecraftServer$ServerResourcePackInfo: {
           new(id: java.util.UUID, url: string, hash: string, isRequired: boolean, prompt: net.minecraft.network.chat.Component | null | undefined): net.minecraft.server.MinecraftServer$ServerResourcePackInfo;
@@ -37048,7 +37414,7 @@ declare global {
               INFINITE: number;
               ORDER_ARBITRARY: unknown;
               COMPILABLE_CODEC: com.mojang.serialization.Codec<net.minecraft.util.CompilableString<net.minecraft.commands.arguments.selector.EntitySelector>>;
-              new(maxResults: number, includesEntities: boolean, worldLimited: boolean, contextFreePredicates: Array<unknown>, range: net.minecraft.advancements.criterion.MinMaxBounds$Doubles | null | undefined, position: unknown, aabb: net.minecraft.world.phys.AABB | null | undefined, order: unknown, currentEntity: boolean, playerName: string | null | undefined, entityUUID: java.util.UUID | null | undefined, type: net.minecraft.world.entity.EntityType<any> | null | undefined, usesSelector: boolean): net.minecraft.commands.arguments.selector.EntitySelector;
+              new(maxResults: number, includesEntities: boolean, worldLimited: boolean, contextFreePredicates: Array<unknown>, range: net.minecraft.advancements.predicates.MinMaxBounds$Doubles | null | undefined, position: unknown, aabb: net.minecraft.world.phys.AABB | null | undefined, order: unknown, currentEntity: boolean, playerName: string | null | undefined, entityUUID: java.util.UUID | null | undefined, type: net.minecraft.world.entity.EntityType<any> | null | undefined, usesSelector: boolean): net.minecraft.commands.arguments.selector.EntitySelector;
               joinNames(entities: Array<net.minecraft.world.entity.Entity>): net.minecraft.network.chat.Component;
             }
             interface EntitySelector { 
@@ -37111,9 +37477,9 @@ declare global {
           }
           const RangeArgument$Floats: {
             new(): net.minecraft.commands.arguments.RangeArgument$Floats;
-            getRange(context: com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, name: string): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
+            getRange(context: com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, name: string): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
           }
-          interface RangeArgument$Floats extends net.minecraft.commands.arguments.RangeArgument<net.minecraft.advancements.criterion.MinMaxBounds$Doubles> { 
+          interface RangeArgument$Floats extends net.minecraft.commands.arguments.RangeArgument<net.minecraft.advancements.predicates.MinMaxBounds$Doubles> { 
           }
           const RangeArgument: {
             Ints: typeof net.minecraft.commands.arguments.RangeArgument$Ints;
@@ -37125,9 +37491,9 @@ declare global {
           }
           const RangeArgument$Ints: {
             new(): net.minecraft.commands.arguments.RangeArgument$Ints;
-            getRange(context: com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, name: string): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
+            getRange(context: com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, name: string): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
           }
-          interface RangeArgument$Ints extends net.minecraft.commands.arguments.RangeArgument<net.minecraft.advancements.criterion.MinMaxBounds$Ints> { 
+          interface RangeArgument$Ints extends net.minecraft.commands.arguments.RangeArgument<net.minecraft.advancements.predicates.MinMaxBounds$Ints> { 
           }
           const GameModeArgument: {
             new(): net.minecraft.commands.arguments.GameModeArgument;
@@ -37538,81 +37904,97 @@ declare global {
         }
       }
       namespace advancements {
-        namespace criterion {
-          const MinMaxBounds$Ints: {
-            ANY: net.minecraft.advancements.criterion.MinMaxBounds$Ints;
-            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.criterion.MinMaxBounds$Ints>;
-            STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.advancements.criterion.MinMaxBounds$Ints>;
-            new(bounds: net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>, boundsSqr: net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
-            exactly(value: number): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
-            between(min: number, max: number): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
-            atLeast(value: number): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
-            atMost(value: number): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
-            fromReader(reader: com.mojang.brigadier.StringReader): net.minecraft.advancements.criterion.MinMaxBounds$Ints;
+        namespace triggers {
+          const Criterion: {
+            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.triggers.Criterion<any>>;
+            new<T>(trigger: net.minecraft.advancements.triggers.CriterionTrigger<T>, triggerInstance: T): net.minecraft.advancements.triggers.Criterion<any>;
           }
-          interface MinMaxBounds$Ints extends java.lang.Record, net.minecraft.advancements.criterion.MinMaxBounds<number> { 
+          interface Criterion<T> extends java.lang.Record { 
+            trigger(): net.minecraft.advancements.triggers.CriterionTrigger<T>;
+            triggerInstance(): T;
+          }
+          interface CriterionTrigger<T> { 
+            codec(): com.mojang.serialization.Codec<T>;
+            createCriterion(instance: T): net.minecraft.advancements.triggers.Criterion<T>;
+          }
+        }
+        namespace predicates {
+          const MinMaxBounds$Ints: {
+            ANY: net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.predicates.MinMaxBounds$Ints>;
+            STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.advancements.predicates.MinMaxBounds$Ints>;
+            new(bounds: net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>, boundsSqr: net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+            exactly(value: number): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+            between(min: number, max: number): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+            atLeast(value: number): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+            atMost(value: number): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+            fromReader(reader: com.mojang.brigadier.StringReader): net.minecraft.advancements.predicates.MinMaxBounds$Ints;
+          }
+          interface MinMaxBounds$Ints extends java.lang.Record, net.minecraft.advancements.predicates.MinMaxBounds<number> { 
             matches(value: number): boolean;
             matchesSqr(valueSqr: number): boolean;
-            boundsSqr(): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>;
+            boundsSqr(): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>;
           }
           const MinMaxBounds: {
-            Bounds: typeof net.minecraft.advancements.criterion.MinMaxBounds$Bounds;
-            FloatDegrees: typeof net.minecraft.advancements.criterion.MinMaxBounds$FloatDegrees;
-            Doubles: typeof net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            Ints: typeof net.minecraft.advancements.criterion.MinMaxBounds$Ints;
+            Bounds: typeof net.minecraft.advancements.predicates.MinMaxBounds$Bounds;
+            FloatDegrees: typeof net.minecraft.advancements.predicates.MinMaxBounds$FloatDegrees;
+            Doubles: typeof net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            Ints: typeof net.minecraft.advancements.predicates.MinMaxBounds$Ints;
             ERROR_EMPTY: com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
             ERROR_SWAPPED: com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-            validateContainedInRange<V, B>(allowed: net.minecraft.advancements.criterion.MinMaxBounds<V>): unknown;
+            validateContainedInRange<V, B>(allowed: net.minecraft.advancements.predicates.MinMaxBounds<V>): unknown;
           }
           interface MinMaxBounds<T> { 
-            bounds(): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
+            bounds(): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
             min(): java.util.Optional<T>;
             max(): java.util.Optional<T>;
             isAny(): boolean;
           }
           const MinMaxBounds$Bounds: {
-            new<T>(min: java.util.Optional<T>, max: java.util.Optional<T>): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<any>;
-            any<T>(): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
-            exactly<T>(value: T): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
-            between<T>(min: T, max: T): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
-            atLeast<T>(value: T): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
-            atMost<T>(value: T): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
-            fromReader<T>(reader: com.mojang.brigadier.StringReader, converter: unknown, parseExc: unknown): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>;
+            new<T>(min: java.util.Optional<T>, max: java.util.Optional<T>): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<any>;
+            any<T>(): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
+            exactly<T>(value: T): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
+            between<T>(min: T, max: T): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
+            atLeast<T>(value: T): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
+            atMost<T>(value: T): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
+            createCodec<T>(numberCodec: com.mojang.serialization.Codec<T>): com.mojang.serialization.Codec<net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>>;
+            createStreamCodec<B, T>(numberCodec: net.minecraft.network.codec.StreamCodec<B, T>): net.minecraft.network.codec.StreamCodec<B, net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>>;
+            fromReader<T>(reader: com.mojang.brigadier.StringReader, converter: unknown, parseExc: unknown): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>;
           }
           interface MinMaxBounds$Bounds<T> extends java.lang.Record { 
             isAny(): boolean;
-            validateSwappedBoundsInCodec(): com.mojang.serialization.DataResult<net.minecraft.advancements.criterion.MinMaxBounds$Bounds<T>>;
+            validateSwappedBoundsInCodec(): com.mojang.serialization.DataResult<net.minecraft.advancements.predicates.MinMaxBounds$Bounds<T>>;
             areSwapped(): boolean;
             asRange(): com.google.common.collect.Range<T>;
             asPoint(): java.util.Optional<T>;
-            map<U>(mapper: unknown): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<U>;
+            map<U>(mapper: unknown): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<U>;
             min(): java.util.Optional<T>;
             max(): java.util.Optional<T>;
           }
           const MinMaxBounds$FloatDegrees: {
-            ANY: net.minecraft.advancements.criterion.MinMaxBounds$FloatDegrees;
-            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.criterion.MinMaxBounds$FloatDegrees>;
-            STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.advancements.criterion.MinMaxBounds$FloatDegrees>;
-            new(bounds: net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>): net.minecraft.advancements.criterion.MinMaxBounds$FloatDegrees;
-            fromReader(reader: com.mojang.brigadier.StringReader): net.minecraft.advancements.criterion.MinMaxBounds$FloatDegrees;
+            ANY: net.minecraft.advancements.predicates.MinMaxBounds$FloatDegrees;
+            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.predicates.MinMaxBounds$FloatDegrees>;
+            STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.advancements.predicates.MinMaxBounds$FloatDegrees>;
+            new(bounds: net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>): net.minecraft.advancements.predicates.MinMaxBounds$FloatDegrees;
+            fromReader(reader: com.mojang.brigadier.StringReader): net.minecraft.advancements.predicates.MinMaxBounds$FloatDegrees;
           }
-          interface MinMaxBounds$FloatDegrees extends java.lang.Record, net.minecraft.advancements.criterion.MinMaxBounds<number> { 
+          interface MinMaxBounds$FloatDegrees extends java.lang.Record, net.minecraft.advancements.predicates.MinMaxBounds<number> { 
           }
           const MinMaxBounds$Doubles: {
-            ANY: net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.criterion.MinMaxBounds$Doubles>;
-            STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.advancements.criterion.MinMaxBounds$Doubles>;
-            new(bounds: net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>, boundsSqr: net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            exactly(value: number): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            between(min: number, max: number): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            atLeast(value: number): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            atMost(value: number): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
-            fromReader(reader: com.mojang.brigadier.StringReader): net.minecraft.advancements.criterion.MinMaxBounds$Doubles;
+            ANY: net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.predicates.MinMaxBounds$Doubles>;
+            STREAM_CODEC: net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.advancements.predicates.MinMaxBounds$Doubles>;
+            new(bounds: net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>, boundsSqr: net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            exactly(value: number): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            between(min: number, max: number): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            atLeast(value: number): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            atMost(value: number): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
+            fromReader(reader: com.mojang.brigadier.StringReader): net.minecraft.advancements.predicates.MinMaxBounds$Doubles;
           }
-          interface MinMaxBounds$Doubles extends java.lang.Record, net.minecraft.advancements.criterion.MinMaxBounds<number> { 
+          interface MinMaxBounds$Doubles extends java.lang.Record, net.minecraft.advancements.predicates.MinMaxBounds<number> { 
             matches(value: number): boolean;
             matchesSqr(valueSqr: number): boolean;
-            boundsSqr(): net.minecraft.advancements.criterion.MinMaxBounds$Bounds<number>;
+            boundsSqr(): net.minecraft.advancements.predicates.MinMaxBounds$Bounds<number>;
           }
         }
         const AdvancementTree: {
@@ -37653,8 +38035,8 @@ declare global {
           Builder: typeof net.minecraft.advancements.Advancement$Builder;
           CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.Advancement>;
           STREAM_CODEC: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, net.minecraft.advancements.Advancement>;
-          new(parent: java.util.Optional<net.minecraft.resources.Identifier>, display: java.util.Optional<net.minecraft.advancements.DisplayInfo>, rewards: net.minecraft.advancements.AdvancementRewards, criteria: Map<string, net.minecraft.advancements.Criterion<any>>, requirements: net.minecraft.advancements.AdvancementRequirements, sendsTelemetryEvent: boolean): net.minecraft.advancements.Advancement;
-          new(parent: java.util.Optional<net.minecraft.resources.Identifier>, display: java.util.Optional<net.minecraft.advancements.DisplayInfo>, rewards: net.minecraft.advancements.AdvancementRewards, criteria: Map<string, net.minecraft.advancements.Criterion<any>>, requirements: net.minecraft.advancements.AdvancementRequirements, sendsTelemetryEvent: boolean, name: java.util.Optional<net.minecraft.network.chat.Component>): net.minecraft.advancements.Advancement;
+          new(parent: java.util.Optional<net.minecraft.resources.Identifier>, display: java.util.Optional<net.minecraft.advancements.DisplayInfo>, rewards: net.minecraft.advancements.AdvancementRewards, criteria: Map<string, net.minecraft.advancements.triggers.Criterion<any>>, requirements: net.minecraft.advancements.AdvancementRequirements, sendsTelemetryEvent: boolean): net.minecraft.advancements.Advancement;
+          new(parent: java.util.Optional<net.minecraft.resources.Identifier>, display: java.util.Optional<net.minecraft.advancements.DisplayInfo>, rewards: net.minecraft.advancements.AdvancementRewards, criteria: Map<string, net.minecraft.advancements.triggers.Criterion<any>>, requirements: net.minecraft.advancements.AdvancementRequirements, sendsTelemetryEvent: boolean, name: java.util.Optional<net.minecraft.network.chat.Component>): net.minecraft.advancements.Advancement;
           name(holder: net.minecraft.advancements.AdvancementHolder): net.minecraft.network.chat.Component;
         }
         interface Advancement extends java.lang.Record { 
@@ -37664,7 +38046,7 @@ declare global {
           parent(): java.util.Optional<net.minecraft.resources.Identifier>;
           display(): java.util.Optional<net.minecraft.advancements.DisplayInfo>;
           rewards(): net.minecraft.advancements.AdvancementRewards;
-          criteria(): Map<string, net.minecraft.advancements.Criterion<any>>;
+          criteria(): Map<string, net.minecraft.advancements.triggers.Criterion<any>>;
           requirements(): net.minecraft.advancements.AdvancementRequirements;
           sendsTelemetryEvent(): boolean;
         }
@@ -37734,7 +38116,7 @@ declare global {
           requirements(strategy: net.minecraft.advancements.AdvancementRequirements$Strategy): net.minecraft.advancements.Advancement$Builder;
           requirements(requirements: net.minecraft.advancements.AdvancementRequirements): net.minecraft.advancements.Advancement$Builder;
           sendsTelemetryEvent(): net.minecraft.advancements.Advancement$Builder;
-          addCriterion(name: string, criterion: net.minecraft.advancements.Criterion<any>): net.minecraft.advancements.Advancement$Builder;
+          addCriterion(name: string, criterion: net.minecraft.advancements.triggers.Criterion<any>): net.minecraft.advancements.Advancement$Builder;
           build(id: net.minecraft.resources.Identifier): net.minecraft.advancements.AdvancementHolder;
           save(output: unknown, name: string): net.minecraft.advancements.AdvancementHolder;
         }
@@ -37769,33 +38151,6 @@ declare global {
           shouldShowToast(): boolean;
           shouldAnnounceChat(): boolean;
           isHidden(): boolean;
-        }
-        const Criterion: {
-          CODEC: com.mojang.serialization.Codec<net.minecraft.advancements.Criterion<any>>;
-          new<T>(trigger: net.minecraft.advancements.CriterionTrigger<T>, triggerInstance: T): net.minecraft.advancements.Criterion<any>;
-        }
-        interface Criterion<T> extends java.lang.Record { 
-          trigger(): net.minecraft.advancements.CriterionTrigger<T>;
-          triggerInstance(): T;
-        }
-        const CriterionTrigger: {
-          Listener: typeof net.minecraft.advancements.CriterionTrigger$Listener;
-        }
-        interface CriterionTrigger<T> { 
-          addPlayerListener(player: net.minecraft.server.PlayerAdvancements, listener: net.minecraft.advancements.CriterionTrigger$Listener<T>): void;
-          removePlayerListener(player: net.minecraft.server.PlayerAdvancements, listener: net.minecraft.advancements.CriterionTrigger$Listener<T>): void;
-          removePlayerListeners(player: net.minecraft.server.PlayerAdvancements): void;
-          codec(): com.mojang.serialization.Codec<T>;
-          createCriterion(instance: T): net.minecraft.advancements.Criterion<T>;
-        }
-        const CriterionTrigger$Listener: {
-          new<T>(trigger: T, advancement: net.minecraft.advancements.AdvancementHolder, criterion: string): net.minecraft.advancements.CriterionTrigger$Listener<any>;
-        }
-        interface CriterionTrigger$Listener<T> extends java.lang.Record { 
-          run(player: net.minecraft.server.PlayerAdvancements): void;
-          trigger(): T;
-          advancement(): net.minecraft.advancements.AdvancementHolder;
-          criterion(): string;
         }
         interface AdvancementTree$Listener { 
           onAddAdvancementRoot(root: net.minecraft.advancements.AdvancementNode): void;
@@ -37863,25 +38218,14 @@ declare global {
         UNDERLINE: net.minecraft.ChatFormatting;
         ITALIC: net.minecraft.ChatFormatting;
         RESET: net.minecraft.ChatFormatting;
-        CODEC: com.mojang.serialization.Codec<net.minecraft.ChatFormatting>;
-        COLOR_CODEC: com.mojang.serialization.Codec<net.minecraft.ChatFormatting>;
         PREFIX_CODE: number;
         entries: kotlin.enums.EnumEntries<net.minecraft.ChatFormatting>;
         stripFormatting(input: string | null | undefined): string | null | undefined;
-        getByName(name: string | null | undefined): net.minecraft.ChatFormatting | null | undefined;
-        getById(id: number): net.minecraft.ChatFormatting | null | undefined;
         getByCode(code: number): net.minecraft.ChatFormatting | null | undefined;
-        getNames(getColors: boolean, getFormats: boolean): Array<string>;
         values(): Array<net.minecraft.ChatFormatting>;
         valueOf(value: string): net.minecraft.ChatFormatting;
       }
-      interface ChatFormatting extends kotlin.Enum<net.minecraft.ChatFormatting>, net.minecraft.util.StringRepresentable { 
-        isFormat(): boolean;
-        getChar(): number;
-        getId(): number;
-        isColor(): boolean;
-        getColor(): number | null | undefined;
-        getName(): string;
+      interface ChatFormatting extends kotlin.Enum<net.minecraft.ChatFormatting> { 
       }
       const CrashReport: {
         new(title: string, t: kotlin.Throwable): net.minecraft.CrashReport;
@@ -37924,13 +38268,15 @@ declare global {
       }
       interface SystemReport { 
         setDetail(key: string, value: string): void;
-        setDetail(key: string, valueSupplier: unknown): void;
+        setDetail(key: string, valueSupplier: net.minecraft.CrashReportDetail<any>): void;
         appendToCrashReportString(sb: java.lang.StringBuilder): void;
         toLineSeparatedString(): string;
       }
+      interface CrashReportDetail<V> extends java.util.concurrent.Callable<V> { 
+      }
       const CrashReportCategory: {
+        Entry: typeof net.minecraft.CrashReportCategory$Entry;
         new(title: string): net.minecraft.CrashReportCategory;
-        formatLocation(x: number, y: number, z: number): string;
         formatLocation(levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor, x: number, y: number, z: number): string;
         formatLocation(levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor, pos: net.minecraft.core.BlockPos): string;
         formatLocation(levelHeightAccessor: net.minecraft.world.level.LevelHeightAccessor, x: number, y: number, z: number): string;
@@ -37939,21 +38285,26 @@ declare global {
       }
       interface CrashReportCategory { 
         setDetail(key: string, callback: net.minecraft.CrashReportDetail<string>): net.minecraft.CrashReportCategory;
-        setDetail(key: string, value: any): net.minecraft.CrashReportCategory;
+        setDetail(key: string, value: any | null | undefined): net.minecraft.CrashReportCategory;
         setDetailError(key: string, t: kotlin.Throwable): void;
         fillInStackTrace(nestedOffset: number): number;
-        validateStackTrace(source: java.lang.StackTraceElement, next: java.lang.StackTraceElement): boolean;
-        trimStacktrace(length: number): void;
+        validateStackTrace(source: java.lang.StackTraceElement | null | undefined, next: java.lang.StackTraceElement | null | undefined): boolean;
         getDetails(builder: java.lang.StringBuilder): void;
         getStacktrace(): Array<java.lang.StackTraceElement>;
-      }
-      interface CrashReportDetail<V> extends java.util.concurrent.Callable<V> { 
       }
       const ReportedException: {
         new(report: net.minecraft.CrashReport): net.minecraft.ReportedException;
       }
       interface ReportedException extends java.lang.RuntimeException { 
         getReport(): net.minecraft.CrashReport;
+      }
+      const CrashReportCategory$Entry: {
+        new(key: string, rawValue: any | null | undefined): net.minecraft.CrashReportCategory$Entry;
+        new(key: string, value: string): net.minecraft.CrashReportCategory$Entry;
+      }
+      interface CrashReportCategory$Entry extends java.lang.Record { 
+        key(): string;
+        value(): string;
       }
       const TracingExecutor: {
         new(service: java.util.concurrent.ExecutorService): net.minecraft.TracingExecutor;
@@ -38299,23 +38650,29 @@ declare global {
               }
             }
           }
-          namespace registry {
-            const FabricPotionBrewingBuilder: {
-              BUILD: net.fabricmc.fabric.api.event.Event<net.fabricmc.fabric.api.registry.FabricPotionBrewingBuilder$BuildCallback>;
-            }
-            interface FabricPotionBrewingBuilder { 
-              registerItemRecipe(p0: net.minecraft.world.item.Item, p1: net.minecraft.world.item.crafting.Ingredient, p2: net.minecraft.world.item.Item): void;
-              registerPotionRecipe(p0: net.minecraft.core.Holder<unknown>, p1: net.minecraft.world.item.crafting.Ingredient, p2: net.minecraft.core.Holder<unknown>): void;
-              registerRecipes(p0: net.minecraft.world.item.crafting.Ingredient, p1: net.minecraft.core.Holder<unknown>): void;
-              getEnabledFeatures(): net.minecraft.world.flag.FeatureFlagSet;
-            }
-            interface FabricPotionBrewingBuilder$BuildCallback { 
-              build(p0: net.minecraft.world.item.alchemy.PotionBrewing$Builder): void;
-              (p0: net.minecraft.world.item.alchemy.PotionBrewing$Builder): void;
+          namespace datagen {
+            namespace v1 {
+              namespace advancement {
+                interface FabricAdvancementBuilder { 
+                  save(p0: unknown, p1: net.minecraft.resources.Identifier): net.minecraft.advancements.AdvancementHolder;
+                }
+              }
             }
           }
           namespace recipe {
             namespace v1 {
+              namespace sync {
+                interface SynchronizedRecipes { 
+                  getAllMatches<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level): java.util.stream.Stream<net.minecraft.world.item.crafting.RecipeHolder<T>>;
+                  getAllOfType<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>): Array<net.minecraft.world.item.crafting.RecipeHolder<T>>;
+                  getFirstMatch<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level, p3: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<any>> | null | undefined): java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<T>>;
+                  getFirstMatch<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level, p3: net.minecraft.world.item.crafting.RecipeHolder<T> | null | undefined): java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<T>>;
+                  getFirstMatch<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level): java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<T>>;
+                  get(p0: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<any>>): net.minecraft.world.item.crafting.RecipeHolder<any> | null | undefined;
+                  get<T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<any>>): net.minecraft.world.item.crafting.RecipeHolder<T> | null | undefined;
+                  recipes(): Array<net.minecraft.world.item.crafting.RecipeHolder<any>>;
+                }
+              }
               namespace ingredient {
                 interface FabricIngredient { 
                   getCustomIngredient(): net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient | null | undefined;
@@ -38339,18 +38696,6 @@ declare global {
                   getStreamCodec(): net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, T>;
                 }
               }
-              namespace sync {
-                interface SynchronizedRecipes { 
-                  getAllMatches<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level): java.util.stream.Stream<net.minecraft.world.item.crafting.RecipeHolder<T>>;
-                  getAllOfType<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>): Array<net.minecraft.world.item.crafting.RecipeHolder<T>>;
-                  getFirstMatch<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level, p3: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<any>> | null | undefined): java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<T>>;
-                  getFirstMatch<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level, p3: net.minecraft.world.item.crafting.RecipeHolder<T> | null | undefined): java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<T>>;
-                  getFirstMatch<I, T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: I, p2: net.minecraft.world.level.Level): java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<T>>;
-                  get(p0: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<any>>): net.minecraft.world.item.crafting.RecipeHolder<any> | null | undefined;
-                  get<T>(p0: net.minecraft.world.item.crafting.RecipeType<T>, p1: net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<any>>): net.minecraft.world.item.crafting.RecipeHolder<T> | null | undefined;
-                  recipes(): Array<net.minecraft.world.item.crafting.RecipeHolder<any>>;
-                }
-              }
               interface FabricRecipeAccess { 
                 getSynchronizedRecipes(): net.fabricmc.fabric.api.recipe.v1.sync.SynchronizedRecipes;
               }
@@ -38360,13 +38705,19 @@ declare global {
               }
             }
           }
-          namespace datagen {
-            namespace v1 {
-              namespace advancement {
-                interface FabricAdvancementBuilder { 
-                  save(p0: unknown, p1: net.minecraft.resources.Identifier): net.minecraft.advancements.AdvancementHolder;
-                }
-              }
+          namespace registry {
+            const FabricPotionBrewingBuilder: {
+              BUILD: net.fabricmc.fabric.api.event.Event<net.fabricmc.fabric.api.registry.FabricPotionBrewingBuilder$BuildCallback>;
+            }
+            interface FabricPotionBrewingBuilder { 
+              registerItemRecipe(p0: net.minecraft.world.item.Item, p1: net.minecraft.world.item.crafting.Ingredient, p2: net.minecraft.world.item.Item): void;
+              registerPotionRecipe(p0: net.minecraft.core.Holder<unknown>, p1: net.minecraft.world.item.crafting.Ingredient, p2: net.minecraft.core.Holder<unknown>): void;
+              registerRecipes(p0: net.minecraft.world.item.crafting.Ingredient, p1: net.minecraft.core.Holder<unknown>): void;
+              getEnabledFeatures(): net.minecraft.world.flag.FeatureFlagSet;
+            }
+            interface FabricPotionBrewingBuilder$BuildCallback { 
+              build(p0: net.minecraft.world.item.alchemy.PotionBrewing$Builder): void;
+              (p0: net.minecraft.world.item.alchemy.PotionBrewing$Builder): void;
             }
           }
           namespace util {
@@ -38431,6 +38782,15 @@ declare global {
                   withUsePipelineDrawModeForGui(p0: boolean): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
                   withoutUsePipelineDrawModeForGui(): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
                 }
+                interface FabricOrderedSubmitNodeCollector { 
+                  submitCustom<T>(p0: net.fabricmc.fabric.api.client.rendering.v1.SubmitRenderPhase<T>, p1: T): void;
+                }
+                const SubmitRenderPhase: {
+                  new<T>(p0: unknown): net.fabricmc.fabric.api.client.rendering.v1.SubmitRenderPhase<any>;
+                }
+                interface SubmitRenderPhase<T> { 
+                  submit(p0: net.minecraft.client.renderer.SubmitNodeCollection, p1: T): void;
+                }
                 interface FabricModel<S> { 
                   getChildPart(p0: string): net.minecraft.client.model.geom.ModelPart | null | undefined;
                   copyTransforms(p0: net.minecraft.client.model.Model<any>): void;
@@ -38445,46 +38805,11 @@ declare global {
                   }
                   interface FabricOrderedSubmitNodeCollector { 
                     submitBlockModel(p0: com.mojang.blaze3d.vertex.PoseStack, p1: unknown, p2: boolean, p3: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, p4: net.fabricmc.fabric.api.client.renderer.v1.mesh.Mesh | null | undefined, p5: Array<number>, p6: number, p7: number, p8: number): void;
+                    submitBreakingBlockModel(p0: com.mojang.blaze3d.vertex.PoseStack, p1: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, p2: net.fabricmc.fabric.api.client.renderer.v1.mesh.Mesh, p3: number): void;
                     submitItem(p0: com.mojang.blaze3d.vertex.PoseStack, p1: net.minecraft.world.item.ItemDisplayContext, p2: number, p3: number, p4: number, p5: Array<number>, p6: Array<net.minecraft.client.resources.model.geometry.BakedQuad>, p7: net.fabricmc.fabric.api.client.renderer.v1.mesh.MeshView, p8: net.minecraft.client.renderer.item.ItemStackRenderState$FoilType): void;
                   }
                   interface FabricBlockModelRenderState { 
                     setupMesh(p0: org.joml.Matrix4fc, p1: boolean): net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter;
-                  }
-                  const FabricSubmitNodeCollection: {
-                    ExtendedItemSubmit: typeof net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection$ExtendedItemSubmit;
-                    ExtendedBlockModelSubmit: typeof net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection$ExtendedBlockModelSubmit;
-                  }
-                  interface FabricSubmitNodeCollection { 
-                    getExtendedBlockModelSubmits(): Array<net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection$ExtendedBlockModelSubmit>;
-                    getExtendedItemSubmits(): Array<net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection$ExtendedItemSubmit>;
-                  }
-                  const FabricSubmitNodeCollection$ExtendedItemSubmit: {
-                    new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, displayContext: net.minecraft.world.item.ItemDisplayContext, lightCoords: number, overlayCoords: number, outlineColor: number, tintLayers: Array<number>, quads: Array<net.minecraft.client.resources.model.geometry.BakedQuad>, mesh: net.fabricmc.fabric.api.client.renderer.v1.mesh.MeshView, foilType: net.minecraft.client.renderer.item.ItemStackRenderState$FoilType): net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection$ExtendedItemSubmit;
-                  }
-                  interface FabricSubmitNodeCollection$ExtendedItemSubmit extends java.lang.Record { 
-                    pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-                    displayContext(): net.minecraft.world.item.ItemDisplayContext;
-                    lightCoords(): number;
-                    overlayCoords(): number;
-                    outlineColor(): number;
-                    tintLayers(): Array<number>;
-                    quads(): Array<net.minecraft.client.resources.model.geometry.BakedQuad>;
-                    mesh(): net.fabricmc.fabric.api.client.renderer.v1.mesh.MeshView;
-                    foilType(): net.minecraft.client.renderer.item.ItemStackRenderState$FoilType;
-                  }
-                  const FabricSubmitNodeCollection$ExtendedBlockModelSubmit: {
-                    new(pose: com.mojang.blaze3d.vertex.PoseStack$Pose, renderTypeFunction: unknown, translucent: boolean, modelParts: Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, mesh: net.fabricmc.fabric.api.client.renderer.v1.mesh.Mesh | null | undefined, tintLayers: Array<number>, lightCoords: number, overlayCoords: number, outlineColor: number): net.fabricmc.fabric.api.client.renderer.v1.render.FabricSubmitNodeCollection$ExtendedBlockModelSubmit;
-                  }
-                  interface FabricSubmitNodeCollection$ExtendedBlockModelSubmit extends java.lang.Record { 
-                    pose(): com.mojang.blaze3d.vertex.PoseStack$Pose;
-                    renderTypeFunction(): unknown;
-                    translucent(): boolean;
-                    modelParts(): Array<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>;
-                    mesh(): net.fabricmc.fabric.api.client.renderer.v1.mesh.Mesh | null | undefined;
-                    tintLayers(): Array<number>;
-                    lightCoords(): number;
-                    overlayCoords(): number;
-                    outlineColor(): number;
                   }
                 }
                 namespace mesh {
@@ -38612,18 +38937,18 @@ declare global {
                   }
                 }
                 namespace model {
+                  interface FabricBlockStateModelPart { 
+                    emitQuads(p0: net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter, p1: unknown): void;
+                  }
+                  interface FabricBlockStateModelSet { 
+                    getParticleMaterial(p0: net.minecraft.world.level.block.state.BlockState, p1: net.minecraft.client.renderer.block.BlockAndTintGetter, p2: net.minecraft.core.BlockPos): net.minecraft.client.resources.model.sprite.Material$Baked;
+                  }
                   interface FabricBlockStateModel { 
                     emitQuads(p0: net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter, p1: net.minecraft.client.renderer.block.BlockAndTintGetter, p2: net.minecraft.core.BlockPos, p3: net.minecraft.world.level.block.state.BlockState, p4: net.minecraft.util.RandomSource, p5: unknown): void;
                     createGeometryKey(p0: net.minecraft.client.renderer.block.BlockAndTintGetter, p1: net.minecraft.core.BlockPos, p2: net.minecraft.world.level.block.state.BlockState, p3: net.minecraft.util.RandomSource): any | null | undefined;
                     particleMaterial(p0: net.minecraft.client.renderer.block.BlockAndTintGetter, p1: net.minecraft.core.BlockPos, p2: net.minecraft.world.level.block.state.BlockState): net.minecraft.client.resources.model.sprite.Material$Baked;
                     materialFlags(p0: net.minecraft.client.renderer.block.BlockAndTintGetter, p1: net.minecraft.core.BlockPos, p2: net.minecraft.world.level.block.state.BlockState, p3: net.minecraft.util.RandomSource): number;
                     hasMaterialFlag(p0: net.minecraft.client.renderer.block.BlockAndTintGetter, p1: net.minecraft.core.BlockPos, p2: net.minecraft.world.level.block.state.BlockState, p3: net.minecraft.util.RandomSource, p4: number): boolean;
-                  }
-                  interface FabricBlockStateModelPart { 
-                    emitQuads(p0: net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadEmitter, p1: unknown): void;
-                  }
-                  interface FabricBlockStateModelSet { 
-                    getParticleMaterial(p0: net.minecraft.world.level.block.state.BlockState, p1: net.minecraft.client.renderer.block.BlockAndTintGetter, p2: net.minecraft.core.BlockPos): net.minecraft.client.resources.model.sprite.Material$Baked;
                   }
                 }
                 namespace sprite {
@@ -38638,12 +38963,22 @@ declare global {
                     find(p0: net.fabricmc.fabric.api.client.renderer.v1.mesh.QuadView): net.minecraft.client.renderer.texture.TextureAtlasSprite;
                     find(p0: number, p1: number): net.minecraft.client.renderer.texture.TextureAtlasSprite;
                   }
-                  interface FabricTextureAtlas { 
-                    spriteFinder(): net.fabricmc.fabric.api.client.renderer.v1.sprite.SpriteFinder;
-                  }
                   interface FabricPreparations { 
                     spriteFinder(): net.fabricmc.fabric.api.client.renderer.v1.sprite.SpriteFinder;
                   }
+                  interface FabricTextureAtlas { 
+                    spriteFinder(): net.fabricmc.fabric.api.client.renderer.v1.sprite.SpriteFinder;
+                  }
+                }
+              }
+            }
+            namespace sound {
+              namespace v1 {
+                const FabricSoundInstance: {
+                  EMPTY_SOUND: net.minecraft.resources.Identifier;
+                }
+                interface FabricSoundInstance { 
+                  getAudioStream(p0: net.minecraft.client.sounds.SoundBufferLibrary, p1: net.minecraft.resources.Identifier, p2: boolean): java.util.concurrent.CompletableFuture<unknown>;
                 }
               }
             }
@@ -38659,16 +38994,6 @@ declare global {
                   }
                   interface ExtraModelKey<T> { 
                   }
-                }
-              }
-            }
-            namespace sound {
-              namespace v1 {
-                const FabricSoundInstance: {
-                  EMPTY_SOUND: net.minecraft.resources.Identifier;
-                }
-                interface FabricSoundInstance { 
-                  getAudioStream(p0: net.minecraft.client.sounds.SoundBufferLibrary, p1: net.minecraft.resources.Identifier, p2: boolean): java.util.concurrent.CompletableFuture<unknown>;
                 }
               }
             }
@@ -38746,48 +39071,39 @@ declare global {
           }
           interface PolygonMode extends kotlin.Enum<com.mojang.blaze3d.platform.PolygonMode> { 
           }
-          const SourceFactor: {
-            CONSTANT_ALPHA: com.mojang.blaze3d.platform.SourceFactor;
-            CONSTANT_COLOR: com.mojang.blaze3d.platform.SourceFactor;
-            DST_ALPHA: com.mojang.blaze3d.platform.SourceFactor;
-            DST_COLOR: com.mojang.blaze3d.platform.SourceFactor;
-            ONE: com.mojang.blaze3d.platform.SourceFactor;
-            ONE_MINUS_CONSTANT_ALPHA: com.mojang.blaze3d.platform.SourceFactor;
-            ONE_MINUS_CONSTANT_COLOR: com.mojang.blaze3d.platform.SourceFactor;
-            ONE_MINUS_DST_ALPHA: com.mojang.blaze3d.platform.SourceFactor;
-            ONE_MINUS_DST_COLOR: com.mojang.blaze3d.platform.SourceFactor;
-            ONE_MINUS_SRC_ALPHA: com.mojang.blaze3d.platform.SourceFactor;
-            ONE_MINUS_SRC_COLOR: com.mojang.blaze3d.platform.SourceFactor;
-            SRC_ALPHA: com.mojang.blaze3d.platform.SourceFactor;
-            SRC_ALPHA_SATURATE: com.mojang.blaze3d.platform.SourceFactor;
-            SRC_COLOR: com.mojang.blaze3d.platform.SourceFactor;
-            ZERO: com.mojang.blaze3d.platform.SourceFactor;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.platform.SourceFactor>;
-            values(): Array<com.mojang.blaze3d.platform.SourceFactor>;
-            valueOf(value: string): com.mojang.blaze3d.platform.SourceFactor;
+          const BlendFactor: {
+            CONSTANT_ALPHA: com.mojang.blaze3d.platform.BlendFactor;
+            CONSTANT_COLOR: com.mojang.blaze3d.platform.BlendFactor;
+            DST_ALPHA: com.mojang.blaze3d.platform.BlendFactor;
+            DST_COLOR: com.mojang.blaze3d.platform.BlendFactor;
+            ONE: com.mojang.blaze3d.platform.BlendFactor;
+            ONE_MINUS_CONSTANT_ALPHA: com.mojang.blaze3d.platform.BlendFactor;
+            ONE_MINUS_CONSTANT_COLOR: com.mojang.blaze3d.platform.BlendFactor;
+            ONE_MINUS_DST_ALPHA: com.mojang.blaze3d.platform.BlendFactor;
+            ONE_MINUS_DST_COLOR: com.mojang.blaze3d.platform.BlendFactor;
+            ONE_MINUS_SRC_ALPHA: com.mojang.blaze3d.platform.BlendFactor;
+            ONE_MINUS_SRC_COLOR: com.mojang.blaze3d.platform.BlendFactor;
+            SRC_ALPHA: com.mojang.blaze3d.platform.BlendFactor;
+            SRC_ALPHA_SATURATE: com.mojang.blaze3d.platform.BlendFactor;
+            SRC_COLOR: com.mojang.blaze3d.platform.BlendFactor;
+            ZERO: com.mojang.blaze3d.platform.BlendFactor;
+            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.platform.BlendFactor>;
+            values(): Array<com.mojang.blaze3d.platform.BlendFactor>;
+            valueOf(value: string): com.mojang.blaze3d.platform.BlendFactor;
           }
-          interface SourceFactor extends kotlin.Enum<com.mojang.blaze3d.platform.SourceFactor> { 
+          interface BlendFactor extends kotlin.Enum<com.mojang.blaze3d.platform.BlendFactor> { 
           }
-          const DestFactor: {
-            CONSTANT_ALPHA: com.mojang.blaze3d.platform.DestFactor;
-            CONSTANT_COLOR: com.mojang.blaze3d.platform.DestFactor;
-            DST_ALPHA: com.mojang.blaze3d.platform.DestFactor;
-            DST_COLOR: com.mojang.blaze3d.platform.DestFactor;
-            ONE: com.mojang.blaze3d.platform.DestFactor;
-            ONE_MINUS_CONSTANT_ALPHA: com.mojang.blaze3d.platform.DestFactor;
-            ONE_MINUS_CONSTANT_COLOR: com.mojang.blaze3d.platform.DestFactor;
-            ONE_MINUS_DST_ALPHA: com.mojang.blaze3d.platform.DestFactor;
-            ONE_MINUS_DST_COLOR: com.mojang.blaze3d.platform.DestFactor;
-            ONE_MINUS_SRC_ALPHA: com.mojang.blaze3d.platform.DestFactor;
-            ONE_MINUS_SRC_COLOR: com.mojang.blaze3d.platform.DestFactor;
-            SRC_ALPHA: com.mojang.blaze3d.platform.DestFactor;
-            SRC_COLOR: com.mojang.blaze3d.platform.DestFactor;
-            ZERO: com.mojang.blaze3d.platform.DestFactor;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.platform.DestFactor>;
-            values(): Array<com.mojang.blaze3d.platform.DestFactor>;
-            valueOf(value: string): com.mojang.blaze3d.platform.DestFactor;
+          const BlendOp: {
+            ADD: com.mojang.blaze3d.platform.BlendOp;
+            SUBTRACT: com.mojang.blaze3d.platform.BlendOp;
+            REVERSE_SUBTRACT: com.mojang.blaze3d.platform.BlendOp;
+            MIN: com.mojang.blaze3d.platform.BlendOp;
+            MAX: com.mojang.blaze3d.platform.BlendOp;
+            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.platform.BlendOp>;
+            values(): Array<com.mojang.blaze3d.platform.BlendOp>;
+            valueOf(value: string): com.mojang.blaze3d.platform.BlendOp;
           }
-          interface DestFactor extends kotlin.Enum<com.mojang.blaze3d.platform.DestFactor> { 
+          interface BlendOp extends kotlin.Enum<com.mojang.blaze3d.platform.BlendOp> { 
           }
           const CompareOp: {
             ALWAYS_PASS: com.mojang.blaze3d.platform.CompareOp;
@@ -38852,6 +39168,7 @@ declare global {
             resizeSubRectTo(sourceX: number, sourceY: number, sizeX: number, sizeY: number, to: com.mojang.blaze3d.platform.NativeImage): void;
             untrack(): void;
             getPointer(): number;
+            getPixelBytes(): java.nio.ByteBuffer;
             computeTransparency(x0: number, y0: number, x1: number, y1: number): com.mojang.blaze3d.platform.Transparency;
             computeTransparency(): com.mojang.blaze3d.platform.Transparency;
           }
@@ -38890,7 +39207,7 @@ declare global {
             WindowInitFailed: typeof com.mojang.blaze3d.platform.Window$WindowInitFailed;
             BASE_WIDTH: number;
             BASE_HEIGHT: number;
-            new(eventHandler: com.mojang.blaze3d.platform.WindowEventHandler, displayData: com.mojang.blaze3d.platform.DisplayData, fullscreenVideoModeString: string | null | undefined, title: string, backend: com.mojang.blaze3d.systems.GpuBackend): com.mojang.blaze3d.platform.Window;
+            new(eventHandler: com.mojang.blaze3d.platform.WindowEventHandler, displayData: com.mojang.blaze3d.platform.DisplayData, fullscreenVideoModeString: string | null | undefined, exclusiveFullscreen: boolean, title: string, monitorManager: com.mojang.blaze3d.platform.MonitorManager, backend: com.mojang.blaze3d.systems.GpuBackend): com.mojang.blaze3d.platform.Window;
             createGlfwWindow(width: number, height: number, title: string, monitor: number, backend: com.mojang.blaze3d.systems.GpuBackend): number;
             getPlatform(): string;
             checkGlfwError(errorConsumer: unknown): void;
@@ -38898,14 +39215,12 @@ declare global {
           interface Window extends java.lang.AutoCloseable { 
             defaultErrorCallback(errorCode: number, description: number): void;
             handle(): number;
-            isResized(): boolean;
             backend(): com.mojang.blaze3d.systems.GpuBackend;
             getRefreshRate(): number;
             shouldClose(): boolean;
             setIcon(resources: net.minecraft.server.packs.PackResources, iconSet: com.mojang.blaze3d.platform.IconSet): void;
             setErrorSection(string: string): void;
             setDefaultErrorCallback(): void;
-            updateVsync(enableVsync: boolean): void;
             updateFullscreenIfChanged(): void;
             getPreferredFullscreenVideoMode(): java.util.Optional<com.mojang.blaze3d.platform.VideoMode>;
             setPreferredFullscreenVideoMode(preferredFullscreenVideoMode: java.util.Optional<com.mojang.blaze3d.platform.VideoMode>): void;
@@ -38932,7 +39247,6 @@ declare global {
             findBestMonitor(): com.mojang.blaze3d.platform.Monitor | null | undefined;
             updateRawMouseInput(value: boolean): void;
             setWindowCloseCallback(task: java.lang.Runnable): void;
-            resetIsResized(): void;
             isMinimized(): boolean;
             setAllowCursorChanges(value: boolean): void;
             selectCursor(cursor: com.mojang.blaze3d.platform.cursor.CursorType): void;
@@ -38950,18 +39264,20 @@ declare global {
             getMacIcon(resources: net.minecraft.server.packs.PackResources): net.minecraft.server.packs.resources.IoSupplier<java.io.InputStream>;
           }
           const Monitor: {
-            new(monitor: number): com.mojang.blaze3d.platform.Monitor;
+            new(monitorName: string, monitor: number, videoModes: Array<com.mojang.blaze3d.platform.VideoMode>, currentMode: com.mojang.blaze3d.platform.VideoMode, x: number, y: number): com.mojang.blaze3d.platform.Monitor;
+            tryCreate(monitor: number): com.mojang.blaze3d.platform.Monitor | null | undefined;
           }
-          interface Monitor { 
-            refreshVideoModes(): void;
+          interface Monitor extends java.lang.Record { 
             getPreferredVidMode(expectedMode: java.util.Optional<com.mojang.blaze3d.platform.VideoMode>): com.mojang.blaze3d.platform.VideoMode;
-            getVideoModeIndex(videoMode: com.mojang.blaze3d.platform.VideoMode): number;
-            getCurrentMode(): com.mojang.blaze3d.platform.VideoMode;
-            getX(): number;
-            getY(): number;
-            getMode(mode: number): com.mojang.blaze3d.platform.VideoMode;
-            getModeCount(): number;
-            getMonitor(): number;
+            indexOfMode(videoMode: com.mojang.blaze3d.platform.VideoMode): number;
+            mode(mode: number): com.mojang.blaze3d.platform.VideoMode;
+            modeCount(): number;
+            monitorName(): string;
+            monitor(): number;
+            videoModes(): Array<com.mojang.blaze3d.platform.VideoMode>;
+            currentMode(): com.mojang.blaze3d.platform.VideoMode;
+            x(): number;
+            y(): number;
           }
           const VideoMode: {
             new(width: number, height: number, redBits: number, greenBits: number, blueBits: number, refreshRate: number): com.mojang.blaze3d.platform.VideoMode;
@@ -38979,6 +39295,7 @@ declare global {
             write(): string;
           }
           interface WindowEventHandler { 
+            framebufferSizeChanged(): void;
             resizeGui(): void;
             cursorEntered(): void;
           }
@@ -38993,6 +39310,14 @@ declare global {
             fullscreenWidth(): java.util.OptionalInt;
             fullscreenHeight(): java.util.OptionalInt;
             isFullscreen(): boolean;
+          }
+          const MonitorManager: {
+            new(): com.mojang.blaze3d.platform.MonitorManager;
+            clamp(value: number, min: number, max: number): number;
+          }
+          interface MonitorManager extends java.lang.AutoCloseable { 
+            getMonitor(monitor: number): com.mojang.blaze3d.platform.Monitor | null | undefined;
+            findBestMonitor(window: com.mojang.blaze3d.platform.Window): com.mojang.blaze3d.platform.Monitor | null | undefined;
           }
           const Window$WindowInitFailed: {
             new(message: string): com.mojang.blaze3d.platform.Window$WindowInitFailed;
@@ -39059,7 +39384,6 @@ declare global {
           const RenderPipeline: {
             Builder: typeof com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             Snippet: typeof com.mojang.blaze3d.pipeline.RenderPipeline$Snippet;
-            UniformDescription: typeof com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription;
             updateSortKeySeed(): void;
             builder(snippets: com.mojang.blaze3d.pipeline.RenderPipeline$Snippet): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
           }
@@ -39067,33 +39391,34 @@ declare global {
             getSortKey(): number;
             getPolygonMode(): com.mojang.blaze3d.platform.PolygonMode;
             isCull(): boolean;
-            getColorTargetState(): com.mojang.blaze3d.pipeline.ColorTargetState;
+            getColorTargetStates(): Array<com.mojang.blaze3d.pipeline.ColorTargetState | null | undefined>;
+            getColorTargetState(): com.mojang.blaze3d.pipeline.ColorTargetState | null | undefined;
             getDepthStencilState(): com.mojang.blaze3d.pipeline.DepthStencilState | null | undefined;
             getLocation(): net.minecraft.resources.Identifier;
-            getVertexFormat(): com.mojang.blaze3d.vertex.VertexFormat;
-            getVertexFormatMode(): com.mojang.blaze3d.vertex.VertexFormat$Mode;
+            getVertexFormatBindings(): Array<com.mojang.blaze3d.vertex.VertexFormat | null | undefined>;
+            getVertexFormatBinding(bindingIndex: number): com.mojang.blaze3d.vertex.VertexFormat | null | undefined;
+            getPrimitiveTopology(): com.mojang.blaze3d.PrimitiveTopology;
             getVertexShader(): net.minecraft.resources.Identifier;
             getFragmentShader(): net.minecraft.resources.Identifier;
             getShaderDefines(): net.minecraft.client.renderer.ShaderDefines;
-            getSamplers(): Array<string>;
-            getUniforms(): Array<com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription>;
+            getBindGroupLayouts(): Array<com.mojang.blaze3d.pipeline.BindGroupLayout>;
             wantsDepthTexture(): boolean;
           }
           const RenderPipeline$Snippet: {
-            new(vertexShader: java.util.Optional<net.minecraft.resources.Identifier>, fragmentShader: java.util.Optional<net.minecraft.resources.Identifier>, shaderDefines: java.util.Optional<net.minecraft.client.renderer.ShaderDefines>, samplers: java.util.Optional<Array<string>>, uniforms: java.util.Optional<Array<com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription>>, colorTargetState: java.util.Optional<com.mojang.blaze3d.pipeline.ColorTargetState>, depthStencilState: java.util.Optional<com.mojang.blaze3d.pipeline.DepthStencilState>, polygonMode: java.util.Optional<com.mojang.blaze3d.platform.PolygonMode>, cull: java.util.Optional<boolean>, vertexFormat: java.util.Optional<com.mojang.blaze3d.vertex.VertexFormat>, vertexFormatMode: java.util.Optional<com.mojang.blaze3d.vertex.VertexFormat$Mode>): com.mojang.blaze3d.pipeline.RenderPipeline$Snippet;
+            new(vertexShader: java.util.Optional<net.minecraft.resources.Identifier>, fragmentShader: java.util.Optional<net.minecraft.resources.Identifier>, shaderDefines: java.util.Optional<net.minecraft.client.renderer.ShaderDefines>, bindGroupLayouts: java.util.Optional<Array<com.mojang.blaze3d.pipeline.BindGroupLayout>>, colorTargetStates: Array<com.mojang.blaze3d.pipeline.ColorTargetState | null | undefined>, activeColorTargetStateCount: number, depthStencilState: java.util.Optional<com.mojang.blaze3d.pipeline.DepthStencilState>, polygonMode: java.util.Optional<com.mojang.blaze3d.platform.PolygonMode>, cull: java.util.Optional<boolean>, vertexFormatPerBuffer: Array<com.mojang.blaze3d.vertex.VertexFormat | null | undefined>, vertexFormatMode: java.util.Optional<com.mojang.blaze3d.PrimitiveTopology>): com.mojang.blaze3d.pipeline.RenderPipeline$Snippet;
           }
           interface RenderPipeline$Snippet extends java.lang.Record, net.fabricmc.fabric.api.client.rendering.v1.FabricRenderPipeline$Snippet { 
             vertexShader(): java.util.Optional<net.minecraft.resources.Identifier>;
             fragmentShader(): java.util.Optional<net.minecraft.resources.Identifier>;
             shaderDefines(): java.util.Optional<net.minecraft.client.renderer.ShaderDefines>;
-            samplers(): java.util.Optional<Array<string>>;
-            uniforms(): java.util.Optional<Array<com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription>>;
-            colorTargetState(): java.util.Optional<com.mojang.blaze3d.pipeline.ColorTargetState>;
+            bindGroupLayouts(): java.util.Optional<Array<com.mojang.blaze3d.pipeline.BindGroupLayout>>;
+            colorTargetStates(): Array<com.mojang.blaze3d.pipeline.ColorTargetState | null | undefined>;
+            activeColorTargetStateCount(): number;
             depthStencilState(): java.util.Optional<com.mojang.blaze3d.pipeline.DepthStencilState>;
             polygonMode(): java.util.Optional<com.mojang.blaze3d.platform.PolygonMode>;
             cull(): java.util.Optional<boolean>;
-            vertexFormat(): java.util.Optional<com.mojang.blaze3d.vertex.VertexFormat>;
-            vertexFormatMode(): java.util.Optional<com.mojang.blaze3d.vertex.VertexFormat$Mode>;
+            vertexFormatPerBuffer(): Array<com.mojang.blaze3d.vertex.VertexFormat | null | undefined>;
+            vertexFormatMode(): java.util.Optional<com.mojang.blaze3d.PrimitiveTopology>;
           }
           interface RenderPipeline$Builder extends net.fabricmc.fabric.api.client.rendering.v1.FabricRenderPipeline$Builder { 
             withLocation(location: string): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
@@ -39105,17 +39430,46 @@ declare global {
             withShaderDefine(key: string): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withShaderDefine(key: string, value: number): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withShaderDefine(key: string, value: number): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
-            withSampler(sampler: string): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
-            withUniform(name: string, type: com.mojang.blaze3d.shaders.UniformType): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
-            withUniform(name: string, type: com.mojang.blaze3d.shaders.UniformType, format: com.mojang.blaze3d.textures.TextureFormat): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
+            withBindGroupLayout(bindGroupLayout: com.mojang.blaze3d.pipeline.BindGroupLayout): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withPolygonMode(polygonMode: com.mojang.blaze3d.platform.PolygonMode): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withCull(cull: boolean): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
+            withColorTargetState(index: number, colorTargetState: com.mojang.blaze3d.pipeline.ColorTargetState): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withColorTargetState(colorTargetState: com.mojang.blaze3d.pipeline.ColorTargetState): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
+            withUnusedColorTargetState(index: number): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withDepthStencilState(depthStencilState: com.mojang.blaze3d.pipeline.DepthStencilState): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             withDepthStencilState(depthStencilState: java.util.Optional<com.mojang.blaze3d.pipeline.DepthStencilState>): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
-            withVertexFormat(vertexFormat: com.mojang.blaze3d.vertex.VertexFormat, vertexFormatMode: com.mojang.blaze3d.vertex.VertexFormat$Mode): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
+            withVertexBinding(bindingIndex: number, vertexFormat: com.mojang.blaze3d.vertex.VertexFormat): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
+            withPrimitiveTopology(primitiveTopology: com.mojang.blaze3d.PrimitiveTopology): com.mojang.blaze3d.pipeline.RenderPipeline$Builder;
             buildSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline$Snippet;
             build(): com.mojang.blaze3d.pipeline.RenderPipeline;
+          }
+          const BindGroupLayout: {
+            Builder: typeof com.mojang.blaze3d.pipeline.BindGroupLayout$Builder;
+            UniformDescription: typeof com.mojang.blaze3d.pipeline.BindGroupLayout$UniformDescription;
+            builder(): com.mojang.blaze3d.pipeline.BindGroupLayout$Builder;
+            flattenSamplers(bindGroupLayouts: Array<com.mojang.blaze3d.pipeline.BindGroupLayout>): Array<string>;
+            flattenUniforms(bindGroupLayouts: Array<com.mojang.blaze3d.pipeline.BindGroupLayout>): Array<com.mojang.blaze3d.pipeline.BindGroupLayout$UniformDescription>;
+            ensureCompatible(bindGroupLayouts: Array<com.mojang.blaze3d.pipeline.BindGroupLayout>): void;
+          }
+          interface BindGroupLayout { 
+            getSamplers(): Array<string>;
+            getUniforms(): Array<com.mojang.blaze3d.pipeline.BindGroupLayout$UniformDescription>;
+          }
+          interface BindGroupLayout$Builder { 
+            withSampler(sampler: string): com.mojang.blaze3d.pipeline.BindGroupLayout$Builder;
+            withUniform(name: string, type: com.mojang.blaze3d.shaders.UniformType): com.mojang.blaze3d.pipeline.BindGroupLayout$Builder;
+            withUniform(name: string, type: com.mojang.blaze3d.shaders.UniformType, format: com.mojang.blaze3d.GpuFormat): com.mojang.blaze3d.pipeline.BindGroupLayout$Builder;
+            build(): com.mojang.blaze3d.pipeline.BindGroupLayout;
+          }
+          const BindGroupLayout$UniformDescription: {
+            new(name: string, type: com.mojang.blaze3d.shaders.UniformType): com.mojang.blaze3d.pipeline.BindGroupLayout$UniformDescription;
+            new(name: string, gpuFormat: com.mojang.blaze3d.GpuFormat): com.mojang.blaze3d.pipeline.BindGroupLayout$UniformDescription;
+            new(name: string, type: com.mojang.blaze3d.shaders.UniformType, gpuFormat: com.mojang.blaze3d.GpuFormat | null | undefined): com.mojang.blaze3d.pipeline.BindGroupLayout$UniformDescription;
+          }
+          interface BindGroupLayout$UniformDescription extends java.lang.Record { 
+            name(): string;
+            type(): com.mojang.blaze3d.shaders.UniformType;
+            gpuFormat(): com.mojang.blaze3d.GpuFormat | null | undefined;
           }
           const ColorTargetState: {
             WRITE_RED: number;
@@ -39126,8 +39480,9 @@ declare global {
             WRITE_ALL: number;
             WRITE_NONE: number;
             DEFAULT: com.mojang.blaze3d.pipeline.ColorTargetState;
+            MAX_COLOR_TARGETS: number;
             new(blendFunction: com.mojang.blaze3d.pipeline.BlendFunction): com.mojang.blaze3d.pipeline.ColorTargetState;
-            new(blendFunction: java.util.Optional<com.mojang.blaze3d.pipeline.BlendFunction>, writeMask: number): com.mojang.blaze3d.pipeline.ColorTargetState;
+            new(blendFunction: java.util.Optional<com.mojang.blaze3d.pipeline.BlendFunction>, format: com.mojang.blaze3d.GpuFormat, writeMask: number): com.mojang.blaze3d.pipeline.ColorTargetState;
           }
           interface ColorTargetState extends java.lang.Record { 
             writeRed(): boolean;
@@ -39135,6 +39490,7 @@ declare global {
             writeBlue(): boolean;
             writeAlpha(): boolean;
             blendFunction(): java.util.Optional<com.mojang.blaze3d.pipeline.BlendFunction>;
+            format(): com.mojang.blaze3d.GpuFormat;
             writeMask(): number;
           }
           const BlendFunction: {
@@ -39146,14 +39502,24 @@ declare global {
             ADDITIVE: com.mojang.blaze3d.pipeline.BlendFunction;
             ENTITY_OUTLINE_BLIT: com.mojang.blaze3d.pipeline.BlendFunction;
             INVERT: com.mojang.blaze3d.pipeline.BlendFunction;
-            new(source: com.mojang.blaze3d.platform.SourceFactor, dest: com.mojang.blaze3d.platform.DestFactor): com.mojang.blaze3d.pipeline.BlendFunction;
-            new(sourceColor: com.mojang.blaze3d.platform.SourceFactor, destColor: com.mojang.blaze3d.platform.DestFactor, sourceAlpha: com.mojang.blaze3d.platform.SourceFactor, destAlpha: com.mojang.blaze3d.platform.DestFactor): com.mojang.blaze3d.pipeline.BlendFunction;
+            new(srcColorFactor: com.mojang.blaze3d.platform.BlendFactor, dstColorFactor: com.mojang.blaze3d.platform.BlendFactor, colorOp: com.mojang.blaze3d.platform.BlendOp, srcAlphaFactor: com.mojang.blaze3d.platform.BlendFactor, dstAlphaFactor: com.mojang.blaze3d.platform.BlendFactor, alphaOp: com.mojang.blaze3d.platform.BlendOp): com.mojang.blaze3d.pipeline.BlendFunction;
+            new(srcColorFactor: com.mojang.blaze3d.platform.BlendFactor, dstColorFactor: com.mojang.blaze3d.platform.BlendFactor, srcAlphaFactor: com.mojang.blaze3d.platform.BlendFactor, dstAlphaFactor: com.mojang.blaze3d.platform.BlendFactor): com.mojang.blaze3d.pipeline.BlendFunction;
+            new(equation: com.mojang.blaze3d.pipeline.BlendEquation): com.mojang.blaze3d.pipeline.BlendFunction;
+            new(srcFactor: com.mojang.blaze3d.platform.BlendFactor, dstFactor: com.mojang.blaze3d.platform.BlendFactor, op: com.mojang.blaze3d.platform.BlendOp): com.mojang.blaze3d.pipeline.BlendFunction;
+            new(srcFactor: com.mojang.blaze3d.platform.BlendFactor, dstFactor: com.mojang.blaze3d.platform.BlendFactor): com.mojang.blaze3d.pipeline.BlendFunction;
+            new(color: com.mojang.blaze3d.pipeline.BlendEquation, alpha: com.mojang.blaze3d.pipeline.BlendEquation): com.mojang.blaze3d.pipeline.BlendFunction;
           }
           interface BlendFunction extends java.lang.Record { 
-            sourceColor(): com.mojang.blaze3d.platform.SourceFactor;
-            destColor(): com.mojang.blaze3d.platform.DestFactor;
-            sourceAlpha(): com.mojang.blaze3d.platform.SourceFactor;
-            destAlpha(): com.mojang.blaze3d.platform.DestFactor;
+            color(): com.mojang.blaze3d.pipeline.BlendEquation;
+            alpha(): com.mojang.blaze3d.pipeline.BlendEquation;
+          }
+          const BlendEquation: {
+            new(sourceFactor: com.mojang.blaze3d.platform.BlendFactor, destFactor: com.mojang.blaze3d.platform.BlendFactor, op: com.mojang.blaze3d.platform.BlendOp): com.mojang.blaze3d.pipeline.BlendEquation;
+          }
+          interface BlendEquation extends java.lang.Record { 
+            sourceFactor(): com.mojang.blaze3d.platform.BlendFactor;
+            destFactor(): com.mojang.blaze3d.platform.BlendFactor;
+            op(): com.mojang.blaze3d.platform.BlendOp;
           }
           const ColorTargetState$WriteMask: {
             new(): com.mojang.blaze3d.pipeline.ColorTargetState$WriteMask;
@@ -39171,18 +39537,8 @@ declare global {
             depthBiasScaleFactor(): number;
             depthBiasConstant(): number;
           }
-          const RenderPipeline$UniformDescription: {
-            new(name: string, type: com.mojang.blaze3d.shaders.UniformType): com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription;
-            new(name: string, textureFormat: com.mojang.blaze3d.textures.TextureFormat): com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription;
-            new(name: string, type: com.mojang.blaze3d.shaders.UniformType, textureFormat: com.mojang.blaze3d.textures.TextureFormat | null | undefined): com.mojang.blaze3d.pipeline.RenderPipeline$UniformDescription;
-          }
-          interface RenderPipeline$UniformDescription extends java.lang.Record { 
-            name(): string;
-            type(): com.mojang.blaze3d.shaders.UniformType;
-            textureFormat(): com.mojang.blaze3d.textures.TextureFormat | null | undefined;
-          }
           const RenderTarget: {
-            new(label: string | null | undefined, useDepth: boolean): com.mojang.blaze3d.pipeline.RenderTarget;
+            new(label: string | null | undefined, useDepth: boolean, format: com.mojang.blaze3d.GpuFormat): com.mojang.blaze3d.pipeline.RenderTarget;
           }
           interface RenderTarget { 
             width: number;
@@ -39192,8 +39548,7 @@ declare global {
             destroyBuffers(): void;
             copyDepthFrom(source: com.mojang.blaze3d.pipeline.RenderTarget): void;
             createBuffers(width: number, height: number): void;
-            blitToScreen(): void;
-            blitAndBlendToTexture(output: com.mojang.blaze3d.textures.GpuTextureView): void;
+            blitAndBlendToTexture(output: com.mojang.blaze3d.textures.GpuTextureView, outputDepth: com.mojang.blaze3d.textures.GpuTextureView): void;
             getColorTexture(): com.mojang.blaze3d.textures.GpuTexture | null | undefined;
             getColorTextureView(): com.mojang.blaze3d.textures.GpuTextureView | null | undefined;
             getDepthTexture(): com.mojang.blaze3d.textures.GpuTexture | null | undefined;
@@ -39230,254 +39585,42 @@ declare global {
             idConverter(): net.minecraft.resources.FileToIdConverter;
           }
           const GpuDebugOptions: {
-            new(logLevel: number, synchronousLogs: boolean, useLabels: boolean): com.mojang.blaze3d.shaders.GpuDebugOptions;
+            new(logLevel: number, synchronousLogs: boolean, useLabels: boolean, useValidationLayers: boolean): com.mojang.blaze3d.shaders.GpuDebugOptions;
           }
           interface GpuDebugOptions extends java.lang.Record { 
             logLevel(): number;
             synchronousLogs(): boolean;
             useLabels(): boolean;
-          }
-        }
-        namespace textures {
-          const TextureFormat: {
-            RGBA8: com.mojang.blaze3d.textures.TextureFormat;
-            RED8: com.mojang.blaze3d.textures.TextureFormat;
-            RED8I: com.mojang.blaze3d.textures.TextureFormat;
-            DEPTH32: com.mojang.blaze3d.textures.TextureFormat;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.textures.TextureFormat>;
-            values(): Array<com.mojang.blaze3d.textures.TextureFormat>;
-            valueOf(value: string): com.mojang.blaze3d.textures.TextureFormat;
-          }
-          interface TextureFormat extends kotlin.Enum<com.mojang.blaze3d.textures.TextureFormat> { 
-            pixelSize(): number;
-            hasColorAspect(): boolean;
-            hasDepthAspect(): boolean;
-          }
-          const GpuTexture: {
-            USAGE_COPY_DST: number;
-            USAGE_COPY_SRC: number;
-            USAGE_TEXTURE_BINDING: number;
-            USAGE_RENDER_ATTACHMENT: number;
-            USAGE_CUBEMAP_COMPATIBLE: number;
-            new(usage: number, label: string, format: com.mojang.blaze3d.textures.TextureFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
-          }
-          interface GpuTexture extends java.lang.AutoCloseable { 
-            usage(): number;
-            getWidth(mipLevel: number): number;
-            getHeight(mipLevel: number): number;
-            getDepthOrLayers(): number;
-            getMipLevels(): number;
-            getFormat(): com.mojang.blaze3d.textures.TextureFormat;
-            getLabel(): string;
-            isClosed(): boolean;
-          }
-          const GpuTexture$Usage: {
-            new(): com.mojang.blaze3d.textures.GpuTexture$Usage;
-          }
-          interface GpuTexture$Usage extends kotlin.Annotation { 
-          }
-          interface GpuTextureView extends java.lang.AutoCloseable { 
-            texture(): com.mojang.blaze3d.textures.GpuTexture;
-            baseMipLevel(): number;
-            mipLevels(): number;
-            getWidth(mipLevel: number): number;
-            getHeight(mipLevel: number): number;
-            isClosed(): boolean;
-          }
-          const GpuSampler: {
-            new(): com.mojang.blaze3d.textures.GpuSampler;
-          }
-          interface GpuSampler extends java.lang.AutoCloseable { 
-            getAddressModeU(): com.mojang.blaze3d.textures.AddressMode;
-            getAddressModeV(): com.mojang.blaze3d.textures.AddressMode;
-            getMinFilter(): com.mojang.blaze3d.textures.FilterMode;
-            getMagFilter(): com.mojang.blaze3d.textures.FilterMode;
-            getMaxAnisotropy(): number;
-            getMaxLod(): java.util.OptionalDouble;
-          }
-          const AddressMode: {
-            REPEAT: com.mojang.blaze3d.textures.AddressMode;
-            CLAMP_TO_EDGE: com.mojang.blaze3d.textures.AddressMode;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.textures.AddressMode>;
-            values(): Array<com.mojang.blaze3d.textures.AddressMode>;
-            valueOf(value: string): com.mojang.blaze3d.textures.AddressMode;
-          }
-          interface AddressMode extends kotlin.Enum<com.mojang.blaze3d.textures.AddressMode> { 
-          }
-          const FilterMode: {
-            NEAREST: com.mojang.blaze3d.textures.FilterMode;
-            LINEAR: com.mojang.blaze3d.textures.FilterMode;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.textures.FilterMode>;
-            values(): Array<com.mojang.blaze3d.textures.FilterMode>;
-            valueOf(value: string): com.mojang.blaze3d.textures.FilterMode;
-          }
-          interface FilterMode extends kotlin.Enum<com.mojang.blaze3d.textures.FilterMode> { 
+            useValidationLayers(): boolean;
           }
         }
         namespace vertex {
           const VertexFormat: {
             Builder: typeof com.mojang.blaze3d.vertex.VertexFormat$Builder;
-            Mode: typeof com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            IndexType: typeof com.mojang.blaze3d.vertex.VertexFormat$IndexType;
-            UNKNOWN_ELEMENT: number;
-            builder(): com.mojang.blaze3d.vertex.VertexFormat$Builder;
+            MAX_VERTEX_ELEMENTS: number;
+            builder(stepRate: number): com.mojang.blaze3d.vertex.VertexFormat$Builder;
           }
           interface VertexFormat { 
             getVertexSize(): number;
+            getStepRate(): number;
             getElements(): Array<com.mojang.blaze3d.vertex.VertexFormatElement>;
-            getElementAttributeNames(): Array<string>;
-            getOffsetsByElement(): Array<number>;
-            getOffset(element: com.mojang.blaze3d.vertex.VertexFormatElement): number;
-            contains(element: com.mojang.blaze3d.vertex.VertexFormatElement): boolean;
-            getElementsMask(): number;
-            getElementName(element: com.mojang.blaze3d.vertex.VertexFormatElement): string;
-            uploadImmediateVertexBuffer(buffer: java.nio.ByteBuffer): com.mojang.blaze3d.buffers.GpuBuffer;
-            uploadImmediateIndexBuffer(buffer: java.nio.ByteBuffer): com.mojang.blaze3d.buffers.GpuBuffer;
+            getElement(attributeName: string): com.mojang.blaze3d.vertex.VertexFormatElement | null | undefined;
+            contains(attributeName: string): boolean;
           }
           const VertexFormatElement: {
-            Type: typeof com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            MAX_COUNT: number;
-            POSITION: com.mojang.blaze3d.vertex.VertexFormatElement;
-            COLOR: com.mojang.blaze3d.vertex.VertexFormatElement;
-            UV0: com.mojang.blaze3d.vertex.VertexFormatElement;
-            UV: com.mojang.blaze3d.vertex.VertexFormatElement;
-            UV1: com.mojang.blaze3d.vertex.VertexFormatElement;
-            UV2: com.mojang.blaze3d.vertex.VertexFormatElement;
-            NORMAL: com.mojang.blaze3d.vertex.VertexFormatElement;
-            LINE_WIDTH: com.mojang.blaze3d.vertex.VertexFormatElement;
-            new(id: number, index: number, type: com.mojang.blaze3d.vertex.VertexFormatElement$Type, normalized: boolean, count: number): com.mojang.blaze3d.vertex.VertexFormatElement;
-            register(id: number, index: number, type: com.mojang.blaze3d.vertex.VertexFormatElement$Type, normalized: boolean, count: number): com.mojang.blaze3d.vertex.VertexFormatElement;
-            byId(id: number): com.mojang.blaze3d.vertex.VertexFormatElement | null | undefined;
-            elementsFromMask(mask: number): java.util.stream.Stream<com.mojang.blaze3d.vertex.VertexFormatElement>;
+            new(name: string, offset: number, format: com.mojang.blaze3d.GpuFormat): com.mojang.blaze3d.vertex.VertexFormatElement;
           }
           interface VertexFormatElement extends java.lang.Record { 
-            mask(): number;
-            byteSize(): number;
-            id(): number;
-            index(): number;
-            type(): com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            normalized(): boolean;
-            count(): number;
-          }
-          const VertexFormatElement$Type: {
-            FLOAT: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            UBYTE: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            BYTE: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            USHORT: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            SHORT: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            UINT: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            INT: com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.vertex.VertexFormatElement$Type>;
-            values(): Array<com.mojang.blaze3d.vertex.VertexFormatElement$Type>;
-            valueOf(value: string): com.mojang.blaze3d.vertex.VertexFormatElement$Type;
-          }
-          interface VertexFormatElement$Type extends kotlin.Enum<com.mojang.blaze3d.vertex.VertexFormatElement$Type> { 
-            size(): number;
+            name(): string;
+            offset(): number;
+            format(): com.mojang.blaze3d.GpuFormat;
           }
           interface VertexFormat$Builder { 
-            add(name: string, element: com.mojang.blaze3d.vertex.VertexFormatElement): com.mojang.blaze3d.vertex.VertexFormat$Builder;
-            padding(bytes: number): com.mojang.blaze3d.vertex.VertexFormat$Builder;
+            addAttribute(name: string, elementFormat: com.mojang.blaze3d.GpuFormat): com.mojang.blaze3d.vertex.VertexFormat$Builder;
+            addAttribute(name: string, stride: number, elementFormat: com.mojang.blaze3d.GpuFormat): com.mojang.blaze3d.vertex.VertexFormat$Builder;
+            addAttribute(name: string, elementFormat: com.mojang.blaze3d.GpuFormat, columnCount: number): com.mojang.blaze3d.vertex.VertexFormat$Builder;
+            addAttribute(name: string, offset: number, stride: number, elementFormat: com.mojang.blaze3d.GpuFormat, columnCount: number): com.mojang.blaze3d.vertex.VertexFormat$Builder;
             build(): com.mojang.blaze3d.vertex.VertexFormat;
-          }
-          const VertexFormat$Mode: {
-            LINES: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            DEBUG_LINES: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            DEBUG_LINE_STRIP: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            POINTS: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            TRIANGLES: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            TRIANGLE_STRIP: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            TRIANGLE_FAN: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            QUADS: com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.vertex.VertexFormat$Mode>;
-            values(): Array<com.mojang.blaze3d.vertex.VertexFormat$Mode>;
-            valueOf(value: string): com.mojang.blaze3d.vertex.VertexFormat$Mode;
-          }
-          interface VertexFormat$Mode extends kotlin.Enum<com.mojang.blaze3d.vertex.VertexFormat$Mode> { 
-            primitiveLength: number;
-            primitiveStride: number;
-            connectedPrimitives: boolean;
-            indexCount(vertexCount: number): number;
-          }
-          const VertexFormat$IndexType: {
-            SHORT: com.mojang.blaze3d.vertex.VertexFormat$IndexType;
-            INT: com.mojang.blaze3d.vertex.VertexFormat$IndexType;
-            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.vertex.VertexFormat$IndexType>;
-            least(length: number): com.mojang.blaze3d.vertex.VertexFormat$IndexType;
-            values(): Array<com.mojang.blaze3d.vertex.VertexFormat$IndexType>;
-            valueOf(value: string): com.mojang.blaze3d.vertex.VertexFormat$IndexType;
-          }
-          interface VertexFormat$IndexType extends kotlin.Enum<com.mojang.blaze3d.vertex.VertexFormat$IndexType> { 
-            bytes: number;
-          }
-          const MeshData: {
-            DrawState: typeof com.mojang.blaze3d.vertex.MeshData$DrawState;
-            SortState: typeof com.mojang.blaze3d.vertex.MeshData$SortState;
-            new(vertexBuffer: com.mojang.blaze3d.vertex.ByteBufferBuilder$Result, drawState: com.mojang.blaze3d.vertex.MeshData$DrawState): com.mojang.blaze3d.vertex.MeshData;
-          }
-          interface MeshData extends java.lang.AutoCloseable { 
-            vertexBuffer(): java.nio.ByteBuffer;
-            indexBuffer(): java.nio.ByteBuffer | null | undefined;
-            drawState(): com.mojang.blaze3d.vertex.MeshData$DrawState;
-            sortQuads(indexBufferTarget: com.mojang.blaze3d.vertex.ByteBufferBuilder, sorting: com.mojang.blaze3d.vertex.VertexSorting): com.mojang.blaze3d.vertex.MeshData$SortState | null | undefined;
-          }
-          const MeshData$DrawState: {
-            new(format: com.mojang.blaze3d.vertex.VertexFormat, vertexCount: number, indexCount: number, mode: com.mojang.blaze3d.vertex.VertexFormat$Mode, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType): com.mojang.blaze3d.vertex.MeshData$DrawState;
-          }
-          interface MeshData$DrawState extends java.lang.Record { 
-            format(): com.mojang.blaze3d.vertex.VertexFormat;
-            vertexCount(): number;
-            indexCount(): number;
-            mode(): com.mojang.blaze3d.vertex.VertexFormat$Mode;
-            indexType(): com.mojang.blaze3d.vertex.VertexFormat$IndexType;
-          }
-          const ByteBufferBuilder: {
-            Result: typeof com.mojang.blaze3d.vertex.ByteBufferBuilder$Result;
-            new(initialCapacity: number, maxCapacity: number): com.mojang.blaze3d.vertex.ByteBufferBuilder;
-            new(initialCapacity: number): com.mojang.blaze3d.vertex.ByteBufferBuilder;
-            exactlySized(capacity: number): com.mojang.blaze3d.vertex.ByteBufferBuilder;
-          }
-          interface ByteBufferBuilder extends java.lang.AutoCloseable { 
-            reserve(size: number): number;
-            build(): com.mojang.blaze3d.vertex.ByteBufferBuilder$Result | null | undefined;
-            clear(): void;
-            discard(): void;
-          }
-          interface ByteBufferBuilder$Result extends java.lang.AutoCloseable { 
-            byteBuffer(): java.nio.ByteBuffer;
-          }
-          const VertexSorting: {
-            DISTANCE_TO_ORIGIN: com.mojang.blaze3d.vertex.VertexSorting;
-            ORTHOGRAPHIC_Z: com.mojang.blaze3d.vertex.VertexSorting;
-            byDistance(x: number, y: number, z: number): com.mojang.blaze3d.vertex.VertexSorting;
-            byDistance(origin: org.joml.Vector3fc): com.mojang.blaze3d.vertex.VertexSorting;
-            byDistance(function_: com.mojang.blaze3d.vertex.VertexSorting$DistanceFunction): com.mojang.blaze3d.vertex.VertexSorting;
-          }
-          interface VertexSorting { 
-            sort(points: com.mojang.blaze3d.vertex.CompactVectorArray): Array<number>;
-          }
-          const CompactVectorArray: {
-            new(count: number): com.mojang.blaze3d.vertex.CompactVectorArray;
-          }
-          interface CompactVectorArray { 
-            size(): number;
-            set(index: number, v: org.joml.Vector3fc): void;
-            set(index: number, x: number, y: number, z: number): void;
-            get(index: number, output: org.joml.Vector3f): org.joml.Vector3f;
-            getX(index: number): number;
-            getY(index: number): number;
-            getZ(index: number): number;
-          }
-          interface VertexSorting$DistanceFunction { 
-            apply(value: org.joml.Vector3f): number;
-            (value: org.joml.Vector3f): number;
-          }
-          const MeshData$SortState: {
-            new(centroids: com.mojang.blaze3d.vertex.CompactVectorArray, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType): com.mojang.blaze3d.vertex.MeshData$SortState;
-          }
-          interface MeshData$SortState extends java.lang.Record { 
-            buildSortedIndexBuffer(target: com.mojang.blaze3d.vertex.ByteBufferBuilder, sorting: com.mojang.blaze3d.vertex.VertexSorting): com.mojang.blaze3d.vertex.ByteBufferBuilder$Result | null | undefined;
-            centroids(): com.mojang.blaze3d.vertex.CompactVectorArray;
-            indexType(): com.mojang.blaze3d.vertex.VertexFormat$IndexType;
           }
           interface VertexConsumer { 
             addVertex(x: number, y: number, z: number): com.mojang.blaze3d.vertex.VertexConsumer;
@@ -39555,6 +39698,119 @@ declare global {
             isEmpty(): boolean;
             setIdentity(): void;
           }
+          const ByteBufferBuilder: {
+            Result: typeof com.mojang.blaze3d.vertex.ByteBufferBuilder$Result;
+            new(initialCapacity: number, maxCapacity: number): com.mojang.blaze3d.vertex.ByteBufferBuilder;
+            new(initialCapacity: number): com.mojang.blaze3d.vertex.ByteBufferBuilder;
+            exactlySized(capacity: number): com.mojang.blaze3d.vertex.ByteBufferBuilder;
+          }
+          interface ByteBufferBuilder extends java.lang.AutoCloseable { 
+            reserve(size: number): number;
+            build(): com.mojang.blaze3d.vertex.ByteBufferBuilder$Result | null | undefined;
+            clear(): void;
+            discard(): void;
+          }
+          interface ByteBufferBuilder$Result extends java.lang.AutoCloseable { 
+            size(): number;
+            byteBuffer(): java.nio.ByteBuffer;
+          }
+          const VertexSorting: {
+            DISTANCE_TO_ORIGIN: com.mojang.blaze3d.vertex.VertexSorting;
+            ORTHOGRAPHIC_Z: com.mojang.blaze3d.vertex.VertexSorting;
+            byDistance(x: number, y: number, z: number): com.mojang.blaze3d.vertex.VertexSorting;
+            byDistance(origin: org.joml.Vector3fc): com.mojang.blaze3d.vertex.VertexSorting;
+            byDistance(function_: com.mojang.blaze3d.vertex.VertexSorting$DistanceFunction): com.mojang.blaze3d.vertex.VertexSorting;
+          }
+          interface VertexSorting { 
+            sort(points: com.mojang.blaze3d.vertex.CompactVectorArray): Array<number>;
+          }
+          const CompactVectorArray: {
+            new(count: number): com.mojang.blaze3d.vertex.CompactVectorArray;
+          }
+          interface CompactVectorArray { 
+            size(): number;
+            set(index: number, v: org.joml.Vector3fc): void;
+            set(index: number, x: number, y: number, z: number): void;
+            get(index: number, output: org.joml.Vector3f): org.joml.Vector3f;
+            getX(index: number): number;
+            getY(index: number): number;
+            getZ(index: number): number;
+          }
+          interface VertexSorting$DistanceFunction { 
+            apply(value: org.joml.Vector3f): number;
+            (value: org.joml.Vector3f): number;
+          }
+          const MeshData$SortState: {
+            new(centroids: com.mojang.blaze3d.vertex.CompactVectorArray, indexType: com.mojang.blaze3d.IndexType): com.mojang.blaze3d.vertex.MeshData$SortState;
+          }
+          interface MeshData$SortState extends java.lang.Record { 
+            buildSortedIndexBuffer(target: com.mojang.blaze3d.vertex.ByteBufferBuilder, sorting: com.mojang.blaze3d.vertex.VertexSorting): com.mojang.blaze3d.vertex.ByteBufferBuilder$Result | null | undefined;
+            writeSortedIndexBuffer(target: java.nio.ByteBuffer, sorting: com.mojang.blaze3d.vertex.VertexSorting): void;
+            centroids(): com.mojang.blaze3d.vertex.CompactVectorArray;
+            indexType(): com.mojang.blaze3d.IndexType;
+          }
+        }
+        namespace textures {
+          const GpuTexture: {
+            USAGE_COPY_DST: number;
+            USAGE_COPY_SRC: number;
+            USAGE_TEXTURE_BINDING: number;
+            USAGE_RENDER_ATTACHMENT: number;
+            USAGE_CUBEMAP_COMPATIBLE: number;
+            new(usage: number, label: string, format: com.mojang.blaze3d.GpuFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
+          }
+          interface GpuTexture extends java.lang.AutoCloseable { 
+            usage(): number;
+            getWidth(mipLevel: number): number;
+            getHeight(mipLevel: number): number;
+            getDepthOrLayers(): number;
+            getMipLevels(): number;
+            getFormat(): com.mojang.blaze3d.GpuFormat;
+            getLabel(): string;
+            isClosed(): boolean;
+          }
+          const GpuTexture$Usage: {
+            new(): com.mojang.blaze3d.textures.GpuTexture$Usage;
+          }
+          interface GpuTexture$Usage extends kotlin.Annotation { 
+          }
+          interface GpuTextureView extends java.lang.AutoCloseable { 
+            texture(): com.mojang.blaze3d.textures.GpuTexture;
+            baseMipLevel(): number;
+            mipLevels(): number;
+            getWidth(mipLevel: number): number;
+            getHeight(mipLevel: number): number;
+            isClosed(): boolean;
+          }
+          const GpuSampler: {
+            new(): com.mojang.blaze3d.textures.GpuSampler;
+          }
+          interface GpuSampler extends java.lang.AutoCloseable { 
+            getAddressModeU(): com.mojang.blaze3d.textures.AddressMode;
+            getAddressModeV(): com.mojang.blaze3d.textures.AddressMode;
+            getMinFilter(): com.mojang.blaze3d.textures.FilterMode;
+            getMagFilter(): com.mojang.blaze3d.textures.FilterMode;
+            getMaxAnisotropy(): number;
+            getMaxLod(): java.util.OptionalDouble;
+          }
+          const AddressMode: {
+            REPEAT: com.mojang.blaze3d.textures.AddressMode;
+            CLAMP_TO_EDGE: com.mojang.blaze3d.textures.AddressMode;
+            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.textures.AddressMode>;
+            values(): Array<com.mojang.blaze3d.textures.AddressMode>;
+            valueOf(value: string): com.mojang.blaze3d.textures.AddressMode;
+          }
+          interface AddressMode extends kotlin.Enum<com.mojang.blaze3d.textures.AddressMode> { 
+          }
+          const FilterMode: {
+            NEAREST: com.mojang.blaze3d.textures.FilterMode;
+            LINEAR: com.mojang.blaze3d.textures.FilterMode;
+            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.textures.FilterMode>;
+            values(): Array<com.mojang.blaze3d.textures.FilterMode>;
+            valueOf(value: string): com.mojang.blaze3d.textures.FilterMode;
+          }
+          interface FilterMode extends kotlin.Enum<com.mojang.blaze3d.textures.FilterMode> { 
+          }
         }
         namespace buffers {
           const GpuBuffer: {
@@ -39567,6 +39823,7 @@ declare global {
             USAGE_INDEX: number;
             USAGE_UNIFORM: number;
             USAGE_UNIFORM_TEXEL_BUFFER: number;
+            USAGE_INDIRECT_PARAMETERS: number;
             new(usage: number, size: number): com.mojang.blaze3d.buffers.GpuBuffer;
           }
           interface GpuBuffer extends java.lang.AutoCloseable { 
@@ -39575,49 +39832,98 @@ declare global {
             isClosed(): boolean;
             slice(offset: number, length: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
             slice(): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            map(read: boolean, write: boolean): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
+            map(offset: number, length: number, read: boolean, write: boolean): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
           }
           const GpuBufferSlice: {
+            MappedView: typeof com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
             new(buffer: com.mojang.blaze3d.buffers.GpuBuffer, offset: number, length: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
           }
           interface GpuBufferSlice extends java.lang.Record { 
             slice(offset: number, length: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            map(read: boolean, write: boolean): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
             buffer(): com.mojang.blaze3d.buffers.GpuBuffer;
             offset(): number;
             length(): number;
+          }
+          const GpuBufferSlice$MappedView: {
+            new(slice: com.mojang.blaze3d.buffers.GpuBufferSlice, data: java.nio.ByteBuffer, onClose: java.lang.Runnable): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
+          }
+          interface GpuBufferSlice$MappedView extends java.lang.Record, java.lang.AutoCloseable { 
+            slice(): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            data(): java.nio.ByteBuffer;
+            onClose(): java.lang.Runnable;
           }
           const GpuBuffer$Usage: {
             new(): com.mojang.blaze3d.buffers.GpuBuffer$Usage;
           }
           interface GpuBuffer$Usage extends kotlin.Annotation { 
           }
-          interface GpuBuffer$MappedView extends java.lang.AutoCloseable { 
-            data(): java.nio.ByteBuffer;
-          }
           interface GpuFence extends java.lang.AutoCloseable { 
-            awaitCompletion(timeoutMs: number): boolean;
+            awaitCompletion(timeoutNS: number): boolean;
           }
         }
         namespace systems {
+          const ScissorState: {
+            new(): com.mojang.blaze3d.systems.ScissorState;
+            new(state: com.mojang.blaze3d.systems.ScissorState): com.mojang.blaze3d.systems.ScissorState;
+          }
+          interface ScissorState { 
+            enabled(): boolean;
+            x(): number;
+            y(): number;
+            width(): number;
+            height(): number;
+            enable(x: number, y: number, width: number, height: number): void;
+            disable(): void;
+            setFrom(state: com.mojang.blaze3d.systems.ScissorState): void;
+          }
+          const SamplerCache: {
+            new(): com.mojang.blaze3d.systems.SamplerCache;
+          }
+          interface SamplerCache { 
+            initialize(): void;
+            getSampler(addressModeU: com.mojang.blaze3d.textures.AddressMode, addressModeV: com.mojang.blaze3d.textures.AddressMode, minFilter: com.mojang.blaze3d.textures.FilterMode, magFilter: com.mojang.blaze3d.textures.FilterMode, useMipmaps: boolean): com.mojang.blaze3d.textures.GpuSampler;
+            getClampToEdge(minMag: com.mojang.blaze3d.textures.FilterMode): com.mojang.blaze3d.textures.GpuSampler;
+            getClampToEdge(minMag: com.mojang.blaze3d.textures.FilterMode, mipmaps: boolean): com.mojang.blaze3d.textures.GpuSampler;
+            getRepeat(minMag: com.mojang.blaze3d.textures.FilterMode): com.mojang.blaze3d.textures.GpuSampler;
+            getRepeat(minMag: com.mojang.blaze3d.textures.FilterMode, mipmaps: boolean): com.mojang.blaze3d.textures.GpuSampler;
+            close(): void;
+          }
           const RenderPass: {
+            RenderArea: typeof com.mojang.blaze3d.systems.RenderPass$RenderArea;
             Draw: typeof com.mojang.blaze3d.systems.RenderPass$Draw;
-            new(backend: com.mojang.blaze3d.systems.RenderPassBackend, device: com.mojang.blaze3d.systems.GpuDeviceBackend): com.mojang.blaze3d.systems.RenderPass;
+            MAX_VERTEX_BUFFERS: number;
+            new(backend: com.mojang.blaze3d.systems.RenderPassBackend, device: com.mojang.blaze3d.systems.GpuDeviceBackend, colorAttachments: Array<com.mojang.blaze3d.systems.RenderPassDescriptor$Attachment<java.util.Optional<org.joml.Vector4fc>> | null | undefined>, onFinish: java.lang.Runnable, renderArea: com.mojang.blaze3d.systems.RenderPass$RenderArea | null | undefined): com.mojang.blaze3d.systems.RenderPass;
           }
           interface RenderPass extends java.lang.AutoCloseable { 
             pushDebugGroup(label: unknown): void;
             popDebugGroup(): void;
+            writeTimestamp(pool: com.mojang.blaze3d.systems.GpuQueryPool, index: number): void;
             setPipeline(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): void;
             bindTexture(name: string, textureView: com.mojang.blaze3d.textures.GpuTextureView | null | undefined, sampler: com.mojang.blaze3d.textures.GpuSampler | null | undefined): void;
             setUniform(name: string, value: com.mojang.blaze3d.buffers.GpuBuffer): void;
             setUniform(name: string, value: com.mojang.blaze3d.buffers.GpuBufferSlice): void;
             enableScissor(x: number, y: number, width: number, height: number): void;
             disableScissor(): void;
-            setVertexBuffer(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer): void;
-            setIndexBuffer(indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType): void;
-            drawIndexed(baseVertex: number, firstIndex: number, indexCount: number, instanceCount: number): void;
-            drawMultipleIndexed<T>(draws: Array<com.mojang.blaze3d.systems.RenderPass$Draw<T>>, defaultIndexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, defaultIndexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType | null | undefined, dynamicUniforms: Array<string>, uniformArgument: T): void;
-            draw(firstVertex: number, vertexCount: number): void;
+            setVertexBuffer(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBufferSlice | null | undefined): void;
+            setIndexBuffer(indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.IndexType): void;
+            drawIndexed(indexCount: number, instanceCount: number, firstIndex: number, vertexOffset: number, firstInstance: number): void;
+            multiDrawIndexed(drawParameters: java.nio.IntBuffer, instanceCount: number, firstInstance: number, drawCount: number): void;
+            multiDrawIndexed(firstIndexOffsets: org.lwjgl.PointerBuffer, indexCounts: java.nio.IntBuffer, vertexOffsets: java.nio.IntBuffer, drawCount: number): void;
+            drawIndexedIndirect(commands: com.mojang.blaze3d.buffers.GpuBufferSlice, drawCount: number): void;
+            drawMultipleIndexed<T>(draws: Array<com.mojang.blaze3d.systems.RenderPass$Draw<T>>, defaultIndexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, defaultIndexType: com.mojang.blaze3d.IndexType | null | undefined, dynamicUniforms: Array<string>, uniformArgument: T): void;
+            draw(vertexCount: number, instanceCount: number, firstVertex: number, firstInstance: number): void;
+            multiDraw(drawParameters: java.nio.IntBuffer, instanceCount: number, firstInstance: number, drawCount: number): void;
+            multiDraw(firstVertices: java.nio.IntBuffer, vertexCounts: java.nio.IntBuffer, drawCount: number): void;
+            drawIndirect(commands: com.mojang.blaze3d.buffers.GpuBufferSlice, drawCount: number): void;
           }
-          interface RenderPassBackend extends java.lang.AutoCloseable { 
+          interface GpuQueryPool extends java.lang.AutoCloseable { 
+            size(): number;
+            getValue(index: number): java.util.OptionalLong;
+            getValues(index: number, count: number): Array<java.util.OptionalLong>;
+          }
+          interface RenderPassBackend { 
             pushDebugGroup(label: unknown): void;
             popDebugGroup(): void;
             setPipeline(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): void;
@@ -39626,73 +39932,206 @@ declare global {
             setUniform(name: string, value: com.mojang.blaze3d.buffers.GpuBufferSlice): void;
             enableScissor(x: number, y: number, width: number, height: number): void;
             disableScissor(): void;
-            setVertexBuffer(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer): void;
-            setIndexBuffer(indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType): void;
-            drawIndexed(baseVertex: number, firstIndex: number, indexCount: number, instanceCount: number): void;
-            drawMultipleIndexed<T>(draws: Array<com.mojang.blaze3d.systems.RenderPass$Draw<T>>, defaultIndexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, defaultIndexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType | null | undefined, dynamicUniforms: Array<string>, uniformArgument: T): void;
-            draw(firstVertex: number, vertexCount: number): void;
-            isClosed(): boolean;
+            setVertexBuffer(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBufferSlice | null | undefined): void;
+            setIndexBuffer(indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.IndexType): void;
+            drawIndexed(indexCount: number, instanceCount: number, firstIndex: number, vertexOffset: number, firstInstance: number): void;
+            multiDrawIndexed(drawParameters: java.nio.IntBuffer, instanceCount: number, firstInstance: number, drawCount: number): void;
+            multiDrawIndexed(firstIndexOffsets: org.lwjgl.PointerBuffer, indexCounts: java.nio.IntBuffer, vertexOffsets: java.nio.IntBuffer, drawCount: number): void;
+            drawIndexedIndirect(commands: com.mojang.blaze3d.buffers.GpuBufferSlice, drawCount: number): void;
+            drawMultipleIndexed<T>(draws: Array<com.mojang.blaze3d.systems.RenderPass$Draw<T>>, defaultIndexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, defaultIndexType: com.mojang.blaze3d.IndexType | null | undefined, dynamicUniforms: Array<string>, uniformArgument: T): void;
+            draw(vertexCount: number, instanceCount: number, firstVertex: number, firstInstance: number): void;
+            multiDraw(drawParameters: java.nio.IntBuffer, instanceCount: number, firstInstance: number, drawCount: number): void;
+            multiDraw(firstVertices: java.nio.IntBuffer, vertexCounts: java.nio.IntBuffer, drawCount: number): void;
+            drawIndirect(commands: com.mojang.blaze3d.buffers.GpuBufferSlice, drawCount: number): void;
+            writeTimestamp(pool: com.mojang.blaze3d.systems.GpuQueryPool, index: number): void;
           }
           interface GpuDeviceBackend { 
+            createSurface(windowHandle: number): com.mojang.blaze3d.systems.GpuSurfaceBackend;
             createCommandEncoder(): com.mojang.blaze3d.systems.CommandEncoderBackend;
             createSampler(addressModeU: com.mojang.blaze3d.textures.AddressMode, addressModeV: com.mojang.blaze3d.textures.AddressMode, minFilter: com.mojang.blaze3d.textures.FilterMode, magFilter: com.mojang.blaze3d.textures.FilterMode, maxAnisotropy: number, maxLod: java.util.OptionalDouble): com.mojang.blaze3d.textures.GpuSampler;
-            createTexture(label: unknown, usage: number, format: com.mojang.blaze3d.textures.TextureFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
-            createTexture(label: string | null | undefined, usage: number, format: com.mojang.blaze3d.textures.TextureFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
+            createTexture(label: unknown, usage: number, format: com.mojang.blaze3d.GpuFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
+            createTexture(label: string | null | undefined, usage: number, format: com.mojang.blaze3d.GpuFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
             createTextureView(texture: com.mojang.blaze3d.textures.GpuTexture): com.mojang.blaze3d.textures.GpuTextureView;
             createTextureView(texture: com.mojang.blaze3d.textures.GpuTexture, baseMipLevel: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTextureView;
             createBuffer(label: unknown, usage: number, size: number): com.mojang.blaze3d.buffers.GpuBuffer;
             createBuffer(label: unknown, usage: number, data: java.nio.ByteBuffer): com.mojang.blaze3d.buffers.GpuBuffer;
-            getImplementationInformation(): string;
             getLastDebugMessages(): Array<string>;
             isDebuggingEnabled(): boolean;
-            getVendor(): string;
-            getBackendName(): string;
-            getVersion(): string;
-            getRenderer(): string;
-            getMaxTextureSize(): number;
-            getUniformOffsetAlignment(): number;
             precompilePipeline(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline, shaderSource: com.mojang.blaze3d.shaders.ShaderSource | null | undefined): com.mojang.blaze3d.pipeline.CompiledRenderPipeline;
             clearPipelineCache(): void;
-            getEnabledExtensions(): Array<string>;
-            getMaxSupportedAnisotropy(): number;
             close(): void;
-            setVsync(enabled: boolean): void;
-            presentFrame(): void;
-            isZZeroToOne(): boolean;
+            createTimestampQueryPool(size: number): com.mojang.blaze3d.systems.GpuQueryPool;
+            getTimestampNow(): number;
+            getDeviceInfo(): com.mojang.blaze3d.systems.DeviceInfo;
+          }
+          interface GpuSurfaceBackend extends java.lang.AutoCloseable { 
+            configure(config: com.mojang.blaze3d.systems.GpuSurface$Configuration): void;
+            isSuboptimal(): boolean;
+            acquireNextTexture(): void;
+            blitFromTexture(commandEncoder: com.mojang.blaze3d.systems.CommandEncoderBackend, textureView: com.mojang.blaze3d.textures.GpuTextureView): void;
+            present(): void;
+            supportedPresentModes(): Array<com.mojang.blaze3d.systems.GpuSurface$PresentMode>;
+          }
+          const GpuSurface$Configuration: {
+            new(width: number, height: number, presentMode: com.mojang.blaze3d.systems.GpuSurface$PresentMode): com.mojang.blaze3d.systems.GpuSurface$Configuration;
+          }
+          interface GpuSurface$Configuration extends java.lang.Record { 
+            width(): number;
+            height(): number;
+            presentMode(): com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+          }
+          const GpuSurface$PresentMode: {
+            IMMEDIATE: com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+            MAILBOX: com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+            FIFO: com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+            FIFO_RELAXED: com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.systems.GpuSurface$PresentMode>;
+            getSupportedVsyncMode(supportedModes: Array<com.mojang.blaze3d.systems.GpuSurface$PresentMode>, vsync: boolean): com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+            values(): Array<com.mojang.blaze3d.systems.GpuSurface$PresentMode>;
+            valueOf(value: string): com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+          }
+          interface GpuSurface$PresentMode extends kotlin.Enum<com.mojang.blaze3d.systems.GpuSurface$PresentMode> { 
           }
           interface CommandEncoderBackend { 
-            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.OptionalInt): com.mojang.blaze3d.systems.RenderPassBackend;
-            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.OptionalInt, depthTexture: com.mojang.blaze3d.textures.GpuTextureView | null | undefined, clearDepth: java.util.OptionalDouble): com.mojang.blaze3d.systems.RenderPassBackend;
-            isInRenderPass(): boolean;
-            clearColorTexture(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: number): void;
-            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: number, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number): void;
-            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: number, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number, regionX: number, regionY: number, regionWidth: number, regionHeight: number): void;
+            submit(): void;
+            transientMemory(): com.mojang.blaze3d.systems.TransientMemory;
+            createRenderPass(descriptor: com.mojang.blaze3d.systems.RenderPassDescriptor): com.mojang.blaze3d.systems.RenderPassBackend;
+            submitRenderPass(): void;
+            clearColorTexture(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: org.joml.Vector4fc): void;
+            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: org.joml.Vector4fc, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number): void;
+            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: org.joml.Vector4fc, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number, regionX: number, regionY: number, regionWidth: number, regionHeight: number): void;
             clearDepthTexture(depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number): void;
             writeToBuffer(destination: com.mojang.blaze3d.buffers.GpuBufferSlice, data: java.nio.ByteBuffer): void;
-            mapBuffer(buffer: com.mojang.blaze3d.buffers.GpuBufferSlice, read: boolean, write: boolean): com.mojang.blaze3d.buffers.GpuBuffer$MappedView;
             copyToBuffer(source: com.mojang.blaze3d.buffers.GpuBufferSlice, target: com.mojang.blaze3d.buffers.GpuBufferSlice): void;
-            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: com.mojang.blaze3d.platform.NativeImage, mipLevel: number, depthOrLayer: number, destX: number, destY: number, width: number, height: number, sourceX: number, sourceY: number): void;
-            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: java.nio.ByteBuffer, format: com.mojang.blaze3d.platform.NativeImage$Format, mipLevel: number, depthOrLayer: number, destX: number, destY: number, width: number, height: number): void;
+            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: java.nio.ByteBuffer, mipLevel: number, depthOrLayer: number, destX: number, destY: number, width: number, height: number): void;
+            copyBufferToTexture(source: com.mojang.blaze3d.buffers.GpuBufferSlice, sourceX: number, sourceY: number, sourceWidth: number, sourceHeight: number, destination: com.mojang.blaze3d.textures.GpuTexture, destinationX: number, destinationY: number, copyWidth: number, copyHeight: number, mipLevel: number, arrayLayer: number): void;
             copyTextureToBuffer(source: com.mojang.blaze3d.textures.GpuTexture, destination: com.mojang.blaze3d.buffers.GpuBuffer, offset: number, callback: java.lang.Runnable, mipLevel: number): void;
             copyTextureToBuffer(source: com.mojang.blaze3d.textures.GpuTexture, destination: com.mojang.blaze3d.buffers.GpuBuffer, offset: number, callback: java.lang.Runnable, mipLevel: number, x: number, y: number, width: number, height: number): void;
             copyTextureToTexture(source: com.mojang.blaze3d.textures.GpuTexture, destination: com.mojang.blaze3d.textures.GpuTexture, mipLevel: number, destX: number, destY: number, sourceX: number, sourceY: number, width: number, height: number): void;
-            presentTexture(texture: com.mojang.blaze3d.textures.GpuTextureView): void;
             createFence(): com.mojang.blaze3d.buffers.GpuFence;
-            timerQueryBegin(): com.mojang.blaze3d.systems.GpuQuery;
-            timerQueryEnd(query: com.mojang.blaze3d.systems.GpuQuery): void;
+            writeTimestamp(pool: com.mojang.blaze3d.systems.GpuQueryPool, index: number): void;
           }
-          interface GpuQuery extends java.lang.AutoCloseable { 
-            getValue(): java.util.OptionalLong;
+          interface TransientMemory { 
+            allocateCpu(size: number, alignment: number): java.nio.ByteBuffer;
+            allocateCpu(size: number, alignment: number, minimumAllocation: number, elementSize: number): java.nio.ByteBuffer;
+            allocateStaging(size: number, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
+            allocateStaging(size: number, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
+            allocateGpu(size: number, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            allocateGpu(size: number, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            allocateGpuMapped(size: number, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
+            allocateGpuMapped(size: number, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice$MappedView;
+            uploadStaging(data: java.nio.ByteBuffer, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadStaging(data: java.nio.ByteBuffer, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadStaging(data: Array<java.nio.ByteBuffer>, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadStaging(data: Array<java.nio.ByteBuffer>, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadGpu(data: java.nio.ByteBuffer, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadGpu(data: java.nio.ByteBuffer, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadGpu(data: Array<java.nio.ByteBuffer>, alignment: number, usage: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            uploadGpu(data: Array<java.nio.ByteBuffer>, alignment: number, usage: number, minimumAllocation: number, elementSize: number): com.mojang.blaze3d.buffers.GpuBufferSlice;
+            multiUploadStaging(data: Array<java.nio.ByteBuffer>, alignment: number, usage: number): Array<com.mojang.blaze3d.buffers.GpuBufferSlice>;
+            multiUploadGpu(data: Array<java.nio.ByteBuffer>, alignment: number, usage: number): Array<com.mojang.blaze3d.buffers.GpuBufferSlice>;
+          }
+          const RenderPassDescriptor: {
+            Attachment: typeof com.mojang.blaze3d.systems.RenderPassDescriptor$Attachment;
+            create(label: unknown): com.mojang.blaze3d.systems.RenderPassDescriptor;
+          }
+          interface RenderPassDescriptor { 
+            renderArea: com.mojang.blaze3d.systems.RenderPass$RenderArea | null | undefined;
+            label(): unknown;
+            colorAttachments(): Array<com.mojang.blaze3d.systems.RenderPassDescriptor$Attachment<java.util.Optional<org.joml.Vector4fc>> | null | undefined>;
+            depthAttachment(): com.mojang.blaze3d.systems.RenderPassDescriptor$Attachment<java.util.OptionalDouble> | null | undefined;
+            withColorAttachment(textureView: com.mojang.blaze3d.textures.GpuTextureView): com.mojang.blaze3d.systems.RenderPassDescriptor;
+            withColorAttachment(textureView: com.mojang.blaze3d.textures.GpuTextureView, clearValue: java.util.Optional<org.joml.Vector4fc>): com.mojang.blaze3d.systems.RenderPassDescriptor;
+            withUnusedColorAttachment(): com.mojang.blaze3d.systems.RenderPassDescriptor;
+            withDepthAttachment(textureView: com.mojang.blaze3d.textures.GpuTextureView): com.mojang.blaze3d.systems.RenderPassDescriptor;
+            withDepthAttachment(textureView: com.mojang.blaze3d.textures.GpuTextureView, clearValue: java.util.OptionalDouble): com.mojang.blaze3d.systems.RenderPassDescriptor;
+            withRenderArea(renderArea: com.mojang.blaze3d.systems.RenderPass$RenderArea): com.mojang.blaze3d.systems.RenderPassDescriptor;
+          }
+          const RenderPassDescriptor$Attachment: {
+            new<T>(textureView: com.mojang.blaze3d.textures.GpuTextureView, clearValue: T): com.mojang.blaze3d.systems.RenderPassDescriptor$Attachment<any>;
+          }
+          interface RenderPassDescriptor$Attachment<T> extends java.lang.Record { 
+            textureView(): com.mojang.blaze3d.textures.GpuTextureView;
+            clearValue(): T;
+          }
+          const RenderPass$RenderArea: {
+            new(x: number, y: number, width: number, height: number): com.mojang.blaze3d.systems.RenderPass$RenderArea;
+          }
+          interface RenderPass$RenderArea extends java.lang.Record { 
+            fillsTexture(texture: com.mojang.blaze3d.textures.GpuTextureView): boolean;
+            x(): number;
+            y(): number;
+            width(): number;
+            height(): number;
+          }
+          const DeviceInfo: {
+            new(name: string, vendorName: string, driverInfo: string, isZZeroToOne: boolean, backendName: string, timestampPeriod: number, limits: com.mojang.blaze3d.systems.DeviceLimits, features: com.mojang.blaze3d.systems.DeviceFeatures, underlyingExtensions: Set<string>, hintsAndWorkarounds: com.mojang.blaze3d.systems.HintsAndWorkarounds, type: com.mojang.blaze3d.systems.DeviceType): com.mojang.blaze3d.systems.DeviceInfo;
+          }
+          interface DeviceInfo extends java.lang.Record { 
+            name(): string;
+            vendorName(): string;
+            driverInfo(): string;
+            isZZeroToOne(): boolean;
+            backendName(): string;
+            timestampPeriod(): number;
+            limits(): com.mojang.blaze3d.systems.DeviceLimits;
+            features(): com.mojang.blaze3d.systems.DeviceFeatures;
+            underlyingExtensions(): Set<string>;
+            hintsAndWorkarounds(): com.mojang.blaze3d.systems.HintsAndWorkarounds;
+            type(): com.mojang.blaze3d.systems.DeviceType;
+          }
+          const DeviceLimits: {
+            new(maxAnisotropy: number, minUniformOffsetAlignment: number, maxTextureSize: number, maxMemoryAllocationSize: number, maxMultiDrawDirectInterleavedDrawCount: number, maxColorAttachments: number): com.mojang.blaze3d.systems.DeviceLimits;
+          }
+          interface DeviceLimits extends java.lang.Record { 
+            maxTextureSizeForFormat(format: com.mojang.blaze3d.GpuFormat): number;
+            maxAnisotropy(): number;
+            minUniformOffsetAlignment(): number;
+            maxTextureSize(): number;
+            maxMemoryAllocationSize(): number;
+            maxMultiDrawDirectInterleavedDrawCount(): number;
+            maxColorAttachments(): number;
+          }
+          const DeviceFeatures: {
+            new(shaderDrawParameters: boolean, multiDrawDirectInterleaved: boolean, multiDrawDirectSeparate: boolean, multiDrawIndirect: boolean, drawIndirect: boolean, nonZeroFirstInstance: boolean, persistentMapping: boolean): com.mojang.blaze3d.systems.DeviceFeatures;
+          }
+          interface DeviceFeatures extends java.lang.Record { 
+            shaderDrawParameters(): boolean;
+            multiDrawDirectInterleaved(): boolean;
+            multiDrawDirectSeparate(): boolean;
+            multiDrawIndirect(): boolean;
+            drawIndirect(): boolean;
+            nonZeroFirstInstance(): boolean;
+            persistentMapping(): boolean;
+          }
+          const HintsAndWorkarounds: {
+            new(writeToBufferIsSlow: boolean, anisotropyHasKnownIssues: boolean): com.mojang.blaze3d.systems.HintsAndWorkarounds;
+          }
+          interface HintsAndWorkarounds extends java.lang.Record { 
+            writeToBufferIsSlow(): boolean;
+            anisotropyHasKnownIssues(): boolean;
+          }
+          const DeviceType: {
+            OTHER: com.mojang.blaze3d.systems.DeviceType;
+            INTEGRATED: com.mojang.blaze3d.systems.DeviceType;
+            DISCRETE: com.mojang.blaze3d.systems.DeviceType;
+            VIRTUAL: com.mojang.blaze3d.systems.DeviceType;
+            CPU: com.mojang.blaze3d.systems.DeviceType;
+            entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.systems.DeviceType>;
+            values(): Array<com.mojang.blaze3d.systems.DeviceType>;
+            valueOf(value: string): com.mojang.blaze3d.systems.DeviceType;
+          }
+          interface DeviceType extends kotlin.Enum<com.mojang.blaze3d.systems.DeviceType> { 
           }
           const RenderPass$Draw: {
-            new<T>(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType, firstIndex: number, indexCount: number, baseVertex: number): com.mojang.blaze3d.systems.RenderPass$Draw<any>;
-            new<T>(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, indexType: com.mojang.blaze3d.vertex.VertexFormat$IndexType | null | undefined, firstIndex: number, indexCount: number, baseVertex: number, uniformUploaderConsumer: unknown): com.mojang.blaze3d.systems.RenderPass$Draw<any>;
+            new<T>(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexType: com.mojang.blaze3d.IndexType, firstIndex: number, indexCount: number, baseVertex: number): com.mojang.blaze3d.systems.RenderPass$Draw<any>;
+            new<T>(slot: number, vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer, indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer | null | undefined, indexType: com.mojang.blaze3d.IndexType | null | undefined, firstIndex: number, indexCount: number, baseVertex: number, uniformUploaderConsumer: unknown): com.mojang.blaze3d.systems.RenderPass$Draw<any>;
           }
           interface RenderPass$Draw<T> extends java.lang.Record { 
             slot(): number;
             vertexBuffer(): com.mojang.blaze3d.buffers.GpuBuffer;
             indexBuffer(): com.mojang.blaze3d.buffers.GpuBuffer | null | undefined;
-            indexType(): com.mojang.blaze3d.vertex.VertexFormat$IndexType | null | undefined;
+            indexType(): com.mojang.blaze3d.IndexType | null | undefined;
             firstIndex(): number;
             indexCount(): number;
             baseVertex(): number;
@@ -39705,63 +40144,80 @@ declare global {
             getName(): string;
             setWindowHints(): void;
             handleWindowCreationErrors(error: com.mojang.blaze3d.GLFWErrorCapture$Error): void;
-            createDevice(window: number, defaultShaderSource: com.mojang.blaze3d.shaders.ShaderSource, debugOptions: com.mojang.blaze3d.shaders.GpuDebugOptions): com.mojang.blaze3d.systems.GpuDevice;
+            createDevice(window: number, defaultShaderSource: com.mojang.blaze3d.shaders.ShaderSource, debugOptions: com.mojang.blaze3d.shaders.GpuDebugOptions, criticalShaderLoader: java.lang.Runnable): com.mojang.blaze3d.systems.GpuDevice;
           }
           const GpuDevice: {
-            new(backend: com.mojang.blaze3d.systems.GpuDeviceBackend): com.mojang.blaze3d.systems.GpuDevice;
+            new(backend: com.mojang.blaze3d.systems.GpuDeviceBackend, criticalShaderLoader: java.lang.Runnable): com.mojang.blaze3d.systems.GpuDevice;
           }
           interface GpuDevice { 
+            createSurface(windowHandle: number): com.mojang.blaze3d.systems.GpuSurface;
             createCommandEncoder(): com.mojang.blaze3d.systems.CommandEncoder;
             createSampler(addressModeU: com.mojang.blaze3d.textures.AddressMode, addressModeV: com.mojang.blaze3d.textures.AddressMode, minFilter: com.mojang.blaze3d.textures.FilterMode, magFilter: com.mojang.blaze3d.textures.FilterMode, maxAnisotropy: number, maxLod: java.util.OptionalDouble): com.mojang.blaze3d.textures.GpuSampler;
-            createTexture(label: unknown, usage: number, format: com.mojang.blaze3d.textures.TextureFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
-            createTexture(label: string | null | undefined, usage: number, format: com.mojang.blaze3d.textures.TextureFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
+            createTexture(label: unknown, usage: number, format: com.mojang.blaze3d.GpuFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
+            createTexture(label: string | null | undefined, usage: number, format: com.mojang.blaze3d.GpuFormat, width: number, height: number, depthOrLayers: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTexture;
             createTextureView(texture: com.mojang.blaze3d.textures.GpuTexture): com.mojang.blaze3d.textures.GpuTextureView;
             createTextureView(texture: com.mojang.blaze3d.textures.GpuTexture, baseMipLevel: number, mipLevels: number): com.mojang.blaze3d.textures.GpuTextureView;
             createBuffer(label: unknown, usage: number, size: number): com.mojang.blaze3d.buffers.GpuBuffer;
             createBuffer(label: unknown, usage: number, data: java.nio.ByteBuffer): com.mojang.blaze3d.buffers.GpuBuffer;
-            getImplementationInformation(): string;
             getLastDebugMessages(): Array<string>;
             isDebuggingEnabled(): boolean;
-            getVendor(): string;
-            getBackendName(): string;
-            getVersion(): string;
-            getRenderer(): string;
-            getMaxTextureSize(): number;
-            getUniformOffsetAlignment(): number;
             precompilePipeline(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): com.mojang.blaze3d.pipeline.CompiledRenderPipeline;
             precompilePipeline(pipeline: com.mojang.blaze3d.pipeline.RenderPipeline, shaderSource: com.mojang.blaze3d.shaders.ShaderSource | null | undefined): com.mojang.blaze3d.pipeline.CompiledRenderPipeline;
             clearPipelineCache(): void;
-            getEnabledExtensions(): Array<string>;
-            getMaxSupportedAnisotropy(): number;
+            loadCriticalShaders(): void;
             close(): void;
-            setVsync(enabled: boolean): void;
-            presentFrame(): void;
-            isZZeroToOne(): boolean;
+            createTimestampQueryPool(size: number): com.mojang.blaze3d.systems.GpuQueryPool;
+            getDeviceInfo(): com.mojang.blaze3d.systems.DeviceInfo;
+          }
+          const GpuSurface: {
+            Configuration: typeof com.mojang.blaze3d.systems.GpuSurface$Configuration;
+            PresentMode: typeof com.mojang.blaze3d.systems.GpuSurface$PresentMode;
+            new(backend: com.mojang.blaze3d.systems.GpuSurfaceBackend): com.mojang.blaze3d.systems.GpuSurface;
+          }
+          interface GpuSurface extends java.lang.AutoCloseable { 
+            currentConfiguration(): java.util.Optional<com.mojang.blaze3d.systems.GpuSurface$Configuration>;
+            configure(config: com.mojang.blaze3d.systems.GpuSurface$Configuration): void;
+            supportedPresentModes(): Array<com.mojang.blaze3d.systems.GpuSurface$PresentMode>;
+            isSuboptimal(): boolean;
+            isAcquired(): boolean;
+            acquireNextTexture(): void;
+            blitFromTexture(commandEncoder: com.mojang.blaze3d.systems.CommandEncoder, textureView: com.mojang.blaze3d.textures.GpuTextureView): void;
+            present(): void;
           }
           const CommandEncoder: {
-            new(device: com.mojang.blaze3d.systems.GpuDeviceBackend, backend: com.mojang.blaze3d.systems.CommandEncoderBackend): com.mojang.blaze3d.systems.CommandEncoder;
+            new(profiler: com.mojang.blaze3d.systems.TracyGpuProfiler | null | undefined, device: com.mojang.blaze3d.systems.GpuDeviceBackend, backend: com.mojang.blaze3d.systems.CommandEncoderBackend): com.mojang.blaze3d.systems.CommandEncoder;
           }
           interface CommandEncoder { 
-            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.OptionalInt): com.mojang.blaze3d.systems.RenderPass;
-            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.OptionalInt, depthTexture: com.mojang.blaze3d.textures.GpuTextureView | null | undefined, clearDepth: java.util.OptionalDouble): com.mojang.blaze3d.systems.RenderPass;
-            clearColorTexture(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: number): void;
-            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: number, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number): void;
-            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: number, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number, regionX: number, regionY: number, regionWidth: number, regionHeight: number): void;
+            submit(): void;
+            transientMemory(): com.mojang.blaze3d.systems.TransientMemory;
+            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.Optional<org.joml.Vector4fc>): com.mojang.blaze3d.systems.RenderPass;
+            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.Optional<org.joml.Vector4fc>, depthTexture: com.mojang.blaze3d.textures.GpuTextureView | null | undefined, clearDepth: java.util.OptionalDouble): com.mojang.blaze3d.systems.RenderPass;
+            createRenderPass(label: unknown, colorTexture: com.mojang.blaze3d.textures.GpuTextureView, clearColor: java.util.Optional<org.joml.Vector4fc>, depthTexture: com.mojang.blaze3d.textures.GpuTextureView | null | undefined, clearDepth: java.util.OptionalDouble, renderArea: com.mojang.blaze3d.systems.RenderPass$RenderArea): com.mojang.blaze3d.systems.RenderPass;
+            createRenderPass(descriptor: com.mojang.blaze3d.systems.RenderPassDescriptor): com.mojang.blaze3d.systems.RenderPass;
+            clearColorTexture(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: org.joml.Vector4fc): void;
+            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: org.joml.Vector4fc, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number): void;
+            clearColorAndDepthTextures(colorTexture: com.mojang.blaze3d.textures.GpuTexture, clearColor: org.joml.Vector4fc, depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number, regionX: number, regionY: number, regionWidth: number, regionHeight: number): void;
             clearDepthTexture(depthTexture: com.mojang.blaze3d.textures.GpuTexture, clearDepth: number): void;
             writeToBuffer(destination: com.mojang.blaze3d.buffers.GpuBufferSlice, data: java.nio.ByteBuffer): void;
-            mapBuffer(buffer: com.mojang.blaze3d.buffers.GpuBuffer, read: boolean, write: boolean): com.mojang.blaze3d.buffers.GpuBuffer$MappedView;
-            mapBuffer(slice: com.mojang.blaze3d.buffers.GpuBufferSlice, read: boolean, write: boolean): com.mojang.blaze3d.buffers.GpuBuffer$MappedView;
             copyToBuffer(source: com.mojang.blaze3d.buffers.GpuBufferSlice, target: com.mojang.blaze3d.buffers.GpuBufferSlice): void;
             writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: com.mojang.blaze3d.platform.NativeImage): void;
-            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: com.mojang.blaze3d.platform.NativeImage, mipLevel: number, depthOrLayer: number, destX: number, destY: number, width: number, height: number, sourceX: number, sourceY: number): void;
-            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: java.nio.ByteBuffer, format: com.mojang.blaze3d.platform.NativeImage$Format, mipLevel: number, depthOrLayer: number, destX: number, destY: number, width: number, height: number): void;
+            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: com.mojang.blaze3d.platform.NativeImage, mipLevel: number, depthOrLayer: number, destX: number, destY: number): void;
+            writeToTexture(destination: com.mojang.blaze3d.textures.GpuTexture, source: java.nio.ByteBuffer, mipLevel: number, depthOrLayer: number, destX: number, destY: number, width: number, height: number): void;
+            copyBufferToTexture(source: com.mojang.blaze3d.buffers.GpuBufferSlice, sourceX: number, sourceY: number, sourceWidth: number, sourceHeight: number, destination: com.mojang.blaze3d.textures.GpuTexture, destinationX: number, destinationY: number, copyWidth: number, copyHeight: number, mipLevel: number, arrayLayer: number): void;
             copyTextureToBuffer(source: com.mojang.blaze3d.textures.GpuTexture, destination: com.mojang.blaze3d.buffers.GpuBuffer, offset: number, callback: java.lang.Runnable, mipLevel: number): void;
             copyTextureToBuffer(source: com.mojang.blaze3d.textures.GpuTexture, destination: com.mojang.blaze3d.buffers.GpuBuffer, offset: number, callback: java.lang.Runnable, mipLevel: number, x: number, y: number, width: number, height: number): void;
             copyTextureToTexture(source: com.mojang.blaze3d.textures.GpuTexture, destination: com.mojang.blaze3d.textures.GpuTexture, mipLevel: number, destX: number, destY: number, sourceX: number, sourceY: number, width: number, height: number): void;
-            presentTexture(textureView: com.mojang.blaze3d.textures.GpuTextureView): void;
             createFence(): com.mojang.blaze3d.buffers.GpuFence;
-            timerQueryBegin(): com.mojang.blaze3d.systems.GpuQuery;
-            timerQueryEnd(query: com.mojang.blaze3d.systems.GpuQuery): void;
+            writeTimestamp(pool: com.mojang.blaze3d.systems.GpuQueryPool, index: number): void;
+          }
+          const TracyGpuProfiler: {
+            new(device: com.mojang.blaze3d.systems.GpuDevice): com.mojang.blaze3d.systems.TracyGpuProfiler;
+          }
+          interface TracyGpuProfiler { 
+            close(): void;
+            pushZone(encoder: com.mojang.blaze3d.systems.CommandEncoder, name: string): void;
+            popZone(encoder: com.mojang.blaze3d.systems.CommandEncoder): void;
+            endFrame(): void;
           }
         }
         namespace font {
@@ -39837,6 +40293,131 @@ declare global {
             beforeExecutePass(name: string): void;
             afterExecutePass(name: string): void;
           }
+        }
+        const GpuFormat: {
+          R8_UNORM: com.mojang.blaze3d.GpuFormat;
+          R8_SNORM: com.mojang.blaze3d.GpuFormat;
+          RG8_UNORM: com.mojang.blaze3d.GpuFormat;
+          RG8_SNORM: com.mojang.blaze3d.GpuFormat;
+          RGB8_UNORM: com.mojang.blaze3d.GpuFormat;
+          RGB8_SNORM: com.mojang.blaze3d.GpuFormat;
+          RGBA8_UNORM: com.mojang.blaze3d.GpuFormat;
+          RGBA8_SNORM: com.mojang.blaze3d.GpuFormat;
+          R16_UNORM: com.mojang.blaze3d.GpuFormat;
+          R16_SNORM: com.mojang.blaze3d.GpuFormat;
+          RG16_UNORM: com.mojang.blaze3d.GpuFormat;
+          RG16_SNORM: com.mojang.blaze3d.GpuFormat;
+          RGB16_UNORM: com.mojang.blaze3d.GpuFormat;
+          RGB16_SNORM: com.mojang.blaze3d.GpuFormat;
+          RGBA16_UNORM: com.mojang.blaze3d.GpuFormat;
+          RGBA16_SNORM: com.mojang.blaze3d.GpuFormat;
+          R8_UINT: com.mojang.blaze3d.GpuFormat;
+          R8_SINT: com.mojang.blaze3d.GpuFormat;
+          RG8_UINT: com.mojang.blaze3d.GpuFormat;
+          RG8_SINT: com.mojang.blaze3d.GpuFormat;
+          RGB8_UINT: com.mojang.blaze3d.GpuFormat;
+          RGB8_SINT: com.mojang.blaze3d.GpuFormat;
+          RGBA8_UINT: com.mojang.blaze3d.GpuFormat;
+          RGBA8_SINT: com.mojang.blaze3d.GpuFormat;
+          R16_UINT: com.mojang.blaze3d.GpuFormat;
+          R16_SINT: com.mojang.blaze3d.GpuFormat;
+          RG16_UINT: com.mojang.blaze3d.GpuFormat;
+          RG16_SINT: com.mojang.blaze3d.GpuFormat;
+          RGB16_UINT: com.mojang.blaze3d.GpuFormat;
+          RGB16_SINT: com.mojang.blaze3d.GpuFormat;
+          RGBA16_UINT: com.mojang.blaze3d.GpuFormat;
+          RGBA16_SINT: com.mojang.blaze3d.GpuFormat;
+          R32_UINT: com.mojang.blaze3d.GpuFormat;
+          R32_SINT: com.mojang.blaze3d.GpuFormat;
+          RG32_UINT: com.mojang.blaze3d.GpuFormat;
+          RG32_SINT: com.mojang.blaze3d.GpuFormat;
+          RGB32_UINT: com.mojang.blaze3d.GpuFormat;
+          RGB32_SINT: com.mojang.blaze3d.GpuFormat;
+          RGBA32_UINT: com.mojang.blaze3d.GpuFormat;
+          RGBA32_SINT: com.mojang.blaze3d.GpuFormat;
+          R16_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RG16_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RGB16_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RGBA16_FLOAT: com.mojang.blaze3d.GpuFormat;
+          R32_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RG32_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RGB32_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RGBA32_FLOAT: com.mojang.blaze3d.GpuFormat;
+          RGB10A2_UNORM: com.mojang.blaze3d.GpuFormat;
+          RGB10A2_UINT: com.mojang.blaze3d.GpuFormat;
+          RG11B10_FLOAT: com.mojang.blaze3d.GpuFormat;
+          D32_FLOAT: com.mojang.blaze3d.GpuFormat;
+          D32_FLOAT_S8_UINT: com.mojang.blaze3d.GpuFormat;
+          D24_UNORM_S8_UINT: com.mojang.blaze3d.GpuFormat;
+          D16_UNORM: com.mojang.blaze3d.GpuFormat;
+          S8_UINT: com.mojang.blaze3d.GpuFormat;
+          ComponentType: typeof com.mojang.blaze3d.GpuFormat$ComponentType;
+          entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.GpuFormat>;
+          values(): Array<com.mojang.blaze3d.GpuFormat>;
+          valueOf(value: string): com.mojang.blaze3d.GpuFormat;
+        }
+        interface GpuFormat extends kotlin.Enum<com.mojang.blaze3d.GpuFormat> { 
+          componentType(): com.mojang.blaze3d.GpuFormat$ComponentType;
+          componentCount(): number;
+          blockSize(): number;
+          byteAlignment(): number;
+          hasColorAspect(): boolean;
+          hasDepthAspect(): boolean;
+          hasStencilAspect(): boolean;
+        }
+        const GpuFormat$ComponentType: {
+          UNORM_8: com.mojang.blaze3d.GpuFormat$ComponentType;
+          SNORM_8: com.mojang.blaze3d.GpuFormat$ComponentType;
+          UINT_8: com.mojang.blaze3d.GpuFormat$ComponentType;
+          SINT_8: com.mojang.blaze3d.GpuFormat$ComponentType;
+          UNORM_16: com.mojang.blaze3d.GpuFormat$ComponentType;
+          SNORM_16: com.mojang.blaze3d.GpuFormat$ComponentType;
+          UINT_16: com.mojang.blaze3d.GpuFormat$ComponentType;
+          SINT_16: com.mojang.blaze3d.GpuFormat$ComponentType;
+          FLOAT_16: com.mojang.blaze3d.GpuFormat$ComponentType;
+          UINT_32: com.mojang.blaze3d.GpuFormat$ComponentType;
+          SINT_32: com.mojang.blaze3d.GpuFormat$ComponentType;
+          FLOAT_32: com.mojang.blaze3d.GpuFormat$ComponentType;
+          OPAQUE_8: com.mojang.blaze3d.GpuFormat$ComponentType;
+          OPAQUE_16: com.mojang.blaze3d.GpuFormat$ComponentType;
+          OPAQUE_32: com.mojang.blaze3d.GpuFormat$ComponentType;
+          OPAQUE_64: com.mojang.blaze3d.GpuFormat$ComponentType;
+          entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.GpuFormat$ComponentType>;
+          values(): Array<com.mojang.blaze3d.GpuFormat$ComponentType>;
+          valueOf(value: string): com.mojang.blaze3d.GpuFormat$ComponentType;
+        }
+        interface GpuFormat$ComponentType extends kotlin.Enum<com.mojang.blaze3d.GpuFormat$ComponentType> { 
+          byteSize(): number;
+        }
+        const PrimitiveTopology: {
+          LINES: com.mojang.blaze3d.PrimitiveTopology;
+          DEBUG_LINES: com.mojang.blaze3d.PrimitiveTopology;
+          DEBUG_LINE_STRIP: com.mojang.blaze3d.PrimitiveTopology;
+          POINTS: com.mojang.blaze3d.PrimitiveTopology;
+          TRIANGLES: com.mojang.blaze3d.PrimitiveTopology;
+          TRIANGLE_STRIP: com.mojang.blaze3d.PrimitiveTopology;
+          TRIANGLE_FAN: com.mojang.blaze3d.PrimitiveTopology;
+          QUADS: com.mojang.blaze3d.PrimitiveTopology;
+          entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.PrimitiveTopology>;
+          values(): Array<com.mojang.blaze3d.PrimitiveTopology>;
+          valueOf(value: string): com.mojang.blaze3d.PrimitiveTopology;
+        }
+        interface PrimitiveTopology extends kotlin.Enum<com.mojang.blaze3d.PrimitiveTopology> { 
+          primitiveLength: number;
+          primitiveStride: number;
+          connectedPrimitives: boolean;
+          indexCount(vertexCount: number): number;
+        }
+        const IndexType: {
+          SHORT: com.mojang.blaze3d.IndexType;
+          INT: com.mojang.blaze3d.IndexType;
+          entries: kotlin.enums.EnumEntries<com.mojang.blaze3d.IndexType>;
+          least(length: number): com.mojang.blaze3d.IndexType;
+          values(): Array<com.mojang.blaze3d.IndexType>;
+          valueOf(value: string): com.mojang.blaze3d.IndexType;
+        }
+        interface IndexType extends kotlin.Enum<com.mojang.blaze3d.IndexType> { 
+          bytes: number;
         }
         const GLFWErrorCapture$Error: {
           new(error: number, description: string): com.mojang.blaze3d.GLFWErrorCapture$Error;
@@ -41001,15 +41582,23 @@ declare global {
             curry(): unknown;
             curry2(): unknown;
           }
-          interface Function8<T1, T2, T3, T4, T5, T6, T7, T8, R> { 
-            apply(p0: T1, p1: T2, p2: T3, p3: T4, p4: T5, p5: T6, p6: T7, p7: T8): R;
+          interface Function16<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R> { 
+            apply(p0: T1, p1: T2, p2: T3, p3: T4, p4: T5, p5: T6, p6: T7, p7: T8, p8: T9, p9: T10, p10: T11, p11: T12, p12: T13, p13: T14, p14: T15, p15: T16): R;
             curry(): unknown;
             curry2(): unknown;
-            curry3(): com.mojang.datafixers.util.Function3<T1, T2, T3, com.mojang.datafixers.util.Function5<T4, T5, T6, T7, T8, R>>;
-            curry4(): com.mojang.datafixers.util.Function4<T1, T2, T3, T4, com.mojang.datafixers.util.Function4<T5, T6, T7, T8, R>>;
-            curry5(): com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, com.mojang.datafixers.util.Function3<T6, T7, T8, R>>;
-            curry6(): com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, unknown>;
-            curry7(): com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, unknown>;
+            curry3(): com.mojang.datafixers.util.Function3<T1, T2, T3, com.mojang.datafixers.util.Function13<T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry4(): com.mojang.datafixers.util.Function4<T1, T2, T3, T4, com.mojang.datafixers.util.Function12<T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry5(): com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, com.mojang.datafixers.util.Function11<T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry6(): com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, com.mojang.datafixers.util.Function10<T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry7(): com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, com.mojang.datafixers.util.Function9<T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry8(): com.mojang.datafixers.util.Function8<T1, T2, T3, T4, T5, T6, T7, T8, com.mojang.datafixers.util.Function8<T9, T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry9(): com.mojang.datafixers.util.Function9<T1, T2, T3, T4, T5, T6, T7, T8, T9, com.mojang.datafixers.util.Function7<T10, T11, T12, T13, T14, T15, T16, R>>;
+            curry10(): com.mojang.datafixers.util.Function10<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, com.mojang.datafixers.util.Function6<T11, T12, T13, T14, T15, T16, R>>;
+            curry11(): com.mojang.datafixers.util.Function11<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, com.mojang.datafixers.util.Function5<T12, T13, T14, T15, T16, R>>;
+            curry12(): com.mojang.datafixers.util.Function12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, com.mojang.datafixers.util.Function4<T13, T14, T15, T16, R>>;
+            curry13(): com.mojang.datafixers.util.Function13<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, com.mojang.datafixers.util.Function3<T14, T15, T16, R>>;
+            curry14(): com.mojang.datafixers.util.Function14<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, unknown>;
+            curry15(): com.mojang.datafixers.util.Function15<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, unknown>;
           }
           interface Function4<T1, T2, T3, T4, R> { 
             apply(p0: T1, p1: T2, p2: T3, p3: T4): R;
@@ -41040,6 +41629,16 @@ declare global {
             curry4(): com.mojang.datafixers.util.Function4<T1, T2, T3, T4, com.mojang.datafixers.util.Function3<T5, T6, T7, R>>;
             curry5(): com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, unknown>;
             curry6(): com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, unknown>;
+          }
+          interface Function8<T1, T2, T3, T4, T5, T6, T7, T8, R> { 
+            apply(p0: T1, p1: T2, p2: T3, p3: T4, p4: T5, p5: T6, p6: T7, p7: T8): R;
+            curry(): unknown;
+            curry2(): unknown;
+            curry3(): com.mojang.datafixers.util.Function3<T1, T2, T3, com.mojang.datafixers.util.Function5<T4, T5, T6, T7, T8, R>>;
+            curry4(): com.mojang.datafixers.util.Function4<T1, T2, T3, T4, com.mojang.datafixers.util.Function4<T5, T6, T7, T8, R>>;
+            curry5(): com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, com.mojang.datafixers.util.Function3<T6, T7, T8, R>>;
+            curry6(): com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, unknown>;
+            curry7(): com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, unknown>;
           }
           interface Function9<T1, T2, T3, T4, T5, T6, T7, T8, T9, R> { 
             apply(p0: T1, p1: T2, p2: T3, p3: T4, p4: T5, p5: T6, p6: T7, p7: T8, p8: T9): R;
@@ -41138,24 +41737,6 @@ declare global {
             curry12(): com.mojang.datafixers.util.Function12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, com.mojang.datafixers.util.Function3<T13, T14, T15, R>>;
             curry13(): com.mojang.datafixers.util.Function13<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, unknown>;
             curry14(): com.mojang.datafixers.util.Function14<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, unknown>;
-          }
-          interface Function16<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R> { 
-            apply(p0: T1, p1: T2, p2: T3, p3: T4, p4: T5, p5: T6, p6: T7, p7: T8, p8: T9, p9: T10, p10: T11, p11: T12, p12: T13, p13: T14, p14: T15, p15: T16): R;
-            curry(): unknown;
-            curry2(): unknown;
-            curry3(): com.mojang.datafixers.util.Function3<T1, T2, T3, com.mojang.datafixers.util.Function13<T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry4(): com.mojang.datafixers.util.Function4<T1, T2, T3, T4, com.mojang.datafixers.util.Function12<T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry5(): com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, com.mojang.datafixers.util.Function11<T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry6(): com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, com.mojang.datafixers.util.Function10<T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry7(): com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, com.mojang.datafixers.util.Function9<T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry8(): com.mojang.datafixers.util.Function8<T1, T2, T3, T4, T5, T6, T7, T8, com.mojang.datafixers.util.Function8<T9, T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry9(): com.mojang.datafixers.util.Function9<T1, T2, T3, T4, T5, T6, T7, T8, T9, com.mojang.datafixers.util.Function7<T10, T11, T12, T13, T14, T15, T16, R>>;
-            curry10(): com.mojang.datafixers.util.Function10<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, com.mojang.datafixers.util.Function6<T11, T12, T13, T14, T15, T16, R>>;
-            curry11(): com.mojang.datafixers.util.Function11<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, com.mojang.datafixers.util.Function5<T12, T13, T14, T15, T16, R>>;
-            curry12(): com.mojang.datafixers.util.Function12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, com.mojang.datafixers.util.Function4<T13, T14, T15, T16, R>>;
-            curry13(): com.mojang.datafixers.util.Function13<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, com.mojang.datafixers.util.Function3<T14, T15, T16, R>>;
-            curry14(): com.mojang.datafixers.util.Function14<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, unknown>;
-            curry15(): com.mojang.datafixers.util.Function15<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, unknown>;
           }
           const Either: {
             Instance: typeof com.mojang.datafixers.util.Either$Instance;
@@ -41555,10 +42136,9 @@ declare global {
           }
         }
         const Products$P1: {
-          new<F, T1>(p0: com.mojang.datafixers.kinds.App<F, T1>): com.mojang.datafixers.Products$P1<any, any>;
+          new<F, T1>(t1: com.mojang.datafixers.kinds.App<F, T1>): com.mojang.datafixers.Products$P1<any, any>;
         }
-        interface Products$P1<F, T1> { 
-          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+        interface Products$P1<F, T1> extends java.lang.Record { 
           and<T2>(p0: com.mojang.datafixers.kinds.App<F, T2>): com.mojang.datafixers.Products$P2<F, T1, T2>;
           and<T2, T3>(p0: com.mojang.datafixers.Products$P2<F, T2, T3>): com.mojang.datafixers.Products$P3<F, T1, T2, T3>;
           and<T2, T3, T4>(p0: com.mojang.datafixers.Products$P3<F, T2, T3, T4>): com.mojang.datafixers.Products$P4<F, T1, T2, T3, T4>;
@@ -41566,88 +42146,148 @@ declare global {
           and<T2, T3, T4, T5, T6>(p0: com.mojang.datafixers.Products$P5<F, T2, T3, T4, T5, T6>): com.mojang.datafixers.Products$P6<F, T1, T2, T3, T4, T5, T6>;
           and<T2, T3, T4, T5, T6, T7>(p0: com.mojang.datafixers.Products$P6<F, T2, T3, T4, T5, T6, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
           and<T2, T3, T4, T5, T6, T7, T8>(p0: com.mojang.datafixers.Products$P7<F, T2, T3, T4, T5, T6, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9>(p0: com.mojang.datafixers.Products$P8<F, T2, T3, T4, T5, T6, T7, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10>(p0: com.mojang.datafixers.Products$P9<F, T2, T3, T4, T5, T6, T7, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P10<F, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P11<F, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P12<F, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P13<F, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P14<F, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P15<F, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: unknown): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, unknown>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
         }
         const Products$P2: {
-          new<F, T1, T2>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>): com.mojang.datafixers.Products$P2<any, any, any>;
+          new<F, T1, T2>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>): com.mojang.datafixers.Products$P2<any, any, any>;
         }
-        interface Products$P2<F, T1, T2> { 
-          t1(): com.mojang.datafixers.kinds.App<F, T1>;
-          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+        interface Products$P2<F, T1, T2> extends java.lang.Record { 
           and<T3>(p0: com.mojang.datafixers.kinds.App<F, T3>): com.mojang.datafixers.Products$P3<F, T1, T2, T3>;
           and<T3, T4>(p0: com.mojang.datafixers.Products$P2<F, T3, T4>): com.mojang.datafixers.Products$P4<F, T1, T2, T3, T4>;
           and<T3, T4, T5>(p0: com.mojang.datafixers.Products$P3<F, T3, T4, T5>): com.mojang.datafixers.Products$P5<F, T1, T2, T3, T4, T5>;
           and<T3, T4, T5, T6>(p0: com.mojang.datafixers.Products$P4<F, T3, T4, T5, T6>): com.mojang.datafixers.Products$P6<F, T1, T2, T3, T4, T5, T6>;
           and<T3, T4, T5, T6, T7>(p0: com.mojang.datafixers.Products$P5<F, T3, T4, T5, T6, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
           and<T3, T4, T5, T6, T7, T8>(p0: com.mojang.datafixers.Products$P6<F, T3, T4, T5, T6, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T3, T4, T5, T6, T7, T8, T9>(p0: com.mojang.datafixers.Products$P7<F, T3, T4, T5, T6, T7, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10>(p0: com.mojang.datafixers.Products$P8<F, T3, T4, T5, T6, T7, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P9<F, T3, T4, T5, T6, T7, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P10<F, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P11<F, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P12<F, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P13<F, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P14<F, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: unknown): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, unknown>): com.mojang.datafixers.kinds.App<F, R>;
-        }
-        const Products$P3: {
-          new<F, T1, T2, T3>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>): com.mojang.datafixers.Products$P3<any, any, any, any>;
-        }
-        interface Products$P3<F, T1, T2, T3> { 
           t1(): com.mojang.datafixers.kinds.App<F, T1>;
           t2(): com.mojang.datafixers.kinds.App<F, T2>;
-          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+        }
+        const Products$P3: {
+          new<F, T1, T2, T3>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>): com.mojang.datafixers.Products$P3<any, any, any, any>;
+        }
+        interface Products$P3<F, T1, T2, T3> extends java.lang.Record { 
           and<T4>(p0: com.mojang.datafixers.kinds.App<F, T4>): com.mojang.datafixers.Products$P4<F, T1, T2, T3, T4>;
           and<T4, T5>(p0: com.mojang.datafixers.Products$P2<F, T4, T5>): com.mojang.datafixers.Products$P5<F, T1, T2, T3, T4, T5>;
           and<T4, T5, T6>(p0: com.mojang.datafixers.Products$P3<F, T4, T5, T6>): com.mojang.datafixers.Products$P6<F, T1, T2, T3, T4, T5, T6>;
           and<T4, T5, T6, T7>(p0: com.mojang.datafixers.Products$P4<F, T4, T5, T6, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
           and<T4, T5, T6, T7, T8>(p0: com.mojang.datafixers.Products$P5<F, T4, T5, T6, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T4, T5, T6, T7, T8, T9>(p0: com.mojang.datafixers.Products$P6<F, T4, T5, T6, T7, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T4, T5, T6, T7, T8, T9, T10>(p0: com.mojang.datafixers.Products$P7<F, T4, T5, T6, T7, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T4, T5, T6, T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P8<F, T4, T5, T6, T7, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T4, T5, T6, T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P9<F, T4, T5, T6, T7, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P10<F, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P11<F, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P12<F, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P13<F, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function3<T1, T2, T3, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function3<T1, T2, T3, R>>): com.mojang.datafixers.kinds.App<F, R>;
-        }
-        const Products$P4: {
-          new<F, T1, T2, T3, T4>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>): com.mojang.datafixers.Products$P4<any, any, any, any, any>;
-        }
-        interface Products$P4<F, T1, T2, T3, T4> { 
           t1(): com.mojang.datafixers.kinds.App<F, T1>;
           t2(): com.mojang.datafixers.kinds.App<F, T2>;
           t3(): com.mojang.datafixers.kinds.App<F, T3>;
-          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+        }
+        const Products$P4: {
+          new<F, T1, T2, T3, T4>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>): com.mojang.datafixers.Products$P4<any, any, any, any, any>;
+        }
+        interface Products$P4<F, T1, T2, T3, T4> extends java.lang.Record { 
           and<T5>(p0: com.mojang.datafixers.kinds.App<F, T5>): com.mojang.datafixers.Products$P5<F, T1, T2, T3, T4, T5>;
           and<T5, T6>(p0: com.mojang.datafixers.Products$P2<F, T5, T6>): com.mojang.datafixers.Products$P6<F, T1, T2, T3, T4, T5, T6>;
           and<T5, T6, T7>(p0: com.mojang.datafixers.Products$P3<F, T5, T6, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
           and<T5, T6, T7, T8>(p0: com.mojang.datafixers.Products$P4<F, T5, T6, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T5, T6, T7, T8, T9>(p0: com.mojang.datafixers.Products$P5<F, T5, T6, T7, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T5, T6, T7, T8, T9, T10>(p0: com.mojang.datafixers.Products$P6<F, T5, T6, T7, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T5, T6, T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P7<F, T5, T6, T7, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T5, T6, T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P8<F, T5, T6, T7, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T5, T6, T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P9<F, T5, T6, T7, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P10<F, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P11<F, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P12<F, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function4<T1, T2, T3, T4, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function4<T1, T2, T3, T4, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
         }
         const Products$P5: {
-          new<F, T1, T2, T3, T4, T5>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>): com.mojang.datafixers.Products$P5<any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>): com.mojang.datafixers.Products$P5<any, any, any, any, any, any>;
         }
-        interface Products$P5<F, T1, T2, T3, T4, T5> { 
+        interface Products$P5<F, T1, T2, T3, T4, T5> extends java.lang.Record { 
+          and<T6>(p0: com.mojang.datafixers.kinds.App<F, T6>): com.mojang.datafixers.Products$P6<F, T1, T2, T3, T4, T5, T6>;
+          and<T6, T7>(p0: com.mojang.datafixers.Products$P2<F, T6, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
+          and<T6, T7, T8>(p0: com.mojang.datafixers.Products$P3<F, T6, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T6, T7, T8, T9>(p0: com.mojang.datafixers.Products$P4<F, T6, T7, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T6, T7, T8, T9, T10>(p0: com.mojang.datafixers.Products$P5<F, T6, T7, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T6, T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P6<F, T6, T7, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T6, T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P7<F, T6, T7, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T6, T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P8<F, T6, T7, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T6, T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P9<F, T6, T7, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P10<F, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P11<F, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, R>): com.mojang.datafixers.kinds.App<F, R>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, R>>): com.mojang.datafixers.kinds.App<F, R>;
           t1(): com.mojang.datafixers.kinds.App<F, T1>;
           t2(): com.mojang.datafixers.kinds.App<F, T2>;
           t3(): com.mojang.datafixers.kinds.App<F, T3>;
           t4(): com.mojang.datafixers.kinds.App<F, T4>;
           t5(): com.mojang.datafixers.kinds.App<F, T5>;
-          and<T6>(p0: com.mojang.datafixers.kinds.App<F, T6>): com.mojang.datafixers.Products$P6<F, T1, T2, T3, T4, T5, T6>;
-          and<T6, T7>(p0: com.mojang.datafixers.Products$P2<F, T6, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
-          and<T6, T7, T8>(p0: com.mojang.datafixers.Products$P3<F, T6, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, R>): com.mojang.datafixers.kinds.App<F, R>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function5<T1, T2, T3, T4, T5, R>>): com.mojang.datafixers.kinds.App<F, R>;
         }
         const Products$P6: {
-          new<F, T1, T2, T3, T4, T5, T6>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>): com.mojang.datafixers.Products$P6<any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>): com.mojang.datafixers.Products$P6<any, any, any, any, any, any, any>;
         }
-        interface Products$P6<F, T1, T2, T3, T4, T5, T6> { 
+        interface Products$P6<F, T1, T2, T3, T4, T5, T6> extends java.lang.Record { 
+          and<T7>(p0: com.mojang.datafixers.kinds.App<F, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
+          and<T7, T8>(p0: com.mojang.datafixers.Products$P2<F, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T7, T8, T9>(p0: com.mojang.datafixers.Products$P3<F, T7, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T7, T8, T9, T10>(p0: com.mojang.datafixers.Products$P4<F, T7, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P5<F, T7, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P6<F, T7, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P7<F, T7, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P8<F, T7, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P9<F, T7, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P10<F, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, R>): com.mojang.datafixers.kinds.App<F, R>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, R>>): com.mojang.datafixers.kinds.App<F, R>;
           t1(): com.mojang.datafixers.kinds.App<F, T1>;
           t2(): com.mojang.datafixers.kinds.App<F, T2>;
           t3(): com.mojang.datafixers.kinds.App<F, T3>;
           t4(): com.mojang.datafixers.kinds.App<F, T4>;
           t5(): com.mojang.datafixers.kinds.App<F, T5>;
           t6(): com.mojang.datafixers.kinds.App<F, T6>;
-          and<T7>(p0: com.mojang.datafixers.kinds.App<F, T7>): com.mojang.datafixers.Products$P7<F, T1, T2, T3, T4, T5, T6, T7>;
-          and<T7, T8>(p0: com.mojang.datafixers.Products$P2<F, T7, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, R>): com.mojang.datafixers.kinds.App<F, R>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function6<T1, T2, T3, T4, T5, T6, R>>): com.mojang.datafixers.kinds.App<F, R>;
         }
         const Products$P7: {
-          new<F, T1, T2, T3, T4, T5, T6, T7>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>): com.mojang.datafixers.Products$P7<any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>): com.mojang.datafixers.Products$P7<any, any, any, any, any, any, any, any>;
         }
-        interface Products$P7<F, T1, T2, T3, T4, T5, T6, T7> { 
+        interface Products$P7<F, T1, T2, T3, T4, T5, T6, T7> extends java.lang.Record { 
+          and<T8>(p0: com.mojang.datafixers.kinds.App<F, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
+          and<T8, T9>(p0: com.mojang.datafixers.Products$P2<F, T8, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T8, T9, T10>(p0: com.mojang.datafixers.Products$P3<F, T8, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T8, T9, T10, T11>(p0: com.mojang.datafixers.Products$P4<F, T8, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P5<F, T8, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P6<F, T8, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P7<F, T8, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P8<F, T8, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P9<F, T8, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, R>): com.mojang.datafixers.kinds.App<F, R>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, R>>): com.mojang.datafixers.kinds.App<F, R>;
           t1(): com.mojang.datafixers.kinds.App<F, T1>;
           t2(): com.mojang.datafixers.kinds.App<F, T2>;
           t3(): com.mojang.datafixers.kinds.App<F, T3>;
@@ -41655,14 +42295,21 @@ declare global {
           t5(): com.mojang.datafixers.kinds.App<F, T5>;
           t6(): com.mojang.datafixers.kinds.App<F, T6>;
           t7(): com.mojang.datafixers.kinds.App<F, T7>;
-          and<T8>(p0: com.mojang.datafixers.kinds.App<F, T8>): com.mojang.datafixers.Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, R>): com.mojang.datafixers.kinds.App<F, R>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function7<T1, T2, T3, T4, T5, T6, T7, R>>): com.mojang.datafixers.kinds.App<F, R>;
         }
         const Products$P8: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>): com.mojang.datafixers.Products$P8<any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>): com.mojang.datafixers.Products$P8<any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8> { 
+        interface Products$P8<F, T1, T2, T3, T4, T5, T6, T7, T8> extends java.lang.Record { 
+          and<T9>(p0: com.mojang.datafixers.kinds.App<F, T9>): com.mojang.datafixers.Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+          and<T9, T10>(p0: com.mojang.datafixers.Products$P2<F, T9, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T9, T10, T11>(p0: com.mojang.datafixers.Products$P3<F, T9, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T9, T10, T11, T12>(p0: com.mojang.datafixers.Products$P4<F, T9, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P5<F, T9, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P6<F, T9, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P7<F, T9, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P8<F, T9, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function8<T1, T2, T3, T4, T5, T6, T7, T8, R>): com.mojang.datafixers.kinds.App<F, R>;
+          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function8<T1, T2, T3, T4, T5, T6, T7, T8, R>>): com.mojang.datafixers.kinds.App<F, R>;
           t1(): com.mojang.datafixers.kinds.App<F, T1>;
           t2(): com.mojang.datafixers.kinds.App<F, T2>;
           t3(): com.mojang.datafixers.kinds.App<F, T3>;
@@ -41671,64 +42318,190 @@ declare global {
           t6(): com.mojang.datafixers.kinds.App<F, T6>;
           t7(): com.mojang.datafixers.kinds.App<F, T7>;
           t8(): com.mojang.datafixers.kinds.App<F, T8>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function8<T1, T2, T3, T4, T5, T6, T7, T8, R>): com.mojang.datafixers.kinds.App<F, R>;
-          apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function8<T1, T2, T3, T4, T5, T6, T7, T8, R>>): com.mojang.datafixers.kinds.App<F, R>;
         }
         const Products$P9: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>): com.mojang.datafixers.Products$P9<any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>): com.mojang.datafixers.Products$P9<any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9> { 
+        interface Products$P9<F, T1, T2, T3, T4, T5, T6, T7, T8, T9> extends java.lang.Record { 
+          and<T10>(p0: com.mojang.datafixers.kinds.App<F, T10>): com.mojang.datafixers.Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+          and<T10, T11>(p0: com.mojang.datafixers.Products$P2<F, T10, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T10, T11, T12>(p0: com.mojang.datafixers.Products$P3<F, T10, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T10, T11, T12, T13>(p0: com.mojang.datafixers.Products$P4<F, T10, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P5<F, T10, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P6<F, T10, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P7<F, T10, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function9<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function9<T1, T2, T3, T4, T5, T6, T7, T8, T9, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
         }
         const Products$P10: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>): com.mojang.datafixers.Products$P10<any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>): com.mojang.datafixers.Products$P10<any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> { 
+        interface Products$P10<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> extends java.lang.Record { 
+          and<T11>(p0: com.mojang.datafixers.kinds.App<F, T11>): com.mojang.datafixers.Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
+          and<T11, T12>(p0: com.mojang.datafixers.Products$P2<F, T11, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T11, T12, T13>(p0: com.mojang.datafixers.Products$P3<F, T11, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T11, T12, T13, T14>(p0: com.mojang.datafixers.Products$P4<F, T11, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P5<F, T11, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P6<F, T11, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function10<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function10<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
         }
         const Products$P11: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>, p10: com.mojang.datafixers.kinds.App<F, T11>): com.mojang.datafixers.Products$P11<any, any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>, t11: com.mojang.datafixers.kinds.App<F, T11>): com.mojang.datafixers.Products$P11<any, any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> { 
+        interface Products$P11<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> extends java.lang.Record { 
+          and<T12>(p0: com.mojang.datafixers.kinds.App<F, T12>): com.mojang.datafixers.Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
+          and<T12, T13>(p0: com.mojang.datafixers.Products$P2<F, T12, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T12, T13, T14>(p0: com.mojang.datafixers.Products$P3<F, T12, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T12, T13, T14, T15>(p0: com.mojang.datafixers.Products$P4<F, T12, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P5<F, T12, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function11<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function11<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
+          t11(): com.mojang.datafixers.kinds.App<F, T11>;
         }
         const Products$P12: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>, p10: com.mojang.datafixers.kinds.App<F, T11>, p11: com.mojang.datafixers.kinds.App<F, T12>): com.mojang.datafixers.Products$P12<any, any, any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>, t11: com.mojang.datafixers.kinds.App<F, T11>, t12: com.mojang.datafixers.kinds.App<F, T12>): com.mojang.datafixers.Products$P12<any, any, any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> { 
+        interface Products$P12<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> extends java.lang.Record { 
+          and<T13>(p0: com.mojang.datafixers.kinds.App<F, T13>): com.mojang.datafixers.Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
+          and<T13, T14>(p0: com.mojang.datafixers.Products$P2<F, T13, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T13, T14, T15>(p0: com.mojang.datafixers.Products$P3<F, T13, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T13, T14, T15, T16>(p0: com.mojang.datafixers.Products$P4<F, T13, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function12<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
+          t11(): com.mojang.datafixers.kinds.App<F, T11>;
+          t12(): com.mojang.datafixers.kinds.App<F, T12>;
         }
         const Products$P13: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>, p10: com.mojang.datafixers.kinds.App<F, T11>, p11: com.mojang.datafixers.kinds.App<F, T12>, p12: com.mojang.datafixers.kinds.App<F, T13>): com.mojang.datafixers.Products$P13<any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>, t11: com.mojang.datafixers.kinds.App<F, T11>, t12: com.mojang.datafixers.kinds.App<F, T12>, t13: com.mojang.datafixers.kinds.App<F, T13>): com.mojang.datafixers.Products$P13<any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> { 
+        interface Products$P13<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> extends java.lang.Record { 
+          and<T14>(p0: com.mojang.datafixers.kinds.App<F, T14>): com.mojang.datafixers.Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
+          and<T14, T15>(p0: com.mojang.datafixers.Products$P2<F, T14, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T14, T15, T16>(p0: com.mojang.datafixers.Products$P3<F, T14, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function13<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function13<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
+          t11(): com.mojang.datafixers.kinds.App<F, T11>;
+          t12(): com.mojang.datafixers.kinds.App<F, T12>;
+          t13(): com.mojang.datafixers.kinds.App<F, T13>;
         }
         const Products$P14: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>, p10: com.mojang.datafixers.kinds.App<F, T11>, p11: com.mojang.datafixers.kinds.App<F, T12>, p12: com.mojang.datafixers.kinds.App<F, T13>, p13: com.mojang.datafixers.kinds.App<F, T14>): com.mojang.datafixers.Products$P14<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>, t11: com.mojang.datafixers.kinds.App<F, T11>, t12: com.mojang.datafixers.kinds.App<F, T12>, t13: com.mojang.datafixers.kinds.App<F, T13>, t14: com.mojang.datafixers.kinds.App<F, T14>): com.mojang.datafixers.Products$P14<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> { 
+        interface Products$P14<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> extends java.lang.Record { 
+          and<T15>(p0: com.mojang.datafixers.kinds.App<F, T15>): com.mojang.datafixers.Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
+          and<T15, T16>(p0: com.mojang.datafixers.Products$P2<F, T15, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function14<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function14<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
+          t11(): com.mojang.datafixers.kinds.App<F, T11>;
+          t12(): com.mojang.datafixers.kinds.App<F, T12>;
+          t13(): com.mojang.datafixers.kinds.App<F, T13>;
+          t14(): com.mojang.datafixers.kinds.App<F, T14>;
         }
         const Products$P15: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>, p10: com.mojang.datafixers.kinds.App<F, T11>, p11: com.mojang.datafixers.kinds.App<F, T12>, p12: com.mojang.datafixers.kinds.App<F, T13>, p13: com.mojang.datafixers.kinds.App<F, T14>, p14: com.mojang.datafixers.kinds.App<F, T15>): com.mojang.datafixers.Products$P15<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>, t11: com.mojang.datafixers.kinds.App<F, T11>, t12: com.mojang.datafixers.kinds.App<F, T12>, t13: com.mojang.datafixers.kinds.App<F, T13>, t14: com.mojang.datafixers.kinds.App<F, T14>, t15: com.mojang.datafixers.kinds.App<F, T15>): com.mojang.datafixers.Products$P15<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> { 
+        interface Products$P15<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> extends java.lang.Record { 
+          and<T16>(p0: com.mojang.datafixers.kinds.App<F, T16>): com.mojang.datafixers.Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function15<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function15<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
+          t11(): com.mojang.datafixers.kinds.App<F, T11>;
+          t12(): com.mojang.datafixers.kinds.App<F, T12>;
+          t13(): com.mojang.datafixers.kinds.App<F, T13>;
+          t14(): com.mojang.datafixers.kinds.App<F, T14>;
+          t15(): com.mojang.datafixers.kinds.App<F, T15>;
         }
         const Products$P16: {
-          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(p0: com.mojang.datafixers.kinds.App<F, T1>, p1: com.mojang.datafixers.kinds.App<F, T2>, p2: com.mojang.datafixers.kinds.App<F, T3>, p3: com.mojang.datafixers.kinds.App<F, T4>, p4: com.mojang.datafixers.kinds.App<F, T5>, p5: com.mojang.datafixers.kinds.App<F, T6>, p6: com.mojang.datafixers.kinds.App<F, T7>, p7: com.mojang.datafixers.kinds.App<F, T8>, p8: com.mojang.datafixers.kinds.App<F, T9>, p9: com.mojang.datafixers.kinds.App<F, T10>, p10: com.mojang.datafixers.kinds.App<F, T11>, p11: com.mojang.datafixers.kinds.App<F, T12>, p12: com.mojang.datafixers.kinds.App<F, T13>, p13: com.mojang.datafixers.kinds.App<F, T14>, p14: com.mojang.datafixers.kinds.App<F, T15>, p15: com.mojang.datafixers.kinds.App<F, T16>): com.mojang.datafixers.Products$P16<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
+          new<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(t1: com.mojang.datafixers.kinds.App<F, T1>, t2: com.mojang.datafixers.kinds.App<F, T2>, t3: com.mojang.datafixers.kinds.App<F, T3>, t4: com.mojang.datafixers.kinds.App<F, T4>, t5: com.mojang.datafixers.kinds.App<F, T5>, t6: com.mojang.datafixers.kinds.App<F, T6>, t7: com.mojang.datafixers.kinds.App<F, T7>, t8: com.mojang.datafixers.kinds.App<F, T8>, t9: com.mojang.datafixers.kinds.App<F, T9>, t10: com.mojang.datafixers.kinds.App<F, T10>, t11: com.mojang.datafixers.kinds.App<F, T11>, t12: com.mojang.datafixers.kinds.App<F, T12>, t13: com.mojang.datafixers.kinds.App<F, T13>, t14: com.mojang.datafixers.kinds.App<F, T14>, t15: com.mojang.datafixers.kinds.App<F, T15>, t16: com.mojang.datafixers.kinds.App<F, T16>): com.mojang.datafixers.Products$P16<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
         }
-        interface Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> { 
+        interface Products$P16<F, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> extends java.lang.Record { 
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.util.Function16<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>): com.mojang.datafixers.kinds.App<F, R>;
           apply<R>(p0: com.mojang.datafixers.kinds.Applicative<F, any>, p1: com.mojang.datafixers.kinds.App<F, com.mojang.datafixers.util.Function16<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, R>>): com.mojang.datafixers.kinds.App<F, R>;
+          t1(): com.mojang.datafixers.kinds.App<F, T1>;
+          t2(): com.mojang.datafixers.kinds.App<F, T2>;
+          t3(): com.mojang.datafixers.kinds.App<F, T3>;
+          t4(): com.mojang.datafixers.kinds.App<F, T4>;
+          t5(): com.mojang.datafixers.kinds.App<F, T5>;
+          t6(): com.mojang.datafixers.kinds.App<F, T6>;
+          t7(): com.mojang.datafixers.kinds.App<F, T7>;
+          t8(): com.mojang.datafixers.kinds.App<F, T8>;
+          t9(): com.mojang.datafixers.kinds.App<F, T9>;
+          t10(): com.mojang.datafixers.kinds.App<F, T10>;
+          t11(): com.mojang.datafixers.kinds.App<F, T11>;
+          t12(): com.mojang.datafixers.kinds.App<F, T12>;
+          t13(): com.mojang.datafixers.kinds.App<F, T13>;
+          t14(): com.mojang.datafixers.kinds.App<F, T14>;
+          t15(): com.mojang.datafixers.kinds.App<F, T15>;
+          t16(): com.mojang.datafixers.kinds.App<F, T16>;
         }
         interface DataFixer { 
           update<T>(p0: com.mojang.datafixers.DSL$TypeReference, p1: com.mojang.serialization.Dynamic<T>, p2: number, p3: number): com.mojang.serialization.Dynamic<T>;
@@ -41971,6 +42744,22 @@ declare global {
               privateKey(): string;
               publicKey(): string;
             }
+            const PresenceResponse: {
+              new(presence: Array<unknown>): com.mojang.authlib.yggdrasil.response.PresenceResponse;
+              empty(): com.mojang.authlib.yggdrasil.response.PresenceResponse;
+            }
+            interface PresenceResponse extends java.lang.Record { 
+              presence(): Array<unknown>;
+            }
+            const FriendData: {
+              new(friends: Array<unknown>, incomingRequests: Array<unknown>, outgoingRequests: Array<unknown>): com.mojang.authlib.yggdrasil.response.FriendData;
+              empty(): com.mojang.authlib.yggdrasil.response.FriendData;
+            }
+            interface FriendData extends java.lang.Record { 
+              friends(): Array<unknown>;
+              incomingRequests(): Array<unknown>;
+              outgoingRequests(): Array<unknown>;
+            }
           }
           namespace request {
             const AbuseReportRequest: {
@@ -42041,7 +42830,50 @@ declare global {
           }
           interface YggdrasilAuthenticationService extends com.mojang.authlib.HttpAuthenticationService { 
             createUserApiService(p0: string): com.mojang.authlib.minecraft.UserApiService;
+            createFriendsService(p0: string): com.mojang.authlib.yggdrasil.FriendsService;
             getServicesKeySet(): com.mojang.authlib.yggdrasil.ServicesKeySet;
+          }
+          const FriendsService: {
+            ResultCode: typeof com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            PlayerData: typeof com.mojang.authlib.yggdrasil.FriendsService$PlayerData;
+          }
+          interface FriendsService { 
+            getFriendData(p0: unknown): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            removeFriend(p0: java.util.UUID): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            acceptIncomingFriendRequest(p0: java.util.UUID): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            declineIncomingFriendRequest(p0: java.util.UUID): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            sendFriendRequest(p0: string): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            sendFriendRequest(p0: java.util.UUID): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            revokeOutgoingFriendRequest(p0: java.util.UUID): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            updateFriendSettings(p0: boolean, p1: boolean): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            presence(p0: string): com.mojang.authlib.yggdrasil.response.PresenceResponse;
+            getFriendsPollInterval(): java.util.Optional<java.time.Duration>;
+            getPresencePollInterval(): java.util.Optional<java.time.Duration>;
+          }
+          const FriendsService$ResultCode: {
+            SUCCESS: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            ERROR: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            SERVICE_NOT_AVAILABLE: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            TOO_MANY_REQUESTS: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            FORBIDDEN: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            UPGRADE_NEEDED: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            CONNECTION_ISSUE: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            TEMPORARY_UNAVAILABLE: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            UNKNOWN_PROFILE: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            UNAUTHORIZED: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            GENERIC_ERROR: com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+            entries: kotlin.enums.EnumEntries<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+            values(): Array<com.mojang.authlib.yggdrasil.FriendsService$ResultCode>;
+            valueOf(value: string): com.mojang.authlib.yggdrasil.FriendsService$ResultCode;
+          }
+          interface FriendsService$ResultCode extends kotlin.Enum<com.mojang.authlib.yggdrasil.FriendsService$ResultCode> { 
+          }
+          const FriendsService$PlayerData: {
+            new(id: java.util.UUID, name: string): com.mojang.authlib.yggdrasil.FriendsService$PlayerData;
+          }
+          interface FriendsService$PlayerData extends java.lang.Record { 
+            id(): java.util.UUID;
+            name(): string;
           }
         }
         namespace minecraft {
@@ -42151,9 +42983,12 @@ declare global {
             SERVERS_ALLOWED: com.mojang.authlib.minecraft.UserApiService$UserFlag;
             REALMS_ALLOWED: com.mojang.authlib.minecraft.UserApiService$UserFlag;
             CHAT_ALLOWED: com.mojang.authlib.minecraft.UserApiService$UserFlag;
+            CHAT_FRIENDS_ONLY: com.mojang.authlib.minecraft.UserApiService$UserFlag;
             TELEMETRY_ENABLED: com.mojang.authlib.minecraft.UserApiService$UserFlag;
             PROFANITY_FILTER_ENABLED: com.mojang.authlib.minecraft.UserApiService$UserFlag;
             OPTIONAL_TELEMETRY_AVAILABLE: com.mojang.authlib.minecraft.UserApiService$UserFlag;
+            FRIENDS_ENABLED: com.mojang.authlib.minecraft.UserApiService$UserFlag;
+            ACCEPT_FRIEND_INVITES: com.mojang.authlib.minecraft.UserApiService$UserFlag;
             entries: kotlin.enums.EnumEntries<com.mojang.authlib.minecraft.UserApiService$UserFlag>;
             values(): Array<com.mojang.authlib.minecraft.UserApiService$UserFlag>;
             valueOf(value: string): com.mojang.authlib.minecraft.UserApiService$UserFlag;
@@ -42357,85 +43192,91 @@ declare global {
         }
       }
       namespace realmsclient {
-        namespace gui {
-          namespace task {
-            const DataFetcher: {
-              Task: typeof com.mojang.realmsclient.gui.task.DataFetcher$Task;
-              Subscription: typeof com.mojang.realmsclient.gui.task.DataFetcher$Subscription;
-              new(executor: java.util.concurrent.Executor, resolution: java.util.concurrent.TimeUnit, timeSource: net.minecraft.util.TimeSource): com.mojang.realmsclient.gui.task.DataFetcher;
-            }
-            interface DataFetcher { 
-              createTask<T>(id: string, updater: java.util.concurrent.Callable<T>, period: java.time.Duration, repeatStrategy: com.mojang.realmsclient.gui.task.RepeatedDelayStrategy): com.mojang.realmsclient.gui.task.DataFetcher$Task<T>;
-              createSubscription(): com.mojang.realmsclient.gui.task.DataFetcher$Subscription;
-            }
-            const RepeatedDelayStrategy: {
-              CONSTANT: com.mojang.realmsclient.gui.task.RepeatedDelayStrategy;
-              exponentialBackoff(maxBackoff: number): com.mojang.realmsclient.gui.task.RepeatedDelayStrategy;
-            }
-            interface RepeatedDelayStrategy { 
-              delayCyclesAfterSuccess(): number;
-              delayCyclesAfterFailure(): number;
-            }
-            interface DataFetcher$Task<T> { 
-              reset(): void;
-            }
-            const DataFetcher$Subscription: {
-              new(): com.mojang.realmsclient.gui.task.DataFetcher$Subscription;
-            }
-            interface DataFetcher$Subscription { 
-              subscribe<T>(task: com.mojang.realmsclient.gui.task.DataFetcher$Task<T>, output: unknown): void;
-              forceUpdate(): void;
-              tick(): void;
-              reset(): void;
-            }
+        namespace client {
+          const RealmsClient: {
+            CompatibleVersionResponse: typeof com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
+            Environment: typeof com.mojang.realmsclient.client.RealmsClient$Environment;
+            ENVIRONMENT: com.mojang.realmsclient.client.RealmsClient$Environment;
+            getOrCreate(): com.mojang.realmsclient.client.RealmsClient;
+            getOrCreate(minecraft: net.minecraft.client.Minecraft): com.mojang.realmsclient.client.RealmsClient;
           }
-          const RealmsDataFetcher: {
-            ServerListData: typeof com.mojang.realmsclient.gui.RealmsDataFetcher$ServerListData;
-            new(realmsClient: com.mojang.realmsclient.client.RealmsClient): com.mojang.realmsclient.gui.RealmsDataFetcher;
+          interface RealmsClient { 
+            getFeatureFlags(): Set<string>;
+            listRealms(): com.mojang.realmsclient.dto.RealmsServerList;
+            listSnapshotEligibleRealms(): Array<com.mojang.realmsclient.dto.RealmsServer>;
+            createSnapshotRealm(parentId: number): com.mojang.realmsclient.dto.RealmsServer;
+            getNotifications(): Array<unknown>;
+            notificationsSeen(notificationUuids: Array<java.util.UUID>): void;
+            notificationsDismiss(notificationUuids: Array<java.util.UUID>): void;
+            getOwnRealm(realmId: number): com.mojang.realmsclient.dto.RealmsServer;
+            getPreferredRegionSelections(): com.mojang.realmsclient.dto.PreferredRegionsDto;
+            getLiveStats(): com.mojang.realmsclient.dto.RealmsServerPlayerLists;
+            join(realmId: number): com.mojang.realmsclient.dto.RealmsJoinInformation;
+            initializeRealm(realmId: number, name: string, motd: string): void;
+            hasParentalConsent(): boolean;
+            clientCompatible(): com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
+            uninvite(realmId: number, profileId: java.util.UUID): void;
+            uninviteMyselfFrom(realmId: number): void;
+            invite(realmId: number, profileName: string): Array<unknown>;
+            backupsFor(realmId: number): com.mojang.realmsclient.dto.BackupList;
+            updateConfiguration(realmId: number, name: string, description: string, regionSelectionPreference: com.mojang.realmsclient.dto.RegionSelectionPreferenceDto | null | undefined, slotId: number, options: com.mojang.realmsclient.dto.RealmsWorldOptions, settings: Array<unknown>): void;
+            updateSlot(realmId: number, slotId: number, options: com.mojang.realmsclient.dto.RealmsWorldOptions, settings: Array<unknown>): void;
+            switchSlot(realmId: number, slot: number): boolean;
+            restoreWorld(realmId: number, backupId: string): void;
+            fetchWorldTemplates(page: number, pageSize: number, type: com.mojang.realmsclient.dto.RealmsServer$WorldType): com.mojang.realmsclient.dto.WorldTemplatePaginatedList;
+            putIntoMinigameMode(realmId: number, minigameId: string): boolean;
+            op(realmId: number, profileId: java.util.UUID): com.mojang.realmsclient.dto.Ops;
+            deop(realmId: number, profileId: java.util.UUID): com.mojang.realmsclient.dto.Ops;
+            open(realmId: number): boolean;
+            close(realmId: number): boolean;
+            resetWorldWithTemplate(realmId: number, worldTemplateId: string): boolean;
+            subscriptionFor(realmId: number): com.mojang.realmsclient.dto.Subscription;
+            pendingInvitesCount(): number;
+            pendingInvites(): com.mojang.realmsclient.dto.PendingInvitesList;
+            acceptInvitation(invitationId: string): void;
+            requestDownloadInfo(realmId: number, slotId: number): com.mojang.realmsclient.dto.WorldDownload;
+            requestUploadInfo(realmId: number): com.mojang.realmsclient.dto.UploadInfo | null | undefined;
+            rejectInvitation(invitationId: string): void;
+            agreeToTos(): void;
+            getNews(): com.mojang.realmsclient.dto.RealmsNews;
+            sendPingResults(pingResult: com.mojang.realmsclient.dto.PingResult): void;
+            trialAvailable(): boolean;
+            deleteRealm(realmId: number): void;
           }
-          interface RealmsDataFetcher { 
-            dataFetcher: com.mojang.realmsclient.gui.task.DataFetcher;
-            notificationsTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<Array<unknown>>;
-            serverListUpdateTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<com.mojang.realmsclient.gui.RealmsDataFetcher$ServerListData>;
-            pendingInvitesTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<number>;
-            trialAvailabilityTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<boolean>;
-            newsTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<com.mojang.realmsclient.dto.RealmsNews>;
-            onlinePlayersTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<com.mojang.realmsclient.dto.RealmsServerPlayerLists>;
-            newsManager: com.mojang.realmsclient.gui.RealmsNewsManager;
-            getTasks(): Array<com.mojang.realmsclient.gui.task.DataFetcher$Task<any>>;
+          const RealmsClient$CompatibleVersionResponse: {
+            COMPATIBLE: com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
+            OUTDATED: com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
+            OTHER: com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
+            entries: kotlin.enums.EnumEntries<com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse>;
+            values(): Array<com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse>;
+            valueOf(value: string): com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
           }
-          const RealmsNewsManager: {
-            new(newsLocalStorage: com.mojang.realmsclient.util.RealmsPersistence): com.mojang.realmsclient.gui.RealmsNewsManager;
+          interface RealmsClient$CompatibleVersionResponse extends kotlin.Enum<com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse> { 
           }
-          interface RealmsNewsManager { 
-            hasUnreadNews(): boolean;
-            newsLink(): string;
-            updateUnreadNews(newsResponse: com.mojang.realmsclient.dto.RealmsNews): void;
+          const RealmsClient$Environment: {
+            PRODUCTION: com.mojang.realmsclient.client.RealmsClient$Environment;
+            STAGE: com.mojang.realmsclient.client.RealmsClient$Environment;
+            LOCAL: com.mojang.realmsclient.client.RealmsClient$Environment;
+            entries: kotlin.enums.EnumEntries<com.mojang.realmsclient.client.RealmsClient$Environment>;
+            byName(name: string): java.util.Optional<com.mojang.realmsclient.client.RealmsClient$Environment>;
+            values(): Array<com.mojang.realmsclient.client.RealmsClient$Environment>;
+            valueOf(value: string): com.mojang.realmsclient.client.RealmsClient$Environment;
           }
-          const RealmsDataFetcher$ServerListData: {
-            new(serverList: Array<com.mojang.realmsclient.dto.RealmsServer>, availableSnapshotServers: Array<com.mojang.realmsclient.dto.RealmsServer>): com.mojang.realmsclient.gui.RealmsDataFetcher$ServerListData;
-          }
-          interface RealmsDataFetcher$ServerListData extends java.lang.Record { 
-            serverList(): Array<com.mojang.realmsclient.dto.RealmsServer>;
-            availableSnapshotServers(): Array<com.mojang.realmsclient.dto.RealmsServer>;
+          interface RealmsClient$Environment extends kotlin.Enum<com.mojang.realmsclient.client.RealmsClient$Environment> { 
+            baseUrl: string;
+            alternativeUrl: string;
+            protocol: string;
           }
         }
         namespace dto {
-          const RealmsNews: {
-            new(newsLink: string | null | undefined): com.mojang.realmsclient.dto.RealmsNews;
-            parse(json: string): com.mojang.realmsclient.dto.RealmsNews;
-          }
-          interface RealmsNews extends java.lang.Record { 
-            newsLink(): string | null | undefined;
-          }
-          interface ReflectionBasedSerialization { 
-          }
           const RealmsServerList: {
             new(servers: Array<com.mojang.realmsclient.dto.RealmsServer>): com.mojang.realmsclient.dto.RealmsServerList;
             parse(gson: com.mojang.realmsclient.dto.GuardedSerializer, json: string): com.mojang.realmsclient.dto.RealmsServerList;
           }
           interface RealmsServerList extends java.lang.Record, com.mojang.realmsclient.dto.ReflectionBasedSerialization { 
             servers(): Array<com.mojang.realmsclient.dto.RealmsServer>;
+          }
+          interface ReflectionBasedSerialization { 
           }
           const GuardedSerializer: {
             new(): com.mojang.realmsclient.dto.GuardedSerializer;
@@ -42762,12 +43603,82 @@ declare global {
             token(): string | null | undefined;
             uploadEndpoint(): java.net.URI;
           }
+          const RealmsNews: {
+            new(newsLink: string | null | undefined): com.mojang.realmsclient.dto.RealmsNews;
+            parse(json: string): com.mojang.realmsclient.dto.RealmsNews;
+          }
+          interface RealmsNews extends java.lang.Record { 
+            newsLink(): string | null | undefined;
+          }
           const PingResult: {
             new(pingResults: Array<unknown>, realmIds: Array<number>): com.mojang.realmsclient.dto.PingResult;
           }
           interface PingResult extends java.lang.Record, com.mojang.realmsclient.dto.ReflectionBasedSerialization { 
             pingResults(): Array<unknown>;
             realmIds(): Array<number>;
+          }
+        }
+        namespace gui {
+          namespace task {
+            const DataFetcher: {
+              Task: typeof com.mojang.realmsclient.gui.task.DataFetcher$Task;
+              Subscription: typeof com.mojang.realmsclient.gui.task.DataFetcher$Subscription;
+              new(executor: java.util.concurrent.Executor, resolution: java.util.concurrent.TimeUnit, timeSource: net.minecraft.util.TimeSource): com.mojang.realmsclient.gui.task.DataFetcher;
+            }
+            interface DataFetcher { 
+              createTask<T>(id: string, updater: java.util.concurrent.Callable<T>, period: java.time.Duration, repeatStrategy: com.mojang.realmsclient.gui.task.RepeatedDelayStrategy): com.mojang.realmsclient.gui.task.DataFetcher$Task<T>;
+              createSubscription(): com.mojang.realmsclient.gui.task.DataFetcher$Subscription;
+            }
+            const RepeatedDelayStrategy: {
+              CONSTANT: com.mojang.realmsclient.gui.task.RepeatedDelayStrategy;
+              exponentialBackoff(maxBackoff: number): com.mojang.realmsclient.gui.task.RepeatedDelayStrategy;
+            }
+            interface RepeatedDelayStrategy { 
+              delayCyclesAfterSuccess(): number;
+              delayCyclesAfterFailure(): number;
+            }
+            interface DataFetcher$Task<T> { 
+              reset(): void;
+            }
+            const DataFetcher$Subscription: {
+              new(): com.mojang.realmsclient.gui.task.DataFetcher$Subscription;
+            }
+            interface DataFetcher$Subscription { 
+              subscribe<T>(task: com.mojang.realmsclient.gui.task.DataFetcher$Task<T>, output: unknown): void;
+              forceUpdate(): void;
+              tick(): void;
+              reset(): void;
+            }
+          }
+          const RealmsDataFetcher: {
+            ServerListData: typeof com.mojang.realmsclient.gui.RealmsDataFetcher$ServerListData;
+            new(realmsClient: com.mojang.realmsclient.client.RealmsClient): com.mojang.realmsclient.gui.RealmsDataFetcher;
+          }
+          interface RealmsDataFetcher { 
+            dataFetcher: com.mojang.realmsclient.gui.task.DataFetcher;
+            notificationsTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<Array<unknown>>;
+            serverListUpdateTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<com.mojang.realmsclient.gui.RealmsDataFetcher$ServerListData>;
+            pendingInvitesTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<number>;
+            trialAvailabilityTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<boolean>;
+            newsTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<com.mojang.realmsclient.dto.RealmsNews>;
+            onlinePlayersTask: com.mojang.realmsclient.gui.task.DataFetcher$Task<com.mojang.realmsclient.dto.RealmsServerPlayerLists>;
+            newsManager: com.mojang.realmsclient.gui.RealmsNewsManager;
+            getTasks(): Array<com.mojang.realmsclient.gui.task.DataFetcher$Task<any>>;
+          }
+          const RealmsNewsManager: {
+            new(newsLocalStorage: com.mojang.realmsclient.util.RealmsPersistence): com.mojang.realmsclient.gui.RealmsNewsManager;
+          }
+          interface RealmsNewsManager { 
+            hasUnreadNews(): boolean;
+            newsLink(): string;
+            updateUnreadNews(newsResponse: com.mojang.realmsclient.dto.RealmsNews): void;
+          }
+          const RealmsDataFetcher$ServerListData: {
+            new(serverList: Array<com.mojang.realmsclient.dto.RealmsServer>, availableSnapshotServers: Array<com.mojang.realmsclient.dto.RealmsServer>): com.mojang.realmsclient.gui.RealmsDataFetcher$ServerListData;
+          }
+          interface RealmsDataFetcher$ServerListData extends java.lang.Record { 
+            serverList(): Array<com.mojang.realmsclient.dto.RealmsServer>;
+            availableSnapshotServers(): Array<com.mojang.realmsclient.dto.RealmsServer>;
           }
         }
         namespace util {
@@ -42787,82 +43698,6 @@ declare global {
           interface RealmsPersistence$RealmsPersistenceData extends com.mojang.realmsclient.dto.ReflectionBasedSerialization { 
             newsLink: string | null | undefined;
             hasUnreadNews: boolean;
-          }
-        }
-        namespace client {
-          const RealmsClient: {
-            CompatibleVersionResponse: typeof com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
-            Environment: typeof com.mojang.realmsclient.client.RealmsClient$Environment;
-            ENVIRONMENT: com.mojang.realmsclient.client.RealmsClient$Environment;
-            getOrCreate(): com.mojang.realmsclient.client.RealmsClient;
-            getOrCreate(minecraft: net.minecraft.client.Minecraft): com.mojang.realmsclient.client.RealmsClient;
-          }
-          interface RealmsClient { 
-            getFeatureFlags(): Set<string>;
-            listRealms(): com.mojang.realmsclient.dto.RealmsServerList;
-            listSnapshotEligibleRealms(): Array<com.mojang.realmsclient.dto.RealmsServer>;
-            createSnapshotRealm(parentId: number): com.mojang.realmsclient.dto.RealmsServer;
-            getNotifications(): Array<unknown>;
-            notificationsSeen(notificationUuids: Array<java.util.UUID>): void;
-            notificationsDismiss(notificationUuids: Array<java.util.UUID>): void;
-            getOwnRealm(realmId: number): com.mojang.realmsclient.dto.RealmsServer;
-            getPreferredRegionSelections(): com.mojang.realmsclient.dto.PreferredRegionsDto;
-            getLiveStats(): com.mojang.realmsclient.dto.RealmsServerPlayerLists;
-            join(realmId: number): com.mojang.realmsclient.dto.RealmsJoinInformation;
-            initializeRealm(realmId: number, name: string, motd: string): void;
-            hasParentalConsent(): boolean;
-            clientCompatible(): com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
-            uninvite(realmId: number, profileId: java.util.UUID): void;
-            uninviteMyselfFrom(realmId: number): void;
-            invite(realmId: number, profileName: string): Array<unknown>;
-            backupsFor(realmId: number): com.mojang.realmsclient.dto.BackupList;
-            updateConfiguration(realmId: number, name: string, description: string, regionSelectionPreference: com.mojang.realmsclient.dto.RegionSelectionPreferenceDto | null | undefined, slotId: number, options: com.mojang.realmsclient.dto.RealmsWorldOptions, settings: Array<unknown>): void;
-            updateSlot(realmId: number, slotId: number, options: com.mojang.realmsclient.dto.RealmsWorldOptions, settings: Array<unknown>): void;
-            switchSlot(realmId: number, slot: number): boolean;
-            restoreWorld(realmId: number, backupId: string): void;
-            fetchWorldTemplates(page: number, pageSize: number, type: com.mojang.realmsclient.dto.RealmsServer$WorldType): com.mojang.realmsclient.dto.WorldTemplatePaginatedList;
-            putIntoMinigameMode(realmId: number, minigameId: string): boolean;
-            op(realmId: number, profileId: java.util.UUID): com.mojang.realmsclient.dto.Ops;
-            deop(realmId: number, profileId: java.util.UUID): com.mojang.realmsclient.dto.Ops;
-            open(realmId: number): boolean;
-            close(realmId: number): boolean;
-            resetWorldWithTemplate(realmId: number, worldTemplateId: string): boolean;
-            subscriptionFor(realmId: number): com.mojang.realmsclient.dto.Subscription;
-            pendingInvitesCount(): number;
-            pendingInvites(): com.mojang.realmsclient.dto.PendingInvitesList;
-            acceptInvitation(invitationId: string): void;
-            requestDownloadInfo(realmId: number, slotId: number): com.mojang.realmsclient.dto.WorldDownload;
-            requestUploadInfo(realmId: number): com.mojang.realmsclient.dto.UploadInfo | null | undefined;
-            rejectInvitation(invitationId: string): void;
-            agreeToTos(): void;
-            getNews(): com.mojang.realmsclient.dto.RealmsNews;
-            sendPingResults(pingResult: com.mojang.realmsclient.dto.PingResult): void;
-            trialAvailable(): boolean;
-            deleteRealm(realmId: number): void;
-          }
-          const RealmsClient$CompatibleVersionResponse: {
-            COMPATIBLE: com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
-            OUTDATED: com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
-            OTHER: com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
-            entries: kotlin.enums.EnumEntries<com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse>;
-            values(): Array<com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse>;
-            valueOf(value: string): com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse;
-          }
-          interface RealmsClient$CompatibleVersionResponse extends kotlin.Enum<com.mojang.realmsclient.client.RealmsClient$CompatibleVersionResponse> { 
-          }
-          const RealmsClient$Environment: {
-            PRODUCTION: com.mojang.realmsclient.client.RealmsClient$Environment;
-            STAGE: com.mojang.realmsclient.client.RealmsClient$Environment;
-            LOCAL: com.mojang.realmsclient.client.RealmsClient$Environment;
-            entries: kotlin.enums.EnumEntries<com.mojang.realmsclient.client.RealmsClient$Environment>;
-            byName(name: string): java.util.Optional<com.mojang.realmsclient.client.RealmsClient$Environment>;
-            values(): Array<com.mojang.realmsclient.client.RealmsClient$Environment>;
-            valueOf(value: string): com.mojang.realmsclient.client.RealmsClient$Environment;
-          }
-          interface RealmsClient$Environment extends kotlin.Enum<com.mojang.realmsclient.client.RealmsClient$Environment> { 
-            baseUrl: string;
-            alternativeUrl: string;
-            protocol: string;
           }
         }
       }
@@ -43272,6 +44107,21 @@ declare global {
             returning<R1>(returnType: com.google.common.reflect.TypeToken<R1>): com.google.common.reflect.Invokable<T, R1>;
             getOwnerType(): com.google.common.reflect.TypeToken<T>;
             getAnnotatedReturnType(): java.lang.reflect.AnnotatedType;
+          }
+        }
+        namespace net {
+          const HostAndPort: {
+            fromParts(host: string, port: number): com.google.common.net.HostAndPort;
+            fromHost(host: string): com.google.common.net.HostAndPort;
+            fromString(hostPortString: string): com.google.common.net.HostAndPort;
+          }
+          interface HostAndPort extends java.io.Serializable { 
+            getHost(): string;
+            hasPort(): boolean;
+            getPort(): number;
+            getPortOrDefault(defaultPort: number): number;
+            withDefaultPort(defaultPort: number): com.google.common.net.HostAndPort;
+            requireBracketsForIPv6(): com.google.common.net.HostAndPort;
           }
         }
         namespace primitives {
@@ -51495,37 +52345,75 @@ declare global {
               drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
               drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawFilledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawFilledAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
               drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawWireFrameBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawWireFrameAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawBoxes(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawBoxes(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawBoxes(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number): void;
               drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number, depth: boolean): void;
+              drawStyledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawStyledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number): void;
+              drawStyledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number, depth: boolean): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number, depth: boolean): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number, depth: boolean): void;
               drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawHitboxes(entities: Array<net.minecraft.world.entity.Entity>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawHitboxes(entities: Array<net.minecraft.world.entity.Entity>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawHitboxes(entities: Array<net.minecraft.world.entity.Entity>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, colors: Array<com.chattriggers.ctjs.api.render.Render3D$Color>): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, colors: Array<com.chattriggers.ctjs.api.render.Render3D$Color>, thickness: number): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, colors: Array<com.chattriggers.ctjs.api.render.Render3D$Color>, thickness: number, depth: boolean): void;
               drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawTracers(targetPositions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawTracers(targetPositions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawTracers(targetPositions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean, translate: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean, increase: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean, translate: boolean): void;
               new(): com.chattriggers.ctjs.api.render.Render3D;
             }
             interface Render3D { 
@@ -51533,37 +52421,75 @@ declare global {
               drawFilledBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
               drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawFilledBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawFilledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
+              drawFilledAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawFilledAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, depth: boolean): void;
               drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawWireFrameBox(pos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawWireFrameBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawWireFrameBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawWireFrameAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawWireFrameAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawWireFrameAABBs(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawBox(box: net.minecraft.world.phys.AABB, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawBoxes(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawBoxes(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawBoxes(boxes: Array<net.minecraft.world.phys.AABB>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number): void;
               drawStyledBox(pos: net.minecraft.world.phys.Vec3, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number, depth: boolean): void;
+              drawStyledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawStyledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number): void;
+              drawStyledBoxes(positions: Array<net.minecraft.world.phys.Vec3>, color1: com.chattriggers.ctjs.api.render.Render3D$Color, color2: com.chattriggers.ctjs.api.render.Render3D$Color, wireThickness: number, depth: boolean): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number): void;
               drawSizedBox(pos: net.minecraft.world.phys.Vec3, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number, depth: boolean): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number): void;
+              drawSizedBoxes(positions: Array<net.minecraft.world.phys.Vec3>, width: number, height: number, length: number, color: com.chattriggers.ctjs.api.render.Render3D$Color, filled: boolean, thickness: number, depth: boolean): void;
               drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawHitbox(entity: net.minecraft.world.entity.Entity, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawHitboxes(entities: Array<net.minecraft.world.entity.Entity>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawHitboxes(entities: Array<net.minecraft.world.entity.Entity>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawHitboxes(entities: Array<net.minecraft.world.entity.Entity>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawLine(start: net.minecraft.world.phys.Vec3, end: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, colors: Array<com.chattriggers.ctjs.api.render.Render3D$Color>): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, colors: Array<com.chattriggers.ctjs.api.render.Render3D$Color>, thickness: number): void;
+              drawLines(points: Array<net.minecraft.world.phys.Vec3>, colors: Array<com.chattriggers.ctjs.api.render.Render3D$Color>, thickness: number, depth: boolean): void;
               drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
               drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
               drawTracer(targetPos: net.minecraft.world.phys.Vec3, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
+              drawTracers(targetPositions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color): void;
+              drawTracers(targetPositions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number): void;
+              drawTracers(targetPositions: Array<net.minecraft.world.phys.Vec3>, color: com.chattriggers.ctjs.api.render.Render3D$Color, thickness: number, depth: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean): void;
               drawText(text: string, pos: net.minecraft.world.phys.Vec3, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean, translate: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean, increase: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean): void;
+              drawTexts(texts: Array<string>, positions: Array<net.minecraft.world.phys.Vec3>, scale: number, backgroundBox: boolean, increase: boolean, seeThrough: boolean, translate: boolean): void;
               new(): com.chattriggers.ctjs.api.render.Render3D;
             }
             const Render3D$Color: {
@@ -51574,10 +52500,6 @@ declare global {
               getG(): number;
               getB(): number;
               getA(): number;
-              getRf(): number;
-              getGf(): number;
-              getBf(): number;
-              getAf(): number;
               getPacked(): number;
               component1(): number;
               component2(): number;
@@ -52084,6 +53006,11 @@ declare global {
   namespace javax {
     namespace security {
       namespace auth {
+        namespace callback {
+          interface CallbackHandler { 
+            handle(p0: Array<unknown>): void;
+          }
+        }
         const Subject: {
           new(): javax.security.auth.Subject;
           new(p0: boolean, p1: Set<java.security.Principal>, p2: Set<any>, p3: Set<any>): javax.security.auth.Subject;
@@ -52186,6 +53113,195 @@ declare global {
         new(): javax.crypto.CipherSpi;
       }
       interface CipherSpi { 
+      }
+      const SecretKey: {
+        serialVersionUID: number;
+      }
+      interface SecretKey extends java.security.Key, javax.security.auth.Destroyable { 
+      }
+    }
+    namespace net {
+      namespace ssl {
+        interface SSLEngine { 
+          getPeerHost(): string;
+          getPeerPort(): number;
+          wrap(p0: java.nio.ByteBuffer, p1: java.nio.ByteBuffer): javax.net.ssl.SSLEngineResult;
+          wrap(p0: Array<java.nio.ByteBuffer>, p1: java.nio.ByteBuffer): javax.net.ssl.SSLEngineResult;
+          wrap(p0: Array<java.nio.ByteBuffer>, p1: number, p2: number, p3: java.nio.ByteBuffer): javax.net.ssl.SSLEngineResult;
+          unwrap(p0: java.nio.ByteBuffer, p1: java.nio.ByteBuffer): javax.net.ssl.SSLEngineResult;
+          unwrap(p0: java.nio.ByteBuffer, p1: Array<java.nio.ByteBuffer>): javax.net.ssl.SSLEngineResult;
+          unwrap(p0: java.nio.ByteBuffer, p1: Array<java.nio.ByteBuffer>, p2: number, p3: number): javax.net.ssl.SSLEngineResult;
+          getDelegatedTask(): java.lang.Runnable;
+          closeInbound(): void;
+          isInboundDone(): boolean;
+          closeOutbound(): void;
+          isOutboundDone(): boolean;
+          getSupportedCipherSuites(): Array<string>;
+          getEnabledCipherSuites(): Array<string>;
+          setEnabledCipherSuites(p0: Array<string>): void;
+          getSupportedProtocols(): Array<string>;
+          getEnabledProtocols(): Array<string>;
+          setEnabledProtocols(p0: Array<string>): void;
+          getSession(): javax.net.ssl.SSLSession;
+          getHandshakeSession(): javax.net.ssl.SSLSession;
+          beginHandshake(): void;
+          getHandshakeStatus(): javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          setUseClientMode(p0: boolean): void;
+          getUseClientMode(): boolean;
+          setNeedClientAuth(p0: boolean): void;
+          getNeedClientAuth(): boolean;
+          setWantClientAuth(p0: boolean): void;
+          getWantClientAuth(): boolean;
+          setEnableSessionCreation(p0: boolean): void;
+          getEnableSessionCreation(): boolean;
+          getSSLParameters(): javax.net.ssl.SSLParameters;
+          setSSLParameters(p0: javax.net.ssl.SSLParameters): void;
+          getApplicationProtocol(): string;
+          getHandshakeApplicationProtocol(): string;
+          setHandshakeApplicationProtocolSelector(p0: unknown): void;
+          getHandshakeApplicationProtocolSelector(): unknown;
+        }
+        const SSLEngineResult: {
+          Status: typeof javax.net.ssl.SSLEngineResult$Status;
+          HandshakeStatus: typeof javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          new(p0: javax.net.ssl.SSLEngineResult$Status, p1: javax.net.ssl.SSLEngineResult$HandshakeStatus, p2: number, p3: number): javax.net.ssl.SSLEngineResult;
+          new(p0: javax.net.ssl.SSLEngineResult$Status, p1: javax.net.ssl.SSLEngineResult$HandshakeStatus, p2: number, p3: number, p4: number): javax.net.ssl.SSLEngineResult;
+        }
+        interface SSLEngineResult { 
+          bytesConsumed(): number;
+          bytesProduced(): number;
+          sequenceNumber(): number;
+          getStatus(): javax.net.ssl.SSLEngineResult$Status;
+          getHandshakeStatus(): javax.net.ssl.SSLEngineResult$HandshakeStatus;
+        }
+        const SSLEngineResult$Status: {
+          BUFFER_UNDERFLOW: javax.net.ssl.SSLEngineResult$Status;
+          BUFFER_OVERFLOW: javax.net.ssl.SSLEngineResult$Status;
+          OK: javax.net.ssl.SSLEngineResult$Status;
+          CLOSED: javax.net.ssl.SSLEngineResult$Status;
+          entries: kotlin.enums.EnumEntries<javax.net.ssl.SSLEngineResult$Status>;
+          values(): Array<javax.net.ssl.SSLEngineResult$Status>;
+          valueOf(value: string): javax.net.ssl.SSLEngineResult$Status;
+        }
+        interface SSLEngineResult$Status extends kotlin.Enum<javax.net.ssl.SSLEngineResult$Status> { 
+        }
+        const SSLEngineResult$HandshakeStatus: {
+          NOT_HANDSHAKING: javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          FINISHED: javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          NEED_TASK: javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          NEED_WRAP: javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          NEED_UNWRAP: javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          NEED_UNWRAP_AGAIN: javax.net.ssl.SSLEngineResult$HandshakeStatus;
+          entries: kotlin.enums.EnumEntries<javax.net.ssl.SSLEngineResult$HandshakeStatus>;
+          values(): Array<javax.net.ssl.SSLEngineResult$HandshakeStatus>;
+          valueOf(value: string): javax.net.ssl.SSLEngineResult$HandshakeStatus;
+        }
+        interface SSLEngineResult$HandshakeStatus extends kotlin.Enum<javax.net.ssl.SSLEngineResult$HandshakeStatus> { 
+        }
+        interface SSLSession { 
+          getId(): Array<number>;
+          getSessionContext(): javax.net.ssl.SSLSessionContext;
+          getCreationTime(): number;
+          getLastAccessedTime(): number;
+          invalidate(): void;
+          isValid(): boolean;
+          putValue(p0: string, p1: any): void;
+          getValue(p0: string): any;
+          removeValue(p0: string): void;
+          getValueNames(): Array<string>;
+          getPeerCertificates(): Array<java.security.cert.Certificate>;
+          getLocalCertificates(): Array<java.security.cert.Certificate>;
+          getPeerCertificateChain(): Array<unknown>;
+          getPeerPrincipal(): java.security.Principal;
+          getLocalPrincipal(): java.security.Principal;
+          getCipherSuite(): string;
+          getProtocol(): string;
+          getPeerHost(): string;
+          getPeerPort(): number;
+          getPacketBufferSize(): number;
+          getApplicationBufferSize(): number;
+        }
+        interface SSLSessionContext { 
+          getSession(p0: Array<number>): javax.net.ssl.SSLSession;
+          getIds(): java.util.Enumeration<Array<number>>;
+          setSessionTimeout(p0: number): void;
+          getSessionTimeout(): number;
+          setSessionCacheSize(p0: number): void;
+          getSessionCacheSize(): number;
+        }
+        const SSLParameters: {
+          new(): javax.net.ssl.SSLParameters;
+          new(p0: Array<string>): javax.net.ssl.SSLParameters;
+          new(p0: Array<string>, p1: Array<string>): javax.net.ssl.SSLParameters;
+        }
+        interface SSLParameters { 
+          getCipherSuites(): Array<string>;
+          setCipherSuites(p0: Array<string>): void;
+          getProtocols(): Array<string>;
+          setProtocols(p0: Array<string>): void;
+          getWantClientAuth(): boolean;
+          setWantClientAuth(p0: boolean): void;
+          getNeedClientAuth(): boolean;
+          setNeedClientAuth(p0: boolean): void;
+          getAlgorithmConstraints(): java.security.AlgorithmConstraints;
+          setAlgorithmConstraints(p0: java.security.AlgorithmConstraints): void;
+          getEndpointIdentificationAlgorithm(): string;
+          setEndpointIdentificationAlgorithm(p0: string): void;
+          setServerNames(p0: Array<unknown>): void;
+          getServerNames(): Array<unknown>;
+          setSNIMatchers(p0: Array<unknown>): void;
+          getSNIMatchers(): Array<unknown>;
+          setUseCipherSuitesOrder(p0: boolean): void;
+          getUseCipherSuitesOrder(): boolean;
+          setEnableRetransmissions(p0: boolean): void;
+          getEnableRetransmissions(): boolean;
+          setMaximumPacketSize(p0: number): void;
+          getMaximumPacketSize(): number;
+          getApplicationProtocols(): Array<string>;
+          setApplicationProtocols(p0: Array<string>): void;
+          getSignatureSchemes(): Array<string>;
+          setSignatureSchemes(p0: Array<string>): void;
+          getNamedGroups(): Array<string>;
+          setNamedGroups(p0: Array<string>): void;
+        }
+        const TrustManagerFactory: {
+          getDefaultAlgorithm(): string;
+          getInstance(p0: string): javax.net.ssl.TrustManagerFactory;
+          getInstance(p0: string, p1: string): javax.net.ssl.TrustManagerFactory;
+          getInstance(p0: string, p1: java.security.Provider): javax.net.ssl.TrustManagerFactory;
+        }
+        interface TrustManagerFactory { 
+          getAlgorithm(): string;
+          getProvider(): java.security.Provider;
+          init(p0: java.security.KeyStore): void;
+          init(p0: javax.net.ssl.ManagerFactoryParameters): void;
+          getTrustManagers(): Array<unknown>;
+        }
+        interface ManagerFactoryParameters { 
+        }
+        const TrustManagerFactorySpi: {
+          new(): javax.net.ssl.TrustManagerFactorySpi;
+        }
+        interface TrustManagerFactorySpi { 
+        }
+        const KeyManagerFactory: {
+          getDefaultAlgorithm(): string;
+          getInstance(p0: string): javax.net.ssl.KeyManagerFactory;
+          getInstance(p0: string, p1: string): javax.net.ssl.KeyManagerFactory;
+          getInstance(p0: string, p1: java.security.Provider): javax.net.ssl.KeyManagerFactory;
+        }
+        interface KeyManagerFactory { 
+          getAlgorithm(): string;
+          getProvider(): java.security.Provider;
+          init(p0: java.security.KeyStore, p1: Array<number>): void;
+          init(p0: javax.net.ssl.ManagerFactoryParameters): void;
+          getKeyManagers(): Array<unknown>;
+        }
+        const KeyManagerFactorySpi: {
+          new(): javax.net.ssl.KeyManagerFactorySpi;
+        }
+        interface KeyManagerFactorySpi { 
+        }
       }
     }
     namespace sound {
@@ -61275,6 +62391,190 @@ declare global {
         interface IoOps { 
         }
         interface IoEvent { 
+        }
+        interface ChannelOutboundHandler extends io.netty.channel.ChannelHandler { 
+          bind(p0: io.netty.channel.ChannelHandlerContext, p1: java.net.SocketAddress, p2: io.netty.channel.ChannelPromise): void;
+          connect(p0: io.netty.channel.ChannelHandlerContext, p1: java.net.SocketAddress, p2: java.net.SocketAddress, p3: io.netty.channel.ChannelPromise): void;
+          disconnect(p0: io.netty.channel.ChannelHandlerContext, p1: io.netty.channel.ChannelPromise): void;
+          close(p0: io.netty.channel.ChannelHandlerContext, p1: io.netty.channel.ChannelPromise): void;
+          deregister(p0: io.netty.channel.ChannelHandlerContext, p1: io.netty.channel.ChannelPromise): void;
+          read(p0: io.netty.channel.ChannelHandlerContext): void;
+          write(p0: io.netty.channel.ChannelHandlerContext, p1: any, p2: io.netty.channel.ChannelPromise): void;
+          flush(p0: io.netty.channel.ChannelHandlerContext): void;
+        }
+        const ChannelDuplexHandler: {
+          new(): io.netty.channel.ChannelDuplexHandler;
+        }
+        interface ChannelDuplexHandler extends io.netty.channel.ChannelInboundHandlerAdapter, io.netty.channel.ChannelOutboundHandler { 
+        }
+      }
+      namespace handler {
+        namespace ssl {
+          const SslContext: {
+            defaultServerProvider(): io.netty.handler.ssl.SslProvider;
+            defaultClientProvider(): io.netty.handler.ssl.SslProvider;
+            newServerContext(p0: java.io.File, p1: java.io.File): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: java.io.File, p1: java.io.File, p2: string): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: java.io.File, p1: java.io.File, p2: string, p3: kotlin.collections.MutableIterable<string>, p4: kotlin.collections.MutableIterable<string>, p5: number, p6: number): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: java.io.File, p1: java.io.File, p2: string, p3: kotlin.collections.MutableIterable<string>, p4: io.netty.handler.ssl.CipherSuiteFilter, p5: io.netty.handler.ssl.ApplicationProtocolConfig, p6: number, p7: number): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: java.io.File): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: java.io.File, p3: string): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: java.io.File, p3: string, p4: kotlin.collections.MutableIterable<string>, p5: kotlin.collections.MutableIterable<string>, p6: number, p7: number): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: java.io.File, p3: string, p4: javax.net.ssl.TrustManagerFactory, p5: kotlin.collections.MutableIterable<string>, p6: kotlin.collections.MutableIterable<string>, p7: number, p8: number): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: java.io.File, p3: string, p4: kotlin.collections.MutableIterable<string>, p5: io.netty.handler.ssl.CipherSuiteFilter, p6: io.netty.handler.ssl.ApplicationProtocolConfig, p7: number, p8: number): io.netty.handler.ssl.SslContext;
+            newServerContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: javax.net.ssl.TrustManagerFactory, p3: java.io.File, p4: java.io.File, p5: string, p6: javax.net.ssl.KeyManagerFactory, p7: kotlin.collections.MutableIterable<string>, p8: io.netty.handler.ssl.CipherSuiteFilter, p9: io.netty.handler.ssl.ApplicationProtocolConfig, p10: number, p11: number): io.netty.handler.ssl.SslContext;
+            newClientContext(): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: java.io.File): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: javax.net.ssl.TrustManagerFactory): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: java.io.File, p1: javax.net.ssl.TrustManagerFactory): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: java.io.File, p1: javax.net.ssl.TrustManagerFactory, p2: kotlin.collections.MutableIterable<string>, p3: kotlin.collections.MutableIterable<string>, p4: number, p5: number): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: java.io.File, p1: javax.net.ssl.TrustManagerFactory, p2: kotlin.collections.MutableIterable<string>, p3: io.netty.handler.ssl.CipherSuiteFilter, p4: io.netty.handler.ssl.ApplicationProtocolConfig, p5: number, p6: number): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider, p1: javax.net.ssl.TrustManagerFactory): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: javax.net.ssl.TrustManagerFactory): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: javax.net.ssl.TrustManagerFactory, p3: kotlin.collections.MutableIterable<string>, p4: kotlin.collections.MutableIterable<string>, p5: number, p6: number): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: javax.net.ssl.TrustManagerFactory, p3: kotlin.collections.MutableIterable<string>, p4: io.netty.handler.ssl.CipherSuiteFilter, p5: io.netty.handler.ssl.ApplicationProtocolConfig, p6: number, p7: number): io.netty.handler.ssl.SslContext;
+            newClientContext(p0: io.netty.handler.ssl.SslProvider, p1: java.io.File, p2: javax.net.ssl.TrustManagerFactory, p3: java.io.File, p4: java.io.File, p5: string, p6: javax.net.ssl.KeyManagerFactory, p7: kotlin.collections.MutableIterable<string>, p8: io.netty.handler.ssl.CipherSuiteFilter, p9: io.netty.handler.ssl.ApplicationProtocolConfig, p10: number, p11: number): io.netty.handler.ssl.SslContext;
+          }
+          interface SslContext { 
+            attributes(): io.netty.util.AttributeMap;
+            isServer(): boolean;
+            isClient(): boolean;
+            cipherSuites(): Array<string>;
+            sessionCacheSize(): number;
+            sessionTimeout(): number;
+            nextProtocols(): Array<string>;
+            applicationProtocolNegotiator(): io.netty.handler.ssl.ApplicationProtocolNegotiator;
+            newEngine(p0: io.netty.buffer.ByteBufAllocator): javax.net.ssl.SSLEngine;
+            newEngine(p0: io.netty.buffer.ByteBufAllocator, p1: string, p2: number): javax.net.ssl.SSLEngine;
+            sessionContext(): javax.net.ssl.SSLSessionContext;
+            newHandler(p0: io.netty.buffer.ByteBufAllocator): io.netty.handler.ssl.SslHandler;
+            newHandler(p0: io.netty.buffer.ByteBufAllocator, p1: java.util.concurrent.Executor): io.netty.handler.ssl.SslHandler;
+            newHandler(p0: io.netty.buffer.ByteBufAllocator, p1: string, p2: number): io.netty.handler.ssl.SslHandler;
+            newHandler(p0: io.netty.buffer.ByteBufAllocator, p1: string, p2: number, p3: java.util.concurrent.Executor): io.netty.handler.ssl.SslHandler;
+          }
+          interface ApplicationProtocolNegotiator { 
+            protocols(): Array<string>;
+          }
+          const SslHandler: {
+            new(p0: javax.net.ssl.SSLEngine): io.netty.handler.ssl.SslHandler;
+            new(p0: javax.net.ssl.SSLEngine, p1: boolean): io.netty.handler.ssl.SslHandler;
+            new(p0: javax.net.ssl.SSLEngine, p1: java.util.concurrent.Executor): io.netty.handler.ssl.SslHandler;
+            new(p0: javax.net.ssl.SSLEngine, p1: boolean, p2: java.util.concurrent.Executor): io.netty.handler.ssl.SslHandler;
+            isEncrypted(p0: io.netty.buffer.ByteBuf): boolean;
+            isEncrypted(p0: io.netty.buffer.ByteBuf, p1: boolean): boolean;
+          }
+          interface SslHandler extends io.netty.handler.codec.ByteToMessageDecoder, io.netty.channel.ChannelOutboundHandler { 
+            engine(): javax.net.ssl.SSLEngine;
+            getHandshakeTimeoutMillis(): number;
+            setHandshakeTimeout(p0: number, p1: java.util.concurrent.TimeUnit): void;
+            setHandshakeTimeoutMillis(p0: number): void;
+            setWrapDataSize(p0: number): void;
+            getCloseNotifyTimeoutMillis(): number;
+            setCloseNotifyTimeout(p0: number, p1: java.util.concurrent.TimeUnit): void;
+            setCloseNotifyTimeoutMillis(p0: number): void;
+            getCloseNotifyFlushTimeoutMillis(): number;
+            setCloseNotifyFlushTimeout(p0: number, p1: java.util.concurrent.TimeUnit): void;
+            setCloseNotifyFlushTimeoutMillis(p0: number): void;
+            getCloseNotifyReadTimeoutMillis(): number;
+            setCloseNotifyReadTimeout(p0: number, p1: java.util.concurrent.TimeUnit): void;
+            setCloseNotifyReadTimeoutMillis(p0: number): void;
+            applicationProtocol(): string;
+            handshakeFuture(): io.netty.util.concurrent.Future<io.netty.channel.Channel>;
+            close(): io.netty.channel.ChannelFuture;
+            close(p0: io.netty.channel.ChannelPromise): io.netty.channel.ChannelFuture;
+            closeOutbound(): io.netty.channel.ChannelFuture;
+            closeOutbound(p0: io.netty.channel.ChannelPromise): io.netty.channel.ChannelFuture;
+            sslCloseFuture(): io.netty.util.concurrent.Future<io.netty.channel.Channel>;
+            renegotiate(): io.netty.util.concurrent.Future<io.netty.channel.Channel>;
+            renegotiate(p0: io.netty.util.concurrent.Promise<io.netty.channel.Channel>): io.netty.util.concurrent.Future<io.netty.channel.Channel>;
+          }
+          const SslProvider: {
+            JDK: io.netty.handler.ssl.SslProvider;
+            OPENSSL: io.netty.handler.ssl.SslProvider;
+            OPENSSL_REFCNT: io.netty.handler.ssl.SslProvider;
+            entries: kotlin.enums.EnumEntries<io.netty.handler.ssl.SslProvider>;
+            isAlpnSupported(p0: io.netty.handler.ssl.SslProvider): boolean;
+            isTlsv13Supported(p0: io.netty.handler.ssl.SslProvider): boolean;
+            isTlsv13Supported(p0: io.netty.handler.ssl.SslProvider, p1: java.security.Provider): boolean;
+            isOptionSupported(p0: io.netty.handler.ssl.SslProvider, p1: io.netty.handler.ssl.SslContextOption<any>): boolean;
+            values(): Array<io.netty.handler.ssl.SslProvider>;
+            valueOf(value: string): io.netty.handler.ssl.SslProvider;
+          }
+          interface SslProvider extends kotlin.Enum<io.netty.handler.ssl.SslProvider> { 
+          }
+          const SslContextOption: {
+            valueOf<T>(p0: string): io.netty.handler.ssl.SslContextOption<T>;
+            valueOf<T>(p0: java.lang.Class<any>, p1: string): io.netty.handler.ssl.SslContextOption<T>;
+            exists(p0: string): boolean;
+          }
+          interface SslContextOption<T> extends io.netty.util.AbstractConstant<io.netty.handler.ssl.SslContextOption<T>> { 
+            validate(p0: T): void;
+          }
+          interface CipherSuiteFilter { 
+            filterCipherSuites(p0: kotlin.collections.MutableIterable<string>, p1: Array<string>, p2: Set<string>): Array<string>;
+          }
+          const ApplicationProtocolConfig: {
+            SelectedListenerFailureBehavior: typeof io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior;
+            SelectorFailureBehavior: typeof io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior;
+            Protocol: typeof io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+            DISABLED: io.netty.handler.ssl.ApplicationProtocolConfig;
+            new(p0: io.netty.handler.ssl.ApplicationProtocolConfig$Protocol, p1: io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior, p2: io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior, p3: kotlin.collections.MutableIterable<string>): io.netty.handler.ssl.ApplicationProtocolConfig;
+            new(p0: io.netty.handler.ssl.ApplicationProtocolConfig$Protocol, p1: io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior, p2: io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior, p3: string): io.netty.handler.ssl.ApplicationProtocolConfig;
+          }
+          interface ApplicationProtocolConfig { 
+            supportedProtocols(): Array<string>;
+            protocol(): io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+            selectorFailureBehavior(): io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior;
+            selectedListenerFailureBehavior(): io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior;
+          }
+          const ApplicationProtocolConfig$Protocol: {
+            NONE: io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+            NPN: io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+            ALPN: io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+            NPN_AND_ALPN: io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+            entries: kotlin.enums.EnumEntries<io.netty.handler.ssl.ApplicationProtocolConfig$Protocol>;
+            values(): Array<io.netty.handler.ssl.ApplicationProtocolConfig$Protocol>;
+            valueOf(value: string): io.netty.handler.ssl.ApplicationProtocolConfig$Protocol;
+          }
+          interface ApplicationProtocolConfig$Protocol extends kotlin.Enum<io.netty.handler.ssl.ApplicationProtocolConfig$Protocol> { 
+          }
+          const ApplicationProtocolConfig$SelectorFailureBehavior: {
+            FATAL_ALERT: io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior;
+            NO_ADVERTISE: io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior;
+            CHOOSE_MY_LAST_PROTOCOL: io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior;
+            entries: kotlin.enums.EnumEntries<io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior>;
+            values(): Array<io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior>;
+            valueOf(value: string): io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior;
+          }
+          interface ApplicationProtocolConfig$SelectorFailureBehavior extends kotlin.Enum<io.netty.handler.ssl.ApplicationProtocolConfig$SelectorFailureBehavior> { 
+          }
+          const ApplicationProtocolConfig$SelectedListenerFailureBehavior: {
+            ACCEPT: io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior;
+            FATAL_ALERT: io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior;
+            CHOOSE_MY_LAST_PROTOCOL: io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior;
+            entries: kotlin.enums.EnumEntries<io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior>;
+            values(): Array<io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior>;
+            valueOf(value: string): io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior;
+          }
+          interface ApplicationProtocolConfig$SelectedListenerFailureBehavior extends kotlin.Enum<io.netty.handler.ssl.ApplicationProtocolConfig$SelectedListenerFailureBehavior> { 
+          }
+        }
+        namespace codec {
+          const ByteToMessageDecoder: {
+            MERGE_CUMULATOR: io.netty.handler.codec.ByteToMessageDecoder$Cumulator;
+            COMPOSITE_CUMULATOR: io.netty.handler.codec.ByteToMessageDecoder$Cumulator;
+          }
+          interface ByteToMessageDecoder extends io.netty.channel.ChannelInboundHandlerAdapter { 
+            setSingleDecode(p0: boolean): void;
+            isSingleDecode(): boolean;
+            setCumulator(p0: io.netty.handler.codec.ByteToMessageDecoder$Cumulator): void;
+            setDiscardAfterReads(p0: number): void;
+          }
+          interface ByteToMessageDecoder$Cumulator { 
+            cumulate(p0: io.netty.buffer.ByteBufAllocator, p1: io.netty.buffer.ByteBuf, p2: io.netty.buffer.ByteBuf): io.netty.buffer.ByteBuf;
+          }
         }
       }
     }
