@@ -62,11 +62,9 @@ class ESP extends ModuleBase {
 
                 if (!this.showNames) continue;
 
-                const canSee = self.hasLineOfSight(entity);
-                const maxDefaultNametagDistance = canSee ? 64 : 32;
-                const maxDefaultNametagDistanceSq = maxDefaultNametagDistance * maxDefaultNametagDistance;
-
-                if (distanceSq <= maxDefaultNametagDistanceSq) continue;
+                if (distanceSq <= 32 * 32) continue;
+                if (distanceSq > 64 * 64) continue;
+                if (distanceSq <= 64 * 64 && !self.hasLineOfSight(entity)) continue;
 
                 const vec = new Vec3d(player.x, player.y + 2.3, player.z);
                 Render3D.drawText(player.getName(), vec, 1.2, true, false, true);

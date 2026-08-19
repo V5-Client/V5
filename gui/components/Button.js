@@ -33,10 +33,12 @@ export class Button {
 
         this.pressProgress = 0;
         this.pressLastUpdate = 0;
+        this.buttonTextWidth = null;
     }
 
     setButtonText(text) {
         this.buttonText = text;
+        this.buttonTextWidth = null;
     }
 
     startHighlight() {
@@ -73,7 +75,7 @@ export class Button {
         const panelWidth = this.optionPanelWidth - PADDING * 2;
         const buttonPadding = 10;
         const buttonHeight = 18;
-        const buttonTextWidth = getTextWidth(this.buttonText, FontSizes.REGULAR);
+        const buttonTextWidth = this.buttonTextWidth ?? (this.buttonTextWidth = getTextWidth(this.buttonText, FontSizes.REGULAR));
         const buttonWidth = Math.max(64, buttonTextWidth + buttonPadding * 2);
 
         if (this.showContainer) {

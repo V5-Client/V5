@@ -14,6 +14,7 @@ import { getCategoryContentY, getCategoryRect, getDiscordPfpRect, getModuleNavBu
 import { Categories, getVisibleDirectComponents } from './CategorySystem';
 
 const ANIMATION_DURATION = 300;
+const BACK_TEXT_WIDTH = getTextWidth('Back', FontSizes.SMALL);
 const getEditButtonRect = () => {
     const leftPanel = GuiRectangles.LeftPanel;
     const pfpRect = getDiscordPfpRect();
@@ -46,15 +47,17 @@ const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryNam
     const contentTop = directCat.subcategories.length > 0 ? getCategoryContentY(directCat, panel) : panel.y;
     if (!isInside(mouseX, mouseY, panel) || mouseY < contentTop) return false;
 
-    for (const row of layoutDirectComponents(getVisibleDirectComponents(categoryName), getCategoryContentY(directCat, panel) - scrollY).rows) {
+    const layout = layoutDirectComponents(getVisibleDirectComponents(categoryName), getCategoryContentY(directCat, panel));
+    for (const row of layout.rows) {
         const component = row.component;
+        const componentY = layout.baseY + row.y - scrollY;
 
         if (component instanceof Popup && typeof component.handleButtonClick === 'function') {
-            const clickableArea = getComponentHitRect(panel, row.y, row.height, PADDING);
+            const clickableArea = getComponentHitRect(panel, componentY, row.height, PADDING);
 
             if (isInside(mouseX, mouseY, clickableArea)) {
                 component.x = getDirectComponentX(panel);
-                component.y = row.y;
+                component.y = componentY;
                 component.optionPanelWidth = getDirectComponentPanelWidth(panel);
                 component.optionPanelHeight = panel.height;
 
@@ -70,11 +73,11 @@ const handleDirectComponentsClick = (mouseX, mouseY, panel, scrollY, categoryNam
             continue;
         }
 
-        const clickableArea = getComponentHitRect(panel, row.y, row.height, PADDING);
+        const clickableArea = getComponentHitRect(panel, componentY, row.height, PADDING);
 
         if (isInside(mouseX, mouseY, clickableArea)) {
             component.x = getDirectComponentX(panel);
-            component.y = row.y;
+            component.y = componentY;
             component.optionPanelWidth = getDirectComponentPanelWidth(panel);
             component.optionPanelHeight = panel.height;
 
@@ -128,7 +131,7 @@ export const handleCategoryClick = (
         const sY = Categories.optionsScrollY;
 
         const backButtonText = 'Back';
-        const backButtonWidth = getTextWidth(backButtonText, FontSizes.SMALL);
+        const backButtonWidth = BACK_TEXT_WIDTH;
         const drawnBackY = optionY + 12 - sY;
         const backButtonRect = {
             x: optionX,
@@ -453,10 +456,12 @@ export const handleCategoryScroll = (
             }
 
             let scrollHandled = false;
-            layoutDirectComponents(components, getCategoryContentY(directCat, panel)).rows.forEach(({ component, y: componentY, height: compHeight }) => {
+            const layout = layoutDirectComponents(components, getCategoryContentY(directCat, panel));
+            layout.rows.forEach(({ component, y: baseY, height: compHeight }) => {
+                const componentY = layout.baseY + baseY - rightPanelScrollY;
                 const compRect = {
                     x: getDirectComponentX(panel),
-                    y: componentY - rightPanelScrollY,
+                    y: componentY,
                     width: getDirectComponentPanelWidth(panel) - PADDING * 2,
                     height: compHeight,
                 };

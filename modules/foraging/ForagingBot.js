@@ -10,6 +10,7 @@ import { ScheduleTask } from '../../utils/ScheduleTask';
 const MAX_SCAN = 500;
 const MAX_DISTANCE = 30;
 const IGNORE_RADIUS = 1;
+const DEBUG_BLOCK_COLOR = new RenderColor(205, 133, 63, 255);
 
 // todo
 // better targetting
@@ -345,8 +346,8 @@ class ForagingBot extends ModuleBase {
         if (!this.debug || this.connectedBlocks.length === 0) return;
 
         this.connectedBlocks.forEach((location) => {
-            const blockVec = new Vec3d(location.x, location.y, location.z);
-            Render3D.drawWireFrameBox(blockVec, new RenderColor(205, 133, 63, 255));
+            location.renderPosition ||= new Vec3d(location.x, location.y, location.z);
+            Render3D.drawWireFrameBox(location.renderPosition, DEBUG_BLOCK_COLOR);
         });
     }
 }

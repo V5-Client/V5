@@ -324,10 +324,9 @@ const getDirectComponentScrollY = (categoryName, component) => {
     if (!directCategory || !directCategory.directComponents) return 0;
 
     const panel = GuiRectangles.RightPanel;
-    const row = layoutDirectComponents(directCategory.directComponents, getCategoryContentY(directCategory, panel) - panel.y).rows.find(
-        (item) => item.component === component
-    );
-    return row ? Math.max(0, row.y - 10) : 0;
+    const layout = layoutDirectComponents(directCategory.directComponents, getCategoryContentY(directCategory, panel) - panel.y);
+    const row = layout.rows.find((item) => item.component === component);
+    return row ? Math.max(0, layout.baseY + row.y - 10) : 0;
 };
 
 const getModuleComponentScrollY = (item, component) => {

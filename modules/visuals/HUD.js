@@ -40,9 +40,7 @@ class HUD extends ModuleBase {
             'renderOverlay',
             () => this.renderOverlay()
         );
-        this.inventoryBackgroundCallback = () => this.renderInventoryBackgroundOverlay();
         this.statsCallback = () => this.renderStatsOverlay();
-        this.inventoryBackgroundRegistration = null;
         this.statsRegistration = null;
 
         register('gameUnload', () => this.savePositions());
@@ -155,12 +153,6 @@ class HUD extends ModuleBase {
 
     updateRenderRegistrations() {
         const visible = this.worldLoaded && !GuiState.myGui.isOpen() && !OverlayManager.drawingGUI;
-        if (visible && this.INVENTORY_HUD && !this.inventoryBackgroundRegistration) {
-            this.inventoryBackgroundRegistration = Render2D.registerV5PreRender(this.inventoryBackgroundCallback);
-        } else if ((!visible || !this.INVENTORY_HUD) && this.inventoryBackgroundRegistration) {
-            Render2D.unregisterV5PreRender(this.inventoryBackgroundRegistration);
-            this.inventoryBackgroundRegistration = null;
-        }
         if (visible && this.STATS_HUD && !this.statsRegistration) {
             this.statsRegistration = Render2D.registerV5Render(this.statsCallback);
         } else if ((!visible || !this.STATS_HUD) && this.statsRegistration) {
@@ -239,6 +231,7 @@ class HUD extends ModuleBase {
         if (!frame) return;
 
         try {
+            this.drawInventoryHudBackground();
             this.drawInventoryHudItems();
         } catch (e) {
             console.error(e);

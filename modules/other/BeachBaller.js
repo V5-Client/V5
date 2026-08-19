@@ -25,6 +25,7 @@ const PREDICTION_STEPS = 100;
 const GRAVITY = 0.03;
 const DRAG = 0.99;
 const HEAD_HEIGHT_OFFSET = 1.8;
+const LANDING_COLOR = new RenderColor(50, 255, 50, 255);
 
 class Beachballer extends ModuleBase {
     constructor() {
@@ -51,6 +52,10 @@ class Beachballer extends ModuleBase {
         this.landingPoint = null;
         this.lastVelocityY = 0;
         this.ballDescending = false;
+        this.trailColors = [];
+        this.predictionColors = [];
+        this.trailColorLength = -1;
+        this.predictionColorLength = -1;
         this.trajectoryToken = 0;
         this.holdShift = true;
 
@@ -188,6 +193,12 @@ class Beachballer extends ModuleBase {
         if (this.trailHistory.length > TRAIL_MAX_POINTS) {
             this.trailHistory.shift();
         }
+        if (this.trailColorLength !== this.trailHistory.length) {
+            this.trailColors = this.trailHistory
+                .slice(0, -1)
+                .map((_, i) => new RenderColor(0, 255, 255, Math.floor(80 + (120 * i) / this.trailHistory.length)));
+            this.trailColorLength = this.trailHistory.length;
+        }
 
         if (this.ballDescending && velocity.y <= 0) {
             const prediction = this.predictParabola(currentPos, velocity);
@@ -196,6 +207,12 @@ class Beachballer extends ModuleBase {
         } else {
             this.predictedPath = this.simpleExtrapolation(currentPos, velocity);
             this.landingPoint = null;
+        }
+        if (this.predictionColorLength !== this.predictedPath.length) {
+            this.predictionColors = this.predictedPath
+                .slice(0, -1)
+                .map((_, i) => new RenderColor(255, 165, 0, Math.floor(200 * (1 - i / this.predictedPath.length))));
+            this.predictionColorLength = this.predictedPath.length;
         }
     }
 
@@ -261,9 +278,6 @@ class Beachballer extends ModuleBase {
     }
 
     renderTrajectory() {
-        const TRAIL_COLOR = [0, 255, 255, 200];
-        const PREDICTION_COLOR = [255, 165, 0, 200];
-        const landingColor = new RenderColor(50, 255, 50, 255);
         const LINE_THICKNESS = 3;
 
         if (this.trailHistory.length >= 2) {
@@ -271,10 +285,7 @@ class Beachballer extends ModuleBase {
                 const start = this.trailHistory[i];
                 const end = this.trailHistory[i + 1];
 
-                const alpha = Math.floor(80 + (120 * i) / this.trailHistory.length);
-                const fadedColor = new RenderColor(TRAIL_COLOR[0], TRAIL_COLOR[1], TRAIL_COLOR[2], alpha);
-
-                Render3D.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                Render3D.drawLine(start, end, this.trailColors[i], LINE_THICKNESS, true);
             }
         }
 
@@ -283,10 +294,7 @@ class Beachballer extends ModuleBase {
                 const start = this.predictedPath[i];
                 const end = this.predictedPath[i + 1];
 
-                const alpha = Math.floor(200 * (1 - i / this.predictedPath.length));
-                const fadedColor = new RenderColor(PREDICTION_COLOR[0], PREDICTION_COLOR[1], PREDICTION_COLOR[2], alpha);
-
-                Render3D.drawLine(start, end, fadedColor, LINE_THICKNESS, true);
+                Render3D.drawLine(start, end, this.predictionColors[i], LINE_THICKNESS, true);
             }
         }
 
@@ -294,11 +302,11 @@ class Beachballer extends ModuleBase {
             const markerSize = 0.3;
             const lp = this.landingPoint;
 
-            Render3D.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), landingColor, 4, true);
-            Render3D.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), landingColor, 4, true);
+            Render3D.drawLine(new Vec3d(lp.x - markerSize, lp.y, lp.z), new Vec3d(lp.x + markerSize, lp.y, lp.z), LANDING_COLOR, 4, true);
+            Render3D.drawLine(new Vec3d(lp.x, lp.y, lp.z - markerSize), new Vec3d(lp.x, lp.y, lp.z + markerSize), LANDING_COLOR, 4, true);
 
             const groundVec = new Vec3d(Math.floor(lp.x), Math.floor(Player.getY()), Math.floor(lp.z));
-            Render3D.drawWireFrameBox(groundVec, landingColor, 2, true);
+            Render3D.drawWireFrameBox(groundVec, LANDING_COLOR, 2, true);
         }
     }
 

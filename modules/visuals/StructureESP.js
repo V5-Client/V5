@@ -3,6 +3,9 @@ import { Vec3d } from '../../utils/Constants';
 import { ModuleBase } from '../../utils/ModuleBase';
 import { ClientboundBlockUpdatePacket, ClientboundLevelChunkWithLightPacket } from '../../utils/Packets';
 
+const FAIRY_COLOR = new RenderColor(180, 70, 255, 110);
+const STRUCTURE_COLOR = new RenderColor(0, 255, 200, 100);
+
 class StructureESP extends ModuleBase {
     constructor() {
         super({
@@ -66,7 +69,7 @@ class StructureESP extends ModuleBase {
                 const distance = Math.hypot(dx, dy, dz);
                 const scale = distance > maxDistance ? maxDistance / distance : 1;
                 const pos = new Vec3d(playerX + dx * scale, playerY + dy * scale, playerZ + dz * scale);
-                const color = name === 'Fairy Grotto' ? new RenderColor(180, 70, 255, 110) : new RenderColor(0, 255, 200, 100);
+                const color = name === 'Fairy Grotto' ? FAIRY_COLOR : STRUCTURE_COLOR;
 
                 Render3D.drawSizedBox(pos, 8, 8, 8, color, true, 1, false);
                 Render3D.drawText(name, pos.add(0, 8.5, 0), 7.5, true, false, true);

@@ -45,6 +45,30 @@ class RouteWalkerer extends ModuleBase {
         };
 
         this.action = this.ACTIONS.WALK;
+        this.renderRoute = [];
+
+        this.updateRenderRoute = () => {
+            const route = this.route || [];
+            const getColor = (movement) => {
+                switch (movement?.toUpperCase()) {
+                    case 'WALK':
+                        return new RenderColor(0, 128, 255, 80);
+                    case 'ETHERWARP':
+                        return new RenderColor(170, 0, 255, 80);
+                    default:
+                        return new RenderColor(255, 255, 255, movement ? 80 : 255);
+                }
+            };
+            this.renderRoute = route.map((point) => {
+                const valid = this.checkPoint(point);
+                return {
+                    point,
+                    position: valid ? new Vec3d(point.x, point.y, point.z) : null,
+                    endpoint: valid ? new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5) : null,
+                    color: getColor(point.movements),
+                };
+            });
+        };
 
         v5Command(
             'routes',
@@ -62,6 +86,7 @@ class RouteWalkerer extends ModuleBase {
 
                     this.loadedFile = createdRouteName;
                     this.route = [];
+                    this.updateRenderRoute();
                     this.invalidateEtherwarpClick();
                     this.refreshRoutesToggle();
                     this.message(`&aCreated route: &f${createdRouteName}`);
@@ -84,6 +109,7 @@ class RouteWalkerer extends ModuleBase {
                     [arg1?.toUpperCase()]
                 );
                 this.invalidateEtherwarpClick();
+                this.updateRenderRoute();
             },
             ['greedyString']
         );
@@ -92,53 +118,26 @@ class RouteWalkerer extends ModuleBase {
             () => this.RENDERPOINTS,
             'postRenderWorld',
             () => {
-                let route = this.route;
-                if (!route || route.length === 0) return;
+                const route = this.renderRoute;
+                if (!route.length) return;
 
-                const getColor = (movement) => {
-                    if (!movement) return new RenderColor(255, 255, 255, 255);
-                    switch (movement.toUpperCase()) {
-                        case 'WALK':
-                            return new RenderColor(0, 128, 255, 80);
-                        case 'ETHERWARP':
-                            return new RenderColor(170, 0, 255, 80);
-                        default:
-                            return new RenderColor(255, 255, 255, 80);
-                    }
-                };
-
-                route.forEach((point, i) => {
-                    if (!this.checkPoint(point)) return;
-
-                    const pointColor = getColor(point.movements);
-
-                    Render3D.drawStyledBox(new Vec3d(point.x, point.y, point.z), pointColor, pointColor, 4, false);
+                route.forEach((entry, i) => {
+                    if (!entry.position || !entry.endpoint) return;
+                    Render3D.drawStyledBox(entry.position, entry.color, entry.color, 4, false);
 
                     if (i < route.length - 1) {
-                        const nextPoint = route[i + 1];
-                        if (!this.checkPoint(nextPoint)) return;
-                        Render3D.drawLine(
-                            new Vec3d(point.x + 0.5, point.y + 1, point.z + 0.5),
-                            new Vec3d(nextPoint.x + 0.5, nextPoint.y + 1, nextPoint.z + 0.5),
-                            getColor(nextPoint.movements),
-                            3,
-                            false
-                        );
+                        const next = route[i + 1];
+                        if (!next.endpoint) return;
+                        Render3D.drawLine(entry.endpoint, next.endpoint, next.color, 3, false);
                     }
                 });
 
                 const firstPoint = route[0];
                 const lastPoint = route[route.length - 1];
 
-                if (route.length < 1 || !this.checkPoint(firstPoint) || !this.checkPoint(lastPoint)) return;
+                if (!firstPoint.endpoint || !lastPoint.endpoint) return;
 
-                Render3D.drawLine(
-                    new Vec3d(lastPoint.x + 0.5, lastPoint.y + 1, lastPoint.z + 0.5),
-                    new Vec3d(firstPoint.x + 0.5, firstPoint.y + 1, firstPoint.z + 0.5),
-                    getColor(firstPoint.movements),
-                    3,
-                    false
-                );
+                Render3D.drawLine(lastPoint.endpoint, firstPoint.endpoint, firstPoint.color, 3, false);
             }
         );
 
@@ -243,6 +242,7 @@ class RouteWalkerer extends ModuleBase {
             (selected) => {
                 this.loadedFile = getFileFromCallback(selected);
                 this.route = loadRouteFromFile('RoutewalkerRoutes/', this.loadedFile);
+                this.updateRenderRoute();
                 this.invalidateEtherwarpClick();
                 this.currentIndex = 0;
                 this.foundpoint = false;

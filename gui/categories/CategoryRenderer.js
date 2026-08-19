@@ -41,6 +41,8 @@ const EDIT_ICON_PATH = ASSETS_PATH + 'edit.svg';
 const SCRIPT_VERSION = JSON.parse(FileLib.read('V5', 'metadata.json')).version;
 const moduleNavLayouts = new WeakMap();
 const titleLayouts = new WeakMap();
+const BACK_TEXT = 'Back';
+const BACK_TEXT_WIDTH = getTextWidth(BACK_TEXT, FontSizes.SMALL);
 
 export const getModuleBorderColor = (moduleType) =>
     moduleType === 'developer' ? colorWithAlpha(THEME.NOTIF_WARNING, 0.75) : moduleType === 'user' ? colorWithAlpha(THEME.NOTIF_ERROR, 0.75) : null;
@@ -211,7 +213,7 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
     const panelWidth = panel.width;
     let currentY = yOffset - scrollY;
 
-    const layout = layoutDirectComponents(components, yOffset - scrollY);
+    const layout = layoutDirectComponents(components, yOffset);
 
     const shouldShowSearchEmptyState = categoryName === 'Settings' || categoryName === 'Theme';
     if (shouldShowSearchEmptyState && SearchBar.query.trim().length > 0) {
@@ -240,17 +242,19 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
     }
 
     layout.sections.forEach((section) => {
-        if (section.y + section.height < panel.y || section.y > panel.y + panel.height) return;
+        const sectionY = layout.baseY + section.y - scrollY;
+        if (sectionY + section.height < panel.y || sectionY > panel.y + panel.height) return;
 
-        const separator = new Separator(section.name, true);
+        const separator = section.separator || (section.separator = new Separator(section.name, true));
         separator.x = panelX + PADDING;
-        separator.y = section.y;
+        separator.y = sectionY;
         separator.optionPanelWidth = panelWidth;
         separator.draw(mouseX, mouseY);
     });
 
     layout.rows.forEach(({ component, y, height }) => {
-        if (y + height < panel.y || y > panel.y + panel.height) {
+        const componentY = layout.baseY + y - scrollY;
+        if (componentY + height < panel.y || componentY > panel.y + panel.height) {
             component.updateAnimation?.();
             return;
         }
@@ -258,7 +262,7 @@ export const drawDirectComponents = (panel, panelX, yOffset, mouseX, mouseY, scr
         const isPopup = component instanceof Popup;
         if (typeof component.draw === 'function' || isPopup) {
             component.x = getDirectComponentX(panel, panelX);
-            component.y = y;
+            component.y = componentY;
             component.optionPanelWidth = getDirectComponentPanelWidth(panel);
             component.optionPanelHeight = panel.height;
             if (isPopup && typeof component.drawButton === 'function') {
@@ -284,11 +288,11 @@ export const drawOptionsPanel = (panel, mouseX, mouseY, macroToggleButton = null
     const optionY = panel.y + PADDING;
     const scrollY = Categories.optionsScrollY;
 
-    const backButtonText = 'Back';
+    const backButtonText = BACK_TEXT;
     const backButtonX = optionX;
     const backButtonY = optionY + 12;
     const drawnBackY = backButtonY - scrollY;
-    const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: getTextWidth(backButtonText, FontSizes.SMALL), height: 10 });
+    const isBackHovered = isInside(mouseX, mouseY, { x: backButtonX, y: drawnBackY, width: BACK_TEXT_WIDTH, height: 10 });
 
     drawText(backButtonText, backButtonX, drawnBackY + 5, FontSizes.SMALL, isBackHovered ? THEME.TEXT : THEME.TEXT_LINK);
     const drawnTitleY = optionY + 36 - scrollY;
